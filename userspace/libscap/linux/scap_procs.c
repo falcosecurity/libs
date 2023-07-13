@@ -935,7 +935,7 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, struct
 //
 // Scan a directory containing multiple processes under /proc
 //
-static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, int parenttid, char *error)
+static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist, char* procdirname, int parenttid, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
@@ -948,7 +948,6 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	uint64_t total_num_fds = 0;
 	uint64_t last_tid_processed = 0;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	dir_p = opendir(procdirname);
 
@@ -962,8 +961,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	// - this is the top-level call (parenttid == -1)
 	// - one or both of the timing parameters is configured to non-zero
 	bool do_timing = (parenttid == -1) &&
-	                 ((handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE) ||
-	                  (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE));
+	                 ((linux_platform->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE) ||
+	                  (linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE));
 	uint64_t monotonic_ts_context = SCAP_GET_CUR_TS_MS_CONTEXT_INIT;
 	uint64_t start_ts_ms = 0;
 	uint64_t last_log_ts_ms = 0;
@@ -1012,7 +1011,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// are an error, or at least unexpected. Check the process
 		// list to see if we've encountered this tid already
 		//
-		HASH_FIND_INT64(handle->m_proclist.m_proclist, &tid, tinfo);
+		HASH_FIND_INT64(proclist->m_proclist, &tid, tinfo);
 		if(tinfo != NULL)
 		{
 			ASSERT(false);
@@ -1026,7 +1025,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// We have a process that needs to be explored
 		//
 		uint64_t num_fds_this_proc;
-		res = scap_proc_add_from_proc(linux_platform, &handle->m_proclist, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
+		res = scap_proc_add_from_proc(linux_platform, proclist, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			//
@@ -1052,7 +1051,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		if(parenttid == -1 && !linux_platform->m_minimal_scan)
 		{
 			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-			if(_scap_proc_scan_proc_dir_impl(handle, childdir, tid, error) == SCAP_FAILURE)
+			if(_scap_proc_scan_proc_dir_impl(linux_platform, proclist, childdir, tid, error) == SCAP_FAILURE)
 			{
 				res = SCAP_FAILURE;
 				break;
@@ -1083,10 +1082,10 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				max_proc_time_ms = this_proc_elapsed_time_ms;
 			}
 
-			if (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE)
+			if (linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE)
 			{
 				uint64_t log_elapsed_time_ms = cur_ts_ms - last_log_ts_ms;
-				if (log_elapsed_time_ms >= handle->m_proc_scan_log_interval_ms)
+				if (log_elapsed_time_ms >= linux_platform->m_proc_scan_log_interval_ms)
 				{
 					scap_debug_log(linux_platform,
 						"scap_proc_scan: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
@@ -1101,9 +1100,9 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				}
 			}
 
-			if (handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE)
+			if (linux_platform->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE)
 			{
-				if (total_elapsed_time_ms >= handle->m_proc_scan_timeout_ms)
+				if (total_elapsed_time_ms >= linux_platform->m_proc_scan_timeout_ms)
 				{
 					timeout_expired = true;
 				}
@@ -1122,7 +1121,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		{
 			scap_debug_log(linux_platform,
 				"scap_proc_scan TIMEOUT (%ld ms): %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
-				handle->m_proc_scan_timeout_ms,
+				linux_platform->m_proc_scan_timeout_ms,
 				num_procs_processed,
 				total_elapsed_time_ms,
 				avg_proc_time_ms,
@@ -1131,7 +1130,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				last_tid_processed,
 				total_num_fds);
 		}
-		else if ((handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) &&
+		else if ((linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) &&
 			(num_procs_processed != 0))
 		{
 			scap_debug_log(linux_platform,
@@ -1154,21 +1153,15 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	return res;
 }
 
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
+int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t *pid, char* error)
 {
-	char procdirname[SCAP_MAX_PATH_SIZE];
-	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
-	scap_cgroup_enable_cache(&linux_platform->m_cgroups);
-	int32_t ret = _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
-	scap_cgroup_clear_cache(&linux_platform->m_cgroups);
-	return ret;
-}
+	if(linux_platform->m_linux_vtable && linux_platform->m_linux_vtable->getpid_global)
+	{
+		return linux_platform->m_linux_vtable->getpid_global(linux_platform->m_engine, pid, error);
+	}
 
-
-int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
-{
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[512];
 
@@ -1210,19 +1203,10 @@ struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, stru
 	return tinfo;
 }
 
-bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm)
+bool scap_linux_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
 {
 	char charbuf[SCAP_MAX_PATH_SIZE];
 	FILE* f;
-
-
-	//
-	// No /proc parsing for offline captures
-	//
-	if(handle->m_mode == SCAP_MODE_CAPTURE || handle->m_mode == SCAP_MODE_TEST)
-	{
-		return false;
-	}
 
 	snprintf(charbuf, sizeof(charbuf), "%s/proc/%" PRId64 "/task/%" PRId64 "/comm", scap_get_host_root(), pid, tid);
 
@@ -1261,19 +1245,33 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	return false;
 }
 
-int32_t scap_refresh_proc_table(scap_t* handle)
+int32_t scap_linux_refresh_proc_table(struct scap_platform* platform, struct scap_proclist* proclist)
 {
-	if(handle->m_proclist.m_proclist)
+	char procdirname[SCAP_MAX_PATH_SIZE];
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	if(proclist->m_proclist)
 	{
-		scap_proc_free_table(&handle->m_proclist);
-		handle->m_proclist.m_proclist = NULL;
+		scap_proc_free_table(proclist);
+		proclist->m_proclist = NULL;
 	}
 
-	return scap_proc_scan_proc_dir(handle, handle->m_lasterr);
+	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
+	scap_cgroup_enable_cache(&linux_platform->m_cgroups);
+	int32_t ret = _scap_proc_scan_proc_dir_impl(linux_platform, proclist, procdirname, -1, linux_platform->m_lasterr);
+	scap_cgroup_clear_cache(&linux_platform->m_cgroups);
+	return ret;
 }
 
-int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
+int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	if(linux_platform->m_linux_vtable && linux_platform->m_linux_vtable->get_threadlist)
+	{
+		return linux_platform->m_linux_vtable->get_threadlist(linux_platform->m_engine, procinfo_p, lasterr);
+	}
+
 	DIR *dir_p = NULL;
 	DIR *taskdir_p = NULL;
 	FILE *fp = NULL;

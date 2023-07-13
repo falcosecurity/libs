@@ -343,6 +343,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.aname[0]"), "test-exe");
 	// check that the pid is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.pid"), "20");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "20");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[0]"), "20");
 	// check that the exe is updated (first arg given in this test setup is same as full exepath)
 	ASSERT_EQ(get_field_as_string(evt, "proc.exe"), "/bin/test-exe");
@@ -355,6 +356,14 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.sname"), "init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.sid.exe"), "/sbin/init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.sid.exepath"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_sid_leader"), "false");
+
+	//check process group leader (vpgid) related fields
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_vpgid_leader"), "false");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid.name"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid.exe"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid.exepath"), "/sbin/init");
 
 	// check that parent/ancestor info retrieved from the parent process lineage
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
@@ -373,6 +382,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_FALSE(field_exists(evt, "proc.aname[2]"));
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "proc.pvpid"), "1");
 	ASSERT_FALSE(field_exists(evt, "proc.apid[2]"));
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.cmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");

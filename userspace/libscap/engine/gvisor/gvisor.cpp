@@ -25,6 +25,7 @@ namespace scap_gvisor {
 #include "gvisor.h"
 #include "gvisor_platform.h"
 #include "scap-int.h"
+#include "scap_proc_util.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -37,6 +38,7 @@ namespace scap_gvisor {
 #include <stdint.h>
 #include <utility>
 
+#include "strerror.h"
 #include "strl.h"
 
 #ifdef __cplusplus
@@ -45,7 +47,42 @@ extern "C"{
 
 static int32_t scap_gvisor_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs)
 {
+	auto gvisor_platform = reinterpret_cast<struct scap_gvisor_platform*>(platform);
+	auto params = reinterpret_cast<scap_gvisor_engine_params *>(oargs->engine_params);
+
+	gvisor_platform->m_lasterr = lasterr;
+	gvisor_platform->m_platform = std::make_unique<scap_gvisor::platform>(gvisor_platform->m_lasterr,
+									      params->gvisor_root_path);
 	return SCAP_SUCCESS;
+}
+
+static int32_t get_fdinfos(void* ctx, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
+{
+	auto gv = reinterpret_cast<scap_gvisor::platform*>(ctx);
+
+	return gv->get_fdinfos(tinfo, n, fdinfos);
+}
+
+static int32_t scap_gvisor_refresh_proc_table(struct scap_platform* platform, struct scap_proclist* proclist)
+{
+	auto gvisor_platform = reinterpret_cast<struct scap_gvisor_platform*>(platform);
+	scap_gvisor::platform *gv = gvisor_platform->m_platform.get();
+
+	if(gv == nullptr)
+	{
+		return scap_errprintf(gvisor_platform->m_lasterr, 0, "Platform not initialized yet");
+	}
+
+	uint64_t n;
+	const scap_threadinfo* tinfos;
+	int ret = gv->get_threadinfos(&n, &tinfos);
+
+	if(ret != SCAP_SUCCESS)
+	{
+		return ret;
+	}
+
+	return scap_proc_scan_vtable(gvisor_platform->m_lasterr, proclist, n, tinfos, gv, get_fdinfos);
 }
 
 static int32_t scap_gvisor_close_platform(struct scap_platform* platform)
@@ -59,11 +96,37 @@ static void scap_gvisor_free_platform(struct scap_platform* platform)
 	delete gvisor_platform;
 }
 
+bool scap_gvisor_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
+{
+	return true; // TODO we actually need a real implementation
+}
+
+static int32_t gvisor_get_threadlist(struct scap_platform* platform, struct ppm_proclist_info **procinfo_p, char *lasterr)
+{
+	if(*procinfo_p == NULL)
+	{
+		if(scap_alloc_proclist_info(procinfo_p, SCAP_DRIVER_PROCINFO_INITIAL_SIZE, lasterr) == false)
+		{
+			return SCAP_FAILURE;
+		}
+	}
+
+	// placeholder
+	(*procinfo_p)->n_entries = 0;
+
+	return SCAP_SUCCESS;
+}
+
 static const struct scap_platform_vtable scap_gvisor_platform_vtable = {
 	.init_platform = scap_gvisor_init_platform,
 	.refresh_addr_list = NULL,
 	.get_device_by_mount_id = NULL,
 	.get_proc = NULL,
+	.refresh_proc_table = scap_gvisor_refresh_proc_table,
+	.is_thread_alive = scap_gvisor_is_thread_alive,
+	.get_global_pid = NULL,
+	.get_threadlist = gvisor_get_threadlist,
+
 	.close_platform = scap_gvisor_close_platform,
 	.free_platform = scap_gvisor_free_platform,
 };
@@ -143,39 +206,6 @@ static uint64_t gvisor_get_max_buf_used(struct scap_engine_handle engine)
 	return 0;
 }
 
-static int32_t gvisor_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
-{
-	if(*procinfo_p == NULL)
-	{
-		if(scap_alloc_proclist_info(procinfo_p, SCAP_DRIVER_PROCINFO_INITIAL_SIZE, lasterr) == false)
-		{
-			return SCAP_FAILURE;
-		}
-	}
-
-	// placeholder
-	(*procinfo_p)->n_entries = 0;
-
-	return SCAP_SUCCESS;
-}
-
-static int32_t gvisor_get_threadinfos(struct scap_engine_handle engine, uint64_t *n, const scap_threadinfo **tinfos)
-{
-	return engine.m_handle->get_threadinfos(n, tinfos);
-}
-
-static int32_t gvisor_get_fdinfos(struct scap_engine_handle engine, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
-{
-	return engine.m_handle->get_fdinfos(tinfo, n, fdinfos);
-}
-
-static int32_t gvisor_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
-{
-	// there is no current PID in gvisor since we run outside a sandbox
-	*pid = 1000;
-	return SCAP_SUCCESS;
-}
-
 #ifdef __cplusplus
 }
 #endif
@@ -198,10 +228,6 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_n_tracepoint_hit = gvisor_get_n_tracepoint_hit,
 	.get_n_devs = gvisor_get_n_devs,
 	.get_max_buf_used = gvisor_get_max_buf_used,
-	.get_threadlist = gvisor_get_threadlist,
-	.get_threadinfos = gvisor_get_threadinfos,
-	.get_fdinfos = gvisor_get_fdinfos,
-	.getpid_global = gvisor_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
 };

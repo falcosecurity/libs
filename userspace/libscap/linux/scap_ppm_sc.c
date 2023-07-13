@@ -17,10 +17,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <unistd.h>
+#include <string.h>
 
 /*
  * When adding a new event, a new line should be added with the list of ppm_sc codes mapping that event.
@@ -443,7 +440,9 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
 	
 };
 
+#if defined(__GNUC__) || (__STDC_VERSION__ >=201112L)
 _Static_assert(sizeof(g_events_to_sc_map) / sizeof(*g_events_to_sc_map) == PPM_EVENT_MAX, "Missing entries in g_events_to_sc_map table.");
+#endif
 
 int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 {

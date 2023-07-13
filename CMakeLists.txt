@@ -46,6 +46,7 @@ option(USE_BUNDLED_DRIVER "Use the driver/ subdirectory in the build process (on
 option(ENABLE_DRIVERS_TESTS "Enable driver tests (bpf, kernel module, modern bpf)" OFF)
 option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
 option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
+option(ENABLE_VM_TESTS "Enable driver sanity tests" OFF)
 
 if(${CMAKE_VERSION} VERSION_LESS "3.1.0" AND BUILD_SHARED_LIBS)
 	# scap_engine_savefile uses target_sources
@@ -121,4 +122,9 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	if(ENABLE_LIBSCAP_TESTS)
 		add_subdirectory(test/libscap)
 	endif()
+
+	if(ENABLE_VM_TESTS)
+		add_subdirectory(test/vm)
+	endif()
+
 endif()

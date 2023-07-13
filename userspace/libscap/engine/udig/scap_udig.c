@@ -570,8 +570,6 @@ static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 	return max;
 }
 
-
-
 const struct scap_vtable scap_udig_engine = {
 	.name = UDIG_ENGINE,
 	.mode = SCAP_MODE_LIVE,
@@ -590,8 +588,6 @@ const struct scap_vtable scap_udig_engine = {
 	.get_n_tracepoint_hit = get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,
 	.get_max_buf_used = get_max_buf_used,
-	.get_threadlist = scap_procfs_get_threadlist,
-	.getpid_global = noop_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
 };

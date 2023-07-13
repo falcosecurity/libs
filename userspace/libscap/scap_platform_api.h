@@ -27,9 +27,12 @@ limitations under the License.
 extern "C" {
 #endif
 
+struct ppm_proclist_info;
 struct scap;
 struct scap_addrlist;
+struct _scap_machine_info;
 struct scap_threadinfo;
+typedef struct _scap_agent_info scap_agent_info;
 
 /*!
   \brief Return the list of the the user interfaces of the machine from which the
@@ -61,6 +64,66 @@ uint32_t scap_get_device_by_mount_id(struct scap *handle, const char *procdir, u
 // Get the information about a process.
 // The returned pointer must be freed via scap_proc_free by the caller.
 struct scap_threadinfo* scap_proc_get(struct scap* handle, int64_t tid, bool scan_sockets);
+
+int32_t scap_refresh_proc_table(struct scap* handle);
+
+/*!
+  \brief Get the process list for the given capture instance
+
+  \param handle Handle to the capture instance.
+
+  \return Pointer to the process list.
+
+  for live captures, the process list is created when the capture starts by scanning the
+  proc file system. For offline captures, it is retrieved from the file.
+  The process list contains information about the processes that were already open when
+  the capture started. It can be traversed with uthash, using the following syntax:
+
+  \code
+  scap_threadinfo *pi;
+  scap_threadinfo *tpi;
+  scap_threadinfo *table = scap_get_proc_table(phandle);
+
+  HASH_ITER(hh, table, pi, tpi)
+  {
+    // do something with pi
+  }
+  \endcode
+
+  Refer to the documentation of the \ref scap_threadinfo struct for details about its
+  content.
+*/
+struct scap_threadinfo* scap_get_proc_table(struct scap* handle);
+
+// Check if the given thread exists in /proc
+bool scap_is_thread_alive(struct scap* handle, int64_t pid, int64_t tid, const char* comm);
+
+// like getpid() but returns the global PID even inside a container
+int32_t scap_getpid_global(struct scap* handle, int64_t* pid);
+
+/*!
+  \brief Get generic machine information
+
+  \return The pointer to a \ref scap_machine_info structure containing the information.
+
+  \note for live captures, the information is collected from the operating system. For
+  offline captures, it comes from the capture file.
+*/
+const struct _scap_machine_info* scap_get_machine_info(struct scap* handle);
+
+/*!
+  \brief Get generic agent information
+
+  \return The pointer to a \ref scap_agent_info structure containing the information.
+
+  \note for live captures only.
+*/
+const scap_agent_info* scap_get_agent_info(struct scap* handle);
+
+/*!
+  \brief Get the process list.
+*/
+struct ppm_proclist_info* scap_get_threadlist(struct scap* handle);
 
 #ifdef __cplusplus
 };

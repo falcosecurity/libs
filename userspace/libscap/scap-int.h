@@ -52,15 +52,7 @@ struct scap
 	scap_mode_t m_mode;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
-	struct scap_proclist m_proclist;
 	uint64_t m_evtcnt;
-	scap_machine_info m_machine_info;
-	scap_agent_info m_agent_info;
-	struct ppm_proclist_info* m_driver_procinfo;
-
-	// /proc scan parameters
-	uint64_t m_proc_scan_timeout_ms;
-	uint64_t m_proc_scan_log_interval_ms;
 
 	// Function which may be called to log a debug event
 	void(*m_debug_log_fn)(const char* msg);
@@ -70,10 +62,6 @@ struct scap
 // Internal library functions
 //
 
-// Scan a directory containing process information
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error);
-// Scan process information from engine vtable
-int32_t scap_proc_scan_vtable(char *error, scap_t *handle);
 // Free the process table
 void scap_proc_free_table(struct scap_proclist* proclist);
 // Return the process info entry given a tid
@@ -84,8 +72,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo* pi);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
-// scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
-int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error);
 // Allocate and return the list of interfaces on this system
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
@@ -111,14 +97,6 @@ void scap_free_device_table(scap_mountinfo* dev_list);
 // tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
 int32_t scap_check_suppressed(struct scap_suppress *suppress, scap_evt *pevent,
 			      uint16_t devid, bool *suppressed, char *error);
-
-int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
-int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error);
-
-//
-// Retrieve agent info.
-//
-void scap_retrieve_agent_info(scap_agent_info* agent_info);
 
 //
 // Retrieve machine info.

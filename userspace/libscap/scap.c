@@ -54,15 +54,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	int32_t rc;
 
 	//
-	// Get boot_time
-	//
-	uint64_t boot_time = 0;
-	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	//
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
@@ -76,27 +67,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 		return SCAP_FAILURE;
 	}
 
-	handle->m_platform = platform;
-
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
-	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
-	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-
-	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
-
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	//
 	// Open and initialize all the devices
@@ -114,17 +85,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 
 	scap_stop_dropping_mode(handle);
 
-	//
-	// Create the process list
-	//
-	handle->m_lasterr[0] = '\0';
-	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_init_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
-		return rc;
-	}
-
 	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
@@ -138,15 +98,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_platform* platform)
 {
 	int32_t rc;
-
-	//
-	// Get boot_time
-	//
-	uint64_t boot_time = 0;
-	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
 
 	//
 	// Preliminary initializations
@@ -168,41 +119,12 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 		return rc;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
-	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
-	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-
-	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
-
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	//
 	// Additional initializations
 	//
 	scap_stop_dropping_mode(handle);
-
-	//
-	// Create the process list
-	//
-	handle->m_lasterr[0] = '\0';
-	char procerr[SCAP_LASTERR_SIZE];
-	if((rc = scap_proc_scan_proc_dir(handle, procerr)) != SCAP_SUCCESS)
-	{
-		strlcpy(handle->m_lasterr, procerr, SCAP_LASTERR_SIZE);
-		return rc;
-	}
 
 	//
 	// Now that /proc parsing has been done, start the capture
@@ -225,13 +147,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct scap_platform *platform)
 {
 	int32_t rc;
-	// Get boot_time
-	//
-	uint64_t boot_time = 0;
-	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
 
 	//
 	// Preliminary initializations
@@ -253,28 +168,7 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct s
 		return rc;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-
-	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
-
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
-
-	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -310,16 +204,7 @@ int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs, struct scap_
 		return rc;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -350,12 +235,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 	}
 
 	handle->m_evtcnt = 0;
-	handle->m_machine_info.num_cpus = (uint32_t)-1;
-	handle->m_driver_procinfo = NULL;
-
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
@@ -379,15 +258,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	int32_t rc;
 
 	//
-	// Get boot_time
-	//
-	uint64_t boot_time = 0;
-	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	//
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_NODRIVER;
@@ -401,36 +271,7 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 		return SCAP_FAILURE;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
-	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
-	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-
-	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
-
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
-
-	//
-	// Create the process list
-	//
-	handle->m_lasterr[0] = '\0';
-	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
-		return rc;
-	}
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -460,22 +301,7 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs, struct scap_
 		return SCAP_FAILURE;
 	}
 
-	handle->m_proclist.m_proc_callback = NULL;
-	handle->m_proclist.m_proc_callback_context = NULL;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-	scap_retrieve_machine_info(&handle->m_machine_info, (uint64_t)0);
-
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
@@ -552,7 +378,7 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		}
 		else
 		{
-			platform = scap_generic_alloc_platform();
+			platform = scap_test_input_alloc_platform();
 		}
 		if(!platform)
 		{
@@ -656,27 +482,10 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	return handle;
 }
 
-static inline void scap_deinit_state(scap_t* handle)
-{
-	// Free the process table
-	if(handle->m_proclist.m_proclist != NULL)
-	{
-		scap_proc_free_table(&handle->m_proclist);
-		handle->m_proclist.m_proclist = NULL;
-	}
-
-	if(handle->m_driver_procinfo)
-	{
-		free(handle->m_driver_procinfo);
-		handle->m_driver_procinfo = NULL;
-	}
-}
-
 uint32_t scap_restart_capture(scap_t* handle)
 {
 	if(handle->m_vtable->savefile_ops)
 	{
-		scap_deinit_state(handle);
 		return handle->m_vtable->savefile_ops->restart_capture(handle);
 	}
 	else
@@ -688,8 +497,6 @@ uint32_t scap_restart_capture(scap_t* handle)
 
 void scap_deinit(scap_t* handle)
 {
-	scap_deinit_state(handle);
-
 	if(handle->m_platform)
 	{
 		scap_platform_close(handle->m_platform);
@@ -811,14 +618,6 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid)
 	}
 
 	return res;
-}
-
-//
-// Return the process list for the given handle
-//
-scap_threadinfo* scap_get_proc_table(scap_t* handle)
-{
-	return handle->m_proclist.m_proclist;
 }
 
 //
@@ -956,32 +755,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-}
-
-//
-// Get the machine information
-//
-const scap_machine_info* scap_get_machine_info(scap_t* handle)
-{
-	if(handle->m_machine_info.num_cpus != (uint32_t)-1)
-	{
-		return (const scap_machine_info*)&handle->m_machine_info;
-	}
-	else
-	{
-		//
-		// Reading from a file with no process info block
-		//
-		return NULL;
-	}
-}
-
-//
-// Get the agent information
-//
-const scap_agent_info* scap_get_agent_info(scap_t* handle)
-{
-	return (const scap_agent_info*)&handle->m_agent_info;
 }
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
@@ -1122,23 +895,6 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 	return true;
 }
 
-struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
-{
-	if(handle->m_vtable)
-	{
-		int res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
-		if(res != SCAP_SUCCESS)
-		{
-			return NULL;
-		}
-
-		return handle->m_driver_procinfo;
-	}
-
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
-	return NULL;
-}
-
 uint64_t scap_ftell(scap_t *handle)
 {
 	if(handle->m_vtable->savefile_ops)
@@ -1234,56 +990,4 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 	}
 
 	return 0;
-}
-
-int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)
-{
-	*boot_time = 0;
-
-#ifdef __linux__
-	uint64_t btime = 0;
-	char proc_stat[PPM_MAX_PATH_SIZE];
-	char line[512];
-
-	/* Get boot time from btime value in /proc/stat
-	 * ref: https://github.com/falcosecurity/libs/issues/932
-	 * /proc/uptime and btime in /proc/stat are fed by the same kernel sources.
-	 *
-	 * Multiple ways to get boot time:
-	 *	btime in /proc/stat
-	 *	calculation via clock_gettime(CLOCK_REALTIME - CLOCK_BOOTTIME)
-	 *	calculation via time(NULL) - sysinfo().uptime
-	 *
-	 * Maintainers preferred btime in /proc/stat because:
-	 *	value does not depend on calculation using current timestamp
-	 *	btime is "static" and doesn't change once set
-	 *	btime is available in kernels from 2008
-	 *	CLOCK_BOOTTIME is available in kernels from 2011 (2.6.38
-	 *
-	 * By scraping btime from /proc/stat,
-	 * it is both the heaviest and most likely to succeed
-	 */
-	snprintf(proc_stat, sizeof(proc_stat), "%s/proc/stat", scap_get_host_root());
-	FILE* f = fopen(proc_stat, "r");
-	if (f == NULL)
-	{
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-	while(fgets(line, sizeof(line), f) != NULL)
-	{
-		if(sscanf(line, "btime %" PRIu64, &btime) == 1)
-		{
-			fclose(f);
-			*boot_time = btime * (uint64_t) SECOND_TO_NS;
-			return SCAP_SUCCESS;
-		}
-	}
-	fclose(f);
-	ASSERT(false);
-	return SCAP_FAILURE;
-
-#endif
-	return SCAP_SUCCESS;
 }

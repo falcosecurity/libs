@@ -71,6 +71,7 @@ typedef struct ppm_evt_hdr scap_evt;
 
 #include "scap_limits.h"
 #include "scap_open.h"
+#include "scap_machine_info.h"
 #include "scap_procs.h"
 #include "scap_cgroup_set.h"
 
@@ -315,31 +316,6 @@ typedef struct scap_mountinfo {
 #else
 #pragma pack(push, 1)
 #endif
-
-/*!
-  \brief Machine information
-*/
-typedef struct _scap_machine_info
-{
-	uint32_t num_cpus;	///< Number of processors
-	uint64_t memory_size_bytes; ///< Physical memory size
-	uint64_t max_pid; ///< Highest PID number on this machine
-	char hostname[128]; ///< The machine hostname
-	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
-	uint64_t flags; ///< flags
-	uint64_t reserved3; ///< reserved for future use
-	uint64_t reserved4; ///< reserved for future use, note: because of scap file captures needs to remain uint64_t, use flags if possible
-}scap_machine_info;
-
-/*!
-  \brief Agent information, not intended for scap file use
-*/
-typedef struct _scap_agent_info
-{
-	uint64_t start_ts_epoch; ///< Agent start timestamp, stat /proc/self/cmdline approach, unit: epoch in nanoseconds
-	double start_time; ///< /proc/self/stat start_time divided by HZ, unit: seconds
-	char uname_r[128]; ///< Kernel release `uname -r`
-}scap_agent_info;
 
 /*!
   \brief Interface address type
@@ -677,34 +653,6 @@ uint32_t scap_event_get_dump_flags(scap_t* handle);
 int64_t scap_get_readfile_offset(scap_t* handle);
 
 /*!
-  \brief Get the process list for the given capture instance
-
-  \param handle Handle to the capture instance.
-
-  \return Pointer to the process list.
-
-  for live captures, the process list is created when the capture starts by scanning the
-  proc file system. For offline captures, it is retrieved from the file.
-  The process list contains information about the processes that were already open when
-  the capture started. It can be traversed with uthash, using the following syntax:
-
-  \code
-  scap_threadinfo *pi;
-  scap_threadinfo *tpi;
-  scap_threadinfo *table = scap_get_proc_table(phandle);
-
-  HASH_ITER(hh, table, pi, tpi)
-  {
-    // do something with pi
-  }
-  \endcode
-
-  Refer to the documentation of the \ref scap_threadinfo struct for details about its
-  content.
-*/
-scap_threadinfo* scap_get_proc_table(scap_t* handle);
-
-/*!
   \brief Return the capture statistics for the given capture handle.
 
   \param handle Handle to the capture instance.
@@ -829,25 +777,6 @@ enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev);
 const char* scap_get_ppm_sc_name(ppm_sc_code sc);
 
 /*!
-  \brief Get generic machine information
-
-  \return The pointer to a \ref scap_machine_info structure containing the information.
-
-  \note for live captures, the information is collected from the operating system. For
-  offline captures, it comes from the capture file.
-*/
-const scap_machine_info* scap_get_machine_info(scap_t* handle);
-
-/*!
-  \brief Get generic agent information
-
-  \return The pointer to a \ref scap_agent_info structure containing the information.
-
-  \note for live captures only.
-*/
-const scap_agent_info* scap_get_agent_info(scap_t* handle);
-
-/*!
   \brief Set the capture snaplen, i.e. the maximum size an event parameter can
   reach before the driver starts truncating it.
 
@@ -892,11 +821,6 @@ int32_t scap_set_dropfailed(scap_t* handle, bool enabled);
   host can be correctly extracted.
 */
 const char* scap_get_host_root();
-
-/*!
-  \brief Get the process list.
-*/
-struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
 /*!
   \brief Check if the current engine name matches the provided engine_name
@@ -977,19 +901,12 @@ extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT 
 uint32_t scap_event_get_sentinel_begin(scap_evt* e);
 #endif
 
-// Check if the given thread exists in ;proc
-bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm);
-
-// like getpid() but returns the global PID even inside a container
-int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
-
 struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
-int32_t scap_refresh_proc_table(scap_t* handle);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
@@ -1019,13 +936,6 @@ uint64_t scap_get_driver_api_version(scap_t* handle);
  * it's equivalent to version 0.0.0
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
-
-/**
- * This helper returns the system boot time computed as the actual time - the uptime of the system since the boot.
- * We need to use this helper in drivers like BPF, because in BPF we are not able to obtain the current system time
- * since Epoch, so we need to compute it as `time_from_the_boot(bpf_ktime_get_boot_ns) + boot_time`.
- */
-int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time);
 
 #ifdef __cplusplus
 }

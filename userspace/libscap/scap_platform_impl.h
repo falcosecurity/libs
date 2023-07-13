@@ -32,6 +32,8 @@ extern "C" {
 #endif
 
 #include "engine_handle.h"
+#include "scap_machine_info.h"
+#include "scap_procs.h"
 #include "scap_suppress.h"
 
 struct scap_addrlist;
@@ -39,6 +41,7 @@ struct scap_open_args;
 struct scap_platform;
 struct scap_proclist;
 struct scap_userlist;
+struct ppm_proclist_info;
 
 // a method table for platform-specific operations
 struct scap_platform_vtable
@@ -54,7 +57,13 @@ struct scap_platform_vtable
 	// given a mount id, return the device major:minor
 	// XXX this is Linux-specific
 	uint32_t (*get_device_by_mount_id)(struct scap_platform*, const char *procdir, unsigned long requested_mount_id);
+
 	struct scap_threadinfo* (*get_proc)(struct scap_platform*, struct scap_proclist* proclist, int64_t tid, bool scan_sockets);
+
+	int32_t (*refresh_proc_table)(struct scap_platform*, struct scap_proclist* proclist);
+	bool (*is_thread_alive)(struct scap_platform*, int64_t pid, int64_t tid, const char* comm);
+	int32_t (*get_global_pid)(struct scap_platform*, int64_t *pid, char *error);
+	int32_t (*get_threadlist)(struct scap_platform* platform, struct ppm_proclist_info **procinfo_p, char *lasterr);
 
 	// close the platform structure
 	// clean up all data, make it ready for another call to `init_platform`
@@ -75,6 +84,11 @@ struct scap_platform
 	struct scap_addrlist *m_addrlist;
 	struct scap_userlist *m_userlist;
 	struct scap_suppress m_suppress;
+	struct scap_proclist m_proclist;
+
+	scap_agent_info m_agent_info;
+	scap_machine_info m_machine_info;
+	struct ppm_proclist_info* m_driver_procinfo;
 };
 
 #ifdef __cplusplus

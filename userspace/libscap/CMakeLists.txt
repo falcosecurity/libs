@@ -63,7 +63,6 @@ list(APPEND targetfiles
 	scap_platform_api.c
 	scap_procs.c
 	scap_userlist.c
-	scap_machine_agent.c
 	scap_suppress.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -79,7 +78,8 @@ add_library(scap
 set_scap_target_properties(scap)
 
 add_library(scap_platform_util
-	scap_iflist.c)
+	scap_iflist.c
+	scap_proc_util.c)
 set_scap_target_properties(scap_platform_util)
 
 if(NOT MINIMAL_BUILD)
@@ -113,15 +113,12 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_subdirectory(linux)
 	include_directories(linux)
+	target_link_libraries(scap scap_platform)
 elseif(WIN32)
-	add_subdirectory(win32)
 	include_directories(win32)
 elseif(APPLE)
-	add_subdirectory(macos)
 	include_directories(macos)
 endif()
-
-target_link_libraries(scap scap_platform)
 
 add_library(scap_event_schema
 		scap_event.c
@@ -129,6 +126,8 @@ add_library(scap_event_schema
 		../../driver/dynamic_params_table.c
 		../../driver/event_table.c
 		../../driver/flags_table.c
+		../../driver/syscall_table64.c
+		linux/scap_ppm_sc.c
         )
 
 target_link_libraries(scap scap_event_schema)
@@ -137,7 +136,6 @@ set_scap_target_properties(scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
-		../../driver/syscall_table64.c
 		../../driver/fillers_table.c)
 	target_link_libraries(scap_event_schema driver_event_schema)
 	set_scap_target_properties(scap_event_schema)

@@ -9,6 +9,7 @@ set(scap_engine_gvisor_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/parsers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/gvisor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/scap_gvisor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/scap_gvisor_platform.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/runsc.cpp
 )
 
@@ -67,6 +68,8 @@ else()
         ${PROTOBUF_LIB}
         ${JSONCPP_LIB}
         scap
+        scap_platform_util
+        scap_error
     )
     set_scap_target_properties(scap_engine_gvisor)
 endif()

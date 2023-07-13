@@ -2157,8 +2157,14 @@ static void scap_savefile_free_platform(struct scap_platform* platform)
 	free(platform);
 }
 
+bool scap_savefile_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
+{
+	return false;
+}
+
 static const struct scap_platform_vtable scap_savefile_platform_vtable = {
 	.init_platform = scap_savefile_init_platform,
+	.is_thread_alive = scap_savefile_is_thread_alive,
 	.close_platform = scap_savefile_close_platform,
 	.free_platform = scap_savefile_free_platform,
 };
@@ -2173,6 +2179,8 @@ struct scap_platform* scap_savefile_alloc_platform()
 	}
 
 	platform->m_generic.m_vtable = &scap_savefile_platform_vtable;
+	platform->m_generic.m_machine_info.num_cpus = (uint32_t)-1;
+
 	return &platform->m_generic;
 }
 
@@ -2252,8 +2260,8 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 	res = scap_read_init(
 		handle,
 		reader,
-		&main_handle->m_machine_info,
-		&main_handle->m_proclist,
+		&platform->m_machine_info,
+		&platform->m_proclist,
 		&platform->m_addrlist,
 		&platform->m_userlist,
 		main_handle->m_lasterr
@@ -2320,8 +2328,8 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 	if((res = scap_read_init(
 		engine,
 		engine->m_reader,
-		&handle->m_machine_info,
-		&handle->m_proclist,
+		&platform->m_machine_info,
+		&platform->m_proclist,
 		&platform->m_addrlist,
 		&platform->m_userlist,
 		handle->m_lasterr)) != SCAP_SUCCESS)
@@ -2370,8 +2378,6 @@ struct scap_vtable scap_savefile_engine = {
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
-	.get_threadlist = noop_get_threadlist,
-	.getpid_global = noop_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
 };

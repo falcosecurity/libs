@@ -31,6 +31,7 @@ struct scap_ns_socket_list
 	UT_hash_handle hh;
 };
 
+struct ppm_proclist_info;
 struct scap_platform;
 struct scap_linux_platform;
 struct scap_proclist;
@@ -41,6 +42,10 @@ int32_t scap_linux_create_userlist(struct scap_platform* platform);
 
 uint32_t scap_linux_get_device_by_mount_id(struct scap_platform* platform, const char *procdir, unsigned long requested_mount_id);
 struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, struct scap_proclist* proclist, int64_t tid, bool scan_sockets);
+int32_t scap_linux_refresh_proc_table(struct scap_platform* platform, struct scap_proclist* proclist);
+bool scap_linux_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm);
+int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t *pid, char* error);
+int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_proclist_info **procinfo_p, char *lasterr);
 
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char *error);
