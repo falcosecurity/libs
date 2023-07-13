@@ -58,7 +58,6 @@ endif()
 list(APPEND targetfiles
 	scap.c
 	scap_api_version.c
-	scap_fds.c
 	scap_savefile.c
 	scap_platform.c
 	scap_platform_api.c
@@ -79,6 +78,7 @@ add_library(scap
 set_scap_target_properties(scap)
 
 add_library(scap_platform_util
+	scap_fds.c
 	scap_iflist.c
 	scap_proc_util.c)
 set_scap_target_properties(scap_platform_util)
@@ -117,8 +117,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	target_link_libraries(scap scap_platform)
 elseif(WIN32)
 	include_directories(win32)
+	target_link_libraries(scap_platform_util scap_error)
+	target_link_libraries(scap scap_platform_util)
 elseif(APPLE)
 	include_directories(macos)
+	target_link_libraries(scap_platform_util scap_error)
+	target_link_libraries(scap scap_platform_util)
 endif()
 
 add_library(scap_event_schema
