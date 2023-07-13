@@ -22,9 +22,9 @@ else()
         libbpf
         PREFIX "${PROJECT_BINARY_DIR}/libbpf-prefix"
         DEPENDS zlib libelf
-        URL "https://github.com/libbpf/libbpf/archive/refs/tags/v1.0.1.tar.gz"
+        URL "https://github.com/libbpf/libbpf/archive/refs/tags/v1.2.2.tar.gz"
         URL_HASH
-        "SHA256=3d6afde67682c909e341bf194678a8969f17628705af25f900d5f68bd299cb03"
+        "SHA256=32b0c41eabfbbe8e0c8aea784d7495387ff9171b5a338480a8fbaceb9da8d5e5"
         CONFIGURE_COMMAND mkdir -p build root
         BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root NO_PKG_CONFIG=1 "EXTRA_CFLAGS=-I${LIBELF_INCLUDE} -I${ZLIB_INCLUDE}" "LDFLAGS=-Wl,-Bstatic" "EXTRA_LDFLAGS=-L${LIBELF_SRC}/libelf/libelf -L${ZLIB_SRC}" -C ${LIBBPF_SRC}/libbpf/src install install_uapi_headers
         INSTALL_COMMAND ""
