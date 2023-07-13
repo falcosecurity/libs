@@ -21,6 +21,8 @@
  * to the others `PT_REGS_PARAM...`
  */
 
+#ifndef PT_REGS_PARM6_CORE_SYSCALL
+
 #if defined(bpf_target_x86)
 #define __PT_PARM6_REG r9
 #elif defined(bpf_target_arm64)
@@ -31,6 +33,8 @@
 
 #define PT_REGS_PARM6_CORE(x) BPF_CORE_READ(__PT_REGS_CAST(x), __PT_PARM6_REG)
 #define PT_REGS_PARM6_CORE_SYSCALL(x) PT_REGS_PARM6_CORE(x)
+
+#endif
 
 /*=============================== LIBBPF MISSING TRACING DEFINITION ===========================*/
 
