@@ -179,6 +179,21 @@ static void scap_gethostname(char* buf, size_t size)
 	}
 }
 
+static int32_t scap_linux_get_machine_info(scap_machine_info* machine_info, char* lasterr)
+{
+	machine_info->num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	machine_info->memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+	scap_gethostname(machine_info->hostname, sizeof(machine_info->hostname));
+	machine_info->boot_ts_epoch = scap_linux_get_host_boot_time_ns(lasterr);
+	if(machine_info->boot_ts_epoch == 0)
+	{
+		return SCAP_FAILURE;
+	}
+	scap_get_bpf_stats_enabled(machine_info);
+
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs)
 {
 	int rc;
@@ -187,17 +202,11 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 
 	linux_platform->m_engine = engine;
 
-	platform->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	platform->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-	scap_gethostname(platform->m_machine_info.hostname, sizeof(platform->m_machine_info.hostname));
-	platform->m_machine_info.boot_ts_epoch = scap_linux_get_host_boot_time_ns(lasterr);
-	if(platform->m_machine_info.boot_ts_epoch == 0)
+	memset(&platform->m_machine_info, 0, sizeof(platform->m_machine_info));
+	if(scap_linux_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
-	scap_get_bpf_stats_enabled(&platform->m_machine_info);
-	platform->m_machine_info.reserved3 = 0;
-	platform->m_machine_info.reserved4 = 0;
 
 	linux_platform->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	linux_platform->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
