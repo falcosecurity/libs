@@ -30,7 +30,7 @@ limitations under the License.
 #ifdef __linux__
 #include "scap_linux_platform.h"
 #else
-// The test_input engine can optionally use a linux_platform
+// The test_input and source_plugin engines can optionally use a linux_platform
 // but only on an actual Linux system.
 //
 // Still, to compile properly on non-Linux, provide an implementation
@@ -181,7 +181,14 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
 		vtable = &scap_source_plugin_engine;
-		platform = scap_generic_alloc_platform();
+		if(oargs->mode == SCAP_MODE_LIVE)
+		{
+			platform = scap_linux_alloc_platform();
+		}
+		else
+		{
+			platform = scap_generic_alloc_platform();
+		}
 	}
 #endif
 

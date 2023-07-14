@@ -645,9 +645,9 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 	open_common(&oargs);
 }
 
-void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params)
+void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params, scap_mode_t mode)
 {
-	scap_open_args oargs = factory_open_args(SOURCE_PLUGIN_ENGINE, SCAP_MODE_PLUGIN);
+	scap_open_args oargs = factory_open_args(SOURCE_PLUGIN_ENGINE, mode);
 	struct scap_source_plugin_engine_params params;
 	set_input_plugin(plugin_name, plugin_open_params);
 	params.input_plugin = &m_input_plugin->as_scap_source();
