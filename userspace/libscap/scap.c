@@ -29,6 +29,16 @@ limitations under the License.
 
 #ifdef __linux__
 #include "scap_linux_platform.h"
+#else
+// The test_input engine can optionally use a linux_platform
+// but only on an actual Linux system.
+//
+// Still, to compile properly on non-Linux, provide an implementation
+// of scap_linux_alloc_platform() that always fails at runtime.
+struct scap_platform* scap_linux_alloc_platform()
+{
+	return NULL;
+}
 #endif
 
 const char* scap_getlasterr(scap_t* handle)
