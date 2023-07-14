@@ -67,6 +67,15 @@ list(APPEND targetfiles
 	scap_suppress.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	list(APPEND targetfiles linux/scap_machine_info.c)
+elseif(WIN32)
+	# TODO
+elseif(APPLE)
+	# TODO
+endif()
+
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
