@@ -69,7 +69,7 @@ TEST_F(sinsp_with_test_input, event_hostname)
 
 	add_default_init_thread();
 
-	open_inspector(SCAP_MODE_LIVE);
+	open_inspector();
 	sinsp_evt *evt = NULL;
 
 	/* Toy event example from a previous test. */
