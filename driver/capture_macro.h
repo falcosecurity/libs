@@ -31,4 +31,4 @@ or GPL2.txt for full copies of the license.
 #define BPF_HTTP_PREFIX 0x50545448
 
 /* Convert seconds to nanoseconds */
-#define SECOND_TO_NS 1000000000
+#define SECOND_TO_NS 1000000000ULL
