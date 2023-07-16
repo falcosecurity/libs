@@ -56,7 +56,7 @@ typedef struct _scap_machine_info
 typedef struct _scap_agent_info
 {
 	uint64_t start_ts_epoch; ///< Agent start timestamp, stat /proc/self/cmdline approach, unit: epoch in nanoseconds
-	double start_time; ///< /proc/self/stat start_time divided by HZ, unit: seconds
+	double start_time; ///< /proc/self/stat start_time divided by HZ, unit: seconds since boot
 	char uname_r[128]; ///< Kernel release `uname -r`
 } scap_agent_info;
 
