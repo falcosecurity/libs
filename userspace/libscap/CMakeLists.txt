@@ -69,7 +69,7 @@ list(APPEND targetfiles
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles linux/scap_machine_info.c)
 elseif(WIN32)
-	# TODO
+	list(APPEND targetfiles win32/scap_machine_info.c)
 elseif(APPLE)
 	list(APPEND targetfiles macos/scap_machine_info.c)
 endif()
