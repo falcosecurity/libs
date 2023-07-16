@@ -388,7 +388,7 @@ int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo
 	snprintf(proc_cmdline_pidns, sizeof(proc_cmdline_pidns), "%sroot/proc/1/cmdline", procdirname);
 	if(stat(proc_cmdline_pidns, &targetstat) == 0)
 	{
-		tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
+		tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
 		return SCAP_SUCCESS;
 	}
 	else
@@ -480,8 +480,8 @@ int32_t scap_proc_fill_exe_ino_ctime_mtime(char* error, struct scap_threadinfo* 
 	if(stat(exetarget, &targetstat) == 0)
 	{
 		tinfo->exe_ino = targetstat.st_ino;
-		tinfo->exe_ino_ctime = targetstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
-		tinfo->exe_ino_mtime = targetstat.st_mtim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_mtim.tv_nsec;
+		tinfo->exe_ino_ctime = targetstat.st_ctim.tv_sec * SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
+		tinfo->exe_ino_mtime = targetstat.st_mtim.tv_sec * SECOND_TO_NS + targetstat.st_mtim.tv_nsec;
 	}
 
 	return SCAP_SUCCESS;
@@ -822,7 +822,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	snprintf(proc_cmdline, sizeof(proc_cmdline), "%scmdline", dir_name);
 	if(stat(proc_cmdline, &dirstat) == 0)
 	{
-		tinfo->clone_ts = dirstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + dirstat.st_ctim.tv_nsec;
+		tinfo->clone_ts = dirstat.st_ctim.tv_sec * SECOND_TO_NS + dirstat.st_ctim.tv_nsec;
 	}
 
 	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
