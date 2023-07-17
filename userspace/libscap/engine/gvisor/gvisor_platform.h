@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include "scap_platform_impl.h"
+#include <memory>
 
 namespace scap_gvisor
 {
