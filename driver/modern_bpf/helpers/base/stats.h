@@ -51,6 +51,7 @@ static __always_inline void compute_event_types_stats(u16 event_type, struct cou
 	case PPME_SYSCALL_UMOUNT_E:
 	case PPME_SYSCALL_UMOUNT_1_E:
 	case PPME_SYSCALL_UMOUNT2_E:
+	case PPME_SYSCALL_UMOUNT2_1_E:
 	case PPME_SYSCALL_RENAME_E:
 	case PPME_SYSCALL_RENAMEAT_E:
 	case PPME_SYSCALL_RENAMEAT2_E:
@@ -123,6 +124,7 @@ static __always_inline void compute_event_types_stats(u16 event_type, struct cou
 	case PPME_SYSCALL_UMOUNT_X:
 	case PPME_SYSCALL_UMOUNT_1_X:
 	case PPME_SYSCALL_UMOUNT2_X:
+	case PPME_SYSCALL_UMOUNT2_1_X:
 	case PPME_SYSCALL_RENAME_X:
 	case PPME_SYSCALL_RENAMEAT_X:
 	case PPME_SYSCALL_RENAMEAT2_X:

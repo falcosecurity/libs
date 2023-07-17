@@ -293,8 +293,8 @@ TEST_F(sinsp_with_test_input, umount2)
 	int64_t res = 0;
 	const char* name = "/target_name";
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_E, 1, flags);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_X, 2, res, name);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_1_E, 1, flags);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_1_X, 2, res, name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "umount2");
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), std::to_string(res));

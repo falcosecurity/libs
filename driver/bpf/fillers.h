@@ -6213,8 +6213,8 @@ FILLER(sys_umount_x, true)
 FILLER(sys_umount2_e, true)
 {
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, flags);
+	int flags = (int)bpf_syscall_get_argument(data, 1);
+	return bpf_push_s32_to_ring(data, flags);
 }
 
 FILLER(sys_umount2_x, true)

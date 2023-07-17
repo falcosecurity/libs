@@ -16,7 +16,7 @@ int BPF_PROG(umount2_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, UMOUNT2_E_SIZE, PPME_SYSCALL_UMOUNT2_E))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, UMOUNT2_E_SIZE, PPME_SYSCALL_UMOUNT2_1_E))
 	{
 		return 0;
 	}
@@ -26,8 +26,8 @@ int BPF_PROG(umount2_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 1);
-	ringbuf__store_u32(&ringbuf, flags);
+	s32 flags = (s32)extract__syscall_argument(regs, 1);
+	ringbuf__store_s32(&ringbuf, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -51,7 +51,7 @@ int BPF_PROG(umount2_x,
 		return 0;
 	}
 
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_UMOUNT2_X);
+	auxmap__preload_event_header(auxmap, PPME_SYSCALL_UMOUNT2_1_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

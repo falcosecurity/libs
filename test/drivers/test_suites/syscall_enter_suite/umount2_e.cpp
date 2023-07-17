@@ -34,7 +34,7 @@ TEST(SyscallEnter, umount2E)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(1, (uint32_t)(PPM_MNT_FORCE | PPM_MNT_DETACH | PPM_MNT_EXPIRE | PPM_UMOUNT_NOFOLLOW));
+	evt_test->assert_numeric_param(1, (int32_t)(PPM_MNT_FORCE | PPM_MNT_DETACH | PPM_MNT_EXPIRE | PPM_UMOUNT_NOFOLLOW));
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
