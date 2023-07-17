@@ -19,8 +19,6 @@ limitations under the License.
 
 #include "tuples.h"
 
-#define LOOPBACK_ADDR 0x0100007f
-
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
 #endif
