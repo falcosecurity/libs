@@ -34,6 +34,9 @@ or GPL2.txt for full copies of the license.
 #ifdef __NR_io_uring_register
 #include <uapi/linux/io_uring.h>
 #endif
+#ifdef __NR_umount2
+#include <linux/fs.h>
+#endif
 #endif // ifndef UDIG
 
 #ifndef __always_inline
@@ -1825,6 +1828,29 @@ static __always_inline u32 chmod_mode_to_scap(unsigned long modes)
 	if (modes & S_ISVTX)
 		res |= PPM_S_ISVTX;
 
+	return res;
+}
+
+static __always_inline u32 umount2_flags_to_scap(int flags)
+{
+	u32 res = 0;
+
+#ifdef MNT_FORCE
+	if (flags & MNT_FORCE)
+		res |= PPM_MNT_FORCE;
+#endif
+#ifdef MNT_DETACH
+	if (flags & MNT_DETACH)
+		res |= PPM_MNT_DETACH;
+#endif
+#ifdef MNT_EXPIRE
+	if (flags & MNT_EXPIRE)
+		res |= PPM_MNT_EXPIRE;
+#endif
+#ifdef UMOUNT_NOFOLLOW
+	if (flags & UMOUNT_NOFOLLOW)
+		res |= PPM_UMOUNT_NOFOLLOW;
+#endif
 	return res;
 }
 

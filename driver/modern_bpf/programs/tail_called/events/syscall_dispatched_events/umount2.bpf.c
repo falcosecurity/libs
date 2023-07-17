@@ -26,8 +26,8 @@ int BPF_PROG(umount2_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 1);
-	ringbuf__store_u32(&ringbuf, flags);
+	int flags = (int)extract__syscall_argument(regs, 1);
+	ringbuf__store_u32(&ringbuf, umount2_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

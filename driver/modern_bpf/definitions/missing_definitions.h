@@ -553,6 +553,17 @@
 #define MAY_READ 0x00000004
 
 //////////////////////////
+// umount options
+//////////////////////////
+
+/* `include/linux/fs.h` from kernel source tree. */
+
+#define MNT_FORCE       0x00000001      /* Attempt to forcibily umount */
+#define MNT_DETACH      0x00000002      /* Just detach from the tree */
+#define MNT_EXPIRE      0x00000004      /* Mark for expiry */
+#define UMOUNT_NOFOLLOW 0x00000008      /* Don't follow symlink on umount */
+
+//////////////////////////
 // lseek whence
 //////////////////////////
 
