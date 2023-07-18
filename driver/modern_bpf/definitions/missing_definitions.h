@@ -749,7 +749,7 @@
 //////////////////////////
 // pidfd_open flags
 //////////////////////////
-# define PIDFD_NONBLOCK 1U
+# define PIDFD_NONBLOCK O_NONBLOCK  
 
 /*=============================== FLAGS ===========================*/
 

@@ -1,7 +1,6 @@
 #include "../../event_class/event_class.h"
 
 #include <unistd.h>
-#include <linux/version.h>
 
 
 #ifdef __NR_pidfd_open
@@ -20,7 +19,9 @@ TEST(SyscallExit, pidfd_openX_success)
     */
     
     int flags = 0;
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 10, 0))
+#ifdef PIDFD_NONBLOCK
+    flags = PIDFD_NONBLOCK;
+#else
     flags = O_NONBLOCK;
 #endif 
     pid_t pid = syscall(__NR_fork);
@@ -54,16 +55,11 @@ TEST(SyscallExit, pidfd_openX_success)
     /* Parameter 1: ret (type: PT_FD)*/
     evt_test->assert_numeric_param(1, (int64_t)pidfd);
 
-    /* Parameter 1: pid (type: PT_PID)*/
+    /* Parameter 2: pid (type: PT_PID)*/
     evt_test->assert_numeric_param(2, (int64_t)pid);
 
-    #if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 10, 0))
-    /* Parameter 3: flags (type: PT_FLAGS32) */ 
+    /* Parameter 3: flags (type: PT_FLAGS32) */
     evt_test->assert_numeric_param(3, (uint32_t)PPM_PIDFD_NONBLOCK);
-    #endif
-    /* Parameter 3: flags (type: PT_FLAGS32) */ 
-    evt_test->assert_numeric_param(3, 0);
-
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
 }
@@ -102,7 +98,7 @@ TEST(SyscallExit, pidfd_openX_failure)
     /* Parameter 1: ret (type: PT_FD)*/
     evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
-    /* Parameter 1: pid (type: PT_PID)*/
+    /* Parameter 2: pid (type: PT_PID)*/
     evt_test->assert_numeric_param(2, (int64_t)pid);
 
     /* Parameter 3: flags (type: PT_FLAGS32) */ 

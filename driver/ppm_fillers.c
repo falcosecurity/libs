@@ -8090,7 +8090,7 @@ int f_sys_memfd_create_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	int retval;
+	long retval;
 
 	/* Parameter 1: ret (type: PT_FD) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -8116,7 +8116,7 @@ int f_sys_pidfd_getfd_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	int retval;
+	long retval;
 	s32 fd;
 
 	/* Parameter 1: ret (type: PT_FD) */
@@ -8148,7 +8148,7 @@ int f_sys_pidfd_open_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	int retval;
+	long retval;
 	s32 fd;
 
 	/* Parameter 1: ret (type: PT_FD) */

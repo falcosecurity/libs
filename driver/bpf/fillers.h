@@ -6999,37 +6999,26 @@ FILLER(sys_prctl_x, true)
 
 FILLER(sys_memfd_create_x,true)
 {
-	int retval;
-	unsigned long val;
-	unsigned long flags;
-	unsigned long res;
-
 	/* Parameter 1: ret (type: PT_FD) */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: name (type: PT_CHARBUF) */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
+	long name = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, name);
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_UINT32) */
-	val = bpf_syscall_get_argument(data, 1);
-	flags = memfd_create_flags_to_scap(val);
-	return bpf_push_u32_to_ring(data, flags);
+	u32 flags = bpf_syscall_get_argument(data, 1);
+	return bpf_push_u32_to_ring(data, memfd_create_flags_to_scap(flags));
 }
 
 FILLER(sys_pidfd_getfd_x, true)
 {
-	int  retval;
-	unsigned long val;
-	unsigned long res;
-	unsigned long flags;
-
 	/* Parameter 1: ret (type: PT_FD) */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: pidfd (type: PT_FD) */
@@ -7043,24 +7032,20 @@ FILLER(sys_pidfd_getfd_x, true)
 	CHECK_RES(res);
 	
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	val = bpf_syscall_get_argument(data,2);
+	u32 flags = bpf_syscall_get_argument(data,2);
 	 /*
      The flags argument is reserved for future use.  Currently, it must be specified as 0.
      See https://elixir.bootlin.com/linux/latest/source/kernel/pid.c#L709
     */
-	return bpf_push_u32_to_ring(data, val);
+	return bpf_push_u32_to_ring(data, flags);
 }
 
 FILLER(sys_pidfd_open_x, true)
 {
-	int retval;
-	unsigned long val;
-	unsigned long res;
-	unsigned long flags;
 
 	/* Parameter 1: ret (type: PT_FD) */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: pid (type: PT_PID)*/
@@ -7069,9 +7054,8 @@ FILLER(sys_pidfd_open_x, true)
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_FLAGS32)*/
-	val = bpf_syscall_get_argument(data, 1);
-	flags = pidfd_open_flags_to_scap(val);
-	return bpf_push_u32_to_ring(data, flags);
+	u32 flags = bpf_syscall_get_argument(data, 1);
+	return bpf_push_u32_to_ring(data, pidfd_open_flags_to_scap(flags));
 
 }
 #endif
