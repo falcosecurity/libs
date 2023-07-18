@@ -47,7 +47,9 @@ struct ppm_proclist_info;
 struct scap_platform_vtable
 {
 	// initialize the platform-specific structure
-	// at this point the engine is fully initialized and operational
+	// at this point the engine is allocated but *not initialized yet*
+	// so it can only be stored away for future use
+	// (the engine will be initialized before any other platform method is called)
 	int32_t (*init_platform)(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs);
 
 	// refresh the interface list and place it inside
