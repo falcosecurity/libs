@@ -14,16 +14,11 @@ TEST(SyscallExit, pidfd_openX_success)
 
     /*=============================== TRIGGER SYSCALL ===========================*/
     /*
-      PIDFD_NONBLOCK is available only on kernal versions > 5.10.00, hence used O_NONBLOCK 
+      PIDFD_NONBLOCK is available only on kernal versions > 5.10.0. No other flags are supported
       See https://elixir.bootlin.com/linux/v5.10.185/source/include/uapi/linux/pidfd.h#L10
     */
     
     int flags = 0;
-#ifdef PIDFD_NONBLOCK
-    flags = PIDFD_NONBLOCK;
-#else
-    flags = O_NONBLOCK;
-#endif 
     pid_t pid = syscall(__NR_fork);
     if(pid == 0)
     { 
@@ -33,7 +28,7 @@ TEST(SyscallExit, pidfd_openX_success)
 
     int pidfd = syscall(__NR_pidfd_open, pid, flags);
     assert_syscall_state(SYSCALL_SUCCESS, "pidfd_open", pidfd, NOT_EQUAL, -1);
-    close(pidfd);
+    syscall(__NR_close);
 
      /*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -59,9 +54,11 @@ TEST(SyscallExit, pidfd_openX_success)
     evt_test->assert_numeric_param(2, (int64_t)pid);
 
     /* Parameter 3: flags (type: PT_FLAGS32) */
-    evt_test->assert_numeric_param(3, (uint32_t)PPM_PIDFD_NONBLOCK);
+    evt_test->assert_numeric_param(3, (uint32_t)0);
+
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
+    evt_test->assert_num_params_pushed(3);
 }
 #endif
 
@@ -74,6 +71,9 @@ TEST(SyscallExit, pidfd_openX_failure)
     /*=============================== TRIGGER SYSCALL ===========================*/
 
     int flags = O_NONBLOCK;
+#ifdef PIDFD_NONBLOCK
+    flags = PIDFD_NONBLOCK;
+#endif
     pid_t pid = 0;
     int64_t errno_value = -EINVAL;
     assert_syscall_state(SYSCALL_FAILURE, "pidfd_open", syscall(__NR_pidfd_open, pid, flags));
@@ -106,5 +106,6 @@ TEST(SyscallExit, pidfd_openX_failure)
 
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
+    evt_test->assert_num_params_pushed(3);
 }
 #endif
