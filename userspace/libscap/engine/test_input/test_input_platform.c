@@ -64,7 +64,6 @@ int32_t scap_test_input_init_platform(struct scap_platform* platform, char* last
 		params->test_input_data->threads,
 		test_input_platform,
 		get_fdinfos);
-	return SCAP_SUCCESS;
 }
 
 static void scap_test_input_free_platform(struct scap_platform* platform)
