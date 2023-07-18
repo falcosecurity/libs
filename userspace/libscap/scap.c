@@ -63,6 +63,11 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 		return SCAP_FAILURE;
 	}
 
+	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
 	if(handle->m_vtable->init && (rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
@@ -77,11 +82,6 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 	}
 
 	scap_stop_dropping_mode(handle);
-
-	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
 
 	return SCAP_SUCCESS;
 }
