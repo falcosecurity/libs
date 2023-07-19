@@ -998,6 +998,11 @@ public:
 		return m_event_sources;
 	}
 
+	inline const std::shared_ptr<libsinsp::state::table_registry>& get_table_registry() const
+	{
+		return m_table_registry;
+	}
+
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
 	const std::string& get_host_root() const { return m_host_root; }
