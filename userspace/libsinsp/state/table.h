@@ -78,7 +78,7 @@ public:
      * for the value data type of this table. This fields will be accessible
      * for all the entries of this table.
      */
-    inline virtual const static_struct::field_infos& static_fields() const
+    virtual const static_struct::field_infos& static_fields() const
     {
         return m_static_fields;
     }
@@ -91,7 +91,7 @@ public:
      * be allocated and accessible for all the present and future entries
      * present in the table.
      */
-    inline virtual const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const
+    virtual std::shared_ptr<dynamic_struct::field_infos> dynamic_fields() const
     {
         return m_dynamic_fields;
     }
