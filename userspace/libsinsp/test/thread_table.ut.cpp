@@ -64,17 +64,15 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_missing_init_in_proc)
 	int64_t p1_t1_ptid = INIT_TID;
 	add_simple_thread(p1_t1_tid, p1_t1_pid, p1_t1_ptid);
 
-	/* with open_inspector we will create thread_dependencies for p1_t1_tid
-	 * more in detail since we don't have `init` in the table we will create a fake one
+	/* we will call `create_thread_dependencies` but `p1_t1_ptid` doesn't exist so
+	 * we will set ptid=0.
 	 */
 	open_inspector();
 
 	/* Check the fake init thread info just created */
-	auto init_tinfo = m_inspector.get_thread_ref(INIT_TID, false).get();
-	ASSERT_TRUE(init_tinfo);
-	/* This is an invalid thread so we should expect the following values */;
-	ASSERT_EQ(init_tinfo->m_ptid, -1);
-	ASSERT_STREQ(init_tinfo->m_comm.c_str(), "<NA>");
+	auto p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false).get();
+	ASSERT_TRUE(p1_t1_tinfo);
+	ASSERT_EQ(p1_t1_tinfo->m_ptid, 0);
 }
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation)
@@ -161,7 +159,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_create_thread_dependencies_after_proc_s
 	ASSERT_EQ(8, m_inspector.m_thread_manager->get_thread_count());
 
 	/* Children */
-	ASSERT_THREAD_CHILDREN(INIT_TID, 3, 3, p1_t1_tid, p1_t2_tid, p3_t1_tid);
+	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p1_t2_tid);
 	ASSERT_THREAD_CHILDREN(p1_t1_tid, 1, 1, p2_t1_tid);
 	ASSERT_THREAD_CHILDREN(p1_t3_tid, 0, 0);
 

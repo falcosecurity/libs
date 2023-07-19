@@ -89,13 +89,10 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper)
 
 	auto p3_t1_tinfo = m_inspector.get_thread_ref(p3_t1_tid, false).get();
 
-	/* The reaper cannot be null */
-	EXPECT_THROW(p3_t1_tinfo->assign_children_to_reaper(nullptr), sinsp_exception);
-
 	/* The reaper cannot be the current process */
 	EXPECT_THROW(p3_t1_tinfo->assign_children_to_reaper(p3_t1_tinfo), sinsp_exception);
 
-	/* children of p3_t1 are p4_t1 and p4_t2 we can reparent them to p1_t1 */
+	/* children of p3_t1 are p4_t1 and p4_t2 we can reparent them to p1_t1 for example */
 	ASSERT_THREAD_CHILDREN(p3_t1_tid, 2, 2, p4_t1_tid, p4_t2_tid);
 	ASSERT_THREAD_CHILDREN(p1_t1_tid, 0, 0);
 
@@ -115,4 +112,16 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper)
 	p3_t1_tinfo->assign_children_to_reaper(p1_t1_tinfo);
 	ASSERT_THREAD_CHILDREN(p3_t1_tid, 0, 0);
 	ASSERT_THREAD_CHILDREN(p1_t1_tid, 2, 2, p4_t1_tid, p4_t2_tid);
+}
+
+TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_a_nullptr)
+{
+	DEFAULT_TREE
+
+	auto p2_t1_tinfo = m_inspector.get_thread_ref(p2_t1_tid, false).get();
+	/* This call should change the parent of all children of p2_t1 to `0` */
+	p2_t1_tinfo->assign_children_to_reaper(nullptr);
+
+	ASSERT_THREAD_CHILDREN(p2_t1_tid, 0, 0);
+	ASSERT_THREAD_INFO_PIDS(p3_t1_tid, p3_t1_pid, 0);
 }

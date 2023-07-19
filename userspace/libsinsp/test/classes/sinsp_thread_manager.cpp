@@ -102,14 +102,14 @@ TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo)
 	auto tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo->m_tid = 51000;
 	tinfo->m_pid = 51000;
-	tinfo->m_ptid = 51001; /* we won't find it in the table, so we will default to 1 */
+	tinfo->m_ptid = 51001; /* we won't find it in the table, so we will default to 0 */
 	tinfo->m_vtid = 20;
 	tinfo->m_vpid = 1;
 
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, true, 1, 1);
 
-	ASSERT_EQ(tinfo->m_ptid, 1);
+	ASSERT_EQ(tinfo->m_ptid, 0);
 }
 
 TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo)
@@ -162,8 +162,8 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 
 	m_inspector.m_thread_manager->create_thread_dependencies(tinfo);
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 1, false, 1, 1);
-	ASSERT_EQ(tinfo->m_ptid, 1);
-	ASSERT_THREAD_CHILDREN(INIT_TID, 6, 6);
+	/* the new parent will be 0 */
+	ASSERT_EQ(tinfo->m_ptid, 0);
 }
 
 TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr)
@@ -201,9 +201,8 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop)
 {
 	DEFAULT_TREE
 
-	/* If we detect a loop the new reaper will be init.
-	 * To be sure that init is the new reaper due to a loop and not
-	 * because it is the real reaper, we set p2_t1 group as a reaper.
+	/* If we detect a loop the new reaper will be nullptr.
+	 * We set p2_t1 group as a reaper.
 	 */
 	auto p2_t1_tinfo = m_inspector.get_thread_ref(p2_t1_tid, false).get();
 	ASSERT_TRUE(p2_t1_tinfo);
@@ -220,11 +219,9 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop)
 	remove_thread(p4_t2_tid, p4_t1_tid);
 
 	/* We call find_new_reaper on p4_t1.
-	 * The new reaper should be init since we detected a loop.
+	 * The new reaper should be nullptr since we detected a loop.
 	 */
 	auto p4_t1_tinfo = m_inspector.get_thread_ref(p4_t1_tid, false).get();
 	ASSERT_TRUE(p4_t1_tinfo);
-	auto init_tinfo = m_inspector.get_thread_ref(INIT_TID, false).get();
-	ASSERT_TRUE(init_tinfo);
-	ASSERT_EQ(m_inspector.m_thread_manager->find_new_reaper(p4_t1_tinfo), init_tinfo);
+	ASSERT_EQ(m_inspector.m_thread_manager->find_new_reaper(p4_t1_tinfo), nullptr);
 }

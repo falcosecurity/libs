@@ -817,7 +817,7 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
 {
-	return m_inspector->get_thread_ref(m_ptid, false, true).get();
+	return m_inspector->get_thread_ref(m_ptid, false).get();
 }
 
 sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
@@ -1133,20 +1133,15 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
  */
 void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
 {
-	if(reaper == nullptr)
+	/* We have no children to reparent. */
+	if(m_children.size() == 0)
 	{
-		throw sinsp_exception("The reaper cannot be nullptr");
+		return;
 	}
 
 	if(reaper == this)
 	{
 		throw sinsp_exception("the current process is reaper of itself, this should never happen!");
-	}
-
-	/* We have no children to reparent. */
-	if(m_children.size() == 0)
-	{
-		return;
 	}
 
 	auto child = m_children.begin();
@@ -1157,8 +1152,16 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
 		 */
 		if(!child->expired())
 		{
-			/* Add the child to the reaper list */
-			reaper->add_child(child->lock());
+			if(reaper == nullptr)
+			{
+				/* we set `0` as the parent for all children */
+				child->lock()->m_ptid = 0;
+			}
+			else
+			{
+				/* Add the child to the reaper list */
+				reaper->add_child(child->lock());
+			}
 		}
 
 		/* In any case (expired or not) we remove the child
@@ -1503,21 +1506,15 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 	 * Remember that in `/proc` scan the `ptid` is `ppid`.
 	 * If we don't find the parent in the table we can do nothing, so we consider
 	 * INIT as the new parent.
+	 * Here we avoid scanning `/proc` to not trigger a possible recursion
+	 * on all the parents
 	 */
 	auto parent_thread = m_inspector->get_thread_ref(tinfo->m_ptid, false);
 	if(parent_thread == nullptr || parent_thread->is_invalid())
 	{
-		/* We assign it to init. Please note that if Init is not there we try to create it
-		 * scanning proc, otherwise we will create a fake thread-info. If we obtain a nullptr
-		 * it means we have no more space in the table to create a fake thread_info for init.
-		 * and this should never happen.
-		 */
-		parent_thread = m_inspector->get_thread_ref(1, true);
-		if(parent_thread == nullptr)
-		{
-			sinsp_exception("No more space in the table to create a mock thread_info for init\n");
-			return;
-		}
+		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0. */
+		tinfo->m_ptid = 0;
+		return;
 	}
 	parent_thread->add_child(tinfo);
 }
@@ -1618,7 +1615,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	 * just to avoid infinite loops, is not here to guarantee 100% 
 	 * correctness.
 	 * We should never have a self-loop but if we have it
-	 * we break it by changing the parent with `init`.
+	 * we break it and we return a `nullptr` as a reaper.
 	 */
 	std::unordered_set<int64_t> loop_detection_set{tinfo->m_tid};
 	uint16_t prev_set_size = 1;
@@ -1634,6 +1631,19 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 			ASSERT(false);
 			break;
 		}
+
+		/* The only possible case in which we break here is:
+		 * - the parent is not in a namespace while the child yes
+		 * 
+		 * WARNING: this is a best-effort check, in sinsp we have no knowledge of
+		 * namespace level so it's possible that the parent is in a different namespace causing
+		 * a container escape! We are not able to detect it with the actual info.
+		 */
+		if(parent_tinfo->is_in_pid_namespace() != tinfo->is_in_pid_namespace())
+		{
+			break;
+		}
+
 		if(parent_tinfo->m_tginfo != nullptr && 
 			parent_tinfo->m_tginfo->is_reaper() &&
 			parent_tinfo->m_tginfo->get_thread_count() > 0)
@@ -1654,10 +1664,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 		parent_tinfo = parent_tinfo->get_parent_thread();
 	}
 	
-	/* If we don't find a reaper in the hierarchy we fallback to init
-	 * WARNING: this could cause a container escape if we are in a container!
-	 */
-	return m_inspector->get_thread_ref(1, true).get();
+	return nullptr;
 }
 
 void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread)
@@ -1777,26 +1784,26 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 			reaper_tinfo = find_new_reaper(thread_to_remove.get());
 		}
 
-		/* We update the reaper tid if necessary.
-		 * Please note that `reaper_info` is never nullptr, otherwise we should
-		 * have thrown an exception in `find_new_reaper`.  
-		 */
-		thread_to_remove->m_reaper_tid = reaper_tinfo->m_tid;
-		thread_to_remove->assign_children_to_reaper(reaper_tinfo);
-
-		/* If that thread group was not marked as a reaper we mark it now.
-		 * Since the reaper could be also a thread in the same thread group
-		 * we need to exclude that case. In all other cases, we want to mark
-		 * the thread group as a reaper:
-		 * - init process of a namespace.
-		 * - process that called prctl on itself.
-		 * Please note that in the kernel init processes are not marked with `is_child_subreaper`
-		 * but here we don't make distinctions we mark reapers and sub reapers with the same flag.
-		 */
-		if(reaper_tinfo->m_pid != thread_to_remove->m_pid && reaper_tinfo->m_tginfo)
+		if(reaper_tinfo != nullptr)
 		{
-			reaper_tinfo->m_tginfo->set_reaper(true);
+			/* We update the reaper tid if necessary. */
+			thread_to_remove->m_reaper_tid = reaper_tinfo->m_tid;
+
+			/* If that thread group was not marked as a reaper we mark it now.
+			 * Since the reaper could be also a thread in the same thread group
+			 * we need to exclude that case. In all other cases, we want to mark
+			 * the thread group as a reaper:
+			 * - init process of a namespace.
+			 * - process that called prctl on itself.
+			 * Please note that in the kernel init processes are not marked with `is_child_subreaper`
+			 * but here we don't make distinctions we mark reapers and sub reapers with the same flag.
+			 */
+			if(reaper_tinfo->m_pid != thread_to_remove->m_pid && reaper_tinfo->m_tginfo)
+			{
+				reaper_tinfo->m_tginfo->set_reaper(true);
+			}
 		}
+		thread_to_remove->assign_children_to_reaper(reaper_tinfo);
 	}
 
 	/* [Remove main thread]
