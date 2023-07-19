@@ -43,6 +43,7 @@ public:
         }
     private:
         std::vector<ss_plugin_state_data*> data;
+        std::vector<std::string> strings;
 
         friend class sample_table;
     };
@@ -116,13 +117,22 @@ public:
 
     static ss_plugin_rc read_entry_field(ss_plugin_table_t *_t, ss_plugin_table_entry_t *_e, const ss_plugin_table_field_t *_f, ss_plugin_state_data *out)
     {
+        auto t = static_cast<sample_table*>(_t);
         auto e = static_cast<sample_table::entry*>(_e);
         auto f = size_t (_f) - 1;
         while (e->data.size() <= f)
         {
             e->data.push_back(new ss_plugin_state_data());
+            e->strings.emplace_back();
         }
-        memcpy(out, e->data[f], sizeof(ss_plugin_state_data));
+        if (t->fields[f].field_type == SS_PLUGIN_ST_STRING)
+        {
+            out->str = e->strings[f].c_str();
+        }
+        else
+        {
+            memcpy(out, e->data[f], sizeof(ss_plugin_state_data));
+        }
         return SS_PLUGIN_SUCCESS;
     }
 
@@ -151,6 +161,12 @@ public:
         return static_cast<ss_plugin_table_entry_t*>(new sample_table::entry());
     }
 
+    static void destroy_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e)
+    {
+        auto e = static_cast<sample_table::entry*>(_e);
+        delete e;
+    }
+
     static ss_plugin_table_entry_t *add_entry(ss_plugin_table_t *_t, const ss_plugin_state_data *key, ss_plugin_table_entry_t *_e)
     {
         auto t = static_cast<sample_table*>(_t);
@@ -162,13 +178,22 @@ public:
 
     static ss_plugin_rc write_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e, const ss_plugin_table_field_t* _f, const ss_plugin_state_data* in)
     {
+        auto t = static_cast<sample_table*>(_t);
         auto e = static_cast<sample_table::entry*>(_e);
         auto f = size_t (_f) - 1;
         while (e->data.size() <= f)
         {
             e->data.push_back(new ss_plugin_state_data());
+            e->strings.emplace_back();
         }
-        memcpy(e->data[f], in, sizeof(ss_plugin_state_data));
+        if (t->fields[f].field_type == SS_PLUGIN_ST_STRING)
+        {
+            e->strings[f] = in->str;
+        }
+        else
+        {
+            memcpy(e->data[f], in, sizeof(ss_plugin_state_data));
+        }
         return SS_PLUGIN_SUCCESS;
     }
 
@@ -200,6 +225,7 @@ public:
         ret->writer.clear_table = clear;
         ret->writer.erase_table_entry = erase_entry;
         ret->writer.create_table_entry = create_entry;
+        ret->writer.destroy_table_entry = destroy_entry;
         ret->writer.add_table_entry = add_entry;
         ret->writer.write_entry_field = write_entry_field;
         return ret;
