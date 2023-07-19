@@ -73,7 +73,7 @@ public:
 
 	inline const std::list<std::weak_ptr<sinsp_threadinfo>>& get_thread_list() const { return m_threads; }
 
-	inline void add_thread_to_the_group(const std::shared_ptr<sinsp_threadinfo>& thread, bool main)
+	inline void add_thread_to_group(const std::shared_ptr<sinsp_threadinfo>& thread, bool main)
 	{
 		/* The main thread should always be the first element of the list, if present.
 		 * In this way we can efficiently obtain the main thread.
