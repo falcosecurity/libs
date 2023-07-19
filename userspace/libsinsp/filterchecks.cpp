@@ -2704,7 +2704,8 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 
 		tcpu = user + system;
 
-		uint64_t last_t_tot_cpu = tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get());
+		uint64_t last_t_tot_cpu = 0;
+		tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get(), last_t_tot_cpu);
 		if(last_t_tot_cpu != 0)
 		{
 			uint64_t deltaval = tcpu - last_t_tot_cpu;
@@ -3137,7 +3138,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(tinfo != NULL)
 			{
-				uint64_t ptot = tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get());
+				uint64_t ptot = 0;
+				tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get(), ptot);
 				m_u64val += ptot;
 				tinfo->set_dynamic_field(*m_thread_dyn_field_accessor.get(), m_u64val);
 				RETURN_EXTRACT_VAR(m_u64val);
