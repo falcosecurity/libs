@@ -640,7 +640,7 @@ VISIBILITY_PRIVATE
 class threadinfo_map_t
 {
 public:
-	typedef std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)> shared_ptr_visitor_t;
+	typedef std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)> const_shared_ptr_visitor_t;
 	typedef std::function<bool(const sinsp_threadinfo&)> const_visitor_t;
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
@@ -680,7 +680,7 @@ public:
 		m_threads.clear();
 	}
 
-	bool loop_shared_pointer(shared_ptr_visitor_t callback)
+	bool const_loop_shared_pointer(const_shared_ptr_visitor_t callback)
 	{
 		for (auto& it : m_threads)
 		{
