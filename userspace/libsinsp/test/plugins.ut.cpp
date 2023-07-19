@@ -422,3 +422,124 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	m_inspector.close();
 	ASSERT_EQ(count, max_count);
 }
+
+// Scenario we load a plugin that parses any event and plays with the
+// thread table, by stressing all the operations supported. After that, we
+// also play with the plugin's table from the inspector C++ interface.
+// Basically, we are verifying that the sinsp <-> plugin tables access
+// is bidirectional and consistent.
+TEST_F(sinsp_with_test_input, plugin_tables)
+{
+	auto& reg = m_inspector.get_table_registry();
+
+	add_default_init_thread();
+
+	// the threads table is always present
+	ASSERT_EQ(reg->tables().size(), 1);
+	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
+
+	// make sure we see a new table when we register the plugin
+	ASSERT_EQ(reg->tables().find("plugin_sample"), reg->tables().end());
+	ASSERT_EQ(reg->get_table<uint64_t>("plugin_sample"), nullptr);
+	register_plugin(&m_inspector, get_plugin_api_sample_tables);
+	ASSERT_EQ(reg->tables().size(), 2);
+	ASSERT_NE(reg->tables().find("plugin_sample"), reg->tables().end());
+	ASSERT_ANY_THROW(reg->get_table<char>("plugin_sample")); // wrong key type
+	ASSERT_NE(reg->get_table<uint64_t>("plugin_sample"), nullptr);
+
+	// get the plugin table and check its fields and info
+	auto table = reg->get_table<uint64_t>("plugin_sample");
+	ASSERT_EQ(table->name(), "plugin_sample");
+	ASSERT_EQ(table->entries_count(), 0);
+	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
+	ASSERT_EQ(table->static_fields().size(), 0);
+	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
+
+	// get an already existing field form the plugin table
+	auto sfield = table->dynamic_fields()->fields().find("u64_val");
+	ASSERT_NE(sfield, table->dynamic_fields()->fields().end());
+	ASSERT_EQ(sfield->second.readonly(), false);
+	ASSERT_EQ(sfield->second.valid(), true);
+	ASSERT_EQ(sfield->second.index(), 0);
+	ASSERT_EQ(sfield->second.name(), "u64_val");
+	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<uint64_t>());
+
+	// add a new field in the plugin table
+	const auto& dfield = table->dynamic_fields()->add_field<std::string>("str_val");
+	ASSERT_NE(table->dynamic_fields()->fields().find("str_val"), table->dynamic_fields()->fields().end());
+	ASSERT_EQ(dfield, table->dynamic_fields()->fields().find("str_val")->second);
+	ASSERT_EQ(dfield.readonly(), false);
+	ASSERT_EQ(dfield.valid(), true);
+	ASSERT_EQ(dfield.index(), 1);
+	ASSERT_EQ(dfield.name(), "str_val");
+	ASSERT_EQ(dfield.info(), libsinsp::state::typeinfo::of<std::string>());
+
+	// we open a capture and iterate, so that we make sure that all
+	// the state operations keep working at every round of the loop
+	open_inspector();
+	auto asyncname = "sampleasync";
+	auto sample_plugin_evtdata = "hello world";
+	auto max_iterations = 10000;
+	for (int i = 0; i < max_iterations; i++)
+	{
+		auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_ASYNCEVENT_E, 3, (uint32_t) 0, asyncname, scap_const_sized_buffer{&sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1});
+		ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
+		ASSERT_EQ(evt->get_source_idx(), 0);
+	}
+
+	// we play around with the plugin's table, like if it was a C++ one from sinsp
+	auto sfieldacc = sfield->second.new_accessor<uint64_t>();
+	auto dfieldacc = dfield.new_accessor<std::string>();
+
+	for (uint64_t i = 0; i < max_iterations; i++)
+	{
+		ASSERT_EQ(table->entries_count(), i);
+
+		// get non-existing entry
+		ASSERT_EQ(table->get_entry(i), nullptr);
+
+		// creating a destroying a thread without adding it to the table
+		table->new_entry();
+
+		// creating and adding a thread to the table
+		auto t = table->add_entry(i, std::move(table->new_entry()));
+		ASSERT_NE(t, nullptr);
+		ASSERT_NE(table->get_entry(i), nullptr);
+		ASSERT_EQ(table->entries_count(), i + 1);
+
+		// read and write from newly-created thread (existing field)
+		uint64_t tmpu64 = (uint64_t) -1;
+		t->get_dynamic_field(sfieldacc, tmpu64);
+		ASSERT_EQ(tmpu64, 0);
+		tmpu64 = 5;
+		t->set_dynamic_field(sfieldacc, tmpu64);
+		tmpu64 = 0;
+		t->get_dynamic_field(sfieldacc, tmpu64);
+		ASSERT_EQ(tmpu64, 5);
+
+		// read and write from newly-created thread (added field)
+		std::string tmpstr = "test";
+		t->get_dynamic_field(dfieldacc, tmpstr);
+		ASSERT_EQ(tmpstr, "");
+		tmpstr = "hello";
+		t->set_dynamic_field(dfieldacc, tmpstr);
+		tmpstr = "";
+		t->get_dynamic_field(dfieldacc, tmpstr);
+		ASSERT_EQ(tmpstr, "hello");
+	}
+
+	// the plugin API does not support this yet
+	ASSERT_ANY_THROW(table->foreach_entry([](auto& e) { return true; }));
+
+	// erasing an unknown thread
+	ASSERT_EQ(table->erase_entry(max_iterations), false);
+	ASSERT_EQ(table->entries_count(), max_iterations);
+
+	// erase one of the newly-created thread
+	ASSERT_EQ(table->erase_entry(0), true);
+	ASSERT_EQ(table->entries_count(), max_iterations - 1);
+	
+	// clear all
+	ASSERT_NO_THROW(table->clear_entries());
+	ASSERT_EQ(table->entries_count(), 0);
+}
