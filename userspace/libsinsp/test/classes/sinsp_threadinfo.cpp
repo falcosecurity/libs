@@ -43,10 +43,10 @@ TEST(sinsp_threadinfo, get_main_thread)
 	main_tinfo->m_pid = 23;
 
 	/* We should still obtain a nullptr since we put the main thread as the last element of the list. */
-	tinfo->m_tginfo->add_thread_to_the_group(main_tinfo, false);
+	tinfo->m_tginfo->add_thread_to_group(main_tinfo, false);
 	ASSERT_EQ(tinfo->get_main_thread(), nullptr);
 
-	tinfo->m_tginfo->add_thread_to_the_group(main_tinfo, true);
+	tinfo->m_tginfo->add_thread_to_group(main_tinfo, true);
 	ASSERT_EQ(tinfo->get_main_thread(), main_tinfo.get());
 }
 
@@ -70,7 +70,7 @@ TEST(sinsp_threadinfo, get_num_threads)
 	main_tinfo->m_tid = 23;
 	main_tinfo->m_pid = 23;
 
-	tinfo->m_tginfo->add_thread_to_the_group(main_tinfo, true);
+	tinfo->m_tginfo->add_thread_to_group(main_tinfo, true);
 	ASSERT_EQ(tinfo->get_num_threads(), 2);
 	/* 1 thread is the main thread so we should return just 1 */
 	ASSERT_EQ(tinfo->get_num_not_leader_threads(), 1);

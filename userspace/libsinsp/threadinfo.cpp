@@ -1491,7 +1491,7 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 	}
 	else
 	{
-		tginfo->add_thread_to_the_group(tinfo, tinfo->is_main_thread());
+		tginfo->add_thread_to_group(tinfo, tinfo->is_main_thread());
 	}
 	tinfo->m_tginfo = tginfo;
 

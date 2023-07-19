@@ -66,12 +66,12 @@ TEST(thread_group_info, populate_thread_group_info)
 	EXPECT_EQ(tginfo.get_thread_count(), 2);
 
 	auto tinfo1 = std::make_shared<sinsp_threadinfo>();
-	tginfo.add_thread_to_the_group(tinfo1, true);
+	tginfo.add_thread_to_group(tinfo1, true);
 	ASSERT_EQ(tginfo.get_first_thread(), tinfo1.get());
 	EXPECT_EQ(tginfo.get_thread_count(), 3);
 
 	auto tinfo2 = std::make_shared<sinsp_threadinfo>();
-	tginfo.add_thread_to_the_group(tinfo2, false);
+	tginfo.add_thread_to_group(tinfo2, false);
 	ASSERT_EQ(tginfo.get_first_thread(), tinfo1.get());
 	ASSERT_EQ(tginfo.get_thread_list().back().lock().get(), tinfo2.get());
 	EXPECT_EQ(tginfo.get_thread_count(), 4);
