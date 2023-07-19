@@ -1878,7 +1878,7 @@ void sinsp_thread_manager::reset_child_dependencies()
 
 void sinsp_thread_manager::create_thread_dependencies_after_proc_scan()
 {
-	m_threadtable.loop_shared_pointer([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
+	m_threadtable.const_loop_shared_pointer([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
 		create_thread_dependencies(tinfo);
 		return true;
 	});
