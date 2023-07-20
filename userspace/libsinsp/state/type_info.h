@@ -16,7 +16,6 @@ limitations under the License.
 */
 #pragma once
 
-#include "../sinsp_public.h"
 #include "../sinsp_exception.h"
 #include "../../driver/ppm_events_public.h"
 
@@ -109,46 +108,6 @@ public:
     inline void destroy(void* p) const noexcept 
     {
         if (p && m_destroy) m_destroy(p);
-    }
-
-    inline void copy(const void* from, void* to) const noexcept
-    {
-        switch(m_index)
-        {
-            case PT_INT8:
-                *((int8_t*) to) = *((const int8_t*) from);
-                break;
-            case PT_INT16:
-                *((int16_t*) to) = *((const int16_t*) from);
-                break;
-            case PT_INT32:
-                *((int32_t*) to) = *((const int32_t*) from);
-                break;
-            case PT_INT64:
-                *((int64_t*) to) = *((const int64_t*) from);
-                break;
-            case PT_UINT8:
-                *((uint8_t*) to) = *((const uint8_t*) from);
-                break;
-            case PT_UINT16:
-                *((uint16_t*) to) = *((const uint16_t*) from);
-                break;
-            case PT_UINT32:
-                *((uint32_t*) to) = *((const uint32_t*) from);
-                break;
-            case PT_UINT64:
-                *((uint64_t*) to) = *((const uint64_t*) from);
-                break;
-            case PT_CHARBUF:
-                *((std::string*) to) = *((const std::string*) from);
-                break;
-            case PT_BOOL:
-                *((bool*) to) = *((const bool*) from);
-                break;
-            default:
-                ASSERT(false);
-                break;
-        }
     }
 
 private:
