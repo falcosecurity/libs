@@ -129,6 +129,7 @@ elseif(APPLE)
 endif()
 
 add_library(scap_event_schema
+		STATIC
 		scap_event.c
 		ppm_sc_names.c
 		../../driver/dynamic_params_table.c
@@ -139,8 +140,6 @@ add_library(scap_event_schema
         )
 
 target_link_libraries(scap scap_event_schema)
-
-set_scap_target_properties(scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
