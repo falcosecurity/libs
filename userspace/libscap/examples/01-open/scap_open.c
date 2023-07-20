@@ -856,7 +856,7 @@ int main(int argc, char** argv)
 	if(g_h == NULL || res != SCAP_SUCCESS)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);
-		return EXIT_FAILURE;
+		return res;
 	}
 
 	print_start_capture();
