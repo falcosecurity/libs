@@ -1273,7 +1273,6 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_pro
 	}
 
 	DIR *dir_p = NULL;
-	DIR *taskdir_p = NULL;
 	FILE *fp = NULL;
 	struct dirent *dir_entry_p;
 	char procdirname[SCAP_MAX_PATH_SIZE];
@@ -1369,11 +1368,6 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_pro
 	if(dir_p)
 	{
 		closedir(dir_p);
-	}
-
-	if(taskdir_p)
-	{
-		closedir(taskdir_p);
 	}
 
 	if(fp)
