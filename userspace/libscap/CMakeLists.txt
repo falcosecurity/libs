@@ -150,12 +150,12 @@ endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(scap_engine_util
+		STATIC
 		scap_engine_util.c
 		ringbuffer/devset.c
 		ringbuffer/ringbuffer.c)
 
 	target_link_libraries(scap scap_engine_util)
-	set_scap_target_properties(scap_engine_util)
 endif()
 
 add_definitions(-DHAS_ENGINE_NOOP)
