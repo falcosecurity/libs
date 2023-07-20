@@ -27,7 +27,7 @@ limitations under the License.
 #include <sys/utsname.h>
 #include <unistd.h>
 
-#define SECOND_TO_NS 1000000000
+#define SECOND_TO_NS 1000000000ULL
 
 void scap_os_get_agent_info(scap_agent_info* agent_info)
 {
