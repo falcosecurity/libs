@@ -55,8 +55,8 @@ limitations under the License.
 
 static inline ss_plugin_state_type typeinfo_to_state_type(const libsinsp::state::typeinfo& i)
 {
-    switch(i.index())
-    {
+	switch(i.index())
+	{
 		case libsinsp::state::typeinfo::index_t::PT_INT8:
 			return ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 		case libsinsp::state::typeinfo::index_t::PT_INT16:
@@ -77,9 +77,9 @@ static inline ss_plugin_state_type typeinfo_to_state_type(const libsinsp::state:
 			return ss_plugin_state_type::SS_PLUGIN_ST_STRING;
 		case libsinsp::state::typeinfo::index_t::PT_BOOL:
 			return ss_plugin_state_type::SS_PLUGIN_ST_BOOL;
-        default:
-            throw sinsp_exception("can't convert typeinfo to plugin state type: " + std::string(i.name()));
-    }
+		default:
+			throw sinsp_exception("can't convert typeinfo to plugin state type: " + std::string(i.name()));
+	}
 }
 
 template<typename From, typename To> static inline void convert_types(const From& from, To& to)
@@ -96,7 +96,7 @@ template<> inline void convert_types(const char* const& from, std::string& to)
 {
 	if (!from || *from == '\0')
 	{
-		to = "";
+		to.clear();
 	}
 	else
 	{
@@ -119,10 +119,10 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			const sinsp_plugin* o,
 			const std::shared_ptr<ss_plugin_table_input>& i)
 				: field_infos(), m_owner(o), m_input(i), m_accessors() {};
-        plugin_field_infos(plugin_field_infos&&) = default;
-        plugin_field_infos& operator = (plugin_field_infos&&) = default;
-        plugin_field_infos(const plugin_field_infos& s) = delete;
-        plugin_field_infos& operator = (const plugin_field_infos& s) = delete;
+		plugin_field_infos(plugin_field_infos&&) = default;
+		plugin_field_infos& operator = (plugin_field_infos&&) = default;
+		plugin_field_infos(const plugin_field_infos& s) = delete;
+		plugin_field_infos& operator = (const plugin_field_infos& s) = delete;
 		virtual ~plugin_field_infos() = default;
 
 		const sinsp_plugin* m_owner;
@@ -130,7 +130,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		std::vector<ss_plugin_table_field_t*> m_accessors;
 
 		virtual const std::unordered_map<std::string, ds::field_info>& fields() override
-        {
+		{
 			uint32_t nfields = 0;
 			auto res = m_input->fields.list_table_fields(m_input->table, &nfields);
 			if (res == NULL)
@@ -153,7 +153,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			}
 
 			// make sure we have accessors for all of these fields
-            const auto& ret = ds::field_infos::fields();
+			const auto& ret = ds::field_infos::fields();
 			for (const auto& it : ret)
 			{
 				const auto& f = it.second;
@@ -172,7 +172,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 				}
 			}
 			return ret;
-        }
+		}
 
 		virtual const ds::field_info& add_field(const ds::field_info& field) override
 		{
@@ -217,7 +217,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			m_entry = o.m_entry;
 			m_destroy_entry = o.m_destroy_entry;
 		};
-        plugin_table_entry& operator = (const plugin_table_entry& o)
+		plugin_table_entry& operator = (const plugin_table_entry& o)
 		{
 			ASSERT(!o.m_destroy_entry);
 			if (o.m_destroy_entry)
@@ -229,7 +229,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			m_entry = o.m_entry;
 			m_destroy_entry = o.m_destroy_entry;
 		}
-        plugin_table_entry(plugin_table_entry&& o)
+		plugin_table_entry(plugin_table_entry&& o)
 		{
 			m_owner = o.m_owner;
 			m_input = o.m_input;
@@ -237,7 +237,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			m_destroy_entry = o.m_destroy_entry;
 			o.m_destroy_entry = false;
 		};
-        plugin_table_entry& operator = (plugin_table_entry&& o)
+		plugin_table_entry& operator = (plugin_table_entry&& o)
 		{
 			m_owner = o.m_owner;
 			m_input = o.m_input;
@@ -321,24 +321,24 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	};
 
 	plugin_table_wrapper(const sinsp_plugin* o, const ss_plugin_table_input* i)
-        : libsinsp::state::table<KeyType>(i->name, ss::field_infos()),
+		: libsinsp::state::table<KeyType>(i->name, ss::field_infos()),
 		  m_owner(o),
 		  m_input(std::make_shared<ss_plugin_table_input>(*i)),
 		  m_static_fields(),
 		  m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input))
-    {
-        auto t = libsinsp::state::typeinfo::of<KeyType>();
-        if (m_input->key_type != typeinfo_to_state_type(t))
-        {
-            throw sinsp_exception("invalid key type for plugin-owned table: " + std::string(t.name()));
-        }
-    }
+	{
+		auto t = libsinsp::state::typeinfo::of<KeyType>();
+		if (m_input->key_type != typeinfo_to_state_type(t))
+		{
+			throw sinsp_exception("invalid key type for plugin-owned table: " + std::string(t.name()));
+		}
+	}
 
-    virtual ~plugin_table_wrapper() = default;
-    plugin_table_wrapper(plugin_table_wrapper&&) = default;
-    plugin_table_wrapper& operator = (plugin_table_wrapper&&) = default;
-    plugin_table_wrapper(const plugin_table_wrapper& s) = delete;
-    plugin_table_wrapper& operator = (const plugin_table_wrapper& s) = delete;
+	virtual ~plugin_table_wrapper() = default;
+	plugin_table_wrapper(plugin_table_wrapper&&) = default;
+	plugin_table_wrapper& operator = (plugin_table_wrapper&&) = default;
+	plugin_table_wrapper(const plugin_table_wrapper& s) = delete;
+	plugin_table_wrapper& operator = (const plugin_table_wrapper& s) = delete;
 
 	const sinsp_plugin* m_owner;
 	std::shared_ptr<ss_plugin_table_input> m_input;
@@ -351,16 +351,16 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	}
 
 	const libsinsp::state::static_struct::field_infos& static_fields() const override
-    {
+	{
 		// note: always empty, plugin-defined table have no "static" fields,
 		// all of them are dynamically-discovered at runtime
-        return m_static_fields;
-    }
+		return m_static_fields;
+	}
 
-    std::shared_ptr<ds::field_infos> dynamic_fields() const override
-    {
-        return m_dyn_fields;
-    }
+	std::shared_ptr<ds::field_infos> dynamic_fields() const override
+	{
+		return m_dyn_fields;
+	}
 
 	size_t entries_count() const override
 	{
@@ -386,7 +386,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		throw sinsp_exception(invalid_access_msg("foreach"));
 	}
 
-    std::unique_ptr<libsinsp::state::table_entry> new_entry() const override
+	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override
 	{
 		auto res = m_input->writer.create_table_entry(m_input->table);
 		if (res == NULL)
@@ -408,7 +408,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		return std::shared_ptr<libsinsp::state::table_entry>(new plugin_table_entry(m_owner, m_input, m_dyn_fields, res, false));
 	}
 
-    std::shared_ptr<libsinsp::state::table_entry> add_entry(const KeyType& key, std::unique_ptr<libsinsp::state::table_entry> e) override
+	std::shared_ptr<libsinsp::state::table_entry> add_entry(const KeyType& key, std::unique_ptr<libsinsp::state::table_entry> e) override
 	{
 		ASSERT(dynamic_cast<plugin_table_entry*>(e.get()) != nullptr);
 		plugin_table_entry* entry = static_cast<plugin_table_entry*>(e.get());
@@ -424,7 +424,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		return std::move(e);
 	}
 
-    bool erase_entry(const KeyType& key) override
+	bool erase_entry(const KeyType& key) override
 	{
 		ss_plugin_state_data keydata;
 		get_key_data(key, keydata);
@@ -491,16 +491,16 @@ template<> void plugin_table_wrapper<bool>::get_key_data(const bool& key, ss_plu
 struct sinsp_table_wrapper
 {
 	// wraps a dynamic or a static field accessor and its type
-    struct field_accessor_wrapper
-    {
+	struct field_accessor_wrapper
+	{
 		void* accessor;
 		bool dynamic;
 		ss_plugin_state_type data_type;
-    };
+	};
 
 	template <typename T>
 	explicit sinsp_table_wrapper(sinsp_plugin* p, libsinsp::state::table<T>* t)
-        : m_owner_plugin(p), m_key_type(typeinfo_to_state_type(t->key_info())),
+		: m_owner_plugin(p), m_key_type(typeinfo_to_state_type(t->key_info())),
 		  m_table(t), m_field_list(), m_table_plugin_owner(nullptr), m_table_plugin_input(nullptr)
 	{
 		// note: if the we're wrapping a plugin-implemented table under the hood,
@@ -516,11 +516,11 @@ struct sinsp_table_wrapper
 		}
 	}
 
-    sinsp_table_wrapper() = delete;
-    sinsp_table_wrapper(sinsp_table_wrapper&&) = default;
-    sinsp_table_wrapper& operator = (sinsp_table_wrapper&&) = default;
-    sinsp_table_wrapper(const sinsp_table_wrapper& s) = delete;
-    sinsp_table_wrapper& operator = (const sinsp_table_wrapper& s) = delete;
+	sinsp_table_wrapper() = delete;
+	sinsp_table_wrapper(sinsp_table_wrapper&&) = default;
+	sinsp_table_wrapper& operator = (sinsp_table_wrapper&&) = default;
+	sinsp_table_wrapper(const sinsp_table_wrapper& s) = delete;
+	sinsp_table_wrapper& operator = (const sinsp_table_wrapper& s) = delete;
 	virtual ~sinsp_table_wrapper()
 	{
 		for (auto& acc : m_field_accessors)
@@ -546,10 +546,10 @@ struct sinsp_table_wrapper
 	}
 
 	sinsp_plugin* m_owner_plugin;
-    ss_plugin_state_type m_key_type;
-    libsinsp::state::base_table* m_table;
-    std::vector<ss_plugin_table_fieldinfo> m_field_list;
-    std::unordered_map<std::string, field_accessor_wrapper> m_field_accessors;
+	ss_plugin_state_type m_key_type;
+	libsinsp::state::base_table* m_table;
+	std::vector<ss_plugin_table_fieldinfo> m_field_list;
+	std::unordered_map<std::string, field_accessor_wrapper> m_field_accessors;
 	const sinsp_plugin* m_table_plugin_owner;
 	ss_plugin_table_input* m_table_plugin_input;
 
@@ -1126,8 +1126,8 @@ ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, 
 
 void sinsp_plugin::table_input_deleter::operator()(ss_plugin_table_input* in)
 {
-    delete static_cast<sinsp_table_wrapper*>(in->table);
-    delete in;
+	delete static_cast<sinsp_table_wrapper*>(in->table);
+	delete in;
 }
 
 ss_plugin_table_t* sinsp_plugin::table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_state_type key_type)
