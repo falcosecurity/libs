@@ -93,17 +93,6 @@ template<> inline void convert_types(const std::string& from, const char*& to)
 	to = from.c_str();
 }
 
-template<> inline void convert_types(const char* const& from, std::string& to)
-{
-	if (!from || *from == '\0')
-	{
-		to.clear();
-	}
-	else
-	{
-		to = from;
-	}
-}
 
 static inline std::string table_input_error_prefix(const sinsp_plugin* o, ss_plugin_table_input* i)
 {
@@ -325,7 +314,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			{
 				#define _X(_type, _dtype) \
 				{ \
-					convert_types(dout._dtype, *(_type*) out); \
+					*((_type*) out) = dout._dtype; \
 				}
 				__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
 				#undef _X
@@ -350,7 +339,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			{
 				#define _X(_type, _dtype) \
 				{ \
-					convert_types(*(_type*) in, v._dtype); \
+					convert_types(*((_type*) in), v._dtype); \
 				}
 				__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
 				#undef _X
@@ -1006,7 +995,7 @@ ss_plugin_rc sinsp_table_wrapper::read_entry_field(ss_plugin_table_t* _t, ss_plu
 		else \
 		{ \
 			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(a->accessor); \
-			convert_types(e->get_static_field(*aa), out->_dtype); \
+			e->get_static_field(*aa, out->_dtype); \
 		} \
 		return SS_PLUGIN_SUCCESS; \
 	}

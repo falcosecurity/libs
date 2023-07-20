@@ -104,7 +104,9 @@ TEST(static_struct, defs_and_access)
     ASSERT_EQ(s.get_static_field(acc_num), 0);
     s.set_num(5);
     ASSERT_EQ(s.get_num(), 5);
-    ASSERT_EQ(s.get_static_field(acc_num), 5);
+    uint32_t u32tmp = 0;
+    s.get_static_field(acc_num, u32tmp);
+    ASSERT_EQ(u32tmp, 5);
     s.set_static_field(acc_num, (uint32_t) 6);
     ASSERT_EQ(s.get_num(), 6);
     ASSERT_EQ(s.get_static_field(acc_num), 6);
@@ -115,8 +117,20 @@ TEST(static_struct, defs_and_access)
     str = "hello";
     s.set_str("hello");
     ASSERT_EQ(s.get_str(), str);
-    ASSERT_EQ(s.get_static_field(acc_str), str);
-    ASSERT_ANY_THROW(s.set_static_field(acc_str, str)); // readonly
+    s.get_static_field(acc_str, str);
+    ASSERT_EQ(str, "hello");
+    ASSERT_ANY_THROW(s.set_static_field(acc_str, "hello")); // readonly
+
+    const char* cstr = "sample";
+    s.set_str("");
+    s.get_static_field(acc_str, cstr);
+    ASSERT_EQ(strcmp(cstr, ""), 0);
+    s.set_str("hello");
+    s.get_static_field(acc_str, cstr);
+    ASSERT_EQ(strcmp(cstr, "hello"), 0);
+    ASSERT_EQ(cstr, s.get_str().c_str());
+    ASSERT_ANY_THROW(s.set_static_field(acc_str, cstr)); // readonly
+
 
     // illegal access from an accessor created from different definition list
     // note: this should supposedly be checked for and throw an exception,
@@ -187,6 +201,16 @@ TEST(dynamic_struct, defs_and_access)
     s.set_dynamic_field(acc_str, std::string("hello"));
     s.get_dynamic_field(acc_str, tmpstr);
     ASSERT_EQ(tmpstr, std::string("hello"));
+    
+    s.set_dynamic_field(acc_str, std::string(""));
+    const char* ctmpstr = "sample";
+    s.get_dynamic_field(acc_str, ctmpstr);
+    ASSERT_EQ(strcmp(ctmpstr, ""), 0);
+    ctmpstr = "hello";
+    s.set_dynamic_field(acc_str, ctmpstr);
+    ctmpstr = "";
+    s.get_dynamic_field(acc_str, ctmpstr);
+    ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
 
     // illegal access from an accessor created from different definition list
     auto fields2 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();

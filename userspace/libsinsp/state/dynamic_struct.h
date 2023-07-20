@@ -411,7 +411,14 @@ template<> inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::s
 {
     const char* s = NULL;
     get_dynamic_field(a, s);
-    out = s;
+    if (!s)
+    {
+        out.clear();
+    }
+    else
+    {
+        out = s;
+    }
 }
 
 template <> inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string,const char*>(

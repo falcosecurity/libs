@@ -200,11 +200,20 @@ public:
     }
 
     /**
+     * @brief Accesses a field with the given accessor and reads its value.
+     */
+    template <typename T, typename Val = T>
+    inline void get_static_field(const field_accessor<T>& a, Val& out) const
+    {
+        out = get_static_field<T>(a);
+    }
+
+    /**
      * @brief Accesses a field with the given accessor and writes its value.
      * An exception is thrown if the field is read-only.
      */
-    template <typename T>
-    inline void set_static_field(const field_accessor<T>& a, const T& v)
+    template <typename T, typename Val = T>
+    inline void set_static_field(const field_accessor<T>& a, const Val& in)
     {
         if (!a.info().valid())
         {
@@ -214,7 +223,7 @@ public:
         {
             throw sinsp_exception("can't set a read-only static struct field: " + a.info().name());
         }
-        *(reinterpret_cast<T*>((void*) (((uintptr_t) this) + a.info().m_offset))) = v;
+        *(reinterpret_cast<T*>((void*) (((uintptr_t) this) + a.info().m_offset))) = in;
     }
 
     /**
@@ -260,3 +269,10 @@ private:
 
 }; // state
 }; // libsinsp
+
+// specializations for strings
+template <> inline void libsinsp::state::static_struct::get_static_field<std::string,const char*>(
+    const field_accessor<std::string>& a, const char*& out) const
+{
+    out = get_static_field<std::string>(a).c_str();
+}
