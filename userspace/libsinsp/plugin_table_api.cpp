@@ -311,12 +311,25 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			{
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "read field failure: " + m_owner->get_last_error());
 			}
-			#define _X(_type, _dtype) \
-			{ \
-				convert_types(dout._dtype, *(_type*) out); \
+
+			// note: strings are the only exception to the switch case below,
+			// because they are represented as std::string in libsinsp' typeinfo
+			// and as const char*s by the plugin API.
+			// todo(jasondellaluce): maybe find a common place for all this
+			// type conversions knowledge (also leaked in dynamic_struct.h)
+			if (i.info().index() == libsinsp::state::typeinfo::index_t::PT_CHARBUF)
+			{
+				*(const char**) out = dout.str;
 			}
-			__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
-			#undef _X
+			else
+			{
+				#define _X(_type, _dtype) \
+				{ \
+					convert_types(dout._dtype, *(_type*) out); \
+				}
+				__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
+				#undef _X
+			}
 		}
 
 		virtual void set_dynamic_field(const ds::field_info& i, const void* in) override
@@ -324,12 +337,24 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			const auto& infos = get_plugin_field_infos();
 			ss_plugin_state_data v;
 
-			#define _X(_type, _dtype) \
-			{ \
-				convert_types(*(_type*) in, v._dtype); \
+			// note: strings are the only exception to the switch case below,
+			// because they are represented as std::string in libsinsp' typeinfo
+			// and as const char*s by the plugin API.
+			// todo(jasondellaluce): maybe find a common place for all this
+			// type conversions knowledge (also leaked in dynamic_struct.h)
+			if (i.info().index() == libsinsp::state::typeinfo::index_t::PT_CHARBUF)
+			{
+				v.str = *(const char**) in;
 			}
-			__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
-			#undef _X
+			else
+			{
+				#define _X(_type, _dtype) \
+				{ \
+					convert_types(*(_type*) in, v._dtype); \
+				}
+				__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
+				#undef _X
+			}
 
 			auto rc = m_input->writer.write_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &v);
 			if (rc != SS_PLUGIN_SUCCESS)
@@ -976,9 +1001,7 @@ ss_plugin_rc sinsp_table_wrapper::read_entry_field(ss_plugin_table_t* _t, ss_plu
 		if (a->dynamic) \
 		{ \
 			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(a->accessor); \
-			_type _v; \
-			e->get_dynamic_field(*aa, _v); \
-			convert_types(_v, out->_dtype); \
+			e->get_dynamic_field(*aa, out->_dtype); \
 		} \
 		else \
 		{ \

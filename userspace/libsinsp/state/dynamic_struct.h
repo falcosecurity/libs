@@ -264,28 +264,20 @@ protected:
     /**
      * @brief Accesses a field with the given accessor and reads its value.
      */
-    template <typename T>
-    inline void get_dynamic_field(const field_accessor<T>& a, T& out)
+    template <typename T, typename Val = T>
+    inline void get_dynamic_field(const field_accessor<T>& a, Val& out)
     {
-        if (!a.info().valid())
-        {
-            throw sinsp_exception("can't get invalid field in dynamic struct");
-        }
-        _check_defsptr(a.info().m_defsptr);
+        _check_defsptr(a.info(), false);
         get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
     }
 
     /**
      * @brief Accesses a field with the given accessor and writes its value.
      */
-    template <typename T>
-    inline void set_dynamic_field(const field_accessor<T>& a, const T& in)
+    template <typename T, typename Val = T>
+    inline void set_dynamic_field(const field_accessor<T>& a, const Val& in)
     {
-        if (!a.info().valid())
-        {
-            throw sinsp_exception("can't set invalid field in dynamic struct");
-        }
-        _check_defsptr(a.info().m_defsptr);
+        _check_defsptr(a.info(), true);
         if (a.info().readonly())
         {
             throw sinsp_exception("can't set a read-only dynamic struct field: " + a.info().name());
@@ -320,22 +312,58 @@ protected:
     }
 
 protected:
+    /**
+     * @brief Gets the value of a dynamic field and writes it into "out".
+     * "out" points to a variable having the type of the field_info argument,
+     * according to the type definitions supported in libsinsp::state::typeinfo.
+     * For strings, "out" is considered of type const char**.
+    */
     virtual void get_dynamic_field(const field_info& i, void* out)
     {
-        i.info().copy(_access_dynamic_field(i.m_index), out);
+        const auto* buf = _access_dynamic_field(i.m_index);
+        if (i.info().index() == PT_CHARBUF)
+        {
+            *((const char**) out) = ((const std::string*) buf)->c_str();
+        }
+        else
+        {
+            memcpy(out, buf, i.info().size());
+        }
     }
 
+    /**
+     * @brief Sets the value of a dynamic field by reading it from "in".
+     * "in" points to a variable having the type of the field_info argument,
+     * according to the type definitions supported in libsinsp::state::typeinfo.
+     * For strings, "in" is considered of type const char**.
+    */
     virtual void set_dynamic_field(const field_info& i, const void* in)
     {
-        i.info().copy(in, _access_dynamic_field(i.m_index));
+        auto* buf = _access_dynamic_field(i.m_index);
+        if (i.info().index() == PT_CHARBUF)
+        {
+            *((std::string*) buf) = *((const char**) in);
+        }
+        else
+        {
+            memcpy(buf, in, i.info().size());
+        }
     }
 
 private:
-    inline void _check_defsptr(void* ptr) const
+    inline void _check_defsptr(const field_info& i, bool write) const
     {
-        if (m_dynamic_fields.get() != ptr)
+        if (!i.valid())
+        {
+            throw sinsp_exception("can't set invalid field in dynamic struct");
+        }
+        if (m_dynamic_fields.get() != i.m_defsptr)
         {
             throw sinsp_exception("using dynamic field accessor on struct it was not created from");
+        }
+        if (write && i.readonly())
+        {
+            throw sinsp_exception("can't set a read-only dynamic struct field: " + i.name());
         }
     }
 
@@ -368,3 +396,33 @@ private:
 
 }; // state
 }; // libsinsp
+
+// specializations for string types
+
+template<> inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string,const char*>(
+    const field_accessor<std::string>& a, const char*& out)
+{
+    _check_defsptr(a.info(), false);
+    get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
+}
+
+template<> inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string,std::string>(
+    const field_accessor<std::string>& a, std::string& out)
+{
+    const char* s = NULL;
+    get_dynamic_field(a, s);
+    out = s;
+}
+
+template <> inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string,const char*>(
+    const field_accessor<std::string>& a, const char* const& in)
+{
+    _check_defsptr(a.info(), true);
+    set_dynamic_field(a.info(), reinterpret_cast<const void*>(&in));
+}
+
+template <> inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string,std::string>(
+    const field_accessor<std::string>& a, const std::string& in)
+{
+    set_dynamic_field(a, in.c_str());
+}
