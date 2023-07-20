@@ -167,12 +167,12 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	 */
 	if(check_buffer_bytes_dim(handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
 	{
-		return SCAP_FAILURE;
+		return ENOTSUP;
 	}
 
 	if(!pman_check_support())
 	{
-		return SCAP_FAILURE;
+		return ENOTSUP;
 	}
 
 	/* Initialize the libpman internal state.
