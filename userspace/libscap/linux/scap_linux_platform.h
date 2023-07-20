@@ -27,7 +27,6 @@ extern "C" {
 
 #include "scap_cgroup.h"
 #include "scap_platform_impl.h"
-#include "scap_platform.h"
 #include "engine_handle.h"
 
 struct scap_mountinfo;
