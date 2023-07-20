@@ -93,12 +93,33 @@ public:
     static ss_plugin_table_field_t* add_field(ss_plugin_table_t* _t, const char* name, ss_plugin_state_type data_type)
     {
         auto t = static_cast<sample_table*>(_t);
-        t->strings.push_back(name);
+        for (size_t i = 0; i < t->fields.size(); i++)
+        {
+            const auto& f = t->fields[i];
+            if (strcmp(f.name, name) == 0)
+            {
+                if (f.field_type != data_type)
+                {
+                    t->lasterr = "field defined with incompatible types: " + std::string(name);
+                    return NULL;
+                }
+                // note: shifted by 1 so that we never return 0 (interpreted as NULL)
+                return (ss_plugin_table_field_t*) (i + 1);
+            }
+        }
+
         ss_plugin_table_fieldinfo f;
-        f.name = t->strings[t->strings.size() - 1].c_str();
+        t->strings.push_back(name);
         f.field_type = data_type;
         f.read_only = false;
         t->fields.push_back(f);
+        for (size_t i = 0; i < t->fields.size(); i++)
+        {
+            // note: previous string pointers may have been changed so we
+            // we need to set all of them again
+            t->fields[i].name = t->strings[i].c_str();
+        }
+
         // note: shifted by 1 so that we never return 0 (interpreted as NULL)
         return (ss_plugin_table_field_t*) (t->fields.size());
     }
