@@ -92,6 +92,7 @@ template<> inline void convert_types(const std::string& from, const char*& to)
 {
 	to = from.c_str();
 }
+
 template<> inline void convert_types(const char* const& from, std::string& to)
 {
 	if (!from || *from == '\0')
@@ -102,6 +103,11 @@ template<> inline void convert_types(const char* const& from, std::string& to)
 	{
 		to = from;
 	}
+}
+
+static inline std::string table_input_error_prefix(const sinsp_plugin* o, ss_plugin_table_input* i)
+{
+	return "error in state table '" + std::string(i->name) + "' defined by plugin '" + o->name() + "': ";
 }
 
 // wraps instances of ss_plugin_table_input and makes them comply
@@ -131,12 +137,20 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 		virtual const std::unordered_map<std::string, ds::field_info>& fields() override
 		{
+			// list all the fields of the plugin table
 			uint32_t nfields = 0;
 			auto res = m_input->fields.list_table_fields(m_input->table, &nfields);
 			if (res == NULL)
 			{
-				throw sinsp_exception("plugin table list fields error: " + m_owner->get_last_error());
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "list fields failure: " + m_owner->get_last_error());
 			}
+
+			// if there's a different number of fields that in our local copy,
+			// we re-add all of them. Duplicate definitions will be skipped
+			// anyways. Note, we set the index of each field info to the order
+			// index of the first time we received it from the plugin. This is
+			// relevant because the plugin API does not give guarantees about
+			// order stability of the returned array of field infos.
 			if (nfields != ds::field_infos::fields().size())
 			{
 				for (uint32_t i = 0; i < nfields; i++)
@@ -152,7 +166,12 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 				}
 			}
 
-			// make sure we have accessors for all of these fields
+			// at this point, our local copy of the field infos should be consistent
+			// with what's known by the plugin. So, we make sure we create an
+			// accessor for each of the field infos. Note, each field is associated
+			// an accessor that has an array position equal to the field's index.
+			// This will be used later for instant retrieval of the accessors
+			// during read-write operations.
 			const auto& ret = ds::field_infos::fields();
 			for (const auto& it : ret)
 			{
@@ -166,7 +185,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 					auto facc = m_input->fields.get_table_field(m_input->table, f.name().c_str(), typeinfo_to_state_type(f.info()));
 					if (facc == NULL)
 					{
-						throw sinsp_exception("plugin table get field error: " + m_owner->get_last_error());
+						throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "get table field failure: " + m_owner->get_last_error());
 					}
 					m_accessors[f.index()] = facc;
 				}
@@ -179,10 +198,18 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			auto ret = m_input->fields.add_table_field(m_input->table, field.name().c_str(), typeinfo_to_state_type(field.info()));
 			if (ret == NULL)
 			{
-				throw sinsp_exception("plugin table list fields error: "  + m_owner->get_last_error());
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "add table field failure: " + m_owner->get_last_error());
 			}
-			// trigger all updates and obtain the right ref
+
+			// after adding a new field, we retrieve the whole list again
+			// to trigger the local copy updates and make sure we're in a
+			// consistent state. This is necessary because we we add a field,
+			// we have no guarantee that other components haven't added other
+			// fields too and we need to get their info as well.
 			this->fields();
+
+			// lastly, we leverage the base-class implementation to obtain
+			// a reference from our local field definitions copy.
 			return ds::field_infos::add_field(field);
 		}
 	};
@@ -194,61 +221,64 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			const std::shared_ptr<ss_plugin_table_input>& i,
 			const std::shared_ptr<plugin_field_infos>& fields,
 			ss_plugin_table_entry_t* e,
-			bool destroy)
+			bool detached)
 				: table_entry(fields),
 				m_owner(o),
 				m_input(i),
 				m_entry(e),
-				m_destroy_entry(destroy) {};
+				m_detached(detached) {};
 		plugin_table_entry(const plugin_table_entry& o)
 		{
-			// note: this is not supposed to ever happen: in the general case,
-			// m_destroy_entry will be false because plugin_table_entry will not
-			// own the entry (the table will). The only time in which it is owner
-			// is when being held in a unique pointer during the
-			// new_entry -> add_entry flow.
-			ASSERT(!o.m_destroy_entry);
-			if (o.m_destroy_entry)
+			// note: this is not supposed to ever happen. In the general case
+			// m_detached will be false because plugin_table_entry will not
+			// own the entry (it will be held by the table itself).
+			// The only time in which it is owner is when being held in a
+			// unique pointer during the new_entry -> add_entry/destroy_entry flow.
+			ASSERT(!o.m_detached);
+			if (o.m_detached)
 			{
-				throw sinsp_exception("plugin_table_entry can't be copied while being owner of an entry pointer");
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "entry can't be copied while being detached");
 			}
 			m_owner = o.m_owner;
 			m_input = o.m_input;
 			m_entry = o.m_entry;
-			m_destroy_entry = o.m_destroy_entry;
+			m_detached = o.m_detached;
 		};
 		plugin_table_entry& operator = (const plugin_table_entry& o)
 		{
-			ASSERT(!o.m_destroy_entry);
-			if (o.m_destroy_entry)
+			ASSERT(!o.m_detached);
+			if (o.m_detached)
 			{
-				throw sinsp_exception("plugin_table_entry can't be copied while being owner of an entry pointer");
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "entry can't be copied while being detached");
 			}
 			m_owner = o.m_owner;
 			m_input = o.m_input;
 			m_entry = o.m_entry;
-			m_destroy_entry = o.m_destroy_entry;
+			m_detached = o.m_detached;
 		}
 		plugin_table_entry(plugin_table_entry&& o)
 		{
 			m_owner = o.m_owner;
 			m_input = o.m_input;
 			m_entry = o.m_entry;
-			m_destroy_entry = o.m_destroy_entry;
-			o.m_destroy_entry = false;
+			m_detached = o.m_detached;
+			o.m_detached = false;
 		};
 		plugin_table_entry& operator = (plugin_table_entry&& o)
 		{
 			m_owner = o.m_owner;
 			m_input = o.m_input;
 			m_entry = o.m_entry;
-			m_destroy_entry = o.m_destroy_entry;
-			o.m_destroy_entry = false;
+			m_detached = o.m_detached;
+			o.m_detached = false;
 			return *this;
 		};
 		virtual ~plugin_table_entry()
 		{
-			if (m_destroy_entry)
+			// if this gets destroyed when holding a detached entry pointer
+			// (one that is allocated, but not yet inserted in the table),
+			// then it must be destroyed here.
+			if (m_detached)
 			{
 				m_input->writer.destroy_table_entry(m_input->table, m_entry);
 			}
@@ -257,17 +287,17 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		const sinsp_plugin* m_owner;
 		std::shared_ptr<ss_plugin_table_input> m_input;
 		ss_plugin_table_entry_t* m_entry;
-		bool m_destroy_entry;
+		bool m_detached;
 
 		// note(jasondellaluce): dynamic cast is expensive but this is not expected
-		// to ever be invoked because we plan of settings the fields shared pointer
+		// to ever be ever invoked, because we set the fields shared pointer
 		// at construction time. This is just here as a consistency fence in
 		// case of misuse.
 		virtual void set_dynamic_fields(const std::shared_ptr<ds::field_infos>& defs) override
 		{
 			if (defs && dynamic_cast<plugin_field_infos*>(defs.get()) == nullptr)
 			{
-				throw sinsp_exception("plugin table can only be set with plugin dynamic fields");
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "plugin table can only be set with plugin dynamic fields");
 			}
 			table_entry::set_dynamic_fields(defs);
 		}
@@ -279,7 +309,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			auto rc = m_input->reader.read_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &dout);
 			if (rc != SS_PLUGIN_SUCCESS)
 			{
-				throw sinsp_exception("plugin table entry read field error: " + m_owner->get_last_error());
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "read field failure: " + m_owner->get_last_error());
 			}
 			#define _X(_type, _dtype) \
 			{ \
@@ -304,7 +334,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			auto rc = m_input->writer.write_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &v);
 			if (rc != SS_PLUGIN_SUCCESS)
 			{
-				throw sinsp_exception("plugin table entry write field error: " + m_owner->get_last_error());
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "write field failure: " + m_owner->get_last_error());
 			}
 		}
 	private:
@@ -312,10 +342,11 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		{
 			if (dynamic_fields() == nullptr)
 			{
-				throw sinsp_exception("plugin table entry fields definitions are not set");
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "local fields definitions not set");
 			}
-			// note: casting is safe because we force the plugin_field_infos
-			// subtype both the constructor and the setter
+			// note: casting should be safe because we force the
+			// plugin_field_infos subtype both the constructor and the setter
+			ASSERT(dynamic_cast<plugin_field_infos*>(dynamic_fields().get()) != nullptr);
 			return *static_cast<plugin_field_infos*>(dynamic_fields().get());
 		}
 	};
@@ -330,7 +361,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		auto t = libsinsp::state::typeinfo::of<KeyType>();
 		if (m_input->key_type != typeinfo_to_state_type(t))
 		{
-			throw sinsp_exception("invalid key type for plugin-owned table: " + std::string(t.name()));
+			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "invalid key type: " + std::string(t.name()));
 		}
 	}
 
@@ -344,11 +375,6 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	std::shared_ptr<ss_plugin_table_input> m_input;
 	libsinsp::state::static_struct::field_infos m_static_fields;
 	std::shared_ptr<plugin_field_infos> m_dyn_fields;
-
-	inline std::string invalid_access_msg(const std::string& op) const
-	{
-		return "operation '" + op + "' not supported by plugin-owned table '" + this->name() + "'";
-	}
 
 	const libsinsp::state::static_struct::field_infos& static_fields() const override
 	{
@@ -367,7 +393,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		auto res = m_input->reader.get_table_size(m_input->table);
 		if (res == (uint64_t) -1)
 		{
-			throw sinsp_exception(m_owner->get_last_error());
+			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "get size failure: " + m_owner->get_last_error());
 		}
 		return (size_t) res;
 	}
@@ -377,13 +403,13 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		auto res = m_input->writer.clear_table(m_input->table);
 		if (res != SS_PLUGIN_SUCCESS)
 		{
-			throw sinsp_exception(m_owner->get_last_error());
+			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "clear entries failure: " + m_owner->get_last_error());
 		}
 	}
 
 	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override
 	{
-		throw sinsp_exception(invalid_access_msg("foreach"));
+		throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "foreach operation not supported by plugin api");
 	}
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override
@@ -391,7 +417,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		auto res = m_input->writer.create_table_entry(m_input->table);
 		if (res == NULL)
 		{
-			throw sinsp_exception(m_owner->get_last_error());
+			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "create entry failure: " + m_owner->get_last_error());
 		}
 		return std::unique_ptr<libsinsp::state::table_entry>(new plugin_table_entry(m_owner, m_input, m_dyn_fields, res, true));
 	}
@@ -399,10 +425,12 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	std::shared_ptr<libsinsp::state::table_entry> get_entry(const KeyType& key) override
 	{
 		ss_plugin_state_data keydata;
-		get_key_data(key, keydata);
+		get_key_as_data(key, keydata);
 		auto res = m_input->reader.get_table_entry(m_input->table, &keydata);
 		if (res == NULL)
 		{
+			// note: libsinsp::state::table expects nullptr to be returned
+			// instead of an error exception
 			return nullptr;
 		}
 		return std::shared_ptr<libsinsp::state::table_entry>(new plugin_table_entry(m_owner, m_input, m_dyn_fields, res, false));
@@ -410,78 +438,85 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 	std::shared_ptr<libsinsp::state::table_entry> add_entry(const KeyType& key, std::unique_ptr<libsinsp::state::table_entry> e) override
 	{
+		// we have no formal way for checking for misuses in which the invoker
+		// adds an entry that has not been created buy this table (with
+		// the right sub-type). Dynamic cast would be too expensive at this
+		// level, so we just enable it in debug mode.
 		ASSERT(dynamic_cast<plugin_table_entry*>(e.get()) != nullptr);
 		plugin_table_entry* entry = static_cast<plugin_table_entry*>(e.get());
+
 		ss_plugin_state_data keydata;
-		get_key_data(key, keydata);
+		get_key_as_data(key, keydata);
 		auto res = m_input->writer.add_table_entry(m_input->table, &keydata, entry->m_entry);
 		if (res == NULL)
 		{
-			throw sinsp_exception(m_owner->get_last_error());
+			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "add entry failure: " + m_owner->get_last_error());
 		}
 		entry->m_entry = res;
-		entry->m_destroy_entry = false;
+		entry->m_detached = false;
 		return std::move(e);
 	}
 
 	bool erase_entry(const KeyType& key) override
 	{
 		ss_plugin_state_data keydata;
-		get_key_data(key, keydata);
+		get_key_as_data(key, keydata);
 		auto res = m_input->writer.erase_table_entry(m_input->table, &keydata);
+		// note: in case of failure, libsinsp::state::table expects false
+		// to be returned instead of an error exception
 		return res == SS_PLUGIN_SUCCESS;
 	}
 
 	private:
-	void get_key_data(const KeyType& key, ss_plugin_state_data& out);
+	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
 
-template<> void plugin_table_wrapper<int8_t>::get_key_data(const int8_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<int8_t>::get_key_as_data(const int8_t& key, ss_plugin_state_data& out)
 {
 	out.s8 = key;
 }
 
-template<> void plugin_table_wrapper<int16_t>::get_key_data(const int16_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<int16_t>::get_key_as_data(const int16_t& key, ss_plugin_state_data& out)
 {
 	out.s16 = key;
 }
 
-template<> void plugin_table_wrapper<int32_t>::get_key_data(const int32_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<int32_t>::get_key_as_data(const int32_t& key, ss_plugin_state_data& out)
 {
 	out.s32 = key;
 }
 
-template<> void plugin_table_wrapper<int64_t>::get_key_data(const int64_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<int64_t>::get_key_as_data(const int64_t& key, ss_plugin_state_data& out)
 {
 	out.s64 = key;
 }
 
-template<> void plugin_table_wrapper<uint8_t>::get_key_data(const uint8_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<uint8_t>::get_key_as_data(const uint8_t& key, ss_plugin_state_data& out)
 {
 	out.u8 = key;
 }
 
-template<> void plugin_table_wrapper<uint16_t>::get_key_data(const uint16_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<uint16_t>::get_key_as_data(const uint16_t& key, ss_plugin_state_data& out)
 {
 	out.u16 = key;
 }
 
-template<> void plugin_table_wrapper<uint32_t>::get_key_data(const uint32_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<uint32_t>::get_key_as_data(const uint32_t& key, ss_plugin_state_data& out)
 {
 	out.u32 = key;
 }
 
-template<> void plugin_table_wrapper<uint64_t>::get_key_data(const uint64_t& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<uint64_t>::get_key_as_data(const uint64_t& key, ss_plugin_state_data& out)
 {
 	out.u64 = key;
 }
 
-template<> void plugin_table_wrapper<std::string>::get_key_data(const std::string& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<std::string>::get_key_as_data(const std::string& key, ss_plugin_state_data& out)
 {
 	out.str = key.c_str();
 }
 
-template<> void plugin_table_wrapper<bool>::get_key_data(const bool& key, ss_plugin_state_data& out)
+template<> void plugin_table_wrapper<bool>::get_key_as_data(const bool& key, ss_plugin_state_data& out)
 {
 	out.b = key;
 }
@@ -643,7 +678,7 @@ struct sinsp_table_wrapper
 			{
 				if (data_type != typeinfo_to_state_type(fixed_it->second.info()))
 				{
-					throw sinsp_exception("incompatible data types for field: " + std::string(name));
+					throw sinsp_exception("incompatible data types for static field: " + std::string(name));
 				}	
 				__PLUGIN_STATETYPE_SWITCH(data_type);
 			}
@@ -665,7 +700,7 @@ struct sinsp_table_wrapper
 			{
 				if (data_type != typeinfo_to_state_type(dyn_it->second.info()))
 				{
-					throw sinsp_exception("incompatible data types for field: " + std::string(name));
+					throw sinsp_exception("incompatible data types for dynamic field: " + std::string(name));
 				}
 				__PLUGIN_STATETYPE_SWITCH(data_type);
 			}
