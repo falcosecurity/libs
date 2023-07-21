@@ -333,7 +333,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	struct plugin_table_entry: public libsinsp::state::table_entry
 	{
 		plugin_table_entry(
-			const sinsp_plugin* o,
+			sinsp_plugin* o,
 			const owned_table_input_t& i,
 			const std::shared_ptr<plugin_field_infos>& fields,
 			ss_plugin_table_entry_t* e,
@@ -400,7 +400,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			}
 		};
 
-		const sinsp_plugin* m_owner;
+		sinsp_plugin* m_owner;
 		owned_table_input_t m_input;
 		ss_plugin_table_entry_t* m_entry;
 		bool m_detached;
@@ -492,7 +492,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		}
 	};
 
-	plugin_table_wrapper(const sinsp_plugin* o, const ss_plugin_table_input* i)
+	plugin_table_wrapper(sinsp_plugin* o, const ss_plugin_table_input* i)
 		: libsinsp::state::table<KeyType>(i->name, ss::field_infos()),
 		  m_owner(o),
 		  m_input(copy_and_check_table_input(o, i)),
@@ -512,7 +512,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	plugin_table_wrapper(const plugin_table_wrapper& s) = delete;
 	plugin_table_wrapper& operator = (const plugin_table_wrapper& s) = delete;
 
-	const sinsp_plugin* m_owner;
+	sinsp_plugin* m_owner;
 	owned_table_input_t m_input;
 	libsinsp::state::static_struct::field_infos m_static_fields;
 	std::shared_ptr<plugin_field_infos> m_dyn_fields;
@@ -548,10 +548,41 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		}
 	}
 
-	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override
+	// used only for foreach_entry below
+	struct table_iterator_state
 	{
-		// TODO
-		throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "foreach operation not supported by plugin api");
+		std::string err;
+		plugin_table_entry* m_entry;
+		std::function<bool(libsinsp::state::table_entry&)>* m_it;
+	};
+
+	// used only for foreach_entry below
+	static ss_plugin_bool table_iterator_func(ss_plugin_table_iterator_state_t *s, ss_plugin_table_entry_t *_e)
+	{
+		auto state = static_cast<table_iterator_state*>(s);
+		state->m_entry->m_entry = _e;
+		__CATCH_ERR_MSG(state->err, {
+			return (*state->m_it)(*state->m_entry) ? 1 : 0;
+		});
+		return 0;
+	}
+
+	bool foreach_entry(std::function<bool(libsinsp::state::table_entry&)> pred) override
+	{
+		plugin_table_entry entry(m_owner, m_input, m_dyn_fields, NULL, false);
+		table_iterator_state state;
+		state.m_it = &pred;
+		state.m_entry = &entry;
+		auto s = static_cast<ss_plugin_table_iterator_state_t*>(&state);
+		if (m_input->reader_ext->iterate_entries(m_input->table, table_iterator_func, s) == 0)
+		{
+			if (!state.err.empty())
+			{
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "iterate entries failure: " + state.err);
+			}
+			return false;
+		}
+		return true;
 	}
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override
@@ -959,12 +990,46 @@ struct sinsp_table_wrapper
 
 	static void release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e)
 	{
-		// TODO
+		auto t = static_cast<sinsp_table_wrapper*>(_t);
+
+		if (t->m_table_plugin_input)
+		{
+			auto pt = t->m_table_plugin_input->table;
+			t->m_table_plugin_input->reader_ext->release_table_entry(pt, _e);
+			return;
+		}
+
+		// there's nothing to do here, because plugins borrow raw pointers
+		// from libsinsp's tables' entries shared pointers
+		// todo(jasondellaluce): should we actually make plugins own some memory,
+		// to guarantee that the shared_ptr returned is properly refcounted?
 	}
 
 	static ss_plugin_bool iterate_entries(ss_plugin_table_t* _t, ss_plugin_table_iterator_func_t it, ss_plugin_table_iterator_state_t* s)
 	{
-		// TODO
+		auto t = static_cast<sinsp_table_wrapper*>(_t);
+
+		if (t->m_table_plugin_input)
+		{
+			auto pt = t->m_table_plugin_input->table;
+			return t->m_table_plugin_input->reader_ext->iterate_entries(pt, it, s);
+		}
+
+		std::function<bool(libsinsp::state::table_entry&)> iter = [it, s](auto& e)
+		{
+			return it(s, static_cast<ss_plugin_table_entry_t*>(&e)) != 0;
+		};
+
+		#define _X(_type, _dtype) \
+		{ \
+			auto tt = static_cast<libsinsp::state::table<_type>*>(t->m_table); \
+			return tt->foreach_entry(iter); \
+		}
+		__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
+			__PLUGIN_STATETYPE_SWITCH(t->m_key_type);
+		});
+		#undef _X
+
 		return false;
 	}
 	
