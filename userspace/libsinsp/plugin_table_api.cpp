@@ -93,6 +93,133 @@ template<> inline void convert_types(const std::string& from, const char*& to)
 	to = from.c_str();
 }
 
+static void noop_release_table_entry(ss_plugin_table_t*, ss_plugin_table_entry_t*)
+{	
+}
+
+static ss_plugin_bool noop_iterate_entries(ss_plugin_table_t*, ss_plugin_table_iterator_func_t, ss_plugin_table_iterator_state_t*)
+{
+	return 0;
+}
+
+struct owned_table_input_deleter
+{
+	void operator()(ss_plugin_table_input* in)
+	{
+		delete in->reader_ext;
+		delete in->writer_ext;
+		delete in->fields_ext;
+		delete in;
+	}
+};
+
+using owned_table_input_t = std::shared_ptr<ss_plugin_table_input>;
+
+// note(jasondellaluce): here we assume that the api version has major number v3
+// todo(jasondellaluce): update the repairing logic and safety checks
+// when switching to a v4 minor/major plugin API version
+static inline owned_table_input_t copy_and_check_table_input(const sinsp_plugin* p, const ss_plugin_table_input* in)
+{
+	std::string errprefix = "failure in adding state table defined by plugin '" + p->name() + "': ";
+	if (!in)
+	{
+		throw sinsp_exception(errprefix + "input is null");
+	}
+	if (!in->name)
+	{
+		throw sinsp_exception(errprefix + "name is null");
+	}
+
+	owned_table_input_t res(
+		new ss_plugin_table_input(), owned_table_input_deleter());
+	res->name = in->name;
+	res->key_type = in->key_type;
+	res->table = in->table;
+	res->reader = in->reader;
+	res->writer = in->writer;
+	res->fields = in->fields;
+
+	// note: before minor v1, we didn't have the "extended" vtables for state tables,
+	// so we need to recreate them from the information we had available before,
+	// plus adding "no-op" implementations of all the functions not available before v1
+	res->reader_ext = new ss_plugin_table_reader_vtable_ext();
+	res->writer_ext = new ss_plugin_table_writer_vtable_ext();
+	res->fields_ext = new ss_plugin_table_fields_vtable_ext();
+	if (p->required_api_version().m_version_minor < 1)
+	{
+		res->reader_ext->get_table_name = res->reader.get_table_name;
+		res->reader_ext->get_table_size = res->reader.get_table_size;
+		res->reader_ext->get_table_entry = res->reader.get_table_entry;
+		res->reader_ext->read_entry_field = res->reader.read_entry_field;
+		res->reader_ext->release_table_entry = noop_release_table_entry;
+		res->reader_ext->iterate_entries = noop_iterate_entries;
+
+		res->writer_ext->clear_table = res->writer.clear_table;
+		res->writer_ext->erase_table_entry = res->writer.erase_table_entry;
+		res->writer_ext->create_table_entry = res->writer.create_table_entry;
+		res->writer_ext->destroy_table_entry = res->writer.destroy_table_entry;
+		res->writer_ext->add_table_entry = res->writer.add_table_entry;
+		res->writer_ext->write_entry_field = res->writer.write_entry_field;
+
+		res->fields_ext->list_table_fields = res->fields.list_table_fields;
+		res->fields_ext->get_table_field = res->fields.get_table_field;
+		res->fields_ext->add_table_field = res->fields.add_table_field;
+	}
+	else
+	{
+		if (!in->reader_ext || !in->writer_ext || !in->fields_ext)
+		{
+			throw sinsp_exception(errprefix + "extended vtables must all be defined");
+		}
+
+		res->reader_ext->get_table_name = in->reader_ext->get_table_name;
+		res->reader_ext->get_table_size = in->reader_ext->get_table_size;
+		res->reader_ext->get_table_entry = in->reader_ext->get_table_entry;
+		res->reader_ext->read_entry_field = in->reader_ext->read_entry_field;
+		res->reader_ext->release_table_entry = in->reader_ext->release_table_entry;
+		res->reader_ext->iterate_entries = in->reader_ext->iterate_entries;
+
+		res->writer_ext->clear_table = in->writer_ext->clear_table;
+		res->writer_ext->erase_table_entry = in->writer_ext->erase_table_entry;
+		res->writer_ext->create_table_entry = in->writer_ext->create_table_entry;
+		res->writer_ext->destroy_table_entry = in->writer_ext->destroy_table_entry;
+		res->writer_ext->add_table_entry = in->writer_ext->add_table_entry;
+		res->writer_ext->write_entry_field = in->writer_ext->write_entry_field;
+
+		res->fields_ext->list_table_fields = in->fields_ext->list_table_fields;
+		res->fields_ext->get_table_field = in->fields_ext->get_table_field;
+		res->fields_ext->add_table_field = in->fields_ext->add_table_field;
+	}
+
+	if ((!res->reader_ext->get_table_name || res->reader_ext->get_table_name != res->reader.get_table_name) ||
+		(!res->reader_ext->get_table_size || res->reader_ext->get_table_size != res->reader.get_table_size) ||
+		(!res->reader_ext->get_table_entry || res->reader_ext->get_table_entry != res->reader.get_table_entry) ||
+		(!res->reader_ext->read_entry_field || res->reader_ext->read_entry_field != res->reader.read_entry_field) ||
+		!res->reader_ext->release_table_entry ||
+		!res->reader_ext->iterate_entries)
+	{
+		throw sinsp_exception(errprefix + "broken or inconsistent reader vtables");
+	}
+
+	if((!res->writer_ext->clear_table || res->writer_ext->clear_table != res->writer.clear_table) ||
+		(!res->writer_ext->erase_table_entry || res->writer_ext->erase_table_entry != res->writer.erase_table_entry) ||
+		(!res->writer_ext->create_table_entry || res->writer_ext->create_table_entry != res->writer.create_table_entry) ||
+		(!res->writer_ext->destroy_table_entry || res->writer_ext->destroy_table_entry != res->writer.destroy_table_entry) ||
+		(!res->writer_ext->add_table_entry || res->writer_ext->add_table_entry != res->writer.add_table_entry) ||
+		(!res->writer_ext->write_entry_field || res->writer_ext->write_entry_field != res->writer.write_entry_field))
+	{
+		throw sinsp_exception(errprefix + "broken or inconsistent writer vtables");
+	}
+
+	if((!res->fields_ext->list_table_fields || res->fields_ext->list_table_fields != res->fields.list_table_fields) ||
+		(!res->fields_ext->get_table_field || res->fields_ext->get_table_field != res->fields.get_table_field) ||
+		(!res->fields_ext->add_table_field || res->fields_ext->add_table_field != res->fields.add_table_field))
+	{
+		throw sinsp_exception(errprefix + "broken or inconsistent fields vtables");
+	}
+
+	return res;
+}
 
 static inline std::string table_input_error_prefix(const sinsp_plugin* o, ss_plugin_table_input* i)
 {
@@ -112,7 +239,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	{
 		plugin_field_infos(
 			const sinsp_plugin* o,
-			const std::shared_ptr<ss_plugin_table_input>& i)
+			const owned_table_input_t& i)
 				: field_infos(), m_owner(o), m_input(i), m_accessors() {};
 		plugin_field_infos(plugin_field_infos&&) = default;
 		plugin_field_infos& operator = (plugin_field_infos&&) = default;
@@ -121,14 +248,14 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		virtual ~plugin_field_infos() = default;
 
 		const sinsp_plugin* m_owner;
-		std::shared_ptr<ss_plugin_table_input> m_input;
+		owned_table_input_t m_input;
 		std::vector<ss_plugin_table_field_t*> m_accessors;
 
 		virtual const std::unordered_map<std::string, ds::field_info>& fields() override
 		{
 			// list all the fields of the plugin table
 			uint32_t nfields = 0;
-			auto res = m_input->fields.list_table_fields(m_input->table, &nfields);
+			auto res = m_input->fields_ext->list_table_fields(m_input->table, &nfields);
 			if (res == NULL)
 			{
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "list fields failure: " + m_owner->get_last_error());
@@ -171,7 +298,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 				}
 				if (m_accessors[f.index()] == nullptr)
 				{
-					auto facc = m_input->fields.get_table_field(m_input->table, f.name().c_str(), typeinfo_to_state_type(f.info()));
+					auto facc = m_input->fields_ext->get_table_field(m_input->table, f.name().c_str(), typeinfo_to_state_type(f.info()));
 					if (facc == NULL)
 					{
 						throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "get table field failure: " + m_owner->get_last_error());
@@ -184,7 +311,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 		virtual const ds::field_info& add_field(const ds::field_info& field) override
 		{
-			auto ret = m_input->fields.add_table_field(m_input->table, field.name().c_str(), typeinfo_to_state_type(field.info()));
+			auto ret = m_input->fields_ext->add_table_field(m_input->table, field.name().c_str(), typeinfo_to_state_type(field.info()));
 			if (ret == NULL)
 			{
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "add table field failure: " + m_owner->get_last_error());
@@ -207,7 +334,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	{
 		plugin_table_entry(
 			const sinsp_plugin* o,
-			const std::shared_ptr<ss_plugin_table_input>& i,
+			const owned_table_input_t& i,
 			const std::shared_ptr<plugin_field_infos>& fields,
 			ss_plugin_table_entry_t* e,
 			bool detached)
@@ -269,12 +396,12 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			// then it must be destroyed here.
 			if (m_detached)
 			{
-				m_input->writer.destroy_table_entry(m_input->table, m_entry);
+				m_input->writer_ext->destroy_table_entry(m_input->table, m_entry);
 			}
 		};
 
 		const sinsp_plugin* m_owner;
-		std::shared_ptr<ss_plugin_table_input> m_input;
+		owned_table_input_t m_input;
 		ss_plugin_table_entry_t* m_entry;
 		bool m_detached;
 
@@ -295,7 +422,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		{
 			const auto& infos = get_plugin_field_infos();
 			ss_plugin_state_data dout;
-			auto rc = m_input->reader.read_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &dout);
+			auto rc = m_input->reader_ext->read_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &dout);
 			if (rc != SS_PLUGIN_SUCCESS)
 			{
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "read field failure: " + m_owner->get_last_error());
@@ -345,7 +472,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 				#undef _X
 			}
 
-			auto rc = m_input->writer.write_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &v);
+			auto rc = m_input->writer_ext->write_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &v);
 			if (rc != SS_PLUGIN_SUCCESS)
 			{
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "write field failure: " + m_owner->get_last_error());
@@ -368,7 +495,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	plugin_table_wrapper(const sinsp_plugin* o, const ss_plugin_table_input* i)
 		: libsinsp::state::table<KeyType>(i->name, ss::field_infos()),
 		  m_owner(o),
-		  m_input(std::make_shared<ss_plugin_table_input>(*i)),
+		  m_input(copy_and_check_table_input(o, i)),
 		  m_static_fields(),
 		  m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input))
 	{
@@ -386,7 +513,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	plugin_table_wrapper& operator = (const plugin_table_wrapper& s) = delete;
 
 	const sinsp_plugin* m_owner;
-	std::shared_ptr<ss_plugin_table_input> m_input;
+	owned_table_input_t m_input;
 	libsinsp::state::static_struct::field_infos m_static_fields;
 	std::shared_ptr<plugin_field_infos> m_dyn_fields;
 
@@ -404,7 +531,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 	size_t entries_count() const override
 	{
-		auto res = m_input->reader.get_table_size(m_input->table);
+		auto res = m_input->reader_ext->get_table_size(m_input->table);
 		if (res == (uint64_t) -1)
 		{
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "get size failure: " + m_owner->get_last_error());
@@ -414,7 +541,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 	void clear_entries() override
 	{
-		auto res = m_input->writer.clear_table(m_input->table);
+		auto res = m_input->writer_ext->clear_table(m_input->table);
 		if (res != SS_PLUGIN_SUCCESS)
 		{
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "clear entries failure: " + m_owner->get_last_error());
@@ -423,12 +550,13 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override
 	{
+		// TODO
 		throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "foreach operation not supported by plugin api");
 	}
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override
 	{
-		auto res = m_input->writer.create_table_entry(m_input->table);
+		auto res = m_input->writer_ext->create_table_entry(m_input->table);
 		if (res == NULL)
 		{
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "create entry failure: " + m_owner->get_last_error());
@@ -440,7 +568,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	{
 		ss_plugin_state_data keydata;
 		get_key_as_data(key, keydata);
-		auto res = m_input->reader.get_table_entry(m_input->table, &keydata);
+		auto res = m_input->reader_ext->get_table_entry(m_input->table, &keydata);
 		if (res == NULL)
 		{
 			// note: libsinsp::state::table expects nullptr to be returned
@@ -461,7 +589,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 		ss_plugin_state_data keydata;
 		get_key_as_data(key, keydata);
-		auto res = m_input->writer.add_table_entry(m_input->table, &keydata, entry->m_entry);
+		auto res = m_input->writer_ext->add_table_entry(m_input->table, &keydata, entry->m_entry);
 		if (res == NULL)
 		{
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "add entry failure: " + m_owner->get_last_error());
@@ -475,7 +603,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	{
 		ss_plugin_state_data keydata;
 		get_key_as_data(key, keydata);
-		auto res = m_input->writer.erase_table_entry(m_input->table, &keydata);
+		auto res = m_input->writer_ext->erase_table_entry(m_input->table, &keydata);
 		// note: in case of failure, libsinsp::state::table expects false
 		// to be returned instead of an error exception
 		return res == SS_PLUGIN_SUCCESS;
@@ -609,7 +737,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->fields.list_table_fields(pt, nfields);
+			auto ret = t->m_table_plugin_input->fields_ext->list_table_fields(pt, nfields);
 			if (ret == NULL)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -648,7 +776,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->fields.get_table_field(pt, name, data_type);
+			auto ret = t->m_table_plugin_input->fields_ext->get_table_field(pt, name, data_type);
 			if (ret == NULL)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -732,7 +860,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->fields.add_table_field(pt, name, data_type);
+			auto ret = t->m_table_plugin_input->fields_ext->add_table_field(pt, name, data_type);
 			if (ret == NULL)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -781,7 +909,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->reader.get_table_size(pt);
+			auto ret = t->m_table_plugin_input->reader_ext->get_table_size(pt);
 			if (ret == ((uint64_t) -1))
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -802,7 +930,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->reader.get_table_entry(pt, key);
+			auto ret = t->m_table_plugin_input->reader_ext->get_table_entry(pt, key);
 			if (ret == NULL)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -829,6 +957,17 @@ struct sinsp_table_wrapper
 
 	static ss_plugin_rc read_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e, const ss_plugin_table_field_t* f, ss_plugin_state_data* out);
 
+	static void release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e)
+	{
+		// TODO
+	}
+
+	static ss_plugin_bool iterate_entries(ss_plugin_table_t* _t, ss_plugin_table_iterator_func_t it, ss_plugin_table_iterator_state_t* s)
+	{
+		// TODO
+		return false;
+	}
+	
 	static ss_plugin_rc clear(ss_plugin_table_t* _t)
 	{
 		auto t = static_cast<sinsp_table_wrapper*>(_t);
@@ -836,7 +975,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->writer.clear_table(pt);
+			auto ret = t->m_table_plugin_input->writer_ext->clear_table(pt);
 			if (ret == SS_PLUGIN_FAILURE)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -858,7 +997,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->writer.erase_table_entry(pt, key);
+			auto ret = t->m_table_plugin_input->writer_ext->erase_table_entry(pt, key);
 			if (ret == SS_PLUGIN_FAILURE)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -892,7 +1031,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->writer.create_table_entry(pt);
+			auto ret = t->m_table_plugin_input->writer_ext->create_table_entry(pt);
 			if (ret == NULL)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -920,7 +1059,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			t->m_table_plugin_input->writer.destroy_table_entry(pt, _e);
+			t->m_table_plugin_input->writer_ext->destroy_table_entry(pt, _e);
 		}
 
 		#define _X(_type, _dtype) \
@@ -942,7 +1081,7 @@ struct sinsp_table_wrapper
 		if (t->m_table_plugin_input)
 		{
 			auto pt = t->m_table_plugin_input->table;
-			auto ret = t->m_table_plugin_input->writer.add_table_entry(pt, key, _e);
+			auto ret = t->m_table_plugin_input->writer_ext->add_table_entry(pt, key, _e);
 			if (ret == NULL)
 			{
 				t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -975,7 +1114,7 @@ ss_plugin_rc sinsp_table_wrapper::read_entry_field(ss_plugin_table_t* _t, ss_plu
 	if (t->m_table_plugin_input)
 	{
 		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->reader.read_entry_field(pt, _e, f, out);
+		auto ret = t->m_table_plugin_input->reader_ext->read_entry_field(pt, _e, f, out);
 		if (ret == SS_PLUGIN_FAILURE)
 		{
 			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -1013,7 +1152,7 @@ ss_plugin_rc sinsp_table_wrapper::write_entry_field(ss_plugin_table_t* _t, ss_pl
 	if (t->m_table_plugin_input)
 	{
 		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->writer.write_entry_field(pt, _e, f, in);
+		auto ret = t->m_table_plugin_input->writer_ext->write_entry_field(pt, _e, f, in);
 		if (ret == SS_PLUGIN_FAILURE)
 		{
 			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
@@ -1052,104 +1191,131 @@ ss_plugin_rc sinsp_table_wrapper::write_entry_field(ss_plugin_table_t* _t, ss_pl
 static ss_plugin_table_fieldinfo* dispatch_list_fields(ss_plugin_table_t *_t, uint32_t *nfields)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->fields.list_table_fields(t->table, nfields);
+	return t->fields_ext->list_table_fields(t->table, nfields);
 }
 
 static ss_plugin_table_field_t* dispatch_get_field(ss_plugin_table_t* _t, const char* name, ss_plugin_state_type data_type)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->fields.get_table_field(t->table, name, data_type);
+	return t->fields_ext->get_table_field(t->table, name, data_type);
 }
 
 static ss_plugin_table_field_t* dispatch_add_field(ss_plugin_table_t* _t, const char* name, ss_plugin_state_type data_type)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->fields.add_table_field(t->table, name, data_type);
+	return t->fields_ext->add_table_field(t->table, name, data_type);
 }
 
 static const char* dispatch_get_name(ss_plugin_table_t* _t)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->reader.get_table_name(t->table);
+	return t->reader_ext->get_table_name(t->table);
 }
 
 static uint64_t dispatch_get_size(ss_plugin_table_t* _t)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->reader.get_table_size(t->table);
+	return t->reader_ext->get_table_size(t->table);
 }
 
 static ss_plugin_table_entry_t* dispatch_get_entry(ss_plugin_table_t* _t, const ss_plugin_state_data* key)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->reader.get_table_entry(t->table, key);
+	return t->reader_ext->get_table_entry(t->table, key);
 }
 
 static ss_plugin_rc dispatch_read_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, ss_plugin_state_data* out)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->reader.read_entry_field(t->table, e, f, out);
+	return t->reader_ext->read_entry_field(t->table, e, f, out);
+}
+
+static void dispatch_release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* e)
+{
+	auto t = static_cast<ss_plugin_table_input*>(_t);
+	t->reader_ext->release_table_entry(t->table, e);
+}
+
+static ss_plugin_bool dispatch_iterate_entries(ss_plugin_table_t* _t, ss_plugin_table_iterator_func_t it, ss_plugin_table_iterator_state_t* s)
+{
+	auto t = static_cast<ss_plugin_table_input*>(_t);
+	return t->reader_ext->iterate_entries(t->table, it, s);
 }
 
 static ss_plugin_rc dispatch_clear(ss_plugin_table_t* _t)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->writer.clear_table(t->table);
+	return t->writer_ext->clear_table(t->table);
 }
 
 static ss_plugin_rc dispatch_erase_entry(ss_plugin_table_t* _t, const ss_plugin_state_data* key)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->writer.erase_table_entry(t->table, key);
+	return t->writer_ext->erase_table_entry(t->table, key);
 }
 
 static ss_plugin_table_entry_t* dispatch_create_table_entry(ss_plugin_table_t* _t)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->writer.create_table_entry(t->table);
+	return t->writer_ext->create_table_entry(t->table);
 }
 
 static void dispatch_destroy_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* e)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->writer.destroy_table_entry(t->table, e);
+	return t->writer_ext->destroy_table_entry(t->table, e);
 }
 
 static ss_plugin_table_entry_t* dispatch_add_entry(ss_plugin_table_t* _t, const ss_plugin_state_data* key, ss_plugin_table_entry_t* entry)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->writer.add_table_entry(t->table, key, entry);
+	return t->writer_ext->add_table_entry(t->table, key, entry);
 }
 
 static ss_plugin_rc dispatch_write_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_state_data* in)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
-	return t->writer.write_entry_field(t->table, e, f, in);
+	return t->writer_ext->write_entry_field(t->table, e, f, in);
 }
 
-void sinsp_plugin::table_field_api(ss_plugin_table_fields_vtable& out)
+void sinsp_plugin::table_field_api(ss_plugin_table_fields_vtable& out, ss_plugin_table_fields_vtable_ext& extout)
 {
-	out.list_table_fields = dispatch_list_fields;
-	out.add_table_field = dispatch_add_field;
-	out.get_table_field = dispatch_get_field;
+	extout.list_table_fields = dispatch_list_fields;
+	extout.add_table_field = dispatch_add_field;
+	extout.get_table_field = dispatch_get_field;
+	out.list_table_fields = extout.list_table_fields;
+	out.add_table_field = extout.add_table_field;
+	out.get_table_field = extout.get_table_field;
 }
 
-void sinsp_plugin::table_read_api(ss_plugin_table_reader_vtable& out)
+void sinsp_plugin::table_read_api(ss_plugin_table_reader_vtable& out, ss_plugin_table_reader_vtable_ext& extout)
 {
-	out.get_table_name = dispatch_get_name;
-	out.get_table_size = dispatch_get_size;
-	out.get_table_entry = dispatch_get_entry;
-	out.read_entry_field = dispatch_read_entry_field;
+	extout.get_table_name = dispatch_get_name;
+	extout.get_table_size = dispatch_get_size;
+	extout.get_table_entry = dispatch_get_entry;
+	extout.read_entry_field = dispatch_read_entry_field;
+	extout.release_table_entry = dispatch_release_table_entry;
+	extout.iterate_entries = dispatch_iterate_entries;
+	out.get_table_name = extout.get_table_name;
+	out.get_table_size = extout.get_table_size;
+	out.get_table_entry = extout.get_table_entry;
+	out.read_entry_field = extout.read_entry_field;
 }
 
-void sinsp_plugin::table_write_api(ss_plugin_table_writer_vtable& out)
+void sinsp_plugin::table_write_api(ss_plugin_table_writer_vtable& out, ss_plugin_table_writer_vtable_ext& extout)
 {
-	out.clear_table = dispatch_clear;
-	out.erase_table_entry = dispatch_erase_entry;
-	out.create_table_entry = dispatch_create_table_entry;
-	out.destroy_table_entry = dispatch_destroy_table_entry;
-	out.add_table_entry = dispatch_add_entry;
-	out.write_entry_field = dispatch_write_entry_field;
+	extout.clear_table = dispatch_clear;
+	extout.erase_table_entry = dispatch_erase_entry;
+	extout.create_table_entry = dispatch_create_table_entry;
+	extout.destroy_table_entry = dispatch_destroy_table_entry;
+	extout.add_table_entry = dispatch_add_entry;
+	extout.write_entry_field = dispatch_write_entry_field;
+	out.clear_table = extout.clear_table;
+	out.erase_table_entry = extout.erase_table_entry;
+	out.create_table_entry = extout.create_table_entry;
+	out.destroy_table_entry = extout.destroy_table_entry;
+	out.add_table_entry = extout.add_table_entry;
+	out.write_entry_field = extout.write_entry_field;
 }
 
 ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables)
@@ -1171,9 +1337,12 @@ ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, 
 	return NULL;
 }
 
-void sinsp_plugin::table_input_deleter::operator()(ss_plugin_table_input* in)
+void sinsp_plugin::accessed_table_input_deleter::operator()(ss_plugin_table_input* in)
 {
 	delete static_cast<sinsp_table_wrapper*>(in->table);
+	delete in->reader_ext;
+	delete in->writer_ext;
+	delete in->fields_ext;
 	delete in;
 }
 
@@ -1194,24 +1363,42 @@ ss_plugin_table_t* sinsp_plugin::table_api_get_table(ss_plugin_owner_t *o, const
 		{ \
 			return NULL; \
 		} \
-		accessed_table_t res(new ss_plugin_table_input(), table_input_deleter()); \
+		accessed_table_t res(new ss_plugin_table_input(), accessed_table_input_deleter()); \
 		auto state = new sinsp_table_wrapper(p, t); \
 		res->table = static_cast<ss_plugin_table_t*>(state); \
 		res->name = state->m_table->name().c_str(); \
 		res->key_type = state->m_key_type; \
-		res->fields.list_table_fields = sinsp_table_wrapper::list_fields; \
-		res->fields.add_table_field = sinsp_table_wrapper::add_field; \
-		res->fields.get_table_field = sinsp_table_wrapper::get_field; \
-		res->reader.get_table_name = sinsp_table_wrapper::get_name; \
-		res->reader.get_table_size = sinsp_table_wrapper::get_size; \
-		res->reader.get_table_entry = sinsp_table_wrapper::get_entry; \
-		res->reader.read_entry_field = sinsp_table_wrapper::read_entry_field; \
-		res->writer.clear_table = sinsp_table_wrapper::clear; \
-		res->writer.erase_table_entry = sinsp_table_wrapper::erase_entry; \
-		res->writer.create_table_entry = sinsp_table_wrapper::create_table_entry; \
-		res->writer.destroy_table_entry = sinsp_table_wrapper::destroy_table_entry; \
-		res->writer.add_table_entry = sinsp_table_wrapper::add_entry; \
-		res->writer.write_entry_field = sinsp_table_wrapper::write_entry_field; \
+		res->reader_ext = new ss_plugin_table_reader_vtable_ext(); \
+		res->writer_ext = new ss_plugin_table_writer_vtable_ext(); \
+		res->fields_ext = new ss_plugin_table_fields_vtable_ext(); \
+		res->reader_ext->get_table_name = sinsp_table_wrapper::get_name; \
+		res->reader_ext->get_table_size = sinsp_table_wrapper::get_size; \
+		res->reader_ext->get_table_entry = sinsp_table_wrapper::get_entry; \
+		res->reader_ext->read_entry_field = sinsp_table_wrapper::read_entry_field; \
+		res->reader_ext->release_table_entry = sinsp_table_wrapper::release_table_entry; \
+		res->reader_ext->iterate_entries = sinsp_table_wrapper::iterate_entries; \
+		res->writer_ext->clear_table = sinsp_table_wrapper::clear; \
+		res->writer_ext->erase_table_entry = sinsp_table_wrapper::erase_entry; \
+		res->writer_ext->create_table_entry = sinsp_table_wrapper::create_table_entry; \
+		res->writer_ext->destroy_table_entry = sinsp_table_wrapper::destroy_table_entry; \
+		res->writer_ext->add_table_entry = sinsp_table_wrapper::add_entry; \
+		res->writer_ext->write_entry_field = sinsp_table_wrapper::write_entry_field; \
+		res->fields_ext->list_table_fields = sinsp_table_wrapper::list_fields; \
+		res->fields_ext->add_table_field = sinsp_table_wrapper::add_field; \
+		res->fields_ext->get_table_field = sinsp_table_wrapper::get_field; \
+		res->reader.get_table_name = res->reader_ext->get_table_name; \
+		res->reader.get_table_size = res->reader_ext->get_table_size; \
+		res->reader.get_table_entry = res->reader_ext->get_table_entry; \
+		res->reader.read_entry_field = res->reader_ext->read_entry_field; \
+		res->writer.clear_table = res->writer_ext->clear_table; \
+		res->writer.erase_table_entry = res->writer_ext->erase_table_entry; \
+		res->writer.create_table_entry = res->writer_ext->create_table_entry; \
+		res->writer.destroy_table_entry = res->writer_ext->destroy_table_entry; \
+		res->writer.add_table_entry = res->writer_ext->add_table_entry; \
+		res->writer.write_entry_field = res->writer_ext->write_entry_field; \
+		res->fields.list_table_fields = res->fields_ext->list_table_fields; \
+		res->fields.add_table_field = res->fields_ext->add_table_field; \
+		res->fields.get_table_field = res->fields_ext->get_table_field; \
 		p->m_accessed_tables[name] = std::move(res); \
 		return p->m_accessed_tables[name].get(); \
 	};

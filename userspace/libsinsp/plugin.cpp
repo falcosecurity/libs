@@ -162,13 +162,15 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 
 	ss_plugin_init_input in;
 	ss_plugin_init_tables_input tables_in;
+	ss_plugin_table_fields_vtable_ext table_fields_ext;
 	in.owner = this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.tables = NULL;
 	in.config = conf.c_str();
 	if (m_caps & (CAP_PARSING | CAP_EXTRACTION))
 	{
-		sinsp_plugin::table_field_api(tables_in.fields);
+		tables_in.fields_ext = &table_fields_ext;
+		sinsp_plugin::table_field_api(tables_in.fields, table_fields_ext);
 		tables_in.list_tables = sinsp_plugin::table_api_list_tables;
 		tables_in.get_table = sinsp_plugin::table_api_get_table;
 		tables_in.add_table = sinsp_plugin::table_api_add_table;
@@ -810,11 +812,13 @@ bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin
 	ev.evtsrc = evt->get_source_name();
 
 	ss_plugin_field_extract_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
 	in.num_fields = num_fields;
 	in.fields = fields;
 	in.owner = (ss_plugin_owner_t *) this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	sinsp_plugin::table_read_api(in.table_reader);
+	in.table_reader_ext = &table_reader_ext;
+	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
 	return m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
 }
 
@@ -835,10 +839,14 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) const
 	ev.evtsrc = evt->get_source_name();
 
 	ss_plugin_event_parse_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
+	ss_plugin_table_writer_vtable_ext table_writer_ext;
 	in.owner = (ss_plugin_owner_t *) this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
-	sinsp_plugin::table_read_api(in.table_reader);
-	sinsp_plugin::table_write_api(in.table_writer);
+	in.table_reader_ext = &table_reader_ext;
+	in.table_writer_ext = &table_writer_ext;
+	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
+	sinsp_plugin::table_write_api(in.table_writer, table_writer_ext);
 
 	auto res = m_handle->api.parse_event(m_state, &ev, &in);
 	return res == SS_PLUGIN_SUCCESS;
