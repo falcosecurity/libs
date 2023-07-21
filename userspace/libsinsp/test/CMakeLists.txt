@@ -28,6 +28,8 @@ file(GLOB_RECURSE PUBLIC_SINSP_API_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/public_sins
 
 file(GLOB_RECURSE TEST_PLUGINS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*.cpp)
 
+add_definitions(-DRESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
+
 set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
 	async_key_value_source.ut.cpp
@@ -58,6 +60,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	sinsp_utils.ut.cpp
 	state.ut.cpp
 	eventformatter.ut.cpp
+	savefile.ut.cpp
 	"${PUBLIC_SINSP_API_SUITE}"
 	"${TEST_PLUGINS}"
 )
