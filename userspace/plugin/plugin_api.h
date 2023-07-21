@@ -27,8 +27,7 @@ extern "C" {
 //
 // API versions of this plugin framework
 //
-// todo(jasondellaluce): when/if major changes to v4, solve all todos
-// in this file related to deprecated types.
+// todo(jasondellaluce): when/if major changes to v4, check and solve all todos
 #define PLUGIN_API_VERSION_MAJOR 3
 #define PLUGIN_API_VERSION_MINOR 1
 #define PLUGIN_API_VERSION_PATCH 0
@@ -670,8 +669,18 @@ typedef struct
 	struct
 	{
 		//
-		// Return the list of event types that this plugin can consume
+		// Return the list of event types that this plugin will receive
 		// for field extraction. The event types follow the libscap specific.
+		// This will be invoked only once by the framework after the plugin's
+		// initialization. Events that are not included in the returned list
+		// will not be received by the plugin.
+		// 
+		// This is a non-functional filter that should not influence the plugin's
+		// functional behavior. Instead, this is a performance optimization
+		// with the goal of avoiding unnecessary communication between the
+		// framework and the plugin for events that are known to be not used for
+		// field extraction. 
+		// 
 		// Required: no
 		//
 		// This function is optional--if NULL or an empty array, then:
@@ -679,7 +688,9 @@ typedef struct
 		//   get_extract_event_sources (either default or custom) is compatible
 		//   with the "syscall" event source, otherwise
 		// - the plugin will only receive events of plugin type (code 322).
-		uint16_t* (*get_extract_event_types)(uint32_t* numtypes);
+		// todo(jasondellaluce): when/if major changes to v4, reorder the arguments
+		// and put ss_plugin_t* as first
+		uint16_t* (*get_extract_event_types)(uint32_t* numtypes, ss_plugin_t* s);
 
 		//
 		// Return a string describing the event sources that this plugin
@@ -757,8 +768,17 @@ typedef struct
 	struct
 	{
 		//
-		// Return the list of event types that this plugin is capable of parsing.
-		// The event types follow the libscap specific.
+		// Return the list of event types that this plugin will receive
+		// for event parsing. The event types follow the libscap specific.
+		// This will be invoked only once by the framework after the plugin's
+		// initialization. Events that are not included in the returned list
+		// will not be received by the plugin.
+		// 
+		// This is a non-functional filter that should not influence the plugin's
+		// functional behavior. Instead, this is a performance optimization
+		// with the goal of avoiding unnecessary communication between the
+		// framework and the plugin for events that are known to be not used for
+		// event parsing. 
 		//
 		// Required: no
 		//
@@ -767,7 +787,9 @@ typedef struct
 		//   get_parse_event_sources (either default or custom) is compatible
 		//   with the "syscall" event source, otherwise
 		// - the plugin will only receive events of plugin type (code 322).
-		uint16_t* (*get_parse_event_types)(uint32_t* numtypes);
+		// todo(jasondellaluce): when/if major changes to v4, reorder the arguments
+		// and put ss_plugin_t* as first
+		uint16_t* (*get_parse_event_types)(uint32_t* numtypes, ss_plugin_t* s);
 		//
 		// Return a string describing the event sources that this plugin
 		// is capable of parsing.

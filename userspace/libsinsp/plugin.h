@@ -184,10 +184,7 @@ public:
 		return m_extract_event_sources;
 	}
 
-	inline const libsinsp::events::set<ppm_event_code>& extract_event_codes() const
-	{
-		return m_extract_event_codes;
-	}
+	const libsinsp::events::set<ppm_event_code>& extract_event_codes() const;
 
 	inline const std::vector<filtercheck_field_info>& fields() const
 	{
@@ -202,10 +199,7 @@ public:
 		return m_parse_event_sources;
 	}
 
-	inline const libsinsp::events::set<ppm_event_code>& parse_event_codes() const
-	{
-		return m_parse_event_codes;
-	}
+	const libsinsp::events::set<ppm_event_code>& parse_event_codes() const;
 
 	bool parse_event(sinsp_evt* evt) const;
 
@@ -278,7 +272,7 @@ private:
 		const char *(*get_sources)(),
 		std::unordered_set<std::string>& sources);
 	void resolve_dylib_compatible_codes(
-		uint16_t *(*get_codes)(uint32_t *numtypes),
+		uint16_t *(*get_codes)(uint32_t* numtypes,ss_plugin_t* s),
 		const std::unordered_set<std::string>& sources,
 		libsinsp::events::set<ppm_event_code>& codes);
 	void validate_init_config_json_schema(std::string& config, std::string& schema);
