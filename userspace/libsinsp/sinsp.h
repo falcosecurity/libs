@@ -1353,7 +1353,6 @@ public:
 	friend class sinsp_filter_check_evtin;
 	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;
-	friend class sinsp_network_interfaces;
 	friend class test_helper;
 	friend class sinsp_usergroup_manager;
 
