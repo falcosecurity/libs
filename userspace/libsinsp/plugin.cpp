@@ -192,6 +192,18 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 		return false;
 	}
 
+	// resolve post-init event code filters
+	if (m_caps & CAP_EXTRACTION)
+	{
+		resolve_dylib_compatible_codes(m_handle->api.get_extract_event_types,
+			m_extract_event_sources, m_extract_event_codes);
+	}
+	if (m_caps & CAP_PARSING)
+	{
+		resolve_dylib_compatible_codes(m_handle->api.get_parse_event_types,
+			m_parse_event_sources, m_parse_event_codes);
+	}
+
 	return true;
 }
 
@@ -291,7 +303,7 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 
 // this logic is shared between the field extraction and event parsing caps
 void sinsp_plugin::resolve_dylib_compatible_codes(
-		uint16_t *(*get_codes)(uint32_t *numtypes),
+		uint16_t *(*get_codes)(uint32_t*,ss_plugin_t*),
 		const std::unordered_set<std::string>& sources,
 		libsinsp::events::set<ppm_event_code>& codes)
 {
@@ -299,7 +311,7 @@ void sinsp_plugin::resolve_dylib_compatible_codes(
 	if (get_codes != NULL)
 	{
 		uint32_t ntypes = 0;
-		auto types = get_codes(&ntypes);
+		auto types = get_codes(&ntypes, m_state);
 		if (types)
 		{
 			for (uint32_t i = 0; i < ntypes; i++)
@@ -546,16 +558,12 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 
 		resolve_dylib_compatible_sources("get_extract_event_sources",
 			m_handle->api.get_extract_event_sources, m_extract_event_sources);
-		resolve_dylib_compatible_codes(m_handle->api.get_extract_event_types,
-			m_extract_event_sources, m_extract_event_codes);
 	}
 
 	if(m_caps & CAP_PARSING)
 	{
 		resolve_dylib_compatible_sources("get_parse_event_sources",
 			m_handle->api.get_parse_event_sources, m_parse_event_sources);
-		resolve_dylib_compatible_codes(m_handle->api.get_parse_event_types,
-			m_parse_event_sources, m_parse_event_codes);
 	}
 
 	if(m_caps & CAP_ASYNC)
@@ -577,6 +585,24 @@ std::string sinsp_plugin::get_init_schema(ss_plugin_schema_type& schema_type) co
 		return str_from_alloc_charbuf(m_handle->api.get_init_schema(&schema_type));
 	}
 	return std::string("");
+}
+
+const libsinsp::events::set<ppm_event_code>& sinsp_plugin::extract_event_codes() const
+{
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+	return m_extract_event_codes;
+}
+
+const libsinsp::events::set<ppm_event_code>& sinsp_plugin::parse_event_codes() const
+{
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+	return m_parse_event_codes;
 }
 
 void sinsp_plugin::validate_init_config(std::string& config)
