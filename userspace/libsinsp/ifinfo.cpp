@@ -18,8 +18,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
-sinsp_network_interfaces::sinsp_network_interfaces(sinsp* inspector)
-	: m_inspector(inspector)
+sinsp_network_interfaces::sinsp_network_interfaces()
 {
 	if(inet_pton(AF_INET6, "::1", m_ipv6_loopback_addr.m_b) != 1)
 	{
@@ -230,7 +229,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 	if(!tinfo->m_container_id.empty())
 	{
 		const sinsp_container_info::ptr_t container_info =
-			m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			tinfo->m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 
 		//
 		// Note: if we don't have container info, any pick we make is arbitrary.
@@ -264,7 +263,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 						tinfo->m_container_id.c_str(), container_info->get_lookup_status());
 				}
 
-				const sinsp_container_manager::map_ptr_t clist = m_inspector->m_container_manager.get_containers();
+				const sinsp_container_manager::map_ptr_t clist = tinfo->m_inspector->m_container_manager.get_containers();
 
 				for(const auto& it : *clist)
 				{

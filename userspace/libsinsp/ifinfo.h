@@ -60,7 +60,7 @@ public:
 class SINSP_PUBLIC sinsp_network_interfaces
 {
 public:
-	sinsp_network_interfaces(sinsp* inspector);
+	sinsp_network_interfaces();
 
 	void import_interfaces(scap_addrlist* paddrlist);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
@@ -82,7 +82,6 @@ VISIBILITY_PRIVATE
 	void import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist);
 	std::vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
 	std::vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;
-	sinsp* m_inspector;
 };
 
 void sinsp_network_interfaces::clear()
