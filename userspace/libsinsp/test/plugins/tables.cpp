@@ -167,235 +167,361 @@ static const char* plugin_get_last_error(ss_plugin_t* s)
 // parses events and keeps a count for each thread about the syscalls of the open family
 static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_event_parse_input* in)
 {
+	static int64_t s_new_thread_tid = 999999;
+	int step = 0;
 	ss_plugin_state_data tmp;
+	ss_plugin_table_entry_t* thread;
 	plugin_state *ps = (plugin_state *) s;
 
 	// get table name
-	if (strcmp("threads", in->table_reader.get_table_name(ps->thread_table)))
+	step++;
 	{
-		fprintf(stderr, "table_reader.get_table_name (1) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		if (strcmp("threads", in->table_reader_ext->get_table_name(ps->thread_table)))
+		{
+			fprintf(stderr, "table_reader.get_table_name (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
 	}
 
 	// check that the table contains only the init thread
-	auto size = in->table_reader.get_table_size(ps->thread_table);
-	if (size != 1)
+	step++;
 	{
-		fprintf(stderr, "table_reader.get_table_size (2) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		auto size = in->table_reader_ext->get_table_size(ps->thread_table);
+		if (size != 1)
+		{
+			fprintf(stderr, "table_reader.get_table_size (%d) failure: (%lu) %s\n", step, size, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
 	}
 
 	// get the init thread and read its comm
-	tmp.s64 = 1;
-	auto thread = in->table_reader.get_table_entry(ps->thread_table, &tmp);
-	if (!thread)
+	step++;
 	{
-		fprintf(stderr, "table_reader.get_table_entry (3) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (4) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (strcmp("init", tmp.str))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (4) inconsistency\n");
-		exit(1);
+		tmp.s64 = 1;
+		thread = in->table_reader_ext->get_table_entry(ps->thread_table, &tmp);
+		if (!thread)
+		{
+			fprintf(stderr, "table_reader.get_table_entry (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (strcmp("init", tmp.str))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
 	}
 
 	// read-write dynamic field from existing thread
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+	step++;
 	{
-		fprintf(stderr, "table_reader.read_entry_field (5) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (tmp.u64 != 0)
-	{
-		fprintf(stderr, "table_reader.read_entry_field (5) inconsistency\n");
-		exit(1);
-	}
-	tmp.u64 = 5;
-	if (SS_PLUGIN_SUCCESS != in->table_writer.write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.write_entry_field (6) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (7) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (tmp.u64 != 5)
-	{
-		fprintf(stderr, "table_reader.read_entry_field (7) inconsistency\n");
-		exit(1);
-	}
-	tmp.u64 = 0;
-	if (SS_PLUGIN_SUCCESS != in->table_writer.write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.write_entry_field (8) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (tmp.u64 != 0)
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
+		tmp.u64 = 5;
+		if (SS_PLUGIN_SUCCESS != in->table_writer_ext->write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.write_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (tmp.u64 != 5)
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
 	}
 
-	// read-write dynamic field (str from existing thread
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
+	// read-write dynamic field (str) from existing thread
+	step++;
 	{
-		fprintf(stderr, "table_reader.read_entry_field (9) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (strcmp("", tmp.str))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (9) inconsistency\n");
-		exit(1);
-	}
-	tmp.str = "hello";
-	if (SS_PLUGIN_SUCCESS != in->table_writer.write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
-	{
-		fprintf(stderr, "table_reader.write_entry_field (10) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (11) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (strcmp("hello", tmp.str))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (11) inconsistency\n");
-		exit(1);
-	}
-	tmp.str = "";
-	if (SS_PLUGIN_SUCCESS != in->table_writer.write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
-	{
-		fprintf(stderr, "table_reader.write_entry_field (12) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (strcmp("", tmp.str))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
+		tmp.str = "hello";
+		if (SS_PLUGIN_SUCCESS != in->table_writer_ext->write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
+		{
+			fprintf(stderr, "table_reader.write_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (strcmp("hello", tmp.str))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
 	}
 
 	// get non-existing thread
-	tmp.s64 = 10000;
-	thread = in->table_reader.get_table_entry(ps->thread_table, &tmp);
-	if (thread)
+	step++;
 	{
-		fprintf(stderr, "table_reader.get_table_entry (13) inconsistency\n");
-		exit(1);
+		tmp.s64 = s_new_thread_tid;
+		thread = in->table_reader_ext->get_table_entry(ps->thread_table, &tmp);
+		if (thread)
+		{
+			fprintf(stderr, "table_reader.get_table_entry (%d) inconsistency\n", step);
+			exit(1);
+		}
 	}
 
 	// creating a destroying a thread without adding it to the table
-	thread = in->table_writer.create_table_entry(ps->thread_table);
-	if (!thread)
+	step++;
 	{
-		fprintf(stderr, "table_reader.create_table_entry (14) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		thread = in->table_writer_ext->create_table_entry(ps->thread_table);
+		if (!thread)
+		{
+			fprintf(stderr, "table_reader.create_table_entry (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		in->table_writer_ext->destroy_table_entry(ps->thread_table, thread);
 	}
-	in->table_writer.destroy_table_entry(ps->thread_table, thread);
 
 	// creating and adding a thread to the table
-	thread = in->table_writer.create_table_entry(ps->thread_table);
-	if (!thread)
+	step++;
 	{
-		fprintf(stderr, "table_reader.create_table_entry (15) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	tmp.s64 = 10000;
-	thread = in->table_writer.add_table_entry(ps->thread_table, &tmp, thread);
-	if (!thread)
-	{
-		fprintf(stderr, "table_reader.add_table_entry (16) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	size = in->table_reader.get_table_size(ps->thread_table);
-	if (size != 2)
-	{
-		fprintf(stderr, "table_reader.get_table_size (17) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		thread = in->table_writer_ext->create_table_entry(ps->thread_table);
+		if (!thread)
+		{
+			fprintf(stderr, "table_reader.create_table_entry (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		tmp.s64 = s_new_thread_tid;
+		thread = in->table_writer_ext->add_table_entry(ps->thread_table, &tmp, thread);
+		if (!thread)
+		{
+			fprintf(stderr, "table_reader.add_table_entry (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		auto size = in->table_reader_ext->get_table_size(ps->thread_table);
+		if (size != 2)
+		{
+			fprintf(stderr, "table_reader.get_table_size (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		tmp.s64 = s_new_thread_tid;
+		in->table_reader_ext->release_table_entry(ps->thread_table, &tmp);
 	}
 
 	// get newly-created thread
-	tmp.s64 = 10000;
-	thread = in->table_reader.get_table_entry(ps->thread_table, &tmp);
-	if (!thread)
+	step++;
 	{
-		fprintf(stderr, "table_reader.get_table_entry (18) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		tmp.s64 = s_new_thread_tid;
+		thread = in->table_reader_ext->get_table_entry(ps->thread_table, &tmp);
+		if (!thread)
+		{
+			fprintf(stderr, "table_reader.get_table_entry (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
 	}
 
 	// read and write from newly-created thread (static field)
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
+	step++;
 	{
-		fprintf(stderr, "table_reader.read_entry_field (19) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (strcmp("", tmp.str))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (19) inconsistency\n");
-		exit(1);
-	}
-	tmp.str = "hello";
-	if (SS_PLUGIN_SUCCESS != in->table_writer.write_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.write_entry_field (20) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (21) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (strcmp("hello", tmp.str))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (21) inconsistency\n");
-		exit(1);
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (strcmp("", tmp.str))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
+		tmp.str = "hello";
+		if (SS_PLUGIN_SUCCESS != in->table_writer_ext->write_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.write_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_static_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (strcmp("hello", tmp.str))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
 	}
 
 	// read and write from newly-created thread (dynamic field)
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+	step++;
 	{
-		fprintf(stderr, "table_reader.read_entry_field (22) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (tmp.u64 != 0)
-	{
-		fprintf(stderr, "table_reader.read_entry_field (22) inconsistency\n");
-		exit(1);
-	}
-	tmp.u64 = 5;
-	if (SS_PLUGIN_SUCCESS != in->table_writer.write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.write_entry_field (23) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
-	{
-		fprintf(stderr, "table_reader.read_entry_field (24) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
-	}
-	if (tmp.u64 != 5)
-	{
-		fprintf(stderr, "table_reader.read_entry_field (24) inconsistency\n");
-		exit(1);
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (tmp.u64 != 0)
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
+		tmp.u64 = 5;
+		if (SS_PLUGIN_SUCCESS != in->table_writer_ext->write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.write_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (SS_PLUGIN_SUCCESS != in->table_reader_ext->read_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		if (tmp.u64 != 5)
+		{
+			fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", step);
+			exit(1);
+		}
+
+		tmp.s64 = s_new_thread_tid;
+		in->table_reader_ext->release_table_entry(ps->thread_table, &tmp);
 	}
 
 	// erasing an unknown thread
-	tmp.s64 = 10;
-	if (SS_PLUGIN_SUCCESS == in->table_writer.erase_table_entry(ps->thread_table, &tmp))
+	step++;
 	{
-		fprintf(stderr, "table_reader.erase_table_entry (25) inconsistency\n");
-		exit(1);
+		tmp.s64 = 10;
+		if (SS_PLUGIN_SUCCESS == in->table_writer_ext->erase_table_entry(ps->thread_table, &tmp))
+		{
+			fprintf(stderr, "table_reader.erase_table_entry (%d) inconsistency\n", step);
+			exit(1);
+		}
+	}
+	
+	// loop over all threads, we expect to only find two (init, and our new one)
+	step++;
+	{
+		struct iterate_entries_state
+		{
+			int* step = nullptr;
+			uint64_t count = 0;
+			const ss_plugin_event_parse_input *in = nullptr;
+			plugin_state* ps = nullptr;
+		};
+
+		// successful iteration
+		iterate_entries_state its1;
+		its1.in = in;
+		its1.ps = ps;
+		its1.step = &step;
+		auto it1 = [](ss_plugin_table_iterator_state_t* s, ss_plugin_table_entry_t* e) -> ss_plugin_bool
+		{
+			auto st = (iterate_entries_state*) s;
+			st->count++;
+
+			ss_plugin_state_data val;
+			if (SS_PLUGIN_SUCCESS != st->in->table_reader_ext->read_entry_field(st->ps->thread_table, e, st->ps->thread_static_field, &val))
+			{
+				fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", (*st->step), st->in->get_owner_last_error(st->in->owner));
+				exit(1);
+			}
+			if (strcmp(val.str, "init") == 0 || strcmp(val.str, "hello") == 0)
+			{
+				if (SS_PLUGIN_SUCCESS != st->in->table_reader_ext->read_entry_field(st->ps->thread_table, e, st->ps->thread_dynamic_field, &val))
+				{
+					fprintf(stderr, "table_reader.read_entry_field (%d) failure: %s\n", (*st->step), st->in->get_owner_last_error(st->in->owner));
+					exit(1);
+				}
+				if (val.u64 != 5)
+				{
+					fprintf(stderr, "table_reader.read_entry_field (%d) inconsistency\n", (*st->step));
+					exit(1);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "table_reader.read_entry_field (%d) unexpected value: %s\n", (*st->step), val.str);
+				exit(1);
+			}
+
+			return 1;
+		};
+		if (in->table_reader_ext->iterate_entries(ps->thread_table, it1, (ss_plugin_table_iterator_state_t*) &its1) != 1)
+		{
+			fprintf(stderr, "table_reader.iterate_entries (%d) unexpected break-out\n", step);
+			exit(1);
+		}
+		if (its1.count != 2)
+		{
+			fprintf(stderr, "table_reader.iterate_entries (%d) unexpected count result\n", step);
+			exit(1);
+		}
+
+		// iteration with break-out
+		auto it2 = [](ss_plugin_table_iterator_state_t* s, ss_plugin_table_entry_t* e) -> ss_plugin_bool
+		{
+			return false;
+		};
+		if (in->table_reader_ext->iterate_entries(ps->thread_table, it2, (ss_plugin_table_iterator_state_t*) &its1) != 0)
+		{
+			fprintf(stderr, "table_reader.iterate_entries (%d) break-out was expected\n", step);
+			exit(1);
+		}
 	}
 
 	// erase newly-created thread
-	tmp.s64 = 10000;
-	if (SS_PLUGIN_SUCCESS != in->table_writer.erase_table_entry(ps->thread_table, &tmp))
+	step++;
 	{
-		fprintf(stderr, "table_reader.erase_table_entry (26) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		tmp.s64 = s_new_thread_tid;
+		if (SS_PLUGIN_SUCCESS != in->table_writer_ext->erase_table_entry(ps->thread_table, &tmp))
+		{
+			fprintf(stderr, "table_reader.erase_table_entry (%d) inconsistency\n", step);
+			exit(1);
+		}
 	}
-	size = in->table_reader.get_table_size(ps->thread_table);
-	if (size != 1)
+
+	// revert edits made to existing thread
+	step++;
 	{
-		fprintf(stderr, "table_reader.get_table_size (27) failure: %s\n", in->get_owner_last_error(in->owner));
-		exit(1);
+		tmp.s64 = 1;
+		thread = in->table_reader_ext->get_table_entry(ps->thread_table, &tmp);
+		if (!thread)
+		{
+			fprintf(stderr, "table_reader.get_table_entry (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		tmp.u64 = 0;
+		if (SS_PLUGIN_SUCCESS != in->table_writer_ext->write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field, &tmp))
+		{
+			fprintf(stderr, "table_reader.write_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		tmp.str = "";
+		if (SS_PLUGIN_SUCCESS != in->table_writer_ext->write_entry_field(ps->thread_table, thread, ps->thread_dynamic_field_str, &tmp))
+		{
+			fprintf(stderr, "table_reader.write_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
+			exit(1);
+		}
+		tmp.s64 = 1;
+		in->table_reader_ext->release_table_entry(ps->thread_table, &tmp);
 	}
 
 	return SS_PLUGIN_SUCCESS;

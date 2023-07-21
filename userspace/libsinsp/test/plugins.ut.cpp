@@ -528,8 +528,30 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 		ASSERT_EQ(tmpstr, "hello");
 	}
 
-	// the plugin API does not support this yet
-	ASSERT_ANY_THROW(table->foreach_entry([](auto& e) { return true; }));
+	// full iteration
+	auto it = [&](libsinsp::state::table_entry& e) -> bool
+	{
+		uint64_t tmpu64;
+		std::string tmpstr;
+		e.get_dynamic_field(sfieldacc, tmpu64);
+		EXPECT_EQ(tmpu64, 5);
+		e.get_dynamic_field(dfieldacc, tmpstr);
+		EXPECT_EQ(tmpstr, "hello");
+		return true;
+	};
+	ASSERT_TRUE(table->foreach_entry(it));
+
+	// iteration with break-out
+	ASSERT_FALSE(table->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
+	{
+		return false;
+	}));
+
+	// iteration with error
+	ASSERT_ANY_THROW(table->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
+	{
+		throw sinsp_exception("some error");
+	}));
 
 	// erasing an unknown thread
 	ASSERT_EQ(table->erase_entry(max_iterations), false);
