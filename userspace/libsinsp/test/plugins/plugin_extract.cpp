@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
+#include <vector>
 
 #include <ppm_events_public.h>
 
@@ -33,6 +34,7 @@ typedef struct plugin_state
     std::string lasterr;
     std::string strstorage;
     const char* strptr;
+    std::vector<uint16_t> event_types;
 } plugin_state;
 
 static const char* plugin_get_required_api_version()
@@ -73,9 +75,46 @@ static const char* plugin_get_extract_event_sources()
     return "[\"sample\"]";
 }
 
+static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t* s)
+{
+    plugin_state *ps = (plugin_state *) s;
+    if (!ps->event_types.empty())
+    {
+        *num_types = (uint32_t) ps->event_types.size();
+        return ps->event_types.data();
+    }
+
+    static uint16_t types[] = {};
+    *num_types = 0;
+    return types;
+}
+
 static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
     plugin_state *ret = new plugin_state();
+
+    // init config may indicate the comma-separated, event-types to filter
+    std::string cfg = in->config;
+    if (!cfg.empty())
+    {
+        if (cfg.back() != ',')
+        {
+            cfg += ",";
+        }
+        std::string val;
+        std::stringstream test(cfg);
+        while(std::getline(test, val, ','))
+        {
+            auto v = std::atoi(val.c_str());
+            if (v == 0)
+            {
+                ret->lasterr = "invalid init config string: " + cfg;
+                return ret;
+            }
+            ret->event_types.push_back((uint16_t) v);
+        }
+    }
+
     *rc = SS_PLUGIN_SUCCESS;
     return ret;
 }
@@ -124,5 +163,6 @@ void get_plugin_api_sample_plugin_extract(plugin_api& out)
 	out.destroy = plugin_destroy;
     out.get_fields = plugin_get_fields;
     out.get_extract_event_sources = plugin_get_extract_event_sources;
+    out.get_extract_event_types = plugin_get_extract_event_types;
     out.extract_fields = plugin_extract_fields;
 }

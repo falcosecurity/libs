@@ -245,6 +245,7 @@ TEST_F(sinsp_with_test_input, plugin_custom_source)
 
 TEST(sinsp_plugin, plugin_extract_compatibility)
 {
+	std::string tmp;
 	sinsp i;
 	plugin_api api;
 	get_plugin_api_sample_plugin_extract(api);
@@ -252,6 +253,7 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	// compatible event sources specified, event types not specified
 	api.get_name = [](){ return "p1"; };
 	auto p = i.register_plugin(&api);
+	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 1);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
 	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
@@ -259,14 +261,28 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
 	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
 
+	// compatible event sources specified, event types specified (config-altered)
+	api.get_name = [](){ return "p1-2"; };
+	p = i.register_plugin(&api);
+	ASSERT_ANY_THROW(p->extract_event_codes()); // can't be called before init
+	p->init("322,402", tmp);
+	ASSERT_EQ(p->extract_event_sources().size(), 1);
+	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_EQ(p->extract_event_codes().size(), 2);
+	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
+	ASSERT_TRUE(p->extract_event_codes().contains(PPME_ASYNCEVENT_E));
+	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
+
 	// compatible event sources specified, event types specified
 	api.get_name = [](){ return "p2"; };
-	api.get_extract_event_types = [](uint32_t* n) {
+	api.get_extract_event_types = [](uint32_t* n, ss_plugin_t* s) {
 		static uint16_t ret[] = { PPME_SYSCALL_OPEN_E };
     	*n = sizeof(ret) / sizeof(uint16_t);
     	return &ret[0];
 	};
 	p = i.register_plugin(&api);
+	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 1);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
 	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
@@ -279,6 +295,7 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	api.get_extract_event_sources = NULL;
 	api.get_extract_event_types = NULL;
 	p = i.register_plugin(&api);
+	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 0);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
@@ -296,6 +313,7 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	api.close = src_api.close;
 	api.next_batch = src_api.next_batch;
 	p = i.register_plugin(&api);
+	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 1);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
 	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));

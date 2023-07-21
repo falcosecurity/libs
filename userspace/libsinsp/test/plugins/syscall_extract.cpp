@@ -106,7 +106,7 @@ static const char* plugin_get_extract_event_sources()
     return "[\"syscall\"]";
 }
 
-static uint16_t* plugin_get_extract_event_types(uint32_t* num_types)
+static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
     static uint16_t types[] = {
         PPME_SYSCALL_OPEN_E,
