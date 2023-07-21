@@ -529,6 +529,15 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "3");
 }
 
+TEST_F(sinsp_with_test_input, existing_proc)
+{
+	add_default_init_thread();
+
+	open_inspector();
+
+	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
+}
+
 TEST_F(sinsp_with_test_input, last_exec_ts)
 {
 	add_default_init_thread();
