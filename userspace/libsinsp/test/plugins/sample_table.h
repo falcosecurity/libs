@@ -157,6 +157,24 @@ public:
         return SS_PLUGIN_SUCCESS;
     }
 
+    static void release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e)
+    {
+        // there's no resource to release when an entry becomes unused
+    }
+
+	static ss_plugin_bool iterate_entries(ss_plugin_table_t* _t, ss_plugin_table_iterator_func_t it, ss_plugin_table_iterator_state_t* s)
+    {
+        auto t = static_cast<sample_table*>(_t);
+        for (auto& [k, e]: t->entries)
+        {
+            if (it(s, static_cast<ss_plugin_table_entry_t*>(&e)) != 1)
+            {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
     static ss_plugin_rc clear(ss_plugin_table_t *_t)
     {
         auto t = static_cast<sample_table*>(_t);
@@ -236,19 +254,37 @@ public:
         ret->name = t->name.c_str();
         ret->table = t;
         ret->key_type = ss_plugin_state_type::SS_PLUGIN_ST_UINT64;
-        ret->fields.list_table_fields = list_fields;
-        ret->fields.get_table_field = get_field;
-        ret->fields.add_table_field = add_field;
-        ret->reader.get_table_name = get_name;
-        ret->reader.get_table_size = get_size;
-        ret->reader.get_table_entry = get_entry;
-        ret->reader.read_entry_field = read_entry_field;
-        ret->writer.clear_table = clear;
-        ret->writer.erase_table_entry = erase_entry;
-        ret->writer.create_table_entry = create_entry;
-        ret->writer.destroy_table_entry = destroy_entry;
-        ret->writer.add_table_entry = add_entry;
-        ret->writer.write_entry_field = write_entry_field;
+        ret->reader_ext = &t->reader_vtable;
+        ret->writer_ext = &t->writer_vtable;
+        ret->fields_ext = &t->fields_vtable;
+        ret->fields_ext->list_table_fields = list_fields;
+        ret->fields_ext->get_table_field = get_field;
+        ret->fields_ext->add_table_field = add_field;
+        ret->fields.list_table_fields = ret->fields_ext->list_table_fields;
+        ret->fields.get_table_field = ret->fields_ext->get_table_field;
+        ret->fields.add_table_field = ret->fields_ext->add_table_field;
+        ret->reader_ext->get_table_name = get_name;
+        ret->reader_ext->get_table_size = get_size;
+        ret->reader_ext->get_table_entry = get_entry;
+        ret->reader_ext->read_entry_field = read_entry_field;
+        ret->reader_ext->release_table_entry = release_table_entry;
+        ret->reader_ext->iterate_entries = iterate_entries;
+        ret->reader.get_table_name = ret->reader_ext->get_table_name;
+        ret->reader.get_table_size = ret->reader_ext->get_table_size;
+        ret->reader.get_table_entry = ret->reader_ext->get_table_entry;
+        ret->reader.read_entry_field = ret->reader_ext->read_entry_field;
+        ret->writer_ext->clear_table = clear;
+        ret->writer_ext->erase_table_entry = erase_entry;
+        ret->writer_ext->create_table_entry = create_entry;
+        ret->writer_ext->destroy_table_entry = destroy_entry;
+        ret->writer_ext->add_table_entry = add_entry;
+        ret->writer_ext->write_entry_field = write_entry_field;
+        ret->writer.clear_table = ret->writer_ext->clear_table;
+        ret->writer.erase_table_entry = ret->writer_ext->erase_table_entry;
+        ret->writer.create_table_entry = ret->writer_ext->create_table_entry;
+        ret->writer.destroy_table_entry = ret->writer_ext->destroy_table_entry;
+        ret->writer.add_table_entry = ret->writer_ext->add_table_entry;
+        ret->writer.write_entry_field = ret->writer_ext->write_entry_field;
         return ret;
     }
 
@@ -258,4 +294,7 @@ private:
     std::vector<std::string> strings;
     std::unordered_map<uint64_t, entry> entries;
     std::vector<ss_plugin_table_fieldinfo> fields;
+    ss_plugin_table_reader_vtable_ext reader_vtable;
+    ss_plugin_table_writer_vtable_ext writer_vtable;
+    ss_plugin_table_fields_vtable_ext fields_vtable;
 };
