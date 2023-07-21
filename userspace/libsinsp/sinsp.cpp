@@ -94,7 +94,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_is_dumping = false;
 	m_metaevt = NULL;
 	m_meinfo.m_piscapevt = NULL;
-	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
@@ -870,12 +869,7 @@ void sinsp::close()
 //
 void sinsp::deinit_state()
 {
-	if(NULL != m_network_interfaces)
-	{
-		delete m_network_interfaces;
-		m_network_interfaces = NULL;
-	}
-
+	m_network_interfaces.clear();
 	m_thread_manager->clear();
 }
 
@@ -1031,19 +1025,18 @@ void sinsp::import_thread_table()
 
 void sinsp::import_ifaddr_list()
 {
-	m_network_interfaces = new sinsp_network_interfaces();
-	m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
+	m_network_interfaces.clear();
+	m_network_interfaces.import_interfaces(scap_get_ifaddr_list(m_h));
 }
 
-sinsp_network_interfaces* sinsp::get_ifaddr_list()
+const sinsp_network_interfaces& sinsp::get_ifaddr_list()
 {
 	return m_network_interfaces;
 }
 
 void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 {
-	ASSERT(m_network_interfaces);
-	m_network_interfaces->import_ipv4_interface(ifinfo);
+	m_network_interfaces.import_ipv4_interface(ifinfo);
 }
 
 void sinsp::import_user_list()
@@ -1070,10 +1063,9 @@ void sinsp::refresh_ifaddr_list()
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(is_live() || is_syscall_plugin())
 	{
-		ASSERT(m_network_interfaces);
 		scap_refresh_iflist(m_h);
-		m_network_interfaces->clear();
-		m_network_interfaces->import_interfaces(scap_get_ifaddr_list(m_h));
+		m_network_interfaces.clear();
+		m_network_interfaces.import_interfaces(scap_get_ifaddr_list(m_h));
 	}
 #endif
 }

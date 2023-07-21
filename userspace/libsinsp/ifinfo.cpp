@@ -224,7 +224,7 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
 	return false;
 }
 
-bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo)
+bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo) const
 {
 	if(!tinfo->m_container_id.empty())
 	{
@@ -284,12 +284,10 @@ bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr, sinsp
 		}
 	}
 
-	std::vector<sinsp_ipv4_ifinfo>::iterator it;
-
 	// try to find an interface that has the given IP as address
-	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++)
+	for(const auto& ipv4interface : m_ipv4_interfaces)
 	{
-		if(it->m_addr == addr)
+		if(ipv4interface.m_addr == addr)
 		{
 			return true;
 		}
@@ -350,7 +348,7 @@ ipv6addr sinsp_network_interfaces::infer_ipv6_address(ipv6addr &destination_addr
 	return ipv6addr::empty_address;
 }
 
-bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(ipv6addr &addr, sinsp_threadinfo* tinfo)
+bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(ipv6addr &addr, sinsp_threadinfo* tinfo) const
 {
 	if(!tinfo->m_container_id.empty())
 	{
@@ -358,12 +356,10 @@ bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(ipv6addr &addr, sins
 		return false;
 	}
 
-	std::vector<sinsp_ipv6_ifinfo>::iterator it;
-
 	// try to find an interface that has the given IP as address
-	for(it = m_ipv6_interfaces.begin(); it != m_ipv6_interfaces.end(); it++)
+	for(const auto& ipv6interface : m_ipv6_interfaces)
 	{
-		if(addr.in_subnet(it->m_net))
+		if(addr.in_subnet(ipv6interface.m_net))
 		{
 			return true;
 		}
