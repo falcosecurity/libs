@@ -1239,11 +1239,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
 			}
 			else
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
 			}
 
 			if(m_field_id != TYPE_LIP_NAME && m_field_id != TYPE_RIP_NAME)
@@ -1530,11 +1530,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
 			}
 		        else
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
 			}
 
  	        if(is_local)
@@ -1616,11 +1616,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
 			}
 		        else
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
 			}
 
                         if(is_local)
@@ -1725,12 +1725,12 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			else if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 			{
 				m_tbool =
-					m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, m_tinfo);
+					m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, m_tinfo);
 			}
 			else if(m_fdinfo->m_type == SCAP_FD_IPV6_SOCK)
 			{
 				m_tbool =
-					m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, m_tinfo);
+					m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, m_tinfo);
 			}
 			else
 			{
@@ -2148,11 +2148,11 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt)
 			bool is_local;
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_tinfo);
 			}
 			else
 			{
-				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
+				is_local = m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
 			}
 
 			if(is_local)

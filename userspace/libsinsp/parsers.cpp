@@ -4046,7 +4046,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	//
 	// If this is an incomplete tuple, patch it using interface info
 	//
-	m_inspector->m_network_interfaces->update_fd(evt->m_fdinfo);
+	m_inspector->m_network_interfaces.update_fd(evt->m_fdinfo);
 
 	//
 	// Call the protocol decoder callbacks to notify the decoders that this FD

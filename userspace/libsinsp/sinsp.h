@@ -584,7 +584,7 @@ public:
 
 	  \return Pointer to the interface list manager.
 	*/
-	sinsp_network_interfaces* get_ifaddr_list();
+	const sinsp_network_interfaces& get_ifaddr_list();
 
 	/*!
 	  \brief Set the format used to render event data
@@ -1118,7 +1118,7 @@ private:
 	bool m_large_envs_enabled;
 	scap_test_input_data *m_test_input_data = nullptr;
 
-	sinsp_network_interfaces* m_network_interfaces;
+	sinsp_network_interfaces m_network_interfaces {};
 
 	std::string m_host_root;
 
