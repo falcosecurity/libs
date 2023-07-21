@@ -401,6 +401,13 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 		errstr = "plugin provided an invalid version string: '" + version_str + "'";
 		return false;
 	}
+	std::string req_api_version_str = str_from_alloc_charbuf(m_handle->api.get_required_api_version());
+	m_required_api_version = sinsp_version(req_api_version_str);
+	if(!m_required_api_version.m_valid)
+	{
+		errstr = "plugin provided an invalid required api version string: '" + req_api_version_str + "'";
+		return false;
+	}
 
 	// read capabilities and process their info
 	m_caps = plugin_get_capabilities(m_handle, err);
