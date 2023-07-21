@@ -36,6 +36,12 @@ public:
     public:
         virtual ~entry()
         {
+            // note: makes sure that release_table_entry is invoked consistently
+            if (refcount > 0)
+            {
+                fprintf(stderr, "sample_table: table entry deleted with non-zero refcount %ld\n", refcount);
+                exit(1);
+            }
             for (auto &p : data)
             {
                 delete p;
@@ -44,6 +50,7 @@ public:
     private:
         std::vector<ss_plugin_state_data*> data;
         std::vector<std::string> strings;
+        uint64_t refcount;
 
         friend class sample_table;
     };
@@ -130,6 +137,7 @@ public:
         auto it = t->entries.find(key->u64);
         if (it != t->entries.end())
         {
+            it->second.refcount++;
             return static_cast<ss_plugin_table_entry_t*>(&it->second);
         }
         t->lasterr = "unknown entry at key: " + std::to_string(key->u64);
@@ -159,7 +167,8 @@ public:
 
     static void release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e)
     {
-        // there's no resource to release when an entry becomes unused
+        auto e = static_cast<sample_table::entry*>(_e);
+        e->refcount--;
     }
 
 	static ss_plugin_bool iterate_entries(ss_plugin_table_t* _t, ss_plugin_table_iterator_func_t it, ss_plugin_table_iterator_state_t* s)
@@ -197,12 +206,15 @@ public:
 
     static ss_plugin_table_entry_t *create_entry(ss_plugin_table_t *t)
     {
-        return static_cast<ss_plugin_table_entry_t*>(new sample_table::entry());
+        auto e = new sample_table::entry();
+        e->refcount = 1;
+        return static_cast<ss_plugin_table_entry_t*>(e);
     }
 
     static void destroy_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e)
     {
         auto e = static_cast<sample_table::entry*>(_e);
+        e->refcount = 0;
         delete e;
     }
 
@@ -210,9 +222,11 @@ public:
     {
         auto t = static_cast<sample_table*>(_t);
         auto e = static_cast<sample_table::entry*>(_e);
+        e->refcount = 0;
         t->entries.insert({ key->u64, *e });
         delete e;
-        return &t->entries[key->u64];
+        t->entries[key->u64].refcount = 1;
+        return static_cast<ss_plugin_table_entry_t*>(&t->entries[key->u64]);
     }
 
     static ss_plugin_rc write_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e, const ss_plugin_table_field_t* _f, const ss_plugin_state_data* in)

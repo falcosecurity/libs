@@ -181,7 +181,8 @@ typedef struct
 	// with the given key. If another entry is already present with the same key,
 	// it gets replaced. After insertion, table will be come the owner of the
 	// entry's pointer. Returns an opaque pointer to the newly-added table's entry,
-	// or NULL in case of error.
+	// or NULL in case of error. Every non-NULL returned entry must be released
+	// by invoking release_table_entry() once it becomes no more used by the invoker.
 	ss_plugin_table_entry_t* (*add_table_entry)(ss_plugin_table_t* t, const ss_plugin_state_data* key, ss_plugin_table_entry_t* entry);
 	//
 	// Updates a table's entry by writing a value for one of its fields.
