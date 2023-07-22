@@ -55,7 +55,7 @@ add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
 
 set(LIBSCAP_INSTALL_LIBS scap)
 
-# "Conditional" means it might not exist or it might be static.
+# "Conditional" means the target might not exist or it might be static.
 # We might be able to automate this using the proposed ALL_BUILDSYSTEM_TARGETS:
 # https://gitlab.kitware.com/cmake/cmake/-/issues/20124
 set(libscap_conditional_libs
@@ -94,13 +94,13 @@ foreach(libscap_install_lib ${LIBSCAP_INSTALL_LIBS})
 	get_target_property(install_lib_link_libraries ${libscap_install_lib} LINK_LIBRARIES)
 	foreach (install_lib_link_library ${install_lib_link_libraries})
 		if (NOT ${install_lib_link_library} IN_LIST libscap_conditional_libs)
-			list(APPEND libscap_link_libraries ${install_lib_link_libraries})
+			list(APPEND libscap_link_libraries ${install_lib_link_library})
 		endif()
 	endforeach()
 endforeach()
 list(REMOVE_DUPLICATES libscap_link_libraries)
 
-set(libscap_link_flags "")
+set(libscap_link_flags)
 foreach(libscap_link_library ${libscap_link_libraries})
 	list(APPEND libscap_link_flags "-l${libscap_link_library}")
 endforeach()
