@@ -53,37 +53,27 @@ endfunction()
 
 add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
 
-set(LIBSCAP_INSTALL_LIBS scap)
+set(LIBSCAP_INSTALL_LIBS)
 
-# "Conditional" means the target might not exist or it might be static.
-# We might be able to automate this using the proposed ALL_BUILDSYSTEM_TARGETS:
-# https://gitlab.kitware.com/cmake/cmake/-/issues/20124
-set(libscap_conditional_libs
-	driver_event_schema
-	pman
-	scap_engine_bpf
-	scap_engine_gvisor
-	scap_engine_kmod
-	scap_engine_modern_bpf
-	scap_engine_nodriver
-	scap_engine_noop
-	scap_engine_savefile
-	scap_engine_source_plugin
-	scap_engine_test_input
-	scap_engine_udig
-	scap_engine_util
-	scap_error
-	scap_event_schema
-	scap_platform
-	scap_platform_util)
+# All of the targets in userspace/libscap
+get_directory_property(libscap_subdirs DIRECTORY ${LIBSCAP_DIR}/userspace/libscap SUBDIRECTORIES)
+list(PREPEND libscap_subdirs ${LIBSCAP_DIR}/userspace/libscap)
+set(libscap_subdir_targets)
+foreach(libscap_subdir ${libscap_subdirs})
+	get_directory_property(subdir_targets DIRECTORY ${libscap_subdir} BUILDSYSTEM_TARGETS)
+	list(APPEND libscap_subdir_targets ${subdir_targets})
+endforeach()
 
-# Installation targets
-foreach(libscap_conditional_lib ${libscap_conditional_libs})
-	if(TARGET ${libscap_conditional_lib})
-		get_target_property(cl_target_type ${libscap_conditional_lib} TYPE)
-		if (NOT ${BUILD_SHARED_LIBS} OR ${cl_target_type} STREQUAL SHARED_LIBRARY)
-			list(APPEND LIBSCAP_INSTALL_LIBS ${libscap_conditional_lib})
-		endif()
+set(install_lib_type STATIC_LIBRARY)
+if (BUILD_SHARED_LIBS)
+	set(install_lib_type SHARED_LIBRARY)
+endif()
+
+# Installation targets only
+foreach(libscap_subdir_target ${libscap_subdir_targets})
+	get_target_property(cl_target_type ${libscap_subdir_target} TYPE)
+	if (${cl_target_type} STREQUAL ${install_lib_type})
+		list(APPEND LIBSCAP_INSTALL_LIBS ${libscap_subdir_target})
 	endif()
 endforeach()
 
@@ -93,7 +83,7 @@ foreach(libscap_install_lib ${LIBSCAP_INSTALL_LIBS})
 	list(APPEND libscap_link_libraries ${libscap_install_lib})
 	get_target_property(install_lib_link_libraries ${libscap_install_lib} LINK_LIBRARIES)
 	foreach (install_lib_link_library ${install_lib_link_libraries})
-		if (NOT ${install_lib_link_library} IN_LIST libscap_conditional_libs)
+		if (NOT ${install_lib_link_library} IN_LIST libscap_subdir_targets)
 			list(APPEND libscap_link_libraries ${install_lib_link_library})
 		endif()
 	endforeach()
