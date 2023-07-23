@@ -57,9 +57,8 @@ set(LIBSCAP_INSTALL_LIBS)
 
 # All of the targets in userspace/libscap
 get_directory_property(libscap_subdirs DIRECTORY ${LIBSCAP_DIR}/userspace/libscap SUBDIRECTORIES)
-list(PREPEND libscap_subdirs ${LIBSCAP_DIR}/userspace/libscap)
 set(libscap_subdir_targets)
-foreach(libscap_subdir ${libscap_subdirs})
+foreach(libscap_subdir ${LIBSCAP_DIR}/userspace/libscap ${libscap_subdirs})
 	get_directory_property(subdir_targets DIRECTORY ${libscap_subdir} BUILDSYSTEM_TARGETS)
 	list(APPEND libscap_subdir_targets ${subdir_targets})
 endforeach()
