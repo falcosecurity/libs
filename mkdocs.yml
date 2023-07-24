@@ -1,5 +1,5 @@
-site_name: Falco Kernel Testing
-site_url: https://github.com/alacuku/e2e-falco-tests/
+site_name: Falco Drivers
+site_url: https://github.com/falcosecurity/libs
 nav:
     - Home: index.md
     - Matrixes:
