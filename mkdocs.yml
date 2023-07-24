@@ -1,0 +1,8 @@
+site_name: Falco Kernel Testing
+site_url: https://github.com/alacuku/e2e-falco-tests/
+nav:
+    - Home: index.md
+    - AMD64: matrix_X64.md
+    - ARM64: matrix_ARM64.md
+
+theme: material
