@@ -3,8 +3,11 @@ site_url: https://github.com/alacuku/e2e-falco-tests/
 nav:
     - Home: index.md
     - Matrixes:
+      - matrix.md
       - amd64: matrix_X64.md
       - arm64: matrix_ARM64.md
-    - Syscalls Report: report.md
+    - Syscalls: 
+      - syscalls.md
+      - Report: report.md
 
 theme: material
