@@ -1,4 +1,4 @@
-site_name: Falco Drivers
+site_name: Falcosecurity Drivers
 site_url: https://github.com/falcosecurity/libs
 nav:
     - Home: index.md
