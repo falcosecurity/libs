@@ -1,0 +1,53 @@
+name: Deploy Github Pages
+on:
+  workflow_run:
+    workflows: ["Test drivers against a matrix of kernels/distros"]
+    types: [completed]
+    branches: [master]
+      
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy-pages:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download matrixes
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: kernel_tests.yaml
+          branch: master
+          name: matrix_*
+          name_is_regexp: true
+      
+      - name: Disable Table Of Content for matrixes pages
+        run: |
+          mv matrix_*/*.md docs/
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_X64.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_ARM64.md
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+          
+      - run: pip install -r requirements.txt
+      
+      - run: mkdocs build
+      
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'site'
+
+      - id: deployment
+        uses: actions/deploy-pages@v1
