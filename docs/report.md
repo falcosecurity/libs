@@ -1,10 +1,3 @@
-# Supported Syscalls
-
-This table represents the syscalls supported by our drivers.
-
-🟢 means that the syscall is fully instrumented so its parameters are available to userspace.
-🟡 means that the syscall is not fully instrumented so the userspace is just notified when the syscall happens but no parameters are available.
-
 |         SYSCALL         | SUPPORTED |
 |-------------------------|-----------|
 | _sysctl                 | 🟡        |
