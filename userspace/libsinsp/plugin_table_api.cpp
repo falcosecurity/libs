@@ -1177,12 +1177,12 @@ ss_plugin_rc sinsp_table_wrapper::read_entry_field(ss_plugin_table_t* _t, ss_plu
 		if (a->dynamic) \
 		{ \
 			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(a->accessor); \
-			e->get_dynamic_field(*aa, out->_dtype); \
+			e->get_dynamic_field<_type>(*aa, out->_dtype); \
 		} \
 		else \
 		{ \
 			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(a->accessor); \
-			e->get_static_field(*aa, out->_dtype); \
+			e->get_static_field<_type>(*aa, out->_dtype); \
 		} \
 		return SS_PLUGIN_SUCCESS; \
 	}
@@ -1215,7 +1215,7 @@ ss_plugin_rc sinsp_table_wrapper::write_entry_field(ss_plugin_table_t* _t, ss_pl
 		if (a->dynamic) \
 		{ \
 			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(a->accessor); \
-			e->set_dynamic_field<_type>(*aa, reinterpret_cast<const _type&>(in->_dtype)); \
+			e->set_dynamic_field<_type>(*aa, in->_dtype); \
 		} \
 		else \
 		{ \
