@@ -57,7 +57,7 @@ Right now our drivers officially support the following architectures:
 | **aarch64** | >= [3.16](https://github.com/torvalds/linux/commit/055b1212d141f1f398fca548f8147787c0b6253f) | >= 4.17    | >= 5.8            | _STABLE_ |
 | **s390x**   | >= 2.6                                                                                       | >= [5.5](https://github.com/torvalds/linux/commit/6ae08ae3dea) | >= 5.8            | _EXPERIMENTAL_ |
 
-**For a list of supported syscalls through specific events, please refer to [_report_](./driver/report.md).**
+**For a list of supported syscalls through specific events, please refer to [_report_](./docs/report.md).**
 
 > **NOTE:** while we strive to achieve maximum compatibility, we cannot assure that drivers correctly build against a new kernel version minutes after it gets released, since we might need to make some adjustments.    
 > To get properly notified whenever drivers stop building, we have a [CI workflow](.github/workflows/latest-kernel.yml) that tests the build against the [latest mainline kernel](https://www.kernel.org/) (RC too!)
