@@ -331,43 +331,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	};
 
 	struct plugin_table_entry: public libsinsp::state::table_entry
-	{
-		struct ptr_wrap
-		{
-			ptr_wrap(
-				sinsp_plugin* o,
-				const owned_table_input_t& i,
-				ss_plugin_table_entry_t* e,
-				bool detached):
-					m_owner(o),
-					m_input(i),
-					m_entry(e),
-					m_detached(detached) {};
-			ptr_wrap(ptr_wrap&&) = default;
-			ptr_wrap& operator = (ptr_wrap&&) = default;
-			ptr_wrap(const ptr_wrap& s) = default;
-			ptr_wrap& operator = (const ptr_wrap& s) = default;
-			virtual ~ptr_wrap()
-			{
-				if (m_entry)
-				{
-					if (m_detached)
-					{
-						m_input->writer_ext->destroy_table_entry(m_input->table, m_entry);
-					}
-					else
-					{
-						m_input->reader_ext->release_table_entry(m_input->table, m_entry);
-					}
-				}
-			}
-
-			sinsp_plugin* m_owner;
-			owned_table_input_t m_input;
-			ss_plugin_table_entry_t* m_entry;
-			bool m_detached;
-		};
-		
+	{		
 		plugin_table_entry(
 			sinsp_plugin* o,
 			const owned_table_input_t& i,
@@ -375,14 +339,33 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			ss_plugin_table_entry_t* e,
 			bool detached):
 				table_entry(fields),
-				m_ptr(std::make_shared<ptr_wrap>(o, i, e, detached)) {};
-		plugin_table_entry(const plugin_table_entry& o) = default;
-		plugin_table_entry& operator = (const plugin_table_entry& o) = default;
+				m_owner(o),
+				m_input(i),
+				m_entry(e),
+				m_detached(detached) {};
+		plugin_table_entry(const plugin_table_entry& o) = delete;
+		plugin_table_entry& operator = (const plugin_table_entry& o) = delete;
 		plugin_table_entry(plugin_table_entry&& o) = default;
 		plugin_table_entry& operator = (plugin_table_entry&& o) = default;
-		virtual ~plugin_table_entry() = default;
+		virtual ~plugin_table_entry()
+		{
+			if (m_entry)
+			{
+				if (m_detached)
+				{
+					m_input->writer_ext->destroy_table_entry(m_input->table, m_entry);
+				}
+				else
+				{
+					m_input->reader_ext->release_table_entry(m_input->table, m_entry);
+				}
+			}
+		}
 
-		std::shared_ptr<ptr_wrap> m_ptr;
+		sinsp_plugin* m_owner;
+		owned_table_input_t m_input;
+		ss_plugin_table_entry_t* m_entry;
+		bool m_detached;
 
 		// note(jasondellaluce): dynamic cast is expensive but this is not expected
 		// to ever be ever invoked, because we set the fields shared pointer
@@ -392,7 +375,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		{
 			if (defs && dynamic_cast<plugin_field_infos*>(defs.get()) == nullptr)
 			{
-				throw sinsp_exception(table_input_error_prefix(m_ptr->m_owner, m_ptr->m_input.get()) + "plugin table can only be set with plugin dynamic fields");
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "plugin table can only be set with plugin dynamic fields");
 			}
 			table_entry::set_dynamic_fields(defs);
 		}
@@ -401,10 +384,10 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		{
 			const auto& infos = get_plugin_field_infos();
 			ss_plugin_state_data dout;
-			auto rc = m_ptr->m_input->reader_ext->read_entry_field(m_ptr->m_input->table, m_ptr->m_entry, infos.m_accessors[i.index()], &dout);
+			auto rc = m_input->reader_ext->read_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &dout);
 			if (rc != SS_PLUGIN_SUCCESS)
 			{
-				throw sinsp_exception(table_input_error_prefix(m_ptr->m_owner, m_ptr->m_input.get()) + "read field failure: " + m_ptr->m_owner->get_last_error());
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "read field failure: " + m_owner->get_last_error());
 			}
 
 			// note: strings are the only exception to the switch case below,
@@ -451,10 +434,10 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 				#undef _X
 			}
 
-			auto rc = m_ptr->m_input->writer_ext->write_entry_field(m_ptr->m_input->table, m_ptr->m_entry, infos.m_accessors[i.index()], &v);
+			auto rc = m_input->writer_ext->write_entry_field(m_input->table, m_entry, infos.m_accessors[i.index()], &v);
 			if (rc != SS_PLUGIN_SUCCESS)
 			{
-				throw sinsp_exception(table_input_error_prefix(m_ptr->m_owner, m_ptr->m_input.get()) + "write field failure: " + m_ptr->m_owner->get_last_error());
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "write field failure: " + m_owner->get_last_error());
 			}
 		}
 	private:
@@ -462,7 +445,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		{
 			if (dynamic_fields() == nullptr)
 			{
-				throw sinsp_exception(table_input_error_prefix(m_ptr->m_owner, m_ptr->m_input.get()) + "local fields definitions not set");
+				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "local fields definitions not set");
 			}
 			// note: casting should be safe because we force the
 			// plugin_field_infos subtype both the constructor and the setter
@@ -539,7 +522,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	static ss_plugin_bool table_iterator_func(ss_plugin_table_iterator_state_t *s, ss_plugin_table_entry_t *_e)
 	{
 		auto state = static_cast<table_iterator_state*>(s);
-		state->m_entry->m_ptr->m_entry = _e;
+		state->m_entry->m_entry = _e;
 		__CATCH_ERR_MSG(state->err, {
 			return (*state->m_it)(*state->m_entry) ? 1 : 0;
 		});
@@ -556,7 +539,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		if (m_input->reader_ext->iterate_entries(m_input->table, table_iterator_func, s) == 0)
 		{
 			// avoids invoking release_table_entry
-			entry.m_ptr->m_entry = NULL;
+			entry.m_entry = NULL;
 			if (!state.err.empty())
 			{
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "iterate entries failure: " + state.err);
@@ -564,7 +547,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			return false;
 		}
 		// avoids invoking release_table_entry
-		entry.m_ptr->m_entry = NULL;
+		entry.m_entry = NULL;
 		return true;
 	}
 
@@ -594,22 +577,28 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 	std::shared_ptr<libsinsp::state::table_entry> add_entry(const KeyType& key, std::unique_ptr<libsinsp::state::table_entry> e) override
 	{
+		if (!e)
+		{
+			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "add entry invoked with null entry");
+		}
+
 		// we have no formal way for checking for misuses in which the invoker
 		// adds an entry that has not been created buy this table (with
 		// the right sub-type). Dynamic cast would be too expensive at this
 		// level, so we just enable it in debug mode.
 		ASSERT(dynamic_cast<plugin_table_entry*>(e.get()) != nullptr);
 		plugin_table_entry* entry = static_cast<plugin_table_entry*>(e.get());
+		ASSERT(entry->m_entry != nullptr);
 
 		ss_plugin_state_data keydata;
 		get_key_as_data(key, keydata);
-		auto res = m_input->writer_ext->add_table_entry(m_input->table, &keydata, entry->m_ptr->m_entry);
+		auto res = m_input->writer_ext->add_table_entry(m_input->table, &keydata, entry->m_entry);
 		if (res == NULL)
 		{
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "add entry failure: " + m_owner->get_last_error());
 		}
-		entry->m_ptr->m_entry = res;
-		entry->m_ptr->m_detached = false;
+		entry->m_entry = res;
+		entry->m_detached = false;
 		return std::move(e);
 	}
 
@@ -952,6 +941,11 @@ struct sinsp_table_wrapper
 			return ret;
 		}
 
+		// note: the C++ API returns a shared pointer, but in plugins we only
+		// use raw pointers without increasing/decreasing/owning the refcount.
+		// How can we do better than this?
+		// todo(jasondellaluce): should we actually make plugins own some memory,
+		// to guarantee that the shared_ptr returned is properly refcounted?
 		#define _X(_type, _dtype) \
 		{ \
 			auto tt = static_cast<libsinsp::state::table<_type>*>(t->m_table); \
