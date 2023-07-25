@@ -37,9 +37,14 @@ struct scap_platform;
 // allocate a generic platform handle with no behavior (no platform data is returned)
 struct scap_platform* scap_generic_alloc_platform();
 
+// initialize the common part of the platform handle
+// this needs to be called before opening the engine
+// as otherwise the proclist callback won't be set up in time
+// (for the savefile engine)
+int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs);
+
 // initialize a platform handle
-// this calls `init_platform` from the vtable and also
-// does any common initialization
+// this calls `init_platform` from the vtable
 int32_t scap_platform_init(struct scap_platform *platform, char *lasterr, struct scap_engine_handle engine,
 			   struct scap_open_args *oargs);
 
