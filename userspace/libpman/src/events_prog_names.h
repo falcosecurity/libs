@@ -317,7 +317,11 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PIDFD_GETFD_E] = "pidfd_getfd_e",
 	[PPME_SYSCALL_PIDFD_GETFD_X] = "pidfd_getfd_x",
 	[PPME_SYSCALL_PIDFD_OPEN_E] = "pidfd_open_e",
-	[PPME_SYSCALL_PIDFD_OPEN_X] = "pidfd_open_x"
+	[PPME_SYSCALL_PIDFD_OPEN_X] = "pidfd_open_x",
+	[PPME_SYSCALL_INIT_MODULE_E] = "init_module_e",
+	[PPME_SYSCALL_INIT_MODULE_X] = "init_module_x",
+	[PPME_SYSCALL_FINIT_MODULE_E] = "finit_module_e",
+	[PPME_SYSCALL_FINIT_MODULE_X] = "finit_module_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

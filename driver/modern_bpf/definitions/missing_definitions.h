@@ -1530,5 +1530,11 @@
 
 /*==================================== PRCTL OPTIONS ================================*/
 
+/*==================================== FINIT   FLAGS ================================*/
+
+#define MODULE_INIT_IGNORE_MODVERSIONS 1
+#define MODULE_INIT_IGNORE_VERMAGIC    2
+#define MODULE_INIT_COMPRESSED_FILE    4
+/*==================================== FINIT   FLAGS ================================*/
 
 #endif /* __MISSING_DEFINITIONS_H__ */

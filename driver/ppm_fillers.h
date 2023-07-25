@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -176,6 +176,8 @@ or GPL2.txt for full copies of the license.
 	FN(sys_memfd_create_x)                 \
 	FN(sys_pidfd_getfd_x)			\
 	FN(sys_pidfd_open_x)				\
+	FN(sys_init_module_x)				\
+	FN(sys_finit_module_x)				\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
