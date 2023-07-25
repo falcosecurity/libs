@@ -27,9 +27,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          repository: alacuku/e2e-falco-tests
+          repository: alacuku/kernel-testing
+          ref: v0.2.0
         
       - name: Generate vars yaml
+        working-directory: ./ansible-playbooks
         run: |
           LIBS_V=${{ github.event.inputs.libsversion }}
           LIBS_VERSION=${LIBS_V:-"master"}
@@ -41,18 +43,22 @@ jobs:
           EOF
     
       - name: Bootstrap VMs
+        working-directory: ./ansible-playbooks
         run: |
           ansible-playbook bootstrap.yml --extra-vars "@vars.yml"
       
       - name: Common setup
+        working-directory: ./ansible-playbooks
         run: |
           ansible-playbook common.yml --extra-vars "@vars.yml"
 
       - name: Prepare github repos
+        working-directory: ./ansible-playbooks
         run: |
           ansible-playbook git-repos.yml --extra-vars "@vars.yml"
       
       - name: Run scap-open tests
+        working-directory: ./ansible-playbooks
         run: |
           ansible-playbook scap-open.yml --extra-vars "@vars.yml" || :
           
@@ -85,5 +91,6 @@ jobs:
           
       - name: Cleanup
         if: always()
+        working-directory: ./ansible-playbooks
         run: |
           ansible-playbook clean-up.yml --extra-vars "@vars.yml" || :
