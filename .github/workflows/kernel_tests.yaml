@@ -40,9 +40,21 @@ jobs:
             libs: {name: "falcosecurity-libs", repo: "https://github.com/falcosecurity/libs.git", version: "$LIBS_VERSION"}
           EOF
     
-      - name: Run kernels tests
+      - name: Bootstrap VMs
         run: |
-          ansible-playbook main-playbook.yml --extra-vars "@vars.yml" || :
+          ansible-playbook bootstrap.yml --extra-vars "@vars.yml"
+      
+      - name: Common setup
+        run: |
+          ansible-playbook common.yml --extra-vars "@vars.yml"
+
+      - name: Prepare github repos
+        run: |
+          ansible-playbook git-repos.yml --extra-vars "@vars.yml"
+      
+      - name: Run scap-open tests
+        run: |
+          ansible-playbook scap-open.yml --extra-vars "@vars.yml" || :
           
       - name: Tar output files
         run: |
