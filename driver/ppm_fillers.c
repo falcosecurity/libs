@@ -8166,6 +8166,69 @@ int f_sys_pidfd_open_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, pidfd_open_flags_to_scap(val), 0, true, 0);
 	CHECK_RES(res)
+
+	return add_sentinel(args);
+}
+
+int f_sys_init_module_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	long retval;
+	u64 len;
+
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res)
+
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	len = val;
+
+	/* Parameter 2: img (type: PT_BYTBUF) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, len, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: length (type: PT_UINT64) */
+	res = val_to_ring(args, len, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: uargs (type: PT_CHARBUF) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_finit_module_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	long retval;
+	s32 fd;
+
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res)
+
+	/* Parameter 2: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, true, 0);
+	CHECK_RES(res)
+
+	/* Parameter 3: uargs (type: PT_CHARBUF) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
 	
+	/* Parameter 4: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, finit_module_flags_to_scap(val), 0, true, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }

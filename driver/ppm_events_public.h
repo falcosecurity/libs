@@ -777,6 +777,13 @@ or GPL2.txt for full copies of the license.
 #define PPM_PIDFD_NONBLOCK (1<<0)
 
 /*
+ * finit_module flags	
+*/
+#define PPM_MODULE_INIT_IGNORE_MODVERSIONS	1
+#define PPM_MODULE_INIT_IGNORE_VERMAGIC     2
+#define PPM_MODULE_INIT_COMPRESSED_FILE     4
+
+/*
  * Get/set the timerslack as used by poll/select/nanosleep
  * A value of 0 means "use default"
  */
@@ -1383,7 +1390,11 @@ typedef enum {
 	PPME_SYSCALL_PIDFD_GETFD_X = 407,
 	PPME_SYSCALL_PIDFD_OPEN_E = 408,
 	PPME_SYSCALL_PIDFD_OPEN_X = 409,
-	PPM_EVENT_MAX = 410
+	PPME_SYSCALL_INIT_MODULE_E = 410,
+	PPME_SYSCALL_INIT_MODULE_X = 411,
+	PPME_SYSCALL_FINIT_MODULE_E = 412,
+	PPME_SYSCALL_FINIT_MODULE_X = 413,
+	PPM_EVENT_MAX = 414
 } ppm_event_code;
 /*@}*/
 

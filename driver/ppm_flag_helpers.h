@@ -17,7 +17,6 @@ or GPL2.txt for full copies of the license.
 	#define ASSERT(expr)
 #endif
 
-
 #if !defined(UDIG) && !defined(__USE_VMLINUX__)
 #include <linux/mman.h>
 #include <linux/futex.h>
@@ -25,6 +24,9 @@ or GPL2.txt for full copies of the license.
 #include <linux/capability.h>
 #include <linux/eventpoll.h>
 #include <linux/prctl.h>
+#ifdef __NR_finit_module
+#include <uapi/linux/module.h>
+#endif
 #include "ppm.h"
 #ifdef __NR_memfd_create
 #include <uapi/linux/memfd.h>
@@ -2097,6 +2099,27 @@ static __always_inline uint32_t pidfd_open_flags_to_scap(uint32_t flags)
 static __always_inline u32 prctl_options_to_scap(int options)
 {
 	return (u32)options;
+}
+
+static __always_inline uint32_t finit_module_flags_to_scap(int32_t flags)
+{
+	int32_t res = 0;
+#ifdef MODULE_INIT_IGNORE_MODVERSIONS
+	if(flags & MODULE_INIT_IGNORE_MODVERSIONS)
+		res |= PPM_MODULE_INIT_IGNORE_MODVERSIONS;
+#endif
+
+#ifdef MODULE_INIT_IGNORE_VERMAGIC
+	if(flags & MODULE_INIT_IGNORE_VERMAGIC)
+		res |= PPM_MODULE_INIT_IGNORE_VERMAGIC;
+#endif
+
+#ifdef MODULE_INIT_COMPRESSED_FILE
+	if(flags & MODULE_INIT_COMPRESSED_FILE)
+		res |= PPM_MODULE_INIT_COMPRESSED_FILE;
+#endif
+
+	return res;
 }
 
 #endif /* PPM_FLAG_HELPERS_H_ */

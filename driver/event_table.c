@@ -459,6 +459,10 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_PIDFD_GETFD_X] = {"pidfd_getfd", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD , 4, {{"fd", PT_FD, PF_DEC}, {"pid_fd", PT_FD, PF_DEC}, {"target_fd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX}}},
 	[PPME_SYSCALL_PIDFD_OPEN_E] = {"pidfd_open", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
 	[PPME_SYSCALL_PIDFD_OPEN_X] = {"pidfd_open", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"fd", PT_FD, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX}}}, 
+	[PPME_SYSCALL_INIT_MODULE_E] = {"init_module", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
+	[PPME_SYSCALL_INIT_MODULE_X] = {"init_module", EC_OTHER | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"img", PT_BYTEBUF, PF_NA}, {"length", PT_UINT64, PF_DEC}, {"uargs", PT_CHARBUF, PF_NA}}},
+	[PPME_SYSCALL_FINIT_MODULE_E] = {"finit_module", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
+	[PPME_SYSCALL_FINIT_MODULE_X] = {"finit_module", EC_OTHER | EC_SYSCALL, EF_USES_FD | EF_READS_FROM_FD, 4, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"uargs", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_DEC}}},
 };
 
 // We don't need this check in kmod (this source file is included during kmod compilation!)

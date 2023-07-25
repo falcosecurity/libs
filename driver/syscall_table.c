@@ -409,6 +409,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_pidfd_getfd
 	[__NR_pidfd_getfd - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_PIDFD_GETFD_E, PPME_SYSCALL_PIDFD_GETFD_X, PPM_SC_PIDFD_GETFD},
 #endif
+#ifdef __NR_init_module
+	[__NR_init_module - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_INIT_MODULE_E, PPME_SYSCALL_INIT_MODULE_X, PPM_SC_INIT_MODULE},
+#endif
+#ifdef __NR_finit_module
+	[__NR_finit_module - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_FINIT_MODULE_E, PPME_SYSCALL_FINIT_MODULE_X, PPM_SC_FINIT_MODULE},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -454,7 +460,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_fsync - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_FSYNC},
 	[__NR_setdomainname - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_SETDOMAINNAME},
 	[__NR_adjtimex - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_ADJTIMEX},
-	[__NR_init_module - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_INIT_MODULE},
 	[__NR_delete_module - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_DELETE_MODULE},
 	[__NR_getpgid - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_GETPGID},
 #ifdef __NR_sysfs
@@ -661,9 +666,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_newfstatat
 	[__NR_newfstatat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_NEWFSTATAT},
-#endif
-#ifdef __NR_finit_module
-	[__NR_finit_module - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FINIT_MODULE},
 #endif
 #ifdef __NR_sigaltstack
 	[__NR_sigaltstack - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGALTSTACK},

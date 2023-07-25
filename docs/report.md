@@ -65,7 +65,7 @@
 | fcntl                   | 🟢        |
 | fdatasync               | 🟡        |
 | fgetxattr               | 🟡        |
-| finit_module            | 🟡        |
+| finit_module            | 🟢        |
 | flistxattr              | 🟡        |
 | flock                   | 🟢        |
 | fork                    | 🟢        |
@@ -116,7 +116,7 @@
 | getuid                  | 🟢        |
 | getxattr                | 🟡        |
 | idle                    | 🟡        |
-| init_module             | 🟡        |
+| init_module             | 🟢        |
 | inotify_add_watch       | 🟡        |
 | inotify_init            | 🟢        |
 | inotify_init1           | 🟢        |
