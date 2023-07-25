@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          repository: alacuku/kernel-testing
+          repository: falcosecurity/kernel-testing
           ref: v0.2.0
         
       - name: Generate vars yaml
