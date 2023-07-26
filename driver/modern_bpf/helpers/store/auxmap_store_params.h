@@ -442,7 +442,7 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 
 	struct task_struct *t = get_current_task();
 	struct dentry *file_dentry = BPF_CORE_READ(f, f_path.dentry);
-	struct dentry *root_dentry = READ_TASK_FIELD(t, fs, root.dentry);
+	struct dentry *root_dentry = BPF_CORE_READ(t, fs, root.dentry);
 	struct vfsmount *original_mount = BPF_CORE_READ(f, f_path.mnt);
 	struct mount *mnt = container_of(original_mount, struct mount, mnt);
 	struct dentry *mount_dentry = BPF_CORE_READ(mnt, mnt.mnt_root);
