@@ -25,7 +25,7 @@ int BPF_PROG(close_e,
 
 		struct task_struct *task = get_current_task();
 		u32 max_fds = 0;
-		READ_TASK_FIELD_INTO(&max_fds, task, files, fdt, max_fds);
+		BPF_CORE_READ_INTO(&max_fds, task, files, fdt, max_fds);
 		/* We drop the event if the fd is >= than `max_fds` */
 		if(fd >= max_fds)
 		{
@@ -34,7 +34,7 @@ int BPF_PROG(close_e,
 
 		/* We drop the event if the fd is not open */
 		long unsigned int entry = 0;
-		long unsigned int *open_fds = READ_TASK_FIELD(task, files, fdt, open_fds);
+		long unsigned int *open_fds = BPF_CORE_READ(task, files, fdt, open_fds);
 		if(open_fds == NULL)
 		{
 			return 0;

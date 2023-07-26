@@ -158,10 +158,13 @@ static __always_inline struct file *extract__file_struct_from_fd(s32 file_descri
 	struct file *f = NULL;
 	if(file_descriptor >= 0)
 	{
-		struct file **fds;
+		struct file **fds = NULL;
 		struct task_struct *task = get_current_task();
-		READ_TASK_FIELD_INTO(&fds, task, files, fdt, fd);
-		bpf_probe_read_kernel(&f, sizeof(struct file *), &fds[file_descriptor]);
+		BPF_CORE_READ_INTO(&fds, task, files, fdt, fd);
+		if(fds != NULL)
+		{
+			bpf_probe_read_kernel(&f, sizeof(struct file *), &fds[file_descriptor]);
+		}
 	}
 	return f;
 }
@@ -191,7 +194,7 @@ static __always_inline void extract__ino_from_fd(s32 fd, u64 *ino)
  */
 static __always_inline struct inode *extract__exe_inode_from_task(struct task_struct *task)
 {
-	return READ_TASK_FIELD(task, mm, exe_file, f_inode);
+	return BPF_CORE_READ(task, mm, exe_file, f_inode);
 }
 
 /**
@@ -943,6 +946,10 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 
 	struct user_namespace *ns;
 	READ_TASK_FIELD_INTO(&ns, task, cred, user_ns);
+	if(ns == NULL)
+	{
+		return false;
+	}
 	bool kuid_mapped = bpf_map_id_up(&ns->uid_map, i_uid) != (u32)-1;
 	bool kgid_mapped = bpf_map_id_up(&ns->gid_map, i_gid) != (u32)-1;
 
