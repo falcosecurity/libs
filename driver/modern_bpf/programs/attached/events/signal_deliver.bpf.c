@@ -33,43 +33,44 @@ int BPF_PROG(signal_deliver,
 	/* Try to find the source pid */
 	pid_t spid = 0;
 
-	switch(sig)
+	if(info != NULL)
 	{
-	case SIGKILL:
-		spid = info->_sifields._kill._pid;
-		break;
-
-	case SIGTERM:
-	case SIGHUP:
-	case SIGINT:
-	case SIGTSTP:
-	case SIGQUIT:
-	{
-		int si_code = info->si_code;
-		if(si_code == SI_USER ||
-		   si_code == SI_QUEUE ||
-		   si_code <= 0)
+		switch(sig)
 		{
-			/* This is equivalent to `info->si_pid` where
-			 * `si_pid` is a macro `_sifields._kill._pid`
-			 */
+		case SIGKILL:
 			spid = info->_sifields._kill._pid;
+			break;
+
+		case SIGTERM:
+		case SIGHUP:
+		case SIGINT:
+		case SIGTSTP:
+		case SIGQUIT:
+		{
+			int si_code = info->si_code;
+			if(si_code == SI_USER || si_code == SI_QUEUE || si_code <= 0)
+			{
+				/* This is equivalent to `info->si_pid` where
+				 * `si_pid` is a macro `_sifields._kill._pid`
+				 */
+				spid = info->_sifields._kill._pid;
+			}
+			break;
 		}
-		break;
-	}
 
-	case SIGCHLD:
-		spid = info->_sifields._sigchld._pid;
-		break;
+		case SIGCHLD:
+			spid = info->_sifields._sigchld._pid;
+			break;
 
-	default:
-		spid = 0;
-		break;
-	}
+		default:
+			spid = 0;
+			break;
+		}
 
-	if(sig >= SIGRTMIN && sig <= SIGRTMAX)
-	{
-		spid = info->_sifields._rt._pid;
+		if(sig >= SIGRTMIN && sig <= SIGRTMAX)
+		{
+			spid = info->_sifields._rt._pid;
+		}
 	}
 
 	/* Parameter 1: spid (type: PT_PID) */
