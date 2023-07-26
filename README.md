@@ -8,8 +8,7 @@
 [![Kernel Tests](https://github.com/falcosecurity/libs/actions/workflows/kernel_tests.yaml/badge.svg)](https://github.com/falcosecurity/libs/actions/workflows/kernel_tests.yaml)
 [![Github Pages](https://github.com/falcosecurity/libs/actions/workflows/pages.yml/badge.svg)](https://falcosecurity.github.io/libs/)
 
-As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module** and the **eBPF probe** sources.  
-Refer to https://falco.org/blog/contribution-drivers-kmod-ebpf-libraries/ for more information.  
+This repository contains **libsinsp**, **libscap**, the **kernel module** and the **eBPF probes** sources.
 
 These components are at the foundation of [Falco](https://github.com/falcosecurity/falco) and other projects that work with the same kind of data.
 
@@ -41,6 +40,8 @@ plus chisels related code and common utilities.
 * [_cmake/modules/_](./cmake/modules) contains modules to build
 external dependencies, plus the libscap and libsinsp ones; consumers
 (like Falco) use those modules to build the libs in their projects.
+
+ For an overview of the event sources that are implemented by the libs see also the official [Falco documentation](https://falco.org/docs/event-sources/).
 
 ## Versioning
 
