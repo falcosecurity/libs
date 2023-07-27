@@ -243,6 +243,8 @@
 #define PIDFD_OPEN_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + 3 * PARAM_LEN
 #define INIT_MODULE_E_SIZE HEADER_LEN
 #define FINIT_MODULE_E_SIZE HEADER_LEN
+#define MKNOD_E_SIZE HEADER_LEN
+#define MKNODAT_E_SIZE HEADER_LEN
 
 /* Generic tracepoints events. */
 #define SCHED_SWITCH_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 3 + PARAM_LEN * 6
