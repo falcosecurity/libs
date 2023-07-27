@@ -11,9 +11,11 @@ on:
   push:
     branches:
       - master
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+\+driver'
     
 concurrency:
-  group: kernel-tests-master
+  group: kernel-tests
   cancel-in-progress: true
 
 jobs:
@@ -34,7 +36,7 @@ jobs:
         working-directory: ./ansible-playbooks
         run: |
           LIBS_V=${{ github.event.inputs.libsversion }}
-          LIBS_VERSION=${LIBS_V:-"master"}
+          LIBS_VERSION=${LIBS_V:-${{ github.ref_name }}}
           cat > vars.yml <<EOF
           run_id: "id-${{ github.run_id }}"
           output_dir: "~/ansible_output_${{ github.run_id }}"

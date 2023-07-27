@@ -1,0 +1,52 @@
+name: Generate release body
+on:
+  workflow_run:
+    workflows: ["Test drivers against a matrix of kernels/distros"]
+    types: [completed]
+    branches-ignore: [master] # only when it runs on tags
+      
+permissions:
+  contents: write
+
+concurrency:
+  group: "release-body"
+  cancel-in-progress: true
+
+jobs:
+  release-body:
+    runs-on: ubuntu-latest
+    steps:      
+      - name: Download matrixes
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: kernel_tests.yaml
+          name: matrix_*
+          name_is_regexp: true
+          run_id: ${{ github.event.workflow_run.id }}
+          
+      - name: Install deps
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ed
+      
+      # Steps:
+      # Remove everything after the table (ie: since the first line that starts with "# ",
+      # ie: a markdown section start.
+      # Remove links to the markdown sections in the table too.
+      # Then, add a small title to each matrix
+      # Finally, merge them together
+      - name: Append matrixes to create release body
+        run: |
+          printf '%s\n' '/# /,$d' 'q' '.a' '' '.' 'wq' | ed -s matrix_X64.md
+          printf '%s\n' '/# /,$d' 'q' '.a' '' '.' 'wq' | ed -s matrix_ARM64.md
+          sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_X64.md
+          sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_ARM64.md
+          sed -i '1s/^/# Driver Testing Matrix amd64\n\n/' matrix_X64.md
+          sed -i '1s/^/# Driver Testing Matrix arm64\n\n/' matrix_ARM64.md
+          cat matrix_X64.md matrix_ARM64.md > release-body.md
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: ./release-body.md
+          generate_release_notes: true
