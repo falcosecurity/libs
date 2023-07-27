@@ -46,3 +46,4 @@ jobs:
         with:
           body_path: ./release-body.md
           generate_release_notes: true
+          tag_name: ${{ github.event.workflow_run.head_branch }}
