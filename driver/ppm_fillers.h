@@ -178,6 +178,8 @@ or GPL2.txt for full copies of the license.
 	FN(sys_pidfd_open_x)				\
 	FN(sys_init_module_x)				\
 	FN(sys_finit_module_x)				\
+	FN(sys_mknod_x)						\
+	FN(sys_mknodat_x)					\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

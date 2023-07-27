@@ -415,13 +415,16 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_finit_module
 	[__NR_finit_module - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_FINIT_MODULE_E, PPME_SYSCALL_FINIT_MODULE_X, PPM_SC_FINIT_MODULE},
 #endif
+#ifdef __NR_mknod
+	[__NR_mknod - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MKNOD_E, PPME_SYSCALL_MKNOD_X, PPM_SC_MKNOD},
+#endif
+#ifdef __NR_mknodat
+	[__NR_mknodat - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MKNODAT_E, PPME_SYSCALL_MKNODAT_X, PPM_SC_MKNODAT},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
 	[__NR_time - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_TIME},
-#endif
-#ifdef __NR_mknod
-	[__NR_mknod - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MKNOD},
 #endif
 	[__NR_getpid - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_GETPID},
 	[__NR_sync - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SYNC},
@@ -558,7 +561,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ioprio_get - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IOPRIO_GET},
 	[__NR_inotify_add_watch - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_INOTIFY_ADD_WATCH},
 	[__NR_inotify_rm_watch - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_INOTIFY_RM_WATCH},
-	[__NR_mknodat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MKNODAT},
 #ifdef __NR_fchownat
 	[__NR_fchownat - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_FCHOWNAT_E, PPME_SYSCALL_FCHOWNAT_X, PPM_SC_FCHOWNAT},
 #endif

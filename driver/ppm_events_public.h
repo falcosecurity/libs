@@ -118,6 +118,15 @@ or GPL2.txt for full copies of the license.
 #define PPM_S_ISUID (1 << 11)
 
 /*
+ * mknod() modes
+ */
+#define PPM_S_IFREG  0100000
+#define PPM_S_IFCHR  0020000
+#define PPM_S_IFBLK  0060000
+#define PPM_S_IFIFO  0010000
+#define PPM_S_IFSOCK 0140000
+
+/*
  * flock() flags
  */
 #define PPM_LOCK_NONE 0
@@ -1394,7 +1403,11 @@ typedef enum {
 	PPME_SYSCALL_INIT_MODULE_X = 411,
 	PPME_SYSCALL_FINIT_MODULE_E = 412,
 	PPME_SYSCALL_FINIT_MODULE_X = 413,
-	PPM_EVENT_MAX = 414
+	PPME_SYSCALL_MKNOD_E = 414,
+	PPME_SYSCALL_MKNOD_X = 415,
+	PPME_SYSCALL_MKNODAT_E = 416,
+	PPME_SYSCALL_MKNODAT_X = 417,
+	PPM_EVENT_MAX = 418
 } ppm_event_code;
 /*@}*/
 
@@ -2090,6 +2103,7 @@ extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
 extern const struct ppm_name_value chmod_mode[];
+extern const struct ppm_name_value mknod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
 extern const struct ppm_name_value openat2_flags[];
 extern const struct ppm_name_value execve_flags[];

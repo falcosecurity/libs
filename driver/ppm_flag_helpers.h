@@ -2122,4 +2122,49 @@ static __always_inline uint32_t finit_module_flags_to_scap(int32_t flags)
 	return res;
 }
 
+static __always_inline uint32_t mknod_mode_to_scap(u32 modes)
+{
+	u32 res = chmod_mode_to_scap(modes);
+
+	/*
+	 * mknod modes
+	 */
+
+#ifdef S_IFMT
+	switch(modes & S_IFMT){
+#ifdef S_IFSOCK
+		case S_IFSOCK:
+			res |= PPM_S_IFSOCK;
+			break;
+#endif
+#ifdef S_IFREG
+		// Zero file type is equivalent to type S_IFREG.
+		case 0:
+		case S_IFREG:
+			res |= PPM_S_IFREG;
+			break;
+#endif
+#ifdef S_IFBLK
+		case S_IFBLK:
+			res |= PPM_S_IFBLK;
+			break;
+#endif
+#ifdef S_IFCHR
+		case S_IFCHR:
+			res |= PPM_S_IFCHR;
+			break;
+#endif
+#ifdef S_IFIFO
+		case S_IFIFO:
+			res |= PPM_S_IFIFO;
+			break;
+#endif
+		default:
+			break;
+	}
+#endif
+
+	return res;
+}
+
 #endif /* PPM_FLAG_HELPERS_H_ */

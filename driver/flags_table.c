@@ -685,3 +685,25 @@ const struct ppm_name_value pidfd_open_flags[] = {
 	{"PIDFD_NONBLOCK", PPM_PIDFD_NONBLOCK},
 	{0,0},
 };
+
+const struct ppm_name_value mknod_mode[] = {
+	{"S_IXOTH", PPM_S_IXOTH},
+	{"S_IWOTH", PPM_S_IWOTH},
+	{"S_IROTH", PPM_S_IROTH},
+	{"S_IXGRP", PPM_S_IXGRP},
+	{"S_IWGRP", PPM_S_IWGRP},
+	{"S_IRGRP", PPM_S_IRGRP},
+	{"S_IXUSR", PPM_S_IXUSR},
+	{"S_IWUSR", PPM_S_IWUSR},
+	{"S_IRUSR", PPM_S_IRUSR},
+	{"S_ISVTX", PPM_S_ISVTX},
+	{"S_ISGID", PPM_S_ISGID},
+	{"S_ISUID", PPM_S_ISUID},
+	{"S_IFREG", PPM_S_IFREG},
+	{"S_IFCHR", PPM_S_IFCHR},
+	{"S_IFBLK", PPM_S_IFBLK},
+	{"S_IFIFO", PPM_S_IFIFO},
+	{"S_IFSOCK", PPM_S_IFSOCK},
+	{0, 0},
+};
+

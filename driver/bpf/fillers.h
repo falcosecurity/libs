@@ -7106,4 +7106,58 @@ FILLER(sys_finit_module_x, true)
 	return bpf_push_u32_to_ring(data, finit_module_flags_to_scap(flags));
 }
 
+FILLER(sys_mknod_x, true)
+{
+
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: path (type: PT_CHARBUF) */
+	unsigned long path_pointer = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, path_pointer);
+	CHECK_RES(res);
+
+	/* Parameter 3: mode (type: PT_MODE) */
+	u32 mode = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u32_to_ring(data, mknod_mode_to_scap(mode));
+	CHECK_RES(res);
+
+	/* Parameter 4: dev (type: PT_UINT32) */
+	u32 dev = bpf_syscall_get_argument(data, 2);
+	return bpf_push_u32_to_ring(data, bpf_encode_dev(dev));
+}
+
+FILLER(sys_mknodat_x, true)
+{
+	unsigned long val;
+	s32 fd;
+
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	fd = (s32)bpf_syscall_get_argument(data, 0);
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
+	res = bpf_push_s64_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: path (type: PT_CHARBUF) */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 4: mode (type: PT_MODE) */
+	u32 mode = bpf_syscall_get_argument(data, 2);
+	res = bpf_push_u32_to_ring(data, mknod_mode_to_scap(mode));
+	CHECK_RES(res);
+
+	/* Parameter 5: dev (type: PT_UINT32) */
+	u32 dev = bpf_syscall_get_argument(data, 3);
+	return bpf_push_u32_to_ring(data, bpf_encode_dev(dev));
+}
 #endif
