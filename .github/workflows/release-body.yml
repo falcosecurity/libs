@@ -32,6 +32,7 @@ jobs:
       # Finally, merge them together
       - name: Append matrixes to create release body
         run: |
+          mv matrix_*/*.md .
           sed -i -n '/# /q;p' matrix_X64.md
           sed -i -n '/# /q;p' matrix_ARM64.md
           sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_X64.md
