@@ -23,11 +23,6 @@ jobs:
           name: matrix_*
           name_is_regexp: true
           run_id: ${{ github.event.workflow_run.id }}
-          
-      - name: Install deps
-        run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends ed
       
       # Steps:
       # Remove everything after the table (ie: since the first line that starts with "# ",
@@ -37,8 +32,8 @@ jobs:
       # Finally, merge them together
       - name: Append matrixes to create release body
         run: |
-          printf '%s\n' '/# /,$d' 'q' '.a' '' '.' 'wq' | ed -s matrix_X64.md
-          printf '%s\n' '/# /,$d' 'q' '.a' '' '.' 'wq' | ed -s matrix_ARM64.md
+          sed -i -n '/# /q;p' matrix_X64.md
+          sed -i -n '/# /q;p' matrix_ARM64.md
           sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_X64.md
           sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_ARM64.md
           sed -i '1s/^/# Driver Testing Matrix amd64\n\n/' matrix_X64.md
