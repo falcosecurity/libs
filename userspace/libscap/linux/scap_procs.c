@@ -79,7 +79,7 @@ int32_t scap_proc_fill_info_from_stats(char* error, char* procdirname, struct sc
 	uint32_t vmswap_kb;
 	uint64_t pfmajor;
 	uint64_t pfminor;
-	int32_t tty;
+	uint32_t tty;
 	char line[512];
 	char tmpc;
 	char* s;
@@ -316,7 +316,7 @@ int32_t scap_proc_fill_info_from_stats(char* error, char* procdirname, struct sc
 	//
 	// Extract the line content
 	//
-	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRId32 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
+	if(sscanf(s + 2, "%c %" PRId64 " %" PRId64 " %" PRId64 " %" PRIu32 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64,
 		&tmpc,
 		&tmp,
 		&pgid,
@@ -447,8 +447,8 @@ int32_t scap_proc_fill_loginuid(char* error, struct scap_threadinfo* tinfo, cons
 	{
 		// If Linux kernel is built with CONFIG_AUDIT=n, loginuid management
 		// (and associated /proc file) is not implemented.
-		// Record default loginuid value of -1 in this case.
-		tinfo->loginuid = (uint32_t)-1;
+		// Record default loginuid value of invalid uid in this case.
+		tinfo->loginuid = (uint32_t)UINT32_MAX;
 		return SCAP_SUCCESS;
 	}
 	if (fgets(line, sizeof(line), f) == NULL)
@@ -460,7 +460,7 @@ int32_t scap_proc_fill_loginuid(char* error, struct scap_threadinfo* tinfo, cons
 
 	fclose(f);
 
-	if(sscanf(line, "%" PRId32, &loginuid) == 1)
+	if(sscanf(line, "%" PRIu32, &loginuid) == 1)
 	{
 		tinfo->loginuid = loginuid;
 		return SCAP_SUCCESS;

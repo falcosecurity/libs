@@ -20,6 +20,10 @@ or GPL2.txt for full copies of the license.
 
 #include "./feature_gates.h"
 
+#ifndef UINT32_MAX
+#define UINT32_MAX (4294967295U)
+#endif
+
 /*
  * Macros for packing in different build environments
  */

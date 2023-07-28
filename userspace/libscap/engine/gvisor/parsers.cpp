@@ -227,9 +227,9 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 		gvisor_evt.args(0).c_str(), // args.c_str() // comm
 		scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1}, // cgroups
 		scap_const_sized_buffer{env.data(), env.size()}, // env
-		0, // tty
+		UINT32_MAX, // tty
 		(int64_t) 0, // pgid
-		0, // loginuid
+		UINT32_MAX, // loginuid (auid)
 		0); // flags (not necessary)
 	
 	if (ret.status == SCAP_FAILURE) {
@@ -312,9 +312,9 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 			comm.c_str(), // comm
 			scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1}, // cgroups
 			scap_const_sized_buffer{env.data(), env.size()}, // env
-			0, // tty
+			UINT32_MAX, // tty
 			(int64_t) 0, // pgid
-			0, // loginuid
+			UINT32_MAX, // loginuid (auid)
 			0); // flags (not necessary)
 
 	} else 

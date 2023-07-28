@@ -125,7 +125,7 @@ TEST(SyscallExit, execveatX_failure)
 	/* If we run in a namespace different from the init one probably this will fail. */
 	evt_test->assert_numeric_param(18, (int64_t)info.pgid);
 
-	/* Parameter 19: loginuid (type: PT_UINT32) */
+	/* Parameter 19: loginuid (type: PT_UID) */
 	evt_test->assert_numeric_param(19, (uint32_t)info.loginuid);
 
 	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
@@ -151,7 +151,7 @@ TEST(SyscallExit, execveatX_failure)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 27: uid (type: PT_UINT32) */
+	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -273,7 +273,7 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 27: uid (type: PT_UINT32) */
+	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -398,7 +398,7 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 27: uid (type: PT_UINT32) */
+	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

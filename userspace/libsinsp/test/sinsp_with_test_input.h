@@ -265,7 +265,7 @@ protected:
 		int64_t fdlimit=0x100000, uint32_t flags=0, bool exe_writable=true, 
 		uint64_t cap_permitted=0x1ffffffffff, uint64_t cap_inheritable=0, uint64_t cap_effective=0x1ffffffffff,
 		uint32_t vmsize_kb=10000, uint32_t vmrss_kb=100, uint32_t vmswap_kb=0, uint64_t pfmajor=222, uint64_t pfminor=22,
-		std::vector<std::string> cgroups={}, std::string root="/", int filtered_out=0, int32_t tty=0, int32_t loginuid=-1)
+		std::vector<std::string> cgroups={}, std::string root="/", int filtered_out=0, uint32_t tty=0, uint32_t loginuid=UINT32_MAX)
 	{
 		scap_threadinfo tinfo = {};
 		tinfo.tid = tid;

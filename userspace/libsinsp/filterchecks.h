@@ -666,6 +666,7 @@ public:
 
 	uint32_t m_uid;
 	std::string m_strval;
+	int64_t m_s64val;
 };
 
 //
