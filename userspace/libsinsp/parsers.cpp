@@ -2438,8 +2438,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
-		ASSERT(parinfo->m_len == sizeof(int32_t));
-		evt->m_tinfo->m_tty = *(int32_t *) parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		evt->m_tinfo->m_tty = *(uint32_t *) parinfo->m_val;
 		break;
 	default:
 		ASSERT(false);

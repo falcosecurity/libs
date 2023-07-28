@@ -639,8 +639,8 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo 
 			  2 + cgroupslen +
 			  2 + rootlen +
 			  sizeof(uint64_t) + // pidns_init_start_ts
-			  sizeof(int32_t) +  // tty
-			  sizeof(int32_t) +  // loginuid
+			  sizeof(uint32_t) +  // tty
+			  sizeof(uint32_t) +  // loginuid (auid)
 			  sizeof(uint8_t) +  // exe_writable
 			  sizeof(uint64_t) + // cap_inheritable
 			  sizeof(uint64_t) + // cap_permitted

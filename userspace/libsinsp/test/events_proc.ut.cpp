@@ -321,6 +321,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20, null_pid = 0;
 	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
 	uint64_t exe_ino = 242048, ctime = 1676262698000004588, mtime = 1676262698000004577;
+	uint32_t loginuid = UINT32_MAX - 1, euid = 2000U;
 
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
@@ -342,7 +343,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 	
 	/* Execve exit event */
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, PPM_EXE_WRITABLE, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, 2000);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, loginuid, PPM_EXE_WRITABLE, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
 
 	// check that the cwd is inherited from the parent (default process has /root/)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
@@ -404,7 +405,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.exeline"), "/bin/test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.tty"), "34818");
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid"), "1");
-	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "1000");
+	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "4294967294");
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "2000");
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
 	ASSERT_EQ(get_field_as_string(evt, "proc.vmsize"), "29612");

@@ -851,7 +851,7 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 
 #endif
 
-static int ppm_get_tty(void)
+static uint32_t ppm_get_tty(void)
 {
 	/* Locking of the signal structures seems too complicated across
 	 * multiple kernel versions to get it right, so simply do protected
@@ -865,7 +865,7 @@ static int ppm_get_tty(void)
 	int major;
 	int minor_start;
 	int index;
-	int tty_nr = 0;
+	uint32_t tty_nr = 0;
 
 	sig = current->signal;
 	if (!sig)
@@ -1212,14 +1212,14 @@ cgroups_error:
 		 * clone-only parameters
 		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
-		uint64_t euid = from_kuid_munged(current_user_ns(), current_euid());
-		uint64_t egid = from_kgid_munged(current_user_ns(), current_egid());
+		uint32_t euid = from_kuid_munged(current_user_ns(), current_euid());
+		uint32_t egid = from_kgid_munged(current_user_ns(), current_egid());
 #elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		uint64_t euid = current_euid();
-		uint64_t egid = current_egid();
+		uint32_t euid = current_euid();
+		uint32_t egid = current_egid();
 #else
-		uint64_t euid = current->euid;
-		uint64_t egid = current->egid;
+		uint32_t euid = current->euid;
+		uint32_t egid = current->egid;
 #endif
 		int64_t in_pidns = 0;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -1329,7 +1329,7 @@ cgroups_error:
 		 * execve family parameters.
 		 */
 		long env_len = 0;
-		int tty_nr = 0;
+		uint32_t tty_nr = 0;
 		bool exe_writable = false;
 		bool exe_upper_layer = false;
 		struct file *exe_file = NULL;
@@ -1337,10 +1337,11 @@ cgroups_error:
 		unsigned long i_ino = 0;
 		unsigned long ctime = 0;
 		unsigned long mtime = 0;
+		uint32_t loginuid = UINT32_MAX;
 		uint64_t cap_inheritable = 0;
 		uint64_t cap_permitted = 0;
 		uint64_t cap_effective = 0;
-		uint64_t euid = 0;
+		uint32_t euid = UINT32_MAX;
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1421,13 +1422,13 @@ cgroups_error:
 	 	* loginuid
 	 	*/
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
-		val = from_kuid(current_user_ns(), audit_get_loginuid(current));
+		loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		val = audit_get_loginuid(current);
+		loginuid = audit_get_loginuid(current);
 #else
-		val = audit_get_loginuid(current->audit_context);
+		loginuid = audit_get_loginuid(current->audit_context);
 #endif
-		res = val_to_ring(args, val, 0, false, 0);
+		res = val_to_ring(args, loginuid, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
@@ -1538,7 +1539,7 @@ cgroups_error:
 		res = val_to_ring(args, mtime, 0, false, 0);
 		CHECK_RES(res);
 
-		/* Parameter 27: uid */
+		/* Parameter 27: euid (type: PT_UID) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		euid = from_kuid_munged(current_user_ns(), current_euid());
 #elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -7374,7 +7375,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
 	long env_len = 0;
-	int tty_nr = 0;
+	uint32_t tty_nr = 0;
 	uint32_t flags = 0;
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
@@ -7383,10 +7384,11 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	unsigned long i_ino = 0;
 	unsigned long ctime = 0;
 	unsigned long mtime = 0;
+	uint32_t loginuid = UINT32_MAX;
 	uint64_t cap_inheritable = 0;
 	uint64_t cap_permitted = 0;
 	uint64_t cap_effective = 0;
-	uint64_t euid = 0;
+	uint32_t euid = UINT32_MAX;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: if this filler is called the execve is correctly
@@ -7589,7 +7591,7 @@ cgroups_error:
 		return res;
 	}
 
-	/* Parameter 17: tty (type: PT_INT32) */
+	/* Parameter 17: tty (type: PT_UINT32) */
 	tty_nr = ppm_get_tty();
 	res = val_to_ring(args, tty_nr, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
@@ -7604,13 +7606,13 @@ cgroups_error:
 		return res;
 	}
 
-	/* Parameter 19: loginuid (type: PT_INT32) */
+	/* Parameter 19: loginuid (type: PT_UID) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
-	val = from_kuid(current_user_ns(), audit_get_loginuid(current));
+	loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
 #else
-	val = audit_get_loginuid(current);
+	loginuid = audit_get_loginuid(current);
 #endif
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, loginuid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -7722,7 +7724,7 @@ cgroups_error:
 	res = val_to_ring(args, mtime, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 27: uid */
+	/* Parameter 27: euid (type: PT_UID) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	euid = from_kuid_munged(current_user_ns(), current_euid());
 #elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -7752,8 +7754,8 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
 	uint32_t flags = 0;
-	uint64_t euid = task_euid(child).val;
-	uint64_t egid = child->cred->egid.val;
+	uint32_t euid = task_euid(child).val;
+	uint32_t egid = child->cred->egid.val;
 	struct pid_namespace *pidns = task_active_pid_ns(child);
 	u64 pidns_init_start_time = 0;
 
@@ -7969,7 +7971,7 @@ cgroups_error:
 		return res;
 	}
 
-	/* Parameter 17: uid (type: PT_UINT32) */
+	/* Parameter 17: uid (type: PT_UID) */
 	res = val_to_ring(args, euid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{

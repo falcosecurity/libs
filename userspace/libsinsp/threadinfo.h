@@ -442,11 +442,10 @@ public:
 	std::string m_root;
 	size_t m_program_hash; ///< Unique hash of the current program
 	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
-	int32_t m_tty; ///< Number of controlling terminal
+	uint32_t m_tty; ///< Number of controlling terminal
 	std::shared_ptr<thread_group_info> m_tginfo;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
 	uint64_t m_not_expired_children;
-
 
 	// In some cases, a threadinfo has a category that identifies
 	// why it was run. Descriptions:

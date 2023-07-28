@@ -161,18 +161,18 @@ int BPF_PROG(t1_sched_p_exec,
 	 */
 	auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len & (MAX_PROC_ARG_ENV - 1), USER);
 
-	/* Parameter 17: tty (type: PT_INT32) */
+	/* Parameter 17: tty (type: PT_UINT32) */
 	u32 tty = exctract__tty(task);
-	auxmap__store_s32_param(auxmap, (s32)tty);
+	auxmap__store_u32_param(auxmap, (u32)tty);
 
 	/* Parameter 18: pgid (type: PT_PID) */
 	pid_t pgid = extract__task_xid_vnr(task, PIDTYPE_PGID);
 	auxmap__store_s64_param(auxmap, (s64)pgid);
 
-	/* Parameter 19: loginuid (type: PT_INT32) */
+	/* Parameter 19: loginuid (type: PT_UID) */
 	u32 loginuid;
 	extract__loginuid(task, &loginuid);
-	auxmap__store_s32_param(auxmap, (s32)loginuid);
+	auxmap__store_u32_param(auxmap, (u32)loginuid);
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
 	u32 flags = 0;
@@ -220,10 +220,10 @@ int BPF_PROG(t1_sched_p_exec,
 	BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
-	/* Parameter 27: uid (type: PT_UINT32) */
-	u32 uid = 0;
-	extract__euid(task, &uid);
-	auxmap__store_u32_param(auxmap, uid);
+	/* Parameter 27: euid (type: PT_UID) */
+	u32 euid;
+	extract__euid(task, &euid);
+	auxmap__store_u32_param(auxmap, euid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

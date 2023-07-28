@@ -122,7 +122,7 @@ TEST(SyscallExit, execveX_failure)
 	/* Parameter 18: pgid (type: PT_PID) */
 	evt_test->assert_numeric_param(18, (int64_t)info.pgid);
 
-	/* Parameter 19: loginuid (type: PT_UINT32) */
+	/* Parameter 19: loginuid (type: PT_UID) */
 	evt_test->assert_numeric_param(19, (uint32_t)info.loginuid);
 
 	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
@@ -148,7 +148,7 @@ TEST(SyscallExit, execveX_failure)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 27: uid (type: PT_UINT32) */
+	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -262,7 +262,7 @@ TEST(SyscallExit, execveX_success)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 27: uid (type: PT_UINT32) */
+	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -456,7 +456,7 @@ TEST(SyscallExit, execveX_upperlayer_success)
 	/* Parameter 26: exe_file mtime (last modifitrueion time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 27: uid (type: PT_UINT32) */
+	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

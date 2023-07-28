@@ -112,7 +112,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		tinfo.pidns_init_start_ts = 0;
 		tinfo.tty = 0;
 		tinfo.exepath[0] = 0;
-		tinfo.loginuid = -1;
+		tinfo.loginuid = UINT32_MAX;
 		tinfo.exe_writable = false;
 		tinfo.cap_inheritable = 0;
 		tinfo.cap_permitted = 0;
@@ -614,20 +614,20 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// tty
 			//
-			if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
+			if(sub_len && (subreadsize + sizeof(uint32_t)) <= sub_len)
 			{
-				readsize = r->read(r, &(tinfo.tty), sizeof(int32_t));
-				CHECK_READ_SIZE_ERR(readsize, sizeof(int32_t), error);
+				readsize = r->read(r, &(tinfo.tty), sizeof(uint32_t));
+				CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 				subreadsize += readsize;
 			}
 		}
 
 		//
-		// loginuid
+		// loginuid (auid)
 		//
-		if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
+		if(sub_len && (subreadsize + sizeof(uint32_t)) <= sub_len)
 		{
-			readsize = r->read(r, &(tinfo.loginuid), sizeof(int32_t));
+			readsize = r->read(r, &(tinfo.loginuid), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 			subreadsize += readsize;
 		}

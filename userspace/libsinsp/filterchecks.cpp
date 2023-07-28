@@ -2361,7 +2361,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.env", "Environment", "The environment variables of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "Current Working Directory", "The current working directory of the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "Login Shell ID", "The pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
-	{PT_INT32, EPF_NONE, PF_ID, "proc.tty", "Process TTY", "The controlling terminal of the process. 0 for processes without a terminal."},
+	{PT_UINT32, EPF_NONE, PF_ID, "proc.tty", "Process TTY", "The controlling terminal of the process. 0 for processes without a terminal."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.pid", "Process ID", "The id of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.ppid", "Parent Process ID", "The pid of the parent of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.apid", "Ancestor Process ID", "The pid for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.apid[1] retrieves the pid of the parent process, proc.apid[2] retrieves the pid of the grandparent process, and so on. The current process's pid can be obtained using proc.apid[0].  When used without any arguments, proc.acmdline is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.apid=1337` to match any process ancestor whose pid is equal to 1337."},
@@ -6087,7 +6087,7 @@ const filtercheck_field_info sinsp_filter_check_user_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.name", "User Name", "user name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.homedir", "Home Directory", "home directory of the user."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.shell", "Shell", "user's shell."},
-	{PT_INT32, EPF_NONE, PF_ID, "user.loginuid", "Login User ID", "audit user id (auid)."},
+	{PT_INT64, EPF_NONE, PF_ID, "user.loginuid", "Login User ID", "audit user id (auid), internally the loginuid is of type `uint32_t`. However, if an invalid uid corresponding to UINT32_MAX is encountered, it is returned as -1 to support familiar filtering conditions."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "user.loginname", "Login User Name", "audit user name (auid)."},
 };
 
@@ -6141,7 +6141,12 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	case TYPE_SHELL:
 		RETURN_EXTRACT_CSTR(tinfo->m_user.shell);
 	case TYPE_LOGINUID:
-		RETURN_EXTRACT_VAR(tinfo->m_loginuser.uid);
+		m_s64val = (int64_t)-1;
+		if(tinfo->m_loginuser.uid < UINT32_MAX)
+		{
+			m_s64val = (int64_t)tinfo->m_loginuser.uid;
+		}
+		RETURN_EXTRACT_VAR(m_s64val);
 	case TYPE_LOGINNAME:
 		RETURN_EXTRACT_CSTR(tinfo->m_loginuser.name);
 	default:

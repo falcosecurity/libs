@@ -13,7 +13,7 @@
  */
 struct proc_info
 {
-	int tty;
+	uint32_t tty;
 	pid_t ppid; /* The PID of the parent of this process. */
 	pid_t pgid; /* The process group ID of the process. */
 	char raw_args[MAX_NUM_ARGS][MAX_PATH];
@@ -23,7 +23,7 @@ struct proc_info
 	uint32_t vpid;
 	uint32_t vtid;
 	struct rlimit file_rlimit;
-	int loginuid;
+	uint32_t loginuid;
 };
 
 bool get_proc_info(pid_t pid, proc_info* info);

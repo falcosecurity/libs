@@ -1627,7 +1627,7 @@ FILLER(sys_execveat_e, true)
 	return bpf_push_u32_to_ring(data, flags);
 }
 
-static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
+static __always_inline uint32_t bpf_ppm_get_tty(struct task_struct *task)
 {
 	struct signal_struct *sig;
 	struct tty_struct *tty;
@@ -2639,7 +2639,7 @@ FILLER(proc_startupdate_3, true)
 		 */
 		long env_len = 0;
 		kuid_t loginuid;
-		int tty;
+		uint32_t tty;
 		struct file *exe_file;
 
 		/*
@@ -2706,7 +2706,7 @@ FILLER(proc_startupdate_3, true)
 		 */
 		tty = bpf_ppm_get_tty(task);
 
-		res = bpf_push_s32_to_ring(data, tty);
+		res = bpf_push_u32_to_ring(data, tty);
 		CHECK_RES(res);
 
 		/*
@@ -2726,17 +2726,17 @@ FILLER(proc_startupdate_3, true)
 			if (audit) {
 				loginuid = _READ(audit->loginuid);
 			} else {
-				loginuid = INVALID_UID;
+				loginuid = UINT32_MAX;
 			}
 		}
 #else
 		loginuid = _READ(task->loginuid);
 #endif /* COS_73_WORKAROUND */
 #else
-		loginuid.val = -1;
+		loginuid.val = UINT32_MAX;
 #endif /* CONFIG_AUDIT... */
 
-		res = bpf_push_s32_to_ring(data, loginuid.val);
+		res = bpf_push_u32_to_ring(data, loginuid.val);
 		CHECK_RES(res);
 
 		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_execve_family_flags);
@@ -2846,7 +2846,7 @@ FILLER(execve_family_flags, true)
 	res = bpf_push_u64_to_ring(data, bpf_epoch_ns_from_time(time));
 	CHECK_RES(res);
 
-	/* Parameter 27: uid */
+	/* Parameter 27: euid (type: PT_UID) */
 	euid = _READ(cred->euid);
 	return bpf_push_u32_to_ring(data, euid.val);
 }
@@ -6504,9 +6504,9 @@ FILLER(sched_prog_exec_3, false)
 	res = __bpf_val_to_ring(data, 0, env_len, PT_BYTEBUF, -1, false, KERNEL);
 	CHECK_RES(res);
 
-	/* Parameter 17: tty (type: PT_INT32) */
-	int tty = bpf_ppm_get_tty(task);
-	res = bpf_push_s32_to_ring(data, tty);
+	/* Parameter 17: tty (type: PT_UINT32) */
+	uint32_t tty = bpf_ppm_get_tty(task);
+	res = bpf_push_u32_to_ring(data, tty);
 	CHECK_RES(res);
 
 	/* Parameter 18: pgid (type: PT_PID) */
@@ -6525,18 +6525,18 @@ FILLER(sched_prog_exec_3, false)
 		}
 		else
 		{
-			loginuid = INVALID_UID;
+			loginuid = UINT32_MAX;
 		}
 	}
 #else
 	loginuid = _READ(task->loginuid);
 #endif /* COS_73_WORKAROUND */
 #else
-	loginuid.val = -1;
+	loginuid.val = UINT32_MAX;
 #endif /* CONFIG_AUDIT... */
 
-	/* Parameter 19: loginuid (type: PT_INT32) */
-	res = bpf_push_s32_to_ring(data, loginuid.val);
+	/* Parameter 19: loginuid (type: PT_UID) */
+	res = bpf_push_u32_to_ring(data, loginuid.val);
 	CHECK_RES(res);
 
 	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sched_prog_exec_4);
@@ -6641,7 +6641,7 @@ FILLER(sched_prog_exec_4, false)
 	res = bpf_push_u64_to_ring(data, bpf_epoch_ns_from_time(time));
 	CHECK_RES(res);
 
-	/* Parameter 27: uid */
+	/* Parameter 27: euid (type: PT_UID) */
 	euid = _READ(cred->euid);
 	return bpf_push_u32_to_ring(data, euid.val);
 }

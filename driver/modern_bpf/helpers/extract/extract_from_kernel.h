@@ -618,7 +618,7 @@ static __always_inline u32 exctract__tty(struct task_struct *task)
  */
 static __always_inline void extract__loginuid(struct task_struct *task, u32 *loginuid)
 {
-	*loginuid = -1;
+	*loginuid = UINT32_MAX;
 
 	if(bpf_core_field_exists(task->loginuid))
 	{
@@ -686,6 +686,7 @@ static __always_inline unsigned long extract__clone_flags(struct task_struct *ta
  */
 static __always_inline void extract__euid(struct task_struct *task, u32 *euid)
 {
+	*euid = UINT32_MAX;
 	READ_TASK_FIELD_INTO(euid, task, cred, euid.val);
 }
 
