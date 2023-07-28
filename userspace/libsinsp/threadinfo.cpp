@@ -1414,11 +1414,11 @@ void sinsp_thread_manager::clear()
 	m_n_drops = 0;
 
 #ifdef GATHER_INTERNAL_STATS
-	m_failed_lookups = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_failed_lookups","Failed thread lookups"));
-	m_cached_lookups = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_cached_lookups","Cached thread lookups"));
-	m_non_cached_lookups = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_non_cached_lookups","Non cached thread lookups"));
-	m_added_threads = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_added","Number of added threads"));
-	m_removed_threads = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_removed","Removed threads"));
+	m_failed_lookups = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_failed_lookups","Failed thread lookups"));
+	m_cached_lookups = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_cached_lookups","Cached thread lookups"));
+	m_non_cached_lookups = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_non_cached_lookups","Non cached thread lookups"));
+	m_added_threads = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_added","Number of added threads"));
+	m_removed_threads = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_removed","Removed threads"));
 #endif
 }
 
@@ -1666,9 +1666,9 @@ void sinsp_thread_manager::recreate_child_dependencies()
 void sinsp_thread_manager::update_statistics()
 {
 #ifdef GATHER_INTERNAL_STATS
-	m_inspector->m_stats.m_n_threads = get_thread_count();
+	m_inspector->m_stats->m_n_threads = get_thread_count();
 
-	m_inspector->m_stats.m_n_fds = 0;
+	m_inspector->m_stats->m_n_fds = 0;
 	for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end(); it++)
 	{
 		sinsp_fdtable* fd_table_ptr = it->second.get_fd_table();
@@ -1677,7 +1677,7 @@ void sinsp_thread_manager::update_statistics()
 			ASSERT(false);
 			return;
 		}
-		m_inspector->m_stats.m_n_fds += fd_table_ptr->size();
+		m_inspector->m_stats->m_n_fds += fd_table_ptr->size();
 	}
 #endif
 }

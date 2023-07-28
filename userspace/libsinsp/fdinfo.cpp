@@ -359,7 +359,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			//
 			m_last_accessed_fd = -1;
 #ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats.m_n_added_fds++;
+			m_inspector->m_stats->m_n_added_fds++;
 #endif
 			std::pair<std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res = m_table.emplace(fd, *fdinfo);
 			return &(insert_res.first->second);
@@ -429,15 +429,15 @@ void sinsp_fdtable::erase(int64_t fd)
 		//
 		ASSERT(false);
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_failed_fd_lookups++;
+		m_inspector->m_stats->m_n_failed_fd_lookups++;
 #endif
 	}
 	else
 	{
 		m_table.erase(fdit);
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_noncached_fd_lookups++;
-		m_inspector->m_stats.m_n_removed_fds++;
+		m_inspector->m_stats->m_n_noncached_fd_lookups++;
+		m_inspector->m_stats->m_n_removed_fds++;
 #endif
 	}
 }
