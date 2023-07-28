@@ -161,7 +161,6 @@ TEST(interesting_syscalls, event_set_to_sc_set_generic_events)
 	/* Random checks for some generic sc events. */
 	ASSERT_TRUE(sc_set.contains(PPM_SC_PERF_EVENT_OPEN));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_GETSID));
-	ASSERT_TRUE(sc_set.contains(PPM_SC_INIT_MODULE));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_READLINKAT));
 }
 

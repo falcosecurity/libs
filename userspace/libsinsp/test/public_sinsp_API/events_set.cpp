@@ -187,13 +187,13 @@ TEST(events_set, event_set_to_names_generic_events)
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"umount2"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"eventfd2"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"syscall"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"init_module"}).empty());
 	/* Random checks for some generic sc events. */
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"syncfs"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"perf_event_open"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"timer_create"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"lsetxattr"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"getsid"}).empty());
-	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"init_module"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"sethostname"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"readlinkat"}).empty());
 
@@ -227,13 +227,13 @@ TEST(events_set, event_set_to_names_no_generic_events2)
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"mmap"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"container"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"procexit"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"init_module"}).empty());
 
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"syncfs"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"perf_event_open"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"timer_create"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"lsetxattr"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"getsid"}).empty());
-	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"init_module"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"sethostname"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"readlinkat"}).empty());
 }
