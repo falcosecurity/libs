@@ -45,5 +45,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body_path: ./release-body.md
-          generate_release_notes: true
+          append_body: true
           tag_name: ${{ github.event.workflow_run.head_branch }}
