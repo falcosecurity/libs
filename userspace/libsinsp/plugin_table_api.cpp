@@ -599,7 +599,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		}
 		entry->m_entry = res;
 		entry->m_detached = false;
-		return std::move(e);
+		return std::shared_ptr<libsinsp::state::table_entry>(std::move(e));
 	}
 
 	bool erase_entry(const KeyType& key) override
