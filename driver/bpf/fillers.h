@@ -694,13 +694,10 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 FILLER(sys_readv_e, true)
 {
-	unsigned long val;
-	int32_t fd;
-	int res;
+	s32 fd;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	val = bpf_syscall_get_argument(data, 0);
-	fd = (int32_t)val;
+	fd = (s32)bpf_syscall_get_argument(data, 0);
 	return bpf_push_s64_to_ring(data, (s64)fd);
 }
 
@@ -710,12 +707,11 @@ FILLER(sys_preadv_e, true)
 #error Implement this
 #endif
 	unsigned long val;
-	int32_t fd;
+	s32 fd;
 	int res;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	val = bpf_syscall_get_argument(data, 0);
-	fd = (int32_t)val;
+	fd = (s32)bpf_syscall_get_argument(data, 0);
 	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 	
@@ -1597,19 +1593,20 @@ FILLER(sys_execveat_e, true)
 {
 	unsigned long val;
 	unsigned long flags;
+	s32 fd;
 	int res;
 
 	/*
 	 * dirfd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
+	fd = (s32)bpf_syscall_get_argument(data, 0);
 	
-	if ((int)val == AT_FDCWD)
+	if (fd == AT_FDCWD)
 	{
-		val = PPM_AT_FDCWD;
+		fd = PPM_AT_FDCWD;
 	}
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
@@ -3017,16 +3014,17 @@ FILLER(sys_openat_e, true)
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
+	s32 fd;
 	int res;
 
 	/*
 	 * dirfd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	fd = (s32)bpf_syscall_get_argument(data, 0);
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -3061,6 +3059,7 @@ FILLER(sys_openat_x, true)
 	unsigned long val;
 	unsigned long mode;
 	long retval;
+	s32 fd;
 	int res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
@@ -3070,11 +3069,11 @@ FILLER(sys_openat_x, true)
 	/*
 	 * dirfd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	fd = (s32)bpf_syscall_get_argument(data, 0);
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -3121,6 +3120,7 @@ FILLER(sys_openat2_e, true)
 	u32 flags;
 	unsigned long val;
 	u32 mode;
+	s32 fd;
 	int res;
 #ifdef __NR_openat2
 	struct open_how how;
@@ -3128,11 +3128,11 @@ FILLER(sys_openat2_e, true)
 	/*
 	 * dirfd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	fd = (s32)bpf_syscall_get_argument(data, 0);
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -3188,6 +3188,7 @@ FILLER(sys_openat2_x, true)
 	unsigned long val;
 	u32 mode;
 	long retval;
+	s32 fd;
 	int res;
 #ifdef __NR_openat2
 	struct open_how how;
@@ -3200,11 +3201,11 @@ FILLER(sys_openat2_x, true)
 	/*
 	 * dirfd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	fd = (s32)bpf_syscall_get_argument(data, 0);
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -3542,8 +3543,8 @@ FILLER(sys_fsconfig_x, true)
 
 	/* Parameter 2: fd (type: PT_FD) */
 	/* This is the file-system fd */
-	unsigned long fd = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s64_to_ring(data, fd);
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/* Parameter 3: cmd (type: PT_ENUMFLAGS32) */
@@ -4704,14 +4705,13 @@ FILLER(sys_pread64_e, true)
 	unsigned long val;
 	unsigned long size;
 	int res;
-	int32_t fd;
+	s32 fd;
 
 	/*
 	 * fd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	fd = (int32_t)val;
-	res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -4753,6 +4753,7 @@ FILLER(sys_renameat_x, true)
 {
 	unsigned long val;
 	long retval;
+	s32 fd;
 	int res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
@@ -4762,12 +4763,12 @@ FILLER(sys_renameat_x, true)
 	/*
 	 * olddirfd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
+	fd = (s32)bpf_syscall_get_argument(data, 0);
 
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -4780,12 +4781,12 @@ FILLER(sys_renameat_x, true)
 	/*
 	 * newdirfd
 	 */
-	val = bpf_syscall_get_argument(data, 2);
+	fd = (s32)bpf_syscall_get_argument(data, 2);
 
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -4801,6 +4802,7 @@ FILLER(sys_renameat2_x, true)
 {
 	unsigned long val;
 	long retval;
+	s32 fd;
 	int res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
@@ -4810,12 +4812,12 @@ FILLER(sys_renameat2_x, true)
 	/*
 	 * olddirfd
 	 */
-	val = bpf_syscall_get_argument(data, 0);
+	fd = (s32)bpf_syscall_get_argument(data, 0);
 
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -4828,12 +4830,12 @@ FILLER(sys_renameat2_x, true)
 	/*
 	 * newdirfd
 	 */
-	val = bpf_syscall_get_argument(data, 2);
+	fd = (s32)bpf_syscall_get_argument(data, 2);
 
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -4855,6 +4857,7 @@ FILLER(sys_symlinkat_x, true)
 {
 	unsigned long val;
 	long retval;
+	s32 fd;
 	int res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
@@ -4871,12 +4874,12 @@ FILLER(sys_symlinkat_x, true)
 	/*
 	 * newdirfd
 	 */
-	val = bpf_syscall_get_argument(data, 1);
+	fd = (s32)bpf_syscall_get_argument(data, 1);
 
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
 
-	res = bpf_push_s64_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/*
@@ -6081,19 +6084,17 @@ FILLER(sys_capset_x, true)
 FILLER(sys_splice_e, true)
 {
 	unsigned long val;
-	int32_t fd_in, fd_out;
+	s32 fd;
 	int res;
 
 	/* Parameter 1: fd_in (type: PT_FD) */
-	val = bpf_syscall_get_argument(data, 0);
-	fd_in = (int32_t)val;
-	res = bpf_push_s64_to_ring(data, (int64_t)fd_in);
+	fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/* Parameter 2: fd_out (type: PT_FD) */
-	val = bpf_syscall_get_argument(data, 2);
-	fd_out = (int32_t)val;
-	res = bpf_push_s64_to_ring(data, (int64_t)fd_out);
+	fd = (s32)bpf_syscall_get_argument(data, 2);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/* Parameter 3: size (type: PT_UINT64) */
