@@ -352,6 +352,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CLONE3_X:
 		parse_clone_exit(evt);
 		break;
+	case PPME_SYSCALL_PIDFD_OPEN_X:
+		parse_pidfd_open_exit(evt);
+		break;
 	case PPME_SYSCALL_PIDFD_GETFD_X:
 		parse_pidfd_getfd_exit(evt);
 		break;
@@ -6629,6 +6632,55 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
 	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 }
 
+void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param* parinfo;
+	int64_t fd;
+	int64_t pid;
+	sinsp_fdinfo_t fdi;
+
+	ASSERT(evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	/* ret (fd) */
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	ASSERT(evt->get_param_info(0)->type == PT_FD);
+	fd = *(int64_t *)parinfo->m_val;
+
+	/* pid (fd) */
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	ASSERT(evt->get_param_info(0)->type == PT_PID);
+	pid = *(int64_t *)parinfo->m_val;
+	
+	/* flags */
+	parinfo = evt->get_param(2);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	flags = *(uint32_t *)parinfo->m_val;
+
+	if(fd >= 0)
+	{
+		// note: approximating equivalent filename as in:
+		// https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
+		char fname[PATH_MAX];
+		snprintf(fname,
+		         sizeof(fname),
+		         "%s/proc/%lld",
+		         scap_get_host_root(),
+		         (long long) pid);
+		fdi.m_type = scap_fd_type::SCAP_FD_PIDFD;
+		fdi.add_filename(fname);
+		fdi.m_openflags = flags;
+		fdi.pid = pid;
+	}
+
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+}
+
 void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
 {
 
@@ -6655,28 +6707,33 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
 	ASSERT(evt->get_param_info(1)->type == PT_FD);
 	pidfd = *(int64_t *)parinfo->m_val;
 
-	auto target_tinfo = m_inspector->get_thread_ref(pidfd);
-
-	if(target_tinfo == nullptr)
-	{
-		return;
-	}
-
 	/* targetfd */
 	parinfo = evt->get_param(2);
 	ASSERT(parinfo->m_len == sizeof(int64_t))
 	ASSERT(evt->get_param_info(2)->type == PT_FD);
 	targetfd = *(int64_t *)parinfo->m_val;
 
-	auto target_fdinfo = target_tinfo->get_fd(targetfd);
+	/* flags */
+	// currently unused: https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
 
-	if(target_fdinfo == nullptr)
+	auto pidfd_fdinfo = evt->m_tinfo->get_fd(pidfd);
+	if (pidfd_fdinfo == nullptr || !pidfd_fdinfo->is_pidfd())
 	{
 		return;
 	}
 
-	sinsp_fdinfo_t new_fd = *target_fdinfo;
+	auto pidfd_tinfo = m_inspector->get_thread_ref(pidfd_fdinfo->m_pid);
+	if (pidfd_tinfo == nullptr)
+	{
+		return;
+	}
+	
+	auto targetfd_fdinfo = pidfd_tinfo->get_fd(targetfd);
+	if (targetfd_fdinfo == nullptr)
+	{
+		return;
+	}
 
+	sinsp_fdinfo_t new_fd = *targetfd_fdinfo;
 	evt->m_tinfo->add_fd(fd, &new_fd);
-
 }

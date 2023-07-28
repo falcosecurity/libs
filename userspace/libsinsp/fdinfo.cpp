@@ -39,6 +39,7 @@ template<> sinsp_fdinfo_t::sinsp_fdinfo()
 	m_mount_id = 0;
 	m_ino = 0;
 	m_openflags = 0;
+	m_pid = 0;
 }
 
 template<> void sinsp_fdinfo_t::reset()
@@ -55,6 +56,7 @@ template<> void sinsp_fdinfo_t::reset()
 	m_mount_id = 0;
 	m_ino = 0;
 	m_openflags = 0;
+	m_pid = 0;
 }
 
 template<> std::string* sinsp_fdinfo_t::tostring()
@@ -107,6 +109,8 @@ template<> char sinsp_fdinfo_t::get_typechar()
 		return CHAR_FD_IO_URING;
 	case SCAP_FD_MEMFD:
 		return CHAR_FD_MEMFD;
+	case SCAP_FD_PIDFD:
+		return CHAR_FD_PIDFD;
 	default:
 //		ASSERT(false);
 		return '?';
@@ -152,6 +156,8 @@ template<> char* sinsp_fdinfo_t::get_typestring() const
 		return (char*)"io_uring";
 	case SCAP_FD_MEMFD:
 		return (char*)"memfd";	
+	case SCAP_FD_PIDFD:
+		return (char*)"pidfd";
 	default:
 		return (char*)"<NA>";
 	}

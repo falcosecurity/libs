@@ -49,6 +49,7 @@ class sinsp_protodecoder;
 #define CHAR_FD_USERFAULTFD		'u'
 #define CHAR_FD_IO_URING		'r'
 #define CHAR_FD_MEMFD			'm'
+#define CHAR_FD_PIDFD			    'P' // todo(jasondellaluce,rohith-raju): find a good character
 
 /** @defgroup state State management 
  * A collection of classes to query process and FD state.
@@ -124,6 +125,7 @@ public:
 		m_dev = other.m_dev;
 		m_mount_id = other.m_mount_id;
 		m_ino = other.m_ino;
+		m_pid = other.m_pid;
 		
 		if(free_state)
 		{
@@ -241,6 +243,14 @@ public:
 		return m_type == SCAP_FD_DIRECTORY;
 	}
 
+	/*!
+	  \brief Returns true if this is a pidfd, created through pidfd_open.
+	*/
+	bool is_pidfd()
+	{
+		return m_type == SCAP_PIDFD;
+	}
+
 	uint16_t get_serverport()
 	{
 		if(m_type == SCAP_FD_IPV4_SOCK)
@@ -277,6 +287,11 @@ public:
 	uint64_t get_ino() const
 	{
 		return m_ino;
+	}
+
+	int64_t get_pid() const
+	{
+		return m_pid;
 	}
 
 	void set_unix_info(uint8_t* packed_data)
@@ -501,6 +516,7 @@ public:
 	uint32_t m_dev;
 	uint32_t m_mount_id;
 	uint64_t m_ino;
+	int64_t m_pid; // only if fd is a pidfd
 
 	fd_callbacks_info* m_callbacks;
 };
