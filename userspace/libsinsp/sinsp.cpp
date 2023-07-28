@@ -40,16 +40,22 @@ limitations under the License.
 #include "plugin_filtercheck.h"
 #include "strl.h"
 
-#ifndef CYGWING_AGENT
-#ifndef MINIMAL_BUILD
+#if !defined(CYGWING_AGENT)
+#if !defined(MINIMAL_BUILD)
 #include "k8s_api_handler.h"
-#endif // MINIMAL_BUILD
-#ifdef HAS_CAPTURE
-#ifndef MINIMAL_BUILD
+#if defined(HAS_CAPTURE)
 #include <curl/curl.h>
-#endif // MINIMAL_BUILD
-#endif
-#endif
+#endif // defined(HAS_CAPTURE)
+#else // !defined(MINIMAL_BUILD)
+struct k8s_api_handler{}; // note: makes the unique_ptr static asserts happy
+#endif // !defined(MINIMAL_BUILD)
+#endif // !defined(CYGWING_AGENT)
+
+#ifdef GATHER_INTERNAL_STATS
+#include "stats.h"
+#else // GATHER_INTERNAL_STATS
+struct sinsp_stats{}; // note: makes the unique_ptr static asserts happy
+#endif // GATHER_INTERNAL_STATS
 
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
@@ -72,6 +78,9 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_host_root(scap_get_host_root()),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_usergroup_manager(this),
+	m_k8s_api_handler(nullptr),
+	m_k8s_ext_handler(nullptr),
+	m_stats(nullptr),
 	m_suppressed_comms(),
 	m_inited(false)
 {
@@ -126,6 +135,10 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 #if defined(HAS_CAPTURE)
 	m_self_pid = getpid();
+#endif
+
+#ifdef GATHER_INTERNAL_STATS
+	m_stats = std::make_unique<sinsp_stats()>;
 #endif
 
 	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
@@ -348,7 +361,7 @@ void sinsp::init()
 	// Basic inits
 	//
 #ifdef GATHER_INTERNAL_STATS
-	m_stats.clear();
+	m_stats->clear();
 #endif
 
 	m_nevts = 0;
@@ -1978,15 +1991,15 @@ sinsp_stats sinsp::get_stats()
 	{
 		scap_get_stats(m_h, &stats);
 
-		m_stats.m_n_seen_evts = stats.n_evts;
-		m_stats.m_n_drops = stats.n_drops;
-		m_stats.m_n_preemptions = stats.n_preemptions;
+		m_stats->m_n_seen_evts = stats.n_evts;
+		m_stats->m_n_drops = stats.n_drops;
+		m_stats->m_n_preemptions = stats.n_preemptions;
 	}
 	else
 	{
-		m_stats.m_n_seen_evts = 0;
-		m_stats.m_n_drops = 0;
-		m_stats.m_n_preemptions = 0;
+		m_stats->m_n_seen_evts = 0;
+		m_stats->m_n_drops = 0;
+		m_stats->m_n_preemptions = 0;
 	}
 
 	//
@@ -2002,7 +2015,7 @@ sinsp_stats sinsp::get_stats()
 	// Return the result
 	//
 
-	return m_stats;
+	return *m_stats.get();
 }
 #endif // GATHER_INTERNAL_STATS
 
