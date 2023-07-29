@@ -88,20 +88,18 @@ add_library(scap
 set_scap_target_properties(scap)
 
 add_library(scap_platform_util
+	STATIC
 	scap_iflist.c
 	scap_proc_util.c)
-set_scap_target_properties(scap_platform_util)
 
 if(NOT MINIMAL_BUILD)
 target_link_libraries(scap
 	"${ZLIB_LIB}")
 endif()
 
-add_library(scap_error strerror.c)
+add_library(scap_error STATIC strerror.c)
 
 target_link_libraries(scap scap_error)
-
-set_scap_target_properties(scap_error)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
@@ -131,6 +129,7 @@ elseif(APPLE)
 endif()
 
 add_library(scap_event_schema
+		STATIC
 		scap_event.c
 		ppm_sc_names.c
 		../../driver/dynamic_params_table.c
@@ -142,23 +141,21 @@ add_library(scap_event_schema
 
 target_link_libraries(scap scap_event_schema)
 
-set_scap_target_properties(scap_event_schema)
-
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
+		STATIC
 		../../driver/fillers_table.c)
 	target_link_libraries(scap_event_schema driver_event_schema)
-	set_scap_target_properties(scap_event_schema)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(scap_engine_util
+		STATIC
 		scap_engine_util.c
 		ringbuffer/devset.c
 		ringbuffer/ringbuffer.c)
 
 	target_link_libraries(scap scap_engine_util)
-	set_scap_target_properties(scap_engine_util)
 endif()
 
 add_definitions(-DHAS_ENGINE_NOOP)
@@ -174,11 +171,7 @@ endif()
 
 add_definitions(-DHAS_ENGINE_SAVEFILE)
 add_subdirectory(engine/savefile)
-# The static and shared build differs here because a shared scap_engine_savefile
-# will result in circular dependencies.
-if(NOT BUILD_SHARED_LIBS)
-	target_link_libraries(scap scap_engine_savefile)
-endif()
+target_link_libraries(scap scap_engine_savefile)
 
 add_definitions(-DHAS_ENGINE_SOURCE_PLUGIN)
 add_subdirectory(engine/source_plugin)
@@ -233,28 +226,6 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux
 		endif()
 	endif()
 endif()
-
-# We might need to filter this.
-get_target_property(scap_link_libraries scap LINK_LIBRARIES)
-if(TARGET scap_engine_bpf)
-	get_target_property(scap_engine_bpf_link_libraries scap_engine_bpf LINK_LIBRARIES)
-	if (scap_engine_bpf_link_libraries)
-		list(APPEND scap_link_libraries ${scap_engine_bpf_link_libraries})
-	endif()
-endif()
-#get_target_property(scap_engine_kmod_link_libraries scap_engine_kmod LINK_LIBRARIES)
-get_target_property(scap_event_schema_link_libraries scap_event_schema LINK_LIBRARIES)
-if (scap_event_schema_link_libraries)
-	list(APPEND scap_link_libraries ${scap_event_schema_link_libraries})
-endif()
-
-set(scap_link_flags "")
-foreach(link_library scap_engine_noop ${scap_link_libraries})
-	list(APPEND scap_link_flags "-l${link_library}")
-endforeach()
-list(REMOVE_DUPLICATES scap_link_flags)
-string(REPLACE ";" " " SCAP_LINK_LIBRARIES_FLAGS "${scap_link_flags}")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libscap.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libscap.pc @ONLY)
 
 if (BUILD_LIBSCAP_EXAMPLES)
 	add_subdirectory(examples/01-open)

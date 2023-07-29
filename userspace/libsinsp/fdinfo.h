@@ -525,7 +525,7 @@ public:
 		if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
 		{
 	#ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats.m_n_cached_fd_lookups++;
+			m_inspector->m_stats->m_n_cached_fd_lookups++;
 	#endif
 			return m_last_accessed_fdinfo;
 		}
@@ -538,14 +538,14 @@ public:
 		if(fdit == m_table.end())
 		{
 	#ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats.m_n_failed_fd_lookups++;
+			m_inspector->m_stats->m_n_failed_fd_lookups++;
 	#endif
 			return NULL;
 		}
 		else
 		{
 	#ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats.m_n_noncached_fd_lookups++;
+			m_inspector->m_stats->m_n_noncached_fd_lookups++;
 	#endif
 			m_last_accessed_fd = fd;
 			m_last_accessed_fdinfo = &(fdit->second);

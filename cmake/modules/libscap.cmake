@@ -53,37 +53,51 @@ endfunction()
 
 add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
 
-# We can switch to using the MANUALLY_ADDED_DEPENDENCIES when our minimum
-# CMake version is 3.8 or later.
-set(LIBSCAP_LIBS
-	scap
-	scap_engine_noop
-	scap_engine_source_plugin
-	scap_error
-	scap_event_schema)
+set(LIBSCAP_INSTALL_LIBS)
 
-set(libscap_conditional_libs
-	driver_event_schema
-	pman
-	scap_engine_bpf
-	scap_engine_gvisor
-	scap_engine_kmod
-	scap_engine_modern_bpf
-	scap_engine_nodriver
-	scap_engine_savefile
-	scap_engine_test_input
-	scap_engine_udig
-	scap_engine_util
-	scap_platform
-	scap_platform_util)
+# All of the targets in userspace/libscap
+get_directory_property(libscap_subdirs DIRECTORY ${LIBSCAP_DIR}/userspace/libscap SUBDIRECTORIES)
+set(libscap_subdir_targets)
+foreach(libscap_subdir ${LIBSCAP_DIR}/userspace/libscap ${libscap_subdirs})
+	get_directory_property(subdir_targets DIRECTORY ${libscap_subdir} BUILDSYSTEM_TARGETS)
+	list(APPEND libscap_subdir_targets ${subdir_targets})
+endforeach()
 
-foreach(libscap_conditional_lib ${libscap_conditional_libs})
-	if(TARGET ${libscap_conditional_lib})
-		list(APPEND LIBSCAP_LIBS ${libscap_conditional_lib})
+set(install_lib_type STATIC_LIBRARY)
+if (BUILD_SHARED_LIBS)
+	set(install_lib_type SHARED_LIBRARY)
+endif()
+
+# Installation targets only
+foreach(libscap_subdir_target ${libscap_subdir_targets})
+	get_target_property(cl_target_type ${libscap_subdir_target} TYPE)
+	if (${cl_target_type} STREQUAL ${install_lib_type})
+		list(APPEND LIBSCAP_INSTALL_LIBS ${libscap_subdir_target})
 	endif()
 endforeach()
 
-install(TARGETS ${LIBSCAP_LIBS}
+# Installation targets and their dependencies
+set(libscap_link_libraries)
+foreach(libscap_install_lib ${LIBSCAP_INSTALL_LIBS})
+	list(APPEND libscap_link_libraries ${libscap_install_lib})
+	get_target_property(install_lib_link_libraries ${libscap_install_lib} LINK_LIBRARIES)
+	foreach (install_lib_link_library ${install_lib_link_libraries})
+		if (NOT ${install_lib_link_library} IN_LIST libscap_subdir_targets)
+			list(APPEND libscap_link_libraries ${install_lib_link_library})
+		endif()
+	endforeach()
+endforeach()
+list(REMOVE_DUPLICATES libscap_link_libraries)
+
+set(libscap_link_flags)
+foreach(libscap_link_library ${libscap_link_libraries})
+	list(APPEND libscap_link_flags "-l${libscap_link_library}")
+endforeach()
+
+string(REPLACE ";" " " LIBSCAP_LINK_LIBRARIES_FLAGS "${libscap_link_flags}")
+configure_file(${LIBSCAP_DIR}/userspace/libscap/libscap.pc.in ${PROJECT_BINARY_DIR}/libscap/libscap.pc @ONLY)
+
+install(TARGETS ${LIBSCAP_INSTALL_LIBS}
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"

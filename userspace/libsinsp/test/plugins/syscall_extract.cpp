@@ -106,7 +106,7 @@ static const char* plugin_get_extract_event_sources()
     return "[\"syscall\"]";
 }
 
-static uint16_t* plugin_get_extract_event_types(uint32_t* num_types)
+static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
     static uint16_t types[] = {
         PPME_SYSCALL_OPEN_E,
@@ -236,11 +236,13 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                 {
                     auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't read ope counter from thread with tid=" + std::to_string(ev->evt->tid));
+                    in->table_reader_ext->release_table_entry(ps->thread_table, thread);
                     return SS_PLUGIN_FAILURE;
                 }
                 ps->u64storage = tmp.u64;
                 in->fields[i].res.u64 = &ps->u64storage;
                 in->fields[i].res_len = 1;
+                in->table_reader_ext->release_table_entry(ps->thread_table, thread);
                 break;
             case 2: // evt_count
                 if (!ps->evtcount_table || !ps->evtcount_count_field)
@@ -282,11 +284,13 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                 {
                     auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't read event counter for type=" + std::to_string(ev->evt->type));
+                    in->table_reader_ext->release_table_entry(ps->evtcount_table, evtcount);
                     return SS_PLUGIN_FAILURE;
                 }
                 ps->u64storage = tmp.u64;
                 in->fields[i].res.u64 = &ps->u64storage;
                 in->fields[i].res_len = 1;
+                in->table_reader_ext->release_table_entry(ps->evtcount_table, evtcount);
                 break;
             case 3: // test.proc_name
                 tmp.s64 = ev->evt->tid;
@@ -302,12 +306,14 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                 {
                     auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't read proc name from thread with tid=" + std::to_string(ev->evt->tid));
+                    in->table_reader_ext->release_table_entry(ps->thread_table, thread);
                     return SS_PLUGIN_FAILURE;
                 }
                 ps->strstorage = tmp.str;
                 ps->strptrstorage = ps->strstorage.c_str();
                 in->fields[i].res.str = &ps->strptrstorage;
                 in->fields[i].res_len = 1;
+                in->table_reader_ext->release_table_entry(ps->thread_table, thread);
                 break;
             case 4: // sample.tick
                 if (ev->evt->type == PPME_ASYNCEVENT_E

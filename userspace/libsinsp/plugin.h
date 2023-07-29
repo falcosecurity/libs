@@ -184,10 +184,7 @@ public:
 		return m_extract_event_sources;
 	}
 
-	inline const libsinsp::events::set<ppm_event_code>& extract_event_codes() const
-	{
-		return m_extract_event_codes;
-	}
+	const libsinsp::events::set<ppm_event_code>& extract_event_codes() const;
 
 	inline const std::vector<filtercheck_field_info>& fields() const
 	{
@@ -202,10 +199,7 @@ public:
 		return m_parse_event_sources;
 	}
 
-	inline const libsinsp::events::set<ppm_event_code>& parse_event_codes() const
-	{
-		return m_parse_event_codes;
-	}
+	const libsinsp::events::set<ppm_event_code>& parse_event_codes() const;
 
 	bool parse_event(sinsp_evt* evt) const;
 
@@ -254,9 +248,9 @@ private:
 	libsinsp::events::set<ppm_event_code> m_extract_event_codes;
 
 	/** Event Parsing **/
-	struct table_input_deleter { void operator()(ss_plugin_table_input* r); };
+	struct accessed_table_input_deleter { void operator()(ss_plugin_table_input* r); };
 	using owned_table_t = std::unique_ptr<libsinsp::state::base_table>;
-	using accessed_table_t = std::unique_ptr<ss_plugin_table_input, table_input_deleter>;
+	using accessed_table_t = std::unique_ptr<ss_plugin_table_input, accessed_table_input_deleter>;
 	std::unordered_set<std::string> m_parse_event_sources;
 	libsinsp::events::set<ppm_event_code> m_parse_event_codes;
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
@@ -278,16 +272,16 @@ private:
 		const char *(*get_sources)(),
 		std::unordered_set<std::string>& sources);
 	void resolve_dylib_compatible_codes(
-		uint16_t *(*get_codes)(uint32_t *numtypes),
+		uint16_t *(*get_codes)(uint32_t* numtypes,ss_plugin_t* s),
 		const std::unordered_set<std::string>& sources,
 		libsinsp::events::set<ppm_event_code>& codes);
 	void validate_init_config_json_schema(std::string& config, std::string& schema);
 	static const char* get_owner_last_error(ss_plugin_owner_t* o);
 
 	/** Event parsing helpers **/
-	static void table_field_api(ss_plugin_table_fields_vtable& out);
-	static void table_read_api(ss_plugin_table_reader_vtable& out);
-	static void table_write_api(ss_plugin_table_writer_vtable& out);
+	static void table_field_api(ss_plugin_table_fields_vtable& out, ss_plugin_table_fields_vtable_ext& extout);
+	static void table_read_api(ss_plugin_table_reader_vtable& out, ss_plugin_table_reader_vtable_ext& extout);
+	static void table_write_api(ss_plugin_table_writer_vtable& out, ss_plugin_table_writer_vtable_ext& extout);
 	static ss_plugin_table_info* table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables);
 	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_state_type key_type);
 	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t *o, const ss_plugin_table_input* in);

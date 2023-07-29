@@ -41,7 +41,20 @@ public:
     class field_info
     {
     public:
+        template<typename T>
+        static field_info build(const std::string& name, size_t index, void* defsptr, bool readonly=false)
+        {
+            return field_info(name, index, libsinsp::state::typeinfo::of<T>(), defsptr, readonly);
+        }
+
+        field_info(const std::string& n, size_t in, const typeinfo& i, void* defsptr, bool r)
+            : m_readonly(r),
+              m_index(in),
+              m_name(n),
+              m_info(i),
+              m_defsptr(defsptr) {}
         field_info():
+            m_readonly(true),
             m_index((size_t) -1),
             m_name(""),
             m_info(typeinfo::of<uint8_t>()),
@@ -66,6 +79,14 @@ public:
         };
 
         /**
+         * @brief Returns true if the field is read only.
+         */
+        bool readonly() const
+        {
+            return m_readonly;
+        }
+
+        /**
          * @brief Returns true if the field info is valid.
          */
         inline bool valid() const
@@ -79,6 +100,14 @@ public:
         const std::string& name() const
         {
             return m_name;
+        }
+
+        /**
+         * @brief Returns the index of the field.
+         */
+        size_t index() const
+        {
+            return m_index;
         }
 
         /**
@@ -112,18 +141,7 @@ public:
         }
 
     private:
-        field_info(const std::string& n, size_t in, const typeinfo& i, void* defsptr)
-            : m_index(in),
-              m_name(n),
-              m_info(i),
-              m_defsptr(defsptr) { }
-        
-        template<typename T>
-        static field_info _build(const std::string& name, size_t index, void* defsptr)
-        {
-            return field_info(name, index, libsinsp::state::typeinfo::of<T>(), defsptr);
-        }
-
+        bool m_readonly;
         size_t m_index;
         std::string m_name;
         libsinsp::state::typeinfo m_info;
@@ -180,11 +198,6 @@ public:
         field_infos(const field_infos& s) = delete;
         field_infos& operator = (const field_infos& s) = delete;
 
-        inline const std::unordered_map<std::string, field_info>& fields() const
-        {
-            return m_definitions;
-        }
-
         /**
          * @brief Adds metadata for a new field to the list. An exception is
          * thrown if two fields are defined with the same name and with
@@ -194,26 +207,37 @@ public:
          * @param name Display name of the field.
          */
         template<typename T>
-        const field_info& add_field(const std::string& name)
+        inline const field_info& add_field(const std::string& name)
         {
-            const auto &it = m_definitions.find(name);
+            auto field = field_info::build<T>(name, m_definitions.size(), this);
+            return add_field(field);
+        }
+
+        virtual const std::unordered_map<std::string, field_info>& fields()
+        {
+            return m_definitions;
+        }
+
+protected:
+        virtual const field_info& add_field(const field_info& field)
+        {
+            const auto &it = m_definitions.find(field.name());
             if (it != m_definitions.end())
             {
-                auto t = libsinsp::state::typeinfo::of<T>();
+                const auto& t = field.info();
                 if (it->second.info() != t)
                 {
                     throw sinsp_exception("multiple definitions of dynamic field with different types in struct: "
-                    + name + ", prevtype=" + it->second.info().name() + ", newtype=" + t.name());
+                    + field.name() + ", prevtype=" + it->second.info().name() + ", newtype=" + t.name());
                 }
                 return it->second;
             }
-            m_definitions.insert({ name, field_info::_build<T>(name, m_definitions.size(), this) });
-            const auto& def = m_definitions.at(name);
+            m_definitions.insert({ field.name(), field });
+            const auto& def = m_definitions.at(field.name());
             m_definitions_ordered.push_back(&def);
             return def;
         }
 
-    private:
         std::unordered_map<std::string, field_info> m_definitions;
         std::vector<const field_info*> m_definitions_ordered;
         friend class dynamic_struct;
@@ -240,29 +264,25 @@ public:
     /**
      * @brief Accesses a field with the given accessor and reads its value.
      */
-    template <typename T>
-    inline const T& get_dynamic_field(const field_accessor<T>& a)
+    template <typename T, typename Val = T>
+    inline void get_dynamic_field(const field_accessor<T>& a, Val& out)
     {
-        if (!a.info().valid())
-        {
-            throw sinsp_exception("can't get invalid field in dynamic struct");
-        }
-        _check_defsptr(a.info().m_defsptr);
-        return *(reinterpret_cast<T*>(_access_dynamic_field(a.info().m_index)));
+        _check_defsptr(a.info(), false);
+        get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
     }
 
     /**
      * @brief Accesses a field with the given accessor and writes its value.
      */
-    template <typename T>
-    inline void set_dynamic_field(const field_accessor<T>& a, const T& v)
+    template <typename T, typename Val = T>
+    inline void set_dynamic_field(const field_accessor<T>& a, const Val& in)
     {
-        if (!a.info().valid())
+        _check_defsptr(a.info(), true);
+        if (a.info().readonly())
         {
-            throw sinsp_exception("can't set invalid field in dynamic struct");
+            throw sinsp_exception("can't set a read-only dynamic struct field: " + a.info().name());
         }
-        _check_defsptr(a.info().m_defsptr);
-        *(reinterpret_cast<T*>(_access_dynamic_field(a.info().m_index))) = v;
+        set_dynamic_field(a.info(), reinterpret_cast<const void*>(&in));
     }
 
     /**
@@ -278,7 +298,7 @@ public:
      * The definitions can be set to a non-null value only once, either at
      * construction time by invoking this method.
      */
-    inline void set_dynamic_fields(const std::shared_ptr<field_infos>& defs)
+    virtual void set_dynamic_fields(const std::shared_ptr<field_infos>& defs)
     {
         if (m_dynamic_fields)
         {
@@ -291,12 +311,59 @@ public:
         m_dynamic_fields = defs;
     }
 
-private:
-    inline void _check_defsptr(void* ptr) const
+protected:
+    /**
+     * @brief Gets the value of a dynamic field and writes it into "out".
+     * "out" points to a variable having the type of the field_info argument,
+     * according to the type definitions supported in libsinsp::state::typeinfo.
+     * For strings, "out" is considered of type const char**.
+    */
+    virtual void get_dynamic_field(const field_info& i, void* out)
     {
-        if (m_dynamic_fields.get() != ptr)
+        const auto* buf = _access_dynamic_field(i.m_index);
+        if (i.info().index() == PT_CHARBUF)
+        {
+            *((const char**) out) = ((const std::string*) buf)->c_str();
+        }
+        else
+        {
+            memcpy(out, buf, i.info().size());
+        }
+    }
+
+    /**
+     * @brief Sets the value of a dynamic field by reading it from "in".
+     * "in" points to a variable having the type of the field_info argument,
+     * according to the type definitions supported in libsinsp::state::typeinfo.
+     * For strings, "in" is considered of type const char**.
+    */
+    virtual void set_dynamic_field(const field_info& i, const void* in)
+    {
+        auto* buf = _access_dynamic_field(i.m_index);
+        if (i.info().index() == PT_CHARBUF)
+        {
+            *((std::string*) buf) = *((const char**) in);
+        }
+        else
+        {
+            memcpy(buf, in, i.info().size());
+        }
+    }
+
+private:
+    inline void _check_defsptr(const field_info& i, bool write) const
+    {
+        if (!i.valid())
+        {
+            throw sinsp_exception("can't set invalid field in dynamic struct");
+        }
+        if (m_dynamic_fields.get() != i.m_defsptr)
         {
             throw sinsp_exception("using dynamic field accessor on struct it was not created from");
+        }
+        if (write && i.readonly())
+        {
+            throw sinsp_exception("can't set a read-only dynamic struct field: " + i.name());
         }
     }
 
@@ -329,3 +396,40 @@ private:
 
 }; // state
 }; // libsinsp
+
+// specializations for string types
+
+template<> inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string,const char*>(
+    const field_accessor<std::string>& a, const char*& out)
+{
+    _check_defsptr(a.info(), false);
+    get_dynamic_field(a.info(), reinterpret_cast<void*>(&out));
+}
+
+template<> inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string,std::string>(
+    const field_accessor<std::string>& a, std::string& out)
+{
+    const char* s = NULL;
+    get_dynamic_field(a, s);
+    if (!s)
+    {
+        out.clear();
+    }
+    else
+    {
+        out = s;
+    }
+}
+
+template <> inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string,const char*>(
+    const field_accessor<std::string>& a, const char* const& in)
+{
+    _check_defsptr(a.info(), true);
+    set_dynamic_field(a.info(), reinterpret_cast<const void*>(&in));
+}
+
+template <> inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string,std::string>(
+    const field_accessor<std::string>& a, const std::string& in)
+{
+    set_dynamic_field(a, in.c_str());
+}

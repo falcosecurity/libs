@@ -1,0 +1,98 @@
+name: Test drivers against a matrix of kernels/distros
+
+on:
+  workflow_dispatch:
+    inputs:
+      libsversion:
+        description: libs version to be tested
+        type: string
+        required: false
+        default: master
+  push:
+    branches:
+      - master
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+\+driver'
+    
+concurrency:
+  group: kernel-tests
+  cancel-in-progress: true
+
+jobs:
+  test-kernels:
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [X64, ARM64]
+    runs-on: [ "self-hosted", "linux", "${{matrix.architecture}}" ]    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          repository: falcosecurity/kernel-testing
+          ref: v0.2.3
+        
+      - name: Generate vars yaml
+        working-directory: ./ansible-playbooks
+        run: |
+          LIBS_V=${{ github.event.inputs.libsversion }}
+          LIBS_VERSION=${LIBS_V:-${{ github.ref_name }}}
+          cat > vars.yml <<EOF
+          run_id: "id-${{ github.run_id }}"
+          output_dir: "~/ansible_output_${{ github.run_id }}"
+          repos:
+            libs: {name: "falcosecurity-libs", repo: "https://github.com/falcosecurity/libs.git", version: "$LIBS_VERSION"}
+          EOF
+    
+      - name: Bootstrap VMs
+        working-directory: ./ansible-playbooks
+        run: |
+          ansible-playbook bootstrap.yml --extra-vars "@vars.yml"
+      
+      - name: Common setup
+        working-directory: ./ansible-playbooks
+        run: |
+          ansible-playbook common.yml --extra-vars "@vars.yml"
+
+      - name: Prepare github repos
+        working-directory: ./ansible-playbooks
+        run: |
+          ansible-playbook git-repos.yml --extra-vars "@vars.yml"
+      
+      - name: Run scap-open tests
+        working-directory: ./ansible-playbooks
+        run: |
+          ansible-playbook scap-open.yml --extra-vars "@vars.yml" || :
+          
+      - name: Tar output files
+        run: |
+          tar -cvf ansible_output.tar ~/ansible_output_${{ github.run_id }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ansible_output_${{matrix.architecture}}
+          path: ansible_output.tar
+    
+      - name: Build matrix_gen
+        working-directory: ./matrix_gen
+        env:
+          GOPATH: /root/go
+          GOCACHE: /root/.cache/go-build
+        run: |
+          go build .
+        
+      - name: Generate new matrix
+        working-directory: ./matrix_gen
+        run: |
+          ./matrix_gen --root-folder ~/ansible_output_${{ github.run_id }} --output-file matrix_${{matrix.architecture}}.md
+        
+      - uses: actions/upload-artifact@v3
+        with:
+          name: matrix_${{matrix.architecture}}
+          path: ./matrix_gen/matrix_${{matrix.architecture}}.md
+          
+      - name: Cleanup
+        if: always()
+        working-directory: ./ansible-playbooks
+        run: |
+          ansible-playbook clean-up.yml --extra-vars "@vars.yml" || :

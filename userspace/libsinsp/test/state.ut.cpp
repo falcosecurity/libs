@@ -104,7 +104,9 @@ TEST(static_struct, defs_and_access)
     ASSERT_EQ(s.get_static_field(acc_num), 0);
     s.set_num(5);
     ASSERT_EQ(s.get_num(), 5);
-    ASSERT_EQ(s.get_static_field(acc_num), 5);
+    uint32_t u32tmp = 0;
+    s.get_static_field(acc_num, u32tmp);
+    ASSERT_EQ(u32tmp, 5);
     s.set_static_field(acc_num, (uint32_t) 6);
     ASSERT_EQ(s.get_num(), 6);
     ASSERT_EQ(s.get_static_field(acc_num), 6);
@@ -115,8 +117,20 @@ TEST(static_struct, defs_and_access)
     str = "hello";
     s.set_str("hello");
     ASSERT_EQ(s.get_str(), str);
-    ASSERT_EQ(s.get_static_field(acc_str), str);
-    ASSERT_ANY_THROW(s.set_static_field(acc_str, str)); // readonly
+    s.get_static_field(acc_str, str);
+    ASSERT_EQ(str, "hello");
+    ASSERT_ANY_THROW(s.set_static_field(acc_str, "hello")); // readonly
+
+    const char* cstr = "sample";
+    s.set_str("");
+    s.get_static_field(acc_str, cstr);
+    ASSERT_EQ(strcmp(cstr, ""), 0);
+    s.set_str("hello");
+    s.get_static_field(acc_str, cstr);
+    ASSERT_EQ(strcmp(cstr, "hello"), 0);
+    ASSERT_EQ(cstr, s.get_str().c_str());
+    ASSERT_ANY_THROW(s.set_static_field(acc_str, cstr)); // readonly
+
 
     // illegal access from an accessor created from different definition list
     // note: this should supposedly be checked for and throw an exception,
@@ -174,19 +188,35 @@ TEST(dynamic_struct, defs_and_access)
     ASSERT_ANY_THROW(field_num.new_accessor<uint32_t>());
     ASSERT_ANY_THROW(field_str.new_accessor<uint32_t>());
 
-    ASSERT_EQ(s.get_dynamic_field(acc_num), 0);
+    uint64_t tmp;
+    s.get_dynamic_field(acc_num, tmp);
+    ASSERT_EQ(tmp, 0);
     s.set_dynamic_field(acc_num, (uint64_t) 6);
-    ASSERT_EQ(s.get_dynamic_field(acc_num), 6);
+    s.get_dynamic_field(acc_num, tmp);
+    ASSERT_EQ(tmp, 6);
 
-    ASSERT_EQ(s.get_dynamic_field(acc_str), std::string(""));
+    std::string tmpstr;
+    s.get_dynamic_field(acc_str, tmpstr);
+    ASSERT_EQ(tmpstr, std::string(""));
     s.set_dynamic_field(acc_str, std::string("hello"));
-    ASSERT_EQ(s.get_dynamic_field(acc_str), std::string("hello"));
+    s.get_dynamic_field(acc_str, tmpstr);
+    ASSERT_EQ(tmpstr, std::string("hello"));
+    
+    s.set_dynamic_field(acc_str, std::string(""));
+    const char* ctmpstr = "sample";
+    s.get_dynamic_field(acc_str, ctmpstr);
+    ASSERT_EQ(strcmp(ctmpstr, ""), 0);
+    ctmpstr = "hello";
+    s.set_dynamic_field(acc_str, ctmpstr);
+    ctmpstr = "";
+    s.get_dynamic_field(acc_str, ctmpstr);
+    ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
 
     // illegal access from an accessor created from different definition list
     auto fields2 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
     auto field_num2 = fields2->add_field<uint64_t>("num");
     auto acc_num2 = field_num2.new_accessor<uint64_t>();
-    ASSERT_ANY_THROW(s.get_dynamic_field(acc_num2));
+    ASSERT_ANY_THROW(s.get_dynamic_field(acc_num2, tmp));
 }
 
 TEST(table_registry, defs_and_access)
@@ -303,12 +333,15 @@ TEST(thread_manager, table_access)
     ASSERT_EQ(addedt->get_static_field(comm_acc), "test");
 
     // add a dynamic field to table
+    std::string tmpstr;
     auto dynf_acc = table->dynamic_fields()->add_field<std::string>("some_new_field").new_accessor<std::string>();
     ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
     ASSERT_EQ(addedt->dynamic_fields()->fields().size(), 1);
-    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "");
+    addedt->get_dynamic_field(dynf_acc, tmpstr);
+    ASSERT_EQ(tmpstr, "");
     addedt->set_dynamic_field(dynf_acc, std::string("hello"));
-    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "hello");
+    addedt->get_dynamic_field(dynf_acc, tmpstr);
+    ASSERT_EQ(tmpstr, "hello");
 
     // add another thread
     newt = table->new_entry();
@@ -316,9 +349,11 @@ TEST(thread_manager, table_access)
     ASSERT_NO_THROW(table->add_entry(1000, std::move(newt)));
     addedt = table->get_entry(1000);
     ASSERT_EQ(addedt->get_static_field(tid_acc), (int64_t) 1000);
-    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "");
+    addedt->get_dynamic_field(dynf_acc, tmpstr);
+    ASSERT_EQ(tmpstr, "");
     addedt->set_dynamic_field(dynf_acc, std::string("world"));
-    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "world");
+    addedt->get_dynamic_field(dynf_acc, tmpstr);
+    ASSERT_EQ(tmpstr, "world");
 
     // loop over entries
     int count = 0;

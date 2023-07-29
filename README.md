@@ -5,9 +5,10 @@
 [![CI Build](https://github.com/falcosecurity/libs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/falcosecurity/libs/actions/workflows/ci.yml)
 [![Architectures](https://img.shields.io/badge/ARCHS-x86__64%7Caarch64%7Cs390x-blueviolet)](#drivers-officially-supported-architectures)
 [![Drivers](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/FedeDP/1cbc5d42edf8e3a02fb75e76625f1072/raw/kernel.json)](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml)
+[![Kernel Tests](https://github.com/falcosecurity/libs/actions/workflows/kernel_tests.yaml/badge.svg)](https://github.com/falcosecurity/libs/actions/workflows/kernel_tests.yaml)
+[![Github Pages](https://github.com/falcosecurity/libs/actions/workflows/pages.yml/badge.svg)](https://falcosecurity.github.io/libs/)
 
-As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module** and the **eBPF probe** sources.  
-Refer to https://falco.org/blog/contribution-drivers-kmod-ebpf-libraries/ for more information.  
+This repository contains **libsinsp**, **libscap**, the **kernel module** and the **eBPF probes** sources.
 
 These components are at the foundation of [Falco](https://github.com/falcosecurity/falco) and other projects that work with the same kind of data.
 
@@ -40,6 +41,8 @@ plus chisels related code and common utilities.
 external dependencies, plus the libscap and libsinsp ones; consumers
 (like Falco) use those modules to build the libs in their projects.
 
+ For an overview of the event sources that are implemented by the libs see also the official [Falco documentation](https://falco.org/docs/event-sources/).
+
 ## Versioning
 
 This project uses two different versioning schemes for the _libs_ and _driver_ components. In particular, the _driver_ versions are suffixed with `+driver` to distinguish them from the _libs_ ones. Both adhere to the [Semantic Versioning 2.0.0](https://semver.org/). You can find more detail about how we version those components in our [release process documentation](./release.md).
@@ -56,7 +59,7 @@ Right now our drivers officially support the following architectures:
 | **aarch64** | >= [3.16](https://github.com/torvalds/linux/commit/055b1212d141f1f398fca548f8147787c0b6253f) | >= 4.17    | >= 5.8            | _STABLE_ |
 | **s390x**   | >= 2.6                                                                                       | >= [5.5](https://github.com/torvalds/linux/commit/6ae08ae3dea) | >= 5.8            | _EXPERIMENTAL_ |
 
-**For a list of supported syscalls through specific events, please refer to [_report_](./driver/report.md).**
+**For a list of supported syscalls through specific events, please refer to [_report_](./docs/report.md).**
 
 > **NOTE:** while we strive to achieve maximum compatibility, we cannot assure that drivers correctly build against a new kernel version minutes after it gets released, since we might need to make some adjustments.    
 > To get properly notified whenever drivers stop building, we have a [CI workflow](.github/workflows/latest-kernel.yml) that tests the build against the [latest mainline kernel](https://www.kernel.org/) (RC too!)

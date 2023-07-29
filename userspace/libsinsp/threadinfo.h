@@ -718,11 +718,8 @@ public:
 		{
 			throw sinsp_exception("unknown entry type added to thread table");
 		}
-		if (tinfo->m_tid != key)
-		{
-			throw sinsp_exception("key does not match pid of entry added to thread table");
-		}
 		entry.release();
+		tinfo->m_tid = key;
 		add_thread(tinfo, false);
 		return get_entry(key);
 	}

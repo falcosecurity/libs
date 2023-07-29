@@ -70,7 +70,6 @@ limitations under the License.
 #include "event.h"
 #include "filter.h"
 #include "dumper.h"
-#include "stats.h"
 #include "ifinfo.h"
 #include "container.h"
 #include "user.h"
@@ -107,23 +106,20 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 class k8s;
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 class sinsp_partial_tracer;
 class mesos;
 class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
+class sinsp_stats;
 
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
 class sinsp_bearer_token;
 template <class T> class socket_data_handler;
 template <class T> class socket_collector;
 class k8s_handler;
 class k8s_api_handler;
-#endif // HAS_CAPTURE
 
 std::vector<std::string> sinsp_split(const std::string &s, char delim);
 
@@ -998,6 +994,11 @@ public:
 		return m_event_sources;
 	}
 
+	inline const std::shared_ptr<libsinsp::state::table_registry>& get_table_registry() const
+	{
+		return m_table_registry;
+	}
+
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
 	const std::string& get_host_root() const { return m_host_root; }
@@ -1133,12 +1134,10 @@ public:
 	//
 	// Kubernetes
 	//
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	std::string* m_k8s_api_server;
 	std::string* m_k8s_api_cert;
 	std::string* m_k8s_node_name;
 	bool m_k8s_node_name_validated = false;
-#ifdef HAS_CAPTURE
 	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
 	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
 	std::unique_ptr<k8s_api_handler> m_k8s_api_handler;
@@ -1152,10 +1151,8 @@ public:
 		"replicasets"
 	};
 	bool m_k8s_ext_detect_done = false;
-#endif // HAS_CAPTURE
 	k8s* m_k8s_client;
 	uint64_t m_k8s_last_watch_time_ns;
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	//
 	// Mesos/Marathon
@@ -1185,12 +1182,9 @@ public:
 	//
 	// Internal stats
 	//
-#ifdef GATHER_INTERNAL_STATS
-	sinsp_stats m_stats;
-#endif
-#ifdef HAS_ANALYZER
+	std::unique_ptr<sinsp_stats> m_stats;
+
 	std::vector<uint64_t> m_tid_collisions;
-#endif
 
 	//
 	// Saved snaplen
@@ -1237,12 +1231,10 @@ public:
 	cycle_writer* m_cycle_writer;
 	bool m_write_cycling;
 
-#ifdef SIMULATE_DROP_MODE
 	//
 	// Some dropping infrastructure
 	//
 	bool m_isdropping;
-#endif
 
 	//
 	// App events
@@ -1285,9 +1277,9 @@ public:
 	uint64_t m_next_stats_print_time_ns;
 
 	static unsigned int m_num_possible_cpus;
-#if defined(HAS_CAPTURE)
+
 	int64_t m_self_pid;
-#endif
+
 
 	//
 	// /proc scan parameters

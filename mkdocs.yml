@@ -1,0 +1,13 @@
+site_name: Falcosecurity Drivers
+site_url: https://github.com/falcosecurity/libs
+nav:
+    - Home: index.md
+    - Matrixes:
+      - matrix.md
+      - amd64: matrix_X64.md
+      - arm64: matrix_ARM64.md
+    - Syscalls: 
+      - syscalls.md
+      - Report: report.md
+
+theme: material

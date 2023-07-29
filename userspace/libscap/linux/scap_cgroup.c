@@ -338,8 +338,10 @@ static int32_t get_cgroup_subsystems_v1(struct scap_cgroup_set* subsystems)
 			fclose(cgroups);
 			return SCAP_FAILURE;
 		}
+
 		// 3:cpu,cpuacct:/user.slice/user-0.slice/session-13542.scope
-		//  ^p          ^q
+		//   ^p         ^q
+		p += 1;
 		char* q = strchr(p, ':');
 		if(!q)
 		{
@@ -348,7 +350,7 @@ static int32_t get_cgroup_subsystems_v1(struct scap_cgroup_set* subsystems)
 		}
 
 		// 3:cpu,cpuacct
-		//  ^p          ^q
+		//   ^p         ^q
 		*q = 0;
 		if(strlen(p) == 0)
 		{
@@ -358,7 +360,7 @@ static int32_t get_cgroup_subsystems_v1(struct scap_cgroup_set* subsystems)
 		while(1)
 		{
 			// 3:cpu\0cpuacct
-			//  ^p  ^q
+			//   ^p ^q
 			char* comma = strchr(p, ',');
 			if(comma)
 			{

@@ -86,7 +86,7 @@ static const char* plugin_get_parse_event_sources()
     return "[\"syscall\"]";
 }
 
-static uint16_t* plugin_get_parse_event_types(uint32_t* num_types)
+static uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
     static uint16_t types[] = {
         PPME_SYSCALL_OPEN_E,
@@ -195,6 +195,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
             ps->event_count_table->table, evtcounter, ps->event_count_table_count_field, &tmp))
     {
         ps->lasterr = "can't read event counter in table";
+        ps->event_count_table->reader_ext->release_table_entry(ps->event_count_table->table, evtcounter);
         return SS_PLUGIN_FAILURE;
     }
     tmp.u64++;
@@ -202,8 +203,10 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
             ps->event_count_table->table, evtcounter, ps->event_count_table_count_field, &tmp))
     {
         ps->lasterr = "can't write event counter in table";
+        ps->event_count_table->reader_ext->release_table_entry(ps->event_count_table->table, evtcounter);
         return SS_PLUGIN_FAILURE;
     }
+    ps->event_count_table->reader_ext->release_table_entry(ps->event_count_table->table, evtcounter);
 
     // update counter for current thread
     if (evt_type_is_open(ev->evt->type))
@@ -221,6 +224,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
         {
             auto err = in->get_owner_last_error(in->owner);
             ps->lasterr = err ? err : ("can't read open counter from thread with tid=" + std::to_string(ev->evt->tid));
+            in->table_reader_ext->release_table_entry(ps->thread_table, thread);
             return SS_PLUGIN_FAILURE;
         }
 
@@ -230,8 +234,10 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
         {
             auto err = in->get_owner_last_error(in->owner);
             ps->lasterr = err ? err : ("can't write open counter to thread with tid=" + std::to_string(ev->evt->tid));
+            in->table_reader_ext->release_table_entry(ps->thread_table, thread);
             return SS_PLUGIN_FAILURE;
         }
+        in->table_reader_ext->release_table_entry(ps->thread_table, thread);
     }
 
     return SS_PLUGIN_SUCCESS;

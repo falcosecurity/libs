@@ -934,7 +934,7 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 		// to drop the information it carries.
 		//
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_store_drops++;
+		m_inspector->m_stats->m_n_store_drops++;
 #endif
 		return;
 	}
@@ -969,7 +969,7 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 	tinfo->m_lastevent_cpuid = evt->get_cpuid();
 
 #ifdef GATHER_INTERNAL_STATS
-	m_inspector->m_stats.m_n_stored_evts++;
+	m_inspector->m_stats->m_n_stored_evts++;
 #endif
 }
 
@@ -993,7 +993,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 		// can be truncated
 		//
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_retrieve_drops++;
+		m_inspector->m_stats->m_n_retrieve_drops++;
 #endif
 		return false;
 	}
@@ -1015,7 +1015,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 		enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
 	{
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_retrieved_evts++;
+		m_inspector->m_stats->m_n_retrieved_evts++;
 #endif
 		return true;
 	}
@@ -1029,13 +1029,13 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 		//ASSERT(false);
 		exit_evt->m_tinfo->set_lastevent_data_validity(false);
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_retrieve_drops++;
+		m_inspector->m_stats->m_n_retrieve_drops++;
 #endif
 		return false;
 	}
 
 #ifdef GATHER_INTERNAL_STATS
-	m_inspector->m_stats.m_n_retrieved_evts++;
+	m_inspector->m_stats->m_n_retrieved_evts++;
 #endif
 	return true;
 }
@@ -3681,12 +3681,12 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 		// increment of m_n_failed_fd_lookups (for the enter event too if there's one).
 		//
 #ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_failed_fd_lookups--;
+		m_inspector->m_stats->m_n_failed_fd_lookups--;
 #endif
 		if(evt->m_tinfo && evt->m_tinfo->is_lastevent_data_valid())
 		{
 #ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats.m_n_failed_fd_lookups--;
+			m_inspector->m_stats->m_n_failed_fd_lookups--;
 #endif
 		}
 	}
