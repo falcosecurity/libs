@@ -49,7 +49,7 @@ class sinsp_protodecoder;
 #define CHAR_FD_USERFAULTFD		'u'
 #define CHAR_FD_IO_URING		'r'
 #define CHAR_FD_MEMFD			'm'
-#define CHAR_FD_PIDFD			    'P' // todo(jasondellaluce,rohith-raju): find a good character
+#define CHAR_FD_PIDFD			'P'
 
 /** @defgroup state State management 
  * A collection of classes to query process and FD state.
@@ -248,7 +248,7 @@ public:
 	*/
 	bool is_pidfd()
 	{
-		return m_type == SCAP_PIDFD;
+		return m_type == SCAP_FD_PIDFD;
 	}
 
 	uint16_t get_serverport()
