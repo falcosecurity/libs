@@ -789,19 +789,13 @@ static int32_t scap_cgroup_resolve_v2(struct scap_cgroup_interface* cgi, const c
 
 		FOR_EACH_SUBSYS(&current_subsystems, cgset_subsys)
 		{
-			char subsys[SCAP_MAX_PATH_SIZE];
-			char* subsys_end = strchr(cgset_subsys, '=');
-			ASSERT(subsys_end != NULL);
-			int subsys_len = (int)(subsys_end - cgset_subsys) - 1;
-
-			snprintf(subsys, sizeof(subsys), "%.*s", subsys_len, cgset_subsys);
 			if(!scap_cgroup_find_subsys(&found_subsystems, cgset_subsys))
 			{
-				if(scap_cgroup_printf(cg, "%s=%s", subsys, full_cgroup) != SCAP_SUCCESS)
+				if(scap_cgroup_printf(cg, "%s=%s", cgset_subsys, full_cgroup) != SCAP_SUCCESS)
 				{
 					return SCAP_FAILURE;
 				}
-				if(scap_cgroup_printf(&found_subsystems, "%s", subsys) != SCAP_SUCCESS)
+				if(scap_cgroup_printf(&found_subsystems, "%s", cgset_subsys) != SCAP_SUCCESS)
 				{
 					return SCAP_FAILURE;
 				}
