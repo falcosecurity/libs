@@ -699,6 +699,8 @@ TEST_F(sinsp_with_test_input, test_pidfd)
 	
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_PIDFD_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt,"fd.num"), std::to_string(pidfd));
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"),"P");
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"),"pidfd");
 
 	/* Duplicate the created fd created that is refrenced in pidfd */
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIDFD_GETFD_X, 4, fd, pidfd, target_fd, 0);
@@ -708,4 +710,6 @@ TEST_F(sinsp_with_test_input, test_pidfd)
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/tmp");
 	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "the_file");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"),"f");
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"),"file");
 }
