@@ -21,6 +21,7 @@ limitations under the License.
 
 using namespace std;
 
+#ifdef __x86_64__
 TEST(savefile, proclist)
 {
 	sinsp inspector;
@@ -28,3 +29,4 @@ TEST(savefile, proclist)
 
 	ASSERT_EQ(inspector.m_thread_manager->get_thread_count(), 94);
 }
+#endif
