@@ -3,7 +3,7 @@ on:
   workflow_run:
     workflows: ["Test drivers against a matrix of kernels/distros"]
     types: [completed]
-    branches: ['release/[0-9]+.[0-9]+.x'] # only match real release branches
+    branches-ignore: ['master'] # ignore master runs (we could skip this given the below extract semver check; still, this is a small optimization)
       
 permissions:
   contents: write
@@ -15,7 +15,20 @@ concurrency:
 jobs:
   release-body:
     runs-on: ubuntu-latest
-    steps:      
+    steps:
+      # Note: there is no `tag` filter for `workflow_run`.
+      # We need to manually check whether we are running on a tag.
+      - name: Extract semver ℹ️
+        uses: actions-ecosystem/action-regex-match@v2
+        id: regex-match
+        with:
+          text: ${{ github.event.workflow_run.head_branch }}
+          regex: '[0-9]+.[0-9]+.[0-9]+\+driver$'
+
+      - name: Skip on non driver tag
+        if: steps.regex-match.outputs.match == ''
+        run: exit 0
+          
       - name: Download matrixes
         uses: dawidd6/action-download-artifact@v2
         with:
