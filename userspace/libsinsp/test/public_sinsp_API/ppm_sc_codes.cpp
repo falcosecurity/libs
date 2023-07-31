@@ -208,7 +208,7 @@ const libsinsp::events::set<ppm_event_code> expected_sinsp_state_event_set = {
 	PPME_SYSCALL_MEMFD_CREATE_E,
 	PPME_SYSCALL_MEMFD_CREATE_X,
 	PPME_SYSCALL_PIDFD_GETFD_E,
-	PPME_SYSCALL_PIDFD_GETFD_X,,
+	PPME_SYSCALL_PIDFD_GETFD_X,
 	PPME_SYSCALL_PIDFD_OPEN_E,
 	PPME_SYSCALL_PIDFD_OPEN_X
 };
@@ -279,6 +279,7 @@ const libsinsp::events::set<ppm_sc_code> expected_sinsp_state_sc_set = {
 	PPM_SC_PRCTL,
 	PPM_SC_MEMFD_CREATE,
 	PPM_SC_PIDFD_OPEN,
+	PPM_SC_PIDFD_GETFD,
 };
 
 const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {

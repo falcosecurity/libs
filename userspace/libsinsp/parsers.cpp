@@ -6637,6 +6637,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
 	sinsp_evt_param* parinfo;
 	int64_t fd;
 	int64_t pid;
+	int64_t flags;
 	sinsp_fdinfo_t fdi;
 
 	ASSERT(evt->m_tinfo)
@@ -6666,7 +6667,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
 	{
 		// note: approximating equivalent filename as in:
 		// https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
-		char fname[PATH_MAX];
+		char fname[SCAP_MAX_PATH_SIZE];
 		snprintf(fname,
 		         sizeof(fname),
 		         "%s/proc/%lld",
@@ -6675,7 +6676,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
 		fdi.m_type = scap_fd_type::SCAP_FD_PIDFD;
 		fdi.add_filename(fname);
 		fdi.m_openflags = flags;
-		fdi.pid = pid;
+		fdi.m_pid = pid;
 	}
 
 	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);

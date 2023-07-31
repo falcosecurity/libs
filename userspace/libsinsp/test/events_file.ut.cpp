@@ -680,35 +680,28 @@ TEST_F(sinsp_with_test_input, test_fdtypes)
 	ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(bpf,file)");
 }
 
-
-TEST_F(sinsp_with_test_input, pidfd_getfd)
+TEST_F(sinsp_with_test_input, test_pidfd)
 {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	int targetfd = 3;
-	int fd = 1;
+	int64_t pidfd = 1;
+	int64_t pid = 2;
+	int64_t target_fd = 3;
+	int64_t fd = 4;
 
-	/* Use clone to create a child process */
-	uint64_t parent_pid = 1, parent_tid = 1;
-	uint64_t child_pid = 0x0000000100000010, child_tid = 0x0000000100000010;
-	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
-	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+	/* Open a file descriptor */
+	add_event_advance_ts(increasing_ts(), pid, PPME_SYSCALL_OPEN_X, 6, (uint64_t)target_fd, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
 
-	std::vector<std::string> cgroups = {"cpuset=/", "cpu=/user.slice", "cpuacct=/user.slice", "io=/user.slice", "memory=/user.slice/user-1000.slice/session-1.scope", "devices=/user.slice", "freezer=/", "net_cls=/", "perf_event=/", "net_prio=/", "hugetlb=/", "pids=/user.slice/user-1000.slice/session-1.scope", "rdma=/", "misc=/"};
-	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
-	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
-	std::string envv = test_utils::to_null_delimited(env);
-	std::vector<std::string> args = {"--help"};
-	std::string argsv = test_utils::to_null_delimited(args);
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, 0, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
 
-	/* Open a file descriptor in the child process */
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_OPEN_X, 6, (uint64_t)targetfd, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	/* Create a pidfd using the same pid */
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIDFD_OPEN_X, 3, pidfd, pid, 0);
+	
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_PIDFD_OPEN_X);
+	ASSERT_EQ(get_field_as_string(evt,"fd.num"), std::to_string(pidfd));
 
-	/* Use pidfd_getfd to target the file descriptor of the child process */
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_PIDFD_GETFD_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_PIDFD_GETFD_X, 4, fd, child_pid, targetfd, 0);
+	/* Duplicate the created fd created that is refrenced in pidfd */
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIDFD_GETFD_X, 4, fd, pidfd, target_fd, 0);
 
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_PIDFD_GETFD_X);
 	ASSERT_EQ(get_field_as_string(evt,"fd.num"), std::to_string(fd));
