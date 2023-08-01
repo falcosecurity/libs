@@ -58,8 +58,8 @@ else()
 			elseif(APPLE)
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
-					URL "https://github.com/LuaJIT/LuaJIT/archive/v2.1.0-beta3.tar.gz"
-					URL_HASH "SHA256=409f7fe570d3c16558e594421c47bdd130238323c9d6fd6c83dedd2aaeb082a8"
+					URL "https://github.com/LuaJIT/LuaJIT/archive/8635cbabf3094c4d8bd00578c7d812bea87bb2d3.tar.gz"
+					URL_HASH "SHA256=835035b244c3dc3d3d19bdd5ac623af90b84207e6330fb78f9fa51d6e200d760"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND make MACOSX_DEPLOYMENT_TARGET=10.14
 					BUILD_IN_SOURCE 1
@@ -71,7 +71,7 @@ else()
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
 					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
 					CONFIGURE_COMMAND ""
-                                        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
+					BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
 					UPDATE_COMMAND ""
