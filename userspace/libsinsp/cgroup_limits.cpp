@@ -104,6 +104,12 @@ bool read_cgroup_list_count(const std::string& subsys,
 		return false;
 	}
 
+	// Is the file just whitespace?
+	if (cpuset_cpus.find_last_not_of(" \r\t\n") == std::string::npos)
+	{
+		return false;
+	}
+
  	libsinsp::cgroup_list_counter counter;
 	out = counter(cpuset_cpus.c_str());
 
