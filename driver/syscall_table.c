@@ -908,4 +908,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_sigsuspend
 	[__NR_sigsuspend - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGSUSPEND},
 #endif
+#ifdef __NR_cachestat
+	[__NR_cachestat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_CACHESTAT},
+#endif
 };
