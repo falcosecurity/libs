@@ -838,7 +838,11 @@ static __always_inline unsigned long bpf_get_mm_counter(struct mm_struct *mm,
 {
 	long val;
 
-	bpf_probe_read(&val, sizeof(val), &mm->rss_stat.count[member]);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
+	bpf_probe_read_kernel(&val, sizeof(val), &mm->rss_stat.count[member]);
+#else
+	bpf_probe_read_kernel(&val, sizeof(val), &mm->rss_stat[member].count);
+#endif
 	if (val < 0)
 		val = 0;
 

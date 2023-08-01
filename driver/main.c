@@ -2662,11 +2662,15 @@ static int get_tracepoint_handles(void)
 #endif
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0))
+static char *ppm_devnode(const struct device *dev, umode_t *mode)
+#else
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
 static char *ppm_devnode(struct device *dev, umode_t *mode)
 #else
 static char *ppm_devnode(struct device *dev, mode_t *mode)
-#endif
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(3, 3, 0) */
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 0) */
 {
 	if (mode) {
 		*mode = 0400;
