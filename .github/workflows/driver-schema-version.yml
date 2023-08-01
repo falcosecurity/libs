@@ -1,36 +1,46 @@
-# NOTE: it is UNSAFE to run ANY kind of script when using the pull_request_target trigger!
-# DO NOT TOUCH THIS FILE UNLESS THE TRIGGER IS CHANGED.
-# See warning in https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target.
-
 name: Driver SCHEMA_VERSION checks
 on:
-  pull_request_target:
-    paths:
-      - 'driver/event_table.c'
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'release/**'
+
+# Checks if any concurrent jobs under the same pull request or branch are being executed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   paths-filter:
     runs-on: ubuntu-latest
     outputs:
-      driver_schema_changed: ${{ steps.filter.outputs.driver_schema }}
+      schema_version_changed: ${{ steps.filter.outputs.schema_version }}
+      schema_defs_changed: ${{ steps.filter.outputs.schema_defs }}
     steps:
     - uses: actions/checkout@v2
     - uses: dorny/paths-filter@v2
       id: filter
       with:
         filters: |
-          driver_schema:
+          schema_version:
             - 'driver/SCHEMA_VERSION'
+          schema_defs:
+            - 'driver/event_table.c'
+            - 'driver/ppm_events_public.h'
+            - 'driver/event_stats.h'
+            - 'driver/syscall_*'
 
-  driver-schema:
+  check-version-bump:
     runs-on: ubuntu-22.04
-    permissions:
-      pull-requests: write
     needs: paths-filter
-    if: needs.paths-filter.outputs.driver_schema_changed == 'false'
+    if: needs.paths-filter.outputs.schema_defs_changed == 'true' && needs.paths-filter.outputs.schema_version_changed == 'false'
     steps:
       - name: Check driver SCHEMA_VERSION
-        uses: mshick/add-pr-comment@v2
-        with:
-          message: |
-            Please double check **driver/SCHEMA_VERSION** file. See [versioning](https://github.com/falcosecurity/libs/blob/master/driver/README.VERSION.md#schema-version-number).
+        run: |
+          echo Driver schema version needs to be bumped
+          cat driver/SCHEMA_VERSION
+          echo
+          echo Please double check **driver/SCHEMA_VERSION** file.
+          echo See: https://github.com/falcosecurity/libs/blob/master/driver/README.VERSION.md#schema-version-number.
+          exit 1
