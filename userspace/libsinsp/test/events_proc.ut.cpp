@@ -435,6 +435,7 @@ TEST_F(sinsp_with_test_input, spawn_process_container)
 	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20;
 	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
 	uint64_t exe_ino = 242048, ctime = 1676262698000004577, mtime = 1676262698000004588;
+	uint32_t loginuid = UINT32_MAX, euid = UINT32_MAX;
 
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
@@ -458,7 +459,7 @@ TEST_F(sinsp_with_test_input, spawn_process_container)
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container.c_str());
 
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, 2000);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, loginuid, PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
 
 	// check that the container has been correctly detected and the short ID is correct
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "f9c7a020960a");
@@ -468,8 +469,9 @@ TEST_F(sinsp_with_test_input, spawn_process_container)
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "1");
 	// check more fields
+	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "-1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_upper_layer"), "true");
-	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "2000");
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "4294967295");
 }
 #endif // MINIMAL_BUILD
 
