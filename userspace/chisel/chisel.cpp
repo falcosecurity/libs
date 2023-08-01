@@ -26,7 +26,7 @@ limitations under the License.
 #include <stdlib.h>
 #include <unistd.h>
 #endif
-#include <third-party/tinydir.h>
+#include <tinydir.h>
 #include "filterchecks.h"
 
 #include "chisel.h"

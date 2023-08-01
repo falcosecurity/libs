@@ -44,6 +44,7 @@ include(jsoncpp)
 if(WITH_CHISEL)
 	include_directories(../chisel)
 	include(luajit)
+	include(tinydir)
 endif()
 
 if(NOT MINIMAL_BUILD)
@@ -92,7 +93,6 @@ set(SINSP_SOURCES
 	memmem.cpp
 	tracers.cpp
 	internal_metrics.cpp
-	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
 	../plugin/plugin_loader.c
@@ -208,8 +208,12 @@ if(USE_BUNDLED_RE2)
 	add_dependencies(sinsp re2)
 endif()
 
+if(USE_BUNDLED_JSONCPP)
+	add_dependencies(sinsp jsoncpp)
+endif()
+
 if(WITH_CHISEL)
-	add_dependencies(sinsp luajit)
+	add_dependencies(sinsp luajit tinydir)
 endif()
 
 function(prepare_cri_grpc api_version)

@@ -1,4 +1,4 @@
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,3 @@ SUBCOMPONENTS:
   kernel module and may be injected into eBPF; these are dual licensed
   under the MIT license or the GNU General Public License 2. Copies of
   both licenses are available in the subdirectory.
-
-- The files in <userspace/libsinsp/third-party/jsoncpp> and its 
-  subdirectories are licensed separately, see the headers of each file. 
-  Copyright (c) 2007-2010 Baptiste Lepilleur.
