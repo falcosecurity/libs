@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -322,7 +322,7 @@ int bpf_sched_process_fork(struct sched_process_fork_raw_args *ctx)
 
 char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
 
-char __license[] __bpf_section("license") = "GPL";
+char __license[] __bpf_section("license") = "Dual MIT/GPL";
 
 char probe_ver[] __bpf_section("probe_version") = DRIVER_VERSION;
 
