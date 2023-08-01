@@ -917,3 +917,6 @@
 #ifndef __NR_set_mempolicy_home_node
 #define __NR_set_mempolicy_home_node 450
 #endif
+#ifndef __NR_cachestat
+#define __NR_cachestat 451
+#endif
