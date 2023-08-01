@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -64,7 +64,7 @@ or GPL2.txt for full copies of the license.
 
 #define __NR_ia32_socketcall 102
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("the Falco authors");
 
 #if defined(CAPTURE_SCHED_PROC_EXEC) && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
