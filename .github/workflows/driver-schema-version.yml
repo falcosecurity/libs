@@ -8,7 +8,7 @@ on:
 
 # Checks if any concurrent jobs under the same pull request or branch are being executed
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: driver-schema-version-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
       schema_version_changed: ${{ steps.filter.outputs.schema_version }}
       schema_defs_changed: ${{ steps.filter.outputs.schema_defs }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -36,10 +36,12 @@ jobs:
     needs: paths-filter
     if: needs.paths-filter.outputs.schema_defs_changed == 'true' && needs.paths-filter.outputs.schema_version_changed == 'false'
     steps:
+      - uses: actions/checkout@v3
+
       - name: Check driver SCHEMA_VERSION
         run: |
           echo Driver schema version needs to be bumped
-          cat driver/SCHEMA_VERSION
+          cat ./driver/SCHEMA_VERSION
           echo
           echo Please double check **driver/SCHEMA_VERSION** file.
           echo See: https://github.com/falcosecurity/libs/blob/master/driver/README.VERSION.md#schema-version-number.
