@@ -13,6 +13,7 @@
 | bind                    | 🟢        |
 | bpf                     | 🟢        |
 | brk                     | 🟢        |
+| cachestat               | 🟡        |
 | capget                  | 🟡        |
 | capset                  | 🟢        |
 | chdir                   | 🟢        |
