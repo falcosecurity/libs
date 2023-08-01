@@ -56,3 +56,12 @@ cmake \
 make -j
 make install -j
 popd
+
+# === Tinydir === 
+echo "=== Building and installing tinydir (1.2.5) ==="
+
+wget "https://github.com/cxong/tinydir/archive/refs/tags/1.2.5.tar.gz"
+tar xzf 1.2.5.tar.gz
+pushd tinydir-1.2.5/
+cp tinydir.h /usr/include
+popd
