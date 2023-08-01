@@ -2733,7 +2733,7 @@ FILLER(proc_startupdate_3, true)
 		loginuid = _READ(task->loginuid);
 #endif /* COS_73_WORKAROUND */
 #else
-		loginuid.val = INVALID_UID;
+		loginuid.val = UINT32_MAX;
 #endif /* CONFIG_AUDIT... */
 
 		res = bpf_push_u32_to_ring(data, loginuid.val);
@@ -6532,7 +6532,7 @@ FILLER(sched_prog_exec_3, false)
 	loginuid = _READ(task->loginuid);
 #endif /* COS_73_WORKAROUND */
 #else
-	loginuid.val = INVALID_UID;
+	loginuid.val = UINT32_MAX;
 #endif /* CONFIG_AUDIT... */
 
 	/* Parameter 19: loginuid (type: PT_UID) */
