@@ -233,13 +233,13 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 
 	int64_t fd1 = 3, fd2 = 4;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, 0, fd1, fd2, (uint64_t)81976492);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, (int64_t) 0, fd1, fd2, (uint64_t)81976492);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "4");
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_X, 5, 0, (int64_t)6, (int64_t)7, (uint64_t)81976492, (uint32_t)17);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_X, 5, (int64_t) 0, (int64_t)6, (int64_t)7, (uint64_t)81976492, (uint32_t)17);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "7");
