@@ -326,7 +326,7 @@ protected:
 		strlcpy(tinfo.exe, exe.c_str(), sizeof(tinfo.exe));
 		strlcpy(tinfo.exepath, exepath.c_str(), sizeof(tinfo.exepath));
 		strlcpy(tinfo.root, root.c_str(), sizeof(tinfo.root));
-
+		strlcpy(tinfo.trusted_exepath, exepath.c_str(), sizeof(tinfo.trusted_exepath));
 		return tinfo;
 	}
 
