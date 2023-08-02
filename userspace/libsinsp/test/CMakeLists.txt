@@ -42,8 +42,26 @@ file(GLOB_RECURSE SINSP_CLASSES_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/classes/*.cpp)
 
 file(GLOB_RECURSE SINSP_FILTERCHECKS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/filterchecks/*.cpp)
 
-# Scap-files on s390x are not supported
+# Scap-files on Big Endian systems are not supported
 if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x")
+	# Binary dir in which we will save all our Cmake files
+	file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/scap_files")
+	# Add here the name for new scap-files
+	set(SCAP_FILE_NAMES
+	    "kexec_arm64.scap"
+		"kexec_x86.scap"
+	)
+	set(SCAP_FILE_DOWNLOAD_PREFIX
+		"https://download.falco.org/fixtures/libs/scap_files"
+	)
+	message(STATUS "Download all scap-files from: ${SCAP_FILE_DOWNLOAD_PREFIX}")
+	foreach(FILE_NAME ${SCAP_FILE_NAMES})
+		message(STATUS "Downloading scap-file: ${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}")
+		file(DOWNLOAD
+		"${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}"
+		"${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}"
+		SHOW_PROGRESS)
+	endforeach()
 	file(GLOB_RECURSE SCAP_FILES_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/scap_files/*.cpp)
 endif()
 
