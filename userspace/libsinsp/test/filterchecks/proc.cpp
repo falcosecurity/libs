@@ -104,3 +104,33 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_is_exe_symlink_false)
 	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/short");
 	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_symlink"), "false");
 }
+
+TEST_F(sinsp_with_test_input, PROC_FILTER_trusted_pexepath_aexepath)
+{
+	DEFAULT_TREE
+
+	/* p3_t1 call execve to set an exepath */
+	generate_execve_enter_and_exit_event(0, p3_t1_tid, p3_t1_tid, p3_t1_pid, p3_t1_ptid, "/p3_t1_exepath", "p3_t1", "/usr/bin/p3_t1_trusted_exepath");
+
+	/* p4_t2 call execve to set an exepath */
+	generate_execve_enter_and_exit_event(0, p4_t2_tid, p4_t1_tid, p4_t1_pid, p4_t1_ptid, "/p4_t1_exepath", "p4_t1", "/usr/bin/p4_t1_trusted_exepath");
+
+	/* p5_t2 call execve to set an exepath */
+	generate_execve_enter_and_exit_event(0, p5_t2_tid, p5_t1_tid, p5_t1_pid, p5_t1_ptid, "/p5_t1_exepath", "p5_t1", "/usr/bin/p5_t1_trusted_exepath");
+
+	/* Now we call an execve on p6_t1 and we check for `trusted_pexepath` and `trusted_aexepath` */
+	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/p6_t1_exepath", "p6_t1", "/usr/bin/p6_t1_trusted_exepath");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/p6_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[0]"), "/usr/bin/p6_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_pexepath"), "/usr/bin/p5_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[1]"), get_field_as_string(evt, "proc.trusted_pexepath"));
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[2]"), "/usr/bin/p4_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[3]"), "/usr/bin/p3_t1_trusted_exepath");
+	/* p2_t1 never calls an execve so it takes the exepath from `init` */
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[4]"), "/sbin/init");
+	/* `init` exepath */
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[5]"), "/sbin/init");
+	/* this field shouldn't exist */
+	ASSERT_FALSE(field_exists(evt, "proc.trusted_aexepath[6]"));
+}
