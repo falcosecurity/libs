@@ -118,7 +118,7 @@ public:
 	*/
 	inline bool is_in_pid_namespace() const
 	{
-		return (m_tid != m_vtid) || m_flags & PPM_CL_CHILD_IN_PIDNS;
+		return (m_flags & PPM_CL_CHILD_IN_PIDNS || m_tid != m_vtid);
 	}
 
 	/*
