@@ -685,7 +685,7 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo 
 		    scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
                     scap_dump_write(d, (char *) root, rootlen) != rootlen ||
 			scap_dump_write(d, &(tinfo->pidns_init_start_ts), sizeof(uint64_t)) != sizeof(uint64_t) ||
-			scap_dump_write(d, &(tinfo->tty), sizeof(int32_t)) != sizeof(int32_t) ||
+			scap_dump_write(d, &(tinfo->tty), sizeof(uint32_t)) != sizeof(uint32_t) ||
             scap_dump_write(d, &(tinfo->loginuid), sizeof(uint32_t)) != sizeof(uint32_t) ||
 			scap_dump_write(d, &(tinfo->exe_writable), sizeof(uint8_t)) != sizeof(uint8_t) ||
 			scap_dump_write(d, &(tinfo->cap_inheritable), sizeof(uint64_t)) != sizeof(uint64_t) ||
