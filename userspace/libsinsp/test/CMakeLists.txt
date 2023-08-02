@@ -131,7 +131,11 @@ add_executable(unit-test-libsinsp ${LIBSINSP_UNIT_TESTS_SOURCES})
 if (EMSCRIPTEN)
 	target_compile_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
 	target_link_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
+	target_link_options(unit-test-libsinsp PRIVATE "-sALLOW_MEMORY_GROWTH=1")
 	target_link_options(unit-test-libsinsp PRIVATE "-sEXPORTED_FUNCTIONS=['_main','_htons','_ntohs']")
+	# note(jasondellaluce): since we run tests with node, we need to add this
+	# for reading from local capture files.
+	target_link_options(unit-test-libsinsp PRIVATE "-sNODERAWFS=1")
 endif()
 
 target_link_libraries(unit-test-libsinsp
