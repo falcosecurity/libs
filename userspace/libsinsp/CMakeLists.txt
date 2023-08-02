@@ -340,6 +340,7 @@ endif()
 option(BUILD_LIBSINSP_EXAMPLES "Build libsinsp examples" ON)
 if (BUILD_LIBSINSP_EXAMPLES)
 	add_subdirectory(examples)
+	add_subdirectory(sinsp_debug)
 endif()
 
 if(NOT DEFINED SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR)
