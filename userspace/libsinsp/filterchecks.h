@@ -393,6 +393,8 @@ public:
 		TYPE_PEXEPATH,
 		TYPE_AEXEPATH,
 		TYPE_TRUSTED_EXEPATH,
+		TYPE_TRUSTED_PEXEPATH,
+		TYPE_TRUSTED_AEXEPATH,
 		TYPE_NAME,
 		TYPE_PNAME,
 		TYPE_ANAME,
@@ -485,6 +487,7 @@ private:
 	bool compare_full_aname(sinsp_evt *evt);
 	bool compare_full_aexe(sinsp_evt *evt);
 	bool compare_full_aexepath(sinsp_evt *evt);
+	bool compare_full_trusted_aexepath(sinsp_evt *evt);
 	bool compare_full_acmdline(sinsp_evt *evt);
 
 	int32_t m_argid;

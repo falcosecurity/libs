@@ -2349,6 +2349,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pexepath", "Parent Process Executable Path", "The proc.exepath (full executable path) of the parent process."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aexepath", "Ancestor Executable Path", "The proc.exepath (full executable path) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aexepath[1] retrieves the proc.exepath of the parent process, proc.aexepath[2] retrieves the proc.exepath of the grandparent process, and so on. The current process's proc.exepath line can be obtained using proc.aexepath[0]. When used without any arguments, proc.aexepath is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aexepath endswith java` to match any process ancestor whose path ends with the term `java`."},
 	{PT_FSPATH, EPF_NONE, PF_NA, "proc.trusted_exepath", "Process Executable Path resolved by the kernel", "The full executable path of the process. This field is collected directly from the kernel while 'proc.exepath' is reconstructed in userspace."},
+	{PT_FSPATH, EPF_NONE, PF_NA, "proc.trusted_pexepath", "Parent Process Executable Path resolved by the kernel", "The full executable path of the parent process."},
+	{PT_FSPATH, EPF_NONE, PF_NA, "proc.trusted_aexepath", "Ancestor Executable Path resolved by the kernel", "The proc.trusted_exepath (full executable path resolved by the kernel) for a specific process ancestor. See 'proc.aexepath' field for a more detailed explanation."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "Name", "The process name (truncated after 16 characters) generating the event (task->comm). This field is collected from the syscalls args or, as a fallback, extracted from /proc/<pid>/status. The name of the process and the name of the executable file on disk (if applicable) can be different if a process is given a custom name which is often the case for example for java applications."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "Parent Name", "The proc.name truncated after 16 characters) of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "Ancestor Name", "The proc.name (truncated after 16 characters) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aname[1] retrieves the proc.name of the parent process, proc.aname[2] retrieves the proc.name of the grandparent process, and so on. The current process's proc.name line can be obtained using proc.aname[0]. When used without any arguments, proc.aname is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aname=bash` to match any process ancestor whose name is `bash`."},
@@ -2449,7 +2451,12 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 	//
 	// 'arg' and 'resarg' are handled in a custom way
 	//
-	if(m_field_id == TYPE_APID || m_field_id == TYPE_ANAME || m_field_id == TYPE_AEXE || m_field_id == TYPE_AEXEPATH || m_field_id == TYPE_ACMDLINE )
+	if(m_field_id == TYPE_APID ||
+		m_field_id == TYPE_ANAME ||
+		m_field_id == TYPE_AEXE ||
+		m_field_id == TYPE_AEXEPATH ||
+		m_field_id == TYPE_ACMDLINE ||
+		m_field_id == TYPE_TRUSTED_AEXEPATH)
 	{
 		if(val[fldname.size()] == '[')
 		{
@@ -2558,6 +2565,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		catch(...)
 		{
 			if(val == "proc.aexepath")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
+	else if(STR_MATCH("proc.trusted_aexepath"))
+	{
+		m_field_id = TYPE_TRUSTED_AEXEPATH;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.trusted_aexepath", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.trusted_aexepath")
 			{
 				m_argid = -1;
 				res = (int32_t)val.size();
@@ -3393,6 +3422,47 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_tstr = mt->get_exepath();
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+	case TYPE_TRUSTED_PEXEPATH:
+		{
+			sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+			if(ptinfo == nullptr)
+			{
+				return nullptr;
+			}
+			m_tstr = ptinfo->get_trusted_exepath();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+	case TYPE_TRUSTED_AEXEPATH:
+		{
+			sinsp_threadinfo* mt = NULL;
+
+			if(tinfo->is_main_thread())
+			{
+				mt = tinfo;
+			}
+			else
+			{
+				mt = tinfo->get_main_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			for(int32_t j = 0; j < m_argid; j++)
+			{
+				mt = mt->get_parent_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			m_tstr = mt->get_trusted_exepath();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 	case TYPE_TRUSTED_EXEPATH:
 		m_tstr = tinfo->get_trusted_exepath();
 		RETURN_EXTRACT_STRING(m_tstr);
@@ -3989,6 +4059,59 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt *evt)
 	return found;
 }
 
+bool sinsp_filter_check_thread::compare_full_trusted_aexepath(sinsp_evt *evt)
+{
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	if(tinfo == NULL)
+	{
+		return false;
+	}
+
+	sinsp_threadinfo* mt = NULL;
+
+	if(tinfo->is_main_thread())
+	{
+		mt = tinfo;
+	}
+	else
+	{
+		mt = tinfo->get_main_thread();
+
+		if(mt == NULL)
+		{
+			return false;
+		}
+	}
+
+	//
+	// No id specified, search in all of the ancestors
+	//
+	bool found = false;
+	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
+	{
+		bool res;
+
+		res = flt_compare(m_cmpop,
+				  PT_FSPATH,
+				  (void*)pt->get_trusted_exepath().c_str());
+
+		if(res == true)
+		{
+			found = true;
+
+			// Can stop traversing parent state
+			return false;
+		}
+
+		return true;
+	};
+
+	mt->traverse_parent_state(visitor);
+
+	return found;
+}
+
 bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt *evt)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -4072,6 +4195,13 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 		if(m_argid == -1)
 		{
 			return compare_full_aexepath(evt);
+		}
+	}
+	else if(m_field_id == TYPE_TRUSTED_AEXEPATH)
+	{
+		if(m_argid == -1)
+		{
+			return compare_full_trusted_aexepath(evt);
 		}
 	}
 	else if(m_field_id == TYPE_ACMDLINE)
