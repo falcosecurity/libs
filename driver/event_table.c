@@ -464,9 +464,9 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_FINIT_MODULE_E] = {"finit_module", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_FINIT_MODULE_X] = {"finit_module", EC_OTHER | EC_SYSCALL, EF_USES_FD | EF_READS_FROM_FD, 4, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"uargs", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_DEC}}},
 	[PPME_SYSCALL_MKNOD_E] = {"mknod", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
-	[PPME_SYSCALL_MKNOD_X] = {"mknod", EC_OTHER | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_CHARBUF, PF_NA},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
+	[PPME_SYSCALL_MKNOD_X] = {"mknod", EC_OTHER | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
  	[PPME_SYSCALL_MKNODAT_E] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
-	[PPME_SYSCALL_MKNODAT_X] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_USES_FD, 5, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC},{"path", PT_CHARBUF, PF_NA},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
+	[PPME_SYSCALL_MKNODAT_X] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_USES_FD, 5, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
 };
 
 // We don't need this check in kmod (this source file is included during kmod compilation!)
