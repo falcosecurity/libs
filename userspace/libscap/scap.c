@@ -186,13 +186,11 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
 		vtable = &scap_source_plugin_engine;
-#ifdef __linux__
 		if(oargs->mode == SCAP_MODE_LIVE)
 		{
 			platform = scap_linux_alloc_platform();
 		}
 		else
-#endif // __linux__
 		{
 			platform = scap_generic_alloc_platform();
 		}
