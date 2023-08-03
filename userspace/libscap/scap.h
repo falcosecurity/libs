@@ -297,6 +297,7 @@ typedef struct scap_threadinfo
 	uint64_t clone_ts; ///< When the clone that started this process happened.
 	uint32_t tty; ///< Number of controlling terminal
 	uint32_t loginuid; ///< loginuid (auid)
+	char trusted_exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path resolved by the kernel
 
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
