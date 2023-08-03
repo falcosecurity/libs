@@ -111,9 +111,12 @@ TEST(GenericTracepoints, sched_proc_exec)
 	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(28, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(27);
+	evt_test->assert_num_params_pushed(28);
 }
 
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
@@ -217,9 +220,21 @@ TEST(GenericTracepoints, sched_proc_exec_success_memfd)
 	 */
 	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE | PPM_EXE_FROM_MEMFD);
 
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	/* In the kmod we use d_path helper so case like memfd are correcly managed */
+	if(evt_test->is_kmod_engine())
+	{
+		evt_test->assert_charbuf_param(28, "/memfd:malware (deleted)");
+	}
+	else
+	{
+		/* In BPF drivers we have no the correct result but we can reconstruct part of it */
+		evt_test->assert_charbuf_param(28, "memfd:malware");
+	}
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(27);
+	evt_test->assert_num_params_pushed(28);
 }
 #endif
 #endif

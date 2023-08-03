@@ -167,14 +167,6 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 {
 	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, EXIT_EVENT);
 
-	/* The old BPF probe is not able to collect the file path if it is under a mount point,
-	 * the implementation using old BPF features would be too complex to pass the verifier checks.
-	 */
-	if(evt_test->is_bpf_engine())
-	{
-		GTEST_SKIP() << "[OPEN_BY_HANDLE_AT_X]: old BPF probe is not able to collect the mount path" << std::endl;
-	}
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/

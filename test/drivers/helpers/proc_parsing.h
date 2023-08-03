@@ -24,6 +24,7 @@ struct proc_info
 	uint32_t vtid;
 	struct rlimit file_rlimit;
 	uint32_t loginuid;
+	char exepath [MAX_PATH];
 };
 
 bool get_proc_info(pid_t pid, proc_info* info);
