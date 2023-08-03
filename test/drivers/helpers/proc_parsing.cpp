@@ -141,5 +141,20 @@ bool get_proc_info(pid_t pid, proc_info* info)
 	}
 	fclose(login);
 
+	snprintf(path_to_read, sizeof(path_to_read), "/proc/%u/exe", ::getpid());
+
+	/*
+	 * Gather the executable full name	
+	 */
+	int res = readlink(path_to_read, info->exepath, sizeof(info->exepath) - 1);
+
+	if(res <= 0)
+	{
+		std::cerr << "'unable to readlink /proc/pid/exe: (" << errno << "), " << strerror(errno) << std::endl;
+		return false;
+	}
+	/* Null termination */
+	info->exepath[res] = 0;
+
 	return true;
 }

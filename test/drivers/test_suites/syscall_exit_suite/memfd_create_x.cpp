@@ -2,7 +2,7 @@
 
 #include <sys/mman.h>
 
-#ifdef __NR_memfd_create
+#if defined(__NR_memfd_create) && defined(MFD_ALLOW_SEALING)
 
 TEST(SyscallExit, memfd_createX_success)
 {
