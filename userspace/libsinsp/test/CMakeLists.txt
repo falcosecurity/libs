@@ -57,10 +57,14 @@ if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x")
 	message(STATUS "Download all scap-files from: ${SCAP_FILE_DOWNLOAD_PREFIX}")
 	foreach(FILE_NAME ${SCAP_FILE_NAMES})
 		message(STATUS "Downloading scap-file: ${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}")
-		file(DOWNLOAD
-		"${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}"
-		"${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}"
-		SHOW_PROGRESS)
+		if(NOT EXISTS "${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}")
+			file(DOWNLOAD
+			"${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}"
+			"${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}"
+			SHOW_PROGRESS)
+		else()
+			message(STATUS "Skipping download, file already present")
+		endif()
 	endforeach()
 	file(GLOB_RECURSE SCAP_FILES_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/scap_files/*.cpp)
 endif()
