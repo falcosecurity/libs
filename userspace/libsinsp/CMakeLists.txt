@@ -199,18 +199,30 @@ endif()
 
 set_sinsp_target_properties(sinsp)
 
-set(SINSP_LIBRARIES
+target_link_libraries(sinsp
+		PUBLIC scap
+		INTERFACE
+			"${CURL_LIBRARIES}"
+			"${JSONCPP_LIB}"
+			"${RE2_LIB}"
+)
+
+set(SINSP_PKGCONFIG_LIBRARIES
 	scap
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
 	"${RE2_LIB}"
 )
+
 if(NOT EMSCRIPTEN)
-	list(APPEND 
-		SINSP_LIBRARIES
+	target_link_libraries(sinsp
+		INTERFACE
+			"${CARES_LIB}"
+		PRIVATE
 		"${TBB_LIB}"
-		"${CARES_LIB}")
-endif()	
+	)
+	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${CARES_LIB}")
+endif()
 
 if(USE_BUNDLED_VALIJSON)
 	add_dependencies(sinsp valijson)
@@ -261,72 +273,76 @@ if(NOT WIN32)
 			prepare_cri_grpc(v1alpha2)
 			prepare_cri_grpc(v1)
 
-			list(APPEND SINSP_LIBRARIES
-				"cri_v1alpha2"
-				"cri_v1"
-				"${GRPC_LIBRARIES}"
-				"${GRPCPP_LIB}"
-				"${GRPC_LIB}"
-				"${GPR_LIB}"
-				"${PROTOBUF_LIB}"
-				"${CARES_LIB}"
-				"${JQ_LIB}"
-				"${B64_LIB}")
+			target_link_libraries(sinsp
+					PRIVATE
+						"cri_v1alpha2"
+						"cri_v1"
+					INTERFACE
+						"${GRPC_LIBRARIES}"
+						"${GRPCPP_LIB}"
+						"${GRPC_LIB}"
+						"${GPR_LIB}"
+						"${PROTOBUF_LIB}"
+						"${CARES_LIB}"
+						"${JQ_LIB}"
+						"${B64_LIB}")
+			list(APPEND SINSP_PKGCONFIG_LIBRARIES
+						"${GRPC_LIBRARIES}"
+						"${GRPCPP_LIB}"
+						"${GRPC_LIB}"
+						"${GPR_LIB}"
+						"${PROTOBUF_LIB}"
+						"${CARES_LIB}"
+						"${JQ_LIB}"
+						"${B64_LIB}")
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
-				list(APPEND SINSP_LIBRARIES
-				rt
-				anl)
+				target_link_libraries(sinsp INTERFACE rt anl)
+				list(APPEND SINSP_PKGCONFIG_LIBRARIES rt anl)
 			endif()
 
 		else()
-			list(APPEND SINSP_LIBRARIES
-				"${JQ_LIB}"
-				"${B64_LIB}"
-				rt)
+			target_link_libraries(sinsp INTERFACE "${JQ_LIB}" "${B64_LIB}" rt)
+			list(APPEND SINSP_PKGCONFIG_LIBRARIES "${JQ_LIB}" "${B64_LIB}" rt)
 		endif() # NOT MINIMAL_BUILD
 		# when JQ is compiled statically, it will
 		# also compile a static object for oniguruma we need to link
 		if(ONIGURUMA_LIB)
-			list(APPEND SINSP_LIBRARIES
-			"${ONIGURUMA_LIB}")
+			target_link_libraries(sinsp INTERFACE "${ONIGURUMA_LIB}")
+			list(APPEND SINSP_PKGCONFIG_LIBRARIES "${ONIGURUMA_LIB}")
 			add_dependencies(sinsp jq)
 		endif()
 
 		add_dependencies(sinsp b64)
 	endif() # NOT APPLE
 
-	list(APPEND SINSP_LIBRARIES
-        	"${OPENSSL_LIBRARIES}")
+	target_link_libraries(sinsp INTERFACE "${OPENSSL_LIBRARIES}")
+	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${OPENSSL_LIBRARIES}")
 
 	if(WITH_CHISEL)
-		list(APPEND SINSP_LIBRARIES
-			"${LUAJIT_LIB}")
+		target_link_libraries(sinsp INTERFACE "${LUAJIT_LIB}")
+		list(APPEND SINSP_PKGCONFIG_LIBRARIES "${LUAJIT_LIB}")
 	endif()
-
-	list(APPEND SINSP_LIBRARIES
-		dl
-		pthread)
+	
+	target_link_libraries(sinsp INTERFACE dl pthread)
+	list(APPEND SINSP_PKGCONFIG_LIBRARIES dl pthread)
 
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-			list(APPEND SINSP_LIBRARIES
-				stdc++fs)
+			target_link_libraries(sinsp INTERFACE stdc++fs)
+			list(APPEND SINSP_PKGCONFIG_LIBRARIES stdc++fs)
 		endif()
 	endif()
 else()
 	if(WITH_CHISEL)
-		list(APPEND SINSP_LIBRARIES
-			"${LUAJIT_LIB}")
+		target_link_libraries(sinsp INTERFACE "${LUAJIT_LIB}")
+		list(APPEND SINSP_PKGCONFIG_LIBRARIES "${LUAJIT_LIB}")
 	endif()
 endif() # NOT WIN32
 
-
-target_link_libraries(sinsp ${SINSP_LIBRARIES})
-
 if(APPLE)
-	target_link_libraries(sinsp "-framework CoreFoundation")
-	target_link_libraries(sinsp "-framework SystemConfiguration")
+	target_link_libraries(sinsp INTERFACE "-framework CoreFoundation")
+	target_link_libraries(sinsp INTERFACE "-framework SystemConfiguration")
 	set_target_properties(sinsp PROPERTIES LINK_FLAGS "-Wl,-F/Library/Frameworks")
 endif()
 
@@ -348,14 +364,14 @@ if(NOT DEFINED SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR)
 endif()
 add_definitions(-DSINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR="${SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR}")
 
-# Build our pkg-config "Libs:" flags. For now, loop over SINSP_LIBRARIES. If
+# Build our pkg-config "Libs:" flags. For now, loop over SINSP_PKGCONFIG_LIBRARIES. If
 # we ever start using pkg_search_module or pkg_check_modules in cmake/modules
 # we could add each module to our "Requires:" line instead. We might need to
 # expand this to use some of the techniques in
 # https://github.com/curl/curl/blob/curl-7_84_0/CMakeLists.txt#L1539
 set(SINSP_PKG_CONFIG_LIBS)
 set(SINSP_PKG_CONFIG_LIBDIRS "")
-foreach(sinsp_lib ${SINSP_LIBRARIES})
+foreach(sinsp_lib ${SINSP_PKGCONFIG_LIBRARIES})
 	if(${sinsp_lib} MATCHES "^-")
 		# We have a flag. Pass it through unchanged.
 		list(APPEND SINSP_PKG_CONFIG_LIBS ${sinsp_lib})
