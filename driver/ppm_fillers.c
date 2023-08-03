@@ -1379,6 +1379,8 @@ cgroups_error:
 		uint64_t cap_permitted = 0;
 		uint64_t cap_effective = 0;
 		uint32_t euid = UINT32_MAX;
+		char* buf = (char*)args->str_storage;
+		char *trusted_exepath = NULL;
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1513,6 +1515,8 @@ cgroups_error:
 				mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
 			}
 #endif
+			/* Before freeing the exefile we catch the resolved path for symlink resolution */
+			trusted_exepath = d_path(&exe_file->f_path, buf, PAGE_SIZE);
 			fput(exe_file);
 		}
 
@@ -1585,6 +1589,10 @@ cgroups_error:
 		euid = current->euid;
 #endif
 		res = val_to_ring(args, euid, 0, false, 0);
+		CHECK_RES(res);
+
+		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+		res = val_to_ring(args, (unsigned long)trusted_exepath, 0, false, 0);
 		CHECK_RES(res);
 	}
 	return add_sentinel(args);
@@ -7484,6 +7492,8 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	uint64_t cap_permitted = 0;
 	uint64_t cap_effective = 0;
 	uint32_t euid = UINT32_MAX;
+	char* buf = (char*)args->str_storage;
+	char *trusted_exepath = NULL;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: if this filler is called the execve is correctly
@@ -7752,7 +7762,8 @@ cgroups_error:
 			 */
 			mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
 		}
-
+		/* Before free the exefile we catch the resolved path for symlink resolution */
+		trusted_exepath = d_path(&exe_file->f_path, buf, PAGE_SIZE);
 		fput(exe_file);
 	}
 
@@ -7829,6 +7840,11 @@ cgroups_error:
 #endif
 	res = val_to_ring(args, euid, 0, false, 0);
 	CHECK_RES(res);
+
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	res = val_to_ring(args, (unsigned long)trusted_exepath, 0, false, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 #endif
