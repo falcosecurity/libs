@@ -151,9 +151,14 @@ TEST(SyscallExit, execveX_failure)
 	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	/* Here we don't call the execve so the result should be the full path to the drivers test executable */
+	evt_test->assert_charbuf_param(28, info.exepath);
+
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(27);
+	evt_test->assert_num_params_pushed(28);
 }
 
 TEST(SyscallExit, execveX_success)
@@ -265,9 +270,12 @@ TEST(SyscallExit, execveX_success)
 	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(28, pathname);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(27);
+	evt_test->assert_num_params_pushed(28);
 }
 
 TEST(SyscallExit, execveX_upperlayer_success)
@@ -459,9 +467,12 @@ TEST(SyscallExit, execveX_upperlayer_success)
 	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(28, "/tmp/merged/uppertrue");
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(27);
+	evt_test->assert_num_params_pushed(28);
 }
 
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
@@ -565,9 +576,106 @@ TEST(SyscallExit, execveX_success_memfd)
 	 */
 	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE | PPM_EXE_FROM_MEMFD);
 
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	/* In the kmod we use d_path helper so case like memfd are correcly managed */
+	if(evt_test->is_kmod_engine())
+	{
+		evt_test->assert_charbuf_param(28, "/memfd:malware (deleted)");
+	}
+	else
+	{
+		/* In BPF drivers we have no the correct result but we can reconstruct part of it */
+		evt_test->assert_charbuf_param(28, "memfd:malware");
+	}
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(27);
+	evt_test->assert_num_params_pushed(28);
+}
+#endif
+
+#if defined(__NR_symlinkat) && defined(__NR_unlinkat)
+TEST(SyscallExit, execveX_symlink)
+{
+	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	/* Prepare the execve args */
+	const char *pathname = "/usr/bin/echo";
+	const char *linkpath = "target3";
+
+	/* Create symlink */
+	assert_syscall_state(SYSCALL_SUCCESS, "symlinkat", syscall(__NR_symlinkat, pathname, AT_FDCWD, linkpath), NOT_EQUAL, -1);
+
+	const char *comm = "target3";
+	const char *argv[] = {linkpath, "[OUTPUT] SyscallExit.execveX_success test", NULL};
+	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
+
+	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
+	 * when the child terminates.
+	 */
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		syscall(__NR_execve, linkpath, argv, envp);
+		exit(EXIT_FAILURE);
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The child execve failed." << std::endl;
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "unlinkat", syscall(__NR_unlinkat, AT_FDCWD, linkpath, 0), NOT_EQUAL, -1);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	/* We search for a child event. */
+	evt_test->assert_event_presence(ret_pid);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Please note here we cannot assert all the params, we check only the possible ones. */
+
+	/* Parameter 1: res (type: PT_ERRNO)*/
+	evt_test->assert_numeric_param(1, (int64_t)0);
+
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(2, linkpath);
+
+	/* Parameter 14: comm (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(14, comm);
+
+	/* Parameter 28: resolve_path (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(28, pathname);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(28);
 }
 #endif
 #endif
