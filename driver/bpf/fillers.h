@@ -13,7 +13,6 @@ or GPL2.txt for full copies of the license.
 #include "../ppm_flag_helpers.h"
 #include "../ppm_version.h"
 #include "bpf_helpers.h"
-#include "missing_definitions.h"
 
 #include <linux/tty.h>
 #include <linux/audit.h>
@@ -2739,8 +2738,8 @@ FILLER(proc_startupdate_3, true)
 		res = bpf_push_u32_to_ring(data, loginuid.val);
 		CHECK_RES(res);
 
-		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_execve_family_flags);
-		bpf_printk("Can't tail call execve_family_flags filler\n");
+		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_execve_extra_tail_1);
+		bpf_printk("Can't tail call 'execve_extra_tail_1' filler\n");
 		return PPM_FAILURE_BUG;	
 	}
 
@@ -2748,7 +2747,7 @@ FILLER(proc_startupdate_3, true)
 }
 
 /* This filler avoids a bpf stack overflow on old kernels (like 4.14). */
-FILLER(execve_family_flags, true)
+FILLER(execve_extra_tail_1, true)
 {
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
@@ -2848,7 +2847,32 @@ FILLER(execve_family_flags, true)
 
 	/* Parameter 27: euid (type: PT_UID) */
 	euid = _READ(cred->euid);
-	return bpf_push_u32_to_ring(data, euid.val);
+	res = bpf_push_u32_to_ring(data, euid.val);
+	CHECK_RES(res);
+
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_execve_extra_tail_2);
+	bpf_printk("Can't tail call 'execve_extra_tail_2' filler\n");
+	return PPM_FAILURE_BUG;	
+}
+
+FILLER(execve_extra_tail_2, true)
+{
+	int res = 0;
+
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct file *exe_file = get_exe_file(task);
+	if(exe_file != NULL)
+	{
+		char* filepath = bpf_d_path_approx(data, &(exe_file->f_path));
+		res = bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
+	}
+	else
+	{
+		res = bpf_push_empty_param(data);
+	}
+
+	return res;
 }
 
 FILLER(sys_accept4_e, true)
@@ -3270,17 +3294,33 @@ FILLER(sys_open_by_handle_at_x, true)
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
+	/* Here we need to use `bpf_val_to_ring` to
+	 * fix verifier issues on Amazolinux2 (Kernel 4.14.309-231.529.amzn2.x86_64)
+	 */
 	u32 flags = (u32)bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, open_flags_to_scap(flags));
+	res = bpf_val_to_ring(data, open_flags_to_scap(flags));
 	CHECK_RES(res);
 	
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_open_by_handle_at_x_extra_tail_1);
+	bpf_printk("Can't tail call 'open_by_handle_at_x_extra_tail_1' filler\n");
+	return PPM_FAILURE_BUG;	
+}
+
+FILLER(open_by_handle_at_x_extra_tail_1, true)
+{
+	long retval = bpf_syscall_get_retval(data->ctx);
+
 	/* Parameter 4: path (type: PT_FSPATH) */
-	char* filepath = NULL;
 	if(retval > 0)
 	{
-		filepath = bpf_get_path(data, retval);
-	} 
-	return bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
+		struct file *f = bpf_fget(retval);
+		if(f != NULL)
+		{
+			char* filepath = bpf_d_path_approx(data, &(f->f_path));
+			return bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
+		}
+	}
+	return bpf_push_empty_param(data);
 }
 
 FILLER(sys_io_uring_setup_x, true)
@@ -6643,8 +6683,34 @@ FILLER(sched_prog_exec_4, false)
 
 	/* Parameter 27: euid (type: PT_UID) */
 	euid = _READ(cred->euid);
-	return bpf_push_u32_to_ring(data, euid.val);
+	res = bpf_push_u32_to_ring(data, euid.val);
+	CHECK_RES(res);
+
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sched_prog_exec_5);
+	bpf_printk("Can't tail call 'sched_prog_exec_5' filler\n");
+	return PPM_FAILURE_BUG;
 }
+
+FILLER(sched_prog_exec_5, false)
+{
+	int res = 0;
+
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct file *exe_file = get_exe_file(task);
+	if(exe_file != NULL)
+	{
+		char* filepath = bpf_d_path_approx(data, &(exe_file->f_path));
+		res = bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
+	}
+	else
+	{
+		res = bpf_push_empty_param(data);
+	}
+
+	return res;
+}
+
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
