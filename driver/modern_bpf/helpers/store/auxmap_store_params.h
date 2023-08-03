@@ -402,139 +402,6 @@ static __always_inline void auxmap__store_execve_args(struct auxiliary_map *auxm
 }
 
 /**
- * @brief This helper stores the file path extracted from the `fd`.
- *
- * Please note: Kernel 5.10 introduced a new bpf_helper called `bpf_d_path`
- * to extract a file path starting from a file descriptor but it can be used only
- * with specific hooks:
- *
- * https://github.com/torvalds/linux/blob/e0dccc3b76fb35bb257b4118367a883073d7390e/kernel/trace/bpf_trace.c#L915-L929.
- *
- * So we need to do it by hand and this cause a limit in the max
- * path component that we can retrieve (MAX_PATH_POINTERS).
- *
- * This version of `auxmap__store_path_from_fd` works smooth on all
- * supported architectures: `s390x`, `ARM64`, `x86_64`.
- * The drawback is that due to its complexity we can catch at most
- * `MAX_PATH_POINTERS==8`.
- *
- * The previous version of this method was able to correctly catch paths
- * under different mount points, but not on `s390x` architecture, where
- * the userspace test `open_by_handle_atX_success_mp` failed.
- *
- * #@Andreagit97: reduce the complexity of this helper to allow the capture
- * of more path components, or enable only this version of the helper on `s390x`,
- * leaving the previous working version on `x86` and `aarch64` architectures.
- *
- * @param auxmap pointer to the auxmap in which we are storing the param.
- * @param fd file descriptor from which we want to retrieve the file path.
- */
-static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *auxmap, s32 fd)
-{
-	u16 total_size = 0;
-	u8 path_components = 0;
-	unsigned long path_pointers[MAX_PATH_POINTERS] = {0};
-	struct file *f = extract__file_struct_from_fd(fd);
-	if(!f)
-	{
-		push__param_len(auxmap->data, &auxmap->lengths_pos, total_size);
-	}
-
-	struct task_struct *t = get_current_task();
-	struct dentry *file_dentry = BPF_CORE_READ(f, f_path.dentry);
-	struct dentry *root_dentry = BPF_CORE_READ(t, fs, root.dentry);
-	struct vfsmount *original_mount = BPF_CORE_READ(f, f_path.mnt);
-	struct mount *mnt = container_of(original_mount, struct mount, mnt);
-	struct dentry *mount_dentry = BPF_CORE_READ(mnt, mnt.mnt_root);
-	struct dentry *file_dentry_parent = NULL;
-	struct mount *parent_mount = NULL;
-
-	/* Here we store all the pointers, note that we don't take the pointer
-	 * to the root so we will add it manually if it is necessary!
-	 */
-	for(int k = 0; k < MAX_PATH_POINTERS; ++k)
-	{
-		if(file_dentry == root_dentry)
-		{
-			break;
-		}
-
-		if(file_dentry == mount_dentry)
-		{
-			BPF_CORE_READ_INTO(&parent_mount, mnt, mnt_parent);
-			BPF_CORE_READ_INTO(&file_dentry, mnt, mnt_mountpoint);
-			mnt = parent_mount;
-			BPF_CORE_READ_INTO(&mount_dentry, mnt, mnt.mnt_root);
-			continue;
-		}
-
-		path_components++;
-		BPF_CORE_READ_INTO(&path_pointers[k], file_dentry, d_name.name);
-		BPF_CORE_READ_INTO(&file_dentry_parent, file_dentry, d_parent);
-		file_dentry = file_dentry_parent;
-	}
-
-	/* Reconstruct the path in reverse, using previously collected pointers.
-	 *
-	 * 1. As a first thing, we have to add the root `/`.
-	 *
-	 * 2. When we read the string in BPF with `bpf_probe_read_str()` we always
-	 * add the `\0` terminator. In this way, we will obtain something like this:
-	 *
-	 * - "path_1\0"
-	 * - "path_2\0"
-	 * - "file\0"
-	 *
-	 * So putting it all together:
-	 *
-	 * 	"/path_1\0path_2\0file\0"
-	 *
-	 * (Note that we added `/` manually so there is no `\0`)
-	 *
-	 * But we want to obtain something like this:
-	 *
-	 * 	"/path_1/path_2/file\0"
-	 *
-	 * To obtain it we can replace all `\0` with `/`, but in this way we
-	 * obtain:
-	 *
-	 * 	"/path_1/path_2/file/"
-	 *
-	 * So we need to replace the last `/` with `\0`.
-	 */
-
-	/* 1. Push the root `/` */
-	push__new_character(auxmap->data, &auxmap->payload_pos, '/');
-	total_size += 1;
-
-	for(int k = MAX_PATH_POINTERS - 1; k >= 0; --k)
-	{
-		if(path_pointers[k])
-		{
-			total_size += push__charbuf(auxmap->data, &auxmap->payload_pos, path_pointers[k], MAX_PARAM_SIZE, KERNEL);
-			push__previous_character(auxmap->data, &auxmap->payload_pos, '/');
-		}
-	}
-
-	/* Different cases:
-	 * - `path_components==0` we have to add the last `\0`.
-	 * - `path_components==1` we need to replace the last `/` with a `\0`.
-	 * - `path_components>1` we need to replace the last `/` with a `\0`.
-	 */
-	if(path_components >= 1)
-	{
-		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
-	}
-	else
-	{
-		push__new_character(auxmap->data, &auxmap->payload_pos, '\0');
-		total_size += 1;
-	}
-
-	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size);
-}
-
-/**
  * @brief Store sockaddr info taken from syscall parameters.
  * This helper doesn't have the concept of `outbound` and `inbound` connections
  * since we read from userspace sockaddr struct. We have no to extract
@@ -1559,4 +1426,152 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, u16 *sna
 		}
 		return;
 	}
+}
+
+/* We must always leave at least 4096 bytes free in our tmp scratch space
+ * to please the verifier since we set the max component len to 4096 bytes.
+ * The difference with the old probe is that here we don't have a dedicated map
+ * for saving tmp strings, we need to use our auxmap.
+ * We use the first 64 KB to write data, while we use the last 64 KB to save tmp buffers.
+ * In this case we start from the end (128 KB) and we leave 8192 bytes to please the verifier.
+ * 4096 bytes are enough but using 8192 simplify extreme cases in which tha path is exactly 4096 bytes.
+ *
+ *  64 KB (Used for data) 64 KB (Used to save tmp buffers)
+ * |---------------------|---------------------|
+ *                                         ^
+ *                                         |
+ *                              We start here and write backward
+ *                              as we find components of the path.
+ * 								We left 8192 bytes so we start at
+ * 								(128*1024 - 8192)
+ *
+ * As a bitmask we use `SAFE_TMP_SCRATCH_ACCESS` (128*1024 - 8192 - 1).
+ * Please note this is a little bit more complicated than usual because
+ * this bitmask is not composed by all `1` (0x 0001 1101 1111 1111 1111)
+ * but this is fine because we are sure that we will never write more than
+ * 8192 bytes (max path len is 4096 as the MAX_COMPONENT_LEN).
+ */
+#define MAX_COMPONENT_LEN 4096
+#define MAX_NUM_COMPONENTS 96
+#define MAX_TMP_SCRATCH_LEN (AUXILIARY_MAP_SIZE - 8192)
+#define SAFE_TMP_SCRATCH_ACCESS(x) (x) & (MAX_TMP_SCRATCH_LEN - 1)
+
+/**
+ * @brief Store in the auxamp the file path extracted from
+ * the `struct path *`.
+ *
+ * Please note: Kernel 5.10 introduced a new bpf_helper called `bpf_d_path`
+ * to extract a file path starting from a struct* file but it can be used only
+ * with specific hooks:
+ *
+ * https://github.com/torvalds/linux/blob/e0dccc3b76fb35bb257b4118367a883073d7390e/kernel/trace/bpf_trace.c#L915-L929.
+ *
+ * So we need to do it by hand emulating its behavior.
+ * This brings some limitations:
+ * 1. the number of path components is limited to MAX_NUM_COMPONENTS
+ * 2. we cannot use locks so we can face race conditions during the path reconstruction.
+ * 3. reconstructed path could be slightly different from the one returned by `d_path`.
+ *    See pseudo_filesystem prefixes or the " (deleted)" suffix.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param path pointer to the path struct from which we will extract the path name
+ */
+static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *auxmap, struct path *path)
+{
+	struct path f_path = {};
+	bpf_core_read(&f_path, sizeof(struct path), path);
+	struct dentry *dentry = f_path.dentry;
+	struct vfsmount *vfsmnt = f_path.mnt;
+	struct mount *mnt_p = container_of(vfsmnt, struct mount, mnt);
+	struct mount *mnt_parent_p = BPF_CORE_READ(mnt_p, mnt_parent);
+	struct dentry *mnt_root_p = BPF_CORE_READ(vfsmnt, mnt_root);
+
+	/* This is the max length of the buffer in which we will write the full path. */
+	u32 max_buf_len = MAX_TMP_SCRATCH_LEN;
+
+	/* Populated inside the loop */
+	struct dentry *d_parent = NULL;
+	struct qstr d_name = {};
+	u32 current_off = 0;
+	int effective_name_len = 0;
+
+/* We need the unroll here otherwise the verifier complains about back-edges */
+#pragma unroll
+	for(int i = 0; i < MAX_NUM_COMPONENTS; i++)
+	{
+		BPF_CORE_READ_INTO(&d_parent, dentry, d_parent);
+		if(dentry == mnt_root_p || dentry == d_parent)
+		{
+			if(dentry != mnt_root_p)
+			{
+				/* We reached the root (dentry == d_parent)
+				 * but not the mount root...there is something weird, stop here.
+				 */
+				break;
+			}
+
+			if(mnt_p != mnt_parent_p)
+			{
+				/* We reached root, but not global root - continue with mount point path */
+				BPF_CORE_READ_INTO(&dentry, mnt_p, mnt_mountpoint);
+				BPF_CORE_READ_INTO(&mnt_p, mnt_p, mnt_parent);
+				BPF_CORE_READ_INTO(&mnt_parent_p, mnt_p, mnt_parent);
+				vfsmnt = &mnt_p->mnt;
+				BPF_CORE_READ_INTO(&mnt_root_p, vfsmnt, mnt_root);
+				continue;
+			}
+
+			/* We have the full path, stop here */
+			break;
+		}
+
+		/* Get the dentry name */
+		bpf_core_read(&d_name, sizeof(struct qstr), &(dentry->d_name));
+
+		/* +1 for the terminator that is not considered in d_name.len.
+		 * Reserve space for the name trusting the len
+		 * written in `qstr` struct
+		 */
+		current_off = max_buf_len - (d_name.len + 1);
+
+		effective_name_len = bpf_probe_read_kernel_str(&(auxmap->data[SAFE_TMP_SCRATCH_ACCESS(current_off)]),
+							       MAX_COMPONENT_LEN, (void *)d_name.name);
+
+		if(effective_name_len <= 1)
+		{
+			/* If effective_name_len is 0 or 1 we have an error
+			 * (path can't be null nor an empty string)
+			 */
+			break;
+		}
+
+		/* 1. `max_buf_len -= 1` point to the `\0` of the just written name.
+		 * 2. We replace it with a `/`.
+		 * 3. Then we set `max_buf_len` to the last written char.
+		 */
+		max_buf_len -= 1;
+		auxmap->data[SAFE_TMP_SCRATCH_ACCESS(max_buf_len)] = '/';
+		max_buf_len -= (effective_name_len - 1);
+
+		dentry = d_parent;
+	}
+
+	if(max_buf_len == MAX_TMP_SCRATCH_LEN)
+	{
+		/* memfd files have no path in the filesystem so we never decremented the `max_buf_len` */
+		bpf_core_read(&d_name, sizeof(struct qstr), &(dentry->d_name));
+		auxmap__store_charbuf_param(auxmap, (unsigned long)d_name.name, MAX_COMPONENT_LEN, KERNEL);
+		return;
+	}
+
+	/* Add leading slash */
+	max_buf_len -= 1;
+	auxmap->data[SAFE_TMP_SCRATCH_ACCESS(max_buf_len)] = '/';
+
+	/* Null terminate the path string.
+	 * Replace the first `/` we added in the loop with `\0`
+	 */
+	auxmap->data[SAFE_TMP_SCRATCH_ACCESS(MAX_TMP_SCRATCH_LEN - 1)] = '\0';
+
+	auxmap__store_charbuf_param(auxmap, (unsigned long)(&(auxmap->data[max_buf_len])), MAX_COMPONENT_LEN, KERNEL);
 }

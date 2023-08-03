@@ -17,11 +17,6 @@
 /* Right now a `cgroup` pathname can have at most 6 components. */
 #define MAX_CGROUP_PATH_POINTERS 6
 
-/* Right now a file path extracted from a file descriptor can
- * have at most `MAX_PATH_POINTERS` components.
- */
-#define MAX_PATH_POINTERS 8
-
 /* Maximum length of `unix` socket path.
  * We can have a maximum of 108 characters plus the `\0` terminator.
  */

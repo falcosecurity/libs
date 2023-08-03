@@ -338,6 +338,7 @@ static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 	[T1_VFORK_X] = "t1_vfork_x",
 #ifdef CAPTURE_SCHED_PROC_EXEC
 	[T1_SCHED_PROC_EXEC] = "t1_sched_p_exec",
+	[T2_SCHED_PROC_EXEC] = "t2_sched_p_exec",
 #endif
 #ifdef CAPTURE_SCHED_PROC_FORK
 	[T1_SCHED_PROC_FORK] = "t1_sched_p_fork",
@@ -350,4 +351,7 @@ static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 	[T1_DROP_E] = "t1_drop_e",
 	[T1_DROP_X] = "t1_drop_x",
 	[T1_HOTPLUG_E] = "t1_hotplug_e",
+	[T1_OPEN_BY_HANDLE_AT_X] = "t1_open_by_handle_at_x",
+	[T2_EXECVE_X] = "t2_execve_x",
+	[T2_EXECVEAT_X] = "t2_execveat_x",
 };
