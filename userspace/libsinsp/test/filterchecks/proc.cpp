@@ -63,3 +63,44 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nchilds)
 	evt = generate_random_event(p2_t2_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.nchilds"), "0");
 }
+
+TEST_F(sinsp_with_test_input, PROC_FILTER_trusted_exepath)
+{
+	DEFAULT_TREE
+
+	/* Now we call an execve on p6_t1 */
+	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/good-exe", "good-exe", "/usr/bin/bad-exe");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/good-exe");
+	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "good-exe");
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/bad-exe");
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_symlink"), "true");
+}
+
+/* Here we are simulating a partial trusted exepath obtained from BPF */
+TEST_F(sinsp_with_test_input, PROC_FILTER_is_exe_symlink_partial_BPF_trusted_exepath)
+{
+	DEFAULT_TREE
+
+	/* Now we call an execve on p6_t1 */
+	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/usr/bin/too_long", "too_long", "/usr/bin/too_");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/too_long");
+	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "too_long");
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/too_");
+	/* We cannot say if it is a symlink or not so we prefer a false positive */
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_symlink"), "true");
+}
+
+TEST_F(sinsp_with_test_input, PROC_FILTER_is_exe_symlink_false)
+{
+	DEFAULT_TREE
+
+	/* Now we call an execve on p6_t1 */
+	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/usr/bin/short", "too_long", "/usr/bin/short");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/short");
+	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "too_long");
+	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/short");
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_symlink"), "false");
+}
