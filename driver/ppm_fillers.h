@@ -105,7 +105,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_fchmodat_x)			\
 	FN(sys_chmod_x)				\
 	FN(sys_fchmod_x)			\
-        FN(sys_chown_x)				\
+	FN(sys_chown_x)				\
 	FN(sys_lchown_x)			\
 	FN(sys_fchown_x)			\
 	FN(sys_fchownat_x)			\
@@ -118,11 +118,13 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mprotect_e)			\
 	FN(sys_mprotect_x)			\
 	FN(sys_execveat_e)			\
-	FN(execve_family_flags)		\
+	FN(execve_extra_tail_1)		\
+	FN(execve_extra_tail_2)		\
 	FN(sys_copy_file_range_e)	\
 	FN(sys_copy_file_range_x)	\
 	FN(sys_connect_e)			\
 	FN(sys_open_by_handle_at_x) \
+	FN(open_by_handle_at_x_extra_tail_1) \
 	FN(sys_io_uring_setup_x)		\
 	FN(sys_io_uring_enter_x)		\
 	FN(sys_io_uring_register_x)		\
@@ -141,6 +143,7 @@ or GPL2.txt for full copies of the license.
 	FN(sched_prog_exec_2)		        \
 	FN(sched_prog_exec_3)		        \
 	FN(sched_prog_exec_4)		        \
+	FN(sched_prog_exec_5)		        \
 	FN(sched_prog_fork)			\
 	FN(sched_prog_fork_2)		        \
 	FN(sched_prog_fork_3)		        \
