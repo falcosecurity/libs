@@ -1997,7 +1997,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 						  envs_iov, envscnt,
 						  (tinfo.m_cwd == "" ? "/" : tinfo.m_cwd.c_str()),
 						  cgroups_iov, cgroupscnt,
-						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
+						  tinfo.m_root.c_str(),
+						  tinfo.m_trusted_exepath.c_str()) != SCAP_SUCCESS)
 		{
 			sinsp_exception exc(scap_dump_getlasterr(proclist_dumper));
 			scap_dump_close(proclist_dumper);
