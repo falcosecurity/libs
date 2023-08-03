@@ -291,6 +291,36 @@ int BPF_PROG(t1_execve_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	bpf_tail_call(ctx, &extra_event_prog_tail_table, T2_EXECVE_X);
+	return 0;
+}
+
+SEC("tp_btf/sys_exit")
+int BPF_PROG(t2_execve_x, struct pt_regs *regs, long ret)
+{
+	struct auxiliary_map *auxmap = auxmap__get();
+	if(!auxmap)
+	{
+		return 0;
+	}
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	struct task_struct *task = get_current_task();
+	struct file *exe_file = extract__exe_file_from_task(task);
+
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	if(exe_file != NULL)
+	{
+		auxmap__store_d_path_approx(auxmap, &(exe_file->f_path));
+	}
+	else
+	{
+		auxmap__store_empty_param(auxmap);
+	}
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
 	auxmap__finalize_event_header(auxmap);
 
 	auxmap__submit_event(auxmap, ctx);

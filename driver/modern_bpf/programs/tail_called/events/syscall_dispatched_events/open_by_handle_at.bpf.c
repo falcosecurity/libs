@@ -72,11 +72,36 @@ int BPF_PROG(open_by_handle_at_x,
 
 	auxmap__store_u32_param(auxmap, flags);
 
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_OPEN_BY_HANDLE_AT_X);
+	return 0;
+}
+
+SEC("tp_btf/sys_exit")
+int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
+{
+	struct auxiliary_map *auxmap = auxmap__get();
+	if(!auxmap)
+	{
+		return 0;
+	}
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
 	/* Parameter 4: path (type: PT_FSPATH) */
 	/* We collect the file path from the file descriptor only if it is valid */
 	if(ret > 0)
 	{
-		auxmap__store_path_from_fd(auxmap, (s32)ret);
+		struct file *f = extract__file_struct_from_fd(ret);
+		if(f != NULL)
+		{
+			auxmap__store_d_path_approx(auxmap, &(f->f_path));
+		}
+		else
+		{
+			auxmap__store_empty_param(auxmap);
+		}
 	}
 	else
 	{
