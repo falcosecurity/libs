@@ -20,7 +20,7 @@ limitations under the License.
 #include "scap_assert.h"
 #include "scap_const.h"
 #include "strerror.h"
-#include "uthash.h"
+#include "uthash_ext.h"
 
 #include <dirent.h>
 #include <errno.h>

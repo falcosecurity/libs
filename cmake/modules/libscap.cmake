@@ -12,6 +12,8 @@ include(GNUInstallDirs)
 
 include(ExternalProject)
 
+include(uthash)
+
 include(CheckSymbolExists)
 check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
 check_symbol_exists(strlcat "string.h" HAVE_STRLCAT)

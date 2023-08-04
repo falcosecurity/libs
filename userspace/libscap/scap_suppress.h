@@ -24,7 +24,7 @@ limitations under the License.
 extern "C" {
 #endif
 
-#include "uthash.h"
+#include "uthash_ext.h"
 
 typedef struct scap_tid
 {

@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
-#include "uthash.h"
+#include "uthash_ext.h"
 #include <inttypes.h>
 #include <string.h>
 
