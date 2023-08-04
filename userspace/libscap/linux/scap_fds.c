@@ -26,7 +26,7 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include "uthash.h"
+#include "uthash_ext.h"
 #include "compat/misc.h"
 #include <inttypes.h>
 #include <unistd.h>

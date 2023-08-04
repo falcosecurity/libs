@@ -60,7 +60,7 @@ typedef struct ppm_evt_hdr scap_evt;
 //
 #include <time.h>
 #include <stdarg.h>
-#include "uthash.h"
+#include "uthash_ext.h"
 #include "../common/types.h"
 #include "../../driver/ppm_api_version.h"
 #include "../../driver/ppm_events_public.h"
