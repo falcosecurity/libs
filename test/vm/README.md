@@ -64,10 +64,10 @@ By utilizing compatible containers, build scap-open and each driver artifact for
 ```bash
 # Should not take too long.
 make vm-compile;
-ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
+ls -l libs/test/vm/build/driver_compat_matrix_compiled.md;
 ```
 
-In a Vagrant VM loop, each downloaded kernel within the `libs/test/vm/build/kernels/` folder is booted, and scap-open is executed for the drivers if they were compiled successfully. A results table in the form of a .png file is generated, where blue indicates functional drivers (successfully compiled and executed). Some historical result tables are preserved [here](https://github.com/falcosecurity/libs/issues/982).
+In a Vagrant VM loop, each downloaded kernel within the `libs/test/vm/build/kernels/` folder is booted, and scap-open is executed for the drivers if they were compiled successfully. Final results tables in the form of markdown documents are generated, where blue indicates that the driver compiled and green indicates functional drivers (successfully compiled and executed). Some historical result tables are preserved [here](https://github.com/falcosecurity/libs/issues/982).
 
 ```bash
 # make vm-init; # recommended, destroys and re-creates VMs
@@ -82,8 +82,8 @@ make vm-ubuntu;
 # (e.g. `make vm-amazonlinux2` as example for an experimental distro) ...
 
 make vm-result;
-ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
-ls -l libs/test/vm/build/driver_compat_matrix_success.png;
+ls -l libs/test/vm/build/driver_compat_matrix_compiled.md;
+ls -l libs/test/vm/build/driver_compat_matrix_success.md;
 ```
 
 Cleanup. Destroy VMs, untag containers, delete `libs/test/vm/build` folder that cached kernel packages and build artifacts.
@@ -233,7 +233,7 @@ Note that the `.o` files represent eBPF object files, while the `.ko` files repr
 For this step, we also generate a results table that allows us to inspect which compiler version successfully compiled the driver for a given kernel version. We have included kernels 2.6.32 and 3.10 in order to check if they build successfully. However, no VM tests are launched for those kernels.
 
 ```bash
-ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
+ls -l libs/test/vm/build/driver_compat_matrix_compiled.md;
 ```
 
 Example resulting driver artifacts:
@@ -342,13 +342,13 @@ Number of 'next' calls: 1179
 
 > Target `vm-result`. Done as part of `vm-compile`, `vm-centos7` or `vm-ubuntu` targets.
 
-The results are displayed in a table format, using boolean values to indicate the outcome. This allows for easy inspection and understanding of the results. The color blue indicates that the driver is functioning correctly with the specific compiler version. For instance, in the case of eBPF, it signifies that the eBPF probe successfully loaded, passed the eBPF verifier, and is delivering events to userspace without any issues. Apart from the compiler version, the GLIBC version in the build container can also impact the results.
+The results are displayed in a table format, using boolean values to indicate the outcome. This allows for easy inspection and understanding of the results. The initial table indicates whether the drivers compiled, denoted by the blue color. In the subsequent table, the color green signifies that the driver is functioning correctly with the specific compiler version. For instance, in the case of eBPF, it signifies that the eBPF probe successfully loaded, passed the eBPF verifier, and is delivering events to userspace without any issues. Apart from the compiler version, the GLIBC version in the build container can also impact the results. 
 
 Historical results tables are preserved [here](https://github.com/falcosecurity/libs/issues/982).
 
 ```bash
-ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
-ls -l libs/test/vm/build/driver_compat_matrix_success.png;
+ls -l libs/test/vm/build/driver_compat_matrix_compiled.md;
+ls -l libs/test/vm/build/driver_compat_matrix_success.md;
 ```
 
 ## Maintenance Overhead Projection

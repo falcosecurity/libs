@@ -15,10 +15,14 @@ printf "\n\n[STATUS] Generate result table\n\n"
 
 # Plot result [compiled]
 docker run -v "${BASE_DIR}":/vm:z \
-${PYTHON_CONTAINER} 'python3 /vm/scripts/plot_matrix.py --driver-artifacts-dir=/vm/build/driver --save-png=/vm/build/driver_compat_matrix_compiled.png \
---title="Driver (clang -> bpf, gcc -> kmod) kernel compat matrix [compiled]" --hex-color="#808080"; if [ -f /vm/build/driver_compat_matrix_compiled.png ]; then chown -R 1000:1000 /vm/build/driver_compat_matrix_compiled.png; fi';
+${PYTHON_CONTAINER} 'python3 /vm/scripts/plot_matrix.py --driver-artifacts-dir=/vm/build/driver \
+--title="Driver (clang -> bpf, gcc -> kmod) kernel compatibility matrix [compiled]" --mode=compiled > /vm/build/driver_compat_matrix_compiled.md; \
+if [ -f /vm/build/driver_compat_matrix_compiled.md ]; then chown -R 1000:1000 /vm/build/driver_compat_matrix_compiled.md; fi; printf "\n\n"; \
+cat /vm/build/driver_compat_matrix_compiled.md';
 
 # Plot result [compiled + success]
 docker run -v "${BASE_DIR}":/vm:z \
-${PYTHON_CONTAINER} 'python3 /vm/scripts/plot_matrix.py --driver-artifacts-dir=/vm/build/driver_ok --save-png=/vm/build/driver_compat_matrix_success.png \
---title="Driver (clang -> bpf, gcc -> kmod) kernel compat matrix [compiled + success]" --hex-color="#3074EC"; if [ -f /vm/build/driver_compat_matrix_success.png ]; then chown -R 1000:1000 /vm/build/driver_compat_matrix_success.png; fi';
+${PYTHON_CONTAINER} 'python3 /vm/scripts/plot_matrix.py --driver-artifacts-dir=/vm/build/driver_ok \
+--title="Driver (clang -> bpf, gcc -> kmod) kernel compatibility matrix [compiled + success]" --mode=success > /vm/build/driver_compat_matrix_success.md; \
+if [ -f /vm/build/driver_compat_matrix_success.md ]; then chown -R 1000:1000 /vm/build/driver_compat_matrix_success.md; fi; printf "\n\n";\
+cat /vm/build/driver_compat_matrix_success.md';

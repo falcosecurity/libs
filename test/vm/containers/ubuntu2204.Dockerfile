@@ -63,6 +63,6 @@ RUN apt --fix-broken -y install && apt-get install -y --no-install-recommends \
     llvm-14 \
     clang-14
 
-RUN pip install pandas==1.4.3 requests==2.28.1 matplotlib==3.5.2 seaborn==0.11.1
+RUN pip install pandas==2.0.3 pyyaml===6.0.1 tabulate==0.9.0
 
 ENTRYPOINT ["/bin/bash", "-c"]
