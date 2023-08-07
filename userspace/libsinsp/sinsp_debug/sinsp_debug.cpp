@@ -87,7 +87,21 @@ int main(int argc, char** argv)
 	sinsp inspector;
 	inspector.open_savefile(file_path);
 
-	std::cout << "-- Start capture" << std::endl;
+	std::cout << "ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ " << std::endl;
+	std::cout << "ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ " << std::endl;
+	std::cout << "-- Read all threads from /proc" << std::endl;
+	std::cout << "ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ " << std::endl;
+	std::cout << "ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ ℹ️ " << std::endl << std::endl;
+
+	// Print lineage for all threads in the table
+	inspector.m_thread_manager->get_threads()->loop(
+		[&](sinsp_threadinfo& tinfo)
+		{
+			printf("* %s\n", thread_info_to_string(&tinfo).c_str());
+			return true;
+		});
+
+	std::cout << std::endl << std::endl << "-- Start capture" << std::endl;
 
 	inspector.start_capture();
 
@@ -131,16 +145,20 @@ int main(int argc, char** argv)
 		case PPME_SYSCALL_VFORK_17_X:
 		case PPME_SYSCALL_VFORK_20_X:
 		case PPME_SYSCALL_CLONE3_X:
-			if(ev->get_param(0)->m_val == 0)
+		{
+			int64_t child_tid = *(int64_t*)ev->get_param(0)->m_val;
+			if(child_tid == 0)
 			{
-				printf("🧵 CLONE CHILD EXIT: %ld\n", ev->get_num());
+				printf("🧵 CLONE CHILD EXIT: evt_num(%ld)\n", ev->get_num());
 			}
 			else
 			{
-				printf("🧵 CLONE CALLER EXIT: %ld\n", ev->get_num());
+				printf("🧵 CLONE CALLER EXIT for child (%ld): evt_num(%ld)\n", child_tid,
+				       ev->get_num());
 			}
 			display_thread_lineage(tinfo);
-			break;
+		}
+		break;
 
 		case PPME_SYSCALL_EXECVE_8_X:
 		case PPME_SYSCALL_EXECVE_13_X:
@@ -151,13 +169,13 @@ int main(int argc, char** argv)
 		case PPME_SYSCALL_EXECVE_18_X:
 		case PPME_SYSCALL_EXECVE_19_X:
 		case PPME_SYSCALL_EXECVEAT_X:
-			printf("🟢 EXECVE EXIT: %ld\n", ev->get_num());
+			printf("🟢 EXECVE EXIT: evt_num(%ld)\n", ev->get_num());
 			display_thread_lineage(tinfo);
 			break;
 
 		case PPME_PROCEXIT_E:
 		case PPME_PROCEXIT_1_E:
-			printf("💥 THREAD EXIT: %ld\n", ev->get_num());
+			printf("💥 THREAD EXIT: evt_num(%ld)\n", ev->get_num());
 			for(const auto& child : tinfo->m_children)
 			{
 				if(!child.expired())
