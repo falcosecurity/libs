@@ -1229,12 +1229,22 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	 * PPM_CL_CLONE_NEWPID is true when:
 	 * - the child is the init process of a new namespace
 	 * 
-	 * When `caller_tid != caller_tinfo->m_vtid` is true we are for sure in a container
-	 * but this is not a strict requirement (leave it here for compatibility with old
+	 * PPM_CL_CLONE_PARENT is set by `runc:[0:PARENT]` when it creates
+	 * the first process in the new pid namespace. In new sinsp versions
+	 * `PPM_CL_CHILD_IN_PIDNS` is enough but in old scap-files where we don't have
+	 * this custom flag, we leave the event to the child parser when `PPM_CL_CLONE_PARENT`
+	 * is set since we don't know if the new child is in a pid namespace or not.
+	 * Moreover when `PPM_CL_CLONE_PARENT` is set `PPM_CL_CLONE_NEWPID` cannot
+	 * be set according to the clone manual.
+	 * 
+	 * When `caller_tid != caller_tinfo->m_vtid` is true we are for
+	 * sure in a container, and so is the child.
+	 * This is not a strict requirement (leave it here for compatibility with old
 	 * scap-files)
 	 */
 	if(flags & PPM_CL_CHILD_IN_PIDNS || 
 		flags & PPM_CL_CLONE_NEWPID ||
+		flags & PPM_CL_CLONE_PARENT ||
 		caller_tid != caller_tinfo->m_vtid)
 	{
 		return;
