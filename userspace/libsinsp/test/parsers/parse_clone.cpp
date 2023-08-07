@@ -175,7 +175,13 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_flag_CLONE_PARENT)
 	int64_t p2_t1_ptid = INIT_TID;
 
 	/* Parent clone exit event */
+	/* When the caller event has the `PPM_CL_CLONE_PARENT` flag, it leaves to the child parser
+	 * the honor to create the thread info for the child.
+	 */
 	generate_clone_x_event(p2_t1_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CLONE_PARENT);
+	ASSERT_MISSING_THREAD_INFO(p2_t1_tid, true);
+
+	generate_clone_x_event(0, p2_t1_tid, p2_t1_pid, p2_t1_ptid, PPM_CL_CLONE_PARENT);
 	ASSERT_THREAD_INFO_PIDS(p2_t1_tid, p2_t1_pid, p2_t1_ptid)
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1, p2_t1_tid)
 
