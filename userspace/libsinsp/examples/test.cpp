@@ -53,6 +53,7 @@ static bool g_all_threads = false;
 static bool ppm_sc_modifies_state = false;
 static bool ppm_sc_repair_state = false;
 static bool ppm_sc_state_remove_io_sc = false;
+static bool enable_glogger = false;
 static bool json_dump_init_success = false;
 string engine_string = KMOD_ENGINE; /* Default for backward compatibility. */
 string filter_string = "";
@@ -88,9 +89,9 @@ Options:
   -j, --json                                 Use JSON as the output format.
   -a, --all-threads                          Output information about all threads, not just the main one.
   -b <path>, --bpf <path>                    BPF probe.
-  -m, --modern_bpf               	     modern BPF probe.
-  -k, --kmod				     Kernel module
-  -s <path>, --scap_file <path>   	     Scap file
+  -m, --modern_bpf                           modern BPF probe.
+  -k, --kmod                                 Kernel module
+  -s <path>, --scap_file <path>              Scap file
   -d <dim>, --buffer_dim <dim>               Dimension in bytes that every per-CPU buffer will have.
   -o <fields>, --output-fields-json <fields> [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
   -E, --exclude-users                        Don't create the user/group tables
@@ -98,6 +99,7 @@ Options:
   -z, --ppm-sc-modifies-state                Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_state_sc_set`, requires valid filter expression.
   -x, --ppm-sc-repair-state                  Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_repair_state_sc_set`, requires valid filter expression.
   -q, --remove-io-sc-state                   Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` sinsp state enforcement, defaults to false and only applies when choosing `-z` option, used for e2e testing of sinsp state.
+  -g, --enable-glogger                       Enable libs g_logger, set to SEV_DEBUG. For a different severity adjust the test binary source and re-compile.
 )";
 	cout << usage << endl;
 }
@@ -122,12 +124,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"ppm-sc-modifies-state", no_argument, 0, 'z'},
 		{"ppm-sc-repair-state", no_argument, 0, 'x'},
 		{"remove-io-sc-state", no_argument, 0, 'q'},
+		{"enable-glogger", no_argument, 0, 'g'},
 		{0, 0, 0, 0}};
 
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:jab:mks:d:o:En:zxq",
+				"hf:jab:mks:d:o:En:zxqg",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -180,6 +183,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			break;
 		case 'q':
 			ppm_sc_state_remove_io_sc = true;
+			break;
+		case 'g':
+			enable_glogger = true;
 			break;
 		default:
 			break;
@@ -354,6 +360,13 @@ int main(int argc, char** argv)
 
 	signal(SIGINT, sigint_handler);
 	signal(SIGTERM, sigint_handler);
+
+	if (enable_glogger)
+	{
+		std::cout << "-- Enabled g_logger.'" << std::endl;
+		g_logger.set_severity(sinsp_logger::SEV_DEBUG);
+		g_logger.add_stdout_log();
+	}
 
 	if(!filter_string.empty())
 	{
