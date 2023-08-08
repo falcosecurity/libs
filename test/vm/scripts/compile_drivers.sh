@@ -82,7 +82,8 @@ for d in "${DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS}"/*; do
     fi
   elif [[ -x ${GCC} && "${KMOD}" == *"ON"* ]]; then # fail safe as system standard GCC is selected when "${GCC}" not installed
     printf "\n\n[STATUS] IN PROGRESS kmod ${KERNEL_UNAME_R} w/ ${GCC_VERSION}\n\n";
-    rm -f "${LIBS_DIR}/build/driver/scape.ko";
+    rm -f "${LIBS_DIR}/build/driver/scap.ko";
+    rm -f /usr/bin/gcc;
     cp -f "${GCC}" /usr/bin/gcc;
     /usr/bin/gcc --version;
     make \
