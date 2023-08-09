@@ -17,7 +17,7 @@ if (EMSCRIPTEN)
 	target_link_options(sinsp-example PRIVATE "-sEXPORTED_FUNCTIONS=['_main','_htons','_ntohs']")
 	# note(jasondellaluce): since we run tests with node, we need to add this
 	# for reading from local capture files.
-	target_link_options(unit-test-libsinsp PRIVATE "-sNODERAWFS=1")
+	target_link_options(sinsp-example PRIVATE "-sNODERAWFS=1")
 endif()
 
 if (APPLE AND NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
