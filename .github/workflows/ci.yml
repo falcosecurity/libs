@@ -406,4 +406,5 @@ jobs:
         run: |
           mkdir -p build
           cd build && emcmake cmake -DUSE_BUNDLED_DEPS=True ../
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build emmake make -j4
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build emmake make run-unit-tests -j4
