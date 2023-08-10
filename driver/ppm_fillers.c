@@ -7364,7 +7364,6 @@ int f_sys_getdents64_e(struct event_filler_arguments *args)
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
 	int res = 0;
-	unsigned long val = 0;
 	struct mm_struct *mm = current->mm;
 	int args_len = 0;
 	int correctly_read = 0;
