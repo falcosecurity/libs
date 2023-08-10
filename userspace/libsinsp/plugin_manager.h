@@ -158,7 +158,7 @@ public:
 		if (plugin_id != m_last_source_in)
 		{
 			auto it = m_plugins_id_source_index.find(plugin_id);
-			if(it == m_plugins_id_index.end())
+			if(it == m_plugins_id_source_index.end())
 			{
 				found = false;
 				return sinsp_no_event_source_idx;
