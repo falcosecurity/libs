@@ -20,6 +20,10 @@ endif()
 
 set(_falcosecurity_get_version_from_git TRUE)
 
+if(NOT FALCOSECURITY_RELEASE_BRANCH_REGEX)
+    set(FALCOSECURITY_RELEASE_BRANCH_REGEX "^release/")
+endif()
+
 function(_falcosecurity_execute_git _out)
     if(NOT GIT_FOUND)
         find_package(Git QUIET)
@@ -124,7 +128,7 @@ function(get_version_from_git _var match_suffix exclude_suffix)
     set(dev_version "0.0.0")
 
     # dev version / in a `release/M.m.x` branch
-    if(current_branch MATCHES "^release/")
+    if(current_branch MATCHES "${FALCOSECURITY_RELEASE_BRANCH_REGEX}")
         # get the latest tag on the release branch
         set(_options --match "*.*.*${match_suffix}")
 
