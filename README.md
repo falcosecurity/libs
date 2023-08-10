@@ -45,9 +45,36 @@ external dependencies, plus the libscap and libsinsp ones; consumers
 
 ## Versioning
 
-This project uses two different versioning schemes for the _libs_ and _driver_ components. In particular, the _driver_ versions are suffixed with `+driver` to distinguish them from the _libs_ ones. Both adhere to the [Semantic Versioning 2.0.0](https://semver.org/). You can find more detail about how we version those components in our [release process documentation](./release.md).
+This project utilizes two different numbering series for the _libs_ and _drivers_ components, both in accordance with [Semantic Versioning 2.0.0](https://semver.org/). In particular, the _drivers_ component versions include a `driver` suffix in the [build metadata](https://semver.org/#spec-item-10) part of the SemVer string (ie. `5.1.0+driver`) to differentiate them from the _libs_ versions (ie. `0.12.0`). Further details about how we manage the versioning of these components can be found in our [release process documentation](./release.md).
 
-If you build this project from a git working directory, the main [CMakeLists.txt](./CMakeLists.txt) will automatically compute the appropriate version for all components. Otherwise, if you use a source code copy with no the git information or pull the sources of the libs or the drivers directly in your project, it's up to you to correctly set the appropriate cmake variables (for example,  `-DFALCOSECURITY_LIBS_VERSION=x.y.z -DDRIVER_VERSION=a.b.c+driver`).
+When building this project from a Git working directory, the build system (see [CMakeLists.txt](./CMakeLists.txt)) will automatically determine the correct version for all components.
+
+For [officially released builds](https://github.com/falcosecurity/libs/releases), the corresponding Git tag will be used as the version.
+
+For development versions, the following schema is applied:
+
+`<x>.<y>.<z>-<count>+<commit>[-driver]`
+
+Where:
+- `<x>.<y>.<z>` represents the next version number, reflecting either a patch for release branches or a minor version for development branches.
+- `<count>` is the number of commits ahead from either:
+  - the latest tag on the branch, for release branches; or   
+  - the closest common ancestor with the branch holding the latest tagged version, for development branches.
+- `<commit>` refers to the first 7 digits of the commit hash.
+- `[-driver]` is an optional suffix used specifically for _driver_ versions.
+
+For example, `0.13.0-2+abcdef0` means that the current _HEAD_ (_G_, commit hash `abcdef0`) is the second commit ahead of the common ancestor (_E_) with the release branch that holds the tag for `0.12.0` (_C_):
+
+```
+      A---B---C (tag: 0.12.0, branch: release/0.12.x)
+     /
+D---E---F---G (HEAD -> abcdef0)
+```
+
+This scheme ensures the correct [precedence](https://semver.org/#spec-item-11) when comparing build version numbers, regardless of whether they are released or development builds.
+
+
+If you are building this project outside of a Git working directory, or if you want to override the version numbers, you must correctly set the appropriate `cmake` variables. For example, use `-DFALCOSECURITY_LIBS_VERSION=x.y.z -DDRIVER_VERSION=a.b.c+driver`.
 
 ## Drivers officially supported architectures
 
