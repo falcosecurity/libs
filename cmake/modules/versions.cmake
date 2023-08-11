@@ -17,6 +17,7 @@
 include(GetVersionFromGit)
 
 function(get_libs_version _var)
+    # `+driver` is given to ignore drivers tags when fetching the version of libs
     get_version_from_git(ver "" "+driver")
 
     set(${_var}
@@ -26,6 +27,7 @@ function(get_libs_version _var)
 endfunction()
 
 function(get_drivers_version _var)
+    # `+driver` is given to only fetch drivers tags, thus excluding libs ones
     get_version_from_git(ver "+driver" "")
 
     set(${_var}

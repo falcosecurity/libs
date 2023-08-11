@@ -103,6 +103,14 @@ endfunction()
 # - `<commit>` refers to the first 7 digits of the commit hash.
 # - `[suffix]` the value of `match_suffix`, if any.
 # Note: all non-alphanumerics will be converted to hyphens.
+#
+#
+# This function sets the resulting version string to a variable in the parent scope.
+#
+# Arguments:
+# - _var            Variable to store the resulting version string.
+# - match_suffix    Only consider Git references with this suffix.
+# - exclude_suffix  Ignore Git references with this suffix.
 function(get_version_from_git _var match_suffix exclude_suffix)
     # Release version
     # Try to obtain the exact git tag
