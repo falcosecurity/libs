@@ -57,9 +57,17 @@ At this point, no new-feature PRs are allowed to be merged ([exceptions](#except
 
 During the code freeze period, a *release branch* is created once the [release team](#release-team) ensures the code is in a good shape and reasonably no bugs are detected.
 
-The naming convention for the release branch is `release/M.m.x`, where `M.m` is the Major, minor [version](Versioning) number of the release. Only the libs version number is used if the process consists of both drivers and libs releases.  
-All patch releases for the `M.m` version will be tagged directly in the corresponding `release/M.m.x` branch.
-New commits are added to the branch via cherry picking.
+The naming convention for the release branch is `release/M.m.x`, where:
+- `M.m` represents the _Major_ and _Minor_ [version](Versioning) numbers of the release.
+- `x` is simply the character 'x', indicating that the branch encompasses the entire `M.m.x` release series.
+
+For processes that involve both _drivers_ and _libs_ releases, only the _libs_ version number is reflected in the branch name.
+
+When working with a release branch, adhere to the following rules:
+- New commits should be added to the branch via cherry-picking.
+- All tags within the release branch must maintain the same _major_ and _minor_ version as the release branch.
+- Patch releases for the `M.m.x` series must be tagged directly within the respective `release/M.m.x` branch.
+- If there's a need to bump the _major_ or _minor_ version (for either _libs_ or _drivers_) after the release branch is created, a new release branch should be created for the relevant component with the corresponding version.
 
 For example, a `release/0.10.x` is created; it will host tags `0.10.0`, `0.10.1`, `0.10.2` and so on. `0.10.1` will be made of some cherry picked commits on top of `0.10.0`.
 
