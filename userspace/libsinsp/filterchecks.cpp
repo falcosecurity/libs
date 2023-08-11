@@ -4323,6 +4323,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "Container Name", "for docker infrastructure events, the name of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "Container Image", "for docker infrastructure events, the image name of the impacted container."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "Is Created With Execute Permissions", "'true' for open/openat/openat2 or creat events where a file is created with execute permissions"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_create", "Is Created", "'true' for open where a file is created"},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -5943,6 +5944,26 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			RETURN_EXTRACT_VAR(m_u32val);
 		}
 		break;
+	case TYPE_ISOPEN_CREATE:
+		{
+			uint16_t etype = evt->get_type();
+
+			m_u32val = 0;
+			sinsp_evt_param *parinfo;
+
+			bool is_new_version = etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
+
+			parinfo = evt->get_param(is_new_version ? 3 : 2);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			uint32_t flags = *(uint32_t *)parinfo->m_val;
+
+			if(flags & PPM_O_CREAT) {
+				m_u32val = 1;
+			}
+
+			RETURN_EXTRACT_VAR(m_u32val);
+		}
+	break;
 	case TYPE_INFRA_DOCKER_NAME:
 	case TYPE_INFRA_DOCKER_CONTAINER_ID:
 	case TYPE_INFRA_DOCKER_CONTAINER_NAME:
