@@ -161,11 +161,13 @@ function(get_version_from_git _var match_suffix exclude_suffix)
         # get the latest tag that exactly matches a version number, sorted by version number in descending order
         _falcosecurity_execute_git(tag for-each-ref --count=1 --sort=-version:refname --format "%(refname:short)" refs/tags/[0-9]*.[0-9]*.[0-9]${match_suffix})
 
-        _falcosecurity_extract_version("${tag}" x y z match_found)
+        if(tag)
+            _falcosecurity_extract_version("${tag}" x y z match_found)
 
-        if(match_found)
-            math(EXPR y_plus_one "${y} + 1")
-            set(dev_version "${x}.${y_plus_one}.0")
+            if(match_found)
+                math(EXPR y_plus_one "${y} + 1")
+                set(dev_version "${x}.${y_plus_one}.0")
+            endif()
         endif()
     endif()
 
