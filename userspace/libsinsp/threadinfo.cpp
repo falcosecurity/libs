@@ -955,9 +955,6 @@ std::string sinsp_threadinfo::get_cwd()
 	else
 	{
 		///todo(@Andreagit97) not sure we want to return "./" it seems like a valid path
-#if defined(__linux__)
-		ASSERT(false);
-#endif //__linux__
 		return "./";
 	}
 }
