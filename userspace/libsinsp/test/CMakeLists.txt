@@ -54,8 +54,9 @@ if(NOT WIN32)
 	file(GLOB_RECURSE SINSP_FILTERCHECKS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/filterchecks/*.cpp)
 endif()
 
+option(SCAP_FILES_SUITE_ENABLE "Enable scap-file tests in sinsp" "ON")
 # Scap-files on Big Endian systems are not supported
-if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x")
+if((NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x") AND ${SCAP_FILES_SUITE_ENABLE})
 	# Binary dir in which we will save all our Cmake files
 	file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/scap_files")
 	# Add here the name for new scap-files
