@@ -376,6 +376,7 @@ FILLER(sys_open_x, true)
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data, 1);
 	flags = open_flags_to_scap(val);
+	bpf_fix_created_flag(retval, &flags);
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3090,6 +3091,7 @@ FILLER(sys_openat_x, true)
 	 */
 	val = bpf_syscall_get_argument(data, 2);
 	flags = open_flags_to_scap(val);
+	bpf_fix_created_flag(retval, &flags);
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3237,6 +3239,7 @@ FILLER(sys_openat2_x, true)
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
+	bpf_fix_created_flag(retval, &flags);
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
