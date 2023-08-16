@@ -68,7 +68,7 @@ private:
 	}
 
 public:
-	struct iterator 
+	struct iterator
 	{
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = std::ptrdiff_t;
@@ -83,7 +83,7 @@ public:
 		}
 		reference operator*() { return m_val; }
 		pointer operator->() { return &m_val; }
-		iterator& operator++() { m_index++; set_val(); return *this; }  
+		iterator& operator++() { m_index++; set_val(); return *this; }
 		iterator operator++(int) { iterator i = *this; ++(*this); return i; }
 		friend bool operator== (const iterator& a, const iterator& b)
 		{
@@ -110,7 +110,7 @@ public:
 	set(const set&) = default;
 	set& operator=(set&&) noexcept = default;
 	set& operator=(const set&) = default;
-	set<T>() = delete;
+	set() = delete;
 
 	template<typename InputIterator>
 	static set<T> from(InputIterator first, InputIterator last)
@@ -128,7 +128,7 @@ public:
 	{
 		return from(v.begin(), v.end());
 	}
-	
+
 	template<typename Iterable>
 	set(const Iterable& v): set(from(v)) { }
 
