@@ -311,6 +311,41 @@ out_unlock:
 #endif /* UDIG */
 }
 
+static inline void fix_created_flags(int64_t fd, unsigned long* flags)
+{
+#ifdef UDIG
+	return;
+#else
+	struct files_struct *files;
+	struct fdtable *fdt;
+	struct file *file;
+
+	if (fd < 0)
+		return;
+
+	files = current->files;
+	if (unlikely(!files))
+		return;
+
+	spin_lock(&files->file_lock);
+	fdt = files_fdtable(files);
+	if (unlikely(fd > fdt->max_fds))
+		goto out_unlock;
+
+	file = fdt->fd[fd];
+
+	if (!(file->f_mode & FMODE_CREATED))
+		*flags &= ~O_CREAT;
+
+	if (unlikely(!file))
+		goto out_unlock;
+
+out_unlock:
+	spin_unlock(&files->file_lock);
+	return;
+#endif /* UDIG */
+}
+
 int f_sys_open_e(struct event_filler_arguments *args)
 {
 	syscall_arg_t val;
@@ -384,6 +419,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &flags);
+	fix_created_flags(retval, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3624,6 +3660,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	unsigned long val;
 	unsigned long flags;
 	unsigned long modes;
+
 	uint32_t dev = 0;
 	uint64_t ino = 0;
 	int res;
@@ -3660,6 +3697,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &flags);
+	fix_created_flags(retval, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5119,6 +5157,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
+	fix_created_flags(retval, &flags);
 	res = val_to_ring(args, flags, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
