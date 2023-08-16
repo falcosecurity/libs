@@ -311,7 +311,7 @@ out_unlock:
 #endif /* UDIG */
 }
 
-static inline void fix_created_flags(int64_t fd, unsigned long* flags)
+static inline void fix_created_flag(int64_t fd, unsigned long* flags)
 {
 #ifdef UDIG
 	return;
@@ -419,7 +419,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &flags);
-	fix_created_flags(retval, &flags);
+	fix_created_flag(retval, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3697,7 +3697,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &flags);
-	fix_created_flags(retval, &flags);
+	fix_created_flag(retval, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5131,7 +5131,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	fix_created_flags(retval, &flags);
+	fix_created_flag(retval, &flags);
 	res = val_to_ring(args, flags, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
