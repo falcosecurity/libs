@@ -5888,6 +5888,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_ISOPEN_READ:
 	case TYPE_ISOPEN_WRITE:
 	case TYPE_ISOPEN_EXEC:
+	case TYPE_ISOPEN_CREATE:
 		{
 			uint16_t etype = evt->get_type();
 
@@ -5924,6 +5925,10 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					m_u32val = 1;
 				}
 
+				if(flags & PPM_O_CREAT) {
+					m_u32val = 1;
+				}
+
 				/* `open_by_handle_at` exit event has no `mode` parameter. */
 				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT) && etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X))
 				{
@@ -5943,27 +5948,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			RETURN_EXTRACT_VAR(m_u32val);
 		}
+		
 		break;
-	case TYPE_ISOPEN_CREATE:
-		{
-			uint16_t etype = evt->get_type();
-
-			m_u32val = 0;
-			sinsp_evt_param *parinfo;
-
-			bool is_new_version = etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
-
-			parinfo = evt->get_param(is_new_version ? 3 : 2);
-			ASSERT(parinfo->m_len == sizeof(uint32_t));
-			uint32_t flags = *(uint32_t *)parinfo->m_val;
-
-			if(flags & PPM_O_CREAT) {
-				m_u32val = 1;
-			}
-
-			RETURN_EXTRACT_VAR(m_u32val);
-		}
-	break;
 	case TYPE_INFRA_DOCKER_NAME:
 	case TYPE_INFRA_DOCKER_CONTAINER_ID:
 	case TYPE_INFRA_DOCKER_CONTAINER_NAME:
