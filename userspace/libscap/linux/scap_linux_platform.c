@@ -79,6 +79,13 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 		}
 	}
 
+	rc = scap_cgroup_interface_init(&linux_platform->m_cgroups, scap_get_host_root(), lasterr, false);
+	if(rc != SCAP_SUCCESS)
+	{
+		scap_linux_free_platform(platform);
+		return rc;
+	}
+
 	linux_platform->m_lasterr[0] = '\0';
 	char proc_scan_err[SCAP_LASTERR_SIZE];
 	rc = scap_linux_refresh_proc_table(platform, &platform->m_proclist);
