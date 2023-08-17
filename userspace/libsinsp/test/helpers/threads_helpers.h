@@ -197,6 +197,10 @@ limitations under the License.
                                                                                                                        \
 	/* Parent exit event */                                                                                        \
 	generate_clone_x_event(p2_t1_tid, p1_t2_tid, p1_t2_pid, p1_t2_ptid, PPM_CL_CLONE_PARENT);                      \
+	/* Here we need also the child exit event because the caller doesn't generate*/                                \
+	/* the child thread info if we use the `PPM_CL_CLONE_PARENT` flag due to runc! */                              \
+	/* See the clone_parser code. */                                                                               \
+	generate_clone_x_event(0, p2_t1_tid, p2_t1_pid, p2_t1_ptid, PPM_CL_CLONE_PARENT);                              \
                                                                                                                        \
 	/*=============================== p2_t1 ===========================*/                                          \
                                                                                                                        \
