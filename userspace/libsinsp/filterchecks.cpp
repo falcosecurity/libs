@@ -4323,7 +4323,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "Container Name", "for docker infrastructure events, the name of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "Container Image", "for docker infrastructure events, the image name of the impacted container."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "Is Created With Execute Permissions", "'true' for open/openat/openat2 or creat events where a file is created with execute permissions"},
-	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_create", "Is Created", "'true' for open where a file is created"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_create", "Is Created", "'true' for open/openat/openat2 events where a file is created."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
