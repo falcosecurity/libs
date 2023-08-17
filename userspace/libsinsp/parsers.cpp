@@ -1352,21 +1352,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		/* pid */
 		child_tinfo->m_pid = child_tinfo->m_tid;
 
-		/* Please note `sched_proc_fork` won't send the `PPM_CL_CLONE_PARENT` flag,
-		 * but this tracepoint generates only the child event, here we are parsing the caller one
-		 * so we shouldn't have any issues.
-		 */
-		if(child_tinfo->m_flags & PPM_CL_CLONE_PARENT)
-		{
-			/* The child parent is the parent of the calling process */
-			child_tinfo->m_ptid = caller_tinfo->m_ptid;
-		}
-		else
-		{
-			/* The child parent is the calling process */
-			child_tinfo->m_ptid = caller_tinfo->m_tid;
-		}
-
+		/* The child parent is the calling process */
+		child_tinfo->m_ptid = caller_tinfo->m_tid;
 	}
 	else /* Simple thread case */
 	{
