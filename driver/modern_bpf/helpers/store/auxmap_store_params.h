@@ -1473,6 +1473,9 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, u16 *sna
  * 3. reconstructed path could be slightly different from the one returned by `d_path`.
  *    See pseudo_filesystem prefixes or the " (deleted)" suffix.
  *
+ * Take a look at the research that led to this implementation:
+ * https://github.com/falcosecurity/libs/issues/1111
+ *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param path pointer to the path struct from which we will extract the path name
  */
