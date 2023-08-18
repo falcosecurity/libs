@@ -133,6 +133,9 @@ static __always_inline u32 bpf_get_fd_fmode_created(int fd)
  * 2. we cannot use locks so we can face race conditions during the path reconstruction.
  * 3. reconstructed path could be slightly different from the one returned by `d_path`.
  *    See pseudo_filesystem prefixes or the " (deleted)" suffix.
+ *
+ * Take a look at the research that led to this implementation:
+ * https://github.com/falcosecurity/libs/issues/1111
  */
 static __always_inline char *bpf_d_path_approx(struct filler_data *data, struct path *path)
 {
