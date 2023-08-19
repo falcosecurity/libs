@@ -103,6 +103,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_O_LARGEFILE (1 << 11)
 #define PPM_O_CLOEXEC	(1 << 12)
 #define PPM_O_TMPFILE	(1 << 13)
+#define PPM_O_F_CREATED (1 << 14)	/* file created during the syscall */
 
 /*
  * File modes

@@ -5925,7 +5925,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					m_u32val = 1;
 				}
 
-				if(flags & PPM_O_CREAT) {
+				if(flags & PPM_O_F_CREATED) {
 					m_u32val = 1;
 				}
 

@@ -257,6 +257,23 @@ static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, u64
 }
 
 /**
+ * \brief Extract the file mode from a file descriptor.
+ *
+ * @param fd generic file descriptor.
+ * @param mode pointer to file mode we have to fill.
+ */
+static __always_inline void extract__mode_from_fd(s32 fd, fmode_t *mode)
+{
+	struct file *f = extract__file_struct_from_fd(fd);
+	if(!f)
+	{
+		return;
+	}
+
+	BPF_CORE_READ_INTO(mode, f, f_mode);
+}
+
+/**
  * @brief Extract the fd rlimit
  *
  * @param task pointer to the task struct.

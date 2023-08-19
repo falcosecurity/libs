@@ -70,6 +70,7 @@ const struct ppm_name_value file_flags[] = {
 	{"O_CLOEXEC", PPM_O_CLOEXEC},
 	{"O_NONE", PPM_O_NONE},
 	{"O_TMPFILE", PPM_O_TMPFILE},
+	{"O_F_CREATED", PPM_O_F_CREATED},
 	{0, 0},
 };
 
