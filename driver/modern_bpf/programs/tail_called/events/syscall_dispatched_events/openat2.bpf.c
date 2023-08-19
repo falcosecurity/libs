@@ -99,7 +99,18 @@ int BPF_PROG(openat2_x,
 	bpf_probe_read_user((void *)&how, bpf_core_type_size(struct open_how), (void *)open_how_pointer);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	auxmap__store_u32_param(auxmap, open_flags_to_scap(how.flags));
+	uint32_t flags = open_flags_to_scap(how.flags);
+	if(ret > 0)
+	{
+		/* update flags if file created */
+		fmode_t mode = 0;
+
+		extract__mode_from_fd((s32)ret, &mode);
+		if (mode & FMODE_CREATED)
+			flags |= PPM_O_F_CREATED;
+	}
+
+	auxmap__store_u32_param(auxmap, flags);
 
 	/* Parameter 5: mode (type: PT_UINT32) */
 	auxmap__store_u32_param(auxmap, open_modes_to_scap(how.flags, how.mode));

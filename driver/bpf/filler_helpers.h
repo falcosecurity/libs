@@ -182,22 +182,6 @@ static __always_inline void bpf_get_fd_dev_ino(int fd, unsigned long *dev, unsig
 	*ino = _READ(inode->i_ino);
 }
 
-static __always_inline void bpf_fix_created_flag(int fd, unsigned long *flags)
-{
-	struct file *file;
-
-	if (fd < 0)
-		return;
-
-	file = bpf_fget(fd);
-	if (!file)
-		return;
-
-	if (!(file->f_mode & FMODE_CREATED))
-		*flags &= ~O_CREAT;
-
-}
-
 static __always_inline bool bpf_ipv6_addr_any(const struct in6_addr *a)
 {
 	const unsigned long *ul = (const unsigned long *)a;

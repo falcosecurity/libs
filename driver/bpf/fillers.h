@@ -360,6 +360,7 @@ FILLER(sys_open_x, true)
 	unsigned long val;
 	unsigned long dev = 0;
 	unsigned long ino = 0;
+	struct file *file;
 	long retval;
 	int res;
 
@@ -376,7 +377,15 @@ FILLER(sys_open_x, true)
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data, 1);
 	flags = open_flags_to_scap(val);
-	bpf_fix_created_flag(retval, &flags);
+	
+	file = bpf_fget(retval);
+	if (file)
+	{
+		/* update flags if file created */
+		fmode_t fmode = _READ(file->f_mode);
+		if (fmode & FMODE_CREATED)
+			flags |= PPM_O_F_CREATED;
+	}
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3060,6 +3069,7 @@ FILLER(sys_openat_x, true)
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
+	struct file *file;
 	long retval;
 	s32 fd;
 	int res;
@@ -3091,7 +3101,15 @@ FILLER(sys_openat_x, true)
 	 */
 	val = bpf_syscall_get_argument(data, 2);
 	flags = open_flags_to_scap(val);
-	bpf_fix_created_flag(retval, &flags);
+
+	file = bpf_fget(retval);
+	if (file)
+	{
+		/* update flags if file created */
+		fmode_t fmode = _READ(file->f_mode);
+		if (fmode & FMODE_CREATED)
+			flags |= PPM_O_F_CREATED;
+	}
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3193,6 +3211,7 @@ FILLER(sys_openat2_x, true)
 	long retval;
 	s32 fd;
 	int res;
+	struct file *file;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -3239,7 +3258,14 @@ FILLER(sys_openat2_x, true)
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	bpf_fix_created_flag(retval, &flags);
+	file = bpf_fget(retval);
+	if (file)
+	{
+		/* update flags if file created */
+		fmode_t fmode = _READ(file->f_mode);
+		if (fmode & FMODE_CREATED)
+			flags |= PPM_O_F_CREATED;
+	}
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3259,6 +3285,8 @@ FILLER(sys_openat2_x, true)
 
 FILLER(sys_open_by_handle_at_x, true)
 {
+	struct file *file;
+
 	/* Parameter 1: ret (type: PT_FD) */
 	long retval = bpf_syscall_get_retval(data->ctx);
 	int res = bpf_push_s64_to_ring(data, retval);
@@ -3275,7 +3303,18 @@ FILLER(sys_open_by_handle_at_x, true)
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	u32 flags = (u32)bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, open_flags_to_scap(flags));
+	flags = (u32)open_flags_to_scap(flags);
+
+	file = bpf_fget(retval);
+	if (file)
+	{
+		/* update flags if file created */
+		fmode_t fmode = _READ(file->f_mode);
+		if (fmode & FMODE_CREATED)
+			flags |= PPM_O_F_CREATED;
+	}
+
+	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 	
 	/* Parameter 4: path (type: PT_FSPATH) */

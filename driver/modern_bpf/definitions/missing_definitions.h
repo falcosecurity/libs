@@ -577,6 +577,14 @@
 #define SEEK_MAX SEEK_HOLE
 
 //////////////////////////
+// file mode flags
+//////////////////////////
+
+/* `include/linux/fs.h` from kernel source tree. */
+
+#define FMODE_CREATED		(/*(__force fmode_t) */0x100000)
+
+//////////////////////////
 // flock flags
 //////////////////////////
 
