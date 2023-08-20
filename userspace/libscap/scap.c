@@ -86,42 +86,34 @@ scap_t* scap_alloc(void)
 	return malloc(sizeof(scap_t));
 }
 
-int32_t scap_init(scap_t* handle, scap_open_args* oargs)
+struct scap_platform* scap_handle_alloc_platform(scap_t* handle, scap_open_args* oargs)
 {
 	const char* engine_name = oargs->engine_name;
 	proc_entry_callback proc_callback = oargs->proc_callback;
 	void* proc_callback_context = oargs->proc_callback_context;
 	struct scap_platform* platform = NULL;
-	const struct scap_vtable* vtable = NULL;
-	int32_t rc;
-
-	memset(handle, 0, sizeof(*handle));
 
 #ifdef HAS_ENGINE_SAVEFILE
 	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
-		vtable = &scap_savefile_engine;
 		platform = scap_savefile_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_UDIG
 	if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
-		vtable = &scap_udig_engine;
 		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
 	if(strcmp(engine_name, GVISOR_ENGINE) == 0)
 	{
-		vtable = &scap_gvisor_engine;
 		platform = scap_gvisor_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_TEST_INPUT
 	if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
 	{
-		vtable = &scap_test_input_engine;
 		if(oargs->mode == SCAP_MODE_LIVE)
 		{
 			platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
@@ -135,7 +127,6 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_KMOD
 	if(strcmp(engine_name, KMOD_ENGINE) == 0)
 	{
-		vtable = &scap_kmod_engine;
 		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 		if(platform)
 		{
@@ -146,21 +137,18 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_BPF
 	if(strcmp(engine_name, BPF_ENGINE) == 0)
 	{
-		vtable = &scap_bpf_engine;
 		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
 	{
-		vtable = &scap_modern_bpf_engine;
 		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_NODRIVER
 	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
-		vtable = &scap_nodriver_engine;
 		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 		struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
 
@@ -181,7 +169,6 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
 	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
-		vtable = &scap_source_plugin_engine;
 		if(oargs->mode == SCAP_MODE_LIVE)
 		{
 			platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
@@ -193,17 +180,79 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 	}
 #endif
 
+	if(!platform)
+	{
+		scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform data");
+	}
+
+	return platform;
+}
+
+int32_t scap_handle_init_engine(scap_t* handle, scap_open_args* oargs)
+{
+	const char* engine_name = oargs->engine_name;
+	const struct scap_vtable* vtable = NULL;
+	int32_t rc;
+
+#ifdef HAS_ENGINE_SAVEFILE
+	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
+	{
+		vtable = &scap_savefile_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_UDIG
+	if(strcmp(engine_name, UDIG_ENGINE) == 0)
+	{
+		vtable = &scap_udig_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_GVISOR
+	if(strcmp(engine_name, GVISOR_ENGINE) == 0)
+	{
+		vtable = &scap_gvisor_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_TEST_INPUT
+	if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
+	{
+		vtable = &scap_test_input_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_KMOD
+	if(strcmp(engine_name, KMOD_ENGINE) == 0)
+	{
+		vtable = &scap_kmod_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_BPF
+	if(strcmp(engine_name, BPF_ENGINE) == 0)
+	{
+		vtable = &scap_bpf_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_MODERN_BPF
+	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
+	{
+		vtable = &scap_modern_bpf_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_NODRIVER
+	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
+	{
+		vtable = &scap_nodriver_engine;
+	}
+#endif
+#ifdef HAS_ENGINE_SOURCE_PLUGIN
+	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
+	{
+		vtable = &scap_source_plugin_engine;
+	}
+#endif
+
 	if(!vtable)
 	{
 		return scap_errprintf(handle->m_lasterr, 0, "incorrect engine '%s'", engine_name);
 	}
-
-	if(!platform)
-	{
-		return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform data");
-	}
-
-	handle->m_platform = platform;
 
 	rc = scap_init_int(handle, oargs, vtable);
 	if(rc != SCAP_SUCCESS)
@@ -211,7 +260,26 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		return rc;
 	}
 
-	if((rc = scap_platform_init(platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
+	return SCAP_SUCCESS;
+}
+
+int32_t scap_init(scap_t* handle, scap_open_args* oargs)
+{
+	int32_t rc;
+
+	handle->m_platform = scap_handle_alloc_platform(handle, oargs);
+	if(!handle->m_platform)
+	{
+		return SCAP_FAILURE;
+	}
+
+	rc = scap_handle_init_engine(handle, oargs);
+	if(rc != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
