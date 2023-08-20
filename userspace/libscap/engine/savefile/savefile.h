@@ -95,6 +95,8 @@ typedef struct scap_ifinfo_ipv6_nolinkspeed
 
 #pragma pack(pop)
 
+struct scap_platform;
+
 struct savefile_engine
 {
 	char* m_lasterr;
@@ -104,5 +106,6 @@ struct savefile_engine
 	char* m_reader_evt_buf;
 	size_t m_reader_evt_buf_size;
 	uint32_t m_last_evt_dump_flags;
+	struct scap_platform* m_platform;
 };
 
