@@ -207,11 +207,6 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform data");
 	}
 
-	if((rc = scap_generic_init_platform(platform, handle->m_lasterr, oargs)) != SCAP_SUCCESS)
-	{
-		platform->m_vtable->free_platform(platform);
-		return rc;
-	}
 	handle->m_platform = platform;
 
 	rc = scap_init_int(handle, oargs, vtable);

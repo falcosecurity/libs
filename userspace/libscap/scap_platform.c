@@ -92,6 +92,13 @@ int32_t scap_platform_init(struct scap_platform *platform, char *lasterr, struct
 		return SCAP_SUCCESS;
 	}
 
+	rc = scap_generic_init_platform(platform, lasterr, oargs);
+	if(rc != SCAP_SUCCESS)
+	{
+		scap_platform_close(platform);
+		return rc;
+	}
+
 	if(platform->m_vtable && platform->m_vtable->init_platform)
 	{
 		rc = platform->m_vtable->init_platform(platform, lasterr, engine, oargs);
