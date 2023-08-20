@@ -48,7 +48,7 @@ const char* scap_getlasterr(scap_t* handle)
 	return handle ? handle->m_lasterr : "null scap handle";
 }
 
-int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform)
+int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
 	int32_t rc;
 
@@ -56,7 +56,6 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 	// Preliminary initializations
 	//
 	handle->m_vtable = vtable;
-	handle->m_platform = platform;
 
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
@@ -65,19 +64,9 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 		return SCAP_FAILURE;
 	}
 
-	if((rc = scap_generic_init_platform(handle->m_platform, handle->m_lasterr, oargs)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
 	handle->m_log_fn = oargs->log_fn;
 
 	if(handle->m_vtable->init && (rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
@@ -89,7 +78,6 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 	}
 
 	scap_stop_dropping_mode(handle);
-
 	return SCAP_SUCCESS;
 }
 
@@ -103,6 +91,7 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 	const char* engine_name = oargs->engine_name;
 	struct scap_platform* platform = NULL;
 	const struct scap_vtable* vtable = NULL;
+	int32_t rc;
 
 	memset(handle, 0, sizeof(*handle));
 
@@ -216,7 +205,25 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform data");
 	}
 
-	return scap_init_int(handle, oargs, vtable, platform);
+	if((rc = scap_generic_init_platform(platform, handle->m_lasterr, oargs)) != SCAP_SUCCESS)
+	{
+		platform->m_vtable->free_platform(platform);
+		return rc;
+	}
+	handle->m_platform = platform;
+
+	rc = scap_init_int(handle, oargs, vtable);
+	if(rc != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	if((rc = scap_platform_init(platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	return SCAP_SUCCESS;
 }
 
 scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
