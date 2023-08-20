@@ -15,17 +15,3 @@ limitations under the License.
 #pragma once
 
 #define NODRIVER_ENGINE "nodriver"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-	struct scap_nodriver_engine_params
-	{
-		bool full_proc_scan; //< run a full /proc scan instead of the normal reduced one (no threads, no sockets)
-	};
-
-#ifdef __cplusplus
-};
-#endif

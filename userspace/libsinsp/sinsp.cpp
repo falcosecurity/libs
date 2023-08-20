@@ -642,11 +642,6 @@ void sinsp::open_nodriver(bool full_proc_scan)
 {
 #ifdef HAS_ENGINE_NODRIVER
 	scap_open_args oargs = factory_open_args(NODRIVER_ENGINE, SCAP_MODE_NODRIVER);
-	struct scap_nodriver_engine_params params;
-	params.full_proc_scan = full_proc_scan;
-
-	oargs.engine_params = &params;
-
 	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
 	if(platform)
 	{
