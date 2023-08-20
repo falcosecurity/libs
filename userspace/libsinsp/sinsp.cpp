@@ -706,6 +706,8 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 
 	// AFAICT this is because tinfo==NULL when calling the callback in scap_read_fdlist
 	struct scap_platform* platform = scap_savefile_alloc_platform(nullptr, nullptr);
+	params.platform = platform;
+
 	open_common(&oargs, &scap_savefile_engine, platform, SINSP_MODE_CAPTURE);
 #else
 	throw sinsp_exception("SAVEFILE engine is not supported in this build");

@@ -2210,11 +2210,13 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 	int res;
 	struct savefile_engine *handle = main_handle->m_engine.m_handle;
 	struct scap_savefile_engine_params* params = oargs->engine_params;
-	struct scap_platform *platform = main_handle->m_platform;
 	int fd = params->fd;
 	const char* fname = params->fname;
 	uint64_t start_offset = params->start_offset;
 	uint32_t fbuffer_size = params->fbuffer_size;
+
+	struct scap_platform *platform = params->platform;
+	handle->m_platform = params->platform;
 
 	if(fd != 0)
 	{
@@ -2329,7 +2331,7 @@ static int32_t scap_savefile_close(struct scap_engine_handle engine)
 static int32_t scap_savefile_restart_capture(scap_t* handle)
 {
 	struct savefile_engine *engine = handle->m_engine.m_handle;
-	struct scap_platform *platform = handle->m_platform;
+	struct scap_platform *platform = engine->m_platform;
 	int32_t res;
 
 	scap_platform_close(platform);
