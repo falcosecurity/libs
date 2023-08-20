@@ -97,10 +97,6 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 
 	memset(handle, 0, sizeof(*handle));
 
-	/* At the end of the `v-table` work we can use just one function
-	 * with an internal switch that selects the right vtable! For the moment
-	 * let's keep different functions.
-	 */
 #ifdef HAS_ENGINE_SAVEFILE
 	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
