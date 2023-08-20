@@ -14,6 +14,8 @@ limitations under the License.
 
 #pragma once
 
+#include "scap_procs.h"
+
 #define GVISOR_ENGINE "gvisor"
 
 #ifdef __cplusplus
@@ -31,7 +33,7 @@ extern "C"
 	};
 
 	struct scap_platform;
-	struct scap_platform* scap_gvisor_alloc_platform();
+	struct scap_platform* scap_gvisor_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context);
 
 #ifdef __cplusplus
 };

@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include <stdint.h>
+#include "scap_procs.h"
 
 #define SAVEFILE_ENGINE "savefile"
 
@@ -32,7 +33,8 @@ extern "C"
 	};
 
 	struct scap_platform;
-	struct scap_platform* scap_savefile_alloc_platform();
+	struct scap_platform* scap_savefile_alloc_platform(proc_entry_callback proc_callback,
+							   void* proc_callback_context);
 
 #ifdef __cplusplus
 };

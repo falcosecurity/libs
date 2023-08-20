@@ -2174,9 +2174,9 @@ static const struct scap_platform_vtable scap_savefile_platform_vtable = {
 	.free_platform = scap_savefile_free_platform,
 };
 
-struct scap_platform* scap_savefile_alloc_platform()
+struct scap_platform *scap_savefile_alloc_platform(proc_entry_callback proc_callback, void *proc_callback_context)
 {
-    struct scap_savefile_platform* platform = calloc(sizeof(*platform), 1);
+	struct scap_savefile_platform *platform = calloc(sizeof(*platform), 1);
 
 	if(platform == NULL)
 	{
@@ -2185,6 +2185,10 @@ struct scap_platform* scap_savefile_alloc_platform()
 
 	platform->m_generic.m_vtable = &scap_savefile_platform_vtable;
 	platform->m_generic.m_machine_info.num_cpus = (uint32_t)-1;
+
+	platform->m_generic.m_proclist.m_proc_callback = proc_callback;
+	platform->m_generic.m_proclist.m_proc_callback_context = proc_callback_context;
+	platform->m_generic.m_proclist.m_proclist = NULL;
 
 	return &platform->m_generic;
 }
