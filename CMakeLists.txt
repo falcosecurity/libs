@@ -38,6 +38,10 @@ if(POLICY CMP0042)
 	cmake_policy(SET CMP0042 NEW)
 endif()
 
+if(POLICY CMP0135)
+	cmake_policy(SET CMP0135 NEW)
+endif()
+
 project(falcosecurity-libs)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
