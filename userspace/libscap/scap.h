@@ -55,6 +55,7 @@ extern "C" {
 //
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
+struct scap_platform;
 struct scap_vtable;
 
 //
@@ -495,6 +496,8 @@ scap_t* scap_alloc(void);
   \ref scap_deinit on it.
 */
 int32_t scap_init(scap_t* handle, scap_open_args* oargs);
+struct scap_platform* scap_handle_alloc_platform(scap_t* handle, scap_open_args* oargs);
+int32_t scap_handle_init_engine(scap_t* handle, scap_open_args* oargs);
 
 /*!
   \brief Allocate and initialize a handle
