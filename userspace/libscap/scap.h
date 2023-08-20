@@ -55,6 +55,7 @@ extern "C" {
 //
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
+struct scap_vtable;
 
 //
 // Core types

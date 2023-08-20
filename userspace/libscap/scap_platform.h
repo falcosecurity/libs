@@ -25,6 +25,8 @@ limitations under the License.
 #endif
 #include "engine_handle.h"
 
+#include "scap_procs.h"
+
 // this header is designed to be useful to platform *users*
 
 #ifdef __cplusplus
@@ -36,16 +38,16 @@ struct scap_open_args;
 struct scap_platform;
 
 // allocate a generic platform handle with no behavior (no platform data is returned)
-struct scap_platform* scap_generic_alloc_platform();
+// Note: every platform alloc function needs to set up the proc_callback, since
+// this needs to be called before opening the engine; otherwise the proclist callback
+// won't be set up in time (for the savefile engine)
+struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context);
 
 // initialize the common part of the platform handle
-// this needs to be called before opening the engine
-// as otherwise the proclist callback won't be set up in time
-// (for the savefile engine)
 int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs);
 
 // initialize a platform handle
-// this calls `init_platform` from the vtable
+// this calls `scap_generic_init_platform` and `init_platform` from the vtable
 int32_t scap_platform_init(struct scap_platform *platform, char *lasterr, struct scap_engine_handle engine,
 			   struct scap_open_args *oargs);
 

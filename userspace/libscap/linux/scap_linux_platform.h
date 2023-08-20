@@ -101,7 +101,7 @@ struct scap_linux_platform
 	const struct scap_linux_vtable* m_linux_vtable;
 };
 
-struct scap_platform* scap_linux_alloc_platform();
+struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context);
 
 #ifdef __cplusplus
 };

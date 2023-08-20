@@ -37,7 +37,7 @@ limitations under the License.
 //
 // Still, to compile properly on non-Linux, provide an implementation
 // of scap_linux_alloc_platform() that always fails at runtime.
-struct scap_platform* scap_linux_alloc_platform()
+struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
 {
 	return NULL;
 }
@@ -89,6 +89,8 @@ scap_t* scap_alloc(void)
 int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 {
 	const char* engine_name = oargs->engine_name;
+	proc_entry_callback proc_callback = oargs->proc_callback;
+	void* proc_callback_context = oargs->proc_callback_context;
 	struct scap_platform* platform = NULL;
 	const struct scap_vtable* vtable = NULL;
 	int32_t rc;
@@ -103,21 +105,21 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
 		vtable = &scap_savefile_engine;
-		platform = scap_savefile_alloc_platform();
+		platform = scap_savefile_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_UDIG
 	if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
 		vtable = &scap_udig_engine;
-		platform = scap_linux_alloc_platform();
+		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
 	if(strcmp(engine_name, GVISOR_ENGINE) == 0)
 	{
 		vtable = &scap_gvisor_engine;
-		platform = scap_gvisor_alloc_platform();
+		platform = scap_gvisor_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_TEST_INPUT
@@ -126,11 +128,11 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		vtable = &scap_test_input_engine;
 		if(oargs->mode == SCAP_MODE_LIVE)
 		{
-			platform = scap_linux_alloc_platform();
+			platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 		}
 		else
 		{
-			platform = scap_test_input_alloc_platform();
+			platform = scap_test_input_alloc_platform(proc_callback, proc_callback_context);
 		}
 	}
 #endif
@@ -138,7 +140,7 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 	if(strcmp(engine_name, KMOD_ENGINE) == 0)
 	{
 		vtable = &scap_kmod_engine;
-		platform = scap_linux_alloc_platform();
+		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 		if(platform)
 		{
 			((struct scap_linux_platform*)platform)->m_linux_vtable = &scap_kmod_linux_vtable;
@@ -149,21 +151,21 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 	if(strcmp(engine_name, BPF_ENGINE) == 0)
 	{
 		vtable = &scap_bpf_engine;
-		platform = scap_linux_alloc_platform();
+		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		vtable = &scap_modern_bpf_engine;
-		platform = scap_linux_alloc_platform();
+		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 	}
 #endif
 #ifdef HAS_ENGINE_NODRIVER
 	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
 		vtable = &scap_nodriver_engine;
-		platform = scap_linux_alloc_platform();
+		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 		struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
 
 		if(platform)
@@ -176,7 +178,7 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		}
 		else
 		{
-			platform = scap_generic_alloc_platform();
+			platform = scap_generic_alloc_platform(proc_callback, proc_callback_context);
 		}
 	}
 #endif
@@ -186,11 +188,11 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		vtable = &scap_source_plugin_engine;
 		if(oargs->mode == SCAP_MODE_LIVE)
 		{
-			platform = scap_linux_alloc_platform();
+			platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
 		}
 		else
 		{
-			platform = scap_generic_alloc_platform();
+			platform = scap_generic_alloc_platform(proc_callback, proc_callback_context);
 		}
 	}
 #endif

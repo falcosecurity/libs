@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "scap_test.h"
+#include "scap_procs.h"
 
 #define TEST_INPUT_ENGINE "test_input"
 
@@ -29,7 +30,8 @@ extern "C"
 	};
 
 	struct scap_platform;
-	struct scap_platform* scap_test_input_alloc_platform();
+	struct scap_platform* scap_test_input_alloc_platform(proc_entry_callback proc_callback,
+							     void* proc_callback_context);
 #ifdef __cplusplus
 };
 #endif

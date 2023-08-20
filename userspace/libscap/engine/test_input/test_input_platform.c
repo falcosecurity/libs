@@ -83,7 +83,7 @@ static const struct scap_platform_vtable scap_test_input_platform = {
 	.is_thread_alive = scap_test_input_is_thread_alive,
 };
 
-struct scap_platform* scap_test_input_alloc_platform()
+struct scap_platform* scap_test_input_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
 {
 	struct scap_test_input_platform* platform = calloc(sizeof(*platform), 1);
 
@@ -94,6 +94,10 @@ struct scap_platform* scap_test_input_alloc_platform()
 
 	struct scap_platform* generic = &platform->m_generic;
 	generic->m_vtable = &scap_test_input_platform;
+
+	platform->m_generic.m_proclist.m_proc_callback = proc_callback;
+	platform->m_generic.m_proclist.m_proc_callback_context = proc_callback_context;
+	platform->m_generic.m_proclist.m_proclist = NULL;
 
 	return generic;
 }

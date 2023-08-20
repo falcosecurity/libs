@@ -26,9 +26,6 @@ int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr
 {
 	memset(&platform->m_machine_info, 0, sizeof(platform->m_machine_info));
 	memset(&platform->m_agent_info, 0, sizeof(platform->m_agent_info));
-	platform->m_proclist.m_proc_callback = oargs->proc_callback;
-	platform->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	platform->m_proclist.m_proclist = NULL;
 
 	return SCAP_SUCCESS;
 }
@@ -67,7 +64,7 @@ struct scap_platform_vtable scap_generic_platform_vtable = {
 	.free_platform = scap_generic_free_platform,
 };
 
-struct scap_platform* scap_generic_alloc_platform()
+struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
 {
 	struct scap_platform* platform = calloc(sizeof(*platform), 1);
 
@@ -77,6 +74,11 @@ struct scap_platform* scap_generic_alloc_platform()
 	}
 
 	platform->m_vtable = &scap_generic_platform_vtable;
+
+	platform->m_proclist.m_proc_callback = proc_callback;
+	platform->m_proclist.m_proc_callback_context = proc_callback_context;
+	platform->m_proclist.m_proclist = NULL;
+
 	return platform;
 }
 
