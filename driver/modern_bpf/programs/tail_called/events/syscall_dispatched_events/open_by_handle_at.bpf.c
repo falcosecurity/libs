@@ -77,6 +77,8 @@ int BPF_PROG(open_by_handle_at_x,
 			flags |= PPM_O_F_CREATED;
 	}
 
+	auxmap__store_u32_param(auxmap, flags);
+
 	/* Parameter 4: path (type: PT_FSPATH) */
 	/* We collect the file path from the file descriptor only if it is valid */
 	if(ret > 0)
