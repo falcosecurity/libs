@@ -311,12 +311,10 @@ out_unlock:
 #endif /* UDIG */
 }
 
-static inline void get_fd_created_flag(int64_t fd, unsigned long* flags)
+static inline void get_fd_fmode_created(int64_t fd, unsigned long* flags)
 {
-#ifdef UDIG
-	return;
-#else
-#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
+/* FMODE_CREATED flag was introduced in kernel 4.19 and it's not present in earlier versions */
+#if !defined(UDIG) && (LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0))
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct file *file;
@@ -342,11 +340,8 @@ static inline void get_fd_created_flag(int64_t fd, unsigned long* flags)
 
 out_unlock:
 	spin_unlock(&files->file_lock);
-	return;
-#else
-	return;
 #endif
-#endif /* UDIG */
+	return;
 }
 
 int f_sys_open_e(struct event_filler_arguments *args)
@@ -424,7 +419,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 1, 1, &flags);
 	flags = open_flags_to_scap(flags);	
 	/* update flags if file created */
-	get_fd_created_flag(retval, &flags);
+	get_fd_fmode_created(retval, &flags);
 	res = val_to_ring(args, flags, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3704,7 +3699,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 2, 1, &flags);
 	flags = open_flags_to_scap(flags);	
 	/* update flags if file created */
-	get_fd_created_flag(retval, &flags);
+	get_fd_fmode_created(retval, &flags);
 	res = val_to_ring(args, flags, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5139,7 +5134,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */	
 	/* update flags if file created */
-	get_fd_created_flag(retval, &flags);
+	get_fd_fmode_created(retval, &flags);
 	res = val_to_ring(args, flags, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5249,7 +5244,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	flags = open_flags_to_scap(val);
 	/* update flags if file created */
-	get_fd_created_flag(retval, &flags);
+	get_fd_fmode_created(retval, &flags);
 	res = val_to_ring(args, flags, 0, false, 0);
 	CHECK_RES(res);
 

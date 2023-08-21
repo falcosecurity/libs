@@ -376,17 +376,9 @@ FILLER(sys_open_x, true)
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data, 1);
-	flags = open_flags_to_scap(val);	
-#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
-	file = bpf_fget(retval);
-	if (file)
-	{
-		/* update flags if file created */
-		fmode_t fmode = _READ(file->f_mode);
-		if (fmode & FMODE_CREATED)
-			flags |= PPM_O_F_CREATED;
-	}
-#endif
+	flags = open_flags_to_scap(val);
+	/* update flags if file is created*/	
+	flags |= bpf_get_fd_fmode_created(retval);
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3083,16 +3075,8 @@ FILLER(sys_openat_x, true)
 	 */
 	val = bpf_syscall_get_argument(data, 2);
 	flags = open_flags_to_scap(val);
-#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
-	file = bpf_fget(retval);
-	if (file)
-	{
-		/* update flags if file created */
-		fmode_t fmode = _READ(file->f_mode);
-		if (fmode & FMODE_CREATED)
-			flags |= PPM_O_F_CREATED;
-	}
-#endif
+	/* update flags if file is created*/	
+	flags |= bpf_get_fd_fmode_created(retval);
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3241,16 +3225,8 @@ FILLER(sys_openat2_x, true)
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
-	file = bpf_fget(retval);
-	if (file)
-	{
-		/* update flags if file created */
-		fmode_t fmode = _READ(file->f_mode);
-		if (fmode & FMODE_CREATED)
-			flags |= PPM_O_F_CREATED;
-	}
-#endif
+	/* update flags if file is created*/	
+	flags |= bpf_get_fd_fmode_created(retval);
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
@@ -3289,16 +3265,8 @@ FILLER(sys_open_by_handle_at_x, true)
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	u32 flags = (u32)bpf_syscall_get_argument(data, 2);
 	flags = (u32)open_flags_to_scap(flags);
-#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
-	file = bpf_fget(retval);
-	if (file)
-	{
-		/* update flags if file created */
-		fmode_t fmode = _READ(file->f_mode);
-		if (fmode & FMODE_CREATED)
-			flags |= PPM_O_F_CREATED;
-	}
-#endif
+	/* update flags if file is created*/	
+	flags |= bpf_get_fd_fmode_created(retval);
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 	

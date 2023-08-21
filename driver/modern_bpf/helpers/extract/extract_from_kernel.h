@@ -257,20 +257,25 @@ static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, u64
 }
 
 /**
- * \brief Extract the file mode from a file descriptor.
+ * \brief Extract the file mode created flag from a file descriptor.
  *
  * @param fd generic file descriptor.
- * @param mode pointer to file mode we have to fill.
+ * @return PPM_O_F_CREATED if file is created.
  */
-static __always_inline void extract__mode_from_fd(s32 fd, fmode_t *mode)
+static __always_inline u32 extract__fmode_created_from_fd(s32 fd)
 {
 	struct file *f = extract__file_struct_from_fd(fd);
 	if(!f)
 	{
-		return;
+		return 0;
 	}
 
-	BPF_CORE_READ_INTO(mode, f, f_mode);
+	u32 mode = BPF_CORE_READ(f, f_mode);
+
+	if(mode & FMODE_CREATED)
+		return PPM_O_F_CREATED;
+
+	return 0;
 }
 
 /**
