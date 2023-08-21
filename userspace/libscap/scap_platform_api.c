@@ -24,11 +24,11 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 
-scap_addrlist* scap_get_ifaddr_list(scap_t* handle)
+scap_addrlist* scap_get_ifaddr_list(struct scap_platform* platform)
 {
-	if (handle && handle->m_platform)
+	if (platform)
 	{
-		return handle->m_platform->m_addrlist;
+		return platform->m_addrlist;
 	}
 
 	return NULL;

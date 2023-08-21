@@ -32,6 +32,7 @@ struct ppm_proclist_info;
 struct scap;
 struct scap_addrlist;
 struct _scap_machine_info;
+struct scap_platform;
 struct scap_threadinfo;
 typedef struct _scap_agent_info scap_agent_info;
 
@@ -39,12 +40,12 @@ typedef struct _scap_agent_info scap_agent_info;
   \brief Return the list of the the user interfaces of the machine from which the
   events are being captured.
 
-  \param handle Handle to the capture instance.
+  \param platform Handle to the platform instance.
 
   \return The pointer to a \ref scap_addrlist structure containing the interface list,
   or NULL if the function fails.
 */
-struct scap_addrlist* scap_get_ifaddr_list(struct scap* handle);
+struct scap_addrlist* scap_get_ifaddr_list(struct scap_platform* platform);
 
 void scap_refresh_iflist(struct scap* handle);
 

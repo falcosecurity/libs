@@ -1138,7 +1138,7 @@ void sinsp::import_thread_table()
 void sinsp::import_ifaddr_list()
 {
 	m_network_interfaces.clear();
-	m_network_interfaces.import_interfaces(scap_get_ifaddr_list(m_h));
+	m_network_interfaces.import_interfaces(scap_get_ifaddr_list(get_scap_platform()));
 }
 
 const sinsp_network_interfaces& sinsp::get_ifaddr_list()
@@ -1176,8 +1176,7 @@ void sinsp::refresh_ifaddr_list()
 	if(is_live() || is_syscall_plugin())
 	{
 		scap_refresh_iflist(m_h);
-		m_network_interfaces.clear();
-		m_network_interfaces.import_interfaces(scap_get_ifaddr_list(m_h));
+		import_ifaddr_list();
 	}
 #endif
 }
