@@ -1811,6 +1811,33 @@ void sinsp::stop_capture()
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
 	}
+
+	/* Print scap stats */
+	print_capture_stats(sinsp_logger::SEV_DEBUG);
+
+	/* Print the number of threads and fds in our tables */
+	uint64_t thread_cnt = 0;
+	uint64_t fd_cnt = 0;
+	m_thread_manager->m_threadtable.loop([&thread_cnt, &fd_cnt] (sinsp_threadinfo& tinfo) {
+		thread_cnt++;
+
+		/* Only main threads have an associated fdtable */
+		if(tinfo.is_main_thread())
+		{
+			auto fdtable_ptr = tinfo.get_fd_table();
+			if(fdtable_ptr != nullptr)
+			{
+				fd_cnt += fdtable_ptr->size();
+			}
+		}
+		return true;
+	});
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+		"total threads in the table:%" PRIu64
+		", total fds in all threads:%" PRIu64
+		"\n",
+		thread_cnt,
+		fd_cnt); 
 }
 
 void sinsp::start_capture()
