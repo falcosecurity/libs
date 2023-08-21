@@ -19,7 +19,6 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "scap.h"
-#include "scap-int.h" // for scap_t->m_platform
 #include "dumper.h"
 
 sinsp_dumper::sinsp_dumper()
@@ -55,12 +54,12 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 
 	if(m_target_memory_buffer)
 	{
-		m_dumper = scap_memory_dump_open(inspector->m_h->m_platform, m_target_memory_buffer, m_target_memory_buffer_size, error);
+		m_dumper = scap_memory_dump_open(inspector->get_scap_platform(), m_target_memory_buffer, m_target_memory_buffer_size, error);
 	}
 	else
 	{
 		auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
-		m_dumper = scap_dump_open(inspector->m_h->m_platform, filename.c_str(), compress_mode, threads_from_sinsp, error);
+		m_dumper = scap_dump_open(inspector->get_scap_platform(), filename.c_str(), compress_mode, threads_from_sinsp, error);
 	}
 
 	if(m_dumper == nullptr)
@@ -89,7 +88,7 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress, bool threads_
 	}
 
 	auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
-	m_dumper = scap_dump_open_fd(inspector->m_h->m_platform, fd, compress_mode, threads_from_sinsp, error);
+	m_dumper = scap_dump_open_fd(inspector->get_scap_platform(), fd, compress_mode, threads_from_sinsp, error);
 
 	if(m_dumper == nullptr)
 	{
