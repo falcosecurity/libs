@@ -52,12 +52,12 @@ void scap_refresh_iflist(struct scap_platform* platform);
 /*!
   \brief Return the machine user and group lists
 
-  \param handle Handle to the capture instance.
+  \param platform Handle to the platform instance.
 
   \return The pointer to a \ref scap_userlist structure containing the user and
   group lists, or NULL if the function fails.
 */
-struct scap_userlist* scap_get_user_list(struct scap* handle);
+struct scap_userlist* scap_get_user_list(struct scap_platform* platform);
 
 // get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
 // XXX: procdir is Linux-specific

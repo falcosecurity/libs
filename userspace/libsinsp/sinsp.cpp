@@ -1154,7 +1154,7 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 void sinsp::import_user_list()
 {
 	uint32_t j;
-	scap_userlist* ul = scap_get_user_list(m_h);
+	scap_userlist* ul = scap_get_user_list(get_scap_platform());
 
 	if(ul)
 	{
