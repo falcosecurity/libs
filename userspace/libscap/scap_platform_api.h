@@ -72,7 +72,7 @@ int32_t scap_refresh_proc_table(struct scap_platform* platform);
 /*!
   \brief Get the process list for the given capture instance
 
-  \param handle Handle to the capture instance.
+  \param platform Handle to the platform instance.
 
   \return Pointer to the process list.
 
@@ -95,7 +95,7 @@ int32_t scap_refresh_proc_table(struct scap_platform* platform);
   Refer to the documentation of the \ref scap_threadinfo struct for details about its
   content.
 */
-struct scap_threadinfo* scap_get_proc_table(struct scap* handle);
+struct scap_threadinfo* scap_get_proc_table(struct scap_platform* platform);
 
 // Check if the given thread exists in /proc
 bool scap_is_thread_alive(struct scap* handle, int64_t pid, int64_t tid, const char* comm);
