@@ -2151,7 +2151,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
 #ifdef HAS_ANALYZER
             uint64_t ts = sinsp_utils::get_current_time_ns();
 #endif
-            scap_proc = scap_proc_get(m_inspector->m_h, tid, scan_sockets);
+            scap_proc = scap_proc_get(m_inspector->get_scap_platform(), tid, scan_sockets);
 #ifdef HAS_ANALYZER
             m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
 #endif

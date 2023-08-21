@@ -62,11 +62,11 @@ uint32_t scap_get_device_by_mount_id(struct scap_platform* platform, const char 
 	return 0;
 }
 
-struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
+struct scap_threadinfo* scap_proc_get(struct scap_platform* platform, int64_t tid, bool scan_sockets)
 {
-	if (handle && handle->m_platform && handle->m_platform->m_vtable->get_proc)
+	if (platform && platform->m_vtable->get_proc)
 	{
-		return handle->m_platform->m_vtable->get_proc(handle->m_platform, &handle->m_platform->m_proclist, tid, scan_sockets);
+		return platform->m_vtable->get_proc(platform, &platform->m_proclist, tid, scan_sockets);
 	}
 
 	return NULL;
