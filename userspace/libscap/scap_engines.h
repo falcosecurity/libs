@@ -18,6 +18,10 @@ limitations under the License.
 
 #pragma once
 
+#ifndef SCAP_HANDLE_T
+#define SCAP_HANDLE_T void
+#endif
+
 #include "scap_vtable.h"
 #include "scap_config.h"
 

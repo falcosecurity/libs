@@ -495,8 +495,8 @@ scap_t* scap_alloc(void);
   If this function fails, the only thing you can safely do with the handle is to call
   \ref scap_deinit on it.
 */
-int32_t scap_init(scap_t* handle, scap_open_args* oargs, struct scap_platform* platform);
-int32_t scap_handle_init_engine(scap_t* handle, scap_open_args* oargs);
+int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable,
+		  struct scap_platform* platform);
 
 /*!
   \brief Allocate and initialize a handle
@@ -517,7 +517,8 @@ int32_t scap_handle_init_engine(scap_t* handle, scap_open_args* oargs);
 
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open(scap_open_args* oargs, struct scap_platform* platform, char* error, int32_t* rc);
+scap_t* scap_open(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform, char* error,
+		  int32_t* rc);
 
 /*!
   \brief Deinitialize a capture handle.

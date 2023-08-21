@@ -81,7 +81,6 @@ extern "C"
 
 	typedef struct scap_open_args
 	{
-		const char* engine_name;				 ///< engine name ("kmod", "bpf", ...).
 		scap_mode_t mode;					 ///< scap-mode required by the engine.
 		bool import_users;					 ///< true if the user list should be created when opening the capture.
 		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.

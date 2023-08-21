@@ -1,4 +1,5 @@
 #include <scap.h>
+#include <scap_engines.h>
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <syscall.h>
@@ -7,7 +8,6 @@
 scap_t* open_modern_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, uint16_t cpus_for_each_buffer, bool online_only, std::unordered_set<uint32_t> ppm_sc_set = {})
 {
 	struct scap_open_args oargs = {
-		.engine_name = MODERN_BPF_ENGINE,
 		.mode = SCAP_MODE_LIVE,
 	};
 
@@ -35,7 +35,7 @@ scap_t* open_modern_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffe
 	};
 	oargs.engine_params = &modern_bpf_params;
 
-	return scap_open(&oargs, nullptr, error_buf, rc);
+	return scap_open(&oargs, &scap_modern_bpf_engine, nullptr, error_buf, rc);
 }
 
 TEST(modern_bpf, open_engine)

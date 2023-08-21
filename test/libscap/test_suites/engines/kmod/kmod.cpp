@@ -1,4 +1,5 @@
 #include <scap.h>
+#include <scap_engines.h>
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <helpers/engines.h>
@@ -67,7 +68,6 @@ int insert_kmod(const char* kmod_path, char* error_buf)
 scap_t* open_kmod_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, const char* kmod_path, std::unordered_set<uint32_t> ppm_sc_set = {})
 {
 	struct scap_open_args oargs = {
-		.engine_name = KMOD_ENGINE,
 		.mode = SCAP_MODE_LIVE,
 	};
 
@@ -104,7 +104,7 @@ scap_t* open_kmod_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim,
 	};
 	oargs.engine_params = &kmod_params;
 
-	return scap_open(&oargs, nullptr, error_buf, rc);
+	return scap_open(&oargs, &scap_kmod_engine, nullptr, error_buf, rc);
 }
 
 TEST(kmod, open_engine)

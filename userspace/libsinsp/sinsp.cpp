@@ -28,6 +28,7 @@ limitations under the License.
 #endif // _WIN32
 
 #include "scap_config.h"
+#include "scap_engines.h"
 #include "scap_open_exception.h"
 #include "scap_platform.h"
 #include "sinsp.h"
@@ -462,7 +463,7 @@ void sinsp::set_import_users(bool import_users)
 
 /*=============================== OPEN METHODS ===============================*/
 
-void sinsp::open_common(scap_open_args* oargs, struct scap_platform* platform)
+void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform)
 {
 	g_logger.log("Trying to open the right engine!");
 
@@ -487,7 +488,7 @@ void sinsp::open_common(scap_open_args* oargs, struct scap_platform* platform)
 		throw scap_open_exception("failed to allocate scap handle", SCAP_FAILURE);
 	}
 
-	int32_t scap_rc = scap_init(m_h, oargs, platform);
+	int32_t scap_rc = scap_init(m_h, oargs, vtable, platform);
 	if(scap_rc != SCAP_SUCCESS)
 	{
 		std::string error = scap_getlasterr(m_h);
@@ -532,7 +533,6 @@ void sinsp::open_common(scap_open_args* oargs, struct scap_platform* platform)
 scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t scap_mode)
 {
 	scap_open_args oargs{};
-	oargs.engine_name = engine_name;
 	oargs.mode = scap_mode;
 	return oargs;
 }
@@ -592,7 +592,7 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::eve
 		linux_plat->m_linux_vtable = &scap_kmod_linux_vtable;
 	}
 
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_kmod_engine, platform);
 #else
 	throw sinsp_exception("KMOD engine is not supported in this build");
 #endif
@@ -619,7 +619,7 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 	oargs.engine_params = &params;
 
 	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_bpf_engine, platform);
 #else
 	throw sinsp_exception("BPF engine is not supported in this build");
 #endif
@@ -631,7 +631,7 @@ void sinsp::open_udig()
 	scap_open_args oargs = factory_open_args(UDIG_ENGINE, SCAP_MODE_LIVE);
 
 	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_udig_engine, platform);
 
 #else
 	throw sinsp_exception("UDIG engine is not supported in this build");
@@ -662,7 +662,7 @@ void sinsp::open_nodriver(bool full_proc_scan)
 		platform = scap_generic_alloc_platform(::on_new_entry_from_proc, this);
 	}
 
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_nodriver_engine, platform);
 #else
 	throw sinsp_exception("NODRIVER engine is not supported in this build");
 #endif
@@ -708,7 +708,7 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 
 	// AFAICT this is because tinfo==NULL when calling the callback in scap_read_fdlist
 	struct scap_platform* platform = scap_savefile_alloc_platform(nullptr, nullptr);
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_savefile_engine, platform);
 #else
 	throw sinsp_exception("SAVEFILE engine is not supported in this build");
 #endif
@@ -736,7 +736,7 @@ void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugi
 		default:
 			throw sinsp_exception("Unsupported mode for SOURCE_PLUGIN engine");
 	}
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_source_plugin_engine, platform);
 #else
 	throw sinsp_exception("SOURCE_PLUGIN engine is not supported in this build");
 #endif
@@ -759,7 +759,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	oargs.engine_params = &params;
 
 	struct scap_platform* platform = scap_gvisor_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_gvisor_engine, platform);
 
 	set_get_procs_cpu_from_driver(false);
 #else
@@ -784,7 +784,7 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	oargs.engine_params = &params;
 
 	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_modern_bpf_engine, platform);
 #else
 	throw sinsp_exception("MODERN_BPF engine is not supported in this build");
 #endif
@@ -810,7 +810,7 @@ void sinsp::open_test_input(scap_test_input_data* data, scap_mode_t mode)
 	default:
 		throw sinsp_exception("Unsupported mode for TEST_INPUT engine");
 	}
-	open_common(&oargs, platform);
+	open_common(&oargs, &scap_test_input_engine, platform);
 
 	set_get_procs_cpu_from_driver(false);
 #else
