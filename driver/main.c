@@ -591,7 +591,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 		goto cleanup_release;
 	}
 
-	vpr_info("closing ring %d, consumer:%p evt:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, dr_buf_open_x:%llu, dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, dr_buf_other_e:%llu, dr_buf_other_x:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+	vpr_info("closing ring %d, consumer:%p evt:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, dr_buf_open_x:%llu, dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, dr_buf_other_e:%llu, dr_buf_other_x:%llu, dr_buf_close_exit:%llu, dr_buf_proc_exit:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	       ring_no,
 	       consumer_id,
 	       ring->info->n_evts,
@@ -608,6 +608,8 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	       ring->info->n_drops_buffer_dir_file_exit,
 	       ring->info->n_drops_buffer_other_interest_enter,
 	       ring->info->n_drops_buffer_other_interest_exit,
+	       ring->info->n_drops_buffer_close_exit,	
+	       ring->info->n_drops_buffer_proc_exit,
 	       ring->info->n_drops_pf,
 	       ring->info->n_preemptions,
 	       ring->info->n_context_switches);
@@ -1520,6 +1522,10 @@ static inline void drops_buffer_syscall_categories_counters(ppm_event_code event
 	case PPME_SYSCALL_CAPSET_E:
 		ring_info->n_drops_buffer_other_interest_enter++;
 		break;
+	case PPME_PROCEXIT_E:
+	case PPME_PROCEXIT_1_E:
+		ring_info->n_drops_buffer_proc_exit++;
+		break;			
 	// exit
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
@@ -1591,6 +1597,9 @@ static inline void drops_buffer_syscall_categories_counters(ppm_event_code event
 	case PPME_SYSCALL_UNSHARE_X:
 	case PPME_SYSCALL_CAPSET_X:
 		ring_info->n_drops_buffer_other_interest_exit++;
+		break;
+	case PPME_SYSCALL_CLOSE_X:
+		ring_info->n_drops_buffer_close_exit++;
 		break;
 	default:
 		break;
@@ -2088,7 +2097,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	}
 
 	if (MORE_THAN_ONE_SECOND_AHEAD(ns, ring->last_print_time + 1) && !(drop_flags & UF_ATOMIC)) {
-		vpr_info("consumer:%p CPU:%d, use:%lu%%, ev:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, dr_buf_open_x:%llu, dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, dr_buf_other_e:%llu, dr_buf_other_x:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
+		vpr_info("consumer:%p CPU:%d, use:%lu%%, ev:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, dr_buf_open_x:%llu, dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, dr_buf_other_e:%llu, dr_buf_other_x:%llu, dr_buf_close_exit:%llu, dr_buf_proc_exit:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
 		       smp_processor_id(),
 		       (usedspace * 100) / consumer->buffer_bytes_dim,
@@ -2106,6 +2115,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		       ring_info->n_drops_buffer_dir_file_exit,
 		       ring_info->n_drops_buffer_other_interest_enter,
 		       ring_info->n_drops_buffer_other_interest_exit,
+		       ring->info->n_drops_buffer_close_exit,
+		       ring->info->n_drops_buffer_proc_exit,
 		       ring_info->n_drops_pf,
 		       ring_info->n_preemptions,
 		       ring->info->n_context_switches);
@@ -2620,6 +2631,8 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 	ring->info->n_drops_buffer_dir_file_exit = 0;
 	ring->info->n_drops_buffer_other_interest_enter = 0;
 	ring->info->n_drops_buffer_other_interest_exit = 0;
+	ring->info->n_drops_buffer_close_exit = 0;
+	ring->info->n_drops_buffer_proc_exit = 0;
 	ring->info->n_drops_pf = 0;
 	ring->info->n_preemptions = 0;
 	ring->info->n_context_switches = 0;

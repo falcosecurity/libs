@@ -64,6 +64,8 @@ static const char * const bpf_kernel_counters_stats_names[] = {
 	[BPF_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
 	[BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
 	[BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
+	[BPF_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
+	[BPF_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
 	[BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
 	[BPF_N_DROPS_PAGE_FAULTS] = "n_drops_page_faults",
 	[BPF_N_DROPS_BUG] = "n_drops_bug",
@@ -1654,6 +1656,8 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 		stats->n_drops_buffer_dir_file_exit += v.n_drops_buffer_dir_file_exit;
 		stats->n_drops_buffer_other_interest_enter += v.n_drops_buffer_other_interest_enter;
 		stats->n_drops_buffer_other_interest_exit += v.n_drops_buffer_other_interest_exit;
+		stats->n_drops_buffer_close_exit += v.n_drops_buffer_close_exit;
+		stats->n_drops_buffer_proc_exit += v.n_drops_buffer_proc_exit;
 		stats->n_drops_scratch_map += v.n_drops_scratch_map;
 		stats->n_drops_pf += v.n_drops_pf;
 		stats->n_drops_bug += v.n_drops_bug;
@@ -1714,6 +1718,8 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 			stats[BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += v.n_drops_buffer_dir_file_exit;
 			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += v.n_drops_buffer_other_interest_enter;
 			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += v.n_drops_buffer_other_interest_exit;
+			stats[BPF_N_DROPS_BUFFER_CLOSE_EXIT].value.u64 += v.n_drops_buffer_close_exit;
+			stats[BPF_N_DROPS_BUFFER_PROC_EXIT].value.u64 += v.n_drops_buffer_proc_exit;
 			stats[BPF_N_DROPS_SCRATCH_MAP].value.u64 += v.n_drops_scratch_map;
 			stats[BPF_N_DROPS_PAGE_FAULTS].value.u64 += v.n_drops_pf;
 			stats[BPF_N_DROPS_BUG].value.u64 += v.n_drops_bug;

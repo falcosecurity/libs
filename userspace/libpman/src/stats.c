@@ -35,6 +35,8 @@ typedef enum modern_bpf_kernel_counters_stats
 	MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT,
 	MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER,
 	MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT,
+	MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT,
+	MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT,
 	MODERN_BPF_N_DROPS_SCRATCH_MAP,
 	MODERN_BPF_N_DROPS,
 	MODERN_BPF_MAX_KERNEL_COUNTERS_STATS
@@ -63,6 +65,8 @@ const char *const modern_bpf_kernel_counters_stats_names[] = {
 	[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
 	[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
 	[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
+	[MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
+	[MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
 	[MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
 	[MODERN_BPF_N_DROPS] = "n_drops",
 };
@@ -121,6 +125,8 @@ int pman_get_scap_stats(struct scap_stats *stats)
 		stats->n_drops_buffer_dir_file_enter += cnt_map.n_drops_buffer_dir_file_enter;
 		stats->n_drops_buffer_dir_file_exit += cnt_map.n_drops_buffer_dir_file_exit;
 		stats->n_drops_buffer_other_interest_enter += cnt_map.n_drops_buffer_other_interest_enter;
+		stats->n_drops_buffer_close_exit += cnt_map.n_drops_buffer_close_exit;
+		stats->n_drops_buffer_proc_exit += cnt_map.n_drops_buffer_proc_exit;
 		stats->n_drops_buffer_other_interest_exit += cnt_map.n_drops_buffer_other_interest_exit;
 		stats->n_drops_scratch_map += cnt_map.n_drops_max_event_size;
 		stats->n_drops += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
@@ -198,6 +204,8 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += cnt_map.n_drops_buffer_dir_file_exit;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += cnt_map.n_drops_buffer_other_interest_enter;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += cnt_map.n_drops_buffer_other_interest_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT].value.u64 += cnt_map.n_drops_buffer_close_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT].value.u64 += cnt_map.n_drops_buffer_proc_exit;
 			g_state.stats[MODERN_BPF_N_DROPS_SCRATCH_MAP].value.u64 += cnt_map.n_drops_max_event_size;
 			g_state.stats[MODERN_BPF_N_DROPS].value.u64 += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 		}

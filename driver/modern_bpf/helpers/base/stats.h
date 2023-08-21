@@ -95,6 +95,10 @@ static __always_inline void compute_event_types_stats(u16 event_type, struct cou
 	case PPME_SYSCALL_CAPSET_E:
 		counter->n_drops_buffer_other_interest_enter++;
 		break;
+	case PPME_PROCEXIT_E:
+	case PPME_PROCEXIT_1_E:
+		counter->n_drops_buffer_proc_exit++;
+		break;		
 	// exit
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
@@ -167,6 +171,9 @@ static __always_inline void compute_event_types_stats(u16 event_type, struct cou
 	case PPME_SYSCALL_CAPSET_X:
 		counter->n_drops_buffer_other_interest_exit++;
 		break;
+	case PPME_SYSCALL_CLOSE_X:
+		counter->n_drops_buffer_close_exit++;
+		break;		
 	default:
 		break;
 	}

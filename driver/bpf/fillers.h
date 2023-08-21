@@ -190,6 +190,12 @@ FILLER_RAW(terminate_filler)
 					++state->n_drops_buffer_other_interest_enter;
 				}
 				break;
+			case PPME_PROCEXIT_E:
+			case PPME_PROCEXIT_1_E:
+				if (state->n_drops_buffer_proc_exit != ULLONG_MAX) {
+					++state->n_drops_buffer_proc_exit;
+				}
+				break;
 			// exit
 			case PPME_SYSCALL_OPEN_X:
 			case PPME_SYSCALL_CREAT_X:
@@ -272,6 +278,11 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_CAPSET_X:
 				if (state->n_drops_buffer_other_interest_exit != ULLONG_MAX) {
 					++state->n_drops_buffer_other_interest_exit;
+				}
+				break;
+			case PPME_SYSCALL_CLOSE_X:
+				if (state->n_drops_buffer_close_exit != ULLONG_MAX) {
+					++state->n_drops_buffer_close_exit;
 				}
 				break;
 			default:

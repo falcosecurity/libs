@@ -100,7 +100,7 @@ typedef struct ppm_evt_hdr scap_evt;
 // call `scap_get_driver_api_version()` and/or `scap_get_driver_schema_version()`
 // and handle the result
 //
-#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(4, 0, 0)
+#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(5, 0, 0)
 #define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(2, 0, 0)
 
 // 
@@ -140,6 +140,8 @@ typedef struct scap_stats
 	uint64_t n_drops_buffer_dir_file_exit;
 	uint64_t n_drops_buffer_other_interest_enter;
 	uint64_t n_drops_buffer_other_interest_exit;
+	uint64_t n_drops_buffer_close_exit;
+	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_scratch_map; ///< Number of dropped events caused by full frame scratch map.
 	uint64_t n_drops_pf; ///< Number of dropped events caused by invalid memory access.
 	uint64_t n_drops_bug; ///< Number of dropped events caused by an invalid condition in the kernel instrumentation.

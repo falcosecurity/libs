@@ -74,5 +74,7 @@ struct counter_map
 	uint64_t n_drops_buffer_dir_file_exit;
 	uint64_t n_drops_buffer_other_interest_enter;
 	uint64_t n_drops_buffer_other_interest_exit;	 /* Category of other system calls of interest, not all other system calls that did not match a category from above. */
+	uint64_t n_drops_buffer_close_exit;
+	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */
 };
