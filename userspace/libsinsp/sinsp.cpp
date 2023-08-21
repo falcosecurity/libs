@@ -337,7 +337,7 @@ void sinsp::init()
 	//
 	// Retrieve machine information
 	//
-	m_machine_info = scap_get_machine_info(m_h);
+	m_machine_info = scap_get_machine_info(get_scap_platform());
 	if(m_machine_info != NULL)
 	{
 		m_num_cpus = m_machine_info->num_cpus;
@@ -1040,7 +1040,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 	// Retrieve machine information if we don't have it yet
 	//
 	{
-		m_machine_info = scap_get_machine_info(m_h);
+		m_machine_info = scap_get_machine_info(get_scap_platform());
 		if(m_machine_info != NULL)
 		{
 			m_num_cpus = m_machine_info->num_cpus;
