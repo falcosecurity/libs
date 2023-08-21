@@ -316,6 +316,7 @@ static inline void get_fd_created_flag(int64_t fd, unsigned long* flags)
 #ifdef UDIG
 	return;
 #else
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct file *file;
@@ -342,6 +343,9 @@ static inline void get_fd_created_flag(int64_t fd, unsigned long* flags)
 out_unlock:
 	spin_unlock(&files->file_lock);
 	return;
+#else
+	return;
+#endif
 #endif /* UDIG */
 }
 
