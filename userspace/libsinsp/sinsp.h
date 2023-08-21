@@ -969,7 +969,7 @@ public:
 	}
 	void refresh_ifaddr_list();
 	void refresh_proc_list() {
-		scap_refresh_proc_table(m_h);
+		scap_refresh_proc_table(get_scap_platform());
 	}
 
 	std::vector<long> get_n_tracepoint_hit();
