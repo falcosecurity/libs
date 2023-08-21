@@ -459,7 +459,7 @@ void sinsp::init()
 #if defined(HAS_CAPTURE)
 	if(is_live())
 	{
-		int32_t res = scap_getpid_global(m_h, &m_self_pid);
+		int32_t res = scap_getpid_global(get_scap_platform(), &m_self_pid);
 		ASSERT(res == SCAP_SUCCESS || res == SCAP_NOT_SUPPORTED);
 		(void)res;
 	}
