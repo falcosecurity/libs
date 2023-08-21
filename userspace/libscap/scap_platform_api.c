@@ -34,11 +34,11 @@ scap_addrlist* scap_get_ifaddr_list(struct scap_platform* platform)
 	return NULL;
 }
 
-void scap_refresh_iflist(scap_t* handle)
+void scap_refresh_iflist(struct scap_platform* platform)
 {
-	if (handle && handle->m_platform && handle->m_platform->m_vtable->refresh_addr_list)
+	if (platform && platform->m_vtable->refresh_addr_list)
 	{
-		handle->m_platform->m_vtable->refresh_addr_list(handle->m_platform);
+		platform->m_vtable->refresh_addr_list(platform);
 	}
 }
 

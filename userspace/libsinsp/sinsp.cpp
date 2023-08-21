@@ -1175,7 +1175,7 @@ void sinsp::refresh_ifaddr_list()
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 	if(is_live() || is_syscall_plugin())
 	{
-		scap_refresh_iflist(m_h);
+		scap_refresh_iflist(get_scap_platform());
 		import_ifaddr_list();
 	}
 #endif
