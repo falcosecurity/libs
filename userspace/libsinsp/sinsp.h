@@ -1133,6 +1133,8 @@ private:
 		return left == static_cast<uint64_t>(-1) || left <= right;
 	}
 
+	struct scap_platform* get_scap_platform();
+
 	scap_t* m_h;
 	uint64_t m_nevts;
 	int64_t m_filesize;
