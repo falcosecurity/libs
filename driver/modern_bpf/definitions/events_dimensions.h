@@ -147,7 +147,7 @@
 #define PREAD64_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 3
 #define RECVFROM_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define FCNTL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
-#define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 3
 #define SHUTDOWN_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
 #define SHUTDOWN_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define FSCONFIG_E_SIZE HEADER_LEN

@@ -1018,6 +1018,25 @@ FILLER(sys_fcntl_e, true)
 	return bpf_push_u8_to_ring(data, fcntl_cmd_to_scap(cmd));
 }
 
+FILLER(sys_fcntl_x, true)
+{
+	long retval;
+
+	/* Parameter 1: Return Value */
+	retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (s64)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: cmd (type: PT_ENUMFLAGS8) */
+	s32 cmd = (s32)bpf_syscall_get_argument(data, 1);
+	return bpf_push_u8_to_ring(data, fcntl_cmd_to_scap(cmd));
+}
+
 FILLER(sys_access_e, true)
 {
 	/* Parameter 1: mode (type: PT_UINT32) */

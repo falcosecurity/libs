@@ -81,6 +81,14 @@ int BPF_PROG(fcntl_x,
 	/* Parameter 1: res (type: PT_FD)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
+	/* Parameter 2: fd (type: PT_FD) */
+	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (s64)fd);
+
+	/* Parameter 3: cmd (type: PT_ENUMFLAGS8) */
+	int cmd = (s32)extract__syscall_argument(regs, 1);
+	ringbuf__store_u8(&ringbuf, fcntl_cmd_to_scap(cmd));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
