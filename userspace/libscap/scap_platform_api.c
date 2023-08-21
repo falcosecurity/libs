@@ -135,11 +135,11 @@ const scap_machine_info* scap_get_machine_info(struct scap_platform* platform)
 //
 // Get the agent information
 //
-const scap_agent_info* scap_get_agent_info(scap_t* handle)
+const scap_agent_info* scap_get_agent_info(struct scap_platform* platform)
 {
-	if(handle && handle->m_platform)
+	if(platform)
 	{
-		return (const scap_agent_info*)&handle->m_platform->m_agent_info;
+		return (const scap_agent_info*)&platform->m_agent_info;
 	}
 
 	return NULL;
