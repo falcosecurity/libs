@@ -125,7 +125,7 @@ const scap_agent_info* scap_get_agent_info(struct scap_platform* platform);
 /*!
   \brief Get the process list.
 */
-struct ppm_proclist_info* scap_get_threadlist(struct scap* handle);
+struct ppm_proclist_info* scap_get_threadlist(struct scap_platform* platform, char* error);
 
 /*!
   \brief Get the file descriptor list for a given pid.
