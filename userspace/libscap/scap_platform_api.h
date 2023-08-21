@@ -98,7 +98,7 @@ int32_t scap_refresh_proc_table(struct scap_platform* platform);
 struct scap_threadinfo* scap_get_proc_table(struct scap_platform* platform);
 
 // Check if the given thread exists in /proc
-bool scap_is_thread_alive(struct scap* handle, int64_t pid, int64_t tid, const char* comm);
+bool scap_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm);
 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(struct scap* handle, int64_t* pid);
