@@ -500,9 +500,12 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 		throw scap_open_exception("failed to allocate scap handle", SCAP_FAILURE);
 	}
 
-	int32_t scap_rc = scap_init(m_h, oargs, vtable, platform);
+	int32_t scap_rc = scap_init(m_h, oargs, vtable);
 	if(scap_rc != SCAP_SUCCESS)
 	{
+		scap_platform_close(platform);
+		scap_platform_free(platform);
+
 		std::string error = scap_getlasterr(m_h);
 		scap_close(m_h);
 		m_h = NULL;
@@ -512,6 +515,18 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 		}
 		throw scap_open_exception(error, scap_rc);
 	}
+
+	scap_rc = scap_platform_init(platform, m_platform_lasterr, m_h->m_engine, oargs);
+	if(scap_rc != SCAP_SUCCESS)
+	{
+		scap_platform_close(platform);
+		scap_platform_free(platform);
+		scap_close(m_h);
+		m_h = NULL;
+
+		throw scap_open_exception(m_platform_lasterr, scap_rc);
+	}
+	m_platform = platform;
 
 	init();
 
@@ -916,6 +931,13 @@ std::string sinsp::get_error_desc(const std::string& msg)
 
 void sinsp::close()
 {
+	if(m_platform)
+	{
+		scap_platform_close(m_platform);
+		scap_platform_free(m_platform);
+		m_platform = nullptr;
+	}
+
 	if(m_h)
 	{
 		scap_close(m_h);
@@ -1047,7 +1069,6 @@ void sinsp::on_new_entry_from_proc(void* context,
 		}
 		else
 		{
-			ASSERT(false);
 			m_num_cpus = 0;
 		}
 	}
@@ -3024,9 +3045,5 @@ uint64_t sinsp::get_new_ts()
 
 struct scap_platform* sinsp::get_scap_platform()
 {
-	if(!m_h)
-	{
-		return nullptr;
-	}
-	return m_h->m_platform;
+	return m_platform;
 }

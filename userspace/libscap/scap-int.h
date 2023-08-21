@@ -48,7 +48,6 @@ struct scap
 {
 	const struct scap_vtable *m_vtable;
 	struct scap_engine_handle m_engine;
-	struct scap_platform *m_platform;
 
 	char m_lasterr[SCAP_LASTERR_SIZE];
 

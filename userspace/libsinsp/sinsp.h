@@ -1136,6 +1136,8 @@ private:
 	struct scap_platform* get_scap_platform();
 
 	scap_t* m_h;
+	struct scap_platform* m_platform {};
+	char m_platform_lasterr[SCAP_LASTERR_SIZE];
 	uint64_t m_nevts;
 	int64_t m_filesize;
 	sinsp_mode_t m_mode = SINSP_MODE_NONE;

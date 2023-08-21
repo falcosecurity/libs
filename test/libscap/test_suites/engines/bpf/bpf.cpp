@@ -31,7 +31,7 @@ scap_t* open_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, 
 	};
 	oargs.engine_params = &bpf_params;
 
-	return scap_open(&oargs, &scap_bpf_engine, nullptr, error_buf, rc);
+	return scap_open(&oargs, &scap_bpf_engine, error_buf, rc);
 }
 
 TEST(bpf, open_engine)

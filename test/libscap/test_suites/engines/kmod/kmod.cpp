@@ -102,7 +102,7 @@ scap_t* open_kmod_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim,
 	};
 	oargs.engine_params = &kmod_params;
 
-	return scap_open(&oargs, &scap_kmod_engine, nullptr, error_buf, rc);
+	return scap_open(&oargs, &scap_kmod_engine, error_buf, rc);
 }
 
 TEST(kmod, open_engine)
