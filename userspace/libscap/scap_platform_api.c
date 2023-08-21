@@ -42,11 +42,11 @@ void scap_refresh_iflist(struct scap_platform* platform)
 	}
 }
 
-scap_userlist* scap_get_user_list(scap_t* handle)
+scap_userlist* scap_get_user_list(struct scap_platform* platform)
 {
-	if (handle && handle->m_platform)
+	if (platform)
 	{
-		return handle->m_platform->m_userlist;
+		return platform->m_userlist;
 	}
 
 	return NULL;
