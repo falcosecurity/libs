@@ -53,6 +53,6 @@ add_library(scap_engine_modern_bpf
 )
 
 add_dependencies(scap_engine_modern_bpf pman)
-target_link_libraries(scap_engine_modern_bpf pman)
+target_link_libraries(scap_engine_modern_bpf pman scap_engine_util scap_engine_noop)
 
 set_scap_target_properties(scap_engine_modern_bpf)
