@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "sinsp_public.h"
 #include <stdint.h>
+#include "logger.h"
 
 struct scap_stats;
 
@@ -44,6 +45,16 @@ public:
 	 * @param[out] stats The capture statistics
 	 */
 	virtual void get_capture_stats(scap_stats* stats) const = 0;
+
+	/**
+	 * Print a log with statistics about the currently
+	 * open capture.
+	 *
+	 * @note This may not work for a file-based capture source.
+	 *
+	 * @param[in] sev severity used to log
+	 */
+	virtual void print_capture_stats(sinsp_logger::severity sev) const = 0;
 
 	/**
 	 * Get engine statistics (including counters and `bpftool prog show` like stats).
