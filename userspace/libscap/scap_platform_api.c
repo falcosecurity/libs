@@ -92,11 +92,11 @@ scap_threadinfo* scap_get_proc_table(struct scap_platform* platform)
 	return NULL;
 }
 
-bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm)
+bool scap_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
 {
-	if (handle && handle->m_platform && handle->m_platform->m_vtable->is_thread_alive)
+	if (platform && platform->m_vtable->is_thread_alive)
 	{
-		return handle->m_platform->m_vtable->is_thread_alive(handle->m_platform, pid, tid, comm);
+		return platform->m_vtable->is_thread_alive(platform, pid, tid, comm);
 	}
 
 	// keep on the safe side, don't consider threads dead too early
