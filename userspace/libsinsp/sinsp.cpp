@@ -1299,10 +1299,11 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 
 	m_last_procrequest_tod = procrequest_tod;
 
-	m_meinfo.m_pli = scap_get_threadlist(m_h);
+	char error[SCAP_LASTERR_SIZE];
+	m_meinfo.m_pli = scap_get_threadlist(get_scap_platform(), error);
 	if(m_meinfo.m_pli == NULL)
 	{
-		throw sinsp_exception(std::string("scap error: ") + scap_getlasterr(m_h));
+		throw sinsp_exception(std::string("scap error: ") + error);
 	}
 
 	m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
