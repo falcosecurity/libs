@@ -529,6 +529,12 @@ public:
 	void get_capture_stats(scap_stats* stats) const override;
 
 	/*!
+	  \brief Print a log with statistics about the currently
+	   open capture. Use the severity specified as the first parameter.
+	*/
+	void print_capture_stats(sinsp_logger::severity sev) const override;
+
+	/*!
 	  \brief Get engine statistics (including counters and `bpftool prog show` like stats).
 
 	  \note sinsp stats may be refactored near-term.

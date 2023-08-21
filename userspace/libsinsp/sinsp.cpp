@@ -1378,46 +1378,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			if(m_next_stats_print_time_ns)
 			{
-				scap_stats stats;
-				get_capture_stats(&stats);
-
-				g_logger.format(sinsp_logger::SEV_DEBUG,
-					"n_evts:%" PRIu64
-					" n_drops:%" PRIu64
-					" n_drops_buffer:%" PRIu64
-					" n_drops_buffer_clone_fork_enter:%" PRIu64
-					" n_drops_buffer_clone_fork_exit:%" PRIu64
-					" n_drops_buffer_execve_enter:%" PRIu64
-					" n_drops_buffer_execve_exit:%" PRIu64
-					" n_drops_buffer_connect_enter:%" PRIu64
-					" n_drops_buffer_connect_exit:%" PRIu64
-					" n_drops_buffer_open_enter:%" PRIu64
-					" n_drops_buffer_open_exit:%" PRIu64
-					" n_drops_buffer_dir_file_enter:%" PRIu64
-					" n_drops_buffer_dir_file_exit:%" PRIu64
-					" n_drops_buffer_other_interest_enter:%" PRIu64
-					" n_drops_buffer_other_interest_exit:%" PRIu64
-					" n_drops_scratch_map:%" PRIu64
-					" n_drops_pf:%" PRIu64
-					" n_drops_bug:%" PRIu64,
-					stats.n_evts,
-					stats.n_drops,
-					stats.n_drops_buffer,
-					stats.n_drops_buffer_clone_fork_enter,
-					stats.n_drops_buffer_clone_fork_exit,
-					stats.n_drops_buffer_execve_enter,
-					stats.n_drops_buffer_execve_exit,
-					stats.n_drops_buffer_connect_enter,
-					stats.n_drops_buffer_connect_exit,
-					stats.n_drops_buffer_open_enter,
-					stats.n_drops_buffer_open_exit,
-					stats.n_drops_buffer_dir_file_enter,
-					stats.n_drops_buffer_dir_file_exit,
-					stats.n_drops_buffer_other_interest_enter,
-					stats.n_drops_buffer_other_interest_exit,
-					stats.n_drops_scratch_map,
-					stats.n_drops_pf,
-					stats.n_drops_bug);
+				print_capture_stats(sinsp_logger::SEV_DEBUG);
 			}
 
 			m_next_stats_print_time_ns = ts - (ts % ONE_SECOND_IN_NS) + ONE_SECOND_IN_NS;
@@ -1965,6 +1926,55 @@ void sinsp::get_capture_stats(scap_stats* stats) const
 {
 	/* On purpose ignoring failures to not interrupt in case of stats retrieval failure. */
 	scap_get_stats(m_h, stats);
+}
+
+void sinsp::print_capture_stats(sinsp_logger::severity sev) const
+{
+	scap_stats stats;
+	get_capture_stats(&stats);
+
+	g_logger.format(sev,
+		"\nn_evts:%" PRIu64
+		"\nn_drops:%" PRIu64
+		"\nn_drops_buffer:%" PRIu64
+		"\nn_drops_buffer_clone_fork_enter:%" PRIu64
+		"\nn_drops_buffer_clone_fork_exit:%" PRIu64
+		"\nn_drops_buffer_execve_enter:%" PRIu64
+		"\nn_drops_buffer_execve_exit:%" PRIu64
+		"\nn_drops_buffer_connect_enter:%" PRIu64
+		"\nn_drops_buffer_connect_exit:%" PRIu64
+		"\nn_drops_buffer_open_enter:%" PRIu64
+		"\nn_drops_buffer_open_exit:%" PRIu64
+		"\nn_drops_buffer_dir_file_enter:%" PRIu64
+		"\nn_drops_buffer_dir_file_exit:%" PRIu64
+		"\nn_drops_buffer_other_interest_enter:%" PRIu64
+		"\nn_drops_buffer_other_interest_exit:%" PRIu64
+		"\nn_drops_buffer_close_exit:%" PRIu64
+		"\nn_drops_buffer_proc_exit:%" PRIu64
+		"\nn_drops_scratch_map:%" PRIu64
+		"\nn_drops_pf:%" PRIu64
+		"\nn_drops_bug:%" PRIu64
+		"\n",
+		stats.n_evts,
+		stats.n_drops,
+		stats.n_drops_buffer,
+		stats.n_drops_buffer_clone_fork_enter,
+		stats.n_drops_buffer_clone_fork_exit,
+		stats.n_drops_buffer_execve_enter,
+		stats.n_drops_buffer_execve_exit,
+		stats.n_drops_buffer_connect_enter,
+		stats.n_drops_buffer_connect_exit,
+		stats.n_drops_buffer_open_enter,
+		stats.n_drops_buffer_open_exit,
+		stats.n_drops_buffer_dir_file_enter,
+		stats.n_drops_buffer_dir_file_exit,
+		stats.n_drops_buffer_other_interest_enter,
+		stats.n_drops_buffer_other_interest_exit,
+		stats.n_drops_buffer_close_exit,
+		stats.n_drops_buffer_proc_exit,
+		stats.n_drops_scratch_map,
+		stats.n_drops_pf,
+		stats.n_drops_bug);
 }
 
 const struct scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
