@@ -1,12 +1,12 @@
 #include <iostream>
 #include <string>
 #include <scap.h>
+#include <scap_engines.h>
+#include <scap_vtable.h>
 #include <getopt.h>
 #include <gtest/gtest.h>
 #include "./event_class/event_class.h"
 #include "strl.h"
-
-#define UNKNOWN_ENGINE "unknown"
 
 /* We support only these arguments */
 #define HELP_OPTION "help"
@@ -77,11 +77,11 @@ int insert_kmod(const std::string& kmod_path)
 	return EXIT_SUCCESS;
 }
 
-void abort_if_already_configured(scap_open_args* oargs)
+void abort_if_already_configured(const struct scap_vtable* vtable)
 {
-	if(strcmp(oargs->engine_name, UNKNOWN_ENGINE) != 0)
+	if(vtable != nullptr)
 	{
-		std::cerr << "* '" << oargs->engine_name << "' engine is already configured. Please specify just one engine!" << std::endl;
+		std::cerr << "* '" << vtable->name << "' engine is already configured. Please specify just one engine!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 }
@@ -123,11 +123,8 @@ int open_engine(int argc, char** argv)
 		{0, 0, 0, 0}};
 
 	int ret = 0;
-	scap_open_args oargs = {0};
-	struct scap_bpf_engine_params bpf_params = {0};
-	struct scap_kmod_engine_params kmod_params = {0};
-	struct scap_modern_bpf_engine_params modern_bpf_params = {0};
-	oargs.engine_name = UNKNOWN_ENGINE;
+	const struct scap_vtable* vtable = nullptr;
+	scap_open_args oargs = {};
 	oargs.mode = SCAP_MODE_LIVE;
 	unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 	std::string kmod_path;
@@ -158,8 +155,12 @@ int open_engine(int argc, char** argv)
 		switch(op)
 		{
 		case 'b':
-			abort_if_already_configured(&oargs);
-			oargs.engine_name = BPF_ENGINE;
+#ifdef HAS_ENGINE_BPF
+		{
+			struct scap_bpf_engine_params bpf_params = {0};
+
+			abort_if_already_configured(vtable);
+			vtable = &scap_bpf_engine;
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			/* This should handle cases where we pass arguments with the space:
 			 * `-b ./path/to/probe`. Without this `if` case we can accept arguments
@@ -181,19 +182,37 @@ int open_engine(int argc, char** argv)
 			oargs.engine_params = &bpf_params;
 
 			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe << std::endl;
+		}
+#else
+			std::cerr << "BPF engine is not supported in this build" << std::endl;
+			return EXIT_FAILURE;
+#endif
 			break;
 
 		case 'm':
-			abort_if_already_configured(&oargs);
-			oargs.engine_name = MODERN_BPF_ENGINE;
+#ifdef HAS_ENGINE_MODERN_BPF
+		{
+			struct scap_modern_bpf_engine_params modern_bpf_params = {0};
+
+			abort_if_already_configured(vtable);
+			vtable = &scap_modern_bpf_engine;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &modern_bpf_params;
 			std::cout << "* Configure modern BPF probe tests!" << std::endl;
+		}
+#else
+			std::cerr << "Modern BPF engine is not supported in this build" << std::endl;
+			return EXIT_FAILURE;
+#endif
 			break;
 
 		case 'k':
-			abort_if_already_configured(&oargs);
-			oargs.engine_name = KMOD_ENGINE;
+#ifdef HAS_ENGINE_KMOD
+		{
+			struct scap_kmod_engine_params kmod_params = {0};
+
+			abort_if_already_configured(vtable);
+			vtable = &scap_kmod_engine;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
 			if(optarg == NULL && optind < argc && argv[optind][0] != '-')
 			{
@@ -214,7 +233,11 @@ int open_engine(int argc, char** argv)
 				return EXIT_FAILURE;
 			}
 			std::cout << "* Configure kernel module tests! Kernel module path: " << kmod_path << std::endl;
-			;
+		}
+#else
+			std::cerr << "Kernel module engine is not supported in this build" << std::endl;
+			return EXIT_FAILURE;
+#endif
 			break;
 
 		case 'd':
@@ -231,14 +254,14 @@ int open_engine(int argc, char** argv)
 	}
 	std::cout << "* Using buffer dim: " << buffer_bytes_dim << std::endl;
 
-	if(strcmp(oargs.engine_name, UNKNOWN_ENGINE) == 0)
+	if(vtable == nullptr)
 	{
 		std::cerr << "Unsupported engine! Choose between: m, b, k" << std::endl;
 		return EXIT_FAILURE;
 	}
 
 	char error_buffer[FILENAME_MAX] = {0};
-	event_test::s_scap_handle = scap_open(&oargs, nullptr, error_buffer, &ret);
+	event_test::s_scap_handle = scap_open(&oargs, vtable, nullptr, error_buffer, &ret);
 	if(!event_test::s_scap_handle)
 	{
 		std::cerr << "Unable to open the engine: " << error_buffer << std::endl;

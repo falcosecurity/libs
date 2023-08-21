@@ -24,6 +24,7 @@ limitations under the License.
 
 #include <scap.h>
 #include "../../../../driver/ppm_events_public.h"
+#include "scap_engines.h"
 
 extern const struct ppm_event_info g_event_info[];
 
@@ -170,7 +171,7 @@ int main()
 
 	scap_open_args args = {.mode = SCAP_MODE_LIVE};
 
-	scap_t* h = scap_open(&args, NULL, error, &ret);
+	scap_t* h = scap_open(&args, &scap_kmod_engine, NULL, error, &ret);
 	if(h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, ret);

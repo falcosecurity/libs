@@ -24,9 +24,9 @@ limitations under the License.
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include "strl.h"
+#include "scap_engines.h"
 
 #define SYSCALL_NAME_MAX_LEN 40
-#define UNKNOWN_ENGINE "unknown"
 
 /* SCAP SOURCES */
 #define KMOD_OPTION "--kmod"
@@ -149,7 +149,8 @@ static int simple_set[] = {
 };
 
 /* Generic global variables. */
-static scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
+static scap_open_args oargs = {};						    /* scap oargs used in `scap_open`. */
+static const struct scap_vtable* vtable = NULL;
 static uint64_t g_nevts = 0;							    /* total number of events captured. */
 static scap_t* g_h = NULL;							    /* global scap handler. */
 static uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
@@ -550,25 +551,36 @@ void print_help()
 void print_scap_source()
 {
 	printf("\n--------------------------- SCAP SOURCE --------------------------\n");
-	if(strcmp(oargs.engine_name, KMOD_ENGINE) == 0)
+	if(false)
+	{
+	}
+#ifdef HAS_ENGINE_KMOD
+	else if(vtable == &scap_kmod_engine)
 	{
 		printf("* Kernel module.\n");
 	}
-	else if(strcmp(oargs.engine_name, BPF_ENGINE) == 0)
+#endif
+#ifdef HAS_ENGINE_BPF
+	else if(vtable == &scap_bpf_engine)
 	{
 		struct scap_bpf_engine_params* params = oargs.engine_params;
 		printf("* BPF probe: '%s'\n", params->bpf_probe);
 	}
-	else if(strcmp(oargs.engine_name, MODERN_BPF_ENGINE) == 0)
+#endif
+#ifdef HAS_ENGINE_MODERN_BPF
+	else if(vtable == &scap_modern_bpf_engine)
 	{
 		struct scap_modern_bpf_engine_params* params = oargs.engine_params;
 		printf("* Modern BPF probe, 1 ring buffer every %d CPUs\n", params->cpus_for_each_buffer);
 	}
-	else if(strcmp(oargs.engine_name, SAVEFILE_ENGINE) == 0)
+#endif
+#ifdef HAS_ENGINE_SAVEFILE
+	else if(vtable == &scap_savefile_engine)
 	{
 		struct scap_savefile_engine_params* params = oargs.engine_params;
 		printf("* Scap file: '%s'.\n", params->fname);
 	}
+#endif
 	else
 	{
 		printf("* Unknown scap source! Bye!\n");
@@ -588,24 +600,35 @@ void print_configurations()
 
 void print_start_capture()
 {
-	if(strcmp(oargs.engine_name, KMOD_ENGINE) == 0)
+	if(false)
+	{
+	}
+#ifdef HAS_ENGINE_KMOD
+	else if(vtable == &scap_kmod_engine)
 	{
 		printf("* OK! Kernel module correctly loaded.\n");
 	}
-	else if(strcmp(oargs.engine_name, BPF_ENGINE) == 0)
+#endif
+#ifdef HAS_ENGINE_BPF
+	else if(vtable == &scap_bpf_engine)
 	{
 		printf("* OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
 	}
-	else if(strcmp(oargs.engine_name, MODERN_BPF_ENGINE) == 0)
+#endif
+#ifdef HAS_ENGINE_MODERN_BPF
+	else if(vtable == &scap_modern_bpf_engine)
 	{
 		printf("* OK! modern BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
 	}
-	else if(strcmp(oargs.engine_name, SAVEFILE_ENGINE) == 0)
+#endif
+#ifdef HAS_ENGINE_SAVEFILE
+	else if(vtable == &scap_savefile_engine)
 	{
 		printf("* OK! Ready to read from scap file.\n");
 		printf("\n* Reading from scap file...\n");
 		return;
 	}
+#endif
 	else
 	{
 		printf("Cannot start the capture! Bye\n");
@@ -621,13 +644,16 @@ void parse_CLI_options(int argc, char** argv)
 	{
 		/*=============================== SCAP SOURCES ===========================*/
 
+#ifdef HAS_ENGINE_KMOD
 		if(!strcmp(argv[i], KMOD_OPTION))
 		{
-			oargs.engine_name = KMOD_ENGINE;
+			vtable = &scap_kmod_engine;
 			oargs.mode = SCAP_MODE_LIVE;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &kmod_params;
 		}
+#endif
+#ifdef HAS_ENGINE_BPF
 		if(!strcmp(argv[i], BPF_OPTION))
 		{
 			if(!(i + 1 < argc))
@@ -635,21 +661,25 @@ void parse_CLI_options(int argc, char** argv)
 				printf("\nYou need to specify also the BPF probe path! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			oargs.engine_name = BPF_ENGINE;
+			vtable = &scap_bpf_engine;
 			oargs.mode = SCAP_MODE_LIVE;
 			bpf_params.bpf_probe = argv[++i];
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &bpf_params;
 		}
+#endif
+#ifdef HAS_ENGINE_MODERN_BPF
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
-			oargs.engine_name = MODERN_BPF_ENGINE;
+			vtable = &scap_modern_bpf_engine;
 			oargs.mode = SCAP_MODE_LIVE;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			modern_bpf_params.cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
 			modern_bpf_params.allocate_online_only = true;
 			oargs.engine_params = &modern_bpf_params;
 		}
+#endif
+#ifdef HAS_ENGINE_SAVEFILE
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
 		{
 			if(!(i + 1 < argc))
@@ -657,11 +687,12 @@ void parse_CLI_options(int argc, char** argv)
 				printf("\nYou need to specify also the scap file path! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			oargs.engine_name = SAVEFILE_ENGINE;
+			vtable = &scap_savefile_engine;
 			oargs.mode = SCAP_MODE_CAPTURE;
 			savefile_params.fname = argv[++i];
 			oargs.engine_params = &savefile_params;
 		}
+#endif
 
 		/*=============================== SCAP SOURCES ===========================*/
 
@@ -751,11 +782,28 @@ void parse_CLI_options(int argc, char** argv)
 		/*=============================== PRINT ===========================*/
 	}
 
-	if(strcmp(oargs.engine_name, UNKNOWN_ENGINE) == 0)
+	if(!vtable)
 	{
 		printf("\nSource not specified! Bye!\n");
 		exit(EXIT_FAILURE);
 	}
+}
+
+static inline bool engine_uses_bpf()
+{
+#ifdef HAS_ENGINE_BPF
+	if(vtable == &scap_bpf_engine)
+	{
+		return true;
+	}
+#endif
+#ifdef HAS_ENGINE_MODERN_BPF
+	if(vtable == &scap_modern_bpf_engine)
+	{
+		return true;
+	}
+#endif
+	return false;
 }
 
 void print_stats()
@@ -797,7 +845,7 @@ void print_stats()
 
 	printf("\n[SCAP-OPEN]: Stats v2.\n");
 	printf("\n[SCAP-OPEN]: %u metrics in total\n", nstats);
-	if((strncmp(oargs.engine_name, BPF_ENGINE, 3) == 0) || (strncmp(oargs.engine_name, MODERN_BPF_ENGINE, 10) == 0))
+	if(engine_uses_bpf())
 	{
 		printf("[SCAP-OPEN]: [1] kernel-side counters\n");
 		printf("[SCAP-OPEN]: [2] libbpf stats (compare to `bpftool prog show` CLI)\n\n");
@@ -855,7 +903,7 @@ int main(int argc, char** argv)
 
 	enable_sc_and_print();
 
-	g_h = scap_open(&oargs, NULL, error, &res);
+	g_h = scap_open(&oargs, vtable, NULL, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);

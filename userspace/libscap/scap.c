@@ -86,88 +86,16 @@ scap_t* scap_alloc(void)
 	return calloc(1, sizeof(scap_t));
 }
 
-int32_t scap_handle_init_engine(scap_t* handle, scap_open_args* oargs)
-{
-	const char* engine_name = oargs->engine_name;
-	const struct scap_vtable* vtable = NULL;
-	int32_t rc;
-
-#ifdef HAS_ENGINE_SAVEFILE
-	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
-	{
-		vtable = &scap_savefile_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_UDIG
-	if(strcmp(engine_name, UDIG_ENGINE) == 0)
-	{
-		vtable = &scap_udig_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_GVISOR
-	if(strcmp(engine_name, GVISOR_ENGINE) == 0)
-	{
-		vtable = &scap_gvisor_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_TEST_INPUT
-	if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
-	{
-		vtable = &scap_test_input_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_KMOD
-	if(strcmp(engine_name, KMOD_ENGINE) == 0)
-	{
-		vtable = &scap_kmod_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_BPF
-	if(strcmp(engine_name, BPF_ENGINE) == 0)
-	{
-		vtable = &scap_bpf_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_MODERN_BPF
-	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
-	{
-		vtable = &scap_modern_bpf_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_NODRIVER
-	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
-	{
-		vtable = &scap_nodriver_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_SOURCE_PLUGIN
-	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
-	{
-		vtable = &scap_source_plugin_engine;
-	}
-#endif
-
-	if(!vtable)
-	{
-		return scap_errprintf(handle->m_lasterr, 0, "incorrect engine '%s'", engine_name);
-	}
-
-	rc = scap_init_int(handle, oargs, vtable);
-	if(rc != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	return SCAP_SUCCESS;
-}
-
-int32_t scap_init(scap_t* handle, scap_open_args* oargs, struct scap_platform* platform)
+int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable,
+		  struct scap_platform* platform)
 {
 	int32_t rc;
 
 	handle->m_platform = platform;
 
-	rc = scap_handle_init_engine(handle, oargs);
+	ASSERT(vtable != NULL);
+
+	rc = scap_init_int(handle, oargs, vtable);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
@@ -184,7 +112,8 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs, struct scap_platform* p
 	return SCAP_SUCCESS;
 }
 
-scap_t* scap_open(scap_open_args* oargs, struct scap_platform* platform, char* error, int32_t* rc)
+scap_t* scap_open(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform, char* error,
+		  int32_t* rc)
 {
 	scap_t* handle = scap_alloc();
 	if(!handle)
@@ -193,7 +122,7 @@ scap_t* scap_open(scap_open_args* oargs, struct scap_platform* platform, char* e
 		return NULL;
 	}
 
-	*rc = scap_init(handle, oargs, platform);
+	*rc = scap_init(handle, oargs, vtable, platform);
 	if(*rc != SCAP_SUCCESS)
 	{
 		strlcpy(error, handle->m_lasterr, SCAP_LASTERR_SIZE);

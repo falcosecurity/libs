@@ -18,6 +18,8 @@ file(GLOB_RECURSE GENERIC_TRACEPOINTS_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/tes
 ## Actions suite files
 file(GLOB_RECURSE ACTIONS_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/*.cpp)
 
+include(libscap)
+
 set(DRIVERS_TEST_SOURCES
   ./start_tests.cpp
   ./event_class/event_class.cpp
@@ -34,7 +36,7 @@ set(DRIVERS_TEST_INCLUDE
   ../../userspace/common
   "${GTEST_INCLUDE}"
   "${LIBSCAP_DIR}/driver/"
-  "${LIBSCAP_DIR}/userspace/libscap"
+  "${LIBSCAP_INCLUDE_DIRS}"
 )
 
 set(DRIVERS_TEST_LINK_LIBRARIES
