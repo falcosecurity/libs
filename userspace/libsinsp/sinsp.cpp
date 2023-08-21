@@ -351,7 +351,7 @@ void sinsp::init()
 	//
 	// Retrieve agent information
 	//
-	m_agent_info = scap_get_agent_info(m_h);
+	m_agent_info = scap_get_agent_info(get_scap_platform());
 	if (m_agent_info == NULL)
 	{
 		ASSERT(false);
