@@ -171,7 +171,7 @@ int main()
 
 	scap_open_args args = {};
 
-	scap_t* h = scap_open(&args, &scap_kmod_engine, NULL, error, &ret);
+	scap_t* h = scap_open(&args, &scap_kmod_engine, error, &ret);
 	if(h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, ret);

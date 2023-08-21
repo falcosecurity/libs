@@ -899,7 +899,7 @@ int main(int argc, char** argv)
 
 	enable_sc_and_print();
 
-	g_h = scap_open(&oargs, vtable, NULL, error, &res);
+	g_h = scap_open(&oargs, vtable, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);

@@ -33,7 +33,7 @@ scap_t* open_modern_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffe
 	};
 	oargs.engine_params = &modern_bpf_params;
 
-	return scap_open(&oargs, &scap_modern_bpf_engine, nullptr, error_buf, rc);
+	return scap_open(&oargs, &scap_modern_bpf_engine, error_buf, rc);
 }
 
 TEST(modern_bpf, open_engine)

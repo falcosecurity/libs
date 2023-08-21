@@ -86,12 +86,9 @@ scap_t* scap_alloc(void)
 	return calloc(1, sizeof(scap_t));
 }
 
-int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable,
-		  struct scap_platform* platform)
+int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
 	int32_t rc;
-
-	handle->m_platform = platform;
 
 	ASSERT(vtable != NULL);
 
@@ -109,20 +106,10 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtabl
 	{
 		return rc;
 	}
-
-	if(handle->m_platform)
-	{
-		if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
-		{
-			return rc;
-		}
-	}
-
 	return SCAP_SUCCESS;
 }
 
-scap_t* scap_open(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform, char* error,
-		  int32_t* rc)
+scap_t* scap_open(scap_open_args* oargs, const struct scap_vtable* vtable, char* error, int32_t* rc)
 {
 	scap_t* handle = scap_alloc();
 	if(!handle)
@@ -131,7 +118,7 @@ scap_t* scap_open(scap_open_args* oargs, const struct scap_vtable* vtable, struc
 		return NULL;
 	}
 
-	*rc = scap_init(handle, oargs, vtable, platform);
+	*rc = scap_init(handle, oargs, vtable);
 	if(*rc != SCAP_SUCCESS)
 	{
 		strlcpy(error, handle->m_lasterr, SCAP_LASTERR_SIZE);
@@ -157,12 +144,6 @@ uint32_t scap_restart_capture(scap_t* handle)
 
 void scap_deinit(scap_t* handle)
 {
-	if(handle->m_platform)
-	{
-		scap_platform_close(handle->m_platform);
-		scap_platform_free(handle->m_platform);
-	}
-
 	if(handle->m_vtable)
 	{
 		/* The capture should be stopped before

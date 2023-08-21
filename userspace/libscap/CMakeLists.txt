@@ -66,19 +66,19 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_strl_config.h.in ${CMAKE_CURRENT
 add_library(scap
 	scap.c
 	scap_api_version.c
-	scap_fds.c
 	scap_savefile.c
-	scap_platform.c
-	scap_platform_api.c
-	scap_procs.c
-	scap_userlist.c)
+	scap_platform_api.c)
 
 set_scap_target_properties(scap)
 
 add_library(scap_platform_util
 	STATIC
+	scap_platform.c
+	scap_fds.c
 	scap_iflist.c
-	scap_proc_util.c)
+	scap_proc_util.c
+	scap_procs.c
+	scap_userlist.c)
 add_dependencies(scap_platform_util uthash)
 
 target_link_libraries(scap
