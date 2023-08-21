@@ -3021,3 +3021,12 @@ uint64_t sinsp::get_new_ts()
 			? sinsp_utils::get_current_time_ns()
 			: m_lastevent_ts;
 }
+
+struct scap_platform* sinsp::get_scap_platform()
+{
+	if(!m_h)
+	{
+		return nullptr;
+	}
+	return m_h->m_platform;
+}
