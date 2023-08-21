@@ -47,7 +47,7 @@ typedef struct _scap_agent_info scap_agent_info;
 */
 struct scap_addrlist* scap_get_ifaddr_list(struct scap_platform* platform);
 
-void scap_refresh_iflist(struct scap* handle);
+void scap_refresh_iflist(struct scap_platform* platform);
 
 /*!
   \brief Return the machine user and group lists
