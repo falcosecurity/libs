@@ -67,7 +67,7 @@ uint32_t scap_get_device_by_mount_id(struct scap_platform* platform, const char 
 // The returned pointer must be freed via scap_proc_free by the caller.
 struct scap_threadinfo* scap_proc_get(struct scap_platform* platform, int64_t tid, bool scan_sockets);
 
-int32_t scap_refresh_proc_table(struct scap* handle);
+int32_t scap_refresh_proc_table(struct scap_platform* platform);
 
 /*!
   \brief Get the process list for the given capture instance
