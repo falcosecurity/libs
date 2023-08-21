@@ -73,6 +73,27 @@ static __always_inline struct file *bpf_fget(int fd)
 	return fil;
 }
 
+static __always_inline u32 bpf_get_fd_fmode_created(int fd)
+{
+	if(fd < 0)
+    {
+        return 0;
+    }
+
+/* FMODE_CREATED flag was introduced in kernel 4.19 and it's not present in earlier versions */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
+    struct file *file;
+    file = bpf_fget(fd);
+    if(file)
+    {
+        fmode_t fmode = _READ(file->f_mode);
+        if (fmode & FMODE_CREATED)
+            return PPM_O_F_CREATED;
+    }
+#endif
+    return 0;
+}
+
 // Kernel 5.10 introduced a new bpf_helper called `bpf_d_path` to extract a file path starting from a file descriptor.
 // Libscap loads our bpf programs as `BPF_PROG_TYPE_RAW_TRACEPOINT` programs. This type of program doesn't seem able to call this new helper because it is out of its scope. For more details see here https://github.com/torvalds/linux/blob/58e1100fdc5990b0cc0d4beaf2562a92e621ac7d/kernel/trace/bpf_trace.c#L1574
 static __always_inline char *bpf_get_path(struct filler_data *data, int fd)
