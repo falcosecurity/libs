@@ -50,6 +50,8 @@ struct ppm_ring_buffer_info {
 	volatile __u64 n_drops_buffer_dir_file_exit;
 	volatile __u64 n_drops_buffer_other_interest_enter;		/* Category of other system calls of interest, not all other system calls that did not match a category from above. */
 	volatile __u64 n_drops_buffer_other_interest_exit;
+	volatile __u64 n_drops_buffer_close_exit;
+	volatile __u64 n_drops_buffer_proc_exit;
 	volatile __u64 n_drops_pf;		/* Number of dropped events (page faults). */
 	volatile __u64 n_preemptions;		/* Number of preemptions. */
 	volatile __u64 n_context_switches;	/* Number of received context switch events. */

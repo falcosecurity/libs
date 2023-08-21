@@ -111,6 +111,8 @@ Number of dropped events caused by full buffer (n_drops_buffer_dir_file_enter sy
 Number of dropped events caused by full buffer (n_drops_buffer_dir_file_exit syscall category): 0
 Number of dropped events caused by full buffer (n_drops_buffer_other_interest_enter syscall category): 0
 Number of dropped events caused by full buffer (n_drops_buffer_other_interest_exit syscall category): 0
+Number of dropped events caused by full buffer (n_drops_buffer_close_exit syscall category): 0
+Number of dropped events caused by full buffer (n_drops_buffer_proc_exit syscall category): 0
 Number of dropped events caused by full scratch map: 0
 Number of dropped events caused by invalid memory access (page faults): 0
 Number of dropped events caused by an invalid condition in the kernel instrumentation (bug): 0

@@ -52,6 +52,8 @@ static const char * const kmod_kernel_counters_stats_names[] = {
 	[KMOD_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
 	[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
 	[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
+	[KMOD_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
+	[KMOD_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
 	[KMOD_N_DROPS_PAGE_FAULTS] = "n_drops_page_faults",
 	[KMOD_N_DROPS_BUG] = "n_drops_bug",
 	[KMOD_N_DROPS] = "n_drops",
@@ -558,6 +560,8 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 		stats->n_drops_buffer_dir_file_exit += dev->m_bufinfo->n_drops_buffer_dir_file_exit;
 		stats->n_drops_buffer_other_interest_enter += dev->m_bufinfo->n_drops_buffer_other_interest_enter;
 		stats->n_drops_buffer_other_interest_exit += dev->m_bufinfo->n_drops_buffer_other_interest_exit;
+		stats->n_drops_buffer_close_exit += dev->m_bufinfo->n_drops_buffer_close_exit;
+		stats->n_drops_buffer_proc_exit += dev->m_bufinfo->n_drops_buffer_proc_exit;
 		stats->n_drops_pf += dev->m_bufinfo->n_drops_pf;
 		stats->n_drops += dev->m_bufinfo->n_drops_buffer +
 				  dev->m_bufinfo->n_drops_pf;
@@ -609,6 +613,8 @@ const struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle eng
 			stats[KMOD_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_dir_file_exit;
 			stats[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += dev->m_bufinfo->n_drops_buffer_other_interest_enter;
 			stats[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_other_interest_exit;
+			stats[KMOD_N_DROPS_BUFFER_CLOSE_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_close_exit;
+			stats[KMOD_N_DROPS_BUFFER_PROC_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_proc_exit;
 			stats[KMOD_N_DROPS_PAGE_FAULTS].value.u64 += dev->m_bufinfo->n_drops_pf;
 			stats[KMOD_N_DROPS].value.u64 += dev->m_bufinfo->n_drops_buffer +
 					dev->m_bufinfo->n_drops_pf;

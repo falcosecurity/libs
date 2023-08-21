@@ -371,6 +371,8 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_drops_buffer_dir_file_exit = 0;
 	stats->n_drops_buffer_other_interest_enter = 0;
 	stats->n_drops_buffer_other_interest_exit = 0;
+	stats->n_drops_buffer_close_exit = 0;
+	stats->n_drops_buffer_proc_exit = 0;
 	stats->n_drops_scratch_map = 0;
 	stats->n_drops_pf = 0;
 	stats->n_drops_bug = 0;

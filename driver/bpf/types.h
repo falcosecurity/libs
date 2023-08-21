@@ -270,6 +270,8 @@ struct scap_bpf_per_cpu_state {
 	unsigned long long n_drops_buffer_dir_file_exit;
 	unsigned long long n_drops_buffer_other_interest_enter;		/* Category of other system calls of interest, not all other system calls that did not match a category from above. */
 	unsigned long long n_drops_buffer_other_interest_exit;
+	unsigned long long n_drops_buffer_close_exit;
+	unsigned long long n_drops_buffer_proc_exit;
 	unsigned long long n_drops_scratch_map;		/* Number of kernel side scratch map drops. */
 	unsigned long long n_drops_pf;		/* Number of kernel side page faults drops (invalid memory access). */
 	unsigned long long n_drops_bug;		/* Number of kernel side bug drops (invalid condition in the kernel instrumentation). */
