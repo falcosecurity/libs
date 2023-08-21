@@ -115,11 +115,11 @@ int32_t scap_getpid_global(struct scap_platform* platform, int64_t* pid)
 	return SCAP_FAILURE;
 }
 
-const scap_machine_info* scap_get_machine_info(scap_t* handle)
+const scap_machine_info* scap_get_machine_info(struct scap_platform* platform)
 {
-	if(handle && handle->m_platform)
+	if(platform)
 	{
-		scap_machine_info* machine_info = &handle->m_platform->m_machine_info;
+		scap_machine_info* machine_info = &platform->m_machine_info;
 		if(machine_info->num_cpus != (uint32_t)-1)
 		{
 			return machine_info;

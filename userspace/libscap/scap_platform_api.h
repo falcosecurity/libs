@@ -111,7 +111,7 @@ int32_t scap_getpid_global(struct scap_platform* platform, int64_t* pid);
   \note for live captures, the information is collected from the operating system. For
   offline captures, it comes from the capture file.
 */
-const struct _scap_machine_info* scap_get_machine_info(struct scap* handle);
+const struct _scap_machine_info* scap_get_machine_info(struct scap_platform* platform);
 
 /*!
   \brief Get generic agent information
