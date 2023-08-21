@@ -1122,7 +1122,7 @@ void sinsp::import_thread_table()
 	scap_threadinfo *pi;
 	scap_threadinfo *tpi;
 
-	scap_threadinfo *table = scap_get_proc_table(m_h);
+	scap_threadinfo *table = scap_get_proc_table(get_scap_platform());
 
 	//
 	// Scan the scap table and add the threads to our list

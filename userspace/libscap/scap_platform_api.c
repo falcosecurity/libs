@@ -82,11 +82,11 @@ int32_t scap_refresh_proc_table(struct scap_platform* platform)
 	return SCAP_FAILURE;
 }
 
-scap_threadinfo* scap_get_proc_table(scap_t* handle)
+scap_threadinfo* scap_get_proc_table(struct scap_platform* platform)
 {
-	if (handle && handle->m_platform)
+	if (platform)
 	{
-		return handle->m_platform->m_proclist.m_proclist;
+		return platform->m_proclist.m_proclist;
 	}
 
 	return NULL;
