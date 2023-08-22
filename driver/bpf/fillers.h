@@ -360,7 +360,6 @@ FILLER(sys_open_x, true)
 	unsigned long val;
 	unsigned long dev = 0;
 	unsigned long ino = 0;
-	struct file *file;
 	long retval;
 	int res;
 
@@ -3043,7 +3042,6 @@ FILLER(sys_openat_x, true)
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
-	struct file *file;
 	long retval;
 	s32 fd;
 	int res;
@@ -3178,7 +3176,6 @@ FILLER(sys_openat2_x, true)
 	long retval;
 	s32 fd;
 	int res;
-	struct file *file;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -3246,8 +3243,6 @@ FILLER(sys_openat2_x, true)
 
 FILLER(sys_open_by_handle_at_x, true)
 {
-	struct file *file;
-
 	/* Parameter 1: ret (type: PT_FD) */
 	long retval = bpf_syscall_get_retval(data->ctx);
 	int res = bpf_push_s64_to_ring(data, retval);

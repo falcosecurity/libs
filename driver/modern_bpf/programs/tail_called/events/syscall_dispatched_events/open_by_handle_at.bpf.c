@@ -67,7 +67,7 @@ int BPF_PROG(open_by_handle_at_x,
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	u32 flags = (u32)extract__syscall_argument(regs, 2);
 	flags = (u32)open_flags_to_scap(flags);
-	/* update flags if file created */
+	/* update flags if file is created */
 	flags |= extract__fmode_created_from_fd(ret);
 
 	auxmap__store_u32_param(auxmap, flags);

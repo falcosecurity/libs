@@ -100,7 +100,7 @@ int BPF_PROG(openat2_x,
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	uint32_t flags = open_flags_to_scap(how.flags);
-	/* update flags if file created */
+	/* update flags if file is created */
 	flags |= extract__fmode_created_from_fd(ret);
 
 	auxmap__store_u32_param(auxmap, flags);

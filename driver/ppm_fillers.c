@@ -389,6 +389,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 {
 	syscall_arg_t val;
 	syscall_arg_t flags;
+	syscall_arg_t scap_flags;
 	syscall_arg_t modes;
 	uint32_t dev = 0;
 	uint64_t ino = 0;
@@ -417,10 +418,10 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &flags);
-	flags = open_flags_to_scap(flags);	
-	/* update flags if file created */
-	get_fd_fmode_created(retval, &flags);
-	res = val_to_ring(args, flags, 0, false, 0);
+	scap_flags = open_flags_to_scap(flags);	
+	/* update scap flags if file is created */
+	get_fd_fmode_created(retval, &scap_flags);
+	res = val_to_ring(args, scap_flags, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3659,6 +3660,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long flags;
+	unsigned long scap_flags;
 	unsigned long modes;
 
 	uint32_t dev = 0;
@@ -3697,10 +3699,10 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &flags);
-	flags = open_flags_to_scap(flags);	
-	/* update flags if file created */
-	get_fd_fmode_created(retval, &flags);
-	res = val_to_ring(args, flags, 0, false, 0);
+	scap_flags = open_flags_to_scap(flags);	
+	/* update scap flags if file is created */
+	get_fd_fmode_created(retval, &scap_flags);
+	res = val_to_ring(args, scap_flags, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -5133,7 +5135,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */	
-	/* update flags if file created */
+	/* update flags if file is created */
 	get_fd_fmode_created(retval, &flags);
 	res = val_to_ring(args, flags, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -5243,7 +5245,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	flags = open_flags_to_scap(val);
-	/* update flags if file created */
+	/* update flags if file is created */
 	get_fd_fmode_created(retval, &flags);
 	res = val_to_ring(args, flags, 0, false, 0);
 	CHECK_RES(res);

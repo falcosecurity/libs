@@ -264,6 +264,11 @@ static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, u64
  */
 static __always_inline u32 extract__fmode_created_from_fd(s32 fd)
 {
+	if(fd < 0)
+	{
+    	return 0;
+	}
+
 	struct file *f = extract__file_struct_from_fd(fd);
 	if(!f)
 	{
