@@ -141,6 +141,7 @@ TEST(SyscallExit, openX_create_success)
 	const char* pathname = "created_file";
 	int flags = O_RDWR | O_CREAT;
 	mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP;
+	syscall(__NR_unlinkat, AT_FDCWD, pathname, 0); /* remove file before creating it */
 	int fd = syscall(__NR_open, pathname, flags, mode);
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 	syscall(__NR_close, fd);
