@@ -126,4 +126,63 @@ TEST(SyscallExit, openat2X_failure)
 
 	evt_test->assert_num_params_pushed(6);
 }
+
+TEST(SyscallExit, openat2X_create_success)
+{
+	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int dirfd = AT_FDCWD;
+	const char* pathname = "created_file";
+	struct open_how how;
+	how.flags = O_RDWR | O_CREAT;
+	how.mode = S_IRWXU | S_IRGRP | S_IXGRP;
+	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
+	syscall(__NR_unlinkat, AT_FDCWD, pathname, 0); /* remove file before creating it */
+	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
+	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
+	close(fd);
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(1, (int64_t)fd);
+
+	/* Parameter 2: dirfd (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)PPM_AT_FDCWD);
+
+	/* Parameter 3: name (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(3, pathname);
+
+	/* Parameter 4: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(4, (uint32_t)PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
+
+	/* Parameter 5: mode (type: PT_UINT32) */
+	evt_test->assert_numeric_param(5, (uint32_t)how.mode);
+
+	/* Parameter 6: resolve (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(6);
+}
 #endif
