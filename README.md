@@ -125,7 +125,7 @@ To start, first create and move inside `build/` folder:
 mkdir build && cd build
 ```
 
-### Bundled deps
+### Build userspace using bundled deps
 
 The easiest way to build the project is to use `BUNDLED_DEPS` option (enabled by default), 
 meaning that most of the dependencies will be fetched and compiled during the process:
@@ -136,7 +136,7 @@ make sinsp
 ```
 > __NOTE:__ Take a break as this will take quite a bit of time (around 15 mins, dependent on the hardware).
 
-### System deps
+### Build userspace using system deps
 
 To build using the system deps instead, first, make sure to have all the needed packages installed. Refer to the [official documentation](https://falco.org/docs/install-operate/source/).
 
@@ -147,7 +147,7 @@ make sinsp
 
 > __NOTE:__ Using system libraries is useful to cut compile times down, as this way it will only build libs, and not all deps. On the other hand, system deps version may have an impact, and we cannot guarantee everything goes smoothly while using them.
 
-### Build kmod
+### Build driver - kmod
 
 To build the kmod driver, you need your kernel headers installed. Check out the [official documentation](https://falco.org/docs/install-operate/source/).
 
@@ -157,7 +157,7 @@ make driver
 ls -l driver/src/scap.ko;
 ```
 
-### Build eBPF probe
+### Build driver - eBPF probe
 
 To build the eBPF probe, you need `clang` and `llvm` packages and you also need your kernel headers installed. Check out the [official documentation](https://falco.org/docs/install-operate/source/).
 
@@ -170,7 +170,9 @@ ls -l driver/bpf/probe.o;
 
 >__WARNING__: **clang-7** is the oldest supported version to build our BPF probe.
 
-### Build modern eBPF probe
+Initial guidance for CI and building within containers: To build either the kmod or eBPF probe in a container, you will need to make the extracted kernel headers available. The [test/vm](test/vm/) directory contains example [scripts](test/vm/scripts/compile_drivers.sh) demonstrating how to pass them to the `make` command using the argument `KERNELDIR=${EXTRACTED_KERNEL_HEADERS_DIR}`. You can also use the [falcosecurity/driverkit](https://github.com/falcosecurity/driverkit) or explore the scripts within the driverkit repository. The mentioned resources also provide candidate builder containers.
+
+### Build driver - modern eBPF probe
 
 To build the modern eBPF probe, further prerequisites are necessary:
 
