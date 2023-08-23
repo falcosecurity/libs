@@ -109,7 +109,6 @@ FILLER_RAW(terminate_filler)
 			// enter
 			case PPME_SYSCALL_OPEN_E:
 			case PPME_SYSCALL_CREAT_E:
-			case PPME_SYSCALL_OPENAT_E:
 			case PPME_SYSCALL_OPENAT_2_E:
 			case PPME_SYSCALL_OPENAT2_E:
 			case PPME_SYSCALL_OPEN_BY_HANDLE_AT_E:
@@ -125,40 +124,28 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_LCHOWN_E:
 			case PPME_SYSCALL_FCHOWN_E:
 			case PPME_SYSCALL_FCHOWNAT_E:
-			case PPME_SYSCALL_LINK_E:
 			case PPME_SYSCALL_LINK_2_E:
-			case PPME_SYSCALL_LINKAT_E:
 			case PPME_SYSCALL_LINKAT_2_E:
-			case PPME_SYSCALL_MKDIR_E:
 			case PPME_SYSCALL_MKDIR_2_E:
 			case PPME_SYSCALL_MKDIRAT_E:
 			case PPME_SYSCALL_MOUNT_E:
-			case PPME_SYSCALL_UMOUNT_E:
 			case PPME_SYSCALL_UMOUNT_1_E:
 			case PPME_SYSCALL_UMOUNT2_E:
 			case PPME_SYSCALL_RENAME_E:
 			case PPME_SYSCALL_RENAMEAT_E:
 			case PPME_SYSCALL_RENAMEAT2_E:
-			case PPME_SYSCALL_RMDIR_E:
 			case PPME_SYSCALL_RMDIR_2_E:
 			case PPME_SYSCALL_SYMLINK_E:
 			case PPME_SYSCALL_SYMLINKAT_E:
-			case PPME_SYSCALL_UNLINK_E:
 			case PPME_SYSCALL_UNLINK_2_E:
-			case PPME_SYSCALL_UNLINKAT_E:
 			case PPME_SYSCALL_UNLINKAT_2_E:
 				if (state->n_drops_buffer_dir_file_enter != ULLONG_MAX) {
 					++state->n_drops_buffer_dir_file_enter;
 				}
 				break;
-			case PPME_SYSCALL_CLONE_11_E:
-			case PPME_SYSCALL_CLONE_16_E:
-			case PPME_SYSCALL_CLONE_17_E:
 			case PPME_SYSCALL_CLONE_20_E:
 			case PPME_SYSCALL_CLONE3_E:
-			case PPME_SYSCALL_FORK_E:
 			case PPME_SYSCALL_FORK_20_E:
-			case PPME_SYSCALL_VFORK_E:
 			case PPME_SYSCALL_VFORK_20_E:
 				if (state->n_drops_buffer_clone_fork_enter != ULLONG_MAX) {
 					++state->n_drops_buffer_clone_fork_enter;
@@ -175,7 +162,6 @@ FILLER_RAW(terminate_filler)
 					++state->n_drops_buffer_connect_enter;
 				}
 				break;
-			case PPME_SYSCALL_BPF_E:
 			case PPME_SYSCALL_BPF_2_E:
 			case PPME_SYSCALL_SETPGID_E:
 			case PPME_SYSCALL_PTRACE_E:
@@ -190,7 +176,6 @@ FILLER_RAW(terminate_filler)
 					++state->n_drops_buffer_other_interest_enter;
 				}
 				break;
-			case PPME_PROCEXIT_E:
 			case PPME_PROCEXIT_1_E:
 				if (state->n_drops_buffer_proc_exit != ULLONG_MAX) {
 					++state->n_drops_buffer_proc_exit;
@@ -199,7 +184,6 @@ FILLER_RAW(terminate_filler)
 			// exit
 			case PPME_SYSCALL_OPEN_X:
 			case PPME_SYSCALL_CREAT_X:
-			case PPME_SYSCALL_OPENAT_X:
 			case PPME_SYSCALL_OPENAT_2_X:
 			case PPME_SYSCALL_OPENAT2_X:
 			case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
@@ -215,40 +199,28 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_LCHOWN_X:
 			case PPME_SYSCALL_FCHOWN_X:
 			case PPME_SYSCALL_FCHOWNAT_X:
-			case PPME_SYSCALL_LINK_X:
 			case PPME_SYSCALL_LINK_2_X:
-			case PPME_SYSCALL_LINKAT_X:
 			case PPME_SYSCALL_LINKAT_2_X:
-			case PPME_SYSCALL_MKDIR_X:
 			case PPME_SYSCALL_MKDIR_2_X:
 			case PPME_SYSCALL_MKDIRAT_X:
 			case PPME_SYSCALL_MOUNT_X:
-			case PPME_SYSCALL_UMOUNT_X:
 			case PPME_SYSCALL_UMOUNT_1_X:
 			case PPME_SYSCALL_UMOUNT2_X:
 			case PPME_SYSCALL_RENAME_X:
 			case PPME_SYSCALL_RENAMEAT_X:
 			case PPME_SYSCALL_RENAMEAT2_X:
-			case PPME_SYSCALL_RMDIR_X:
 			case PPME_SYSCALL_RMDIR_2_X:
 			case PPME_SYSCALL_SYMLINK_X:
 			case PPME_SYSCALL_SYMLINKAT_X:
-			case PPME_SYSCALL_UNLINK_X:
 			case PPME_SYSCALL_UNLINK_2_X:
-			case PPME_SYSCALL_UNLINKAT_X:
 			case PPME_SYSCALL_UNLINKAT_2_X:
 				if (state->n_drops_buffer_dir_file_exit != ULLONG_MAX) {
 					++state->n_drops_buffer_dir_file_exit;
 				}
 				break;
-			case PPME_SYSCALL_CLONE_11_X:
-			case PPME_SYSCALL_CLONE_16_X:
-			case PPME_SYSCALL_CLONE_17_X:
 			case PPME_SYSCALL_CLONE_20_X:
 			case PPME_SYSCALL_CLONE3_X:
-			case PPME_SYSCALL_FORK_X:
 			case PPME_SYSCALL_FORK_20_X:
-			case PPME_SYSCALL_VFORK_X:
 			case PPME_SYSCALL_VFORK_20_X:
 				if (state->n_drops_buffer_clone_fork_exit != ULLONG_MAX) {
 					++state->n_drops_buffer_clone_fork_exit;
@@ -265,7 +237,6 @@ FILLER_RAW(terminate_filler)
 					++state->n_drops_buffer_connect_exit;
 				}
 				break;
-			case PPME_SYSCALL_BPF_X:
 			case PPME_SYSCALL_BPF_2_X:
 			case PPME_SYSCALL_SETPGID_X:
 			case PPME_SYSCALL_PTRACE_X:
