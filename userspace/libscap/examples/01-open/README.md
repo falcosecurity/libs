@@ -92,34 +92,66 @@ sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o
 As soon as you quit (`CTRL-C`) the `scap-open` program, you will be prompted with detailed information on the capture:
 
 ```
----------------------- STATS -----------------------
-Events captured: 20
-Seen by driver: 20
-Time elapsed: 2 s
-Number of events/per-second: 10
-Number of dropped events: 0
-Number of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): 0
-Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_enter syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_exit syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_execve_enter syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_execve_exit syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_connect_enter syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_connect_exit syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_open_enter syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_open_exit syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_dir_file_enter syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_dir_file_exit syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_other_interest_enter syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_other_interest_exit syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_close_exit syscall category): 0
-Number of dropped events caused by full buffer (n_drops_buffer_proc_exit syscall category): 0
-Number of dropped events caused by full scratch map: 0
-Number of dropped events caused by invalid memory access (page faults): 0
-Number of dropped events caused by an invalid condition in the kernel instrumentation (bug): 0
-Number of preemptions: 0
-Number of events skipped due to the tid being in a set of suppressed tids: 0
-Number of threads currently being suppressed: 0
------------------------------------------------------
+----------------------------- STATS ------------------------------
+
+[SCAP-OPEN]: General statistics
+
+Events correctly captured (SCAP_SUCCESS): 232471
+Seen by driver (kernel side events): 232817
+Time elapsed: 3 s
+Rate of userspace events (events/second): 77490
+Rate of kernel side events (events/second): 77605
+Number of timeouts: 123
+Number of 'next' calls: 232594
+
+[SCAP-OPEN]: Stats v2.
+
+[SCAP-OPEN]: 41 metrics in total
+[SCAP-OPEN]: [1] kernel-side counters
+[SCAP-OPEN]: [2] libbpf stats (compare to `bpftool prog show` CLI)
+
+[1] n_evts: 232817
+[1] n_drops_buffer_total: 0
+[1] n_drops_buffer_clone_fork_enter: 0
+[1] n_drops_buffer_clone_fork_exit: 0
+[1] n_drops_buffer_execve_enter: 0
+[1] n_drops_buffer_execve_exit: 0
+[1] n_drops_buffer_connect_enter: 0
+[1] n_drops_buffer_connect_exit: 0
+[1] n_drops_buffer_open_enter: 0
+[1] n_drops_buffer_open_exit: 0
+[1] n_drops_buffer_dir_file_enter: 0
+[1] n_drops_buffer_dir_file_exit: 0
+[1] n_drops_buffer_other_interest_enter: 0
+[1] n_drops_buffer_other_interest_exit: 0
+[1] n_drops_buffer_close_exit: 0
+[1] n_drops_buffer_proc_exit: 0
+[1] n_drops_scratch_map: 0
+[1] n_drops_page_faults: 0
+[1] n_drops_bug: 0
+[1] n_drops: 0
+[2] sys_enter.run_cnt: 98656
+[2] sys_enter.run_time_ns: 81056465
+[2] sys_enter.avg_time_ns: 821
+[2] sys_exit.run_cnt: 98660
+[2] sys_exit.run_time_ns: 85784377
+[2] sys_exit.avg_time_ns: 869
+[2] sched_process_e.run_cnt: 24
+[2] sched_process_e.run_time_ns: 41894
+[2] sched_process_e.avg_time_ns: 1745
+[2] sched_switch.run_cnt: 24481
+[2] sched_switch.run_time_ns: 47855905
+[2] sched_switch.avg_time_ns: 1954
+[2] page_fault_user.run_cnt: 11605
+[2] page_fault_user.run_time_ns: 4440998
+[2] page_fault_user.avg_time_ns: 382
+[2] page_fault_kern.run_cnt: 5127
+[2] page_fault_kern.run_time_ns: 590651
+[2] page_fault_kern.avg_time_ns: 115
+[2] signal_deliver.run_cnt: 22
+[2] signal_deliver.run_time_ns: 20848
+[2] signal_deliver.avg_time_ns: 947
+------------------------------------------------------------------
 ```
 
 To run it with the kernel module, you first have to inject the kernel module into the kernel:
