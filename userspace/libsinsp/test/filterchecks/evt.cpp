@@ -40,6 +40,5 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create)
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_open_create"), "true");
 	ASSERT_TRUE(evt->m_fdinfo);
 
-	// TODO: This test should not fail, we need to fix it or in drivers or in sinsp
 	ASSERT_EQ(evt->m_fdinfo->m_openflags, PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
 }

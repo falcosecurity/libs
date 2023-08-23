@@ -3019,7 +3019,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 				namelen = enter_evt_namelen;
-				flags = enter_evt_flags;
+
+				// keep PPM_O_F_CREATED flag if present
+				if (flags | PPM_O_F_CREATED)
+					flags = enter_evt_flags | PPM_O_F_CREATED;
+				else
+					flags = enter_evt_flags;
 			}
 		}
 
@@ -3058,7 +3063,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 				namelen = enter_evt_namelen;
-				flags = enter_evt_flags;
+
+				// keep PPM_O_F_CREATED flag if present
+				if (flags | PPM_O_F_CREATED)
+					flags = enter_evt_flags | PPM_O_F_CREATED;
+				else
+					flags = enter_evt_flags;
 			}
 		}
 
@@ -3128,7 +3138,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 				namelen = enter_evt_namelen;
-				flags = enter_evt_flags;
+
+				// keep PPM_O_F_CREATED flag if present
+				if (flags | PPM_O_F_CREATED)
+					flags = enter_evt_flags | PPM_O_F_CREATED;
+				else
+					flags = enter_evt_flags;
+
 				dirfd = enter_evt_dirfd;
 			}
 		}
