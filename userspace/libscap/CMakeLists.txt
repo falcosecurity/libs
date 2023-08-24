@@ -111,9 +111,6 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	add_definitions(-DHAS_ENGINE_TEST_INPUT)
 	add_subdirectory(engine/test_input)
 	target_link_libraries(scap scap_engine_test_input)
-
-	# Add unit test directories
-	add_subdirectory(test)
 endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_subdirectory(linux)
