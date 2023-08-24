@@ -15,7 +15,6 @@ limitations under the License.
 
 */
 
-#include <scap.h>
 #include <gtest/gtest.h>
 #include "strl.h"
 
@@ -39,5 +38,4 @@ TEST(common_strl, strlcat_input)
     ASSERT_EQ(res, 30);
     ASSERT_STREQ(buf, "0123456789abcdefghijklmnopqrs");
     ASSERT_EQ(strlen(buf), 29);
-
 }
