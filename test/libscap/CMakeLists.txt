@@ -32,6 +32,7 @@ set(LIBSCAP_TESTS_INCLUDE
   "${GTEST_INCLUDE}"
   "${CMAKE_CURRENT_SOURCE_DIR}" # for test helpers <helpers/...>
   "${CMAKE_SOURCE_DIR}/userspace/libscap" # this is for libscap includes
+  "${CMAKE_SOURCE_DIR}/userspace/common" # used to include `strl.h`
   "${CMAKE_SOURCE_DIR}/driver" # for the event_stats.h file
   "${CMAKE_CURRENT_BINARY_DIR}" # used to include `libscap_test_var.h`
 )
@@ -56,13 +57,9 @@ set(LIBSCAP_TESTS_DEPENDENCIES
 	scap
 )
 
-# Generic libscap test suite, always compiled
-file(GLOB_RECURSE GENERIC_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/generic/*.cpp")
-set(LIBSCAP_TESTS_SOURCES ${GENERIC_TEST_SUITE})
-
-# Test suite asserting against tables
-file(GLOB_RECURSE TABLES_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/tables/*.cpp")
-set(LIBSCAP_TESTS_SOURCES ${TABLES_TEST_SUITE})
+# Test suite asserting against pure userspace components
+file(GLOB_RECURSE USERSPACE_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/userspace/*.cpp")
+set(LIBSCAP_TESTS_SOURCES ${USERSPACE_TEST_SUITE})
 
 # Helpers are not engine-specific so we always include them
 file(GLOB_RECURSE LIBSCAP_TESTS_UTILS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers/*cpp")
