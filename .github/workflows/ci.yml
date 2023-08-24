@@ -190,7 +190,7 @@ jobs:
       - name: Build scap-open and drivers 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=Off -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
+          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=On -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
           make scap-open
           make driver bpf
           make libscap_test
