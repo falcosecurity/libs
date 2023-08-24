@@ -5925,10 +5925,26 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					m_u32val = 1;
 				}
 
-				if(m_field_id == TYPE_ISOPEN_CREATE &&
-				   flags & PPM_O_F_CREATED)
+				if(m_field_id == TYPE_ISOPEN_CREATE)
 				{
-					m_u32val = 1;
+					// If PPM_O_F_CREATED is set the file is created 
+					if(flags & PPM_O_F_CREATED)
+					{
+						m_u32val = 1;
+					}
+
+					// If PPM_O_TMPFILE is set and syscall is successful the file is created
+					if(flags & PPM_O_TMPFILE)
+					{
+						parinfo = evt->get_param(0);
+						ASSERT(parinfo->m_len == sizeof(int64_t));
+						int64_t retval = *(int64_t *)parinfo->m_val;
+
+						if(retval >= 0)
+						{
+							m_u32val = 1;
+						}
+					}
 				}
 
 				/* `open_by_handle_at` exit event has no `mode` parameter. */
