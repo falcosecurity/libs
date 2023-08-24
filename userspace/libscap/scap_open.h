@@ -83,8 +83,6 @@ extern "C"
 	{
 		const char* engine_name;				 ///< engine name ("kmod", "bpf", ...).
 		scap_mode_t mode;					 ///< scap-mode required by the engine.
-		proc_entry_callback proc_callback;			 ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
-		void* proc_callback_context;				 ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
 		bool import_users;					 ///< true if the user list should be created when opening the capture.
 		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
                 falcosecurity_log_fn log_fn; //< Function which SCAP may use to log messages

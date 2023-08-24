@@ -472,11 +472,6 @@ void sinsp::open_common(scap_open_args* oargs, struct scap_platform* platform)
 	/* We need to save the actual mode and the engine used by the inspector. */
 	m_mode = oargs->mode;
 
-	if(oargs->mode != SCAP_MODE_CAPTURE)
-	{
-		oargs->proc_callback = ::on_new_entry_from_proc;
-		oargs->proc_callback_context = this;
-	}
 	oargs->import_users = m_usergroup_manager.m_import_users;
 	// We need to subscribe to container manager notifiers before
 	// scap starts scanning proc.
