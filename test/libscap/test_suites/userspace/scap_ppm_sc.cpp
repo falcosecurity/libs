@@ -100,8 +100,8 @@ TEST(scap_ppm_sc, scap_get_events_from_ppm_sc)
 			struct syscall_evt_pair pair = g_syscall_table[sys_id];
 			if(pair.ppm_sc == ppm_sc)
 			{
-				ASSERT_TRUE(events_array[pair.enter_event_type]) << "ppm_sc: " << scap_get_syscall_info_table()[pair.ppm_sc].name << " (" << pair.ppm_sc << ") should be associated with event: " << pair.enter_event_type << std::endl;
-				ASSERT_TRUE(events_array[pair.exit_event_type]) << "ppm_sc: " << scap_get_syscall_info_table()[pair.ppm_sc].name << " (" << pair.ppm_sc << ") should be associated with event: " << pair.exit_event_type << std::endl;
+				ASSERT_TRUE(events_array[pair.enter_event_type]) << "ppm_sc: " << scap_get_ppm_sc_name((ppm_sc_code)pair.ppm_sc) << " (" << pair.ppm_sc << ") should be associated with event: " << pair.enter_event_type << std::endl;
+				ASSERT_TRUE(events_array[pair.exit_event_type]) << "ppm_sc: " << scap_get_ppm_sc_name((ppm_sc_code)pair.ppm_sc) << " (" << pair.ppm_sc << ") should be associated with event: " << pair.exit_event_type << std::endl;
 			}
 		}
 	}
