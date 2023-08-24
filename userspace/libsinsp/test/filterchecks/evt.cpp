@@ -24,7 +24,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create)
 	open_inspector();
 
 	std::string path = "/home/file.txt";
-	int fd = 3;
+	int64_t fd = 3;
 
 	// In the enter event we don't send the `PPM_O_F_CREATED`
 	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path.c_str(),
