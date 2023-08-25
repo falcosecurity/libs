@@ -6640,7 +6640,6 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
 	int64_t flags;
 	sinsp_fdinfo_t fdi;
 
-	ASSERT(evt->m_tinfo)
 	if(evt->m_tinfo == nullptr)
 	{
 		return;
@@ -6690,7 +6689,6 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
 	int64_t pidfd;
 	int64_t targetfd;
 
-	ASSERT(evt->m_tinfo)
 	if(evt->m_tinfo == nullptr)
 	{
 		return;
@@ -6734,7 +6732,5 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
 	{
 		return;
 	}
-
-	sinsp_fdinfo_t new_fd = *targetfd_fdinfo;
-	evt->m_tinfo->add_fd(fd, &new_fd);
+	evt->m_tinfo->add_fd(fd, targetfd_fdinfo);
 }
