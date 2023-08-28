@@ -1235,6 +1235,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		res = SCAP_SUCCESS;
 		evt = m_state_evt.get();
+		// NB: setting the ts here avoids any race condition.
+		evt->m_pevt->ts = (m_lastevent_ts == 0)
+			? sinsp_utils::get_current_time_ns()
+			: m_lastevent_ts;
 	}
 #endif
 	else
@@ -2851,9 +2855,6 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		auto plid = (uint32_t*)((uint8_t*) evt->m_pevt + sizeof(scap_evt) + 4+4+4);
 		*plid = cur_plugin_id;
 		evt->inspector(this);
-		evt->m_pevt->ts = (m_lastevent_ts == 0)
-			? sinsp_utils::get_current_time_ns()
-			: m_lastevent_ts;
 #ifndef __EMSCRIPTEN__				
 		m_pending_state_evts.push(std::move(evt));
 #endif
