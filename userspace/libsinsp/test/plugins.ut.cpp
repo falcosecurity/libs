@@ -404,7 +404,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	// we will not use the test scap engine here, but open the no-driver instead
 	uint64_t count = 0;
 	uint64_t cycles = 0;
-	uint64_t max_cycles = max_count * 1.5; // avoid infinite loops
+	uint64_t max_cycles = max_count * 8; // avoid infinite loops
 	sinsp_evt *evt = NULL;
 	int32_t rc = SCAP_SUCCESS;
 	uint64_t last_ts = 0;

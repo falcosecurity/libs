@@ -184,8 +184,18 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
                     exit(1);
                 }
 
-                // sleep for a period
-                std::this_thread::sleep_for(std::chrono::nanoseconds(ps->async_period));
+				// sleep for a period
+				if(i < 2)
+				{
+					// sleep for 1ms
+					std::this_thread::sleep_for(std::chrono::nanoseconds(ps->async_period));
+				}
+				else
+				{
+					// sleep for 1s
+					std::this_thread::sleep_for(std::chrono::nanoseconds(ps->async_period*1000));
+				}
+
             }
         });
     }
