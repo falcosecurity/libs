@@ -69,6 +69,7 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
 	curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 
 	std::string url = "http://localhost" + m_api_version + req_url;
 
