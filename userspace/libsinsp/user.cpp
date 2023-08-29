@@ -597,7 +597,10 @@ bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user, sin
 		// This can happen at startup when containers are
 		// being created as a part of the initial process
 		// scan.
-		scapevt->ts = sinsp_utils::get_current_time_ns();
+		// note: the following is only a convention and
+		// the timestamp will be setted when the event
+		// will be popped.
+		scapevt->ts = (uint64_t) - 1;
 	}
 	else
 	{
@@ -657,7 +660,10 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 		// This can happen at startup when containers are
 		// being created as a part of the initial process
 		// scan.
-		scapevt->ts = sinsp_utils::get_current_time_ns();
+		// note: the following is only a convention and
+		// the timestamp will be setted when the event
+		// will be popped.
+		scapevt->ts = (uint64_t) - 1;
 	}
 	else
 	{
