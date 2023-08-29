@@ -81,74 +81,59 @@ endif()
 
 file(GLOB_RECURSE TEST_HELPERS ${CMAKE_CURRENT_SOURCE_DIR}/helpers/*.cpp)
 
+set(LIBSINSP_UNIT_TESTS_SOURCES
+	test_utils.cpp
+	cgroup_list_counter.ut.cpp
+	events_evt.ut.cpp
+	events_file.ut.cpp
+	events_fspath.ut.cpp
+	events_net.ut.cpp
+	events_param.ut.cpp
+	events_plugin.ut.cpp
+	events_proc.ut.cpp
+	events_user.ut.cpp
+	external_processor.ut.cpp
+	token_bucket.ut.cpp
+	ppm_api_version.ut.cpp
+	plugins.ut.cpp
+	plugin_manager.ut.cpp
+	prefix_search.ut.cpp
+	string_visitor.ut.cpp
+	filter_escaping.ut.cpp
+	filter_parser.ut.cpp
+	filter_op_bcontains.ut.cpp
+	filter_op_pmatch.ut.cpp
+	filter_compiler.ut.cpp
+	user.ut.cpp
+	container_info.ut.cpp
+	sinsp_utils.ut.cpp
+	state.ut.cpp
+	eventformatter.ut.cpp
+	savefile.ut.cpp
+	thread_table.ut.cpp
+	public_sinsp_API/event_related.cpp
+	public_sinsp_API/sinsp_logger.cpp
+	"${TEST_PLUGINS}"
+	"${SINSP_PARSERS_SUITE}"
+	"${SINSP_CLASSES_SUITE}"
+	"${SINSP_FILTERCHECKS_SUITE}"
+	"${SCAP_FILES_SUITE}"
+	"${TEST_HELPERS}"
+)
+
 if(WIN32)
-	set(LIBSINSP_UNIT_TESTS_SOURCES
-		test_utils.cpp
-		cgroup_list_counter.ut.cpp
-		events_evt.ut.cpp
-		events_param.ut.cpp
-		events_plugin.ut.cpp
-		external_processor.ut.cpp
-		token_bucket.ut.cpp
-		ppm_api_version.ut.cpp
-		plugins.ut.cpp
-		plugin_manager.ut.cpp
-		prefix_search.ut.cpp
-		string_visitor.ut.cpp
-		filter_escaping.ut.cpp
-		filter_parser.ut.cpp
-		filter_op_bcontains.ut.cpp
-		filter_op_pmatch.ut.cpp
-		filter_compiler.ut.cpp
-		container_info.ut.cpp
-		sinsp_utils.ut.cpp
-		state.ut.cpp
-		eventformatter.ut.cpp
-		savefile.ut.cpp
-		public_sinsp_API/event_related.cpp
-		"${TEST_PLUGINS}"
-		"${SCAP_FILES_SUITE}"
-		"${TEST_HELPERS}"
-	)
-else()
-	set(LIBSINSP_UNIT_TESTS_SOURCES
-		test_utils.cpp
-		cgroup_list_counter.ut.cpp
-		events_evt.ut.cpp
+	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES
 		events_file.ut.cpp
 		events_fspath.ut.cpp
 		events_net.ut.cpp
-		events_param.ut.cpp
-		events_plugin.ut.cpp
 		events_proc.ut.cpp
 		events_user.ut.cpp
-		external_processor.ut.cpp
-		token_bucket.ut.cpp
-		ppm_api_version.ut.cpp
-		plugins.ut.cpp
-		plugin_manager.ut.cpp
-		prefix_search.ut.cpp
-		string_visitor.ut.cpp
-		filter_escaping.ut.cpp
-		filter_parser.ut.cpp
-		filter_op_bcontains.ut.cpp
-		filter_op_pmatch.ut.cpp
-		filter_compiler.ut.cpp
 		user.ut.cpp
-		container_info.ut.cpp
-		sinsp_utils.ut.cpp
-		state.ut.cpp
-		eventformatter.ut.cpp
-		savefile.ut.cpp
 		thread_table.ut.cpp
-		public_sinsp_API/event_related.cpp
 		public_sinsp_API/sinsp_logger.cpp
-		"${TEST_PLUGINS}"
 		"${SINSP_PARSERS_SUITE}"
 		"${SINSP_CLASSES_SUITE}"
 		"${SINSP_FILTERCHECKS_SUITE}"
-		"${SCAP_FILES_SUITE}"
-		"${TEST_HELPERS}"
 	)
 endif()
 

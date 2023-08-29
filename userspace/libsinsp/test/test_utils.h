@@ -23,7 +23,7 @@ limitations under the License.
 #include <unordered_set>
 #if !defined(_WIN32)
 #include <netinet/in.h>
-#endif
+#endif //_WIN32
 #include <event_stats.h>
 
 #define ASSERT_NAMES_EQ(a, b)                                                                                \
@@ -93,7 +93,7 @@ struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string);
 struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string);
 std::vector<uint8_t> pack_sockaddr(sockaddr *sa);
 std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest);
-#endif
+#endif //_WIN32
 
 void print_bytes(uint8_t *buf, size_t size);
 

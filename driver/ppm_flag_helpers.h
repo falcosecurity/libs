@@ -1494,7 +1494,6 @@ static __always_inline u32 flock_flags_to_scap(unsigned long flags)
 
 static __always_inline uint8_t quotactl_type_to_scap(unsigned long cmd)
 {
-#if !defined(__EMSCRIPTEN__)
 	switch (cmd & SUBCMDMASK) {
 	case USRQUOTA:
 		return PPM_USRQUOTA;
@@ -1502,14 +1501,12 @@ static __always_inline uint8_t quotactl_type_to_scap(unsigned long cmd)
 		return PPM_GRPQUOTA;
 	}
 	return 0;
-#endif
 }
 
 static __always_inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 {
 	uint16_t res = 0;
 
-#if !defined(__EMSCRIPTEN__)
 	switch (cmd >> SUBCMDSHIFT) {
 	case Q_SYNC:
 		res = PPM_Q_SYNC;
@@ -1570,7 +1567,6 @@ static __always_inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 	default:
 		res = 0;
 	}
-#endif
 	return res;
 }
 

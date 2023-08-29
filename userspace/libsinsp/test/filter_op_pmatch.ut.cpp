@@ -38,6 +38,11 @@ TEST_F(sinsp_with_test_input, pmatch)
 	filter_run(evt, false, "fd.name pmatch (/opt/dir3, /opt/dir2)");
 	filter_run(evt, true, "fd.name pmatch (/opt/*)");
 	filter_run(evt, true, "fd.name pmatch (/opt/*/subdir)");
+	// In Windows systems, the function used to perform path matching differs
+	// from linux and macos: instead of `fnmatch` is used `PathMatchSpecA`
+	// (from the Windows API); this function reflects the Windows behaviour
+	// in path matching (case insentive...). Given that we need to exclude
+	// some tests.
 #if !defined(_WIN32)
 	filter_run(evt, true, "fd.name pmatch (/opt/di?/subdir)");
 	filter_run(evt, false, "fd.name pmatch (/opt/dii?/subdir)");
