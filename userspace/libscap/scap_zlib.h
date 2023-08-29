@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "settings.h"
 
-#if defined(USE_ZLIB) && !defined(UDIG)
+#if defined(USE_ZLIB) && !defined(UDIG) && !defined(_WIN32)
 #include <zlib.h>
 #else
 #include <stdio.h>
