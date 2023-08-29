@@ -38,12 +38,14 @@ TEST_F(sinsp_with_test_input, pmatch)
 	filter_run(evt, false, "fd.name pmatch (/opt/dir3, /opt/dir2)");
 	filter_run(evt, true, "fd.name pmatch (/opt/*)");
 	filter_run(evt, true, "fd.name pmatch (/opt/*/subdir)");
+#if !defined(_WIN32)
 	filter_run(evt, true, "fd.name pmatch (/opt/di?/subdir)");
 	filter_run(evt, false, "fd.name pmatch (/opt/dii?/subdir)");
 	filter_run(evt, true, "fd.name pmatch (/opt/di[r]/subdir)");
 	filter_run(evt, false, "fd.name pmatch (/opt/di[!r]/subdir)");
-	filter_run(evt, false, "fd.name pmatch (/opt/di/subdir)");
 	filter_run(evt, false, "fd.name pmatch (/opt/di[t]/subdir)");
+#endif
+	filter_run(evt, false, "fd.name pmatch (/opt/di/subdir)");
 	filter_run(evt, false, "fd.name pmatch (/opt/*/subdir2)");
 	filter_run(evt, true, "fd.name pmatch (/opt/*/*)");
 	filter_run(evt, false, "fd.name pmatch (/opt/*/*/subsubdir)");

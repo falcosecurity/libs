@@ -94,14 +94,28 @@ TEST_F(usergroup_manager_test, system_lookup)
 	ASSERT_EQ(user->uid, 0);
 	ASSERT_EQ(user->gid, 0);
 	ASSERT_STREQ(user->name, "root");
+#if defined(__APPLE__)
+	// if the container_id is empty the user will be populated
+	// with the host user. In case of macos we have to use the
+	// correct root home directory.
+	ASSERT_STREQ(user->homedir, "/var/root");
+#else
 	ASSERT_STREQ(user->homedir, "/root");
+#endif
 	ASSERT_EQ(std::string(user->shell).empty(), false);
 
 	mgr.add_group(container_id, -1, 0, nullptr);
 	auto* group = mgr.get_group(container_id, 0);
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
+#if defined(__APPLE__)
+	// if the container_id is empty the group will be populated
+	// with the host group. In case of macos we have to use the
+	// correct root group.
+	ASSERT_STREQ(group->name, "wheel");
+#else
 	ASSERT_STREQ(group->name, "root");
+#endif
 }
 #endif
 
@@ -133,7 +147,8 @@ TEST_F(usergroup_manager_test, add_no_import_users)
 }
 
 // note(jasondellaluce): emscripten has issues with fgetpwent
-#if (defined(HAVE_PWD_H) || defined(HAVE_GRP_H)) && !defined(__EMSCRIPTEN__)
+// note(therealbobo): macos doesn't define fgetpwent
+#if (defined(HAVE_PWD_H) || defined(HAVE_GRP_H)) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 class usergroup_manager_host_root_test : public sinsp_with_test_input
 {
 protected:
