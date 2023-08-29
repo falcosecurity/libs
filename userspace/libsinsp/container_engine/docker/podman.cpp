@@ -170,13 +170,16 @@ bool podman::can_api_sock_exist()
 	// If the GNU extension GLOB_BRACE were universal, we could
 	// probably do this as one glob.
 
-	if (access(m_api_sock.c_str(), R_OK|W_OK) == 0)
+	std::string api_sock = scap_get_host_root() + m_api_sock;
+	std::string user_api_sock_pattern = scap_get_host_root() + m_user_api_sock_pattern;
+
+	if (access(api_sock.c_str(), R_OK|W_OK) == 0)
 	{
 		return true;
 	}
 
 	// NULL is errfunc
-	rc = glob(m_user_api_sock_pattern.c_str(), glob_flags, NULL, &gl);
+	rc = glob(user_api_sock_pattern.c_str(), glob_flags, NULL, &gl);
 	globfree(&gl);
 
 	return (rc == 0);
