@@ -255,16 +255,16 @@ function(prepare_cri_grpc api_version)
 	add_dependencies(cri_${api_version} grpc)
 endfunction()
 
+if (NOT EMSCRIPTEN)
+	add_dependencies(sinsp tbb)
+endif()
+
 if(NOT WIN32)
 	if(NOT MINIMAL_BUILD)
 		if(NOT EMSCRIPTEN)
 			add_dependencies(sinsp openssl curl)
 		endif()	
 	endif()
-
-	if (NOT EMSCRIPTEN)
-		add_dependencies(sinsp tbb)
-	endif()	
 
 	if(NOT APPLE)
 		if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
@@ -344,7 +344,7 @@ endif()
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
-if(CREATE_TEST_TARGETS AND NOT WIN32)
+if(CREATE_TEST_TARGETS)
 		# Add unit test directories
 		add_subdirectory(test)
 endif()
