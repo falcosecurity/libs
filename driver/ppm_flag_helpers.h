@@ -127,11 +127,7 @@ static __always_inline u32 open_modes_to_scap(unsigned long flags,
 					      unsigned long modes)
 {
 #ifdef UDIG
-#ifdef O_TMPFILE
 	unsigned long flags_mask = O_CREAT | O_TMPFILE;
-#else
-	unsigned long flags_mask = O_CREAT;
-#endif
 #else
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0)
 	unsigned long flags_mask = O_CREAT | O_TMPFILE;
@@ -469,15 +465,11 @@ static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;
 
-#ifdef CLONE_FILES
 	if (flags & CLONE_FILES)
 		res |= PPM_CL_CLONE_FILES;
-#endif
 
-#ifdef CLONE_FS
 	if (flags & CLONE_FS)
 		res |= PPM_CL_CLONE_FS;
-#endif
 
 #ifdef CLONE_IO
 	if (flags & CLONE_IO)
@@ -509,75 +501,51 @@ static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 		res |= PPM_CL_CLONE_NEWUTS;
 #endif
 
-#ifdef CLONE_PARENT_SETTID
 	if (flags & CLONE_PARENT_SETTID)
 		res |= PPM_CL_CLONE_PARENT_SETTID;
-#endif
 
-#ifdef CLONE_PARENT
 	if (flags & CLONE_PARENT)
 		res |= PPM_CL_CLONE_PARENT;
-#endif
 
-#ifdef CLONE_PTRACE
 	if (flags & CLONE_PTRACE)
 		res |= PPM_CL_CLONE_PTRACE;
-#endif
 
-#ifdef CLONE_SIGHAND
 	if (flags & CLONE_SIGHAND)
 		res |= PPM_CL_CLONE_SIGHAND;
-#endif
 
-#ifdef CLONE_SYSVSEM
 	if (flags & CLONE_SYSVSEM)
 		res |= PPM_CL_CLONE_SYSVSEM;
-#endif
 
-#ifdef CLONE_THREAD
 	if (flags & CLONE_THREAD)
 		res |= PPM_CL_CLONE_THREAD;
-#endif
 
-#ifdef CLONE_UNTRACED
 	if (flags & CLONE_UNTRACED)
 		res |= PPM_CL_CLONE_UNTRACED;
-#endif
 
-#ifdef CLONE_VM
 	if (flags & CLONE_VM)
 		res |= PPM_CL_CLONE_VM;
-#endif
 
 #ifdef CLONE_NEWUSER
 	if (flags & CLONE_NEWUSER)
 		res |= PPM_CL_CLONE_NEWUSER;
 #endif
 
-#ifdef CLONE_CHILD_CLEARTID
 	if (flags & CLONE_CHILD_CLEARTID)
 		res |= PPM_CL_CLONE_CHILD_CLEARTID;
-#endif
 
-#ifdef CLONE_CHILD_SETTID
 	if (flags & CLONE_CHILD_SETTID)
 		res |= PPM_CL_CLONE_CHILD_SETTID;
-#endif
 
-#ifdef CLONE_SETTLS
 	if (flags & CLONE_SETTLS)
 		res |= PPM_CL_CLONE_SETTLS;
-#endif
 
 #ifdef CLONE_STOPPED
 	if (flags & CLONE_STOPPED)
 		res |= PPM_CL_CLONE_STOPPED;
 #endif
 
-#ifdef CLONE_VFORK
 	if (flags & CLONE_VFORK)
 		res |= PPM_CL_CLONE_VFORK;
-#endif
 
 #ifdef CLONE_NEWCGROUP
 	if (flags & CLONE_NEWCGROUP)
@@ -763,15 +731,11 @@ static __always_inline u32 prot_flags_to_scap(int prot)
 		res |= PPM_PROT_SEM;
 #endif
 
-#ifdef PROT_GROWSDOWN
 	if (prot & PROT_GROWSDOWN)
 		res |= PPM_PROT_GROWSDOWN;
-#endif
 
-#ifdef PROT_GROWSUP
 	if (prot & PROT_GROWSUP)
 		res |= PPM_PROT_GROWSUP;
-#endif
 
 #ifdef PROT_SAO
 	if (prot & PROT_SAO)
@@ -810,30 +774,20 @@ static __always_inline u32 mmap_flags_to_scap(int flags)
 	if (flags & MAP_NORESERVE)
 		res |= PPM_MAP_NORESERVE;
 
-#ifdef MAP_POPULATE
 	if (flags & MAP_POPULATE)
 		res |= PPM_MAP_POPULATE;
-#endif
 
-#ifdef MAP_NONBLOCK
 	if (flags & MAP_NONBLOCK)
 		res |= PPM_MAP_NONBLOCK;
-#endif
 
-#ifdef MAP_GROWSDOWN
 	if (flags & MAP_GROWSDOWN)
 		res |= PPM_MAP_GROWSDOWN;
-#endif
 
-#ifdef MAP_DENYWRITE
 	if (flags & MAP_DENYWRITE)
 		res |= PPM_MAP_DENYWRITE;
-#endif
 
-#ifdef MAP_EXECUTABLE
 	if (flags & MAP_EXECUTABLE)
 		res |= PPM_MAP_EXECUTABLE;
-#endif
 
 #ifdef MAP_INHERIT
 	if (flags & MAP_INHERIT)
@@ -843,10 +797,8 @@ static __always_inline u32 mmap_flags_to_scap(int flags)
 	if (flags & MAP_FILE)
 		res |= PPM_MAP_FILE;
 
-#ifdef MAP_LOCKED
 	if (flags & MAP_LOCKED)
 		res |= PPM_MAP_LOCKED;
-#endif
 
 	return res;
 }
@@ -874,14 +826,10 @@ static __always_inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 		return PPM_FCNTL_F_SETOWN;
 	case F_GETOWN:
 		return PPM_FCNTL_F_GETOWN;
-#ifdef F_SETSIG
 	case F_SETSIG:
 		return PPM_FCNTL_F_SETSIG;
-#endif
-#ifdef F_GETSIG
 	case F_GETSIG:
 		return PPM_FCNTL_F_GETSIG;
-#endif
 #ifndef UDIG
 #ifndef CONFIG_64BIT
 	case F_GETLK64:
@@ -910,10 +858,8 @@ static __always_inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	case F_DUPFD_CLOEXEC:
 		return PPM_FCNTL_F_DUPFD_CLOEXEC;
 #endif
-#ifdef F_NOTIFY
 	case F_NOTIFY:
 		return PPM_FCNTL_F_NOTIFY;
-#endif
 #ifdef F_SETPIPE_SZ
 	case F_SETPIPE_SZ:
 		return PPM_FCNTL_F_SETPIPE_SZ;
@@ -1235,10 +1181,8 @@ static __always_inline u16 poll_events_to_scap(short revents)
 	if (revents & POLLOUT)
 		res |= PPM_POLLOUT;
 
-#ifdef POLLRDHUP
 	if (revents & POLLRDHUP)
 		res |= PPM_POLLRDHUP;
-#endif
 
 	if (revents & POLLERR)
 		res |= PPM_POLLERR;
@@ -1356,10 +1300,8 @@ static __always_inline u8 rlimit_resource_to_scap(unsigned long rresource)
 		return PPM_RLIMIT_STACK;
 	case RLIMIT_CORE:
 		return PPM_RLIMIT_CORE;
-#if RLIMIT_RSS != RLIMIT_AS
 	case RLIMIT_RSS:
 		return PPM_RLIMIT_RSS;
-#endif
 	case RLIMIT_NPROC:
 		return PPM_RLIMIT_NPROC;
 	case RLIMIT_NOFILE:
@@ -1368,26 +1310,16 @@ static __always_inline u8 rlimit_resource_to_scap(unsigned long rresource)
 		return PPM_RLIMIT_MEMLOCK;
 	case RLIMIT_AS:
 		return PPM_RLIMIT_AS;
-#ifdef RLIMIT_LOCKS
 	case RLIMIT_LOCKS:
 		return PPM_RLIMIT_LOCKS;
-#endif
-#ifdef RLIMIT_SIGPENDING
 	case RLIMIT_SIGPENDING:
 		return PPM_RLIMIT_SIGPENDING;
-#endif
-#ifdef RLIMIT_MSGQUEUE
 	case RLIMIT_MSGQUEUE:
 		return PPM_RLIMIT_MSGQUEUE;
-#endif
-#ifdef RLIMIT_NICE
 	case RLIMIT_NICE:
 		return PPM_RLIMIT_NICE;
-#endif
-#ifdef RLIMIT_RTPRIO
 	case RLIMIT_RTPRIO:
 		return PPM_RLIMIT_RTPRIO;
-#endif
 #ifdef RLIMIT_RTTIME
 	case RLIMIT_RTTIME:
 		return PPM_RLIMIT_RTTIME;
@@ -1505,7 +1437,7 @@ static __always_inline uint8_t quotactl_type_to_scap(unsigned long cmd)
 
 static __always_inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 {
-	uint16_t res = 0;
+	uint16_t res;
 
 	switch (cmd >> SUBCMDSHIFT) {
 	case Q_SYNC:
@@ -1517,21 +1449,15 @@ static __always_inline uint16_t quotactl_cmd_to_scap(unsigned long cmd)
 	case Q_QUOTAOFF:
 		res = PPM_Q_QUOTAOFF;
 		break;
-#ifdef Q_GETFMT
 	case Q_GETFMT:
 		res = PPM_Q_GETFMT;
 		break;
-#endif
-#ifdef Q_GETINFO
 	case Q_GETINFO:
 		res = PPM_Q_GETINFO;
 		break;
-#endif
-#ifdef Q_SETINFO
 	case Q_SETINFO:
 		res = PPM_Q_SETINFO;
 		break;
-#endif
 	case Q_GETQUOTA:
 		res = PPM_Q_GETQUOTA;
 		break;
@@ -1605,15 +1531,9 @@ static __always_inline u32 semctl_cmd_to_scap(unsigned cmd)
 	case IPC_STAT: return PPM_IPC_STAT;
 	case IPC_SET: return PPM_IPC_SET;
 	case IPC_RMID: return PPM_IPC_RMID;
-#ifdef IPC_INFO
 	case IPC_INFO: return PPM_IPC_INFO;
-#endif
-#ifdef SEM_INFO
 	case SEM_INFO: return PPM_SEM_INFO;
-#endif
-#ifdef SEM_STAT
 	case SEM_STAT: return PPM_SEM_STAT;
-#endif
 	case GETALL: return PPM_GETALL;
 	case GETNCNT: return PPM_GETNCNT;
 	case GETPID: return PPM_GETPID;
@@ -1717,74 +1637,44 @@ static __always_inline u16 ptrace_requests_to_scap(unsigned long req)
 	case PTRACE_GETREGSET:
 		return PPM_PTRACE_GETREGSET;
 #endif
-#ifdef PTRACE_SETSIGINFO
 	case PTRACE_SETSIGINFO:
 		return PPM_PTRACE_SETSIGINFO;
-#endif
-#ifdef PTRACE_GETSIGINFO
 	case PTRACE_GETSIGINFO:
 		return PPM_PTRACE_GETSIGINFO;
-#endif
-#ifdef PTRACE_GETEVENTMSG
 	case PTRACE_GETEVENTMSG:
 		return PPM_PTRACE_GETEVENTMSG;
-#endif
-#ifdef PTRACE_SETOPTIONS
 	case PTRACE_SETOPTIONS:
 		return PPM_PTRACE_SETOPTIONS;
-#endif
-#ifdef PTRACE_SYSCALL
 	case PTRACE_SYSCALL:
 		return PPM_PTRACE_SYSCALL;
-#endif
-#ifdef PTRACE_DETACH
 	case PTRACE_DETACH:
 		return PPM_PTRACE_DETACH;
-#endif
-#ifdef PTRACE_ATTACH
 	case PTRACE_ATTACH:
 		return PPM_PTRACE_ATTACH;
-#endif
-#ifdef PTRACE_SINGLESTEP
 	case PTRACE_SINGLESTEP:
 		return PPM_PTRACE_SINGLESTEP;
-#endif
-#ifdef PTRACE_KILL
 	case PTRACE_KILL:
 		return PPM_PTRACE_KILL;
-#endif
-#ifdef PTRACE_CONT
 	case PTRACE_CONT:
 		return PPM_PTRACE_CONT;
-#endif
 #ifdef PTRACE_POKEUSR
 	case PTRACE_POKEUSR:
 		return PPM_PTRACE_POKEUSR;
 #endif		
-#ifdef PTRACE_POKEDATA
 	case PTRACE_POKEDATA:
 		return PPM_PTRACE_POKEDATA;
-#endif
-#ifdef PTRACE_POKETEXT
 	case PTRACE_POKETEXT:
 		return PPM_PTRACE_POKETEXT;
-#endif
 #ifdef PTRACE_PEEKUSR
 	case PTRACE_PEEKUSR:
 		return PPM_PTRACE_PEEKUSR;
 #endif
-#ifdef PTRACE_PEEKDATA
 	case PTRACE_PEEKDATA:
 		return PPM_PTRACE_PEEKDATA;
-#endif
-#ifdef PTRACE_PEEKTEXT
 	case PTRACE_PEEKTEXT:
 		return PPM_PTRACE_PEEKTEXT;
-#endif
-#ifdef PTRACE_TRACEME
 	case PTRACE_TRACEME:
 		return PPM_PTRACE_TRACEME;
-#endif
 	default:
 		return PPM_PTRACE_UNKNOWN;
 	}
