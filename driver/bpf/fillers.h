@@ -4939,7 +4939,7 @@ FILLER(sched_drop, false)
 	/*
 	 * ratio
 	 */
-	return bpf_push_u32_to_ring(data, data->settings->sampling_ratio);
+	return bpf_push_u32_to_ring(data, 0);
 }
 
 /* In this kernel version the instruction limit was bumped to 1000000 */

@@ -913,6 +913,15 @@ uint64_t scap_get_driver_api_version(scap_t* handle);
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
 
+/*!
+  \brief Set sampling ratio of dropping for single syscall individually.
+
+  \param handle Handle to the capture instance.
+  \param ppm_sc id (example PPM_SC_CHOWN)
+  \param sampling_ratio sampling ratio of the syscall.
+ */
+int32_t scap_set_dropping_ratio(scap_t* handle, ppm_sc_code ppm_sc, uint32_t sampling_ratio);
+
 #ifdef __cplusplus
 }
 #endif

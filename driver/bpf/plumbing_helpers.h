@@ -493,6 +493,7 @@ static __always_inline bool drop_event(void *ctx,
 				       struct scap_bpf_settings *settings,
 				       enum syscall_flags drop_flags)
 {
+	long id;
 	if (!settings->dropping_mode)
 		return false;
 
@@ -563,10 +564,16 @@ static __always_inline bool drop_event(void *ctx,
 	if (drop_flags & UF_ALWAYS_DROP)
 		return true;
 
+	id = bpf_syscall_get_nr(ctx);
+	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
+	{
+		return false;
+	}
+
 	if (state->tail_ctx.ts % 1000000000 >= 1000000000 /
-	    settings->sampling_ratio) {
-		if (!settings->is_dropping) {
-			settings->is_dropping = true;
+	    settings->sampling_ratio[id]) {
+		if (!settings->is_dropping[id]) {
+			settings->is_dropping[id] = true;
 			state->tail_ctx.evt_type = PPME_DROP_E;
 			return false;
 		}
@@ -574,8 +581,8 @@ static __always_inline bool drop_event(void *ctx,
 		return true;
 	}
 
-	if (settings->is_dropping) {
-		settings->is_dropping = false;
+	if (settings->is_dropping[id]) {
+		settings->is_dropping[id] = false;
 		state->tail_ctx.evt_type = PPME_DROP_X;
 		return false;
 	}

@@ -719,3 +719,15 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 
 	return 0;
 }
+
+int32_t scap_set_dropping_ratio(scap_t* handle, ppm_sc_code ppm_sc, uint32_t sampling_ratio)
+{
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_DROPPING_RATIO, sampling_ratio, ppm_sc);
+	}
+
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "operation not supported");
+	ASSERT(false);
+	return SCAP_FAILURE;
+}

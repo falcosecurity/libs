@@ -4525,7 +4525,7 @@ int f_sched_drop(struct event_filler_arguments *args)
 	/*
 	 * ratio
 	 */
-	res = val_to_ring(args, args->consumer->sampling_ratio, 0, false, 0);
+	res = val_to_ring(args, 0, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

@@ -1243,8 +1243,10 @@ int32_t scap_bpf_start_dropping_mode(struct scap_engine_handle engine, uint32_t 
 	{
 		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
-
-	settings.sampling_ratio = sampling_ratio;
+	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	{
+		settings.sampling_ratio[i] = sampling_ratio;
+	}
 	settings.dropping_mode = true;
 	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
@@ -1265,8 +1267,11 @@ int32_t scap_bpf_stop_dropping_mode(struct scap_engine_handle engine)
 	{
 		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
+	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	{
+		settings.sampling_ratio[i] = 1;
+	}
 
-	settings.sampling_ratio = 1;
 	settings.dropping_mode = false;
 	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
@@ -1439,16 +1444,19 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	settings.boot_time = boot_time;
 	settings.socket_file_ops = NULL;
 	settings.snaplen = SNAPLEN;
-	settings.sampling_ratio = 1;
 	settings.do_dynamic_snaplen = false;
 	settings.dropping_mode = false;
-	settings.is_dropping = false;
 	settings.drop_failed = false;
 	settings.tracers_enabled = false;
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
 	settings.statsd_port = PPM_PORT_STATSD;
 
+	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	{
+		settings.sampling_ratio[i] = 1;
+		settings.is_dropping[i] = false;
+	}
 	int k = 0;
 	int ret;
 
@@ -1836,6 +1844,37 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
 }
 
+static int32_t scap_bpf_set_drop_ratio(struct scap_engine_handle engine, uint32_t ratio, uint32_t sc)
+{
+	int ret;
+	int syscall_id = scap_ppm_sc_to_native_id(sc);
+	if(syscall_id == -1)
+	{
+		return SCAP_FAILURE;
+	}
+	struct bpf_engine* handle = engine.m_handle;
+	struct syscall_evt_pair sc_evt;
+	if ((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SYSCALL_TABLE], &syscall_id, &sc_evt)) != 0)
+	{
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SYSCALL_TABLE bpf_map_lookup_elem: %d", syscall_id);
+	}
+	if ((sc_evt.flags & (UF_NEVER_DROP | UF_ALWAYS_DROP))) {
+		return SCAP_FAILURE;
+	}
+	int k = 0;
+	struct scap_bpf_settings settings;
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
+	{
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
+	}
+	settings.sampling_ratio[syscall_id] = ratio;
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
+	{
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
+	}
+	return SCAP_SUCCESS;
+}
+
 static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
 {
 	struct bpf_engine* handle = engine.m_handle;
@@ -1917,6 +1956,8 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_bpf_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:
 		return scap_bpf_set_statsd_port(engine, arg1);
+	case SCAP_DROPPING_RATIO:
+		return scap_bpf_set_drop_ratio(engine, arg1, arg2);
 	default:
 	{
 		char msg[SCAP_LASTERR_SIZE];

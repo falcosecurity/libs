@@ -83,7 +83,7 @@ __weak struct capture_settings g_settings;
  * @brief Variable used only kernel side to understand when we need to send
  * `DROP_E` and `DROP_X` events
  */
-__weak bool is_dropping;
+__weak bool is_dropping[SYSCALL_TABLE_SIZE];
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 

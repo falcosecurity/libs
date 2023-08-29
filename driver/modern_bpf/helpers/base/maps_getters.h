@@ -31,9 +31,9 @@ static __always_inline bool maps__get_dropping_mode()
 	return g_settings.dropping_mode;
 }
 
-static __always_inline uint32_t maps__get_sampling_ratio()
+static __always_inline uint32_t maps__get_sampling_ratio(u32 syscall_id)
 {
-	return g_settings.sampling_ratio;
+	return g_settings.sampling_ratio[syscall_id];
 }
 
 static __always_inline bool maps__get_drop_failed()
@@ -65,14 +65,14 @@ static __always_inline uint16_t maps__get_statsd_port()
 
 /*=============================== KERNEL CONFIGS ===========================*/
 
-static __always_inline bool maps__get_is_dropping()
+static __always_inline bool maps__get_is_dropping(u32 syscall_id)
 {
-	return is_dropping;
+	return is_dropping[syscall_id];
 }
 
-static __always_inline void maps__set_is_dropping(bool value)
+static __always_inline void maps__set_is_dropping(u32 syscall_id, bool value)
 {
-	is_dropping = value;
+	is_dropping[syscall_id] = value;
 }
 
 /*=============================== KERNEL CONFIGS ===========================*/

@@ -394,6 +394,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
+	int i;
 	int in_list = false;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
@@ -531,9 +532,12 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 */
 	consumer->dropping_mode = 0;
 	consumer->snaplen = SNAPLEN;
-	consumer->sampling_ratio = 1;
-	consumer->sampling_interval = 0;
-	consumer->is_dropping = 0;
+	for (i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	{
+		consumer->sampling_ratio[i] = 1;
+		consumer->sampling_interval[i] = 0;
+		consumer->is_dropping[i] = false;
+	}
 	consumer->do_dynamic_snaplen = false;
 	consumer->drop_failed = false;
 	consumer->need_to_insert_drop_e = 0;
@@ -956,17 +960,23 @@ cleanup_ioctl_procinfo:
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
+		int i;
 		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE, consumer %p\n", consumer_id);
 
 		consumer->dropping_mode = 0;
-		consumer->sampling_interval = 1000000000;
-		consumer->sampling_ratio = 1;
+		for (i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			consumer->sampling_interval[i] = 1000000000;
+			consumer->sampling_ratio[i] = 1;
+			consumer->is_dropping[i] = false;
+		}
 
 		ret = 0;
 		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_ENABLE_DROPPING_MODE:
 	{
+		int i;
 		u32 new_sampling_ratio;
 
 		consumer->dropping_mode = 1;
@@ -987,10 +997,13 @@ cleanup_ioctl_procinfo:
 			goto cleanup_ioctl;
 		}
 
-		consumer->sampling_interval = 1000000000 / new_sampling_ratio;
-		consumer->sampling_ratio = new_sampling_ratio;
+		for (i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			consumer->sampling_interval[i] = 1000000000 / new_sampling_ratio;
+			consumer->sampling_ratio[i] = new_sampling_ratio;
+		}
 
-		vpr_info("new sampling ratio: %d\n", new_sampling_ratio);
+		vpr_info("new default sampling ratio: %d\n", new_sampling_ratio);
 
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1183,6 +1196,43 @@ cleanup_ioctl_procinfo:
 	{
 		consumer->drop_failed = true;
 
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_SET_DROPPING_RATIO:
+	{
+		u32 syscall_to_set = (arg >> 32) - SYSCALL_TABLE_ID0;
+		u32 new_sampling_ratio = (u32)arg;
+
+		vpr_info("PPM_IOCTL_SET_DROPPING_RATIO, syscall(%u), ratio(%u), consumer %p\n", syscall_to_set, new_sampling_ratio, consumer_id);
+
+		if (syscall_to_set >= SYSCALL_TABLE_SIZE) {
+			pr_err("invalid syscall %u\n", syscall_to_set);
+			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+
+		if ((g_syscall_table[syscall_to_set].flags & (UF_NEVER_DROP | UF_ALWAYS_DROP))) {
+			ret = -EPERM;
+			goto cleanup_ioctl;
+		}
+
+		if (new_sampling_ratio != 1 &&
+			new_sampling_ratio != 2 &&
+			new_sampling_ratio != 4 &&
+			new_sampling_ratio != 8 &&
+			new_sampling_ratio != 16 &&
+			new_sampling_ratio != 32 &&
+			new_sampling_ratio != 64 &&
+			new_sampling_ratio != 128) {
+			pr_err("invalid sampling ratio %u\n", new_sampling_ratio);
+			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+
+		consumer->sampling_interval[syscall_to_set] = 1000000000 / new_sampling_ratio;
+		consumer->sampling_ratio[syscall_to_set] = new_sampling_ratio;
+		pr_info("new sampling ratio %u, %u\n", syscall_to_set, new_sampling_ratio);
 		ret = 0;
 		goto cleanup_ioctl;
 	}
@@ -1660,6 +1710,7 @@ static inline int drop_nostate_event(ppm_event_code event_type,
 static inline int drop_event(struct ppm_consumer_t *consumer,
 			     ppm_event_code event_type,
 			     enum syscall_flags drop_flags,
+			     long table_index,
 			     nanoseconds ns,
 			     struct pt_regs *regs)
 {
@@ -1682,21 +1733,22 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 			ASSERT((drop_flags & UF_NEVER_DROP) == 0);
 			return 1;
 		}
+		if (table_index != -1) {
+			if (consumer->sampling_interval[table_index] < SECOND_IN_NS &&
+				/* do_div replaces ns2 with the quotient and returns the remainder */
+				do_div(ns2, SECOND_IN_NS) >= consumer->sampling_interval[table_index]) {
+				if (!consumer->is_dropping[table_index]) {
+					consumer->is_dropping[table_index] = true;
+					record_drop_e(consumer, ns, drop_flags);
+				}
 
-		if (consumer->sampling_interval < SECOND_IN_NS &&
-		    /* do_div replaces ns2 with the quotient and returns the remainder */
-		    do_div(ns2, SECOND_IN_NS) >= consumer->sampling_interval) {
-			if (consumer->is_dropping == 0) {
-				consumer->is_dropping = 1;
-				record_drop_e(consumer, ns, drop_flags);
+				return 1;
 			}
 
-			return 1;
-		}
-
-		if (consumer->is_dropping == 1) {
-			consumer->is_dropping = 0;
-			record_drop_x(consumer, ns, drop_flags);
+			if (consumer->is_dropping[table_index]) {
+				consumer->is_dropping[table_index] = false;
+				record_drop_x(consumer, ns, drop_flags);
+			}
 		}
 	}
 
@@ -1742,7 +1794,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	int drop = 1;
 	int32_t cbres = PPM_SUCCESS;
 	int cpu;
-	long table_index;
+	long table_index = -1;
 	int64_t retval;
 
 	if (tp_type < INTERNAL_EVENTS && !(consumer->tracepoints_attached & (1 << tp_type)))
@@ -1807,6 +1859,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		if (drop_event(consumer,
 		               event_type,
 		               drop_flags,
+		               table_index,
 		               ns,
 		               event_datap->event_info.syscall_data.regs))
 			return res;

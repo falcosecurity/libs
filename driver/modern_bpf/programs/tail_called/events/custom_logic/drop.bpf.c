@@ -22,7 +22,7 @@ int BPF_PROG(t1_drop_e)
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
-	ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
+	ringbuf__store_u32(&ringbuf, 0);
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
@@ -47,7 +47,7 @@ int BPF_PROG(t1_drop_x)
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
-	ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
+	ringbuf__store_u32(&ringbuf, 0);
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
