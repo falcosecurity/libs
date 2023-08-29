@@ -270,7 +270,10 @@ bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, 
 		// This can happen at startup when containers are
 		// being created as a part of the initial process
 		// scan.
-		scapevt->ts = sinsp_utils::get_current_time_ns();
+		// note: the following is only a convention and
+		// the timestamp will be setted when the event
+		// will be popped.
+		scapevt->ts = (uint64_t) - 1;
 	}
 	else
 	{

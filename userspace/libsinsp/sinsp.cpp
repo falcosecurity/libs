@@ -1235,8 +1235,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		res = SCAP_SUCCESS;
 		evt = m_state_evt.get();
-		// NB: setting the ts here avoids any race condition.
-		evt->m_pevt->ts = (m_lastevent_ts == 0)
+		// note: a new timestamp will be assign to the event if
+		// 			- the last event timestamp is not available or
+		// 			- the timestamp is explicitly set to (uint64_t)-1
+		evt->m_pevt->ts = (m_lastevent_ts == 0 || evt->m_pevt->ts == (uint64_t) - 1)
 			? sinsp_utils::get_current_time_ns()
 			: m_lastevent_ts;
 	}
