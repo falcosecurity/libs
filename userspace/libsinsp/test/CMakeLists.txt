@@ -46,11 +46,13 @@ file(GLOB_RECURSE TEST_PLUGINS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*.cpp)
 
 add_definitions(-DRESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
-file(GLOB_RECURSE SINSP_PARSERS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/parsers/*.cpp)
+if(NOT WIN32)
+	file(GLOB_RECURSE SINSP_PARSERS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/parsers/*.cpp)
 
-file(GLOB_RECURSE SINSP_CLASSES_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/classes/*.cpp)
+	file(GLOB_RECURSE SINSP_CLASSES_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/classes/*.cpp)
 
-file(GLOB_RECURSE SINSP_FILTERCHECKS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/filterchecks/*.cpp)
+	file(GLOB_RECURSE SINSP_FILTERCHECKS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/filterchecks/*.cpp)
+endif()
 
 # Scap-files on Big Endian systems are not supported
 if(NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x")
@@ -131,9 +133,10 @@ if(WIN32)
 		user.ut.cpp
 		thread_table.ut.cpp
 		public_sinsp_API/sinsp_logger.cpp
-		"${SINSP_PARSERS_SUITE}"
-		"${SINSP_CLASSES_SUITE}"
-		"${SINSP_FILTERCHECKS_SUITE}"
+	)
+elseif(APPLE OR EMSCRIPTEN)
+	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES
+		events_net.ut.cpp
 	)
 endif()
 
