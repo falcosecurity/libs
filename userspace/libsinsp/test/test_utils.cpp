@@ -22,13 +22,17 @@ limitations under the License.
 #if __linux__
 #include <linux/un.h>
 #else
+#if !defined(_WIN32)
 #include <sys/un.h>
+# endif
 #ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
 #endif
 #endif
 
+#if !defined(_WIN32)
 #include <arpa/inet.h>
+#endif
 #include <stdint.h>
 
 #include "ppm_events_public.h"
@@ -36,6 +40,7 @@ limitations under the License.
 
 namespace test_utils {
 
+#if !defined(_WIN32)
 struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string)
 {
 	struct sockaddr_in sockaddr;
@@ -55,6 +60,7 @@ struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string
 	inet_pton(AF_INET6, ipv6_string, &(sockaddr.sin6_addr));
 	return sockaddr;
 }
+#endif
 
 std::string to_null_delimited(const std::vector<std::string> list)
 {
@@ -120,6 +126,7 @@ inline void vecbuf_append(std::vector<uint8_t> &dest, void* src, size_t size)
 	}
 }
 
+#if !defined(_WIN32)
 std::vector<uint8_t> pack_addr(sockaddr *sa)
 {
 	std::vector<uint8_t> res;
@@ -254,5 +261,6 @@ std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest)
 
 	return res;
 }
+#endif
 
 } // namespace test_utils

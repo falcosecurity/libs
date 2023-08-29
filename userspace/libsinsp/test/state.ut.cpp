@@ -154,8 +154,13 @@ TEST(dynamic_struct, defs_and_access)
     // struct construction and setting fields definition
     sample_struct s(fields);
     ASSERT_ANY_THROW(s.set_dynamic_fields(nullptr));
-    ASSERT_ANY_THROW(s.set_dynamic_fields(fields));
-    ASSERT_NO_THROW(sample_struct(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>()));
+	ASSERT_ANY_THROW(s.set_dynamic_fields(fields));
+#if defined(_WIN32)
+	sample_struct ss(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>());
+    ASSERT_NO_THROW(ss);
+#else
+	ASSERT_NO_THROW(sample_struct(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>()));
+#endif
     ASSERT_NO_THROW(sample_struct(nullptr));
     auto s2 = sample_struct(nullptr);
     s2.set_dynamic_fields(fields);

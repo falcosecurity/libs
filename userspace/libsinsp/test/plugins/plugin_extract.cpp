@@ -84,7 +84,7 @@ static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t
         return ps->event_types.data();
     }
 
-    static uint16_t types[] = {};
+    static uint16_t *types = {};
     *num_types = 0;
     return types;
 }

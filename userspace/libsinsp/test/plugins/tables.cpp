@@ -70,7 +70,7 @@ static const char* plugin_get_parse_event_sources()
 
 static uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
-	static uint16_t types[] = {};
+	static uint16_t *types = {};
 	*num_types = 0;
 	return types;
 }

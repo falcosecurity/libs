@@ -309,7 +309,7 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                     in->table_reader_ext->release_table_entry(ps->thread_table, thread);
                     return SS_PLUGIN_FAILURE;
                 }
-                ps->strstorage = tmp.str;
+                ps->strstorage = std::string(tmp.str);
                 ps->strptrstorage = ps->strstorage.c_str();
                 in->fields[i].res.str = &ps->strptrstorage;
                 in->fields[i].res_len = 1;
