@@ -163,8 +163,8 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=true ..
-          cmake --build .
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON ..
+          cmake --build . --config Release && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
   # This job run all engine tests and scap-open
   test-scap-x86:
