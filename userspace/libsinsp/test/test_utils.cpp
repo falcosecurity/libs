@@ -19,7 +19,7 @@ limitations under the License.
 
 #include <cstring>
 
-#if __linux__
+#if defined(__linux__)
 #include <linux/un.h>
 #else
 #if !defined(_WIN32)
@@ -126,7 +126,7 @@ inline void vecbuf_append(std::vector<uint8_t> &dest, void* src, size_t size)
 	}
 }
 
-#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 std::vector<uint8_t> pack_addr(sockaddr *sa)
 {
 	std::vector<uint8_t> res;
