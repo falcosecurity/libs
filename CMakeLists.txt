@@ -91,7 +91,7 @@ option(WITH_CHISEL "Include chisel implementation" OFF)
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
-if(CREATE_TEST_TARGETS AND NOT WIN32)
+if(CREATE_TEST_TARGETS)
 	include(gtest)
 endif()
 
@@ -104,7 +104,7 @@ endif()
 include(libscap)
 include(libsinsp)
 
-if(CREATE_TEST_TARGETS AND NOT WIN32)
+if(CREATE_TEST_TARGETS)
 	# Add command to run all unit tests at once via the make system.
 	# This is preferred vs using ctest's add_test because it will build
 	# the code and output to stdout.
