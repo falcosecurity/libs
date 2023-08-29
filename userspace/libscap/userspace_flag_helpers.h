@@ -2,16 +2,24 @@
 
 #include <assert.h>
 #include <fcntl.h>
+#if !defined(_WIN32)
 #include <sys/mman.h>
 #include <poll.h>
-#include <sys/types.h>
 #include <sys/sem.h>
+#endif
+#include <sys/types.h>
+#if !defined(__EMSCRIPTEN__) && !defined(_WIN32)
 #include <sys/quota.h>
 #include <sys/ptrace.h>
+#if !defined(__APPLE__)
 #include <sys/prctl.h>
+#endif //__APPLE__
+#endif
+#if !defined(_WIN32)
 #include <sys/resource.h>
 #include <sys/file.h>
 #include <sched.h>
+#endif
 
 #define ASSERT assert
 #ifndef F_CANCELLK
@@ -35,7 +43,9 @@
 #define UDIG
 #endif
 
+#if !defined(_WIN32)
 #include "../../driver/ppm_flag_helpers.h"
+#endif
 
 #ifdef UNDEF_UDIG
 #undef UDIG
