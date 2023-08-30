@@ -79,7 +79,7 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 		}
 	}
 
-	rc = scap_cgroup_interface_init(&linux_platform->m_cgroups, scap_get_host_root(), lasterr, false);
+	rc = scap_cgroup_interface_init(&linux_platform->m_cgroups, scap_get_host_root(), lasterr, true);
 	if(rc != SCAP_SUCCESS)
 	{
 		scap_linux_free_platform(platform);
