@@ -24,8 +24,6 @@ limitations under the License.
 #include "marathon_http.h"
 #include "curl/curl.h"
 #include "curl/easy.h"
-#define BUFFERSIZE 512 // b64 needs this macro
-#include "b64/encode.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "json_error_log.h"
