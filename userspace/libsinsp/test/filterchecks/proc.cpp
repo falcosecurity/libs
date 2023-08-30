@@ -64,48 +64,18 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nchilds)
 	ASSERT_EQ(get_field_as_string(evt, "proc.nchilds"), "0");
 }
 
-TEST_F(sinsp_with_test_input, PROC_FILTER_trusted_exepath)
+TEST_F(sinsp_with_test_input, PROC_FILTER_exepath)
 {
 	DEFAULT_TREE
 
 	/* Now we call an execve on p6_t1 */
 	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/good-exe", "good-exe", "/usr/bin/bad-exe");
 
-	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/good-exe");
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/bad-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "good-exe");
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/bad-exe");
-	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_symlink"), "true");
 }
 
-/* Here we are simulating a partial trusted exepath obtained from BPF */
-TEST_F(sinsp_with_test_input, PROC_FILTER_is_exe_symlink_partial_BPF_trusted_exepath)
-{
-	DEFAULT_TREE
-
-	/* Now we call an execve on p6_t1 */
-	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/usr/bin/too_long", "too_long", "/usr/bin/too_");
-
-	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/too_long");
-	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "too_long");
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/too_");
-	/* We cannot say if it is a symlink or not so we prefer a false positive */
-	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_symlink"), "true");
-}
-
-TEST_F(sinsp_with_test_input, PROC_FILTER_is_exe_symlink_false)
-{
-	DEFAULT_TREE
-
-	/* Now we call an execve on p6_t1 */
-	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/usr/bin/short", "too_long", "/usr/bin/short");
-
-	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/short");
-	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "too_long");
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/short");
-	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_symlink"), "false");
-}
-
-TEST_F(sinsp_with_test_input, PROC_FILTER_trusted_pexepath_aexepath)
+TEST_F(sinsp_with_test_input, PROC_FILTER_pexepath_aexepath)
 {
 	DEFAULT_TREE
 
@@ -118,19 +88,19 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_trusted_pexepath_aexepath)
 	/* p5_t2 call execve to set an exepath */
 	generate_execve_enter_and_exit_event(0, p5_t2_tid, p5_t1_tid, p5_t1_pid, p5_t1_ptid, "/p5_t1_exepath", "p5_t1", "/usr/bin/p5_t1_trusted_exepath");
 
-	/* Now we call an execve on p6_t1 and we check for `trusted_pexepath` and `trusted_aexepath` */
+	/* Now we call an execve on p6_t1 and we check for `pexepath` and `aexepath` */
 	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/p6_t1_exepath", "p6_t1", "/usr/bin/p6_t1_trusted_exepath");
 
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_exepath"), "/usr/bin/p6_t1_trusted_exepath");
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[0]"), "/usr/bin/p6_t1_trusted_exepath");
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_pexepath"), "/usr/bin/p5_t1_trusted_exepath");
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[1]"), get_field_as_string(evt, "proc.trusted_pexepath"));
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[2]"), "/usr/bin/p4_t1_trusted_exepath");
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[3]"), "/usr/bin/p3_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/p6_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[0]"), "/usr/bin/p6_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.pexepath"), "/usr/bin/p5_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[1]"), get_field_as_string(evt, "proc.pexepath"));
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[2]"), "/usr/bin/p4_t1_trusted_exepath");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[3]"), "/usr/bin/p3_t1_trusted_exepath");
 	/* p2_t1 never calls an execve so it takes the exepath from `init` */
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[4]"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[4]"), "/sbin/init");
 	/* `init` exepath */
-	ASSERT_EQ(get_field_as_string(evt, "proc.trusted_aexepath[5]"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[5]"), "/sbin/init");
 	/* this field shouldn't exist */
-	ASSERT_FALSE(field_exists(evt, "proc.trusted_aexepath[6]"));
+	ASSERT_FALSE(field_exists(evt, "proc.aexepath[6]"));
 }
