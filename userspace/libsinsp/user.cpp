@@ -592,20 +592,9 @@ bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user, sin
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	if(m_inspector->m_lastevent_ts == 0)
-	{
-		// This can happen at startup when containers are
-		// being created as a part of the initial process
-		// scan.
-		// note: the following is only a convention and
-		// the timestamp will be setted when the event
-		// will be popped.
-		scapevt->ts = (uint64_t) - 1;
-	}
-	else
-	{
-		scapevt->ts = m_inspector->m_lastevent_ts;
-	}
+	scapevt->ts = (m_inspector->m_lastevent_ts == 0)
+		? sinsp_utils::get_current_time_ns()
+		: m_inspector->m_lastevent_ts;
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = ev_type;
@@ -655,20 +644,9 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	if(m_inspector->m_lastevent_ts == 0)
-	{
-		// This can happen at startup when containers are
-		// being created as a part of the initial process
-		// scan.
-		// note: the following is only a convention and
-		// the timestamp will be setted when the event
-		// will be popped.
-		scapevt->ts = (uint64_t) - 1;
-	}
-	else
-	{
-		scapevt->ts = m_inspector->m_lastevent_ts;
-	}
+	scapevt->ts = (m_inspector->m_lastevent_ts == 0)
+		? sinsp_utils::get_current_time_ns()
+		: m_inspector->m_lastevent_ts;
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = ev_type;

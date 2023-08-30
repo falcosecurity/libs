@@ -1235,12 +1235,16 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		res = SCAP_SUCCESS;
 		evt = m_state_evt.get();
-		// note: a new timestamp will be assign to the event if
-		// 			- the last event timestamp is not available or
-		// 			- the timestamp is explicitly set to (uint64_t)-1
-		evt->m_pevt->ts = (m_lastevent_ts == 0 || evt->m_pevt->ts == (uint64_t) - 1)
-			? sinsp_utils::get_current_time_ns()
-			: m_lastevent_ts;
+		// note: this is just a convention. When the timestamp is
+		//       assigned to (uint64_t)-1 libsinsp is allowed to
+		//       change that value, otherwise will keep the one
+		//       previously assigned.
+		if(evt->m_pevt->ts == (uint64_t) - 1)
+		{
+			evt->m_pevt->ts = (m_lastevent_ts == 0)
+				? sinsp_utils::get_current_time_ns()
+				: m_lastevent_ts;
+		}
 	}
 #endif
 	else
@@ -2857,6 +2861,7 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		auto plid = (uint32_t*)((uint8_t*) evt->m_pevt + sizeof(scap_evt) + 4+4+4);
 		*plid = cur_plugin_id;
 		evt->inspector(this);
+		evt->m_pevt->ts = (uint64_t) -1;
 #ifndef __EMSCRIPTEN__				
 		m_pending_state_evts.push(std::move(evt));
 #endif
