@@ -173,7 +173,7 @@ protected:
 		/* Scaffolding needed to call the PPME_SYSCALL_CLONE_20_X */
 		uint64_t not_relevant_64 = 0;
 		uint32_t not_relevant_32 = 0;
-		scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+		scap_const_sized_buffer empty_bytebuf = {/*.buf =*/ nullptr, /*.size =*/ 0};
 		return add_event_advance_ts(increasing_ts(), tid, PPME_SYSCALL_CLONE_20_X, 20, retval, name.c_str(), empty_bytebuf, tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, name.c_str(), empty_bytebuf, flags, not_relevant_32, not_relevant_32, vtid, vpid);
 	}
 
@@ -182,7 +182,7 @@ protected:
 		/* Scaffolding needed to call the PPME_SYSCALL_EXECVE_19_X */
 		uint64_t not_relevant_64 = 0;
 		uint32_t not_relevant_32 = 0;
-		scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+		scap_const_sized_buffer empty_bytebuf = {/*.buf =*/ nullptr, /*.size =*/ 0};
 
 		add_event_advance_ts(increasing_ts(), old_tid, PPME_SYSCALL_EXECVE_19_E, 1, pathname.c_str());
 		/* we have an `old_tid` and a `new_tid` because if a secondary thread calls the
@@ -224,8 +224,8 @@ protected:
 
 		m_fdinfos.push_back(fdinfos);
 		scap_test_fdinfo_data fdinfo_descriptor = {
-			.fdinfos = m_fdinfos.back().data(),
-			.fdinfo_count = m_fdinfos.back().size()
+			/*.fdinfos =*/ m_fdinfos.back().data(),
+			/*.fdinfo_count =*/ m_fdinfos.back().size()
 		};
 		m_test_fdinfo_data.push_back(fdinfo_descriptor);
 
