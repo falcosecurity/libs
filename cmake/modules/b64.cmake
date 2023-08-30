@@ -1,40 +1,28 @@
 #
-# libb64
+# Copyright (C) 2023 The Falco Authors.
 #
-option(USE_BUNDLED_B64 "Enable building of the bundled b64" ${USE_BUNDLED_DEPS})
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+#
 
-if(B64_INCLUDE)
-	# we already have b64
-elseif(NOT USE_BUNDLED_B64)
-	find_path(B64_INCLUDE NAMES b64/encode.h)
-	find_library(B64_LIB NAMES b64)
-	if(B64_INCLUDE AND B64_LIB)
-		message(STATUS "Found b64: include: ${B64_INCLUDE}, lib: ${B64_LIB}")
-	else()
-		message(FATAL_ERROR "Couldn't find system b64")
-	endif()
-else()
-	set(B64_SRC "${PROJECT_BINARY_DIR}/b64-prefix/src/b64")
-	message(STATUS "Using bundled b64 in '${B64_SRC}'")
-	set(B64_INCLUDE "${B64_SRC}/include/")
-	set(B64_LIB "${B64_SRC}/src/libb64.a")
-	ExternalProject_Add(b64
-		PREFIX "${PROJECT_BINARY_DIR}/b64-prefix"
-		URL "https://github.com/libb64/libb64/archive/v1.4.1.tar.gz"
-		URL_HASH "SHA256=0fa93fb9c4fb72cac5a21533e6d611521e4326f42c19cc23f8ded814b0eca071"
-		CONFIGURE_COMMAND ""
-                BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} all_base64 # do not build examples (see https://github.com/falcosecurity/libs/issues/57)
-		BUILD_IN_SOURCE 1
-		BUILD_BYPRODUCTS ${B64_LIB}
-		INSTALL_COMMAND "")
-	install(FILES "${B64_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
-			COMPONENT "libs-deps")
-	install(DIRECTORY "${B64_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
-			COMPONENT "libs-deps")
+# We take b64 implementation directly from:
+# https://raw.githubusercontent.com/istio/proxy/1.18.2/extensions/common/wasm/base64.h
+
+set(B64_DOWNLOAD_URL "https://raw.githubusercontent.com/istio/proxy/1.18.2/extensions/common/wasm/base64.h")
+set(B64_INCLUDE "${CMAKE_BINARY_DIR}/b64")
+
+if(NOT EXISTS "${B64_INCLUDE}/base64.h")
+	file(MAKE_DIRECTORY "${B64_INCLUDE}")
+	message(STATUS "Download 'base64.h' from: ${B64_DOWNLOAD_URL}")
+	file(DOWNLOAD
+	"${B64_DOWNLOAD_URL}"
+	"${B64_INCLUDE}/base64.h"
+	)
+	include_directories("${B64_INCLUDE}")
 endif()
-
-if(NOT TARGET b64)
-	add_custom_target(b64)
-endif()
-
-include_directories("${B64_INCLUDE}")

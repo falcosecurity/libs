@@ -53,7 +53,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
+          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
@@ -83,7 +83,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
+          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
@@ -112,7 +112,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-$(uname -r)
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
@@ -279,7 +279,7 @@ jobs:
           githubToken: ${{ github.token }}
 
           install: |
-            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic            
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic            
             git clone https://github.com/libbpf/bpftool.git --branch v7.0.0 --single-branch
             cd bpftool
             git submodule update --init
@@ -331,7 +331,6 @@ jobs:
             libtool \
             libelf-dev \
             wget \
-            libb64-dev \
             libc-ares-dev \
             libbpf-dev \
             libcap-dev \
