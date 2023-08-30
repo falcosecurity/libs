@@ -2345,12 +2345,9 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "First Argument", "The first command line argument argv[0] (truncated after 4096 bytes) which is usually the executable name but it could be also a custom string, it depends on what the user specifies. This field is collected from the syscalls args or, as a fallback, extracted from /proc/<pid>/cmdline."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pexe", "Parent First Argument", "The proc.exe (first command line argument argv[0]) of the parent process."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aexe", "Ancestor First Argument", "The proc.exe (first command line argument argv[0]) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aexe[1] retrieves the proc.exe of the parent process, proc.aexe[2] retrieves the proc.exe of the grandparent process, and so on. The current process's proc.exe line can be obtained using proc.aexe[0]. When used without any arguments, proc.aexe is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aexe endswith java` to match any process ancestor whose proc.exe ends with the term `java`."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "Process Executable Path", "The full executable path of the process (truncated after 1024 bytes). This field is collected only if the executable lives on the filesystem. This field is collected from the syscalls args or, as a fallback, extracted resolving the path of /proc/<pid>/exe."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "Process Executable Path", "The full executable path of the process (it could be truncated after 1024 bytes if read from '/proc'). This field is collected directly from the kernel or, as a fallback, extracted resolving the path of /proc/<pid>/exe, so symlinks are resolved. If you are using eBPF drivers this path could be truncated due to verifier complexity limits. (legacy eBPF kernel version < 5.2) truncated after 24 path components. (legacy eBPF kernel version >= 5.2) truncated after 48 path components. (modern eBPF kernel) truncated after 96 path components."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pexepath", "Parent Process Executable Path", "The proc.exepath (full executable path) of the parent process."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aexepath", "Ancestor Executable Path", "The proc.exepath (full executable path) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aexepath[1] retrieves the proc.exepath of the parent process, proc.aexepath[2] retrieves the proc.exepath of the grandparent process, and so on. The current process's proc.exepath line can be obtained using proc.aexepath[0]. When used without any arguments, proc.aexepath is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aexepath endswith java` to match any process ancestor whose path ends with the term `java`."},
-	{PT_FSPATH, EPF_NONE, PF_NA, "proc.trusted_exepath", "Process Executable Path resolved by the kernel", "The full executable path of the process. This field is collected directly from the kernel while 'proc.exepath' is reconstructed in userspace."},
-	{PT_FSPATH, EPF_NONE, PF_NA, "proc.trusted_pexepath", "Parent Process Executable Path resolved by the kernel", "The full executable path of the parent process."},
-	{PT_FSPATH, EPF_NONE, PF_NA, "proc.trusted_aexepath", "Ancestor Executable Path resolved by the kernel", "The proc.trusted_exepath (full executable path resolved by the kernel) for a specific process ancestor. See 'proc.aexepath' field for a more detailed explanation."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "Name", "The process name (truncated after 16 characters) generating the event (task->comm). This field is collected from the syscalls args or, as a fallback, extracted from /proc/<pid>/status. The name of the process and the name of the executable file on disk (if applicable) can be different if a process is given a custom name which is often the case for example for java applications."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "Parent Name", "The proc.name truncated after 16 characters) of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "Ancestor Name", "The proc.name (truncated after 16 characters) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aname[1] retrieves the proc.name of the parent process, proc.aname[2] retrieves the proc.name of the grandparent process, and so on. The current process's proc.name line can be obtained using proc.aname[0]. When used without any arguments, proc.aname is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aname=bash` to match any process ancestor whose name is `bash`."},
@@ -2385,7 +2382,6 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "Process Executable Is Writable", "'true' if this process' executable file is writable by the same user that spawned the process."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_upper_layer", "Process Executable Is In Upper Layer", "'true' if this process' executable file is in upper layer in overlayfs. This field value can only be trusted if the underlying kernel version is greater or equal than 3.18.0, since overlayfs was introduced at that time."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_from_memfd", "Process Executable Is Stored In Memfd", "'true' if the executable file of the current process is an anonymous file created using memfd_create() and is being executed by referencing its file descriptor (fd). This type of file exists only in memory and not on disk. Relevant to detect malicious in-memory code injection. Requires kernel version greater or equal to 3.17.0."},
-	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_symlink", "Executable file is a symlink", "'true' if the executable file of the current process is a symlink. This could generate false positive for 2 reasons. (1) our userspace exepath reconstruction is best effort so maybe we have a slightly different exepath from the one obtained from the kernel, but we don't have a symlink. (2) eBPF technology has some complexity limits so mainly in older kernels (< 5.2) we could obtain a partial exepath, but even if it differs from the userspace one, we don't necessarily have a symlink."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_sid_leader", "Process Is Process Session Leader", "'true' if this process is the leader of the process session, proc.sid == proc.vpid. For host processes vpid reflects pid."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_vpgid_leader", "Process Is Virtual Process Group Leader", "'true' if this process is the leader of the virtual process group, proc.vpgid == proc.vpid. For host processes vpgid and vpid reflect pgid and pid. Can help to distinguish if the process was 'directly' executed for instance in a tty (similar to bash history logging, `is_vpgid_leader` would be 'true') or executed as descendent process in the same process group which for example is the case when subprocesses are spawned from a script (`is_vpgid_leader` would be 'false')."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.exe_ino", "Inode number of executable file on disk", "The inode number of the executable file on disk. Can be correlated with fd.ino."},
@@ -2455,8 +2451,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 		m_field_id == TYPE_ANAME ||
 		m_field_id == TYPE_AEXE ||
 		m_field_id == TYPE_AEXEPATH ||
-		m_field_id == TYPE_ACMDLINE ||
-		m_field_id == TYPE_TRUSTED_AEXEPATH)
+		m_field_id == TYPE_ACMDLINE)
 	{
 		if(val[fldname.size()] == '[')
 		{
@@ -2565,28 +2560,6 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		catch(...)
 		{
 			if(val == "proc.aexepath")
-			{
-				m_argid = -1;
-				res = (int32_t)val.size();
-			}
-		}
-
-		return res;
-	}
-	else if(STR_MATCH("proc.trusted_aexepath"))
-	{
-		m_field_id = TYPE_TRUSTED_AEXEPATH;
-		m_field = &m_info.m_fields[m_field_id];
-
-		int32_t res = 0;
-
-		try
-		{
-			res = extract_arg("proc.trusted_aexepath", val, NULL);
-		}
-		catch(...)
-		{
-			if(val == "proc.trusted_aexepath")
 			{
 				m_argid = -1;
 				res = (int32_t)val.size();
@@ -3422,50 +3395,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_tstr = mt->get_exepath();
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
-	case TYPE_TRUSTED_PEXEPATH:
-		{
-			sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
-			if(ptinfo == nullptr)
-			{
-				return nullptr;
-			}
-			m_tstr = ptinfo->get_trusted_exepath();
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
-	case TYPE_TRUSTED_AEXEPATH:
-		{
-			sinsp_threadinfo* mt = NULL;
-
-			if(tinfo->is_main_thread())
-			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
-			}
-
-			for(int32_t j = 0; j < m_argid; j++)
-			{
-				mt = mt->get_parent_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
-			}
-
-			m_tstr = mt->get_trusted_exepath();
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
-	case TYPE_TRUSTED_EXEPATH:
-		m_tstr = tinfo->get_trusted_exepath();
-		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_LOGINSHELLID:
 		{
 			sinsp_threadinfo* mt = NULL;
@@ -3733,9 +3662,6 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_IS_EXE_FROM_MEMFD:
 		m_tbool = tinfo->m_exe_from_memfd;
-		RETURN_EXTRACT_VAR(m_tbool);
-	case TYPE_IS_EXE_SYMLINK:
-		m_tbool = tinfo->get_exepath().compare((tinfo->get_trusted_exepath())) != 0;
 		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_IS_SID_LEADER:
 		m_tbool = tinfo->m_sid == tinfo->m_vpid;
@@ -4059,59 +3985,6 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt *evt)
 	return found;
 }
 
-bool sinsp_filter_check_thread::compare_full_trusted_aexepath(sinsp_evt *evt)
-{
-	sinsp_threadinfo* tinfo = evt->get_thread_info();
-
-	if(tinfo == NULL)
-	{
-		return false;
-	}
-
-	sinsp_threadinfo* mt = NULL;
-
-	if(tinfo->is_main_thread())
-	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
-	}
-
-	//
-	// No id specified, search in all of the ancestors
-	//
-	bool found = false;
-	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
-	{
-		bool res;
-
-		res = flt_compare(m_cmpop,
-				  PT_FSPATH,
-				  (void*)pt->get_trusted_exepath().c_str());
-
-		if(res == true)
-		{
-			found = true;
-
-			// Can stop traversing parent state
-			return false;
-		}
-
-		return true;
-	};
-
-	mt->traverse_parent_state(visitor);
-
-	return found;
-}
-
 bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt *evt)
 {
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -4195,13 +4068,6 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 		if(m_argid == -1)
 		{
 			return compare_full_aexepath(evt);
-		}
-	}
-	else if(m_field_id == TYPE_TRUSTED_AEXEPATH)
-	{
-		if(m_argid == -1)
-		{
-			return compare_full_trusted_aexepath(evt);
 		}
 	}
 	else if(m_field_id == TYPE_ACMDLINE)
