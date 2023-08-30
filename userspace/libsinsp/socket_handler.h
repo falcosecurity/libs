@@ -28,8 +28,8 @@ limitations under the License.
 #include "http_parser.h"
 #include "uri.h"
 #include "json/json.h"
-#define BUFFERSIZE 512 // b64 needs this macro
-#include "b64/encode.h"
+#define EMPTY_STRING "" // b64 needs this macro
+#include <base64.h>
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_auth.h"
@@ -193,10 +193,7 @@ public:
 		if(!creds.empty())
 		{
 			uri::decode(creds);
-			std::istringstream is(creds);
-			std::ostringstream os;
-			base64::encoder().encode(is, os);
-			std::string bauth = os.str();
+			std::string bauth = Base64::encode(creds.c_str(), creds.length());
 			request << "Authorization: Basic " << trim(bauth) << "\r\n";
 		}
 		if(m_bt && !m_bt->get_token().empty())
