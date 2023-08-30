@@ -29,8 +29,8 @@ limitations under the License.
 #include "sinsp_curl.h"
 #include "json_error_log.h"
 #include "mesos.h"
-#define BUFFERSIZE 512 // b64 needs this macro
-#include "b64/encode.h"
+#define EMPTY_STRING "" // b64 needs this macro
+#include <base64.h>
 #include <sstream>
 #include <stdexcept>
 #include <unistd.h>
@@ -400,10 +400,8 @@ std::string mesos_http::make_request(uri url, curl_version_info_data* curl_versi
 	std::string creds = url.get_credentials();
 	if(!creds.empty())
 	{
-		std::istringstream is(creds);
-		std::ostringstream os;
-		base64::encoder().encode(is, os);
-		request << "Authorization: Basic " << os.str() << "\r\n";
+		auto bauth = Base64::encode(creds.c_str(), creds.length());
+		request << "Authorization: Basic " << bauth << "\r\n";
 	}
 	if(!m_token.empty())
 	{
