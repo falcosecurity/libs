@@ -80,8 +80,7 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo 
 				       const struct iovec *envs, int envscnt,
 				       const char *cwd,
 				       const struct iovec *cgroups, int cgroupscnt,
-				       const char *root,
-				       const char *trusted_exepath);
+				       const char *root);
 
 /*!
   \brief Open a trace file for writing
