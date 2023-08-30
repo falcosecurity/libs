@@ -221,14 +221,18 @@ TEST(GenericTracepoints, sched_proc_exec_success_memfd)
 	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE | PPM_EXE_FROM_MEMFD);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	/* In the kmod we use d_path helper so case like memfd are correcly managed */
+	/* In the kmod, we use the "d_path" helper while in BPF we reconstruct the path
+	 * by hand so the result is a little bit different.
+	 * Please note that in the kernel module, we remove the " (deleted)" suffix while
+	 * in BPF we don't add it at all.
+	 */
 	if(evt_test->is_kmod_engine())
 	{
-		evt_test->assert_charbuf_param(28, "/memfd:malware (deleted)");
+		evt_test->assert_charbuf_param(28, "/memfd:malware");
 	}
 	else
 	{
-		/* In BPF drivers we have no the correct result but we can reconstruct part of it */
+		/* In BPF drivers we don't have the correct result but we can reconstruct part of it */
 		evt_test->assert_charbuf_param(28, "memfd:malware");
 	}
 
