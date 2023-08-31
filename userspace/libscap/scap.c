@@ -458,6 +458,18 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	return SCAP_FAILURE;
 }
 
+int32_t scap_set_sampling_exclude(scap_t* handle, ppm_sc_code ppm_sc, bool enabled)
+{
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_EXCLUDE, enabled, ppm_sc);
+	}
+
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
+	ASSERT(false);
+	return SCAP_FAILURE;
+}
+
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
 	switch(sampling_ratio)

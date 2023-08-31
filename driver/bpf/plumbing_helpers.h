@@ -493,6 +493,7 @@ static __always_inline bool drop_event(void *ctx,
 				       struct scap_bpf_settings *settings,
 				       enum syscall_flags drop_flags)
 {
+	long id;
 	if (!settings->dropping_mode)
 		return false;
 
@@ -562,6 +563,12 @@ static __always_inline bool drop_event(void *ctx,
 
 	if (drop_flags & UF_ALWAYS_DROP)
 		return true;
+
+	id = bpf_syscall_get_nr(ctx);
+	bool *enabled = bpf_map_lookup_elem(&sampling_exclude_map, &id);
+	if (enabled && *enabled) {
+		return false;
+	}
 
 	if (state->tail_ctx.ts % 1000000000 >= 1000000000 /
 	    settings->sampling_ratio) {

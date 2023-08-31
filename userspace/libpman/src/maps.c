@@ -108,6 +108,23 @@ void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
 }
 
+int pman_mark_syscall_sampling_exclude(int syscall_id, bool excluding)
+{
+	if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP)
+	{
+		return 1;
+	}
+	if(g_syscall_table[syscall_id].flags & UF_ALWAYS_DROP || g_syscall_table[syscall_id].flags == UF_NONE)
+	{
+		return 1;
+	}
+	if(g_syscall_table[syscall_id].flags & UF_USED)
+	{
+		g_state.skel->bss->g_64bit_sampling_syscall_table[syscall_id] = excluding ? UF_NEVER_DROP : 0;
+	}
+	return 0;
+}
+
 void pman_fill_syscall_sampling_table()
 {
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)

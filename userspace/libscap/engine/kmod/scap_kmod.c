@@ -835,6 +835,17 @@ int32_t scap_kmod_set_statsd_port(struct scap_engine_handle engine, const uint16
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_kmod_set_sampling_exclude(struct scap_engine_handle engine, uint32_t op, uint32_t sc)
+{
+	struct kmod_engine* handle = engine.m_handle;
+	int syscall_id = scap_ppm_sc_to_native_id(sc);
+	if(syscall_id == -1)
+	{
+		return SCAP_FAILURE;
+	}
+	return mark_syscall(handle, op == 1 ? PPM_IOCTL_ADD_SAMPLING_EXCLUDE : PPM_IOCTL_DEL_SAMPLING_EXCLUDE, syscall_id);
+}
+
 static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
 {
 	struct kmod_engine* handle = engine.m_handle;
@@ -874,6 +885,8 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_kmod_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:
 		return scap_kmod_set_statsd_port(engine, arg1);
+	case SCAP_SAMPLING_EXCLUDE:
+		return scap_kmod_set_sampling_exclude(engine, arg1, arg2);
 	default:
 	{
 		char msg[256];

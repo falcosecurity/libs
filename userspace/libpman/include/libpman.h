@@ -445,6 +445,8 @@ extern "C"
 	 */
 	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
 
+
+	int pman_mark_syscall_sampling_exclude(int syscall_id, bool excluding);
 #ifdef __cplusplus
 }
 #endif

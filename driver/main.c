@@ -542,6 +542,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->fullcapture_port_range_end = 0;
 	consumer->statsd_port = PPM_PORT_STATSD;
 	bitmap_zero(consumer->syscalls_mask, SYSCALL_TABLE_SIZE); /* Start with no syscalls */
+	bitmap_zero(consumer->sampling_mask, SYSCALL_TABLE_SIZE);
 	reset_ring_buffer(ring);
 	ring->open = true;
 
@@ -1186,6 +1187,34 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
+	case PPM_IOCTL_ADD_SAMPLING_EXCLUDE:
+	case PPM_IOCTL_DEL_SAMPLING_EXCLUDE:
+	{
+		u32 syscall_to_set = (u32)arg - SYSCALL_TABLE_ID0;
+
+		vpr_info("PPM_IOCTL_ADD_DROP_EXCLUDE (%u), consumer %p\n", syscall_to_set, consumer_id);
+
+		if (syscall_to_set >= SYSCALL_TABLE_SIZE) {
+			pr_err("invalid syscall %u\n", syscall_to_set);
+			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+		if ((g_syscall_table[syscall_to_set].flags & (UF_NEVER_DROP | UF_ALWAYS_DROP))) {
+			ret = -EPERM;
+			goto cleanup_ioctl;
+		}
+		if (cmd == PPM_IOCTL_ADD_SAMPLING_EXCLUDE)
+		{
+			set_bit(syscall_to_set, consumer->sampling_mask);
+		}
+		else
+		{
+			clear_bit(syscall_to_set, consumer->sampling_mask);
+		}
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
@@ -1660,6 +1689,7 @@ static inline int drop_nostate_event(ppm_event_code event_type,
 static inline int drop_event(struct ppm_consumer_t *consumer,
 			     ppm_event_code event_type,
 			     enum syscall_flags drop_flags,
+			     long table_index,
 			     nanoseconds ns,
 			     struct pt_regs *regs)
 {
@@ -1681,6 +1711,9 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 		if (drop_flags & UF_ALWAYS_DROP) {
 			ASSERT((drop_flags & UF_NEVER_DROP) == 0);
 			return 1;
+		}
+		if (table_index != -1 && test_bit(table_index, consumer->sampling_mask)) {
+			return 0;
 		}
 
 		if (consumer->sampling_interval < SECOND_IN_NS &&
@@ -1742,7 +1775,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	int drop = 1;
 	int32_t cbres = PPM_SUCCESS;
 	int cpu;
-	long table_index;
+	long table_index = -1;
 	int64_t retval;
 
 	if (tp_type < INTERNAL_EVENTS && !(consumer->tracepoints_attached & (1 << tp_type)))
@@ -1807,6 +1840,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		if (drop_event(consumer,
 		               event_type,
 		               drop_flags,
+		               table_index,
 		               ns,
 		               event_datap->event_info.syscall_data.regs))
 			return res;

@@ -90,6 +90,13 @@ struct bpf_map_def __bpf_section("maps") interesting_syscalls_table = {
 	.max_entries = SYSCALL_TABLE_SIZE,
 };
 
+struct bpf_map_def __bpf_section("maps") sampling_exclude_map = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(u32),
+	.value_size = sizeof(bool),
+	.max_entries = SYSCALL_TABLE_SIZE,
+};
+
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 struct bpf_map_def __bpf_section("maps") stash_map = {
 	.type = BPF_MAP_TYPE_HASH,

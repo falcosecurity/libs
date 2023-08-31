@@ -1836,6 +1836,31 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
 }
 
+static int32_t scap_bpf_set_drop_exclude(struct scap_engine_handle engine, uint32_t op, uint32_t sc)
+{
+	struct bpf_engine* handle = engine.m_handle;
+	struct syscall_evt_pair sc_evt;
+	int ret;
+	bool exclude = (op == 1);
+	int syscall_id = scap_ppm_sc_to_native_id(sc);
+	if(syscall_id == -1)
+	{
+		return SCAP_FAILURE;
+	}
+	if ((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SYSCALL_TABLE], &syscall_id, &sc_evt)) != 0)
+	{
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SYSCALL_TABLE bpf_map_lookup_elem: %d", syscall_id);
+	}
+	if ((sc_evt.flags & (UF_NEVER_DROP | UF_ALWAYS_DROP))) {
+		return SCAP_FAILURE;
+	}
+	if ((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SAMPLING_MAP], &syscall_id, &exclude, BPF_ANY)) != 0)
+	{
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_DROPPING_MAP unable to update: %d", syscall_id);
+	}
+	return SCAP_SUCCESS;
+}
+
 static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
 {
 	struct bpf_engine* handle = engine.m_handle;
@@ -1917,6 +1942,8 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_bpf_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:
 		return scap_bpf_set_statsd_port(engine, arg1);
+	case SCAP_SAMPLING_EXCLUDE:
+		return scap_bpf_set_drop_exclude(engine, arg1, arg2);
 	default:
 	{
 		char msg[SCAP_LASTERR_SIZE];

@@ -85,6 +85,8 @@ enum scap_setting {
 	 * arg1: whether to enabled or disable the feature
 	 */
 	SCAP_DROP_FAILED,
+
+	SCAP_SAMPLING_EXCLUDE,
 };
 
 struct scap_savefile_vtable {

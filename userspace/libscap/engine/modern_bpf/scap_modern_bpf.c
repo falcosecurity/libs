@@ -92,6 +92,16 @@ static int32_t scap_modern_bpf_handle_sc(struct scap_engine_handle engine, uint3
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_modern_bpf_sampling_exclude(struct scap_engine_handle engine, uint32_t op, uint32_t sc)
+{
+	int syscall_id = scap_ppm_sc_to_native_id(sc);
+	if(syscall_id == -1)
+	{
+		return SCAP_FAILURE;
+	}
+	return pman_mark_syscall_sampling_exclude(syscall_id, op == 1) == 0 ? SCAP_SUCCESS : SCAP_FAILURE;
+}
+
 static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
 {
 	switch(setting)
@@ -125,6 +135,8 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 	case SCAP_STATSD_PORT:
 		pman_set_statsd_port(arg1);
 		break;
+	case SCAP_SAMPLING_EXCLUDE:
+		return scap_modern_bpf_sampling_exclude(engine, arg1, arg2);
 	default:
 	{
 		char msg[SCAP_LASTERR_SIZE];

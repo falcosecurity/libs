@@ -36,6 +36,7 @@ struct ppm_consumer_t {
 	unsigned long buffer_bytes_dim; /* Every consumer will have its per-CPU buffer dim in bytes. */
 	DECLARE_BITMAP(syscalls_mask, SYSCALL_TABLE_SIZE);
 	u32 tracepoints_attached;
+	DECLARE_BITMAP(sampling_mask, SYSCALL_TABLE_SIZE);
 };
 
 typedef struct ppm_consumer_t ppm_consumer_t;

@@ -913,6 +913,8 @@ uint64_t scap_get_driver_api_version(scap_t* handle);
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
 
+int32_t scap_set_sampling_exclude(scap_t* handle, ppm_sc_code ppm_sc, bool enabled);
+
 #ifdef __cplusplus
 }
 #endif
