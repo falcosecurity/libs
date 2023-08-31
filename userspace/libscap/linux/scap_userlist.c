@@ -197,12 +197,14 @@ int32_t scap_linux_create_userlist(struct scap_platform* platform)
 		endpwent();
 	}
 
+	// if userIdx == 0 -> realloc with size 0 means free, and NULL is returned.
+	// so, we will end up with userlist->nusers = 0 and userlist->users NULL.
 	userlist->nusers = useridx;
 	if (useridx < usercnt)
 	{
 		// Reduce array size
 		scap_userinfo *reduced_userinfos = realloc(userlist->users, useridx * sizeof(scap_userinfo));
-		if(reduced_userinfos == NULL)
+		if(reduced_userinfos == NULL && useridx > 0)
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation while reducing array size");
 			free(userlist->users);
@@ -290,12 +292,14 @@ int32_t scap_linux_create_userlist(struct scap_platform* platform)
 		endgrent();
 	}
 
+	// if grpidx == 0 -> realloc with size 0 means free, and NULL is returned.
+	// so, we will end up with userlist->ngroups = 0 and userlist->groups NULL.
 	userlist->ngroups = grpidx;
 	if (grpidx < grpcnt)
 	{
 		// Reduce array size
 		scap_groupinfo *reduced_groups = realloc(userlist->groups, grpidx * sizeof(scap_groupinfo));
-		if(reduced_groups == NULL)
+		if(reduced_groups == NULL && grpidx > 0)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
 			free(userlist->users);
