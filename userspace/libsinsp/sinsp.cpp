@@ -1241,9 +1241,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		//       previously assigned.
 		if(evt->m_pevt->ts == (uint64_t) - 1)
 		{
-			evt->m_pevt->ts = (m_lastevent_ts == 0)
-				? sinsp_utils::get_current_time_ns()
-				: m_lastevent_ts;
+			evt->m_pevt->ts = get_new_ts();
 		}
 	}
 #endif
@@ -2876,4 +2874,14 @@ bool sinsp::get_track_connection_status()
 void sinsp::set_track_connection_status(bool enabled)
 {
 	m_parser->set_track_connection_status(enabled);
+}
+
+uint64_t sinsp::get_new_ts()
+{
+	// m_lastevent_ts = 0 at startup when containers are
+	// being created as a part of the initial process
+	// scan.
+	return (m_lastevent_ts == 0)
+			? sinsp_utils::get_current_time_ns()
+			: m_lastevent_ts;
 }
