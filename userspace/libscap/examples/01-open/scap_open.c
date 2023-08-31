@@ -756,9 +756,6 @@ void parse_CLI_options(int argc, char** argv)
 	}
 }
 
-static int g_chmod_num = 0;
-static int g_chown_num = 0;
-
 void print_stats()
 {
 	gettimeofday(&tval_end, NULL);
@@ -822,7 +819,6 @@ void print_stats()
 		}
 	}
 	printf("\n\n------------------------------------------------------------------\n\n");
-	printf("chmod: %d, chown: %d\n", g_chmod_num, g_chown_num);
 	printf("\n[SCAP-OPEN]: Bye!\n");
 }
 
@@ -869,30 +865,6 @@ int main(int argc, char** argv)
 
 	scap_start_capture(g_h);
 
-	// if (scap_set_ppm_sc(g_h, PPM_SC_CHOWN, 0) != 0) {
-	// 	fprintf(stderr, "set ppm sc error\n");
-	// 	return 1;
-	// }
-	
-	#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-	printf("@@@@@@@@@@@@@\n");
-	#endif
-
-	if (scap_start_dropping_mode(g_h, 64) != 0) {
-		fprintf(stderr, "start dropping mode error\n");
-		return 1;
-	}
-
-	if (scap_set_sampling_exclude(g_h, PPM_SC_CHOWN, 1) != 0) {
-		fprintf(stderr, "add dropping exclude error\n");
-		return 1;
-	}
-
-	if (scap_set_sampling_exclude(g_h, PPM_SC_CHOWN, 0) != 0) {
-		fprintf(stderr, "add dropping exclude error\n");
-		return 1;
-	}
-
 	if (drop_failed)
 	{
 		scap_set_dropfailed(g_h, true);
@@ -929,12 +901,6 @@ int main(int argc, char** argv)
 		if(ev->type == evt_type)
 		{
 			print_event(ev);
-		}
-		const struct ppm_event_info* info= scap_event_getinfo(ev);
-		if (strcmp(info->name, "chmod") == 0) {
-			g_chmod_num++;
-		} else if(strcmp(info->name, "chown") == 0) {
-			g_chown_num++;
 		}
 		g_nevts++;
 	}
