@@ -161,6 +161,7 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper& dumper) {
 		for (const auto &user: usrlist) {
 			sinsp_evt evt;
 			if (user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E)) {
+				evt.m_pevt->ts = m_inspector->get_new_ts();
 				dumper.dump(&evt);
 			}
 		}
@@ -172,6 +173,7 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper& dumper) {
 		for (const auto &group: grplist) {
 			sinsp_evt evt;
 			if (group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E)) {
+				evt.m_pevt->ts = m_inspector->get_new_ts();
 				dumper.dump(&evt);
 			}
 		}
@@ -592,9 +594,7 @@ bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user, sin
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	scapevt->ts = (m_inspector->m_lastevent_ts == 0)
-		? sinsp_utils::get_current_time_ns()
-		: m_inspector->m_lastevent_ts;
+	scapevt->ts = m_inspector->get_new_ts();
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = ev_type;
@@ -644,9 +644,7 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	scapevt->ts = (m_inspector->m_lastevent_ts == 0)
-		? sinsp_utils::get_current_time_ns()
-		: m_inspector->m_lastevent_ts;
+	scapevt->ts = m_inspector->get_new_ts();
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = ev_type;

@@ -403,9 +403,7 @@ void sinsp_container_manager::dump_containers(sinsp_dumper& dumper)
 		sinsp_evt evt;
 		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
 		{
-			evt.m_pevt->ts = (m_inspector->m_lastevent_ts == 0)
-				? sinsp_utils::get_current_time_ns()
-				: m_inspector->m_lastevent_ts;
+			evt.m_pevt->ts = m_inspector->get_new_ts();
 			dumper.dump(&evt);
 		}
 	}

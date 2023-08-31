@@ -1018,6 +1018,14 @@ public:
 	bool get_track_connection_status();
 	void set_track_connection_status(bool enabled);
 
+	/**
+	 * \brief Get a new timestamp.
+	 * 
+	 * \return The current time in nanoseconds if the last event timestamp is 0,
+	 * otherwise, the last event timestamp.
+	 */
+	uint64_t get_new_ts();
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
