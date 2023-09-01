@@ -165,8 +165,8 @@
 | mincore                 | 🟡        |
 | mkdir                   | 🟢        |
 | mkdirat                 | 🟢        |
-| mknod                   | 🟡        |
-| mknodat                 | 🟡        |
+| mknod                   | 🟢        |
+| mknodat                 | 🟢        |
 | mlock                   | 🟢        |
 | mlock2                  | 🟢        |
 | mlockall                | 🟢        |
