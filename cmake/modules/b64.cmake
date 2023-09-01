@@ -24,5 +24,6 @@ if(NOT EXISTS "${B64_INCLUDE}/base64.h")
 	"${B64_DOWNLOAD_URL}"
 	"${B64_INCLUDE}/base64.h"
 	)
-	include_directories("${B64_INCLUDE}")
 endif()
+
+include_directories("${B64_INCLUDE}")
