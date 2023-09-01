@@ -594,7 +594,7 @@ bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user, sin
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	scapevt->ts = m_inspector->get_new_ts();
+	scapevt->ts = (uint64_t) - 1;
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = ev_type;
@@ -644,7 +644,7 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 
 	scap_evt* scapevt = evt->m_pevt;
 
-	scapevt->ts = m_inspector->get_new_ts();
+	scapevt->ts = (uint64_t) - 1;
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
 	scapevt->type = ev_type;
