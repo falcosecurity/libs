@@ -34,9 +34,9 @@ else()
             libelf
             PREFIX "${PROJECT_BINARY_DIR}/libelf-prefix"
             DEPENDS zlib
-            URL "https://sourceware.org/elfutils/ftp/0.187/elfutils-0.187.tar.bz2"
-            URL_HASH "SHA256=e70b0dfbe610f90c4d1fe0d71af142a4e25c3c4ef9ebab8d2d72b65159d454c8"
-            CONFIGURE_COMMAND ./configure LDFLAGS=-L${ZLIB_SRC} "CFLAGS=-I${ZLIB_INCLUDE}" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
+            URL "https://sourceware.org/elfutils/ftp/0.189/elfutils-0.189.tar.bz2"
+            URL_HASH "SHA256=39bd8f1a338e2b7cd4abc3ff11a0eddc6e690f69578a57478d8179b4148708c8"
+            CONFIGURE_COMMAND ./configure LDFLAGS=-L${ZLIB_SRC} "CFLAGS=-I${ZLIB_INCLUDE}" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod --without-zstd
             BUILD_IN_SOURCE 1
             BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -C lib libeu.a
             COMMAND ${CMAKE_MAKE_PROGRAM} -C libelf libelf${LIBELF_LIB_SUFFIX}
