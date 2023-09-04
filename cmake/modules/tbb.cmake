@@ -46,8 +46,8 @@ else()
 
 	if(NOT TARGET tbb)
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
-		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.8.0.tar.gz")
-		set(TBB_SRC_URL_HASH "SHA256=eee380323bb7ce864355ed9431f85c43955faaae9e9bce35c62b372d7ffd9f8b")
+		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.9.0.tar.gz")
+		set(TBB_SRC_URL_HASH "SHA256=1ce48f34dada7837f510735ff1172f6e2c261b09460e3bf773b49791d247d24e")
 		set(TBB_FLAGS "")
 		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 			# latest TBB has issues with GCC >= 12
