@@ -333,8 +333,15 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist, char *fname,
 	}
 	else if(fdi->type == SCAP_FD_FILE_V2)
 	{
-		scap_fd_flags_file(fdi, procdir);
-		strlcpy(fdi->info.regularinfo.fname, link_name, sizeof(fdi->info.regularinfo.fname));
+		if (0 == strncmp(link_name, "/memfd:", strlen("/memfd:")))
+		{
+			fdi->type = SCAP_FD_MEMFD;
+		}
+		else
+		{
+			scap_fd_flags_file(fdi, procdir);
+			strlcpy(fdi->info.regularinfo.fname, link_name, sizeof(fdi->info.regularinfo.fname));
+		}
 	}
 	else
 	{
