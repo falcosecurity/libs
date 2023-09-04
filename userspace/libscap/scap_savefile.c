@@ -198,6 +198,7 @@ static uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 	case SCAP_FD_BPF:
 	case SCAP_FD_USERFAULTFD:
 	case SCAP_FD_IOURING:
+	case SCAP_FD_MEMFD:
 		res += (uint32_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE) + 2;    // 2 is the length field before the string
 		break;
 	default:
@@ -312,6 +313,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 	case SCAP_FD_BPF:
 	case SCAP_FD_USERFAULTFD:
 	case SCAP_FD_IOURING:
+	case SCAP_FD_MEMFD:
 		stlen = (uint16_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen,  sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        (stlen > 0 && scap_dump_write(d, fdi->info.fname, stlen) != stlen))
