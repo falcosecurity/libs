@@ -2656,6 +2656,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 				case SCAP_FD_BPF:
 				case SCAP_FD_IOURING:
 				case SCAP_FD_NETLINK:
+				case SCAP_FD_MEMFD:
 					cat->m_subcategory = SC_OTHER;
 					break;
 				case SCAP_FD_UNKNOWN:
