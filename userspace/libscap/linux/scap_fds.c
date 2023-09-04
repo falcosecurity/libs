@@ -323,6 +323,10 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist, char *fname,
 		{
 			fdi->type = SCAP_FD_BPF;
 		}
+		else if (0 == strcmp(link_name, "anon_inode:[pidfd]"))
+		{
+			fdi->type = SCAP_FD_PIDFD;
+		}
 
 		if(SCAP_FD_UNSUPPORTED == fdi->type)
 		{

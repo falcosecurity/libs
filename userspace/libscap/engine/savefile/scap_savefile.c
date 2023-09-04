@@ -1581,6 +1581,7 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 	case SCAP_FD_USERFAULTFD:
 	case SCAP_FD_IOURING:
 	case SCAP_FD_MEMFD:
+	case SCAP_FD_PIDFD:
 		res = scap_fd_read_fname_from_disk(fdi->info.fname, nbytes, r, error);
 		break;
 	case SCAP_FD_UNKNOWN:

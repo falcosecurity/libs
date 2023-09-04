@@ -390,6 +390,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_USERFAULTFD:
 	case SCAP_FD_IOURING:
 	case SCAP_FD_MEMFD:
+	case SCAP_FD_PIDFD:
 		newfdi->m_name = fdi->info.fname;
 
 		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
@@ -1418,6 +1419,7 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 	case SCAP_FD_USERFAULTFD:
 	case SCAP_FD_IOURING:
 	case SCAP_FD_MEMFD:
+	case SCAP_FD_PIDFD:
 		strlcpy(dst->info.fname, src->m_name.c_str(), sizeof(dst->info.fname));
 		break;
 	default:
