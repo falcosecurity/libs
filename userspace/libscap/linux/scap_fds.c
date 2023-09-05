@@ -336,6 +336,7 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist, char *fname,
 		if (0 == strncmp(link_name, "/memfd:", strlen("/memfd:")))
 		{
 			fdi->type = SCAP_FD_MEMFD;
+			strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 		}
 		else
 		{
