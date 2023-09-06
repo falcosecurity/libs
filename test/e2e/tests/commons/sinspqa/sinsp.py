@@ -197,6 +197,10 @@ def parse_log(log: str) -> dict:
     Returns:
         A dictionary holding all the captured values for the event.
     """
+    if log.startswith('--'):
+        # sinsp-example diagnostic messages
+        print(log)
+        return None
     try:
         return json.loads(log)
     except json.JSONDecodeError as e:
