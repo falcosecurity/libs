@@ -6658,7 +6658,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
 	/* pid (fd) */
 	parinfo = evt->get_param(1);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
-	ASSERT(evt->get_param_info(0)->type == PT_PID);
+	ASSERT(evt->get_param_info(1)->type == PT_PID);
 	pid = *(int64_t *)parinfo->m_val;
 	
 	/* flags */
