@@ -232,6 +232,11 @@ public:
 	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
 	virtual void open_test_input(scap_test_input_data* data, scap_mode_t mode = SCAP_MODE_TEST);
 
+	void fseek(uint64_t filepos)
+	{
+		scap_fseek(m_h, filepos);
+	}
+
 	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
 
 	std::string generate_gvisor_config(std::string socket_path);
@@ -1063,11 +1068,6 @@ private:
 	static std::string get_error_desc(const std::string& msg = "");
 
 	void restart_capture();
-
-	void fseek(uint64_t filepos)
-	{
-		scap_fseek(m_h, filepos);
-	}
 
 	void add_suppressed_comms(scap_open_args *oargs);
 
