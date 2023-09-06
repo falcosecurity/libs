@@ -83,109 +83,7 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 
 scap_t* scap_alloc(void)
 {
-	return malloc(sizeof(scap_t));
-}
-
-struct scap_platform* scap_handle_alloc_platform(scap_t* handle, scap_open_args* oargs)
-{
-	const char* engine_name = oargs->engine_name;
-	proc_entry_callback proc_callback = oargs->proc_callback;
-	void* proc_callback_context = oargs->proc_callback_context;
-	struct scap_platform* platform = NULL;
-
-#ifdef HAS_ENGINE_SAVEFILE
-	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
-	{
-		platform = scap_savefile_alloc_platform(proc_callback, proc_callback_context);
-	}
-#endif
-#ifdef HAS_ENGINE_UDIG
-	if(strcmp(engine_name, UDIG_ENGINE) == 0)
-	{
-		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
-	}
-#endif
-#ifdef HAS_ENGINE_GVISOR
-	if(strcmp(engine_name, GVISOR_ENGINE) == 0)
-	{
-		platform = scap_gvisor_alloc_platform(proc_callback, proc_callback_context);
-	}
-#endif
-#ifdef HAS_ENGINE_TEST_INPUT
-	if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
-	{
-		if(oargs->mode == SCAP_MODE_LIVE)
-		{
-			platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
-		}
-		else
-		{
-			platform = scap_test_input_alloc_platform(proc_callback, proc_callback_context);
-		}
-	}
-#endif
-#ifdef HAS_ENGINE_KMOD
-	if(strcmp(engine_name, KMOD_ENGINE) == 0)
-	{
-		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
-		if(platform)
-		{
-			((struct scap_linux_platform*)platform)->m_linux_vtable = &scap_kmod_linux_vtable;
-		}
-	}
-#endif
-#ifdef HAS_ENGINE_BPF
-	if(strcmp(engine_name, BPF_ENGINE) == 0)
-	{
-		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
-	}
-#endif
-#ifdef HAS_ENGINE_MODERN_BPF
-	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
-	{
-		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
-	}
-#endif
-#ifdef HAS_ENGINE_NODRIVER
-	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
-	{
-		platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
-		struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
-
-		if(platform)
-		{
-			if(!engine_params || !engine_params->full_proc_scan)
-			{
-				((struct scap_linux_platform*)platform)->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP;
-				((struct scap_linux_platform*)platform)->m_minimal_scan = true;
-			}
-		}
-		else
-		{
-			platform = scap_generic_alloc_platform(proc_callback, proc_callback_context);
-		}
-	}
-#endif
-#ifdef HAS_ENGINE_SOURCE_PLUGIN
-	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
-	{
-		if(oargs->mode == SCAP_MODE_LIVE)
-		{
-			platform = scap_linux_alloc_platform(proc_callback, proc_callback_context);
-		}
-		else
-		{
-			platform = scap_generic_alloc_platform(proc_callback, proc_callback_context);
-		}
-	}
-#endif
-
-	if(!platform)
-	{
-		scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform data");
-	}
-
-	return platform;
+	return calloc(1, sizeof(scap_t));
 }
 
 int32_t scap_handle_init_engine(scap_t* handle, scap_open_args* oargs)
@@ -263,15 +161,11 @@ int32_t scap_handle_init_engine(scap_t* handle, scap_open_args* oargs)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_init(scap_t* handle, scap_open_args* oargs)
+int32_t scap_init(scap_t* handle, scap_open_args* oargs, struct scap_platform* platform)
 {
 	int32_t rc;
 
-	handle->m_platform = scap_handle_alloc_platform(handle, oargs);
-	if(!handle->m_platform)
-	{
-		return SCAP_FAILURE;
-	}
+	handle->m_platform = platform;
 
 	rc = scap_handle_init_engine(handle, oargs);
 	if(rc != SCAP_SUCCESS)
@@ -279,24 +173,27 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		return rc;
 	}
 
-	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
+	if(handle->m_platform)
 	{
-		return rc;
+		if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
+		{
+			return rc;
+		}
 	}
 
 	return SCAP_SUCCESS;
 }
 
-scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
+scap_t* scap_open(scap_open_args* oargs, struct scap_platform* platform, char* error, int32_t* rc)
 {
 	scap_t* handle = scap_alloc();
 	if(!handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not allocatet memory for the scap handle");
+		snprintf(error, SCAP_LASTERR_SIZE, "Could not allocate memory for the scap handle");
 		return NULL;
 	}
 
-	*rc = scap_init(handle, oargs);
+	*rc = scap_init(handle, oargs, platform);
 	if(*rc != SCAP_SUCCESS)
 	{
 		strlcpy(error, handle->m_lasterr, SCAP_LASTERR_SIZE);

@@ -238,7 +238,7 @@ int open_engine(int argc, char** argv)
 	}
 
 	char error_buffer[FILENAME_MAX] = {0};
-	event_test::s_scap_handle = scap_open(&oargs, error_buffer, &ret);
+	event_test::s_scap_handle = scap_open(&oargs, nullptr, error_buffer, &ret);
 	if(!event_test::s_scap_handle)
 	{
 		std::cerr << "Unable to open the engine: " << error_buffer << std::endl;
