@@ -175,10 +175,13 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		platform = scap_linux_alloc_platform();
 		struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
 
-		if(platform && (!engine_params || !engine_params->full_proc_scan))
+		if(platform)
 		{
-			((struct scap_linux_platform*)platform)->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP;
-			((struct scap_linux_platform*)platform)->m_minimal_scan = true;
+			if(!engine_params || !engine_params->full_proc_scan)
+			{
+				((struct scap_linux_platform*)platform)->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP;
+				((struct scap_linux_platform*)platform)->m_minimal_scan = true;
+			}
 		}
 		else
 		{
