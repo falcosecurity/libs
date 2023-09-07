@@ -33,14 +33,18 @@ else()
 		ExternalProject_Add(protobuf
 			PREFIX "${PROJECT_BINARY_DIR}/protobuf-prefix"
 			DEPENDS zlib
-			URL "https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-cpp-3.17.3.tar.gz"
-			URL_HASH "SHA256=51cec99f108b83422b7af1170afd7aeb2dd77d2bcbb7b6bad1f92509e9ccf8cb"
-			# TODO what if using system zlib?
-			CONFIGURE_COMMAND CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib ${PROTOBUF_CONFIGURE_FLAGS} --prefix=${PROTOBUF_INSTALL_DIR}
-                        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
+			URL "https://github.com/protocolbuffers/protobuf/releases/download/v23.4/protobuf-23.4.tar.gz"
+			URL_HASH "SHA256=a700a49470d301f1190a487a923b5095bf60f08f4ae4cac9f5f7c36883d17971"
+			CMAKE_ARGS
+				-DCMAKE_BUILD_TYPE=None
+				-DCMAKE_INSTALL_PREFIX:PATH=${PROTOBUF_INSTALL_DIR}
+				-Dprotobuf_BUILD_TESTS:BOOL=OFF
+				-Dprotobuf_BUILD_SHARED_LIBS:BOOL=ON
+				-Dprotobuf_BUILD_LIBPROTOC:BOOL=ON
+				-Dprotobuf_ABSL_PROVIDER=package
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
-			INSTALL_COMMAND make install)
+		)
 		install(FILES "${PROTOBUF_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 				COMPONENT "libs-deps")
 		install(FILES "${PROTOC_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
