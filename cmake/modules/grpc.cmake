@@ -99,40 +99,52 @@ else()
 		list(APPEND GRPC_LIBRARIES
 			"${GRPC_SRC}/libaddress_sorting.a"
 			"${GRPC_SRC}/libupb.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_city.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_low_level_hash.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_raw_hash_set.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_hashtablez_sampler.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_statusor.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_status.a"
+		
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_base.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_spinlock_wait.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_raw_logging_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_log_severity.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_malloc_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_throw_delegate.a"
+			
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/numeric/libabsl_int128.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/memory/libabsl_memory.a"
+			
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_str_format_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strerror.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cord_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_info.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_handle.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cord.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_functions.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/profiling/libabsl_exponential_biased.a"
+		
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_civil_time.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time_zone.a"
+		
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_status.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_statusor.a"
+		
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_optional_access.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_variant_access.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_str_format_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_raw_hash_set.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_hashtablez_sampler.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_inlined_vector_internal.a"
+			
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/libabsl_synchronization.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/libabsl_graphcycles_internal.a"
+		
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_stacktrace.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_symbolize.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_debugging_internal.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_demangle_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_malloc_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_civil_time.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_base.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_spinlock_wait.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/numeric/libabsl_int128.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_throw_delegate.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_raw_logging_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_log_severity.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time_zone.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cord_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_info.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_handle.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_crc_cord_state.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_crc32c.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_crc_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_crc_cpu_detect.a"
+			
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_pool_urbg.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen_hwaes.a"
@@ -141,18 +153,41 @@ else()
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_seed_material.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_platform.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_seed_gen_exception.a"
+			
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/algorithm/libabsl_algorithm.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/algorithm/libabsl_algorithm_container.a"
+			
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_reflection.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_private_handle_accessor.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_commandlineflag.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_commandlineflag_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_config.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_program_name.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_usage.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_usage_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_marshalling.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/flags/libabsl_flags_reflection_private.a"
 		)
 		
 		ExternalProject_Add(grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
 			DEPENDS openssl protobuf c-ares zlib re2
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
-			GIT_TAG v1.44.0
+			GIT_TAG v1.56.2
 			GIT_SUBMODULES "third_party/abseil-cpp"
 			CMAKE_CACHE_ARGS
+				-DCMAKE_CXX_FLAGS="${CXXFLAGS} -DNDEBUG"
 				-DCMAKE_INSTALL_PREFIX:PATH=${GRPC_INSTALL_DIR}
 				-DCMAKE_BUILD_TYPE:STRING=Release
 				-DgRPC_INSTALL:BOOL=OFF
+				-DgRPC_BUILD_GRPC_CPP_PLUGIN:BOOL=ON
+				-DgRPC_BUILD_CODEGEN:BOOL=OFF
+				-DCMAKE_CXX_STANDARD=17 
+				-DCMAKE_SKIP_INSTALL_RPATH:BOOL=ON 
+				-DgRPC_BACKWARDS_COMPATIBILITY_MODE:BOOL=OFF
+				-DgRPC_USE_PROTO_LITE:BOOL=OFF
 				# disable unused stuff
 				-DgRPC_BUILD_TESTS:BOOL=OFF
 				-DgRPC_BUILD_CSHARP_EXT:BOOL=OFF
@@ -175,6 +210,7 @@ else()
 				-DProtobuf_LIBRARY:PATH=${PROTOBUF_LIB}
 				-DProtobuf_PROTOC_LIBRARY:PATH=${PROTOC_LIB}
 				-DProtobuf_PROTOC_EXECUTABLE:PATH=${PROTOC}
+				-DPROTOC:PATH=${PROTOC}
 				# https://cmake.org/cmake/help/v3.6/module/FindOpenSSL.html
 				-DgRPC_SSL_PROVIDER:STRING=package
 				-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_INSTALL_DIR}
