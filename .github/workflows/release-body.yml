@@ -28,6 +28,20 @@ jobs:
       - name: Skip on non driver tag
         if: steps.regex-match.outputs.match == ''
         run: exit 0
+        
+      - name: Clone libs repo
+        actions: checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          
+      - name: Extract API and SCHEMA versions
+        run: |
+          touch release-body.md
+          API_VERS=$(cat driver/API_VERSION)
+          SCHEMA_VERS=$(cat driver/SCHEMA_VERSION)
+          echo '!'"[API](https://img.shields.io/badge/API-${API_VERS}-yellow)" >> release-body.md
+          echo '!'"[SCHEMA](https://img.shields.io/badge/SCHEMA-${SCHEMA_VERS}-yellow)" >> release-body.md
+          echo "" >> release-body.md
           
       - name: Download matrixes
         uses: dawidd6/action-download-artifact@v2
@@ -52,7 +66,7 @@ jobs:
           sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_ARM64.md
           sed -i '1s/^/# Driver Testing Matrix amd64\n\n/' matrix_X64.md
           sed -i '1s/^/# Driver Testing Matrix arm64\n\n/' matrix_ARM64.md
-          cat matrix_X64.md matrix_ARM64.md > release-body.md
+          cat matrix_X64.md matrix_ARM64.md >> release-body.md
 
       - name: Release
         uses: softprops/action-gh-release@v1
