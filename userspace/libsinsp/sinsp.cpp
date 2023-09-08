@@ -27,6 +27,7 @@ limitations under the License.
 #include <sys/time.h>
 #endif // _WIN32
 
+#include "scap_config.h"
 #include "scap_open_exception.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -577,6 +578,7 @@ static void fill_ppm_sc_of_interest(scap_open_args *oargs, const libsinsp::event
 
 void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
+#ifdef HAS_ENGINE_KMOD
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
@@ -587,10 +589,14 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::eve
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	oargs.engine_params = &params;
 	open_common(&oargs);
+#else
+	throw sinsp_exception("KMOD engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
+#ifdef HAS_ENGINE_BPF
 	/* Validate the BPF path. */
 	if(bpf_path.empty())
 	{
@@ -608,26 +614,38 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 	params.bpf_probe = bpf_path.data();
 	oargs.engine_params = &params;
 	open_common(&oargs);
+#else
+	throw sinsp_exception("BPF engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_udig()
 {
+#ifdef HAS_ENGINE_UDIG
 	scap_open_args oargs = factory_open_args(UDIG_ENGINE, SCAP_MODE_LIVE);
 	open_common(&oargs);
+#else
+	throw sinsp_exception("UDIG engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_nodriver(bool full_proc_scan)
 {
+#ifdef HAS_ENGINE_NODRIVER
 	scap_open_args oargs = factory_open_args(NODRIVER_ENGINE, SCAP_MODE_NODRIVER);
 	struct scap_nodriver_engine_params params;
 	params.full_proc_scan = full_proc_scan;
 
 	oargs.engine_params = &params;
 	open_common(&oargs);
+#else
+	throw sinsp_exception("NODRIVER engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_savefile(const std::string& filename, int fd)
 {
+#ifdef HAS_ENGINE_SAVEFILE
 	scap_open_args oargs = factory_open_args(SAVEFILE_ENGINE, SCAP_MODE_CAPTURE);
 	struct scap_savefile_engine_params params;
 
@@ -663,10 +681,14 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 	params.fbuffer_size = 0;
 	oargs.engine_params = &params;
 	open_common(&oargs);
+#else
+	throw sinsp_exception("SAVEFILE engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params, scap_mode_t mode)
 {
+#ifdef HAS_ENGINE_SOURCE_PLUGIN
 	scap_open_args oargs = factory_open_args(SOURCE_PLUGIN_ENGINE, mode);
 	struct scap_source_plugin_engine_params params;
 	set_input_plugin(plugin_name, plugin_open_params);
@@ -674,10 +696,14 @@ void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugi
 	params.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
 	oargs.engine_params = &params;
 	open_common(&oargs);
+#else
+	throw sinsp_exception("SOURCE_PLUGIN engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_gvisor(const std::string& config_path, const std::string& root_path, bool no_events, int epoll_timeout)
 {
+#ifdef HAS_ENGINE_GVISOR
 	if(config_path.empty())
 	{
 		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the config file.");
@@ -693,10 +719,14 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	open_common(&oargs);
 
 	set_get_procs_cpu_from_driver(false);
+#else
+	throw sinsp_exception("GVISOR engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
+#ifdef HAS_ENGINE_MODERN_BPF
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
@@ -710,10 +740,14 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	params.verbose = g_logger.has_output() && g_logger.is_enabled(sinsp_logger::severity::SEV_DEBUG);
 	oargs.engine_params = &params;
 	open_common(&oargs);
+#else
+	throw sinsp_exception("MODERN_BPF engine is not supported in this build");
+#endif
 }
 
 void sinsp::open_test_input(scap_test_input_data* data, scap_mode_t mode)
 {
+#ifdef HAS_ENGINE_TEST_INPUT
 	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, mode);
 	struct scap_test_input_engine_params params;
 	params.test_input_data = data;
@@ -721,6 +755,9 @@ void sinsp::open_test_input(scap_test_input_data* data, scap_mode_t mode)
 	open_common(&oargs);
 
 	set_get_procs_cpu_from_driver(false);
+#else
+	throw sinsp_exception("TEST_INPUT engine is not supported in this build");
+#endif
 }
 
 /*=============================== OPEN METHODS ===============================*/

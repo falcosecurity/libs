@@ -23,6 +23,7 @@ limitations under the License.
 #endif // _WIN32
 #include <csignal>
 #include <sinsp.h>
+#include <scap_engines.h>
 #include <functional>
 #include <memory>
 #include "util.h"
@@ -265,10 +266,17 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		}
 	}
 
-	if(!engine_string.compare(KMOD_ENGINE))
+	if(false)
+	{
+
+	}
+#ifdef HAS_ENGINE_KMOD
+	else if(!engine_string.compare(KMOD_ENGINE))
 	{
 		inspector.open_kmod(buffer_bytes_dim, ppm_sc);
 	}
+#endif
+#ifdef HAS_ENGINE_BPF
 	else if(!engine_string.compare(BPF_ENGINE))
 	{
 		if(bpf_path.empty())
@@ -282,6 +290,8 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		}
 		inspector.open_bpf(bpf_path.c_str(), buffer_bytes_dim, ppm_sc);
 	}
+#endif
+#ifdef HAS_ENGINE_SAVEFILE
 	else if(!engine_string.compare(SAVEFILE_ENGINE))
 	{
 		if(file_path.empty())
@@ -291,10 +301,13 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		}
 		inspector.open_savefile(file_path.c_str(), 0);
 	}
+#endif
+#ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
 		inspector.open_modern_bpf(buffer_bytes_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true, ppm_sc);
 	}
+#endif
 	else
 	{
 		std::cerr << "Unknown engine" << std::endl;
