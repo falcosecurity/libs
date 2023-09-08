@@ -51,6 +51,8 @@ static __always_inline uint32_t extract__syscall_id(struct pt_regs *regs)
 	return (uint32_t)regs->syscallno;
 #elif defined(__TARGET_ARCH_s390)
 	return (uint32_t)regs->int_code & 0xffff;
+#elif defined(__TARGET_ARCH_powerpc)
+	return (uint32_t)regs->gpr[0];
 #else
 	return 0;
 #endif
