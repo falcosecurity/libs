@@ -38,6 +38,13 @@
  */
 #define _TIF_31BIT (1 << 16)
 
+#elif defined(__TARGET_ARCH_powerpc)
+
+/* See here for definition:
+ * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/powerpc/include/asm/thread_info.h#L126
+ */
+#define _TIF_32BIT (1 << 20)
+
 #endif
 
 /*=============================== ARCH SPECIFIC ===========================*/
