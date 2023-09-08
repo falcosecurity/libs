@@ -298,6 +298,43 @@ jobs:
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make scap-open driver bpf unit-test-libsinsp -j6
             ./libsinsp/test/unit-test-libsinsp
 
+  # This job checks that a bundled deps of libs is as static as possible
+  test-libs-static:
+    name: test-libs-static (bundled_deps)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
+          sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
+          sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
+
+      - name: Build sinsp-example
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=On -DCREATE_TEST_TARGETS=Off -DENABLE_LIBSCAP_TESTS=Off ../
+          make -j$(nproc) sinsp-example
+
+      - name: Ensure that sinsp-example with bundled deps is as static as possible
+        run: |
+          ldd "build/libsinsp/examples/sinsp-example" | cut --fields=2 | cut --delimiter=' ' --fields=1 | rev | cut --delimiter='/' --fields=1 | rev | sort --unique --version-sort > ldd_out.txt
+          cat > expected_ldd_out.txt <<EOF
+          ld-linux-x86-64.so.2
+          libc.so.6
+          libgcc_s.so.1
+          libm.so.6
+          libstdc++.so.6
+          linux-vdso.so.1
+          EOF
+          diff -u expected_ldd_out.txt ldd_out.txt
+
   run-e2e-tests-amd64:
     name: run-e2e-tests-amd64
     strategy:
