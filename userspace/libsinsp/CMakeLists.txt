@@ -201,7 +201,7 @@ set_sinsp_target_properties(sinsp)
 
 target_link_libraries(sinsp
 		PUBLIC scap
-		INTERFACE
+		PRIVATE
 			"${CURL_LIBRARIES}"
 			"${JSONCPP_LIB}"
 			"${RE2_LIB}"
@@ -337,8 +337,8 @@ else()
 endif() # NOT WIN32
 
 if(APPLE)
-	target_link_libraries(sinsp INTERFACE "-framework CoreFoundation")
-	target_link_libraries(sinsp INTERFACE "-framework SystemConfiguration")
+	target_link_libraries(sinsp PRIVATE "-framework CoreFoundation")
+	target_link_libraries(sinsp PRIVATE "-framework SystemConfiguration")
 	set_target_properties(sinsp PROPERTIES LINK_FLAGS "-Wl,-F/Library/Frameworks")
 endif()
 
