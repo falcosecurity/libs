@@ -579,12 +579,18 @@ int f_sys_write_x(struct event_filler_arguments *args)
 /*
  * get_mm_exe_file is only exported in some kernel versions
  */
-
 struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
 {
 	struct file *exe_file;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+	/*
+	 * The following if/else preprocessor directive is to cover for that change:
+	 * https://github.com/torvalds/linux/commit/90f31d0ea88880f780574f3d0bb1a227c4c66ca3#diff-e37b5cb4c23f6ab27741c60ec48674eff0268624a228c9a1cddddb9e4ee2922dL709
+	 * That was introduced in linux 4.1, but it's backported in some distro kernels.
+	 * Luckily enough, `get_file_rcu` is a define, so we can check for it and use
+	 * the safer version.
+	 */
+#if defined(get_file_rcu)
 	rcu_read_lock();
 	exe_file = rcu_dereference(mm->exe_file);
 	if (exe_file && !get_file_rcu(exe_file))
