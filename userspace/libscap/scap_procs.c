@@ -78,7 +78,7 @@ void scap_proc_free(struct scap_threadinfo* proc)
 	free(proc);
 }
 
-int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo)
+int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo)
 {
 	int32_t uth_status = SCAP_SUCCESS;
 
@@ -89,7 +89,6 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 	}
 	else
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not add fd to hash table");
 		return SCAP_FAILURE;
 	}
 }
