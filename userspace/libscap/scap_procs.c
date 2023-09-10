@@ -72,7 +72,7 @@ struct scap_threadinfo *scap_proc_alloc(scap_t *handle)
 	return tinfo;
 }
 
-void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
+void scap_proc_free(struct scap_threadinfo* proc)
 {
 	scap_fd_free_proc_fd_table(proc);
 	free(proc);
