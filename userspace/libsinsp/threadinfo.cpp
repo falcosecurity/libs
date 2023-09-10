@@ -1989,7 +1989,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		free(envs_iov);
 		free(cgroups_iov);
 
-		scap_proc_free(m_inspector->m_h, sctinfo);
+		scap_proc_free(sctinfo);
 		return true;
 	});
 
@@ -2028,7 +2028,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
 			if(fd_table_ptr == NULL)
 			{
-				scap_proc_free(m_inspector->m_h, sctinfo);
+				scap_proc_free(sctinfo);
 				return false;
 			}
 
@@ -2042,7 +2042,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
 				if(scfdinfo == NULL)
 				{
-					scap_proc_free(m_inspector->m_h, sctinfo);
+					scap_proc_free(sctinfo);
 					return false;
 				}
 
@@ -2057,7 +2057,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				if(scap_fd_add(m_inspector->m_h, sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
-					scap_proc_free(m_inspector->m_h, sctinfo);
+					scap_proc_free(sctinfo);
 					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap (" + std::string(scap_getlasterr(m_inspector->m_h)) + ")");
 				}
 			}
@@ -2068,11 +2068,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		//
 		if(scap_write_proc_fds(dumper, sctinfo) != SCAP_SUCCESS)
 		{
-			scap_proc_free(m_inspector->m_h, sctinfo);
+			scap_proc_free(sctinfo);
 			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap (" + std::string(scap_dump_getlasterr(dumper)) + ")");
 		}
 
-		scap_proc_free(m_inspector->m_h, sctinfo);
+		scap_proc_free(sctinfo);
 		return true;
 	});
 }
@@ -2148,7 +2148,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         if(scap_proc)
         {
             newti->init(scap_proc);
-            scap_proc_free(m_inspector->m_h, scap_proc);
+	    scap_proc_free(scap_proc);
         }
         else
         {
