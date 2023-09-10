@@ -2055,10 +2055,10 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				// Add the new fd to the scap table.
 				//
-				if(scap_fd_add(m_inspector->m_h, sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
 					scap_proc_free(sctinfo);
-					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap (" + std::string(scap_getlasterr(m_inspector->m_h)) + ")");
+					throw sinsp_exception("Failed to add fd to hash table");
 				}
 			}
 		}
