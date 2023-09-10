@@ -28,6 +28,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "protodecoder.h"
 #include "tracers.h"
+#include "scap-int.h"
 
 #ifdef HAS_ANALYZER
 #include "tracer_emitter.h"
@@ -1950,25 +1951,19 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			return true;
 		}
 
-		scap_threadinfo *sctinfo;
+		scap_threadinfo sctinfo {};
 		struct iovec *args_iov, *envs_iov, *cgroups_iov;
 		int argscnt, envscnt, cgroupscnt;
 		std::string argsrem, envsrem, cgroupsrem;
 		uint32_t entrylen = 0;
 		auto cg = tinfo.cgroups();
 
-		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
-		{
-			scap_dump_close(proclist_dumper);
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
-		}
-
-		thread_to_scap(tinfo, sctinfo);
+		thread_to_scap(tinfo, &sctinfo);
 		tinfo.args_to_iovec(&args_iov, &argscnt, argsrem);
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
 		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem, cg);
 
-		if(scap_write_proclist_entry_bufs(proclist_dumper, sctinfo, &entrylen,
+		if(scap_write_proclist_entry_bufs(proclist_dumper, &sctinfo, &entrylen,
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),
@@ -1989,7 +1984,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		free(envs_iov);
 		free(cgroups_iov);
 
-		scap_proc_free(sctinfo);
 		return true;
 	});
 
@@ -2008,17 +2002,12 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			return true;
 		}
 
-		scap_threadinfo *sctinfo;
-
-		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
-		{
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
-		}
+		scap_threadinfo sctinfo {};
 
 		// Note: as scap_fd_add/scap_write_proc_fds do not use
 		// any of the array-based fields like comm, etc. a
 		// shallow copy is safe
-		thread_to_scap(tinfo, sctinfo);
+		thread_to_scap(tinfo, &sctinfo);
 
 		if(tinfo.is_main_thread())
 		{
@@ -2028,7 +2017,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
 			if(fd_table_ptr == NULL)
 			{
-				scap_proc_free(sctinfo);
 				return false;
 			}
 
@@ -2042,7 +2030,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
 				if(scfdinfo == NULL)
 				{
-					scap_proc_free(sctinfo);
+					scap_fd_free_proc_fd_table(&sctinfo);
 					return false;
 				}
 
@@ -2055,9 +2043,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				// Add the new fd to the scap table.
 				//
-				if(scap_fd_add(sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				if(scap_fd_add(&sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
 				{
-					scap_proc_free(sctinfo);
+					scap_fd_free_proc_fd_table(&sctinfo);
 					throw sinsp_exception("Failed to add fd to hash table");
 				}
 			}
@@ -2066,13 +2054,12 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		//
 		// Dump the thread to disk
 		//
-		if(scap_write_proc_fds(dumper, sctinfo) != SCAP_SUCCESS)
+		if(scap_write_proc_fds(dumper, &sctinfo) != SCAP_SUCCESS)
 		{
-			scap_proc_free(sctinfo);
-			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap (" + std::string(scap_dump_getlasterr(dumper)) + ")");
+			throw sinsp_exception("error calling scap_write_proc_fds in sinsp_thread_manager::dump_threads_to_file (" + std::string(scap_dump_getlasterr(dumper)) + ")");
 		}
 
-		scap_proc_free(sctinfo);
+		scap_fd_free_proc_fd_table(&sctinfo);
 		return true;
 	});
 }

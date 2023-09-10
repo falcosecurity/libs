@@ -60,18 +60,6 @@ void scap_proc_free_table(struct scap_proclist* proclist)
 	}
 }
 
-struct scap_threadinfo *scap_proc_alloc(scap_t *handle)
-{
-	struct scap_threadinfo *tinfo = (struct scap_threadinfo*) calloc(1, sizeof(scap_threadinfo));
-	if(tinfo == NULL)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (1)");
-		return NULL;
-	}
-
-	return tinfo;
-}
-
 void scap_proc_free(struct scap_threadinfo* proc)
 {
 	scap_fd_free_proc_fd_table(proc);
