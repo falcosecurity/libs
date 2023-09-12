@@ -1035,7 +1035,48 @@ FILLER(sys_getrlimit_setrlimit_e, true)
 	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
-FILLER(sys_getrlimit_setrlrimit_x, true)
+FILLER(sys_getrlimit_x, true)
+{
+	unsigned long val;
+	long retval;
+	s64 cur;
+	s64 max;
+	int res;
+
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/*
+	 * Copy the user structure and extract cur and max
+	 */
+	if(retval >= 0 || data->state->tail_ctx.evt_type == PPME_SYSCALL_SETRLIMIT_X)
+	{
+		struct rlimit rl;
+
+		val = bpf_syscall_get_argument(data, 1);
+		if(bpf_probe_read_user(&rl, sizeof(rl), (void *)val))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		cur = rl.rlim_cur;
+		max = rl.rlim_max;
+	}
+	else
+	{
+		cur = -1;
+		max = -1;
+	}
+
+	/* Parameter 2: cur (type: PT_ERRNO) */
+	res = bpf_push_s64_to_ring(data, cur);
+	CHECK_RES(res);
+
+	/* Parameter 3: max (type: PT_ERRNO) */
+	return bpf_push_s64_to_ring(data, max);
+}
+
+FILLER(sys_setrlrimit_x, true)
 {
 	unsigned long val;
 	long retval;
@@ -1071,11 +1112,11 @@ FILLER(sys_getrlimit_setrlrimit_x, true)
 		max = -1;
 	}
 
-	/* Parameter 3: resource (type: PT_ERRNO) */
+	/* Parameter 3: cur (type: PT_ERRNO) */
 	res = bpf_push_s64_to_ring(data, cur);
 	CHECK_RES(res);
 
-	/* Parameter 4: resource (type: PT_ERRNO) */
+	/* Parameter 4: max (type: PT_ERRNO) */
 	return bpf_push_s64_to_ring(data, max);
 }
 

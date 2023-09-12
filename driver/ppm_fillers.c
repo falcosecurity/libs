@@ -4081,7 +4081,69 @@ int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
+int f_sys_getrlimit_x(struct event_filler_arguments *args) {
+	unsigned long val;
+	int res;
+	int64_t retval;
+	struct rlimit rl;
+#ifdef CONFIG_COMPAT
+	struct compat_rlimit compat_rl;
+#endif
+	int64_t cur;
+	int64_t max;
+
+	/* Parameter 1: res */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/*
+	 * Copy the user structure and extract cur and max
+	 */
+	if(retval >= 0 || args->event_type == PPME_SYSCALL_SETRLIMIT_X)
+	{
+		syscall_get_arguments_deprecated(args, 1, 1, &val);
+
+#ifdef CONFIG_COMPAT
+		if(!args->compat)
+		{
+#endif
+			if(unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit))))
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			cur = rl.rlim_cur;
+			max = rl.rlim_max;
+#ifdef CONFIG_COMPAT
+		}
+		else
+		{
+			if(unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)compat_ptr(val),
+						       sizeof(struct compat_rlimit))))
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			cur = compat_rl.rlim_cur;
+			max = compat_rl.rlim_max;
+		}
+#endif
+	}
+	else
+	{
+		cur = -1;
+		max = -1;
+	}
+
+	/* Parameter 2: cur */
+	res = val_to_ring(args, cur, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: max */
+	res = val_to_ring(args, max, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+
+
+int f_sys_setrlrimit_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
@@ -4129,11 +4191,11 @@ int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 		max = -1;
 	}
 
-	/* Parameter 3: resource */
+	/* Parameter 3: cur */
 	res = val_to_ring(args, cur, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 4: resource */
+	/* Parameter 4: max */
 	res = val_to_ring(args, max, 0, false, 0);
 	CHECK_RES(res);
 
