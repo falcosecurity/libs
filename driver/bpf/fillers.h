@@ -3842,6 +3842,16 @@ FILLER(sys_prlimit_x, true)
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
+	/* Parameter 1: pid */
+	pid_t pid = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)pid);
+	CHECK_RES(res);
+
+	/* Parameter 2: resource */
+	unsigned long resource = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
+	CHECK_RES(res);
+
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
@@ -3868,27 +3878,19 @@ FILLER(sys_prlimit_x, true)
 		oldmax = rl.rlim_max;
 	}
 
-	/*
-	 * newcur
-	 */
+	/* Parameter 3: newcur */
 	res = bpf_push_s64_to_ring(data, newcur);
 	CHECK_RES(res);
 
-	/*
-	 * newmax
-	 */
+	/* Parameter 4: newmax */
 	res = bpf_push_s64_to_ring(data, newmax);
 	CHECK_RES(res);
 
-	/*
-	 * oldcur
-	 */
+	/* Parameter 5: oldcur */
 	res = bpf_push_s64_to_ring(data, oldcur);
 	CHECK_RES(res);
 
-	/*
-	 * oldmax
-	 */
+	/* Parameter 5: oldmax */
 	return bpf_push_s64_to_ring(data, oldmax);
 }
 
