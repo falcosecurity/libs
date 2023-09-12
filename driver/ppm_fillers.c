@@ -4093,11 +4093,14 @@ int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	int64_t cur;
 	int64_t max;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: resource */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	/*
@@ -4126,15 +4129,11 @@ int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 		max = -1;
 	}
 
-	/*
-	 * cur
-	 */
+	/* Parameter 3: resource */
 	res = val_to_ring(args, cur, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * max
-	 */
+	/* Parameter 4: resource */
 	res = val_to_ring(args, max, 0, false, 0);
 	CHECK_RES(res);
 
