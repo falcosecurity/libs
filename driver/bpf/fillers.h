@@ -1048,6 +1048,11 @@ FILLER(sys_getrlimit_setrlrimit_x, true)
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
+	/* Parameter 2: resource (type: PT_ERRNO) */
+	unsigned long resource = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
+	CHECK_RES(res);
+
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
@@ -1066,15 +1071,11 @@ FILLER(sys_getrlimit_setrlrimit_x, true)
 		max = -1;
 	}
 
-	/*
-	 * cur
-	 */
+	/* Parameter 3: resource (type: PT_ERRNO) */
 	res = bpf_push_s64_to_ring(data, cur);
 	CHECK_RES(res);
 
-	/*
-	 * max
-	 */
+	/* Parameter 4: resource (type: PT_ERRNO) */
 	return bpf_push_s64_to_ring(data, max);
 }
 
