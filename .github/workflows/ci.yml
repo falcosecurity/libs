@@ -167,6 +167,44 @@ jobs:
           cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON ..
           cmake --build . --config Release && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
+  build-shared-libs-macos-amd64:
+    name: build-shared-libs-macos-amd64 😨
+    strategy:
+      fail-fast: false
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install c-ares re2 tbb jq jsoncpp openssl uthash
+
+      - name: Build 🏗️
+        run: |
+          mkdir -p build
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DUSE_BUNDLED_TINYDIR=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=ON -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
+          cmake --build . --config Release
+
+      - name: Install
+        run: |
+          cd build
+          make install
+
+      - name: Test sinsp-example build with pkg-config 🧪
+        run: |
+          cd userspace/libsinsp/examples
+          export PKG_CONFIG_PATH=/tmp/libs-test/lib/pkgconfig
+          c++ --std=c++17 -o sinsp-example test.cpp util.cpp $(pkg-config --cflags --libs libsinsp)
+
+      - name: Test sinsp-example runtime linker 🧪
+        run: |
+          cd userspace/libsinsp/examples
+          export DYLD_LIBRARY_PATH=/tmp/libs-test/lib/falcosecurity
+          ./sinsp-example -h
+
   # This job run all engine tests and scap-open
   test-scap-x86:
     name: test-scap-x86 😆 (bundled_deps)
