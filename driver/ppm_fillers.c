@@ -4174,6 +4174,7 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	int64_t newmax;
 	int64_t oldcur;
 	int64_t oldmax;
+	pid_t pid = 0;
 
 	/*
 	 * res
@@ -4182,12 +4183,22 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 1: pid */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	pid = (s32)val;
+	res = val_to_ring(args, (s64)pid, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
+
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
 	if (retval >= 0) {
 		syscall_get_arguments_deprecated(args, 2, 1, &val);
-
 #ifdef CONFIG_COMPAT
 		if (!args->compat) {
 #endif
@@ -4215,7 +4226,6 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	}
 
 	syscall_get_arguments_deprecated(args, 3, 1, &val);
-
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
@@ -4237,28 +4247,19 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 		}
 	}
 #endif
-
-	/*
-	 * newcur
-	 */
+	/* Parameter 3: newcur (PT_INT64)*/
 	res = val_to_ring(args, newcur, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * newmax
-	 */
+	/* Parameter 4: newmax (PT_INT64)*/
 	res = val_to_ring(args, newmax, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * oldcur
-	 */
+	/* Parameter 5: oldcur (PT_INT64)*/
 	res = val_to_ring(args, oldcur, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * oldmax
-	 */
+	/* Parameter 6: oldmax (PT_INT64)*/
 	res = val_to_ring(args, oldmax, 0, false, 0);
 	CHECK_RES(res);
 
