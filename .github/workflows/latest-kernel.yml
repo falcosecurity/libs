@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       linux-version:
-        description: 'Archlinux kernel version to build a driver against, eg: 6.2.arch1-1'
-        required: true
+        description: 'Archlinux kernel version to build a driver against, eg: 6.2.arch1-1 or empty to build latest mainline'
+        required: false
         type: string
   schedule:
     - cron: '0 8 * * *' # every day at 8am
@@ -59,7 +59,7 @@ jobs:
           
       - name: Update README badge
         uses: schneegans/dynamic-badges-action@v1.6.0
-        if: always() && inputs.linux-version == ''
+        if: always() && github.event_name == 'schedule'
         with:
           auth: ${{ secrets.FEDEDP_GIST_SECRET }}
           gistID: 1cbc5d42edf8e3a02fb75e76625f1072
