@@ -62,22 +62,14 @@ int BPF_PROG(prlimit64_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
-	/* Parameter 2: pid (type: PT_PID) */
-	pid_t pid = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)pid);
-
-	/* Parameter 3: resource (type: PT_ENUMFLAGS8) */
-	unsigned long resource = extract__syscall_argument(regs, 1);
-	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
-
 	struct rlimit new_rlimit = {0};
 	unsigned long rlimit_pointer = extract__syscall_argument(regs, 2);
 	bpf_probe_read_user((void *)&new_rlimit, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
 
-	/* Parameter 4: newcur (type: PT_INT64) */
+	/* Parameter 2: newcur (type: PT_INT64) */
 	ringbuf__store_s64(&ringbuf, new_rlimit.rlim_cur);
 
-	/* Parameter 5: newmax (type: PT_INT64) */
+	/* Parameter 3: newmax (type: PT_INT64) */
 	ringbuf__store_s64(&ringbuf, new_rlimit.rlim_max);
 
 	/* We take the old `rlimit` only if the syscall is successful otherwise this
@@ -90,11 +82,19 @@ int BPF_PROG(prlimit64_x,
 		bpf_probe_read_user((void *)&old_rlimit, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
 	}
 
-	/* Parameter 6: oldcur (type: PT_INT64) */
+	/* Parameter 4: oldcur (type: PT_INT64) */
 	ringbuf__store_s64(&ringbuf, old_rlimit.rlim_cur);
 
-	/* Parameter 7: oldmax (type: PT_INT64) */
+	/* Parameter 5: oldmax (type: PT_INT64) */
 	ringbuf__store_s64(&ringbuf, old_rlimit.rlim_max);
+
+	/* Parameter 6: pid (type: PT_PID) */
+	pid_t pid = (s32)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (s64)pid);
+
+	/* Parameter 7: resource (type: PT_ENUMFLAGS8) */
+	unsigned long resource = extract__syscall_argument(regs, 1);
+	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

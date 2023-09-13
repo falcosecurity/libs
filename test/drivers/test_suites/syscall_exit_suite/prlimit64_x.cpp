@@ -46,23 +46,23 @@ TEST(SyscallExit, prlimit64X)
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
-	/* Parameter 2: pid (type: PT_INT64) */
-	evt_test->assert_numeric_param(2, (int64_t)pid);
+	/* Parameter 2: newcur (type: PT_INT64) */
+	evt_test->assert_numeric_param(2, (int64_t)file_rlimit.rlim_cur);
 
-	/* Parameter 3: resource (type: PT_ENUMFLAGS8) */
-	evt_test->assert_numeric_param(3, (uint8_t)PPM_RLIMIT_NOFILE);
+	/* Parameter 3: newmax (type: PT_INT64) */
+	evt_test->assert_numeric_param(3, (int64_t)file_rlimit.rlim_max);
 
-	/* Parameter 4: newcur (type: PT_INT64) */
+	/* Parameter 4: oldcur (type: PT_INT64) */
 	evt_test->assert_numeric_param(4, (int64_t)file_rlimit.rlim_cur);
 
-	/* Parameter 5: newmax (type: PT_INT64) */
+	/* Parameter 5: oldmax (type: PT_INT64) */
 	evt_test->assert_numeric_param(5, (int64_t)file_rlimit.rlim_max);
 
-	/* Parameter 6: oldcur (type: PT_INT64) */
-	evt_test->assert_numeric_param(6, (int64_t)file_rlimit.rlim_cur);
+	/* Parameter 6: pid (type: PT_INT64) */
+	evt_test->assert_numeric_param(6, (int64_t)pid);
 
-	/* Parameter 7: oldmax (type: PT_INT64) */
-	evt_test->assert_numeric_param(7, (int64_t)file_rlimit.rlim_max);
+	/* Parameter 7: resource (type: PT_ENUMFLAGS8) */
+	evt_test->assert_numeric_param(7, (uint8_t)PPM_RLIMIT_NOFILE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

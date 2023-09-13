@@ -58,19 +58,19 @@ int BPF_PROG(setrlimit_x,
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
-	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
-	unsigned long resource = extract__syscall_argument(regs, 0);
-	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
-
 	struct rlimit rl = {0};
 	unsigned long rlimit_pointer = extract__syscall_argument(regs, 1);
 	bpf_probe_read_user((void *)&rl, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
 
-	/* Parameter 3: cur (type: PT_INT64)*/
+	/* Parameter 2: cur (type: PT_INT64)*/
 	ringbuf__store_s64(&ringbuf, rl.rlim_cur);
 
-	/* Parameter 4: max (type: PT_INT64)*/
+	/* Parameter 3: max (type: PT_INT64)*/
 	ringbuf__store_s64(&ringbuf, rl.rlim_max);
+
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	unsigned long resource = extract__syscall_argument(regs, 0);
+	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -39,13 +39,14 @@ TEST(SyscallExit, setrlimitX)
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
-	evt_test->assert_numeric_param(2, (uint8_t)resource);
-
 	/* Parameter 2: cur (type: PT_INT64) */
-	evt_test->assert_numeric_param(3, (int64_t)rlim.rlim_cur);
+	evt_test->assert_numeric_param(2, (int64_t)rlim.rlim_cur);
 
 	/* Parameter 3: max (type: PT_INT64) */
-	evt_test->assert_numeric_param(4, (int64_t)rlim.rlim_max);
+	evt_test->assert_numeric_param(3, (int64_t)rlim.rlim_max);
+
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	evt_test->assert_numeric_param(4, (uint8_t)resource);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

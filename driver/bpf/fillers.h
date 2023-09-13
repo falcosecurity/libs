@@ -1089,11 +1089,6 @@ FILLER(sys_setrlrimit_x, true)
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	/* Parameter 2: resource (type: PT_ERRNO) */
-	unsigned long resource = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
-	CHECK_RES(res);
-
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
@@ -1112,12 +1107,17 @@ FILLER(sys_setrlrimit_x, true)
 		max = -1;
 	}
 
-	/* Parameter 3: cur (type: PT_ERRNO) */
+	/* Parameter 2: cur (type: PT_ERRNO) */
 	res = bpf_push_s64_to_ring(data, cur);
 	CHECK_RES(res);
 
-	/* Parameter 4: max (type: PT_ERRNO) */
-	return bpf_push_s64_to_ring(data, max);
+	/* Parameter 3: max (type: PT_ERRNO) */
+	res = bpf_push_s64_to_ring(data, max);
+	CHECK_RES(res);
+	
+	/* Parameter 4: resource (type: PT_ERRNO) */
+	unsigned long resource = bpf_syscall_get_argument(data, 0);
+	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
 FILLER(sys_connect_e, true)
@@ -3877,21 +3877,9 @@ FILLER(sys_prlimit_x, true)
 	int64_t oldmax;
 	int res;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res */
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
-	CHECK_RES(res);
-
-	/* Parameter 1: pid */
-	pid_t pid = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s64_to_ring(data, (s64)pid);
-	CHECK_RES(res);
-
-	/* Parameter 2: resource */
-	unsigned long resource = bpf_syscall_get_argument(data, 1);
-	res = bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 	CHECK_RES(res);
 
 	/*
@@ -3920,20 +3908,30 @@ FILLER(sys_prlimit_x, true)
 		oldmax = rl.rlim_max;
 	}
 
-	/* Parameter 3: newcur */
+	/* Parameter 2: newcur */
 	res = bpf_push_s64_to_ring(data, newcur);
 	CHECK_RES(res);
 
-	/* Parameter 4: newmax */
+	/* Parameter 3: newmax */
 	res = bpf_push_s64_to_ring(data, newmax);
 	CHECK_RES(res);
 
-	/* Parameter 5: oldcur */
+	/* Parameter 4: oldcur */
 	res = bpf_push_s64_to_ring(data, oldcur);
 	CHECK_RES(res);
 
 	/* Parameter 5: oldmax */
-	return bpf_push_s64_to_ring(data, oldmax);
+	res = bpf_push_s64_to_ring(data, oldmax);
+	CHECK_RES(res);
+
+	/* Parameter 6: pid */
+	pid_t pid = bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)pid);
+	CHECK_RES(res);
+
+	/* Parameter 7: resource */
+	unsigned long resource = bpf_syscall_get_argument(data, 1);
+	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
 FILLER(sys_pwritev_e, true)
