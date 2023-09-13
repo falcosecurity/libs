@@ -7,6 +7,7 @@ on:
       
 permissions:
   contents: write
+  actions: 'write'
 
 concurrency:
   group: "release-body"
@@ -27,7 +28,11 @@ jobs:
 
       - name: Skip on non driver tag
         if: steps.regex-match.outputs.match == ''
-        run: exit 0
+        run: |
+          gh run cancel ${{ github.run_id }}
+          gh run watch ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Clone libs repo
         actions: checkout@v4
