@@ -1512,8 +1512,15 @@ cgroups_error:
 				 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
 				 * but fields names should be always the same.
 				 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+				{
+					struct timespec64 inode_ctime;
+					inode_ctime = inode_get_ctime(file_inode(exe_file));
+					ctime = inode_ctime.tv_sec * (uint64_t) 1000000000 + inode_ctime.tv_nsec;
+				}
+#else
 				ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
-
+#endif
 				/* Support exe_file mtime 
 				 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
 				 * but fields names should be always the same.
@@ -7775,7 +7782,15 @@ cgroups_error:
 			 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
 			 * but fields names should be always the same.
 			 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+			{
+				struct timespec64 inode_ctime;
+				inode_ctime = inode_get_ctime(file_inode(exe_file));
+				ctime = inode_ctime.tv_sec * (uint64_t) 1000000000 + inode_ctime.tv_nsec;
+			}
+#else
 			ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+#endif
 
 			/* Support exe_file mtime 
 			 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
