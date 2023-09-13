@@ -293,7 +293,7 @@ int BPF_PROG(t1_execveat_x,
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	struct timespec64 time = { 0, 0 };
-	if(bpf_core_type_exists(struct inode))
+	if(bpf_core_field_exists(exe_inode->i_ctime))
 	{
 		BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
 	}
