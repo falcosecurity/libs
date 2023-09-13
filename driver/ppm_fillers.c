@@ -4092,7 +4092,7 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	int64_t cur;
 	int64_t max;
 
-	/* Parameter 1: res */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
@@ -4130,11 +4130,11 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 		max = -1;
 	}
 
-	/* Parameter 2: cur */
+	/* Parameter 2: cur (type: PT_INT64) */
 	res = val_to_ring(args, cur, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 3: max */
+	/* Parameter 3: max (type: PT_INT64)*/
 	res = val_to_ring(args, max, 0, false, 0);
 	CHECK_RES(res);
 
@@ -4155,14 +4155,9 @@ int f_sys_setrlrimit_x(struct event_filler_arguments *args)
 	int64_t cur;
 	int64_t max;
 
-	/* Parameter 1: res */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: resource */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	/*
@@ -4191,12 +4186,17 @@ int f_sys_setrlrimit_x(struct event_filler_arguments *args)
 		max = -1;
 	}
 
-	/* Parameter 3: cur */
+	/* Parameter 2: (type: PT_INT64) */
 	res = val_to_ring(args, cur, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 4: max */
+	/* Parameter 3: max (type: PT_INT64) */
 	res = val_to_ring(args, max, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -4237,22 +4237,9 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	int64_t oldmax;
 	pid_t pid = 0;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 1: pid */
-	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	pid = (s32)val;
-	res = val_to_ring(args, (s64)pid, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
-	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	/*
@@ -4308,20 +4295,33 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 		}
 	}
 #endif
-	/* Parameter 3: newcur (PT_INT64)*/
+	/* Parameter 2: newcur (type: PT_INT64) */
 	res = val_to_ring(args, newcur, 0, false, 0);
 	CHECK_RES(res);
-
-	/* Parameter 4: newmax (PT_INT64)*/
-	res = val_to_ring(args, newmax, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 5: oldcur (PT_INT64)*/
+	/* Parameter 3: newmax (type: PT_INT64) */
+	res = val_to_ring(args, newmax, 0, false, 0);
+	CHECK_RES(res);
+	CHECK_RES(res);
+
+	/* Parameter 4: oldcur (type: PT_INT64) */
 	res = val_to_ring(args, oldcur, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 6: oldmax (PT_INT64)*/
+	/* Parameter 5: oldmax (type: PT_INT64) */
 	res = val_to_ring(args, oldmax, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: pid (type: PT_INT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	pid = (s32)val;
+	res = val_to_ring(args, (s64)pid, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 7: resource (type: PT_ENUMFLAGS8) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
