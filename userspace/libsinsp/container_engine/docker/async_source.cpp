@@ -672,6 +672,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		}
 		/* FALLTHRU */
 	case docker_connection::docker_response::RESP_ERROR:
+	case docker_connection::docker_response::RESP_TIMEOUT:
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Url fetch failed, returning false",
 				request.container_id.c_str());
