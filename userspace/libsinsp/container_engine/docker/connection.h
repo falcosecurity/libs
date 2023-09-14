@@ -18,7 +18,8 @@ public:
 	enum docker_response {
 		RESP_OK = 0,
 		RESP_BAD_REQUEST = 1,
-		RESP_ERROR = 2
+		RESP_ERROR = 2,
+		RESP_TIMEOUT = 3
 	};
 
 	docker_connection();
