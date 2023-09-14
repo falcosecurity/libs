@@ -80,12 +80,22 @@ endforeach()
 
 # Installation targets and their dependencies
 set(libscap_link_libraries)
+set(libscap_link_libdirs)
 foreach(libscap_install_lib ${LIBSCAP_INSTALL_LIBS})
 	list(APPEND libscap_link_libraries ${libscap_install_lib})
 	get_target_property(install_lib_link_libraries ${libscap_install_lib} LINK_LIBRARIES)
 	foreach (install_lib_link_library ${install_lib_link_libraries})
 		if (NOT ${install_lib_link_library} IN_LIST libscap_subdir_targets)
-			list(APPEND libscap_link_libraries ${install_lib_link_library})
+			if(${install_lib_link_library} MATCHES "/")
+				# We have a path. Convert it to -L<dir> + -l<lib>.
+				get_filename_component(scap_lib_dir ${install_lib_link_library} DIRECTORY)
+				list(APPEND libscap_link_libdirs -L${scap_lib_dir})
+				get_filename_component(scap_lib_base ${install_lib_link_library} NAME_WE)
+				string(REGEX REPLACE "^lib" "" scap_lib_base ${scap_lib_base})
+				list(APPEND libscap_link_libraries ${scap_lib_base})
+			else()
+				list(APPEND libscap_link_libraries ${install_lib_link_library})
+			endif()
 		endif()
 	endforeach()
 endforeach()
@@ -97,6 +107,7 @@ foreach(libscap_link_library ${libscap_link_libraries})
 endforeach()
 
 string(REPLACE ";" " " LIBSCAP_LINK_LIBRARIES_FLAGS "${libscap_link_flags}")
+string(REPLACE ";" " " LIBSCAP_LINK_LIBDIRS_FLAGS "${libscap_link_libdirs}")
 configure_file(${LIBSCAP_DIR}/userspace/libscap/libscap.pc.in ${PROJECT_BINARY_DIR}/libscap/libscap.pc @ONLY)
 
 install(TARGETS ${LIBSCAP_INSTALL_LIBS}
