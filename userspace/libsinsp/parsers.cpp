@@ -2154,6 +2154,12 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 		child_tinfo->set_group(child_tinfo->m_group.gid);
 	}
 
+	/* Set the pod uid if available 
+	 * OPTIMIZATION: we could use the same pod_uid of the parent instead
+	 * of computing it again since the pod_uid should never change from parent to child. We need to check that we are not excluding some corner cases.
+	 */
+	child_tinfo->set_pod_uid();
+
 	//
 	// If there's a listener, invoke it
 	//
@@ -2741,6 +2747,12 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->set_loginuser(evt->m_tinfo->m_loginuser.uid);
 		evt->m_tinfo->set_group(evt->m_tinfo->m_group.gid);
 	}
+
+	/* Set the pod uid if available 
+	 * We need to reinforce the pod_uid since it could change between the clone and
+	 * the corresponding execve. 
+	 */
+	evt->m_tinfo->set_pod_uid();
 
 	//
 	// If there's a listener, invoke it

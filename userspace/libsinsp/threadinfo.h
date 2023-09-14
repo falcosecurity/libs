@@ -39,6 +39,9 @@ struct iovec {
 #include "internal_metrics.h"
 #include "state/table.h"
 #include "thread_group_info.h"
+#include <re2/re2.h>
+
+#define RGX_POD "(pod[a-z0-9]{8}[-_][a-z0-9]{4}[-_][a-z0-9]{4}[-_][a-z0-9]{4}[-_][a-z0-9]{12})"
 
 class sinsp_delays_info;
 class sinsp_tracerparser;
@@ -239,6 +242,11 @@ public:
 	}
 
 	/*!
+	  \brief Extract the pod uid from the cgroups if they are available.
+	*/
+	void set_pod_uid();
+
+	/*!
 	  \brief Get the process that launched this thread's process.
 	*/
 	sinsp_threadinfo* get_parent_thread();
@@ -417,6 +425,7 @@ public:
 	std::vector<std::string> m_env; ///< Environment variables
 	std::unique_ptr<cgroups_t> m_cgroups; ///< subsystem-cgroup pairs
 	std::string m_container_id; ///< heuristic-based container id
+	std::string m_pod_uid; ///< pod universally unique identifier extracted from cgroups.
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	scap_userinfo m_user; ///< user infos

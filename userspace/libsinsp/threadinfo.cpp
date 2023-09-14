@@ -74,6 +74,7 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::s
 	// m_loginuser
 	// m_group
 	define_static_field(this, m_container_id, "container_id");
+	define_static_field(this, m_pod_uid, "pod_uid");
 	// m_flags
 	define_static_field(this, m_fdlimit, "fd_limit");
 	// m_cap_permitted
@@ -821,6 +822,42 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
 {
 	return m_inspector->get_thread_ref(m_ptid, false).get();
+}
+
+static re2::RE2 pattern(RGX_POD, re2::RE2::POSIX);
+
+void sinsp_threadinfo::set_pod_uid()
+{
+	m_pod_uid = "";
+
+	// Set pod_uid to `""` if:
+	// 1. We don't have cgroups for this thread.
+	// 2. We are not in a container.	
+	if(this->cgroups().empty() || !this->is_in_pid_namespace())
+	{
+		return;
+	}
+
+	// If `this->cgroups()` is not empty we should have at least the first element
+	// An example of `this->cgroups()[0].second` layout is:
+	// /kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-pod1b011081_6e8e_4839_b225_4685eae5fd59.slice/cri-containerd-2f92446a3fbfd0b7a73457b45e96c75a25c5e44e7b1bcec165712b906551c261.scope
+	if(!re2::RE2::PartialMatch(this->cgroups()[0].second, pattern, &m_pod_uid))
+	{
+		return;
+	}
+
+	// Here `m_pod_uid` could have 2 possible layouts:
+	// - (driver cgroup) pod05869489-8c7f-45dc-9abd-1b1620787bb1
+	// - (driver systemd) pod05869489_8c7f_45dc_9abd_1b1620787bb1
+
+	// remove the "pod" prefix from `m_pod_uid`
+	m_pod_uid.erase(0, 3);
+
+	// convert `_` into `-` if we are in `systemd` notation
+	std::replace(m_pod_uid.begin(), m_pod_uid.end(), '_', '-');
+
+	// The final `pod_uid` layout is:
+	// 05869489-8c7f-45dc-9abd-1b1620787bb1
 }
 
 sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)

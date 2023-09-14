@@ -9052,6 +9052,13 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		return NULL;
 	}
 	m_tstr.clear();
+
+	// We can extract the pod_id directly from cgroups
+	if((m_field_id == TYPE_K8S_POD_ID) && !tinfo->m_pod_uid.empty())
+	{
+		RETURN_EXTRACT_STRING(tinfo->m_pod_uid);
+	}
+
 	// there is metadata we can pull from the container directly instead of the k8s apiserver
 	const sinsp_container_info::ptr_t container_info =
 		m_inspector->m_container_manager.get_container(tinfo->m_container_id);
