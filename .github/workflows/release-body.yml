@@ -31,7 +31,7 @@ jobs:
   release-body:
     needs: check-driver-tag
     runs-on: ubuntu-latest
-    if: ${{ needs.check-driver-tag.outputs.driver_tag != "" }}
+    if: needs.check-driver-tag.outputs.driver_tag != ''
 
     steps:
       - name: Clone libs repo
