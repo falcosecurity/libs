@@ -20,6 +20,7 @@ limitations under the License.
 #include "sinsp_int.h"
 
 namespace {
+const uint32_t max_allowed_timeouts = 5;
 
 size_t docker_curl_write_callback(const char *ptr, size_t size, size_t nmemb, std::string *json)
 {
@@ -107,6 +108,7 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 		return docker_response::RESP_ERROR;
 	}
 
+	uint32_t num_timeouts = 0;
 	while(true)
 	{
 		int still_running;
@@ -140,6 +142,21 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 			curl_easy_cleanup(curl);
 			ASSERT(false);
 			return docker_response::RESP_ERROR;
+		}
+		if(numfds == 0)
+		{
+			// Operation timed out
+			if(++num_timeouts >= max_allowed_timeouts)
+			{
+				g_logger.format(sinsp_logger::SEV_WARNING,
+				                "docker_async (%s): Max timeouts exceeded",
+				                url.c_str());
+				return docker_response::RESP_TIMEOUT;
+			}
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+			                "docker_async (%s): Operation timed out %d times",
+			                url.c_str(),
+			                num_timeouts);
 		}
 	}
 
