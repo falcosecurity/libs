@@ -91,14 +91,34 @@ static const char* plugin_get_contact()
 
 static const char* plugin_get_fields()
 {
-    return
-    "[" \
-        "{\"type\": \"uint64\", \"name\": \"sample.is_open\", \"desc\": \"Value is 1 if event is of open family\"}," \
-        "{\"type\": \"uint64\", \"name\": \"sample.open_count\", \"desc\": \"Counter for all the events of open family in a given thread\"}," \
-        "{\"type\": \"uint64\", \"name\": \"sample.evt_count\", \"desc\": \"Counter of events of the same type of the current one, counting all threads\"}," \
-        "{\"type\": \"string\", \"name\": \"sample.proc_name\", \"desc\": \"Alias for proc.name, but implemented from a plugin\"}," \
-        "{\"type\": \"string\", \"name\": \"sample.tick\", \"desc\": \"'true' if the current event is a ticker notification\"}" \
-    "]";
+	return R"(
+[
+	{
+		"type": "uint64",
+		"name": "sample.is_open",
+		"desc": "Value is 1 if event is of open family"
+	},
+	{
+		"type": "uint64",
+		"name": "sample.open_count",
+		"desc": "Counter for all the events of open family in a given thread"
+	},
+	{
+		"type": "uint64",
+		"name": "sample.evt_count",
+		"desc": "Counter of events of the same type of the current one, counting all threads"
+	},
+	{
+		"type": "string",
+		"name": "sample.proc_name",
+		"desc": "Alias for proc.name, but implemented from a plugin"
+	},
+	{
+		"type": "string",
+		"name": "sample.tick",
+		"desc": "'true' if the current event is a ticker notification"
+	}
+])";
 }
 
 static const char* plugin_get_extract_event_sources()
@@ -134,6 +154,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     *rc = SS_PLUGIN_SUCCESS;
     plugin_state *ret = new plugin_state();
 
+	// we have the extraction capability so the `in->tables` field should be != NULL
     if (!in || !in->tables)
     {
         *rc = SS_PLUGIN_FAILURE;
@@ -163,31 +184,40 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
         return ret;
     }
 
-    // get a field defined from another plugin (sample_syscall_parse).
+    // get a field defined from another plugin (sample_syscall_parse) in the sinsp thread table.
     // we don't check for errors: if the field is not available, we'll simply
     // extract the related field as NULL.
     ret->thread_opencount_field = in->tables->fields.get_table_field(
         ret->thread_table, "open_evt_count", ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
-    if (!ret->thread_opencount_field)
+    /* The result will depend on how the plugin is used in the test */
+	if (!ret->thread_opencount_field)
     {
-        printf("sample_syscall_extract: can't open counter in thread table, "
-            "field 'sample.open_count' will not be available\n");
+        printf("OK(syscall_extract) - as expected field 'open_evt_count' is not available in the thread table. The plugin field 'sample.open_count' will not be available\n");
     }
+	else
+	{
+        printf("OK(syscall_extract) - as expected field 'open_evt_count' is available in the thread table. The plugin field 'sample.open_count' will be available\n");
+	}
 
     // we try to access a table (and one of its fields) defined and owned by
     // another plugin
     ret->evtcount_table = in->tables->get_table(
         in->owner, "event_counters", ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
+    /* The result will depend on how the plugin is used in the test */
     if (ret->evtcount_table)
     {
         ret->evtcount_count_field = in->tables->fields.get_table_field(
             ret->evtcount_table, "count", ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
     }
+
     if (!ret->evtcount_table || !ret->evtcount_count_field)
     {
-        printf("sample_syscall_extract: can't access event counter table, "
-            "field 'sample.evt_count' will not be available\n");
+        printf("OK(syscall_extract) - as expected 'event_counters' table is not available. The plugin field 'sample.evt_count' will not be available\n");
     }
+	else
+	{
+        printf("OK(syscall_extract) - as expected 'event_counters' table is available. The plugin field 'sample.evt_count' will be available\n");
+	}
     return ret;
 }
 
@@ -212,12 +242,13 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
     {
         switch(in->fields[i].field_id)
         {
-            case 0: // test.is_open
+            case 0: // sample.is_open
                 ps->u64storage = evt_type_is_open(ev->evt->type);
                 in->fields[i].res.u64 = &ps->u64storage;
                 in->fields[i].res_len = 1;
                 break;
             case 1: // sample.open_count
+				/* This is a new field defined in the sinsp thread table */
                 if (!ps->thread_opencount_field)
                 {
                     in->fields[i].res_len = 0;
@@ -244,7 +275,7 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                 in->fields[i].res_len = 1;
                 in->table_reader_ext->release_table_entry(ps->thread_table, thread);
                 break;
-            case 2: // evt_count
+            case 2: // sample.evt_count
                 if (!ps->evtcount_table || !ps->evtcount_count_field)
                 {
                     in->fields[i].res_len = 0;
@@ -292,7 +323,7 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                 in->fields[i].res_len = 1;
                 in->table_reader_ext->release_table_entry(ps->evtcount_table, evtcount);
                 break;
-            case 3: // test.proc_name
+            case 3: // sample.proc_name
                 tmp.s64 = ev->evt->tid;
                 thread = in->table_reader.get_table_entry(ps->thread_table, &tmp);
                 if (!thread)
