@@ -1325,6 +1325,7 @@ void sinsp_plugin::table_field_api(ss_plugin_table_fields_vtable& out, ss_plugin
 	extout.list_table_fields = dispatch_list_fields;
 	extout.add_table_field = dispatch_add_field;
 	extout.get_table_field = dispatch_get_field;
+	/* Deprecated */
 	out.list_table_fields = extout.list_table_fields;
 	out.add_table_field = extout.add_table_field;
 	out.get_table_field = extout.get_table_field;
@@ -1338,6 +1339,7 @@ void sinsp_plugin::table_read_api(ss_plugin_table_reader_vtable& out, ss_plugin_
 	extout.read_entry_field = dispatch_read_entry_field;
 	extout.release_table_entry = dispatch_release_table_entry;
 	extout.iterate_entries = dispatch_iterate_entries;
+	/* Deprecated */
 	out.get_table_name = extout.get_table_name;
 	out.get_table_size = extout.get_table_size;
 	out.get_table_entry = extout.get_table_entry;

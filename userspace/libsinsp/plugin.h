@@ -234,6 +234,7 @@ protected:
 	std::string m_event_source;
 
 private:
+	/* this checks if we already called the init API */
 	bool m_inited;
 	ss_plugin_t* m_state;
 	plugin_handle_t* m_handle;
@@ -256,6 +257,7 @@ private:
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 	std::vector<ss_plugin_table_info> m_table_infos;
 	std::unordered_map<std::string, owned_table_t> m_owned_tables;
+	/* contains tables that the plugin accessed at least once */
 	std::unordered_map<std::string, accessed_table_t> m_accessed_tables;
 
 	/** Async Events **/

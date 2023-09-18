@@ -158,13 +158,15 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	std::string conf = config;
 	validate_init_config(conf);
 
-	ss_plugin_init_input in;
-	ss_plugin_init_tables_input tables_in;
-	ss_plugin_table_fields_vtable_ext table_fields_ext;
+	ss_plugin_init_input in = {};
 	in.owner = this;
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.tables = NULL;
 	in.config = conf.c_str();
+
+	ss_plugin_init_tables_input tables_in = {};
+	ss_plugin_table_fields_vtable_ext table_fields_ext = {};
+
 	if (m_caps & (CAP_PARSING | CAP_EXTRACTION))
 	{
 		tables_in.fields_ext = &table_fields_ext;
@@ -193,11 +195,13 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	// resolve post-init event code filters
 	if (m_caps & CAP_EXTRACTION)
 	{
+		/* Here we populate the `m_extract_event_codes` for the plugin, while `m_extract_event_sources` is already populated in the plugin_init */
 		resolve_dylib_compatible_codes(m_handle->api.get_extract_event_types,
 			m_extract_event_sources, m_extract_event_codes);
 	}
 	if (m_caps & CAP_PARSING)
 	{
+		/* Here we populate the `m_parse_event_codes` for the plugin, while `m_parse_event_sources` is already populated in the plugin_init */
 		resolve_dylib_compatible_codes(m_handle->api.get_parse_event_types,
 			m_parse_event_sources, m_parse_event_codes);
 	}
@@ -389,8 +393,8 @@ void sinsp_plugin::resolve_dylib_compatible_sources(
 {
 	resolve_dylib_json_strlist(name(), symbol, get_sources, sources, true);
 
-	// A plugin with source capability must extract/parse events
-	// from its own specific source (if it has one)
+	// A plugin with source capability extracts/parses events
+	// from its own specific source (if no other sources are specified)
 	if (m_caps & CAP_SOURCING && !m_event_source.empty())
 	{
 		sources.insert(m_event_source);
@@ -450,6 +454,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 
 	if(m_caps & CAP_SOURCING)
 	{
+		/* Default case: no id and no source */
 		m_id = 0;
 		m_event_source.clear();
 		if (m_handle->api.get_id != NULL
@@ -568,6 +573,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			m_fields.push_back(tf);
 		}
 
+		// This API is not compulsory for the extraction capability
 		resolve_dylib_compatible_sources("get_extract_event_sources",
 			m_handle->api.get_extract_event_sources, m_extract_event_sources);
 	}

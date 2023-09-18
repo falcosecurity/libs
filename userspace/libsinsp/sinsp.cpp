@@ -2811,20 +2811,29 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 	// in the event stream.
 	if (!is_capture())
 	{
-		// note: async events get assigned the same event source as the
-		// currently-open one. In case no plugin is open, we set it to zero
-		// to indicate the regular "syscall" source. Otherwise we set the ID
-		// to the one of the currently-open ID, which can potentially be zero
-		// too in case the plugin does not define any specific event source.
-		// However, we also need to check if the plugin's async capability
-		// is compatible with the currently-open event source, and reject
-		// the event if that's not the case.
+		// note: async events are injected in the same event source as the
+		// currently open one. (Right now we can have just one event source open
+		// per inspector). There are 2 cases:
+		//
+		// 1. If a source plugin is open the async events can only
+		//    be injected in the plugin source.
+		// 2. If no source plugins are loaded the async events can only
+		//    be injected in the syscall source.
+		//
+		// We need to check if the async plugin specified an event source
+		// compliant with the above rules, in the `get_async_event_sources` API.
+		// We reject the event if that's not the case.
 		//
 		// todo(jasondellaluce): here we are assuming that the "syscall" event
 		// source is always at index 0 in the inspector's event source list,
 		// change this code if this assumption ever stops being true.
+		
+		// default: syscall source
 		size_t cur_evtsrc_idx = 0;
 		uint32_t cur_plugin_id = 0;
+		
+		// If we have a source plugin, we search for its event source and we update the current event source.
+		// Otherwise the current event source remains the syscall one.
 		if (is_plugin())
 		{
 			cur_plugin_id = m_input_plugin->id();
