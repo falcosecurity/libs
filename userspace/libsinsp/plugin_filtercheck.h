@@ -57,6 +57,9 @@ private:
 	char* m_arg_key;
 	uint64_t m_arg_index;
 	bool m_arg_present;
+
+	// This vector is an optimization to avoid a linear search
+	// in the plugin source set.
 	std::vector<bool> m_compatible_plugin_sources_bitmap;
 	std::shared_ptr<sinsp_plugin> m_eplugin;
 
