@@ -339,30 +339,44 @@ static void resolve_dylib_json_strlist(
 		bool allow_empty)
 {
 	out.clear();
-	if (get_list != NULL)
+	if(get_list == NULL)
 	{
-		std::string jsonstr = str_from_alloc_charbuf(get_list());
-		if (!jsonstr.empty() || !allow_empty)
+		return;
+	}
+
+	std::string jsonstr = str_from_alloc_charbuf(get_list());
+
+	if(jsonstr.empty())
+	{
+		if(allow_empty)
 		{
-			Json::Value root;
-			if (!Json::Reader().parse(jsonstr, root) || root.type() != Json::arrayValue)
-			{
-				throw sinsp_exception("error in plugin " + plname + ": '"
-					+ symbol + "' did not return a json array");
-			}
-			for (const auto& j : root)
-			{
-				if (!j.isConvertibleTo(Json::stringValue))
-				{
-					throw sinsp_exception("error in plugin " + plname + ": '"
-						+ symbol + "' did not return a json array");
-				}
-				auto src = j.asString();
-				if (!src.empty())
-				{
-					out.insert(src);
-				}
-			}
+			// Do nothing, we allow an empty json string.
+			return;
+		}
+		else
+		{
+			throw sinsp_exception("error in plugin " + plname + ": '"
+				+ symbol + "' did not return a json array but it should");
+		}
+	}
+
+	Json::Value root;
+	if (!Json::Reader().parse(jsonstr, root) || root.type() != Json::arrayValue)
+	{
+		throw sinsp_exception("error in plugin " + plname + ": '"
+			+ symbol + "' did not return a json array");
+	}
+	for (const auto& j : root)
+	{
+		if (!j.isConvertibleTo(Json::stringValue))
+		{
+			throw sinsp_exception("error in plugin " + plname + ": '"
+				+ symbol + "' did not return a json array");
+		}
+		auto src = j.asString();
+		if (!src.empty())
+		{
+			out.insert(src);
 		}
 	}
 }
