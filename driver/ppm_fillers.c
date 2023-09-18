@@ -32,11 +32,7 @@ or GPL2.txt for full copies of the license.
 #ifdef CONFIG_CGROUPS
 #include <linux/cgroup.h>
 #endif
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
-#include "ppm_syscall.h"
-#else
 #include <asm/syscall.h>
-#endif
 #else /* UDIG */
 #define _GNU_SOURCE
 #include <inttypes.h>
