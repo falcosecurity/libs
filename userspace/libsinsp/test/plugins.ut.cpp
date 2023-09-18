@@ -60,44 +60,85 @@ static void add_plugin_filterchecks(
 	}
 }
 
-TEST(plugins, broken_capabilities)
+TEST(plugins, broken_source_capability)
 {
 	plugin_api api;
 	auto inspector = std::unique_ptr<sinsp>(new sinsp());
-
-	// event sourcing capability
 	get_plugin_api_sample_plugin_source(api);
+
+	// The example plugin has id 999 so `!= 0`. For this reason,
+	// the event source name should be different from "syscall"
+	api.get_id = [](){ return (uint32_t)999; };
 	api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+
+	// `get_event_source` is implemented so also `get_id` should be implemented
 	api.get_id = NULL;
+	api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+
+	// Now both methods are NULL so we are ok!
+	api.get_id = NULL;
 	api.get_event_source = NULL;
 	ASSERT_NO_THROW(register_plugin_api(inspector.get(), api));
+	
+	// restore inspector and source API
 	inspector.reset(new sinsp());
+	get_plugin_api_sample_plugin_source(api);
+
+	// `open`, `close`, `next_batch` must be all defined to provide source capability
 	api.open = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
 	api.close = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
-	api.next_batch = NULL; // at this point, the plugin has no capability
+	api.next_batch = NULL; 
+	
+	// Now that all the 3 methods are NULL the plugin has no more capabilities
+	// so we should throw an exception because every plugin should implement at least one
+	// capability
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+}
 
-	// field extraction capability
+TEST(plugins, broken_extract_capability)
+{
+	plugin_api api;
+	auto inspector = std::unique_ptr<sinsp>(new sinsp());
 	get_plugin_api_sample_plugin_extract(api);
+
+	// `extract_fields` is defined but `get_fields` no
 	api.get_fields = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
-	api.extract_fields = NULL; // at this point, the plugin has no capability
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
 
-	// event parsing capability
+	// Both NULL, the plugin has no capabilities
+	api.get_fields = NULL;
+	api.extract_fields = NULL;
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+}
+
+TEST(plugins, broken_parsing_capability)
+{
+	plugin_api api;
+	auto inspector = std::unique_ptr<sinsp>(new sinsp());
 	get_plugin_api_sample_syscall_parse(api);
-	api.parse_event = NULL; // at this point, the plugin has no capability
+	
+	// The plugin has no capabilities
+	api.parse_event = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+}
 
-	// event parsing capability
+TEST(plugins, broken_async_capability)
+{
+	plugin_api api;
+	auto inspector = std::unique_ptr<sinsp>(new sinsp());
 	get_plugin_api_sample_syscall_async(api);
+
+	/* `set_async_event_handler` is defined but `get_async_events` is not */
 	api.get_async_events = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
-	api.set_async_event_handler = NULL; // at this point, the plugin has no capability
+
+	// Both NULL, the plugin has no capabilities
+	api.get_async_events = NULL;
+	api.set_async_event_handler = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
 }
 
@@ -110,11 +151,17 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	std::string syscall_source_name = sinsp_syscall_event_source_name;
 
 	filter_check_list pl_flist;
+
+	// Register a plugin with source capabilities
 	register_plugin(&m_inspector, get_plugin_api_sample_plugin_source);
 
-	/* Register a plugin with extraction capabilities */
+	// Register a plugin with extraction capabilities
 	auto pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
+
+	// This plugin tells that it can receive `syscall` events
 	add_plugin_filterchecks(&m_inspector, pl, sinsp_syscall_event_source_name, pl_flist);
+	
+	// Open the inspector in test mode
 	add_default_init_thread();
 	open_inspector();
 
@@ -130,6 +177,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
+	// Here `sample.is_open` should be false
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
@@ -210,6 +258,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count"));
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick"), "false");
 
+	// We check that the plugin don't produce other events but just 1
 	size_t metaevt_count = 0;
 	evt = next_event(); // expecting a few or zero metaevts and then EOF
 	while (evt != nullptr && metaevt_count++ < 100)
@@ -258,6 +307,7 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
 	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
 	ASSERT_EQ(p->extract_event_codes().size(), 1);
+	/* The plugin doesn't declare a list of event types and for this reason, it can extract only from pluginevent_e */
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
 	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
 
