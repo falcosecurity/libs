@@ -203,7 +203,7 @@ typedef struct
 	// The name of the state table.
 	const char* name;
 	//
-	// The type of the sta table's key.
+	// The type of the state table's key.
 	ss_plugin_state_type key_type;
 	//
 	// A non-NULL opaque pointer to the state table.
@@ -235,7 +235,7 @@ typedef struct
 	ss_plugin_table_fields_vtable_ext* fields_ext;
 } ss_plugin_table_input;
 
-// Initialization-time input related to the event parsing capability.
+// Initialization-time input related to the event parsing or field extraction capability.
 // This provides the plugin with callback functions implemented by its owner
 // that can be used to discover, access, and define state tables.
 typedef struct
