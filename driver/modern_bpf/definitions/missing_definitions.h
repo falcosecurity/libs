@@ -177,6 +177,15 @@
 #define O_DIRECT 0200000   /* direct disk access hint - currently ignored */
 #define O_LARGEFILE 0400000
 
+#elif defined(__TARGET_ARCH_powerpc)
+
+/* `/arch/powerpc/include/uapi/asm/fcntl.h` from kernel source tree. */
+
+#define O_DIRECTORY      040000	/* must be a directory */
+#define O_NOFOLLOW      0100000	/* don't follow links */
+#define O_LARGEFILE     0200000
+#define O_DIRECT	0400000	/* direct disk access hint */
+
 #endif
 
 #define O_NOATIME 01000000
