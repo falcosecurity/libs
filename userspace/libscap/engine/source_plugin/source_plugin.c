@@ -145,8 +145,12 @@ static int close_engine(struct scap_engine_handle engine)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 
-	handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
-	handle->m_input_plugin->handle = NULL;
+	// We could arrive here without having initialized 'm_input_plugin'.
+	if(handle->m_input_plugin != NULL)
+	{
+		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
+		handle->m_input_plugin->handle = NULL;
+	}
 	return SCAP_SUCCESS;
 }
 
