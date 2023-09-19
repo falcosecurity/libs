@@ -494,6 +494,10 @@ void sinsp::open_common(scap_open_args* oargs)
 		std::string error = scap_getlasterr(m_h);
 		scap_close(m_h);
 		m_h = NULL;
+		if(error.empty())
+		{
+			error = "Initialization issues during scap_init";
+		}
 		throw scap_open_exception(error, scap_rc);
 	}
 
