@@ -106,7 +106,6 @@ static uint64_t scap_linux_get_host_boot_time_ns(char* last_err)
 	FILE* f = fopen(proc_stat, "r");
 	if (f == NULL)
 	{
-		ASSERT(false);
 		return 0;
 	}
 
@@ -119,7 +118,6 @@ static uint64_t scap_linux_get_host_boot_time_ns(char* last_err)
 		}
 	}
 	fclose(f);
-	ASSERT(false);
 	return 0;
 }
 
@@ -156,6 +154,28 @@ static void scap_gethostname(char* buf, size_t size)
 
 int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
 {
+	// Check that we can read under '/proc'.
+	// A wrong usage of the env variable 'HOST_ROOT' can be detected here.
+	char filename[SCAP_MAX_PATH_SIZE] = {0};
+	if(snprintf(filename, sizeof(filename), "%s/proc/", scap_get_host_root()) < 0)
+	{
+		if(lasterr != NULL)
+		{
+			snprintf(lasterr, SCAP_LASTERR_SIZE, "unable to build the `/proc` path with 'snprintf'\n");
+		}
+		return SCAP_FAILURE;
+	}
+
+	struct stat targetstat = {0};
+	if(stat(filename, &targetstat) != 0)
+	{
+		if(lasterr != NULL)
+		{
+			snprintf(lasterr, SCAP_LASTERR_SIZE, "the directory '%s' doesn't exist on the system. Check the usage of the 'HOST_ROOT' env variable.", filename);
+		}
+		return SCAP_FAILURE;
+	}
+
 	machine_info->num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	machine_info->memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	scap_gethostname(machine_info->hostname, sizeof(machine_info->hostname));
@@ -168,4 +188,3 @@ int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
 
 	return SCAP_SUCCESS;
 }
-
