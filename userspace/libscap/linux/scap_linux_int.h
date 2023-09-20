@@ -37,6 +37,11 @@ struct scap_linux_platform;
 struct scap_proclist;
 typedef struct scap_threadinfo scap_threadinfo;
 
+typedef struct _scap_agent_info scap_agent_info;
+typedef struct _scap_machine_info scap_machine_info;
+
+void scap_os_get_agent_info(scap_agent_info* agent_info);
+int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr);
 int32_t scap_linux_create_iflist(struct scap_platform* platform);
 int32_t scap_linux_create_userlist(struct scap_platform* platform);
 

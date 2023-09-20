@@ -62,6 +62,13 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 	linux_platform->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	linux_platform->m_debug_log_fn = oargs->debug_log_fn;
 
+	if(scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	scap_os_get_agent_info(&platform->m_agent_info);
+
 	rc = scap_linux_create_iflist(platform);
 	if(rc != SCAP_SUCCESS)
 	{
