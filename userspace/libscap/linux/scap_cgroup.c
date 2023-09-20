@@ -264,6 +264,12 @@ static int32_t scap_cgroup_prefix_path(const char* prefix, const char* path, siz
 
 	while(strncmp(path_p, "/..", 3) == 0)
 	{
+		// If there's a trailing slash, remove it before scanning.
+		if (*prefix_p == '/' && prefix_p != prefix)
+		{
+			prefix_p--;
+		}
+
 		path_p += 3;
 		prefix_p = scan_back(prefix, prefix_p);
 		if(prefix_p == NULL)
