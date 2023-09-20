@@ -63,7 +63,7 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 		return SCAP_FAILURE;
 	}
 
-	if((rc = scap_generic_init_platform(handle->m_platform, handle->m_lasterr, oargs)) != SCAP_SUCCESS)
+	if((rc = scap_common_init_platform(handle->m_platform, handle->m_lasterr, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}

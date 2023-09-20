@@ -23,10 +23,10 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_os_machine_info.h"
 
-int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
+int32_t scap_common_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
 {
 	memset(&platform->m_machine_info, 0, sizeof(platform->m_machine_info));
-	if(scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS)
+	if(oargs->mode == SCAP_MODE_LIVE && (scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS))
 	{
 		return SCAP_FAILURE;
 	}
