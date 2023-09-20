@@ -73,16 +73,6 @@ add_library(scap
 	scap_userlist.c
 	scap_suppress.c)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	target_sources(scap PRIVATE linux/scap_machine_info.c)
-elseif(WIN32)
-	target_sources(scap PRIVATE win32/scap_machine_info.c)
-elseif(APPLE)
-	target_sources(scap PRIVATE macos/scap_machine_info.c)
-elseif(EMSCRIPTEN)
-	target_sources(scap PRIVATE emscripten/scap_machine_info.c)
-endif()
-
 set_scap_target_properties(scap)
 
 add_library(scap_platform_util

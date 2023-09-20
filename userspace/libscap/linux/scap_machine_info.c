@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 #include "scap_machine_info.h"
-#include "scap_os_machine_info.h"
+#include "scap_linux_int.h"
 #include "scap_limits.h"
 #include "scap_assert.h"
 #include "scap.h"
