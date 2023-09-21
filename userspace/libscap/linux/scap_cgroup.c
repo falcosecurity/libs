@@ -259,6 +259,9 @@ static const char* scan_back(const char* start, const char* end)
 // slash so that we don't end up with doubled slashes (one from the prefix, one from the path)
 static int32_t scap_cgroup_prefix_path(const char* prefix, const char* path, size_t* prefix_len, size_t* path_strip_len)
 {
+	ASSERT(prefix != NULL);
+	ASSERT(path != NULL);
+
 	const char* prefix_p = prefix + strlen(prefix);
 	const char* path_p = path;
 
@@ -533,7 +536,7 @@ static int32_t get_cgroup_subsystems_v2(struct scap_cgroup_interface* cgi, struc
 
 	if(cgi->m_use_cache)
 	{
-		struct scap_cgroup_cache* cached = malloc(sizeof(*cached));
+		struct scap_cgroup_cache* cached = (struct scap_cgroup_cache*)malloc(sizeof(*cached));
 		if(cached)
 		{
 			int uth_status = SCAP_SUCCESS;
