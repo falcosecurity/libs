@@ -25,6 +25,7 @@ limitations under the License.
 int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
 {
 	memset(&platform->m_machine_info, 0, sizeof(platform->m_machine_info));
+	memset(&platform->m_agent_info, 0, sizeof(platform->m_agent_info));
 	platform->m_proclist.m_proc_callback = oargs->proc_callback;
 	platform->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	platform->m_proclist.m_proclist = NULL;
