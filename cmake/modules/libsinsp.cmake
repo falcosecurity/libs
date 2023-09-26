@@ -29,6 +29,7 @@ endif()
 include(jsoncpp)
 include(valijson)
 include(re2)
+include(tinydir)
 
 set(LIBSINSP_INCLUDE_DIRS ${LIBSINSP_DIR}/userspace/libsinsp ${LIBSINSP_DIR}/userspace/common ${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_DIR})
 if(WITH_CHISEL)
