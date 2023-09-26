@@ -85,6 +85,13 @@ enum scap_setting {
 	 * arg1: whether to enabled or disable the feature
 	 */
 	SCAP_DROP_FAILED,
+
+	/**
+	 * @brief set sampling ratio of dropping for single syscall individually.
+	 * arg1: sampling ratio of the syscall.
+	 * arg2 id: (example PPM_SC_CHOWN)
+	 */
+	SCAP_DROPPING_RATIO,
 };
 
 struct scap_savefile_vtable {

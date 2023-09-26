@@ -175,6 +175,19 @@ static int32_t mark_syscall(struct kmod_engine* handle, uint32_t ioctl_op, int s
 	return SCAP_SUCCESS;
 }
 
+static int32_t set_dropping_ratio(struct kmod_engine* handle, int syscall_id, int ratio)
+{
+	struct scap_device_set *devset = &handle->m_dev_set;
+	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_SET_DROPPING_RATIO, ((uint64_t)syscall_id << 32) + ratio))
+	{
+		ASSERT(false);
+		return scap_errprintf(handle->m_lasterr, errno,
+						"%s(%d) failed for syscall %d(%d)",
+						__FUNCTION__, PPM_IOCTL_SET_DROPPING_RATIO, syscall_id, ratio);
+	}
+	return SCAP_SUCCESS;
+}
+
 static int enforce_sc_set(struct kmod_engine* handle)
 {
 	/* handle->capturing == false means that we want to disable the capture */
@@ -835,6 +848,17 @@ int32_t scap_kmod_set_statsd_port(struct scap_engine_handle engine, const uint16
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_kmod_set_dropping_ratio(struct scap_engine_handle engine, uint32_t ratio, uint32_t sc)
+{
+	struct kmod_engine* handle = engine.m_handle;
+	int syscall_id = scap_ppm_sc_to_native_id(sc);
+	if(syscall_id == -1)
+	{
+		return SCAP_FAILURE;
+	}
+	return set_dropping_ratio(handle, syscall_id, ratio);
+}
+
 static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
 {
 	struct kmod_engine* handle = engine.m_handle;
@@ -874,6 +898,8 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_kmod_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:
 		return scap_kmod_set_statsd_port(engine, arg1);
+	case SCAP_DROPPING_RATIO:
+		return scap_kmod_set_dropping_ratio(engine, arg1, arg2);
 	default:
 	{
 		char msg[256];

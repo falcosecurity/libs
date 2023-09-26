@@ -68,14 +68,14 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_
 
 static int32_t scap_modern_bpf_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio)
 {
-	pman_set_sampling_ratio(sampling_ratio);
+	pman_set_default_sampling_ratio(sampling_ratio);
 	pman_set_dropping_mode(true);
 	return SCAP_SUCCESS;
 }
 
 int32_t scap_modern_bpf_stop_dropping_mode()
 {
-	pman_set_sampling_ratio(1);
+	pman_set_default_sampling_ratio(1);
 	pman_set_dropping_mode(false);
 	return SCAP_SUCCESS;
 }
@@ -90,6 +90,16 @@ static int32_t scap_modern_bpf_handle_sc(struct scap_engine_handle engine, uint3
 		return pman_enforce_sc_set(handle->curr_sc_set.ppm_sc);
 	}
 	return SCAP_SUCCESS;
+}
+
+static int32_t scap_modern_bpf_dropping_ratio(struct scap_engine_handle engine, uint32_t ratio, uint32_t sc)
+{
+	int syscall_id = scap_ppm_sc_to_native_id(sc);
+	if(syscall_id == -1)
+	{
+		return SCAP_FAILURE;
+	}
+	return pman_set_sampling_ratio(syscall_id, ratio) == 0 ? SCAP_SUCCESS : SCAP_FAILURE;
 }
 
 static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
@@ -125,6 +135,8 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 	case SCAP_STATSD_PORT:
 		pman_set_statsd_port(arg1);
 		break;
+	case SCAP_DROPPING_RATIO:
+		return scap_modern_bpf_dropping_ratio(engine, arg1, arg2);
 	default:
 	{
 		char msg[SCAP_LASTERR_SIZE];

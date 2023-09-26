@@ -77,9 +77,12 @@ void pman_set_dropping_mode(bool value)
 	g_state.skel->bss->g_settings.dropping_mode = value;
 }
 
-void pman_set_sampling_ratio(uint32_t value)
+void pman_set_default_sampling_ratio(uint32_t value)
 {
-	g_state.skel->bss->g_settings.sampling_ratio = value;
+	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	{
+		g_state.skel->bss->g_settings.sampling_ratio[i] = value;
+	}
 }
 
 void pman_set_drop_failed(bool drop_failed)
@@ -106,6 +109,18 @@ void pman_set_statsd_port(uint16_t statsd_port)
 void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 {
 	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
+}
+
+int pman_set_sampling_ratio(uint32_t syscall_id, uint32_t value)
+{
+	if(g_syscall_table[syscall_id].flags & (UF_NEVER_DROP | UF_ALWAYS_DROP)
+	  || g_syscall_table[syscall_id].flags == UF_NONE 
+	  || !(g_syscall_table[syscall_id].flags & UF_USED))
+	{
+		return 1;
+	}
+	g_state.skel->bss->g_settings.sampling_ratio[syscall_id] = value;
+	return 0;
 }
 
 void pman_fill_syscall_sampling_table()
@@ -348,7 +363,7 @@ int pman_finalize_maps_after_loading()
 	/* set bpf global variables. */
 	pman_set_snaplen(80);
 	pman_set_dropping_mode(false);
-	pman_set_sampling_ratio(1);
+	pman_set_default_sampling_ratio(1);
 	pman_set_drop_failed(false);
 	pman_set_do_dynamic_snaplen(false);
 	pman_set_fullcapture_port_range(0, 0);

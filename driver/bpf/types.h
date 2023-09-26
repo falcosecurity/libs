@@ -233,10 +233,10 @@ struct scap_bpf_settings {
 	uint64_t boot_time;
 	void *socket_file_ops;
 	uint32_t snaplen;
-	uint32_t sampling_ratio;
+	uint32_t sampling_ratio[SYSCALL_TABLE_SIZE];
 	bool do_dynamic_snaplen;
 	bool dropping_mode;
-	bool is_dropping;
+	bool is_dropping[SYSCALL_TABLE_SIZE];
 	bool drop_failed;
 	bool tracers_enabled;
 	uint16_t fullcapture_port_range_start;

@@ -55,28 +55,33 @@ static __always_inline bool sampling_logic(void* ctx, u32 id, enum intrumentatio
 		return true;
 	}
 
-	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio()))
+	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
+	{
+		return false;
+	}
+
+	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio(id)))
 	{
 		/* If we are starting the dropping phase we need to notify the userspace, otherwise, we
 		 * simply drop our event.
 		 * PLEASE NOTE: this logic is not per-CPU so it is best effort!
 		 */
-		if(!maps__get_is_dropping())
+		if(!maps__get_is_dropping(id))
 		{
 			/* Here we are not sure we can send the drop_e event to userspace
 			 * if the buffer is full, but this is not essential even if we lose
 			 * an iteration we will synchronize again the next time the logic is enabled.
 			 */
-			maps__set_is_dropping(true);
+			maps__set_is_dropping(id, true);
 			bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_DROP_E);
 			bpf_printk("unable to tail call into 'drop_e' prog");
 		}
 		return true;
 	}
 
-	if(maps__get_is_dropping())
+	if(maps__get_is_dropping(id))
 	{
-		maps__set_is_dropping(false);
+		maps__set_is_dropping(id, false);
 		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_DROP_X);
 		bpf_printk("unable to tail call into 'drop_x' prog");
 	}

@@ -337,7 +337,20 @@ extern "C"
 
 	void pman_set_dropping_mode(bool value);
 
-	void pman_set_sampling_ratio(uint32_t value);
+	/**
+	 * @brief Set sampling ratio for all syscalls
+	 *
+	 * @param value sampling ratio.
+	 */
+	void pman_set_default_sampling_ratio(uint32_t value);
+
+	/**
+	 * @brief Set sampling ratio for a syscall
+	 *
+	 * @param syscall_id syscall to set.
+	 * @param value sampling ratio.
+	 */
+	int pman_set_sampling_ratio(uint32_t syscall_id, uint32_t value);
 
 	/**
 	 * @brief Ask driver to drop failed syscalls.

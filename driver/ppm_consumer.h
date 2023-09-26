@@ -21,10 +21,10 @@ struct ppm_consumer_t {
 	struct ppm_ring_buffer_context *ring_buffers;
 #endif
 	u32 snaplen;
-	u32 sampling_ratio;
+	uint16_t sampling_ratio[SYSCALL_TABLE_SIZE];
 	bool do_dynamic_snaplen;
-	u32 sampling_interval;
-	int is_dropping;
+	u32 sampling_interval[SYSCALL_TABLE_SIZE];
+	bool is_dropping[SYSCALL_TABLE_SIZE];
 	int dropping_mode;
 	bool drop_failed;
 	volatile int need_to_insert_drop_e;
