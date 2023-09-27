@@ -207,6 +207,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_tree)
 	DEFAULT_TREE
 
 	auto p6_t1_tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
+	ASSERT_TRUE(p6_t1_tinfo);
 
 	/* Call the find reaper method, the reaper for p6_t1 should be p4_t1  */
 	auto reaper = m_inspector.m_thread_manager->find_new_reaper(p6_t1_tinfo);

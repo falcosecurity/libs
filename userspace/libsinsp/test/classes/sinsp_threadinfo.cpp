@@ -89,6 +89,7 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper)
 	DEFAULT_TREE
 
 	auto p3_t1_tinfo = m_inspector.get_thread_ref(p3_t1_tid, false).get();
+	ASSERT_NE(p3_t1_tinfo, nullptr);
 
 	/* The reaper cannot be the current process */
 	EXPECT_THROW(p3_t1_tinfo->assign_children_to_reaper(p3_t1_tinfo), sinsp_exception);
@@ -98,6 +99,7 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_reaper)
 	ASSERT_THREAD_CHILDREN(p1_t1_tid, 0, 0);
 
 	auto p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false).get();
+	ASSERT_NE(p1_t1_tinfo, nullptr);
 	p3_t1_tinfo->assign_children_to_reaper(p1_t1_tinfo);
 
 	/* all p3_t1 children should be removed */
@@ -120,6 +122,7 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_a_nullptr)
 	DEFAULT_TREE
 
 	auto p2_t1_tinfo = m_inspector.get_thread_ref(p2_t1_tid, false).get();
+	ASSERT_NE(p2_t1_tinfo, nullptr);
 	/* This call should change the parent of all children of p2_t1 to `0` */
 	p2_t1_tinfo->assign_children_to_reaper(nullptr);
 
