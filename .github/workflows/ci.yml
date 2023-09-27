@@ -109,11 +109,6 @@ jobs:
     name: build-shared-libs-linux-amd64 🧐
     runs-on: ubuntu-latest
     steps:
-      - name: Install deps ⛓️
-        run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-$(uname -r)
-
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
         with:
@@ -123,10 +118,16 @@ jobs:
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-$(uname -r)
+          sudo .github/install-deps.sh
+
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DUSE_BUNDLED_VALIJSON=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ../
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ../
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
           make run-unit-tests
           
