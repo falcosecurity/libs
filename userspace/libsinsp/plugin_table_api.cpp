@@ -145,7 +145,7 @@ static inline owned_table_input_t copy_and_check_table_input(const sinsp_plugin*
 	res->reader_ext = new ss_plugin_table_reader_vtable_ext();
 	res->writer_ext = new ss_plugin_table_writer_vtable_ext();
 	res->fields_ext = new ss_plugin_table_fields_vtable_ext();
-	if (p->required_api_version().m_version_minor < 1)
+	if (p->required_api_version().minor() < 1)
 	{
 		res->reader_ext->get_table_name = res->reader.get_table_name;
 		res->reader_ext->get_table_size = res->reader.get_table_size;
