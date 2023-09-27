@@ -1,0 +1,125 @@
+name: Generate release body for driver
+on:
+  release:
+    types: [published]
+
+# Checks if any concurrent jobs is running for driver release CI and eventually cancel it.
+concurrency:
+  group: driver-release
+  cancel-in-progress: true
+
+jobs:
+  release-settings:
+    runs-on: ubuntu-latest
+    outputs:
+      is_latest: ${{ steps.get_settings.outputs.is_latest }} 
+    steps:
+      - name: Get latest release
+        uses: rez0n/actions-github-release@v2.0
+        id: latest_release
+        env:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          type: "stable"
+
+      - name: Get settings for this release
+        id: get_settings
+        shell: python
+        run: |
+          import os
+          import re
+          import sys
+
+          semver_no_meta = '''^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)\+driver(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?$'''
+          tag_name = '${{ github.event.release.tag_name }}'
+
+          is_valid_version = re.match(semver_no_meta, tag_name) is not None
+          if not is_valid_version:
+            print(f'Release version {tag_name} is not a valid full or pre-release. See RELEASE.md for more information.')
+            sys.exit(1)
+
+          is_prerelease = '-' in tag_name
+
+          # Safeguard: you need to both set "latest" in GH and not have suffixes to overwrite latest
+          is_latest = '${{ steps.latest_release.outputs.release }}' == tag_name and not is_prerelease
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as ofp:
+            print(f'is_latest={is_latest}'.lower(), file=ofp)
+
+  release-body-driver:
+    needs: [release-settings]
+    if: ${{ needs.release-settings.outputs.is_latest == 'true' }} # only for latest releases
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for kernel_tests workflow to succeed
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-regexp: 'test-kernels'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 60
+          allowed-conclusions: success
+    
+      - name: Clone libs repo
+        uses: actions/checkout@v4
+          
+      - name: Create release body file
+        run: |
+          touch release-body.md    
+          
+      - name: Extract API and SCHEMA versions
+        run: |
+          touch release-body.md
+          API_VERS=$(cat driver/API_VERSION)
+          SCHEMA_VERS=$(cat driver/SCHEMA_VERSION)
+          echo '!'"[API](https://img.shields.io/badge/API-${API_VERS}-yellow)" >> release-body.md
+          echo '!'"[SCHEMA](https://img.shields.io/badge/SCHEMA-${SCHEMA_VERS}-yellow)" >> release-body.md
+          echo "" >> release-body.md
+      
+      - name: Download matrixes
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: kernel_tests.yaml
+          name: matrix_*
+          name_is_regexp: true
+          commit: ${{ github.sha }}
+      
+      # Steps:
+      # Remove everything after the table (ie: since the first line that starts with "# ",
+      # ie: a markdown section start.
+      # Remove links to the markdown sections in the table too.
+      # Then, add a small title to each matrix
+      # Finally, merge them together
+      - name: Append matrixes to create release body
+        run: |
+          mv matrix_*/*.md .
+          sed -i -n '/# /q;p' matrix_X64.md
+          sed -i -n '/# /q;p' matrix_ARM64.md
+          sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_X64.md
+          sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_ARM64.md
+          sed -i '1s/^/# Driver Testing Matrix amd64\n\n/' matrix_X64.md
+          sed -i '1s/^/# Driver Testing Matrix arm64\n\n/' matrix_ARM64.md
+          cat matrix_X64.md matrix_ARM64.md >> release-body.md
+          
+      - name: Generate release notes
+        uses: leodido/rn2md@0669e5f3b21492c11c2db43cd6e267566f5880f3
+        with:
+          milestone: ${{ github.event.release.tag_name }}
+          output: ./notes.md
+        
+      - name: Merge release notes to pre existent body
+        run: cat notes.md >> release-body.md
+        
+      - name: Attach release creator to release body
+        run: |
+          echo "" >> release-body.md
+          echo "#### Release Manager @${{ github.event.release.author.login }}" >> release-body.md    
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: ./release-body.md
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
