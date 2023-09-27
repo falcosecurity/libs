@@ -252,6 +252,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree)
 	/*=============================== p4_t1 traverse ===========================*/
 
 	sinsp_threadinfo* tinfo = m_inspector.get_thread_ref(p4_t1_tid, false, true).get();
+	ASSERT_TRUE(tinfo);
 
 	std::vector<int64_t> expected_p4_traverse_parents = {p4_t1_ptid, p3_t1_ptid, p2_t1_ptid};
 
@@ -264,6 +265,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree)
 	/*=============================== p5_t2 traverse ===========================*/
 
 	tinfo = m_inspector.get_thread_ref(p5_t2_tid, false).get();
+	ASSERT_TRUE(tinfo);
 
 	std::vector<int64_t> expected_p5_traverse_parents = {p5_t2_ptid, p4_t2_ptid, p3_t1_ptid, p2_t1_ptid};
 
@@ -321,6 +323,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree)
 	/*=============================== p6_t1 traverse ===========================*/
 
 	tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
+	ASSERT_TRUE(tinfo);
 
 	std::vector<int64_t> expected_p6_traverse_parents = {p4_t1_tid, p2_t3_tid, INIT_TID};
 

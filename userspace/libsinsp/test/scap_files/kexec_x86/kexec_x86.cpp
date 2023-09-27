@@ -76,6 +76,7 @@ TEST(scap_file_kexec_x86, tail_lineage)
 	std::vector<int64_t> expected_traverse_parents_after_execve = {
 		tid_sh, tid_runc, tid_containerd_shim1, tid_systemd1, tid_containerd_shim2, tid_systemd2};
 	traverse_parents.clear();
+	ASSERT_TRUE(evt->get_thread_info());
 	evt->get_thread_info()->traverse_parent_state(visitor);
 	ASSERT_EQ(traverse_parents, expected_traverse_parents_after_execve);
 
@@ -99,6 +100,7 @@ TEST(scap_file_kexec_x86, tail_lineage)
 	std::vector<int64_t> expected_traverse_parents_after_remove = {tid_sh, tid_containerd_shim1, tid_systemd1,
 								       tid_containerd_shim2, tid_systemd2};
 	traverse_parents.clear();
+	ASSERT_TRUE(evt->get_thread_info());
 	evt->get_thread_info()->traverse_parent_state(visitor);
 	ASSERT_EQ(traverse_parents, expected_traverse_parents_after_remove);
 

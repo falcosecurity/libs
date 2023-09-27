@@ -248,7 +248,8 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 		//
 		// If this is a thread-related field, reject anything that doesn't come from the same thread
 		//
-		if(static_cast<int64_t>(pae->m_tid) != evt->get_thread_info()->m_tid)
+		auto* tinfo = evt->get_thread_info();
+		if(!tinfo || static_cast<int64_t>(pae->m_tid) != tinfo->m_tid)
 		{
 			return NULL;
 		}
@@ -262,7 +263,8 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 
 		if(tinfo)
 		{
-			if(tinfo->m_tid != evt->get_thread_info()->m_tid)
+			auto* evtinfo = evt->get_thread_info();
+			if(!evtinfo || tinfo->m_tid != evtinfo->m_tid)
 			{
 				return NULL;
 			}
@@ -283,7 +285,8 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 
 		if(tinfo)
 		{
-			if(tinfo->m_pid != evt->get_thread_info()->m_ptid)
+			auto* evtinfo = evt->get_thread_info();
+			if(!evtinfo || tinfo->m_pid != evtinfo->m_ptid)
 			{
 				return NULL;
 			}

@@ -599,6 +599,7 @@ TEST_F(sinsp_with_test_input, last_exec_ts)
 	std::string argsv = test_utils::to_null_delimited(args);
 	evt = add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, 0, "", 1024, 0, 68633, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
 
+	ASSERT_TRUE(evt->get_thread_info());
 	// Check we initialize lastexec time to zero
 	ASSERT_EQ(evt->get_thread_info()->m_lastexec_ts, 0);
 
