@@ -52,6 +52,7 @@ cd build-re2
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DRE2_BUILD_TESTING=OFF \
+    -DBUILD_SHARED_LIBS=ON  \
     ..
 make -j
 make install -j
