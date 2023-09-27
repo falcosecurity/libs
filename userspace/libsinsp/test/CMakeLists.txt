@@ -32,9 +32,7 @@ if(WIN32)
 	set(CMAKE_CXX_STANDARD 17)
 endif()
 
-
-include_directories("..")
-include_directories(${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver "${CMAKE_CURRENT_BINARY_DIR}")
+include_directories(${LIBSINSP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver "${CMAKE_CURRENT_BINARY_DIR}")
 
 # Create a libsinsp_test_var.h file with some variables used by our tests
 configure_file (

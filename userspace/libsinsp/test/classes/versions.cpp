@@ -15,7 +15,7 @@ limitations under the License.
 
 */
 
-#include <version.h>
+#include "../version.h"
 
 #include <gtest/gtest.h>
 

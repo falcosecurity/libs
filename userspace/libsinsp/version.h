@@ -29,7 +29,7 @@ limitations under the License.
 class sinsp_version
 {
 public:
-	inline sinsp_version() : m_valid(false) { }
+	inline sinsp_version() : sinsp_version("0.0.0") { }
 
 	inline explicit sinsp_version(const std::string &version_str)
 	{
@@ -37,7 +37,12 @@ public:
 			&m_version_major, &m_version_minor, &m_version_patch) == 3;
 	}
 
-	virtual ~sinsp_version() = default;
+	sinsp_version(sinsp_version&&) = default;
+	sinsp_version& operator = (sinsp_version&&) = default;
+	sinsp_version(const sinsp_version& s) = default;
+	sinsp_version& operator = (const sinsp_version& s) = default;
+
+	~sinsp_version() = default;
 
 	inline std::string as_string() const
 	{
