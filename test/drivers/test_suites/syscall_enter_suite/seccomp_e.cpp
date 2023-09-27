@@ -13,7 +13,7 @@ TEST(SyscallEnter, seccompE)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	uint32_t operation = SECCOMP_SET_MODE_FILTER;
-	uint32_t flags = 0;
+	uint32_t flags = 32;
 	void* args = NULL;
 	assert_syscall_state(SYSCALL_FAILURE, "seccomp", syscall(__NR_seccomp, operation, flags, args));
 
@@ -37,8 +37,11 @@ TEST(SyscallEnter, seccompE)
 	/* Parameter 1: operation (type: PT_UINT64) */
 	evt_test->assert_numeric_param(1, (uint64_t)operation);
 
+	/* Parameter 2: flags (type: PT_UINT64) */
+	evt_test->assert_numeric_param(2, (uint64_t)flags);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
 }
 #endif

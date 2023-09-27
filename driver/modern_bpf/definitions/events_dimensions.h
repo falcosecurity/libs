@@ -80,7 +80,7 @@
 #define TGKILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define TKILL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
 #define TKILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
-#define SECCOMP_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
+#define SECCOMP_E_SIZE HEADER_LEN + sizeof(uint64_t) * 2 + PARAM_LEN * 2
 #define SECCOMP_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define PTRACE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2
 #define CAPSET_E_SIZE HEADER_LEN
