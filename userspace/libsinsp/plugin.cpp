@@ -426,14 +426,14 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	m_contact = str_from_alloc_charbuf(m_handle->api.get_contact());
 	std::string version_str = str_from_alloc_charbuf(m_handle->api.get_version());
 	m_plugin_version = sinsp_version(version_str);
-	if(!m_plugin_version.m_valid)
+	if(!m_plugin_version.is_valid())
 	{
 		errstr = "plugin provided an invalid version string: '" + version_str + "'";
 		return false;
 	}
 	std::string req_api_version_str = str_from_alloc_charbuf(m_handle->api.get_required_api_version());
 	m_required_api_version = sinsp_version(req_api_version_str);
-	if(!m_required_api_version.m_valid)
+	if(!m_required_api_version.is_valid())
 	{
 		errstr = "plugin provided an invalid required api version string: '" + req_api_version_str + "'";
 		return false;
