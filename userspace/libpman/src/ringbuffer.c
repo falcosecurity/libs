@@ -201,6 +201,16 @@ int pman_finalize_ringbuf_array_after_loading()
 			continue;
 		}
 
+		if(ringbuf_id >= g_state.n_required_buffers)
+		{
+			/* If we arrive here it means that we have too many CPUs for our allocated ring buffers
+			 * so probably we faced a CPU hotplug.
+			 */
+			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "the actual system configuration requires more than '%d' ring buffers", g_state.n_required_buffers);
+			pman_print_error((const char *)error_message);
+			goto clean_percpu_ring_buffers;
+		}
+
 		if(bpf_map_update_elem(ringubuf_array_fd, &i, &ringbufs_fds[ringbuf_id], BPF_ANY))
 		{
 			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "failed to add the ringbuf map for CPU '%d' to ringbuf '%d'", i, ringbuf_id);

@@ -336,7 +336,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	ncpus = sysconf(_SC_NPROCESSORS_CONF);
 	if(ncpus == -1)
 	{
-		return scap_errprintf(handle->m_lasterr, errno, "_SC_NPROCESSORS_CONF");
+		return scap_errprintf(handle->m_lasterr, errno, "cannot obtain the number of available CPUs from '_SC_NPROCESSORS_CONF'");
 	}
 
 	//
@@ -345,7 +345,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
 	if(ndevs == -1)
 	{
-		return scap_errprintf(handle->m_lasterr, errno, "_SC_NPROCESSORS_ONLN");
+		return scap_errprintf(handle->m_lasterr, errno, "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN'");
 	}
 
 	rc = devset_init(&engine.m_handle->m_dev_set, ndevs, handle->m_lasterr);
@@ -361,14 +361,16 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	uint32_t online_idx = 0;
-	for(uint32_t all_scanned_devs = 0; online_idx < devset->m_ndevs && all_scanned_devs < ncpus; ++all_scanned_devs)
+	// devset->m_ndevs = online CPUs in the system.
+	// ncpus = available CPUs in the system.
+	for(uint32_t cpu_idx = 0; online_idx < devset->m_ndevs && cpu_idx < ncpus; ++cpu_idx)
 	{
 		struct scap_device *dev = &devset->m_devs[online_idx];
 
 		//
 		// Open the device
 		//
-		snprintf(filename, sizeof(filename), "%s/dev/" DRIVER_DEVICE_NAME "%d", scap_get_host_root(), all_scanned_devs);
+		snprintf(filename, sizeof(filename), "%s/dev/" DRIVER_DEVICE_NAME "%d", scap_get_host_root(), cpu_idx);
 
 		if((dev->m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
 		{
@@ -493,21 +495,21 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		++online_idx;
 	}
 	
-	// Check that we parsed all onlince CPUs
+	// Check that we parsed all online CPUs
 	if(online_idx != devset->m_ndevs)
 	{
-		return scap_errprintf(handle->m_lasterr, 0, "processors online: %d, expected: %d", online_idx, devset->m_ndevs);
+		return scap_errprintf(handle->m_lasterr, 0, "mismatch, processors online after the 'for' loop: %d, '_SC_NPROCESSORS_ONLN' before the 'for' loop: %d", online_idx, devset->m_ndevs);
 	}
 	
 	// Check that no CPUs were hotplugged during the for loop
 	uint32_t final_ndevs = sysconf(_SC_NPROCESSORS_ONLN);
 	if(final_ndevs == -1)
 	{
-		return scap_errprintf(handle->m_lasterr, errno, "_SC_NPROCESSORS_ONLN");
+		return scap_errprintf(handle->m_lasterr, errno, "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN' to check against the previous value");
 	}
-	if (final_ndevs != online_idx) 
+	if (online_idx != final_ndevs) 
 	{
-		return scap_errprintf(handle->m_lasterr, 0, "wrong number of online processors: %d, expected: %d", final_ndevs, online_idx);
+		return scap_errprintf(handle->m_lasterr, 0, "mismatch, processors online after the 'for' loop: %d, '_SC_NPROCESSORS_ONLN' after the 'for' loop: %d", online_idx, final_ndevs);
 	}
 
 	/* Here we are covering the case in which some syscalls don't have an associated ppm_sc
