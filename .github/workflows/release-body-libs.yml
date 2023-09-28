@@ -77,7 +77,7 @@ jobs:
           MIN_SCHEMA_VER=$(echo $MIN_SCHEMA_VER | tr -d "(" | tr -d ")")
           MIN_SCHEMA_VER=$(echo $MIN_SCHEMA_VER | sed -r 's/, /./g')
           echo '!'"[MIN_DRIVER_SCHEMA](https://img.shields.io/badge/MIN_DRIVER_SCHEMA-${MIN_SCHEMA_VER}-yellow)" >> release-body.md
-          ECHO "" >> release-body.md
+          echo "" >> release-body.md
           
       - name: Generate release notes
         uses: leodido/rn2md@0669e5f3b21492c11c2db43cd6e267566f5880f3
