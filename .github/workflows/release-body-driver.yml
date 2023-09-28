@@ -46,22 +46,21 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as ofp:
             print(f'is_latest={is_latest}'.lower(), file=ofp)
 
-  release-body-driver:
+  kernel-tests-release:
     needs: [release-settings]
+    if: ${{ needs.release-settings.outputs.is_latest == 'true' }} # only for latest releases 
+    uses: ./.github/workflows/reusable_kernel_tests.yaml
+    with:
+      libsversion: ${{ github.event.release.tag_name }}
+    secrets: inherit            
+            
+  release-body-driver:
+    needs: [release-settings, kernel-tests-release]
     if: ${{ needs.release-settings.outputs.is_latest == 'true' }} # only for latest releases
     permissions:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for kernel_tests workflow to succeed
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.ref }}
-          check-regexp: 'test-kernels'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 60
-          allowed-conclusions: success
-    
       - name: Clone libs repo
         uses: actions/checkout@v4
           
@@ -79,13 +78,10 @@ jobs:
           echo "" >> release-body.md
       
       - name: Download matrixes
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
-          workflow: kernel_tests.yaml
-          name: matrix_*
-          name_is_regexp: true
-          commit: ${{ github.sha }}
-      
+          name: matrix_${{ github.event.release.tag_name }}_*
+
       # Steps:
       # Remove everything after the table (ie: since the first line that starts with "# ",
       # ie: a markdown section start.

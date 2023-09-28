@@ -1,8 +1,6 @@
 name: Deploy Github Pages
 on:
-  workflow_run:
-    workflows: ["Test drivers against a matrix of kernels/distros"]
-    types: [completed]
+  push:
     branches: [master]
       
 permissions:
@@ -15,7 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  kernel-tests-master:
+    uses: ./.github/workflows/reusable_kernel_tests.yaml
+    secrets: inherit
+
   deploy-pages:
+    needs: [kernel-tests-master]
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -24,12 +27,9 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Download matrixes
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
-          workflow: kernel_tests.yaml
-          branch: master
-          name: matrix_*
-          name_is_regexp: true
+          name: matrix_master_*
       
       - name: Disable Table Of Content for matrixes pages
         run: |
