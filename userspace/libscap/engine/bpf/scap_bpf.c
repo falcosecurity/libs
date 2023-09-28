@@ -1521,6 +1521,8 @@ int32_t scap_bpf_load(
 	//
 	struct scap_device_set *devset = &handle->m_dev_set;
 	uint32_t online_idx = 0;
+	// devset->m_ndevs = online CPUs in the system.
+	// handle->m_ncpus = available CPUs in the system.
 	for(uint32_t cpu_idx = 0; online_idx < devset->m_ndevs && cpu_idx < handle->m_ncpus; ++cpu_idx)
 	{
 		struct perf_event_attr attr = {
@@ -1528,8 +1530,8 @@ int32_t scap_bpf_load(
 			.type = PERF_TYPE_SOFTWARE,
 			.config = PERF_COUNT_SW_BPF_OUTPUT,
 		};
-		int pmu_fd;
-		int ret;
+		int pmu_fd = 0;
+		int ret = 0;
 
 		/* We suppose that CPU 0 is always online, so we only check for cpu_idx > 0 */
 		if(cpu_idx > 0)
@@ -1553,7 +1555,7 @@ int32_t scap_bpf_load(
 					online = 1;
 				}
 				// If we can't access the cpu, count it as offline.
-				// Some VMs or hypertreading systems export an high number of configured CPUs,
+				// Some VMs or hyperthreading systems export an high number of configured CPUs,
 				// even if they are not existing. See https://github.com/falcosecurity/falco/issues/2843 for example.
 				// Skip them.
 			}
@@ -1606,21 +1608,21 @@ int32_t scap_bpf_load(
 		online_idx++;
 	}
 
-	// Check that we parsed all onlince CPUs
+	// Check that we parsed all online CPUs
 	if(online_idx != devset->m_ndevs)
 	{
-		return scap_errprintf(handle->m_lasterr, 0, "processors online: %d, expected: %d", online_idx, devset->m_ndevs);
+		return scap_errprintf(handle->m_lasterr, 0, "mismatch, processors online after the 'for' loop: %d, '_SC_NPROCESSORS_ONLN' before the 'for' loop: %d", online_idx, devset->m_ndevs);
 	}
 	
 	// Check that no CPUs were hotplugged during the for loop
 	uint32_t final_ndevs = sysconf(_SC_NPROCESSORS_ONLN);
 	if(final_ndevs == -1)
 	{
-		return scap_errprintf(handle->m_lasterr, errno, "_SC_NPROCESSORS_ONLN");
+		return scap_errprintf(handle->m_lasterr, errno, "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN' to check against the previous value");
 	}
-	if (final_ndevs != online_idx) 
+	if (online_idx != final_ndevs) 
 	{
-		return scap_errprintf(handle->m_lasterr, 0, "wrong number of online processors: %d, expected: %d", final_ndevs, online_idx);
+		return scap_errprintf(handle->m_lasterr, 0, "mismatch, processors online after the 'for' loop: %d, '_SC_NPROCESSORS_ONLN' after the 'for' loop: %d", online_idx, final_ndevs);
 	}
 	
 
@@ -1949,7 +1951,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	ssize_t num_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	if(num_cpus == -1)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "_SC_NPROCESSORS_CONF");
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "cannot obtain the number of available CPUs from '_SC_NPROCESSORS_CONF'");
 	}
 
 	engine.m_handle->m_ncpus = num_cpus;
@@ -1957,7 +1959,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	ssize_t num_devs = sysconf(_SC_NPROCESSORS_ONLN);
 	if(num_devs == -1)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "_SC_NPROCESSORS_ONLN");
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN'");
 	}
 
 	rc = devset_init(&engine.m_handle->m_dev_set, num_devs, engine.m_handle->m_lasterr);
