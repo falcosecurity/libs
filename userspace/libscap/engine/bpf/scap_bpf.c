@@ -1465,8 +1465,6 @@ int32_t scap_bpf_load(
 	const char *bpf_probe,
 	scap_open_args *oargs)
 {
-	int online_cpu;
-	int j;
 	struct scap_bpf_engine_params* bpf_args = oargs->engine_params;
 
 	if(set_runtime_params(handle) != SCAP_SUCCESS)
@@ -1521,8 +1519,9 @@ int32_t scap_bpf_load(
 	//
 	// Open and initialize all the devices
 	//
-	online_cpu = 0;
-	for(j = 0; j < handle->m_ncpus; ++j)
+	struct scap_device_set *devset = &handle->m_dev_set;
+	uint32_t online_idx = 0;
+	for(uint32_t cpu_idx = 0; online_idx < devset->m_ndevs && cpu_idx < handle->m_ncpus; ++cpu_idx)
 	{
 		struct perf_event_attr attr = {
 			.sample_type = PERF_SAMPLE_RAW,
@@ -1531,16 +1530,15 @@ int32_t scap_bpf_load(
 		};
 		int pmu_fd;
 		int ret;
-		struct scap_device *dev;
 
-		/* We suppose that CPU 0 is always online, so we only check for j > 0 */
-		if(j > 0)
+		/* We suppose that CPU 0 is always online, so we only check for cpu_idx > 0 */
+		if(cpu_idx > 0)
 		{
 			char filename[SCAP_MAX_PATH_SIZE];
-			int online;
 			FILE *fp;
+			int online = 0;
 
-			snprintf(filename, sizeof(filename), "/sys/devices/system/cpu/cpu%d/online", j);
+			snprintf(filename, sizeof(filename), "/sys/devices/system/cpu/cpu%d/online", cpu_idx);
 
 			fp = fopen(filename, "r");
 			if(fp == NULL)
@@ -1549,15 +1547,15 @@ int32_t scap_bpf_load(
 				// Fallback at considering them online if we can at least reach their folder.
 				// This is useful for example for raspPi devices.
 				// See: https://github.com/kubernetes/kubernetes/issues/95039
-				snprintf(filename, sizeof(filename), "/sys/devices/system/cpu/cpu%d/", j);
+				snprintf(filename, sizeof(filename), "/sys/devices/system/cpu/cpu%d/", cpu_idx);
 				if (access(filename, F_OK) == 0)
 				{
 					online = 1;
 				}
-				else
-				{
-					return scap_errprintf(handle->m_lasterr, errno, "can't open %sonline", filename);
-				}
+				// If we can't access the cpu, count it as offline.
+				// Some VMs or hypertreading systems export an high number of configured CPUs,
+				// even if they are not existing. See https://github.com/falcosecurity/falco/issues/2843 for example.
+				// Skip them.
 			}
 			else
 			{
@@ -1577,29 +1575,23 @@ int32_t scap_bpf_load(
 			}
 		}
 
-		if(online_cpu >= handle->m_dev_set.m_ndevs)
-		{
-			return scap_errprintf(handle->m_lasterr, 0, "too many online processors: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
-		}
-
-		dev = &handle->m_dev_set.m_devs[online_cpu];
-
-		pmu_fd = sys_perf_event_open(&attr, -1, j, -1, 0);
+		pmu_fd = sys_perf_event_open(&attr, -1, cpu_idx, -1, 0);
 		if(pmu_fd < 0)
 		{
-			return scap_errprintf(handle->m_lasterr, -pmu_fd, "unable to open the perf-buffer for cpu '%d'", j);
+			return scap_errprintf(handle->m_lasterr, -pmu_fd, "unable to open the perf-buffer for cpu '%d'", cpu_idx);
 		}
 
+		struct scap_device *dev = &devset->m_devs[online_idx];
 		dev->m_fd = pmu_fd;
 
-		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &j, &pmu_fd, BPF_ANY)) != 0)
+		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &cpu_idx, &pmu_fd, BPF_ANY)) != 0)
 		{
-			return scap_errprintf(handle->m_lasterr, -ret, "unable to update the SCAP_PERF_MAP map for cpu '%d'", j);
+			return scap_errprintf(handle->m_lasterr, -ret, "unable to update the SCAP_PERF_MAP map for cpu '%d'", cpu_idx);
 		}
 
 		if(ioctl(pmu_fd, PERF_EVENT_IOC_ENABLE, 0))
 		{
-			return scap_errprintf(handle->m_lasterr, errno, "unable to call PERF_EVENT_IOC_ENABLE on the fd for cpu '%d'", j);
+			return scap_errprintf(handle->m_lasterr, errno, "unable to call PERF_EVENT_IOC_ENABLE on the fd for cpu '%d'", cpu_idx);
 		}
 
 		//
@@ -1609,16 +1601,28 @@ int32_t scap_bpf_load(
 		dev->m_buffer_size = bpf_args->buffer_bytes_dim;
 		if(dev->m_buffer == MAP_FAILED)
 		{
-			return scap_errprintf(handle->m_lasterr, errno, "unable to mmap the perf-buffer for cpu '%d'", j);
+			return scap_errprintf(handle->m_lasterr, errno, "unable to mmap the perf-buffer for cpu '%d'", cpu_idx);
 		}
-
-		++online_cpu;
+		online_idx++;
 	}
 
-	if(online_cpu != handle->m_dev_set.m_ndevs)
+	// Check that we parsed all onlince CPUs
+	if(online_idx != devset->m_ndevs)
 	{
-		return scap_errprintf(handle->m_lasterr, 0, "processors online: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
+		return scap_errprintf(handle->m_lasterr, 0, "processors online: %d, expected: %d", online_idx, devset->m_ndevs);
 	}
+	
+	// Check that no CPUs were hotplugged during the for loop
+	uint32_t final_ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+	if(final_ndevs == -1)
+	{
+		return scap_errprintf(handle->m_lasterr, errno, "_SC_NPROCESSORS_ONLN");
+	}
+	if (final_ndevs != online_idx) 
+	{
+		return scap_errprintf(handle->m_lasterr, 0, "wrong number of online processors: %d, expected: %d", final_ndevs, online_idx);
+	}
+	
 
 	if(set_default_settings(handle) != SCAP_SUCCESS)
 	{
