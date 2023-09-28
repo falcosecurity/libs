@@ -360,9 +360,10 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	mapped_len = single_buffer_dim * 2;
 
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	for(uint32_t j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < ncpus; ++all_scanned_devs)
+	uint32_t online_idx = 0;
+	for(uint32_t all_scanned_devs = 0; online_idx < devset->m_ndevs && all_scanned_devs < ncpus; ++all_scanned_devs)
 	{
-		struct scap_device *dev = &devset->m_devs[j];
+		struct scap_device *dev = &devset->m_devs[online_idx];
 
 		//
 		// Open the device
@@ -489,7 +490,24 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		}
 		dev->m_bufinfo_size = sizeof(struct ppm_ring_buffer_info);
 
-		++j;
+		++online_idx;
+	}
+	
+	// Check that we parsed all onlince CPUs
+	if(online_idx != devset->m_ndevs)
+	{
+		return scap_errprintf(handle->m_lasterr, 0, "processors online: %d, expected: %d", online_idx, devset->m_ndevs);
+	}
+	
+	// Check that no CPUs were hotplugged during the for loop
+	uint32_t final_ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+	if(final_ndevs == -1)
+	{
+		return scap_errprintf(handle->m_lasterr, errno, "_SC_NPROCESSORS_ONLN");
+	}
+	if (final_ndevs != online_idx) 
+	{
+		return scap_errprintf(handle->m_lasterr, 0, "wrong number of online processors: %d, expected: %d", final_ndevs, online_idx);
 	}
 
 	/* Here we are covering the case in which some syscalls don't have an associated ppm_sc
