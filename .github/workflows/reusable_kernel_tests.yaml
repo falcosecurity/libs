@@ -16,6 +16,10 @@ on:
         required: false
         default: master
 
+concurrency:
+  group: kernel-tests
+  cancel-in-progress: false
+        
 jobs:
   test-kernels:
     strategy:
@@ -24,15 +28,6 @@ jobs:
         architecture: [X64, ARM64]
     runs-on: [ "self-hosted", "linux", "${{matrix.architecture}}" ]    
     steps:
-      - name: Wait for any other running kernel_tests workflow to finish
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ inputs.libsversion }}
-          check-regexp: 'test-kernels'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 60
-          allowed-conclusions: success,skipped,cancelled
-    
       - name: Checkout
         uses: actions/checkout@v3
         with:
