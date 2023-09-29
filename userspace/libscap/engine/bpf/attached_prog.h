@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <limits.h>
+#include <stdint.h>
 
 typedef enum
 {
@@ -33,6 +34,7 @@ typedef enum
 	BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD = 8, /* This is only used on architectures where the clone/fork child event is missing. Only when we have raw_tp */
 	BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT = 9,  /* This is only used on architectures where the execve/execveat success event is missing */
 	BPF_PROG_ATTACHED_MAX = 10,
+	BPF_PROG_CUSTOM_TRACEPOINT = 11,
 } bpf_attached_prog_codes;
 
 typedef struct bpf_attached_prog
@@ -42,6 +44,12 @@ typedef struct bpf_attached_prog
 	char name[NAME_MAX]; /* name of the program, used to attach it into the kernel */
 	bool raw_tp;	     /* tells if a program is a raw tracepoint or not */
 } bpf_attached_prog;
+
+typedef struct bpf_attached_prog_list
+{
+	bpf_attached_prog* ptr;
+	uint64_t len;
+} bpf_attached_prog_list;
 
 bool is_sys_enter(const char* name);
 bool is_sys_exit(const char* name);
@@ -54,7 +62,7 @@ bool is_sched_prog_fork_move_args(const char* name);
 bool is_sched_prog_fork_missing_child(const char* name);
 bool is_sched_prog_exec_missing_exit(const char* name);
 
-void fill_attached_prog_info(struct bpf_attached_prog* prog, bool raw_tp, const char* name, int fd);
+void fill_attached_prog_info(bpf_attached_prog_list* prog_list, uint64_t pos, bool raw_tp, const char* name, int fd);
 int attach_bpf_prog(struct bpf_attached_prog* prog, char* last_err);
 void detach_bpf_prog(struct bpf_attached_prog* prog);
 void unload_bpf_prog(struct bpf_attached_prog* prog);

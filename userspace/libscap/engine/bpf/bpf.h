@@ -42,7 +42,7 @@ struct bpf_engine
 
 	int m_tail_called_fds[BPF_PROGS_TAIL_CALLED_MAX];
 	int m_tail_called_cnt;
-	bpf_attached_prog m_attached_progs[BPF_PROG_ATTACHED_MAX];
+	bpf_attached_prog_list m_attached_progs;
 
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;

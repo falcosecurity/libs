@@ -30,6 +30,7 @@ limitations under the License.
 #include <ctype.h>
 #include <time.h>
 #include <dirent.h>
+#include "attached_prog.h"
 #include "strl.h"
 
 #define SCAP_HANDLE_T struct bpf_engine
@@ -125,17 +126,26 @@ static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 			engine->m_tail_called_fds[j] = -1;
 		}
 
-		for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
-		{
-			engine->m_attached_progs[j].fd = -1;
+		engine->m_attached_progs.ptr = calloc(BPF_PROG_ATTACHED_MAX, sizeof(bpf_attached_prog));
+		if (engine->m_attached_progs.ptr == NULL) {
+			free(engine);
+			return NULL;
 		}
+
+		for (int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
+		{
+			engine->m_attached_progs.ptr[j].fd = -1;
+		}
+		engine->m_attached_progs.len = BPF_PROG_ATTACHED_MAX;
 	}
 	return engine;
 }
 
 static void free_handle(struct scap_engine_handle engine)
 {
-	free(engine.m_handle);
+	struct bpf_engine* handle = engine.m_handle;
+	free(handle->m_attached_progs.ptr);
+	free(handle);
 }
 
 #ifndef UINT32_MAX
@@ -620,54 +630,48 @@ static int32_t load_single_prog(struct bpf_engine* handle, const char *event, st
 	/* If we reach this point we are evaluating a program that should be directly attached to the kernel */
 	if(is_sys_enter(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SYS_ENTER], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SYS_ENTER, raw_tp, event, fd);
 	}
-
-	if(is_sys_exit(event))
+	else if(is_sys_exit(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SYS_EXIT], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SYS_EXIT, raw_tp, event, fd);
 	}
-
-	if(is_sched_proc_exit(event))
+	else if(is_sched_proc_exit(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SCHED_PROC_EXIT, raw_tp, event, fd);
 	}
-
-	if(is_sched_switch(event))
+	else if(is_sched_switch(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_SWITCH], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SCHED_SWITCH, raw_tp, event, fd);
 	}
-
-	if(is_page_fault_user(event))
+	else if(is_page_fault_user(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_PAGE_FAULT_USER, raw_tp, event, fd);
 	}
-
-	if(is_page_fault_kernel(event))
+	else if(is_page_fault_kernel(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_PAGE_FAULT_KERNEL, raw_tp, event, fd);
 	}
-
-	if(is_signal_deliver(event))
+	else if(is_signal_deliver(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SIGNAL_DELIVER, raw_tp, event, fd);
 	}
-
-	if(is_sched_prog_fork_move_args(event))
+	else if(is_sched_prog_fork_move_args(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS, raw_tp, event, fd);
 	}
-
-	if(is_sched_prog_fork_missing_child(event))
+	else if(is_sched_prog_fork_missing_child(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD, raw_tp, event, fd);
 	}
-
-	if(is_sched_prog_exec_missing_exit(event))
+	else if(is_sched_prog_exec_missing_exit(event))
 	{
-		fill_attached_prog_info(&handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT], raw_tp, event, fd);
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT, raw_tp, event, fd);
 	}
-
+	else
+	{
+		fill_attached_prog_info(&handle->m_attached_progs, BPF_PROG_CUSTOM_TRACEPOINT, raw_tp, event, fd);
+	}
 	return SCAP_SUCCESS;
 }
 
@@ -853,9 +857,9 @@ static int load_all_progs(struct bpf_engine *handle)
 static int allocate_scap_stats_v2(struct bpf_engine *handle)
 {
 	int nprogs_attached = 0;
-	for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
+	for(int j=0; j < handle->m_attached_progs.len; j++)
 	{
-		if (handle->m_attached_progs[j].fd != -1)
+		if (handle->m_attached_progs.ptr[j].fd != -1)
 		{
 			nprogs_attached++;
 		}
@@ -1044,54 +1048,66 @@ static int enforce_sc_set(struct bpf_engine* handle)
 
 	/* Enable desired tracepoints */
 	if(sys_enter)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_ENTER]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SYS_ENTER]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_ENTER]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SYS_ENTER]));
 
 	if(sys_exit)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_EXIT]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SYS_EXIT]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SYS_EXIT]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SYS_EXIT]));
 
 	if(sched_prog_fork_move_args)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS]));
 
 	if(sched_prog_fork_missing_child)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD]));
 
 	if(sched_prog_exec)
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT]));
 
 	if(sc_set[PPM_SC_SCHED_PROCESS_EXIT])
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_EXIT]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_PROC_EXIT]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_PROC_EXIT]));
 
 	if(sc_set[PPM_SC_SCHED_SWITCH])
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_SWITCH]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_SWITCH]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SCHED_SWITCH]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SCHED_SWITCH]));
 
 	if(sc_set[PPM_SC_PAGE_FAULT_USER])
-		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER]), handle->m_lasterr);
+		ret = ret ?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_PAGE_FAULT_USER]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_USER]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_PAGE_FAULT_USER]));
 
 	if(sc_set[PPM_SC_PAGE_FAULT_KERNEL])
-		ret = ret?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]), handle->m_lasterr);
+		ret = ret?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_PAGE_FAULT_KERNEL]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_PAGE_FAULT_KERNEL]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_PAGE_FAULT_KERNEL]));
 
 	if(sc_set[PPM_SC_SIGNAL_DELIVER])
-		ret = ret?: attach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]), handle->m_lasterr);
+		ret = ret?: attach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SIGNAL_DELIVER]), handle->m_lasterr);
 	else
-		detach_bpf_prog(&(handle->m_attached_progs[BPF_PROG_SIGNAL_DELIVER]));
+		detach_bpf_prog(&(handle->m_attached_progs.ptr[BPF_PROG_SIGNAL_DELIVER]));
+
+	for (uint64_t i = BPF_PROG_ATTACHED_MAX; i < handle->m_attached_progs.len; i++)
+	{
+		if (handle->capturing)
+		{
+			ret = ret?: attach_bpf_prog(&(handle->m_attached_progs.ptr[i]), handle->m_lasterr);
+		}
+		else
+		{
+			detach_bpf_prog(&(handle->m_attached_progs.ptr[i]));
+		}
+	}
 
 	return ret;
 }
@@ -1337,10 +1353,10 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	handle->m_tail_called_cnt = 0;
 
 
-	for(int j = 0; j < BPF_PROG_ATTACHED_MAX; j++)
+	for(int j = 0; j < handle->m_attached_progs.len; j++)
 	{
-		detach_bpf_prog(&handle->m_attached_progs[j]);
-		unload_bpf_prog(&handle->m_attached_progs[j]);
+		detach_bpf_prog(&handle->m_attached_progs.ptr[j]);
+		unload_bpf_prog(&handle->m_attached_progs.ptr[j]);
 	}
 
 	handle->m_bpf_prog_array_map_idx = -1;
@@ -1738,15 +1754,15 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	 * Hopefully someone upstreams such capabilities to libbpf one day :)
 	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
 	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
-	 * 
+	 *
 	 * Please note that libbpf stats are available only on kernels >= 5.1, they could be backported but
 	 * it's possible that in some of our supported kernels they won't be available.
 	 */
 	if ((flags & PPM_SCAP_STATS_LIBBPF_STATS))
 	{
-		for(int bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
+		for(int bpf_prog = 0; bpf_prog < handle->m_attached_progs.len; bpf_prog++)
 		{
-			fd = handle->m_attached_progs[bpf_prog].fd;
+			fd = handle->m_attached_progs.ptr[bpf_prog].fd;
 			if (fd < 0)
 			{
 				// we loop through each possible prog, landing here means prog was not attached
@@ -1768,14 +1784,14 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				}
 				stats[offset].type = STATS_VALUE_TYPE_U64;
 				stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
-				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15 
+				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15
 				 * https://github.com/torvalds/linux/commit/cb4d2b3f03d8eed90be3a194e5b54b734ec4bbe9
 				 * So it's possible that in some of our supported kernels `info.name` will be "".
 				 */
 				if(strlen(info.name) == 0)
 				{
 					/* Fallback on the elf section name */
-					strlcpy(stats[offset].name, handle->m_attached_progs[bpf_prog].name, STATS_NAME_MAX);
+					strlcpy(stats[offset].name, handle->m_attached_progs.ptr[bpf_prog].name, STATS_NAME_MAX);
 				}
 				else
 				{
@@ -1987,7 +2003,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 		{
 			return rc;
 		}
-	}	
+	}
 
 	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));

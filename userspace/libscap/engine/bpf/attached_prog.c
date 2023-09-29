@@ -30,6 +30,8 @@ limitations under the License.
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#include "scap_assert.h"
+
 /*=============================== INTERNALS ===============================*/
 
 static int __attach_raw_tp(struct bpf_attached_prog* prog, char* last_err)
@@ -157,7 +159,7 @@ bool is_sched_prog_fork_move_args(const char* name)
 bool is_sched_prog_fork_missing_child(const char* name)
 {
 	/* if we found the `&` char in the section name it means that we need to remove the last 2 chars from `name`
-	 * this is a workaround we use to attach more than one BPF prog to the same tracepoint. We will need the 
+	 * this is a workaround we use to attach more than one BPF prog to the same tracepoint. We will need the
 	 * real section name to attach the program for this reason we are removing this workaround here.
 	 */
 	return (memcmp(name, "sched_process_fork&2", sizeof("sched_process_fork&2") - 1) == 0) ||
@@ -170,12 +172,29 @@ bool is_sched_prog_exec_missing_exit(const char* name)
 	       (memcmp(name, "sched/sched_process_exec", sizeof("sched/sched_process_exec") - 1) == 0);
 }
 
-void fill_attached_prog_info(struct bpf_attached_prog* prog, bool raw_tp, const char* name, int fd)
+void fill_attached_prog_info(struct bpf_attached_prog_list* prog_list, uint64_t pos, bool raw_tp, const char* name, int fd)
 {
+	ASSERT(prog_list != NULL);
+	ASSERT(pos < BPF_PROG_ATTACHED_MAX || pos == BPF_PROG_CUSTOM_TRACEPOINT);
+
+	bpf_attached_prog* prog = &prog_list->ptr[pos];
+	if (pos == BPF_PROG_CUSTOM_TRACEPOINT)
+	{
+		bpf_attached_prog* pl = realloc(prog_list->ptr, sizeof(bpf_attached_prog) * (prog_list->len + 1));
+		if (pl == NULL)
+		{
+			return;
+		}
+
+		prog_list->ptr = pl;
+		prog = &prog_list->ptr[prog_list->len];
+		prog_list->len++;
+	}
+
 	prog->fd = fd;
 	int size_to_read = NAME_MAX;
 	/* if we found the `&` char in the section name it means that we need to remove the last 2 chars from `name`
-	 * this is a workaround we use to attach more than one BPF prog to the same tracepoint. We will need the 
+	 * this is a workaround we use to attach more than one BPF prog to the same tracepoint. We will need the
 	 * real section name to attach the program for this reason we are removing this workaround here.
 	 */
 	if(strrchr(name, '&') != NULL)
