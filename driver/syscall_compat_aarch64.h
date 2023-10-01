@@ -920,3 +920,6 @@
 #ifndef __NR_cachestat
 #define __NR_cachestat 451
 #endif
+#ifndef __NR_fchmodat2
+#define __NR_fchmodat2 452
+#endif

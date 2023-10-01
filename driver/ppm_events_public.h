@@ -1867,7 +1867,9 @@ enum extra_event_prog_code
 	PPM_SC_X(S390_RUNTIME_INSTR, 409) \
 	PPM_SC_X(SIGRETURN, 410) \
 	PPM_SC_X(S390_GUARDED_STORAGE, 411) \
-	PPM_SC_X(CACHESTAT, 412)
+	PPM_SC_X(CACHESTAT, 412) \
+	PPM_SC_X(FCHMODAT2, 413) \
+	PPM_SC_X(MAP_SHADOW_STACK, 414)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = (value),
