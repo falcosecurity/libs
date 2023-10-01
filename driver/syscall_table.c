@@ -915,4 +915,10 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_cachestat
 	[__NR_cachestat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_CACHESTAT},
 #endif
+#ifdef __NR_fchmodat2
+	[__NR_fchmodat2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FCHMODAT2},
+#endif
+#ifdef __NR_map_shadow_stack
+	[__NR_map_shadow_stack - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MAP_SHADOW_STACK},
+#endif
 };

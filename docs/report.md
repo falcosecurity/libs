@@ -60,6 +60,7 @@
 | fchdir                  | 🟢        |
 | fchmod                  | 🟢        |
 | fchmodat                | 🟢        |
+| fchmodat2               | 🟡        |
 | fchown                  | 🟢        |
 | fchownat                | 🟢        |
 | fcntl                   | 🟢        |
@@ -157,6 +158,7 @@
 | lsetxattr               | 🟡        |
 | lstat                   | 🟢        |
 | madvise                 | 🟡        |
+| map_shadow_stack        | 🟡        |
 | mbind                   | 🟡        |
 | membarrier              | 🟡        |
 | memfd_create            | 🟢        |
