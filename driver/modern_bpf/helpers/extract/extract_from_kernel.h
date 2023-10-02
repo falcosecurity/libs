@@ -799,7 +799,7 @@ static __always_inline void extract__egid(struct task_struct *task, u32 *egid)
 // EXECVE FLAGS EXTRACTION
 ////////////////////////
 
-static __always_inline bool extract__exe_upper_layer(struct inode *inode)
+static __always_inline bool extract__exe_upper_layer(struct inode *inode, struct file *exe_file)
 {
 	unsigned long sb_magic = BPF_CORE_READ(inode, i_sb, s_magic);
 
@@ -815,10 +815,37 @@ static __always_inline bool extract__exe_upper_layer(struct inode *inode)
 
 		bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), vfs_inode + inode_size);
 
-		if(upper_dentry)
+		if(!upper_dentry)
+		{
+			return false;
+		}
+
+		struct dentry *dentry = (struct dentry *)BPF_CORE_READ(exe_file, f_path.dentry);
+
+		unsigned int d_flags = BPF_CORE_READ(dentry, d_flags);
+		// DCACHE_DISCONNECTED = 0x20
+		bool disconnected = (d_flags & 0x20);
+		if(disconnected)
 		{
 			return true;
 		}
+
+		// In kernels >=6.5 d_fsdata represents an ovl_entry_flag.
+		unsigned long flags = (unsigned long)BPF_CORE_READ(dentry, d_fsdata);
+		if(bpf_core_field_exists(((struct ovl_entry___before_v6_5*)0)->flags))
+		{
+			// kernel <6.5
+			struct ovl_entry___before_v6_5 *oe = (struct ovl_entry___before_v6_5*)BPF_CORE_READ(dentry, d_fsdata);
+			flags = (unsigned long)BPF_CORE_READ(oe, flags);
+		}
+
+		// OVL_E_UPPER_ALIAS = 0
+		unsigned long has_upper = (flags & (1U << (0)));
+		if(has_upper)
+		{
+			return true;
+		}
+
 	}
 
 	return false;

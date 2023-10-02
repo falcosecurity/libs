@@ -2234,11 +2234,15 @@ static __always_inline bool get_exe_upper_layer(struct dentry *dentry, struct su
 			return true;
 		}
 
-		struct ovl_entry *oe = (struct ovl_entry*)_READ(dentry->d_fsdata);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+		struct ovl_entry *oe = (struct ovl_entry*)_READ(dentry->d_fsdata);
 		unsigned long has_upper = (unsigned long)_READ(oe->has_upper);
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0)
+		struct ovl_entry *oe = (struct ovl_entry*)_READ(dentry->d_fsdata);
 		unsigned long flags = _READ(oe->flags);
+		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
+#else
+		unsigned long flags = (unsigned long)_READ(dentry->d_fsdata);
 		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
 #endif
 
