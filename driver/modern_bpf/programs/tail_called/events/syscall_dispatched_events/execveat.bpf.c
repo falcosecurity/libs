@@ -265,7 +265,7 @@ int BPF_PROG(t1_execveat_x,
 	{
 		flags |= PPM_EXE_WRITABLE;
 	}
-	if(extract__exe_upper_layer(exe_inode))
+	if(extract__exe_upper_layer(exe_inode, exe_file))
 	{
 		flags |= PPM_EXE_UPPER_LAYER;
 	}
