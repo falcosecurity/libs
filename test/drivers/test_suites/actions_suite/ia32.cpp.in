@@ -66,6 +66,13 @@ TEST(Actions, ia32)
     	 */
     	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_ACCEPT4_6_E);
     	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_ACCEPT4_6_X);
+
+      /*
+       * Last event sent by the script is a socketcall with non existing SYS_ code.
+       * We don't expect any event generated.
+       */
+      evt_test->assert_event_absence(ret_pid, PPME_GENERIC_E);
+      evt_test->assert_event_absence(ret_pid, PPME_GENERIC_X);
 	}
 	else
 	{
@@ -76,8 +83,18 @@ TEST(Actions, ia32)
     evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SEND_E);
     evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SEND_X);
 
+    /*
+     * Same as above
+     */
     evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT_5_E);
     evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT_5_X);
+
+    /*
+     * Last event sent by the script is a socketcall with non existing SYS_ code.
+     * We expect generic events to be pushed.
+     */
+    evt_test->assert_event_presence(ret_pid, PPME_GENERIC_E);
+    evt_test->assert_event_presence(ret_pid, PPME_GENERIC_X);
 	}
 }
 #endif
