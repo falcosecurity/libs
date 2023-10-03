@@ -58,6 +58,7 @@ if (BUILD_SHARED_LIBS)
     )
     set_property(TARGET scap_engine_gvisor_o PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+    add_dependencies(scap_engine_gvisor_o uthash)
     add_dependencies(scap scap_engine_gvisor_o)
     target_sources(scap PRIVATE $<TARGET_OBJECTS:scap_engine_gvisor_o>)
 else()
@@ -66,6 +67,7 @@ else()
         ${scap_engine_gvisor_generated_sources}
     )
 
+    add_dependencies(scap_engine_gvisor uthash)
     target_link_libraries(scap_engine_gvisor
         ${CMAKE_THREAD_LIBS_INIT}
         ${PROTOBUF_LIB}

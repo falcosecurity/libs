@@ -11,13 +11,36 @@
 # specific language governing permissions and limitations under the License.
 #
 
+option(USE_BUNDLED_UTHASH "Enable downloading of the bundled uthash library" ${USE_BUNDLED_DEPS})
 set(UTHASH_DOWNLOAD_URL "https://raw.githubusercontent.com/troydhanson/uthash/v1.9.8/src/uthash.h")
 set(UTHASH_DOWNLOAD_DIR "${LIBSCAP_DIR}/userspace/libscap")
 
-if(NOT EXISTS "${UTHASH_DOWNLOAD_DIR}/uthash.h")
-	message(STATUS "Download 'uthash.h' from: ${UTHASH_DOWNLOAD_URL}")
-	file(DOWNLOAD
-	"${UTHASH_DOWNLOAD_URL}"
-	"${UTHASH_DOWNLOAD_DIR}/uthash.h"
-	)
+if(UTHASH_INCLUDE)
+	# we already have uthash
+elseif(NOT USE_BUNDLED_UTHASH)
+	find_path(UTHASH_INCLUDE uthash.h)
+	if(UTHASH_INCLUDE)
+		message(STATUS "Found uthash: include: ${UTHASH_INCLUDE}")
+	else()
+		message(FATAL_ERROR "Couldn't find system uthash")
+	endif()
+else()
+	set(UTHASH_SRC "${PROJECT_BINARY_DIR}/uthash-prefix/src/uthash/src")
+	set(UTHASH_INCLUDE "${UTHASH_SRC}")
+
+	message(STATUS "Using bundled uthash in '${UTHASH_SRC}'")
+
+	ExternalProject_Add(uthash
+			PREFIX "${PROJECT_BINARY_DIR}/uthash-prefix"
+			URL "https://github.com/troydhanson/uthash/archive/refs/tags/v1.9.8.tar.gz"
+			URL_HASH "SHA256=d9d123ce81c5d127442876fc3b12fab3ad632bee6aca685be7d461c08e24c046"
+			CONFIGURE_COMMAND ""
+			BUILD_COMMAND ""
+			INSTALL_COMMAND "")
 endif()
+
+if(NOT TARGET uthash)
+	add_custom_target(uthash)
+endif()
+
+include_directories("${UTHASH_INCLUDE}")
