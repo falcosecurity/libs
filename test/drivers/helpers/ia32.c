@@ -14,5 +14,7 @@ int main() {
 	unsigned long args[3] = {0};
 	syscall(__NR_socketcall, SYS_SOCKET, args);
 	syscall(__NR_socketcall, SYS_ACCEPT4, args);
+	syscall(__NR_socketcall, SYS_SEND, args);
+	syscall(__NR_socketcall, SYS_ACCEPT, args);
 	return 0;
 }

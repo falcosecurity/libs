@@ -194,8 +194,8 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 		if(!is_syscall_return)
 		{
-			evt_type = return_code;
-			drop_flags = return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED;
+			evt_type = return_code + 1; // we are in sys_exit!
+			drop_flags = return_code == PPME_GENERIC_X ? UF_ALWAYS_DROP : UF_USED;
 		}
 		else
 		{
