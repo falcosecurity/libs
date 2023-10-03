@@ -77,6 +77,7 @@ add_library(scap_platform_util
 	STATIC
 	scap_iflist.c
 	scap_proc_util.c)
+add_dependencies(scap_platform_util uthash)
 
 target_link_libraries(scap
 	"${ZLIB_LIB}")
@@ -120,6 +121,7 @@ add_library(scap_event_schema
 		../../driver/syscall_table64.c
 		linux/scap_ppm_sc.c
         )
+add_dependencies(scap_event_schema uthash)
 
 target_link_libraries(scap scap_event_schema)
 
@@ -136,6 +138,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		scap_engine_util.c
 		ringbuffer/devset.c
 		ringbuffer/ringbuffer.c)
+	add_dependencies(scap_engine_util uthash)
 
 	target_link_libraries(scap scap_engine_util)
 endif()
