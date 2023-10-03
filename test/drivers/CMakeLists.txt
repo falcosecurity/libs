@@ -1,5 +1,8 @@
 message(STATUS "Drivers tests build enabled")
 
+## Configure ia32 action test
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/ia32.cpp.in ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/ia32.cpp)
+
 ## Syscall_exit suite files.
 file(GLOB_RECURSE SYSCALL_EXIT_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/syscall_exit_suite/*.cpp)
 
@@ -37,12 +40,18 @@ set(DRIVERS_TEST_LINK_LIBRARIES
   "${GTEST_MAIN_LIB}"
 )
 
+add_executable(ia32 ./helpers/ia32.c)
+set_target_properties(ia32 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+
 set(DRIVERS_TEST_DEPENDECIES
   scap
   gtest
+  ia32
 )
 
 add_executable(drivers_test ${DRIVERS_TEST_SOURCES})
 target_include_directories(drivers_test ${DRIVERS_TEST_INCLUDE})
 target_link_libraries(drivers_test ${DRIVERS_TEST_LINK_LIBRARIES})
 add_dependencies(drivers_test ${DRIVERS_TEST_DEPENDECIES})
+
+
