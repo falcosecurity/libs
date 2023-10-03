@@ -40,14 +40,20 @@ set(DRIVERS_TEST_LINK_LIBRARIES
   "${GTEST_MAIN_LIB}"
 )
 
-add_executable(ia32 ./helpers/ia32.c)
-set_target_properties(ia32 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-
 set(DRIVERS_TEST_DEPENDECIES
-  scap
-  gtest
-  ia32
+        scap
+        gtest
 )
+
+## IA32 tests are only available on x86_64
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+    add_executable(ia32 ./helpers/ia32.c)
+    set_target_properties(ia32 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+    set(DRIVERS_TEST_DEPENDECIES
+            ${DRIVERS_TEST_DEPENDECIES}
+            ia32
+    )
+endif()
 
 add_executable(drivers_test ${DRIVERS_TEST_SOURCES})
 target_include_directories(drivers_test ${DRIVERS_TEST_INCLUDE})
