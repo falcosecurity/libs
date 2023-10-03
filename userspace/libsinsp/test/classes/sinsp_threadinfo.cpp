@@ -16,6 +16,8 @@ limitations under the License.
 */
 
 #include <test/helpers/threads_helpers.h>
+#include <re2/re2.h>
+#include "pod_regex.h"
 
 TEST(sinsp_threadinfo, get_main_thread)
 {
@@ -129,7 +131,6 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_a_nullptr)
 // This test asserts that our regex is solid against all possible cgroup layouts
 TEST(sinsp_threadinfo, check_pod_uid_regex)
 {
-	// RGX_POD is defined in `threadinfo.h`
 	re2::RE2 pattern(RGX_POD, re2::RE2::POSIX);
 
 	// CgroupV1, driver cgroup

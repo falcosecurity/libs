@@ -39,9 +39,6 @@ struct iovec {
 #include "internal_metrics.h"
 #include "state/table.h"
 #include "thread_group_info.h"
-#include <re2/re2.h>
-
-#define RGX_POD "(pod[a-z0-9]{8}[-_][a-z0-9]{4}[-_][a-z0-9]{4}[-_][a-z0-9]{4}[-_][a-z0-9]{12})"
 
 class sinsp_delays_info;
 class sinsp_tracerparser;

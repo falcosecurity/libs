@@ -31,6 +31,9 @@ limitations under the License.
 #include "tracer_emitter.h"
 #endif
 
+#include <re2/re2.h>
+#include "pod_regex.h"
+
 constexpr static const char* s_thread_table_name = "threads";
 
 extern sinsp_evttables g_infotables;
