@@ -1,0 +1,48 @@
+#include "../../event_class/event_class.h"
+
+TEST(Actions, ia32)
+{
+	/* Here we capture all syscalls... this process will send some
+	 * specific syscalls and we have to check that they are extracted in order
+	 * from the buffers.
+	 */
+	auto evt_test = get_syscall_event_test();
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+	pid_t ret_pid = syscall(__NR_fork);
+	if(ret_pid == 0)
+	{
+		char* const argv[] = {NULL};
+		char* const envp[] = {NULL};
+		// Pin process to a single core, so that events get sent in order
+		cpu_set_t my_set;
+		CPU_ZERO(&my_set);
+		CPU_SET(1, &my_set);
+		sched_setaffinity(0, sizeof(cpu_set_t), &my_set);
+
+		execve("${CMAKE_CURRENT_BINARY_DIR}/ia32", argv, envp);
+		exit(EXIT_FAILURE);
+	}
+	assert_syscall_state(SYSCALL_SUCCESS, "fork", ret_pid, NOT_EQUAL, -1);
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "Fork failed..." << std::endl;
+	}
+
+	/* Disable the capture: no more events from now. */
+	evt_test->disable_capture();
+
+	/* Retrieve events in order. */
+	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_CLOSE_E);
+	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_CLOSE_X);
+	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SOCKET_E);
+	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SOCKET_X);
+	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT4_6_E);
+	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT4_6_X);
+}
