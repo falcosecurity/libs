@@ -1,5 +1,6 @@
 #include "../../event_class/event_class.h"
 
+#if defined(__x86_64__)
 TEST(Actions, ia32)
 {
 	/* Here we capture all syscalls... this process will send some
@@ -46,3 +47,4 @@ TEST(Actions, ia32)
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT4_6_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT4_6_X);
 }
+#endif
