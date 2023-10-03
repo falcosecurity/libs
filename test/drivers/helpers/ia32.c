@@ -16,5 +16,6 @@ int main() {
 	syscall(__NR_socketcall, SYS_ACCEPT4, args);
 	syscall(__NR_socketcall, SYS_SEND, args);
 	syscall(__NR_socketcall, SYS_ACCEPT, args);
+	syscall(__NR_socketcall, -1, args);
 	return 0;
 }
