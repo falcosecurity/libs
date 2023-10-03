@@ -362,7 +362,19 @@ protected:
 		return ret;
 	}
 
+	// Return true if `field_name` exists in the filtercheck list.
+	// The field value could also be NULL, but in this method, we are not interested in the value.
 	bool field_exists(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = g_filterlist)
+	{
+		if (evt == nullptr) {
+			throw sinsp_exception("The event class is NULL");
+		}
+
+		return flist.new_filter_check_from_fldname(field_name, &m_inspector, false) != nullptr;
+	}
+
+	// Return true if `field_name` value is not NULL for this event.
+	bool field_has_value(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = g_filterlist)
 	{
 		if (evt == nullptr) {
 			throw sinsp_exception("The event class is NULL");

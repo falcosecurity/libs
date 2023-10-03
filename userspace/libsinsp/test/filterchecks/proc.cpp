@@ -102,5 +102,5 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pexepath_aexepath)
 	/* `init` exepath */
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[5]"), "/sbin/init");
 	/* this field shouldn't exist */
-	ASSERT_FALSE(field_exists(evt, "proc.aexepath[6]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.aexepath[6]"));
 }

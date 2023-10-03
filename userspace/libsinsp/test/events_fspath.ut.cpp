@@ -92,12 +92,12 @@ protected:
 	void verify_no_fields(sinsp_evt *evt)
 
 	{
-		ASSERT_FALSE(field_exists(evt, fs_path_name));
-		ASSERT_FALSE(field_exists(evt, fs_path_nameraw));
-		ASSERT_FALSE(field_exists(evt, fs_path_source));
-		ASSERT_FALSE(field_exists(evt, fs_path_sourceraw));
-		ASSERT_FALSE(field_exists(evt, fs_path_target));
-		ASSERT_FALSE(field_exists(evt, fs_path_targetraw));
+		ASSERT_FALSE(field_has_value(evt, fs_path_name));
+		ASSERT_FALSE(field_has_value(evt, fs_path_nameraw));
+		ASSERT_FALSE(field_has_value(evt, fs_path_source));
+		ASSERT_FALSE(field_has_value(evt, fs_path_sourceraw));
+		ASSERT_FALSE(field_has_value(evt, fs_path_target));
+		ASSERT_FALSE(field_has_value(evt, fs_path_targetraw));
 	}
 
 	void verify_value_using_filters(sinsp_evt *evt,

@@ -127,7 +127,7 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "false");
-	ASSERT_FALSE(field_exists(evt, "evt.asynctype"));
+	ASSERT_FALSE(field_has_value(evt, "evt.asynctype"));
 
 	// metaevents have the "syscall" event source
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_CONTAINER_JSON_E, 1, "{\"value\": 1}");
@@ -143,9 +143,9 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
 	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
-	ASSERT_FALSE(field_exists(evt, "evt.source"));
+	ASSERT_FALSE(field_has_value(evt, "evt.source"));
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "false");
-	ASSERT_FALSE(field_exists(evt, "evt.asynctype"));
+	ASSERT_FALSE(field_has_value(evt, "evt.asynctype"));
 
 	// events coming from registered plugins should have their event source
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint32_t) 999, plugindata);
@@ -154,7 +154,7 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_EQ(std::string(evt->get_source_name()), std::string(mock_plugin_get_event_source()));
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), std::string(mock_plugin_get_event_source()));
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "false");
-	ASSERT_FALSE(field_exists(evt, "evt.asynctype"));
+	ASSERT_FALSE(field_has_value(evt, "evt.asynctype"));
 
 	// async events with no plugin ID should have "syscall" source
 	auto asyncname = "sampleasync";
@@ -183,7 +183,7 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
 	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
-	ASSERT_FALSE(field_exists(evt, "evt.source"));
+	ASSERT_FALSE(field_has_value(evt, "evt.source"));
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "true");
 	ASSERT_EQ(get_field_as_string(evt, "evt.asynctype"), "sampleasync");
 	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "sampleasync");
