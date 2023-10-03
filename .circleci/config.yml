@@ -11,7 +11,7 @@ jobs:
           name: Install deps ⛓️
           command: |
             sudo apt update -y
-            sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev linux-headers-$(uname -r) clang-14 llvm-14
+            sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev linux-headers-$(uname -r) clang-14 llvm-14 gcc-multilib g++-multilib
             sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
             sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
             git clone https://github.com/libbpf/bpftool.git --branch v7.0.0 --single-branch
@@ -116,7 +116,7 @@ jobs:
           name: Install deps ⛓️
           command: |
             sudo apt update -y
-            sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ca-certificates git make build-essential clang-7 libelf-dev libcap-dev cmake linux-headers-$(uname -r)
+            sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ca-certificates git make build-essential clang-7 libelf-dev libcap-dev cmake linux-headers-$(uname -r) gcc-multilib g++-multilib
             ls /usr/bin/ | grep clang
             ls /usr/bin/ | grep llc
             sudo ln -s /usr/bin/clang-7 /usr/bin/clang
