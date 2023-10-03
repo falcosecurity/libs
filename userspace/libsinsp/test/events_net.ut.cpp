@@ -66,14 +66,14 @@ TEST_F(sinsp_with_test_input, net_socket)
 	ASSERT_EQ(get_field_as_string(evt, "fd.l4proto"), "<NA>"); /// todo: probably this is not what we want
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
 	/* When the fd role is `none` all these fields return NULL */
-	ASSERT_FALSE(field_exists(evt, "fd.sip"));
-	ASSERT_FALSE(field_exists(evt, "fd.cip"));
-	ASSERT_FALSE(field_exists(evt, "fd.rip"));
-	ASSERT_FALSE(field_exists(evt, "fd.lip"));
-	ASSERT_FALSE(field_exists(evt, "fd.cport"));
-	ASSERT_FALSE(field_exists(evt, "fd.sport"));
-	ASSERT_FALSE(field_exists(evt, "fd.lport"));
-	ASSERT_FALSE(field_exists(evt, "fd.rport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.sip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.cip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.rip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.lip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.cport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.sport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.lport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.rport"));
 }
 
 TEST_F(sinsp_with_test_input, net_ipv4_connect)
@@ -123,7 +123,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect)
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
 	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "false");
 	/* Since the role of the fd is none, all these fields are null. The fdinfo state is updated but we cannot use these info in the filterchecks */
-	ASSERT_FALSE(field_exists(evt, "fd.sip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.sip"));
 
 	/* If the exit event is immediately consecutive we can obtain some info otherwise there is the risk we cannot update the fd */
 	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client), reinterpret_cast<sockaddr*>(&server));
@@ -297,13 +297,13 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4)
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), fdname);
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
 	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), DEFAULT_IPV4_SERVER_STRING);
-	ASSERT_FALSE(field_exists(evt, "fd.cip")); /* we are not able to retrieve the client ip, the fdinfo type is SCAP_FD_IPV4_SERVSOCK */
-	ASSERT_FALSE(field_exists(evt, "fd.rip")); /* we are not able to retrieve remote ip, the fdinfo type is SCAP_FD_IPV4_SERVSOCK */
-	ASSERT_FALSE(field_exists(evt, "fd.lip")); /* we are not able to retrieve local ip, the fdinfo type is SCAP_FD_IPV4_SERVSOCK */
+	ASSERT_FALSE(field_has_value(evt, "fd.cip")); /* we are not able to retrieve the client ip, the fdinfo type is SCAP_FD_IPV4_SERVSOCK */
+	ASSERT_FALSE(field_has_value(evt, "fd.rip")); /* we are not able to retrieve remote ip, the fdinfo type is SCAP_FD_IPV4_SERVSOCK */
+	ASSERT_FALSE(field_has_value(evt, "fd.lip")); /* we are not able to retrieve local ip, the fdinfo type is SCAP_FD_IPV4_SERVSOCK */
 	ASSERT_EQ(get_field_as_string(evt, "fd.sport"), DEFAULT_SERVER_PORT_STRING);
-	ASSERT_FALSE(field_exists(evt, "fd.cport"));
-	ASSERT_FALSE(field_exists(evt, "fd.rport"));
-	ASSERT_FALSE(field_exists(evt, "fd.lport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.cport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.rport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.lport"));
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, (uint32_t) 5);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, return_value);
@@ -601,14 +601,14 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 
 	/* Check that we are not able to load any info */
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
-	ASSERT_FALSE(field_exists(evt, "fd.sip"));
-	ASSERT_FALSE(field_exists(evt, "fd.cip"));
-	ASSERT_FALSE(field_exists(evt, "fd.rip"));
-	ASSERT_FALSE(field_exists(evt, "fd.lip"));
-	ASSERT_FALSE(field_exists(evt, "fd.cport"));
-	ASSERT_FALSE(field_exists(evt, "fd.sport"));
-	ASSERT_FALSE(field_exists(evt, "fd.lport"));
-	ASSERT_FALSE(field_exists(evt, "fd.rport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.sip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.cip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.rip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.lip"));
+	ASSERT_FALSE(field_has_value(evt, "fd.cport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.sport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.lport"));
+	ASSERT_FALSE(field_has_value(evt, "fd.rport"));
 
 	/* The parser is not able to obtain an updated fdname because the syscall fails and the parser flow is truncated */
 	fdinfo = evt->get_fd_info();

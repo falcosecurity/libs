@@ -379,26 +379,26 @@ TEST_F(sinsp_with_test_input, spawn_process)
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.pexepath"), "/sbin/init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[1]"), "/sbin/init");
-	ASSERT_FALSE(field_exists(evt, "proc.aexepath[2]"));
-	ASSERT_FALSE(field_exists(evt, "proc.aexepath[3]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.aexepath[2]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.aexepath[3]"));
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.pexe"), "/sbin/init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexe[1]"), "/sbin/init");
-	ASSERT_FALSE(field_exists(evt, "proc.aexe[2]"));
-	ASSERT_FALSE(field_exists(evt, "proc.aexe[3]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.aexe[2]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.aexe[3]"));
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.aname[1]"), "init");
-	ASSERT_FALSE(field_exists(evt, "proc.aname[2]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.aname[2]"));
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.pvpid"), "1");
-	ASSERT_FALSE(field_exists(evt, "proc.apid[2]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.apid[2]"));
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.cmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.pcmdline"), "init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[0]"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[1]"), "init");
-	ASSERT_FALSE(field_exists(evt, "proc.acmdline[2]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.acmdline[2]"));
 
 	// check more fields
 	ASSERT_EQ(get_field_as_string(evt, "proc.args"), "-c 'echo aGVsbG8K | base64 -d'");
@@ -534,8 +534,8 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 	/* Execve exit event */
 	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, (int64_t) 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", (uint64_t) 1024, (uint64_t) 0, (uint64_t) 28, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (uint32_t) 34818, parent_pid, (int32_t) 1000, (uint32_t) 1);
 
-	ASSERT_FALSE(field_exists(evt, "proc.pid"));
-	ASSERT_FALSE(field_exists(evt, "thread.tid"));
+	ASSERT_FALSE(field_has_value(evt, "proc.pid"));
+	ASSERT_FALSE(field_has_value(evt, "thread.tid"));
 
 	/* In the clone caller exit event we set `vtid=tid` and `vpid=pid` since we are never in a container. */
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "4294967312");
@@ -558,10 +558,10 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 	/* Execve exit event */
 	evt = add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_EXECVE_19_X, 20, (int64_t) 0, "/bin/test-exe2", scap_const_sized_buffer{argsv.data(), argsv.size()}, child2_tid, child2_pid, child_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe2", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (uint32_t) 34818, child_pid, (int32_t) 1000, (uint32_t) 1);
 
-	ASSERT_FALSE(field_exists(evt, "proc.pid"));
-	ASSERT_FALSE(field_exists(evt, "thread.tid"));
-	ASSERT_FALSE(field_exists(evt, "proc.ppid"));
-	ASSERT_FALSE(field_exists(evt, "proc.apid[1]"));
+	ASSERT_FALSE(field_has_value(evt, "proc.pid"));
+	ASSERT_FALSE(field_has_value(evt, "thread.tid"));
+	ASSERT_FALSE(field_has_value(evt, "proc.ppid"));
+	ASSERT_FALSE(field_has_value(evt, "proc.apid[1]"));
 
 	/* Now in the clone child exit event we use vtid and vpid of the event */
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "3");
