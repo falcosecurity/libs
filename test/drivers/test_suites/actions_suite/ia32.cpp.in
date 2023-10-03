@@ -46,5 +46,38 @@ TEST(Actions, ia32)
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SOCKET_X);
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT4_6_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT4_6_X);
+
+  /*
+   * Special cases: socketcalls whose SYS_foo code is defined but the syscall is not.
+   * See socketcall_to_syscall.h comment.
+   */
+	if(evt_test->is_modern_bpf_engine())
+	{
+	    /*
+       * ModernBPF jump table is syscalls-indexed;
+       * Since SYS_SEND exists but __NR_send does not on x86_64,
+       * convert_network_syscalls() returns -1 and we don't push anything to consumers.
+       */
+    	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_SEND_E);
+    	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_SEND_X);
+
+    	/*
+    	 * Same as above
+    	 */
+    	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_ACCEPT4_6_E);
+    	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_ACCEPT4_6_X);
+	}
+	else
+	{
+	  /*
+	   * Kmod and old bpf jump table is events-indexed.
+	   * We are able to fallback at sending the events.
+	   */
+    evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SEND_E);
+    evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SEND_X);
+
+    evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT_5_E);
+    evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT_5_X);
+	}
 }
 #endif
