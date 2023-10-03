@@ -200,11 +200,10 @@ endif()
 set_sinsp_target_properties(sinsp)
 
 target_link_libraries(sinsp
-		PUBLIC scap
+		PUBLIC scap "${RE2_LIB}"
 		PRIVATE
 			"${CURL_LIBRARIES}"
 			"${JSONCPP_LIB}"
-			"${RE2_LIB}"
 )
 
 set(SINSP_PKGCONFIG_LIBRARIES
