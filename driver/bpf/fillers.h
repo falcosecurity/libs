@@ -1610,10 +1610,7 @@ FILLER(sys_execveat_e, true)
 	}
 
 	res = bpf_push_s64_to_ring(data, (s64)fd);
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
+	CHECK_RES(res);
 
 	/*
 	 * pathname
@@ -6092,16 +6089,14 @@ FILLER(sys_copy_file_range_x, true)
 	*/
 	fdout = bpf_syscall_get_argument(data, 2);
 	res = bpf_push_s64_to_ring(data, fdout);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	/*
 	* offout
 	*/
 	offout = bpf_syscall_get_argument(data, 3);
 	res = bpf_push_u64_to_ring(data, offout);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 	
 	return res;
 }
@@ -6127,8 +6122,7 @@ FILLER(sys_capset_x, true)
 	val = (unsigned long)cap.val;
 #endif
 	res = bpf_push_u64_to_ring(data, capabilities_to_scap(val));
-	if(unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	cap = _READ(cred->cap_permitted);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
@@ -6137,8 +6131,7 @@ FILLER(sys_capset_x, true)
 	val = (unsigned long)cap.val;
 #endif
 	res = bpf_push_u64_to_ring(data, capabilities_to_scap(val));
-	if(unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	cap = _READ(cred->cap_effective);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
@@ -6407,34 +6400,22 @@ FILLER(sched_prog_exec, false)
 		/* Parameter 2: exe (type: PT_CHARBUF) */
 		data->curarg_already_on_frame = true;
 		res = __bpf_val_to_ring(data, 0, exe_len, PT_CHARBUF, -1, false, KERNEL);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		data->curarg_already_on_frame = true;
 		res = __bpf_val_to_ring(data, 0, args_len - exe_len, PT_BYTEBUF, -1, false, KERNEL);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 	}
 	else
 	{
 		/* Parameter 2: exe (type: PT_CHARBUF) */
 		res = bpf_push_empty_param(data);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		res = bpf_push_empty_param(data);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 	}
 
 	/* Parameter 4: tid (type: PT_PID) */
@@ -6825,34 +6806,22 @@ FILLER(sched_prog_fork, false)
 		/* Parameter 2: exe (type: PT_CHARBUF) */
 		data->curarg_already_on_frame = true;
 		res = __bpf_val_to_ring(data, 0, exe_len, PT_CHARBUF, -1, false, KERNEL);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		data->curarg_already_on_frame = true;
 		res = __bpf_val_to_ring(data, 0, args_len - exe_len, PT_BYTEBUF, -1, false, KERNEL);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 	}
 	else
 	{
 		/* Parameter 2: exe (type: PT_CHARBUF) */
 		res = bpf_push_empty_param(data);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		res = bpf_push_empty_param(data);
-		if(res != PPM_SUCCESS)
-		{
-			return res;
-		}
+		CHECK_RES(res);
 	}
 
 	/* Parameter 4: tid (type: PT_PID) */
@@ -7010,8 +6979,7 @@ FILLER(sched_prog_fork_3, false)
 	/* Parameter 19: vtid (type: PT_PID) */
 	pid_t vtid = bpf_task_pid_vnr(child);
 	res = bpf_push_s64_to_ring(data, vtid);
-	if(res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
 	/* Parameter 20: vpid (type: PT_PID) */
 	pid_t vpid = bpf_task_tgid_vnr(child);
