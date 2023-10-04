@@ -31,11 +31,10 @@ TEST(SyscallEnter, inotify_initE)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: flags (type: PT_FLAGS8) */
-	evt_test->assert_numeric_param(1, (uint8_t)0);
+	// Here we have no parameters to assert.
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(0);
 }
 #endif

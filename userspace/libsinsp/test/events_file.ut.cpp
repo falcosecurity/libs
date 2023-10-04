@@ -190,7 +190,7 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "6");
 
 	fd = 7;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
@@ -404,7 +404,7 @@ TEST_F(sinsp_with_test_input, inotify_init)
 	int64_t res = 15;
 	uint8_t flags = 79;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, flags);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, res);
 
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
