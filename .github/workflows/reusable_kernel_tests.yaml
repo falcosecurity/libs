@@ -90,7 +90,7 @@ jobs:
         
       - uses: actions/upload-artifact@v3
         with:
-          name: matrix_${{ inputs.libsversion }}_${{matrix.architecture}}
+          name: matrix_${{ inputs.libsversion }}_${{matrix.architecture}}.md
           path: ./matrix_gen/matrix_${{matrix.architecture}}.md
           
       - name: Cleanup

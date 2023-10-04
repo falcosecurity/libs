@@ -80,12 +80,12 @@ jobs:
       - name: Download matrix X64
         uses: actions/download-artifact@v3
         with:
-          name: matrix_${{ github.event.release.tag_name }}_X64
+          name: matrix_${{ github.event.release.tag_name }}_X64.md
       
       - name: Download matrix ARM64
         uses: actions/download-artifact@v3
         with:
-          name: matrix_${{ github.event.release.tag_name }}_ARM64
+          name: matrix_${{ github.event.release.tag_name }}_ARM64.md
 
       # Steps:
       # Remove everything after the table (ie: since the first line that starts with "# ",
@@ -95,7 +95,8 @@ jobs:
       # Finally, merge them together
       - name: Append matrixes to create release body
         run: |
-          mv matrix_*/*.md .
+          mv matrix_${{ github.event.release.tag_name }}_X64.md matrix_X64.md
+          mv matrix_${{ github.event.release.tag_name }}_ARM64.md matrix_ARM64.md
           sed -i -n '/# /q;p' matrix_X64.md
           sed -i -n '/# /q;p' matrix_ARM64.md
           sed -i 's/\[\(.\)\]([^)]*)/\1/g' matrix_X64.md
