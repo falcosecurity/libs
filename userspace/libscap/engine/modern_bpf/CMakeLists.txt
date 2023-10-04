@@ -1,4 +1,5 @@
-include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
+include(driver_config)
+include_directories(${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_OUTPUT_DIR} ../noop)
 
 message(STATUS "Build modern BPF engine")
 option(USE_BUNDLED_MODERN_BPF "use bundled modern BPF" ON)

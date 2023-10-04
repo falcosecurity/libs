@@ -1,4 +1,5 @@
-include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
+include(driver_config)
+include_directories(${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_OUTPUT_DIR} ../noop)
 add_library(scap_engine_bpf scap_bpf.c attached_prog.c)
 add_dependencies(scap_engine_bpf libelf scap_platform)
 target_link_libraries(scap_engine_bpf scap_event_schema scap_platform scap_engine_util scap_error ${LIBELF_LIB})
