@@ -1508,8 +1508,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 				size = retval;
 
 		res = val_to_ring(args, size, 0, false, 0);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
+		CHECK_RES(res);
 	}
 
 	/*
@@ -1584,12 +1583,10 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 				bufsize,
 				false,
 				0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			CHECK_RES(res);
 		} else {
 			res = val_to_ring(args, 0, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			CHECK_RES(res);
 		}
 	}
 
@@ -1649,8 +1646,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 				size = retval;
 
 		res = val_to_ring(args, size, 0, false, 0);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
+		CHECK_RES(res);
 	}
 
 	/*
@@ -1717,12 +1713,10 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 				bufsize,
 				false,
 				0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			CHECK_RES(res);
 		} else {
 			res = val_to_ring(args, 0, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			CHECK_RES(res);
 		}
 	}
 
@@ -1764,23 +1758,20 @@ int f_sys_autofill(struct event_filler_arguments *args)
 			val = args->args[evinfo->autofill_args[j].id];
 #endif
 			res = val_to_ring(args, val, 0, true, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			CHECK_RES(res);
 		} else if (evinfo->autofill_args[j].id == AF_ID_RETVAL) {
 			/*
 			 * Return value
 			 */
 			retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 			res = val_to_ring(args, retval, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			CHECK_RES(res);
 		} else if (evinfo->autofill_args[j].id == AF_ID_USEDEFAULT) {
 			/*
 			 * Default Value
 			 */
 			res = val_to_ring(args, evinfo->autofill_args[j].default_val, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+			CHECK_RES(res);
 		} else {
 			ASSERT(false);
 		}
