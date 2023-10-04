@@ -17,7 +17,7 @@ set -e
 mkdir -p third_party
 cd third_party
 
-# === Valijson === 
+# === Valijson ===
 echo "=== Building and installing valijson v0.6 ==="
 
 wget "https://github.com/tristanpenman/valijson/archive/refs/tags/v0.6.tar.gz"
@@ -39,7 +39,7 @@ make install -j
 popd
 
 
-# === RE2 === 
+# === RE2 ===
 echo "=== Building and installing re2 (v2022-06-01) ==="
 
 wget "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
@@ -58,7 +58,7 @@ make -j
 make install -j
 popd
 
-# === Tinydir === 
+# === Tinydir ===
 echo "=== Building and installing tinydir (1.2.5) ==="
 
 wget "https://github.com/cxong/tinydir/archive/refs/tags/1.2.5.tar.gz"
@@ -66,3 +66,8 @@ tar xzf 1.2.5.tar.gz
 pushd tinydir-1.2.5/
 cp tinydir.h /usr/include
 popd
+
+# === uthash ===
+echo "=== Downloading uthash.h (1.9.8) ==="
+
+wget -P "/usr/include" "https://raw.githubusercontent.com/troydhanson/uthash/v1.9.8/src/uthash.h"
