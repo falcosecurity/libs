@@ -77,10 +77,15 @@ jobs:
           echo '!'"[SCHEMA](https://img.shields.io/badge/SCHEMA-${SCHEMA_VERS}-yellow)" >> release-body.md
           echo "" >> release-body.md
       
-      - name: Download matrixes
+      - name: Download matrix X64
         uses: actions/download-artifact@v3
         with:
-          name: matrix_${{ github.event.release.tag_name }}_*
+          name: matrix_${{ github.event.release.tag_name }}_X64
+      
+      - name: Download matrix ARM64
+        uses: actions/download-artifact@v3
+        with:
+          name: matrix_${{ github.event.release.tag_name }}_ARM64
 
       # Steps:
       # Remove everything after the table (ie: since the first line that starts with "# ",
