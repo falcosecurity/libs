@@ -5730,9 +5730,9 @@ FILLER(sys_ptrace_x, true)
 
 FILLER(sys_bpf_e, true)
 {
-	/* Parameter 1: cmd (type: PT_INT64) */
+	/* Parameter 1: cmd (type: PT_INT32) */
 	s32 cmd = (s32)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, (s64)cmd);
+	return bpf_push_s32_to_ring(data, (s32)cmd);
 }
 
 FILLER(sys_bpf_x, true)

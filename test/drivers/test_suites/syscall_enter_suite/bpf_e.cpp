@@ -66,8 +66,8 @@ TEST(SyscallEnter, bpfE)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: cmd (type: PT_INT64) */
-	evt_test->assert_numeric_param(1, (int64_t)cmd);
+	/* Parameter 1: cmd (type: int32_t) */
+	evt_test->assert_numeric_param(1, (int32_t)cmd);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
