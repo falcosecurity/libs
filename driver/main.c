@@ -98,6 +98,9 @@ struct event_data_t {
 	bool compat;
 	/* We need this when we preload syscall params */
 	bool extract_socketcall_params;
+	// notify record_event_consumer that it must skip syscalls of interest check.
+	// used when we were not able to extract a syscall_id from socketcall; instead we extracted a PPME event as a fallback.
+	bool deny_syscalls_filtering;
 	union {
 		struct {
 			struct pt_regs *regs;
@@ -1410,6 +1413,7 @@ static inline struct event_data_t *manage_socketcall(struct event_data_t *event_
 	 * with the socket call mechanism.
 	 */
 	event_data->extract_socketcall_params = true;
+	event_data->deny_syscalls_filtering = !is_syscall_return;
 
 	/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 	if(!is_syscall_return)
@@ -1769,10 +1773,13 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	// Check if syscall is interesting for the consumer
 	if (event_datap->category == PPMC_SYSCALL)
 	{
-		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
-		if(!test_bit(table_index, consumer->syscalls_mask))
+		if (!event_datap->deny_syscalls_filtering)
 		{
-			return res;
+			table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
+			if(!test_bit(table_index, consumer->syscalls_mask))
+			{
+				return res;
+			}
 		}
 
 		if (tp_type == KMOD_PROG_SYS_EXIT && consumer->drop_failed)

@@ -77,9 +77,9 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 		}
 	}
 
+	bool is_syscall_return = true;
 	if(id == socketcall_syscall_id)
 	{
-		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
 		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 		if(!is_syscall_return)
@@ -93,10 +93,15 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 		}
 	}
 
-	enabled = is_syscall_interesting(id);
-	if(!enabled)
+	// Only filter when either we are in a non-socketcall syscall
+	// or when we correctly extracted a syscall id from socketcall
+	if (is_syscall_return)
 	{
-		return 0;
+		enabled = is_syscall_interesting(id);
+		if(!enabled)
+		{
+			return 0;
+		}
 	}
 
 	// Load evt type only if it wasn't already set before (by the socketcall fallback mechanism)
@@ -187,9 +192,9 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		}
 	}
 
+	bool is_syscall_return = true;
 	if(id == socketcall_syscall_id)
 	{
-		bool is_syscall_return;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
 		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 		if(!is_syscall_return)
@@ -203,10 +208,15 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		}
 	}
 
-	enabled = is_syscall_interesting(id);
-	if (!enabled)
+	// Only filter when either we are in a non-socketcall syscall
+	// or when we correctly extracted a syscall id from socketcall
+	if (is_syscall_return)
 	{
-		return 0;
+		enabled = is_syscall_interesting(id);
+		if(!enabled)
+		{
+			return 0;
+		}
 	}
 
 	settings = get_bpf_settings();
