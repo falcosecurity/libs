@@ -41,11 +41,11 @@ int bpf_##event(struct type *ctx)
 
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 {
-	const struct syscall_evt_pair *sc_evt;
+	const struct syscall_evt_pair *sc_evt = NULL;
 	ppm_event_code evt_type = -1;
-	int drop_flags;
-	long id;
-	bool enabled;
+	int drop_flags = 0;
+	long id = 0;
+	bool enabled = false;
 	int socketcall_syscall_id = -1;
 
 #ifdef __NR_socketcall
@@ -79,7 +79,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 
 	if(id == socketcall_syscall_id)
 	{
-		bool is_syscall_return;
+		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
 		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 		if(!is_syscall_return)
@@ -136,13 +136,13 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 
 BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 {
-	const struct syscall_evt_pair *sc_evt;
+	const struct syscall_evt_pair *sc_evt = NULL;
 	ppm_event_code evt_type = -1;
-	int drop_flags;
-	long id;
-	bool enabled;
-	struct scap_bpf_settings *settings;
-	long retval;
+	int drop_flags = 0;
+	long id = 0;
+	bool enabled = false;
+	struct scap_bpf_settings *settings = 0; 
+	long retval = 0;
 	int socketcall_syscall_id = -1;
 
 #ifdef __NR_socketcall
