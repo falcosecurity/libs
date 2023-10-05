@@ -2807,7 +2807,15 @@ void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT st
 	}
 	else if(dirfd == PPM_AT_FDCWD)
 	{
-		*sdir = evt->m_tinfo->get_cwd();
+		if(evt->m_tinfo != NULL)
+		{
+			*sdir = evt->m_tinfo->get_cwd();
+		}
+		else
+		{
+			ASSERT(false);
+			*sdir = "<UNKNOWN>";
+		}
 	}
 	else
 	{

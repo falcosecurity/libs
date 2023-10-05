@@ -429,6 +429,11 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 	{
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
 
+		if(tinfo == NULL)
+		{
+			return NULL;
+		}
+
 		std::filesystem::path tstr = tinfo->get_cwd() + m_tstr;
 		m_tstr = std::filesystem::absolute(tstr).lexically_normal().string();
 	}
