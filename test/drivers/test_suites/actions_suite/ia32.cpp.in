@@ -40,6 +40,10 @@ TEST(Actions, ia32)
 	evt_test->disable_capture();
 
 	/* Retrieve events in order. */
+	// Also check that we receive proper execve events, testing that execve exit event
+	// is properly received, even if it comes from a COMPAT task.
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_EXECVE_19_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_CLOSE_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_CLOSE_X);
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SOCKET_E);
