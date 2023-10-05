@@ -1,7 +1,10 @@
 message(STATUS "Drivers tests build enabled")
 
 ## Configure ia32 action test
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/ia32.cpp.in ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/ia32.cpp)
+option(ENABLE_IA32_TESTS "Enable ia32 tests. Require ia32 glibc and gcc." ON)
+if(ENABLE_IA32_TESTS)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/ia32.cpp.in ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/ia32.cpp)
+endif()
 
 ## Syscall_exit suite files.
 file(GLOB_RECURSE SYSCALL_EXIT_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/syscall_exit_suite/*.cpp)
@@ -46,7 +49,7 @@ set(DRIVERS_TEST_DEPENDECIES
 )
 
 ## IA32 tests are only available on x86_64
-if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64" AND ENABLE_IA32_TESTS)
     add_executable(ia32 ./helpers/ia32.c)
     set_target_properties(ia32 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
     set(DRIVERS_TEST_DEPENDECIES
