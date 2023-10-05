@@ -109,45 +109,23 @@ endif()
 get_filename_component(MODERN_BPFTOOL_EXE "${MODERN_BPFTOOL_EXE}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 message(STATUS "${MODERN_BPF_LOG_PREFIX} bpftool used by the modern bpf probe: '${MODERN_BPFTOOL_EXE}'")
 
-# Check the right bpftool version (>=5.13)
-# Note that the output of `bpftool --version` is in this form `vM.m.p`, we have a `v` before the semver
-execute_process(COMMAND ${MODERN_BPFTOOL_EXE} --version
+# Check the right bpftool version
+# Since we want bpftool to have the gen skeleton subcommands and both
+# gen and skeleton were added together, we can just grep the help
+# output for gen. see:
+#   https://lore.kernel.org/bpf/20191210011438.4182911-12-andriin@fb.com/
+#
+# This is not as strict as checking versions, but it also allows
+# compiling on bpftool versions for backported kernels.
+execute_process(COMMAND sh -c "${MODERN_BPFTOOL_EXE} help 2>&1 | grep -wq 'gen'"
   OUTPUT_VARIABLE BPFTOOL_version_output
   ERROR_VARIABLE BPFTOOL_version_error
   RESULT_VARIABLE BPFTOOL_version_result
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-if(${BPFTOOL_version_result} EQUAL 0)
-  if("${BPFTOOL_version_output}" MATCHES "bpftool v([^\n]+)\n")
-    # Transform X.Y.Z into X;Y;Z which can then be interpreted as a list
-    set(BPFTOOL_VERSION "${CMAKE_MATCH_1}")
-    string(REPLACE "." ";" BPFTOOL_VERSION_LIST ${BPFTOOL_VERSION})
-    list(GET BPFTOOL_VERSION_LIST 0 BPFTOOL_VERSION_MAJOR)
-
-    string(COMPARE LESS ${BPFTOOL_VERSION_MAJOR} 5 BPFTOOL_VERSION_MAJOR_LT5)
-
-    if(${BPFTOOL_VERSION_MAJOR_LT5})
-      message(WARNING "${MODERN_BPF_LOG_PREFIX} bpftool '${BPFTOOL_VERSION}' is too old for compiling the modern BPF probe, you need at least '5.13.0' version")
-    endif()
-
-    string(COMPARE EQUAL ${BPFTOOL_VERSION_MAJOR} 5 BPFTOOL_VERSION_MAJOR_EQ5)
-
-    if(${BPFTOOL_VERSION_MAJOR_EQ5})
-      list(GET BPFTOOL_VERSION_LIST 1 BPFTOOL_VERSION_MINOR)
-      string(COMPARE LESS ${BPFTOOL_VERSION_MINOR} 13 BPFTOOL_VERSION_MINOR_LT13)
-      if(${BPFTOOL_VERSION_MINOR_LT13})
-        message(WARNING "${MODERN_BPF_LOG_PREFIX} bpftool '${BPFTOOL_VERSION}' is too old for compiling the modern BPF probe, you need at least '5.13.0' version")
-      endif()  
-    endif()
-
-    message(STATUS "${MODERN_BPF_LOG_PREFIX} Found bpftool version: ${BPFTOOL_VERSION}")
-  else()
-    message(WARNING "${MODERN_BPF_LOG_PREFIX} Failed to parse bpftool version string: ${BPFTOOL_version_output}")
-  endif()
-else()
-  message(FATAL_ERROR "${MODERN_BPF_LOG_PREFIX} Command \"${MODERN_BPFTOOL_EXE} --version\" failed with output:\n ${BPFTOOL_version_error}")
+if(NOT ${BPFTOOL_version_result} EQUAL 0)
+    message(WARNING "${MODERN_BPF_LOG_PREFIX} bpftool does not support gen command")
 endif()
-
 
 ########################
 # Get clang bpf system includes
