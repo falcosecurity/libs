@@ -324,14 +324,15 @@ static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, i
 	unsigned long arg = 0;
 	unsigned long args_pointer = 0;
 
-	size_t size = sizeof(unsigned long);
+	args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
 	if (bpf_in_ia32_syscall())
 	{
-		size = sizeof(u32);
+		bpf_probe_read_user(&arg, sizeof(u32), (void*)(args_pointer + (idx * sizeof(u32))));
 	}
-	args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
-	bpf_probe_read_user(&arg, size, (void*)(args_pointer + (idx * size)));
-
+	else
+	{
+		bpf_probe_read_user(&arg, sizeof(unsigned long), (void*)(args_pointer + (idx * sizeof(unsigned long))));
+	}
 	return arg;
 }
 
