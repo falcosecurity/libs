@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
 Copyright (C) 2023 The Falco Authors.
