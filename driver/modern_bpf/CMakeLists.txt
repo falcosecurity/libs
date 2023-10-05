@@ -1,3 +1,11 @@
+# SPDX-License-Identifier: GPL-2.0-only OR MIT
+#
+# Copyright (C) 2023 The Falco Authors.
+#
+# This file is dual licensed under either the MIT or GPL 2. See
+# MIT.txt or GPL.txt for full copies of the license.
+#
+
 option(MODERN_BPF_DEBUG_MODE "Enable BPF debug prints" OFF)
 option(MODERN_BPF_EXCLUDE_PROGS "Regex to exclude tail-called programs" "")
 # This is a temporary workaround to solve this regression https://github.com/falcosecurity/libs/issues/1157
