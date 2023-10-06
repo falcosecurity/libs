@@ -56,9 +56,9 @@ static __always_inline u32 extract__syscall_id(struct pt_regs *regs)
 #endif
 }
 
-static __always_inline bool extract__32bit_syscall()
+static __always_inline bool bpf_in_ia32_syscall()
 {
-	uint32_t status;
+	uint32_t status = 0;
 	struct task_struct *task = get_current_task();
 
 #if defined(__TARGET_ARCH_x86)
@@ -87,7 +87,7 @@ static __always_inline unsigned long extract__syscall_argument(struct pt_regs *r
 {
 	unsigned long arg;
 #if defined(__TARGET_ARCH_x86)
-	if (extract__32bit_syscall())
+	if (bpf_in_ia32_syscall())
 	{
 		switch(idx)
 		{
@@ -167,21 +167,24 @@ static __always_inline void extract__network_args(void *argv, int num, struct pt
 	}
 #elif defined(__TARGET_ARCH_x86)
 	int id = extract__syscall_id(regs);
-	if(extract__32bit_syscall() && id == __NR_ia32_socketcall)
+	if(bpf_in_ia32_syscall() && id == __NR_ia32_socketcall)
 	{
-		__builtin_memset(argv, 0, sizeof(unsigned long) * num);
+		// First read all arguments on 32 bits.
+		u32 args_u32[6] = {};
 		unsigned long args_pointer = extract__syscall_argument(regs, 1);
-		for(int i = 0; i < num; i++)
+		bpf_probe_read_user(args_u32, num * sizeof(u32), (void *)args_pointer);
+
+		unsigned long *dst = (unsigned long *)argv;
+		for (int i = 0; i < num; i++)
 		{
-			unsigned long *dst = ((unsigned long *)argv) + i;
-			bpf_probe_read_user(dst, sizeof(u32), ((u32 *)(args_pointer)) + i);
+			dst[i] = args_u32[i];
 		}
 		return;
 	}
 #endif
+	unsigned long *dst = (unsigned long *)argv;
 	for (int i = 0; i < num; i++)
 	{
-		unsigned long *dst = (unsigned long *)argv;
 		dst[i] = extract__syscall_argument(regs, i);
 	}
 }
