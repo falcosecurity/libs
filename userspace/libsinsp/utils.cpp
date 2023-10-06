@@ -1874,9 +1874,10 @@ unsigned int read_num_possible_cpus(void)
 ///////////////////////////////////////////////////////////////////////////////
 // Log helper
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_scap_debug_log_fn(const char* msg)
+void sinsp_scap_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
 {
-	g_logger.log(msg, sinsp_logger::SEV_DEBUG);
+	std::string prefix = (component == NULL) ? "" : std::string(component) + ": ";
+	g_logger.log(prefix + msg, (sinsp_logger::severity)sev);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

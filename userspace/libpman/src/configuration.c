@@ -19,31 +19,35 @@ limitations under the License.
 #include "state.h"
 #include <sys/resource.h>
 
-static int setup_libbpf_print_verbose(enum libbpf_print_level level, const char* format, va_list args)
+static int libbpf_print(enum libbpf_print_level level, const char* format, va_list args)
 {
-	return vfprintf(stderr, format, args);
-}
-
-static int setup_libbpf_print_no_verbose(enum libbpf_print_level level, const char* format, va_list args)
-{
-	if(level == LIBBPF_WARN)
+	enum falcosecurity_log_severity sev;
+	switch(level)
 	{
+	case LIBBPF_WARN:
+		sev = FALCOSECURITY_LOG_SEV_WARNING;
+		break;
+	case LIBBPF_INFO:
+		sev = FALCOSECURITY_LOG_SEV_INFO;
+		break;
+	case LIBBPF_DEBUG:
+		sev = FALCOSECURITY_LOG_SEV_DEBUG;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	if(g_state.log_fn == NULL)
 		return vfprintf(stderr, format, args);
-	}
-	return 0;
-}
 
-static void setup_libbpf_logging(bool verbosity)
-{
-	if(verbosity)
-	{
-		/* `libbpf_set_print` returns the old log function. */
-		libbpf_set_print(setup_libbpf_print_verbose);
-	}
-	else
-	{
-		libbpf_set_print(setup_libbpf_print_no_verbose);
-	}
+	char buf[4096];
+	int rc = vsnprintf(buf, sizeof(buf), format, args);
+	if(rc < 0)
+		return rc;
+
+	// don't need a component name for libbpf, it will prepend "libbpf: " to logs for us
+	g_state.log_fn(NULL, buf, sev);
+	return rc;
 }
 
 void pman_clear_state()
@@ -64,9 +68,11 @@ void pman_clear_state()
 	g_state.last_event_size = 0;
 	g_state.n_attached_progs = 0;
 	g_state.stats = NULL;
+	g_state.log_fn = NULL;
 }
 
-int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer, bool allocate_online_only)
+int pman_init_state(falcosecurity_log_fn log_fn, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer,
+		    bool allocate_online_only)
 {
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 
@@ -76,8 +82,9 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_f
 	 */
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
-	/* Set libbpf verbosity. */
-	setup_libbpf_logging(verbosity);
+	/* Set libbpf logging. */
+	g_state.log_fn = log_fn;
+	libbpf_set_print(libbpf_print);
 
 	/* Bump rlimit in any case. We need to do that because some kernels backport
 	 * just a few features but not all the necessary ones.
@@ -128,7 +135,9 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_f
 	 */
 	if(cpus_for_each_buffer > g_state.n_interesting_cpus)
 	{
-		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!", cpus_for_each_buffer, cpus_for_each_buffer, g_state.n_interesting_cpus);
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN,
+			 "buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!",
+			 cpus_for_each_buffer, cpus_for_each_buffer, g_state.n_interesting_cpus);
 		pman_print_error((const char*)error_message);
 		return -1;
 	}
@@ -160,10 +169,7 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_f
 	return 0;
 }
 
-int pman_get_required_buffers()
-{
-	return g_state.n_required_buffers;
-}
+int pman_get_required_buffers() { return g_state.n_required_buffers; }
 
 /*
  * Probe the kernel for required dependencies, ring buffer maps and tracing
@@ -174,14 +180,14 @@ bool pman_check_support()
 	bool res;
 
 	res = libbpf_probe_bpf_map_type(BPF_MAP_TYPE_RINGBUF, NULL) > 0;
-	if (!res)
+	if(!res)
 	{
 		pman_print_error("ring buffer map type is not supported");
 		return res;
 	}
 
 	res = libbpf_probe_bpf_prog_type(BPF_PROG_TYPE_TRACING, NULL) > 0;
-	if (!res)
+	if(!res)
 	{
 		pman_print_error("tracing program type is not supported");
 		return res;

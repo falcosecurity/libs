@@ -29,6 +29,7 @@ extern "C" {
 #include "scap_cgroup.h"
 #include "scap_platform_impl.h"
 #include "engine_handle.h"
+#include "falcosecurity/log.h"
 
 struct scap_mountinfo;
 
@@ -94,8 +95,7 @@ struct scap_linux_platform
 	uint64_t m_proc_scan_timeout_ms;
 	uint64_t m_proc_scan_log_interval_ms;
 
-	// Function which may be called to log a debug event
-	void(*m_debug_log_fn)(const char* msg);
+        falcosecurity_log_fn m_log_fn;
 
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;
