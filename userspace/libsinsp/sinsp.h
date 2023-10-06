@@ -469,12 +469,6 @@ public:
 	void autodump_stop();
 
 	/*!
-	  \brief Populate the given vector with the full list of filter check fields
-	   that this version of the library supports.
-	*/
-	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>& list);
-
-	/*!
 	  \brief Returns a new instance of a filtercheck supporting fields for
 	  a generic event source (e.g. evt.num, evt.time, evt.pluginname...)
 	*/
