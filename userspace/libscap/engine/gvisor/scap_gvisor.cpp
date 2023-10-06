@@ -548,8 +548,8 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 	{
 		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll_wait error: %s", strerror(errno));
 		if (errno == EINTR) {
-			// Syscall interrupted. Nothing else to read.
-			return SCAP_EOF;
+			// Syscall interrupted.
+			return SCAP_TIMEOUT;
 		}
 		// unhandled error
 		return SCAP_FAILURE;

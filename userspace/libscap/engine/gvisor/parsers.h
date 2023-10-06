@@ -29,39 +29,45 @@ namespace parsers {
 typedef std::function<parse_result(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)> parser;
 
 static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap_sized_buffer scap_buf, bool is_fork);
 static parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf);
+static parse_result parse_sentry_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_close(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf);
 static parse_result parse_chdir(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_setresid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_chroot(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_setresid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_chroot(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_accept(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
-static parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_timerfd_create(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_inotify_init(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_socketpair(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_write(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 
 // List of parsers. Indexes are based on MessageType enum values
 std::vector<parser> dispatchers = {
 	nullptr, 				// MESSAGE_UNKNOWN
 	parse_container_start,
 	parse_sentry_clone, 
-	nullptr, 				// MESSAGE_SENTRY_EXEC
-	nullptr, 				// MESSAGE_SENTRY_EXIT_NOTIFY_PARENT
-	parse_task_exit,
+	nullptr,                                // MESSAGE_SENTRY_EXEC
+	nullptr,                                // MESSAGE_SENTRY_EXIT_NOTIFY_PARENT
+	parse_sentry_task_exit,
 	parse_generic_syscall,
 	parse_open,
-	nullptr, 				// MESSAGE_SYSCALL_CLOSE
+	parse_close,
 	parse_read,
 	parse_connect,
 	parse_execve,
@@ -76,9 +82,18 @@ std::vector<parser> dispatchers = {
    	parse_signalfd,
   	parse_chroot,
   	parse_eventfd,
-  	nullptr, 				// MESSAGE_SYSCALL_CLONE
+  	parse_clone,
   	parse_bind,
   	parse_accept,
+  	parse_timerfd_create,
+	nullptr,				// MESSAGE_SYSCALL_TIMERFD_SETTIME
+	nullptr,				// MESSAGE_SYSCALL_TIMERFD_GETTIME
+  	parse_fork,
+  	parse_inotify_init,
+	nullptr,				// MESSAGE_SYSCALL_INOTIFY_ADD_WATCH
+	nullptr,				// MESSAGE_SYSCALL_INOTIFY_RM_WATCH
+	parse_socketpair,
+	parse_write,
 };
 
 } // namespace parsers

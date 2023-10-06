@@ -135,7 +135,8 @@ static const struct scap_platform_vtable scap_gvisor_platform_vtable = {
 
 struct scap_platform* scap_gvisor_alloc_platform()
 {
-	auto platform = new scap_gvisor_platform;
+	struct scap_gvisor_platform* platform =
+	                 (struct scap_gvisor_platform*)calloc(sizeof(*platform), 1);
 	platform->m_generic.m_vtable = &scap_gvisor_platform_vtable;
 
 	return &platform->m_generic;
