@@ -55,9 +55,13 @@ extern "C" {
 using namespace std;
 
 extern vector<chiseldir_info>* g_chisel_dirs;
-extern sinsp_filter_check_list g_filterlist;
 extern sinsp_evttables g_infotables;
 void lua_stackdump(lua_State *L);
+
+// todo(jasondellaluce): this list is static and prevents chisels from using
+// plugin-defined extraction fields. The right way would be to have a filtercheck
+// list owned by each chisel itself and populate depending on the loaded plugins.
+static sinsp_filter_check_list s_filterlist;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Lua callbacks
@@ -321,7 +325,7 @@ int lua_cbacks::request_field(lua_State *ls)
 		throw sinsp_exception("chisel error");
 	}
 
-	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(fld,
+	sinsp_filter_check* chk = s_filterlist.new_filter_check_from_fldname(fld,
 		inspector,
 		false);
 
