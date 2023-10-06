@@ -108,11 +108,6 @@ public:
 	//
 	static const struct ppm_param_info* find_longest_matching_evt_param(std::string name);
 
-	//
-	// Get the list of filtercheck fields
-	//
-	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>& list);
-
 	static uint64_t get_current_time_ns();
 
 	static bool glob_match(const char *pattern, const char *string);

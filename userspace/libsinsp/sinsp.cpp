@@ -1952,11 +1952,6 @@ scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer()
 	return m_sinsp_stats_v2;
 }
 
-void sinsp::get_filtercheck_fields_info(OUT std::vector<const filter_check_info*>& list)
-{
-	sinsp_utils::get_filtercheck_fields_info(list);
-}
-
 sinsp_filter_check* sinsp::new_generic_filtercheck()
 {
 	return new sinsp_filter_check_gen_event();

@@ -819,11 +819,6 @@ const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::s
 	return res;
 }
 
-void sinsp_utils::get_filtercheck_fields_info(OUT std::vector<const filter_check_info*>& list)
-{
-	g_filterlist.get_all_fields(list);
-}
-
 uint64_t sinsp_utils::get_current_time_ns()
 {
     struct timeval tv;
