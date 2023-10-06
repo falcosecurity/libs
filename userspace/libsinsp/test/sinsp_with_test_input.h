@@ -365,7 +365,7 @@ protected:
 
 	// Return true if `field_name` exists in the filtercheck list.
 	// The field value could also be NULL, but in this method, we are not interested in the value.
-	bool field_exists(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = g_filterlist)
+	bool field_exists(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = m_default_filterlist)
 	{
 		if (evt == nullptr) {
 			throw sinsp_exception("The event class is NULL");
@@ -392,7 +392,7 @@ protected:
 		return chk->extract(evt, values);
 	}
 
-	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = g_filterlist)
+	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = m_default_filterlist)
 	{
 		if (evt == nullptr) {
 			throw sinsp_exception("The event class is NULL");
@@ -427,6 +427,7 @@ protected:
 	std::vector<scap_threadinfo> m_threads;
 	std::vector<std::vector<scap_fdinfo>> m_fdinfos;
 	std::vector<scap_test_fdinfo_data> m_test_fdinfo_data;
+	sinsp_filter_check_list m_default_filterlist;
 
 	uint64_t m_test_timestamp;
 	uint64_t m_last_recorded_timestamp;
