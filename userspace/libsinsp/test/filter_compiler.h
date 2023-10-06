@@ -25,7 +25,8 @@ limitations under the License.
 // passing a NULL out pointer means expecting a failure
 static void filter_compile(sinsp_filter **out, std::string filter)
 {
-	std::shared_ptr<gen_event_filter_factory> factory(new sinsp_filter_factory(NULL));
+	sinsp_filter_check_list flist;
+	std::shared_ptr<gen_event_filter_factory> factory(new sinsp_filter_factory(NULL, flist));
 	sinsp_filter_compiler compiler(factory, filter);
 	try
 	{

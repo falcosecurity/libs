@@ -252,13 +252,13 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(evt->get_tid(), (uint64_t) 1);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
-	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
-	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/tmp");
-	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "the_file");
-	ASSERT_EQ(get_field_as_string(evt, "sample.is_open"), "1");
-	ASSERT_FALSE(field_has_value(evt, "sample.open_count"));
-	ASSERT_FALSE(field_has_value(evt, "sample.evt_count"));
-	ASSERT_EQ(get_field_as_string(evt, "sample.tick"), "false");
+	ASSERT_EQ(get_field_as_string(evt, "fd.name", filterlist), "/tmp/the_file");
+	ASSERT_EQ(get_field_as_string(evt, "fd.directory", filterlist), "/tmp");
+	ASSERT_EQ(get_field_as_string(evt, "fd.filename", filterlist), "the_file");
+	ASSERT_EQ(get_field_as_string(evt, "sample.is_open", filterlist), "1");
+	ASSERT_FALSE(field_has_value(evt, "sample.open_count", filterlist));
+	ASSERT_FALSE(field_has_value(evt, "sample.evt_count", filterlist));
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", filterlist), "false");
 
 	// We check that the plugin don't produce other events but just 1
 	size_t metaevt_count = 0;
@@ -289,9 +289,9 @@ TEST_F(sinsp_with_test_input, plugin_custom_source)
 	ASSERT_EQ(evt->get_source_idx(), 1);
 	ASSERT_EQ(evt->get_tid(), (uint64_t) -1);
 	ASSERT_EQ(std::string(evt->get_source_name()), src_pl->event_source());
-	ASSERT_FALSE(field_has_value(evt, "fd.name"));
-	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname"), src_pl->name());
-	ASSERT_EQ(get_field_as_string(evt, "sample.hello"), "hello world");
+	ASSERT_FALSE(field_has_value(evt, "fd.name", filterlist));
+	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname", filterlist), src_pl->name());
+	ASSERT_EQ(get_field_as_string(evt, "sample.hello", filterlist), "hello world");
 	ASSERT_EQ(next_event(), nullptr); // EOF is expected
 }
 
@@ -449,7 +449,6 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	add_plugin_filterchecks(&m_inspector, ext_pl, srcname, filterlist);
 
 	// check that the async event name is an accepted evt.type value
-	sinsp_filter_check_list filterlist;
 	std::unique_ptr<sinsp_filter_check> chk(filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
 	ASSERT_GT(chk->parse_field_name("evt.type", true, false), 0);
 	ASSERT_NO_THROW(chk->add_filter_value("openat", strlen("openat") + 1, 0));
@@ -486,12 +485,12 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 		{
 			ASSERT_GE(evt->get_ts(), last_ts);
 		}
-		ASSERT_FALSE(field_has_value(evt, "evt.pluginname")); // not available for "syscall" async events
-		ASSERT_FALSE(field_has_value(evt, "evt.plugininfo"));
-		ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "true");
-		ASSERT_EQ(get_field_as_string(evt, "evt.asynctype"), "sampleticker");
-		ASSERT_EQ(get_field_as_string(evt, "evt.type"), "sampleticker");
-		ASSERT_EQ(get_field_as_string(evt, "sample.tick"), "true");
+		ASSERT_FALSE(field_has_value(evt, "evt.pluginname", filterlist)); // not available for "syscall" async events
+		ASSERT_FALSE(field_has_value(evt, "evt.plugininfo", filterlist));
+		ASSERT_EQ(get_field_as_string(evt, "evt.is_async", filterlist), "true");
+		ASSERT_EQ(get_field_as_string(evt, "evt.asynctype", filterlist), "sampleticker");
+		ASSERT_EQ(get_field_as_string(evt, "evt.type", filterlist), "sampleticker");
+		ASSERT_EQ(get_field_as_string(evt, "sample.tick", filterlist), "true");
 		last_ts = evt->get_ts();
 	}
 	m_inspector.close();

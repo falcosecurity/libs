@@ -365,7 +365,12 @@ protected:
 
 	// Return true if `field_name` exists in the filtercheck list.
 	// The field value could also be NULL, but in this method, we are not interested in the value.
-	bool field_exists(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = m_default_filterlist)
+	bool field_exists(sinsp_evt *evt, const std::string& field_name)
+	{
+		return field_exists(evt, field_name, m_default_filterlist);
+	}
+
+	bool field_exists(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist)
 	{
 		if (evt == nullptr) {
 			throw sinsp_exception("The event class is NULL");
@@ -375,7 +380,12 @@ protected:
 	}
 
 	// Return true if `field_name` value is not NULL for this event.
-	bool field_has_value(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = g_filterlist)
+	bool field_has_value(sinsp_evt *evt, const std::string& field_name)
+	{
+		return field_has_value(evt, field_name, m_default_filterlist);
+	}
+
+	bool field_has_value(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist)
 	{
 		if (evt == nullptr) {
 			throw sinsp_exception("The event class is NULL");
@@ -392,7 +402,12 @@ protected:
 		return chk->extract(evt, values);
 	}
 
-	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = m_default_filterlist)
+	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name)
+	{
+		return get_field_as_string(evt, field_name, m_default_filterlist);
+	}
+
+	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist)
 	{
 		if (evt == nullptr) {
 			throw sinsp_exception("The event class is NULL");
