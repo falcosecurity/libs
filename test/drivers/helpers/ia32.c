@@ -6,18 +6,23 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include <linux/openat2.h>  /* Definition of RESOLVE_* constants */
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <linux/net.h>        /* Definition of SYS_* constants */
 
+#ifdef __NR_openat2
+#include <linux/openat2.h>  /* Definition of RESOLVE_* constants */
+#endif
+
 int main() {
+#ifdef __NR_openat2
 	struct open_how how;
 	how.flags = O_RDWR;
 	how.mode = 0;
 	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
 	syscall(__NR_openat2, 11, "mock_path", &how, sizeof(struct open_how));
+#endif
 	syscall(__NR_write, 17, NULL, 1013);
 	unsigned long args[3] = {0};
 	args[0] = AF_INET;
