@@ -25,6 +25,11 @@ using namespace std;
 
 extern sinsp_evttables g_infotables;
 
+// todo(jasondellaluce): this list is static and prevents chisels from using
+// plugin-defined extraction fields. The right way would be to have a filtercheck
+// list owned by each chisel itself and populate depending on the loaded plugins.
+static sinsp_filter_check_list s_filterlist;
+
 //
 //
 // Table sorter functor
@@ -162,7 +167,7 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 
 	for(auto vit : *entries)
 	{
-		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth), 
+		sinsp_filter_check* chk = s_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth), 
 			m_inspector,
 			false);
 
@@ -204,7 +209,7 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 	}
 	else
 	{
-		sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname("util.cnt", 
+		sinsp_filter_check* chk = s_filterlist.new_filter_check_from_fldname("util.cnt", 
 			m_inspector,
 			false);
 
