@@ -339,39 +339,6 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT std::string* res)
 	return tostring_withformat(evt, *res, m_output_format);
 }
 
-sinsp_evt_formatter_cache::sinsp_evt_formatter_cache(sinsp *inspector)
-	: m_inspector(inspector)
-{
-}
-
-sinsp_evt_formatter_cache::~sinsp_evt_formatter_cache()
-{
-}
-
-std::shared_ptr<sinsp_evt_formatter>& sinsp_evt_formatter_cache::get_cached_formatter(std::string &format)
-{
-	auto it = m_formatter_cache.lower_bound(format);
-
-	if(it == m_formatter_cache.end() ||
-	   it->first != format)
-	{
-		it = m_formatter_cache.emplace_hint(it,
-						    std::make_pair(format, std::make_shared<sinsp_evt_formatter>(m_inspector, format)));
-	}
-
-	return it->second;
-}
-
-bool sinsp_evt_formatter_cache::resolve_tokens(sinsp_evt *evt, std::string &format, std::map<std::string,std::string>& values)
-{
-	return get_cached_formatter(format)->resolve_tokens(evt, values);
-}
-
-bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, std::string &format, OUT std::string *res)
-{
-	return get_cached_formatter(format)->tostring(evt, *res);
-}
-
 sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks)
 	: m_inspector(inspector),
 	  m_available_checks(available_checks),
