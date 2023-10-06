@@ -340,8 +340,9 @@ static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data
 							      int idx)
 {
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-	/* We define it here because we support socket calls only on kernels with BPF_SUPPORTS_RAW_TRACEPOINTS */
-	if(bpf_syscall_get_nr(data->ctx) == data->state->tail_ctx.socketcall_syscall_id)
+	// We define it here because we support socket calls only on kernels with BPF_SUPPORTS_RAW_TRACEPOINTS
+	// `data->state->tail_ctx.socketcall_syscall_id != -1` just to improve perf
+	if(data->state->tail_ctx.socketcall_syscall_id != -1 && bpf_syscall_get_nr(data->ctx) == data->state->tail_ctx.socketcall_syscall_id)
 	{
 		return bpf_syscall_get_socketcall_arg(data->ctx, idx);
 	}

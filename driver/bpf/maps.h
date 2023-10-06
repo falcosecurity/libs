@@ -91,6 +91,7 @@ struct bpf_map_def __bpf_section("maps") interesting_syscalls_table = {
 	.max_entries = SYSCALL_TABLE_SIZE,
 };
 
+// The key is the 32-bit syscall code while the value is 64-bit one
 struct bpf_map_def __bpf_section("maps") ia32_64_map = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(u32),
