@@ -19,29 +19,31 @@ int BPF_PROG(sys_enter,
 {
 	int socketcall_syscall_id = -1;
 
-#ifdef __NR_socketcall
-	socketcall_syscall_id = __NR_socketcall;
-#endif
-
-	if(syscalls_dispatcher__check_32bit_syscalls())
+	if(bpf_in_ia32_syscall())
 	{
+#if defined(__TARGET_ARCH_x86)
 		if (syscall_id == __NR_ia32_socketcall)
 		{
 			socketcall_syscall_id = __NR_ia32_socketcall;
 		}
 		else
 		{
-#if defined(__TARGET_ARCH_x86)
 			syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
+			// syscalls defined only on 32 bits are dropped here.
 			if(syscall_id == (u32)-1)
 			{
 				return 0;
 			}
-#else
-			// TODO: unsupported
-			return 0;
-#endif
 		}
+#else
+		return 0;
+#endif
+	}
+	else
+	{
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
 	}
 
 	/* we convert it here in this way the syscall will be treated exactly as the original one */

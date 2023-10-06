@@ -13,11 +13,6 @@
 #include <helpers/base/read_from_task.h>
 #include <helpers/extract/extract_from_kernel.h>
 
-static __always_inline bool syscalls_dispatcher__check_32bit_syscalls()
-{
-	return extract__32bit_syscall();
-}
-
 static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(u32 syscall_id)
 {
 	return maps__64bit_interesting_syscall(syscall_id);
@@ -139,6 +134,31 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 	default:
 		break;
 	}
+
+	/* There are cases in which the socket call code is defined
+	 * but the corresponding syscall code is not.
+	 * For example on s390x machines `SYS_ACCEPT` is defined but
+	 * `__NR_accept` is not. The difference with other drivers is
+	 * that in the modern probe we cannot return the associated event
+	 * instead of the syscall code, so we need to find other workarounds.
+	 *
+	 * Known cases in which the socket call code is defined but
+	 * the corresponding syscall code is not:
+	 *
+	 * ----- s390x
+	 * - `SYS_ACCEPT` is defined but `__NR_accept` is not defined
+	 * -> In this case we return a `__NR_accept4`
+	 *
+	 * ----- x86 with CONFIG_IA32_EMULATION
+	 * - `SYS_ACCEPT` is defined but `__NR_accept` is not defined
+	 * -> In this case we return a `__NR_accept4`
+	 * 
+	 * - `SYS_SEND` is defined but `__NR_send` is not defined
+	 * -> In this case we drop the event
+	 * 
+	 * - `SYS_RECV` is defined but `__NR_recv` is not defined
+	 * -> In this case we drop the event
+	 */
 
 	// Reset NR_socketcall to send a generic even with correct id
 #ifdef __NR_socketcall

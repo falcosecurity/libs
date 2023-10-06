@@ -23,26 +23,22 @@ int BPF_PROG(sys_exit,
 {
 	int socketcall_syscall_id = -1;
 
-#ifdef __NR_socketcall
-	socketcall_syscall_id = __NR_socketcall;
-#endif
-
 	u32 syscall_id = extract__syscall_id(regs);
 
-	if(syscalls_dispatcher__check_32bit_syscalls())
+	if(bpf_in_ia32_syscall())
 	{
+#if defined(__TARGET_ARCH_x86)
 		if (syscall_id == __NR_ia32_socketcall)
 		{
 			socketcall_syscall_id = __NR_ia32_socketcall;
 		}
 		else
 		{
-#if defined(__TARGET_ARCH_x86)
 			/*
-		 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
-		 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
-		 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
-		 * which is a very old syscall, not used anymore by most applications
+			 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+			 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+			 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+			 * which is a very old syscall, not used anymore by most applications
 			 */
 			if(syscall_id != X86_64_NR_EXECVE && syscall_id != X86_64_NR_EXECVEAT)
 			{
@@ -52,11 +48,17 @@ int BPF_PROG(sys_exit,
 					return 0;
 				}
 			}
+		}
 #else
 			// TODO: unsupported
 			return 0;
 #endif
-		}
+	}
+	else
+	{
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
 	}
 
 	/* we convert it here in this way the syscall will be treated exactly as the original one */
