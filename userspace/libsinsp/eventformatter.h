@@ -48,9 +48,9 @@ public:
 	   as the one of the output in Falco rules, so refer to the Falco
 	   documentation for details.
 	*/
-	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks = g_filterlist);
+	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks);
 
-	sinsp_evt_formatter(sinsp* inspector, const std::string& fmt, filter_check_list &available_checks = g_filterlist);
+	sinsp_evt_formatter(sinsp* inspector, const std::string& fmt, filter_check_list &available_checks);
 
 	void set_format(gen_event_formatter::output_format of, const std::string& fmt) override;
 
@@ -120,7 +120,7 @@ private:
 class sinsp_evt_formatter_factory : public gen_event_formatter_factory
 {
 public:
-	sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks=g_filterlist);
+	sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks);
 	virtual ~sinsp_evt_formatter_factory();
 
 	void set_output_format(gen_event_formatter::output_format of) override;
