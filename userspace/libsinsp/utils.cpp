@@ -70,7 +70,6 @@ limitations under the License.
 sinsp_evttables g_infotables;
 sinsp_logger g_logger;
 sinsp_initializer g_initializer;
-sinsp_filter_check_list g_filterlist;
 sinsp_protodecoder_list g_decoderlist;
 
 //

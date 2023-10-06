@@ -51,5 +51,3 @@ public:
 	virtual ~sinsp_filter_check_list();
 };
 
-// This is the "default" filter check list
-extern sinsp_filter_check_list g_filterlist;
