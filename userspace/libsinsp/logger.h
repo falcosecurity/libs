@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include "sinsp_public.h"
+#include "falcosecurity/log.h"
 
 #include <atomic>
 #include <string>
@@ -36,14 +37,14 @@ class SINSP_PUBLIC sinsp_logger
 public:
 	enum severity
 	{
-		SEV_FATAL = 1,
-		SEV_CRITICAL = 2,
-		SEV_ERROR = 3,
-		SEV_WARNING = 4,
-		SEV_NOTICE = 5,
-		SEV_INFO = 6,
-		SEV_DEBUG = 7,
-		SEV_TRACE = 8,
+		SEV_FATAL = FALCOSECURITY_LOG_SEV_FATAL,
+		SEV_CRITICAL = FALCOSECURITY_LOG_SEV_CRITICAL,
+		SEV_ERROR = FALCOSECURITY_LOG_SEV_ERROR,
+		SEV_WARNING = FALCOSECURITY_LOG_SEV_WARNING,
+		SEV_NOTICE = FALCOSECURITY_LOG_SEV_NOTICE,
+		SEV_INFO = FALCOSECURITY_LOG_SEV_INFO,
+		SEV_DEBUG = FALCOSECURITY_LOG_SEV_DEBUG,
+		SEV_TRACE = FALCOSECURITY_LOG_SEV_TRACE,
 	};
 	const static severity SEV_MIN = SEV_FATAL;
 	const static severity SEV_MAX = SEV_TRACE;

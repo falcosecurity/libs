@@ -21,6 +21,8 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "falcosecurity/log.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -50,13 +52,14 @@ extern "C"
 	 * - set available number of CPUs.
 	 * - set dimension of a single per-CPU ring buffer.
 	 *
-	 * @param verbosity use `true` if you want to activate libbpf verbosity.
+	 * @param log_fn logging callback
 	 * @param buf_bytes_dim dimension of a single per-CPU buffer in bytes.
 	 * @param cpus_for_each_buffer number of CPUs to which we want to associate a ring buffer.
 	 * @param allocate_online_only if true, allocate ring buffers taking only into account online CPUs.
 	 * @return `0` on success, `-1` in case of error.
 	 */
-	int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer, bool allocate_online_only);
+	int pman_init_state(falcosecurity_log_fn log_fn, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer,
+			    bool allocate_online_only);
 
 	/**
 	 * @brief Clear the `libpman` global state before it is used.

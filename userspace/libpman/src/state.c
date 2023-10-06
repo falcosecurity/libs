@@ -25,6 +25,27 @@ limitations under the License.
 
 struct internal_state g_state = {};
 
+static void log_error(const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+
+	if(g_state.log_fn != NULL)
+	{
+		char buf[MAX_ERROR_MESSAGE_LEN];
+		vsnprintf(buf, sizeof(buf), fmt, args);
+		g_state.log_fn("libpman", buf, FALCOSECURITY_LOG_SEV_ERROR);
+	}
+	else
+	{
+		fprintf(stderr, "libpman: ");
+		vfprintf(stderr, fmt, args);
+		fprintf(stderr, "\n");
+	}
+
+	va_end(args);
+}
+
 void pman_print_error(const char* error_message)
 {
 	if(!error_message)
@@ -41,19 +62,11 @@ void pman_print_error(const char* error_message)
 		 * and it is extremely confusing. Avoid that by having a special case
 		 * for this error code.
 		 */
-		if (errno == ESRCH)
-		{
-			fprintf(stderr, "libpman: %s (errno: %d | message: %s)\n",
-					error_message, errno, "Object not found");
-		}
-		else
-		{
-			fprintf(stderr, "libpman: %s (errno: %d | message: %s)\n",
-					error_message, errno, strerror(errno));
-		}
+		const char* err_str = (errno == ESRCH) ? "Object not found" : strerror(errno);
+		log_error("%s (errno: %d | message: %s)", error_message, errno, err_str);
 	}
 	else
 	{
-		fprintf(stderr, "libpman: %s\n", error_message);
+		log_error("%s", error_message);
 	}
 }

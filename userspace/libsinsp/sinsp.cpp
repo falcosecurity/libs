@@ -479,7 +479,7 @@ void sinsp::open_common(scap_open_args* oargs)
 
 	add_suppressed_comms(oargs);
 
-	oargs->debug_log_fn = &sinsp_scap_debug_log_fn;
+	oargs->log_fn = &sinsp_scap_log_fn;
 	oargs->proc_scan_timeout_ms = m_proc_scan_timeout_ms;
 	oargs->proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
 

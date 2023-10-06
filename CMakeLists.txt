@@ -102,6 +102,8 @@ if (BUILD_SHARED_LIBS)
 	message(STATUS "Shared library soversion: ${FALCOSECURITY_SHARED_LIBS_SOVERSION}")
 endif()
 
+add_subdirectory(userspace/common)
+
 include(libscap)
 include(libsinsp)
 
