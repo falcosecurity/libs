@@ -157,29 +157,28 @@ static __always_inline unsigned long extract__syscall_argument(struct pt_regs *r
  */
 static __always_inline void extract__network_args(void *argv, int num, struct pt_regs *regs)
 {
-	int id = extract__syscall_id(regs);
 #ifdef __NR_socketcall
+	int id = extract__syscall_id(regs);
 	if(id == __NR_socketcall)
 	{
-		size_t size = sizeof(unsigned long);
+		unsigned long args_pointer = extract__syscall_argument(regs, 1);
+		bpf_probe_read_user(argv, num * sizeof(unsigned long), (void *)args_pointer);
+		return;
+	}
 #elif defined(__TARGET_ARCH_x86)
+	int id = extract__syscall_id(regs);
 	if(extract__32bit_syscall() && id == __NR_ia32_socketcall)
 	{
-		size_t size = sizeof(u32);
-#else
-	if (false)
-	{
-		size_t size = sizeof(unsigned long);
-#endif
 		__builtin_memset(argv, 0, sizeof(unsigned long) * num);
 		unsigned long args_pointer = extract__syscall_argument(regs, 1);
-		for (int i = 0; i < num; i++)
+		for(int i = 0; i < num; i++)
 		{
 			unsigned long *dst = ((unsigned long *)argv) + i;
-			bpf_probe_read_user(dst, size, ((char*)(args_pointer)) + i * size);
+			bpf_probe_read_user(dst, sizeof(u32), ((u32 *)(args_pointer)) + i);
 		}
 		return;
 	}
+#endif
 	for (int i = 0; i < num; i++)
 	{
 		unsigned long *dst = (unsigned long *)argv;
