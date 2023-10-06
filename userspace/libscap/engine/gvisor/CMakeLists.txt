@@ -23,6 +23,7 @@ find_package(Threads)
 
 set(scap_engine_gvisor_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/parsers.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/fillers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/gvisor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/scap_gvisor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/scap_gvisor_platform.cpp

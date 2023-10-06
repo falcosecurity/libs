@@ -26,7 +26,14 @@ limitations under the License.
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <sys/syscall.h> // SYS_* constants
+
+#ifdef __x86_64__
+#include "../../driver/syscall_compat_x86_64.h"
+#elif __aarch64__
+#include "../../driver/syscall_compat_aarch64.h"
+#elif __s390x__
+#include "../../driver/syscall_compat_s390x.h"
+#endif /* __x86_64__ */
 
 #include <functional>
 #include <unordered_map>
@@ -37,6 +44,7 @@ limitations under the License.
 
 #include "gvisor.h"
 #include "parsers.h"
+#include "fillers.h"
 #include "compat/misc.h"
 #include "../../driver/ppm_events_public.h"
 #include "strl.h"
@@ -77,6 +85,14 @@ static void fill_context_data(scap_evt *evt, T& gvisor_evt)
 	evt->tid = generate_tid_field(context_data.thread_id(), context_data.container_id());
 }
 
+static int32_t process_unhandled_syscall(uint64_t sysno, char* error_buf)
+{
+	snprintf(error_buf, SCAP_LASTERR_SIZE,
+	         "Unhandled syscall: %s",
+	         std::to_string(sysno).c_str());
+	return SCAP_NOT_SUPPORTED;
+}
+
 static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
@@ -113,6 +129,18 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	std::string cgroups = "gvisor_container_id=/";
 	cgroups += container_id;
 
+	std::string exe, comm;
+	exe = gvisor_evt.args(0).c_str(); // exe, best available info from gVisor evt 
+	size_t pos = exe.find_last_of("/");
+	if (pos != std::string::npos)
+	{
+		comm = exe.substr(pos + 1);
+	}
+	else
+	{
+		comm = exe;
+	}
+
 	auto& context_data = gvisor_evt.context_data();
 
 	std::string cwd = context_data.cwd();
@@ -121,8 +149,8 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	uint64_t tgid_field = generate_tid_field(1, container_id);
 
 	// encode clone entry
-
-	ret.status = scap_event_encode_params(event_buf, &event_size, scap_err, PPME_SYSCALL_CLONE_20_E, 0);
+	ret.status = scap_gvisor::fillers::fill_event_clone_20_e(
+	                 event_buf, &event_size, scap_err);
 	if (ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
 		return ret;
@@ -143,28 +171,23 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	}
 
 	// encode clone exit
-
-	ret.status = scap_event_encode_params(event_buf, &event_size, scap_err, PPME_SYSCALL_CLONE_20_X, 20,
-		(int64_t) 0, // child tid (0 in the child)
-		gvisor_evt.args(0).c_str(), // actual exe is not currently sent
-		scap_const_sized_buffer{args.data(), args.size()},
-		tid_field, // tid
-		tgid_field, // pid
-		(int64_t) 1, // ptid
-		"", // cwd
-		(uint64_t) 75000, // fdlimit
-		(uint64_t) 0, // pgft_maj
-		(uint64_t) 0, // pgft_min
-		0, // vm_size
-		0, // vm_rss
-		0, // vm_swap
-		gvisor_evt.args(0).c_str(), // comm
-		scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1}, // cgroups
-		0, // clone_flags
-		context_data.credentials().real_uid(), // uid
-		context_data.credentials().real_gid(), // gid
-		(int64_t) 1, // vtid
-		(int64_t) 1); // vpid
+	ret.status = scap_gvisor::fillers::fill_event_clone_20_x(
+	                 event_buf, &event_size, scap_err,
+		         0,          // res = 0 in the child thread
+	                 exe.c_str(),
+	                 scap_const_sized_buffer{args.data(), args.size()},
+	                 tid_field,  // tid
+	                 tgid_field, // pid
+	                 1,          // ptid for initial process
+	                 "/",        // cwd for initial process
+	                 comm.c_str(),
+	                 scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
+	                 0,          // flags -- INVALID/not available in gVisor event
+	                 context_data.credentials().effective_uid(), // uid
+	                 context_data.credentials().effective_gid(), // gid
+	                 1,          // vtid
+	                 1,          // vpid
+			 context_data.thread_start_time_ns()); // pidns_init_start_ts
 
 	if (ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
@@ -186,9 +209,9 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	}
 
 	// encode execve entry
-
-	ret.status = scap_event_encode_params(event_buf, &event_size, scap_err, PPME_SYSCALL_EXECVE_19_E,
-		1, gvisor_evt.args(0).c_str()); // TODO actual exe missing
+	ret.status = scap_gvisor::fillers::fill_event_execve_19_e(
+	                 event_buf, &event_size, scap_err,
+		         gvisor_evt.args(0).c_str()); // TODO actual exe missing
 
 	if (ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
@@ -210,28 +233,18 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	}
 
 	// encode execve exit
-
-	ret.status = scap_event_encode_params(event_buf, &event_size, scap_err, PPME_SYSCALL_EXECVE_19_X, 20,
-		(int64_t) 0, // res
-		gvisor_evt.args(0).c_str(), // actual exe missing
-		scap_const_sized_buffer{args.data(), args.size()},
-		tid_field, // tid
-		tgid_field, // pid
-		(int64_t) -1, // ptid is only needed if we don't have the corresponding clone event
-		cwd.c_str(), // cwd
-		(uint64_t) 75000, // fdlimit ?
-		(uint64_t) 0, // pgft_maj
-		(uint64_t) 0, // pgft_min
-		0, // vm_size
-		0, // vm_rss
-		0, // vm_swap
-		gvisor_evt.args(0).c_str(), // args.c_str() // comm
-		scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1}, // cgroups
-		scap_const_sized_buffer{env.data(), env.size()}, // env
-		0, // tty
-		(int64_t) 0, // pgid
-		UINT32_MAX, // loginuid (auid)
-		0); // flags (not necessary)
+	ret.status = scap_gvisor::fillers::fill_event_execve_19_x(
+	                 event_buf, &event_size, scap_err,
+	                 0, // res
+	                 exe.c_str(),
+	                 scap_const_sized_buffer{args.data(), args.size()},
+	                 tid_field, // tid
+	                 tgid_field, // pid
+	                 cwd.c_str(),
+	                 comm.c_str(),
+	                 scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
+	                 scap_const_sized_buffer{env.data(), env.size()},
+	                 context_data.credentials().effective_uid()); // uid
 	
 	if (ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
@@ -271,6 +284,8 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 		return ret;
 	}
 
+	std::string pathname = gvisor_evt.pathname();
+
 	if(gvisor_evt.has_exit())
 	{
 		std::string args;
@@ -285,9 +300,17 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 			env.push_back('\0');
 		}
 
-		std::string comm, pathname;
-		pathname = gvisor_evt.pathname();
-		comm = pathname.substr(pathname.find_last_of("/") + 1);
+		std::string comm;
+
+		size_t pos = pathname.find_last_of("/");
+		if (pos != std::string::npos)
+		{
+			comm = pathname.substr(pos + 1);
+		}
+		else
+		{
+			comm = pathname;
+		}
 
 		auto& context_data = gvisor_evt.context_data();
 
@@ -296,81 +319,72 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 		std::string cgroups = "gvisor_container_id=/";
 		cgroups += context_data.container_id();
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_EXECVE_19_X, 20,
-			gvisor_evt.exit().result(), // res
-			gvisor_evt.pathname().c_str(), // exe
-			scap_const_sized_buffer{args.data(), args.size()}, // args
-			generate_tid_field(context_data.thread_id(), context_data.container_id()), // tid
-			generate_tid_field(context_data.thread_group_id(), context_data.container_id()), // pid
-			(int64_t) -1, // ptid is only needed if we don't have the corresponding clone event
-			cwd.c_str(), // cwd
-			(uint64_t) 75000, // fdlimit
-			(uint64_t) 0, // pgft_maj
-			(uint64_t) 0, // pgft_min
-			0, // vm_size
-			0, // vm_rss
-			0, // vm_swap
-			comm.c_str(), // comm
-			scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1}, // cgroups
-			scap_const_sized_buffer{env.data(), env.size()}, // env
-			0, // tty
-			(int64_t) 0, // pgid
-			UINT32_MAX, // loginuid (auid)
-			0); // flags (not necessary)
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_execve:
+			ret.status = scap_gvisor::fillers::fill_event_execve_19_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(), // res
+			                 pathname.c_str(), // exe
+			                 scap_const_sized_buffer{args.data(), args.size()},
+			                 generate_tid_field(context_data.thread_id(),
+					                    context_data.container_id()), // tid
+			                 generate_tid_field(context_data.thread_group_id(),
+					                    context_data.container_id()), // pid
+			                 cwd.c_str(), // cwd
+			                 comm.c_str(), // comm
+			                 scap_const_sized_buffer{cgroups.c_str(),
+					                         cgroups.length() + 1},
+			                 scap_const_sized_buffer{env.data(), env.size()},
+			                 0); // uid -- INVALID/not available in gVisor evt
+			break;
 
-	} else 
-	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_EXECVE_19_E, 1, gvisor_evt.pathname().c_str());
+		case __NR_execveat:
+			ret.status = scap_gvisor::fillers::fill_event_execveat_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(), // res
+			                 pathname.c_str(), // exe
+			                 scap_const_sized_buffer{args.data(), args.size()},
+			                 generate_tid_field(context_data.thread_id(),
+					                    context_data.container_id()), // tid
+			                 generate_tid_field(context_data.thread_group_id(),
+					                    context_data.container_id()), // pid
+			                 cwd.c_str(), // cwd
+			                 comm.c_str(), // comm
+			                 scap_const_sized_buffer{cgroups.c_str(),
+					                         cgroups.length() + 1},
+			                 scap_const_sized_buffer{env.data(), env.size()},
+			                 0); // uid -- INVALID/not available in gVisor evt
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
+
 	}
-
-	if (ret.status != SCAP_SUCCESS) {
-		ret.error = scap_err;
-		return ret;
-	}
-
-	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
-	ret.scap_events.push_back(evt);
-
-	return ret;
-}
-
-static parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap_sized_buffer scap_buf, bool is_fork)
-{
-	parse_result ret = {0};
-	ret.status = SCAP_SUCCESS;
-	ret.size = 0;
-	char scap_err[SCAP_LASTERR_SIZE];
-	scap_err[0] = '\0';
-
-	auto& context_data = gvisor_evt.context_data();
-
-	if(gvisor_evt.has_exit())
+	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CLONE_20_X, 20,
-			gvisor_evt.exit().result(), // res
-			"", // exe
-			scap_const_sized_buffer{"", 0}, // args
-			generate_tid_field(context_data.thread_id(), context_data.container_id()), // tid
-			generate_tid_field(context_data.thread_group_id(), context_data.container_id()), // pid
-			(int64_t) 0, // ptid
-			context_data.cwd().c_str(), // cwd
-			(uint64_t) 75000, // fdlimit
-			(uint64_t) 0, // pgft_maj
-			(uint64_t) 0, // pgft_min
-			0, // vm_size
-			0, // vm_rss
-			0, // vm_swap
-			context_data.process_name().c_str(), // comm
-			scap_const_sized_buffer{"", 0},
-			is_fork ? PPM_CL_CLONE_CHILD_CLEARTID|PPM_CL_CLONE_CHILD_SETTID : clone_flags_to_scap(gvisor_evt.arg1()),
-			0,
-			0,
-			gvisor_evt.context_data().thread_id(),
-			gvisor_evt.context_data().thread_group_id());
-	} else
-	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CLONE_20_E, 0);
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_execve:
+			ret.status = scap_gvisor::fillers::fill_event_execve_19_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 pathname.c_str());
+			break;
+
+		case __NR_execveat:
+			ret.status = scap_gvisor::fillers::fill_event_execveat_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 pathname.c_str(),
+			                 execveat_flags_to_scap(gvisor_evt.flags()));
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 
 	if (ret.status != SCAP_SUCCESS) {
@@ -408,27 +422,25 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 
 	uint64_t tid_field = generate_tid_field(gvisor_evt.created_thread_id(), context_data.container_id());
 
-	ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CLONE_20_X, 20,
-		0, // res
-		context_data.process_name().c_str(), // exe
-		scap_const_sized_buffer{"", 0}, // args
-		tid_field, // tid
-		generate_tid_field(gvisor_evt.created_thread_group_id(), context_data.container_id()), // pid
-		generate_tid_field(context_data.thread_id(), context_data.container_id()), // ptid
-		"", // cwd
-		(uint64_t) 75000, // fdlimit
-		(uint64_t) 0, // pgft_maj
-		(uint64_t) 0, // pgft_min
-		0, // vm_size
-		0, // vm_rss
-		0, // vm_swap
-		context_data.process_name().c_str(), // comm
-		scap_const_sized_buffer{cgroups.c_str(), cgroups.size() + 1},
-		0,
-		0,
-		0,
-		gvisor_evt.created_thread_id(),
-		gvisor_evt.created_thread_group_id());
+	ret.status = scap_gvisor::fillers::fill_event_clone_20_x(
+	                 scap_buf, &ret.size, scap_err,
+	                 0,                                       // res for child thread
+	                 context_data.process_name().c_str(),     // exe
+	                 scap_const_sized_buffer{"", 0},          // args -- INV/not available
+	                 tid_field,                               // tid
+	                 generate_tid_field(gvisor_evt.created_thread_group_id(),
+			                    context_data.container_id()), // pid
+	                 generate_tid_field(context_data.thread_id(),
+			                    context_data.container_id()), // ptid
+	                 context_data.cwd().c_str(),              // cwd
+	                 context_data.process_name().c_str(),     // comm
+	                 scap_const_sized_buffer{cgroups.c_str(), cgroups.size() + 1},
+	                 0,                                       // flags -- INV/not available
+	                 0,                                       // uid -- INV/not available
+	                 0,                                       // gid -- INV/not available
+	                 gvisor_evt.created_thread_id(),          // vtid
+	                 gvisor_evt.created_thread_group_id(),    // vpid
+			 context_data.thread_start_time_ns());    // pidns_init_start_ts
 
 	if (ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
@@ -456,27 +468,86 @@ static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_
 		return ret;
 	}
 
-	if(!gvisor_evt.has_exit())
+	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_READ_E, 2,
-							gvisor_evt.fd(),
-							gvisor_evt.count());
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_read:
+			ret.status = scap_gvisor::fillers::fill_event_read_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		case __NR_pread64:
+			ret.status = scap_gvisor::fillers::fill_event_pread_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		case __NR_readv:
+			ret.status = scap_gvisor::fillers::fill_event_readv_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.count());
+			break;
+
+		case __NR_preadv:
+			ret.status = scap_gvisor::fillers::fill_event_preadv_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.count());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_READ_X, 2,
-								gvisor_evt.exit().result(),
-								scap_const_sized_buffer{NULL, 0});
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_read:
+			ret.status = scap_gvisor::fillers::fill_event_read_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.count());
+			break;
+
+		case __NR_pread64:
+			ret.status = scap_gvisor::fillers::fill_event_pread_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.count(),
+			                 gvisor_evt.offset());
+			break;
+
+		case __NR_readv:
+			ret.status = scap_gvisor::fillers::fill_event_readv_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd());
+			break;
+
+		case __NR_preadv:
+			ret.status = scap_gvisor::fillers::fill_event_preadv_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.offset());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 
 	if (ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
 		return ret;
 	}
-	
+
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
 	fill_context_data(evt, gvisor_evt);
-
 	ret.scap_events.push_back(evt);
 
 	return ret;
@@ -623,15 +694,16 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 		return ret;
 	}
 
+	if(gvisor_evt.address().size() == 0)
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "No address data received";
+		return ret;
+	}
+
 	if(gvisor_evt.has_exit())
 	{
 		char targetbuf[socktuple_buffer_size];
-		if(gvisor_evt.address().size() == 0)
-		{
-			ret.status = SCAP_FAILURE;
-			ret.error = "No address data received";
-			return ret;
-		}
 
 		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
 		size_t size = pack_sockaddr_to_remote_tuple(addr, targetbuf);
@@ -642,22 +714,34 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 			return ret;
 		}
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_CONNECT_X, 3,
-								gvisor_evt.exit().result(),
-								scap_const_sized_buffer{targetbuf, size},
-						                gvisor_evt.fd());
-		if (ret.status != SCAP_SUCCESS) {
-			ret.error = scap_err;
-			return ret;
-		}
+		ret.status = scap_gvisor::fillers::fill_event_connect_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result(),
+		                 scap_const_sized_buffer{targetbuf, size},
+		                 gvisor_evt.fd());
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_CONNECT_E, 1, gvisor_evt.fd());
-		if (ret.status != SCAP_SUCCESS) {
-			ret.error = scap_err;
+		char targetbuf[socktuple_buffer_size];
+
+		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
+		size_t size = pack_sockaddr(addr, targetbuf);
+		if (size == 0)
+		{
+			ret.status = SCAP_FAILURE;
+			ret.error = "Could not parse received address";
 			return ret;
 		}
+
+		ret.status = scap_gvisor::fillers::fill_event_connect_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.fd(),
+		                 scap_const_sized_buffer{targetbuf, size});
+	}
+
+	if (ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
@@ -667,7 +751,7 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 	return ret;
 }
 
-static parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf)
+static parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -681,11 +765,17 @@ static parse_result parse_socket(const char *proto, size_t proto_size, scap_size
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(event_buf, &ret.size, scap_err, PPME_SOCKET_SOCKET_X, 1, gvisor_evt.exit().result());
+		ret.status = scap_gvisor::fillers::fill_event_socket_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result());
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(event_buf, &ret.size, scap_err, PPME_SOCKET_SOCKET_E, 3, socket_family_to_scap(gvisor_evt.domain()), gvisor_evt.type(), gvisor_evt.protocol());
+		ret.status = scap_gvisor::fillers::fill_event_socket_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 socket_family_to_scap(gvisor_evt.domain()),
+		                 gvisor_evt.type(),
+		                 gvisor_evt.protocol());
 	}
 
 	if(ret.status != SCAP_SUCCESS)
@@ -694,7 +784,7 @@ static parse_result parse_socket(const char *proto, size_t proto_size, scap_size
 		return ret;
 	}
 
-	scap_evt *evt = static_cast<scap_evt*>(event_buf.buf);
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
 	fill_context_data(evt, gvisor_evt);
 	ret.scap_events.push_back(evt);
 
@@ -704,6 +794,7 @@ static parse_result parse_socket(const char *proto, size_t proto_size, scap_size
 static parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Syscall gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
@@ -712,19 +803,64 @@ static parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 		return ret;
 	}
 
-	switch(gvisor_evt.sysno())
+	if(gvisor_evt.has_exit())
 	{
-		case SYS_clone:
-			return parse_clone(gvisor_evt, scap_buf, true);
-		case SYS_fork:
-			return parse_clone(gvisor_evt, scap_buf, false);
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_mmap:
+			ret.status = scap_gvisor::fillers::fill_event_mmap_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		case __NR_munmap:
+			ret.status = scap_gvisor::fillers::fill_event_munmap_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
 		default:
-			ret.error = std::string("Unhandled syscall: ") + std::to_string(gvisor_evt.sysno());
-			ret.status = SCAP_NOT_SUPPORTED;
-			return ret;
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
-	
-	ret.status = SCAP_FAILURE;
+	else
+	{
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_mmap:
+			ret.status = scap_gvisor::fillers::fill_event_mmap_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.arg1(),
+			                 gvisor_evt.arg2(),
+			                 gvisor_evt.arg3(),
+			                 gvisor_evt.arg4(),
+			                 gvisor_evt.arg5(),
+			                 gvisor_evt.arg6());
+			break;
+
+		case __NR_munmap:
+			ret.status = scap_gvisor::fillers::fill_event_munmap_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.arg1(),
+			                 gvisor_evt.arg2());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
 	return ret;
 }
 
@@ -740,8 +876,6 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 		return ret;
 	}
 
-	ppm_event_code type;
-
 	if(gvisor_evt.has_exit())
 	{
 		char targetbuf[socktuple_buffer_size];
@@ -761,18 +895,46 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 			return ret;
 		}
 
-		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_6_X : PPME_SOCKET_ACCEPT_5_X;
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_accept4:
+			ret.status = scap_gvisor::fillers::fill_event_accept4_6_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 scap_const_sized_buffer{targetbuf, size});
+			break;
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 5,
-			gvisor_evt.fd(),
-			scap_const_sized_buffer{targetbuf, size},
-			0, 0, 0); // queue information missing
+		case __NR_accept:
+			ret.status = scap_gvisor::fillers::fill_event_accept_5_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 scap_const_sized_buffer{targetbuf, size});
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 	else
 	{
-		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_6_E : PPME_SOCKET_ACCEPT_5_E;
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_accept4:
+			ret.status = scap_gvisor::fillers::fill_event_accept4_6_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.flags());
+			break;
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 0);
+		case __NR_accept:
+			ret.status = scap_gvisor::fillers::fill_event_accept_5_e(
+			                 scap_buf, &ret.size, scap_err);
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
@@ -801,14 +963,16 @@ static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_FCNTL_X, 1,
-			gvisor_evt.exit().result());
+		ret.status = scap_gvisor::fillers::fill_event_fcntl_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result());
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_FCNTL_E, 2,
-			gvisor_evt.fd(),
-			fcntl_cmd_to_scap(gvisor_evt.cmd()));
+		ret.status = scap_gvisor::fillers::fill_event_fcntl_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.fd(),
+		                 fcntl_cmd_to_scap(gvisor_evt.cmd()));
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
@@ -855,14 +1019,16 @@ static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_
 			return ret;
 		}
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_BIND_X, 2,
-			gvisor_evt.exit().result(),
-			scap_const_sized_buffer{targetbuf, size});
+		ret.status = scap_gvisor::fillers::fill_event_bind_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result(),
+		                 scap_const_sized_buffer{targetbuf, size});
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_BIND_E, 1,
-			gvisor_evt.fd());
+		ret.status = scap_gvisor::fillers::fill_event_bind_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.fd());
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
@@ -891,15 +1057,16 @@ static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PIPE_X, 4,
-							gvisor_evt.exit().result(),
-							gvisor_evt.reader(),
-							gvisor_evt.writer(),
-							0); // missing "ino"
+		ret.status = scap_gvisor::fillers::fill_event_pipe_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result(),
+		                 gvisor_evt.reader(),
+		                 gvisor_evt.writer());
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PIPE_E, 0);
+		ret.status = scap_gvisor::fillers::fill_event_pipe_e(
+		                 scap_buf, &ret.size, scap_err);
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
@@ -928,18 +1095,76 @@ static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_
 
 	if(gvisor_evt.has_exit())
 	{
-		uint32_t flags = gvisor_evt.flags();
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_open:
+			ret.status = scap_gvisor::fillers::fill_event_open_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.pathname().c_str(),
+			                 open_flags_to_scap(gvisor_evt.flags()),
+			                 open_modes_to_scap(gvisor_evt.flags(),
+			                                    gvisor_evt.mode()));
+			break;
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_OPEN_X, 5,
-		    					gvisor_evt.exit().result(),
-								gvisor_evt.pathname().c_str(),
-								open_flags_to_scap(flags),
-								open_modes_to_scap(gvisor_evt.mode(), flags),
-								0); // missing "dev"
+		case __NR_openat:
+			ret.status = scap_gvisor::fillers::fill_event_openat_2_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.pathname().c_str(),
+			                 open_flags_to_scap(gvisor_evt.flags()),
+			                 open_modes_to_scap(gvisor_evt.mode(),
+			                                    gvisor_evt.flags()));
+			break;
+
+		case __NR_creat:
+			ret.status = scap_gvisor::fillers::fill_event_creat_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.pathname().c_str(),
+			                 open_modes_to_scap(O_CREAT, gvisor_evt.mode()));
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_OPEN_E, 0);
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_open:
+			ret.status = scap_gvisor::fillers::fill_event_open_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.pathname().c_str(),
+			                 open_flags_to_scap(gvisor_evt.flags()),
+			                 open_modes_to_scap(gvisor_evt.mode(),
+			                                    gvisor_evt.flags()));
+			break;
+
+		case __NR_openat:
+			ret.status = scap_gvisor::fillers::fill_event_openat_2_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.pathname().c_str(),
+			                 open_flags_to_scap(gvisor_evt.flags()),
+			                 open_modes_to_scap(gvisor_evt.flags(),
+					                    gvisor_evt.mode()));
+			break;
+
+		case __NR_creat:
+			ret.status = scap_gvisor::fillers::fill_event_creat_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.pathname().c_str(),
+			                 open_modes_to_scap(O_CREAT, gvisor_evt.mode()));
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
@@ -968,14 +1193,47 @@ static parse_result parse_chdir(const char *proto, size_t proto_size, scap_sized
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CHDIR_X, 2,
-							gvisor_evt.exit().result(),
-							gvisor_evt.pathname().c_str());
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_chdir:
+			ret.status = scap_gvisor::fillers::fill_event_chdir_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.pathname().c_str());
+			break;
+
+		case __NR_fchdir:
+			ret.status = scap_gvisor::fillers::fill_event_fchdir_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CHDIR_E, 0);
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_chdir:
+			ret.status = scap_gvisor::fillers::fill_event_chdir_e(
+			                 scap_buf, &ret.size, scap_err);
+			break;
+
+		case __NR_fchdir:
+			ret.status = scap_gvisor::fillers::fill_event_fchdir_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
+
 
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
@@ -1001,24 +1259,53 @@ static parse_result parse_setresid(const char *proto, size_t proto_size, scap_si
 		return ret;
 	}
 
-	ppm_event_code type;
-
 	if(gvisor_evt.has_exit())
 	{
-		type = gvisor_evt.sysno() == SYS_setresuid ? PPME_SYSCALL_SETRESUID_X : PPME_SYSCALL_SETRESGID_X;
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_setresuid:
+			ret.status = scap_gvisor::fillers::fill_event_setresuid_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1,
-		    					gvisor_evt.exit().result()); 
+		case __NR_setresgid:
+			ret.status = scap_gvisor::fillers::fill_event_setresgid_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 	else
 	{
-		type = gvisor_evt.sysno() == SYS_setresuid ? PPME_SYSCALL_SETRESUID_E : PPME_SYSCALL_SETRESGID_E;
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_setresuid:
+			ret.status = scap_gvisor::fillers::fill_event_setresuid_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.rid(),
+			                 gvisor_evt.eid(),
+			                 gvisor_evt.sid());
+			break;
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 3,
-								gvisor_evt.rgid(), 
-								gvisor_evt.egid(),
-								gvisor_evt.sgid());
+		case __NR_setresgid:
+			ret.status = scap_gvisor::fillers::fill_event_setresgid_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.rid(),
+			                 gvisor_evt.eid(),
+			                 gvisor_evt.sid());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
+
 
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
@@ -1044,22 +1331,60 @@ static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized
 		return ret;
 	}
 
-	ppm_event_code type;
-
 	if(gvisor_evt.has_exit())
 	{
-		type = gvisor_evt.sysno() == SYS_setuid ? PPME_SYSCALL_SETUID_X : PPME_SYSCALL_SETGID_X;
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_setuid:
+			ret.status = scap_gvisor::fillers::fill_event_setuid_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1,
-		    					gvisor_evt.exit().result()); 
+		case __NR_setgid:
+			ret.status = scap_gvisor::fillers::fill_event_setgid_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		case __NR_setsid:
+			ret.status = scap_gvisor::fillers::fill_event_setsid_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 	else
 	{
-		type = gvisor_evt.sysno() == SYS_setuid ? PPME_SYSCALL_SETUID_E : PPME_SYSCALL_SETGID_E;
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_setuid:
+			ret.status = scap_gvisor::fillers::fill_event_setuid_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.id());
+			break;
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1,
-								gvisor_evt.id());
+		case __NR_setgid:
+			ret.status = scap_gvisor::fillers::fill_event_setgid_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.id());
+			break;
+
+		case __NR_setsid:
+			ret.status = scap_gvisor::fillers::fill_event_setsid_e(
+			                 scap_buf, &ret.size, scap_err);
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
+
 
 	if(ret.status != SCAP_SUCCESS) {
 		ret.error = scap_err;
@@ -1087,13 +1412,15 @@ static parse_result parse_chroot(const char *proto, size_t proto_size, scap_size
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CHROOT_X, 2,
-							gvisor_evt.exit().result(),
-							gvisor_evt.pathname().c_str());
+		ret.status = scap_gvisor::fillers::fill_event_chroot_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result(),
+		                 gvisor_evt.pathname().c_str());
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CHROOT_E, 0);
+		ret.status = scap_gvisor::fillers::fill_event_chroot_e(
+		                 scap_buf, &ret.size, scap_err);
 	}
 
 	if(ret.status != SCAP_SUCCESS) {
@@ -1124,48 +1451,61 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 	{
 		switch(gvisor_evt.sysno())
 		{
-		case SYS_dup:
-			ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_DUP_1_X, 2,
-							gvisor_evt.exit().result(),
-							gvisor_evt.old_fd());
+		case __NR_dup:
+			ret.status = scap_gvisor::fillers::fill_event_dup_1_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.old_fd());
 			break;
-		case SYS_dup2:
-			ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_DUP2_X, 3,
-							gvisor_evt.exit().result(),
-							gvisor_evt.old_fd(),
-							gvisor_evt.new_fd());
+
+		case __NR_dup2:
+			ret.status = scap_gvisor::fillers::fill_event_dup2_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.old_fd(),
+			                 gvisor_evt.new_fd());
 			break;
-		case SYS_dup3:
-			ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_DUP3_X, 4,
-							gvisor_evt.exit().result(),
-							gvisor_evt.old_fd(),
-							gvisor_evt.new_fd(),
-							dup3_flags_to_scap(gvisor_evt.flags()));
+
+		case __NR_dup3:
+			ret.status = scap_gvisor::fillers::fill_event_dup3_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result(),
+			                 gvisor_evt.old_fd(),
+			                 gvisor_evt.new_fd(),
+			                 dup3_flags_to_scap(gvisor_evt.flags()));
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
 			break;
 		}
 	}
 	else
 	{
-		ppm_event_code type;
-
 		switch(gvisor_evt.sysno())
 		{
-		case SYS_dup:
-			type = PPME_SYSCALL_DUP_1_E;
+		case __NR_dup:
+			ret.status = scap_gvisor::fillers::fill_event_dup_1_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.old_fd());
 			break;
-		case SYS_dup2:
-			type = PPME_SYSCALL_DUP2_E;
-			break;
-		case SYS_dup3:
-			type = PPME_SYSCALL_DUP3_E;
-			break;
-		default:
-			ret.status = SCAP_FAILURE;
-			ret.error = "Unrecognized syscall number for dup family syscalls";
-			return ret;
-		}
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1, gvisor_evt.old_fd());
+		case __NR_dup2:
+			ret.status = scap_gvisor::fillers::fill_event_dup2_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.old_fd());
+			break;
+
+		case __NR_dup3:
+			ret.status = scap_gvisor::fillers::fill_event_dup3_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.old_fd());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
 	}
 
 	if(ret.status != SCAP_SUCCESS)
@@ -1181,10 +1521,11 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 	return ret;
 }
 
-static parse_result parse_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_sentry_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
+
 	gvisor::sentry::TaskExit gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
@@ -1193,8 +1534,13 @@ static parse_result parse_task_exit(const char *proto, size_t proto_size, scap_s
 		return ret;
 	}
 
-	ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_PROCEXIT_1_E, 4, gvisor_evt.exit_status(),
-					(int64_t) 0, 0, 0);
+	int32_t exit_status = gvisor_evt.exit_status();
+	ret.status = scap_gvisor::fillers::fill_event_procexit_1_e(
+	                 scap_buf, &ret.size, scap_err,
+	                 exit_status,
+	                 __WEXITSTATUS(exit_status),
+	                 ((__WIFSIGNALED(exit_status)) ? __WTERMSIG(exit_status): 0),
+	                 ((__WCOREDUMP(exit_status)) ? 1 : 0));
 
 	if(ret.status != SCAP_SUCCESS)
 	{
@@ -1223,18 +1569,20 @@ static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_s
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PRLIMIT_X, 5,
-							gvisor_evt.exit().result(),
-							gvisor_evt.new_limit().cur(),
-							gvisor_evt.new_limit().max(),
-							gvisor_evt.old_limit().cur(),
-							gvisor_evt.old_limit().max());
+		ret.status = scap_gvisor::fillers::fill_event_prlimit_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result(),
+		                 gvisor_evt.new_limit().cur(),
+		                 gvisor_evt.new_limit().max(),
+		                 gvisor_evt.old_limit().cur(),
+		                 gvisor_evt.old_limit().max());
 	}
-	else 
+	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PRLIMIT_E, 2,
-							gvisor_evt.pid(),
-							rlimit_resource_to_scap(gvisor_evt.resource()));
+		ret.status = scap_gvisor::fillers::fill_event_prlimit_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.pid(),
+		                 rlimit_resource_to_scap(gvisor_evt.resource()));
 	}
 
 	if(ret.status != SCAP_SUCCESS)
@@ -1264,15 +1612,17 @@ static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_si
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_SIGNALFD_X, 1,
-							gvisor_evt.exit().result());
+		ret.status = scap_gvisor::fillers::fill_event_signalfd_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result());
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_SIGNALFD_E, 3,
-							gvisor_evt.fd(),
-							gvisor_evt.sigset(),
-							gvisor_evt.flags());
+		ret.status = scap_gvisor::fillers::fill_event_signalfd_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.fd(),
+		                 gvisor_evt.sigset(),
+		                 gvisor_evt.flags());
 	}
 
 	if(ret.status != SCAP_SUCCESS)
@@ -1288,7 +1638,7 @@ static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_si
 	return ret;
 }
 
-parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -1296,20 +1646,22 @@ parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buff
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = "Error unpacking signalfd protobuf message";
+		ret.error = "Error unpacking eventfd protobuf message";
 		return ret;
 	}
 
 	if(gvisor_evt.has_exit())
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_EVENTFD_X, 1,
-						      gvisor_evt.exit().result());
+		ret.status = scap_gvisor::fillers::fill_event_eventfd_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result());
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_EVENTFD_E, 2,
-						      gvisor_evt.val(),
-						      0); // flags not yet implemented, also in the drivers
+		ret.status = scap_gvisor::fillers::fill_event_eventfd_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.val(),
+		                 0); // hardcoded flags=0, matches driver behavior
 	}
 
 	if(ret.status != SCAP_SUCCESS)
@@ -1319,6 +1671,415 @@ parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buff
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_close(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Close gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking close protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_gvisor::fillers::fill_event_close_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result());
+	}
+	else
+	{
+		ret.status = scap_gvisor::fillers::fill_event_close_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.fd());
+	}
+
+	if (ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Clone gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking clone protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		auto& context_data = gvisor_evt.context_data();
+
+		std::string cgroups = "gvisor_container_id=/";
+		cgroups += context_data.container_id();
+
+		ret.status = scap_gvisor::fillers::fill_event_clone_20_x(
+		                 scap_buf, &ret.size, scap_err,
+			         gvisor_evt.exit().result(),
+		                 context_data.process_name().c_str(),  // exe
+		                 scap_const_sized_buffer{"", 0},   // args -- INV/not available
+		                 generate_tid_field(context_data.thread_id(),
+		                                    context_data.container_id()), // tid
+		                 generate_tid_field(context_data.thread_group_id(),
+		                                    context_data.container_id()), // pid
+				 0,                                // ptid -- INV/not available
+		                 context_data.cwd().c_str(),
+		                 context_data.process_name().c_str(),  // comm
+		                 scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
+		                 clone_flags_to_scap(gvisor_evt.flags()),
+		                 context_data.credentials().effective_uid(), // uid
+		                 context_data.credentials().effective_gid(), // gid
+		                 context_data.thread_id(),             // vtid
+		                 context_data.thread_group_id(),       // vpid
+		                 context_data.thread_start_time_ns()); // pidns_init_start_ts
+	}
+	else
+	{
+		ret.status = scap_gvisor::fillers::fill_event_clone_20_e(
+		                     scap_buf, &ret.size, scap_err);
+	}
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_timerfd_create(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::TimerfdCreate gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking timerfd_create protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_gvisor::fillers::fill_event_timerfd_create_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result());
+	}
+	else
+	{
+		ret.status = scap_gvisor::fillers::fill_event_timerfd_create_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.clock_id(),
+		                 gvisor_evt.flags());
+	}
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Fork gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking fork protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		auto& context_data = gvisor_evt.context_data();
+
+		std::string cgroups = "gvisor_container_id=/";
+		cgroups += context_data.container_id();
+
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_fork:
+			ret.status = scap_gvisor::fillers::fill_event_fork_20_x(
+			                 scap_buf, &ret.size, scap_err,
+				         gvisor_evt.exit().result(),
+			                 context_data.process_name().c_str(),  // exe
+			                 generate_tid_field(context_data.thread_id(),
+			                                    context_data.container_id()), // tid
+			                 generate_tid_field(context_data.thread_group_id(),
+			                                    context_data.container_id()), // pid
+			                 context_data.cwd().c_str(),
+			                 context_data.process_name().c_str(),  // comm
+			                 scap_const_sized_buffer{cgroups.c_str(),
+					                         cgroups.length() + 1},
+			                 context_data.credentials().effective_uid(), // uid
+			                 context_data.credentials().effective_gid(), // gid
+			                 context_data.thread_id(),             // vtid
+			                 context_data.thread_group_id(),       // vpid
+		                         context_data.thread_start_time_ns()); // pidns_init_start_ts
+
+		case __NR_vfork:
+			ret.status = scap_gvisor::fillers::fill_event_vfork_20_x(
+			                 scap_buf, &ret.size, scap_err,
+				         gvisor_evt.exit().result(),
+			                 context_data.process_name().c_str(), // exe
+			                 generate_tid_field(context_data.thread_id(),
+			                                    context_data.container_id()), // tid
+			                 generate_tid_field(context_data.thread_group_id(),
+			                                    context_data.container_id()), // pid
+			                 context_data.cwd().c_str(),
+			                 context_data.process_name().c_str(), // comm
+			                 scap_const_sized_buffer{cgroups.c_str(),
+					                         cgroups.length() + 1},
+			                 context_data.credentials().effective_uid(), // uid
+			                 context_data.credentials().effective_gid(), // gid
+			                 context_data.thread_id(),            // vtid
+			                 context_data.thread_group_id(),      // vpid
+		                         context_data.thread_start_time_ns()); // pidns_init_start_ts
+			break;
+
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
+	}
+	else
+	{
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_fork:
+			ret.status = scap_gvisor::fillers::fill_event_fork_20_e(
+			                     scap_buf, &ret.size, scap_err);
+			break;
+
+		case __NR_vfork:
+			ret.status = scap_gvisor::fillers::fill_event_vfork_20_e(
+			                     scap_buf, &ret.size, scap_err);
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
+	}
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_inotify_init(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Eventfd gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking inotify_init protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_gvisor::fillers::fill_event_inotify_init_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result());
+	}
+	else
+	{
+		ret.status = scap_gvisor::fillers::fill_event_inotify_init_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.flags());
+	}
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_socketpair(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::SocketPair gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking socketpair protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_gvisor::fillers::fill_event_socketpair_x(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.exit().result(),
+		                 gvisor_evt.socket1(),
+		                 gvisor_evt.socket2());
+	}
+	else
+	{
+		ret.status = scap_gvisor::fillers::fill_event_socketpair_e(
+		                 scap_buf, &ret.size, scap_err,
+		                 gvisor_evt.domain(),
+		                 gvisor_evt.type(),
+		                 gvisor_evt.protocol());
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_write(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Write gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking write protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_write:
+			ret.status = scap_gvisor::fillers::fill_event_write_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		case __NR_pwrite64:
+			ret.status = scap_gvisor::fillers::fill_event_pwrite_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		case __NR_writev:
+			ret.status = scap_gvisor::fillers::fill_event_writev_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		case __NR_pwritev:
+			ret.status = scap_gvisor::fillers::fill_event_pwritev_x(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.exit().result());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
+	}
+	else
+	{
+		switch(gvisor_evt.sysno())
+		{
+		case __NR_write:
+			ret.status = scap_gvisor::fillers::fill_event_write_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.count());
+			break;
+
+		case __NR_pwrite64:
+			ret.status = scap_gvisor::fillers::fill_event_pwrite_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.count(),
+			                 gvisor_evt.offset());
+			break;
+
+		case __NR_writev:
+			ret.status = scap_gvisor::fillers::fill_event_writev_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.count());
+			break;
+
+		case __NR_pwritev:
+			ret.status = scap_gvisor::fillers::fill_event_pwritev_e(
+			                 scap_buf, &ret.size, scap_err,
+			                 gvisor_evt.fd(),
+			                 gvisor_evt.count(),
+			                 gvisor_evt.offset());
+			break;
+
+		default:
+			ret.status = process_unhandled_syscall(gvisor_evt.sysno(), scap_err);
+			break;
+		}
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
 	fill_context_data(evt, gvisor_evt);
 	ret.scap_events.push_back(evt);
 
@@ -1348,7 +2109,7 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 		ret.error = std::string("Invalid message type 0");
 		ret.status = SCAP_FAILURE;
 		return ret;
- 	}
+	}
 
 	if (message_type >= dispatchers.size()) {
 		ret.error = std::string("No parser registered for message type: ") + std::to_string(message_type);
