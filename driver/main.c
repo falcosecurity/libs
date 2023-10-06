@@ -1413,11 +1413,17 @@ static inline struct event_data_t *manage_socketcall(struct event_data_t *event_
 	 * with the socket call mechanism.
 	 */
 	event_data->extract_socketcall_params = true;
-	event_data->deny_syscalls_filtering = !is_syscall_return;
 
 	/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 	if(!is_syscall_return)
 	{
+		// We need to skip the syscall filtering logic because
+		// the actual `id` is no longer representative for this event.
+		// There could be cases in which we have a `PPME_SOCKET_SEND_E` event
+		// and`id=__NR_ia32_socketcall`...We resolved the correct event type but we cannot
+		// update the `id`.
+		event_data->deny_syscalls_filtering = true;
+	
 		/* The user provided a wrong code, we will send a generic event,
 		 * no need for socket call arguments extraction logic.
 		 */
@@ -2159,12 +2165,11 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	event_data.event_info.syscall_data.id = id;
 	event_data.compat = false;
 
-#ifdef __NR_socketcall
-	socketcall_syscall_id = __NR_socketcall;
-#endif
-
-	if (kmod_in_ia32_syscall())
+	if(kmod_in_ia32_syscall())
 	{
+	// Right now we support 32-bit emulation only on x86.
+	// We try to convert the 32-bit id into the 64-bit one.
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 		event_data.compat = true;
 		if (id == __NR_ia32_socketcall)
 		{
@@ -2172,21 +2177,29 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		}
 		else
 		{
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 			event_data.event_info.syscall_data.id = g_ia32_64_map[id];
+			// syscalls defined only on 32 bits are dropped here.
 			if(event_data.event_info.syscall_data.id == -1)
 			{
 				return;
 			}
-#else
-			// TODO: unsupported
-			return;
-#endif
 		}
+#else
+		// Unsupported arch
+		return;
+#endif		
+	}
+	else
+	{
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
 	}
 
 	g_n_tracepoint_hit_inc();
 
+	// Now all syscalls on 32-bit should be converted to 64-bit apart from `socketcall`.
+	// This one deserves special treatment.
 	if(event_data.event_info.syscall_data.id == socketcall_syscall_id)
 	{
 		if(manage_socketcall(&event_data, socketcall_syscall_id, false) == NULL)
@@ -2269,12 +2282,9 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	event_data.extract_socketcall_params = false;
 	event_data.compat = false;
 
-#ifdef __NR_socketcall
-	socketcall_syscall_id = __NR_socketcall;
-#endif
-
 	if (kmod_in_ia32_syscall())
 	{
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 		event_data.compat = true;
 		if (event_data.event_info.syscall_data.id == __NR_ia32_socketcall)
 		{
@@ -2282,7 +2292,6 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		}
 		else
 		{
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 			/*
 			 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
 			 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
@@ -2302,11 +2311,17 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 					return;
 				}
 			}
-#else
-			// TODO: unsupported
-			return;
-#endif
 		}
+#else
+		// Unsupported arch
+		return;
+#endif
+	}
+	else
+	{
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
 	}
 
 	g_n_tracepoint_hit_inc();
