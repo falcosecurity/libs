@@ -52,6 +52,11 @@ using namespace std;
 extern vector<chiseldir_info>* g_chisel_dirs;
 extern sinsp_evttables g_infotables;
 
+// todo(jasondellaluce): this list is static and prevents chisels from using
+// plugin-defined extraction fields. The right way would be to have a filtercheck
+// list owned by each chisel itself and populate depending on the loaded plugins.
+static sinsp_filter_check_list s_filterlist;
+
 ///////////////////////////////////////////////////////////////////////////////
 // For Lua debugging
 ///////////////////////////////////////////////////////////////////////////////
@@ -221,11 +226,11 @@ void chiselinfo::set_formatter(string formatterstr)
 
 	if(formatterstr == "" || formatterstr == "default")
 	{
-		m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR);
+		m_formatter = new sinsp_evt_formatter(m_inspector, DEFAULT_OUTPUT_STR, s_filterlist);
 	}
 	else
 	{
-		m_formatter = new sinsp_evt_formatter(m_inspector, formatterstr);
+		m_formatter = new sinsp_evt_formatter(m_inspector, formatterstr, s_filterlist);
 	}
 }
 

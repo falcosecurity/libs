@@ -30,8 +30,9 @@ using namespace std;
 TEST(eventformatter, get_field_names)
 {
 	auto inspector = new sinsp();
+	sinsp_filter_check_list filterlist;
 	string output = "this is a sample output %proc.name %fd.type %proc.pid";
-	sinsp_evt_formatter fmt(inspector, output);
+	sinsp_evt_formatter fmt(inspector, output, filterlist);
 	vector<string> output_fields;
 	fmt.get_field_names(output_fields);
 	ASSERT_EQ(output_fields.size(), 3);

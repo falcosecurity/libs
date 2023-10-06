@@ -22,7 +22,6 @@ limitations under the License.
 #include <string>
 #include <vector>
 
-
 #include "filter_check_list.h"
 #include "gen_filter.h"
 #include "filter/parser.h"
@@ -133,6 +132,7 @@ private:
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 	const libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<gen_event_filter_factory> m_factory;
+	sinsp_filter_check_list m_default_filterlist;
 
 	friend class sinsp_evt_formatter;
 };
@@ -142,7 +142,7 @@ private:
 class sinsp_filter_factory : public gen_event_filter_factory
 {
 public:
-	sinsp_filter_factory(sinsp *inspector, filter_check_list &available_checks=g_filterlist);
+	sinsp_filter_factory(sinsp *inspector, filter_check_list &available_checks);
 
 	virtual ~sinsp_filter_factory();
 

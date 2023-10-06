@@ -1577,7 +1577,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 		const std::string& fltstr,
 		bool ttable_only)
 {
-	m_factory.reset(new sinsp_filter_factory(inspector));
+	m_factory.reset(new sinsp_filter_factory(inspector, m_default_filterlist));
 	m_filter = NULL;
 	m_flt_str = fltstr;
 	m_flt_ast = NULL;
