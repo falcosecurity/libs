@@ -48,40 +48,47 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	bool enabled = false;
 	int socketcall_syscall_id = -1;
 
-#ifdef __NR_socketcall
-	socketcall_syscall_id = __NR_socketcall;
-#endif
-
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
 
 	if (bpf_in_ia32_syscall())
 	{
+	// Right now we support 32-bit emulation only on x86.
+	// We try to convert the 32-bit id into the 64-bit one.
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 		if (id == __NR_ia32_socketcall)
 		{
 			socketcall_syscall_id = __NR_ia32_socketcall;
 		}
 		else
 		{
-#ifdef CONFIG_X86_64
 			id = convert_ia32_to_64(id);
+			// syscalls defined only on 32 bits are dropped here.
 			if(id == -1)
 			{
 				return 0;
 			}
-#else
-			// TODO: unsupported
-			return 0;
-#endif
 		}
+#else
+		// Unsupported arch
+		return 0;
+#endif		
 	}
-
-	bool is_syscall_return = true;
+	else
+	{
+	// Right now only s390x supports it
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
+	}
+	
+	// Now all syscalls on 32-bit should be converted to 64-bit apart from `socketcall`.
+	// This one deserves a special treatment
 	if(id == socketcall_syscall_id)
 	{
+		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
-		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 		if(!is_syscall_return)
 		{
 			evt_type = return_code;
@@ -93,20 +100,19 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 		}
 	}
 
-	// Only filter when either we are in a non-socketcall syscall
-	// or when we correctly extracted a syscall id from socketcall
-	if (is_syscall_return)
+	// In case of `evt_type!=-1`, we need to skip the syscall filtering logic because
+	// the actual `id` is no longer representative for this event.
+	// There could be cases in which we have a `PPME_SOCKET_SEND_E` event
+	// and`id=__NR_ia32_socketcall`...We resolved the correct event type but we cannot
+	// update the `id`.
+	if (evt_type == -1)
 	{
 		enabled = is_syscall_interesting(id);
 		if(!enabled)
 		{
 			return 0;
 		}
-	}
 
-	// Load evt type only if it wasn't already set before (by the socketcall fallback mechanism)
-	if (evt_type == -1)
-	{
 		sc_evt = get_syscall_info(id);
 		if(!sc_evt)
 			return 0;
@@ -150,23 +156,19 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	long retval = 0;
 	int socketcall_syscall_id = -1;
 
-#ifdef __NR_socketcall
-	socketcall_syscall_id = __NR_socketcall;
-#endif
-
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
 
 	if (bpf_in_ia32_syscall())
 	{
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 		if (id == __NR_ia32_socketcall)
 		{
 			socketcall_syscall_id = __NR_ia32_socketcall;
 		}
 		else
 		{
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 			/*
 			 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
 			 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
@@ -185,18 +187,23 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 					return 0;
 				}
 			}
-#else
-			// TODO: unsupported
-			return 0;
-#endif
 		}
+#else
+		// Unsupported arch
+		return 0;
+#endif
+	}
+	else
+	{
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
 	}
 
-	bool is_syscall_return = true;
 	if(id == socketcall_syscall_id)
 	{
+		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
-		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
 		if(!is_syscall_return)
 		{
 			evt_type = return_code + 1; // we are in sys_exit!
@@ -208,34 +215,13 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		}
 	}
 
-	// Only filter when either we are in a non-socketcall syscall
-	// or when we correctly extracted a syscall id from socketcall
-	if (is_syscall_return)
+	if(evt_type == -1)
 	{
 		enabled = is_syscall_interesting(id);
 		if(!enabled)
 		{
 			return 0;
 		}
-	}
-
-	settings = get_bpf_settings();
-	if (!settings)
-		return 0;
-
-	/* Check if syscall was successful */
-	if (settings->drop_failed)
-	{
-		retval = bpf_syscall_get_retval(ctx);
-		if (retval < 0)
-		{
-			return 0;
-		}
-	}
-
-	// Load evt type only if it wasn't already set before (by the socketcall fallback mechanism)
-	if (evt_type == -1)
-	{
 		sc_evt = get_syscall_info(id);
 		if(!sc_evt)
 			return 0;
@@ -249,6 +235,20 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		{
 			evt_type = PPME_GENERIC_X;
 			drop_flags = UF_ALWAYS_DROP;
+		}
+	}
+
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+
+	// Drop failed syscalls if necessary
+	if (settings->drop_failed)
+	{
+		retval = bpf_syscall_get_retval(ctx);
+		if (retval < 0)
+		{
+			return 0;
 		}
 	}
 
