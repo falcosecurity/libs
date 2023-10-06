@@ -51,7 +51,7 @@ static void add_plugin_filterchecks(
 		sinsp* i,
 		std::shared_ptr<sinsp_plugin> p,
 		const std::string& src,
-		filter_check_list& fl = g_filterlist)
+		filter_check_list& fl)
 {
 	if (p->caps() & CAP_EXTRACTION
 		&& sinsp_plugin::is_source_compatible(p->extract_event_sources(), src))
@@ -237,9 +237,10 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	size_t syscall_source_idx = 0;
 	std::string syscall_source_name = sinsp_syscall_event_source_name;
 
+	sinsp_filter_check_list filterlist;
 	auto src_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_source);
 	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
-	add_plugin_filterchecks(&m_inspector, ext_pl, sinsp_syscall_event_source_name);
+	add_plugin_filterchecks(&m_inspector, ext_pl, sinsp_syscall_event_source_name, filterlist);
 
 	// we will not use the test scap engine here, but open the src plugin instead
 	// note: we configure the plugin to just emit 1 event through its open params
@@ -273,9 +274,10 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 // event source of another plugin should extract values from its events
 TEST_F(sinsp_with_test_input, plugin_custom_source)
 {
+	sinsp_filter_check_list filterlist;
 	auto src_pl = register_plugin(&m_inspector, get_plugin_api_sample_plugin_source);
 	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_plugin_extract);
-	add_plugin_filterchecks(&m_inspector, ext_pl, src_pl->event_source());
+	add_plugin_filterchecks(&m_inspector, ext_pl, src_pl->event_source(), filterlist);
 
 	// we will not use the test scap engine here, but open the src plugin instead
 	// note: we configure the plugin to just emit 1 event through its open params
@@ -441,12 +443,14 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	std::string async_pl_cfg = std::to_string(max_count) + ":" + std::to_string(period_ns);
 	std::string srcname = sinsp_syscall_event_source_name;
 
+	sinsp_filter_check_list filterlist;
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_async, async_pl_cfg);
 	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
-	add_plugin_filterchecks(&m_inspector, ext_pl, srcname);
+	add_plugin_filterchecks(&m_inspector, ext_pl, srcname, filterlist);
 
 	// check that the async event name is an accepted evt.type value
-	std::unique_ptr<sinsp_filter_check> chk(g_filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
+	sinsp_filter_check_list filterlist;
+	std::unique_ptr<sinsp_filter_check> chk(filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
 	ASSERT_GT(chk->parse_field_name("evt.type", true, false), 0);
 	ASSERT_NO_THROW(chk->add_filter_value("openat", strlen("openat") + 1, 0));
 	ASSERT_NO_THROW(chk->add_filter_value("sampleticker", strlen("sampleticker") + 1, 1));
