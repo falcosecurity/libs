@@ -2,7 +2,7 @@
 
 #ifdef __NR_recvmsg
 
-#if defined(__NR_accept4) && defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) && defined(__NR_sendto)
+#if defined(__NR_accept4) && defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) && defined(__NR_sendto) && defined(__NR_sendmsg)
 
 TEST(SyscallExit, recvmsgX_tcp_connection_no_snaplen)
 {
@@ -537,6 +537,130 @@ TEST(SyscallExit, recvmsgX_fail)
 	evt_test->assert_empty_param(5);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+}
+
+TEST(SyscallExit, recvmsg_ancillary_data)
+{
+	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	struct sockaddr_un client_addr = {0};
+	struct sockaddr_un server_addr = {0};
+	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	int64_t received_bytes, sent_bytes, msg_controllen;
+	struct msghdr msg;
+	struct cmsghdr *cmsg;
+	char cmsg_buf[CMSG_SPACE(sizeof(int))];
+	struct iovec iov = {
+		.iov_base = (void *)FULL_MESSAGE, 
+		.iov_len = FULL_MESSAGE_LEN,
+	};
+
+	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
+	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
+	assert_syscall_state(SYSCALL_SUCCESS, "accept (server)", connected_socket_fd, NOT_EQUAL, -1);
+
+	/* Now we can fork. We still maintain the connected_socket_fd in both parent and child processes */
+	pid_t pid = fork();
+	if(pid)
+	{
+		/* Create a socket. It is used to pass it to the child process, just for test purposes */
+		int sock = socket(AF_UNIX, SOCK_STREAM, 0);
+		msg = {
+			.msg_iov = &iov,
+			.msg_iovlen = 1,
+			.msg_control = cmsg_buf,
+			.msg_controllen = sizeof(cmsg_buf)
+		};
+		msg_controllen = msg.msg_controllen;
+
+		cmsg = CMSG_FIRSTHDR(&msg);
+		cmsg->cmsg_level = SOL_SOCKET;
+		cmsg->cmsg_type = SCM_RIGHTS;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(sock));
+
+		memcpy(CMSG_DATA(cmsg), &sock, sizeof(sock));
+
+		sent_bytes = syscall(__NR_sendmsg, client_socket_fd, &msg, 0);
+		assert_syscall_state(SYSCALL_SUCCESS, "sendmsg (client)", sent_bytes, NOT_EQUAL, -1);;
+
+		int wstatus;
+		waitpid(-1, &wstatus, 0);
+
+		syscall(__NR_shutdown, sock);
+		syscall(__NR_close, sock);
+	} else
+	{
+		char buf[FULL_MESSAGE_LEN];
+		struct iovec iov = {
+			iov.iov_base = (void *)buf,
+			iov.iov_len = sizeof(buf)
+		};
+
+		struct msghdr msg = {
+			.msg_iov = &iov,
+			.msg_iovlen = 1,
+			.msg_control = cmsg_buf,
+			.msg_controllen = sizeof(cmsg_buf)
+		};
+
+		msg.msg_iov = &iov;
+		msg.msg_iovlen = 1;
+		iov.iov_base = (void *)buf;
+		iov.iov_len = sizeof(buf);
+
+		received_bytes = syscall(__NR_recvmsg, connected_socket_fd, &msg, 0);
+		assert_syscall_state(SYSCALL_SUCCESS, "recvmsg (server)", received_bytes, NOT_EQUAL, -1);
+		exit(0);
+	}
+
+	/* Cleaning phase */
+	syscall(__NR_shutdown, connected_socket_fd, 2);
+	syscall(__NR_shutdown, server_socket_fd, 2);
+	syscall(__NR_shutdown, client_socket_fd, 2);
+	syscall(__NR_close, connected_socket_fd);
+	syscall(__NR_close, server_socket_fd);
+	syscall(__NR_close, client_socket_fd);
+	syscall(__NR_unlinkat, 0, UNIX_CLIENT, 0);
+	syscall(__NR_unlinkat, 0, UNIX_SERVER, 0);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence(pid);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+	
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)FULL_MESSAGE_LEN);
+
+	/* Parameter 2: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (uint32_t)FULL_MESSAGE_LEN);
+
+	/* Parameter 3: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(3, FULL_MESSAGE, DEFAULT_SNAPLEN);
+
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(5, (const char *)cmsg, msg_controllen);	
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(5);
 }
 
 #endif
