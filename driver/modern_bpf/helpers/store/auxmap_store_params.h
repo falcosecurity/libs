@@ -945,8 +945,10 @@ static __always_inline void auxmap__store_msghdr_size_param(struct auxiliary_map
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param msghdr_pointer pointer to `user_msghdr` struct.
  * @param len_to_read imposed snaplen.
+ * 
+ * @return the `user_msghdr` struct that has been read.
  */
-static __always_inline void auxmap__store_msghdr_data_param(struct auxiliary_map *auxmap, unsigned long msghdr_pointer, unsigned long len_to_read)
+static __always_inline struct user_msghdr auxmap__store_msghdr_data_param(struct auxiliary_map *auxmap, unsigned long msghdr_pointer, unsigned long len_to_read)
 {
 	/* Read the usr_msghdr struct into the stack, if we fail,
 	 * we return an empty param.
@@ -956,10 +958,11 @@ static __always_inline void auxmap__store_msghdr_data_param(struct auxiliary_map
 	{
 		/* in case of NULL msghdr we return an empty param */
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
-		return;
+		return msghdr;
 	}
 
 	auxmap__store_iovec_data_param(auxmap, (unsigned long)msghdr.msg_iov, msghdr.msg_iovlen, len_to_read);
+	return msghdr;
 }
 
 /**
