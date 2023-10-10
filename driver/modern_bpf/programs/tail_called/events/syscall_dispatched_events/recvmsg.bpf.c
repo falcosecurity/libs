@@ -89,11 +89,19 @@ int BPF_PROG(recvmsg_x,
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		unsigned long msghdr_pointer = args[1];
-		auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, snaplen);
+		struct user_msghdr msghhdr = auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, snaplen);
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 		u32 socket_fd = (u32)args[0];
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
+
+		/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+		if (msghhdr.msg_control != NULL)
+		{
+			auxmap__store_bytebuf_param(auxmap, (unsigned long)msghhdr.msg_control, msghhdr.msg_controllen, USER);
+		} else {
+			auxmap__store_empty_param(auxmap);
+		}
 	}
 	else
 	{
@@ -104,6 +112,9 @@ int BPF_PROG(recvmsg_x,
 		auxmap__store_empty_param(auxmap);
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
+		auxmap__store_empty_param(auxmap);
+
+		/* Parameter 5: msg_control (type: PT_BYTEBUF) */
 		auxmap__store_empty_param(auxmap);
 	}
 
