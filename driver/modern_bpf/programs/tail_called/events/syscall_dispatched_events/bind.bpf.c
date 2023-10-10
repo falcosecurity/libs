@@ -16,6 +16,10 @@ int BPF_PROG(bind_e,
 	     struct pt_regs *regs,
 	     long id)
 {
+	/* Collect parameters at the beginning to easily manage socketcalls */
+	unsigned long args[1];
+	extract__network_args(args, 1, regs);
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, ctx, BIND_E_SIZE, PPME_SOCKET_BIND_E))
 	{
@@ -25,10 +29,6 @@ int BPF_PROG(bind_e,
 	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Collect parameters at the beginning to easily manage socketcalls */
-	unsigned long args[1];
-	extract__network_args(args, 1, regs);
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)args[0];

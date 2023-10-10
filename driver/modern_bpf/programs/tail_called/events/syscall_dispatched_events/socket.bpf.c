@@ -15,6 +15,10 @@ int BPF_PROG(socket_e,
 	     struct pt_regs *regs,
 	     long id)
 {
+	/* Collect parameters at the beginning so we can easily manage socketcalls */
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKET_E_SIZE, PPME_SOCKET_SOCKET_E))
 	{
@@ -24,10 +28,6 @@ int BPF_PROG(socket_e,
 	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
-
-	/* Collect parameters at the beginning so we can easily manage socketcalls */
-	unsigned long args[3];
-	extract__network_args(args, 3, regs);
 
 	/* Parameter 1: domain (type: PT_ENUMFLAGS32) */
 	/* why to send 32 bits if we need only 8 bits? */
