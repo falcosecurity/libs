@@ -2877,6 +2877,10 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		res = push_empty_param(args);
 		CHECK_RES(res);
 
+		/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+
 		return add_sentinel(args);
 	}
 
@@ -2958,6 +2962,22 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 			    false,
 			    0);
 	CHECK_RES(res);
+	
+	/* 
+		msg_control: ancillary data.
+	*/
+	if (mh.msg_control != NULL && mh.msg_controllen > 0)
+	{
+		res = val_to_ring(args, (uint64_t)mh.msg_control, (uint32_t)mh.msg_controllen, true, 0);
+		CHECK_RES(res);
+	}
+	else 
+	{
+		/* pushing empty data */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+	}
+
 	return add_sentinel(args);
 }
 
