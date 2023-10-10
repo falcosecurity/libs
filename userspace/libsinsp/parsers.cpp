@@ -4927,6 +4927,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			// which is used to pass FDs between processes, and update the sinsp state 
 			// accordingly via procfs scan.
 			//
+#ifndef _WIN32
 			if(etype == PPME_SOCKET_RECVMSG_X && evt->get_num_params() >= 5)
 			{
 				parinfo = evt->get_param(4);
@@ -4949,6 +4950,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					}
 				}
 			}
+#endif
 		
 		}
 		else
