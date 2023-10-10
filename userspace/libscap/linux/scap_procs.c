@@ -1377,3 +1377,15 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_pro
 	}
 	return SCAP_SUCCESS;
 }
+
+int32_t scap_linux_get_fdlist(struct scap_platform* platform, struct scap_threadinfo *tinfo, char *lasterr)
+{
+	uint64_t num_fds_ret = 0;
+	char proc_dir[SCAP_MAX_PATH_SIZE];
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/%d/", scap_get_host_root(), tinfo->pid);
+
+	return scap_fd_scan_fd_dir(linux_platform, &platform->m_proclist, proc_dir, tinfo, &sockets_by_ns, &num_fds_ret, lasterr);
+}

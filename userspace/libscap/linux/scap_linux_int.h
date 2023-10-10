@@ -52,6 +52,7 @@ int32_t scap_linux_refresh_proc_table(struct scap_platform* platform, struct sca
 bool scap_linux_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm);
 int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t *pid, char* error);
 int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_proclist_info **procinfo_p, char *lasterr);
+int32_t scap_linux_get_fdlist(struct scap_platform* platform, struct scap_threadinfo *tinfo, char *lasterr);
 
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char *error);
