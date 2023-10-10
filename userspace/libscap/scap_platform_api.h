@@ -30,6 +30,7 @@ extern "C" {
 
 struct ppm_proclist_info;
 struct scap;
+struct scap_fdinfo;
 struct scap_addrlist;
 struct _scap_machine_info;
 struct scap_threadinfo;
@@ -125,6 +126,11 @@ const scap_agent_info* scap_get_agent_info(struct scap* handle);
   \brief Get the process list.
 */
 struct ppm_proclist_info* scap_get_threadlist(struct scap* handle);
+
+/*!
+  \brief Get the file descriptor list for a given pid.
+*/
+int32_t scap_get_fdlist(struct scap* handle, struct scap_threadinfo* tinfo);
 
 #ifdef __cplusplus
 };

@@ -159,3 +159,19 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "operation not supported");
 	return NULL;
 }
+
+
+int32_t scap_get_fdlist(struct scap* handle, struct scap_threadinfo *tinfo)
+{
+	if (handle && handle->m_platform && handle->m_platform->m_vtable->get_fdlist)
+	{	
+		int32_t res = handle->m_platform->m_vtable->get_fdlist(handle->m_platform, tinfo, handle->m_lasterr);
+		if(res != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
+	}
+
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "operation not supported");
+	return SCAP_FAILURE;
+}
