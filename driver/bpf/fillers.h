@@ -4187,6 +4187,10 @@ FILLER(sys_recvmsg_x, true)
 		CHECK_RES(res);
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
+		res = bpf_push_empty_param(data);
+		CHECK_RES(res);
+
+		/* Parameter 5: msg_control (type: PT_BYTEBUF) */
 		return bpf_push_empty_param(data);
 	}
 
@@ -4225,49 +4229,57 @@ FILLER(sys_recvmsg_x_2, true)
 	retval = bpf_syscall_get_retval(data->ctx);
 
 	/*
-	 * tuple
+	 * tuple and msg_control
 	 */
-	if (retval >= 0) {
-		/*
-		 * Retrieve the message header
-		 */
-		val = bpf_syscall_get_argument(data, 1);
-		if (bpf_probe_read_user(&mh, sizeof(mh), (void *)val))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
 
-		/*
-		 * Get the address
-		 */
-		usrsockaddr = (struct sockaddr *)mh.msg_name;
-		addrlen = mh.msg_namelen;
+	/*
+	* Retrieve the message header
+	*/
+	val = bpf_syscall_get_argument(data, 1);
+	if (bpf_probe_read_user(&mh, sizeof(mh), (void *)val))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
 
-		if (usrsockaddr && addrlen != 0) {
+	/*
+	* Get the address
+	*/
+	usrsockaddr = (struct sockaddr *)mh.msg_name;
+	addrlen = mh.msg_namelen;
+
+	if (usrsockaddr && addrlen != 0) {
+		/*
+		* Copy the address
+		*/
+		res = bpf_addr_to_kernel(usrsockaddr,
+						addrlen,
+						(struct sockaddr *)data->tmp_scratch);
+
+		if (res >= 0) {
+			fd = bpf_syscall_get_argument(data, 0);
+
 			/*
-			 * Copy the address
-			 */
-			res = bpf_addr_to_kernel(usrsockaddr,
-						 addrlen,
-						 (struct sockaddr *)data->tmp_scratch);
-
-			if (res >= 0) {
-				fd = bpf_syscall_get_argument(data, 0);
-
-				/*
-				 * Convert the fd into socket endpoint information
-				 */
-				size = bpf_fd_to_socktuple(data,
-							   fd,
-							   (struct sockaddr *)data->tmp_scratch,
-							   addrlen,
-							   true,
-							   true,
-							   data->tmp_scratch + sizeof(struct sockaddr_storage));
-			}
+			* Convert the fd into socket endpoint information
+			*/
+			size = bpf_fd_to_socktuple(data,
+							fd,
+							(struct sockaddr *)data->tmp_scratch,
+							addrlen,
+							true,
+							true,
+							data->tmp_scratch + sizeof(struct sockaddr_storage));
 		}
 	}
 
 	data->curarg_already_on_frame = true;
 	res = __bpf_val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false, KERNEL);
+	CHECK_RES(res);
+
+	if(mh.msg_control != NULL)
+	{
+		res = __bpf_val_to_ring(data, (unsigned long)mh.msg_control, mh.msg_controllen, PT_BYTEBUF, -1, false, USER);
+	} else 
+	{
+		res = bpf_push_empty_param(data);
+	}
 
 	return res;
 }
