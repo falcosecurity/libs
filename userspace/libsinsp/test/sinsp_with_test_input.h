@@ -159,7 +159,11 @@ protected:
 
 	/*=============================== PROCESS GENERATION ===========================*/
 
-	sinsp_evt* generate_clone_x_event(int64_t retval, int64_t tid, int64_t pid, int64_t ppid, uint32_t flags = 0, int64_t vtid = DEFAULT_VALUE, int64_t vpid = DEFAULT_VALUE, std::string name = "bash")
+	// Allowed event types: PPME_SYSCALL_CLONE_20_X, PPME_SYSCALL_FORK_20_X, PPME_SYSCALL_VFORK_20_X, PPME_SYSCALL_CLONE3_X
+	sinsp_evt* generate_clone_x_event(int64_t retval, int64_t tid, int64_t pid, int64_t ppid, uint32_t flags = 0,
+					  int64_t vtid = DEFAULT_VALUE, int64_t vpid = DEFAULT_VALUE,
+					  std::string name = "bash", std::vector<std::string> cgroup_vec = {},
+					  ppm_event_code event_type = PPME_SYSCALL_CLONE_20_X)
 	{
 		if(vtid == DEFAULT_VALUE)
 		{
@@ -174,23 +178,54 @@ protected:
 		/* Scaffolding needed to call the PPME_SYSCALL_CLONE_20_X */
 		uint64_t not_relevant_64 = 0;
 		uint32_t not_relevant_32 = 0;
-		scap_const_sized_buffer empty_bytebuf = {/*.buf =*/ nullptr, /*.size =*/ 0};
-		return add_event_advance_ts(increasing_ts(), tid, PPME_SYSCALL_CLONE_20_X, 20, retval, name.c_str(), empty_bytebuf, tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, name.c_str(), empty_bytebuf, flags, not_relevant_32, not_relevant_32, vtid, vpid);
+
+		scap_const_sized_buffer empty_bytebuf = {/*.buf =*/nullptr, /*.size =*/0};
+		scap_const_sized_buffer cgroup_byte_buf = empty_bytebuf;
+		std::string cgroupsv = test_utils::to_null_delimited(cgroup_vec);
+
+		/* If the cgroup vector is not empty overwrite it */
+		if(!cgroup_vec.empty())
+		{
+			cgroup_byte_buf = scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()};
+		}
+
+		return add_event_advance_ts(increasing_ts(), tid, event_type, 20, retval, name.c_str(), empty_bytebuf,
+					    tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64,
+					    not_relevant_32, not_relevant_32, not_relevant_32, name.c_str(),
+					    cgroup_byte_buf, flags, not_relevant_32, not_relevant_32, vtid, vpid);
 	}
 
-	sinsp_evt* generate_execve_enter_and_exit_event(int64_t retval, int64_t old_tid, int64_t new_tid, int64_t pid, int64_t ppid, std::string pathname = "/bin/test-exe", std::string comm = "test-exe", std::string resolved_kernel_path = "/bin/test-exe")
+	sinsp_evt* generate_execve_enter_and_exit_event(int64_t retval, int64_t old_tid, int64_t new_tid, int64_t pid,
+							int64_t ppid, std::string pathname = "/bin/test-exe",
+							std::string comm = "test-exe",
+							std::string resolved_kernel_path = "/bin/test-exe",
+							std::vector<std::string> cgroup_vec = {})
 	{
 		/* Scaffolding needed to call the PPME_SYSCALL_EXECVE_19_X */
 		uint64_t not_relevant_64 = 0;
 		uint32_t not_relevant_32 = 0;
-		scap_const_sized_buffer empty_bytebuf = {/*.buf =*/ nullptr, /*.size =*/ 0};
+		scap_const_sized_buffer empty_bytebuf = {/*.buf =*/nullptr, /*.size =*/0};
+		scap_const_sized_buffer cgroup_byte_buf = empty_bytebuf;
+		std::string cgroupsv = test_utils::to_null_delimited(cgroup_vec);
+
+		/* If the cgroup vector is not empty overwrite it */
+		if(!cgroup_vec.empty())
+		{
+			cgroup_byte_buf = scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()};
+		}
 
 		add_event_advance_ts(increasing_ts(), old_tid, PPME_SYSCALL_EXECVE_19_E, 1, pathname.c_str());
 		/* we have an `old_tid` and a `new_tid` because if a secondary thread calls the
 		 * execve the thread leader will take control so the `tid` between enter and exit event
 		 * will change
 		 * */
-		return add_event_advance_ts(increasing_ts(), new_tid, PPME_SYSCALL_EXECVE_19_X, 28, retval, pathname.c_str(), empty_bytebuf, new_tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, comm.c_str(), empty_bytebuf, empty_bytebuf, not_relevant_32, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, resolved_kernel_path.c_str());
+		return add_event_advance_ts(
+			increasing_ts(), new_tid, PPME_SYSCALL_EXECVE_19_X, 28, retval, pathname.c_str(), empty_bytebuf,
+			new_tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32,
+			not_relevant_32, not_relevant_32, comm.c_str(), cgroup_byte_buf, empty_bytebuf, not_relevant_32,
+			not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_64, not_relevant_64,
+			not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32,
+			resolved_kernel_path.c_str());
 	}
 
 	void remove_thread(int64_t tid_to_remove, int64_t reaper_tid)
