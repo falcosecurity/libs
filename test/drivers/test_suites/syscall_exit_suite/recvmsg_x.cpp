@@ -93,13 +93,16 @@ TEST(SyscallExit, recvmsgX_tcp_connection_no_snaplen)
 		/// TODO: If the socket is connected, the msg_name and msg_namelen members shall be ignored, but
 		/// right now we use them to send data also in TCP connections so we need to change this behavior!
 		evt_test->assert_empty_param(4);
-		evt_test->assert_num_params_pushed(4);
+		evt_test->assert_num_params_pushed(5);
 		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple but we have all the data in the kernel to obtain the correct tuple" << std::endl;
 	}
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvmsgX_tcp_connection_snaplen)
@@ -188,13 +191,16 @@ TEST(SyscallExit, recvmsgX_tcp_connection_snaplen)
 	else
 	{
 		evt_test->assert_empty_param(4);
-		evt_test->assert_num_params_pushed(4);
+		evt_test->assert_num_params_pushed(5);
 		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple but we have all the data in the kernel to obtain the correct tuple" << std::endl;
 	}
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvmsgX_tcp_connection_NULL_sockaddr)
@@ -283,13 +289,16 @@ TEST(SyscallExit, recvmsgX_tcp_connection_NULL_sockaddr)
 	else
 	{
 		evt_test->assert_empty_param(4);
-		evt_test->assert_num_params_pushed(4);
+		evt_test->assert_num_params_pushed(5);
 		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple because the pointer to sockaddr is NULL, but we should rely on kernel structs" << std::endl;
 	}
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvmsgX_udp_connection_snaplen)
@@ -370,7 +379,7 @@ TEST(SyscallExit, recvmsgX_udp_connection_snaplen)
 		 * we don't use the userspace struct.
 		 */
 		evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_EMPTY, IPV4_SERVER, IPV4_PORT_EMPTY_STRING, IPV4_PORT_SERVER_STRING);
-		evt_test->assert_num_params_pushed(4);
+		evt_test->assert_num_params_pushed(5);
 		GTEST_SKIP() << "[RECVMSG_X]: we are not able to get the sorce ip + port because right now we don't use the userspace struct." << std::endl;
 	}
 	else
@@ -378,9 +387,12 @@ TEST(SyscallExit, recvmsgX_udp_connection_snaplen)
 		evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
 	}
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, recvmsgX_udp_connection_NULL_sockaddr)
@@ -469,9 +481,12 @@ TEST(SyscallExit, recvmsgX_udp_connection_NULL_sockaddr)
 		GTEST_SKIP() << "[RECVMSG_X]: we send an empty tuple, but we can at least send the dest ip and source" << std::endl;
 	}
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
 
@@ -517,6 +532,9 @@ TEST(SyscallExit, recvmsgX_fail)
 
 	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_empty_param(4);
+
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 }
