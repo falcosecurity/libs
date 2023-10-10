@@ -4921,6 +4921,35 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					(*it)->on_read(evt, data, datalen);
 				}
 			}
+
+			//
+			// Check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS,
+			// which is used to pass FDs between processes, and update the sinsp state 
+			// accordingly via procfs scan.
+			//
+			if(etype == PPME_SOCKET_RECVMSG_X && evt->get_num_params() >= 5)
+			{
+				parinfo = evt->get_param(4);
+				if(parinfo->m_len > sizeof(struct cmsghdr))
+				{
+					struct cmsghdr *cmsg = (struct cmsghdr *)parinfo->m_val;
+					if(cmsg->cmsg_type == SCM_RIGHTS)
+					{
+						auto scap_tinfo = scap_proc_alloc(m_inspector->m_h);
+						m_inspector->m_thread_manager->thread_to_scap(*evt->m_tinfo, scap_tinfo);
+
+						// Get the new fds. The callbacks we have registered populate the fd table
+						// with the new file descriptors.
+						if (scap_get_fdlist(m_inspector->m_h, scap_tinfo) != SCAP_SUCCESS)
+						{
+							g_logger.format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed, proc table will not be updated with new fds.");
+						}
+
+						scap_proc_free(m_inspector->m_h, scap_tinfo);
+					}
+				}
+			}
+		
 		}
 		else
 		{
