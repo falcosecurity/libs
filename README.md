@@ -5,7 +5,6 @@
 [![CI Build](https://github.com/falcosecurity/libs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/falcosecurity/libs/actions/workflows/ci.yml)
 [![Architectures](https://img.shields.io/badge/ARCHS-x86__64%7Caarch64%7Cs390x-blueviolet)](#drivers-officially-supported-architectures)
 [![Drivers](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/FedeDP/1cbc5d42edf8e3a02fb75e76625f1072/raw/kernel.json)](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml)
-[![Kernel Tests](https://github.com/falcosecurity/libs/actions/workflows/kernel_tests.yaml/badge.svg)](https://github.com/falcosecurity/libs/actions/workflows/kernel_tests.yaml)
 [![Github Pages](https://github.com/falcosecurity/libs/actions/workflows/pages.yml/badge.svg)](https://falcosecurity.github.io/libs/)
 
 This repository contains **libsinsp**, **libscap**, the **kernel module** and the **eBPF probes** sources.
