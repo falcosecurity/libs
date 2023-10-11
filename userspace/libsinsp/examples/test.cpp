@@ -55,12 +55,13 @@ static bool ppm_sc_modifies_state = false;
 static bool ppm_sc_repair_state = false;
 static bool ppm_sc_state_remove_io_sc = false;
 static bool enable_glogger = false;
-string engine_string = KMOD_ENGINE; /* Default for backward compatibility. */
-string filter_string = "";
-string file_path = "";
-string bpf_path = "";
-unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+static string engine_string = KMOD_ENGINE; /* Default for backward compatibility. */
+static string filter_string = "";
+static string file_path = "";
+static string bpf_path = "";
+static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint64_t max_events = UINT64_MAX;
+static sinsp_filter_check_list s_filterlist;
 
 sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error);
 
@@ -413,9 +414,9 @@ int main(int argc, char** argv)
 
 	inspector.start_capture();
 
-	default_formatter = std::make_unique<sinsp_evt_formatter>(&inspector, default_output);
-	process_formatter = std::make_unique<sinsp_evt_formatter>(&inspector, process_output);
-	net_formatter = std::make_unique<sinsp_evt_formatter>(&inspector, net_output);
+	default_formatter = std::make_unique<sinsp_evt_formatter>(&inspector, default_output, s_filterlist);
+	process_formatter = std::make_unique<sinsp_evt_formatter>(&inspector, process_output, s_filterlist);
+	net_formatter = std::make_unique<sinsp_evt_formatter>(&inspector, net_output, s_filterlist);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	uint64_t num_events = 0;
