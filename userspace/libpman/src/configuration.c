@@ -18,6 +18,10 @@ limitations under the License.
 
 #include "state.h"
 #include <sys/resource.h>
+#include <linux/limits.h>
+#include <sys/utsname.h>
+#include <fcntl.h> /* Definition of AT_* constants */
+#include <unistd.h>
 
 static int libbpf_print(enum libbpf_print_level level, const char* format, va_list args)
 {
@@ -171,15 +175,126 @@ int pman_init_state(falcosecurity_log_fn log_fn, unsigned long buf_bytes_dim, ui
 
 int pman_get_required_buffers() { return g_state.n_required_buffers; }
 
+static char byte_array[] = "BPF_TRACE_RAW_TP";
+
+bool check_BPF_TRACE_RAW_TP(void)
+{
+	// These locations are taken from libbpf library:
+	// https://elixir.bootlin.com/linux/latest/source/tools/lib/bpf/btf.c#L4767
+	const char *locations[] = {
+		/* try canonical vmlinux BTF through sysfs first */
+		"/sys/kernel/btf/vmlinux",
+		/* fall back to trying to find vmlinux on disk otherwise */
+		"/boot/vmlinux-%1$s",
+		"/lib/modules/%1$s/vmlinux-%1$s",
+		"/lib/modules/%1$s/build/vmlinux",
+		"/usr/lib/modules/%1$s/kernel/vmlinux",
+		"/usr/lib/debug/boot/vmlinux-%1$s",
+		"/usr/lib/debug/boot/vmlinux-%1$s.debug",
+		"/usr/lib/debug/lib/modules/%1$s/vmlinux",
+	};
+	char path[PATH_MAX + 1];
+	struct utsname buf;
+	char *data = NULL;
+	FILE *f = NULL;
+	uname(&buf);
+
+	for (int i = 0; i < sizeof(locations) / sizeof(*locations); i++)
+	{
+		snprintf(path, PATH_MAX, locations[i], buf.release);
+
+		// On success `faccessat` returns 0.
+		if(faccessat(0, path, R_OK, AT_EACCESS) != 0)
+		{
+			// The file doesn't exist, loop on the next one.
+			continue;
+		}
+
+		f = fopen(path, "r");
+		if(!f)
+		{
+			goto loop_again;
+		}
+
+		// Seek to the end of file
+		if(fseek(f, 0, SEEK_END))
+		{
+			goto loop_again;
+		}
+		
+		// Return the dimension of the file
+		long sz = ftell(f);
+		if (sz < 0)
+		{
+			goto loop_again;
+		}
+
+		// Seek again to the beginning of the file
+		if(fseek(f, 0, SEEK_SET))
+		{
+			goto loop_again;
+		}
+
+		// pre-alloc memory to read all of BTF data 
+		data = malloc(sz);
+		if (!data)
+		{
+			goto loop_again;
+		}
+
+		// read all of BTF data
+		if(fread(data, 1, sz, f) < sz)
+		{
+			goto loop_again;
+		}
+
+		// Search 'BPF_TRACE_RAW_TP' byte array
+		int z = 0;
+		for(int j = 0; j< sz; j++)
+		{
+			if(data[j] == byte_array[z])
+			{
+				z++;
+				if(z == sizeof(byte_array) / sizeof(*byte_array))
+				{
+					fclose(f);
+					free(data);
+					return true;
+				}
+			}
+			else
+			{
+				z = 0;
+			}
+		}
+loop_again:
+
+		if(f)
+		{
+			fclose(f);
+			f = NULL;
+		}
+		if(data)
+		{
+			free(data);
+			data = NULL;
+		}
+	}
+
+	// Clear the errno for `pman_print_error`
+	errno = 0;
+	pman_print_error("prog 'BPF_TRACE_RAW_TP' is not supported");
+	return false;
+}
+
+
 /*
  * Probe the kernel for required dependencies, ring buffer maps and tracing
  * progs needs to be supported.
  */
 bool pman_check_support()
 {
-	bool res;
-
-	res = libbpf_probe_bpf_map_type(BPF_MAP_TYPE_RINGBUF, NULL) > 0;
+	bool res = libbpf_probe_bpf_map_type(BPF_MAP_TYPE_RINGBUF, NULL) > 0;
 	if(!res)
 	{
 		pman_print_error("ring buffer map type is not supported");
@@ -189,8 +304,11 @@ bool pman_check_support()
 	res = libbpf_probe_bpf_prog_type(BPF_PROG_TYPE_TRACING, NULL) > 0;
 	if(!res)
 	{
-		pman_print_error("tracing program type is not supported");
-		return res;
+		// The above function checks for the `BPF_TRACE_FENTRY` attach type presence, while we need
+		// to check for the `BPF_TRACE_RAW_TP` one. If `BPF_TRACE_FENTRY` is defined we are
+		// sure `BPF_TRACE_RAW_TP` is defined as well, in all other cases, we need to search
+		// for it in the `vmlinux` file.
+		return check_BPF_TRACE_RAW_TP();
 	}
 
 	/* Probe result depends on the success of map creation, no additional
