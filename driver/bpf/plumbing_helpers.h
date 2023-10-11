@@ -735,10 +735,12 @@ cleanup:
 	release_local_state(state);
 }
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 static __always_inline long convert_network_syscalls(void *ctx, bool *is_syscall)
 {
 	int socketcall_id = (int)bpf_syscall_get_argument_from_ctx(ctx, 0);
 	return socketcall_code_to_syscall_code(socketcall_id, is_syscall);
 }
+#endif
 
 #endif
