@@ -13,7 +13,6 @@ TEST(SyscallEnter, mknodE_failure)
 	uint32_t mode = 0060000 | 0666;
 	uint32_t dev = 61440;
 	assert_syscall_state(SYSCALL_FAILURE, "mknod", syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
-	int64_t errno_value = -errno;
 
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
