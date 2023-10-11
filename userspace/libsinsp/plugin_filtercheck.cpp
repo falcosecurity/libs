@@ -55,59 +55,73 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 {
 	int32_t res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 
+	m_arg_present = false;
+	m_arg_key = NULL;
+	m_arg_index = 0;
 	m_argstr.clear();
 
+	// the field is parsed successfully
 	if(res != -1)
 	{
-		m_arg_present = false;
-		m_arg_key = NULL;
-		m_arg_index = 0;
-		// Read from str to the end-of-string, or first space
 		string val(str);
-		size_t val_end = val.find_first_of(' ', 0);
-		if(val_end != string::npos)
+		trim(val);
+		
+		// search for the field's argument
+		size_t arg_len = 0;
+		size_t arg_pos = val.find_first_of('[', 0);
+		if(arg_pos != string::npos)
 		{
-			val = val.substr(0, val_end);
-		}
-
-		size_t pos1 = val.find_first_of('[', 0);
-		if(pos1 != string::npos)
-		{
-			size_t argstart = pos1 + 1;
-			if(argstart < val.size())
+			if (res != (int32_t) arg_pos)
 			{
-				m_argstr = val.substr(argstart);
-				size_t pos2 = m_argstr.find_first_of(']', 0);
-				if(pos2 != string::npos)
-				{
-					m_argstr = m_argstr.substr(0, pos2);
-					if (!(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED
-							|| m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
-					{
-						throw sinsp_exception(string("filter ") + string(str) + string(" ")
-							+ m_field->m_name + string(" does not allow nor require an argument but one is provided: " + m_argstr));
-					}
-
-					m_arg_present = true;
-
-					if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
-					{
-						extract_arg_index(str);
-					}
-
-					if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
-					{
-						extract_arg_key();
-					}
-
-					return pos1 + pos2 + 2;
-				}
+				// check that we matched the whole field string and not just its prefix
+				return -1;
 			}
-			throw sinsp_exception(string("filter ") + string(str) + string(" ") + m_field->m_name + string(" has a badly-formatted argument"));
+
+			// extract the argument string with proper boundary checks
+			size_t argstart = arg_pos + 1;
+			if(argstart >= val.size())
+			{
+				throw sinsp_exception(string("filter '") + str + string("': ") + m_field->m_name + string(" terminates with incomplete argument brackets"));
+			}
+			m_argstr = val.substr(argstart);
+			arg_len = m_argstr.find_first_of(']', 0);
+			if(arg_len == string::npos)
+			{
+				throw sinsp_exception(string("filter '") + str + string("': ") + m_field->m_name + string(" has unbalanced argument brackets"));
+			}
+			m_argstr = m_argstr.substr(0, arg_len);
+			m_arg_present = true;
+
+			// we have an argument, check if the field is supposed not to have one
+			if (!(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED
+					|| m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
+			{
+				throw sinsp_exception(string("filter '") + string(str) + string("': ")
+					+ m_field->m_name + string(" does not allow nor require an argument but one is provided: " + m_argstr));
+			}
+			
+			// parse the argument content, which can either be an index or a key
+			if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
+			{
+				extract_arg_index(str);
+			}
+			if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
+			{
+				extract_arg_key();
+			}
+
+			// update the parsed len taking into account both the name and the argument
+			res = arg_pos + arg_len + 2;
 		}
-		if (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED)
+		else if (res != (int32_t) val.size())
 		{
-			throw sinsp_exception(string("filter ") + string(str) + string(" ") + m_field->m_name + string(" requires an argument but none provided"));
+			// check that we matched the whole field string and not just its prefix
+			return -1;
+		}
+	
+		if (!m_arg_present && (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
+		{
+			throw sinsp_exception(string("filter '") + string(str) + string("': ") + m_field->m_name + string(" requires an argument but none provided"));
 		}
 	}
 
