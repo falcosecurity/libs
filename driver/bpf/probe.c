@@ -87,6 +87,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	// This one deserves a special treatment
 	if(id == socketcall_syscall_id)
 	{
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
 		if(!is_syscall_return)
@@ -98,6 +99,10 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 		{
 			id = return_code;
 		}
+#else
+		// We do not support socketcall when raw tracepoints are not supported.
+		return 0;
+#endif
 	}
 
 	// In case of `evt_type!=-1`, we need to skip the syscall filtering logic because
@@ -202,6 +207,7 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 	if(id == socketcall_syscall_id)
 	{
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
 		if(!is_syscall_return)
@@ -213,6 +219,10 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		{
 			id = return_code;
 		}
+#else
+		// We do not support socketcall when raw tracepoints are not supported.
+		return 0;
+#endif
 	}
 
 	if(evt_type == -1)
