@@ -46,6 +46,15 @@ TEST(Actions, ia32)
 #endif
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_WRITE_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_WRITE_X);
+	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_X);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_X);
+  // mmap2 is translated to x86_64 mmap
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_X);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_X);
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SOCKET_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_SOCKET_X);
 	evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT4_6_E);

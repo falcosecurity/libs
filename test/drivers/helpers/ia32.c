@@ -9,6 +9,7 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
 #include <linux/net.h>        /* Definition of SYS_* constants */
 
 #ifdef __NR_openat2
@@ -24,6 +25,12 @@ int main() {
 	syscall(__NR_openat2, 11, "mock_path", &how, sizeof(struct open_how));
 #endif
 	syscall(__NR_write, 17, NULL, 1013);
+
+	long int p = syscall(__NR_mmap, NULL, 1003520, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	syscall(__NR_munmap, p, 1003520);
+	p = syscall(__NR_mmap2, NULL, 1003520, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	syscall(__NR_munmap, p, 1003520);
+
 	unsigned long args[3] = {0};
 	args[0] = AF_INET;
 	args[1] = SOCK_RAW;
