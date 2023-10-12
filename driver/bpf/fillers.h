@@ -2262,7 +2262,7 @@ FILLER(proc_startupdate, true)
 	struct mm_struct *mm;
 	long total_rss;
 	char empty = 0;
-	long args_len;
+	volatile long args_len;
 	long retval;
 	pid_t tgid;
 	long swap;
