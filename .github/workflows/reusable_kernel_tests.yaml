@@ -4,27 +4,27 @@ on:
   workflow_dispatch:
     inputs:
       libsversion:
-        description: libs version to be tested
+        description: 'libs version to be tested, eg: master'
         type: string
         required: false
-        default: master
+        default: 'master'
       libsrepo:
-        description: libs repo to be tested
+        description: 'libs repo to be tested, eg: falcosecurity/libs'
         type: string
         required: false
-        default: falcosecurity/libs
+        default: 'falcosecurity/libs'
   workflow_call:    
     inputs:
       libsversion:
-        description: libs version to be tested
+        description: 'libs version to be tested, eg: master'
         type: string
         required: false
-        default: master
+        default: 'master'
       libsrepo:
-        description: libs repo to be tested
+        description: 'libs repo to be tested, eg: falcosecurity/libs'
         type: string
         required: false
-        default: falcosecurity/libs  
+        default: 'falcosecurity/libs'
 
 concurrency:
   group: kernel-tests
