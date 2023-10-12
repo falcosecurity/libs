@@ -77,8 +77,6 @@ target_include_directories(pman
 target_link_libraries(pman
     PUBLIC
     ${PMAN_LINK_LIBRARIES}
-    INTERFACE
-    falcosecurity_log
 )
 
 add_dependencies(pman ${PMAN_DEPENDENCIES})

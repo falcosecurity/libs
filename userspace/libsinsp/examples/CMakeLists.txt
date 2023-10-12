@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories("../../../common")
 include_directories("../../")
 
 add_executable(sinsp-example
@@ -25,6 +24,8 @@ add_executable(sinsp-example
 target_link_libraries(sinsp-example
 	sinsp
 )
+
+target_include_directories(sinsp-example "${CMAKE_SOURCE_DIR}/userspace/common")
 
 if (EMSCRIPTEN)
 	target_compile_options(sinsp-example PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
