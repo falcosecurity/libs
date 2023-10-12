@@ -25,7 +25,7 @@ target_link_libraries(sinsp-example
 	sinsp
 )
 
-target_include_directories(sinsp-example "${CMAKE_SOURCE_DIR}/userspace/common")
+target_include_directories(sinsp-example PRIVATE "${CMAKE_SOURCE_DIR}/userspace/common")
 
 if (EMSCRIPTEN)
 	target_compile_options(sinsp-example PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
