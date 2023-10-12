@@ -4937,13 +4937,18 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					if(cmsg->cmsg_type == SCM_RIGHTS)
 					{
 						auto scap_tinfo = scap_proc_alloc(m_inspector->m_h);
+						if (scap_tinfo == NULL)
+						{
+							g_logger.format(sinsp_logger::SEV_CRITICAL, "scap_proc_alloc failed, proc table will not be updated with new fds.");
+							return;
+						}
 						m_inspector->m_thread_manager->thread_to_scap(*evt->m_tinfo, scap_tinfo);
 
 						// Get the new fds. The callbacks we have registered populate the fd table
 						// with the new file descriptors.
 						if (scap_get_fdlist(m_inspector->m_h, scap_tinfo) != SCAP_SUCCESS)
 						{
-							g_logger.format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed, proc table will not be updated with new fds.");
+							g_logger.format(sinsp_logger::SEV_ERROR, "scap_get_fdlist failed, proc table will not be updated with new fds.");
 						}
 
 						scap_proc_free(m_inspector->m_h, scap_tinfo);
