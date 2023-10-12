@@ -2026,13 +2026,16 @@ TEST(SyscallExit, socketcall_recvmsgX_no_snaplen)
 		///  but these could be empty so this is not the correct way to retrieve information we have to
 		///  change it.
 		evt_test->assert_empty_param(4);
-		evt_test->assert_num_params_pushed(4);
+		evt_test->assert_num_params_pushed(5);
 		GTEST_SKIP() << "[RECVMSG_X]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
 	}
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(SyscallExit, socketcall_recvmsgX_snaplen)
@@ -2128,13 +2131,16 @@ TEST(SyscallExit, socketcall_recvmsgX_snaplen)
 		///  but these could be empty so this is not the correct way to retrieve information we have to
 		///  change it.
 		evt_test->assert_empty_param(4);
-		evt_test->assert_num_params_pushed(4);
+		evt_test->assert_num_params_pushed(5);
 		GTEST_SKIP() << "[RECVMSG_X]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
 	}
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
 
@@ -2186,7 +2192,12 @@ TEST(SyscallExit, socketcall_recvmsgX_fail)
 	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_empty_param(4);
 
+	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
+	evt_test->assert_empty_param(5);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(5);
 }
 
 #endif
