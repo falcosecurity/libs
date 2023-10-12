@@ -8,6 +8,11 @@ on:
         type: string
         required: false
         default: master
+      libsrepo:
+        description: libs repo to be tested
+        type: string
+        required: false
+        default: falcosecurity/libs
   workflow_call:    
     inputs:
       libsversion:
@@ -15,6 +20,11 @@ on:
         type: string
         required: false
         default: master
+      libsrepo:
+        description: libs repo to be tested
+        type: string
+        required: false
+        default: falcosecurity/libs  
 
 concurrency:
   group: kernel-tests
@@ -37,13 +47,11 @@ jobs:
       - name: Generate vars yaml
         working-directory: ./ansible-playbooks
         run: |
-          LIBS_V=${{ github.event.inputs.libsversion }}
-          LIBS_VERSION=${LIBS_V:-${{ github.ref_name }}}
           cat > vars.yml <<EOF
           run_id: "id-${{ github.run_id }}"
           output_dir: "~/ansible_output_${{ github.run_id }}"
           repos:
-            libs: {name: "falcosecurity-libs", repo: "https://github.com/falcosecurity/libs.git", version: "$LIBS_VERSION"}
+            libs: {name: "falcosecurity-libs", repo: "https://github.com/${{ github.event.inputs.libsrepo }}.git", version: "${{ github.event.inputs.libsversion }}"}
           EOF
     
       - name: Bootstrap VMs
