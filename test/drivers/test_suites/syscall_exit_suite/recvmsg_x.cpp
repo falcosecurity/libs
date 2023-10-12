@@ -590,7 +590,7 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 		assert_syscall_state(SYSCALL_SUCCESS, "sendmsg (client)", sent_bytes, NOT_EQUAL, -1);;
 
 		int wstatus;
-		waitpid(-1, &wstatus, 0);
+		waitpid(pid, &wstatus, 0);
 
 		syscall(__NR_shutdown, sock);
 		syscall(__NR_close, sock);
