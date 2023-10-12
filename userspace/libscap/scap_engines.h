@@ -20,6 +20,10 @@ limitations under the License.
 
 #include "scap_vtable.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef HAS_ENGINE_NODRIVER
 extern const struct scap_vtable scap_nodriver_engine;
 #endif
@@ -54,4 +58,8 @@ extern const struct scap_vtable scap_modern_bpf_engine;
 
 #ifdef HAS_ENGINE_TEST_INPUT
 extern const struct scap_vtable scap_test_input_engine;
+#endif
+
+#ifdef __cplusplus
+}
 #endif
