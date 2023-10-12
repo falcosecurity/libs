@@ -179,7 +179,7 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	                 tid_field,  // tid
 	                 tgid_field, // pid
 	                 1,          // ptid for initial process
-	                 "/",        // cwd for initial process
+	                 "",         // cwd for initial process
 	                 comm.c_str(),
 	                 scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
 	                 0,          // flags -- INVALID/not available in gVisor event
