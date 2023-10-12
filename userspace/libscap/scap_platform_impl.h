@@ -42,7 +42,6 @@ struct scap_open_args;
 struct scap_platform;
 struct scap_proclist;
 struct scap_userlist;
-struct scap_fdinfo;
 struct ppm_proclist_info;
 
 // a method table for platform-specific operations

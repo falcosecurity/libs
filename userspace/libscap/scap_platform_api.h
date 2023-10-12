@@ -30,7 +30,6 @@ extern "C" {
 
 struct ppm_proclist_info;
 struct scap;
-struct scap_fdinfo;
 struct scap_addrlist;
 struct _scap_machine_info;
 struct scap_threadinfo;
