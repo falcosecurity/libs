@@ -494,7 +494,7 @@ TEST(SyscallExit, execveatX_success_memfd)
 
 	evt_test->disable_capture();
 
-#if __s390x__
+#if defined(__s390x__) || defined(__riscv)
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
 
