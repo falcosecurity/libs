@@ -64,6 +64,11 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 	if(res != -1)
 	{
 		string val(str);
+		size_t val_end = val.find_first_of(' ', 0);
+		if(val_end != string::npos)
+		{
+			val = val.substr(0, val_end);
+		}
 		trim(val);
 		
 		// search for the field's argument
@@ -112,11 +117,6 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 
 			// update the parsed len taking into account both the name and the argument
 			res = arg_pos + arg_len + 2;
-		}
-		else if (res != (int32_t) val.size())
-		{
-			// check that we matched the whole field string and not just its prefix
-			return -1;
 		}
 	
 		if (!m_arg_present && (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
