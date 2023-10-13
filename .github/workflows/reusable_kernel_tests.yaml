@@ -51,7 +51,7 @@ jobs:
           run_id: "id-${{ github.run_id }}"
           output_dir: "~/ansible_output_${{ github.run_id }}"
           repos:
-            libs: {name: "falcosecurity-libs", repo: "https://github.com/${{ github.event.inputs.libsrepo }}.git", version: "${{ github.event.inputs.libsversion }}"}
+            libs: {name: "falcosecurity-libs", repo: "https://github.com/${{ inputs.libsrepo }}.git", version: "${{ inputs.libsversion }}"}
           EOF
     
       - name: Bootstrap VMs
