@@ -27,8 +27,10 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 
 	if(ret_pid == 0)
 	{
+		/* Ensure that buf is not paged out by the kernel on some archs, like riscv */
+		char buf_child[data_len] = "HTTP/\0";
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_write, fd, (void *)buf, data_len) == -1)
+		if(syscall(__NR_write, fd, (void *)buf_child, data_len) == -1)
 		{
 			/* SUCCESS because we want the call to fail */
 			exit(EXIT_SUCCESS);
@@ -107,8 +109,10 @@ TEST(Actions, dynamic_snaplen_no_socket)
 
 	if(ret_pid == 0)
 	{
+		/* Ensure that buf is not paged out by the kernel on some archs, like riscv */
+		char buf_child[data_len] = "HTTP/\0";
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_write, fd, (void *)buf, data_len) == -1)
+		if(syscall(__NR_write, fd, (void *)buf_child, data_len) == -1)
 		{
 			/* SUCCESS because we want the call to fail */
 			exit(EXIT_SUCCESS);
