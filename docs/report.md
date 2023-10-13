@@ -1,383 +1,385 @@
-|         SYSCALL         | SUPPORTED |
-|-------------------------|-----------|
-| _sysctl                 | 🟡        |
-| accept                  | 🟢        |
-| accept4                 | 🟢        |
-| access                  | 🟢        |
-| acct                    | 🟡        |
-| add_key                 | 🟡        |
-| adjtimex                | 🟡        |
-| alarm                   | 🟡        |
-| arch_prctl              | 🟡        |
-| bdflush                 | 🟡        |
-| bind                    | 🟢        |
-| bpf                     | 🟢        |
-| brk                     | 🟢        |
-| cachestat               | 🟡        |
-| capget                  | 🟡        |
-| capset                  | 🟢        |
-| chdir                   | 🟢        |
-| chmod                   | 🟢        |
-| chown                   | 🟢        |
-| chroot                  | 🟢        |
-| clock_adjtime           | 🟡        |
-| clock_getres            | 🟡        |
-| clock_gettime           | 🟡        |
-| clock_nanosleep         | 🟡        |
-| clock_settime           | 🟡        |
-| clone                   | 🟢        |
-| clone3                  | 🟢        |
-| close                   | 🟢        |
-| close_range             | 🟡        |
-| connect                 | 🟢        |
-| copy_file_range         | 🟢        |
-| creat                   | 🟢        |
-| create_module           | 🟡        |
-| delete_module           | 🟡        |
-| dup                     | 🟢        |
-| dup2                    | 🟢        |
-| dup3                    | 🟢        |
-| epoll_create            | 🟢        |
-| epoll_create1           | 🟢        |
-| epoll_ctl               | 🟡        |
-| epoll_ctl_old           | 🟡        |
-| epoll_pwait             | 🟡        |
-| epoll_pwait2            | 🟡        |
-| epoll_wait              | 🟢        |
-| epoll_wait_old          | 🟡        |
-| eventfd                 | 🟢        |
-| eventfd2                | 🟢        |
-| execve                  | 🟢        |
-| execveat                | 🟢        |
-| exit                    | 🟡        |
-| exit_group              | 🟡        |
-| faccessat               | 🟡        |
-| faccessat2              | 🟡        |
-| fadvise64               | 🟡        |
-| fallocate               | 🟡        |
-| fanotify_init           | 🟡        |
-| fanotify_mark           | 🟡        |
-| fchdir                  | 🟢        |
-| fchmod                  | 🟢        |
-| fchmodat                | 🟢        |
-| fchmodat2               | 🟡        |
-| fchown                  | 🟢        |
-| fchownat                | 🟢        |
-| fcntl                   | 🟢        |
-| fdatasync               | 🟡        |
-| fgetxattr               | 🟡        |
-| finit_module            | 🟢        |
-| flistxattr              | 🟡        |
-| flock                   | 🟢        |
-| fork                    | 🟢        |
-| fremovexattr            | 🟡        |
-| fsconfig                | 🟢        |
-| fsetxattr               | 🟡        |
-| fsmount                 | 🟡        |
-| fsopen                  | 🟡        |
-| fspick                  | 🟡        |
-| fstat                   | 🟢        |
-| fstatfs                 | 🟡        |
-| fstatfs64               | 🟡        |
-| fsync                   | 🟡        |
-| ftruncate               | 🟡        |
-| futex                   | 🟢        |
-| futex_waitv             | 🟡        |
-| futimesat               | 🟡        |
-| get_kernel_syms         | 🟡        |
-| get_mempolicy           | 🟡        |
-| get_robust_list         | 🟡        |
-| get_thread_area         | 🟡        |
-| getcpu                  | 🟡        |
-| getcwd                  | 🟢        |
-| getdents                | 🟢        |
-| getdents64              | 🟢        |
-| getegid                 | 🟢        |
-| geteuid                 | 🟢        |
-| getgid                  | 🟢        |
-| getgroups               | 🟡        |
-| getitimer               | 🟡        |
-| getpeername             | 🟢        |
-| getpgid                 | 🟡        |
-| getpgrp                 | 🟡        |
-| getpid                  | 🟡        |
-| getpmsg                 | 🟡        |
-| getppid                 | 🟡        |
-| getpriority             | 🟡        |
-| getrandom               | 🟡        |
-| getresgid               | 🟢        |
-| getresuid               | 🟢        |
-| getrlimit               | 🟢        |
-| getrusage               | 🟡        |
-| getsid                  | 🟡        |
-| getsockname             | 🟢        |
-| getsockopt              | 🟢        |
-| gettid                  | 🟡        |
-| gettimeofday            | 🟡        |
-| getuid                  | 🟢        |
-| getxattr                | 🟡        |
-| idle                    | 🟡        |
-| init_module             | 🟢        |
-| inotify_add_watch       | 🟡        |
-| inotify_init            | 🟢        |
-| inotify_init1           | 🟢        |
-| inotify_rm_watch        | 🟡        |
-| io_cancel               | 🟡        |
-| io_destroy              | 🟡        |
-| io_getevents            | 🟡        |
-| io_pgetevents           | 🟡        |
-| io_setup                | 🟡        |
-| io_submit               | 🟡        |
-| io_uring_enter          | 🟢        |
-| io_uring_register       | 🟢        |
-| io_uring_setup          | 🟢        |
-| ioctl                   | 🟢        |
-| ioperm                  | 🟡        |
-| iopl                    | 🟡        |
-| ioprio_get              | 🟡        |
-| ioprio_set              | 🟡        |
-| ipc                     | 🟡        |
-| kcmp                    | 🟡        |
-| kexec_file_load         | 🟡        |
-| kexec_load              | 🟡        |
-| keyctl                  | 🟡        |
-| kill                    | 🟢        |
-| landlock_add_rule       | 🟡        |
-| landlock_create_ruleset | 🟡        |
-| landlock_restrict_self  | 🟡        |
-| lchown                  | 🟢        |
-| lgetxattr               | 🟡        |
-| link                    | 🟢        |
-| linkat                  | 🟢        |
-| listen                  | 🟢        |
-| listxattr               | 🟡        |
-| llistxattr              | 🟡        |
-| lookup_dcookie          | 🟡        |
-| lremovexattr            | 🟡        |
-| lseek                   | 🟢        |
-| lsetxattr               | 🟡        |
-| lstat                   | 🟢        |
-| madvise                 | 🟡        |
-| map_shadow_stack        | 🟡        |
-| mbind                   | 🟡        |
-| membarrier              | 🟡        |
-| memfd_create            | 🟢        |
-| memfd_secret            | 🟡        |
-| migrate_pages           | 🟡        |
-| mincore                 | 🟡        |
-| mkdir                   | 🟢        |
-| mkdirat                 | 🟢        |
-| mknod                   | 🟢        |
-| mknodat                 | 🟢        |
-| mlock                   | 🟢        |
-| mlock2                  | 🟢        |
-| mlockall                | 🟢        |
-| mmap                    | 🟢        |
-| modify_ldt              | 🟡        |
-| mount                   | 🟢        |
-| mount_setattr           | 🟡        |
-| move_mount              | 🟡        |
-| move_pages              | 🟡        |
-| mprotect                | 🟢        |
-| mq_getsetattr           | 🟡        |
-| mq_notify               | 🟡        |
-| mq_open                 | 🟡        |
-| mq_timedreceive         | 🟡        |
-| mq_timedsend            | 🟡        |
-| mq_unlink               | 🟡        |
-| mremap                  | 🟡        |
-| msgctl                  | 🟡        |
-| msgget                  | 🟡        |
-| msgrcv                  | 🟡        |
-| msgsnd                  | 🟡        |
-| msync                   | 🟡        |
-| munlock                 | 🟢        |
-| munlockall              | 🟢        |
-| munmap                  | 🟢        |
-| name_to_handle_at       | 🟡        |
-| nanosleep               | 🟢        |
-| newfstatat              | 🟡        |
-| nfsservctl              | 🟡        |
-| nice                    | 🟡        |
-| open                    | 🟢        |
-| open_by_handle_at       | 🟢        |
-| open_tree               | 🟡        |
-| openat                  | 🟢        |
-| openat2                 | 🟢        |
-| pause                   | 🟡        |
-| perf_event_open         | 🟡        |
-| personality             | 🟡        |
-| pidfd_getfd             | 🟢        |
-| pidfd_open              | 🟢        |
-| pidfd_send_signal       | 🟡        |
-| pipe                    | 🟢        |
-| pipe2                   | 🟢        |
-| pivot_root              | 🟡        |
-| pkey_alloc              | 🟡        |
-| pkey_free               | 🟡        |
-| pkey_mprotect           | 🟡        |
-| poll                    | 🟢        |
-| ppoll                   | 🟢        |
-| prctl                   | 🟢        |
-| pread64                 | 🟢        |
-| preadv                  | 🟢        |
-| preadv2                 | 🟡        |
-| prlimit64               | 🟢        |
-| process_madvise         | 🟡        |
-| process_mrelease        | 🟡        |
-| process_vm_readv        | 🟡        |
-| process_vm_writev       | 🟡        |
-| pselect6                | 🟡        |
-| ptrace                  | 🟢        |
-| pwrite64                | 🟢        |
-| pwritev                 | 🟢        |
-| pwritev2                | 🟡        |
-| query_module            | 🟡        |
-| quotactl                | 🟢        |
-| quotactl_fd             | 🟡        |
-| read                    | 🟢        |
-| readahead               | 🟡        |
-| readdir                 | 🟡        |
-| readlink                | 🟡        |
-| readlinkat              | 🟡        |
-| readv                   | 🟢        |
-| reboot                  | 🟡        |
-| recvfrom                | 🟢        |
-| recvmmsg                | 🟢        |
-| recvmsg                 | 🟢        |
-| remap_file_pages        | 🟡        |
-| removexattr             | 🟡        |
-| rename                  | 🟢        |
-| renameat                | 🟢        |
-| renameat2               | 🟢        |
-| request_key             | 🟡        |
-| restart_syscall         | 🟡        |
-| rmdir                   | 🟢        |
-| rseq                    | 🟡        |
-| rt_sigaction            | 🟡        |
-| rt_sigpending           | 🟡        |
-| rt_sigprocmask          | 🟡        |
-| rt_sigqueueinfo         | 🟡        |
-| rt_sigreturn            | 🟡        |
-| rt_sigsuspend           | 🟡        |
-| rt_sigtimedwait         | 🟡        |
-| rt_tgsigqueueinfo       | 🟡        |
-| s390_guarded_storage    | 🟡        |
-| s390_pci_mmio_read      | 🟡        |
-| s390_pci_mmio_write     | 🟡        |
-| s390_runtime_instr      | 🟡        |
-| s390_sthyi              | 🟡        |
-| sched_get_priority_max  | 🟡        |
-| sched_get_priority_min  | 🟡        |
-| sched_getaffinity       | 🟡        |
-| sched_getattr           | 🟡        |
-| sched_getparam          | 🟡        |
-| sched_getscheduler      | 🟡        |
-| sched_rr_get_interval   | 🟡        |
-| sched_setaffinity       | 🟡        |
-| sched_setattr           | 🟡        |
-| sched_setparam          | 🟡        |
-| sched_setscheduler      | 🟡        |
-| sched_yield             | 🟡        |
-| seccomp                 | 🟢        |
-| select                  | 🟢        |
-| semctl                  | 🟢        |
-| semget                  | 🟢        |
-| semop                   | 🟢        |
-| semtimedop              | 🟡        |
-| sendfile                | 🟢        |
-| sendmmsg                | 🟢        |
-| sendmsg                 | 🟢        |
-| sendto                  | 🟢        |
-| set_mempolicy           | 🟡        |
-| set_mempolicy_home_node | 🟡        |
-| set_robust_list         | 🟡        |
-| set_thread_area         | 🟡        |
-| set_tid_address         | 🟡        |
-| setdomainname           | 🟡        |
-| setfsgid                | 🟡        |
-| setfsuid                | 🟡        |
-| setgid                  | 🟢        |
-| setgroups               | 🟡        |
-| sethostname             | 🟡        |
-| setitimer               | 🟡        |
-| setns                   | 🟢        |
-| setpgid                 | 🟢        |
-| setpriority             | 🟡        |
-| setregid                | 🟡        |
-| setresgid               | 🟢        |
-| setresuid               | 🟢        |
-| setreuid                | 🟡        |
-| setrlimit               | 🟢        |
-| setsid                  | 🟢        |
-| setsockopt              | 🟢        |
-| settimeofday            | 🟡        |
-| setuid                  | 🟢        |
-| setxattr                | 🟡        |
-| shmat                   | 🟡        |
-| shmctl                  | 🟡        |
-| shmdt                   | 🟡        |
-| shmget                  | 🟡        |
-| shutdown                | 🟢        |
-| sigaction               | 🟡        |
-| sigaltstack             | 🟡        |
-| signal                  | 🟡        |
-| signalfd                | 🟢        |
-| signalfd4               | 🟢        |
-| sigpending              | 🟡        |
-| sigprocmask             | 🟡        |
-| sigreturn               | 🟡        |
-| sigsuspend              | 🟡        |
-| socket                  | 🟢        |
-| socketcall              | 🟡        |
-| socketpair              | 🟢        |
-| splice                  | 🟢        |
-| stat                    | 🟢        |
-| statfs                  | 🟡        |
-| statfs64                | 🟡        |
-| statx                   | 🟡        |
-| swapoff                 | 🟡        |
-| swapon                  | 🟡        |
-| symlink                 | 🟢        |
-| symlinkat               | 🟢        |
-| sync                    | 🟡        |
-| sync_file_range         | 🟡        |
-| syncfs                  | 🟡        |
-| sysfs                   | 🟡        |
-| sysinfo                 | 🟡        |
-| syslog                  | 🟡        |
-| tee                     | 🟡        |
-| tgkill                  | 🟢        |
-| time                    | 🟡        |
-| timer_create            | 🟡        |
-| timer_delete            | 🟡        |
-| timer_getoverrun        | 🟡        |
-| timer_gettime           | 🟡        |
-| timer_settime           | 🟡        |
-| timerfd                 | 🟡        |
-| timerfd_create          | 🟢        |
-| timerfd_gettime         | 🟡        |
-| timerfd_settime         | 🟡        |
-| times                   | 🟡        |
-| tkill                   | 🟢        |
-| truncate                | 🟡        |
-| umask                   | 🟡        |
-| umount                  | 🟢        |
-| umount2                 | 🟢        |
-| uname                   | 🟡        |
-| unlink                  | 🟢        |
-| unlinkat                | 🟢        |
-| unshare                 | 🟢        |
-| uselib                  | 🟡        |
-| userfaultfd             | 🟢        |
-| ustat                   | 🟡        |
-| utime                   | 🟡        |
-| utimensat               | 🟡        |
-| utimes                  | 🟡        |
-| vfork                   | 🟢        |
-| vhangup                 | 🟡        |
-| vmsplice                | 🟡        |
-| wait4                   | 🟡        |
-| waitid                  | 🟡        |
-| write                   | 🟢        |
-| writev                  | 🟢        |
+|         SYSCALL         | SUPPORTED |         ARCHITECTURE         |
+|-------------------------|-----------|------------------------------|
+| _sysctl                 | 🟡        | x86_64,s390x                 |
+| accept                  | 🟢        | aarch64,riscv64,x86_64       |
+| accept4                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| access                  | 🟢        | x86_64,s390x                 |
+| acct                    | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| add_key                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| adjtimex                | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| alarm                   | 🟡        | x86_64,s390x                 |
+| arch_prctl              | 🟡        | x86_64                       |
+| bdflush                 | 🟡        | s390x                        |
+| bind                    | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| bpf                     | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| brk                     | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| cachestat               | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| capget                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| capset                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| chdir                   | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| chmod                   | 🟢        | x86_64,s390x                 |
+| chown                   | 🟢        | s390x,x86_64                 |
+| chroot                  | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| clock_adjtime           | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| clock_getres            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| clock_gettime           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| clock_nanosleep         | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| clock_settime           | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| clone                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| clone3                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| close                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| close_range             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| connect                 | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| copy_file_range         | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| creat                   | 🟢        | x86_64,s390x                 |
+| create_module           | 🟡        | x86_64,s390x                 |
+| delete_module           | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| dup                     | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| dup2                    | 🟢        | x86_64,s390x                 |
+| dup3                    | 🟢        | riscv64,x86_64,aarch64,s390x |
+| epoll_create            | 🟢        | x86_64,s390x                 |
+| epoll_create1           | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| epoll_ctl               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| epoll_ctl_old           | 🟡        | x86_64                       |
+| epoll_pwait             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| epoll_pwait2            | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| epoll_wait              | 🟢        | x86_64,s390x                 |
+| epoll_wait_old          | 🟡        | x86_64                       |
+| eventfd                 | 🟢        | x86_64,s390x                 |
+| eventfd2                | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| execve                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| execveat                | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| exit                    | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| exit_group              | 🟡        | riscv64,x86_64,aarch64,s390x |
+| faccessat               | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| faccessat2              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| fadvise64               | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| fallocate               | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| fanotify_init           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| fanotify_mark           | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| fchdir                  | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| fchmod                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| fchmodat                | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| fchmodat2               | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| fchown                  | 🟢        | riscv64,x86_64,aarch64,s390x |
+| fchownat                | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| fcntl                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| fdatasync               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| fgetxattr               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| finit_module            | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| flistxattr              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| flock                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| fork                    | 🟢        | x86_64,s390x                 |
+| fremovexattr            | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| fsconfig                | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| fsetxattr               | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| fsmount                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| fsopen                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| fspick                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| fstat                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| fstatfs                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| fstatfs64               | 🟡        | s390x                        |
+| fsync                   | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| ftruncate               | 🟡        | riscv64,x86_64,aarch64,s390x |
+| futex                   | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| futex_waitv             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| futimesat               | 🟡        | x86_64,s390x                 |
+| get_kernel_syms         | 🟡        | x86_64,s390x                 |
+| get_mempolicy           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| get_robust_list         | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| get_thread_area         | 🟡        | x86_64                       |
+| getcpu                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getcwd                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| getdents                | 🟢        | s390x,x86_64                 |
+| getdents64              | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| getegid                 | 🟢        | riscv64,x86_64,aarch64,s390x |
+| geteuid                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| getgid                  | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| getgroups               | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| getitimer               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getpeername             | 🟢        | riscv64,x86_64,aarch64,s390x |
+| getpgid                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getpgrp                 | 🟡        | x86_64,s390x                 |
+| getpid                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getpmsg                 | 🟡        | x86_64,s390x                 |
+| getppid                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getpriority             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getrandom               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getresgid               | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| getresuid               | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| getrlimit               | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| getrusage               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getsid                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getsockname             | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| getsockopt              | 🟢        | riscv64,x86_64,aarch64,s390x |
+| gettid                  | 🟡        | riscv64,x86_64,aarch64,s390x |
+| gettimeofday            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| getuid                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| getxattr                | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| idle                    | 🟡        | s390x                        |
+| init_module             | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| inotify_add_watch       | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| inotify_init            | 🟢        | x86_64,s390x                 |
+| inotify_init1           | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| inotify_rm_watch        | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| io_cancel               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| io_destroy              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| io_getevents            | 🟡        | riscv64,x86_64,aarch64,s390x |
+| io_pgetevents           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| io_setup                | 🟡        | riscv64,x86_64,aarch64,s390x |
+| io_submit               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| io_uring_enter          | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| io_uring_register       | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| io_uring_setup          | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| ioctl                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| ioperm                  | 🟡        | x86_64                       |
+| iopl                    | 🟡        | x86_64                       |
+| ioprio_get              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| ioprio_set              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| ipc                     | 🟡        | s390x                        |
+| kcmp                    | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| kexec_file_load         | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| kexec_load              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| keyctl                  | 🟡        | riscv64,x86_64,aarch64,s390x |
+| kill                    | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| landlock_add_rule       | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| landlock_create_ruleset | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| landlock_restrict_self  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| lchown                  | 🟢        | s390x,x86_64                 |
+| lgetxattr               | 🟡        | riscv64,x86_64,aarch64,s390x |
+| link                    | 🟢        | x86_64,s390x                 |
+| linkat                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| listen                  | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| listxattr               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| llistxattr              | 🟡        | riscv64,x86_64,aarch64,s390x |
+| lookup_dcookie          | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| lremovexattr            | 🟡        | riscv64,x86_64,aarch64,s390x |
+| lseek                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| lsetxattr               | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| lstat                   | 🟢        | x86_64,s390x                 |
+| madvise                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| map_shadow_stack        | 🟡        | x86_64                       |
+| mbind                   | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| membarrier              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| memfd_create            | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| memfd_secret            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| migrate_pages           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| mincore                 | 🟡        | riscv64,x86_64,aarch64,s390x |
+| mkdir                   | 🟢        | x86_64,s390x                 |
+| mkdirat                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| mknod                   | 🟢        | s390x,x86_64                 |
+| mknodat                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| mlock                   | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| mlock2                  | 🟢        | riscv64,x86_64,aarch64,s390x |
+| mlockall                | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| mmap                    | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| modify_ldt              | 🟡        | x86_64                       |
+| mount                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| mount_setattr           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| move_mount              | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| move_pages              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| mprotect                | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| mq_getsetattr           | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| mq_notify               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| mq_open                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| mq_timedreceive         | 🟡        | riscv64,x86_64,aarch64,s390x |
+| mq_timedsend            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| mq_unlink               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| mremap                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| msgctl                  | 🟡        | riscv64,x86_64,aarch64,s390x |
+| msgget                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| msgrcv                  | 🟡        | riscv64,x86_64,aarch64,s390x |
+| msgsnd                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| msync                   | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| munlock                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| munlockall              | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| munmap                  | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| name_to_handle_at       | 🟡        | riscv64,x86_64,aarch64,s390x |
+| nanosleep               | 🟢        | riscv64,x86_64,aarch64,s390x |
+| newfstatat              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| nfsservctl              | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| nice                    | 🟡        | s390x                        |
+| open                    | 🟢        | x86_64,s390x                 |
+| open_by_handle_at       | 🟢        | riscv64,x86_64,aarch64,s390x |
+| open_tree               | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| openat                  | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| openat2                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| pause                   | 🟡        | x86_64,s390x                 |
+| perf_event_open         | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| personality             | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| pidfd_getfd             | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| pidfd_open              | 🟢        | riscv64,x86_64,aarch64,s390x |
+| pidfd_send_signal       | 🟡        | riscv64,x86_64,aarch64,s390x |
+| pipe                    | 🟢        | s390x,x86_64                 |
+| pipe2                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| pivot_root              | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| pkey_alloc              | 🟡        | riscv64,x86_64,aarch64,s390x |
+| pkey_free               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| pkey_mprotect           | 🟡        | riscv64,x86_64,aarch64,s390x |
+| poll                    | 🟢        | s390x,x86_64                 |
+| ppoll                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| prctl                   | 🟢        | riscv64,x86_64,aarch64,s390x |
+| pread64                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| preadv                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| preadv2                 | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| prlimit64               | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| process_madvise         | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| process_mrelease        | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| process_vm_readv        | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| process_vm_writev       | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| pselect6                | 🟡        | riscv64,x86_64,aarch64,s390x |
+| ptrace                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| pwrite64                | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| pwritev                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| pwritev2                | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| query_module            | 🟡        | x86_64,s390x                 |
+| quotactl                | 🟢        | riscv64,x86_64,aarch64,s390x |
+| quotactl_fd             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| read                    | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| readahead               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| readdir                 | 🟡        | s390x                        |
+| readlink                | 🟡        | s390x,x86_64                 |
+| readlinkat              | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| readv                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| reboot                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| recvfrom                | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| recvmmsg                | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| recvmsg                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| remap_file_pages        | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| removexattr             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| rename                  | 🟢        | x86_64,s390x                 |
+| renameat                | 🟢        | aarch64,s390x,x86_64         |
+| renameat2               | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| request_key             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| restart_syscall         | 🟡        | riscv64,x86_64,aarch64,s390x |
+| riscv_flush_icache      | 🟡        | riscv64                      |
+| riscv_hwprobe           | 🟡        | riscv64                      |
+| rmdir                   | 🟢        | x86_64,s390x                 |
+| rseq                    | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| rt_sigaction            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| rt_sigpending           | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| rt_sigprocmask          | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| rt_sigqueueinfo         | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| rt_sigreturn            | 🟡        | riscv64,x86_64,aarch64,s390x |
+| rt_sigsuspend           | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| rt_sigtimedwait         | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| rt_tgsigqueueinfo       | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| s390_guarded_storage    | 🟡        | s390x                        |
+| s390_pci_mmio_read      | 🟡        | s390x                        |
+| s390_pci_mmio_write     | 🟡        | s390x                        |
+| s390_runtime_instr      | 🟡        | s390x                        |
+| s390_sthyi              | 🟡        | s390x                        |
+| sched_get_priority_max  | 🟡        | riscv64,x86_64,aarch64,s390x |
+| sched_get_priority_min  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sched_getaffinity       | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| sched_getattr           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sched_getparam          | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sched_getscheduler      | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sched_rr_get_interval   | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| sched_setaffinity       | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sched_setattr           | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| sched_setparam          | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| sched_setscheduler      | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sched_yield             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| seccomp                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| select                  | 🟢        | s390x,x86_64                 |
+| semctl                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| semget                  | 🟢        | riscv64,x86_64,aarch64,s390x |
+| semop                   | 🟢        | riscv64,x86_64,aarch64       |
+| semtimedop              | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| sendfile                | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| sendmmsg                | 🟢        | riscv64,x86_64,aarch64,s390x |
+| sendmsg                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| sendto                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| set_mempolicy           | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| set_mempolicy_home_node | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| set_robust_list         | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| set_thread_area         | 🟡        | x86_64                       |
+| set_tid_address         | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| setdomainname           | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| setfsgid                | 🟡        | riscv64,x86_64,aarch64,s390x |
+| setfsuid                | 🟡        | riscv64,x86_64,aarch64,s390x |
+| setgid                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| setgroups               | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| sethostname             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| setitimer               | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| setns                   | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| setpgid                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| setpriority             | 🟡        | riscv64,x86_64,aarch64,s390x |
+| setregid                | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| setresgid               | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| setresuid               | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| setreuid                | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| setrlimit               | 🟢        | riscv64,x86_64,aarch64,s390x |
+| setsid                  | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| setsockopt              | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| settimeofday            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| setuid                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| setxattr                | 🟡        | riscv64,x86_64,aarch64,s390x |
+| shmat                   | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| shmctl                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| shmdt                   | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| shmget                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| shutdown                | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| sigaction               | 🟡        | s390x                        |
+| sigaltstack             | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| signal                  | 🟡        | s390x                        |
+| signalfd                | 🟢        | x86_64,s390x                 |
+| signalfd4               | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| sigpending              | 🟡        | s390x                        |
+| sigprocmask             | 🟡        | s390x                        |
+| sigreturn               | 🟡        | s390x                        |
+| sigsuspend              | 🟡        | s390x                        |
+| socket                  | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| socketcall              | 🟡        | s390x                        |
+| socketpair              | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| splice                  | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| stat                    | 🟢        | x86_64,s390x                 |
+| statfs                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| statfs64                | 🟡        | s390x                        |
+| statx                   | 🟡        | riscv64,x86_64,aarch64,s390x |
+| swapoff                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| swapon                  | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| symlink                 | 🟢        | x86_64,s390x                 |
+| symlinkat               | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| sync                    | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sync_file_range         | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| syncfs                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| sysfs                   | 🟡        | x86_64,s390x                 |
+| sysinfo                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| syslog                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| tee                     | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| tgkill                  | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| time                    | 🟡        | x86_64                       |
+| timer_create            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| timer_delete            | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| timer_getoverrun        | 🟡        | riscv64,x86_64,aarch64,s390x |
+| timer_gettime           | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| timer_settime           | 🟡        | riscv64,x86_64,aarch64,s390x |
+| timerfd                 | 🟡        | s390x                        |
+| timerfd_create          | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| timerfd_gettime         | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| timerfd_settime         | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| times                   | 🟡        | aarch64,s390x,riscv64,x86_64 |
+| tkill                   | 🟢        | riscv64,x86_64,aarch64,s390x |
+| truncate                | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| umask                   | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| umount                  | 🟢        | s390x                        |
+| umount2                 | 🟢        | x86_64,aarch64,s390x,riscv64 |
+| uname                   | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| unlink                  | 🟢        | x86_64,s390x                 |
+| unlinkat                | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| unshare                 | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| uselib                  | 🟡        | x86_64,s390x                 |
+| userfaultfd             | 🟢        | aarch64,s390x,riscv64,x86_64 |
+| ustat                   | 🟡        | x86_64,s390x                 |
+| utime                   | 🟡        | x86_64,s390x                 |
+| utimensat               | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| utimes                  | 🟡        | s390x,x86_64                 |
+| vfork                   | 🟢        | x86_64,s390x                 |
+| vhangup                 | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| vmsplice                | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| wait4                   | 🟡        | s390x,riscv64,x86_64,aarch64 |
+| waitid                  | 🟡        | x86_64,aarch64,s390x,riscv64 |
+| write                   | 🟢        | s390x,riscv64,x86_64,aarch64 |
+| writev                  | 🟢        | s390x,riscv64,x86_64,aarch64 |

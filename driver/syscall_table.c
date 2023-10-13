@@ -922,4 +922,10 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_map_shadow_stack
 	[__NR_map_shadow_stack - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MAP_SHADOW_STACK},
 #endif
+#ifdef __NR_riscv_flush_icache
+	[__NR_riscv_flush_icache - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RISCV_FLUSH_ICACHE},
+#endif
+#ifdef __NR_riscv_hwprobe
+	[__NR_riscv_hwprobe - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RISCV_HWPROBE},
+#endif
 };
