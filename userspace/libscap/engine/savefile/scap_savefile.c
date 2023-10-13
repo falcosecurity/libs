@@ -1588,8 +1588,10 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 		ASSERT(false);
 		break;
 	default:
-		snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file, wrong fd type %u", (uint32_t)fdi->type);
-		return SCAP_FAILURE;
+		// unknown fd type, possibly coming from a newer library version
+		fdi->type = SCAP_FD_UNSUPPORTED;
+		snprintf(fdi->info.fname, sizeof(fdi->info.fname), "unknown-type:[%d]", (int)type);
+		break;
 	}
 
 	if(sub_len && *nbytes != sub_len)
