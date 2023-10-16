@@ -46,11 +46,22 @@ TEST(Actions, ia32)
 #endif
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_WRITE_E);
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_WRITE_X);
+
+  // getegid32 and geteuid32 are ia32 only syscalls and are translated to getegid and geteuid x86_64 syscalls
+	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEGID_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEGID_X);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEUID_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_GETEUID_X);
+
+  // umount is ia32 only and is translated to x86_64 umount2
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_UMOUNT2_E);
+  evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_UMOUNT2_X);
+
+	// mmap2 is translated to x86_64 mmap
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_E);
   evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_X);
   evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_E);
   evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_X);
-  // mmap2 is translated to x86_64 mmap
   evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_E);
   evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MMAP_X);
   evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_MUNMAP_E);
@@ -322,6 +333,109 @@ TEST(Actions, ia32_socket_e)
   /*=============================== ASSERT PARAMETERS  ===========================*/
 
   evt_test->assert_num_params_pushed(3);
+}
+#endif
+
+#ifdef __NR_umount2
+TEST(Actions, ia32_umount_e)
+{
+	auto evt_test = get_syscall_event_test(__NR_umount2, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+	pid_t ret_pid = syscall(__NR_fork);
+	if(ret_pid == 0)
+	{
+		char* const argv[] = {NULL};
+		char* const envp[] = {NULL};
+		execve("${CMAKE_CURRENT_BINARY_DIR}/ia32", argv, envp);
+		exit(EXIT_FAILURE);
+	}
+	assert_syscall_state(SYSCALL_SUCCESS, "fork", ret_pid, NOT_EQUAL, -1);
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "Fork failed..." << std::endl;
+	}
+
+	/* Disable the capture: no more events from now. */
+	evt_test->disable_capture();
+
+	/* Retrieve events in order. */
+	evt_test->assert_event_presence(ret_pid);
+
+	if(HasFatalFailure())
+	{
+  	return;
+  }
+
+  evt_test->parse_event();
+  evt_test->assert_header();
+
+  /*=============================== ASSERT PARAMETERS  ===========================*/
+
+  /* Parameter 1: flags (type: PT_FLAGS32) */
+  evt_test->assert_numeric_param(1, 0);
+
+ 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+ 	evt_test->assert_num_params_pushed(1);
+}
+
+TEST(Actions, ia32_umount_x)
+{
+	auto evt_test = get_syscall_event_test(__NR_umount2, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+	pid_t ret_pid = syscall(__NR_fork);
+	if(ret_pid == 0)
+	{
+		char* const argv[] = {NULL};
+		char* const envp[] = {NULL};
+		execve("${CMAKE_CURRENT_BINARY_DIR}/ia32", argv, envp);
+		exit(EXIT_FAILURE);
+	}
+	assert_syscall_state(SYSCALL_SUCCESS, "fork", ret_pid, NOT_EQUAL, -1);
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "Fork failed..." << std::endl;
+	}
+
+	/* Disable the capture: no more events from now. */
+	evt_test->disable_capture();
+
+	/* Retrieve events in order. */
+	evt_test->assert_event_presence(ret_pid);
+
+	if(HasFatalFailure())
+	{
+  	return;
+  }
+
+  evt_test->parse_event();
+  evt_test->assert_header();
+
+  /*=============================== ASSERT PARAMETERS  ===========================*/
+
+  /* Parameter 1: fd (type: PT_ERRNO) */
+  evt_test->assert_numeric_param(1, (int64_t)-ENOENT);
+
+  /* Parameter 2: name (type: PT_FSPATH) */
+  evt_test->assert_charbuf_param(2, "mock_path");
+
+ 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+ 	evt_test->assert_num_params_pushed(2);
 }
 #endif
 
