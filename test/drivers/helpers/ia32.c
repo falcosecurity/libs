@@ -26,6 +26,11 @@ int main() {
 #endif
 	syscall(__NR_write, 17, NULL, 1013);
 
+	syscall(__NR_getegid32);
+	syscall(__NR_geteuid32);
+
+	syscall(__NR_umount, "mock_path");
+
 	long int p = syscall(__NR_mmap, NULL, 1003520, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	syscall(__NR_munmap, p, 1003520);
 	p = syscall(__NR_mmap2, NULL, 1003520, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
