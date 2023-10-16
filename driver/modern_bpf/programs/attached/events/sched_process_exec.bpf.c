@@ -222,7 +222,6 @@ int BPF_PROG(t1_sched_p_exec,
 	{
 		struct inode___v6_6 *exe_inode_v6_6 = (void *)exe_inode;
 		BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
-		time.tv_nsec = time.tv_nsec & ~I_CTIME_QUERIED;
 	}
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 

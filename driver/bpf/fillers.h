@@ -2839,7 +2839,6 @@ FILLER(execve_extra_tail_1, true)
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 	time = _READ(inode->__i_ctime);
-	time.tv_nsec = time.tv_nsec & ~I_CTIME_QUERIED; // See https://elixir.bootlin.com/linux/v6.6-rc1/source/include/linux/fs.h#L1544
 #else
 	time = _READ(inode->i_ctime);
 #endif
@@ -6695,7 +6694,6 @@ FILLER(sched_prog_exec_4, false)
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 	time = _READ(inode->__i_ctime);
-	time.tv_nsec = time.tv_nsec & ~I_CTIME_QUERIED; // See https://elixir.bootlin.com/linux/v6.6-rc1/source/include/linux/fs.h#L1544
 #else
 	time = _READ(inode->i_ctime);
 #endif

@@ -586,13 +586,6 @@
 #define FMODE_CREATED		(/*(__force fmode_t) */0x100000)
 
 //////////////////////////
-// ctime flags
-//////////////////////////
-
-/* `include/linux/fs.h` from kernel source tree. */
-#define I_CTIME_QUERIED		(1L<<30)
-
-//////////////////////////
 // flock flags
 //////////////////////////
 
