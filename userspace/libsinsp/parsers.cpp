@@ -4705,6 +4705,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					struct cmsghdr *cmsg = (struct cmsghdr *)parinfo->m_val;
 					if(cmsg->cmsg_type == SCM_RIGHTS)
 					{
+						char error[SCAP_LASTERR_SIZE];
+
 						auto scap_tinfo = scap_proc_alloc(m_inspector->m_h);
 						if (scap_tinfo == NULL)
 						{
@@ -4715,9 +4717,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						// Get the new fds. The callbacks we have registered populate the fd table
 						// with the new file descriptors.
-						if (scap_get_fdlist(m_inspector->m_h, scap_tinfo) != SCAP_SUCCESS)
+						if (scap_get_fdlist(m_inspector->get_scap_platform(), scap_tinfo, error) != SCAP_SUCCESS)
 						{
-							g_logger.format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed, proc table will not be updated with new fds.");
+							g_logger.format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed: %s, proc table will not be updated with new fds.",
+									error);
 						}
 
 						scap_proc_free(m_inspector->m_h, scap_tinfo);
