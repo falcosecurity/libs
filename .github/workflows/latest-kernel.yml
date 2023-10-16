@@ -31,6 +31,7 @@ jobs:
           cd linux/
           echo "kernelversion: 1" > dk.yaml
           echo "architecture: amd64" >> dk.yaml
+          echo "driverversion: ${{ github.sha }}" >> dk.yaml
           echo "output:" >> dk.yaml
           echo "  module: mod.ko" >> dk.yaml
           echo "  probe: probe.o" >> dk.yaml
