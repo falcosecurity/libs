@@ -1386,7 +1386,7 @@ int32_t scap_linux_get_fdlist(struct scap_platform* platform, struct scap_thread
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 
 	// We collect file descriptors only for the main thread
-	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/%d/", scap_get_host_root(), tinfo->pid);
+	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/%lu/", scap_get_host_root(), tinfo->pid);
 
 	return scap_fd_scan_fd_dir(linux_platform, &platform->m_proclist, proc_dir, tinfo, &sockets_by_ns, &num_fds_ret, lasterr);
 }
