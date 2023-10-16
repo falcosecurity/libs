@@ -170,7 +170,7 @@ jobs:
       - name: Test sinsp-example runtime linker
         run: |
           cd userspace/libsinsp/examples
-          export LD_LIBRARY_PATH=/tmp/libs-test/lib/falcosecurity
+          export LD_LIBRARY_PATH=/tmp/libs-test/lib
           ./sinsp-example -h
 
   build-libs-others-amd64:
@@ -227,7 +227,7 @@ jobs:
       - name: Test sinsp-example runtime linker 🧪
         run: |
           cd userspace/libsinsp/examples
-          export DYLD_LIBRARY_PATH=/tmp/libs-test/lib/falcosecurity
+          export DYLD_LIBRARY_PATH=/tmp/libs-test/lib
           ./sinsp-example -h
 
   # This job run all engine tests and scap-open
