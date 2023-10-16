@@ -165,11 +165,7 @@ int32_t scap_get_fdlist(struct scap* handle, struct scap_threadinfo *tinfo)
 {
 	if (handle && handle->m_platform && handle->m_platform->m_vtable->get_fdlist)
 	{	
-		int32_t res = handle->m_platform->m_vtable->get_fdlist(handle->m_platform, tinfo, handle->m_lasterr);
-		if(res != SCAP_SUCCESS)
-		{
-			return SCAP_FAILURE;
-		}
+		return handle->m_platform->m_vtable->get_fdlist(handle->m_platform, tinfo, handle->m_lasterr);
 	}
 
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "operation not supported");
