@@ -7,5 +7,5 @@ Description: lib for System INSPection
 Version: @FALCOSECURITY_LIBS_VERSION@
 
 Requires: libscap
-Libs: -L${libdir}/@LIBS_PACKAGE_NAME@ -lsinsp @SINSP_PKG_CONFIG_LIBDIRS@ @SINSP_PKG_CONFIG_LIBS@
+Libs: -L${libdir} -lsinsp @SINSP_PKG_CONFIG_LIBDIRS@ @SINSP_PKG_CONFIG_LIBS@
 Cflags: -I${includedir}/@LIBS_PACKAGE_NAME@/userspace/libsinsp @SINSP_PKG_CONFIG_INCLUDES@
