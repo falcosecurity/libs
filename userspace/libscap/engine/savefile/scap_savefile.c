@@ -1925,7 +1925,7 @@ static int32_t scap_read_init(struct savefile_engine *handle, scap_reader_t* r, 
 //
 // Read an event from disk
 //
-static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pdevid)
+static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags)
 {
 	struct savefile_engine* handle = engine.m_handle;
 	block_header bh;
@@ -2039,12 +2039,12 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 
 		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2 || bh.block_type == EVF_BLOCK_TYPE_V2_LARGE)
 		{
-			handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_reader_evt_buf + sizeof(uint16_t));
+			*pflags = *(uint32_t *)(handle->m_reader_evt_buf + sizeof(uint16_t));
 			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
 		}
 		else
 		{
-			handle->m_last_evt_dump_flags = 0;
+			*pflags = 0;
 			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t));
 		}
 
@@ -2351,18 +2351,12 @@ static int64_t get_readfile_offset(struct scap_engine_handle engine)
 	return engine.m_handle->m_reader->offset(engine.m_handle->m_reader);
 }
 
-static uint32_t get_event_dump_flags(struct scap_engine_handle engine)
-{
-	return engine.m_handle->m_last_evt_dump_flags;
-}
-
 static struct scap_savefile_vtable savefile_ops = {
 	.ftell_capture = scap_savefile_ftell,
 	.fseek_capture = scap_savefile_fseek,
 
 	.restart_capture = scap_savefile_restart_capture,
 	.get_readfile_offset = get_readfile_offset,
-	.get_event_dump_flags = get_event_dump_flags,
 };
 
 struct scap_vtable scap_savefile_engine = {

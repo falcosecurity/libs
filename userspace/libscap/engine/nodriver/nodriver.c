@@ -44,7 +44,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid)
+static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
 	static scap_evt evt;
 	evt.len = 0;
@@ -56,6 +56,8 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 
 	evt.ts = get_timestamp_ns();
 	*pevent = &evt;
+	*pdevid = 0;
+	*pflags = 0;
 	return SCAP_SUCCESS;
 }
 

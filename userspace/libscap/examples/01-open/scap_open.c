@@ -837,6 +837,7 @@ int main(int argc, char** argv)
 	int32_t res = 0;
 	scap_evt* ev = NULL;
 	uint16_t cpuid = 0;
+	uint32_t flags = 0;
 
 	printf("\n[SCAP-OPEN]: Hello!\n");
 	if(signal(SIGINT, signal_callback) == SIG_ERR)
@@ -873,7 +874,7 @@ int main(int argc, char** argv)
 
 	while(g_nevts != num_events)
 	{
-		res = scap_next(g_h, &ev, &cpuid);
+		res = scap_next(g_h, &ev, &cpuid, &flags);
 		number_of_scap_next++;
 		if(res == SCAP_UNEXPECTED_BLOCK)
 		{

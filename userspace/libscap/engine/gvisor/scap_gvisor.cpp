@@ -506,7 +506,7 @@ int32_t engine::process_message_from_fd(int fd)
 	return parse_result.status;
 }
 
-int32_t engine::next(scap_evt **pevent, uint16_t *pdevid)
+int32_t engine::next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags)
 {
 	if(m_no_events)
 	{
@@ -600,6 +600,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pdevid)
 	if(!m_event_queue.empty())
 	{
 		*pevent = m_event_queue.front();
+		*pflags = 0;
 		m_event_queue.pop_front();
 		m_gvisor_stats.n_evts++;
 		return SCAP_SUCCESS;

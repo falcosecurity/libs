@@ -50,11 +50,13 @@ void check_event_is_not_overwritten(scap_t *h)
 	 */
 	scap_evt *evt = NULL;
 	uint16_t buffer_id;
+	uint32_t flags;
 
 	/* The first 'scap_next` could return a `SCAP_TIMEOUT` according to the chosen `buffer_mode` so we ignore it. */
-	scap_next(h, &evt, &buffer_id);
+	scap_next(h, &evt, &buffer_id, &flags);
 
-	ASSERT_EQ(scap_next(h, &evt, &buffer_id), SCAP_SUCCESS) << "unable to get an event with `scap_next`: " << scap_getlasterr(h) << std::endl;
+	ASSERT_EQ(scap_next(h, &evt, &buffer_id, &flags), SCAP_SUCCESS)
+		<< "unable to get an event with `scap_next`: " << scap_getlasterr(h) << std::endl;
 
 	last_num_events = 0;
 	iterations = 0;
@@ -154,8 +156,9 @@ void check_event_order(scap_t *h)
 
 	scap_evt *evt = NULL;
 	uint16_t buffer_id = 0;
+	uint32_t flags = 0;
 	int ret = 0;
-	uint64_t acutal_pid = getpid();
+	uint64_t actual_pid = getpid();
 	/* if we hit 5 consecutive timeouts it means that all buffers are empty (approximation) */
 	uint16_t timeouts = 0;
 
@@ -163,11 +166,11 @@ void check_event_order(scap_t *h)
 	{
 		while(true)
 		{
-			ret = scap_next(h, &evt, &buffer_id);
+			ret = scap_next(h, &evt, &buffer_id, &flags);
 			if(ret == SCAP_SUCCESS)
 			{
 				timeouts = 0;
-				if(evt->tid == acutal_pid && evt->type == events_to_assert[i])
+				if(evt->tid == actual_pid && evt->type == events_to_assert[i])
 				{
 					/* We found our event */
 					break;

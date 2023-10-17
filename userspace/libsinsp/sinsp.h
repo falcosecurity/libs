@@ -1334,6 +1334,8 @@ public:
 	// This is related to m_replay_scap_evt, and is used to store the additional cpuid
 	// information of the replayed scap event.
 	uint16_t m_replay_scap_cpuid;
+	uint32_t m_replay_scap_flags;
+
 	//
 	// A registry that managers the state tables of this inspector
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;

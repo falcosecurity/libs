@@ -49,7 +49,8 @@ static void scap_modern_bpf__free_engine(struct scap_engine_handle engine)
 /* The third parameter is not the CPU number from which we extract the event but the ring buffer number.
  * For the old BPF probe and the kernel module the number of CPUs is equal to the number of buffers since we always use a per-CPU approach.
  */
-static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* buffer_id)
+static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* buffer_id,
+				     OUT uint32_t* pflags)
 {
 	pman_consume_first_event((void**)pevent, (int16_t*)buffer_id);
 
@@ -64,6 +65,7 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_
 	{
 		engine.m_handle->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 	}
+	*pflags = 0;
 	return SCAP_SUCCESS;
 }
 

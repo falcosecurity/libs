@@ -155,7 +155,7 @@ static int close_engine(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pdevid)
+static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pdevid, OUT uint32_t* pflags)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	char *lasterr = engine.m_handle->m_lasterr;
@@ -255,6 +255,8 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	}
 
 	*pevent = evt;
+	*pdevid = 0;
+	*pflags = 0;
 	handle->m_nevts++;
 	handle->m_input_plugin_batch_idx++;
 	return SCAP_SUCCESS;

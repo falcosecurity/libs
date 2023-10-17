@@ -142,7 +142,7 @@ public:
     int32_t start_capture();
     int32_t stop_capture();
 
-    int32_t next(scap_evt **pevent, uint16_t *pdevid);
+    int32_t next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags);
 
     uint32_t get_vxid(uint64_t pid);
     int32_t get_stats(scap_stats *stats);

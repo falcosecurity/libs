@@ -174,9 +174,9 @@ static int32_t gvisor_stop_capture(struct scap_engine_handle engine)
 	return engine.m_handle->stop_capture();
 }
 
-static int32_t gvisor_next(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid)
+static int32_t gvisor_next(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
-	return engine.m_handle->next(pevent, pdevid);
+	return engine.m_handle->next(pevent, pdevid, pflags);
 }
 
 static int32_t gvisor_configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)

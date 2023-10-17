@@ -312,7 +312,7 @@ uint64_t scap_max_buf_used(scap_t* handle)
 	return 0;
 }
 
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid)
+int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid, OUT uint32_t* pflags)
 {
 	// Note: devid is like cpuid but not 1:1, e.g. consider CPU1 offline:
 	// CPU0 CPU1 CPU2 CPU3
@@ -321,7 +321,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid)
 	int32_t res = SCAP_FAILURE;
 	if(handle->m_vtable)
 	{
-		res = handle->m_vtable->next(handle->m_engine, pevent, pdevid);
+		res = handle->m_vtable->next(handle->m_engine, pevent, pdevid, pflags);
 	}
 	else
 	{
@@ -549,18 +549,6 @@ int32_t scap_set_dropfailed(scap_t* handle, bool enabled) {
 
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-}
-
-uint32_t scap_event_get_dump_flags(scap_t* handle)
-{
-	if(handle->m_vtable->savefile_ops)
-	{
-		return handle->m_vtable->savefile_ops->get_event_dump_flags(handle->m_engine);
-	}
-	else
-	{
-		return 0;
-	}
 }
 
 int32_t scap_enable_dynamic_snaplen(scap_t* handle)

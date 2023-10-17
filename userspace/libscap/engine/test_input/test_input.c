@@ -52,7 +52,7 @@ static struct test_input_engine* alloc_handle(scap_t* main_handle, char* lasterr
 	return engine;
 }
 
-static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid)
+static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
 	test_input_engine *engine = handle.m_handle;
 	scap_test_input_data *data = engine->m_data;
@@ -66,6 +66,7 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 	data->event_count--;
 	/* All the events are sent by device 1 */
 	*pdevid = 1;
+	*pflags = 0;
 	return SCAP_SUCCESS;
 }
 

@@ -116,13 +116,6 @@ struct scap_savefile_vtable {
 	 * @return the current read offset, in (compressed) bytes
 	 */
 	int64_t (*get_readfile_offset)(struct scap_engine_handle engine);
-
-	/**
-	 * @brief return the flags for the last read event
-	 * @param engine the handle to the engine
-	 * @return the flags of the event (currently only SCAP_DF_LARGE is supported)
-	 */
-	uint32_t (*get_event_dump_flags)(struct scap_engine_handle engine);
 };
 
 struct scap_vtable {
@@ -176,6 +169,7 @@ struct scap_vtable {
 	 * @param pevent [out] where the pointer to the next event gets stored
 	 * @param pdevid [out] where the device on which the event was received
 	 *               gets stored
+	 * @param pflags [out] where the flags for the event get stored
 	 * @return SCAP_SUCCESS or a failure code
 	 *
 	 * SCAP_SUCCESS: event successfully returned and stored in *pevent
@@ -186,7 +180,7 @@ struct scap_vtable {
 	 * The memory pointed to by *pevent must be owned by the engine
 	 * and must remain valid at least until the next call to next()
 	 */
-	int32_t (*next)(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid);
+	int32_t (*next)(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags);
 
 	/**
 	 * @brief start a capture

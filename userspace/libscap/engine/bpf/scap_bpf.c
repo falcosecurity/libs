@@ -1865,9 +1865,9 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine, OUT scap_evt **pevent, OUT uint16_t *pdevid)
+static int32_t next(struct scap_engine_handle engine, OUT scap_evt **pevent, OUT uint16_t *pdevid, OUT uint32_t *pflags)
 {
-	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pdevid);
+	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pdevid, pflags);
 }
 
 static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)

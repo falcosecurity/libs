@@ -240,10 +240,11 @@ void event_test::disable_capture()
 void event_test::clear_ring_buffers()
 {
 	uint16_t cpu_id = 0;
+	uint32_t flags = 0;
 	/* First timeout means that all the buffers are empty. If the capture is not
 	 * stopped it is possible that we will never receive a `SCAP_TIMEOUT`.
 	 */
-	while(scap_next(s_scap_handle, (scap_evt**)&m_event_header, &cpu_id) != SCAP_TIMEOUT)
+	while(scap_next(s_scap_handle, (scap_evt**)&m_event_header, &cpu_id, &flags) != SCAP_TIMEOUT)
 	{
 	}
 }
@@ -253,11 +254,12 @@ struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 	struct ppm_evt_hdr* hdr = NULL;
 	uint16_t attempts = 0;
 	int32_t res = 0;
+	uint32_t flags = 0;
 
 	/* Try 2 times just to be sure that all the buffers are empty. */
 	while(attempts <= 1)
 	{
-		res = scap_next(s_scap_handle, (scap_evt**)&hdr, cpu_id);
+		res = scap_next(s_scap_handle, (scap_evt**)&hdr, cpu_id, &flags);
 		if(res == SCAP_SUCCESS && hdr != NULL)
 		{
 			break;
