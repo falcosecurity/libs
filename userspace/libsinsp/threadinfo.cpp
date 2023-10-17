@@ -2085,7 +2085,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
             return NULL;
         }
 
-        scap_threadinfo* scap_proc = NULL;
+        scap_threadinfo scap_proc {};
+	bool have_scap_proc = false;
 
 		// unfortunately, sinsp owns the threade factory
         sinsp_threadinfo* newti = m_inspector->build_threadinfo();
@@ -2126,16 +2127,18 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
 #ifdef HAS_ANALYZER
             uint64_t ts = sinsp_utils::get_current_time_ns();
 #endif
-            scap_proc = scap_proc_get(m_inspector->get_scap_platform(), tid, scan_sockets);
+            if(scap_proc_get(m_inspector->get_scap_platform(), tid, &scap_proc, scan_sockets) == SCAP_SUCCESS)
+	    {
+		have_scap_proc = true;
+	    }
 #ifdef HAS_ANALYZER
             m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
 #endif
         }
 
-        if(scap_proc)
+        if(have_scap_proc)
         {
-            newti->init(scap_proc);
-	    scap_proc_free(scap_proc);
+            newti->init(&scap_proc);
         }
         else
         {

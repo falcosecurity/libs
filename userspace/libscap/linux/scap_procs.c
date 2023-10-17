@@ -843,17 +843,12 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 
 static int32_t single_thread_proc_callback(void* context, char* error, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo, scap_threadinfo** new_tinfo)
 {
-	scap_threadinfo **out_proc = (scap_threadinfo**)context;
-	scap_threadinfo *heap_tinfo = malloc(sizeof(*heap_tinfo));
-	if(heap_tinfo == NULL)
-	{
-		return scap_errprintf(error, 0, "process table allocation error (scap_proc_read_thread)");
-	}
+	scap_threadinfo *out_proc = (scap_threadinfo*)context;
 
-	**out_proc = *tinfo;
+	*out_proc = *tinfo;
 	if(new_tinfo)
 	{
-		*new_tinfo = *out_proc;
+		*new_tinfo = out_proc;
 	}
 	return SCAP_SUCCESS;
 }
@@ -862,10 +857,10 @@ static int32_t single_thread_proc_callback(void* context, char* error, int64_t t
 // Read a single thread info from /proc
 //
 int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, char* procdirname, uint64_t tid,
-			      struct scap_threadinfo** pi, char* error, bool scan_sockets)
+			      struct scap_threadinfo* tinfo, char* error, bool scan_sockets)
 {
 	struct scap_proclist single_thread_proclist;
-	init_proclist(&single_thread_proclist, single_thread_proc_callback, pi);
+	init_proclist(&single_thread_proclist, single_thread_proc_callback, tinfo);
 
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
@@ -1148,20 +1143,15 @@ int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t *pid, c
 	return scap_errprintf(error, 0, "could not find tgid in status file %s", filename);
 }
 
-struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool scan_sockets)
+int32_t scap_linux_proc_get(struct scap_platform* platform, int64_t tid,
+			    struct scap_threadinfo* tinfo, bool scan_sockets)
 {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 
-	struct scap_threadinfo* tinfo = NULL;
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_read_thread(linux_platform, filename, tid, &tinfo, linux_platform->m_lasterr, scan_sockets) != SCAP_SUCCESS)
-	{
-		free(tinfo);
-		return NULL;
-	}
 
-	return tinfo;
+	return scap_proc_read_thread(linux_platform, filename, tid, tinfo, linux_platform->m_lasterr, scan_sockets);
 }
 
 bool scap_linux_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
