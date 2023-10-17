@@ -50,10 +50,7 @@ int noop_close_engine(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t noop_next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pcpuid)
-{
-	return SCAP_EOF;
-}
+int32_t noop_next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid) { return SCAP_EOF; }
 
 int32_t noop_start_capture(struct scap_engine_handle engine)
 {

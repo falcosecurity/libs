@@ -155,7 +155,7 @@ static int close_engine(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pdevid)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	char *lasterr = engine.m_handle->m_lasterr;

@@ -211,14 +211,14 @@ static inline void ringbuffer_advance_to_evt(scap_device* dev, scap_evt *event)
  * - before refilling a buffer we have to consume all the others!
  * - we perform a lot of cycles but we have to be super fast here!
  */
-static inline int32_t ringbuffer_next(struct scap_device_set *devset, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+static inline int32_t ringbuffer_next(struct scap_device_set* devset, OUT scap_evt** pevent, OUT uint16_t* pdevid)
 {
 	uint32_t j;
 	uint64_t min_ts = 0xffffffffffffffffLL;
 	scap_evt* pe = NULL;
 	uint32_t ndevs = devset->m_ndevs;
 
-	*pcpuid = 65535;
+	*pdevid = 65535;
 
 	for(j = 0; j < ndevs; j++)
 	{
@@ -276,18 +276,17 @@ static inline int32_t ringbuffer_next(struct scap_device_set *devset, OUT scap_e
 			}
 
 			*pevent = pe;
-			*pcpuid = j;
+			*pdevid = j;
 			min_ts = pe->ts;
 		}
 	}
 
-
-	if(*pcpuid != 65535)
+	if(*pdevid != 65535)
 	{
 		/* Check from which buffer we have read and move the position inside
 	 	 * the block with `ADVANCE_TO_EVT`
 	 	 */
-		struct scap_device *dev = &devset->m_devs[*pcpuid];
+		struct scap_device* dev = &devset->m_devs[*pdevid];
 		ADVANCE_TO_EVT(dev, (*pevent));
 		return SCAP_SUCCESS;
 	}
