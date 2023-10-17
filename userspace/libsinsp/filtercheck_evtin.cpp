@@ -16,10 +16,11 @@ limitations under the License.
 
 */
 
+#include "filtercheck_evtin.h"
+#include "filtercheck_tracer.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
-#include "filterchecks.h"
 #include "tracers.h"
 #include "strl.h"
 

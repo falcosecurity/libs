@@ -87,23 +87,23 @@ set(SINSP_SOURCES
 	fdinfo.cpp
 	filter.cpp
 	container.cpp
-	filter/checks/container.cpp
-	filter/checks/event.cpp
-	filter/checks/evtin.cpp
-	filter/checks/fd.cpp
-	filter/checks/fdlist.cpp
-	filter/checks/fspath.cpp
-	filter/checks/gen_event.cpp
-	filter/checks/group.cpp
-	filter/checks/k8s.cpp
-	filter/checks/mesos.cpp
-	filter/checks/rawstring.cpp
-	filter/checks/reference.cpp
-	filter/checks/syslog.cpp
-	filter/checks/thread.cpp
-	filter/checks/tracer.cpp
-	filter/checks/user.cpp
-	filter/checks/utils.cpp
+	filtercheck_container.cpp
+	filtercheck_event.cpp
+	filtercheck_evtin.cpp
+	filtercheck_fd.cpp
+	filtercheck_fdlist.cpp
+	filtercheck_fspath.cpp
+	filtercheck_gen_event.cpp
+	filtercheck_group.cpp
+	filtercheck_k8s.cpp
+	filtercheck_mesos.cpp
+	filtercheck_rawstring.cpp
+	filtercheck_reference.cpp
+	filtercheck_syslog.cpp
+	filtercheck_thread.cpp
+	filtercheck_tracer.cpp
+	filtercheck_user.cpp
+	filtercheck_utils.cpp
 	filter_check_list.cpp
 	gen_filter.cpp
 	http_parser.c

@@ -18,10 +18,10 @@ limitations under the License.
 
 #include <math.h>
 
+#include "filtercheck_event.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
-#include "filterchecks.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "protodecoder.h"

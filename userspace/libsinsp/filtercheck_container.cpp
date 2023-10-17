@@ -19,7 +19,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
-#include "filterchecks.h"
+#include "filtercheck_container.h"
 
 using namespace std;
 
