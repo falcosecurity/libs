@@ -138,8 +138,10 @@ TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo)
 	tinfo->m_pid = 51003;
 	tinfo->m_ptid = 51004; /* we won't find it in the table, so we will default to 1 */
 
-	auto tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
-	m_inspector.m_thread_manager->set_thread_group_info(tinfo->m_pid, tginfo);
+	{
+		auto tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, false, tinfo);
+		m_inspector.m_thread_manager->set_thread_group_info(tinfo->m_pid, tginfo);
+	}
 
 	auto other_tinfo = std::make_shared<sinsp_threadinfo>();
 	other_tinfo->m_tid = 51003;
