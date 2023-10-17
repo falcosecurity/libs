@@ -19,7 +19,6 @@ limitations under the License.
 #include "sinsp_filtercheck_gen_event.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "filter.h"
 #include "plugin.h"
 #include "plugin_manager.h"
 

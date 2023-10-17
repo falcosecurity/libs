@@ -19,7 +19,6 @@ limitations under the License.
 #include "sinsp_filtercheck_mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "filter.h"
 
 using namespace std;
 

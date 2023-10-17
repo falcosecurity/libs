@@ -21,9 +21,6 @@ limitations under the License.
 #include <set>
 #include <string>
 #include <vector>
-
-#include "scap.h"
-#include "tuples.h"
 #include "filter_check_list.h"
 #include "gen_filter.h"
 #include "filter/parser.h"
@@ -32,11 +29,6 @@ limitations under the License.
  * Filtering infrastructure.
  *  @{
  */
-
-bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
-bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
-bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
-bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *operand2);
 
 /*!
   \brief This is the class that runs the filters.

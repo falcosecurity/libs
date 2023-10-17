@@ -19,7 +19,6 @@ limitations under the License.
 #include "sinsp_filtercheck_syslog.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "filter.h"
 #include "protodecoder.h"
 
 using namespace std;
