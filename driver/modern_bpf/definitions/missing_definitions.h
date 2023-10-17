@@ -1557,4 +1557,9 @@
 #define MODULE_INIT_COMPRESSED_FILE    4
 /*==================================== FINIT   FLAGS ================================*/
 
+/*==================================== OVERLAY FLAGS ================================*/
+#define DCACHE_DISCONNECTED 0x20
+#define OVL_E_UPPER_ALIAS      0
+/*==================================== OVERLAY FLAGS ================================*/
+
 #endif /* __MISSING_DEFINITIONS_H__ */
