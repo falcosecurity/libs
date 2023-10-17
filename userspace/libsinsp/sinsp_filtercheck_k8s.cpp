@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "filtercheck_k8s.h"
+#include "sinsp_filtercheck_k8s.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"

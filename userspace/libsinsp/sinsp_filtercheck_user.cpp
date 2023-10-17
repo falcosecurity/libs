@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "filtercheck_user.h"
+#include "sinsp_filtercheck_user.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"

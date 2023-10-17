@@ -17,9 +17,9 @@ limitations under the License.
 */
 
 #include <filesystem>
-#include "filtercheck_fspath.h"
-#include "filtercheck_event.h"
-#include "filtercheck_fd.h"
+#include "sinsp_filtercheck_fspath.h"
+#include "sinsp_filtercheck_event.h"
+#include "sinsp_filtercheck_fd.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
