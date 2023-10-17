@@ -39,7 +39,6 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
 bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
-int32_t gmt2local(time_t t);
 
 class operand_info
 {

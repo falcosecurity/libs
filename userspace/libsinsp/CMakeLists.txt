@@ -86,7 +86,24 @@ set(SINSP_SOURCES
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
-	filterchecks.cpp
+	container.cpp
+	filter/checks/container.cpp
+	filter/checks/event.cpp
+	filter/checks/evtin.cpp
+	filter/checks/fd.cpp
+	filter/checks/fdlist.cpp
+	filter/checks/fspath.cpp
+	filter/checks/gen_event.cpp
+	filter/checks/group.cpp
+	filter/checks/k8s.cpp
+	filter/checks/mesos.cpp
+	filter/checks/rawstring.cpp
+	filter/checks/reference.cpp
+	filter/checks/syslog.cpp
+	filter/checks/thread.cpp
+	filter/checks/tracer.cpp
+	filter/checks/user.cpp
+	filter/checks/utils.cpp
 	filter_check_list.cpp
 	gen_filter.cpp
 	http_parser.c

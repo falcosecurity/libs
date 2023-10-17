@@ -974,6 +974,43 @@ const char* sinsp_utils::event_name_by_id(uint16_t id)
 	return g_infotables.m_event_info[id].name;
 }
 
+static int32_t gmt2local(time_t t)
+{
+	int dt, dir;
+	struct tm *gmt, *tmp_gmt, *loc;
+	struct tm sgmt;
+
+	if(t == 0)
+	{
+		t = time(NULL);
+	}
+
+	gmt = &sgmt;
+	tmp_gmt = gmtime(&t);
+	if (tmp_gmt == NULL)
+	{
+		throw sinsp_exception("cannot get gmtime");
+	}
+	*gmt = *tmp_gmt;
+	loc = localtime(&t);
+	if(loc == NULL)
+	{
+		throw sinsp_exception("cannot get localtime");
+	}
+
+	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
+
+	dir = loc->tm_year - gmt->tm_year;
+	if(dir == 0)
+	{
+		dir = loc->tm_yday - gmt->tm_yday;
+	}
+
+	dt += dir * 24 * 60 * 60;
+
+	return dt;
+}
+
 void sinsp_utils::ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns)
 {
 	struct tm *tm;
