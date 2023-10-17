@@ -19,7 +19,7 @@ limitations under the License.
 #pragma once
 
 #include "sinsp_filtercheck.h"
-#include "filtercheck_reference.h"
+#include "sinsp_filtercheck_reference.h"
 
 class sinsp_filter_check_evtin : public sinsp_filter_check
 {

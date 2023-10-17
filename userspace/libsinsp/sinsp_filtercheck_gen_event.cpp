@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "filtercheck_gen_event.h"
+#include "sinsp_filtercheck_gen_event.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"

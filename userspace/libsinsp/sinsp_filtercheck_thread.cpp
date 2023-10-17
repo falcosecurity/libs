@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "filtercheck_thread.h"
+#include "sinsp_filtercheck_thread.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"

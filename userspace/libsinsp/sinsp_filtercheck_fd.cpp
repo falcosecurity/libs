@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "filtercheck_fd.h"
+#include "sinsp_filtercheck_fd.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "dns_manager.h"
