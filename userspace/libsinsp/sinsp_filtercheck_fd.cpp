@@ -20,7 +20,6 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "dns_manager.h"
-#include "filter.h"
 
 using namespace std;
 

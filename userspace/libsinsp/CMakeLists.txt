@@ -86,7 +86,7 @@ set(SINSP_SOURCES
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
-	container.cpp
+	sinsp_filtercheck.cpp
 	sinsp_filtercheck_container.cpp
 	sinsp_filtercheck_event.cpp
 	sinsp_filtercheck_evtin.cpp
