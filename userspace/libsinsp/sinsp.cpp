@@ -278,6 +278,7 @@ void sinsp::consume_initialstate_events()
 	scap_evt* pevent;
 	uint16_t pcpuid;
 	sinsp_evt* tevt;
+	uint32_t flags;
 
 	if (m_external_event_processor)
 	{
@@ -289,7 +290,7 @@ void sinsp::consume_initialstate_events()
 	//
 	while(true)
 	{
-		int32_t res = scap_next(m_h, &pevent, &pcpuid);
+		int32_t res = scap_next(m_h, &pevent, &pcpuid, &flags);
 
 		if(res == SCAP_SUCCESS)
 		{
@@ -298,6 +299,7 @@ void sinsp::consume_initialstate_events()
 			// once we reach a container-unrelated event.
 			m_replay_scap_evt = pevent;
 			m_replay_scap_cpuid = pcpuid;
+			m_replay_scap_flags = flags;
 			if(!is_initialstate_event(pevent))
 			{
 				break;
@@ -1277,13 +1279,14 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			res = SCAP_SUCCESS;
 			evt->m_pevt = m_replay_scap_evt;
 			evt->m_cpuid = m_replay_scap_cpuid;
+			evt->m_dump_flags = m_replay_scap_flags;
 			m_replay_scap_evt = NULL;
 		}
 		else 
 		{
 			// If no last event was saved, invoke
 			// the actual scap_next
-			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid), &(evt->m_dump_flags));
 		}
 
 		if(res != SCAP_SUCCESS)

@@ -123,11 +123,6 @@ sinsp_evt::~sinsp_evt()
 	}
 }
 
-uint32_t sinsp_evt::get_dump_flags()
-{
-	return scap_event_get_dump_flags(m_inspector->m_h);
-}
-
 const char *sinsp_evt::get_name() const
 {
 	return m_info->name;

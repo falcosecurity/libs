@@ -562,7 +562,7 @@ private:
 	std::string get_param_value_str(const char* name, bool resolved = true);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
-	uint32_t get_dump_flags();
+	inline uint32_t get_dump_flags() const { return m_dump_flags; }
 	static bool clone_event(sinsp_evt& dest, const sinsp_evt& src);
 	int32_t get_errorcode() { return m_errorcode; }
 
@@ -586,6 +586,7 @@ VISIBILITY_PRIVATE
 	uint16_t m_cpuid;
 	uint64_t m_evtnum;
 	uint32_t m_flags;
+	uint32_t m_dump_flags;
 	bool m_params_loaded;
 	const struct ppm_event_info* m_info;
 	std::vector<sinsp_evt_param> m_params;

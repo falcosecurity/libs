@@ -400,9 +400,9 @@ static int close_engine(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pdevid)
+static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pdevid, OUT uint32_t* pflags)
 {
-	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pdevid);
+	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pdevid, pflags);
 }
 
 //

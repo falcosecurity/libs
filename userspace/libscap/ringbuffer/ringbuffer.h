@@ -211,7 +211,8 @@ static inline void ringbuffer_advance_to_evt(scap_device* dev, scap_evt *event)
  * - before refilling a buffer we have to consume all the others!
  * - we perform a lot of cycles but we have to be super fast here!
  */
-static inline int32_t ringbuffer_next(struct scap_device_set* devset, OUT scap_evt** pevent, OUT uint16_t* pdevid)
+static inline int32_t ringbuffer_next(struct scap_device_set* devset, OUT scap_evt** pevent, OUT uint16_t* pdevid,
+				      OUT uint32_t* pflags)
 {
 	uint32_t j;
 	uint64_t min_ts = 0xffffffffffffffffLL;
@@ -288,6 +289,9 @@ static inline int32_t ringbuffer_next(struct scap_device_set* devset, OUT scap_e
 	 	 */
 		struct scap_device* dev = &devset->m_devs[*pdevid];
 		ADVANCE_TO_EVT(dev, (*pevent));
+
+		// we don't really store the flags in the ringbuffer anywhere
+		*pflags = 0;
 		return SCAP_SUCCESS;
 	}
 	else
