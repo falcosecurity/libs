@@ -1122,6 +1122,22 @@ static int enforce_sc_set(struct bpf_engine* handle)
 int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
+	int32_t rc = 0;
+	/* Here we are covering the case in which some syscalls don't have an associated ppm_sc
+	 * and so we cannot set them as (un)interesting. For this reason, we default them to 0.
+	 * Please note this is an extra check since our ppm_sc should already cover all possible syscalls.
+	 * Ideally we should do this only once, but right now in our code we don't have a "right" place to do it.
+	 * We need to move it, if `scap_start_capture` will be called frequently in our flow, right now in live mode, it
+	 * should be called only once...
+	 */
+	for(int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	{
+		rc = set_single_syscall_of_interest(handle, i, false);
+		if(rc != SCAP_SUCCESS)
+		{
+			return rc;
+		}
+	}
 	handle->capturing = true;
 	return enforce_sc_set(handle);
 }
@@ -2009,19 +2025,6 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	{
 		return rc;
 	}
-
-	/* Here we are covering the case in which some syscalls don't have an associated ppm_sc
-	 * and so we cannot set them as (un)interesting. For this reason, we default them to 0.
-	 * Please note this is an extra check since our ppm_sc should already cover all possible syscalls.
-	 */
-	for(int i = 0; i < SYSCALL_TABLE_SIZE; i++)
-	{
-		rc = set_single_syscall_of_interest(engine.m_handle, i, false);
-		if(rc != SCAP_SUCCESS)
-		{
-			return rc;
-		}
-	}	
 
 	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
