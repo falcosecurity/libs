@@ -541,9 +541,9 @@ int32_t scap_kmod_close(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+int32_t scap_kmod_next(struct scap_engine_handle engine, OUT scap_evt **pevent, OUT uint16_t *pdevid)
 {
-	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
+	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pdevid);
 }
 
 uint32_t scap_kmod_get_n_devs(struct scap_engine_handle engine)

@@ -506,7 +506,7 @@ int32_t engine::process_message_from_fd(int fd)
 	return parse_result.status;
 }
 
-int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
+int32_t engine::next(scap_evt **pevent, uint16_t *pdevid)
 {
 	if(m_no_events)
 	{
@@ -514,7 +514,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 	}
 
 	epoll_event evts[max_ready_sandboxes];
-	*pcpuid = 0;
+	*pdevid = 0;
 
 	// if there are still events to process do it before getting more
 	if(!m_event_queue.empty())

@@ -174,7 +174,7 @@ struct scap_vtable {
 	 * @brief fetch the next event
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @param pevent [out] where the pointer to the next event gets stored
-	 * @param pcpuid [out] where the CPU on which the event was received
+	 * @param pdevid [out] where the device on which the event was received
 	 *               gets stored
 	 * @return SCAP_SUCCESS or a failure code
 	 *
@@ -186,7 +186,7 @@ struct scap_vtable {
 	 * The memory pointed to by *pevent must be owned by the engine
 	 * and must remain valid at least until the next call to next()
 	 */
-	int32_t (*next)(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pcpuid);
+	int32_t (*next)(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid);
 
 	/**
 	 * @brief start a capture

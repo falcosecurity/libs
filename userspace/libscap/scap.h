@@ -567,15 +567,15 @@ uint64_t scap_max_buf_used(scap_t* handle);
 
   \param handle Handle to the capture instance.
   \param pevent User-provided event pointer that will be initialized with address of the event.
-  \param pcpuid User-provided event pointer that will be initialized with the ID if the CPU
+  \param pdevid User-provided event pointer that will be initialized with the ID of the device
     where the event was captured.
 
-  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain valid data.
+  \return SCAP_SUCCESS if the call is successful and pevent and pdevid contain valid data.
    SCAP_TIMEOUT in case the read timeout expired and no event is available.
    SCAP_EOF when the end of an offline capture is reached.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error.
 */
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid);
 
 /*!
   \brief Get the length of an event

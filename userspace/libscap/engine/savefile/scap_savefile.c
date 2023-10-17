@@ -1925,7 +1925,7 @@ static int32_t scap_read_init(struct savefile_engine *handle, scap_reader_t* r, 
 //
 // Read an event from disk
 //
-static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pcpuid)
+static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pdevid)
 {
 	struct savefile_engine* handle = engine.m_handle;
 	block_header bh;
@@ -2035,7 +2035,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 		//
 		// EVF_BLOCK_TYPE has 32 bits of flags
 		//
-		*pcpuid = *(uint16_t *)handle->m_reader_evt_buf;
+		*pdevid = *(uint16_t *)handle->m_reader_evt_buf;
 
 		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2 || bh.block_type == EVF_BLOCK_TYPE_V2_LARGE)
 		{
