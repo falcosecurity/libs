@@ -823,24 +823,26 @@ static __always_inline bool extract__exe_upper_layer(struct inode *inode, struct
 		struct dentry *dentry = (struct dentry *)BPF_CORE_READ(exe_file, f_path.dentry);
 
 		unsigned int d_flags = BPF_CORE_READ(dentry, d_flags);
-		// DCACHE_DISCONNECTED = 0x20
-		bool disconnected = (d_flags & 0x20);
+		bool disconnected = (d_flags & DCACHE_DISCONNECTED);
 		if(disconnected)
 		{
 			return true;
 		}
 
-		// In kernels >=6.5 d_fsdata represents an ovl_entry_flag.
-		unsigned long flags = (unsigned long)BPF_CORE_READ(dentry, d_fsdata);
+		unsigned long flags = 0;
 		if(bpf_core_field_exists(((struct ovl_entry___before_v6_5*)0)->flags))
 		{
 			// kernel <6.5
 			struct ovl_entry___before_v6_5 *oe = (struct ovl_entry___before_v6_5*)BPF_CORE_READ(dentry, d_fsdata);
 			flags = (unsigned long)BPF_CORE_READ(oe, flags);
 		}
+		else
+		{
+			// In kernels >=6.5 d_fsdata represents an ovl_entry_flag.
+			flags = (unsigned long)BPF_CORE_READ(dentry, d_fsdata);
+		}
 
-		// OVL_E_UPPER_ALIAS = 0
-		unsigned long has_upper = (flags & (1U << (0)));
+		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
 		if(has_upper)
 		{
 			return true;
