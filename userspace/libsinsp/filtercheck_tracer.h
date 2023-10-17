@@ -22,6 +22,8 @@ limitations under the License.
 
 #define TEXT_ARG_ID -1000000
 
+class sinsp_filter_check_reference;
+
 class sinsp_filter_check_tracer : public sinsp_filter_check
 {
 public:

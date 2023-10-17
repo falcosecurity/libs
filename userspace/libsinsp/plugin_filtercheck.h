@@ -24,7 +24,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "version.h"
 #include "filter.h"
-#include "filterchecks.h"
+#include "sinsp_filtercheck.h"
 
 /**
 	\brief This class implements a dynamic filter check that acts as a

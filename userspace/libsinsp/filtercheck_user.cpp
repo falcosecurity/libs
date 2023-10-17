@@ -16,10 +16,10 @@ limitations under the License.
 
 */
 
+#include "filtercheck_user.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
-#include "filterchecks.h"
 
 using namespace std;
 

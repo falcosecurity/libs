@@ -16,11 +16,11 @@ limitations under the License.
 
 */
 
+#include "filtercheck_fd.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "dns_manager.h"
 #include "filter.h"
-#include "filterchecks.h"
 
 using namespace std;
 
