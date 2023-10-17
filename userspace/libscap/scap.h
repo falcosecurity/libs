@@ -865,7 +865,6 @@ extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT 
 uint32_t scap_event_get_sentinel_begin(scap_evt* e);
 #endif
 
-void scap_proc_free(struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
