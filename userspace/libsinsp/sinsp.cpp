@@ -1223,6 +1223,8 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	sinsp_evt* evt;
 	int32_t res;
 
+	*puevt = NULL;
+	
 	//
 	// Check if there are fake cpu events to  events
 	//
@@ -1297,8 +1299,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				{
 					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
-				*puevt = NULL;
-				return res;
 			}
 			else if(res == SCAP_EOF)
 			{
@@ -1314,8 +1314,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				// In this case, we restart the capture so that the internal states gets reset
 				// and the blocks coming from the next appended file get consumed.
 				restart_capture();
-				return SCAP_TIMEOUT;
-
+				res = SCAP_TIMEOUT;
 			}
 			else if(res == SCAP_FILTERED_EVENT)
 			{
@@ -1327,8 +1326,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				if(m_external_event_processor)
 				{
 					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_FILTERED);
-					*puevt = NULL;
-					return res;
 				}
 			}
 			else
@@ -1426,25 +1423,20 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// things like exit() or close() can be parsed.
 	//
 	uint32_t nfdr = (uint32_t)m_fds_to_remove->size();
-
 	if(nfdr != 0)
 	{
 		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread 
 		 * to remove we are fine.
 		 */
 		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, false).get();
-		if(!ptinfo)
+		if(ptinfo)
 		{
-			ASSERT(false);
-			return res;
+			for(uint32_t j = 0; j < nfdr; j++)
+			{
+				ptinfo->remove_fd(m_fds_to_remove->at(j));
+			}
+			m_fds_to_remove->clear();
 		}
-
-		for(uint32_t j = 0; j < nfdr; j++)
-		{
-			ptinfo->remove_fd(m_fds_to_remove->at(j));
-		}
-
-		m_fds_to_remove->clear();
 	}
 
 #ifdef SIMULATE_DROP_MODE
@@ -1524,7 +1516,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		// mode and the category of this event is internal.
 		if(!(m_isinternal_events_enabled && (cat & EC_INTERNAL)))
 		{
-			*puevt = evt;
 			return SCAP_FILTERED_EVENT;
 		}
 	}
