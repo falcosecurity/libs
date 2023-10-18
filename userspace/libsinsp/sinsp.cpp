@@ -86,6 +86,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_k8s_api_handler(nullptr),
 	m_k8s_ext_handler(nullptr),
 	m_stats(nullptr),
+	m_pending_state_evts(1000),
 	m_suppressed_comms(),
 	m_inited(false)
 {
@@ -512,7 +513,6 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 	{
 		// note(jasondellaluce,rohith-raju): for now the emscripten build does not support
 		// tbb queues, so async event production is disabled
-#ifndef __EMSCRIPTEN__
 		for (auto& p : m_plugin_manager->plugins())
 		{
 			if (p->caps() & CAP_ASYNC)
@@ -527,7 +527,6 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 				}
 			}
 		}
-#endif
 	}
 }
 
@@ -1327,21 +1326,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
-#ifndef __EMSCRIPTEN__	
-	else if (m_pending_state_evts.try_pop(m_state_evt))
-	{
-		res = SCAP_SUCCESS;
-		evt = m_state_evt.get();
-		// note: this is just a convention. When the timestamp is
-		//       assigned to (uint64_t)-1 libsinsp is allowed to
-		//       change that value, otherwise will keep the one
-		//       previously assigned.
-		if(evt->m_pevt->ts == (uint64_t) - 1)
-		{
-			evt->m_pevt->ts = get_new_ts();
-		}
-	}
-#endif
 	else
 	{
 		evt = &m_evt;
@@ -1372,11 +1356,52 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			evt->m_dump_flags = m_replay_scap_flags;
 			m_replay_scap_evt = NULL;
 		}
-		else 
+		else
 		{
-			// If no last event was saved, invoke
-			// the actual scap_next
-			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid), &(evt->m_dump_flags));
+			res = SCAP_SUCCESS;
+
+			//check if we don't have a delayed scap_evt
+			if(m_delayed_scap_evt.empty())
+			{
+				// if no pending state events continue without saving scap_evt
+				if(m_pending_state_evts.empty())
+				{
+					res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid), &(evt->m_dump_flags));
+				}
+				else
+				{
+					// poll+save scap_evt to compare against the state queue
+					res = m_delayed_scap_evt.next(m_h);
+				}
+			}
+
+			if(res == SCAP_SUCCESS && !m_delayed_scap_evt.empty())
+			{
+				// ts compare predicate
+				// updates state event ts if it's == -1
+				const auto check_ts = [this](const sinsp_evt* evt)
+				{
+					return evt->m_pevt->ts == (uint64_t)-1 ||
+					       evt->m_pevt->ts <= m_delayed_scap_evt.m_pevt->ts;
+				};
+
+				// thread-safe in mpsc application
+				// sinsp::next is the single consumer for m_pending_state_evts
+				if(m_pending_state_evts.pop_if(check_ts, m_state_evt))
+				{
+					if(m_state_evt->m_pevt->ts == (uint64_t)-1)
+					{
+						m_state_evt->m_pevt->ts = get_new_ts();
+					}
+					evt = m_state_evt.get();
+				}
+				else
+				{
+					// no ready state events yet
+					// continue with saved scap_evt
+					m_delayed_scap_evt.move(evt);
+				}
+			}
 		}
 
 		if(res == SCAP_SUCCESS)
@@ -2857,6 +2882,27 @@ libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 	return new sinsp_threadinfo(inspector);
 }
 
+void sinsp::handle_async_event(std::unique_ptr<sinsp_evt> evt)
+{
+	// see comments in handle_plugin_async_event
+	if(!is_capture())
+	{
+		evt->inspector(this);
+		if(evt->m_pevt->ts != (uint64_t)-1 &&
+		   evt->m_pevt->ts > sinsp_utils::get_current_time_ns() + ONE_SECOND_IN_NS * 10)
+		{
+			g_logger.log("async event ts too far in future", sinsp_logger::SEV_WARNING);
+			return;
+		}
+
+		if(!m_pending_state_evts.push(std::move(evt)))
+		{
+			g_logger.log("async event queue is full", sinsp_logger::SEV_WARNING);
+			throw sinsp_exception("async event queue is full");
+		}
+	}
+}
+
 void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sinsp_evt> evt)
 {
 	// note: this function can be invoked from different plugin threads,
@@ -2925,11 +2971,7 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		// write plugin ID and timestamp in the event and kick it in the queue
 		auto plid = (uint32_t*)((uint8_t*) evt->m_pevt + sizeof(scap_evt) + 4+4+4);
 		*plid = cur_plugin_id;
-		evt->inspector(this);
-		evt->m_pevt->ts = (uint64_t) -1;
-#ifndef __EMSCRIPTEN__				
-		m_pending_state_evts.push(std::move(evt));
-#endif
+		handle_async_event(std::move(evt));
 	}
 }
 
