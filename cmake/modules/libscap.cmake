@@ -58,7 +58,8 @@ else()
 endif()
 
 get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/libscap ABSOLUTE)
-set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${DRIVER_CONFIG_DIR})
+get_filename_component(LIBSCAP_COMMON_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/common ABSOLUTE)
+set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_COMMON_INCLUDE_DIR} ${DRIVER_CONFIG_DIR})
 
 function(set_scap_target_properties target)
 	set_target_properties(${target} PROPERTIES
