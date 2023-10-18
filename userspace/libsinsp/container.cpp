@@ -361,12 +361,10 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 				"notify_new_container (%s): created CONTAINER_JSON event, queuing to inspector",
 				container_info.m_id.c_str());
 
-		std::shared_ptr<sinsp_evt> cevt(evt);
+		std::unique_ptr<sinsp_evt> cevt(evt);
 
 		// Enqueue it onto the queue of pending container events for the inspector
-#ifndef __EMSCRIPTEN__	
-		m_inspector->m_pending_state_evts.push(cevt);
-#endif	
+		m_inspector->m_pending_state_evts.push(std::move(cevt));
 	}
 	else
 	{

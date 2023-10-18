@@ -19,6 +19,7 @@ limitations under the License.
 #ifndef _WIN32
 #include <inttypes.h>
 #include <unistd.h>
+#include <limits.h>
 #endif
 #include <stdio.h>
 #include <algorithm>

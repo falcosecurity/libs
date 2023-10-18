@@ -89,6 +89,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	events_evt.ut.cpp
 	events_file.ut.cpp
 	events_fspath.ut.cpp
+	events_injection.ut.cpp
 	events_net.ut.cpp
 	events_param.ut.cpp
 	events_plugin.ut.cpp

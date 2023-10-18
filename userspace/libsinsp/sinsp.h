@@ -44,10 +44,6 @@ limitations under the License.
 
 #include "capture_stats_source.h"
 
-#if !defined(__EMSCRIPTEN__)
-#include "tbb/concurrent_queue.h"
-#endif
-
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
 #include "sinsp_exception.h"
@@ -104,6 +100,8 @@ limitations under the License.
 #include "plugin.h"
 #include "gvisor_config.h"
 #include "sinsp_suppress.h"
+#include "mpsc_priority_queue.h"
+
 class sinsp_partial_transaction;
 class sinsp_parser;
 class sinsp_analyzer;
@@ -1028,6 +1026,7 @@ public:
 		return m_plugin_manager;
 	}
 
+	void handle_async_event(std::unique_ptr<sinsp_evt> evt);
 	void handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sinsp_evt> evt);
 
 	inline const std::vector<std::string>& event_sources() const
@@ -1305,12 +1304,59 @@ public:
 	// *	user added/removed events
 	// * 	group added/removed events
 	// *    async events produced by sinsp or plugins
-#ifndef __EMSCRIPTEN__
-	tbb::concurrent_queue<std::shared_ptr<sinsp_evt>> m_pending_state_evts;
-#endif
+
+	// m_injected_evts comparator
+	using sinsp_evt_ptr = std::unique_ptr<sinsp_evt>;
+	struct state_evts_less
+	{
+		bool operator()(const sinsp_evt_ptr& l, const sinsp_evt_ptr& r)
+		{
+			return l->get_ts() != static_cast<uint64_t>(-1) && l->get_ts() > r->get_ts();
+		}
+	};
+
+	// priority queue to hold injected events
+	mpsc_priority_queue<sinsp_evt_ptr, state_evts_less> m_pending_state_evts;
 
 	// Holds an event dequeued from the above queue
-	std::shared_ptr<sinsp_evt> m_state_evt;
+	sinsp_evt_ptr m_state_evt;
+
+	// temp storage for scap_next
+	// stores top scap_evt while qualified events from m_pending_state_evts are being processed
+	struct
+	{
+		inline auto next(scap_t* h)
+		{
+			auto res = scap_next(h, &m_pevt, &m_cpuid, &m_dump_flags);
+			if (res != SCAP_SUCCESS)
+			{
+				clear();
+			}
+			return res;
+		}
+		inline void move(sinsp_evt * evt)
+		{
+			evt->m_pevt = m_pevt;
+			evt->m_cpuid = m_cpuid;
+			evt->m_dump_flags = m_dump_flags;
+			clear();
+		}
+		inline bool empty() const
+		{
+			return m_pevt == nullptr;
+		}
+		inline void clear()
+		{
+			m_pevt = nullptr;
+			m_cpuid = 0;
+			m_dump_flags = 0;
+		}
+
+		scap_evt* m_pevt{nullptr};
+		uint16_t  m_cpuid{0};
+		uint32_t  m_dump_flags;
+	} m_delayed_scap_evt;
+
 
 	//
 	// End of second housekeeping

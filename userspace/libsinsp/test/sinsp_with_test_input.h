@@ -106,6 +106,15 @@ protected:
 		throw std::runtime_error("could not retrieve last event or internal error (event vector size: " + std::to_string(m_events.size()) + std::string(")"));
 	}
 
+	scap_evt* add_event_with_ts(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
+	{
+		va_list args;
+		va_start(args, n);
+		auto *ret = add_event_v(ts, tid, event_type, n, args);
+		va_end(args);
+		return ret;
+	};
+
 	scap_evt* add_event_v(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, va_list args)
 	{
 		struct scap_sized_buffer event_buf = {NULL, 0};
