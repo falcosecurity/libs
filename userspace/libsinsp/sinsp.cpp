@@ -1435,8 +1435,8 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			{
 				ptinfo->remove_fd(m_fds_to_remove->at(j));
 			}
-			m_fds_to_remove->clear();
 		}
+		m_fds_to_remove->clear();
 	}
 
 #ifdef SIMULATE_DROP_MODE
