@@ -175,10 +175,10 @@ int pman_init_state(falcosecurity_log_fn log_fn, unsigned long buf_bytes_dim, ui
 
 int pman_get_required_buffers() { return g_state.n_required_buffers; }
 
-static char byte_array[] = "BPF_TRACE_RAW_TP";
-
 bool check_location(const char* path)
 {
+	static const char bpf_trace_raw_byte_array[] = "BPF_TRACE_RAW_TP";
+
 	bool res = false;
 
 	// On success `faccessat` returns 0.
@@ -230,10 +230,10 @@ bool check_location(const char* path)
 	int z = 0;
 	for(int j = 0; j< sz; j++)
 	{
-		if(file_content[j] == byte_array[z])
+		if(file_content[j] == bpf_trace_raw_byte_array[z])
 		{
 			z++;
-			if(z == sizeof(byte_array) / sizeof(*byte_array))
+			if(z == sizeof(bpf_trace_raw_byte_array) / sizeof(*bpf_trace_raw_byte_array))
 			{
 				res = true;
 				break;
