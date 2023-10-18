@@ -51,7 +51,6 @@ limitations under the License.
 #include "chisel.h"
 #include "chisel_utils.h"
 #include "protodecoder.h"
-#include "uri.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096

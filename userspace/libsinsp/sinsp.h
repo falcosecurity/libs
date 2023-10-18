@@ -104,20 +104,11 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
-class k8s;
 class sinsp_partial_tracer;
-class mesos;
 class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
 class sinsp_stats;
-
-class sinsp_ssl;
-class sinsp_bearer_token;
-template <class T> class socket_data_handler;
-template <class T> class socket_collector;
-class k8s_handler;
-class k8s_api_handler;
 
 std::vector<std::string> sinsp_split(const std::string &s, char delim);
 
@@ -145,18 +136,6 @@ public:
 	int32_t m_nfields; ///< Number of fields in this field group.
 	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
 	uint32_t m_flags;
-};
-
-/*!
-  \brief Parameters to configure the download behavior when connected to an
-  orchestrator like Kubernetes or mesos.
-*/
-class metadata_download_params
-{
-public:
-	uint32_t m_data_max_b = K8S_DATA_MAX_B;
-	uint32_t m_data_chunk_wait_us = K8S_DATA_CHUNK_WAIT_US;
-	uint32_t m_data_watch_freq_sec = METADATA_DATA_WATCH_FREQ_SEC;
 };
 
 /*!
@@ -237,8 +216,6 @@ class SINSP_PUBLIC sinsp : public capture_stats_source
 {
 public:
 	typedef std::shared_ptr<sinsp> ptr;
-	typedef std::set<std::string> k8s_ext_list_t;
-	typedef std::shared_ptr<k8s_ext_list_t> k8s_ext_list_ptr_t;
 
 	sinsp(bool static_container = false,
 		  const std::string &static_id = "",
@@ -875,34 +852,6 @@ public:
 		}
 	}
 
-	/*!
-	  \brief Set the parameters that control metadata fetching from orchestrators
-	  like Kuberneted and mesos.
-	*/
-	void set_metadata_download_params(uint32_t data_max_b,
-		uint32_t data_chunk_wait_us,
-		uint32_t data_watch_freq_sec);
-
-
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-	void init_k8s_ssl(const std::string *ssl_cert);
-
-	/*!
-	  \brief Initialize the Kubernetes client.
-	  \param api_server Kubernetes API server URI
-	  \param ssl_cert use the provided file name to authenticate with the Kubernetes API server
-	  \param node_name the node name is used as a filter when requesting metadata of pods 
-	  to the API server; if empty, no filter is set
-	*/
-	void init_k8s_client(std::string* api_server, std::string* ssl_cert, std::string *node_name, bool verbose = false);
-	void make_k8s_client();
-	k8s* get_k8s_client() const { return m_k8s_client; }
-	void validate_k8s_node_name();
-
-	void init_mesos_client(std::string* api_server, bool verbose = false);
-	mesos* get_mesos_client() const { return m_mesos_client; }
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-
 	//
 	// Misc internal stuff
 	//
@@ -1096,14 +1045,6 @@ private:
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
 	bool remove_inactive_threads();
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-	void k8s_discover_ext();
-	void collect_k8s();
-	void update_k8s_state();
-	void update_mesos_state();
-	bool get_mesos_data();
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
 
@@ -1178,45 +1119,6 @@ public:
 	sinsp_container_manager m_container_manager;
 
 	sinsp_usergroup_manager m_usergroup_manager;
-
-	metadata_download_params m_metadata_download_params;
-
-	//
-	// Kubernetes
-	//
-	std::string* m_k8s_api_server;
-	std::string* m_k8s_api_cert;
-	std::string* m_k8s_node_name;
-	bool m_k8s_node_name_validated = false;
-	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
-	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
-	std::unique_ptr<k8s_api_handler> m_k8s_api_handler;
-	std::shared_ptr<socket_collector<socket_data_handler<k8s_handler>>> m_k8s_collector;
-	bool m_k8s_api_detected = false;
-	std::unique_ptr<k8s_api_handler> m_k8s_ext_handler;
-	k8s_ext_list_ptr_t m_ext_list_ptr;
-	k8s_ext_list_t m_k8s_allowed_ext = {
-		// "daemonsets", // not enabled by default because not fully implemented (no state/cache, no filters) 
-		"deployments",
-		"replicasets"
-	};
-	bool m_k8s_ext_detect_done = false;
-	k8s* m_k8s_client;
-	uint64_t m_k8s_last_watch_time_ns;
-
-	//
-	// Mesos/Marathon
-	//
-	std::string m_mesos_api_server;
-	std::vector<std::string> m_marathon_api_server;
-	mesos* m_mesos_client;
-	uint64_t m_mesos_last_watch_time_ns;
-
-	//
-	// True when ran with -v.
-	// Used by mesos and k8s objects.
-	//
-	bool m_verbose_json = false;
 
 	//
 	// True if the command line argument is set to show container information

@@ -18,10 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-
 #include "sinsp_filtercheck.h"
-#include "mesos.h"
 
 class sinsp_filter_check_mesos : public sinsp_filter_check
 {
@@ -50,15 +47,8 @@ public:
 private:
 
 	int32_t extract_arg(const std::string& fldname, const std::string& val);
-	mesos_task::ptr_t find_task_for_thread(const sinsp_threadinfo* tinfo);
-	const mesos_framework* find_framework_by_task(mesos_task::ptr_t task);
-	marathon_app::ptr_t find_app_by_task(mesos_task::ptr_t task);
-	marathon_group::ptr_t find_group_by_task(mesos_task::ptr_t task);
-	void concatenate_labels(const mesos_pair_list& labels, std::string* s);
-	bool find_label(const mesos_pair_list& labels, const std::string& key, std::string* value);
 
 	std::string m_argname;
 	std::string m_tstr;
 };
 
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)

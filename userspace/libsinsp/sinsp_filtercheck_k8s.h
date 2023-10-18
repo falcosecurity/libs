@@ -18,10 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-
 #include "sinsp_filtercheck.h"
-#include "k8s.h"
 
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
@@ -63,18 +60,8 @@ public:
 
 private:
 	int32_t extract_arg(const std::string& fldname, const std::string& val);
-	const k8s_pod_t* find_pod_for_thread(const sinsp_threadinfo* tinfo);
-	const k8s_ns_t* find_ns_by_name(const std::string& ns_name);
-	const k8s_rc_t* find_rc_by_pod(const k8s_pod_t* pod);
-	const k8s_rs_t* find_rs_by_pod(const k8s_pod_t* pod);
-	std::vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
-	const k8s_deployment_t* find_deployment_by_pod(const k8s_pod_t* pod);
-	void concatenate_labels(const k8s_pair_list& labels, std::string* s);
 	void concatenate_container_labels(const std::map<std::string, std::string>& labels, std::string* s);
-	bool find_label(const k8s_pair_list& labels, const std::string& key, std::string* value);
 	std::string m_argname;
 	std::string m_tstr;
 	uint32_t m_u32val;
 };
-
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)

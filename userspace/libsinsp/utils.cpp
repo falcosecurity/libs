@@ -50,7 +50,6 @@ limitations under the License.
 #include "filter_check_list.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
-#include "uri.h"
 #include "strl.h"
 #if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include "curl/curl.h"

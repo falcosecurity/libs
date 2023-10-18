@@ -83,10 +83,3 @@ limitations under the License.
 template<class T> class sinsp_fdinfo;
 typedef sinsp_fdinfo<int> sinsp_fdinfo_t;
 #endif // HAS_ANALYZER
-
-//
-// Default metadata download settings
-//
-#define K8S_DATA_MAX_B 100 * 1024 * 1024
-#define K8S_DATA_CHUNK_WAIT_US 1000
-#define METADATA_DATA_WATCH_FREQ_SEC 1

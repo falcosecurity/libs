@@ -109,11 +109,7 @@ set(SINSP_SOURCES
 	sinsp_filtercheck_utils.cpp
 	filter_check_list.cpp
 	gen_filter.cpp
-	http_parser.c
-	http_reason.cpp
 	ifinfo.cpp
-	json_query.cpp
-	json_error_log.cpp
 	memmem.cpp
 	tracers.cpp
 	internal_metrics.cpp
@@ -131,8 +127,6 @@ set(SINSP_SOURCES
 	stats.cpp
 	token_bucket.cpp
 	stopwatch.cpp
-	uri_parser.c
-	uri.cpp
 	utils.cpp
 	value_parser.cpp
 	user.cpp
@@ -157,35 +151,6 @@ endif()
 
 if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 	list(APPEND SINSP_SOURCES
-		addrinfo.cpp
-		sinsp_auth.cpp
-		k8s.cpp
-		k8s_api_error.cpp
-		k8s_api_handler.cpp
-		k8s_component.cpp
-		k8s_daemonset_handler.cpp
-		k8s_deployment_handler.cpp
-		k8s_dispatcher.cpp
-		k8s_event_data.cpp
-		k8s_event_handler.cpp
-		k8s_handler.cpp
-		k8s_namespace_handler.cpp
-		k8s_net.cpp
-		k8s_node_handler.cpp
-		k8s_pod_handler.cpp
-		k8s_replicationcontroller_handler.cpp
-		k8s_replicaset_handler.cpp
-		k8s_service_handler.cpp
-		k8s_state.cpp
-		marathon_component.cpp
-		marathon_http.cpp
-		mesos_auth.cpp
-		mesos.cpp
-		mesos_collector.cpp
-		mesos_component.cpp
-		mesos_http.cpp
-		mesos_state.cpp
-		sinsp_curl.cpp
 		container_engine/docker/async_source.cpp
 		container_engine/docker/base.cpp)
 	if(NOT WIN32)

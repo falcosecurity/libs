@@ -121,10 +121,8 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_syslog());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	add_filter_check(new sinsp_filter_check_k8s());
 	add_filter_check(new sinsp_filter_check_mesos());
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
 }
