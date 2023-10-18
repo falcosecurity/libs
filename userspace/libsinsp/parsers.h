@@ -22,16 +22,6 @@ limitations under the License.
 #pragma once
 #include "sinsp.h"
 
-class metaevents_state
-{
-public:
-	bool m_new_group;
-	uint32_t m_n_additional_events_to_add;
-	sinsp_evt m_metaevt;
-	scap_evt* m_piscapevt;
-	uint32_t m_scap_buf_size;
-};
-
 class sinsp_parser
 {
 public:
@@ -62,29 +52,16 @@ public:
 	sinsp_protodecoder* add_protodecoder(std::string decoder_name);
 	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
-	void schedule_k8s_events();
-	void schedule_mesos_events();
-
 	//
 	// Protocol decoders callback lists
 	//
 	std::vector<sinsp_protodecoder*> m_open_callbacks;
 	std::vector<sinsp_protodecoder*> m_connect_callbacks;
 
-	//
-	// Initializers
-	//
-	static void init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size);
-
 	void set_track_connection_status(bool enabled);
 	bool get_track_connection_status() { return m_track_connection_status; }
 
 private:
-	//
-	// Initializers
-	//
-	inline void init_metaevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size);
-
 	//
 	// Helpers
 	//
@@ -143,11 +120,6 @@ private:
 	void parse_group_evt(sinsp_evt *evt);
 	inline uint32_t parse_tracer(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
-	int get_k8s_version(const std::string& json);
-#ifndef CYGWING_AGENT
-	void parse_k8s_evt(sinsp_evt *evt);
-	void parse_mesos_evt(sinsp_evt *evt);
-#endif
 	void parse_chroot_exit(sinsp_evt *evt);
 	void parse_setsid_exit(sinsp_evt *evt);
 	void parse_getsockopt_exit(sinsp_evt *evt);
@@ -192,10 +164,6 @@ private:
 	// The protocol decoders allocated by this parser
 	//
 	std::vector<sinsp_protodecoder*> m_protodecoders;
-
-	metaevents_state m_k8s_metaevents_state;
-	int              m_k8s_capture_version = -1;
-	metaevents_state m_mesos_metaevents_state;
 
 	std::stack<uint8_t*> m_tmp_events_buffer;
 

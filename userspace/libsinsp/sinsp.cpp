@@ -33,7 +33,6 @@ limitations under the License.
 #include "scap_platform.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "sinsp_auth.h"
 #include "filter.h"
 #include "filterchecks.h"
 #include "cyclewriter.h"
@@ -45,16 +44,9 @@ limitations under the License.
 #include "strl.h"
 #include "scap-int.h"
 
-#if !defined(CYGWING_AGENT)
-#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#include "k8s_api_handler.h"
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
-#endif // defined(HAS_CAPTURE)
-#else // !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-struct k8s_api_handler{}; // note: makes the unique_ptr static asserts happy
-#endif // !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#endif // !defined(CYGWING_AGENT)
+#endif
 
 #ifdef GATHER_INTERNAL_STATS
 #include "stats.h"
@@ -93,8 +85,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_host_root(scap_get_host_root()),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_usergroup_manager(this),
-	m_k8s_api_handler(nullptr),
-	m_k8s_ext_handler(nullptr),
 	m_stats(nullptr),
 	m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
 	m_suppressed_comms(),
@@ -102,7 +92,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 {
 	++instance_count;
 #if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE) 
-	// used by mesos and container_manager
+	// used by container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
 	m_h = NULL;
@@ -179,17 +169,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_meta_event_callback_data = NULL;
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-	m_k8s_client = NULL;
-	m_k8s_last_watch_time_ns = 0;
-
-	m_k8s_client = NULL;
-	m_k8s_api_server = NULL;
-	m_k8s_api_cert = NULL;
-
-	m_mesos_client = NULL;
-	m_mesos_last_watch_time_ns = 0;
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	m_replay_scap_evt = NULL;
 
@@ -238,19 +217,12 @@ sinsp::~sinsp()
 
 	m_container_manager.cleanup();
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-	delete m_k8s_client;
-	delete m_k8s_api_server;
-	delete m_k8s_api_cert;
-
-	delete m_mesos_client;
-#ifdef HAS_CAPTURE
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	curl_global_cleanup();
 	if (--instance_count == 0)
 	{
 		sinsp_dns_manager::get().cleanup();
 	}
-#endif
 #endif
 }
 
@@ -1518,7 +1490,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Store a couple of values that we'll need later inside the event.
 	// These are potentially used both for parsing the event for internal
-	// state management, and for managing the k8s and mesos clients.
+	// state management.
 	//
 	m_nevts++;
 	evt->m_evtnum = m_nevts;
@@ -1565,13 +1537,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		m_container_manager.remove_inactive_containers();
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-		update_k8s_state();
-
-		if(m_mesos_client)
-		{
-			update_mesos_state();
-		}
-
 		m_usergroup_manager.clear_host_users_groups();
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	}
@@ -2318,15 +2283,6 @@ double sinsp::get_read_progress_file()
 	return (double)fpos * 100 / m_filesize;
 }
 
-void sinsp::set_metadata_download_params(uint32_t data_max_b,
-	uint32_t data_chunk_wait_us,
-	uint32_t data_watch_freq_sec)
-{
-	m_metadata_download_params.m_data_max_b = data_max_b;
-	m_metadata_download_params.m_data_chunk_wait_us = data_chunk_wait_us;
-	m_metadata_download_params.m_data_watch_freq_sec = data_watch_freq_sec;
-}
-
 void sinsp::get_read_progress_plugin(OUT double* nres, std::string* sres)
 {
 	ASSERT(nres != NULL);
@@ -2383,453 +2339,6 @@ bool sinsp::remove_inactive_threads()
 {
 	return m_thread_manager->remove_inactive_threads();
 }
-
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-void sinsp::init_mesos_client(std::string* api_server, bool verbose)
-{
-	m_verbose_json = verbose;
-	if(m_mesos_client == NULL)
-	{
-		if(api_server)
-		{
-			// -m <url[,marathon_url]>
-			std::string::size_type pos = api_server->find(',');
-			if(pos != std::string::npos)
-			{
-				m_marathon_api_server.clear();
-				m_marathon_api_server.push_back(api_server->substr(pos + 1));
-			}
-			m_mesos_api_server = api_server->substr(0, pos);
-		}
-
-		bool is_live = !m_mesos_api_server.empty();
-		m_mesos_client = new mesos(m_mesos_api_server,
-									m_marathon_api_server,
-									true, // mesos leader auto-follow
-									m_marathon_api_server.empty(), // marathon leader auto-follow if no uri
-									mesos::credentials_t(), // mesos creds, the only way to provide creds is embedded in URI
-									mesos::credentials_t(), // marathon creds
-									mesos::default_timeout_ms,
-									is_live,
-									m_verbose_json);
-	}
-}
-
-void sinsp::init_k8s_ssl(const std::string *ssl_cert)
-{
-#ifdef HAS_CAPTURE
-	if(ssl_cert != nullptr && !ssl_cert->empty()
-	   && (!m_k8s_ssl || ! m_k8s_bt))
-	{
-		std::string cert;
-		std::string key;
-		std::string key_pwd;
-		std::string ca_cert;
-
-		// -K <bt_file> | <cert_file>:<key_file[#password]>[:<ca_cert_file>]
-		std::string::size_type pos = ssl_cert->find(':');
-		if(pos == std::string::npos) // ca_cert-only is obsoleted, single entry is now bearer token
-		{
-			m_k8s_bt = std::make_shared<sinsp_bearer_token>(*ssl_cert);
-		}
-		else
-		{
-			cert = ssl_cert->substr(0, pos);
-			if(cert.empty())
-			{
-				throw sinsp_exception(std::string("Invalid K8S SSL entry: ") + *ssl_cert);
-			}
-
-			// pos < ssl_cert->length() so it's safe to take
-			// substr() from head, but it may be empty
-			std::string::size_type head = pos + 1;
-			pos = ssl_cert->find(':', head);
-			if (pos == std::string::npos)
-			{
-				key = ssl_cert->substr(head);
-			}
-			else
-			{
-				key = ssl_cert->substr(head, pos - head);
-				ca_cert = ssl_cert->substr(pos + 1);
-			}
-			if(key.empty())
-			{
-				throw sinsp_exception(std::string("Invalid K8S SSL entry: ") + *ssl_cert);
-			}
-
-			// Parse the password if it exists
-			pos = key.find('#');
-			if(pos != std::string::npos)
-			{
-				key_pwd = key.substr(pos + 1);
-				key = key.substr(0, pos);
-			}
-		}
-		g_logger.format(sinsp_logger::SEV_TRACE,
-				"Creating sinsp_ssl with cert %s, key %s, key_pwd %s, ca_cert %s",
-				cert.c_str(), key.c_str(), key_pwd.c_str(), ca_cert.c_str());
-		m_k8s_ssl = std::make_shared<sinsp_ssl>(cert, key, key_pwd,
-					ca_cert, ca_cert.empty() ? false : true, "PEM");
-	}
-#endif // HAS_CAPTURE
-}
-
-void sinsp::make_k8s_client()
-{
-	bool enable_capture = NULL != m_dumper && m_k8s_api_server && !m_k8s_api_server->empty();
-
-	m_k8s_client = new k8s(
-		
-		// uri
-		m_k8s_api_server ? *m_k8s_api_server : std::string()
-
-		// For the k8s client, "is_captured" actually means: 
-        // "Please, put k8s events data in a deque so we can consume them later."
-		// 
-		// is_captured
-		,enable_capture
-
-		// ssl
-		// bt
-		// block
-#ifdef HAS_CAPTURE
-		,m_k8s_ssl
-		,m_k8s_bt
-		,true // blocking
-#endif // HAS_CAPTURE
-
-		// event_filter
-		,nullptr 
-
-		// extensions
-#ifdef HAS_CAPTURE
-		,m_ext_list_ptr
-#else
-		,nullptr
-#endif // HAS_CAPTURE
-
-		// events_only
-		,false 
-
-		// node_selector
-#ifdef HAS_CAPTURE
-		,m_k8s_node_name ? *m_k8s_node_name : std::string()
-#endif // HAS_CAPTURE
-	);
-}
-
-void sinsp::init_k8s_client(std::string* api_server, std::string* ssl_cert, std::string* node_name, bool verbose)
-{
-	ASSERT(api_server);
-	m_verbose_json = verbose;
-	m_k8s_api_server = api_server;
-	m_k8s_api_cert = ssl_cert;
-	m_k8s_node_name = node_name;
-
-#ifdef HAS_CAPTURE
-	if(m_k8s_api_detected && m_k8s_ext_detect_done)
-#endif // HAS_CAPTURE
-	{
-		if(m_k8s_client)
-		{
-			delete m_k8s_client;
-			m_k8s_client = nullptr;
-		}
-		init_k8s_ssl(ssl_cert);
-		make_k8s_client();
-	}
-}
-
-void sinsp::validate_k8s_node_name()
-{
-	if(!m_k8s_node_name || m_k8s_node_name->size() == 0)
-	{
-		g_logger.log("No k8s node name passed as argument. "
-			"This may result in performance penalty on large clusters", sinsp_logger::SEV_WARNING);
-	}
-	else 
-	{
-		bool found = false;
-		const auto& state = m_k8s_client->get_state();
-
-		for(const auto& node : state.get_nodes())
-		{
-			if(!node.get_node_name().compare(*m_k8s_node_name))
-			{
-				found = true;
-				break;
-			} 
-		}
-
-		if(!found)
-		{
-			// todo(jasondellaluce): we used to throw an exception here, however
-			// at this point we have no guarantee on whether the provided node
-			// name is wrong or if there was a failure in the k8s client event
-			// parsing logic. As such, it's unsafe to throw an exception that
-			// can potentially terminate the libs consumer. For now, we stick
-			// to error-level logging, however this is an issue we may want to
-			// further investigate in the future.
-			// see: https://github.com/falcosecurity/falco/issues/2358
-			g_logger.log(
-				"Failing to enrich events with Kubernetes metadata: "
-				"node name does not correspond to a node in the cluster: "
-				+ *m_k8s_node_name, sinsp_logger::SEV_ERROR);
-		}
-	}
-
-	m_k8s_node_name_validated = true;
-}
-
-void sinsp::collect_k8s()
-{
-	if(m_parser)
-	{
-		if(m_k8s_api_server)
-		{
-			if(!m_k8s_client)
-			{
-				init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_k8s_node_name, m_verbose_json);
-				if(m_k8s_client)
-				{
-					g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);
-				}
-				else
-				{
-					g_logger.log("K8s client NOT created.", sinsp_logger::SEV_DEBUG);
-				}
-			}
-			if(m_k8s_client)
-			{
-				if(m_lastevent_ts >
-					m_k8s_last_watch_time_ns + (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
-				{
-					m_k8s_last_watch_time_ns = m_lastevent_ts;
-					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
-					uint64_t delta = sinsp_utils::get_current_time_ns();
-					m_k8s_client->watch();
-					m_parser->schedule_k8s_events();
-					delta = sinsp_utils::get_current_time_ns() - delta;
-					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
-				}
-
-				if(!m_k8s_node_name_validated)
-				{
-					validate_k8s_node_name();
-				}
-			}
-		}
-	}
-}
-
-void sinsp::k8s_discover_ext()
-{
-#ifdef HAS_CAPTURE
-	try
-	{
-		if(m_k8s_api_server && !m_k8s_api_server->empty() && !m_k8s_ext_detect_done)
-		{
-			g_logger.log("K8s API extensions handler: detecting extensions.", sinsp_logger::SEV_TRACE);
-			if(!m_k8s_ext_handler)
-			{
-				if(!m_k8s_collector)
-				{
-					m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
-				}
-				if(uri(*m_k8s_api_server).is_secure()) { init_k8s_ssl(m_k8s_api_cert); }
-				m_k8s_ext_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
-									    "/apis/apps/v1", "[.resources[].name]",
-									    "1.1", m_k8s_ssl, m_k8s_bt, true));
-				g_logger.log("K8s API extensions handler: collector created.", sinsp_logger::SEV_TRACE);
-			}
-			else
-			{
-				g_logger.log("K8s API extensions handler: collecting data.", sinsp_logger::SEV_TRACE);
-				m_k8s_ext_handler->collect_data();
-				if(m_k8s_ext_handler->ready())
-				{
-					g_logger.log("K8s API extensions handler: data received.", sinsp_logger::SEV_TRACE);
-					if(m_k8s_ext_handler->error())
-					{
-						g_logger.log("K8s API extensions handler: data error occurred while detecting API extensions.",
-									 sinsp_logger::SEV_WARNING);
-						m_ext_list_ptr.reset();
-					}
-					else
-					{
-						const k8s_api_handler::api_list_t& exts = m_k8s_ext_handler->extensions();
-						std::ostringstream ostr;
-						k8s_ext_list_t ext_list;
-						for(const auto& ext : exts)
-						{
-							if (m_k8s_allowed_ext.find(ext) == m_k8s_allowed_ext.end()) 
-							{
-								// skip not allowed extension
-								continue;
-							} 
-							ext_list.insert(ext);
-							ostr << std::endl << ext;
-						}
-						g_logger.log("K8s API extensions handler extensions found: " + ostr.str(),
-									 sinsp_logger::SEV_DEBUG);
-						m_ext_list_ptr.reset(new k8s_ext_list_t(ext_list));
-					}
-					m_k8s_ext_detect_done = true;
-					m_k8s_collector.reset();
-					m_k8s_ext_handler.reset();
-				}
-				else
-				{
-					g_logger.log("K8s API extensions handler: not ready.", sinsp_logger::SEV_TRACE);
-				}
-			}
-		}
-	}
-	catch(const std::exception& ex)
-	{
-		g_logger.log(std::string("K8s API extensions handler error: ").append(ex.what()),
-					 sinsp_logger::SEV_ERROR);
-		m_k8s_ext_detect_done = false;
-		m_k8s_collector.reset();
-		m_k8s_ext_handler.reset();
-	}
-	g_logger.log("K8s API extensions handler: detection done.", sinsp_logger::SEV_TRACE);
-#endif // HAS_CAPTURE
-}
-
-void sinsp::update_k8s_state()
-{
-#ifdef HAS_CAPTURE
-	try
-	{
-		if(m_k8s_api_server && !m_k8s_api_server->empty())
-		{
-			if(!m_k8s_api_detected)
-			{
-				if(!m_k8s_api_handler)
-				{
-					if(!m_k8s_collector)
-					{
-						m_k8s_collector = std::make_shared<k8s_handler::collector_t>();
-					}
-					if(uri(*m_k8s_api_server).is_secure() && (!m_k8s_ssl || ! m_k8s_bt))
-					{
-						init_k8s_ssl(m_k8s_api_cert);
-					}
-					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
-										    "/api", ".versions", "1.1",
-										    m_k8s_ssl, m_k8s_bt, true,
-										    m_metadata_download_params.m_data_max_b,
-										    m_metadata_download_params.m_data_chunk_wait_us));
-				}
-				else
-				{
-					m_k8s_api_handler->collect_data();
-					if(m_k8s_api_handler->ready())
-					{
-						g_logger.log("K8s API handler data received.", sinsp_logger::SEV_DEBUG);
-						if(m_k8s_api_handler->error())
-						{
-							g_logger.log("K8s API handler data error occurred while detecting API versions.",
-										 sinsp_logger::SEV_ERROR);
-						}
-						else
-						{
-							m_k8s_api_detected = m_k8s_api_handler->has("v1");
-							if(m_k8s_api_detected)
-							{
-								g_logger.log("K8s API server v1 detected.", sinsp_logger::SEV_DEBUG);
-							}
-						}
-						m_k8s_collector.reset();
-						m_k8s_api_handler.reset();
-					}
-					else
-					{
-						g_logger.log("K8s API handler not ready yet.", sinsp_logger::SEV_DEBUG);
-					}
-				}
-			}
-			if(m_k8s_api_detected && !m_k8s_ext_detect_done)
-			{
-				k8s_discover_ext();
-			}
-			if(m_k8s_api_detected && m_k8s_ext_detect_done)
-			{
-				collect_k8s();
-			}
-		}
-	}
-	catch(const std::exception& e)
-	{
-		g_logger.log(std::string("Error fetching K8s data: ").append(e.what()), sinsp_logger::SEV_ERROR);
-		throw;
-	}
-#endif // HAS_CAPTURE
-}
-
-bool sinsp::get_mesos_data()
-{
-	bool ret = false;
-#ifdef HAS_CAPTURE
-	try
-	{
-		static time_t last_mesos_refresh = 0;
-		ASSERT(m_mesos_client);
-		ASSERT(m_mesos_client->is_alive());
-
-		time_t now; time(&now);
-		if(last_mesos_refresh)
-		{
-			g_logger.log("Collecting Mesos data ...", sinsp_logger::SEV_DEBUG);
-			ret = m_mesos_client->collect_data();
-		}
-		if(difftime(now, last_mesos_refresh) > 10)
-		{
-			g_logger.log("Requesting Mesos data ...", sinsp_logger::SEV_DEBUG);
-			m_mesos_client->send_data_request(false);
-			last_mesos_refresh = now;
-		}
-	}
-	catch(const std::exception& ex)
-	{
-		g_logger.log(std::string("Mesos exception: ") + ex.what(), sinsp_logger::SEV_ERROR);
-		delete m_mesos_client;
-		m_mesos_client = NULL;
-		init_mesos_client(0, m_verbose_json);
-	}
-#endif // HAS_CAPTURE
-	return ret;
-}
-
-void sinsp::update_mesos_state()
-{
-	ASSERT(m_mesos_client);
-	if(m_lastevent_ts >
-		m_mesos_last_watch_time_ns + (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
-	{
-		m_mesos_last_watch_time_ns = m_lastevent_ts;
-		if(m_mesos_client->is_alive())
-		{
-			uint64_t delta = sinsp_utils::get_current_time_ns();
-			if(m_parser && get_mesos_data())
-			{
-				m_parser->schedule_mesos_events();
-				delta = sinsp_utils::get_current_time_ns() - delta;
-				g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Mesos state took %" PRIu64 " ms", delta / 1000000LL);
-			}
-		}
-		else
-		{
-			g_logger.format(sinsp_logger::SEV_ERROR, "Mesos connection not active anymore, retrying ...");
-			delete m_mesos_client;
-			m_mesos_client = NULL;
-			init_mesos_client(0, m_verbose_json);
-		}
-	}
-}
-#endif // CYGWING_AGENT
 
 void sinsp::disable_automatic_threadtable_purging()
 {

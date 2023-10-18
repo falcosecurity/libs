@@ -67,9 +67,6 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	//       is not defined in sinsp.cpp
 	//
 	m_inspector->m_partial_tracers_pool = new simple_lifo_queue<sinsp_partial_tracer>(128);
-
-	init_metaevt(m_k8s_metaevents_state, PPME_K8S_E, SP_EVT_BUF_SIZE);
-	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
 }
 
 sinsp_parser::~sinsp_parser()
@@ -87,37 +84,10 @@ sinsp_parser::~sinsp_parser()
 	}
 	m_protodecoders.clear();
 
-	free(m_k8s_metaevents_state.m_piscapevt);
-	free(m_mesos_metaevents_state.m_piscapevt);
-
 	if(m_inspector->m_partial_tracers_pool != NULL)
 	{
 		delete m_inspector->m_partial_tracers_pool;
 	}
-}
-
-void sinsp_parser::init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
-{
-	scap_evt *new_piscapevt = (scap_evt*) realloc(evt_state.m_piscapevt, buf_size);
-	if(new_piscapevt == NULL)
-	{
-		throw sinsp_exception("memory reallocation error in sinsp_parser::init_scapevt.");
-	}
-	evt_state.m_piscapevt = new_piscapevt;
-	evt_state.m_scap_buf_size = buf_size;
-	evt_state.m_piscapevt->type = evt_type;
-	evt_state.m_metaevt.m_pevt = evt_state.m_piscapevt;
-}
-
-void sinsp_parser::init_metaevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
-{
-	evt_state.m_piscapevt = 0;
-	init_scapevt(evt_state, evt_type, buf_size);
-	evt_state.m_metaevt.m_inspector = m_inspector;
-	evt_state.m_metaevt.m_info = &(g_infotables.m_event_info[PPME_SCAPEVENT_X]);
-	evt_state.m_metaevt.m_cpuid = 0;
-	evt_state.m_metaevt.m_evtnum = 0;
-	evt_state.m_metaevt.m_fdinfo = NULL;
 }
 
 void sinsp_parser::set_track_connection_status(bool enabled)
@@ -498,20 +468,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
 		break;
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-	case PPME_K8S_E:
-		if(m_inspector->is_capture())
-		{
-			parse_k8s_evt(evt);
-		}
-		break;
-	case PPME_MESOS_E:
-		if(m_inspector->is_capture())
-		{
-			parse_mesos_evt(evt);
-		}
-		break;
-#endif // #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	case PPME_SYSCALL_CHROOT_X:
 		parse_chroot_exit(evt);
 		break;
@@ -741,7 +697,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		query_os = true;
 	}
 
-	// todo(jasondellaluce): should we do this for all meta-events in general? (mesos and k8s too?)
+	// todo(jasondellaluce): should we do this for all meta-events in general?
 	if(etype == PPME_CONTAINER_JSON_E ||
 	   etype == PPME_CONTAINER_JSON_2_E ||
 	   etype == PPME_USER_ADDED_E ||
@@ -2721,121 +2677,6 @@ void sinsp_parser::parse_dirfd(sinsp_evt *evt, const char* name, int64_t dirfd, 
 		}
 	}
 }
-
-template <typename T>
-void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_code evt_type)
-{
-#ifdef HAS_CAPTURE
-	ASSERT(data);
-	bool good_event = false;
-	metaevents_state* state = (metaevents_state*)data;
-
-	if(state->m_new_group == true)
-	{
-		state->m_new_group = false;
-		inspector->add_meta_event(&state->m_metaevt);
-		return;
-	}
-
-	ASSERT(client);
-	if(!client->get_capture_events().size())
-	{
-		SINSP_STR_ERROR(
-			std::string("An event scheduled but no events available."
-			            "All pending event requests for "
-			            "[") + typeid(T).name() + "] are cancelled.");
-		state->m_new_group = false;
-		state->m_n_additional_events_to_add = 0;
-		inspector->remove_meta_event_callback();
-		return;
-	}
-	std::string payload = client->dequeue_capture_event();
-	std::size_t tot_len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
-
-	if(tot_len > state->m_scap_buf_size)
-	{
-		sinsp_parser::init_scapevt(*state, evt_type, tot_len);
-	}
-
-	state->m_piscapevt->len = tot_len;
-	state->m_piscapevt->nparams = 1;
-	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
-	plen[0] = (uint16_t)payload.size() + 1;
-	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
-	memcpy(edata, payload.c_str(), plen[0]);
-	good_event = true;
-
-	state->m_n_additional_events_to_add--;
-	if(state->m_n_additional_events_to_add == 0)
-	{
-		inspector->remove_meta_event_callback();
-	}
-	else if(good_event)
-	{
-		inspector->add_meta_event(&state->m_metaevt);
-	}
-#endif // HAS_CAPTURE
-}
-
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-void schedule_more_k8s_evts(sinsp* inspector, void* data)
-{
-	schedule_more_evts(inspector, data, inspector->get_k8s_client(), PPME_K8S_E);
-}
-
-void sinsp_parser::schedule_k8s_events()
-{
-#ifdef HAS_CAPTURE
-	//
-	// schedule k8s events, if any available
-	//
-	k8s* k8s_client = 0;
-	if(m_inspector && (k8s_client = m_inspector->m_k8s_client))
-	{
-		int event_count = k8s_client->get_capture_events().size();
-		if(event_count)
-		{
-			m_k8s_metaevents_state.m_piscapevt->tid = 0;
-			m_k8s_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
-			m_k8s_metaevents_state.m_new_group = true;
-			m_k8s_metaevents_state.m_n_additional_events_to_add = event_count;
-			m_inspector->add_meta_event_callback(&schedule_more_k8s_evts, &m_k8s_metaevents_state);
-
-			schedule_more_k8s_evts(m_inspector, &m_k8s_metaevents_state);
-		}
-	}
-#endif // HAS_CAPTURE
-}
-
-void schedule_more_mesos_evts(sinsp* inspector, void* data)
-{
-	schedule_more_evts(inspector, data, inspector->get_mesos_client(), PPME_MESOS_E);
-}
-
-void sinsp_parser::schedule_mesos_events()
-{
-#ifdef HAS_CAPTURE
-	//
-	// schedule mesos events, if any available
-	//
-	mesos* mesos_client = 0;
-	if(m_inspector && (mesos_client = m_inspector->m_mesos_client))
-	{
-		int event_count = mesos_client->get_capture_events().size();
-		if(event_count)
-		{
-			m_mesos_metaevents_state.m_piscapevt->tid = 0;
-			m_mesos_metaevents_state.m_piscapevt->ts = m_inspector->m_lastevent_ts;
-			m_mesos_metaevents_state.m_new_group = true;
-			m_mesos_metaevents_state.m_n_additional_events_to_add = event_count;
-			m_inspector->add_meta_event_callback(&schedule_more_mesos_evts, &m_mesos_metaevents_state);
-
-			schedule_more_mesos_evts(m_inspector, &m_mesos_metaevents_state);
-		}
-	}
-#endif // HAS_CAPTURE
-}
-#endif // #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 {
@@ -5950,86 +5791,6 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 		return ptr;
 	}
 }
-
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-int sinsp_parser::get_k8s_version(const std::string& json)
-{
-	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)
-	{
-		SINSP_STR_DEBUG(json);
-		Json::Value root;
-		if(Json::Reader().parse(json, root))
-		{
-			const Json::Value& items = root["items"]; // new
-			if(!items.isNull())
-			{
-				SINSP_STR_DEBUG("K8s capture version " +
-				                std::to_string(k8s_state_t::CAPTURE_VERSION_2) +
-				                " detected.");
-				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_2;
-				return m_k8s_capture_version;
-			}
-
-			const Json::Value& object = root["object"]; // old
-			if(!object.isNull())
-			{
-				SINSP_STR_DEBUG("K8s capture version " +
-				                std::to_string(k8s_state_t::CAPTURE_VERSION_2) +
-				                " detected.");
-				m_k8s_capture_version = k8s_state_t::CAPTURE_VERSION_1;
-				return m_k8s_capture_version;
-			}
-			throw sinsp_exception("Unrecognized K8s capture format.");
-		}
-		else
-		{
-			std::string errstr;
-			errstr = Json::Reader().getFormattedErrorMessages();
-			throw sinsp_exception("Invalid K8s capture JSON encountered (" + errstr + ")");
-		}
-	}
-
-	return m_k8s_capture_version;
-}
-
-void sinsp_parser::parse_k8s_evt(sinsp_evt *evt)
-{
-	sinsp_evt_param *parinfo = evt->get_param(0);
-	ASSERT(parinfo);
-	ASSERT(parinfo->m_len > 0);
-	std::string json(parinfo->m_val, parinfo->m_len);
-	//SINSP_STR_DEBUG(json);
-	ASSERT(m_inspector);
-	if(!m_inspector)
-	{
-		throw sinsp_exception("Inspector is null, K8s client can not be created.");
-	}
-	if(!m_inspector->m_k8s_client)
-	{
-		m_inspector->make_k8s_client();
-	}
-	if(m_inspector->m_k8s_client)
-	{
-		m_inspector->m_k8s_client->simulate_watch_event(std::move(json), get_k8s_version(json));
-	}
-	else
-	{
-		throw sinsp_exception("K8s client can not be created.");
-	}
-}
-
-void sinsp_parser::parse_mesos_evt(sinsp_evt *evt)
-{
-	sinsp_evt_param *parinfo = evt->get_param(0);
-	ASSERT(parinfo);
-	ASSERT(parinfo->m_len > 0);
-	std::string json(parinfo->m_val, parinfo->m_len);
-	//SINSP_STR_DEBUG(json);
-	ASSERT(m_inspector);
-	ASSERT(m_inspector->m_mesos_client);
-	m_inspector->m_mesos_client->simulate_event(json);
-}
-#endif // #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 {
