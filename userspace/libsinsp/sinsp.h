@@ -73,7 +73,7 @@ limitations under the License.
 #include "container.h"
 #include "user.h"
 #include "utils.h"
-#include "sinsp_resource_utilization.h"
+#include "stats.h"
 
 #ifndef VISIBILITY_PRIVATE
 // Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
@@ -1102,7 +1102,7 @@ private:
 	bool m_is_dumping;
 	const scap_machine_info* m_machine_info;
 	const scap_agent_info* m_agent_info;
-	scap_stats_v2 m_sinsp_stats_v2[SINSP_MAX_RESOURCE_UTILIZATION];
+	scap_stats_v2 m_sinsp_stats_v2[SINSP_MAX_STATS_V2];
 	uint32_t m_num_cpus;
 	bool m_is_tracers_capture_enabled;
 	bool m_flush_memory_dump;
