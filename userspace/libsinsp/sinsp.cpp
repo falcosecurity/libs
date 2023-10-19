@@ -1508,6 +1508,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		m_dumper->dump(evt);
 	}
 
+	// Finally set output evt;
+	// From now on, any return must have the correct output being set.
+	*puevt = evt;
 	if(evt->m_filtered_out)
 	{
 		ppm_event_category cat = evt->get_category();
@@ -1545,7 +1548,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Done
 	//
-	*puevt = evt;
 	return res;
 }
 
