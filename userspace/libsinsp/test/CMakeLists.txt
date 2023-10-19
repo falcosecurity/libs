@@ -113,6 +113,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	state.ut.cpp
 	eventformatter.ut.cpp
 	savefile.ut.cpp
+	sinsp_stats.ut.cpp
 	thread_table.ut.cpp
 	public_sinsp_API/event_related.cpp
 	public_sinsp_API/sinsp_logger.cpp
