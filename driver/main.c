@@ -2719,14 +2719,10 @@ static int get_tracepoint_handles(void)
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)) || \
+	defined(HAS_DEVNODE_ARG1_CONST) || \
 	( \
 		(PPM_RHEL_RELEASE_CODE > 0) && \
-			( \
-				((PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 9)) && \
-				 (PPM_RHEL_RELEASE_CODE <  PPM_RHEL_RELEASE_VERSION(9, 0))) \
-			|| \
-				(PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(9, 3)) \
-			) \
+			(PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(9, 3)) \
 	)
 static char *ppm_devnode(const struct device *dev, umode_t *mode)
 #else
