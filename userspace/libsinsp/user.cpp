@@ -38,7 +38,7 @@ limitations under the License.
 // See fgetpwent() / fgetgrent() feature test macros:
 // https://man7.org/linux/man-pages/man3/fgetpwent.3.html
 // https://man7.org/linux/man-pages/man3/fgetgrent.3.html
-#if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
+#if defined(MUSL_OPTIMIZED) || defined(_DEFAULT_SOURCE) || defined(_SVID_SOURCE)
 #define HAVE_FGET__ENT
 #endif
 

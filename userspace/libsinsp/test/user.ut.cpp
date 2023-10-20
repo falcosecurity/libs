@@ -169,12 +169,12 @@ protected:
 
 		{
 			std::ofstream ofs(etc + "/passwd");
-			ofs << "toor:x:0:0:toor:/toor:/bin/ash";
+			ofs << "toor:x:0:0:toor:/toor:/bin/ash" << std::endl;
 			ofs.close();
 		}
 		{
 			std::ofstream ofs(etc + "/group");
-			ofs << "toor:x:0:toor";
+			ofs << "toor:x:0:toor" << std::endl;
 			ofs.close();
 		}
 	}
