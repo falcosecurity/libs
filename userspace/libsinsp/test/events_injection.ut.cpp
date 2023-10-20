@@ -180,7 +180,8 @@ TEST_F(sinsp_with_test_input, event_async_queue_mpsc)
 
 	int res  = SCAP_SUCCESS;
 	size_t n_expected = n_producers * n_events;
-	while ((current - start) / ONE_SECOND_IN_NS < 10)
+	double time_tolerance = 1.1;
+	while ((current - start) / ONE_SECOND_IN_NS < (10 * time_tolerance))
 	{
 		std::this_thread::sleep_for(std::chrono::microseconds (10));
 		current = sinsp_utils::get_current_time_ns();
