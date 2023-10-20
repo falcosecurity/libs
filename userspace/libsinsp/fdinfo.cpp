@@ -345,6 +345,58 @@ sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
 	reset_cache();
 }
 
+sinsp_fdinfo_t* sinsp_fdtable::find(int64_t fd)
+{
+	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
+
+		//
+		// Try looking up in our simple cache
+		//
+		if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
+		{
+			if (m_inspector != nullptr)
+			{
+				m_inspector->m_sinsp_stats_v2.m_n_cached_fd_lookups++;
+			}
+	#ifdef GATHER_INTERNAL_STATS
+			m_inspector->m_stats->m_n_cached_fd_lookups++;
+	#endif
+			return m_last_accessed_fdinfo;
+		}
+
+		//
+		// Caching failed, do a real lookup
+		//
+		fdit = m_table.find(fd);
+
+		if(fdit == m_table.end())
+		{
+			if (m_inspector != nullptr)
+			{
+				m_inspector->m_sinsp_stats_v2.m_n_failed_fd_lookups++;
+			}
+	#ifdef GATHER_INTERNAL_STATS
+			m_inspector->m_stats->m_n_failed_fd_lookups++;
+	#endif
+			return NULL;
+		}
+		else
+		{
+			if (m_inspector != nullptr)
+			{
+				m_inspector->m_sinsp_stats_v2.m_n_noncached_fd_lookups++;
+			}
+
+	#ifdef GATHER_INTERNAL_STATS
+			m_inspector->m_stats->m_n_noncached_fd_lookups++;
+	#endif
+			m_last_accessed_fd = fd;
+			m_last_accessed_fdinfo = &(fdit->second);
+			lookup_device(&(fdit->second), fd);
+			return &(fdit->second);
+		}
+}
+
 sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 {
 	//
@@ -365,6 +417,11 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			// No entry in the table, this is the normal case
 			//
 			m_last_accessed_fd = -1;
+			if (m_inspector != nullptr)
+			{
+				m_inspector->m_sinsp_stats_v2.m_n_added_fds++;
+			}
+
 #ifdef GATHER_INTERNAL_STATS
 			m_inspector->m_stats->m_n_added_fds++;
 #endif
@@ -435,6 +492,10 @@ void sinsp_fdtable::erase(int64_t fd)
 		// keep going.
 		//
 		ASSERT(false);
+		if (m_inspector != nullptr)
+		{
+			m_inspector->m_sinsp_stats_v2.m_n_failed_fd_lookups++;
+		}
 #ifdef GATHER_INTERNAL_STATS
 		m_inspector->m_stats->m_n_failed_fd_lookups++;
 #endif
@@ -442,6 +503,11 @@ void sinsp_fdtable::erase(int64_t fd)
 	else
 	{
 		m_table.erase(fdit);
+		if (m_inspector != nullptr)
+		{
+			m_inspector->m_sinsp_stats_v2.m_n_noncached_fd_lookups++;
+			m_inspector->m_sinsp_stats_v2.m_n_removed_fds++;
+		}
 #ifdef GATHER_INTERNAL_STATS
 		m_inspector->m_stats->m_n_noncached_fd_lookups++;
 		m_inspector->m_stats->m_n_removed_fds++;

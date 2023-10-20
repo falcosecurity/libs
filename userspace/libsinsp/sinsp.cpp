@@ -43,6 +43,7 @@ limitations under the License.
 #include "plugin_filtercheck.h"
 #include "strl.h"
 #include "scap-int.h"
+#include "stats.h"
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
@@ -352,6 +353,21 @@ void sinsp::init()
 #ifdef GATHER_INTERNAL_STATS
 	m_stats->clear();
 #endif
+
+	m_sinsp_stats_v2.m_n_added_fds = 0;
+	m_sinsp_stats_v2.m_n_cached_fd_lookups = 0;
+	m_sinsp_stats_v2.m_n_failed_fd_lookups = 0;
+	m_sinsp_stats_v2.m_n_added_fds = 0;
+	m_sinsp_stats_v2.m_n_removed_fds = 0;
+	m_sinsp_stats_v2.m_n_stored_evts = 0;
+	m_sinsp_stats_v2.m_n_store_evts_drops = 0;
+	m_sinsp_stats_v2.m_n_retrieved_evts = 0;
+	m_sinsp_stats_v2.m_n_retrieve_evts_drops = 0;
+	m_sinsp_stats_v2.m_n_noncached_thread_lookups = 0;
+	m_sinsp_stats_v2.m_n_cached_thread_lookups = 0;
+	m_sinsp_stats_v2.m_n_failed_thread_lookups = 0;
+	m_sinsp_stats_v2.m_n_added_threads = 0;
+	m_sinsp_stats_v2.m_n_removed_threads = 0;
 
 	m_nevts = 0;
 	m_tid_to_remove = -1;
@@ -2039,6 +2055,11 @@ const scap_agent_info* sinsp::get_agent_info()
 }
 
 scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer()
+{
+	return m_sinsp_stats_v2_buffer;
+}
+
+sinsp_stats_v2 sinsp::get_sinsp_stats_v2()
 {
 	return m_sinsp_stats_v2;
 }

@@ -532,44 +532,7 @@ class sinsp_fdtable
 public:
 	sinsp_fdtable(sinsp* inspector);
 
-	inline sinsp_fdinfo_t* find(int64_t fd)
-	{
-		std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
-
-		//
-		// Try looking up in our simple cache
-		//
-		if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
-		{
-	#ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats->m_n_cached_fd_lookups++;
-	#endif
-			return m_last_accessed_fdinfo;
-		}
-
-		//
-		// Caching failed, do a real lookup
-		//
-		fdit = m_table.find(fd);
-
-		if(fdit == m_table.end())
-		{
-	#ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats->m_n_failed_fd_lookups++;
-	#endif
-			return NULL;
-		}
-		else
-		{
-	#ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats->m_n_noncached_fd_lookups++;
-	#endif
-			m_last_accessed_fd = fd;
-			m_last_accessed_fdinfo = &(fdit->second);
-			lookup_device(&(fdit->second), fd);
-			return &(fdit->second);
-		}
-	}
+	sinsp_fdinfo_t* find(int64_t fd);
 	
 	// If the key is already present, overwrite the existing value and return false.
 	sinsp_fdinfo_t* add(int64_t fd, sinsp_fdinfo_t* fdinfo);
