@@ -105,6 +105,31 @@ jobs:
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
           make run-unit-tests
 
+  build-libs-linux-amd64-static:
+    name: build-libs-linux-amd64-static 🎃
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:3.17
+    steps:
+      - name: Install deps ⛓️
+        run: |
+          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils bpftool clang
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Git safe directory
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build and test 🏗️🧪
+        run: |
+          mkdir -p build
+          cd build && cmake -DBUILD_BPF=On -DBUILD_DRIVER=Off -DUSE_BUNDLED_DEPS=On -DUSE_BUNDLED_LIBELF=Off -DBUILD_LIBSCAP_MODERN_BPF=ON -DMUSL_OPTIMIZED_BUILD=On ../
+          make run-unit-tests -j4
+
   build-shared-libs-linux-amd64:
     name: build-shared-libs-linux-amd64 🧐
     runs-on: ubuntu-latest
