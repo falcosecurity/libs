@@ -37,6 +37,7 @@ extern "C" {
 #define PPM_SCAP_STATS_KERNEL_COUNTERS (1 << 0)
 #define PPM_SCAP_STATS_LIBBPF_STATS (1 << 1)
 #define PPM_SCAP_STATS_RESOURCE_UTILIZATION (1 << 2)
+#define PPM_SCAP_STATS_STATE_COUNTERS (1 << 3)
 
 typedef union scap_stats_v2_value {
 	uint32_t u32;

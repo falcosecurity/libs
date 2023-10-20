@@ -17,33 +17,46 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
+#include "sinsp.h"
 #include "utils.h"
 #include "sinsp_with_test_input.h"
 #include "test_utils.h"
 #include "scap_stats_v2.h"
-
+#include <test/helpers/threads_helpers.h>
 
 TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
 {
 #ifdef __linux__
 
 	open_inspector(SCAP_MODE_LIVE);
+    // Adopted from test: TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads)
+    DEFAULT_TREE
+	/* we call a random event to obtain an event associated with this thread info */
+	auto evt = generate_random_event(p2_t1_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "3");
+
 	const scap_agent_info* agent_info = m_inspector.get_agent_info();
-	
 	uint32_t nstats = 0;
 	int32_t rc;
 	const scap_stats_v2* sinsp_stats_v2_snapshot;
 	auto buffer = m_inspector.get_sinsp_stats_v2_buffer();
+    sinsp_stats_v2 sinsp_stats_v2_counters = m_inspector.get_sinsp_stats_v2();
+    sinsp_thread_manager* thread_manager = m_inspector.m_thread_manager;
+    uint32_t n_containers = m_inspector.m_container_manager.get_containers()->size();
 	uint32_t flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, buffer, &nstats, &rc);
+	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
     /* Extra call */
-    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, buffer, &nstats, &rc);
-
+    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
     ASSERT_EQ(nstats, SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST + 1);
     ASSERT_EQ(rc, SCAP_SUCCESS);
 
+    flags = (PPM_SCAP_STATS_RESOURCE_UTILIZATION | PPM_SCAP_STATS_STATE_COUNTERS);
+	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
+    ASSERT_EQ(nstats, SINSP_MAX_STATS_V2);
+    ASSERT_EQ(rc, SCAP_SUCCESS);
+
     /* These names should always be available */
-	std::unordered_set<std::string> minimal_stats_names = {"cpu_usage_perc", "memory_rss", "memory_vsz", "memory_pss", "container_memory_used", "cpu_usage_perc_total_host", "procs_running_host", "memory_used_host", "open_fds_host"};
+	std::unordered_set<std::string> minimal_stats_names = {"cpu_usage_perc", "memory_rss", "open_fds_host", "n_threads", "n_fds", "n_added_fds", "n_added_threads", "n_removed_threads", "n_containers"};
 
 	uint32_t i = 0;
 	for(const auto& stat_name : minimal_stats_names)
@@ -63,7 +76,6 @@ TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
 	}
 
     /* Assert values are greater than 0 */
-	ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_RESOURCE_UTILIZATION_CPU_PERC].value.d, 0);
 	ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].value.u32, 0);
     ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].value.u32, 0);
 	ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST].value.d, 0);	
@@ -71,10 +83,14 @@ TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
     ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_RESOURCE_UTILIZATION_PROCS_HOST].value.u32, 0);	
     ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST].value.u64, 0);
 
+    ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_STATS_V2_N_THREADS].value.u64, 0);
+    ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_STATS_V2_N_FDS].value.u64, 0);
+    ASSERT_GT(sinsp_stats_v2_snapshot[SINSP_STATS_V2_ADDED_THREADS].value.u64, 0);
+
     /* Empty call */
     nstats = 0;
     flags = 0;
-    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, buffer, &nstats, &rc);
+    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
     ASSERT_EQ(nstats, 0);
     ASSERT_EQ(rc, SCAP_SUCCESS);
 

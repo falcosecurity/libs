@@ -30,6 +30,35 @@ limitations under the License.
 #include "stats.h"
 #include "strl.h"
 
+static const char *const sinsp_stats_v2_resource_utilization_names[] = {
+	[SINSP_RESOURCE_UTILIZATION_CPU_PERC] = "cpu_usage_perc",
+	[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS] = "memory_rss",
+	[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ] = "memory_vsz",
+	[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS] = "memory_pss",
+	[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY] = "container_memory_used",
+	[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST] = "cpu_usage_perc_total_host",
+	[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST] = "memory_used_host",
+	[SINSP_RESOURCE_UTILIZATION_PROCS_HOST] = "procs_running_host",
+	[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST] = "open_fds_host",
+	[SINSP_STATS_V2_N_THREADS] = "n_threads",
+	[SINSP_STATS_V2_N_FDS] = "n_fds",
+	[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS] = "n_noncached_fd_lookups",
+	[SINSP_STATS_V2_CACHED_FD_LOOKUPS] = "n_cached_fd_lookups",
+	[SINSP_STATS_V2_FAILED_FD_LOOKUPS] = "n_failed_fd_lookups",
+	[SINSP_STATS_V2_ADDED_FDS] = "n_added_fds",
+	[SINSP_STATS_V2_REMOVED_FDS] = "n_removed_fds",
+	[SINSP_STATS_V2_STORED_EVTS] = "n_stored_evts",
+	[SINSP_STATS_V2_STORE_EVTS_DROPS] = "n_store_evts_drops",
+	[SINSP_STATS_V2_RETRIEVED_EVTS] = "n_retrieved_evts",
+	[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS] = "n_retrieve_evts_drops",
+	[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS] = "n_noncached_thread_lookups",
+	[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS] = "n_cached_thread_lookups",
+	[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS] = "n_failed_thread_lookups",
+	[SINSP_STATS_V2_ADDED_THREADS] = "n_added_threads",
+	[SINSP_STATS_V2_REMOVED_THREADS] = "n_removed_threads",
+	[SINSP_STATS_V2_N_CONTAINERS] = "n_containers",
+};
+
 void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host)
 {
 	FILE* f;
@@ -270,7 +299,7 @@ uint64_t get_container_memory_usage()
 	return memory_used;
 }
 
-const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, scap_stats_v2* stats, uint32_t* nstats, int32_t* rc)
+const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, sinsp_stats_v2 sinsp_stats_v2_counters, scap_stats_v2* stats, uint32_t n_containers, uint32_t* nstats, int32_t* rc)
 {
 	if (!stats)
 	{
@@ -290,44 +319,24 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 		double cpu_usage_perc_total_host = 0.0;
 		uint32_t procs_running_host = 0;
 
-		if(stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name != nullptr && strncmp(stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name, "cpu_usage_perc", 15) != 0)
+		if(stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name != nullptr && strncmp(stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name, sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC], 15) != 0)
 		{
 			// Init
+			for(uint32_t i = SINSP_RESOURCE_UTILIZATION_CPU_PERC; i < SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST + 1; i++)
+			{
+				stats[i].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
+				strlcpy(stats[i].name, sinsp_stats_v2_resource_utilization_names[i], STATS_NAME_MAX);
+			}
+
 			stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].type = STATS_VALUE_TYPE_D;
-			stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name, "cpu_usage_perc", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].type = STATS_VALUE_TYPE_U32;
-			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].name, "memory_rss", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].type = STATS_VALUE_TYPE_U32;
-			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].name, "memory_vsz", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS].type = STATS_VALUE_TYPE_U32;
-			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS].name, "memory_pss", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY].type = STATS_VALUE_TYPE_U64;
-			stats[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY].name, "container_memory_used", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST].type = STATS_VALUE_TYPE_D;
-			stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST].name, "cpu_usage_perc_total_host", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_PROCS_HOST].type = STATS_VALUE_TYPE_U32;
-			stats[SINSP_RESOURCE_UTILIZATION_PROCS_HOST].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_PROCS_HOST].name, "procs_running_host", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST].type = STATS_VALUE_TYPE_U64;
-			stats[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST].name, "memory_used_host", STATS_NAME_MAX);
-
 			stats[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST].type = STATS_VALUE_TYPE_U64;
-			stats[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-			strlcpy(stats[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST].name, "open_fds_host", STATS_NAME_MAX);
 		} 
 
 		// Get stats / metrics snapshot
@@ -347,6 +356,63 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 
 		*nstats = SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST + 1;
 
+	}
+
+	if((flags & PPM_SCAP_STATS_STATE_COUNTERS))
+	{
+		if(stats[SINSP_STATS_V2_N_THREADS].name != nullptr && strncmp(stats[SINSP_STATS_V2_N_THREADS].name, sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_THREADS], 10) != 0)
+		{
+			// Init
+			for(uint32_t i = SINSP_STATS_V2_N_THREADS; i < SINSP_MAX_STATS_V2; i++)
+			{
+				stats[i].flags = PPM_SCAP_STATS_STATE_COUNTERS;
+				strlcpy(stats[i].name, sinsp_stats_v2_resource_utilization_names[i], STATS_NAME_MAX);
+			}
+
+			stats[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_CACHED_FD_LOOKUPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_FAILED_FD_LOOKUPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_ADDED_FDS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_REMOVED_FDS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_STORED_EVTS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_STORE_EVTS_DROPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_RETRIEVED_EVTS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_ADDED_THREADS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_REMOVED_THREADS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_N_CONTAINERS].type = STATS_VALUE_TYPE_U32;
+
+		}
+
+		// Get stats / metrics snapshot
+		stats[SINSP_STATS_V2_N_THREADS].value.u64 = thread_manager->get_thread_count();
+		stats[SINSP_STATS_V2_N_FDS].value.u64 = 0;
+		threadinfo_map_t* threadtable = thread_manager->get_threads();
+		threadtable->loop([&] (sinsp_threadinfo& tinfo) {
+			sinsp_fdtable* fdtable = tinfo.get_fd_table();
+			stats[SINSP_STATS_V2_N_FDS].value.u64 += fdtable->size();
+			return true;
+		});
+		stats[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS].value.u64 = sinsp_stats_v2_counters.m_n_noncached_fd_lookups;
+		stats[SINSP_STATS_V2_CACHED_FD_LOOKUPS].value.u64 = sinsp_stats_v2_counters.m_n_cached_fd_lookups;
+		stats[SINSP_STATS_V2_FAILED_FD_LOOKUPS].value.u64 = sinsp_stats_v2_counters.m_n_failed_fd_lookups;
+		stats[SINSP_STATS_V2_ADDED_FDS].value.u64 = sinsp_stats_v2_counters.m_n_added_fds;
+		stats[SINSP_STATS_V2_REMOVED_FDS].value.u64 = sinsp_stats_v2_counters.m_n_removed_fds;
+		stats[SINSP_STATS_V2_STORED_EVTS].value.u64 = sinsp_stats_v2_counters.m_n_stored_evts;
+		stats[SINSP_STATS_V2_STORE_EVTS_DROPS].value.u64 = sinsp_stats_v2_counters.m_n_store_evts_drops;
+		stats[SINSP_STATS_V2_RETRIEVED_EVTS].value.u64 = sinsp_stats_v2_counters.m_n_retrieved_evts;
+		stats[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS].value.u64 = sinsp_stats_v2_counters.m_n_retrieve_evts_drops;
+		stats[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS].value.u64 = sinsp_stats_v2_counters.m_n_noncached_thread_lookups;
+		stats[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS].value.u64 = sinsp_stats_v2_counters.m_n_cached_thread_lookups;
+		stats[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS].value.u64 = sinsp_stats_v2_counters.m_n_failed_thread_lookups;
+		stats[SINSP_STATS_V2_ADDED_THREADS].value.u64 = sinsp_stats_v2_counters.m_n_added_threads;
+		stats[SINSP_STATS_V2_REMOVED_THREADS].value.u64 = sinsp_stats_v2_counters.m_n_removed_threads;
+		stats[SINSP_STATS_V2_N_CONTAINERS].value.u32 = n_containers;
+
+		*nstats = SINSP_MAX_STATS_V2;
 	}
 	
 	*rc = SCAP_SUCCESS;

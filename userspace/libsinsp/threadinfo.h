@@ -531,7 +531,6 @@ public: // types required for use in sets
 		}
 	};
 
-protected:
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */

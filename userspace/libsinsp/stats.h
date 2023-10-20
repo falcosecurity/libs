@@ -20,8 +20,27 @@ limitations under the License.
 #include <scap_stats_v2.h>
 #include <scap_machine_info.h>
 #include "internal_metrics.h"
+#include "threadinfo.h"
 
-typedef enum sinsp_stats_v2 {
+typedef struct sinsp_stats_v2
+{
+	uint64_t m_n_noncached_fd_lookups;
+	uint64_t m_n_cached_fd_lookups;
+	uint64_t m_n_failed_fd_lookups;
+	uint64_t m_n_added_fds;
+	uint64_t m_n_removed_fds;
+	uint64_t m_n_stored_evts;
+	uint64_t m_n_store_evts_drops;
+	uint64_t m_n_retrieved_evts;
+	uint64_t m_n_retrieve_evts_drops;
+	uint64_t m_n_noncached_thread_lookups;
+	uint64_t m_n_cached_thread_lookups;
+	uint64_t m_n_failed_thread_lookups;
+	uint64_t m_n_added_threads;
+	uint64_t m_n_removed_threads;
+}sinsp_stats_v2;
+
+typedef enum sinsp_stats_v2_resource_utilization {
 	SINSP_RESOURCE_UTILIZATION_CPU_PERC = 0, ///< Current CPU usage, `ps` like, unit: percentage of one CPU.
 	SINSP_RESOURCE_UTILIZATION_MEMORY_RSS, ///< Current RSS (Resident Set Size), unit: kb.
 	SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ, ///< Current VSZ (Virtual Memory Size), unit: kb.
@@ -30,9 +49,26 @@ typedef enum sinsp_stats_v2 {
 	SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST, ///< Current total host CPU usage (all CPUs), unit: percentage.
 	SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST, ///< Current total memory used out of available host memory, unit: kb.
 	SINSP_RESOURCE_UTILIZATION_PROCS_HOST, ///< Number of processes currently running on CPUs on the host, unit: count.
-	SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST,  ///< Number of allocated fds on the host, unit: count.
+	SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST, ///< Number of allocated fds on the host, unit: count.
+	SINSP_STATS_V2_N_THREADS, ///< Total number of threads currently stored in the sinsp state thread table, unit: count.
+	SINSP_STATS_V2_N_FDS, ///< Total number of fds currently stored across all threadtables associated with each active thread in the sinsp state thread table, unit: count.
+	SINSP_STATS_V2_NONCACHED_FD_LOOKUPS, ///< fdtable state related counters, unit: count.
+	SINSP_STATS_V2_CACHED_FD_LOOKUPS, ///< fdtable state related counters, unit: count.
+	SINSP_STATS_V2_FAILED_FD_LOOKUPS, ///< fdtable state related counters, unit: count.
+	SINSP_STATS_V2_ADDED_FDS, ///< fdtable state related counters, unit: count.
+	SINSP_STATS_V2_REMOVED_FDS, ///< fdtable state related counters, unit: count.
+	SINSP_STATS_V2_STORED_EVTS, ///< evt parsing related counters, unit: count.
+	SINSP_STATS_V2_STORE_EVTS_DROPS, ///< evt parsing related counters, unit: count.
+	SINSP_STATS_V2_RETRIEVED_EVTS, ///< evt parsing related counters, unit: count.
+	SINSP_STATS_V2_RETRIEVE_EVTS_DROPS, ///< evt parsing related counters, unit: count.
+	SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS, ///< threadtable state related counters, unit: count.
+	SINSP_STATS_V2_CACHED_THREAD_LOOKUPS, ///< threadtable state related counters, unit: count.
+	SINSP_STATS_V2_FAILED_THREAD_LOOKUPS, ///< threadtable state related counters, unit: count.
+	SINSP_STATS_V2_ADDED_THREADS, ///< threadtable state related counters, unit: count.
+	SINSP_STATS_V2_REMOVED_THREADS, ///< threadtable state related counters, unit: count.
+	SINSP_STATS_V2_N_CONTAINERS, ///<  Number of containers currently cached by sinsp_container_manager, unit: count.
 	SINSP_MAX_STATS_V2
-}sinsp_stats_v2;
+}sinsp_stats_v2_resource_utilization;
 
 namespace libsinsp {
 namespace stats {
@@ -40,14 +76,17 @@ namespace stats {
 	/*!
 	  \brief Retrieve current sinsp stats v2 including resource utilization metrics.
 	  \param agent_info Pointer to a \ref scap_agent_info containing relevant constants from the agent start up moment.
-	  \param stats Pointer to a \ref scap_stats_v2 pre-allocated sinsp stats v2 buffer w/ scap_stats_v2 schema.
+	  \param thread_manager Pointer to a \ref thread_manager to access threadtable properties.
+	  \param sinsp_stats_v2_counters sinsp_stats_v2 struct containing counters related to the sinsp state tables (e.g. adding, removing, storing, failed lookup activities).
+	  \param stats Pointer to a \ref scap_stats_v2 pre-allocated sinsp_stats_v2_buffer (aka scap_stats_v2 schema).
+	  \param n_containers Number of containers currently cached by sinsp_container_manager.
 	  \param nstats Pointer reflecting number of statistics in returned buffer
 	  \param rc Pointer to return code
 	  \note Intended to be called once every x hours.
 
 	  \return Pointer to a \ref scap_stats_v2 buffer filled with the current sinsp stats v2 including resource utilization metrics.
 	*/
-	const scap_stats_v2* get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, scap_stats_v2* stats, uint32_t* nstats, int32_t* rc);
+	const scap_stats_v2* get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, sinsp_stats_v2 sinsp_stats_v2_counters, scap_stats_v2* stats, uint32_t n_containers, uint32_t* nstats, int32_t* rc);
 
 }
 }

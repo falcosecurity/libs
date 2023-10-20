@@ -503,6 +503,13 @@ public:
 	scap_stats_v2* get_sinsp_stats_v2_buffer();
 
 	/*!
+	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd state tables.
+
+	  \note sinsp stats may be refactored near-term.
+	*/
+	sinsp_stats_v2 get_sinsp_stats_v2();
+
+	/*!
 	  \brief Look up a thread given its tid and return its information,
 	   and optionally go dig into proc if the thread is not in the thread table.
 
@@ -1104,7 +1111,8 @@ private:
 	bool m_is_dumping;
 	const scap_machine_info* m_machine_info;
 	const scap_agent_info* m_agent_info;
-	scap_stats_v2 m_sinsp_stats_v2[SINSP_MAX_STATS_V2];
+	sinsp_stats_v2 m_sinsp_stats_v2;
+	scap_stats_v2 m_sinsp_stats_v2_buffer[SINSP_MAX_STATS_V2];
 	uint32_t m_num_cpus;
 	bool m_is_tracers_capture_enabled;
 	bool m_flush_memory_dump;
