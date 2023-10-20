@@ -24,7 +24,10 @@ limitations under the License.
 #include <sstream>
 #include <numeric>
 #include <json/json.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include <valijson/adapters/jsoncpp_adapter.hpp>
+#pragma GCC diagnostic pop
 #include <valijson/schema.hpp>
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
