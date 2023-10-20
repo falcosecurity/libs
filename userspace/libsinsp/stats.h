@@ -65,6 +65,7 @@ typedef enum sinsp_stats_v2_resource_utilization {
 	SINSP_STATS_V2_FAILED_THREAD_LOOKUPS, ///< threadtable state related counters, unit: count.
 	SINSP_STATS_V2_ADDED_THREADS, ///< threadtable state related counters, unit: count.
 	SINSP_STATS_V2_REMOVED_THREADS, ///< threadtable state related counters, unit: count.
+	SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE, ///< Number of drops due to full threadtable, unit: count.
 	SINSP_STATS_V2_N_CONTAINERS, ///<  Number of containers currently cached by sinsp_container_manager, unit: count.
 	SINSP_MAX_STATS_V2
 }sinsp_stats_v2_resource_utilization;
