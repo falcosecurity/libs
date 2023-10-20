@@ -283,6 +283,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		res = extract_arg("evt.rawarg", val, &m_arginfo);
 
 		m_customfield.m_type = m_arginfo->type;
+		m_customfield.m_print_format = m_arginfo->fmt;
 	}
 	else if(STR_MATCH("evt.around"))
 	{
