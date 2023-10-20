@@ -16,7 +16,7 @@ jobs:
       driver_api_changed: ${{ steps.filter.outputs.driver_api }}
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-    - uses: dorny/paths-filter@v2
+    - dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
       id: filter
       with:
         filters: |
@@ -31,7 +31,7 @@ jobs:
     if: needs.paths-filter.outputs.driver_api_changed == 'false'
     steps:
       - name: Check driver API_VERSION
-        uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@7c0890544fb33b0bdd2e59467fbacb62e028a096 # v2.8.1
         with:
           message: |
             Please double check **driver/API_VERSION** file. See [versioning](https://github.com/falcosecurity/libs/blob/master/driver/README.VERSION.md#api-version-number).
