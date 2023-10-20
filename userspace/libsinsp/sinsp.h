@@ -108,7 +108,6 @@ class sinsp_partial_tracer;
 class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
-class sinsp_stats;
 
 std::vector<std::string> sinsp_split(const std::string &s, char delim);
 
@@ -553,11 +552,6 @@ public:
 	  \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 	*/
 	const struct scap_stats_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const override;
-
-
-#ifdef GATHER_INTERNAL_STATS
-	sinsp_stats get_stats();
-#endif
 
 	libsinsp::event_processor* m_external_event_processor;
 
@@ -1138,11 +1132,6 @@ public:
 	sinsp_filter* m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
-
-	//
-	// Internal stats
-	//
-	std::unique_ptr<sinsp_stats> m_stats;
 
 	std::vector<uint64_t> m_tid_collisions;
 

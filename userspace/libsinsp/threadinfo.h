@@ -37,7 +37,6 @@ struct iovec {
 #include <memory>
 #include <set>
 #include "fdinfo.h"
-#include "internal_metrics.h"
 #include "state/table.h"
 #include "thread_group_info.h"
 
@@ -783,8 +782,6 @@ public:
 		return (uint32_t)m_threadtable.size();
 	}
 
-	void update_statistics();
-
 	threadinfo_map_t* get_threads()
 	{
 		return &m_threadtable;
@@ -902,12 +899,6 @@ VISIBILITY_PRIVATE
 	int32_t m_n_main_thread_lookups = 0;
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
-
-	INTERNAL_COUNTER(m_failed_lookups);
-	INTERNAL_COUNTER(m_cached_lookups);
-	INTERNAL_COUNTER(m_non_cached_lookups);
-	INTERNAL_COUNTER(m_added_threads);
-	INTERNAL_COUNTER(m_removed_threads);
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

@@ -49,12 +49,6 @@ limitations under the License.
 #include <curl/curl.h>
 #endif
 
-#ifdef GATHER_INTERNAL_STATS
-#include "stats.h"
-#else // GATHER_INTERNAL_STATS
-struct sinsp_stats{}; // note: makes the unique_ptr static asserts happy
-#endif // GATHER_INTERNAL_STATS
-
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
@@ -86,7 +80,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_host_root(scap_get_host_root()),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_usergroup_manager(this),
-	m_stats(nullptr),
 	m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
 	m_suppressed_comms(),
 	m_inited(false)
@@ -141,10 +134,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 #if defined(HAS_CAPTURE)
 	m_self_pid = getpid();
-#endif
-
-#ifdef GATHER_INTERNAL_STATS
-	m_stats = std::make_unique<sinsp_stats()>;
 #endif
 
 	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
@@ -350,9 +339,6 @@ void sinsp::init()
 	//
 	// Basic inits
 	//
-#ifdef GATHER_INTERNAL_STATS
-	m_stats->clear();
-#endif
 
 	m_sinsp_stats_v2.m_n_added_fds = 0;
 	m_sinsp_stats_v2.m_n_cached_fd_lookups = 0;
@@ -2137,46 +2123,6 @@ const struct scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t
 	}
 	return stats_v2;
 }
-
-#ifdef GATHER_INTERNAL_STATS
-sinsp_stats sinsp::get_stats()
-{
-	scap_stats stats;
-
-	//
-	// Get capture stats from scap
-	//
-	if(m_h)
-	{
-		scap_get_stats(m_h, &stats);
-
-		m_stats->m_n_seen_evts = stats.n_evts;
-		m_stats->m_n_drops = stats.n_drops;
-		m_stats->m_n_preemptions = stats.n_preemptions;
-	}
-	else
-	{
-		m_stats->m_n_seen_evts = 0;
-		m_stats->m_n_drops = 0;
-		m_stats->m_n_preemptions = 0;
-	}
-
-	//
-	// Count the number of threads and fds by scanning the tables,
-	// and update the thread-related stats.
-	//
-	if(m_thread_manager)
-	{
-		m_thread_manager->update_statistics();
-	}
-
-	//
-	// Return the result
-	//
-
-	return *m_stats.get();
-}
-#endif // GATHER_INTERNAL_STATS
 
 void sinsp::set_log_callback(sinsp_logger_callback cb)
 {
