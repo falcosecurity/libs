@@ -38,4 +38,18 @@ limitations under the License.
 #define O_TMPFILE 020200000
 #endif
 
+/* This can be the case for static MUSL builds */
+#if !defined(__WEXITSTATUS) && defined(WEXITSTATUS)
+#define __WEXITSTATUS(x) WEXITSTATUS(x)
+#endif
+#if !defined(__WIFSIGNALED) && defined(WIFSIGNALED)
+#define __WIFSIGNALED(x) WIFSIGNALED(x)
+#endif
+#if !defined(__WTERMSIG) && defined(WTERMSIG)
+#define __WTERMSIG(x) WTERMSIG(x)
+#endif
+#if !defined(__WCOREDUMP) && defined(WCOREDUMP)
+#define __WCOREDUMP(x) WCOREDUMP(x)
+#endif
+
 #endif

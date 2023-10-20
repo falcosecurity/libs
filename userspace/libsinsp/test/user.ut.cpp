@@ -149,7 +149,7 @@ TEST_F(usergroup_manager_test, add_no_import_users)
 
 // note(jasondellaluce): emscripten has issues with fgetpwent
 // note(therealbobo): macos doesn't define fgetpwent
-#if (defined(HAVE_PWD_H) || defined(HAVE_GRP_H)) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+#if (defined(HAVE_PWD_H) &&  defined(HAVE_GRP_H)) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 class usergroup_manager_host_root_test : public sinsp_with_test_input
 {
 protected:
