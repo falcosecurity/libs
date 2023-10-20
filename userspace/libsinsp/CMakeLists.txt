@@ -113,7 +113,6 @@ set(SINSP_SOURCES
 	ifinfo.cpp
 	memmem.cpp
 	tracers.cpp
-	internal_metrics.cpp
 	logger.cpp
 	parsers.cpp
 	../plugin/plugin_loader.c

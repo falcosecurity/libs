@@ -48,7 +48,6 @@ limitations under the License.
 #include "scap.h"
 #include "parsers.h"
 #include "ifinfo.h"
-#include "internal_metrics.h"
 #include "sinsp_public.h"
 
 #ifndef MIN

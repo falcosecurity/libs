@@ -1424,14 +1424,6 @@ void sinsp_thread_manager::clear()
 	m_last_tid = 0;
 	m_last_flush_time_ns = 0;
 	m_n_drops = 0;
-
-#ifdef GATHER_INTERNAL_STATS
-	m_failed_lookups = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_failed_lookups","Failed thread lookups"));
-	m_cached_lookups = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_cached_lookups","Cached thread lookups"));
-	m_non_cached_lookups = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_non_cached_lookups","Non cached thread lookups"));
-	m_added_threads = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_added","Number of added threads"));
-	m_removed_threads = &m_inspector->m_stats->get_metrics_registry().register_counter(internal_metrics::metric_name("thread_removed","Removed threads"));
-#endif
 }
 
 /* This is called on the table after the `/proc` scan */
@@ -1521,9 +1513,6 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 	{
 		m_inspector->m_sinsp_stats_v2.m_n_added_threads++;
 	}
-#ifdef GATHER_INTERNAL_STATS
-	m_added_threads->increment();
-#endif
 
 	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size
@@ -1709,9 +1698,6 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 		{
 			m_inspector->m_sinsp_stats_v2.m_n_failed_thread_lookups++;
 		}
-#ifdef GATHER_INTERNAL_STATS
-		m_failed_lookups->increment();
-#endif
 		return;
 	}
 
@@ -1834,9 +1820,6 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	{
 		m_inspector->m_sinsp_stats_v2.m_n_removed_threads++;
 	}
-#ifdef GATHER_INTERNAL_STATS
-	m_removed_threads->increment();
-#endif
 }
 
 void sinsp_thread_manager::fix_sockets_coming_from_proc()
@@ -1879,25 +1862,6 @@ void sinsp_thread_manager::create_thread_dependencies_after_proc_scan()
 		create_thread_dependencies(tinfo);
 		return true;
 	});
-}
-
-void sinsp_thread_manager::update_statistics()
-{
-#ifdef GATHER_INTERNAL_STATS
-	m_inspector->m_stats->m_n_threads = get_thread_count();
-
-	m_inspector->m_stats->m_n_fds = 0;
-	for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end(); it++)
-	{
-		sinsp_fdtable* fd_table_ptr = it->second.get_fd_table();
-		if(fd_table_ptr == NULL)
-		{
-			ASSERT(false);
-			return;
-		}
-		m_inspector->m_stats->m_n_fds += fd_table_ptr->size();
-	}
-#endif
 }
 
 void sinsp_thread_manager::free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free)
@@ -2195,9 +2159,6 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 			{
 				m_inspector->m_sinsp_stats_v2.m_n_cached_thread_lookups++;
 			}
-#ifdef GATHER_INTERNAL_STATS
-			m_cached_lookups->increment();
-#endif
 			// This allows us to avoid performing an actual timestamp lookup
 			// for something that may not need to be precise
 			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
@@ -2216,9 +2177,6 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		{
 			m_inspector->m_sinsp_stats_v2.m_n_noncached_thread_lookups++;
 		}
-#ifdef GATHER_INTERNAL_STATS
-		m_non_cached_lookups->increment();
-#endif
 		if(!lookup_only)
 		{
 			m_last_tinfo.reset();
@@ -2234,9 +2192,6 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		{
 			m_inspector->m_sinsp_stats_v2.m_n_failed_thread_lookups++;
 		}
-#ifdef GATHER_INTERNAL_STATS
-		m_failed_lookups->increment();
-#endif
 		return NULL;
 	}
 }

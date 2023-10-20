@@ -30,11 +30,6 @@ limitations under the License.
 #define ASSERT_TO_LOG
 
 //
-// Controls if the library collects internal performance stats.
-//
-#undef GATHER_INTERNAL_STATS
-
-//
 // Max size that the FD table of a process can reach
 //
 #define MAX_FD_TABLE_SIZE 4096
