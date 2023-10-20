@@ -56,6 +56,7 @@ static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 	[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS] = "n_failed_thread_lookups",
 	[SINSP_STATS_V2_ADDED_THREADS] = "n_added_threads",
 	[SINSP_STATS_V2_REMOVED_THREADS] = "n_removed_threads",
+	[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE] = "n_drops_full_threadtable",
 	[SINSP_STATS_V2_N_CONTAINERS] = "n_containers",
 };
 
@@ -383,6 +384,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 			stats[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS].type = STATS_VALUE_TYPE_U64;
 			stats[SINSP_STATS_V2_ADDED_THREADS].type = STATS_VALUE_TYPE_U64;
 			stats[SINSP_STATS_V2_REMOVED_THREADS].type = STATS_VALUE_TYPE_U64;
+			stats[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE].type = STATS_VALUE_TYPE_U32;
 			stats[SINSP_STATS_V2_N_CONTAINERS].type = STATS_VALUE_TYPE_U32;
 
 		}
@@ -410,6 +412,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 		stats[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS].value.u64 = sinsp_stats_v2_counters.m_n_failed_thread_lookups;
 		stats[SINSP_STATS_V2_ADDED_THREADS].value.u64 = sinsp_stats_v2_counters.m_n_added_threads;
 		stats[SINSP_STATS_V2_REMOVED_THREADS].value.u64 = sinsp_stats_v2_counters.m_n_removed_threads;
+		stats[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE].value.u32 = thread_manager->get_m_n_drops();
 		stats[SINSP_STATS_V2_N_CONTAINERS].value.u32 = n_containers;
 
 		*nstats = SINSP_MAX_STATS_V2;
