@@ -27,12 +27,12 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Download matrix X64
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: matrix_X64
       
       - name: Download matrix ARM64
-        uses: actions/download-artifact@v3
+        actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: matrix_ARM64
       
@@ -42,7 +42,7 @@ jobs:
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_X64.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_ARM64.md
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v2 # TODO upgrade
         with:
           python-version: 3.x
           
@@ -50,9 +50,9 @@ jobs:
       
       - run: mkdocs build
       
-      - uses: actions/upload-pages-artifact@v1
+      - uses: actions/upload-pages-artifact@v1 # TODO upgrade
         with:
           path: 'site'
 
       - id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v1 # TODO upgrade

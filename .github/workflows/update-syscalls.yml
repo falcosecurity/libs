@@ -28,7 +28,7 @@ jobs:
           syscalls-bumper --repo-root $(pwd) --overwrite
           
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5-rc
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
         with:
           signoff: true
           base: master

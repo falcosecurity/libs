@@ -47,7 +47,7 @@ jobs:
           echo "latest_vers=$(grep kernelrelease dk.yaml | awk -F": " '{print $2}')" >> $GITHUB_OUTPUT
       
       - name: Upload driverkit config
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: driverkit_config.yaml
           path: linux/dk.yaml
@@ -59,7 +59,7 @@ jobs:
           driverkit docker -c linux/dk.yaml -l debug
           
       - name: Update README badge
-        uses: schneegans/dynamic-badges-action@v1.6.0
+        uses: schneegans/dynamic-badges-action@e9a478b16159b4d31420099ba146cdc50f134483 # v1.7.0
         if: always() && github.event_name == 'schedule'
         with:
           auth: ${{ secrets.FEDEDP_GIST_SECRET }}
