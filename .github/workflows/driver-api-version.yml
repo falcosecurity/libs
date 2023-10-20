@@ -15,7 +15,7 @@ jobs:
     outputs:
       driver_api_changed: ${{ steps.filter.outputs.driver_api }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
     - uses: dorny/paths-filter@v2
       id: filter
       with:
