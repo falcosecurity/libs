@@ -361,6 +361,16 @@ typedef struct ss_plugin_event_parse_input
 // Function handler used by plugin for sending asynchronous events to the
 // Falcosecurity libs during a live event capture. The asynchronous events
 // must be encoded as an async event type (code 402) as for the libscap specific.
+//
+// The plugin framework will automatically set the plugin ID of the produced
+// async event depending on the running event source in which the event will
+// be injected into. The event's thread ID can be set to control the system
+// thread associated, with value (uint64_t) -1) representing no thread
+// association. The event's timestamp can be set to forcefully specify
+// the timestamp of the phenomena that the event represents, and value
+// (uint64_t) -1) will cause the plugin framework to automatically assign
+// a timestamp as the time in which the event is received asynchronously.
+//
 // The function returns SS_PLUGIN_SUCCESS in case of success, or
 // SS_PLUGIN_FAILURE otherwise. If a non-NULL char pointer is passed for
 // the "err" argument, it will be filled with an error message string
