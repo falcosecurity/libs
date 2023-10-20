@@ -4948,7 +4948,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 						// with the new file descriptors.
 						if (scap_get_fdlist(m_inspector->m_h, scap_tinfo) != SCAP_SUCCESS)
 						{
-							g_logger.format(sinsp_logger::SEV_ERROR, "scap_get_fdlist failed, proc table will not be updated with new fds.");
+							g_logger.format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed, proc table will not be updated with new fds.");
 						}
 
 						scap_proc_free(m_inspector->m_h, scap_tinfo);
