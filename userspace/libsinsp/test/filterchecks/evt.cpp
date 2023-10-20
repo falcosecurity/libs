@@ -43,3 +43,27 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create)
 
 	ASSERT_EQ(evt->m_fdinfo->m_openflags, PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
 }
+
+TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_int)
+{
+	add_default_init_thread();
+
+	open_inspector();
+
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, (uint32_t)1000);
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.uid"), "1000");
+}
+
+TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str)
+{
+	add_default_init_thread();
+
+	open_inspector();
+
+	std::string path = "/home/file.txt";
+
+	// In the enter event we don't send the `PPM_O_F_CREATED`
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path.c_str(),
+					      (uint32_t)0, (uint32_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.name"), path);
+}
