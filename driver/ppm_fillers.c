@@ -221,7 +221,7 @@ int f_sys_empty(struct event_filler_arguments *args)
 int f_sys_single(struct event_filler_arguments *args)
 {
 	int res;
-	syscall_arg_t val;
+	unsigned long val;
 
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
@@ -337,9 +337,9 @@ out_unlock:
 
 int f_sys_open_e(struct event_filler_arguments *args)
 {
-	syscall_arg_t val;
-	syscall_arg_t flags;
-	syscall_arg_t modes;
+	unsigned long val;
+	unsigned long flags;
+	unsigned long modes;
 	char *name = NULL;
 	int res;
 
@@ -375,10 +375,10 @@ int f_sys_open_e(struct event_filler_arguments *args)
 
 int f_sys_open_x(struct event_filler_arguments *args)
 {
-	syscall_arg_t val;
-	syscall_arg_t flags;
-	syscall_arg_t scap_flags;
-	syscall_arg_t modes;
+	unsigned long val;
+	unsigned long flags;
+	unsigned long scap_flags;
+	unsigned long modes;
 	uint32_t dev = 0;
 	uint64_t ino = 0;
 	int res;
@@ -1586,7 +1586,7 @@ cgroups_error:
 int f_sys_execve_e(struct event_filler_arguments *args)
 {
 	int res;
-	syscall_arg_t val;
+	unsigned long val;
 
 	/*
 	 * filename
@@ -1601,7 +1601,7 @@ int f_sys_execve_e(struct event_filler_arguments *args)
 int f_sys_execveat_e(struct event_filler_arguments *args)
 {
 	int res;
-	syscall_arg_t val;
+	unsigned long val;
 	unsigned long flags;
 	s32 fd;
 
@@ -1660,7 +1660,7 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	int err = 0;
 	u16 size = 0;
 	struct sockaddr __user *usrsockaddr;
-	syscall_arg_t val;
+	unsigned long val;
 	struct sockaddr_storage address;
 	char *targetbuf = args->str_storage;
 
@@ -1720,7 +1720,7 @@ int f_sys_connect_e(struct event_filler_arguments *args)
 	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
-	syscall_arg_t val;
+	unsigned long val;
 
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int)val;
@@ -1781,7 +1781,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	u16 size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
-	syscall_arg_t val;
+	unsigned long val;
 
 	/*
 	 * Push the result
@@ -2130,7 +2130,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 {
 	int res = 0;
 	long retval = 0;
-	syscall_arg_t val[5] = {0};
+	unsigned long val[5] = {0};
 	s32 fd = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
@@ -2171,7 +2171,7 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	int64_t retval = 0;
 	uint32_t optlen = 0;
 	s32 fd = 0;
-	syscall_arg_t val[5] = {0};
+	unsigned long val[5] = {0};
 
 	/* Get all the five arguments */
 	syscall_get_arguments_deprecated(args, 0, 5, val);
@@ -2236,10 +2236,10 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	int fd;
 	char *targetbuf = args->str_storage;
 	u16 size = 0;
-	syscall_arg_t queuepct = 0;
-	syscall_arg_t ack_backlog = 0;
-	syscall_arg_t max_ack_backlog = 0;
-	syscall_arg_t srvskfd;
+	unsigned long queuepct = 0;
+	unsigned long ack_backlog = 0;
+	unsigned long max_ack_backlog = 0;
+	unsigned long srvskfd;
 	int err = 0;
 	struct socket *sock;
 
@@ -7808,8 +7808,8 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 {
 	int res;
 	int retval;
-	syscall_arg_t option;
-	syscall_arg_t arg2;
+	unsigned long option;
+	unsigned long arg2;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
