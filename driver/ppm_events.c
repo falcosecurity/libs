@@ -726,7 +726,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		if(fromuser)
 		{
 			len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
-				(const char __user *)(syscall_arg_t)val, max_arg_size);
+				(const char __user *)(unsigned long)val, max_arg_size);
 
 			if(unlikely(len < 0))
 			{
@@ -747,7 +747,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 		else
 		{
 			len = (int)strlcpy(args->buffer + args->arg_data_offset,
-							(const char *)(syscall_arg_t)val,
+							(const char *)(unsigned long)val,
 							max_arg_size);
 			/* WARNING: `strlcpy` returns the length of the string it tries to create
 			 * so `len` could also be greater than `max_arg_size`, but please note that the copied
@@ -790,7 +790,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 				/* Returns the number of bytes NOT read. */
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-						(const void __user *)(syscall_arg_t)val,
+						(const void __user *)(unsigned long)val,
 						dpi_lookahead_size);
 
 				if(unlikely(len != 0))
@@ -820,7 +820,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 					if (val_len > dpi_lookahead_size) {
 						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
-								(const uint8_t __user *)(syscall_arg_t)val + dpi_lookahead_size,
+								(const uint8_t __user *)(unsigned long)val + dpi_lookahead_size,
 								val_len - dpi_lookahead_size);
 
 						if (unlikely(len != 0))
@@ -838,7 +838,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 #ifdef UDIG
 					u32 sl = args->consumer->snaplen;
 #else
-					u32 sl = compute_snaplen(args, (char *)(syscall_arg_t)val, val_len);
+					u32 sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
 #endif
 					if (val_len > sl)
 						val_len = sl;
@@ -848,7 +848,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 					return PPM_FAILURE_BUFFER_FULL;
 
 				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(syscall_arg_t)val, val_len);
+					(void *)(unsigned long)val, val_len);
 
 				len = val_len;
 			}
@@ -875,7 +875,7 @@ send_empty_bytebuf_param:
 			if(fromuser)
 			{
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-						(const void __user *)(syscall_arg_t)val,
+						(const void __user *)(unsigned long)val,
 						val_len);
 
 				if(unlikely(len != 0))
@@ -888,7 +888,7 @@ send_empty_bytebuf_param:
 			else
 			{
 				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(syscall_arg_t)val, val_len);
+					(void *)(unsigned long)val, val_len);
 
 				len = val_len;
 			}
@@ -1740,7 +1740,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 int f_sys_autofill(struct event_filler_arguments *args)
 {
 	int res;
-	syscall_arg_t val;
+	unsigned long val;
 	u32 j;
 	int64_t retval;
 
@@ -1751,7 +1751,7 @@ int f_sys_autofill(struct event_filler_arguments *args)
 		if (evinfo->autofill_args[j].id >= 0) {
 #ifdef UDIG
 		{
-			syscall_arg_t syscall_args[6] = {0};
+			unsigned long syscall_args[6] = {0};
 			ppm_syscall_get_arguments(current, args->regs, syscall_args);
 			val = syscall_args[evinfo->autofill_args[j].id];
 		}

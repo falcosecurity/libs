@@ -59,8 +59,6 @@ struct ppm_ring_buffer_context {
 
 #define STR_STORAGE_SIZE PAGE_SIZE
 
-typedef unsigned long syscall_arg_t;
-
 /*
  * Global functions
  *
