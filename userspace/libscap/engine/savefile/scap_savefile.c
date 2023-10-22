@@ -1161,7 +1161,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 
 	//
 	// If the list of users was already allocated for this handle (for example because this is
-	// not the first interface list block), free it
+	// not the first user list block), free it
 	//
 	if((*userlist_p) != NULL)
 	{
