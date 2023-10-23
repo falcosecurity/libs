@@ -1658,7 +1658,7 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	int err = 0;
-	u16 size = 0;
+	uint16_t size = 0;
 	struct sockaddr __user *usrsockaddr;
 	unsigned long val;
 	struct sockaddr_storage address;
@@ -1717,7 +1717,7 @@ int f_sys_connect_e(struct event_filler_arguments *args)
 	int err = 0;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
-	u16 size = 0;
+	uint16_t size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
 	unsigned long val;
@@ -1778,7 +1778,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	int err = 0;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
-	u16 size = 0;
+	uint16_t size = 0;
 	char *targetbuf = args->str_storage;
 	struct sockaddr_storage address;
 	unsigned long val;
@@ -2235,7 +2235,7 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	int res;
 	int fd;
 	char *targetbuf = args->str_storage;
-	u16 size = 0;
+	uint16_t size = 0;
 	unsigned long queuepct = 0;
 	unsigned long ack_backlog = 0;
 	unsigned long max_ack_backlog = 0;
@@ -2355,7 +2355,7 @@ int f_sys_sendto_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	u16 size = 0;
+	uint16_t size = 0;
 	char *targetbuf = args->str_storage;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
@@ -2529,7 +2529,7 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	u16 size = 0;
+	uint16_t size = 0;
 	int64_t retval;
 	char *targetbuf = args->str_storage;
 	int fd;
@@ -2627,7 +2627,7 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 #endif
 	unsigned long iovcnt;
 	int fd;
-	u16 size = 0;
+	uint16_t size = 0;
 	int addrlen;
 	int err = 0;
 	struct sockaddr __user *usrsockaddr;
@@ -2853,7 +2853,7 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	int fd;
 	struct sockaddr __user *usrsockaddr;
 	struct sockaddr_storage address;
-	u16 size = 0;
+	uint16_t size = 0;
 	int addrlen;
 	int err = 0;
 
@@ -3355,7 +3355,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	unsigned long fds_count;
 	u32 j;
 	u32 pos;
-	u16 flags;
+	uint16_t flags;
 
 	/*
 	 * fds
@@ -3417,7 +3417,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 		++fds_count;
 	}
 
-	*(u16 *)(targetbuf) = (u16)fds_count;
+	*(uint16_t *)(targetbuf) = (uint16_t)fds_count;
 
 	return val_to_ring(args, (uint64_t)(unsigned long)targetbuf, pos, false, 0);
 }
@@ -4475,7 +4475,7 @@ int f_sys_fcntl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline int parse_ptrace_addr(struct event_filler_arguments *args, u16 request)
+static inline int parse_ptrace_addr(struct event_filler_arguments *args, uint16_t request)
 {
 	unsigned long val;
 	uint64_t dst;
@@ -4491,7 +4491,7 @@ static inline int parse_ptrace_addr(struct event_filler_arguments *args, u16 req
 	return val_to_ring(args, dst, 0, false, idx);
 }
 
-static inline int parse_ptrace_data(struct event_filler_arguments *args, u16 request)
+static inline int parse_ptrace_data(struct event_filler_arguments *args, uint16_t request)
 {
 	unsigned long val;
 	unsigned long len;
@@ -4562,7 +4562,7 @@ int f_sys_ptrace_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int64_t retval;
-	u16 request;
+	uint16_t request;
 	int res;
 
 	/*
