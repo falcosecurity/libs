@@ -3317,26 +3317,36 @@ FILLER(sys_open_by_handle_at_x, true)
 	res = bpf_val_to_ring(data, flags);
 	CHECK_RES(res);
 	
-	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_open_by_handle_at_x_extra_tail_1);
-	bpf_printk("Can't tail call 'open_by_handle_at_x_extra_tail_1' filler\n");
-	return PPM_FAILURE_BUG;	
+	if(retval > 0)
+	{
+		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_open_by_handle_at_x_extra_tail_1);
+		bpf_printk("Can't tail call 'open_by_handle_at_x_extra_tail_1' filler\n");
+		return PPM_FAILURE_BUG;
+	}
+
+	/* Parameter 4: path (type: PT_FSPATH) */
+	return bpf_push_empty_param(data);
 }
 
 FILLER(open_by_handle_at_x_extra_tail_1, true)
 {
 	long retval = bpf_syscall_get_retval(data->ctx);
-
-	/* Parameter 4: path (type: PT_FSPATH) */
-	if(retval > 0)
+	struct file *f = bpf_fget(retval);
+	if(f == NULL)
 	{
-		struct file *f = bpf_fget(retval);
-		if(f != NULL)
-		{
-			char* filepath = bpf_d_path_approx(data, &(f->f_path));
-			return bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
-		}
+		/* In theory here we should send an empty param but we are experimenting some issues
+		 * with the verifier on debian10 (4.19.0-25-amd64). Sending an empty param exceeds
+		 * the complexity limit of the verifier for this reason we simply return an error code.
+		 * Returning an error code means that we drop the entire event, but please note that this should
+		 * never happen since we previosuly check `retval > 0`. The kernel should always have an entry for
+		 * this fd in the fd table.
+		 */
+		return PPM_FAILURE_BUG;
 	}
-	return bpf_push_empty_param(data);
+	
+	/* Parameter 4: path (type: PT_FSPATH) */
+	char* filepath = bpf_d_path_approx(data, &(f->f_path));
+	return bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
 }
 
 FILLER(sys_io_uring_setup_x, true)
