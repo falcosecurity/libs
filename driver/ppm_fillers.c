@@ -933,8 +933,8 @@ bool ppm_is_upper_layer(struct file *exe_file){
 #endif
 	if(sb)
 	{
-		sb_magic = sb->s_magic;
 		struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
+		sb_magic = sb->s_magic;
 		if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC && oe)
 		{
 			unsigned long has_upper = 0;
