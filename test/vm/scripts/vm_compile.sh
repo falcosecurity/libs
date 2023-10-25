@@ -44,4 +44,4 @@ go run ${BASE_DIR}/scripts/main.go -compilerVersionsClang=7,12,14,16 -compilerVe
 
 printf "\n\n[STATUS] Build scap-open userspace binary using build/libs-src.tar.gz as libs source\n\n";
 docker run -v "${BASE_DIR}":/vm:z \
-falcosecurity/falco-builder:latest bash -c '/bin/bash /vm/scripts/compile_scap_open.sh';
+modern-falco-builder:latest '/bin/bash /vm/scripts/compile_scap_open.sh';

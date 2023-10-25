@@ -51,6 +51,9 @@ make vm-dependency-check;
 # The initial run of the target vm-init takes longer as we
 # create containers and download and extract kernel headers.
 # Re-running only re-builds VMs and is faster.
+
+# Building the modern-falco-builder can take a very very long time (> 40min).
+# Hopefully soon there will be an upstream image for use.
 make vm-init;
 
 # Alternatively run each step separately
