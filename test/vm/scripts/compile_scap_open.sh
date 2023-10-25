@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eou pipefail
+set -e
 
 echo "Building scap-open"
 
@@ -16,15 +16,17 @@ fi
 
 tar -xvf ${LIBS_TAR_GZ} -C ${LIBS_DIR}/;  # fresh extraction of libs src in container, clean build dir
 
+source scl_source enable devtoolset-9 && \
 cmake -DUSE_BUNDLED_DEPS=ON \
-  -DBUILD_BPF=OFF \
-  -DBUILD_DRIVER=OFF \
-  -DBUILD_LIBSCAP_GVISOR=OFF \
-  -DCREATE_TEST_TARGETS=ON \
-  -S "${LIBS_DIR}" \
-  -B "${LIBS_DIR}/build"
+-DBUILD_BPF=OFF \
+-DBUILD_DRIVER=OFF \
+-DBUILD_LIBSCAP_GVISOR=OFF \
+-DCREATE_TEST_TARGETS=ON \
+-S "${LIBS_DIR}" \
+-B "${LIBS_DIR}/build"
 
-make -C "${LIBS_DIR}/build" -j"$(nproc)" scap-open
+source scl_source enable devtoolset-9 && \
+make -C "${LIBS_DIR}/build" -j"$(nproc)" scap-open;
 
 cp -f ${LIBS_DIR}/build/libscap/examples/01-open/scap-open /vm/build/scap-open;
 chown -R 1000:1000 /vm/build/scap-open;
