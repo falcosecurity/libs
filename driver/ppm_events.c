@@ -112,15 +112,15 @@ static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 /*
  * Globals
  */
-u32 g_http_options_intval;
-u32 g_http_get_intval;
-u32 g_http_head_intval;
-u32 g_http_post_intval;
-u32 g_http_put_intval;
-u32 g_http_delete_intval;
-u32 g_http_trace_intval;
-u32 g_http_connect_intval;
-u32 g_http_resp_intval;
+uint32_t g_http_options_intval;
+uint32_t g_http_get_intval;
+uint32_t g_http_head_intval;
+uint32_t g_http_post_intval;
+uint32_t g_http_put_intval;
+uint32_t g_http_delete_intval;
+uint32_t g_http_trace_intval;
+uint32_t g_http_connect_intval;
+uint32_t g_http_resp_intval;
 
 #ifndef UDIG
 /*
@@ -211,15 +211,15 @@ strncpy_end:
 
 int32_t dpi_lookahead_init(void)
 {
-	g_http_options_intval = (*(u32 *)HTTP_OPTIONS_STR);
-	g_http_get_intval = (*(u32 *)HTTP_GET_STR);
-	g_http_head_intval = (*(u32 *)HTTP_HEAD_STR);
-	g_http_post_intval = (*(u32 *)HTTP_POST_STR);
-	g_http_put_intval = (*(u32 *)HTTP_PUT_STR);
-	g_http_delete_intval = (*(u32 *)HTTP_DELETE_STR);
-	g_http_trace_intval = (*(u32 *)HTTP_TRACE_STR);
-	g_http_connect_intval = (*(u32 *)HTTP_CONNECT_STR);
-	g_http_resp_intval = (*(u32 *)HTTP_RESP_STR);
+	g_http_options_intval = (*(uint32_t *)HTTP_OPTIONS_STR);
+	g_http_get_intval = (*(uint32_t *)HTTP_GET_STR);
+	g_http_head_intval = (*(uint32_t *)HTTP_HEAD_STR);
+	g_http_post_intval = (*(uint32_t *)HTTP_POST_STR);
+	g_http_put_intval = (*(uint32_t *)HTTP_PUT_STR);
+	g_http_delete_intval = (*(uint32_t *)HTTP_DELETE_STR);
+	g_http_trace_intval = (*(uint32_t *)HTTP_TRACE_STR);
+	g_http_connect_intval = (*(uint32_t *)HTTP_CONNECT_STR);
+	g_http_resp_intval = (*(uint32_t *)HTTP_RESP_STR);
 
 	return PPM_SUCCESS;
 }
@@ -259,7 +259,7 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 			sin->sin_port = inet->inet_dport;
 			sin->sin_addr.s_addr = inet->inet_daddr;
 		} else {
-			u32 addr = inet->inet_rcv_saddr;
+			uint32_t addr = inet->inet_rcv_saddr;
 			if (!addr) {
 				addr = inet->inet_saddr;
 			}
@@ -358,17 +358,17 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
  *    HTTP, mongodb, and statsd.
  * 5. If none of the above apply, return args->consumer->snaplen.
  */
-inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 lookahead_size)
+inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, uint32_t lookahead_size)
 {
-	u32 res = args->consumer->snaplen;
+	uint32_t res = args->consumer->snaplen;
 	int err;
 	struct socket *sock;
 	sa_family_t family;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
-	u16 sport, dport;
-	u16 min_port = 0, max_port = 0;
-	u32 dynamic_snaplen = SNAPLEN_EXTENDED;
+	uint16_t sport, dport;
+	uint16_t min_port = 0, max_port = 0;
+	uint32_t dynamic_snaplen = SNAPLEN_EXTENDED;
 
 	if (args->consumer->snaplen > dynamic_snaplen) {
 		/*
@@ -598,14 +598,14 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 		goto done;
 	} else {
 		if (lookahead_size >= 5) {
-			if (*(u32 *)buf == g_http_get_intval ||
-			    *(u32 *)buf == g_http_post_intval ||
-			    *(u32 *)buf == g_http_put_intval ||
-			    *(u32 *)buf == g_http_delete_intval ||
-			    *(u32 *)buf == g_http_trace_intval ||
-			    *(u32 *)buf == g_http_connect_intval ||
-			    *(u32 *)buf == g_http_options_intval ||
-			    ((*(u32 *)buf == g_http_resp_intval) && (buf[4] == '/'))
+			if (*(uint32_t *)buf == g_http_get_intval ||
+			    *(uint32_t *)buf == g_http_post_intval ||
+			    *(uint32_t *)buf == g_http_put_intval ||
+			    *(uint32_t *)buf == g_http_delete_intval ||
+			    *(uint32_t *)buf == g_http_trace_intval ||
+			    *(uint32_t *)buf == g_http_connect_intval ||
+			    *(uint32_t *)buf == g_http_options_intval ||
+			    ((*(uint32_t *)buf == g_http_resp_intval) && (buf[4] == '/'))
 			) {
 				res = dynamic_snaplen;
 				goto done;
@@ -621,7 +621,7 @@ done:
 
 int push_empty_param(struct event_filler_arguments *args)
 {
-	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
+	uint16_t *psize = (uint16_t *)(args->buffer + args->curarg * sizeof(uint16_t));
 
 	if (unlikely(args->curarg >= args->nargs))
 	{
@@ -629,7 +629,7 @@ int push_empty_param(struct event_filler_arguments *args)
 		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
 			smp_processor_id(),
 			args->nevents,
-			(u32)args->event_type,
+			(uint32_t)args->event_type,
 			args->curarg,
 			args->nargs,
 			current->pid);
@@ -653,19 +653,19 @@ int push_empty_param(struct event_filler_arguments *args)
  * - fromuser is ignored for numeric types
  * - dyn_idx is ignored for everything other than PT_DYN
  */
-int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, bool fromuser, u8 dyn_idx)
+int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_len, bool fromuser, uint8_t dyn_idx)
 {
 	const struct ppm_param_info *param_info;
 	int len = -1;
-	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
-	u32 max_arg_size = args->arg_data_size;
+	uint16_t *psize = (uint16_t *)(args->buffer + args->curarg * sizeof(uint16_t));
+	uint32_t max_arg_size = args->arg_data_size;
 
 	if (unlikely(args->curarg >= args->nargs)) {
 #ifndef UDIG
 		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
 			smp_processor_id(),
 			args->nevents,
-			(u32)args->event_type,
+			(uint32_t)args->event_type,
 			args->curarg,
 			args->nargs,
 			current->pid);
@@ -697,16 +697,16 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 #endif
 
 		param_info = &dyn_params[dyn_idx];
-		if (likely(max_arg_size >= sizeof(u8)))	{
-			*(u8 *)(args->buffer + args->arg_data_offset) = dyn_idx;
-			len = sizeof(u8);
+		if (likely(max_arg_size >= sizeof(uint8_t)))	{
+			*(uint8_t *)(args->buffer + args->arg_data_offset) = dyn_idx;
+			len = sizeof(uint8_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 		args->arg_data_offset += len;
 		args->arg_data_size -= len;
 		max_arg_size -= len;
-		*psize = (u16)len;
+		*psize = (uint16_t)len;
 	} else {
 		*psize = 0;
 	}
@@ -780,7 +780,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				 * Copy the lookahead portion of the buffer that we will use DPI-based
 				 * snaplen calculation
 				 */
-				u32 dpi_lookahead_size = DPI_LOOKAHEAD_SIZE;
+				uint32_t dpi_lookahead_size = DPI_LOOKAHEAD_SIZE;
 
 				if (dpi_lookahead_size > val_len)
 					dpi_lookahead_size = val_len;
@@ -806,7 +806,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 					 * Calculate the snaplen
 					 */
 					if (likely(args->enforce_snaplen)) {
-						u32 sl = args->consumer->snaplen;
+						uint32_t sl = args->consumer->snaplen;
 
 #ifndef UDIG
 						sl = compute_snaplen(args, args->buffer + args->arg_data_offset, dpi_lookahead_size);
@@ -836,9 +836,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			{
 				if (likely(args->enforce_snaplen)) {
 #ifdef UDIG
-					u32 sl = args->consumer->snaplen;
+					uint32_t sl = args->consumer->snaplen;
 #else
-					u32 sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
+					uint32_t sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
 #endif
 					if (val_len > sl)
 						val_len = sl;
@@ -904,9 +904,9 @@ send_empty_sock_param:
 	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		if (likely(max_arg_size >= sizeof(u8)))	{
-			*(u8 *)(args->buffer + args->arg_data_offset) = (u8)val;
-			len = sizeof(u8);
+		if (likely(max_arg_size >= sizeof(uint8_t)))	{
+			*(uint8_t *)(args->buffer + args->arg_data_offset) = (uint8_t)val;
+			len = sizeof(uint8_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -916,9 +916,9 @@ send_empty_sock_param:
 	case PT_ENUMFLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
-		if (likely(max_arg_size >= sizeof(u16))) {
-			*(u16 *)(args->buffer + args->arg_data_offset) = (u16)val;
-			len = sizeof(u16);
+		if (likely(max_arg_size >= sizeof(uint16_t))) {
+			*(uint16_t *)(args->buffer + args->arg_data_offset) = (uint16_t)val;
+			len = sizeof(uint16_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -931,9 +931,9 @@ send_empty_sock_param:
 	case PT_GID:
 	case PT_SIGSET:
 	case PT_ENUMFLAGS32:
-		if (likely(max_arg_size >= sizeof(u32))) {
-			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
-			len = sizeof(u32);
+		if (likely(max_arg_size >= sizeof(uint32_t))) {
+			*(uint32_t *)(args->buffer + args->arg_data_offset) = (uint32_t)val;
+			len = sizeof(uint32_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -942,36 +942,36 @@ send_empty_sock_param:
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		if (likely(max_arg_size >= sizeof(u64))) {
-			*(u64 *)(args->buffer + args->arg_data_offset) = (u64)val;
-			len = sizeof(u64);
+		if (likely(max_arg_size >= sizeof(uint64_t))) {
+			*(uint64_t *)(args->buffer + args->arg_data_offset) = (uint64_t)val;
+			len = sizeof(uint64_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT8:
-		if (likely(max_arg_size >= sizeof(s8))) {
-			*(s8 *)(args->buffer + args->arg_data_offset) = (s8)(long)val;
-			len = sizeof(s8);
+		if (likely(max_arg_size >= sizeof(int8_t))) {
+			*(int8_t *)(args->buffer + args->arg_data_offset) = (int8_t)(long)val;
+			len = sizeof(int8_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT16:
-		if (likely(max_arg_size >= sizeof(s16))) {
-			*(s16 *)(args->buffer + args->arg_data_offset) = (s16)(long)val;
-			len = sizeof(s16);
+		if (likely(max_arg_size >= sizeof(int16_t))) {
+			*(int16_t *)(args->buffer + args->arg_data_offset) = (int16_t)(long)val;
+			len = sizeof(int16_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
 
 		break;
 	case PT_INT32:
-		if (likely(max_arg_size >= sizeof(s32))) {
-			*(s32 *)(args->buffer + args->arg_data_offset) = (s32)(long)val;
-			len = sizeof(s32);
+		if (likely(max_arg_size >= sizeof(int32_t))) {
+			*(int32_t *)(args->buffer + args->arg_data_offset) = (int32_t)(long)val;
+			len = sizeof(int32_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -981,9 +981,9 @@ send_empty_sock_param:
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		if (likely(max_arg_size >= sizeof(s64))) {
-			*(s64 *)(args->buffer + args->arg_data_offset) = (s64)(long)val;
-			len = sizeof(s64);
+		if (likely(max_arg_size >= sizeof(int64_t))) {
+			*(int64_t *)(args->buffer + args->arg_data_offset) = (int64_t)(long)val;
+			len = sizeof(int64_t);
 		} else {
 			return PPM_FAILURE_BUFFER_FULL;
 		}
@@ -994,7 +994,7 @@ send_empty_sock_param:
 #ifndef UDIG
 		pr_err("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
 			(int)g_event_info[args->event_type].params[args->curarg].type,
-			(u32)args->event_type,
+			(uint32_t)args->event_type,
 			g_event_info[args->event_type].name);
 #endif			
 		return PPM_FAILURE_BUG;
@@ -1003,7 +1003,7 @@ send_empty_sock_param:
 	ASSERT(len <= PPM_MAX_ARG_SIZE);
 	ASSERT(len <= (int)max_arg_size);
 
-	*psize += (u16)len;
+	*psize += (uint16_t)len;
 	args->curarg++;
 	args->arg_data_offset += len;
 	args->arg_data_size -= len;
@@ -1056,18 +1056,18 @@ static void unix_socket_path(char *dest, const char *path, size_t size)
  * Convert a sockaddr into our address representation and copy it to
  * targetbuf
  */
-u16 pack_addr(struct sockaddr *usrsockaddr,
+uint16_t pack_addr(struct sockaddr *usrsockaddr,
 	int ulen,
 	char *targetbuf,
-	u16 targetbufsize)
+	uint16_t targetbufsize)
 {
-	u32 ip;
-	u16 port;
+	uint32_t ip;
+	uint16_t port;
 	sa_family_t family = usrsockaddr->sa_family;
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
 	struct sockaddr_un *usrsockaddr_un;
-	u16 size;
+	uint16_t size;
 	char *dest;
 
 	switch (family) {
@@ -1088,9 +1088,9 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 */
 		size = 1 + 4 + 2; /* family + ip + port */
 
-		*targetbuf = socket_family_to_scap((u8)family);
-		*(u32 *)(targetbuf + 1) = ip;
-		*(u16 *)(targetbuf + 5) = port;
+		*targetbuf = socket_family_to_scap((uint8_t)family);
+		*(uint32_t *)(targetbuf + 1) = ip;
+		*(uint16_t *)(targetbuf + 5) = port;
 
 		break;
 	case AF_INET6:
@@ -1109,11 +1109,11 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 */
 		size = 1 + 16 + 2; /* family + ip + port */
 
-		*targetbuf = socket_family_to_scap((u8)family);
+		*targetbuf = socket_family_to_scap((uint8_t)family);
 		memcpy(targetbuf + 1,
 			usrsockaddr_in6->sin6_addr.s6_addr,
 			16);
-		*(u16 *)(targetbuf + 17) = port;
+		*(uint16_t *)(targetbuf + 17) = port;
 
 		break;
 	case AF_UNIX:
@@ -1136,12 +1136,12 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		 */
 		size = 1;
 
-		*targetbuf = socket_family_to_scap((u8)family);
+		*targetbuf = socket_family_to_scap((uint8_t)family);
 
 		dest = targetbuf + 1;
 		unix_socket_path(dest, usrsockaddr_un->sun_path, UNIX_PATH_MAX);
 
-		size += (u16)strlen(dest) + 1;
+		size += (uint16_t)strlen(dest) + 1;
 
 		break;
 	default:
@@ -1156,25 +1156,25 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
  * Convert a connection tuple into our tuple representation and copy it to
  * targetbuf
  */
-u16 fd_to_socktuple(int fd,
+uint16_t fd_to_socktuple(int fd,
 	struct sockaddr *usrsockaddr,
 	int ulen,
 	bool use_userdata,
 	bool is_inbound,
 	char *targetbuf,
-	u16 targetbufsize)
+	uint16_t targetbufsize)
 {
 	int err = 0;
 	sa_family_t family;
-	u32 sip;
-	u32 dip;
-	u8 *sip6;
-	u8 *dip6;
-	u16 sport;
-	u16 dport;
+	uint32_t sip;
+	uint32_t dip;
+	uint8_t *sip6;
+	uint8_t *dip6;
+	uint16_t sport;
+	uint16_t dport;
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
-	u16 size;
+	uint16_t size;
 	struct sockaddr_storage sock_address;
 	struct sockaddr_storage peer_address;
 #ifndef UDIG
@@ -1291,11 +1291,11 @@ u16 fd_to_socktuple(int fd,
 		 */
 		size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
 
-		*targetbuf = socket_family_to_scap((u8)family);
-		*(u32 *)(targetbuf + 1) = sip;
-		*(u16 *)(targetbuf + 5) = sport;
-		*(u32 *)(targetbuf + 7) = dip;
-		*(u16 *)(targetbuf + 11) = dport;
+		*targetbuf = socket_family_to_scap((uint8_t)family);
+		*(uint32_t *)(targetbuf + 1) = sip;
+		*(uint16_t *)(targetbuf + 5) = sport;
+		*(uint32_t *)(targetbuf + 7) = dip;
+		*(uint16_t *)(targetbuf + 11) = dport;
 
 		break;
 	case AF_INET6:
@@ -1356,15 +1356,15 @@ u16 fd_to_socktuple(int fd,
 		 */
 		size = 1 + 16 + 16 + 2 + 2; /* family + sip + dip + sport + dport */
 
-		*targetbuf = socket_family_to_scap((u8)family);
+		*targetbuf = socket_family_to_scap((uint8_t)family);
 		memcpy(targetbuf + 1,
 			sip6,
 			16);
-		*(u16 *)(targetbuf + 17) = sport;
+		*(uint16_t *)(targetbuf + 17) = sport;
 		memcpy(targetbuf + 19,
 			dip6,
 			16);
-		*(u16 *)(targetbuf + 35) = dport;
+		*(uint16_t *)(targetbuf + 35) = dport;
 
 		break;
 	case AF_UNIX:
@@ -1467,14 +1467,14 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 {
 	int32_t res;
 	const struct iovec *iov;
-	u64 copylen;
-	u32 j;
-	u64 size = 0;
+	uint64_t copylen;
+	uint32_t j;
+	uint64_t size = 0;
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
-	u32 targetbuflen = STR_STORAGE_SIZE;
+	uint32_t targetbuflen = STR_STORAGE_SIZE;
 	unsigned long val;
-	u32 notcopied_len;
+	uint32_t notcopied_len;
 	size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct iovec);
@@ -1605,14 +1605,14 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 {
 	int32_t res;
 	const struct compat_iovec *iov;
-	u64 copylen;
-	u32 j;
-	u64 size = 0;
+	uint64_t copylen;
+	uint32_t j;
+	uint64_t size = 0;
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
-	u32 targetbuflen = STR_STORAGE_SIZE;
+	uint32_t targetbuflen = STR_STORAGE_SIZE;
 	unsigned long val;
-	u32 notcopied_len;
+	uint32_t notcopied_len;
 	compat_size_t tocopy_len;
 
 	copylen = iovcnt * sizeof(struct compat_iovec);
@@ -1741,7 +1741,7 @@ int f_sys_autofill(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
-	u32 j;
+	uint32_t j;
 	int64_t retval;
 
 	const struct ppm_event_entry *evinfo = &g_ppm_events[args->event_type];
