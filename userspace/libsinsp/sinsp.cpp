@@ -354,6 +354,8 @@ void sinsp::init()
 	m_sinsp_stats_v2.m_n_failed_thread_lookups = 0;
 	m_sinsp_stats_v2.m_n_added_threads = 0;
 	m_sinsp_stats_v2.m_n_removed_threads = 0;
+	m_sinsp_stats_v2.m_n_missing_container_images = 0;
+	m_sinsp_stats_v2.m_n_containers= 0;
 
 	m_nevts = 0;
 	m_tid_to_remove = -1;

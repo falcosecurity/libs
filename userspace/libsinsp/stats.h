@@ -37,6 +37,8 @@ typedef struct sinsp_stats_v2
 	uint64_t m_n_failed_thread_lookups;
 	uint64_t m_n_added_threads;
 	uint64_t m_n_removed_threads;
+	uint32_t m_n_missing_container_images;
+	uint32_t m_n_containers;
 }sinsp_stats_v2;
 
 typedef enum sinsp_stats_v2_resource_utilization {
@@ -66,10 +68,12 @@ typedef enum sinsp_stats_v2_resource_utilization {
 	SINSP_STATS_V2_ADDED_THREADS, ///< threadtable state related counters, unit: count.
 	SINSP_STATS_V2_REMOVED_THREADS, ///< threadtable state related counters, unit: count.
 	SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE, ///< Number of drops due to full threadtable, unit: count.
-	SINSP_STATS_V2_N_CONTAINERS, ///<  Number of containers currently cached by sinsp_container_manager, unit: count.
+	SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES, ///<  Number of cached containers (cgroups) without container info such as image, hijacked sinsp_container_manager::remove_inactive_containers() -> every flush snapshot update, unit: count.
+	SINSP_STATS_V2_N_CONTAINERS, ///<  Number of containers (cgroups) currently cached by sinsp_container_manager, hijacked sinsp_container_manager::remove_inactive_containers() -> every flush snapshot update, unit: count.
 	SINSP_MAX_STATS_V2
 }sinsp_stats_v2_resource_utilization;
 
+#ifdef __linux__
 namespace libsinsp {
 namespace stats {
 
@@ -77,16 +81,16 @@ namespace stats {
 	  \brief Retrieve current sinsp stats v2 including resource utilization metrics.
 	  \param agent_info Pointer to a \ref scap_agent_info containing relevant constants from the agent start up moment.
 	  \param thread_manager Pointer to a \ref thread_manager to access threadtable properties.
-	  \param sinsp_stats_v2_counters sinsp_stats_v2 struct containing counters related to the sinsp state tables (e.g. adding, removing, storing, failed lookup activities).
-	  \param stats Pointer to a \ref scap_stats_v2 pre-allocated sinsp_stats_v2_buffer (aka scap_stats_v2 schema).
-	  \param n_containers Number of containers currently cached by sinsp_container_manager.
+	  \param stats_v2 sinsp_stats_v2 struct containing counters related to the sinsp state tables (e.g. adding, removing, storing, failed lookup activities).
+	  \param buffer Pointer to a \ref scap_stats_v2 pre-allocated sinsp_stats_v2_buffer (aka scap_stats_v2 schema).
 	  \param nstats Pointer reflecting number of statistics in returned buffer
 	  \param rc Pointer to return code
 	  \note Intended to be called once every x hours.
 
 	  \return Pointer to a \ref scap_stats_v2 buffer filled with the current sinsp stats v2 including resource utilization metrics.
 	*/
-	const scap_stats_v2* get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, sinsp_stats_v2 sinsp_stats_v2_counters, scap_stats_v2* stats, uint32_t n_containers, uint32_t* nstats, int32_t* rc);
+	const scap_stats_v2* get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, sinsp_stats_v2 stats_v2, scap_stats_v2* buffer, uint32_t* nstats, int32_t* rc);
 
 }
 }
+#endif
