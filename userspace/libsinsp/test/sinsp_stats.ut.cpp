@@ -15,22 +15,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#ifdef __linux__
 
 #include <gtest/gtest.h>
-#include "sinsp.h"
-#include "utils.h"
 #include "sinsp_with_test_input.h"
-#include "test_utils.h"
-#include "scap_stats_v2.h"
 #include <test/helpers/threads_helpers.h>
 
 TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
 {
-#ifdef __linux__
-
-	open_inspector(SCAP_MODE_LIVE);
-    // Adopted from test: TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads)
-    DEFAULT_TREE
+	// Adopted from test: TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads)
+	DEFAULT_TREE
 	/* we call a random event to obtain an event associated with this thread info */
 	auto evt = generate_random_event(p2_t1_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "3");
@@ -92,6 +86,5 @@ TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
     sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, &nstats, &rc);
     ASSERT_EQ(nstats, 0);
     ASSERT_EQ(rc, SCAP_SUCCESS);
-
-#endif
 }
+#endif
