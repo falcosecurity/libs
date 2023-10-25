@@ -42,16 +42,15 @@ TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
 	auto buffer = m_inspector.get_sinsp_stats_v2_buffer();
     sinsp_stats_v2 sinsp_stats_v2_counters = m_inspector.get_sinsp_stats_v2();
     sinsp_thread_manager* thread_manager = m_inspector.m_thread_manager;
-    uint32_t n_containers = m_inspector.m_container_manager.get_containers()->size();
 	uint32_t flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
-	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
+	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, &nstats, &rc);
     /* Extra call */
-    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
+    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, &nstats, &rc);
     ASSERT_EQ(nstats, SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST + 1);
     ASSERT_EQ(rc, SCAP_SUCCESS);
 
     flags = (PPM_SCAP_STATS_RESOURCE_UTILIZATION | PPM_SCAP_STATS_STATE_COUNTERS);
-	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
+	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, &nstats, &rc);
     ASSERT_EQ(nstats, SINSP_MAX_STATS_V2);
     ASSERT_EQ(rc, SCAP_SUCCESS);
 
@@ -90,7 +89,7 @@ TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
     /* Empty call */
     nstats = 0;
     flags = 0;
-    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, n_containers, &nstats, &rc);
+    sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, &nstats, &rc);
     ASSERT_EQ(nstats, 0);
     ASSERT_EQ(rc, SCAP_SUCCESS);
 
