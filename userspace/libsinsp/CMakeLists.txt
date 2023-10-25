@@ -124,6 +124,7 @@ set(SINSP_SOURCES
 	threadinfo.cpp
 	tuples.cpp
 	sinsp.cpp
+	stats.cpp
 	token_bucket.cpp
 	stopwatch.cpp
 	utils.cpp
@@ -169,7 +170,6 @@ if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 		list(APPEND SINSP_SOURCES
 			cgroup_limits.cpp
 			container_engine/cri.cpp
-			stats.cpp
 			grpc_channel_registry.cpp
 		)
 	endif()
