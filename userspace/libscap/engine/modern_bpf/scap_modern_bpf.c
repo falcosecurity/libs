@@ -288,7 +288,6 @@ uint64_t scap_modern_bpf__get_schema_version(struct scap_engine_handle engine)
 
 struct scap_vtable scap_modern_bpf_engine = {
 	.name = MODERN_BPF_ENGINE,
-	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
 	.alloc_handle = scap_modern_bpf__alloc_engine,

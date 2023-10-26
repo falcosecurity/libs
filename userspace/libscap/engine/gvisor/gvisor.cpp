@@ -219,7 +219,6 @@ static uint64_t gvisor_get_max_buf_used(struct scap_engine_handle engine)
 
 extern const struct scap_vtable scap_gvisor_engine = {
 	.name = GVISOR_ENGINE,
-	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
 	.alloc_handle = gvisor_alloc_handle,

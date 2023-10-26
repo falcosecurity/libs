@@ -1003,7 +1003,6 @@ const struct scap_linux_vtable scap_kmod_linux_vtable = {
 
 struct scap_vtable scap_kmod_engine = {
 	.name = KMOD_ENGINE,
-	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
 	.alloc_handle = alloc_handle,

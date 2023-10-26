@@ -126,12 +126,6 @@ struct scap_vtable {
 	 */
 	const char* name;
 
-	/**
-	 * @brief one of the SCAP_MODE_* constants, designating the purpose
-	 * of the engine (live capture, capture files, etc.)
-	 */
-	scap_mode_t mode;
-
 	const struct scap_savefile_vtable *savefile_ops;
 
 	/**

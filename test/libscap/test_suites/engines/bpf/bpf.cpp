@@ -7,9 +7,7 @@
 
 scap_t* open_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, const char* name, std::unordered_set<uint32_t> ppm_sc_set = {})
 {
-	struct scap_open_args oargs = {
-		.mode = SCAP_MODE_LIVE,
-	};
+	struct scap_open_args oargs {};
 
 	/* If empty we fill with all syscalls */
 	if(ppm_sc_set.empty())

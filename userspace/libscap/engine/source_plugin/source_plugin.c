@@ -296,7 +296,6 @@ const struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle
 
 const struct scap_vtable scap_source_plugin_engine = {
 	.name = SOURCE_PLUGIN_ENGINE,
-	.mode = SCAP_MODE_PLUGIN,
 	.savefile_ops = NULL,
 
 	.alloc_handle = alloc_handle,

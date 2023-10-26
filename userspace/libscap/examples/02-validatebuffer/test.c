@@ -169,7 +169,7 @@ int main()
 			&new_mask);
 	*/
 
-	scap_open_args args = {.mode = SCAP_MODE_LIVE};
+	scap_open_args args = {};
 
 	scap_t* h = scap_open(&args, &scap_kmod_engine, NULL, error, &ret);
 	if(h == NULL)

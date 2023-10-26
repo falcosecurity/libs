@@ -67,9 +67,7 @@ int insert_kmod(const char* kmod_path, char* error_buf)
 
 scap_t* open_kmod_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, const char* kmod_path, std::unordered_set<uint32_t> ppm_sc_set = {})
 {
-	struct scap_open_args oargs = {
-		.mode = SCAP_MODE_LIVE,
-	};
+	struct scap_open_args oargs {};
 
 	/* Remove previously inserted kernel module */
 	if(remove_kmod(error_buf) != EXIT_SUCCESS)
