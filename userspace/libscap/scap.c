@@ -95,6 +95,15 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtabl
 
 	ASSERT(vtable != NULL);
 
+	// Initialize the engine before the platform
+	//
+	// While the two would ideally be independent, the linux platform can delegate some
+	// functionality to an engine through a scap_linux_vtable (currently only the kmod
+	// engine provides this).
+	//
+	// The kmod hooks in the scap_linux_vtable need an initialized engine, since they call
+	// ioctls on the driver fd, so we need to initialize the engine before the platform.
+
 	rc = scap_init_engine(handle, oargs, vtable);
 	if(rc != SCAP_SUCCESS)
 	{
