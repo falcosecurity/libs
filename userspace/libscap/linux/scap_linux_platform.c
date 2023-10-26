@@ -107,7 +107,7 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 	return SCAP_SUCCESS;
 }
 
-static const struct scap_platform_vtable scap_linux_platform = {
+static const struct scap_platform_vtable scap_linux_platform_vtable = {
 	.init_platform = scap_linux_init_platform,
 	.refresh_addr_list = scap_linux_create_iflist,
 	.get_device_by_mount_id = scap_linux_get_device_by_mount_id,
@@ -131,7 +131,7 @@ struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callbac
 	}
 
 	struct scap_platform* generic = &platform->m_generic;
-	generic->m_vtable = &scap_linux_platform;
+	generic->m_vtable = &scap_linux_platform_vtable;
 
 	generic->m_proclist.m_proc_callback = proc_callback;
 	generic->m_proclist.m_proc_callback_context = proc_callback_context;
