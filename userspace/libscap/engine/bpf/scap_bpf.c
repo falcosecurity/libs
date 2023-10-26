@@ -129,6 +129,7 @@ static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 		for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
 		{
 			engine->m_attached_progs[j].fd = -1;
+			engine->m_attached_progs[j].efd = -1;
 		}
 	}
 	return engine;
