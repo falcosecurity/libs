@@ -48,7 +48,7 @@ const char* scap_getlasterr(scap_t* handle)
 	return handle ? handle->m_lasterr : "null scap handle";
 }
 
-int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable)
+int32_t scap_init_engine(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
 	int32_t rc;
 
@@ -95,7 +95,7 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtabl
 
 	ASSERT(vtable != NULL);
 
-	rc = scap_init_int(handle, oargs, vtable);
+	rc = scap_init_engine(handle, oargs, vtable);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
