@@ -648,7 +648,6 @@ void parse_CLI_options(int argc, char** argv)
 		if(!strcmp(argv[i], KMOD_OPTION))
 		{
 			vtable = &scap_kmod_engine;
-			oargs.mode = SCAP_MODE_LIVE;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &kmod_params;
 		}
@@ -662,7 +661,6 @@ void parse_CLI_options(int argc, char** argv)
 				exit(EXIT_FAILURE);
 			}
 			vtable = &scap_bpf_engine;
-			oargs.mode = SCAP_MODE_LIVE;
 			bpf_params.bpf_probe = argv[++i];
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &bpf_params;
@@ -672,7 +670,6 @@ void parse_CLI_options(int argc, char** argv)
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
 			vtable = &scap_modern_bpf_engine;
-			oargs.mode = SCAP_MODE_LIVE;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			modern_bpf_params.cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
 			modern_bpf_params.allocate_online_only = true;
@@ -688,7 +685,6 @@ void parse_CLI_options(int argc, char** argv)
 				exit(EXIT_FAILURE);
 			}
 			vtable = &scap_savefile_engine;
-			oargs.mode = SCAP_MODE_CAPTURE;
 			savefile_params.fname = argv[++i];
 			oargs.engine_params = &savefile_params;
 		}

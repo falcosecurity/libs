@@ -111,7 +111,6 @@ uint64_t noop_get_max_buf_used(struct scap_engine_handle engine)
 
 const struct scap_vtable scap_noop_engine = {
 	.name = "noop",
-	.mode = SCAP_MODE_NODRIVER,
 	.savefile_ops = NULL,
 
 	.alloc_handle = noop_alloc_handle,

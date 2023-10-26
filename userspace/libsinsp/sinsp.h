@@ -241,8 +241,6 @@ public:
 		scap_fseek(m_h, filepos);
 	}
 
-	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
-
 	std::string generate_gvisor_config(std::string socket_path);
 
 
@@ -1042,7 +1040,8 @@ private:
 #endif
 
 	void set_input_plugin(const std::string& name, const std::string& params);
-	void open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform);
+	void open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform,
+			 scap_mode_t mode);
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();

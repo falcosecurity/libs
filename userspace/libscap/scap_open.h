@@ -81,7 +81,6 @@ extern "C"
 
 	typedef struct scap_open_args
 	{
-		scap_mode_t mode;					 ///< scap-mode required by the engine.
 		bool import_users;					 ///< true if the user list should be created when opening the capture.
 		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
                 falcosecurity_log_fn log_fn; //< Function which SCAP may use to log messages

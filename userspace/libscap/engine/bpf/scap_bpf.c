@@ -2076,7 +2076,6 @@ uint64_t scap_bpf_get_schema_version(struct scap_engine_handle engine)
 
 const struct scap_vtable scap_bpf_engine = {
 	.name = BPF_ENGINE,
-	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
 	.alloc_handle = alloc_handle,

@@ -125,7 +125,6 @@ int open_engine(int argc, char** argv)
 	int ret = 0;
 	const struct scap_vtable* vtable = nullptr;
 	scap_open_args oargs = {};
-	oargs.mode = SCAP_MODE_LIVE;
 	unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 	std::string kmod_path;
 
