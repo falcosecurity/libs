@@ -1367,6 +1367,7 @@ int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_pro
 
 int32_t scap_linux_get_fdlist(struct scap_platform* platform, struct scap_threadinfo *tinfo, char *lasterr)
 {
+	int res = SCAP_SUCCESS;
 	uint64_t num_fds_ret = 0;
 	char proc_dir[SCAP_MAX_PATH_SIZE];
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
@@ -1375,5 +1376,10 @@ int32_t scap_linux_get_fdlist(struct scap_platform* platform, struct scap_thread
 	// We collect file descriptors only for the main thread
 	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/%lu/", scap_get_host_root(), tinfo->pid);
 
-	return scap_fd_scan_fd_dir(linux_platform, &platform->m_proclist, proc_dir, tinfo, &sockets_by_ns, &num_fds_ret, lasterr);
+	res = scap_fd_scan_fd_dir(linux_platform, &platform->m_proclist, proc_dir, tinfo, &sockets_by_ns, &num_fds_ret, lasterr);	
+	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
+	{
+		scap_fd_free_ns_sockets_list(&sockets_by_ns);
+	}
+	return res;
 }
