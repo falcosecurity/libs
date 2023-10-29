@@ -125,6 +125,10 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "Thread VM RSS (kb)", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "Thread VM Size (b)", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "Thread VM RSS (b)", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
+	// "MVP CountMinSketch Powered Probabilistic Counting and Filtering"
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.sketch1.count_avg", "CountMinSketch count estimate", "CountMinSketch count estimate of average process cmd args counts. No configuration supported in initial MVP."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.sketch2.count", "CountMinSketch count estimate", "CountMinSketch count estimate of process context counts. No configuration supported in initial MVP."},
+
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1470,6 +1474,39 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			{
 				return NULL;
 			}
+		}
+	case TYPE_PROC_SKETCH1_COUNT_AVG:
+		{
+			if (!m_inspector->m_sketches[1])
+			{
+				return NULL;
+			}
+			m_u64val = (uint64_t)0;
+			uint32_t nargs = (uint32_t)tinfo->m_args.size();
+			if (nargs > 0)
+			{
+				for(uint32_t j = 0; j < nargs; j++)
+				{
+					m_u64val += (uint64_t)m_inspector->m_sketches[1].get()->estimate(tinfo->m_args[j]);
+				}
+				// return avg count of all individual cmd arg count estimates
+				m_u64val /= nargs; // decide on precision later 
+			}
+			RETURN_EXTRACT_VAR(m_u64val);
+		}
+	case TYPE_PROC_SKETCH2_COUNT:
+		{
+			if (!m_inspector->m_sketches[2])
+			{
+				return NULL;
+			}
+			std::string process_context_value = libsinsp::parser::concat_process_context_value_sketch(evt);
+			if (process_context_value.empty())
+			{
+				return NULL;
+			}
+			m_u64val = (uint64_t)m_inspector->m_sketches[2].get()->estimate(process_context_value);
+			RETURN_EXTRACT_VAR(m_u64val);
 		}
 	default:
 		ASSERT(false);

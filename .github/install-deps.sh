@@ -75,3 +75,9 @@ popd
 echo "=== Downloading uthash.h (1.9.8) ==="
 
 wget -P "/usr/include" "https://raw.githubusercontent.com/troydhanson/uthash/v1.9.8/src/uthash.h"
+
+
+# === xxhash ===
+echo "=== Downloading xxhash.h (0.8.2) ==="
+
+wget -P "/usr/include" "https://raw.githubusercontent.com/Cyan4973/xxHash/v0.8.2/xxhash.h"

@@ -361,6 +361,20 @@ void sinsp::init()
 	m_cycle_writer = new cycle_writer(!is_offline());
 
 	//
+	// "MVP CountMinSketch Powered Probabilistic Counting and Filtering" 
+	// Init sketches for heavy hitter app behavior filtering
+	// Hard-coded n sketches of dimensions d x w for simple initial testing
+	//
+	int n_sketches = 3;
+	double gamma = 0.001; // Error probability -> determine d / Rows / number of hash functions
+	double eps = 0.0001;   // Relative error -> determine w / Cols / number of buckets 
+	// TODO: Consider adding a Mutex Guard similar to the container cache.
+	for (int i = 0; i < n_sketches; ++i) 
+	{
+		m_sketches.push_back(std::make_unique<libsinsp::num::cms<uint64_t>>(gamma, eps));
+	}
+
+	//
 	// Basic inits
 	//
 #ifdef GATHER_INTERNAL_STATS

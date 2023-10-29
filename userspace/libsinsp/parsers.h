@@ -22,6 +22,12 @@ limitations under the License.
 #pragma once
 #include "sinsp.h"
 
+namespace libsinsp {
+namespace parser {
+	std::string concat_process_context_value_sketch(sinsp_evt *evt);
+}
+}
+
 class metaevents_state
 {
 public:
@@ -43,6 +49,11 @@ public:
 	//
 	void process_event(sinsp_evt* evt);
 	void event_cleanup(sinsp_evt* evt);
+
+	//
+	// "MVP CountMinSketch Powered Probabilistic Counting and Filtering"
+	//
+	void evt_update_sketch(sinsp_evt *evt);
 
 	void erase_fd(erase_fd_params* params);
 

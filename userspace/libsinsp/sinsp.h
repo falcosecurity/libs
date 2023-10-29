@@ -42,6 +42,8 @@ limitations under the License.
 
 #pragma once
 
+#include "num/cms.h"
+
 #include "capture_stats_source.h"
 
 #if !defined(__EMSCRIPTEN__)
@@ -1188,6 +1190,11 @@ public:
 	sinsp_filter* m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
+
+	//
+	// "MVP CountMinSketch Powered Probabilistic Counting and Filtering"
+	//
+	std::vector<std::unique_ptr<libsinsp::num::cms<uint64_t>>> m_sketches;
 
 	//
 	// Internal stats

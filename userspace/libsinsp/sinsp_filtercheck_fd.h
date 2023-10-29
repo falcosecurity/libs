@@ -69,6 +69,7 @@ public:
 		TYPE_INO = 41,
 		TYPE_FDNAMERAW = 42,
 		TYPE_FDTYPES = 43,
+		TYPE_FD_SKETCH0_COUNT = 44,
 	};
 
 	enum fd_type

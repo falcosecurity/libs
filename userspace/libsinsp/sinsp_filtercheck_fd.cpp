@@ -94,6 +94,8 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_INT64, EPF_NONE, PF_DEC, "fd.ino", "FD Inode Number", "inode number of the referenced file"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.nameraw", "FD Name Raw", "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is kept raw with limited sanitization and without deriving the absolute path."},
 	{PT_CHARBUF, EPF_IS_LIST, PF_DEC, "fd.types", "FD Type", "List of FD types in used. Can be passed an fd number e.g. fd.types[0] to get the type of stdout as a single item list."},
+	// "MVP CountMinSketch Powered Probabilistic Counting and Filtering"
+	{PT_UINT64, EPF_NONE, PF_DEC, "fd.sketch0.count", "CountMinSketch count estimate", "CountMinSketch count estimate of process context + fd.nameraw counts. No configuration supported in initial MVP."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -449,6 +451,28 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			{
 				remove_duplicate_path_separators(m_tstr);
 				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+	case TYPE_FD_SKETCH0_COUNT:
+		{
+			if (!m_inspector->m_sketches[0])
+			{
+				return NULL;
+			}
+			if(extract_fdname_from_creator(evt, len, sanitize_strings, true) == true)
+			{
+				std::string process_context_value = libsinsp::parser::concat_process_context_value_sketch(evt);
+				process_context_value += m_tstr; // + fd.name
+				if (process_context_value.empty())
+				{
+					return NULL;
+				}
+				m_conv_uint64 = (uint64_t)m_inspector->m_sketches[2].get()->estimate(process_context_value);
+				RETURN_EXTRACT_VAR(m_conv_uint64);
 			}
 			else
 			{
@@ -1435,6 +1459,21 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
+	case TYPE_FD_SKETCH0_COUNT:
+		{
+			if (!m_fdinfo || !m_inspector->m_sketches[0])
+			{
+				return NULL;
+			}
+			std::string process_context_value = libsinsp::parser::concat_process_context_value_sketch(evt);
+			process_context_value += m_fdinfo->m_name_raw; // fd.nameraw
+			if (process_context_value.empty())
+			{
+				return NULL;
+			}
+			m_conv_uint64 = (uint64_t)m_inspector->m_sketches[0].get()->estimate(process_context_value);
+			RETURN_EXTRACT_VAR(m_conv_uint64);
+		}
 	default:
 		ASSERT(false);
 	}

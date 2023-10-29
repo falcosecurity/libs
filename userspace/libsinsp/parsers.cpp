@@ -55,6 +55,108 @@ bool should_drop(sinsp_evt *evt);
 extern sinsp_protodecoder_list g_decoderlist;
 extern sinsp_evttables g_infotables;
 
+std::string libsinsp::parser::concat_process_context_value_sketch(sinsp_evt *evt)
+{
+	auto tinfo = evt->get_thread_info();
+	if (!tinfo)
+	{
+		return "";
+	}
+	std::string process_context_value = "";
+	
+	// CONCAT to one string then hash
+	process_context_value += tinfo->m_container_id + // container.id -> note here empty for procs running on the host instead of string "host"
+			tinfo->get_comm() + // proc.name
+			tinfo->get_exepath() + // proc.exepath
+			std::to_string(tinfo->m_tty); // proc.tty
+	
+	// !!! BELOW CODE DUPLICATION from the respective filterchecks for simplicity ...
+	// proc.vpgid.name
+	int64_t vpgid = tinfo->m_vpgid;
+	// if(!tinfo->is_in_pid_namespace())
+	// {
+	// 	sinsp_threadinfo* vpgidinfo = m_inspector->get_thread_ref(vpgid, false, true).get();
+	// 	if(vpgidinfo != NULL)
+	// 	{
+	// 		process_context_value += vpgidinfo->get_comm();
+	// 	}
+	// }
+	sinsp_threadinfo* group_leader = tinfo;
+	sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
+	{
+		if(pt->m_vpgid != vpgid)
+		{
+			return false;
+		}
+		group_leader = pt;
+		return true;
+	};
+
+	tinfo->traverse_parent_state(visitor);
+	process_context_value += group_leader->get_comm();
+
+	// !!! BELOW CODE DUPLICATION from the respective filterchecks for simplicity ...
+	// proc.sname
+
+	int64_t sid = tinfo->m_sid;
+	// if(!tinfo->is_in_pid_namespace())
+	// {
+	// 	sinsp_threadinfo* sinfo = m_inspector->get_thread_ref(sid, false, true).get();
+	// 	if(sinfo != NULL)
+	// 	{
+	// 		process_context_value += sinfo->get_comm();
+	// 	}
+	// } else
+	{
+		sinsp_threadinfo* session_leader = tinfo;
+		sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
+		{
+			if(pt->m_sid != sid)
+			{
+				return false;
+			}
+			session_leader = pt;
+			return true;
+		};
+
+		tinfo->traverse_parent_state(visitor);
+		process_context_value += session_leader->get_comm();
+	}
+
+	// !!! BELOW CODE DUPLICATION from the respective filterchecks for simplicity ...
+	// proc.aname[1] equivalent to proc.pname
+	// proc.aname[2]
+	// proc.aname[3]
+	// proc.aname[4]
+
+	sinsp_threadinfo* mt = NULL;
+	if(tinfo->is_main_thread())
+	{
+		mt = tinfo;
+	}
+	else
+	{
+		mt = tinfo->get_main_thread();
+	}
+
+	if (mt)
+	{
+		// for now
+		for(int32_t j = 0; j < 5; j++)
+		{
+			mt = mt->get_parent_thread();
+			if(mt)
+			{
+				process_context_value += mt->get_comm();
+			} else
+			{
+				break;
+			}
+		}
+	}
+	return process_context_value;
+}
+
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
@@ -543,6 +645,13 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 
 	//
+	// "MVP CountMinSketch Powered Probabilistic Counting and Filtering"
+	// Update the sketch counts for each incoming event.
+	// Important to place before `if(do_filter_later)`
+	//
+	evt_update_sketch(evt);
+
+	//
 	// With some state-changing events like clone, execve and open, we do the
 	// filtering after having updated the state
 	//
@@ -575,6 +684,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	{
 		evt->set_fdinfo_name_changed(evt->m_fdinfo->m_name != evt->m_fdinfo->m_oldname);
 	}
+
+	evt->get_type();
 }
 
 void sinsp_parser::event_cleanup(sinsp_evt *evt)
@@ -591,6 +702,83 @@ void sinsp_parser::event_cleanup(sinsp_evt *evt)
 ///////////////////////////////////////////////////////////////////////////////
 // HELPERS
 ///////////////////////////////////////////////////////////////////////////////
+
+
+void sinsp_parser::evt_update_sketch(sinsp_evt *evt)
+{
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+	if (!tinfo || !m_inspector->m_sketches[0] || !m_inspector->m_sketches[1] || !m_inspector->m_sketches[2])
+	{
+		return;
+	}
+
+	std::string process_context_value = "";
+	switch(evt->get_type())
+	{
+	// e.g. Falco rule: evt.type in (open, openat, openat2) and evt.dir=< ...
+	case PPME_SYSCALL_OPEN_X:
+	case PPME_SYSCALL_CREAT_X:
+	case PPME_SYSCALL_OPENAT_2_X:
+	case PPME_SYSCALL_OPENAT2_X:
+	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
+	case PPME_SYSCALL_OPENAT_X:
+		{
+			sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+			if (!fdinfo)
+			{
+				break;
+			}
+			process_context_value = libsinsp::parser::concat_process_context_value_sketch(evt); 
+			if (!process_context_value.empty())
+			{
+				// Update the probabilistic process context count by 1.
+				m_inspector->m_sketches[2].get()->update(process_context_value, (uint64_t)1);
+				
+				// Update the probabilistic process context + fd.nameraw count by 1.
+				process_context_value += fdinfo->m_name_raw; // fd.nameraw
+				m_inspector->m_sketches[0].get()->update(process_context_value, (uint64_t)1);
+			}
+
+			uint32_t nargs = (uint32_t)tinfo->m_args.size();
+			if (nargs > 0)
+			{
+				for(uint32_t j = 0; j < nargs; j++)
+				{
+					// Update the probabilistic count by 1 for each individual command-line argument.
+					m_inspector->m_sketches[1].get()->update(tinfo->m_args[j], (uint64_t)1);
+				}
+			}
+		}
+		break;
+	// e.g. Falco rule: evt.type in (execve, execveat) and evt.dir=< ...
+	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
+		{
+			//
+			// Sketches [1] and [2] are intentionally updated twice: once for execve* events and then for each fd-related event above.
+			//
+			uint32_t nargs = (uint32_t)tinfo->m_args.size();
+			if (nargs > 0)
+			{
+				for(uint32_t j = 0; j < nargs; j++)
+				{
+					// Update the probabilistic count by 1 for each individual command-line argument.
+					m_inspector->m_sketches[1].get()->update(tinfo->m_args[j], (uint64_t)1);
+				}
+			}
+
+			process_context_value = libsinsp::parser::concat_process_context_value_sketch(evt); 
+			if (!process_context_value.empty())
+			{
+				// Update the probabilistic process context count by 1.
+				m_inspector->m_sketches[2].get()->update(process_context_value, (uint64_t)1);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
 
 //
 // Called before starting the parsing.
