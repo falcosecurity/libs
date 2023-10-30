@@ -45,7 +45,7 @@ include(valijson)
 include(re2)
 include(tinydir)
 
-set(LIBSINSP_INCLUDE_DIRS ${LIBSINSP_DIR}/userspace/libsinsp ${LIBSINSP_DIR}/userspace/common ${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_DIR})
+set(LIBSINSP_INCLUDE_DIRS ${LIBSINSP_DIR}/userspace/libsinsp ${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_DIR})
 if(WITH_CHISEL)
 	list(APPEND LIBSINSP_INCLUDE_DIRS ${LIBSINSP_DIR}/userspace/chisel)
 endif()
@@ -102,9 +102,6 @@ install(DIRECTORY "${LIBSINSP_DIR}/userspace/libsinsp" DESTINATION "${CMAKE_INST
 			PATTERN "*doxygen*" EXCLUDE
 			PATTERN "*scripts*" EXCLUDE
 			PATTERN "*test*" EXCLUDE)
-install(DIRECTORY "${LIBSINSP_DIR}/common" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
-			COMPONENT "sinsp"
-			FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY "${LIBSINSP_DIR}/userspace/async" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
 			COMPONENT "sinsp"
 			FILES_MATCHING PATTERN "*.h")

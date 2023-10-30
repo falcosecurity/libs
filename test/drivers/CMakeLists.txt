@@ -33,7 +33,6 @@ set(DRIVERS_TEST_SOURCES
 
 set(DRIVERS_TEST_INCLUDE
   PRIVATE
-  ../../userspace/common
   "${GTEST_INCLUDE}"
   "${LIBSCAP_DIR}/driver/"
   "${LIBSCAP_INCLUDE_DIRS}"
