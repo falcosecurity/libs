@@ -56,7 +56,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer)
 	struct scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
-	m_inspector.open_test_input(&data, SCAP_MODE_TEST);
+	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
 	auto tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo.reset();
@@ -71,7 +71,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo)
 	struct scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
-	m_inspector.open_test_input(&data, SCAP_MODE_TEST);
+	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
 	auto tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo->m_tid = 4;
@@ -89,7 +89,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there)
 	struct scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
-	m_inspector.open_test_input(&data, SCAP_MODE_TEST);
+	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
 	auto tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo->m_tid = 4;
@@ -110,7 +110,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo)
 	struct scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
-	m_inspector.open_test_input(&data, SCAP_MODE_TEST);
+	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
 	auto tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo->m_tid = 51000;
@@ -131,7 +131,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo)
 	struct scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
-	m_inspector.open_test_input(&data, SCAP_MODE_TEST);
+	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
 
 	auto tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo->m_tid = 51000;
