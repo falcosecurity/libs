@@ -1509,9 +1509,9 @@ std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
  */
 bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
 {
-	if (m_inspector != nullptr)
+	if (m_inspector->m_sinsp_stats_v2)
 	{
-		m_inspector->m_sinsp_stats_v2.m_n_added_threads++;
+		m_inspector->m_sinsp_stats_v2->m_n_added_threads++;
 	}
 
 	/* We have no more space */
@@ -1694,9 +1694,10 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	/* This should never happen but just to be sure. */
 	if(thread_to_remove == nullptr)
 	{
-		if (m_inspector != nullptr)
+		// Extra m_inspector nullptr check
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
-			m_inspector->m_sinsp_stats_v2.m_n_failed_thread_lookups++;
+			m_inspector->m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
 		return;
 	}
@@ -1816,9 +1817,9 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	 * the cache just to be sure.
 	 */
 	m_last_tid = -1;
-	if (m_inspector != nullptr)
+	if (m_inspector->m_sinsp_stats_v2)
 	{
-		m_inspector->m_sinsp_stats_v2.m_n_removed_threads++;
+		m_inspector->m_sinsp_stats_v2->m_n_removed_threads++;
 	}
 }
 
@@ -2155,9 +2156,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		thr = m_last_tinfo.lock();
 		if (thr)
 		{
-			if (m_inspector != nullptr)
+			if (m_inspector->m_sinsp_stats_v2)
 			{
-				m_inspector->m_sinsp_stats_v2.m_n_cached_thread_lookups++;
+				m_inspector->m_sinsp_stats_v2->m_n_cached_thread_lookups++;
 			}
 			// This allows us to avoid performing an actual timestamp lookup
 			// for something that may not need to be precise
@@ -2173,9 +2174,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 
 	if(thr)
 	{
-		if (m_inspector != nullptr)
+		if (m_inspector->m_sinsp_stats_v2)
 		{
-			m_inspector->m_sinsp_stats_v2.m_n_noncached_thread_lookups++;
+			m_inspector->m_sinsp_stats_v2->m_n_noncached_thread_lookups++;
 		}
 		if(!lookup_only)
 		{
@@ -2188,9 +2189,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	}
 	else
 	{
-		if (m_inspector != nullptr)
+		if (m_inspector->m_sinsp_stats_v2)
 		{
-			m_inspector->m_sinsp_stats_v2.m_n_failed_thread_lookups++;
+			m_inspector->m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
 		return NULL;
 	}

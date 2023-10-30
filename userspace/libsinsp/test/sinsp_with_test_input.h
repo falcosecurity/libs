@@ -60,6 +60,9 @@ protected:
 
 	void open_inspector(sinsp_mode_t mode = SINSP_MODE_TEST) {
 		m_inspector.open_test_input(m_test_data.get(), mode);
+		m_inspector.set_sinsp_stats_v2_enabled();
+		// Extra call to see we don;t fail
+		m_inspector.set_sinsp_stats_v2_enabled();
 	}
 
 	scap_evt* add_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)

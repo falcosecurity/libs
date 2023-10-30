@@ -81,7 +81,7 @@ namespace stats {
 	  \brief Retrieve current sinsp stats v2 including resource utilization metrics.
 	  \param agent_info Pointer to a \ref scap_agent_info containing relevant constants from the agent start up moment.
 	  \param thread_manager Pointer to a \ref thread_manager to access threadtable properties.
-	  \param stats_v2 sinsp_stats_v2 struct containing counters related to the sinsp state tables (e.g. adding, removing, storing, failed lookup activities).
+	  \param stats_v2 Pointer to a \ref sinsp_stats_v2 containing counters related to the sinsp state tables (e.g. adding, removing, storing, failed lookup activities).
 	  \param buffer Pointer to a \ref scap_stats_v2 pre-allocated sinsp_stats_v2_buffer (aka scap_stats_v2 schema).
 	  \param nstats Pointer reflecting number of statistics in returned buffer
 	  \param rc Pointer to return code
@@ -89,7 +89,7 @@ namespace stats {
 
 	  \return Pointer to a \ref scap_stats_v2 buffer filled with the current sinsp stats v2 including resource utilization metrics.
 	*/
-	const scap_stats_v2* get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, sinsp_stats_v2 stats_v2, scap_stats_v2* buffer, uint32_t* nstats, int32_t* rc);
+	const scap_stats_v2* get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, std::shared_ptr<sinsp_stats_v2> stats_v2, scap_stats_v2* buffer, uint32_t* nstats, int32_t* rc);
 
 }
 }
