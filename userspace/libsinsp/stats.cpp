@@ -292,7 +292,7 @@ uint64_t get_container_memory_usage()
 	return memory_used;
 }
 
-const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, sinsp_stats_v2 stats_v2, scap_stats_v2* buffer, uint32_t* nstats, int32_t* rc)
+const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, std::shared_ptr<sinsp_stats_v2> stats_v2, scap_stats_v2* buffer, uint32_t* nstats, int32_t* rc)
 {
 	if (!buffer)
 	{
@@ -301,6 +301,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 		return NULL;
 	}
 
+	*nstats = 0;
 	if((flags & PPM_SCAP_STATS_RESOURCE_UTILIZATION))
 	{
 		uint32_t rss = 0;
@@ -351,7 +352,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 
 	}
 
-	if((flags & PPM_SCAP_STATS_STATE_COUNTERS))
+	if((flags & PPM_SCAP_STATS_STATE_COUNTERS) && stats_v2)
 	{
 		if(buffer[SINSP_STATS_V2_N_THREADS].name != nullptr && strncmp(buffer[SINSP_STATS_V2_N_THREADS].name, sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_THREADS], 10) != 0)
 		{
@@ -392,29 +393,28 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 			buffer[SINSP_STATS_V2_N_FDS].value.u64 += fdtable->size();
 			return true;
 		});
-		buffer[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS].value.u64 = stats_v2.m_n_noncached_fd_lookups;
-		buffer[SINSP_STATS_V2_CACHED_FD_LOOKUPS].value.u64 = stats_v2.m_n_cached_fd_lookups;
-		buffer[SINSP_STATS_V2_FAILED_FD_LOOKUPS].value.u64 = stats_v2.m_n_failed_fd_lookups;
-		buffer[SINSP_STATS_V2_ADDED_FDS].value.u64 = stats_v2.m_n_added_fds;
-		buffer[SINSP_STATS_V2_REMOVED_FDS].value.u64 = stats_v2.m_n_removed_fds;
-		buffer[SINSP_STATS_V2_STORED_EVTS].value.u64 = stats_v2.m_n_stored_evts;
-		buffer[SINSP_STATS_V2_STORE_EVTS_DROPS].value.u64 = stats_v2.m_n_store_evts_drops;
-		buffer[SINSP_STATS_V2_RETRIEVED_EVTS].value.u64 = stats_v2.m_n_retrieved_evts;
-		buffer[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS].value.u64 = stats_v2.m_n_retrieve_evts_drops;
-		buffer[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS].value.u64 = stats_v2.m_n_noncached_thread_lookups;
-		buffer[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS].value.u64 = stats_v2.m_n_cached_thread_lookups;
-		buffer[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS].value.u64 = stats_v2.m_n_failed_thread_lookups;
-		buffer[SINSP_STATS_V2_ADDED_THREADS].value.u64 = stats_v2.m_n_added_threads;
-		buffer[SINSP_STATS_V2_REMOVED_THREADS].value.u64 = stats_v2.m_n_removed_threads;
+		buffer[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS].value.u64 = stats_v2->m_n_noncached_fd_lookups;
+		buffer[SINSP_STATS_V2_CACHED_FD_LOOKUPS].value.u64 = stats_v2->m_n_cached_fd_lookups;
+		buffer[SINSP_STATS_V2_FAILED_FD_LOOKUPS].value.u64 = stats_v2->m_n_failed_fd_lookups;
+		buffer[SINSP_STATS_V2_ADDED_FDS].value.u64 = stats_v2->m_n_added_fds;
+		buffer[SINSP_STATS_V2_REMOVED_FDS].value.u64 = stats_v2->m_n_removed_fds;
+		buffer[SINSP_STATS_V2_STORED_EVTS].value.u64 = stats_v2->m_n_stored_evts;
+		buffer[SINSP_STATS_V2_STORE_EVTS_DROPS].value.u64 = stats_v2->m_n_store_evts_drops;
+		buffer[SINSP_STATS_V2_RETRIEVED_EVTS].value.u64 = stats_v2->m_n_retrieved_evts;
+		buffer[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS].value.u64 = stats_v2->m_n_retrieve_evts_drops;
+		buffer[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS].value.u64 = stats_v2->m_n_noncached_thread_lookups;
+		buffer[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS].value.u64 = stats_v2->m_n_cached_thread_lookups;
+		buffer[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS].value.u64 = stats_v2->m_n_failed_thread_lookups;
+		buffer[SINSP_STATS_V2_ADDED_THREADS].value.u64 = stats_v2->m_n_added_threads;
+		buffer[SINSP_STATS_V2_REMOVED_THREADS].value.u64 = stats_v2->m_n_removed_threads;
 		buffer[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE].value.u32 = thread_manager->get_m_n_drops();
-		buffer[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES].value.u32 = stats_v2.m_n_missing_container_images;
-		buffer[SINSP_STATS_V2_N_CONTAINERS].value.u32 = stats_v2.m_n_containers;
+		buffer[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES].value.u32 = stats_v2->m_n_missing_container_images;
+		buffer[SINSP_STATS_V2_N_CONTAINERS].value.u32 = stats_v2->m_n_containers;
 
 		*nstats = SINSP_MAX_STATS_V2;
 	}
 	
 	*rc = SCAP_SUCCESS;
-
 	return buffer;
 }
 

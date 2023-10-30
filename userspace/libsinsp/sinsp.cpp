@@ -340,23 +340,6 @@ void sinsp::init()
 	// Basic inits
 	//
 
-	m_sinsp_stats_v2.m_n_added_fds = 0;
-	m_sinsp_stats_v2.m_n_cached_fd_lookups = 0;
-	m_sinsp_stats_v2.m_n_failed_fd_lookups = 0;
-	m_sinsp_stats_v2.m_n_added_fds = 0;
-	m_sinsp_stats_v2.m_n_removed_fds = 0;
-	m_sinsp_stats_v2.m_n_stored_evts = 0;
-	m_sinsp_stats_v2.m_n_store_evts_drops = 0;
-	m_sinsp_stats_v2.m_n_retrieved_evts = 0;
-	m_sinsp_stats_v2.m_n_retrieve_evts_drops = 0;
-	m_sinsp_stats_v2.m_n_noncached_thread_lookups = 0;
-	m_sinsp_stats_v2.m_n_cached_thread_lookups = 0;
-	m_sinsp_stats_v2.m_n_failed_thread_lookups = 0;
-	m_sinsp_stats_v2.m_n_added_threads = 0;
-	m_sinsp_stats_v2.m_n_removed_threads = 0;
-	m_sinsp_stats_v2.m_n_missing_container_images = 0;
-	m_sinsp_stats_v2.m_n_containers= 0;
-
 	m_nevts = 0;
 	m_tid_to_remove = -1;
 	m_lastevent_ts = 0;
@@ -2034,7 +2017,7 @@ scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer()
 	return m_sinsp_stats_v2_buffer;
 }
 
-sinsp_stats_v2 sinsp::get_sinsp_stats_v2()
+std::shared_ptr<sinsp_stats_v2> sinsp::get_sinsp_stats_v2()
 {
 	return m_sinsp_stats_v2;
 }
@@ -2323,6 +2306,30 @@ void sinsp::set_proc_scan_timeout_ms(uint64_t val)
 void sinsp::set_proc_scan_log_interval_ms(uint64_t val)
 {
 	m_proc_scan_log_interval_ms = val;
+}
+
+void sinsp::set_sinsp_stats_v2_enabled()
+{
+	if (m_sinsp_stats_v2 == nullptr)
+	{
+		m_sinsp_stats_v2 = std::make_unique<sinsp_stats_v2>();
+		m_sinsp_stats_v2->m_n_noncached_fd_lookups = 0;
+		m_sinsp_stats_v2->m_n_cached_fd_lookups = 0;
+		m_sinsp_stats_v2->m_n_failed_fd_lookups = 0;
+		m_sinsp_stats_v2->m_n_added_fds = 0;
+		m_sinsp_stats_v2->m_n_removed_fds = 0;
+		m_sinsp_stats_v2->m_n_stored_evts = 0;
+		m_sinsp_stats_v2->m_n_store_evts_drops = 0;
+		m_sinsp_stats_v2->m_n_retrieved_evts = 0;
+		m_sinsp_stats_v2->m_n_retrieve_evts_drops = 0;
+		m_sinsp_stats_v2->m_n_noncached_thread_lookups = 0;
+		m_sinsp_stats_v2->m_n_cached_thread_lookups = 0;
+		m_sinsp_stats_v2->m_n_failed_thread_lookups = 0;
+		m_sinsp_stats_v2->m_n_added_threads = 0;
+		m_sinsp_stats_v2->m_n_removed_threads = 0;
+		m_sinsp_stats_v2->m_n_missing_container_images = 0;
+		m_sinsp_stats_v2->m_n_containers= 0;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
