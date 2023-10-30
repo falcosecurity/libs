@@ -91,6 +91,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 		if (m_inspector->m_sinsp_stats_v2)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_missing_container_images = 0;
+			// Will include pod sanboxes, but that's ok
 			m_inspector->m_sinsp_stats_v2->m_n_containers = containers->size();
 		}
 		for(auto it = containers->begin(); it != containers->end();)
@@ -99,8 +100,9 @@ bool sinsp_container_manager::remove_inactive_containers()
 			if (m_inspector->m_sinsp_stats_v2)
 			{
 				auto container_info = container.get();
-				if (!container_info || (container_info && container_info->m_image.empty()))
+				if (!container_info || (container_info && !container_info->m_is_pod_sandbox && container_info->m_image.empty()))
 				{
+					// Only count missing container images and exclude sandboxes
 					m_inspector->m_sinsp_stats_v2->m_n_missing_container_images++;
 				}
 			}
