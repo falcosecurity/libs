@@ -16,7 +16,7 @@ or GPL2.txt for full copies of the license.
 #elif defined(__USE_VMLINUX__ )
 /* In the modern probe, if we have the vmlinux.h we need nothing here. */
 #else
-#include "../userspace/common/types.h"
+#include <stdint.h>
 #endif
 
 #include "./feature_gates.h"

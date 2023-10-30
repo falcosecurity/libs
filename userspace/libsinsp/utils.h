@@ -31,8 +31,11 @@ limitations under the License.
 #include <tuples.h>
 #include <scap.h>
 #include "json/json.h"
-#include "../common/types.h"
 #include "sinsp_public.h"
+
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;

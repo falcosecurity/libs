@@ -64,7 +64,6 @@ struct scap_vtable;
 #include <time.h>
 #include <stdarg.h>
 #include "uthash_ext.h"
-#include "../common/types.h"
 #include "../../driver/ppm_api_version.h"
 #include "../../driver/ppm_events_public.h"
 #include "../../driver/capture_macro.h"
