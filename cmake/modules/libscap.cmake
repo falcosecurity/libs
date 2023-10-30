@@ -44,8 +44,6 @@ else()
 	message(STATUS "No strlcat found, will use local definition")
 endif()
 
-include_directories(${PROJECT_BINARY_DIR}/common)
-
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -57,8 +55,7 @@ else()
 endif()
 
 get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/libscap ABSOLUTE)
-get_filename_component(LIBSCAP_COMMON_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/common ABSOLUTE)
-set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_COMMON_INCLUDE_DIR} ${PROJECT_BINARY_DIR}/libscap ${DRIVER_CONFIG_DIR})
+set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${PROJECT_BINARY_DIR}/libscap ${DRIVER_CONFIG_DIR})
 
 function(set_scap_target_properties target)
 	set_target_properties(${target} PROPERTIES
@@ -135,12 +132,6 @@ install(DIRECTORY "${LIBSCAP_INCLUDE_DIR}" DESTINATION "${CMAKE_INSTALL_INCLUDED
 			PATTERN "*examples*" EXCLUDE
 			PATTERN "*doxygen*" EXCLUDE)
 install(DIRECTORY "${DRIVER_CONFIG_DIR}/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/driver"
-			COMPONENT "scap"
-			FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "${LIBSCAP_DIR}/userspace/common" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
-			COMPONENT "scap"
-			FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "${PROJECT_BINARY_DIR}/common" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
 			COMPONENT "scap"
 			FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY "${LIBSCAP_DIR}/userspace/plugin" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
