@@ -1618,7 +1618,7 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 }
 
 //
-// Parse a process list block
+// Parse a file descriptor list block
 //
 static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_t block_type, struct scap_proclist* proclist, char* error)
 {
