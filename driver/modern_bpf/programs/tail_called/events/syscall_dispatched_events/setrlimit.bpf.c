@@ -26,7 +26,7 @@ int BPF_PROG(setrlimit_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: resource (type: PT_ENUMFLAGS8) */
-	unsigned long resource = extract__syscall_argument(regs, 0);
+	uint32_t resource = extract__syscall_argument(regs, 0);
 	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -69,7 +69,7 @@ int BPF_PROG(setrlimit_x,
 	ringbuf__store_s64(&ringbuf, rl.rlim_max);
 
 	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
-	unsigned long resource = extract__syscall_argument(regs, 0);
+	uint32_t resource = extract__syscall_argument(regs, 0);
 	ringbuf__store_u8(&ringbuf, rlimit_resource_to_scap(resource));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

@@ -1031,7 +1031,7 @@ FILLER(sys_access_e, true)
 FILLER(sys_getrlimit_setrlimit_e, true)
 {
 	/* Parameter 1: resource (type: PT_ENUMFLAGS8) */
-	unsigned long resource = bpf_syscall_get_argument(data, 0);
+	uint32_t resource = bpf_syscall_get_argument(data, 0);
 	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
@@ -1051,8 +1051,7 @@ FILLER(sys_getrlimit_x, true)
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if(retval >= 0 || data->state->tail_ctx.evt_type == PPME_SYSCALL_SETRLIMIT_X)
-	{
+	if(retval >= 0){
 		struct rlimit rl;
 
 		val = bpf_syscall_get_argument(data, 1);
@@ -1061,14 +1060,13 @@ FILLER(sys_getrlimit_x, true)
 
 		cur = rl.rlim_cur;
 		max = rl.rlim_max;
-	}
-	else
-	{
+
+	} else {
 		cur = -1;
 		max = -1;
 	}
 
-	/* Parameter 2: cur (type: PT_ERRNO) */
+	/* Parameter 2: cur (type: PT_INT64) */
 	res = bpf_push_s64_to_ring(data, cur);
 	CHECK_RES(res);
 
@@ -1076,7 +1074,7 @@ FILLER(sys_getrlimit_x, true)
 	return bpf_push_s64_to_ring(data, max);
 }
 
-FILLER(sys_setrlrimit_x, true)
+FILLER(sys_setrlimit_x, true)
 {
 	unsigned long val;
 	long retval;
@@ -1092,22 +1090,14 @@ FILLER(sys_setrlrimit_x, true)
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if (retval >= 0 ||
-	    data->state->tail_ctx.evt_type == PPME_SYSCALL_SETRLIMIT_X) {
-		struct rlimit rl;
-
+		struct rlimit rl = {0};
+		
 		val = bpf_syscall_get_argument(data, 1);
-		if (bpf_probe_read_user(&rl, sizeof(rl), (void *)val))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
+		bpf_probe_read_user(&rl, sizeof(rl), (void *)val);
 		cur = rl.rlim_cur;
 		max = rl.rlim_max;
-	} else {
-		cur = -1;
-		max = -1;
-	}
 
-	/* Parameter 2: cur (type: PT_ERRNO) */
+	/* Parameter 2: cur (type: PT_INT64) */
 	res = bpf_push_s64_to_ring(data, cur);
 	CHECK_RES(res);
 
@@ -1116,7 +1106,7 @@ FILLER(sys_setrlrimit_x, true)
 	CHECK_RES(res);
 	
 	/* Parameter 4: resource (type: PT_ERRNO) */
-	unsigned long resource = bpf_syscall_get_argument(data, 0);
+	uint32_t resource = bpf_syscall_get_argument(data, 0);
 	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
@@ -3862,7 +3852,7 @@ FILLER(sys_prlimit_e, true)
 	CHECK_RES(res);
 
 	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
-	unsigned long resource = bpf_syscall_get_argument(data, 1);
+	uint32_t resource = bpf_syscall_get_argument(data, 1);
 	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
@@ -3930,7 +3920,7 @@ FILLER(sys_prlimit_x, true)
 	CHECK_RES(res);
 
 	/* Parameter 7: resource */
-	unsigned long resource = bpf_syscall_get_argument(data, 1);
+	uint32_t resource = bpf_syscall_get_argument(data, 1);
 	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
