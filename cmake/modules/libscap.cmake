@@ -44,7 +44,6 @@ else()
 	message(STATUS "No strlcat found, will use local definition")
 endif()
 
-configure_file(${LIBSCAP_DIR}/userspace/common/common_config.h.in ${PROJECT_BINARY_DIR}/common/common_config.h)
 include_directories(${PROJECT_BINARY_DIR}/common)
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
@@ -148,5 +147,6 @@ install(DIRECTORY "${LIBSCAP_DIR}/userspace/plugin" DESTINATION "${CMAKE_INSTALL
 		COMPONENT "scap"
 		FILES_MATCHING PATTERN "*.h")
 install(FILES ${PROJECT_BINARY_DIR}/libscap/scap_config.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace/libscap)
+install(FILES ${PROJECT_BINARY_DIR}/libscap/scap_strl_config.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace/libscap)
 install(FILES ${PROJECT_BINARY_DIR}/libscap/libscap.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
