@@ -31,7 +31,7 @@ limitations under the License.
 
 #include "settings.h"
 #include "scap_assert.h"
-#include "falcosecurity/log.h"
+#include "scap_log.h"
 
 #ifdef __linux__
 #include "linux/scap_cgroup.h"

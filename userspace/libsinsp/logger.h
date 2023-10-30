@@ -19,7 +19,7 @@ limitations under the License.
 #pragma once
 
 #include "sinsp_public.h"
-#include "falcosecurity/log.h"
+#include "scap_log.h"
 
 #include <atomic>
 #include <string>

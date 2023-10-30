@@ -29,9 +29,9 @@ extern "C" {
 #include "scap_cgroup.h"
 #include "scap_platform_impl.h"
 #include "engine_handle.h"
-#include "falcosecurity/log.h"
+#include "scap_log.h"
 
-struct scap_mountinfo;
+	struct scap_mountinfo;
 
 struct scap_linux_vtable {
 	/**
