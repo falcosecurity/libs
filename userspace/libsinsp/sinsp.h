@@ -194,7 +194,7 @@ public:
 };
 
 /*!
-  \brief Scap possible modes
+  \brief Sinsp possible modes
 */
 typedef enum
 {
@@ -202,30 +202,30 @@ typedef enum
 		 * Default value that mostly exists so that sinsp can have a valid value
 		 * before it is initialized.
 	 */
-	SCAP_MODE_NONE = 0,
+	SINSP_MODE_NONE = 0,
 	/*!
 		 * Read system call data from a capture file.
 	 */
-	SCAP_MODE_CAPTURE,
+	SINSP_MODE_CAPTURE,
 	/*!
 		 * Read system call data from the underlying operating system.
 	 */
-	SCAP_MODE_LIVE,
+	SINSP_MODE_LIVE,
 	/*!
 		 * Do not read system call data. If next is called, a dummy event is
 		 * returned.
 	 */
-	SCAP_MODE_NODRIVER,
+	SINSP_MODE_NODRIVER,
 	/*!
 		 * Do not read system call data. Events come from the configured input plugin.
 	 */
-	SCAP_MODE_PLUGIN,
+	SINSP_MODE_PLUGIN,
 	/*!
 		 * Read system call and event data from the test event generator.
 		 * Do not attempt to query the underlying system.
 	 */
-	SCAP_MODE_TEST,
-} scap_mode_t;
+	SINSP_MODE_TEST,
+} sinsp_mode_t;
 
 /** @defgroup inspector Main library
  @{
@@ -261,14 +261,14 @@ public:
 	virtual void open_nodriver(bool full_proc_scan = false);
 	virtual void open_savefile(const std::string &filename, int fd = 0);
 	virtual void open_plugin(const std::string& plugin_name, const std::string& plugin_open_params,
-				 scap_mode_t mode = SCAP_MODE_PLUGIN);
+				 sinsp_mode_t mode = SINSP_MODE_PLUGIN);
 	virtual void open_gvisor(const std::string &config_path, const std::string &root_path, bool no_events = false, int epoll_timeout = -1);
 	/*[EXPERIMENTAL] This API could change between releases, we are trying to find the right configuration to deploy the modern bpf probe:
 	 * `cpus_for_each_buffer` and `online_only` are the 2 experimental params. The first one allows associating more than one CPU to a single ring buffer.
 	 * The last one allows allocating ring buffers only for online CPUs and not for all system-available CPUs.
 	 */
 	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
-	virtual void open_test_input(scap_test_input_data* data, scap_mode_t mode = SCAP_MODE_TEST);
+	virtual void open_test_input(scap_test_input_data* data, sinsp_mode_t mode = SINSP_MODE_TEST);
 
 	void fseek(uint64_t filepos)
 	{
@@ -644,7 +644,7 @@ public:
 	*/
 	inline bool is_capture()
 	{
-		return m_mode == SCAP_MODE_CAPTURE;
+		return m_mode == SINSP_MODE_CAPTURE;
 	}
 
 	/*!
@@ -652,7 +652,7 @@ public:
 	*/
 	inline bool is_offline()
 	{
-		return is_capture() || m_mode == SCAP_MODE_TEST;
+		return is_capture() || m_mode == SINSP_MODE_TEST;
 	}
 
 	/*!
@@ -660,7 +660,7 @@ public:
 	*/
 	inline bool is_live()
 	{
-		return m_mode == SCAP_MODE_LIVE;
+		return m_mode == SINSP_MODE_LIVE;
 	}
 
 	/*!
@@ -668,7 +668,7 @@ public:
 	*/
 	inline bool is_nodriver()
 	{
-		return m_mode == SCAP_MODE_NODRIVER;
+		return m_mode == SINSP_MODE_NODRIVER;
 	}
 
 	/*!
@@ -676,7 +676,7 @@ public:
 	*/
 	inline bool is_plugin()
 	{
-		return m_mode == SCAP_MODE_PLUGIN && m_input_plugin != nullptr;
+		return m_mode == SINSP_MODE_PLUGIN && m_input_plugin != nullptr;
 	}
 
 	/*!
@@ -1061,7 +1061,7 @@ public:
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
-	void set_mode(scap_mode_t value)
+	void set_mode(sinsp_mode_t value)
 	{
 		m_mode = value;
 	}
@@ -1075,7 +1075,7 @@ private:
 
 	void set_input_plugin(const std::string& name, const std::string& params);
 	void open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform,
-			 scap_mode_t mode);
+			 sinsp_mode_t mode);
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();
@@ -1128,7 +1128,7 @@ private:
 	scap_t* m_h;
 	uint64_t m_nevts;
 	int64_t m_filesize;
-	scap_mode_t m_mode = SCAP_MODE_NONE;
+	sinsp_mode_t m_mode = SINSP_MODE_NONE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd
 	// <m_input_fd>". Otherwise, reading from m_input_filename.

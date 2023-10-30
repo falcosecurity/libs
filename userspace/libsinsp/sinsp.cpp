@@ -464,7 +464,7 @@ void sinsp::set_import_users(bool import_users)
 /*=============================== OPEN METHODS ===============================*/
 
 void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform,
-			scap_mode_t mode)
+			sinsp_mode_t mode)
 {
 	g_logger.log("Trying to open the right engine!");
 
@@ -586,7 +586,7 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::eve
 		linux_plat->m_linux_vtable = &scap_kmod_linux_vtable;
 	}
 
-	open_common(&oargs, &scap_kmod_engine, platform, SCAP_MODE_LIVE);
+	open_common(&oargs, &scap_kmod_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("KMOD engine is not supported in this build");
 #endif
@@ -613,7 +613,7 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 	oargs.engine_params = &params;
 
 	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, &scap_bpf_engine, platform, SCAP_MODE_LIVE);
+	open_common(&oargs, &scap_bpf_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("BPF engine is not supported in this build");
 #endif
@@ -625,7 +625,7 @@ void sinsp::open_udig()
 	scap_open_args oargs {};
 
 	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, &scap_udig_engine, platform, SCAP_MODE_LIVE);
+	open_common(&oargs, &scap_udig_engine, platform, SINSP_MODE_LIVE);
 
 #else
 	throw sinsp_exception("UDIG engine is not supported in this build");
@@ -651,7 +651,7 @@ void sinsp::open_nodriver(bool full_proc_scan)
 		platform = scap_generic_alloc_platform(::on_new_entry_from_proc, this);
 	}
 
-	open_common(&oargs, &scap_nodriver_engine, platform, SCAP_MODE_NODRIVER);
+	open_common(&oargs, &scap_nodriver_engine, platform, SINSP_MODE_NODRIVER);
 #else
 	throw sinsp_exception("NODRIVER engine is not supported in this build");
 #endif
@@ -697,13 +697,13 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 
 	// AFAICT this is because tinfo==NULL when calling the callback in scap_read_fdlist
 	struct scap_platform* platform = scap_savefile_alloc_platform(nullptr, nullptr);
-	open_common(&oargs, &scap_savefile_engine, platform, SCAP_MODE_CAPTURE);
+	open_common(&oargs, &scap_savefile_engine, platform, SINSP_MODE_CAPTURE);
 #else
 	throw sinsp_exception("SAVEFILE engine is not supported in this build");
 #endif
 }
 
-void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params, scap_mode_t mode)
+void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params, sinsp_mode_t mode)
 {
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
 	scap_open_args oargs {};
@@ -716,10 +716,10 @@ void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugi
 	struct scap_platform* platform;
 	switch(mode)
 	{
-		case SCAP_MODE_PLUGIN:
+		case SINSP_MODE_PLUGIN:
 			platform = scap_generic_alloc_platform(::on_new_entry_from_proc, this);
 			break;
-		case SCAP_MODE_LIVE:
+		case SINSP_MODE_LIVE:
 			platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
 			break;
 		default:
@@ -748,7 +748,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	oargs.engine_params = &params;
 
 	struct scap_platform* platform = scap_gvisor_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, &scap_gvisor_engine, platform, SCAP_MODE_LIVE);
+	open_common(&oargs, &scap_gvisor_engine, platform, SINSP_MODE_LIVE);
 
 	set_get_procs_cpu_from_driver(false);
 #else
@@ -773,13 +773,13 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	oargs.engine_params = &params;
 
 	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, &scap_modern_bpf_engine, platform, SCAP_MODE_LIVE);
+	open_common(&oargs, &scap_modern_bpf_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("MODERN_BPF engine is not supported in this build");
 #endif
 }
 
-void sinsp::open_test_input(scap_test_input_data* data, scap_mode_t mode)
+void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode)
 {
 #ifdef HAS_ENGINE_TEST_INPUT
 	scap_open_args oargs {};
@@ -790,10 +790,10 @@ void sinsp::open_test_input(scap_test_input_data* data, scap_mode_t mode)
 	struct scap_platform* platform;
 	switch(mode)
 	{
-	case SCAP_MODE_TEST:
+	case SINSP_MODE_TEST:
 		platform = scap_test_input_alloc_platform(::on_new_entry_from_proc, this);
 		break;
-	case SCAP_MODE_LIVE:
+	case SINSP_MODE_LIVE:
 		platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
 		break;
 	default:
@@ -928,7 +928,7 @@ void sinsp::close()
 	}
 
 	// unset the meta-event callback to all plugins that support it
-	if (!is_capture() && m_mode != SCAP_MODE_NONE)
+	if (!is_capture() && m_mode != SINSP_MODE_NONE)
 	{
 		std::string err;
 		// note(jasondellaluce,rohith-raju): for now the emscripten build does not support
@@ -956,7 +956,7 @@ void sinsp::close()
 		}
 	}
 
-	m_mode = SCAP_MODE_NONE;
+	m_mode = SINSP_MODE_NONE;
 }
 
 //

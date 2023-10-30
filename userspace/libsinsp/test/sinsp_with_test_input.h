@@ -58,7 +58,7 @@ protected:
 
 	sinsp m_inspector;
 
-	void open_inspector(scap_mode_t mode = SCAP_MODE_TEST) {
+	void open_inspector(sinsp_mode_t mode = SINSP_MODE_TEST) {
 		m_inspector.open_test_input(m_test_data.get(), mode);
 	}
 
