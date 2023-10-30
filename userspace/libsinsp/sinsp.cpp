@@ -1043,8 +1043,6 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 	if(m_suppress.check_suppressed_comm(tid, tinfo->comm))
 	{
-		free(tinfo);
-		scap_fd_free_table(&fdinfo);
 		return;
 	}
 
