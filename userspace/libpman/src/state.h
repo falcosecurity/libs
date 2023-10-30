@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "falcosecurity/log.h"
+#include "scap_log.h"
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
