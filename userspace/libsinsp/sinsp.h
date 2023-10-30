@@ -193,6 +193,40 @@ public:
 	ppm_proclist_info* m_pli;
 };
 
+/*!
+  \brief Scap possible modes
+*/
+typedef enum
+{
+	/*!
+		 * Default value that mostly exists so that sinsp can have a valid value
+		 * before it is initialized.
+	 */
+	SCAP_MODE_NONE = 0,
+	/*!
+		 * Read system call data from a capture file.
+	 */
+	SCAP_MODE_CAPTURE,
+	/*!
+		 * Read system call data from the underlying operating system.
+	 */
+	SCAP_MODE_LIVE,
+	/*!
+		 * Do not read system call data. If next is called, a dummy event is
+		 * returned.
+	 */
+	SCAP_MODE_NODRIVER,
+	/*!
+		 * Do not read system call data. Events come from the configured input plugin.
+	 */
+	SCAP_MODE_PLUGIN,
+	/*!
+		 * Read system call and event data from the test event generator.
+		 * Do not attempt to query the underlying system.
+	 */
+	SCAP_MODE_TEST,
+} scap_mode_t;
+
 /** @defgroup inspector Main library
  @{
 */
