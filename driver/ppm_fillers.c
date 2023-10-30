@@ -4073,7 +4073,7 @@ int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 
-	ppm_resource = rlimit_resource_to_scap(val);
+	ppm_resource = rlimit_resource_to_scap((uint32_t)val);
 
 	res = val_to_ring(args, (uint64_t)ppm_resource, 0, false, 0);
 	CHECK_RES(res);
@@ -4100,8 +4100,8 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if(retval >= 0 || args->event_type == PPME_SYSCALL_SETRLIMIT_X)
-	{
+if(retval >= 0) {
+		
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
@@ -4109,7 +4109,7 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 		{
 #endif
 			if(unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit))))
-				return PPM_FAILURE_INVALID_USER_MEMORY;
+			return PPM_FAILURE_INVALID_USER_MEMORY;
 			cur = rl.rlim_cur;
 			max = rl.rlim_max;
 #ifdef CONFIG_COMPAT
@@ -4143,17 +4143,17 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 
 
 
-int f_sys_setrlrimit_x(struct event_filler_arguments *args)
+int f_sys_setrlimit_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
 	int64_t retval;
-	struct rlimit rl;
 #ifdef CONFIG_COMPAT
 	struct compat_rlimit compat_rl;
 #endif
 	int64_t cur;
 	int64_t max;
+	struct rlimit rl = {0};
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -4163,14 +4163,12 @@ int f_sys_setrlrimit_x(struct event_filler_arguments *args)
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if (retval >= 0 || args->event_type == PPME_SYSCALL_SETRLIMIT_X) {
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
 		if (!args->compat) {
 #endif
-			if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit))))
-				return PPM_FAILURE_INVALID_USER_MEMORY;
+			ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));    
 			cur = rl.rlim_cur;
 			max = rl.rlim_max;
 #ifdef CONFIG_COMPAT
@@ -4181,12 +4179,8 @@ int f_sys_setrlrimit_x(struct event_filler_arguments *args)
 			max = compat_rl.rlim_max;
 		}
 #endif
-	} else {
-		cur = -1;
-		max = -1;
-	}
 
-	/* Parameter 2: (type: PT_INT64) */
+	/* Parameter 2: curr (type: PT_INT64) */
 	res = val_to_ring(args, cur, 0, false, 0);
 	CHECK_RES(res);
 
@@ -4196,7 +4190,7 @@ int f_sys_setrlrimit_x(struct event_filler_arguments *args)
 
 	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
+	res = val_to_ring(args, rlimit_resource_to_scap((uint32_t)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -4216,7 +4210,7 @@ int f_sys_prlimit_e(struct event_filler_arguments *args)
 
 	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
+	res = val_to_ring(args, rlimit_resource_to_scap((uint32_t)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -4321,7 +4315,7 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 
 	/* Parameter 7: resource (type: PT_ENUMFLAGS8) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
+	res = val_to_ring(args, rlimit_resource_to_scap((uint32_t)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
