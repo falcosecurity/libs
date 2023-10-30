@@ -214,6 +214,15 @@ public:
 		auto engine_lookup = container_lookups->second.find(ctype);
 		return engine_lookup == container_lookups->second.end();
 	}
+
+	/**
+	* \brief get the list of container engines in the inspector
+	*
+	* @return a pointer to the list of container engines
+	*/
+	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>>* get_container_engines() {
+		return &m_container_engines;
+	}
 private:
 	std::string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
