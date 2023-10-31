@@ -50,7 +50,7 @@ void sinsp_tracerparser::set_storage_size(uint32_t newsize)
 	m_storage_size = newsize;
 }
 
-sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *data, uint32_t datalen, uint64_t ts)
+sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(const char *data, uint32_t datalen, uint64_t ts)
 {
 	ASSERT(data != NULL);
 	m_storlen = m_fragment_size + datalen;

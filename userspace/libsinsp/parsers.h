@@ -54,7 +54,7 @@ public:
 	//
 	// Combine the openat arguments into a full file name
 	//
-	static void parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT std::string* sdir);
+	static void parse_dirfd(sinsp_evt *evt, const char* name, int64_t dirfd, OUT std::string* sdir);
 
 	//
 	// Protocol decoder infrastructure methods

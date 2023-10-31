@@ -196,8 +196,6 @@ sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
-	ASSERT(id < m_params.size());
-
 	return &(m_params.at(id));
 }
 
@@ -1494,8 +1492,7 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
 		return cwd;
 	}
 
-	const sinsp_evt_param* dir_param = get_param(dirfd_id);
-	const int64_t dirfd = *(int64_t*)dir_param->m_val;
+	const int64_t dirfd = get_param<int64_t>(dirfd_id);
 
 	// If the FD is special value PPM_AT_FDCWD, just use CWD
 	if (dirfd == PPM_AT_FDCWD)
@@ -2896,6 +2893,19 @@ void sinsp_evt::save_enter_event_params(sinsp_evt* enter_evt)
 			m_enter_path_param[pname] = val;
 		}
 	}
+}
+
+std::string sinsp_evt::invalid_param_len_error(uint32_t id, size_t requested_length)
+{
+	const sinsp_evt_param *param = get_param(id);
+	const struct ppm_param_info* parinfo = get_param_info(id);
+
+	std::stringstream ss;
+	ss << "could not parse param " << id << " (" << parinfo->name << ") for event "
+		<< get_num() << " of type " << get_type() << " (" << get_name() << "): expected length "
+		<< requested_length << ", found " << param->m_len;
+
+	return std::string(ss.str());
 }
 
 std::optional<std::reference_wrapper<std::string>> sinsp_evt::get_enter_evt_param(const std::string& param)

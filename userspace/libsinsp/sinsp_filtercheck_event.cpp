@@ -441,8 +441,6 @@ uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t *len)
 {
 	sinsp_evt_param *parinfo;
-	char *path;
-	uint32_t pathlen;
 	string spath;
 
 	if(evt->m_tinfo == NULL)
@@ -484,9 +482,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		//
 		// We can extract the file path only in case of a successful file opening (fd>0).
 		//
-		parinfo = evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		fd = *(int64_t *)parinfo->m_val;
+		fd = evt->get_param<int64_t>(0);
 
 		if(fd>0)
 		{
@@ -561,13 +557,9 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		return 0;
 	}
 
-	parinfo = evt->get_param(dirfdargidx);
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-	int64_t dirfd = *(int64_t *)parinfo->m_val;
+	int64_t dirfd = evt->get_param<int64_t>(dirfdargidx);
 
-	parinfo = evt->get_param(pathargidx);
-	path = parinfo->m_val;
-	pathlen = parinfo->m_len;
+	const char *path = evt->get_param_const_char(pathargidx);
 
 	string sdir;
 
@@ -609,7 +601,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 
 	char fullname[SCAP_MAX_PATH_SIZE];
 	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(),
-		(uint32_t)sdir.length(), path, pathlen);
+		(uint32_t)sdir.length(), path, strlen(path));
 
 	m_strstorage = fullname;
 
@@ -626,9 +618,7 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uin
 		//
 		// Extract the return value
 		//
-		parinfo = evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		retval = *(int64_t *)parinfo->m_val;
+		retval = evt->get_param<int64_t>(0);
 
 		if(retval >= 0)
 		{
@@ -913,9 +903,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 			{
-				sinsp_evt_param *parinfo = evt->get_param(0);
-				ASSERT(parinfo->m_len == sizeof(uint16_t));
-				uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
+				uint16_t ppm_sc = evt->get_param<uint16_t>(0);
 
 				// Only generic enter event has the nativeID as second param
 				if(m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
@@ -925,9 +913,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					// by looking up using nativeID.
 					// Of course, this will only reliably work for
 					// same architecture scap capture->replay.
-					parinfo = evt->get_param(1);
-					ASSERT(parinfo->m_len == sizeof(uint16_t));
-					uint16_t nativeid = *(uint16_t *)parinfo->m_val;
+					uint16_t nativeid = evt->get_param<uint16_t>(1);
 					ppm_sc = scap_native_id_to_ppm_sc(nativeid);
 				}
 				evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
@@ -977,9 +963,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 			{
-				sinsp_evt_param *parinfo = evt->get_param(0);
-				ASSERT(parinfo->m_len == sizeof(uint16_t));
-				uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
+				uint16_t ppm_sc = evt->get_param<uint16_t>(0);
 
 				// Only generic enter event has the nativeID as second param
 				if (m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
@@ -989,9 +973,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					// by looking up using nativeID.
 					// Of course, this will only reliably work for
 					// same architecture scap capture->replay.
-					parinfo = evt->get_param(1);
-					ASSERT(parinfo->m_len == sizeof(uint16_t));
-					uint16_t nativeid = *(uint16_t *)parinfo->m_val;
+					uint16_t nativeid = evt->get_param<uint16_t>(1);
 					ppm_sc = scap_native_id_to_ppm_sc(nativeid);
 				}
 				evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
@@ -1707,7 +1689,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			uint16_t etype = evt->get_type();
 
 			m_u32val = 0;
-			sinsp_evt_param *parinfo;
 			// If any of the exec bits is on, we consider this an open+exec
 			uint32_t is_exec_mask = (PPM_S_IXUSR | PPM_S_IXGRP | PPM_S_IXOTH);
 
@@ -1720,9 +1701,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				bool is_new_version = etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
 				// For both OPEN_X and OPENAT_E,
 				// flags is the 3rd argument.
-				parinfo = evt->get_param(is_new_version ? 3 : 2);
-				ASSERT(parinfo->m_len == sizeof(uint32_t));
-				uint32_t flags = *(uint32_t *)parinfo->m_val;
+				uint32_t flags = evt->get_param<uint32_t>(is_new_version ? 3 : 2);
 
 				// PPM open flags use 0x11 for
 				// PPM_O_RDWR, so there's no need to
@@ -1750,9 +1729,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					// If PPM_O_TMPFILE is set and syscall is successful the file is created
 					if(flags & PPM_O_TMPFILE)
 					{
-						parinfo = evt->get_param(0);
-						ASSERT(parinfo->m_len == sizeof(int64_t));
-						int64_t retval = *(int64_t *)parinfo->m_val;
+						int64_t retval = evt->get_param<int64_t>(0);
 
 						if(retval >= 0)
 						{
@@ -1764,17 +1741,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				/* `open_by_handle_at` exit event has no `mode` parameter. */
 				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT) && etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X))
 				{
-					parinfo = evt->get_param(is_new_version ? 4 : 3);
-					ASSERT(parinfo->m_len == sizeof(uint32_t));
-					uint32_t mode_bits = *(uint32_t *)parinfo->m_val;
+					uint32_t mode_bits = evt->get_param<uint32_t>(is_new_version ? 4 : 3);
 					m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
 				}
 			}
 			else if ((m_field_id == TYPE_ISOPEN_EXEC) && (etype == PPME_SYSCALL_CREAT_X))
 			{
-				parinfo = evt->get_param(2);
-				ASSERT(parinfo->m_len == sizeof(uint32_t));
-				uint32_t mode_bits = *(uint32_t *)parinfo->m_val;
+				uint32_t mode_bits = evt->get_param<uint32_t>(2);
 				m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
 			}
 
@@ -1791,8 +1764,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype == PPME_INFRASTRUCTURE_EVENT_E)
 			{
-				sinsp_evt_param* parinfo = evt->get_param(2);
-				char* descstr = (char*)parinfo->m_val;
+				const char *descstr = evt->get_param_const_char(2);
 				vector<string> elements = sinsp_split(descstr, ';');
 				for(string ute : elements)
 				{
