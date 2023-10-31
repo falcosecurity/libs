@@ -675,23 +675,22 @@ void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user, con
 		return;
 	}
 
-	auto *evt = new sinsp_evt();
+	std::unique_ptr<sinsp_evt> evt(new sinsp_evt());
 
 	if (added)
 	{
-		user_to_sinsp_event(user, evt, container_id, PPME_USER_ADDED_E);
+		user_to_sinsp_event(user, evt.get(), container_id, PPME_USER_ADDED_E);
 	}
 	else
 	{
-		user_to_sinsp_event(user, evt, container_id, PPME_USER_DELETED_E);
+		user_to_sinsp_event(user, evt.get(), container_id, PPME_USER_DELETED_E);
 	}
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"notify_user_changed (%d): USER event, queuing to inspector",
 			user->uid);
 
-	std::unique_ptr<sinsp_evt> cevt(evt);
-	m_inspector->m_pending_state_evts.push(std::move(cevt));
+	m_inspector->handle_async_event(std::move(evt));
 }
 
 void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, const string &container_id, bool added)
@@ -701,21 +700,19 @@ void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, 
 		return;
 	}
 
-	auto *evt = new sinsp_evt();
+	std::unique_ptr<sinsp_evt> evt(new sinsp_evt());
 	if (added)
 	{
-		group_to_sinsp_event(group, evt, container_id, PPME_GROUP_ADDED_E);
+		group_to_sinsp_event(group, evt.get(), container_id, PPME_GROUP_ADDED_E);
 	}
 	else
 	{
-		group_to_sinsp_event(group, evt, container_id, PPME_GROUP_DELETED_E);
+		group_to_sinsp_event(group, evt.get(), container_id, PPME_GROUP_DELETED_E);
 	}
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"notify_group_changed (%d): GROUP event, queuing to inspector",
 			group->gid);
 
-	std::unique_ptr<sinsp_evt> cevt(evt);
-
-	m_inspector->m_pending_state_evts.push(std::move(cevt));
+	m_inspector->handle_async_event(std::move(evt));
 }

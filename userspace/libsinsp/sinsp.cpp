@@ -68,6 +68,16 @@ struct sinsp_stats{}; // note: makes the unique_ptr static asserts happy
 #include "tracer_emitter.h"
 #endif
 
+/**
+ * This is the maximum size assigned to the concurrent asynchronous event
+ * queue that can be used to inject async events during an event capture.
+ * The queue is built to have a throughput orders of magnitude lower than the
+ * one of kernel events. As such, this size value is assigned to a number that's
+ * big enough to prevent the queue to ever fill-up in standard circumstances,
+ * while at the same time avoiding it growing uncontrollably in case of anomalies.
+*/
+#define DEFAULT_ASYNC_EVENT_QUEUE_SIZE 1000
+
 void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo);
 
@@ -86,7 +96,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_k8s_api_handler(nullptr),
 	m_k8s_ext_handler(nullptr),
 	m_stats(nullptr),
-	m_pending_state_evts(1000),
+	m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
 	m_suppressed_comms(),
 	m_inited(false)
 {
@@ -1305,6 +1315,78 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 	}
 }
 
+int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
+{
+	// check if an event must be replayed, which currently happens
+	// when a capture file is read and we discover the first "event" block
+	// after the initial "machine state" section
+	if (m_replay_scap_evt != NULL)
+	{
+		evt->m_pevt = m_replay_scap_evt;
+		evt->m_cpuid = m_replay_scap_cpuid;
+		evt->m_dump_flags = m_replay_scap_flags;
+		m_replay_scap_evt = NULL;
+		return SCAP_SUCCESS;
+	}
+
+	// start by assuming that we already have an event successfully-fetched
+	// from later that has been delayed. If our current libscap event storage
+	// is empty, attempt fetching the next event in line from the scap handle
+	int32_t res = SCAP_SUCCESS;
+	if (m_delayed_scap_evt.empty())
+	{
+		res = m_delayed_scap_evt.next(m_h);
+	}
+
+	// in case we receive a timeout (when there's no element to fetch and no
+	// error is encountered) we attempt popping an event from the asynchronous
+	// event queue. If none is available, we just return the timeout.
+	// note: the queue is optimized for checking for emptyness before popping
+	if (res == SCAP_TIMEOUT &&
+		!m_async_events_queue.empty() && m_async_events_queue.pop(m_async_evt))
+	{
+		evt = m_async_evt.get();
+		if(evt->m_pevt->ts == (uint64_t) -1)
+		{
+			evt->m_pevt->ts = get_new_ts();
+		}
+		return SCAP_SUCCESS;
+	}
+
+	// in case we successfully fetched an event, or we have one delayed from
+	// before, we check that if there is any event in the async event queue
+	// that should be returned first due to having a timestamp from earlier.
+	// the goal is to guarantee events to be fetched ordered by timestamp.
+	if(res == SCAP_SUCCESS)
+	{
+		if (!m_async_events_queue.empty())
+		{
+			const auto check_ts = [this](const sinsp_evt* evt)
+			{
+				return compare_evt_timestamps(evt->m_pevt->ts, m_delayed_scap_evt.m_pevt->ts);
+			};
+
+			// This is thread-safe as we're in a MPSC case in which
+			// sinsp::next is the single consumer
+			if (m_async_events_queue.pop_if(check_ts, m_async_evt))
+			{
+				// the async event is the one with most priority
+				evt = m_async_evt.get();
+				if(evt->m_pevt->ts == (uint64_t) -1)
+				{
+					evt->m_pevt->ts = get_new_ts();
+				}
+				return SCAP_SUCCESS;
+			}
+		}
+
+		// the scap event is the one with most priority
+		m_delayed_scap_evt.move(evt);
+	}
+
+	return res;
+}
+
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
@@ -1344,71 +1426,17 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			m_decoders_reset_list.clear();
 		}
 
-		//
-		// Get the event from libscap
-		//
-		if (m_replay_scap_evt != NULL)
-		{
-			// Replay the last event, if we saved one
-			res = SCAP_SUCCESS;
-			evt->m_pevt = m_replay_scap_evt;
-			evt->m_cpuid = m_replay_scap_cpuid;
-			evt->m_dump_flags = m_replay_scap_flags;
-			m_replay_scap_evt = NULL;
-		}
-		else
-		{
-			res = SCAP_SUCCESS;
+		// fetch the next event 
+		res = fetch_next_event(evt);
 
-			//check if we don't have a delayed scap_evt
-			if(m_delayed_scap_evt.empty())
-			{
-				// if no pending state events continue without saving scap_evt
-				if(m_pending_state_evts.empty())
-				{
-					res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid), &(evt->m_dump_flags));
-				}
-				else
-				{
-					// poll+save scap_evt to compare against the state queue
-					res = m_delayed_scap_evt.next(m_h);
-				}
-			}
-
-			if(res == SCAP_SUCCESS && !m_delayed_scap_evt.empty())
-			{
-				// ts compare predicate
-				// updates state event ts if it's == -1
-				const auto check_ts = [this](const sinsp_evt* evt)
-				{
-					return evt->m_pevt->ts == (uint64_t)-1 ||
-					       evt->m_pevt->ts <= m_delayed_scap_evt.m_pevt->ts;
-				};
-
-				// thread-safe in mpsc application
-				// sinsp::next is the single consumer for m_pending_state_evts
-				if(m_pending_state_evts.pop_if(check_ts, m_state_evt))
-				{
-					if(m_state_evt->m_pevt->ts == (uint64_t)-1)
-					{
-						m_state_evt->m_pevt->ts = get_new_ts();
-					}
-					evt = m_state_evt.get();
-				}
-				else
-				{
-					// no ready state events yet
-					// continue with saved scap_evt
-					m_delayed_scap_evt.move(evt);
-				}
-			}
-		}
-
-		if(res == SCAP_SUCCESS)
+		// if we fetched an event successfully, check if we need to suppress
+		// it from userspace and update the result status
+		if (res == SCAP_SUCCESS)
 		{
 			res = m_suppress.process_event(evt->m_pevt, evt->m_cpuid);
 		}
 
+		// in case we don't succeed, handle each scenario and return
 		if(res != SCAP_SUCCESS)
 		{
 			if(res == SCAP_TIMEOUT)
@@ -2885,21 +2913,18 @@ libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 void sinsp::handle_async_event(std::unique_ptr<sinsp_evt> evt)
 {
 	// see comments in handle_plugin_async_event
-	if(!is_capture())
+	ASSERT(!is_capture());
+	evt->inspector(this);
+	if(evt->m_pevt->ts != (uint64_t)-1 &&
+		evt->m_pevt->ts > sinsp_utils::get_current_time_ns() + ONE_SECOND_IN_NS * 10)
 	{
-		evt->inspector(this);
-		if(evt->m_pevt->ts != (uint64_t)-1 &&
-		   evt->m_pevt->ts > sinsp_utils::get_current_time_ns() + ONE_SECOND_IN_NS * 10)
-		{
-			g_logger.log("async event ts too far in future", sinsp_logger::SEV_WARNING);
-			return;
-		}
+		g_logger.log("async event ts too far in future", sinsp_logger::SEV_WARNING);
+		return;
+	}
 
-		if(!m_pending_state_evts.push(std::move(evt)))
-		{
-			g_logger.log("async event queue is full", sinsp_logger::SEV_WARNING);
-			throw sinsp_exception("async event queue is full");
-		}
+	if(!m_async_events_queue.push(std::move(evt)))
+	{
+		g_logger.log("async event queue is full", sinsp_logger::SEV_WARNING);
 	}
 }
 
