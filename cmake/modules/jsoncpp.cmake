@@ -57,6 +57,7 @@ else()
 						-DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
 						-DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
 						-DCMAKE_INSTALL_LIBDIR=lib
+					BUILD_BYPRODUCTS ${JSONCPP_LIB}
 			)
 		else()
 			# see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
