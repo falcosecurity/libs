@@ -101,10 +101,9 @@ TEST_F(sinsp_with_test_input, event_async_queue)
 
 	// inject event
 	m_inspector.handle_async_event(evt_gen.next());
-	//ASSERT_EQ(m_inspector.m_pending_state_evts.m_queue.size(), 1);
 
 	// create test input event
-	auto* scap_evt0 = add_event_with_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file",
+	auto* scap_evt0 = add_event(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file",
 					     PPM_O_RDWR, 0, 5, (uint64_t)123);
 
 	// should pop injected event
@@ -113,7 +112,7 @@ TEST_F(sinsp_with_test_input, event_async_queue)
 	ASSERT_NE(evt, nullptr);
 	ASSERT_EQ(evt->m_pevt, evt_gen.back());
 	ASSERT_EQ(evt->m_pevt->ts, 123);
-	ASSERT_TRUE(m_inspector.m_pending_state_evts.empty());
+	ASSERT_TRUE(m_inspector.m_async_events_queue.empty());
 
 	// multiple injected events
 	m_inspector.m_lastevent_ts = scap_evt0->ts - 10;
@@ -125,7 +124,7 @@ TEST_F(sinsp_with_test_input, event_async_queue)
 	}
 
 	// create input[1] ivent
-	auto* scap_evt1 = add_event_with_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file",
+	auto* scap_evt1 = add_event(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file",
 					     PPM_O_RDWR, 0, 5, (uint64_t)123);
 
 	// pop scap 0 event
@@ -143,7 +142,7 @@ TEST_F(sinsp_with_test_input, event_async_queue)
 		ASSERT_TRUE(last_ts <= evt->m_pevt->ts);
 		last_ts = evt->m_pevt->ts;
 	}
-	ASSERT_TRUE(m_inspector.m_pending_state_evts.empty());
+	ASSERT_TRUE(m_inspector.m_async_events_queue.empty());
 
 	// pop scap 1
 	res = m_inspector.next(&evt);
@@ -187,7 +186,7 @@ TEST_F(sinsp_with_test_input, event_async_queue_mpsc)
 		current = sinsp_utils::get_current_time_ns();
 
 		// generate scap input
-		add_event_with_ts(current, 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3,
+		add_event(current, 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3,
 				  "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
 
 		sinsp_evt* evt;

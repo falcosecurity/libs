@@ -1084,6 +1084,7 @@ private:
 	void import_user_list();
 	void add_protodecoders();
 	void remove_thread(int64_t tid);
+	int32_t fetch_next_event(sinsp_evt*& evt);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made
@@ -1123,6 +1124,14 @@ private:
 	void get_read_progress_plugin(OUT double* nres, std::string* sres);
 
 	void get_procs_cpu_from_driver(uint64_t ts);
+
+	// regulates the logic behind event timestamp ordering.
+	// returns true if left "comes first" than right, and false otherwise.
+	// UINT64_MAX stands for max time priority -- as early as possible.
+	static inline bool compare_evt_timestamps(uint64_t left, uint64_t right)
+	{
+		return left == static_cast<uint64_t>(-1) || left <= right;
+	}
 
 	scap_t* m_h;
 	uint64_t m_nevts;
@@ -1311,18 +1320,20 @@ public:
 	{
 		bool operator()(const sinsp_evt_ptr& l, const sinsp_evt_ptr& r)
 		{
-			return l->get_ts() != static_cast<uint64_t>(-1) && l->get_ts() > r->get_ts();
+			// order events in reverse-order as the lowest timestamp
+			// has the highest priority
+			return !compare_evt_timestamps(l->get_ts(), r->get_ts());
 		}
 	};
 
 	// priority queue to hold injected events
-	mpsc_priority_queue<sinsp_evt_ptr, state_evts_less> m_pending_state_evts;
+	mpsc_priority_queue<sinsp_evt_ptr, state_evts_less> m_async_events_queue;
 
 	// Holds an event dequeued from the above queue
-	sinsp_evt_ptr m_state_evt;
+	sinsp_evt_ptr m_async_evt;
 
 	// temp storage for scap_next
-	// stores top scap_evt while qualified events from m_pending_state_evts are being processed
+	// stores top scap_evt while qualified events from m_async_events_queue are being processed
 	struct
 	{
 		inline auto next(scap_t* h)
