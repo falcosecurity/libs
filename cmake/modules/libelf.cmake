@@ -49,10 +49,11 @@ else()
             URL_HASH "SHA256=39bd8f1a338e2b7cd4abc3ff11a0eddc6e690f69578a57478d8179b4148708c8"
             CONFIGURE_COMMAND ./configure LDFLAGS=-L${ZLIB_SRC} "CFLAGS=-I${ZLIB_INCLUDE}" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod --without-zstd
             BUILD_IN_SOURCE 1
-            BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -C lib libeu.a
-            COMMAND ${CMAKE_MAKE_PROGRAM} -C libelf libelf${LIBELF_LIB_SUFFIX}
+            BUILD_COMMAND make -C lib libeu.a
+            COMMAND make -C libelf libelf${LIBELF_LIB_SUFFIX}
             INSTALL_COMMAND ""
             UPDATE_COMMAND ""
+            BUILD_BYPRODUCTS ${LIBELF_LIB}
     )
     message(STATUS "Using bundled libelf: include'${LIBELF_INCLUDE}', lib: ${LIBELF_LIB}")
     install(FILES "${LIBELF_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
