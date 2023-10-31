@@ -33,6 +33,7 @@ limitations under the License.
 #include "scap.h"
 #include "gen_filter.h"
 #include "settings.h"
+#include "sinsp_exception.h"
 
 typedef class sinsp sinsp;
 typedef class sinsp_threadinfo sinsp_threadinfo;
@@ -344,6 +345,57 @@ public:
 	sinsp_evt_param* get_param(uint32_t id);
 
 	/*!
+	  \brief Get the value of a fixed param (fixed length type or packed struct).
+
+	  \param id The parameter number.
+	*/
+	template<class T>
+	inline T get_param(uint32_t id)
+	{
+		T ret;
+		const sinsp_evt_param *param = get_param(id);
+
+		if (param->m_len != sizeof(T))
+		{
+			// By moving this error string building operation to a separate function
+			// the compiler is more likely to inline this entire function.
+			// This is important since get_param<> is called in the hot path.
+			throw sinsp_exception(invalid_param_len_error(id, sizeof(T)));
+		}
+
+		memcpy(&ret, param->m_val, sizeof(T));
+
+		return ret;
+	}
+
+	/*!
+	  \brief Get the value of a string param as a const char*.
+
+	  \param id The parameter number.
+	*/
+
+	inline const char* get_param_const_char(uint32_t id)
+	{
+		const sinsp_evt_param *param = get_param(id);
+
+		if (param->m_len == 0)
+		{
+			return nullptr;
+		}
+
+		size_t string_len = strnlen(param->m_val, param->m_len);
+		if (param->m_len == string_len)
+		{
+			// By moving this error string building operation to a separate function
+			// the compiler is more likely to inline this entire function.
+			// This is important since get_param<> is called in the hot path.
+			throw sinsp_exception(invalid_param_len_error(id, string_len));
+		}
+
+		return param->m_val;
+	}
+
+	/*!
 	  \brief Get a parameter in raw format.
 
 	  \param name The parameter name.
@@ -570,6 +622,9 @@ private:
 	// are accessible from get_enter_evt_param().
 	void save_enter_event_params(sinsp_evt* enter_evt);
 	std::optional<std::reference_wrapper<std::string>> get_enter_evt_param(const std::string& param);
+
+	// Get a string describing why a parameter could not be read because of mismatched length
+	std::string invalid_param_len_error(uint32_t id, size_t requested_length);
 
 VISIBILITY_PRIVATE
 	enum flags

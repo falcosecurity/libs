@@ -63,7 +63,6 @@ std::string get_event_type_name(sinsp_evt *ev)
 		return scap_get_event_info_table()[type].name;
 	}
 
-	sinsp_evt_param *parinfo = ev->get_param(0);
-	uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
+	uint16_t ppm_sc = ev->get_param<uint16_t>(0);
 	return scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 }

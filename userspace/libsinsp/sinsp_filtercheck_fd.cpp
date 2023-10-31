@@ -267,12 +267,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 		}
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
 		{
-			sinsp_evt_param *parinfo;
-			char *fullpath;
-
-			parinfo = evt->get_param(3);
-			fullpath = parinfo->m_val;
-			m_tstr = fullpath;
+			m_tstr = evt->get_param_const_char(3);
 
 			if(sanitize_strings)
 			{
@@ -537,11 +532,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X)
 		{
-			sinsp_evt_param *parinfo;
-
-			parinfo = evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(uint64_t));
-			int64_t retval = *(int64_t*)parinfo->m_val;
+			int64_t retval = evt->get_param<int64_t>(0);
 
 			if(retval < 0)
 			{

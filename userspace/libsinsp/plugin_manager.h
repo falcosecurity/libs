@@ -141,9 +141,7 @@ public:
 	{
 		if(evt && evt->get_type() == PPME_PLUGINEVENT_E)
 		{
-			sinsp_evt_param *parinfo = evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(int32_t));
-			return plugin_by_id(*(int32_t *)parinfo->m_val);
+			return plugin_by_id(evt->get_param<int32_t>(0));
 		}
 		return nullptr;
 	}
