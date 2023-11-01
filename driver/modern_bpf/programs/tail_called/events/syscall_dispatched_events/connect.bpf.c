@@ -30,7 +30,7 @@ int BPF_PROG(connect_e,
 
 	/* Parameter 1: fd (type: PT_FD)*/
 	s32 socket_fd = (s32)args[0];
-	auxmap__store_s64_param(auxmap, (s64)socket_fd);
+	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
 	unsigned long sockaddr_ptr = args[1];
@@ -85,7 +85,7 @@ int BPF_PROG(connect_x,
 	}
 
 	/* Parameter 3: fd (type: PT_FD)*/
-	auxmap__store_s64_param(auxmap, (s64)socket_fd);
+	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

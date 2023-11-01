@@ -70,7 +70,7 @@ static unsigned long long (*bpf_get_prandom_u32)(void) =
 	(void *)BPF_FUNC_get_prandom_u32;
 static int (*bpf_xdp_adjust_head)(void *ctx, int offset) =
 	(void *)BPF_FUNC_xdp_adjust_head;
-static int (*bpf_probe_read_str)(void *dst, u64 size, const void *unsafe_ptr) =
+static int (*bpf_probe_read_str)(void *dst, uint64_tt64_t size, const void *unsafe_ptr) =
 	(void *)BPF_FUNC_probe_read_str;
 
 #if defined(USE_BPF_PROBE_KERNEL_USER_VARIANTS)
@@ -93,7 +93,7 @@ static int (*bpf_probe_read_kernel_str)(void *dst, u32 size, const void *unsafe_
 	(void *)BPF_FUNC_probe_read_str;
 #endif
 
-static u64 (*bpf_get_current_task)(void) =
+static uint64_tt64_t (*bpf_get_current_task)(void) =
 	(void *)BPF_FUNC_get_current_task;
 static int (*bpf_skb_load_bytes)(void *ctx, int off, void *to, int len) =
 	(void *)BPF_FUNC_skb_load_bytes;

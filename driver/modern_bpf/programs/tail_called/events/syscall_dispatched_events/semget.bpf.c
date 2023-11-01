@@ -60,7 +60,7 @@ int BPF_PROG(semget_x,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	ringbuf__store_s64(&ringbuf, (s64)ret);
+	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

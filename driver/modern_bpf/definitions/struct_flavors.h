@@ -24,7 +24,7 @@ struct mm_struct___v6_2
 
 typedef struct
 {
-	u64 val;
+	uint64_t val;
 } kernel_cap_t___v6_3;
 
 /* COS kernels handle audit field differently, see [1]. To support both

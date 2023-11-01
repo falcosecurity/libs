@@ -65,7 +65,7 @@ int BPF_PROG(mknodat_x,
 	{
 		dirfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)dirfd);
+	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
 
 	/* Parameter 2: path (type: PT_CHARBUF) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);

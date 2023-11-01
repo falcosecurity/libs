@@ -174,7 +174,7 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 		{
 			g_state.stats[stat].type = STATS_VALUE_TYPE_U64;
 			g_state.stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
-			g_state.stats[stat].value.u64 = 0;
+			g_state.stats[stat].value.uint64_t = 0;
 			strlcpy(g_state.stats[stat].name, modern_bpf_kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
@@ -191,10 +191,10 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 				close(counter_maps_fd);
 				return NULL;
 			}
-			g_state.stats[MODERN_BPF_N_EVTS].value.u64 += cnt_map.n_evts;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_TOTAL].value.u64 += cnt_map.n_drops_buffer;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 += cnt_map.n_drops_buffer_clone_fork_enter;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 += cnt_map.n_drops_buffer_clone_fork_exit;
+			g_state.stats[MODERN_BPF_N_EVTS].value.uint64_t += cnt_map.n_evts;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_TOTAL].value.uint64_t += cnt_map.n_drops_buffer;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER].value.uint64_t += cnt_map.n_drops_buffer_clone_fork_enter;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT].value.uint64_t += cnt_map.n_drops_buffer_clone_fork_exit;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER].value.u64 += cnt_map.n_drops_buffer_execve_enter;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT].value.u64 += cnt_map.n_drops_buffer_execve_exit;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER].value.u64 += cnt_map.n_drops_buffer_connect_enter;

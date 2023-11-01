@@ -206,10 +206,10 @@ static __always_inline void auxmap__store_s32_param(struct auxiliary_map *auxmap
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param param param to store
  */
-static __always_inline void auxmap__store_s64_param(struct auxiliary_map *auxmap, s64 param)
+static __always_inline void auxmap__store_s64_param(struct auxiliary_map *auxmap, int64_t param)
 {
 	push__s64(auxmap->data, &auxmap->payload_pos, param);
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(s64));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(int64_t));
 }
 
 /**
@@ -273,10 +273,10 @@ static __always_inline void auxmap__store_u32_param(struct auxiliary_map *auxmap
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param param param to store
  */
-static __always_inline void auxmap__store_u64_param(struct auxiliary_map *auxmap, u64 param)
+static __always_inline void auxmap__store_u64_param(struct auxiliary_map *auxmap, uint64_t param)
 {
 	push__u64(auxmap->data, &auxmap->payload_pos, param);
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u64));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint64_t));
 }
 
 /**
@@ -381,7 +381,7 @@ static __always_inline void auxmap__store_execve_args(struct auxiliary_map *auxm
 	unsigned long charbuf_pointer = 0;
 	u16 arg_len = 0;
 	u16 total_len = 0;
-	u64 initial_payload_pos = auxmap->payload_pos;
+	uint64_t initial_payload_pos = auxmap->payload_pos;
 
 	for(; index < MAX_CHARBUF_POINTERS; ++index)
 	{
@@ -671,14 +671,14 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
 		if(direction == OUTBOUND)
 		{
-			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_remote);
-			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_local);
+			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_remote);
+			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_local);
 			path = BPF_CORE_READ(socket_remote, addr, name[0].sun_path);
 		}
 		else
 		{
-			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_local);
-			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_remote);
+			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_local);
+			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_remote);
 			path = BPF_CORE_READ(socket_local, addr, name[0].sun_path);
 		}
 
@@ -726,7 +726,7 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 {
 	/* We use a signed int because in some case we have to convert it to a negative value. */
 	s32 val32 = 0;
-	u64 val64 = 0;
+	uint64_t val64 = 0;
 	struct modern_bpf__kernel_timex_timeval tv;
 	u16 total_size_to_push = sizeof(u8); /* 1 byte for the PPM type. */
 
@@ -747,8 +747,8 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 	case SO_ERROR:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_ERRNO);
 		bpf_probe_read_user((void *)&val32, sizeof(val32), (void *)optval);
-		push__s64(auxmap->data, &auxmap->payload_pos, (s64)-val32);
-		total_size_to_push += sizeof(s64);
+		push__s64(auxmap->data, &auxmap->payload_pos, (int64_t)-val32);
+		total_size_to_push += sizeof(int64_t);
 		break;
 
 	case SO_RCVTIMEO_OLD:
@@ -758,14 +758,14 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_TIMEVAL);
 		bpf_probe_read_user((void *)&tv, sizeof(tv), (void *)optval);
 		push__u64(auxmap->data, &auxmap->payload_pos, tv.tv_sec * SEC_FACTOR + tv.tv_usec * USEC_FACTOR);
-		total_size_to_push += sizeof(u64);
+		total_size_to_push += sizeof(uint64_t);
 		break;
 
 	case SO_COOKIE:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_UINT64);
 		bpf_probe_read_user((void *)&val64, sizeof(val64), (void *)optval);
 		push__u64(auxmap->data, &auxmap->payload_pos, val64);
-		total_size_to_push += sizeof(u64);
+		total_size_to_push += sizeof(uint64_t);
 		break;
 
 	case SO_DEBUG:
@@ -886,7 +886,7 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 
 	/* Pointer to iovec structs */
 	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
-	u64 initial_payload_pos = auxmap->payload_pos;
+	uint64_t initial_payload_pos = auxmap->payload_pos;
 	for(int j = 0; j < MAX_IOVCNT; j++)
 	{
 		if(total_size_to_read > len_to_read)
@@ -976,7 +976,7 @@ static __always_inline struct user_msghdr auxmap__store_msghdr_data_param(struct
  * @param ret return value to understand which action we have to perform.
  * @param addr_pointer pointer to the `addr` param taken from syscall registers.
  */
-static __always_inline void auxmap__store_ptrace_addr_param(struct auxiliary_map *auxmap, long ret, u64 addr_pointer)
+static __always_inline void auxmap__store_ptrace_addr_param(struct auxiliary_map *auxmap, long ret, uint64_t addr_pointer)
 {
 	push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
 
@@ -991,7 +991,7 @@ static __always_inline void auxmap__store_ptrace_addr_param(struct auxiliary_map
 		/* We send the addr pointer as a uint64_t */
 		push__u64(auxmap->data, &auxmap->payload_pos, addr_pointer);
 	}
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(u64));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(uint64_t));
 }
 
 /**
@@ -1005,7 +1005,7 @@ static __always_inline void auxmap__store_ptrace_addr_param(struct auxiliary_map
  * @param ptrace_req ptrace request converted in the scap format.
  * @param data_pointer pointer to the `data` param taken from syscall registers.
  */
-static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map *auxmap, long ret, u16 ptrace_req, u64 data_pointer)
+static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map *auxmap, long ret, u16 ptrace_req, uint64_t data_pointer)
 {
 	/* The syscall is failed. */
 	if(ret < 0)
@@ -1013,11 +1013,11 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 		/* We push `0` in case of failure. */
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
 		push__u64(auxmap->data, &auxmap->payload_pos, 0);
-		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(u64));
+		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(uint64_t));
 		return;
 	}
 
-	u64 dest = 0;
+	uint64_t dest = 0;
 	u16 total_size_to_push = sizeof(u8); /* 1 byte for the PPM type. */
 	switch(ptrace_req)
 	{
@@ -1027,7 +1027,7 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
 		bpf_probe_read_user((void *)&dest, sizeof(dest), (void *)data_pointer);
 		push__u64(auxmap->data, &auxmap->payload_pos, dest);
-		total_size_to_push += sizeof(u64);
+		total_size_to_push += sizeof(uint64_t);
 		break;
 
 	case PPM_PTRACE_CONT:
@@ -1047,7 +1047,7 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 	default:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
 		push__u64(auxmap->data, &auxmap->payload_pos, data_pointer);
-		total_size_to_push += sizeof(u64);
+		total_size_to_push += sizeof(uint64_t);
 		break;
 	}
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_push);
@@ -1209,8 +1209,8 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 {
 	/* In this helper we push data in this format:
 	 *  - number of `fd + flags` pairs  -> (u16)
-	 *  - first pair (`fd + flags`)     -> (s64 + s16)
-	 *  - second pair (`fd + flags`)    -> (s64 + s16)
+	 *  - first pair (`fd + flags`)     -> (int64_t + s16)
+	 *  - second pair (`fd + flags`)    -> (int64_t + s16)
 	 *  - ...
 	 *
 	 * If `fds_pointer` is NULL we push just a pair's number equal to `0`
@@ -1236,7 +1236,7 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 	/* Pointer to `pollfd` structs */
 	const struct pollfd *fds = (const struct pollfd *)&auxmap->data[MAX_PARAM_SIZE];
 
-	/* For every `pollfd` struct we try to push an `fd` (s64) + `flags` (s16) */
+	/* For every `pollfd` struct we try to push an `fd` (int64_t) + `flags` (s16) */
 	for(int j = 0; j < MAX_POLLFD; j++)
 	{
 		if(j == nfds)
@@ -1245,7 +1245,7 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 		}
 
 		/* Push `fd` on 64 bit */
-		push__s64(auxmap->data, &auxmap->payload_pos, (s64)fds[j].fd);
+		push__s64(auxmap->data, &auxmap->payload_pos, (int64_t)fds[j].fd);
 
 		/* Push `flags` according to the direction */
 		if(dir == REQUESTED_EVENTS)
@@ -1258,7 +1258,7 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 		}
 	}
 	/* The param size is: 16 bit for the number of pairs + size of the pairs */
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u16) + (num_pairs * (sizeof(s64) + sizeof(s16))));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u16) + (num_pairs * (sizeof(int64_t) + sizeof(s16))));
 }
 
 static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, u16 *snaplen, bool only_port_range)

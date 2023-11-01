@@ -32,7 +32,7 @@ int BPF_PROG(ptrace_e,
 
 	/* Parameter 2: pid (type: PT_PID) */
 	pid_t pid = (s32)extract__syscall_argument(regs, 1);
-	ringbuf__store_s64(&ringbuf, (s64)pid);
+	ringbuf__store_s64(&ringbuf, (int64_t)pid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -68,11 +68,11 @@ int BPF_PROG(ptrace_x,
 	u16 scap_ptrace_request = ptrace_requests_to_scap(request);
 
 	/* Parameter 2: addr (type: PT_DYN) */
-	u64 addr_pointer = (u64)extract__syscall_argument(regs, 2);
+	uint64_t addr_pointer = (uint64_t)extract__syscall_argument(regs, 2);
 	auxmap__store_ptrace_addr_param(auxmap, ret, addr_pointer);
 
 	/* Parameter 3: data (type: PT_DYN) */
-	u64 data_pointer = (u64)extract__syscall_argument(regs, 3);
+	uint64_t data_pointer = (uint64_t)extract__syscall_argument(regs, 3);
 	auxmap__store_ptrace_data_param(auxmap, ret, scap_ptrace_request, data_pointer);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

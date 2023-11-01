@@ -31,7 +31,7 @@ int BPF_PROG(listen_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)args[0];
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: backlog (type: PT_INT32) */
 	s32 backlog = (s32)args[1];

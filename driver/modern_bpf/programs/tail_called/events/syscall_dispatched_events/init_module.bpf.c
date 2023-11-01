@@ -59,14 +59,14 @@ int BPF_PROG(init_module_x,
 	/* Parameter 1: ret (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	u64 len = extract__syscall_argument(regs, 1);
+	uint64_t len = extract__syscall_argument(regs, 1);
 
 	/* Parameter 2: img (type: PT_BYTEBUF) */
 	unsigned long img_ptr = extract__syscall_argument(regs, 0);
 	auxmap__store_bytebuf_param(auxmap, img_ptr, len, USER);
 
 	/* Parameter 3: length (type: PT_UINT64) */
-	auxmap__store_u64_param(auxmap, (u64)len);
+	auxmap__store_u64_param(auxmap, (uint64_t)len);
 
 	/* Parameter 4: uargs (type: PT_CHARBUF) */
 	unsigned long uargs_ptr = extract__syscall_argument(regs, 2);

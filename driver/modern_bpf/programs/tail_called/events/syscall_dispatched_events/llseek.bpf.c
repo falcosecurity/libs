@@ -27,7 +27,7 @@ int BPF_PROG(llseek_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: offset (type: PT_UINT64) */
 	unsigned long oh = extract__syscall_argument(regs, 1);
@@ -64,7 +64,7 @@ int BPF_PROG(llseek_x,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	ringbuf__store_s64(&ringbuf, (s64)ret);
+	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

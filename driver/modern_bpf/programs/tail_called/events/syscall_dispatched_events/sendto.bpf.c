@@ -30,7 +30,7 @@ int BPF_PROG(sendto_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 socket_fd = (s32)args[0];
-	auxmap__store_s64_param(auxmap, (s64)socket_fd);
+	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	u32 size = (u32)args[2];

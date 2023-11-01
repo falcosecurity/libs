@@ -27,7 +27,7 @@ int BPF_PROG(setns_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: nstype (type: PT_FLAGS32) */
 	unsigned long nstype = extract__syscall_argument(regs, 1);

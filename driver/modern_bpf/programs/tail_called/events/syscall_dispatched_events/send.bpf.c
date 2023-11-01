@@ -32,7 +32,7 @@ int BPF_PROG(send_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)args[0];
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t64_t)fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	u32 size = (u32)args[2];

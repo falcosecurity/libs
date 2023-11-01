@@ -1872,9 +1872,9 @@ static __always_inline u32 fchownat_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static __always_inline u64 capabilities_to_scap(unsigned long caps)
+static __always_inline uint64_t capabilities_to_scap(unsigned long caps)
 {
-	u64 res = 0;
+	uint64_t res = 0;
 	
 #ifdef CAP_CHOWN
 	if(caps & (1UL << CAP_CHOWN))

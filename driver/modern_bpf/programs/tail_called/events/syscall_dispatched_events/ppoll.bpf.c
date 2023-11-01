@@ -36,19 +36,19 @@ int BPF_PROG(ppoll_e,
 	auxmap__store_fdlist_param(auxmap, fds_pointer, nfds, REQUESTED_EVENTS);
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
-	u64 nanosec = 0;
+	uint64_t nanosec = 0;
 	unsigned long ts_pointer = extract__syscall_argument(regs, 2);
 	if(bpf_core_type_exists(struct __kernel_timespec))
 	{
 		struct __kernel_timespec ts = {0};
 		bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
-		nanosec = ((u64)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
 	}
 	else
 	{
 		struct modern_bpf__kernel_timespec ts = {0};
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)ts_pointer);
-		nanosec = ((u64)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
 	}
 	auxmap__store_u64_param(auxmap, nanosec);
 

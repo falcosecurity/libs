@@ -72,17 +72,17 @@ int BPF_PROG(sched_p_exec,
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
-	s64 pid = (s64)extract__task_xid_nr(task, PIDTYPE_PID);
+	int64_t pid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PID);
 	auxmap__store_s64_param(auxmap, pid);
 
 	/* Parameter 5: pid (type: PT_PID) */
 	/* this is called `pid` but it is the `tgid`. */
-	s64 tgid = (s64)extract__task_xid_nr(task, PIDTYPE_TGID);
+	int64_t tgid = (int64_t)extract__task_xid_nr(task, PIDTYPE_TGID);
 	auxmap__store_s64_param(auxmap, tgid);
 
 	/* Parameter 6: ptid (type: PT_PID) */
 	/* this is called `ptid` but it is the `pgid`. */
-	s64 pgid = (s64)extract__task_xid_nr(task, PIDTYPE_PGID);
+	int64_t pgid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PGID);
 	auxmap__store_s64_param(auxmap, pgid);
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
@@ -168,7 +168,7 @@ int BPF_PROG(t1_sched_p_exec,
 
 	/* Parameter 18: pgid (type: PT_PID) */
 	pid_t pgid = extract__task_xid_vnr(task, PIDTYPE_PGID);
-	auxmap__store_s64_param(auxmap, (s64)pgid);
+	auxmap__store_s64_param(auxmap, (int64_t)pgid);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
 	u32 loginuid;
@@ -196,19 +196,19 @@ int BPF_PROG(t1_sched_p_exec,
 	auxmap__store_u32_param(auxmap, flags);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
-	u64 cap_inheritable = extract__capability(task, CAP_INHERITABLE);
+	uint64_t cap_inheritable = extract__capability(task, CAP_INHERITABLE);
 	auxmap__store_u64_param(auxmap, cap_inheritable);
 
 	/* Parameter 22: cap_permitted (type: PT_UINT64) */
-	u64 cap_permitted = extract__capability(task, CAP_PERMITTED);
+	uint64_t cap_permitted = extract__capability(task, CAP_PERMITTED);
 	auxmap__store_u64_param(auxmap, cap_permitted);
 
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
-	u64 cap_effective = extract__capability(task, CAP_EFFECTIVE);
+	uint64_t cap_effective = extract__capability(task, CAP_EFFECTIVE);
 	auxmap__store_u64_param(auxmap, cap_effective);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
-	u64 ino = 0;
+	uint64_tt64_t ino = 0;
 	extract__ino_from_inode(exe_inode, &ino);
 	auxmap__store_u64_param(auxmap, ino);
 

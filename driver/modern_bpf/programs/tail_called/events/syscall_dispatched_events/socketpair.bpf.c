@@ -98,10 +98,10 @@ int BPF_PROG(socketpair_x,
 	}
 
 	/* Parameter 2: fd1 (type: PT_FD) */
-	ringbuf__store_s64(&ringbuf, (s64)fds[0]);
+	ringbuf__store_s64(&ringbuf, (int64_t)fds[0]);
 
 	/* Parameter 3: fd2 (type: PT_FD) */
-	ringbuf__store_s64(&ringbuf, (s64)fds[1]);
+	ringbuf__store_s64(&ringbuf, (int64_t)fds[1]);
 
 	/* Parameter 4: source (type: PT_UINT64) */
 	ringbuf__store_u64(&ringbuf, source);

@@ -26,11 +26,11 @@ int BPF_PROG(mprotect_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: addr (type: PT_UINT64) */
-	u64 addr = extract__syscall_argument(regs, 0);
+	uint64_t addr = extract__syscall_argument(regs, 0);
 	ringbuf__store_u64(&ringbuf, addr);
 
 	/* Parameter 2: length (type: PT_UINT64) */
-	u64 length = extract__syscall_argument(regs, 1);
+	uint64_t length = extract__syscall_argument(regs, 1);
 	ringbuf__store_u64(&ringbuf, length);
 
 	/* Parameter 3: prot (type: PT_FLAGS32) */

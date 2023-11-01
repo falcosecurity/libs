@@ -242,7 +242,7 @@ static __always_inline struct file *extract__file_struct_from_fd(s32 file_descri
  * @param fd generic file descriptor.
  * @param ino pointer to the inode number we have to fill.
  */
-static __always_inline void extract__ino_from_fd(s32 fd, u64 *ino)
+static __always_inline void extract__ino_from_fd(s32 fd, uint64_t *ino)
 {
 	struct file *f = extract__file_struct_from_fd(fd);
 	if(!f)
@@ -282,7 +282,7 @@ static __always_inline struct file *extract__exe_file_from_task(struct task_stru
  * @param ino pointer to the inode number we have to fill.
  * @return `i_ino` from f_inode.
  */
-static __always_inline void extract__ino_from_inode(struct inode *f_inode, u64 *ino)
+static __always_inline void extract__ino_from_inode(struct inode *f_inode, uint64_t *ino)
 {
 	BPF_CORE_READ_INTO(ino, f_inode, i_ino);
 }
@@ -293,7 +293,7 @@ static __always_inline void extract__ino_from_inode(struct inode *f_inode, u64 *
  * @param time timespec64 struct.
  * @return epoch in ns.
  */
-static __always_inline u64 extract__epoch_ns_from_time(struct timespec64 time)
+static __always_inline uint64_t extract__epoch_ns_from_time(struct timespec64 time)
 {
 	time64_t tv_sec = time.tv_sec;
 	if (tv_sec < 0)
@@ -310,7 +310,7 @@ static __always_inline u64 extract__epoch_ns_from_time(struct timespec64 time)
  * @param dev pointer to the device number we have to fill.
  * @param ino pointer to the inode number we have to fill.
  */
-static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, u64 *ino)
+static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, uint64_t *ino)
 {
 	struct file *f = extract__file_struct_from_fd(fd);
 	if(!f)
@@ -383,7 +383,7 @@ static __always_inline void extract__fdlimit(struct task_struct *task, unsigned 
  * @param capability_type type of capability to extract defined by us.
  * @return PPM encoded capability value
  */
-static __always_inline u64 extract__capability(struct task_struct *task, enum capability_type capability_type)
+static __always_inline uint64_t extract__capability(struct task_struct *task, enum capability_type capability_type)
 {
 	kernel_cap_t cap_struct;
 	unsigned long capability;
@@ -407,7 +407,7 @@ static __always_inline u64 extract__capability(struct task_struct *task, enum ca
 		break;
 	}
 
-	// Kernel 6.3 changed the kernel_cap_struct type from u32[2] to u64.
+	// Kernel 6.3 changed the kernel_cap_struct type from u32[2] to uint64_t.
 	// Luckily enough, it also changed field name from cap to val.
 	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
 	{
@@ -550,7 +550,7 @@ static __always_inline pid_t extract__task_xid_vnr(struct task_struct *task, enu
  * @param type pid type.
  * @return `start_time` of init task struct from pid namespace seen from current task pid namespace.
  */
-static __always_inline u64 extract__task_pidns_start_time(struct task_struct *task, enum pid_type type, long in_childtid)
+static __always_inline uint64_t extract__task_pidns_start_time(struct task_struct *task, enum pid_type type, long in_childtid)
 {
 	// only perform lookup when clone/vfork/fork returns 0 (child process / childtid)
 	if (in_childtid == 0)
@@ -609,9 +609,9 @@ static __always_inline unsigned long extract__vm_size(struct mm_struct *mm)
  */
 static __always_inline unsigned long extract__vm_rss(struct mm_struct *mm)
 {
-	s64 file_pages = 0;
-	s64 anon_pages = 0;
-	s64 shmem_pages = 0;
+	int64_t file_pages = 0;
+	int64_t anon_pages = 0;
+	int64_t shmem_pages = 0;
 
 	/* In recent kernel versions (https://github.com/torvalds/linux/commit/f1a7941243c102a44e8847e3b94ff4ff3ec56f25)
 	 * `struct mm_rss_stat` doesn't exist anymore.
@@ -640,7 +640,7 @@ static __always_inline unsigned long extract__vm_rss(struct mm_struct *mm)
  */
 static __always_inline unsigned long extract__vm_swap(struct mm_struct *mm)
 {
-	s64 swap_entries = 0;
+	int64_t swap_entries = 0;
 	if(bpf_core_type_exists(struct mm_rss_stat))
 	{
 		BPF_CORE_READ_INTO(&swap_entries, mm, rss_stat.count[MM_SWAPENTS].counter);
@@ -1079,7 +1079,7 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 
 	kernel_cap_t cap_struct = {0};
 	READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
-	// Kernel 6.3 changed the kernel_cap_struct type from u32[2] to u64.
+	// Kernel 6.3 changed the kernel_cap_struct type from u32[2] to uint64_t.
 	// Luckily enough, it also changed field name from cap to val.
 	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
 	{

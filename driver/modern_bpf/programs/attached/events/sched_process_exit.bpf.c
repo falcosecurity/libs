@@ -173,11 +173,11 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	/* Parameter 1: status (type: PT_ERRNO) */
 	s32 exit_code = 0;
 	READ_TASK_FIELD_INTO(&exit_code, task, exit_code);
-	auxmap__store_s64_param(auxmap, (s64)exit_code);
+	auxmap__store_s64_param(auxmap, (int64_t)exit_code);
 
 	/* Parameter 2: ret (type: PT_ERRNO) */
 	s32 ret = __WEXITSTATUS(exit_code);
-	auxmap__store_s64_param(auxmap, (s64)ret);
+	auxmap__store_s64_param(auxmap, (int64_t)ret);
 
 	/* Parameter 3: sig (type: PT_SIGTYPE) */
 	u8 sig = 0;
@@ -209,7 +209,7 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	/* Please note here `pid` is in kernel-lingo so it is a thread id.
 	 * the thread group id is `tgid`.
 	 */
-	auxmap__store_s64_param(auxmap, (s64)reaper_pid);
+	auxmap__store_s64_param(auxmap, (int64_t)reaper_pid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

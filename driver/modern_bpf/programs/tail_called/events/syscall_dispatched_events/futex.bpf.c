@@ -26,7 +26,7 @@ int BPF_PROG(futex_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: addr (type: PT_UINT64) */
-	u64 addr = extract__syscall_argument(regs, 0);
+	uint64_t addr = extract__syscall_argument(regs, 0);
 	ringbuf__store_u64(&ringbuf, addr);
 
 	/* Parameter 2: op (type: PT_ENUMFLAGS16) */
@@ -34,7 +34,7 @@ int BPF_PROG(futex_e,
 	ringbuf__store_u16(&ringbuf, futex_op_to_scap((unsigned long)op));
 
 	/* Parameter 3: val (type: PT_UINT64) */
-	u64 val = extract__syscall_argument(regs, 2);
+	uint64_t val = extract__syscall_argument(regs, 2);
 	ringbuf__store_u64(&ringbuf, val);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -64,7 +64,7 @@ int BPF_PROG(futex_x,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	ringbuf__store_s64(&ringbuf, (s64)ret);
+	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

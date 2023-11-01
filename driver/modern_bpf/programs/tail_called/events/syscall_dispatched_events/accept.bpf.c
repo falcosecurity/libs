@@ -94,7 +94,7 @@ int BPF_PROG(accept_x,
 		BPF_CORE_READ_INTO(&queuemax, sk, sk_max_ack_backlog);
 		if(queuelen && queuemax)
 		{
-			queuepct = (u8)((u64)queuelen * 100 / queuemax);
+			queuepct = (u8)((uint64_t)queuelen * 100 / queuemax);
 		}
 	}
 	else

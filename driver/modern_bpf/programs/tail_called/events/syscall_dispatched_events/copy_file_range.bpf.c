@@ -27,14 +27,14 @@ int BPF_PROG(copy_file_range_e,
 
 	/* Parameter 1: fdin (type: PT_FD) */
 	s32 fdin = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fdin);
+	ringbuf__store_s64(&ringbuf, (int64_t)fdin);
 
 	/* Parameter 2: offin (type: PT_UINT64) */
-	u64 offin = extract__syscall_argument(regs, 1);
+	uint64_t offin = extract__syscall_argument(regs, 1);
 	ringbuf__store_u64(&ringbuf, offin);
 
 	/* Parameter 3: len (type: PT_UINT64) */
-	u64 len = extract__syscall_argument(regs, 4);
+	uint64_t len = extract__syscall_argument(regs, 4);
 	ringbuf__store_u64(&ringbuf, len);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -68,10 +68,10 @@ int BPF_PROG(copy_file_range_x,
 
 	/* Parameter 2: fdout (type: PT_FD) */
 	s32 fdout = (s32)extract__syscall_argument(regs, 2);
-	ringbuf__store_s64(&ringbuf, (s64)fdout);
+	ringbuf__store_s64(&ringbuf, (int64_t)fdout);
 
 	/* Parameter 3: offout (type: PT_UINT64) */
-	u64 offout = extract__syscall_argument(regs, 3);
+	uint64_t offout = extract__syscall_argument(regs, 3);
 	ringbuf__store_u64(&ringbuf, offout);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

@@ -28,10 +28,10 @@ int BPF_PROG(preadv_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: pos (type: PT_UINT64) */
-	u64 pos = (u64)extract__syscall_argument(regs, 3);
+	uint64_t pos = (uint64_t)extract__syscall_argument(regs, 3);
 	ringbuf__store_u64(&ringbuf, pos);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

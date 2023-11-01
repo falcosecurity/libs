@@ -60,7 +60,7 @@ int BPF_PROG(fsconfig_x,
 	/* Parameter 2: fd (type: PT_FD) */
 	/* This is the file-system fd */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	auxmap__store_s64_param(auxmap, (s64)fd);
+	auxmap__store_s64_param(auxmap, (int64_t)fd);
 
 	/* Parameter 3: cmd (type: PT_ENUMFLAGS32) */
 	u32 cmd = (u32)extract__syscall_argument(regs, 1);

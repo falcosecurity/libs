@@ -794,7 +794,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	if (cmd == PPM_IOCTL_GET_PROCLIST) {
 		struct ppm_proclist_info *proclist_info = NULL;
 		struct task_struct *p, *t;
-		u64 nentries = 0;
+		uint64_t nentries = 0;
 		struct ppm_proclist_info pli;
 		u32 memsize;
 
@@ -839,7 +839,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					cputime_t utime, stime;
 #else
-					u64 utime, stime;
+					uint64_t utime, stime;
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
