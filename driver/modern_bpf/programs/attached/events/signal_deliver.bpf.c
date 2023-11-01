@@ -77,10 +77,10 @@ int BPF_PROG(signal_deliver,
 	}
 
 	/* Parameter 1: spid (type: PT_PID) */
-	ringbuf__store_u64(&ringbuf, (s64)spid);
+	ringbuf__store_u64(&ringbuf, (int64_t)spid);
 
 	/* Parameter 2: dpid (type: PT_PID) */
-	ringbuf__store_u64(&ringbuf, (s64)bpf_get_current_pid_tgid() & 0xffffffff);
+	ringbuf__store_u64(&ringbuf, (int64_t)bpf_get_current_pid_tgid() & 0xffffffff);
 
 	/* Parameter 3: sig (type: PT_SIGTYPE) */
 	ringbuf__store_u8(&ringbuf, (u8)sig);

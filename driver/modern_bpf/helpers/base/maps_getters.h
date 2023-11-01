@@ -17,7 +17,7 @@
 
 /*=============================== SETTINGS ===========================*/
 
-static __always_inline u64 maps__get_boot_time()
+static __always_inline uint64_t maps__get_boot_time()
 {
 	return g_settings.boot_time;
 }
@@ -125,7 +125,7 @@ static __always_inline u8 maps__get_event_num_params(u32 event_id)
 
 /*=============================== PPM_SC TABLE ===========================*/
 
-static __always_inline u16 maps__get_ppm_sc(u16 syscall_id)
+static __always_inline uint16_t maps__get_ppm_sc(uint16_t syscall_id)
 {
 	return g_ppm_sc_table[syscall_id & (SYSCALL_TABLE_SIZE - 1)];
 }

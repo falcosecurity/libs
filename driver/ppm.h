@@ -30,7 +30,7 @@ or GPL2.txt for full copies of the license.
 #include "capture_macro.h"
 #define PPM_NULL_RDEV MKDEV(1, 3)
 
-typedef u64 nanoseconds;
+typedef uint64_t nanoseconds;
 
 /* This is an auxiliary struct we use in setsockopt
  * when `__kernel_timex_timeval` struct is not defined.

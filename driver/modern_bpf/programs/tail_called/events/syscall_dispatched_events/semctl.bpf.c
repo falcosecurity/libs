@@ -34,7 +34,7 @@ int BPF_PROG(semctl_e,
 	ringbuf__store_s32(&ringbuf, semnum);
 
 	/* Parameter 3: cmd (type: PT_FLAGS16) */
-	u16 cmd = (u16)extract__syscall_argument(regs, 2);
+	uint16_t cmd = (uint16_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_u16(&ringbuf, semctl_cmd_to_scap(cmd));
 
 	/* Parameter 4: val (type: PT_INT32) */
@@ -68,7 +68,7 @@ int BPF_PROG(semctl_x,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	ringbuf__store_s64(&ringbuf, (s64)ret);
+	ringbuf__store_s64(&ringbuf, (int64_t)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

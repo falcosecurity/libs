@@ -27,7 +27,7 @@ int BPF_PROG(bpf_e,
 
 	/* Parameter 1: cmd (type: PT_INT64) */
 	s32 cmd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)cmd);
+	ringbuf__store_s64(&ringbuf, (int64_t)cmd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

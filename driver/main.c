@@ -794,7 +794,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	if (cmd == PPM_IOCTL_GET_PROCLIST) {
 		struct ppm_proclist_info *proclist_info = NULL;
 		struct task_struct *p, *t;
-		u64 nentries = 0;
+		uint64_t nentries = 0;
 		struct ppm_proclist_info pli;
 		u32 memsize;
 
@@ -839,7 +839,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
 					cputime_t utime, stime;
 #else
-					u64 utime, stime;
+					uint64_t utime, stime;
 #endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0))
@@ -1023,7 +1023,7 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_SET_STATSD_PORT:
 	{
-		consumer->statsd_port = (u16)arg;
+		consumer->statsd_port = (uint16_t)arg;
 
 		pr_info("new statsd_port: %d\n", (int)consumer->statsd_port);
 
@@ -1892,7 +1892,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 * Determine how many arguments this event has
 	 */
 	args.nargs = g_event_info[event_type].nparams;
-	args.arg_data_offset = args.nargs * sizeof(u16);
+	args.arg_data_offset = args.nargs * sizeof(uint16_t);
 
 	/*
 	 * Make sure we have enough space for the event header.

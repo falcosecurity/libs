@@ -84,7 +84,7 @@ int BPF_PROG(open_x,
 	auxmap__store_u32_param(auxmap, open_modes_to_scap(flags, mode));
 
 	dev_t dev = 0;
-	u64 ino = 0;
+	uint64_t ino = 0;
 
 	if(ret > 0)
 	{

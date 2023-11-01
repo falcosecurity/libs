@@ -27,7 +27,7 @@ int BPF_PROG(epoll_wait_e,
 
 	/* Parameter 1: maxevents (type: PT_ERRNO)*/
 	int maxevents = (int)extract__syscall_argument(regs, 2);
-	ringbuf__store_s64(&ringbuf, (s64)maxevents);
+	ringbuf__store_s64(&ringbuf, (int64_t)maxevents);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

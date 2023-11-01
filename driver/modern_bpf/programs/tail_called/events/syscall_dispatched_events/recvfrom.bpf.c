@@ -32,7 +32,7 @@ int BPF_PROG(recvfrom_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 socket_fd = (s32)args[0];
-	ringbuf__store_s64(&ringbuf, (s64)socket_fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	u32 size = (u32)args[2];
@@ -76,7 +76,7 @@ int BPF_PROG(recvfrom_x,
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
-		u16 snaplen = maps__get_snaplen();
+		uint16_t snaplen = maps__get_snaplen();
 		apply_dynamic_snaplen(regs, &snaplen, false);
 		if(snaplen > ret)
 		{

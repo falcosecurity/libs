@@ -59,15 +59,15 @@ int BPF_PROG(capset_x,
 	struct task_struct *task = get_current_task();
 
 	/* Parameter 2: cap_inheritable (type: PT_UINT64) */
-	u64 cap_inheritable = extract__capability(task, CAP_INHERITABLE);
+	uint64_t cap_inheritable = extract__capability(task, CAP_INHERITABLE);
 	ringbuf__store_u64(&ringbuf, cap_inheritable);
 
 	/* Parameter 3: cap_permitted (type: PT_UINT64) */
-	u64 cap_permitted = extract__capability(task, CAP_PERMITTED);
+	uint64_t cap_permitted = extract__capability(task, CAP_PERMITTED);
 	ringbuf__store_u64(&ringbuf, cap_permitted);
 
 	/* Parameter 4: cap_effective (type: PT_UINT64) */
-	u64 cap_effective = extract__capability(task, CAP_EFFECTIVE);
+	uint64_t cap_effective = extract__capability(task, CAP_EFFECTIVE);
 	ringbuf__store_u64(&ringbuf, cap_effective);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

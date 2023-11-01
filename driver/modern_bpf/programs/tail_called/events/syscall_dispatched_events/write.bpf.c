@@ -28,7 +28,7 @@ int BPF_PROG(write_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	u32 size = (u32)extract__syscall_argument(regs, 2);
@@ -66,8 +66,8 @@ int BPF_PROG(write_x,
 	/* If the syscall doesn't fail we use the return value as `size`
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	u16 bytes_to_read = ret > 0 ? ret : extract__syscall_argument(regs, 2);
-	u16 snaplen = maps__get_snaplen();
+	uint16_t bytes_to_read = ret > 0 ? ret : extract__syscall_argument(regs, 2);
+	uint16_t snaplen = maps__get_snaplen();
 	apply_dynamic_snaplen(regs, &snaplen, false);
 	if(snaplen > bytes_to_read)
 	{

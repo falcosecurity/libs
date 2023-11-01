@@ -102,7 +102,7 @@ struct bpf_map_def __bpf_section("maps") ia32_64_map = {
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 struct bpf_map_def __bpf_section("maps") stash_map = {
 	.type = BPF_MAP_TYPE_HASH,
-	.key_size = sizeof(u64),
+	.key_size = sizeof(uint64_t),
 	.value_size = sizeof(struct sys_stash_args),
 	.max_entries = 65535,
 };

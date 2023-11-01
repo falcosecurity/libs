@@ -36,8 +36,8 @@ int BPF_PROG(sched_switch,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: next (type: PT_PID) */
-	s64 pid = (s64)extract__task_xid_nr(next, PIDTYPE_PID);
-	ringbuf__store_s64(&ringbuf, (s64)pid);
+	int64_t pid = (int64_t)extract__task_xid_nr(next, PIDTYPE_PID);
+	ringbuf__store_s64(&ringbuf, (int64_t)pid);
 
 	/* Parameter 2: pgft_maj (type: PT_UINT64) */
 	unsigned long pgft_maj = 0;

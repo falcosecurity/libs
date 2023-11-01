@@ -32,7 +32,7 @@ int BPF_PROG(bind_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)args[0];
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -73,7 +73,7 @@ int BPF_PROG(bind_x,
 
 	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	unsigned long sockaddr_ptr = args[1];
-	u16 addrlen = (u16)args[2];
+	uint16_t addrlen = (uint16_t)args[2];
 	auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

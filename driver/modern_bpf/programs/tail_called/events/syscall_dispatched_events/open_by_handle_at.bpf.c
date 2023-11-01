@@ -63,7 +63,7 @@ int BPF_PROG(open_by_handle_at_x,
 	{
 		mountfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)mountfd);
+	auxmap__store_s64_param(auxmap, (int64_t)mountfd);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	u32 flags = (u32)extract__syscall_argument(regs, 2);

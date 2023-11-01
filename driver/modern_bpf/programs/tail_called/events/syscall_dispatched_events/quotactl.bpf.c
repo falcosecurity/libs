@@ -28,7 +28,7 @@ int BPF_PROG(quotactl_e,
 
 	/* Parameter 1: cmd (type: PT_FLAGS16) */
 	uint32_t cmd = (uint32_t)extract__syscall_argument(regs, 0);
-	u16 scap_cmd = quotactl_cmd_to_scap(cmd);
+	uint16_t scap_cmd = quotactl_cmd_to_scap(cmd);
 	ringbuf__store_u16(&ringbuf, scap_cmd);
 
 	/* Parameter 2: type (type: PT_FLAGS8) */
@@ -95,7 +95,7 @@ int BPF_PROG(quotactl_x,
 	auxmap__store_charbuf_param(auxmap, special_pointer, MAX_PATH, USER);
 
 	int32_t cmd = (int32_t)extract__syscall_argument(regs, 0);
-	u16 scap_cmd = quotactl_cmd_to_scap(cmd);
+	uint16_t scap_cmd = quotactl_cmd_to_scap(cmd);
 
 	/* The `addr` argument is the address of an optional, command-
 	 * specific data structure that is copied in or out of the system.

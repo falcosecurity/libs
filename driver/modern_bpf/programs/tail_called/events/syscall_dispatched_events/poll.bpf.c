@@ -38,7 +38,7 @@ int BPF_PROG(poll_e,
 	/* Parameter 2: timeout (type: PT_INT64) */
 	/* This is an `int` in the syscall signature but we push it as an `int64` */
 	u32 timeout_msecs = (s32)extract__syscall_argument(regs, 2);
-	auxmap__store_s64_param(auxmap, (s64)timeout_msecs);
+	auxmap__store_s64_param(auxmap, (int64_t)timeout_msecs);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
