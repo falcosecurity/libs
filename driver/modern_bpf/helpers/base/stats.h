@@ -16,7 +16,7 @@
 // KERNEL SYSCALL CATEGORY DROP COUNTERS
 /////////////////////////////////////////
 
-static __always_inline void compute_event_types_stats(u16 event_type, struct counter_map *counter)
+static __always_inline void compute_event_types_stats(uint16_t event_type, struct counter_map *counter)
 {
 	if(!counter)
 	{

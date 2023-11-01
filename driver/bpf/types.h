@@ -196,7 +196,7 @@ struct perf_event_sample {
 };
 
 /*
- * Unfortunately the entire perf event length must fit in u16
+ * Unfortunately the entire perf event length must fit in uint16_t
  */
 #define PERF_EVENT_MAX_SIZE (0xffff - sizeof(struct perf_event_sample))
 

@@ -28,7 +28,7 @@ int BPF_PROG(writev_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	unsigned long iov_pointer = extract__syscall_argument(regs, 1);
 	unsigned long iov_cnt = extract__syscall_argument(regs, 2);
@@ -70,7 +70,7 @@ int BPF_PROG(writev_x,
 	 * otherwise we need to extract it now and it has a cost. Here we check just
 	 * the return value if the syscall is successful.
 	 */
-	u16 snaplen = maps__get_snaplen();
+	uint16_t snaplen = maps__get_snaplen();
 	apply_dynamic_snaplen(regs, &snaplen, true);
 	if(ret > 0 && snaplen > ret)
 	{

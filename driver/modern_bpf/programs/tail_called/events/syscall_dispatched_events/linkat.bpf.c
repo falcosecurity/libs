@@ -63,7 +63,7 @@ int BPF_PROG(linkat_x,
 	{
 		olddirfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)olddirfd);
+	auxmap__store_s64_param(auxmap, (int64_t)olddirfd);
 
 	/* Parameter 3: oldpath (type: PT_FSRELPATH) */
 	unsigned long old_path_pointer = extract__syscall_argument(regs, 1);
@@ -75,7 +75,7 @@ int BPF_PROG(linkat_x,
 	{
 		newdirfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)newdirfd);
+	auxmap__store_s64_param(auxmap, (int64_t)newdirfd);
 
 	/* Parameter 5: newpath (type: PT_FSRELPATH) */
 	unsigned long new_path_pointer = extract__syscall_argument(regs, 3);

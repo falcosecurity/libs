@@ -63,7 +63,7 @@ int BPF_PROG(fchownat_x,
 	{
 		dirfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)dirfd);
+	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
 
 	/* Parameter 3: filename (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);

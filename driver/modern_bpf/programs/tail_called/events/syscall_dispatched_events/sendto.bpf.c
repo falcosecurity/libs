@@ -30,7 +30,7 @@ int BPF_PROG(sendto_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 socket_fd = (s32)args[0];
-	auxmap__store_s64_param(auxmap, (s64)socket_fd);
+	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	u32 size = (u32)args[2];
@@ -90,8 +90,8 @@ int BPF_PROG(sendto_x,
 	/* If the syscall doesn't fail we use the return value as `size`
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	u16 bytes_to_read = ret > 0 ? ret : args[2];
-	u16 snaplen = maps__get_snaplen();
+	uint16_t bytes_to_read = ret > 0 ? ret : args[2];
+	uint16_t snaplen = maps__get_snaplen();
 	apply_dynamic_snaplen(regs, &snaplen, false);
 	if(snaplen > bytes_to_read)
 	{

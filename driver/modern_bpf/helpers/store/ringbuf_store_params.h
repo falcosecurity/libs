@@ -13,16 +13,16 @@
 #include <helpers/extract/extract_from_kernel.h>
 #include <helpers/base/stats.h>
 
-/* `reserved_size - sizeof(u64)` free space is enough because this is the max dimension
+/* `reserved_size - sizeof(uint64_t)` free space is enough because this is the max dimension
  * we put in the ring buffer in one atomic operation.
  */
-#define CHECK_RINGBUF_SPACE(pos, reserved_size) pos >= reserved_size ? reserved_size - sizeof(u64) : pos
+#define CHECK_RINGBUF_SPACE(pos, reserved_size) pos >= reserved_size ? reserved_size - sizeof(uint64_t) : pos
 
 #define PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, size)                                                                         \
 	__builtin_memcpy(&ringbuf->data[CHECK_RINGBUF_SPACE(ringbuf->payload_pos, ringbuf->reserved_event_size)], &param, size); \
 	ringbuf->payload_pos += size;                                                                                            \
-	*((u16 *)&ringbuf->data[CHECK_RINGBUF_SPACE(ringbuf->lengths_pos, ringbuf->reserved_event_size)]) = size;                \
-	ringbuf->lengths_pos += sizeof(u16);
+	*((uint16_t *)&ringbuf->data[CHECK_RINGBUF_SPACE(ringbuf->lengths_pos, ringbuf->reserved_event_size)]) = size;                \
+	ringbuf->lengths_pos += sizeof(uint16_t);
 
 /* Concept of ringbuf(ring buffer):
  *
@@ -39,7 +39,7 @@
  * struct ringbuf_struct
  * {
  *	  u8 *data;	   // pointer to the space reserved in the ring buffer.
- *	  u64 payload_pos; // position of the first empty byte in the `data` buf.
+ *	  uint64_t payload_pos; // position of the first empty byte in the `data` buf.
  *	  u8 lengths_pos;  // position the first empty slot into the lengths array of the event.
  * };
  *
@@ -66,10 +66,10 @@
 struct ringbuf_struct
 {
 	u8 *data;		 /* pointer to the space reserved in the ring buffer. */
-	u64 payload_pos;	 /* position of the first empty byte in the `data` buf.*/
+	uint64_t payload_pos;	 /* position of the first empty byte in the `data` buf.*/
 	u8 lengths_pos;		 /* position the first empty slot into the lengths array of the event. */
-	u16 reserved_event_size; /* reserved size in the ringbuf. */
-	u16 event_type; /* event type we want to send to userspace */
+	uint16_t reserved_event_size; /* reserved size in the ringbuf. */
+	uint16_t event_type; /* event type we want to send to userspace */
 };
 
 /////////////////////////////////
@@ -89,7 +89,7 @@ struct ringbuf_struct
  * @param event_size exact size of the fixed-size event
  * @return `1` in case of success, `0` in case of failure.
  */
-static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf, void* ctx, u32 event_size, u16 event_type)
+static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf, void* ctx, u32 event_size, uint16_t event_type)
 {
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb)
@@ -144,7 +144,7 @@ static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *r
 	hdr->nparams = nparams;
 	hdr->len = ringbuf->reserved_event_size;
 
-	ringbuf->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(u16);
+	ringbuf->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(uint16_t);
 	ringbuf->lengths_pos = sizeof(struct ppm_evt_hdr);
 }
 
@@ -187,9 +187,9 @@ static __always_inline void ringbuf__submit_event(struct ringbuf_struct *ringbuf
  * @param ringbuf pointer to the `ringbuf_struct`.
  * @param param param to store.
  */
-static __always_inline void ringbuf__store_s16(struct ringbuf_struct *ringbuf, s16 param)
+static __always_inline void ringbuf__store_s16(struct ringbuf_struct *ringbuf, int16_t param)
 {
-	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(s16));
+	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(int16_t));
 }
 
 /**
@@ -215,9 +215,9 @@ static __always_inline void ringbuf__store_s32(struct ringbuf_struct *ringbuf, s
  * @param ringbuf pointer to the `ringbuf_struct`.
  * @param param param to store
  */
-static __always_inline void ringbuf__store_s64(struct ringbuf_struct *ringbuf, s64 param)
+static __always_inline void ringbuf__store_s64(struct ringbuf_struct *ringbuf, int64_t param)
 {
-	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(s64));
+	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(int64_t));
 }
 
 /**
@@ -246,9 +246,9 @@ static __always_inline void ringbuf__store_u8(struct ringbuf_struct *ringbuf, u8
  * @param ringbuf pointer to the `ringbuf_struct`.
  * @param param param to store
  */
-static __always_inline void ringbuf__store_u16(struct ringbuf_struct *ringbuf, u16 param)
+static __always_inline void ringbuf__store_u16(struct ringbuf_struct *ringbuf, uint16_t param)
 {
-	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(u16));
+	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(uint16_t));
 }
 
 /**
@@ -280,9 +280,9 @@ static __always_inline void ringbuf__store_u32(struct ringbuf_struct *ringbuf, u
  * @param ringbuf pointer to the `ringbuf_struct`.
  * @param param param to store
  */
-static __always_inline void ringbuf__store_u64(struct ringbuf_struct *ringbuf, u64 param)
+static __always_inline void ringbuf__store_u64(struct ringbuf_struct *ringbuf, uint64_t param)
 {
-	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(u64));
+	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(uint64_t));
 }
 
 /**

@@ -27,14 +27,14 @@ int BPF_PROG(ioctl_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: request (type: PT_UINT64) */
-	u64 request = extract__syscall_argument(regs, 1);
+	uint64_t request = extract__syscall_argument(regs, 1);
 	ringbuf__store_u64(&ringbuf, request);
 
 	/* Parameter 3: argument (type: PT_UINT64) */
-	u64 argument = extract__syscall_argument(regs, 2);
+	uint64_t argument = extract__syscall_argument(regs, 2);
 	ringbuf__store_u64(&ringbuf, argument);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

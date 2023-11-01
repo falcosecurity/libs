@@ -31,7 +31,7 @@ int BPF_PROG(openat_e,
 	{
 		dirfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)dirfd);
+	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
 
 	/* Parameter 2: name (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
@@ -82,7 +82,7 @@ int BPF_PROG(openat_x,
 	{
 		dirfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)dirfd);
+	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
 
 	/* Parameter 3: name (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
@@ -101,7 +101,7 @@ int BPF_PROG(openat_x,
 	auxmap__store_u32_param(auxmap, open_modes_to_scap(flags, mode));
 
 	dev_t dev = 0;
-	u64 ino = 0;
+	uint64_t ino = 0;
 
 	if(ret > 0)
 	{

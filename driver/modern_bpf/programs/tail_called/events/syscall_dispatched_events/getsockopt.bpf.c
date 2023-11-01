@@ -63,7 +63,7 @@ int BPF_PROG(getsockopt_x,
 
 	/* Parameter 2: fd (type: PT_FD) */
 	s32 fd = (s32)args[0];
-	auxmap__store_s64_param(auxmap, (s64)fd);
+	auxmap__store_s64_param(auxmap, (int64_t)fd);
 
 	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
 	int level = args[1];

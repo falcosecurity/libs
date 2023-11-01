@@ -58,11 +58,11 @@ int BPF_PROG(io_uring_register_x,
 
 	/* Parameter 2: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 3: opcode (type: PT_ENUMFLAGS16) */
 	u32 opcode = (u32)extract__syscall_argument(regs, 1);
-	ringbuf__store_u16(&ringbuf, (u16)io_uring_register_opcodes_to_scap(opcode));
+	ringbuf__store_u16(&ringbuf, (uint16_t)io_uring_register_opcodes_to_scap(opcode));
 
 	/* Parameter 4: arg (type: PT_UINT64) */
 	/* Here we push directly a pointer to userspace. `arg` is

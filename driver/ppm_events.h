@@ -50,7 +50,7 @@ struct event_filler_arguments {
 	 * stack since all this stuff is always exclusive
 	 */
 #ifdef UDIG
-	u64 *regs; /* the registers containing the call arguments */
+	uint64_t *regs; /* the registers containing the call arguments */
 #else
 	struct pt_regs *regs; /* the registers containing the call arguments */
 #endif
@@ -96,9 +96,9 @@ extern const struct ppm_event_entry g_ppm_events[];
  */
 int32_t dpi_lookahead_init(void);
 int32_t push_empty_param(struct event_filler_arguments *args);
-int32_t val_to_ring(struct event_filler_arguments *args, u64 val, u32 val_len, bool fromuser, u8 dyn_idx);
-u16 pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, u16 targetbufsize);
-u16 fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, u16 targetbufsize);
+int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, bool fromuser, u8 dyn_idx);
+uint16_t pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, uint16_t targetbufsize);
+uint16_t fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, uint16_t targetbufsize);
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
 int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags);
 

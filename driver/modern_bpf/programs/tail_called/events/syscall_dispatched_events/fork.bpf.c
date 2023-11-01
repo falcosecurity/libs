@@ -94,7 +94,7 @@ int BPF_PROG(fork_x,
 		/* We need to extract the len of `exe` arg so we can undestand
 		 * the overall length of the remaining args.
 		 */
-		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
+		uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		/* Here we read all the array starting from the pointer to the first
@@ -115,17 +115,17 @@ int BPF_PROG(fork_x,
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
-	s64 pid = (s64)extract__task_xid_nr(task, PIDTYPE_PID);
+	int64_t pid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PID);
 	auxmap__store_s64_param(auxmap, pid);
 
 	/* Parameter 5: pid (type: PT_PID) */
 	/* this is called `pid` but it is the `tgid`. */
-	s64 tgid = (s64)extract__task_xid_nr(task, PIDTYPE_TGID);
+	int64_t tgid = (int64_t)extract__task_xid_nr(task, PIDTYPE_TGID);
 	auxmap__store_s64_param(auxmap, tgid);
 
 	/* Parameter 6: ptid (type: PT_PID) */
 	/* this is called `ptid` but it is the `pgid`. */
-	s64 ptid = (s64)extract__task_xid_nr(task, PIDTYPE_PGID);
+	int64_t ptid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PGID);
 	auxmap__store_s64_param(auxmap, ptid);
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
@@ -209,11 +209,11 @@ int BPF_PROG(t1_fork_x,
 
 	/* Parameter 19: vtid (type: PT_PID) */
 	pid_t vtid = extract__task_xid_vnr(task, PIDTYPE_PID);
-	auxmap__store_s64_param(auxmap, (s64)vtid);
+	auxmap__store_s64_param(auxmap, (int64_t)vtid);
 
 	/* Parameter 20: vpid (type: PT_PID) */
 	pid_t vpid = extract__task_xid_vnr(task, PIDTYPE_TGID);
-	auxmap__store_s64_param(auxmap, (s64)vpid);
+	auxmap__store_s64_param(auxmap, (int64_t)vpid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

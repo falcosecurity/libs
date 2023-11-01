@@ -58,7 +58,7 @@ int BPF_PROG(pidfd_open_x,
 
     /* Parameter 2: pid (type: PT_PID)*/
     pid_t pid = (s32)extract__syscall_argument(regs, 0);
-    ringbuf__store_s64(&ringbuf, (s64)pid); 
+    ringbuf__store_s64(&ringbuf, (int64_t)pid); 
 
     /* Parameter 3: pid (type: PT_FLAGS32)*/
     u32 flags = (u32)extract__syscall_argument(regs, 1);

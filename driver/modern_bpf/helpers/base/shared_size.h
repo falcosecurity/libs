@@ -57,7 +57,7 @@
 #define FAMILY_SIZE sizeof(u8)
 #define IPV4_SIZE sizeof(u32)
 #define IPV6_SIZE 16
-#define PORT_SIZE sizeof(u16)
+#define PORT_SIZE sizeof(uint16_t)
 #define KERNEL_POINTER sizeof(u64)
 
 /* This enum is used to tell network helpers if the connection outbound

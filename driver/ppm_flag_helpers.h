@@ -378,9 +378,9 @@ static __always_inline u32 io_uring_register_opcodes_to_scap(unsigned long flags
  *  #define IN_CLOEXEC O_CLOEXEC
  *  #define IN_NONBLOCK O_NONBLOCK
  */
-static __always_inline u16 inotify_init1_flags_to_scap(int32_t flags)
+static __always_inline uint16_t inotify_init1_flags_to_scap(int32_t flags)
 {
-	u16 res = 0;
+	uint16_t res = 0;
 
 	/* We need to explicitly handle the negative case otherwise `-1` will match all `flags & ...` */
 	if(flags < 0)
@@ -409,9 +409,9 @@ static __always_inline u16 inotify_init1_flags_to_scap(int32_t flags)
  *  #define EFD_CLOEXEC O_CLOEXEC
  *  #define EFD_NONBLOCK O_NONBLOCK
  */
-static __always_inline u16 eventfd2_flags_to_scap(int32_t flags)
+static __always_inline uint16_t eventfd2_flags_to_scap(int32_t flags)
 {
-	u16 res = 0;
+	uint16_t res = 0;
 
 	/* We need to explicitly handle the negative case otherwise `-1` will match all `flags & ...` */
 	if(flags < 0)
@@ -439,9 +439,9 @@ static __always_inline u16 eventfd2_flags_to_scap(int32_t flags)
  *  #define SFD_CLOEXEC O_CLOEXEC
  *  #define SFD_NONBLOCK O_NONBLOCK
  */
-static __always_inline u16 signalfd4_flags_to_scap(int32_t flags)
+static __always_inline uint16_t signalfd4_flags_to_scap(int32_t flags)
 {
-	u16 res = 0;
+	uint16_t res = 0;
 
 	/* We need to explicitly handle the negative case otherwise `-1` will match all `flags & ...` */
 	if(flags < 0)
@@ -1169,9 +1169,9 @@ static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
 }
 
 /* XXX this is very basic for the moment, we'll need to improve it */
-static __always_inline u16 poll_events_to_scap(short revents)
+static __always_inline uint16_t poll_events_to_scap(short revents)
 {
-	u16 res = 0;
+	uint16_t res = 0;
 
 	if (revents & POLLIN)
 		res |= PPM_POLLIN;
@@ -1209,9 +1209,9 @@ static __always_inline u16 poll_events_to_scap(short revents)
 	return res;
 }
 
-static __always_inline u16 futex_op_to_scap(unsigned long op)
+static __always_inline uint16_t futex_op_to_scap(unsigned long op)
 {
-	u16 res = 0;
+	uint16_t res = 0;
 #ifndef UDIG
 	unsigned long flt_op = op & 127;
 
@@ -1330,7 +1330,7 @@ static __always_inline u8 rlimit_resource_to_scap(unsigned long rresource)
 	}
 }
 
-static __always_inline u16 shutdown_how_to_scap(unsigned long how)
+static __always_inline uint16_t shutdown_how_to_scap(unsigned long how)
 {
 #ifdef SHUT_RD
 	if (how == SHUT_RD)
@@ -1342,7 +1342,7 @@ static __always_inline u16 shutdown_how_to_scap(unsigned long how)
 
 	ASSERT(false);
 #endif
-	return (u16)how;
+	return (uint16_t)how;
 }
 
 static __always_inline uint64_t lseek_whence_to_scap(unsigned long whence)
@@ -1359,9 +1359,9 @@ static __always_inline uint64_t lseek_whence_to_scap(unsigned long whence)
 	return res;
 }
 
-static __always_inline u16 semop_flags_to_scap(short flags)
+static __always_inline uint16_t semop_flags_to_scap(short flags)
 {
-	u16 res = 0;
+	uint16_t res = 0;
 
 	if (flags & IPC_NOWAIT)
 		res |= PPM_IPC_NOWAIT;
@@ -1550,7 +1550,7 @@ static __always_inline u32 semctl_cmd_to_scap(unsigned cmd)
 	return 0;
 }
 
-static __always_inline u16 ptrace_requests_to_scap(unsigned long req)
+static __always_inline uint16_t ptrace_requests_to_scap(unsigned long req)
 {
 	switch (req) {
 #ifdef PTRACE_SINGLEBLOCK
@@ -1872,9 +1872,9 @@ static __always_inline u32 fchownat_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static __always_inline u64 capabilities_to_scap(unsigned long caps)
+static __always_inline uint64_t capabilities_to_scap(unsigned long caps)
 {
-	u64 res = 0;
+	uint64_t res = 0;
 	
 #ifdef CAP_CHOWN
 	if(caps & (1UL << CAP_CHOWN))
