@@ -27,7 +27,7 @@ int BPF_PROG(setpgid_e,
 
 	/* Parameter 1: pid (type: PT_FD) */
 	pid_t pid = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t64_t)pid);
+	ringbuf__store_s64(&ringbuf, (int64_t)pid);
 
 	/* Parameter 2: pgid (type: PT_PID) */
 	pid_t pgid = (s32)extract__syscall_argument(regs, 1);

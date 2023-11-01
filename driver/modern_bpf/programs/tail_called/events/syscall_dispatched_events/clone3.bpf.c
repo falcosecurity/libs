@@ -113,7 +113,7 @@ int BPF_PROG(clone3_x,
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
-	int64_t64_t64_t pid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PID);
+	int64_t pid = (int64_t)extract__task_xid_nr(task, PIDTYPE_PID);
 	auxmap__store_s64_param(auxmap, pid);
 
 	/* Parameter 5: pid (type: PT_PID) */

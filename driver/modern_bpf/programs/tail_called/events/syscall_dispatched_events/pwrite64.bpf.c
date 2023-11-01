@@ -35,7 +35,7 @@ int BPF_PROG(pwrite64_e,
 	ringbuf__store_u32(&ringbuf, size);
 
 	/* Parameter 3: pos (type: PT_UINT64) */
-	uint64_tt64_t pos = (uint64_t)extract__syscall_argument(regs, 3);
+	uint64_t pos = (uint64_t)extract__syscall_argument(regs, 3);
 	ringbuf__store_u64(&ringbuf, pos);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

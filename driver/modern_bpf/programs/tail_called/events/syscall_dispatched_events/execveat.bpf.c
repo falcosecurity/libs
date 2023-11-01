@@ -143,7 +143,7 @@ int BPF_PROG(execveat_x,
 
 	/* Parameter 5: pid (type: PT_PID) */
 	/* this is called `pid` but it is the `tgid`. */
-	int64_t tgid = (int64_t64_t)extract__task_xid_nr(task, PIDTYPE_TGID);
+	int64_t tgid = (int64_t)extract__task_xid_nr(task, PIDTYPE_TGID);
 	auxmap__store_s64_param(auxmap, tgid);
 
 	/* Parameter 6: ptid (type: PT_PID) */

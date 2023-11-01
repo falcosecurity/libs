@@ -17,7 +17,7 @@
 
 /*=============================== SETTINGS ===========================*/
 
-static __always_inline u64 maps__get_boot_time()
+static __always_inline uint64_t maps__get_boot_time()
 {
 	return g_settings.boot_time;
 }

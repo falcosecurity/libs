@@ -32,7 +32,7 @@ int BPF_PROG(nanosleep_e,
 	{
 		struct __kernel_timespec ts = {0};
 		bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
-		nanosec = ((uint64_tt64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
 	}
 	else
 	{

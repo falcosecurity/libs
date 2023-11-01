@@ -170,7 +170,7 @@ unsigned long nsecs_to_jiffies(uint64_t n)
  * Perform (stime * rtime) / total, but avoid multiplication overflow by
  * loosing precision when the numbers are big.
  */
-static cputime_t scale_stime(uint64_t stime, uint64_t rtime, uint64_tt64_t total)
+static cputime_t scale_stime(uint64_t stime, uint64_t rtime, uint64_t total)
 {
 	uint64_t scaled;
 

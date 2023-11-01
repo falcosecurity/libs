@@ -27,7 +27,7 @@ int BPF_PROG(splice_e,
 
 	/* Parameter 1: fd_in (type: PT_FD) */
 	s32 fd_in = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (int64_t64_t)fd_in);
+	ringbuf__store_s64(&ringbuf, (int64_t)fd_in);
 
 	/* Parameter 2: fd_out (type: PT_FD) */
 	s32 fd_out = (s32)extract__syscall_argument(regs, 2);

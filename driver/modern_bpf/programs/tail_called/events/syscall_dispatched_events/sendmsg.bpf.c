@@ -30,7 +30,7 @@ int BPF_PROG(sendmsg_e,
 
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 socket_fd = (s32)args[0];
-	auxmap__store_s64_param(auxmap, (int64_t64_t)socket_fd);
+	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	unsigned long msghdr_pointer = args[1];

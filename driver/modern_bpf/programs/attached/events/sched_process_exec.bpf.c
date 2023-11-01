@@ -208,7 +208,7 @@ int BPF_PROG(t1_sched_p_exec,
 	auxmap__store_u64_param(auxmap, cap_effective);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
-	uint64_tt64_t ino = 0;
+	uint64_t ino = 0;
 	extract__ino_from_inode(exe_inode, &ino);
 	auxmap__store_u64_param(auxmap, ino);
 
