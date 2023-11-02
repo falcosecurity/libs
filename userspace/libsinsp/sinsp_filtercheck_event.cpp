@@ -612,17 +612,14 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uin
 {
 	if(evt->get_direction() == SCAP_ED_OUT)
 	{
-		sinsp_evt_param *parinfo;
-		int64_t retval;
-
 		//
 		// Extract the return value
 		//
-		retval = evt->get_param<int64_t>(0);
+		m_s64val = evt->get_param<int64_t>(0);
 
-		if(retval >= 0)
+		if(m_s64val >= 0)
 		{
-			RETURN_EXTRACT_PTR(parinfo->m_val);
+			RETURN_EXTRACT_VAR(m_s64val);
 		}
 	}
 

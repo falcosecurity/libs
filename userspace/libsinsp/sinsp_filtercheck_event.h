@@ -98,6 +98,7 @@ public:
 	bool compare(sinsp_evt *evt);
 
 	uint64_t m_u64val;
+	int64_t m_s64val;
 	uint64_t m_tsdelta;
 	uint32_t m_u32val;
 	std::string m_strstorage;
