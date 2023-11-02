@@ -1872,7 +1872,10 @@ enum extra_event_prog_code
 	PPM_SC_X(FCHMODAT2, 413) \
 	PPM_SC_X(MAP_SHADOW_STACK, 414) \
 	PPM_SC_X(RISCV_FLUSH_ICACHE, 415) \
-	PPM_SC_X(RISCV_HWPROBE, 416)
+	PPM_SC_X(RISCV_HWPROBE, 416) \
+	PPM_SC_X(FUTEX_WAKE, 417) \
+	PPM_SC_X(FUTEX_REQUEUE, 418) \
+	PPM_SC_X(FUTEX_WAIT, 419)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = (value),
