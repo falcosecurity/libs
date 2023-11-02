@@ -67,7 +67,7 @@ int BPF_PROG(dup3_x,
 	ringbuf__store_s64(&ringbuf, (int64_t)newfd);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	unsigned long flags = extract__syscall_argument(regs, 2);
+	int32_t flags = extract__syscall_argument(regs, 2);
 	ringbuf__store_u32(&ringbuf, dup3_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

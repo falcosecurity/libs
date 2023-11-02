@@ -2047,7 +2047,7 @@ static __always_inline uint64_t capabilities_to_scap(unsigned long caps)
 	return res;
 }
 
-static __always_inline uint32_t dup3_flags_to_scap(unsigned long flags)
+static __always_inline uint32_t dup3_flags_to_scap(int flags)
 {
 	uint32_t res = 0;
 #ifdef O_CLOEXEC
