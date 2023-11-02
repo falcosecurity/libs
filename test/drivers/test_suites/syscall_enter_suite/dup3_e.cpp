@@ -14,7 +14,7 @@ TEST(SyscallEnter, dup3E)
 
 	/* If `oldfd` equals `newfd`, then dup3() fails with the error `EINVAL`. */
 	int32_t new_fd = old_fd;
-	uint32_t flags = O_CLOEXEC;
+	int32_t flags = O_CLOEXEC;
 	int32_t res = syscall(__NR_dup3, old_fd, new_fd, flags);
 	assert_syscall_state(SYSCALL_FAILURE, "dup3", res);
 

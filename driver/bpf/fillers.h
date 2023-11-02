@@ -6289,8 +6289,8 @@ FILLER(sys_dup3_x, true)
 {
 	unsigned long val;
 	unsigned long retval;
-	unsigned long flags;
 	unsigned long res;
+	unsigned int scap_flags;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
@@ -6312,9 +6312,9 @@ FILLER(sys_dup3_x, true)
 	/*
 	 * flags
 	 */
-	val = bpf_syscall_get_argument(data, 2);
-	flags = dup3_flags_to_scap(val);
-	return bpf_push_u32_to_ring(data, flags);
+	int flags = bpf_syscall_get_argument(data, 2);
+	scap_flags = dup3_flags_to_scap(flags);
+	return bpf_push_u32_to_ring(data, scap_flags);
 }
 
 FILLER(sys_umount_x, true)
