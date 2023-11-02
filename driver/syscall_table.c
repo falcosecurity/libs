@@ -928,4 +928,13 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_riscv_hwprobe
 	[__NR_riscv_hwprobe - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RISCV_HWPROBE},
 #endif
+#ifdef __NR_futex_wake
+	[__NR_futex_wake - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FUTEX_WAKE},
+#endif
+#ifdef __NR_futex_requeue
+	[__NR_futex_requeue - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FUTEX_REQUEUE},
+#endif
+#ifdef __NR_futex_wait
+	[__NR_futex_wait - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FUTEX_WAIT},
+#endif
 };

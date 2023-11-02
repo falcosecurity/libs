@@ -938,3 +938,15 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_fchmodat2
 #define __NR_fchmodat2 452
 #endif
+#ifndef __NR_map_shadow_stack
+#define __NR_map_shadow_stack 453
+#endif
+#ifndef __NR_futex_wake
+#define __NR_futex_wake 454
+#endif
+#ifndef __NR_futex_wait
+#define __NR_futex_wait 455
+#endif
+#ifndef __NR_futex_requeue
+#define __NR_futex_requeue 456
+#endif
