@@ -25,19 +25,6 @@ limitations under the License.
 #include "scap-int.h"
 #include "strerror.h"
 
-static int32_t scap_fd_scan_vtable(struct scap_proclist* proclist, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, uint64_t n_fdinfos, const scap_fdinfo* fdinfos, char *error)
-{
-	uint64_t i;
-
-	for (i = 0; i < n_fdinfos; i++)
-	{
-		scap_fdinfo fdi = fdinfos[i];
-		scap_add_fd_to_proc_table(proclist, dst_tinfo, &fdi, error);
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint64_t n_tinfos, const scap_threadinfo *tinfos, void* ctx, get_fdinfos_fn get_fdinfos)
 {
 	scap_threadinfo *tinfo;
@@ -92,7 +79,13 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 			res = (*get_fdinfos)(ctx, &tinfos[i], &n_fdinfos, &fdinfos);
 			if(res == SCAP_SUCCESS)
 			{
-				res = scap_fd_scan_vtable(proclist, &tinfos[i], tinfo, n_fdinfos, fdinfos, error);
+				uint64_t j;
+
+				for(j = 0; j < n_fdinfos; j++)
+				{
+					scap_fdinfo fdi = fdinfos[j];
+					scap_add_fd_to_proc_table(proclist, tinfo, &fdi, error);
+				}
 			}
 		}
 	}
