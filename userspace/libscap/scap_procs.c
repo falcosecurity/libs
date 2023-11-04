@@ -185,8 +185,16 @@ int32_t default_proc_entry_callback(void* context, char* error, int64_t tid, sca
 
 void init_proclist(struct scap_proclist* proclist, proc_entry_callback callback, void* callback_context)
 {
-	proclist->m_proc_callback = callback;
-	proclist->m_proc_callback_context = callback_context;
+	if(callback == NULL)
+	{
+		proclist->m_proc_callback = default_proc_entry_callback;
+		proclist->m_proc_callback_context = proclist;
+	}
+	else
+	{
+		proclist->m_proc_callback = callback;
+		proclist->m_proc_callback_context = callback_context;
+	}
 
 	proclist->m_proclist = NULL;
 }
