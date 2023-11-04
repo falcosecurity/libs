@@ -711,15 +711,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// All parsed. Add the entry to the table, or fire the notification callback
 		//
-		if(proclist->m_proc_callback == NULL)
-		{
-			default_proc_entry_callback(proclist, error, tinfo.tid, &tinfo, NULL, NULL);
-		}
-		else
-		{
-			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, NULL);
-		}
+		proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, NULL);
 
 		if(sub_len && subreadsize != sub_len)
 		{
@@ -1627,15 +1619,7 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 		//
 		// Add the entry to the table, or fire the notification callback
 		//
-		if(proclist->m_proc_callback == NULL)
-		{
-			default_proc_entry_callback(proclist, error, tid, NULL, &fdi, NULL);
-		}
-		else
-		{
-			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, error, tid, NULL, &fdi, NULL);
-		}
+		proclist->m_proc_callback(proclist->m_proc_callback_context, error, tid, NULL, &fdi, NULL);
 	}
 
 	//

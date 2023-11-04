@@ -832,15 +832,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		//
 		// Done. Add the entry to the process table, or fire the notification callback
 		//
-		if(proclist->m_proc_callback == NULL)
-		{
-			default_proc_entry_callback(proclist, error, tid, &tinfo, NULL, NULL);
-		}
-		else
-		{
-			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, &new_tinfo);
-		}
+		proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, &new_tinfo);
 	}
 	else
 	{
