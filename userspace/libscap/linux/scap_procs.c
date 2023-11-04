@@ -861,7 +861,8 @@ static int32_t single_thread_proc_callback(void* context, char* error, int64_t t
 //
 // Read a single thread info from /proc
 //
-int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
+int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, char* procdirname, uint64_t tid,
+			      struct scap_threadinfo** pi, char* error, bool scan_sockets)
 {
 	struct scap_proclist single_thread_proclist;
 	init_proclist(&single_thread_proclist, single_thread_proc_callback, pi);
@@ -1154,7 +1155,7 @@ struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, stru
 	struct scap_threadinfo* tinfo = NULL;
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_read_thread(linux_platform, proclist, filename, tid, &tinfo, linux_platform->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	if(scap_proc_read_thread(linux_platform, filename, tid, &tinfo, linux_platform->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		free(tinfo);
 		return NULL;
