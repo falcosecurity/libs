@@ -75,10 +75,6 @@ int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinf
 void scap_free_iflist(scap_addrlist* ifhandle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
-// Allocate a file descriptor
-int32_t scap_fd_allocate_fdinfo(scap_fdinfo **fdi, int64_t fd, scap_fd_type type);
-// Free a file descriptor
-void scap_fd_free_fdinfo(scap_fdinfo **fdi);
 
 int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo, const char* procdirname);
 

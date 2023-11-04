@@ -117,25 +117,3 @@ void scap_free_device_table(scap_mountinfo* dev_list)
 		free(dev);
 	}
 }
-
-int32_t scap_fd_allocate_fdinfo(scap_fdinfo **fdi, int64_t fd, scap_fd_type type)
-{
-	ASSERT(NULL == *fdi);
-	*fdi = (scap_fdinfo *)malloc(sizeof(scap_fdinfo));
-	if(*fdi == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-	(*fdi)->type = type;
-	(*fdi)->fd = fd;
-	return SCAP_SUCCESS;
-}
-
-void scap_fd_free_fdinfo(scap_fdinfo **fdi)
-{
-	if(NULL != *fdi)
-	{
-		free(*fdi);
-		*fdi = NULL;
-	}
-}
