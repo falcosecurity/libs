@@ -54,32 +54,32 @@ void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo)
 //
 int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
-	int32_t uth_status = SCAP_SUCCESS;
-	scap_fdinfo *tfdi;
-
-	//
-	// Make sure this fd doesn't already exist
-	//
-	HASH_FIND_INT64(tinfo->fdlist, &(fdi->fd), tfdi);
-	if(tfdi != NULL)
-	{
-		//
-		// This can happen if:
-		//  - a close() has been dropped when capturing
-		//  - an fd has been closed by clone() or execve() (it happens when the fd is opened with the FD_CLOEXEC flag,
-		//    which we don't currently parse.
-		// In either case, removing the old fd, replacing it with the new one and keeping going is a reasonable
-		// choice.
-		//
-		HASH_DEL(tinfo->fdlist, tfdi);
-		free(tfdi);
-	}
-
 	//
 	// Add the fd to the table, or fire the notification callback
 	//
 	if(proclist->m_proc_callback == NULL)
 	{
+		int32_t uth_status = SCAP_SUCCESS;
+		scap_fdinfo *tfdi;
+
+		//
+		// Make sure this fd doesn't already exist
+		//
+		HASH_FIND_INT64(tinfo->fdlist, &(fdi->fd), tfdi);
+		if(tfdi != NULL)
+		{
+			//
+			// This can happen if:
+			//  - a close() has been dropped when capturing
+			//  - an fd has been closed by clone() or execve() (it happens when the fd is opened with the FD_CLOEXEC flag,
+			//    which we don't currently parse.
+			// In either case, removing the old fd, replacing it with the new one and keeping going is a reasonable
+			// choice.
+			//
+			HASH_DEL(tinfo->fdlist, tfdi);
+			free(tfdi);
+		}
+
 		scap_fdinfo *new_fdi = malloc(sizeof(*new_fdi));
 		if(new_fdi == NULL)
 		{
