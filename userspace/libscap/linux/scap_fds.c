@@ -1254,7 +1254,7 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform, struct s
 	char link_name[SCAP_MAX_PATH_SIZE];
 	struct stat sb;
 	uint64_t fd;
-	scap_fdinfo *fdi = NULL;
+	scap_fdinfo fdi;
 	uint64_t net_ns;
 	ssize_t r;
 	uint32_t fd_added = 0;
@@ -1293,13 +1293,13 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform, struct s
 	while((dir_entry_p = readdir(dir_p)) != NULL &&
 		(linux_platform->m_fd_lookup_limit == 0 || fd_added < linux_platform->m_fd_lookup_limit))
 	{
-		fdi = NULL;
 		snprintf(f_name, SCAP_MAX_PATH_SIZE, "%s/%s", fd_dir_name, dir_entry_p->d_name);
 
 		if(-1 == stat(f_name, &sb) || 1 != sscanf(dir_entry_p->d_name, "%"PRIu64, &fd))
 		{
 			continue;
 		}
+		fdi.fd = fd;
 
 		// In no driver mode to limit cpu usage we just parse sockets
 		// because we are interested only on them
@@ -1311,72 +1311,31 @@ int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform, struct s
 		switch(sb.st_mode & S_IFMT)
 		{
 		case S_IFIFO:
-			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_FIFO);
-			if(SCAP_FAILURE == res)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for fifo fd %" PRIu64, fd);
-				break;
-			}
-			res = scap_fd_handle_pipe(proclist, f_name, tinfo, fdi, error);
+			fdi.type = SCAP_FD_FIFO;
+			res = scap_fd_handle_pipe(proclist, f_name, tinfo, &fdi, error);
 			break;
 		case S_IFREG:
 		case S_IFBLK:
 		case S_IFCHR:
 		case S_IFLNK:
-			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_FILE_V2);
-			if(SCAP_FAILURE == res)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %" PRIu64, fd);
-				break;
-			}
-			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+			fdi.type = SCAP_FD_FILE_V2;
+			fdi.ino = sb.st_ino;
+			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, &fdi, procdir, error);
 			break;
 		case S_IFDIR:
-			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_DIRECTORY);
-			if(SCAP_FAILURE == res)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for dir fd %" PRIu64, fd);
-				break;
-			}
-			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+			fdi.type = SCAP_FD_DIRECTORY;
+			fdi.ino = sb.st_ino;
+			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, &fdi, procdir, error);
 			break;
 		case S_IFSOCK:
-			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_UNKNOWN);
-			if(SCAP_FAILURE == res)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for sock fd %" PRIu64, fd);
-				break;
-			}
-			res = scap_fd_handle_socket(proclist, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
-			if(proclist->m_proc_callback == NULL)
-			{
-				// we can land here if we've got a netlink socket
-				if(fdi->type == SCAP_FD_UNKNOWN)
-				{
-					scap_fd_free_fdinfo(&fdi);
-				}
-			}
+			fdi.type = SCAP_FD_UNKNOWN;
+			res = scap_fd_handle_socket(proclist, f_name, tinfo, &fdi, procdir, net_ns, sockets_by_ns, error);
 			break;
 		default:
-			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_UNSUPPORTED);
-			if(SCAP_FAILURE == res)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for unsupported fd %" PRIu64, fd);
-				break;
-			}
-			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
+			fdi.type = SCAP_FD_UNSUPPORTED;
+			fdi.ino = sb.st_ino;
+			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, &fdi, procdir, error);
 			break;
-		}
-
-		if(proclist->m_proc_callback != NULL)
-		{
-			if(fdi)
-			{
-				scap_fd_free_fdinfo(&fdi);
-			}
 		}
 
 		if(SCAP_SUCCESS != res)
