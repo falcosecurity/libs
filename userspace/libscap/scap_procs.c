@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "strerror.h"
 
 //
 // Delete a process entry
@@ -91,4 +92,93 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not add fd to hash table");
 		return SCAP_FAILURE;
 	}
+}
+
+int32_t default_proc_entry_callback(void* context, char* error, int64_t tid, scap_threadinfo* tinfo,
+				    scap_fdinfo* fdinfo, scap_threadinfo** new_tinfo)
+{
+	struct scap_proclist* proclist = (struct scap_proclist*)context;
+	if(fdinfo != NULL)
+	{
+		// add an fd
+
+		// First, find the threadinfo (if not passed by the caller)
+		if(tinfo == NULL)
+		{
+			//
+			// Identify the process descriptor
+			//
+			HASH_FIND_INT64(proclist->m_proclist, &tid, tinfo);
+
+			if(tinfo == NULL)
+			{
+				//
+				// We have the fdinfo but no associated tid, skip it
+				//
+				return SCAP_SUCCESS;
+			}
+		}
+
+		int32_t uth_status = SCAP_SUCCESS;
+		scap_fdinfo *tfdi;
+
+		// Make sure this fd doesn't already exist
+		HASH_FIND_INT64(tinfo->fdlist, &(fdinfo->fd), tfdi);
+		if(tfdi != NULL)
+		{
+			//
+			// This can happen if:
+			//  - a close() has been dropped when capturing
+			//  - an fd has been closed by clone() or execve() (it happens when the fd is opened with the FD_CLOEXEC flag,
+			//    which we don't currently parse.
+			// In either case, removing the old fd, replacing it with the new one and keeping going is a reasonable
+			// choice.
+			//
+			HASH_DEL(tinfo->fdlist, tfdi);
+			free(tfdi);
+		}
+
+		scap_fdinfo *new_fdi = malloc(sizeof(*new_fdi));
+		if(new_fdi == NULL)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (1)");
+			return SCAP_FAILURE;
+		}
+		*new_fdi = *fdinfo;
+
+		HASH_ADD_INT64(tinfo->fdlist, fd, new_fdi);
+		if(uth_status != SCAP_SUCCESS)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
+			return SCAP_FAILURE;
+		}
+	}
+	else
+	{
+		// add a thread
+		// get a copy of tinfo on the heap
+		scap_threadinfo *heap_tinfo = malloc(sizeof(*heap_tinfo));
+		if(tinfo == NULL)
+		{
+			return scap_errprintf(error, errno, "can't allocate procinfo struct");
+		}
+
+		// copy the structure contents
+		*heap_tinfo = *tinfo;
+
+		int32_t uth_status = SCAP_SUCCESS;
+		HASH_ADD_INT64(proclist->m_proclist, tid, heap_tinfo);
+		if(uth_status != SCAP_SUCCESS)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
+			free(heap_tinfo);
+			return SCAP_FAILURE;
+		}
+
+		if(new_tinfo)
+		{
+			*new_tinfo = heap_tinfo;
+		}
+	}
+	return SCAP_SUCCESS;
 }

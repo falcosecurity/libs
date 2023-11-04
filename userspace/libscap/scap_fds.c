@@ -59,41 +59,7 @@ int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinf
 	//
 	if(proclist->m_proc_callback == NULL)
 	{
-		int32_t uth_status = SCAP_SUCCESS;
-		scap_fdinfo *tfdi;
-
-		//
-		// Make sure this fd doesn't already exist
-		//
-		HASH_FIND_INT64(tinfo->fdlist, &(fdi->fd), tfdi);
-		if(tfdi != NULL)
-		{
-			//
-			// This can happen if:
-			//  - a close() has been dropped when capturing
-			//  - an fd has been closed by clone() or execve() (it happens when the fd is opened with the FD_CLOEXEC flag,
-			//    which we don't currently parse.
-			// In either case, removing the old fd, replacing it with the new one and keeping going is a reasonable
-			// choice.
-			//
-			HASH_DEL(tinfo->fdlist, tfdi);
-			free(tfdi);
-		}
-
-		scap_fdinfo *new_fdi = malloc(sizeof(*new_fdi));
-		if(new_fdi == NULL)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (1)");
-			return SCAP_FAILURE;
-		}
-		*new_fdi = *fdi;
-
-		HASH_ADD_INT64(tinfo->fdlist, fd, new_fdi);
-		if(uth_status != SCAP_SUCCESS)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
-			return SCAP_FAILURE;
-		}
+		return default_proc_entry_callback(proclist, error, tinfo->tid, tinfo, fdi, NULL);
 	}
 	else
 	{

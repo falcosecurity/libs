@@ -48,6 +48,9 @@ typedef struct scap_fdinfo scap_fdinfo;
 typedef int32_t (*proc_entry_callback)(void* context, char* error, int64_t tid, scap_threadinfo* tinfo,
 				       scap_fdinfo* fdinfo, scap_threadinfo** new_tinfo);
 
+int32_t default_proc_entry_callback(void* context, char* error, int64_t tid, scap_threadinfo* tinfo,
+				    scap_fdinfo* fdinfo, scap_threadinfo** new_tinfo);
+
 struct scap_proclist
 {
 	proc_entry_callback m_proc_callback;

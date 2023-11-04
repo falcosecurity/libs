@@ -557,7 +557,6 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	char filename[252];
 	char line[SCAP_MAX_ENV_SIZE];
 	struct scap_threadinfo tinfo = {};
-	int32_t uth_status = SCAP_SUCCESS;
 	FILE* f;
 	size_t filesize;
 	size_t exe_len;
@@ -835,19 +834,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		//
 		if(proclist->m_proc_callback == NULL)
 		{
-			new_tinfo = malloc(sizeof(*new_tinfo));
-			if(new_tinfo == NULL)
-			{
-				return scap_errprintf(error, 0, "process table allocation error (1)");
-			}
-			*new_tinfo = tinfo;
-
-			HASH_ADD_INT64(proclist->m_proclist, tid, new_tinfo);
-			if(uth_status != SCAP_SUCCESS)
-			{
-				free(new_tinfo);
-				return scap_errprintf(error, 0, "process table allocation error (2)");
-			}
+			default_proc_entry_callback(proclist, error, tid, &tinfo, NULL, NULL);
 		}
 		else
 		{
