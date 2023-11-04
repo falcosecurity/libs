@@ -86,7 +86,6 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 	size_t padding_len;
 	uint16_t stlen;
 	uint32_t padding;
-	int32_t uth_status = SCAP_SUCCESS;
 	uint32_t toread;
 	int fseekres;
 
@@ -714,26 +713,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		if(proclist->m_proc_callback == NULL)
 		{
-			//
-			// All parsed. Allocate the new entry and copy the temp one into into it.
-			//
-			struct scap_threadinfo *ntinfo = (scap_threadinfo *)malloc(sizeof(scap_threadinfo));
-			if(ntinfo == NULL)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
-				return SCAP_FAILURE;
-			}
-
-			// Structure copy
-			*ntinfo = tinfo;
-
-			HASH_ADD_INT64(proclist->m_proclist, tid, ntinfo);
-			if(uth_status != SCAP_SUCCESS)
-			{
-				free(ntinfo);
-				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
-				return SCAP_FAILURE;
-			}
+			default_proc_entry_callback(proclist, error, tinfo.tid, &tinfo, NULL, NULL);
 		}
 		else
 		{
@@ -1625,12 +1605,9 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 	size_t readsize;
 	size_t totreadsize = 0;
 	size_t padding_len;
-	struct scap_threadinfo *tinfo;
 	scap_fdinfo fdi;
-	scap_fdinfo *nfdi;
 	//  uint16_t stlen;
 	uint64_t tid;
-	int32_t uth_status = SCAP_SUCCESS;
 	uint32_t padding;
 
 	//
@@ -1640,18 +1617,6 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 	CHECK_READ_SIZE_ERR(readsize, sizeof(tid), error);
 	totreadsize += readsize;
 
-	if(proclist->m_proc_callback == NULL)
-	{
-		//
-		// Identify the process descriptor
-		//
-		HASH_FIND_INT64(proclist->m_proclist, &tid, tinfo);
-	}
-	else
-	{
-		tinfo = NULL;
-	}
-
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
 		if(scap_fd_read_from_disk(&fdi, &readsize, block_type, r, error) != SCAP_SUCCESS)
@@ -1659,47 +1624,15 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 			return SCAP_FAILURE;
 		}
 		totreadsize += readsize;
-
 		//
 		// Add the entry to the table, or fire the notification callback
 		//
 		if(proclist->m_proc_callback == NULL)
 		{
-			if(tinfo == NULL)
-			{
-				//
-				// We have the fdinfo but no associated tid, skip it
-				//
-				continue;
-			}
-
-			//
-			// Parsed successfully. Allocate the new entry and copy the temp one into into it.
-			//
-			nfdi = (scap_fdinfo *)malloc(sizeof(scap_fdinfo));
-			if(nfdi == NULL)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
-				return SCAP_FAILURE;
-			}
-
-			// Structure copy
-			*nfdi = fdi;
-
-			ASSERT(tinfo != NULL);
-
-			HASH_ADD_INT64(tinfo->fdlist, fd, nfdi);
-			if(uth_status != SCAP_SUCCESS)
-			{
-				free(nfdi);
-				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
-				return SCAP_FAILURE;
-			}
+			default_proc_entry_callback(proclist, error, tid, NULL, &fdi, NULL);
 		}
 		else
 		{
-			ASSERT(tinfo == NULL);
-
 			proclist->m_proc_callback(
 				proclist->m_proc_callback_context, error, tid, NULL, &fdi, NULL);
 		}

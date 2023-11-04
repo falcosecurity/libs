@@ -34,37 +34,20 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 
 	for (i = 0; i < n_tinfos; i++)
 	{
+		// we need a copy because tinfos is const
+		// note: we drop the copy, so we lose the filtering information (tinfo->filtered_out)
+		// but that is only ever used when reading captures (and that code does not call this function)
+		new_tinfo = tinfos[i];
+
 		//
 		// Add the entry to the process table, or fire the notification callback
 		//
 		if(proclist->m_proc_callback == NULL)
 		{
-			// get a copy of tinfos[i] on the heap
-			tinfo = malloc(sizeof(*tinfo));
-			if(tinfo == NULL)
-			{
-				return scap_errprintf(error, errno, "can't allocate procinfo struct");
-			}
-
-			// copy the structure contents
-			*tinfo = tinfos[i];
-
-			int32_t uth_status = SCAP_SUCCESS;
-			HASH_ADD_INT64(proclist->m_proclist, tid, tinfo);
-			if(uth_status != SCAP_SUCCESS)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
-				free(tinfo);
-				return SCAP_FAILURE;
-			}
+			res = default_proc_entry_callback(proclist, error, tinfos[i].tid, &new_tinfo, NULL, &tinfo);
 		}
 		else
 		{
-			// we need a copy because tinfos is const
-			// note: we drop the copy, so we lose the filtering information (tinfo->filtered_out)
-			// but that is only ever used when reading captures (and that code does not call this function)
-			new_tinfo = tinfos[i];
-
 			proclist->m_proc_callback(
 				proclist->m_proc_callback_context, error, new_tinfo.tid, &new_tinfo, NULL, &tinfo);
 		}
