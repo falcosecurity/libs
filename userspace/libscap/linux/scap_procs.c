@@ -852,7 +852,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		else
 		{
 			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, tinfo.tid, &tinfo, NULL);
+				proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, &new_tinfo);
 		}
 	}
 	else

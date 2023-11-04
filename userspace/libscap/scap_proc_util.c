@@ -66,9 +66,7 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 			new_tinfo = tinfos[i];
 
 			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, new_tinfo.tid, &new_tinfo, NULL);
-
-			tinfo = &new_tinfo;
+				proclist->m_proc_callback_context, error, new_tinfo.tid, &new_tinfo, NULL, &tinfo);
 		}
 
 		if(tinfo->pid == tinfo->tid)

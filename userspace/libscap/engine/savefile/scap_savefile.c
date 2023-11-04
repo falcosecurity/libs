@@ -738,7 +738,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		else
 		{
 			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, tinfo.tid, &tinfo, NULL);
+				proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, NULL);
 		}
 
 		if(sub_len && subreadsize != sub_len)
@@ -1701,7 +1701,7 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 			ASSERT(tinfo == NULL);
 
 			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, tid, NULL, &fdi);
+				proclist->m_proc_callback_context, error, tid, NULL, &fdi, NULL);
 		}
 	}
 
