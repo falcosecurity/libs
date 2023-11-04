@@ -1079,7 +1079,6 @@ private:
 	void deinit_state();
 	void consume_initialstate_events();
 	bool is_initialstate_event(scap_evt* pevent);
-	void import_thread_table();
 	void import_ifaddr_list();
 	void import_user_list();
 	void add_protodecoders();
