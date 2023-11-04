@@ -15,13 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "scap.h"
 #include "scap-int.h"
 #include "uthash_ext.h"
-#include <inttypes.h>
 #include <string.h>
 
 void scap_fd_free_table(scap_fdinfo **fds)
