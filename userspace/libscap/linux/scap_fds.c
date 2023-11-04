@@ -96,7 +96,8 @@ int32_t scap_fd_handle_pipe(struct scap_proclist* proclist, char *fname, scap_th
 	strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 
 	fdi->ino = ino;
-	return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
+	proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid, tinfo, fdi, NULL);
+	return SCAP_SUCCESS;
 }
 
 static inline uint32_t open_flags_to_scap(unsigned long flags)
@@ -354,7 +355,8 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist, char *fname,
 		strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 	}
 
-	return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
+	proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid, tinfo, fdi, NULL);
+	return SCAP_SUCCESS;
 }
 
 int32_t scap_fd_handle_socket(struct scap_proclist *proclist, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
@@ -417,7 +419,8 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist, char *fname, scap_
 	{
 		// it's a kind of socket, but we don't support it right now
 		fdi->type = SCAP_FD_UNSUPPORTED;
-		return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
+		proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid, tinfo, fdi, NULL);
+		return SCAP_SUCCESS;
 	}
 
 	//
@@ -429,12 +432,9 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist, char *fname, scap_
 		memcpy(&(fdi->info), &(tfdi->info), sizeof(fdi->info));
 		fdi->ino = ino;
 		fdi->type = tfdi->type;
-		return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
+		proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid, tinfo, fdi, NULL);
 	}
-	else
-	{
-		return SCAP_SUCCESS;
-	}
+	return SCAP_SUCCESS;
 }
 
 int32_t scap_fd_read_unix_sockets_from_proc_fs(const char* filename, scap_fdinfo **sockets, char *error)
