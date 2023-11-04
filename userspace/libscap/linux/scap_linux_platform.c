@@ -133,9 +133,7 @@ struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callbac
 	struct scap_platform* generic = &platform->m_generic;
 	generic->m_vtable = &scap_linux_platform_vtable;
 
-	generic->m_proclist.m_proc_callback = proc_callback;
-	generic->m_proclist.m_proc_callback_context = proc_callback_context;
-	generic->m_proclist.m_proclist = NULL;
+	init_proclist(&generic->m_proclist, proc_callback, proc_callback_context);
 
 	return generic;
 }
