@@ -65,26 +65,27 @@ static int32_t scap_fd_scan_vtable(struct scap_proclist* proclist, const scap_th
 int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint64_t n_tinfos, const scap_threadinfo *tinfos, void* ctx, get_fdinfos_fn get_fdinfos)
 {
 	scap_threadinfo *tinfo;
+	scap_threadinfo new_tinfo;
 	uint32_t res = SCAP_SUCCESS;
 	uint64_t i;
 
 	for (i = 0; i < n_tinfos; i++)
 	{
-		bool free_tinfo = false;
-		tinfo = calloc(sizeof(*tinfo), 1);
-		if(tinfo == NULL)
-		{
-			return scap_errprintf(error, errno, "can't allocate procinfo struct");
-		}
-
-		// copy the structure contents
-		*tinfo = tinfos[i];
-
 		//
 		// Add the entry to the process table, or fire the notification callback
 		//
 		if(proclist->m_proc_callback == NULL)
 		{
+			// get a copy of tinfos[i] on the heap
+			tinfo = malloc(sizeof(*tinfo));
+			if(tinfo == NULL)
+			{
+				return scap_errprintf(error, errno, "can't allocate procinfo struct");
+			}
+
+			// copy the structure contents
+			*tinfo = tinfos[i];
+
 			int32_t uth_status = SCAP_SUCCESS;
 			HASH_ADD_INT64(proclist->m_proclist, tid, tinfo);
 			if(uth_status != SCAP_SUCCESS)
@@ -96,9 +97,15 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 		}
 		else
 		{
+			// we need a copy because tinfos is const
+			// note: we drop the copy, so we lose the filtering information (tinfo->filtered_out)
+			// but that is only ever used when reading captures (and that code does not call this function)
+			new_tinfo = tinfos[i];
+
 			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, tinfo->tid, tinfo, NULL);
-			free_tinfo = true;
+				proclist->m_proc_callback_context, new_tinfo.tid, &new_tinfo, NULL);
+
+			tinfo = &new_tinfo;
 		}
 
 		if(tinfo->pid == tinfo->tid)
@@ -111,11 +118,6 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 			{
 				res = scap_fd_scan_vtable(proclist, &tinfos[i], tinfo, n_fdinfos, fdinfos, error);
 			}
-		}
-
-		if(free_tinfo)
-		{
-			free(tinfo);
 		}
 	}
 
