@@ -82,16 +82,6 @@ int32_t scap_refresh_proc_table(struct scap_platform* platform)
 	return SCAP_FAILURE;
 }
 
-scap_threadinfo* scap_get_proc_table(struct scap_platform* platform)
-{
-	if (platform)
-	{
-		return platform->m_proclist.m_proclist;
-	}
-
-	return NULL;
-}
-
 bool scap_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
 {
 	if (platform && platform->m_vtable->is_thread_alive)

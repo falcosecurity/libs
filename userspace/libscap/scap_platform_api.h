@@ -69,34 +69,6 @@ struct scap_threadinfo* scap_proc_get(struct scap_platform* platform, int64_t ti
 
 int32_t scap_refresh_proc_table(struct scap_platform* platform);
 
-/*!
-  \brief Get the process list for the given capture instance
-
-  \param platform Handle to the platform instance.
-
-  \return Pointer to the process list.
-
-  for live captures, the process list is created when the capture starts by scanning the
-  proc file system. For offline captures, it is retrieved from the file.
-  The process list contains information about the processes that were already open when
-  the capture started. It can be traversed with uthash, using the following syntax:
-
-  \code
-  scap_threadinfo *pi;
-  scap_threadinfo *tpi;
-  scap_threadinfo *table = scap_get_proc_table(phandle);
-
-  HASH_ITER(hh, table, pi, tpi)
-  {
-    // do something with pi
-  }
-  \endcode
-
-  Refer to the documentation of the \ref scap_threadinfo struct for details about its
-  content.
-*/
-struct scap_threadinfo* scap_get_proc_table(struct scap_platform* platform);
-
 // Check if the given thread exists in /proc
 bool scap_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm);
 
