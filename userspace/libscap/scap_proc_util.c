@@ -28,35 +28,11 @@ limitations under the License.
 static int32_t scap_fd_scan_vtable(struct scap_proclist* proclist, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, uint64_t n_fdinfos, const scap_fdinfo* fdinfos, char *error)
 {
 	uint64_t i;
-	scap_fdinfo *fdi = NULL;
-	uint32_t res;
 
 	for (i = 0; i < n_fdinfos; i++)
 	{
-		res = scap_fd_allocate_fdinfo(&fdi, fdinfos[i].fd, fdinfos[i].type);
-		if (res != SCAP_SUCCESS)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %" PRIu64, fdinfos[i].fd);
-			return res;
-		}
-
-		// copy the contents
-		*fdi = fdinfos[i];
-
-		res = scap_add_fd_to_proc_table(proclist, dst_tinfo, fdi, error);
-		if (res != SCAP_SUCCESS)
-		{
-			scap_fd_free_fdinfo(&fdi);
-			continue;
-		}
-
-		if(proclist->m_proc_callback != NULL)
-		{
-			if(fdi)
-			{
-				scap_fd_free_fdinfo(&fdi);
-			}
-		}
+		scap_fdinfo fdi = fdinfos[i];
+		scap_add_fd_to_proc_table(proclist, dst_tinfo, &fdi, error);
 	}
 
 	return SCAP_SUCCESS;
