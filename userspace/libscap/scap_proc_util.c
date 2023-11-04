@@ -16,14 +16,8 @@ limitations under the License.
 
 */
 
-#include <errno.h>
-#include <stdint.h>
-#include <stdio.h>
-
 #include "scap_proc_util.h"
 #include "scap.h"
-#include "scap-int.h"
-#include "strerror.h"
 
 int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint64_t n_tinfos, const scap_threadinfo *tinfos, void* ctx, get_fdinfos_fn get_fdinfos)
 {
