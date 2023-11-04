@@ -70,8 +70,8 @@ struct sinsp_stats{}; // note: makes the unique_ptr static asserts happy
 */
 #define DEFAULT_ASYNC_EVENT_QUEUE_SIZE 1000
 
-void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo);
+int32_t on_new_entry_from_proc(void* context, char* error, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo,
+			       scap_threadinfo** new_tinfo);
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
@@ -1108,13 +1108,18 @@ void sinsp::on_new_entry_from_proc(void* context,
 	}
 }
 
-void on_new_entry_from_proc(void* context,
-							int64_t tid,
-							scap_threadinfo* tinfo,
-							scap_fdinfo* fdinfo)
+int32_t on_new_entry_from_proc(void* context, char* error, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo,
+			       scap_threadinfo** new_tinfo)
 {
 	sinsp* _this = (sinsp*)context;
 	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo);
+
+	if(new_tinfo != NULL)
+	{
+		*new_tinfo = tinfo;
+	}
+
+	return SCAP_SUCCESS;
 }
 
 void sinsp::import_ifaddr_list()
