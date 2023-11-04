@@ -75,9 +75,7 @@ struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callb
 
 	platform->m_vtable = &scap_generic_platform_vtable;
 
-	platform->m_proclist.m_proc_callback = proc_callback;
-	platform->m_proclist.m_proc_callback_context = proc_callback_context;
-	platform->m_proclist.m_proclist = NULL;
+	init_proclist(&platform->m_proclist, proc_callback, proc_callback_context);
 
 	return platform;
 }

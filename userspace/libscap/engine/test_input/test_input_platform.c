@@ -95,9 +95,7 @@ struct scap_platform* scap_test_input_alloc_platform(proc_entry_callback proc_ca
 	struct scap_platform* generic = &platform->m_generic;
 	generic->m_vtable = &scap_test_input_platform;
 
-	platform->m_generic.m_proclist.m_proc_callback = proc_callback;
-	platform->m_generic.m_proclist.m_proc_callback_context = proc_callback_context;
-	platform->m_generic.m_proclist.m_proclist = NULL;
+	init_proclist(&platform->m_generic.m_proclist, proc_callback, proc_callback_context);
 
 	return generic;
 }

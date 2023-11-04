@@ -59,6 +59,8 @@ struct scap_proclist
 	scap_threadinfo* m_proclist;
 };
 
+void init_proclist(struct scap_proclist* proclist, proc_entry_callback callback, void* callback_context);
+
 #ifdef __cplusplus
 }
 #endif
