@@ -58,7 +58,8 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 				for(j = 0; j < n_fdinfos; j++)
 				{
 					scap_fdinfo fdi = fdinfos[j];
-					scap_add_fd_to_proc_table(proclist, tinfo, &fdi, error);
+					proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid,
+								  tinfo, &fdi, NULL);
 				}
 			}
 		}

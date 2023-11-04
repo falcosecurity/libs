@@ -48,20 +48,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo)
 	}
 }
 
-
-//
-// Add the file descriptor info pointed by fdi to the fd table for process tinfo.
-//
-int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
-{
-	//
-	// Add the fd to the table, or fire the notification callback
-	//
-	proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid, tinfo, fdi, NULL);
-
-	return SCAP_SUCCESS;
-}
-
 //
 // Free the device table
 //
