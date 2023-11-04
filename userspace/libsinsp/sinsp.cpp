@@ -406,11 +406,6 @@ void sinsp::init()
 		consume_initialstate_events();
 	}
 
-	if(is_capture())
-	{
-		import_thread_table();
-	}
-
 	import_ifaddr_list();
 
 	import_user_list();
@@ -1149,24 +1144,6 @@ void on_new_entry_from_proc(void* context,
 {
 	sinsp* _this = (sinsp*)context;
 	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo);
-}
-
-void sinsp::import_thread_table()
-{
-	scap_threadinfo *pi;
-	scap_threadinfo *tpi;
-
-	scap_threadinfo *table = scap_get_proc_table(get_scap_platform());
-
-	//
-	// Scan the scap table and add the threads to our list
-	//
-	HASH_ITER(hh, table, pi, tpi)
-	{
-		sinsp_threadinfo* newti = build_threadinfo();
-		newti->init(pi);
-		m_thread_manager->add_thread(newti, true);
-	}
 }
 
 void sinsp::import_ifaddr_list()
