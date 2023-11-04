@@ -80,7 +80,15 @@ int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinf
 	//
 	if(proclist->m_proc_callback == NULL)
 	{
-		HASH_ADD_INT64(tinfo->fdlist, fd, fdi);
+		scap_fdinfo *new_fdi = malloc(sizeof(*new_fdi));
+		if(new_fdi == NULL)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (1)");
+			return SCAP_FAILURE;
+		}
+		*new_fdi = *fdi;
+
+		HASH_ADD_INT64(tinfo->fdlist, fd, new_fdi);
 		if(uth_status != SCAP_SUCCESS)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
