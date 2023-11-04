@@ -719,10 +719,8 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 	params.fbuffer_size = 0;
 	oargs.engine_params = &params;
 
-	// AFAICT this is because tinfo==NULL when calling the callback in scap_read_fdlist
-	struct scap_platform* platform = scap_savefile_alloc_platform(nullptr, nullptr);
+	struct scap_platform* platform = scap_savefile_alloc_platform(::on_new_entry_from_proc, this);
 	params.platform = platform;
-
 	open_common(&oargs, &scap_savefile_engine, platform, SINSP_MODE_CAPTURE);
 #else
 	throw sinsp_exception("SAVEFILE engine is not supported in this build");
@@ -1013,11 +1011,11 @@ void sinsp::autodump_start(const std::string& dump_filename, bool compress)
 
 	if(compress)
 	{
-		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_GZIP, false);
+		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_GZIP, true);
 	}
 	else
 	{
-		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_NONE, false);
+		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_NONE, true);
 	}
 
 	m_is_dumping = true;
@@ -1056,7 +1054,6 @@ void sinsp::on_new_entry_from_proc(void* context,
 								   scap_threadinfo* tinfo,
 								   scap_fdinfo* fdinfo)
 {
-	ASSERT(tinfo != NULL);
 
 	//
 	// Retrieve machine information if we don't have it yet
@@ -1073,7 +1070,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 		}
 	}
 
-	if(m_suppress.check_suppressed_comm(tid, tinfo->comm))
+	if(tinfo && m_suppress.check_suppressed_comm(tid, tinfo->comm))
 	{
 		return;
 	}
@@ -1083,6 +1080,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 	//
 	if(fdinfo == NULL)
 	{
+		ASSERT(tinfo != NULL);
+
 		bool thread_added = false;
 		sinsp_threadinfo* newti = build_threadinfo();
 		newti->init(tinfo);
@@ -1117,6 +1116,8 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		if(!sinsp_tinfo)
 		{
+			ASSERT(tinfo != NULL);
+
 			sinsp_threadinfo* newti = build_threadinfo();
 			newti->init(tinfo);
 
