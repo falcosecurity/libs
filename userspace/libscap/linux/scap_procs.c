@@ -1148,7 +1148,7 @@ int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t *pid, c
 	return scap_errprintf(error, 0, "could not find tgid in status file %s", filename);
 }
 
-struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, struct scap_proclist* proclist, int64_t tid, bool scan_sockets)
+struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, int64_t tid, bool scan_sockets)
 {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 

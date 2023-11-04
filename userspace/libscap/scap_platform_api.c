@@ -66,7 +66,7 @@ struct scap_threadinfo* scap_proc_get(struct scap_platform* platform, int64_t ti
 {
 	if (platform && platform->m_vtable->get_proc)
 	{
-		return platform->m_vtable->get_proc(platform, &platform->m_proclist, tid, scan_sockets);
+		return platform->m_vtable->get_proc(platform, tid, scan_sockets);
 	}
 
 	return NULL;
