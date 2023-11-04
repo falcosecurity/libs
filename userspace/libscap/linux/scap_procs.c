@@ -549,7 +549,9 @@ int32_t scap_proc_fill_exe_writable(char* error, struct scap_threadinfo* tinfo, 
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, uint64_t* num_fds_ret, char *error)
+static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist,
+				       uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns,
+				       uint64_t* num_fds_ret, char* error)
 {
 	char dir_name[256];
 	char target_name[SCAP_MAX_PATH_SIZE];
@@ -824,26 +826,9 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 
 	scap_threadinfo *new_tinfo = &tinfo;
 	//
-	// if procinfo is set we assume this is a runtime lookup so no
-	// need to use the table
+	// Done. Add the entry to the process table, or fire the notification callback
 	//
-	if(!procinfo)
-	{
-		//
-		// Done. Add the entry to the process table, or fire the notification callback
-		//
-		proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, &new_tinfo);
-	}
-	else
-	{
-		new_tinfo = malloc(sizeof(*new_tinfo));
-		if(new_tinfo == NULL)
-		{
-			return scap_errprintf(error, 0, "process table allocation error (1)");
-		}
-		*new_tinfo = tinfo;
-		*procinfo = new_tinfo;
-	}
+	proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo.tid, &tinfo, NULL, &new_tinfo);
 
 	//
 	// Only add fds for processes, not threads
@@ -856,11 +841,31 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	return res;
 }
 
+static int32_t single_thread_proc_callback(void* context, char* error, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo, scap_threadinfo** new_tinfo)
+{
+	scap_threadinfo **out_proc = (scap_threadinfo**)context;
+	scap_threadinfo *heap_tinfo = malloc(sizeof(*heap_tinfo));
+	if(heap_tinfo == NULL)
+	{
+		return scap_errprintf(error, 0, "process table allocation error (scap_proc_read_thread)");
+	}
+
+	**out_proc = *tinfo;
+	if(new_tinfo)
+	{
+		*new_tinfo = *out_proc;
+	}
+	return SCAP_SUCCESS;
+}
+
 //
 // Read a single thread info from /proc
 //
 int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
 {
+	struct scap_proclist single_thread_proclist;
+	init_proclist(&single_thread_proclist, single_thread_proc_callback, pi);
+
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
 	int32_t res;
@@ -871,7 +876,8 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, struct
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(linux_platform, proclist, tid, procdirname, &sockets_by_ns, pi, NULL, add_error);
+	res = scap_proc_add_from_proc(linux_platform, &single_thread_proclist, tid, procdirname, &sockets_by_ns, NULL,
+				      add_error);
 	if(res != SCAP_SUCCESS)
 	{
 		scap_errprintf(error, 0, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
@@ -978,7 +984,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 		// We have a process that needs to be explored
 		//
 		uint64_t num_fds_this_proc;
-		res = scap_proc_add_from_proc(linux_platform, proclist, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
+		res = scap_proc_add_from_proc(linux_platform, proclist, tid, procdirname, &sockets_by_ns,
+					      &num_fds_this_proc, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			//
