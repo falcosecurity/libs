@@ -39,23 +39,26 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 		proclist->m_proc_callback(proclist->m_proc_callback_context, error, new_tinfo.tid, &new_tinfo, NULL,
 					  &tinfo);
 
-		if(tinfo->pid == tinfo->tid)
+		if(tinfo->pid != tinfo->tid)
 		{
-			uint64_t n_fdinfos;
-			const scap_fdinfo *fdinfos;
+			continue;
+		}
 
-			res = (*get_fdinfos)(ctx, &tinfos[i], &n_fdinfos, &fdinfos);
-			if(res == SCAP_SUCCESS)
-			{
-				uint64_t j;
+		uint64_t n_fdinfos;
+		const scap_fdinfo *fdinfos;
 
-				for(j = 0; j < n_fdinfos; j++)
-				{
-					scap_fdinfo fdi = fdinfos[j];
-					proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid,
-								  tinfo, &fdi, NULL);
-				}
-			}
+		res = (*get_fdinfos)(ctx, &tinfos[i], &n_fdinfos, &fdinfos);
+		if(res != SCAP_SUCCESS)
+		{
+			continue;
+		}
+
+		uint64_t j;
+		for(j = 0; j < n_fdinfos; j++)
+		{
+			scap_fdinfo fdi = fdinfos[j];
+			proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid,
+						  tinfo, &fdi, NULL);
 		}
 	}
 
