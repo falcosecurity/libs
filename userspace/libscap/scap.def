@@ -17,7 +17,6 @@ EXPORTS
 		scap_dump_ftell
 		scap_dump
 		scap_event_get_num
-		scap_get_proc_table
 		scap_event_getinfo
 		scap_stop_capture
 		scap_get_ifaddr_list
