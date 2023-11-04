@@ -57,15 +57,7 @@ int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinf
 	//
 	// Add the fd to the table, or fire the notification callback
 	//
-	if(proclist->m_proc_callback == NULL)
-	{
-		return default_proc_entry_callback(proclist, error, tinfo->tid, tinfo, fdi, NULL);
-	}
-	else
-	{
-		proclist->m_proc_callback(
-			proclist->m_proc_callback_context, error, tinfo->tid, tinfo, fdi, NULL);
-	}
+	proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid, tinfo, fdi, NULL);
 
 	return SCAP_SUCCESS;
 }

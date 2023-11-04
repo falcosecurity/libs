@@ -42,15 +42,8 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 		//
 		// Add the entry to the process table, or fire the notification callback
 		//
-		if(proclist->m_proc_callback == NULL)
-		{
-			res = default_proc_entry_callback(proclist, error, tinfos[i].tid, &new_tinfo, NULL, &tinfo);
-		}
-		else
-		{
-			proclist->m_proc_callback(
-				proclist->m_proc_callback_context, error, new_tinfo.tid, &new_tinfo, NULL, &tinfo);
-		}
+		proclist->m_proc_callback(proclist->m_proc_callback_context, error, new_tinfo.tid, &new_tinfo, NULL,
+					  &tinfo);
 
 		if(tinfo->pid == tinfo->tid)
 		{
