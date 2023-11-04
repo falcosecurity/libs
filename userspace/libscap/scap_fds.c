@@ -51,7 +51,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo)
 
 //
 // Add the file descriptor info pointed by fdi to the fd table for process tinfo.
-// Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 //
 int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
