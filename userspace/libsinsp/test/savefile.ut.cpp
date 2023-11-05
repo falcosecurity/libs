@@ -30,4 +30,42 @@ TEST(savefile, proclist)
 
 	ASSERT_EQ(inspector.m_thread_manager->get_thread_count(), 94);
 }
+
+TEST(savefile, filter)
+{
+	char filtered_scap[] = "filtered.XXXXXX.scap";
+
+	int filtered_fd = mkstemps(filtered_scap, strlen(".scap"));
+	ASSERT_NE(filtered_fd, -1);
+	close(filtered_fd);
+
+	{
+		sinsp inspector;
+		inspector.set_filter("proc.name=ifplugd");
+		inspector.open_savefile(RESOURCE_DIR "/sample.scap");
+		inspector.setup_cycle_writer(filtered_scap, 0, 0, 0, 0, true);
+		inspector.autodump_next_file();
+
+		int32_t res;
+		sinsp_evt* evt;
+		do
+		{
+			res = inspector.next(&evt);
+			EXPECT_NE(res, SCAP_FAILURE);
+		}
+		while(res != SCAP_EOF);
+
+		inspector.autodump_stop();
+		inspector.close();
+	}
+
+	{
+		sinsp inspector;
+		inspector.open_savefile(filtered_scap);
+
+		ASSERT_EQ(inspector.m_thread_manager->get_thread_count(), 1);
+	}
+
+	unlink(filtered_scap);
+}
 #endif
