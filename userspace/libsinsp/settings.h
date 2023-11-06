@@ -90,11 +90,6 @@ template<class T> class sinsp_fdinfo;
 typedef sinsp_fdinfo<int> sinsp_fdinfo_t;
 #endif // HAS_ANALYZER
 
-// Max JSON we can parse from docker API or others
-// Added because older docker versions have a bug that causes
-// very big JSONs returned by container inspect call
-static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
-
 //
 // Default metadata download settings
 //
