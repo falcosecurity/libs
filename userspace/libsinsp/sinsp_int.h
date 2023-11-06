@@ -66,15 +66,6 @@ limitations under the License.
 #endif
 
 //
-// Path separator
-//
-#ifdef _WIN32
-#define DIR_PATH_SEPARATOR '\\'
-#else
-#define DIR_PATH_SEPARATOR '/'
-#endif
-
-//
 // The logger
 //
 extern sinsp_logger g_logger;
