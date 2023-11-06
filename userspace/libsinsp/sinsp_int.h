@@ -57,15 +57,6 @@ limitations under the License.
 #endif
 
 //
-// Public export macro
-//
-#ifdef _WIN32
-#define BRK(X) {if(evt != NULL && evt->get_num() == X)__debugbreak();}
-#else
-#define BRK(X)
-#endif
-
-//
 // The logger
 //
 extern sinsp_logger g_logger;
