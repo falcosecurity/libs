@@ -59,7 +59,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	else
 	{
 		auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
-		m_dumper = scap_dump_open(inspector->get_scap_platform(), filename.c_str(), compress_mode, true, error);
+		m_dumper = scap_dump_open(inspector->get_scap_platform(), filename.c_str(), compress_mode, error);
 	}
 
 	if(m_dumper == nullptr)

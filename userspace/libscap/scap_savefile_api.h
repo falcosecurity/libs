@@ -91,7 +91,8 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo 
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
-scap_dumper_t *scap_dump_open(struct scap_platform* platform, const char *fname, compression_mode compress, bool skip_proc_scan, char* lasterr);
+scap_dumper_t *scap_dump_open(struct scap_platform *platform, const char *fname, compression_mode compress,
+			      char *lasterr);
 
 /*!
   \brief Open a trace file for writing, using the provided fd.
