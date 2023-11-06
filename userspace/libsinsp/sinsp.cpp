@@ -1108,6 +1108,9 @@ void sinsp::on_new_entry_from_proc(void* context,
 				// we'll run the filter when we see the fds and possibly clear the filtered_out flag
 				newti->m_filtered_out = true;
 			}
+
+			// we shouldn't see any fds yet
+			ASSERT(tinfo->fdlist == nullptr);
 		}
 	}
 	else

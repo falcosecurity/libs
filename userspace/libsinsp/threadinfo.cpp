@@ -476,9 +476,6 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 
 void sinsp_threadinfo::init(scap_threadinfo* pi)
 {
-	scap_fdinfo *fdi;
-	scap_fdinfo *tfdi;
-
 	init();
 
 	m_tid = pi->tid;
@@ -543,67 +540,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	set_group(pi->gid);
 	set_user(pi->uid);
 	set_loginuser((uint32_t)pi->loginuid);
-
-	//
-	// Prepare for filtering
-	//
-	sinsp_fdinfo_t tfdinfo;
-	sinsp_evt tevt;
-	scap_evt tscapevt;
-
-	//
-	// Initialize the fake events for filtering
-	//
-	tscapevt.ts = 0;
-	tscapevt.type = PPME_SYSCALL_READ_X;
-	tscapevt.len = 0;
-	tscapevt.nparams = 0;
-
-	tevt.m_inspector = m_inspector;
-	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-	tevt.m_pevt = NULL;
-	tevt.m_cpuid = 0;
-	tevt.m_evtnum = 0;
-	tevt.m_pevt = &tscapevt;
-	bool match = false;
-
-	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
-	{
-		add_fd_from_scap(fdi, &tfdinfo);
-
-		if(m_inspector->m_filter != NULL && m_inspector->is_capture())
-		{
-			tevt.m_tinfo = this;
-			tevt.m_fdinfo = &tfdinfo;
-			tscapevt.tid = m_tid;
-			int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
-			tevt.m_tinfo->m_lastevent_fd = fdi->fd;
-
-			if(m_inspector->m_filter->run(&tevt))
-			{
-				match = true;
-			}
-			else
-			{
-				//
-				// This tells scap not to include this FD in the write file
-				//
-				fdi->type = SCAP_FD_UNINITIALIZED;
-			}
-
-			tevt.m_tinfo->m_lastevent_fd = tlefd;
-		}
-	}
-
-	m_lastevent_data = NULL;
-
-	if(m_inspector->m_filter != NULL && m_inspector->is_capture())
-	{
-		if(!match)
-		{
-			pi->filtered_out = 1;
-		}
-	}
 }
 
 void sinsp_threadinfo::set_user(uint32_t uid)
