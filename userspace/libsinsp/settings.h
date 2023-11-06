@@ -66,11 +66,6 @@ limitations under the License.
 #define MAX_USER_EVT_BUFFER 65536
 
 //
-// Size the user event buffer is brought back once in a while 
-//
-#define MIN_USER_EVT_BUFFER 256
-
-//
 // Name of the device used for tracer injection
 //
 #define USER_EVT_DEVICE_NAME "/dev/null"
