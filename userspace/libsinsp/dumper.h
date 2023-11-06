@@ -70,10 +70,7 @@ public:
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(sinsp* inspector,
-		const std::string& filename,
-		bool compress,
-		bool threads_from_sinsp=false);
+	void open(sinsp* inspector, const std::string& filename, bool compress);
 
 	void fdopen(sinsp* inspector,
 		int fd,

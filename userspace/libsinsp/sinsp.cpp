@@ -1006,11 +1006,11 @@ void sinsp::autodump_start(const std::string& dump_filename, bool compress)
 
 	if(compress)
 	{
-		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_GZIP, true);
+		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_GZIP);
 	}
 	else
 	{
-		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_NONE, true);
+		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_NONE);
 	}
 
 	m_is_dumping = true;
