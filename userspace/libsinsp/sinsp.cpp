@@ -1098,8 +1098,17 @@ void sinsp::on_new_entry_from_proc(void* context,
 		{
 			thread_added = m_thread_manager->add_thread(newti, true);
 		}
-		if (!thread_added) {
+		if (!thread_added)
+		{
 			delete newti;
+		}
+		else
+		{
+			if(m_filter != nullptr && is_capture())
+			{
+				// we'll run the filter when we see the fds and possibly clear the filtered_out flag
+				newti->m_filtered_out = true;
+			}
 		}
 	}
 	else

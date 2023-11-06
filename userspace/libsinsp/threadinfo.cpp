@@ -426,9 +426,51 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	//
 	// Add the FD to the table
 	//
-	if(do_add)
+	if(!do_add)
 	{
-		m_fdtable.add(fdi->fd, newfdi);
+		return;
+	}
+
+	m_fdtable.add(fdi->fd, newfdi);
+	if(m_inspector->m_filter != nullptr && m_inspector->is_capture())
+	{
+		sinsp_evt tevt;
+		scap_evt tscapevt;
+		//
+		// Initialize the fake events for filtering
+		//
+		tscapevt.ts = 0;
+		tscapevt.type = PPME_SYSCALL_READ_X;
+		tscapevt.len = 0;
+		tscapevt.nparams = 0;
+
+		tevt.m_inspector = m_inspector;
+		tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+		tevt.m_pevt = NULL;
+		tevt.m_cpuid = 0;
+		tevt.m_evtnum = 0;
+		tevt.m_pevt = &tscapevt;
+		tevt.m_tinfo = this;
+		tevt.m_fdinfo = newfdi;
+		tscapevt.tid = m_tid;
+		int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
+		tevt.m_tinfo->m_lastevent_fd = fdi->fd;
+
+		if(m_inspector->m_filter->run(&tevt))
+		{
+			// keep the thread from being filtered out
+			m_filtered_out = false;
+		}
+		else
+		{
+			//
+			// This tells scap not to include this FD in the write file
+			//
+			fdi->type = SCAP_FD_UNINITIALIZED;
+		}
+
+		tevt.m_tinfo->m_lastevent_fd = tlefd;
+		m_lastevent_data = NULL;
 	}
 }
 
@@ -1949,7 +1991,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
 	sctinfo->loginuid = tinfo.m_loginuser.uid;
-	sctinfo->filtered_out = false;
+	sctinfo->filtered_out = tinfo.m_filtered_out;
 }
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
@@ -1967,6 +2009,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 	uint32_t totlen = 0;
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+		if(tinfo.m_filtered_out)
+		{
+			return true;
+		}
+
 		scap_threadinfo *sctinfo;
 		struct iovec *args_iov, *envs_iov, *cgroups_iov;
 		int argscnt, envscnt, cgroupscnt;
@@ -2020,6 +2067,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 	//
 
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+		if(tinfo.m_filtered_out)
+		{
+			return true;
+		}
+
 		scap_threadinfo *sctinfo;
 
 		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
