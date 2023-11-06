@@ -447,6 +447,7 @@ public:
 	std::shared_ptr<thread_group_info> m_tginfo;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
 	uint64_t m_not_expired_children;
+	bool m_filtered_out; ///< True if this thread is filtered out by the inspector filter from saving to a capture
 
 	// In some cases, a threadinfo has a category that identifies
 	// why it was run. Descriptions:
