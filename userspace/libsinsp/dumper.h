@@ -72,10 +72,7 @@ public:
 	*/
 	void open(sinsp* inspector, const std::string& filename, bool compress);
 
-	void fdopen(sinsp* inspector,
-		int fd,
-		bool compress,
-		bool threads_from_sinsp=false);
+	void fdopen(sinsp* inspector, int fd, bool compress);
 
 	/*!
 	  \brief Closes the dump file.
