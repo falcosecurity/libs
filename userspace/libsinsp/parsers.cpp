@@ -3378,13 +3378,6 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 		                " comm=" + evt->m_tinfo->m_comm);
 	}
 
-#ifndef INCLUDE_UNKNOWN_SOCKET_FDS
-	if(fdi.m_type == SCAP_FD_UNKNOWN)
-	{
-		return;
-	}
-#endif
-
 	//
 	// Add the fd to the table.
 	//

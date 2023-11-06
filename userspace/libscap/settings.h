@@ -15,11 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-//
-// This flag can be used to include unsupported or unrecognized sockets
-// in the fd tables. It's useful to debug close() leaks
-//
-#define INCLUDE_UNKNOWN_SOCKET_FDS
 
 #define USE_ZLIB
 
