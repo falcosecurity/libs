@@ -44,7 +44,7 @@ sinsp_dumper::~sinsp_dumper()
 	}
 }
 
-void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool compress, bool threads_from_sinsp)
+void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool compress)
 {
 	char error[SCAP_LASTERR_SIZE];
 	if(inspector->m_h == NULL)
@@ -59,7 +59,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	else
 	{
 		auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
-		m_dumper = scap_dump_open(inspector->get_scap_platform(), filename.c_str(), compress_mode, threads_from_sinsp, error);
+		m_dumper = scap_dump_open(inspector->get_scap_platform(), filename.c_str(), compress_mode, true, error);
 	}
 
 	if(m_dumper == nullptr)
@@ -67,13 +67,8 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 		throw sinsp_exception(error);
 	}
 
-	if(threads_from_sinsp)
-	{
-		inspector->m_thread_manager->dump_threads_to_file(m_dumper);
-	}
-
+	inspector->m_thread_manager->dump_threads_to_file(m_dumper);
 	inspector->m_container_manager.dump_containers(*this);
-
 	inspector->m_usergroup_manager.dump_users_groups(*this);
 
 	m_nevts = 0;
