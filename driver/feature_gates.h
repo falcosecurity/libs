@@ -173,7 +173,6 @@ or GPL2.txt for full copies of the license.
 /* Please note: the userspace loads the filler table for the bpf probe
  * so it must define these macro according to what BPF supports
  */
-#ifndef UDIG
 
 ///////////////////////////////
 // CAPTURE_64BIT_ARGS_SINGLE_REGISTER 
@@ -218,8 +217,6 @@ or GPL2.txt for full copies of the license.
 #if defined(__aarch64__)
 	#define CAPTURE_SCHED_PROC_EXEC 
 #endif
-
-#endif /* UDIG */
 
 #endif /* __KERNEL__ */
 
