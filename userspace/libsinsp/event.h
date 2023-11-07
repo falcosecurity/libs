@@ -532,6 +532,17 @@ private:
 		m_info = ppm_event;
 		m_errorcode = errorcode;
 	}
+
+	static std::unique_ptr<sinsp_evt> from_scap_evt(
+		std::unique_ptr<uint8_t, std::default_delete<uint8_t[]>> scap_event)
+	{
+		auto ret = std::make_unique<sinsp_evt>();
+		auto evdata = scap_event.release();
+		ret->init(evdata, 0);
+		ret->m_pevt_storage = (char*)evdata;
+		return ret;
+	}
+
 	inline void load_params()
 	{
 		uint32_t j;
