@@ -20,7 +20,6 @@ enum intrumentation_type
 	TRACEPOINT = 1,
 };
 
-#endif
 /* The sampling logic is used by all BPF programs attached to the kernel.
  * We treat the syscalls tracepoints in a dedicated way because they could generate
  * more than one event (1 for each syscall) for this reason we need a dedicated table.
