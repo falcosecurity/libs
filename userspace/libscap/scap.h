@@ -86,7 +86,6 @@ struct scap_vtable;
 #include <engine/savefile/savefile_public.h>
 #include <engine/source_plugin/source_plugin_public.h>
 #include <engine/test_input/test_input_public.h>
-#include <engine/udig/udig_public.h>
 
 //
 // The minimum API and schema versions the driver has to support before we can use it
