@@ -9,7 +9,6 @@ or GPL2.txt for full copies of the license.
 */
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
-#ifndef UDIG
 #include <linux/compat.h>
 #include <linux/cdev.h>
 #include <asm/unistd.h>
@@ -34,60 +33,17 @@ or GPL2.txt for full copies of the license.
 #include <linux/cgroup.h>
 #endif
 #include <asm/syscall.h>
-#else /* UDIG */
-#define _GNU_SOURCE
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <limits.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <signal.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/syscall.h>
-#include <time.h>
-#include <netinet/in.h>
-#include <sys/param.h>
-#include <sched.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <poll.h>
-#include <sys/sem.h>
-#include <sys/file.h>
-#include <sys/quota.h>
-#include <sys/ptrace.h>
-#ifdef __NR_openat2
-#include <linux/openat2.h>
-#endif
-
-#include "udig_capture.h"
-#include "ppm_ringbuffer.h"
-#include "ppm_events_public.h"
-#include "ppm_events.h"
-#include "ppm.h"
-
-#include "udig_inf.h"
-#endif /* UDIG */
-
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
 #include "ppm_flag_helpers.h"
-#ifndef UDIG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 #include <linux/bpf.h>
 #endif
-
 #include "kernel_hacks.h"
 #include "systype_compat.h"
 
-#endif /* UDIG */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 struct ovl_entry {
 	struct dentry *__upperdentry;
@@ -138,7 +94,6 @@ enum ovl_entry_flag {
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
-#ifndef UDIG
 static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
@@ -147,8 +102,6 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
 	return task->nsproxy->pid_ns_for_children;
 #endif
 }
-#endif /* UDIG */
-
 
 /*
  * Detect whether the file being referenced is an anonymous file created using memfd_create()
@@ -259,9 +212,6 @@ int f_sys_fstat_e(struct event_filler_arguments *args)
 
 static inline void get_fd_dev_ino(int64_t fd, uint32_t* dev, uint64_t* ino)
 {
-#ifdef UDIG
-	return;
-#else
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct file *file;
@@ -299,13 +249,12 @@ static inline void get_fd_dev_ino(int64_t fd, uint32_t* dev, uint64_t* ino)
 out_unlock:
 	spin_unlock(&files->file_lock);
 	return;
-#endif /* UDIG */
 }
 
 static inline void get_fd_fmode_created(int64_t fd, unsigned long* flags)
 {
 /* FMODE_CREATED flag was introduced in kernel 4.19 and it's not present in earlier versions */
-#if !defined(UDIG) && (LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct file *file;
@@ -554,8 +503,6 @@ int f_sys_write_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef UDIG
-
 /*
  * get_mm_exe_file is only exported in some kernel versions
  */
@@ -768,7 +715,6 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 #endif
 
 #endif
-#endif /* UDIG */
 
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
  * concatenates them to a single \0-separated string. Return the length of this
@@ -820,7 +766,6 @@ int accumulate_argv_or_env(const char __user * __user *argv,
 	return len;
 }
 
-#ifndef UDIG
 #ifdef CONFIG_COMPAT
 /* compat version that deals correctly with 32bits pointers of argv */
 static int compat_accumulate_argv_or_env(compat_uptr_t argv,
@@ -920,8 +865,6 @@ static uint32_t ppm_get_tty(void)
 	return tty_nr;
 }
 
-#endif /* UDIG */
-
 bool ppm_is_upper_layer(struct file *exe_file){
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 	struct super_block *sb = NULL;
@@ -974,9 +917,6 @@ bool ppm_is_upper_layer(struct file *exe_file){
 
 int f_proc_startupdate(struct event_filler_arguments *args)
 {
-#ifdef UDIG
-	return udig_proc_startupdate(args);
-#else /* UDIG */
 	unsigned long val = 0;
 	int res = 0;
 	unsigned int exe_len = 0;  /* the length of the executable string */
@@ -1579,8 +1519,6 @@ cgroups_error:
 		CHECK_RES(res);
 	}
 	return add_sentinel(args);
-
-#endif /* UDIG */
 }
 
 int f_sys_execve_e(struct event_filler_arguments *args)
@@ -1868,7 +1806,6 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 	/*
 	 * If the call was successful, copy the FDs
 	 */
-#ifndef UDIG
 	if (likely(retval >= 0)) {
 		/*
 		 * fds
@@ -1914,7 +1851,6 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 			return err;
 		}
 	} else {
-#endif /* UDIG */
 		res = val_to_ring(args, (int64_t)fds[0], 0, false, 0);
 		CHECK_RES(res);
 
@@ -1926,9 +1862,7 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
-#ifndef UDIG
 	}
-#endif
 
 	return add_sentinel(args);
 }
@@ -2267,7 +2201,6 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 		 */
 		syscall_get_arguments_deprecated(args, 0, 1, &srvskfd);
 
-#ifndef UDIG
 		sock = sockfd_lookup(srvskfd, &err);
 
 		if (sock && sock->sk) {
@@ -2280,7 +2213,6 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 
 		if (max_ack_backlog)
 			queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
-#endif /* UDIG */
 
 		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 		res = val_to_ring(args,
@@ -2610,15 +2542,11 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
-#ifndef UDIG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	struct user_msghdr mh;
 #else
 	struct msghdr mh;
 #endif
-#else /* UDIG */
-	struct msghdr mh;
-#endif /* UDIG */
 	char *targetbuf = args->str_storage;
 	const struct iovec __user *iov;
 #ifdef CONFIG_COMPAT
@@ -2735,15 +2663,11 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 #endif
 	unsigned long iovcnt;
 
-#ifndef UDIG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	struct user_msghdr mh;
 #else
 	struct msghdr mh;
 #endif
-#else /* UDIG */
-	struct msghdr mh;
-#endif /* UDIG */
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = syscall_get_return_value(current, args->regs);
@@ -2840,15 +2764,11 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	struct compat_msghdr compat_mh;
 #endif
 	unsigned long iovcnt;
-#ifndef UDIG
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 	struct user_msghdr mh;
 #else
 	struct msghdr mh;
 #endif
-#else /* UDIG */
-	struct msghdr mh;
-#endif /* UDIG */
 	char *targetbuf = args->str_storage;
 	int fd;
 	struct sockaddr __user *usrsockaddr;
@@ -4601,9 +4521,7 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 {
 	int64_t retval;
 	int res = 0;
-#ifndef UDIG	
 	struct mm_struct *mm = current->mm;
-#endif
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -4612,13 +4530,11 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-#ifndef UDIG	
 	if (mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT-10);
 		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
 	}
-#endif
 
 	/*
 	 * vm_size
@@ -5919,7 +5835,6 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 {
 	int res;
 
-#ifndef UDIG
 	pid_t reaper_pid = 0;
 
 	if (args->sched_prev == NULL) {
@@ -5962,28 +5877,6 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	}
 	res = val_to_ring(args, (int64_t)reaper_pid, 0, false, 0);
 	CHECK_RES(res);
-
-#else
-	/* Parameter 1: status (type: PT_ERRNO) */
-	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 2: ret (type: PT_ERRNO) */
-	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 3: sig (type: PT_SIGTYPE) */
-	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 4: core (type: PT_UINT8) */
-	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res);
-
-	/* Parameter 5: reaper_tid (type: PT_PID) */
-	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res);
-#endif
 
 	return add_sentinel(args);
 }

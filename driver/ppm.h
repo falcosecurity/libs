@@ -14,7 +14,6 @@ or GPL2.txt for full copies of the license.
 /*
  * Our Own ASSERT implementation, so we can easily switch among BUG_ON, WARN_ON and nothing
  */
-#ifndef UDIG
 
 #include <linux/time.h>
 #include "ppm_consumer.h"
@@ -24,8 +23,6 @@ or GPL2.txt for full copies of the license.
 #else
 #define ASSERT(expr)
 #endif /* _DEBUG */
-
-#endif /* UDIG */
 
 #include "capture_macro.h"
 #define PPM_NULL_RDEV MKDEV(1, 3)
@@ -51,9 +48,7 @@ struct ppm_ring_buffer_context {
 	char *buffer;
 	nanoseconds last_print_time;
 	uint32_t nevents;
-#ifndef UDIG
 	atomic_t preempt_count;
-#endif	
 	char *str_storage;	/* String storage. Size is one page. */
 };
 
@@ -66,10 +61,8 @@ struct ppm_ring_buffer_context {
  * but they can't sleep, barf on page fault or be preempted
  */
 #define ppm_get_user(x, ptr) (ppm_copy_from_user(&x, ptr, sizeof(x)) ? -EFAULT : 0)
-#ifndef UDIG
 unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n);
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
-#endif // UDIG
 
 /*
  * Global tables
@@ -98,9 +91,7 @@ extern const struct ppm_event_info g_event_info[];
 extern const struct syscall_evt_pair g_syscall_ia32_table[];
 #endif
 
-#ifndef UDIG
 extern void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args);
-#endif
 
 #define NS_TO_SEC(_ns) ((_ns) / 1000000000)
 #define MORE_THAN_ONE_SECOND_AHEAD(_ns1, _ns2) ((_ns1) - (_ns2) > 1000000000)
