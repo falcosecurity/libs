@@ -167,11 +167,6 @@ if(HAS_ENGINE_KMOD)
 	target_link_libraries(scap scap_engine_kmod)
 endif()
 
-if(HAS_ENGINE_UDIG)
-	add_subdirectory(engine/udig)
-	target_link_libraries(scap scap_engine_udig)
-endif()
-
 if(HAS_ENGINE_BPF)
 	include(libelf)
 	add_subdirectory(engine/bpf)
