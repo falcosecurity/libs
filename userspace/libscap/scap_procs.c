@@ -60,7 +60,7 @@ void scap_proc_free_table(struct scap_proclist* proclist)
 	}
 }
 
-int32_t scap_fd_add(scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo)
+int32_t scap_fd_add(scap_threadinfo* tinfo, scap_fdinfo* fdinfo)
 {
 	int32_t uth_status = SCAP_SUCCESS;
 

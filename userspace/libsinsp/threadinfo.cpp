@@ -2043,7 +2043,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				// Add the new fd to the scap table.
 				//
-				if(scap_fd_add(&sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				if(scap_fd_add(&sctinfo, scfdinfo) != SCAP_SUCCESS)
 				{
 					scap_fd_free_proc_fd_table(&sctinfo);
 					throw sinsp_exception("Failed to add fd to hash table");
