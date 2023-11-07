@@ -14,7 +14,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm.h"
 #endif /* __KERNEL__ */
 
-#if defined(__KERNEL__) || defined(UDIG)
+#if defined(__KERNEL__)
 #define FILLER_REF(x) f_##x, PPM_FILLER_##x
 #else
 #define FILLER_REF(x) 0, PPM_FILLER_##x
