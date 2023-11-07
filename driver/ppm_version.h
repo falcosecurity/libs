@@ -9,9 +9,7 @@
 #ifndef PPM_VERSION_H_
 #define PPM_VERSION_H_
 
-#ifndef UDIG
 #include <linux/version.h>
-#endif
 
 /**
  * for RHEL kernels, export the release code (which is equal to e.g.

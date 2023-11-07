@@ -12,10 +12,8 @@ or GPL2.txt for full copies of the license.
 #define EVENTS_H_
 
 /* To know about __NR_socketcall */
-#ifndef UDIG
 #include <asm/unistd.h>
 #include "ppm_consumer.h"
-#endif
 #ifdef CONFIG_COMPAT
 #include <linux/compat.h>
 #endif
@@ -49,11 +47,7 @@ struct event_filler_arguments {
 	 * below per-event params in this union, it's not good to waste kernel
 	 * stack since all this stuff is always exclusive
 	 */
-#ifdef UDIG
-	uint64_t *regs; /* the registers containing the call arguments */
-#else
 	struct pt_regs *regs; /* the registers containing the call arguments */
-#endif
 	struct task_struct *sched_prev; /* for context switch events, the task that is being scheduled out */
 	struct task_struct *sched_next; /* for context switch events, the task that is being scheduled in */
 
@@ -62,18 +56,14 @@ struct event_filler_arguments {
 #endif
 
 	char *str_storage; /* String storage. Size is one page. */
-#ifndef UDIG
 	unsigned long args[6];
 	bool compat;
-#endif
 	int fd; /* Passed by some of the fillers to val_to_ring to compute the snaplen dynamically */
 	bool enforce_snaplen;
-#ifndef UDIG
 	int signo; /* Signal number */
 	__kernel_pid_t spid; /* PID of source process */
 	__kernel_pid_t dpid; /* PID of destination process */
 	struct fault_data_t fault_data; /* For page faults */
-#endif	
 };
 
 extern const struct ppm_event_entry g_ppm_events[];
