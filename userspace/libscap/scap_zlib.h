@@ -20,7 +20,7 @@ limitations under the License.
 
 #include "settings.h"
 
-#if defined(USE_ZLIB) && !defined(UDIG)
+#if defined(USE_ZLIB)
 #ifdef _WIN32
 #define ZLIB_WINAPI
 #endif
