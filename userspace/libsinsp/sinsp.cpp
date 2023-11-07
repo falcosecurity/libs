@@ -610,19 +610,6 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 #endif
 }
 
-void sinsp::open_udig()
-{
-#ifdef HAS_ENGINE_UDIG
-	scap_open_args oargs {};
-
-	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-	open_common(&oargs, &scap_udig_engine, platform, SINSP_MODE_LIVE);
-
-#else
-	throw sinsp_exception("UDIG engine is not supported in this build");
-#endif
-}
-
 void sinsp::open_nodriver(bool full_proc_scan)
 {
 #ifdef HAS_ENGINE_NODRIVER
