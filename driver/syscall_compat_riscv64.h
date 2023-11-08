@@ -137,9 +137,6 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_pivot_root
 #define __NR_pivot_root 41
 #endif
-#ifndef __NR_nfsservctl
-#define __NR_nfsservctl 42
-#endif
 #ifndef __NR_statfs
 #define __NR_statfs 43
 #endif
