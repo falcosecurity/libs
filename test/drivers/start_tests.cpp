@@ -10,6 +10,7 @@
 
 /* We support only these arguments */
 #define HELP_OPTION "help"
+#define VERBOSE_OPTION "verbose"
 #define KMOD_OPTION "kmod"
 #define BPF_OPTION "bpf"
 #define MODERN_BPF_OPTION "modern-bpf"
@@ -19,6 +20,7 @@
 #define KMOD_NAME "scap"
 
 scap_t* event_test::s_scap_handle = NULL;
+static enum falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
 
 int remove_kmod()
 {
@@ -86,6 +88,22 @@ void abort_if_already_configured(const struct scap_vtable* vtable)
 	}
 }
 
+void test_open_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
+{
+	if(sev <= severity_level)
+	{
+		if(component!= NULL)
+		{
+			printf("%s: %s", component, msg);
+		}
+		else
+		{
+			// libbpf logs have no components
+			printf("%s", msg);
+		}
+	}
+}
+
 void print_message(std::string msg)
 {
 	std::cout << std::endl;
@@ -106,6 +124,7 @@ Options:
   -m, --modern-bpf        Run tests against the modern bpf probe.
   -b, --bpf <path>        Run tests against the bpf probe. Default path is `./driver/bpf/probe.o`.
   -d, --buffer-dim <dim>  Change the dimension of shared buffers between userspace and kernel. You must specify the dimension in bytes.
+  -v, --verbose <level>   Print all available logs. Default level is WARNING (4).
   -h, --help              This page.
 )";
 	std::cout << usage << std::endl;
@@ -120,11 +139,17 @@ int open_engine(int argc, char** argv)
 		{KMOD_OPTION, optional_argument, 0, 'k'},
 		{BUFFER_OPTION, required_argument, 0, 'd'},
 		{HELP_OPTION, no_argument, 0, 'h'},
+		{VERBOSE_OPTION, required_argument, 0, 'v'},
 		{0, 0, 0, 0}};
 
+	// They should live until we call 'scap_open'
+	struct scap_modern_bpf_engine_params modern_bpf_params = {0};
+	struct scap_bpf_engine_params bpf_params = {0};
+	struct scap_kmod_engine_params kmod_params = {0};
 	int ret = 0;
 	const struct scap_vtable* vtable = nullptr;
 	scap_open_args oargs = {};
+	oargs.log_fn = test_open_log_fn;
 	unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 	std::string kmod_path;
 
@@ -148,7 +173,7 @@ int open_engine(int argc, char** argv)
 	int op = 0;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"b::mk::d:h",
+				"b::mk::d:hv:",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -156,8 +181,6 @@ int open_engine(int argc, char** argv)
 		case 'b':
 #ifdef HAS_ENGINE_BPF
 		{
-			struct scap_bpf_engine_params bpf_params = {0};
-
 			abort_if_already_configured(vtable);
 			vtable = &scap_bpf_engine;
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
@@ -191,8 +214,6 @@ int open_engine(int argc, char** argv)
 		case 'm':
 #ifdef HAS_ENGINE_MODERN_BPF
 		{
-			struct scap_modern_bpf_engine_params modern_bpf_params = {0};
-
 			abort_if_already_configured(vtable);
 			vtable = &scap_modern_bpf_engine;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
@@ -208,8 +229,6 @@ int open_engine(int argc, char** argv)
 		case 'k':
 #ifdef HAS_ENGINE_KMOD
 		{
-			struct scap_kmod_engine_params kmod_params = {0};
-
 			abort_if_already_configured(vtable);
 			vtable = &scap_kmod_engine;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
@@ -240,6 +259,11 @@ int open_engine(int argc, char** argv)
 			break;
 
 		case 'd':
+			if(vtable != nullptr)
+			{
+				std::cerr << "The buffer dim '" << BUFFER_OPTION << "' must be chosen before opening the engine" << std::endl;
+				return EXIT_FAILURE;
+			}
 			buffer_bytes_dim = strtoul(optarg, NULL, 10);
 			break;
 
@@ -247,8 +271,20 @@ int open_engine(int argc, char** argv)
 			print_menu_and_exit();
 			break;
 
-		default:
+		case 'v':
+			{
+				unsigned long level = strtoul(optarg, NULL, 10);
+				if(level < FALCOSECURITY_LOG_SEV_FATAL || level > FALCOSECURITY_LOG_SEV_TRACE)
+				{
+					std::cerr << "Invalid logging level. Valid range is '" << std::to_string(FALCOSECURITY_LOG_SEV_FATAL) <<"' <= lev <= '" << std::to_string(FALCOSECURITY_LOG_SEV_TRACE) << "'" << std::endl;
+					return EXIT_FAILURE;
+				}
+				severity_level = (enum falcosecurity_log_severity)level;
+			}
 			break;
+
+		default:
+			return EXIT_FAILURE;
 		}
 	}
 	std::cout << "* Using buffer dim: " << buffer_bytes_dim << std::endl;
