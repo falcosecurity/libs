@@ -2166,7 +2166,10 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		event_data.event_info.syscall_data.cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
 		event_data.socketcall_syscall = socketcall_syscall;
 		event_data.compat = compat;
-
+		if(type == PPME_SYSCALL_EPOLLWAIT_E)
+		{
+			return ;
+		}
 		if (used)
 			record_event_all_consumers(type, drop_flags, &event_data);
 		else
@@ -2243,7 +2246,10 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.event_info.syscall_data.cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
 		event_data.socketcall_syscall = socketcall_syscall;
 		event_data.compat = compat;
-
+		if(type == PPME_SYSCALL_EPOLLWAIT_X)
+		{
+			return ;
+		}
 		if (used)
 			record_event_all_consumers(type, drop_flags, &event_data);
 		else
