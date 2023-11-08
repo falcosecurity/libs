@@ -43,6 +43,7 @@ limitations under the License.
 #define CPUS_FOR_EACH_BUFFER_MODE "--cpus_for_buf"
 #define ALL_AVAILABLE_CPUS_MODE "--available_cpus"
 #define DROP_FAILED "--drop-failed"
+#define VERBOSE_OPTION "--verbose"
 
 /* PRINT */
 #define PRINT_SYSCALLS_OPTION "--print_syscalls"
@@ -52,10 +53,10 @@ extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
 /* Engine params */
-static struct scap_bpf_engine_params bpf_params;
-static struct scap_kmod_engine_params kmod_params;
-static struct scap_modern_bpf_engine_params modern_bpf_params;
-static struct scap_savefile_engine_params savefile_params;
+static struct scap_bpf_engine_params bpf_params = {};
+static struct scap_kmod_engine_params kmod_params = {};
+static struct scap_modern_bpf_engine_params modern_bpf_params = {};
+static struct scap_savefile_engine_params savefile_params = {};
 
 /* Configuration variables set through CLI. */
 static uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
@@ -63,6 +64,7 @@ static int evt_type = -1;		  /* event type to print. */
 static bool ppm_sc_is_set = 0;
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static bool drop_failed = false;
+static enum falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
 
 static int simple_set[] = {
 	PPM_SC_ACCEPT,
@@ -542,6 +544,7 @@ void print_help()
 	printf("'%s <cpus_for_each_buffer>': allocate a ring buffer for every `cpus_for_each_buffer` CPUs.\n", CPUS_FOR_EACH_BUFFER_MODE);
 	printf("'%s': allocate ring buffers for all available CPUs. Default: allocate ring buffers for online CPUs only.\n", ALL_AVAILABLE_CPUS_MODE);
 	printf("'%s': instrument drivers to drop failed syscalls (exit) events.\n", DROP_FAILED);
+	printf("'%s <level>': print all available logs. Default level is WARNING (4)\n", VERBOSE_OPTION);
 	printf("\n------> PRINT OPTIONS\n");
 	printf("'%s': print all supported syscalls with different sources and configurations.\n", PRINT_SYSCALLS_OPTION);
 	printf("'%s': print this menu.\n", PRINT_HELP_OPTION);
@@ -759,6 +762,21 @@ void parse_CLI_options(int argc, char** argv)
 			drop_failed = true;
 		}
 
+		if(!strcmp(argv[i], VERBOSE_OPTION))
+		{
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the logging level! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			unsigned long level = strtoul(argv[++i], NULL, 10);
+			if(level < FALCOSECURITY_LOG_SEV_FATAL || level > FALCOSECURITY_LOG_SEV_TRACE)
+			{
+				printf("\nInvalid log level! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			severity_level = (enum falcosecurity_log_severity)level;
+		}
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
@@ -876,6 +894,22 @@ static void signal_callback(int signal)
 	exit(EXIT_SUCCESS);
 }
 
+void scap_open_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
+{
+	if(sev <= severity_level)
+	{
+		if(component!= NULL)
+		{
+			printf("%s: %s", component, msg);
+		}
+		else
+		{
+			// libbpf logs have no components
+			printf("%s", msg);
+		}
+	}
+}
+
 int main(int argc, char** argv)
 {
 	char error[SCAP_LASTERR_SIZE] = {0};
@@ -899,6 +933,7 @@ int main(int argc, char** argv)
 
 	enable_sc_and_print();
 
+	oargs.log_fn = scap_open_log_fn;
 	g_h = scap_open(&oargs, vtable, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)
 	{
