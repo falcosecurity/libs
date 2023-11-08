@@ -24,6 +24,8 @@ or GPL2.txt for full copies of the license.
 #include "syscall_compat_aarch64.h"
 #elif defined(__s390x__)
 #include "syscall_compat_s390x.h"
+#elif defined(__powerpc__)
+#include "syscall_compat_ppc64le.h"
 #elif defined(__riscv)
 #include "syscall_compat_riscv64.h"
 #endif /* __x86_64__ */

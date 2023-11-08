@@ -416,9 +416,6 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_mknod
 #define __NR_mknod 133
 #endif
-#ifndef __NR_uselib
-#define __NR_uselib 134
-#endif
 #ifndef __NR_personality
 #define __NR_personality 135
 #endif
@@ -482,9 +479,6 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_pivot_root
 #define __NR_pivot_root 155
 #endif
-#ifndef __NR__sysctl
-#define __NR__sysctl 156
-#endif
 #ifndef __NR_prctl
 #define __NR_prctl 157
 #endif
@@ -536,29 +530,14 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_ioperm
 #define __NR_ioperm 173
 #endif
-#ifndef __NR_create_module
-#define __NR_create_module 174
-#endif
 #ifndef __NR_init_module
 #define __NR_init_module 175
 #endif
 #ifndef __NR_delete_module
 #define __NR_delete_module 176
 #endif
-#ifndef __NR_get_kernel_syms
-#define __NR_get_kernel_syms 177
-#endif
-#ifndef __NR_query_module
-#define __NR_query_module 178
-#endif
 #ifndef __NR_quotactl
 #define __NR_quotactl 179
-#endif
-#ifndef __NR_nfsservctl
-#define __NR_nfsservctl 180
-#endif
-#ifndef __NR_getpmsg
-#define __NR_getpmsg 181
 #endif
 #ifndef __NR_gettid
 #define __NR_gettid 186

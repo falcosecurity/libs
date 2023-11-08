@@ -937,4 +937,55 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_futex_wait
 	[__NR_futex_wait - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FUTEX_WAIT},
 #endif
+#ifdef __NR_rtas
+	[__NR_rtas - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RTAS},
+#endif
+#ifdef __NR_subpage_prot
+	[__NR_subpage_prot - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SUBPAGE_PROT},
+#endif
+#ifdef __NR_sync_file_range2
+	[__NR_sync_file_range2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SYNC_FILE_RANGE2},
+#endif
+#ifdef __NR_sys_debug_setcontext
+	[__NR_sys_debug_setcontext - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SYS_DEBUG_SETCONTEXT},
+#endif
+#ifdef __NR_vm86
+	[__NR_vm86 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_VM86},
+#endif
+#ifdef __NR_oldstat
+	[__NR_oldstat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OLDSTAT},
+#endif
+#ifdef __NR_switch_endian
+	[__NR_switch_endian - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SWITCH_ENDIAN},
+#endif
+#ifdef __NR_spu_run
+	[__NR_spu_run - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SPU_RUN},
+#endif
+#ifdef __NR_pciconfig_iobase
+	[__NR_pciconfig_iobase - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PCICONFIG_IOBASE},
+#endif
+#ifdef __NR_multiplexer
+	[__NR_multiplexer - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MULTIPLEXER},
+#endif
+#ifdef __NR_oldlstat
+	[__NR_oldlstat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OLDLSTAT},
+#endif
+#ifdef __NR_oldolduname
+	[__NR_oldolduname - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OLDOLDUNAME},
+#endif
+#ifdef __NR_spu_create
+	[__NR_spu_create - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SPU_CREATE},
+#endif
+#ifdef __NR_pciconfig_read
+	[__NR_pciconfig_read - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PCICONFIG_READ},
+#endif
+#ifdef __NR_oldfstat
+	[__NR_oldfstat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OLDFSTAT},
+#endif
+#ifdef __NR_swapcontext
+	[__NR_swapcontext - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SWAPCONTEXT},
+#endif
+#ifdef __NR_pciconfig_write
+	[__NR_pciconfig_write - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PCICONFIG_WRITE},
+#endif
 };
