@@ -52,8 +52,6 @@ struct ppm_ring_buffer_context {
 	char *str_storage;	/* String storage. Size is one page. */
 };
 
-#define STR_STORAGE_SIZE PAGE_SIZE
-
 /*
  * Global functions
  *
