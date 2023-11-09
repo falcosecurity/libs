@@ -16,7 +16,7 @@ SEC("tp_btf/signal_deliver")
 int BPF_PROG(signal_deliver,
 	     int sig, struct kernel_siginfo *info, struct k_sigaction *ka)
 {
-	if(sampling_logic(ctx, PPME_SIGNALDELIVER_E, TRACEPOINT))
+	if(sampling_logic(ctx, PPME_SIGNALDELIVER_E, MODERN_BPF_TRACEPOINT))
 	{
 		return 0;
 	}

@@ -13,11 +13,8 @@
 /* This enum is used to tell if we are considering a syscall or a tracepoint */
 enum intrumentation_type
 {
-	//SYSCALL definition is skipped on powerpc since SYSCALL is already defined in vmlinux.h
-	#ifndef __TARGET_ARCH_powerpc
-		SYSCALL = 0,
-	#endif
-	TRACEPOINT = 1,
+	MODERN_BPF_SYSCALL = 0,
+	MODERN_BPF_TRACEPOINT = 1,
 };
 
 /* The sampling logic is used by all BPF programs attached to the kernel.
@@ -40,7 +37,7 @@ static __always_inline bool sampling_logic(void* ctx, uint32_t id, enum intrumen
 	/* If we have a syscall we use the sampling_syscall_table otherwise
 	 * with tracepoints we use the sampling_tracepoint_table.
 	 */
-	if(type == SYSCALL)
+	if(type == MODERN_BPF_SYSCALL)
 	{
 		sampling_flag = maps__64bit_sampling_syscall_table(id);
 	}
