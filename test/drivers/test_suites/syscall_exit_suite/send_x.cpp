@@ -12,7 +12,8 @@ TEST(SyscallExit, sendX_fail)
 	int32_t mock_fd = -1;
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "some-data";
-	int flags = 0 assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_send, mock_fd, (void *)buf, data_len, flags));
+	int flags = 0;
+	assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_send, mock_fd, (void *)buf, data_len, flags));
 	int errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/

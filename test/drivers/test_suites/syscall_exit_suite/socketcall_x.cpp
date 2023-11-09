@@ -3146,7 +3146,7 @@ TEST(SyscallExit, socketcall_sendX)
 	args[2] = data_len;
 	args[3] = (unsigned long)flags;
 	assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_socketcall, SYS_SEND, args));
-
+	int64_t errno_value = -errno;
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	evt_test->disable_capture();
