@@ -62,7 +62,7 @@ int BPF_PROG(sys_enter,
 		return 0;
 	}
 
-	if(sampling_logic(ctx, syscall_id, SYSCALL))
+	if(sampling_logic(ctx, syscall_id, MODERN_BPF_SYSCALL))
 	{
 		return 0;
 	}
