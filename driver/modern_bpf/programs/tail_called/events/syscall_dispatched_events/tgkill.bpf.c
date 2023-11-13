@@ -26,15 +26,15 @@ int BPF_PROG(tgkill_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: tgid (type: PT_PID) */
-	pid_t tgid = (s32)extract__syscall_argument(regs, 0);
+	pid_t tgid = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)tgid);
 
 	/* Parameter 2: tid (type: PT_PID) */
-	pid_t tid = (s32)extract__syscall_argument(regs, 1);
+	pid_t tid = (int32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_s64(&ringbuf, (int64_t)tid);
 
 	/* Parameter 3: sig (type: PT_SIGTYPE) */
-	u8 sig = (u8)extract__syscall_argument(regs, 2);
+	uint8_t sig = (uint8_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_u8(&ringbuf, sig);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

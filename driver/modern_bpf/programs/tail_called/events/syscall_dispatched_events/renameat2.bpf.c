@@ -58,7 +58,7 @@ int BPF_PROG(renameat2_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: olddirfd (type: PT_FD) */
-	s32 olddirfd = (s32)extract__syscall_argument(regs, 0);
+	int32_t olddirfd = (int32_t)extract__syscall_argument(regs, 0);
 	if(olddirfd == AT_FDCWD)
 	{
 		olddirfd = PPM_AT_FDCWD;
@@ -70,7 +70,7 @@ int BPF_PROG(renameat2_x,
 	auxmap__store_charbuf_param(auxmap, old_path_pointer, MAX_PATH, USER);
 
 	/* Parameter 4: newdirfd (type: PT_FD) */
-	s32 newdirfd = (s32)extract__syscall_argument(regs, 2);
+	int32_t newdirfd = (int32_t)extract__syscall_argument(regs, 2);
 	if(newdirfd == AT_FDCWD)
 	{
 		newdirfd = PPM_AT_FDCWD;
@@ -82,7 +82,7 @@ int BPF_PROG(renameat2_x,
 	auxmap__store_charbuf_param(auxmap, new_path_pointer, MAX_PATH, USER);
 
 	/* Parameter 6: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 4);
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 4);
 	/// TODO: we have to create an helper method to convert these flags to the scap format.
 	auxmap__store_u32_param(auxmap, flags);
 

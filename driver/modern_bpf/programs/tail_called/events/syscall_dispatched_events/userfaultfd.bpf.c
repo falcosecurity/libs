@@ -57,7 +57,7 @@ int BPF_PROG(userfaultfd_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 0);
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u32(&ringbuf, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

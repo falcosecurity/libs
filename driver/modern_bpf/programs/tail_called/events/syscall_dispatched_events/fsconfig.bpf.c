@@ -59,12 +59,12 @@ int BPF_PROG(fsconfig_x,
 
 	/* Parameter 2: fd (type: PT_FD) */
 	/* This is the file-system fd */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	auxmap__store_s64_param(auxmap, (int64_t)fd);
 
 	/* Parameter 3: cmd (type: PT_ENUMFLAGS32) */
-	u32 cmd = (u32)extract__syscall_argument(regs, 1);
-	u32 scap_cmd = fsconfig_cmds_to_scap(cmd);
+	uint32_t cmd = (uint32_t)extract__syscall_argument(regs, 1);
+	uint32_t scap_cmd = fsconfig_cmds_to_scap(cmd);
 	auxmap__store_u32_param(auxmap, scap_cmd);
 
 	/* Parameter 4: key (type: PT_CHARBUF) */

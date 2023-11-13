@@ -56,7 +56,7 @@ int BPF_PROG(pipe2_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
-	s32 pipefd[2] = {-1, -1};
+	int32_t pipefd[2] = {-1, -1};
 	/* This is a pointer to the vector with the 2 file descriptors. */
 	unsigned long fd_vector_pointer = extract__syscall_argument(regs, 0);
 	if(bpf_probe_read_user((void *)pipefd, sizeof(pipefd), (void *)fd_vector_pointer) != 0)
@@ -82,7 +82,7 @@ int BPF_PROG(pipe2_x,
 	ringbuf__store_u64(&ringbuf, ino);
 
 	/* Parameter 5: flags (type: PT_FLAGS32) */
-	s32 flags = extract__syscall_argument(regs, 1);
+	int32_t flags = extract__syscall_argument(regs, 1);
 	ringbuf__store_u32(&ringbuf, pipe2_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

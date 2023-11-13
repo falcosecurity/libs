@@ -58,7 +58,7 @@ int BPF_PROG(mkdirat_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
-	s32 dirfd = (s32)extract__syscall_argument(regs, 0);
+	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
 	if(dirfd == AT_FDCWD)
 	{
 		dirfd = PPM_AT_FDCWD;
@@ -70,7 +70,7 @@ int BPF_PROG(mkdirat_x,
 	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/* Parameter 4: mode (type: PT_UINT32) */
-	u32 mode = (u32)extract__syscall_argument(regs, 2);
+	uint32_t mode = (uint32_t)extract__syscall_argument(regs, 2);
 	auxmap__store_u32_param(auxmap, mode);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

@@ -26,15 +26,15 @@ int BPF_PROG(semget_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: key (type: PT_INT32) */
-	s32 key = (s32)extract__syscall_argument(regs, 0);
+	int32_t key = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s32(&ringbuf, key);
 
 	/* Parameter 2: nsems (type: PT_INT32) */
-	s32 nsems = (s32)extract__syscall_argument(regs, 1);
+	int32_t nsems = (int32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_s32(&ringbuf, nsems);
 
 	/* Parameter 3: semflg (type: PT_FLAGS32) */
-	u32 semflg = (u32)extract__syscall_argument(regs, 2);
+	uint32_t semflg = (uint32_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_u32(&ringbuf, semget_flags_to_scap(semflg));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

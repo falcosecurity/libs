@@ -26,7 +26,7 @@ int BPF_PROG(flock_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: operation (type: PT_FLAGS32) */

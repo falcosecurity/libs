@@ -25,7 +25,7 @@ static __always_inline pid_t find_alive_thread(struct task_struct *father)
 	struct list_head *head = &(signal->thread_head);
 	struct list_head *next_thread = BPF_CORE_READ(head, next);
 
-	u8 cnt = 0;
+	uint8_t cnt = 0;
 
 	for(struct task_struct *t = container_of(next_thread, typeof(struct task_struct), thread_node);
 	    next_thread != (head) && cnt < MAX_THREADS_GROUPS;
@@ -108,7 +108,7 @@ static __always_inline pid_t find_new_reaper_pid(struct task_struct *father)
 	 * We check pid->level, this is slightly more efficient than
 	 * task_active_pid_ns(reaper) != task_active_pid_ns(father).
 	 */
-	u8 cnt = 0;
+	uint8_t cnt = 0;
 
 	for(struct task_struct *possible_reaper = READ_TASK_FIELD(father, real_parent); cnt < MAX_HIERARCHY_TRAVERSE;
 	    possible_reaper = BPF_CORE_READ(possible_reaper, real_parent))
@@ -171,16 +171,16 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: status (type: PT_ERRNO) */
-	s32 exit_code = 0;
+	int32_t exit_code = 0;
 	READ_TASK_FIELD_INTO(&exit_code, task, exit_code);
 	auxmap__store_s64_param(auxmap, (int64_t)exit_code);
 
 	/* Parameter 2: ret (type: PT_ERRNO) */
-	s32 ret = __WEXITSTATUS(exit_code);
+	int32_t ret = __WEXITSTATUS(exit_code);
 	auxmap__store_s64_param(auxmap, (int64_t)ret);
 
 	/* Parameter 3: sig (type: PT_SIGTYPE) */
-	u8 sig = 0;
+	uint8_t sig = 0;
 	/* If the process terminates with a signal collect it. */
 	if(__WIFSIGNALED(exit_code) != 0)
 	{
@@ -189,7 +189,7 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	auxmap__store_u8_param(auxmap, sig);
 
 	/* Parameter 4: core (type: PT_UINT8) */
-	u8 core = __WCOREDUMP(exit_code) != 0;
+	uint8_t core = __WCOREDUMP(exit_code) != 0;
 	auxmap__store_u8_param(auxmap, core);
 
 	/* Parameter 5: reaper_tid (type: PT_PID) */
@@ -198,7 +198,7 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	 * We send `reaper_pid==0` if the userspace still has some children
 	 * it will manage them with its userspace logic.
 	 */
-	s32 reaper_pid = 0;
+	int32_t reaper_pid = 0;
 	struct list_head *head = &(task->children);
 	struct list_head *next_child = BPF_CORE_READ(head, next);
 	if(next_child != head)

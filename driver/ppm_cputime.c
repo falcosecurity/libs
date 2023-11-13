@@ -206,7 +206,7 @@ drop_precision:
 	 * Make sure gcc understands that this is a 32x32->64 multiply,
 	 * followed by a 64/32->64 divide.
 	 */
-	scaled = div_u64((uint64_t) (u32) stime * (uint64_t) (u32) rtime, (u32)total);
+	scaled = div_u64((uint64_t) (uint32_t) stime * (uint64_t) (uint32_t) rtime, (uint32_t)total);
 	return (__force cputime_t) scaled;
 }
 
@@ -307,7 +307,7 @@ static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total)
 	temp *= (__force uint64_t) utime;
 
 	if (sizeof(cputime_t) == 4)
-		temp = div_u64(temp, (__force u32) total);
+		temp = div_u64(temp, (__force uint32_t) total);
 	else
 		temp = div64_u64(temp, (__force uint64_t) total);
 

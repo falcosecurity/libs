@@ -149,15 +149,15 @@ int BPF_PROG(clone_x,
 	READ_TASK_FIELD_INTO(&mm, task, mm);
 
 	/* Parameter 11: vm_size (type: PT_UINT32) */
-	u32 vm_size = extract__vm_size(mm);
+	uint32_t vm_size = extract__vm_size(mm);
 	auxmap__store_u32_param(auxmap, vm_size);
 
 	/* Parameter 12: vm_rss (type: PT_UINT32) */
-	u32 vm_rss = extract__vm_rss(mm);
+	uint32_t vm_rss = extract__vm_rss(mm);
 	auxmap__store_u32_param(auxmap, vm_rss);
 
 	/* Parameter 13: vm_swap (type: PT_UINT32) */
-	u32 vm_swap = extract__vm_swap(mm);
+	uint32_t vm_swap = extract__vm_swap(mm);
 	auxmap__store_u32_param(auxmap, vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
@@ -203,15 +203,15 @@ int BPF_PROG(t1_clone_x,
 #else
 	unsigned long flags = extract__syscall_argument(regs, 0);
 #endif
-	auxmap__store_u32_param(auxmap, (u32)extract__clone_flags(task, flags));
+	auxmap__store_u32_param(auxmap, (uint32_t)extract__clone_flags(task, flags));
 
 	/* Parameter 17: uid (type: PT_UINT32) */
-	u32 euid = 0;
+	uint32_t euid = 0;
 	extract__euid(task, &euid);
 	auxmap__store_u32_param(auxmap, euid);
 
 	/* Parameter 18: gid (type: PT_UINT32) */
-	u32 egid = 0;
+	uint32_t egid = 0;
 	extract__egid(task, &egid);
 	auxmap__store_u32_param(auxmap, egid);
 

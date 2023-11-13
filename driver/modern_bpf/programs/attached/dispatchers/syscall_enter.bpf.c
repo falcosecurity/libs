@@ -30,7 +30,7 @@ int BPF_PROG(sys_enter,
 		{
 			syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
 			// syscalls defined only on 32 bits are dropped here.
-			if(syscall_id == (u32)-1)
+			if(syscall_id == (uint32_t)-1)
 			{
 				return 0;
 			}

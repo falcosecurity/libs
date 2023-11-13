@@ -26,15 +26,15 @@ int BPF_PROG(setresuid_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: ruid (type: PT_GID) */
-	uid_t ruid = (u32)extract__syscall_argument(regs, 0);
+	uid_t ruid = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u32(&ringbuf, ruid);
 
 	/* Parameter 2: euid (type: PT_GID) */
-	uid_t euid = (u32)extract__syscall_argument(regs, 1);
+	uid_t euid = (uint32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u32(&ringbuf, euid);
 
 	/* Parameter 3: suid (type: PT_GID) */
-	uid_t suid = (u32)extract__syscall_argument(regs, 2);
+	uid_t suid = (uint32_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_u32(&ringbuf, suid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

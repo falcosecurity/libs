@@ -21,10 +21,10 @@ struct ppm_consumer_t {
 #else
 	struct ppm_ring_buffer_context *ring_buffers;
 #endif
-	u32 snaplen;
-	u32 sampling_ratio;
+	uint32_t snaplen;
+	uint32_t sampling_ratio;
 	bool do_dynamic_snaplen;
-	u32 sampling_interval;
+	uint32_t sampling_interval;
 	int is_dropping;
 	int dropping_mode;
 	bool drop_failed;
@@ -36,7 +36,7 @@ struct ppm_consumer_t {
 	uint16_t statsd_port;
 	unsigned long buffer_bytes_dim; /* Every consumer will have its per-CPU buffer dim in bytes. */
 	DECLARE_BITMAP(syscalls_mask, SYSCALL_TABLE_SIZE);
-	u32 tracepoints_attached;
+	uint32_t tracepoints_attached;
 };
 
 typedef struct ppm_consumer_t ppm_consumer_t;

@@ -60,7 +60,7 @@ int BPF_PROG(memfd_create_x,
     auxmap__store_charbuf_param(auxmap, name_pointer, MAX_PATH, USER);
 
     /* Parameter 3: flags (type: PT_FLAGS32) */
-    u32 flags = (u32)extract__syscall_argument(regs, 1);
+    uint32_t flags = (uint32_t)extract__syscall_argument(regs, 1);
     auxmap__store_u32_param(auxmap, memfd_create_flags_to_scap(flags));
     /*=============================== COLLECT PARAMETERS  ===========================*/
 

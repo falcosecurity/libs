@@ -26,7 +26,7 @@ int BPF_PROG(dup2_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: oldfd (type: PT_FD) */
-	s32 oldfd = (s32)extract__syscall_argument(regs, 0);
+	int32_t oldfd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)oldfd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -59,11 +59,11 @@ int BPF_PROG(dup2_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: oldfd (type: PT_FD) */
-	s32 oldfd = (s32)extract__syscall_argument(regs, 0);
+	int32_t oldfd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)oldfd);
 
 	/* Parameter 3: newfd (type: PT_FD) */
-	s32 newfd = (s32)extract__syscall_argument(regs, 1);
+	int32_t newfd = (int32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_s64(&ringbuf, (int64_t)newfd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

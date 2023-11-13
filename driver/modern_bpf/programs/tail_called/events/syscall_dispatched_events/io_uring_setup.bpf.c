@@ -57,7 +57,7 @@ int BPF_PROG(io_uring_setup_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: entries (type: PT_UINT32) */
-	u32 entries = (u32)extract__syscall_argument(regs, 0);
+	uint32_t entries = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u32(&ringbuf, entries);
 
 	/* Get the second syscall argument that is a `struct io_uring_params*`
@@ -79,7 +79,7 @@ int BPF_PROG(io_uring_setup_x,
 		ringbuf__store_u32(&ringbuf, params.cq_entries);
 
 		/* Parameter 5: flags (type: PT_FLAGS32) */
-		ringbuf__store_u32(&ringbuf, (u32)io_uring_setup_flags_to_scap(params.flags));
+		ringbuf__store_u32(&ringbuf, (uint32_t)io_uring_setup_flags_to_scap(params.flags));
 
 		/* Parameter 6: sq_thread_cpu (type: PT_UINT32) */
 		ringbuf__store_u32(&ringbuf, params.sq_thread_cpu);
@@ -88,7 +88,7 @@ int BPF_PROG(io_uring_setup_x,
 		ringbuf__store_u32(&ringbuf, params.sq_thread_idle);
 
 		/* Parameter 8: features (type: PT_FLAGS32) */
-		ringbuf__store_u32(&ringbuf, (u32)io_uring_setup_feats_to_scap(params.features));
+		ringbuf__store_u32(&ringbuf, (uint32_t)io_uring_setup_feats_to_scap(params.features));
 	}
 	else
 	{

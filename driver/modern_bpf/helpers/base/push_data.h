@@ -109,7 +109,7 @@ enum read_memory
  * @param lengths_pos pointer to the first empty slot into the `lengths_arr`.
  * @param len length to store inside the array (16 bit).
  */
-static __always_inline void push__param_len(u8 *data, u8 *lengths_pos, uint16_t len)
+static __always_inline void push__param_len(uint8_t *data, uint8_t *lengths_pos, uint16_t len)
 {
 	*((uint16_t *)&data[SAFE_ACCESS(*lengths_pos)]) = len;
 	*lengths_pos += sizeof(uint16_t);
@@ -135,55 +135,55 @@ static __always_inline void push__param_len(u8 *data, u8 *lengths_pos, uint16_t 
 // PUSH FIXED DIMENSIONS
 ///////////////////////////
 
-static __always_inline void push__u8(u8 *data, uint64_t *payload_pos, u8 param)
+static __always_inline void push__u8(uint8_t *data, uint64_t *payload_pos, uint8_t param)
 {
-	*((u8 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
-	*payload_pos += sizeof(u8);
+	*((uint8_t *)&data[SAFE_ACCESS(*payload_pos)]) = param;
+	*payload_pos += sizeof(uint8_t);
 }
 
-static __always_inline void push__u16(u8 *data, uint64_t *payload_pos, uint16_t param)
+static __always_inline void push__u16(uint8_t *data, uint64_t *payload_pos, uint16_t param)
 {
 	*((uint16_t *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(uint16_t);
 }
 
-static __always_inline void push__u32(u8 *data, uint64_t *payload_pos, u32 param)
+static __always_inline void push__u32(uint8_t *data, uint64_t *payload_pos, uint32_t param)
 {
-	*((u32 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
-	*payload_pos += sizeof(u32);
+	*((uint32_t *)&data[SAFE_ACCESS(*payload_pos)]) = param;
+	*payload_pos += sizeof(uint32_t);
 }
 
-static __always_inline void push__u64(u8 *data, uint64_t *payload_pos, uint64_t param)
+static __always_inline void push__u64(uint8_t *data, uint64_t *payload_pos, uint64_t param)
 {
 	*((uint64_t *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(uint64_t);
 }
 
-static __always_inline void push__s16(u8 *data, uint64_t *payload_pos, int16_t param)
+static __always_inline void push__s16(uint8_t *data, uint64_t *payload_pos, int16_t param)
 {
 	*((int16_t *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(int16_t);
 }
 
-static __always_inline void push__s32(u8 *data, uint64_t *payload_pos, s32 param)
+static __always_inline void push__s32(uint8_t *data, uint64_t *payload_pos, int32_t param)
 {
-	*((s32 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
-	*payload_pos += sizeof(s32);
+	*((int32_t *)&data[SAFE_ACCESS(*payload_pos)]) = param;
+	*payload_pos += sizeof(int32_t);
 }
 
-static __always_inline void push__s64(u8 *data, uint64_t *payload_pos, int64_t param)
+static __always_inline void push__s64(uint8_t *data, uint64_t *payload_pos, int64_t param)
 {
 	*((int64_t *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(int64_t);
 }
 
-static __always_inline void push__ipv6(u8 *data, uint64_t *payload_pos, u32 ipv6[4])
+static __always_inline void push__ipv6(uint8_t *data, uint64_t *payload_pos, uint32_t ipv6[4])
 {
 	__builtin_memcpy(&data[SAFE_ACCESS(*payload_pos)], ipv6, 16);
 	*payload_pos += 16;
 }
 
-static __always_inline void push__new_character(u8 *data, uint64_t *payload_pos, char character)
+static __always_inline void push__new_character(uint8_t *data, uint64_t *payload_pos, char character)
 {
 	*((char *)&data[SAFE_ACCESS(*payload_pos)]) = character;
 	*payload_pos += sizeof(char);
@@ -193,7 +193,7 @@ static __always_inline void push__new_character(u8 *data, uint64_t *payload_pos,
  * a previous character. Since we overwrite it we don't need to update
  * `payload_pos`.
  */
-static __always_inline void push__previous_character(u8 *data, uint64_t *payload_pos, char character)
+static __always_inline void push__previous_character(uint8_t *data, uint64_t *payload_pos, char character)
 {
 	*((char *)&data[SAFE_ACCESS(*payload_pos - 1)]) = character;
 }
@@ -216,7 +216,7 @@ static __always_inline void push__previous_character(u8 *data, uint64_t *payload
  * @param mem tell where it must read: user-space or kernel-space.
  * @return (uint16_t) the number of bytes written in the buffer. Could be '0' if the passed pointer is not valid.
  */
-static __always_inline uint16_t push__charbuf(u8 *data, uint64_t *payload_pos, unsigned long charbuf_pointer, uint16_t limit, enum read_memory mem)
+static __always_inline uint16_t push__charbuf(uint8_t *data, uint64_t *payload_pos, unsigned long charbuf_pointer, uint16_t limit, enum read_memory mem)
 {
 	int written_bytes = 0;
 
@@ -258,7 +258,7 @@ static __always_inline uint16_t push__charbuf(u8 *data, uint64_t *payload_pos, u
  * @param mem from which memory we need to read: user-space or kernel-space.
  * @return (uint16_t) the number of bytes written in the buffer. Could be '0' if the passed pointer is not valid.
  */
-static __always_inline uint16_t push__bytebuf(u8 *data, uint64_t *payload_pos, unsigned long bytebuf_pointer, uint16_t len_to_read, enum read_memory mem)
+static __always_inline uint16_t push__bytebuf(uint8_t *data, uint64_t *payload_pos, unsigned long bytebuf_pointer, uint16_t len_to_read, enum read_memory mem)
 {
 	if(mem == KERNEL)
 	{

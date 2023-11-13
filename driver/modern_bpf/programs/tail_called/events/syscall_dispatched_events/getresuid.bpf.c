@@ -58,19 +58,19 @@ int BPF_PROG(getresuid_x,
 	unsigned long ruid_pointer = extract__syscall_argument(regs, 0);
 	uid_t ruid;
 	bpf_probe_read_user((void *)&ruid, sizeof(ruid), (void *)ruid_pointer);
-	ringbuf__store_u32(&ringbuf, (u32)ruid);
+	ringbuf__store_u32(&ringbuf, (uint32_t)ruid);
 
 	/* Parameter 3: euid (type: PT_UID) */
 	unsigned long euid_pointer = extract__syscall_argument(regs, 1);
 	uid_t euid;
 	bpf_probe_read_user((void *)&euid, sizeof(euid), (void *)euid_pointer);
-	ringbuf__store_u32(&ringbuf, (u32)euid);
+	ringbuf__store_u32(&ringbuf, (uint32_t)euid);
 
 	/* Parameter 4: suid (type: PT_UID) */
 	unsigned long suid_pointer = extract__syscall_argument(regs, 2);
 	uid_t suid;
 	bpf_probe_read_user((void *)&suid, sizeof(suid), (void *)suid_pointer);
-	ringbuf__store_u32(&ringbuf, (u32)suid);
+	ringbuf__store_u32(&ringbuf, (uint32_t)suid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

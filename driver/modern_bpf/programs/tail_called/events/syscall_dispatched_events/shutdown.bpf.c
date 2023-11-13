@@ -30,12 +30,12 @@ int BPF_PROG(shutdown_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)args[0];
+	int32_t fd = (int32_t)args[0];
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
-	int how = (s32)args[1];
-	ringbuf__store_u8(&ringbuf, (u8)shutdown_how_to_scap(how));
+	int how = (int32_t)args[1];
+	ringbuf__store_u8(&ringbuf, (uint8_t)shutdown_how_to_scap(how));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

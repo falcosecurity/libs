@@ -17,7 +17,7 @@ int BPF_PROG(close_e,
 {
 	if(maps__get_dropping_mode())
 	{
-		s32 fd = (s32)extract__syscall_argument(regs, 0);
+		int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 		/* We drop the event if we are closing a negative file descriptor */
 		if(fd < 0)
 		{
@@ -25,7 +25,7 @@ int BPF_PROG(close_e,
 		}
 
 		struct task_struct *task = get_current_task();
-		u32 max_fds = 0;
+		uint32_t max_fds = 0;
 		BPF_CORE_READ_INTO(&max_fds, task, files, fdt, max_fds);
 		/* We drop the event if the fd is >= than `max_fds` */
 		if(fd >= max_fds)
@@ -60,7 +60,7 @@ int BPF_PROG(close_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD)*/
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

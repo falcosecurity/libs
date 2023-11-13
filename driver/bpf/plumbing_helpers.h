@@ -95,7 +95,7 @@ static __always_inline long bpf_syscall_get_retval(void *ctx)
 static __always_inline bool bpf_in_ia32_syscall()
 {
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
-	u32 status = 0;
+	uint32_t status = 0;
 
 #ifdef CONFIG_X86_64
 
@@ -327,7 +327,7 @@ static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, i
 	args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
 	if (bpf_in_ia32_syscall())
 	{
-		bpf_probe_read_user(&arg, sizeof(u32), (void*)(args_pointer + (idx * sizeof(u32))));
+		bpf_probe_read_user(&arg, sizeof(uint32_t), (void*)(args_pointer + (idx * sizeof(uint32_t))));
 	}
 	else
 	{

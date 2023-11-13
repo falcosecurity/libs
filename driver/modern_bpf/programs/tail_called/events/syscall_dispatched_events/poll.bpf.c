@@ -27,7 +27,7 @@ int BPF_PROG(poll_e,
 
 	/* Get the `fds_pointer` and the number of `fds` from the syscall arguments */
 	unsigned long fds_pointer = extract__syscall_argument(regs, 0);
-	u32 nfds = (u32)extract__syscall_argument(regs, 1);
+	uint32_t nfds = (uint32_t)extract__syscall_argument(regs, 1);
 
 	/* Parameter 1: fds (type: PT_FDLIST) */
 	/* We are in the enter event so we get the requested events, the returned events are only available
@@ -37,7 +37,7 @@ int BPF_PROG(poll_e,
 
 	/* Parameter 2: timeout (type: PT_INT64) */
 	/* This is an `int` in the syscall signature but we push it as an `int64` */
-	u32 timeout_msecs = (s32)extract__syscall_argument(regs, 2);
+	uint32_t timeout_msecs = (int32_t)extract__syscall_argument(regs, 2);
 	auxmap__store_s64_param(auxmap, (int64_t)timeout_msecs);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -73,7 +73,7 @@ int BPF_PROG(poll_x,
 
 	/* Get the `fds_pointer` and the number of `fds` from the syscall arguments */
 	unsigned long fds_pointer = extract__syscall_argument(regs, 0);
-	u32 nfds = (u32)extract__syscall_argument(regs, 1);
+	uint32_t nfds = (uint32_t)extract__syscall_argument(regs, 1);
 
 	/* Parameter 2: fds (type: PT_FDLIST) */
 	auxmap__store_fdlist_param(auxmap, fds_pointer, nfds, RETURNED_EVENTS);

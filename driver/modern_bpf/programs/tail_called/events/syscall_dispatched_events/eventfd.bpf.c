@@ -26,7 +26,7 @@ int BPF_PROG(eventfd_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: initval (type: PT_UINT64) */
-	u32 initval = (u32)extract__syscall_argument(regs, 0);
+	uint32_t initval = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u64(&ringbuf, (uint64_t)initval);
 
 	/* Parameter 2: flags (type: PT_FLAGS32) */

@@ -59,15 +59,15 @@ int BPF_PROG(pidfd_getfd_x,
     ringbuf__store_s64(&ringbuf, ret);
 
     /* Parameter 2: pidfd (type: PT_FD) */
-    s32 pidfd = (s32)extract__syscall_argument(regs, 0);
+    int32_t pidfd = (int32_t)extract__syscall_argument(regs, 0);
     ringbuf__store_s64(&ringbuf, (int64_t)pidfd);
 
     /* Parameter 3: targetfd (type: PT_FD) */
-    s32 targetfd = (s32)extract__syscall_argument(regs, 1);
+    int32_t targetfd = (int32_t)extract__syscall_argument(regs, 1);
     ringbuf__store_s64(&ringbuf, (int64_t)targetfd);
 
     /* Parameter 4: flags (type: PT_FLAGS32)*/
-    u32 flags = (u32)extract__syscall_argument(regs, 2);
+    uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
     ringbuf__store_u32(&ringbuf, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

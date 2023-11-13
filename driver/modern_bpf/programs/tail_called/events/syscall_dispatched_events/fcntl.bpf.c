@@ -10,7 +10,7 @@
 
 static __always_inline bool check_fcntl_dropping(struct pt_regs *regs)
 {
-	int cmd = (s32)extract__syscall_argument(regs, 1);
+	int cmd = (int32_t)extract__syscall_argument(regs, 1);
 	if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC)
 	{
 		return true;
@@ -41,11 +41,11 @@ int BPF_PROG(fcntl_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
-	int cmd = (s32)extract__syscall_argument(regs, 1);
+	int cmd = (int32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u8(&ringbuf, fcntl_cmd_to_scap(cmd));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -83,11 +83,11 @@ int BPF_PROG(fcntl_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 3: cmd (type: PT_ENUMFLAGS8) */
-	int cmd = (s32)extract__syscall_argument(regs, 1);
+	int cmd = (int32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u8(&ringbuf, fcntl_cmd_to_scap(cmd));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

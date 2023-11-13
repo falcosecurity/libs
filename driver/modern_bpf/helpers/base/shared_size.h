@@ -54,11 +54,11 @@
 #define USEC_FACTOR 1000
 
 /* Network components size. */
-#define FAMILY_SIZE sizeof(u8)
-#define IPV4_SIZE sizeof(u32)
+#define FAMILY_SIZE sizeof(uint8_t)
+#define IPV4_SIZE sizeof(uint32_t)
 #define IPV6_SIZE 16
 #define PORT_SIZE sizeof(uint16_t)
-#define KERNEL_POINTER sizeof(u64)
+#define KERNEL_POINTER sizeof(uint64_t)
 
 /* This enum is used to tell network helpers if the connection outbound
  * or inbound

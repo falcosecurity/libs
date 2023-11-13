@@ -27,7 +27,7 @@ int BPF_PROG(preadv_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: pos (type: PT_UINT64) */
@@ -66,7 +66,7 @@ int BPF_PROG(preadv_x,
 	if(ret > 0)
 	{
 		/* Parameter 2: size (type: PT_UINT32) */
-		auxmap__store_u32_param(auxmap, (u32)ret);
+		auxmap__store_u32_param(auxmap, (uint32_t)ret);
 
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.

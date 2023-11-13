@@ -31,17 +31,17 @@ int BPF_PROG(socket_e,
 
 	/* Parameter 1: domain (type: PT_ENUMFLAGS32) */
 	/* why to send 32 bits if we need only 8 bits? */
-	u8 domain = (u8)args[0];
-	ringbuf__store_u32(&ringbuf, (u32)socket_family_to_scap(domain));
+	uint8_t domain = (uint8_t)args[0];
+	ringbuf__store_u32(&ringbuf, (uint32_t)socket_family_to_scap(domain));
 
 	/* Parameter 2: type (type: PT_UINT32) */
 	/* this should be an int, not a uint32 */
-	u32 type = (u32)args[1];
+	uint32_t type = (uint32_t)args[1];
 	ringbuf__store_u32(&ringbuf, type);
 
 	/* Parameter 3: proto (type: PT_UINT32) */
 	/* this should be an int, not a uint32 */
-	u32 proto = (u32)args[2];
+	uint32_t proto = (uint32_t)args[2];
 	ringbuf__store_u32(&ringbuf, proto);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

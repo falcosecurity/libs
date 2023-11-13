@@ -31,7 +31,7 @@ int BPF_PROG(ptrace_e,
 	ringbuf__store_u16(&ringbuf, ptrace_requests_to_scap(request));
 
 	/* Parameter 2: pid (type: PT_PID) */
-	pid_t pid = (s32)extract__syscall_argument(regs, 1);
+	pid_t pid = (int32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_s64(&ringbuf, (int64_t)pid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

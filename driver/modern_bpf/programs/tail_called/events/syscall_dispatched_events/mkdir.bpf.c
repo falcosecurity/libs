@@ -27,7 +27,7 @@ int BPF_PROG(mkdir_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: mode (type: PT_UINT32) */
-	u32 mode = (u32)extract__syscall_argument(regs, 1);
+	uint32_t mode = (uint32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u32(&ringbuf, mode);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

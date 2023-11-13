@@ -60,7 +60,7 @@ int BPF_PROG(finit_module_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	auxmap__store_s64_param(auxmap, (int64_t)fd);
 
 	/* Parameter 3: uargs (type: PT_CHARBUF) */
@@ -68,7 +68,7 @@ int BPF_PROG(finit_module_x,
 	auxmap__store_charbuf_param(auxmap, uargs_ptr, MAX_PROC_ARG_ENV, USER);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	u32 flags = extract__syscall_argument(regs, 2);
+	uint32_t flags = extract__syscall_argument(regs, 2);
 	auxmap__store_s32_param(auxmap, finit_module_flags_to_scap(flags));
 
 

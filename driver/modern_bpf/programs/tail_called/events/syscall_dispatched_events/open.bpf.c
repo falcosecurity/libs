@@ -30,7 +30,7 @@ int BPF_PROG(open_e,
 	auxmap__store_charbuf_param(auxmap, name_pointer, MAX_PATH, USER);
 
 	/* Parameter 2: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 1);
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 1);
 	auxmap__store_u32_param(auxmap, open_flags_to_scap(flags));
 
 	/* Parameter 3: mode (type: PT_UINT32) */
@@ -73,8 +73,8 @@ int BPF_PROG(open_x,
 	auxmap__store_charbuf_param(auxmap, name_pointer, MAX_PATH, USER);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 1);
-	u32 scap_flags = (u32)open_flags_to_scap(flags);
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 1);
+	uint32_t scap_flags = (uint32_t)open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	scap_flags |= extract__fmode_created_from_fd(ret);
 	auxmap__store_u32_param(auxmap, scap_flags);

@@ -105,8 +105,8 @@ struct
 {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, SYSCALL_TABLE_SIZE);
-	__type(key, u32);
-	__type(value, u32);
+	__type(key, uint32_t);
+	__type(value, uint32_t);
 } syscall_enter_tail_table __weak SEC(".maps");
 
 /**
@@ -118,8 +118,8 @@ struct
 {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, SYSCALL_TABLE_SIZE);
-	__type(key, u32);
-	__type(value, u32);
+	__type(key, uint32_t);
+	__type(value, uint32_t);
 } syscall_exit_tail_table __weak SEC(".maps");
 
 /**
@@ -135,8 +135,8 @@ struct
 {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, TAIL_EXTRA_EVENT_PROG_MAX);
-	__type(key, u32);
-	__type(value, u32);
+	__type(key, uint32_t);
+	__type(value, uint32_t);
 } extra_event_prog_tail_table __weak SEC(".maps");
 
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
@@ -163,7 +163,7 @@ struct
 struct
 {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__type(key, u32);
+	__type(key, uint32_t);
 	__type(value, struct auxiliary_map);
 } auxiliary_maps __weak SEC(".maps");
 
@@ -175,7 +175,7 @@ struct
 struct
 {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
-	__type(key, u32);
+	__type(key, uint32_t);
 	__type(value, struct counter_map);
 } counter_maps __weak SEC(".maps");
 
@@ -199,8 +199,8 @@ struct ringbuf_map
 struct
 {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
-	__type(key, u32);
-	__type(value, u32);
+	__type(key, uint32_t);
+	__type(value, uint32_t);
 	__array(values, struct ringbuf_map);
 } ringbuf_maps __weak SEC(".maps");
 

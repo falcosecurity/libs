@@ -57,11 +57,11 @@ int BPF_PROG(io_uring_register_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 3: opcode (type: PT_ENUMFLAGS16) */
-	u32 opcode = (u32)extract__syscall_argument(regs, 1);
+	uint32_t opcode = (uint32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u16(&ringbuf, (uint16_t)io_uring_register_opcodes_to_scap(opcode));
 
 	/* Parameter 4: arg (type: PT_UINT64) */
@@ -72,7 +72,7 @@ int BPF_PROG(io_uring_register_x,
 	ringbuf__store_u64(&ringbuf, arg);
 
 	/* Parameter 5: nr_args (type: PT_UINT32) */
-	u32 nr_args = (u32)extract__syscall_argument(regs, 3);
+	uint32_t nr_args = (uint32_t)extract__syscall_argument(regs, 3);
 	ringbuf__store_u32(&ringbuf, nr_args);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

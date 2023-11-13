@@ -26,7 +26,7 @@ int BPF_PROG(copy_file_range_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fdin (type: PT_FD) */
-	s32 fdin = (s32)extract__syscall_argument(regs, 0);
+	int32_t fdin = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fdin);
 
 	/* Parameter 2: offin (type: PT_UINT64) */
@@ -67,7 +67,7 @@ int BPF_PROG(copy_file_range_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: fdout (type: PT_FD) */
-	s32 fdout = (s32)extract__syscall_argument(regs, 2);
+	int32_t fdout = (int32_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_s64(&ringbuf, (int64_t)fdout);
 
 	/* Parameter 3: offout (type: PT_UINT64) */

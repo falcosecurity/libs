@@ -27,12 +27,12 @@ int BPF_PROG(pread64_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	u32 size = (u32)extract__syscall_argument(regs, 2);
-	ringbuf__store_u32(&ringbuf, (u32)size);
+	uint32_t size = (uint32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, (uint32_t)size);
 
 	/* Parameter 3: pos (type: PT_UINT64) */
 	uint64_t pos = (uint64_t)extract__syscall_argument(regs, 3);

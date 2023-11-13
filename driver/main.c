@@ -139,7 +139,7 @@ struct event_data_t {
  */
 static int ppm_open(struct inode *inode, struct file *filp);
 static int ppm_release(struct inode *inode, struct file *filp);
-static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set);
+static int force_tp_set(struct ppm_consumer_t *consumer, uint32_t new_tp_set);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event_consumer(struct ppm_consumer_t *consumer,
@@ -217,8 +217,8 @@ static const struct file_operations g_ppm_fops = {
 
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
-static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
-static u32 g_tracepoints_refs[KMOD_PROG_ATTACHED_MAX];
+static uint32_t g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
+static uint32_t g_tracepoints_refs[KMOD_PROG_ATTACHED_MAX];
 static unsigned long g_buffer_bytes_dim = DEFAULT_BUFFER_BYTES_DIM; // dimension of a single per-CPU buffer in bytes.
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
@@ -307,7 +307,7 @@ static void compat_unregister_trace(void *func, const char *probename, struct tr
 #endif
 }
 
-static void set_consumer_tracepoints(struct ppm_consumer_t *consumer, u32 tp_set)
+static void set_consumer_tracepoints(struct ppm_consumer_t *consumer, uint32_t tp_set)
 {
 	int i;
 	int bits_processed;
@@ -630,11 +630,11 @@ static int compat_set_tracepoint(void *func, const char *probename, struct trace
 	return ret;
 }
 
-static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
+static int force_tp_set(struct ppm_consumer_t *consumer, uint32_t new_tp_set)
 {
-	u32 idx;
-	u32 new_val;
-	u32 curr_val;
+	uint32_t idx;
+	uint32_t new_val;
+	uint32_t curr_val;
 	int cpu;
 	int ret;
 
@@ -796,7 +796,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct task_struct *p, *t;
 		uint64_t nentries = 0;
 		struct ppm_proclist_info pli;
-		u32 memsize;
+		uint32_t memsize;
 
 		if (copy_from_user(&pli, (void *)arg, sizeof(pli))) {
 			ret = -EINVAL;
@@ -957,12 +957,12 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_ENABLE_DROPPING_MODE:
 	{
-		u32 new_sampling_ratio;
+		uint32_t new_sampling_ratio;
 
 		consumer->dropping_mode = 1;
 		vpr_info("PPM_IOCTL_ENABLE_DROPPING_MODE, consumer %p\n", consumer_id);
 
-		new_sampling_ratio = (u32)arg;
+		new_sampling_ratio = (uint32_t)arg;
 
 		if (new_sampling_ratio != 1 &&
 			new_sampling_ratio != 2 &&
@@ -987,10 +987,10 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_SET_SNAPLEN:
 	{
-		u32 new_snaplen;
+		uint32_t new_snaplen;
 
 		vpr_info("PPM_IOCTL_SET_SNAPLEN, consumer %p\n", consumer_id);
-		new_snaplen = (u32)arg;
+		new_snaplen = (uint32_t)arg;
 
 		if (new_snaplen > SNAPLEN_MAX) {
 			pr_err("invalid snaplen %u\n", new_snaplen);
@@ -1007,10 +1007,10 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE:
 	{
-		u32 encoded_port_range;
+		uint32_t encoded_port_range;
 
 		vpr_info("PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE, consumer %p\n", consumer_id);
-		encoded_port_range = (u32)arg;
+		encoded_port_range = (uint32_t)arg;
 
 		consumer->fullcapture_port_range_start = encoded_port_range & 0xFFFF;
 		consumer->fullcapture_port_range_end = encoded_port_range >> 16;
@@ -1032,7 +1032,7 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_ENABLE_SYSCALL:
 	{
-		u32 syscall_to_set = (u32)arg - SYSCALL_TABLE_ID0;
+		uint32_t syscall_to_set = (uint32_t)arg - SYSCALL_TABLE_ID0;
 
 		vpr_info("PPM_IOCTL_ENABLE_SYSCALL (%u), consumer %p\n", syscall_to_set, consumer_id);
 
@@ -1049,7 +1049,7 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_DISABLE_SYSCALL:
 	{
-		u32 syscall_to_unset = (u32)arg - SYSCALL_TABLE_ID0;
+		uint32_t syscall_to_unset = (uint32_t)arg - SYSCALL_TABLE_ID0;
 
 		vpr_info("PPM_IOCTL_DISABLE_SYSCALL (%u), consumer %p\n", syscall_to_unset, consumer_id);
 
@@ -1136,28 +1136,28 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_ENABLE_TP:
 	{
-		u32 new_tp_set;
-		if ((u32)arg >= KMOD_PROG_ATTACHED_MAX) {
-			pr_err("invalid tp %u\n", (u32)arg);
+		uint32_t new_tp_set;
+		if ((uint32_t)arg >= KMOD_PROG_ATTACHED_MAX) {
+			pr_err("invalid tp %u\n", (uint32_t)arg);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
 		new_tp_set = consumer->tracepoints_attached;
-		new_tp_set |= 1 << (u32)arg;
+		new_tp_set |= 1 << (uint32_t)arg;
 		set_consumer_tracepoints(consumer, new_tp_set);
 		ret = 0;
 		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_DISABLE_TP:
 	{
-		u32 new_tp_set;
-		if ((u32)arg >= KMOD_PROG_ATTACHED_MAX) {
-			pr_err("invalid tp %u\n", (u32)arg);
+		uint32_t new_tp_set;
+		if ((uint32_t)arg >= KMOD_PROG_ATTACHED_MAX) {
+			pr_err("invalid tp %u\n", (uint32_t)arg);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
 		new_tp_set = consumer->tracepoints_attached;
-		new_tp_set &= ~(1 << (u32)arg);
+		new_tp_set &= ~(1 << (uint32_t)arg);
 		set_consumer_tracepoints(consumer, new_tp_set);
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1761,12 +1761,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	int res = 0;
 	size_t event_size = 0;
 	int next;
-	u32 freespace;
-	u32 usedspace;
-	u32 delta_from_end;
+	uint32_t freespace;
+	uint32_t usedspace;
+	uint32_t delta_from_end;
 	struct event_filler_arguments args = {};
-	u32 ttail;
-	u32 head;
+	uint32_t ttail;
+	uint32_t head;
 	struct ppm_ring_buffer_context *ring;
 	struct ppm_ring_buffer_info *ring_info;
 	int drop = 1;
