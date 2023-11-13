@@ -58,7 +58,7 @@ int BPF_PROG(fchown_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/* Parameter 3: uid (type: PT_UINT32) */

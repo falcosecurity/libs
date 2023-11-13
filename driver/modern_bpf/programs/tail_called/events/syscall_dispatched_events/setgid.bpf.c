@@ -26,7 +26,7 @@ int BPF_PROG(setgid_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: gid (type: PT_GID) */
-	u32 gid = (u32)extract__syscall_argument(regs, 0);
+	uint32_t gid = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u32(&ringbuf, gid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

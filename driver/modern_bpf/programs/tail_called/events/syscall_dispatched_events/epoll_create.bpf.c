@@ -26,7 +26,7 @@ int BPF_PROG(epoll_create_e,
        /*=============================== COLLECT PARAMETERS  ===========================*/
 
        /* Parameter 1: size (type: PT_INT32) */
-       s32 size = (s32)extract__syscall_argument(regs, 0);
+       int32_t size = (int32_t)extract__syscall_argument(regs, 0);
        ringbuf__store_s32(&ringbuf, size);
 
        /*=============================== COLLECT PARAMETERS  ===========================*/

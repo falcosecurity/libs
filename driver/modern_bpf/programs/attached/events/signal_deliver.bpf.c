@@ -83,7 +83,7 @@ int BPF_PROG(signal_deliver,
 	ringbuf__store_u64(&ringbuf, (int64_t)bpf_get_current_pid_tgid() & 0xffffffff);
 
 	/* Parameter 3: sig (type: PT_SIGTYPE) */
-	ringbuf__store_u8(&ringbuf, (u8)sig);
+	ringbuf__store_u8(&ringbuf, (uint8_t)sig);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

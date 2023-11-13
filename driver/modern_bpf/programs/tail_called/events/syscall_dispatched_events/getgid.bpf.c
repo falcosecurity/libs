@@ -53,7 +53,7 @@ int BPF_PROG(getgid_x,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
         /* Parameter 1: gid (type: PT_GID) */
-        ringbuf__store_u32(&ringbuf, (u32)ret);
+        ringbuf__store_u32(&ringbuf, (uint32_t)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -62,7 +62,7 @@ int BPF_PROG(prctl_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: option (type: PT_ENUMFLAGS32) */
-	u32 option = (u32)prctl_options_to_scap(extract__syscall_argument(regs, 0));
+	uint32_t option = (uint32_t)prctl_options_to_scap(extract__syscall_argument(regs, 0));
 	auxmap__store_u32_param(auxmap, option);
 
 	unsigned long arg2 = extract__syscall_argument(regs, 1);

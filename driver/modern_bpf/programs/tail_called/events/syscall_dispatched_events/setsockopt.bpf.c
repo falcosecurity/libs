@@ -62,7 +62,7 @@ int BPF_PROG(setsockopt_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	s32 fd = (s32)args[0];
+	int32_t fd = (int32_t)args[0];
 	auxmap__store_s64_param(auxmap, (int64_t)fd);
 
 	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
@@ -79,7 +79,7 @@ int BPF_PROG(setsockopt_x,
 	auxmap__store_sockopt_param(auxmap, level, optname, optlen, optval);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
-	auxmap__store_u32_param(auxmap, (u32)optlen);
+	auxmap__store_u32_param(auxmap, (uint32_t)optlen);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

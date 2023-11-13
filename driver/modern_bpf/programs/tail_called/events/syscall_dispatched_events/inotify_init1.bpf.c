@@ -57,7 +57,7 @@ int BPF_PROG(inotify_init1_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: flags (type: PT_FLAGS16) */
-	s32 flags = (s32)extract__syscall_argument(regs, 0);
+	int32_t flags = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u16(&ringbuf, inotify_init1_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

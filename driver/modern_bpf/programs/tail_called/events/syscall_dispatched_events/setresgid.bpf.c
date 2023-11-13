@@ -26,15 +26,15 @@ int BPF_PROG(setresgid_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: rgid (type: PT_GID) */
-	gid_t rgid = (u32)extract__syscall_argument(regs, 0);
+	gid_t rgid = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u32(&ringbuf, rgid);
 
 	/* Parameter 2: egid (type: PT_GID) */
-	gid_t egid = (u32)extract__syscall_argument(regs, 1);
+	gid_t egid = (uint32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u32(&ringbuf, egid);
 
 	/* Parameter 3: sgid (type: PT_GID) */
-	gid_t sgid = (u32)extract__syscall_argument(regs, 2);
+	gid_t sgid = (uint32_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_u32(&ringbuf, sgid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

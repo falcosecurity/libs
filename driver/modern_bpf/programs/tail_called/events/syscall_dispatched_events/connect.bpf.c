@@ -29,7 +29,7 @@ int BPF_PROG(connect_e,
 	extract__network_args(args, 3, regs);
 
 	/* Parameter 1: fd (type: PT_FD)*/
-	s32 socket_fd = (s32)args[0];
+	int32_t socket_fd = (int32_t)args[0];
 	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
@@ -71,7 +71,7 @@ int BPF_PROG(connect_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	s32 socket_fd = (s32)args[0];
+	int32_t socket_fd = (int32_t)args[0];
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* We need a valid sockfd to extract source data.*/

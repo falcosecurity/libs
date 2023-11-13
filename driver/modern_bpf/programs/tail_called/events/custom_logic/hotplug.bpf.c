@@ -14,7 +14,7 @@ int BPF_PROG(t1_hotplug_e)
 	/* We assume that the ring buffer for CPU 0 is always there so we send the
 	 * HOT-PLUG event through this buffer.
 	 */
-	u32 cpu_0 = 0;
+	uint32_t cpu_0 = 0;
 	struct ringbuf_map *rb = bpf_map_lookup_elem(&ringbuf_maps, &cpu_0);
 	if(!rb)
 	{
@@ -50,7 +50,7 @@ int BPF_PROG(t1_hotplug_e)
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
 	/* Parameter 1: cpu (type: PT_UINT32) */
-	u32 current_cpu_id = (u32)bpf_get_smp_processor_id();
+	uint32_t current_cpu_id = (uint32_t)bpf_get_smp_processor_id();
 	ringbuf__store_u32(&ringbuf, current_cpu_id);
 
 	/* Parameter 2: action (type: PT_UINT32) */

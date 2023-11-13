@@ -26,7 +26,7 @@ int BPF_PROG(prlimit64_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: pid (type: PT_PID) */
-	pid_t pid = (s32)extract__syscall_argument(regs, 0);
+	pid_t pid = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)pid);
 
 	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */

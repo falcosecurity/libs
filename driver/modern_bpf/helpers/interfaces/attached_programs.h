@@ -21,7 +21,7 @@ enum intrumentation_type
  * We treat the syscalls tracepoints in a dedicated way because they could generate
  * more than one event (1 for each syscall) for this reason we need a dedicated table.
  */
-static __always_inline bool sampling_logic(void* ctx, u32 id, enum intrumentation_type type)
+static __always_inline bool sampling_logic(void* ctx, uint32_t id, enum intrumentation_type type)
 {
 	/* If dropping mode is not enabled we don't perform any sampling
 	 * false: means don't drop the syscall

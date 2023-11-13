@@ -26,7 +26,7 @@
  *
  * struct auxiliary_map
  * {
- *	  u8 data[AUXILIARY_MAP_SIZE]; // raw space to save our variable-size event.
+ *	  uint8_t data[AUXILIARY_MAP_SIZE]; // raw space to save our variable-size event.
  *	  uint64_t payload_pos;	         // position of the first empty byte in the `data` buf.
  *	  uint8_t lengths_pos;	         // position the first empty slot into the lengths array of the event.
  * };
@@ -87,7 +87,7 @@ static __always_inline struct auxiliary_map *auxmap__get()
 static __always_inline void auxmap__preload_event_header(struct auxiliary_map *auxmap, uint16_t event_type)
 {
 	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)auxmap->data;
-	u8 nparams = maps__get_event_num_params(event_type);
+	uint8_t nparams = maps__get_event_num_params(event_type);
 	hdr->ts = maps__get_boot_time() + bpf_ktime_get_boot_ns();
 	hdr->tid = bpf_get_current_pid_tgid() & 0xffffffff;
 	hdr->type = event_type;
@@ -190,10 +190,10 @@ static __always_inline void auxmap__store_empty_param(struct auxiliary_map *auxm
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param param param to store
  */
-static __always_inline void auxmap__store_s32_param(struct auxiliary_map *auxmap, s32 param)
+static __always_inline void auxmap__store_s32_param(struct auxiliary_map *auxmap, int32_t param)
 {
 	push__s32(auxmap->data, &auxmap->payload_pos, param);
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(s32));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(int32_t));
 }
 
 /**
@@ -223,10 +223,10 @@ static __always_inline void auxmap__store_s64_param(struct auxiliary_map *auxmap
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param param param to store
  */
-static __always_inline void auxmap__store_u8_param(struct auxiliary_map *auxmap, u8 param)
+static __always_inline void auxmap__store_u8_param(struct auxiliary_map *auxmap, uint8_t param)
 {
 	push__u8(auxmap->data, &auxmap->payload_pos, param);
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint8_t));
 }
 
 /**
@@ -257,10 +257,10 @@ static __always_inline void auxmap__store_u16_param(struct auxiliary_map *auxmap
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param param param to store
  */
-static __always_inline void auxmap__store_u32_param(struct auxiliary_map *auxmap, u32 param)
+static __always_inline void auxmap__store_u32_param(struct auxiliary_map *auxmap, uint32_t param)
 {
 	push__u32(auxmap->data, &auxmap->payload_pos, param);
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u32));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint32_t));
 }
 
 /**
@@ -463,7 +463,7 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
 		struct sockaddr_in *sockaddr_in = (struct sockaddr_in *)sockaddr;
 
 		/* Copy address and port into the stack. */
-		u32 ipv4 = sockaddr_in->sin_addr.s_addr;
+		uint32_t ipv4 = sockaddr_in->sin_addr.s_addr;
 		uint16_t port = sockaddr_in->sin_port;
 
 		/* Pack the sockaddr info:
@@ -484,7 +484,7 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
 		struct sockaddr_in6 *sockaddr_in6 = (struct sockaddr_in6 *)sockaddr;
 
 		/* Copy address and port into the stack. */
-		u32 ipv6[4] = {0, 0, 0, 0};
+		uint32_t ipv6[4] = {0, 0, 0, 0};
 		__builtin_memcpy(&ipv6, sockaddr_in6->sin6_addr.in6_u.u6_addr32, 16);
 		uint16_t port = sockaddr_in6->sin6_port;
 
@@ -560,7 +560,7 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
  * @param socket_fd socket from which we extract information about the tuple.
  * @param direction specifies the connection direction.
  */
-static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *auxmap, u32 socket_fd, int direction)
+static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *auxmap, uint32_t socket_fd, int direction)
 {
 	uint16_t final_param_len = 0;
 
@@ -578,9 +578,9 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 
 		struct inet_sock *inet = (struct inet_sock *)sk;
 
-		u32 ipv4_local = 0;
+		uint32_t ipv4_local = 0;
 		uint16_t port_local = 0;
-		u32 ipv4_remote = 0;
+		uint32_t ipv4_remote = 0;
 		uint16_t port_remote = 0;
 		BPF_CORE_READ_INTO(&ipv4_local, inet, inet_saddr);
 		BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
@@ -619,9 +619,9 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 	{
 		struct inet_sock *inet = (struct inet_sock *)sk;
 
-		u32 ipv6_local[4] = {0, 0, 0, 0};
+		uint32_t ipv6_local[4] = {0, 0, 0, 0};
 		uint16_t port_local = 0;
-		u32 ipv6_remote[4] = {0, 0, 0, 0};
+		uint32_t ipv6_remote[4] = {0, 0, 0, 0};
 		uint16_t port_remote = 0;
 
 		BPF_CORE_READ_INTO(&ipv6_local, inet, pinet6, saddr);
@@ -725,10 +725,10 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *auxmap, int level, int optname, uint16_t option_len, unsigned long optval)
 {
 	/* We use a signed int because in some case we have to convert it to a negative value. */
-	s32 val32 = 0;
+	int32_t val32 = 0;
 	uint64_t val64 = 0;
 	struct modern_bpf__kernel_timex_timeval tv;
-	uint16_t total_size_to_push = sizeof(u8); /* 1 byte for the PPM type. */
+	uint16_t total_size_to_push = sizeof(uint8_t); /* 1 byte for the PPM type. */
 
 	/* Levels different from `SOL_SOCKET` are not supported
 	 * right now.
@@ -813,7 +813,7 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_UINT32);
 		bpf_probe_read_user((void *)&val32, sizeof(val32), (void *)optval);
 		push__u32(auxmap->data, &auxmap->payload_pos, val32);
-		total_size_to_push += sizeof(u32);
+		total_size_to_push += sizeof(uint32_t);
 		break;
 
 	default:
@@ -837,7 +837,7 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt)
 {
 	/* We use the second part of our auxmap as a scratch space. */
-	u32 total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
 			       SAFE_ACCESS(total_iovec_size),
 			       (void *)iov_pointer))
@@ -846,7 +846,7 @@ static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map 
 		return;
 	}
 
-	u32 total_size_to_read = 0;
+	uint32_t total_size_to_read = 0;
 
 	/* Pointer to iovec structs */
 	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
@@ -872,7 +872,7 @@ static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map 
 static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
 {
 	/* We use the second part of our auxmap as a scratch space. */
-	u32 total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
 			       SAFE_ACCESS(total_iovec_size),
 			       (void *)iov_pointer))
@@ -882,7 +882,7 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 		return;
 	}
 
-	u32 total_size_to_read = 0;
+	uint32_t total_size_to_read = 0;
 
 	/* Pointer to iovec structs */
 	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
@@ -991,7 +991,7 @@ static __always_inline void auxmap__store_ptrace_addr_param(struct auxiliary_map
 		/* We send the addr pointer as a uint64_t */
 		push__u64(auxmap->data, &auxmap->payload_pos, addr_pointer);
 	}
-	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(uint64_t));
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint8_t) + sizeof(uint64_t));
 }
 
 /**
@@ -1013,12 +1013,12 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 		/* We push `0` in case of failure. */
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
 		push__u64(auxmap->data, &auxmap->payload_pos, 0);
-		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(uint64_t));
+		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint8_t) + sizeof(uint64_t));
 		return;
 	}
 
 	uint64_t dest = 0;
-	uint16_t total_size_to_push = sizeof(u8); /* 1 byte for the PPM type. */
+	uint16_t total_size_to_push = sizeof(uint8_t); /* 1 byte for the PPM type. */
 	switch(ptrace_req)
 	{
 	case PPM_PTRACE_PEEKTEXT:
@@ -1036,7 +1036,7 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 	case PPM_PTRACE_SYSCALL:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_SIGTYPE);
 		push__u8(auxmap->data, &auxmap->payload_pos, data_pointer);
-		total_size_to_push += sizeof(u8);
+		total_size_to_push += sizeof(uint8_t);
 		break;
 
 	case PPM_PTRACE_ATTACH:
@@ -1088,7 +1088,7 @@ static __always_inline uint16_t store_cgroup_subsys(struct auxiliary_map *auxmap
 	struct kernfs_node *kn;
 	BPF_CORE_READ_INTO(&kn, task, cgroups, subsys[cgrp_sub_id], cgroup, kn);
 	unsigned long cgroup_path_pointers[MAX_CGROUP_PATH_POINTERS] = {0};
-	u8 path_components = 0;
+	uint8_t path_components = 0;
 
 	for(int k = 0; k < MAX_CGROUP_PATH_POINTERS; ++k)
 	{
@@ -1205,7 +1205,7 @@ static __always_inline void auxmap__store_cgroups_param(struct auxiliary_map *au
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_croups_len);
 }
 
-static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *auxmap, unsigned long fds_pointer, u32 nfds, enum poll_events_direction dir)
+static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *auxmap, unsigned long fds_pointer, uint32_t nfds, enum poll_events_direction dir)
 {
 	/* In this helper we push data in this format:
 	 *  - number of `fd + flags` pairs  -> (uint16_t)
@@ -1219,7 +1219,7 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 	/* We store all the struct's array in the second part of our auxmap
 	 * like in `auxmap__store_sockaddr_param`. This is a scratch space.
 	 */
-	u32 structs_size = nfds * bpf_core_type_size(struct pollfd);
+	uint32_t structs_size = nfds * bpf_core_type_size(struct pollfd);
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
 			       SAFE_ACCESS(structs_size),
 			       (void *)fds_pointer))
@@ -1230,7 +1230,7 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 	}
 
 	/* The pair's number is equal to `nfds` if it is `<=MAX_POLLFD` otherwise it is `MAX_POLLFD` */
-	u32 num_pairs = nfds <= MAX_POLLFD ? nfds : MAX_POLLFD;
+	uint32_t num_pairs = nfds <= MAX_POLLFD ? nfds : MAX_POLLFD;
 	push__u16(auxmap->data, &auxmap->payload_pos, num_pairs);
 
 	/* Pointer to `pollfd` structs */
@@ -1306,7 +1306,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	extract__network_args(args, 3, regs);
 
 	/* All the syscalls involved in this logic have the `fd` as first syscall argument */
-	s32 socket_fd = (s32)args[0];
+	int32_t socket_fd = (int32_t)args[0];
 	if(socket_fd < 0)
 	{
 		return;
@@ -1368,7 +1368,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	/* Read first `DPI_LOOKAHEAD_SIZE` bytes from syscall data, so userspace data */
 	char buf[DPI_LOOKAHEAD_SIZE] = {0};
 	unsigned long data_ptr = args[1];
-	u32 size = (u32)args[2];
+	uint32_t size = (uint32_t)args[2];
 
 	if(bpf_probe_read_user((void *)&buf[0],
 			       DPI_LOOKAHEAD_SIZE,
@@ -1402,7 +1402,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	}
 
 	/* MONGODB */
-	s32 m = *(s32 *)(&buf[12]);
+	int32_t m = *(int32_t *)(&buf[12]);
 	if((port_local == PPM_PORT_MONGODB || port_remote == PPM_PORT_MONGODB) ||
 	   (size >= 16 && (m == 1 || (m >= 2001 && m <= 2007))))
 	{
@@ -1413,7 +1413,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	/* HTTP */
 	if(size >= 5)
 	{
-		u32 h = *(u32 *)(&buf[0]);
+		uint32_t h = *(uint32_t *)(&buf[0]);
 #ifdef __TARGET_ARCH_s390
 		h = __builtin_bswap32(h);
 #endif
@@ -1494,12 +1494,12 @@ static __always_inline void auxmap__store_d_path_approx(struct auxiliary_map *au
 	struct dentry *mnt_root_p = BPF_CORE_READ(vfsmnt, mnt_root);
 
 	/* This is the max length of the buffer in which we will write the full path. */
-	u32 max_buf_len = MAX_TMP_SCRATCH_LEN;
+	uint32_t max_buf_len = MAX_TMP_SCRATCH_LEN;
 
 	/* Populated inside the loop */
 	struct dentry *d_parent = NULL;
 	struct qstr d_name = {};
-	u32 current_off = 0;
+	uint32_t current_off = 0;
 	int effective_name_len = 0;
 
 /* We need the unroll here otherwise the verifier complains about back-edges */

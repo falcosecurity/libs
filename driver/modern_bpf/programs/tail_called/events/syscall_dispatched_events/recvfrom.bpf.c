@@ -31,11 +31,11 @@ int BPF_PROG(recvfrom_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 socket_fd = (s32)args[0];
+	int32_t socket_fd = (int32_t)args[0];
 	ringbuf__store_s64(&ringbuf, (int64_t)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	u32 size = (u32)args[2];
+	uint32_t size = (uint32_t)args[2];
 	ringbuf__store_u32(&ringbuf, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -92,7 +92,7 @@ int BPF_PROG(recvfrom_x,
 		auxmap__store_bytebuf_param(auxmap, received_data_pointer, snaplen, USER);
 
 		/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-		u32 socket_fd = (u32)args[0];
+		uint32_t socket_fd = (uint32_t)args[0];
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
 	}
 	else

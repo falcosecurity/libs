@@ -63,18 +63,18 @@ int BPF_PROG(accept_x,
 	 */
 
 	/* actual dimension of the server queue. */
-	u32 queuelen = 0;
+	uint32_t queuelen = 0;
 
 	/* max dimension of the server queue. */
-	u32 queuemax = 0;
+	uint32_t queuemax = 0;
 
 	/* occupancy percentage of the server queue. */
-	u8 queuepct = 0;
+	uint8_t queuepct = 0;
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	if(ret >= 0)
 	{
-		auxmap__store_socktuple_param(auxmap, (s32)ret, INBOUND);
+		auxmap__store_socktuple_param(auxmap, (int32_t)ret, INBOUND);
 
 		/* Collect parameters at the beginning to  manage socketcalls */
 		unsigned long args[1];
@@ -85,7 +85,7 @@ int BPF_PROG(accept_x,
 		 * to extract information from the listening socket, not from the
 		 * new one.
 		 */
-		s32 sockfd = (s32)args[0];
+		int32_t sockfd = (int32_t)args[0];
 		struct file *file = NULL;
 		file = extract__file_struct_from_fd(sockfd);
 		struct socket *socket = BPF_CORE_READ(file, private_data);
@@ -94,7 +94,7 @@ int BPF_PROG(accept_x,
 		BPF_CORE_READ_INTO(&queuemax, sk, sk_max_ack_backlog);
 		if(queuelen && queuemax)
 		{
-			queuepct = (u8)((uint64_t)queuelen * 100 / queuemax);
+			queuepct = (uint8_t)((uint64_t)queuelen * 100 / queuemax);
 		}
 	}
 	else

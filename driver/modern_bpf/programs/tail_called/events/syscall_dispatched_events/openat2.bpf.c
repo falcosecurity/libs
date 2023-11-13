@@ -26,7 +26,7 @@ int BPF_PROG(openat2_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: dirfd (type: PT_FD) */
-	s32 dirfd = (s32)extract__syscall_argument(regs, 0);
+	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
 	if(dirfd == AT_FDCWD)
 	{
 		dirfd = PPM_AT_FDCWD;
@@ -83,7 +83,7 @@ int BPF_PROG(openat2_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
-	s32 dirfd = (s32)extract__syscall_argument(regs, 0);
+	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
 	if(dirfd == AT_FDCWD)
 	{
 		dirfd = PPM_AT_FDCWD;

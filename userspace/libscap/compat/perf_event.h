@@ -269,17 +269,17 @@ enum {
  * as specified by attr.read_format:
  *
  * struct read_format {
- *	{ u64		value;
- *	  { u64		time_enabled; } && PERF_FORMAT_TOTAL_TIME_ENABLED
- *	  { u64		time_running; } && PERF_FORMAT_TOTAL_TIME_RUNNING
- *	  { u64		id;           } && PERF_FORMAT_ID
+ *	{ uint64_t		value;
+ *	  { uint64_t		time_enabled; } && PERF_FORMAT_TOTAL_TIME_ENABLED
+ *	  { uint64_t		time_running; } && PERF_FORMAT_TOTAL_TIME_RUNNING
+ *	  { uint64_t		id;           } && PERF_FORMAT_ID
  *	} && !PERF_FORMAT_GROUP
  *
- *	{ u64		nr;
- *	  { u64		time_enabled; } && PERF_FORMAT_TOTAL_TIME_ENABLED
- *	  { u64		time_running; } && PERF_FORMAT_TOTAL_TIME_RUNNING
- *	  { u64		value;
- *	    { u64	id;           } && PERF_FORMAT_ID
+ *	{ uint64_t		nr;
+ *	  { uint64_t		time_enabled; } && PERF_FORMAT_TOTAL_TIME_ENABLED
+ *	  { uint64_t		time_running; } && PERF_FORMAT_TOTAL_TIME_RUNNING
+ *	  { uint64_t		value;
+ *	    { uint64_t	id;           } && PERF_FORMAT_ID
  *	  }		cntr[nr];
  *	} && PERF_FORMAT_GROUP
  * };
@@ -477,10 +477,10 @@ struct perf_event_mmap_page {
 	/*
 	 * Bits needed to read the hw events in user-space.
 	 *
-	 *   u32 seq, time_mult, time_shift, index, width;
-	 *   u64 count, enabled, running;
-	 *   u64 cyc, time_offset;
-	 *   s64 pmc = 0;
+	 *   uint32_t seq, time_mult, time_shift, index, width;
+	 *   uint64_t count, enabled, running;
+	 *   uint64_t cyc, time_offset;
+	 *   int64_t pmc = 0;
 	 *
 	 *   do {
 	 *     seq = pc->lock;
@@ -542,11 +542,11 @@ struct perf_event_mmap_page {
 	 * If cap_usr_time the below fields can be used to compute the time
 	 * delta since time_enabled (in ns) using rdtsc or similar.
 	 *
-	 *   u64 quot, rem;
-	 *   u64 delta;
+	 *   uint64_t quot, rem;
+	 *   uint64_t delta;
 	 *
 	 *   quot = (cyc >> time_shift);
-	 *   rem = cyc & (((u64)1 << time_shift) - 1);
+	 *   rem = cyc & (((uint64_t)1 << time_shift) - 1);
 	 *   delta = time_offset + quot * time_mult +
 	 *              ((rem * time_mult) >> time_shift);
 	 *
@@ -577,7 +577,7 @@ struct perf_event_mmap_page {
 	 * And vice versa:
 	 *
 	 *   quot = cyc >> time_shift;
-	 *   rem  = cyc & (((u64)1 << time_shift) - 1);
+	 *   rem  = cyc & (((uint64_t)1 << time_shift) - 1);
 	 *   timestamp = time_zero + quot * time_mult +
 	 *               ((rem * time_mult) >> time_shift);
 	 */
@@ -710,12 +710,12 @@ enum perf_event_type {
 	 * optional fields being ignored.
 	 *
 	 * struct sample_id {
-	 * 	{ u32			pid, tid; } && PERF_SAMPLE_TID
-	 * 	{ u64			time;     } && PERF_SAMPLE_TIME
-	 * 	{ u64			id;       } && PERF_SAMPLE_ID
-	 * 	{ u64			stream_id;} && PERF_SAMPLE_STREAM_ID
-	 * 	{ u32			cpu, res; } && PERF_SAMPLE_CPU
-	 *	{ u64			id;	  } && PERF_SAMPLE_IDENTIFIER
+	 * 	{ uint32_t			pid, tid; } && PERF_SAMPLE_TID
+	 * 	{ uint64_t			time;     } && PERF_SAMPLE_TIME
+	 * 	{ uint64_t			id;       } && PERF_SAMPLE_ID
+	 * 	{ uint64_t			stream_id;} && PERF_SAMPLE_STREAM_ID
+	 * 	{ uint32_t			cpu, res; } && PERF_SAMPLE_CPU
+	 *	{ uint64_t			id;	  } && PERF_SAMPLE_IDENTIFIER
 	 * } && perf_event_attr::sample_id_all
 	 *
 	 * Note that PERF_SAMPLE_IDENTIFIER duplicates PERF_SAMPLE_ID.  The
@@ -730,10 +730,10 @@ enum perf_event_type {
 	 * struct {
 	 *	struct perf_event_header	header;
 	 *
-	 *	u32				pid, tid;
-	 *	u64				addr;
-	 *	u64				len;
-	 *	u64				pgoff;
+	 *	uint32_t				pid, tid;
+	 *	uint64_t				addr;
+	 *	uint64_t				len;
+	 *	uint64_t				pgoff;
 	 *	char				filename[];
 	 * 	struct sample_id		sample_id;
 	 * };
@@ -743,8 +743,8 @@ enum perf_event_type {
 	/*
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u64				id;
-	 *	u64				lost;
+	 *	uint64_t				id;
+	 *	uint64_t				lost;
 	 * 	struct sample_id		sample_id;
 	 * };
 	 */
@@ -754,7 +754,7 @@ enum perf_event_type {
 	 * struct {
 	 *	struct perf_event_header	header;
 	 *
-	 *	u32				pid, tid;
+	 *	uint32_t				pid, tid;
 	 *	char				comm[];
 	 * 	struct sample_id		sample_id;
 	 * };
@@ -764,9 +764,9 @@ enum perf_event_type {
 	/*
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u32				pid, ppid;
-	 *	u32				tid, ptid;
-	 *	u64				time;
+	 *	uint32_t				pid, ppid;
+	 *	uint32_t				tid, ptid;
+	 *	uint64_t				time;
 	 * 	struct sample_id		sample_id;
 	 * };
 	 */
@@ -775,9 +775,9 @@ enum perf_event_type {
 	/*
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u64				time;
-	 *	u64				id;
-	 *	u64				stream_id;
+	 *	uint64_t				time;
+	 *	uint64_t				id;
+	 *	uint64_t				stream_id;
 	 * 	struct sample_id		sample_id;
 	 * };
 	 */
@@ -787,9 +787,9 @@ enum perf_event_type {
 	/*
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u32				pid, ppid;
-	 *	u32				tid, ptid;
-	 *	u64				time;
+	 *	uint32_t				pid, ppid;
+	 *	uint32_t				tid, ptid;
+	 *	uint64_t				time;
 	 * 	struct sample_id		sample_id;
 	 * };
 	 */
@@ -798,7 +798,7 @@ enum perf_event_type {
 	/*
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u32				pid, tid;
+	 *	uint32_t				pid, tid;
 	 *
 	 *	struct read_format		values;
 	 * 	struct sample_id		sample_id;
@@ -816,20 +816,20 @@ enum perf_event_type {
 	 *	# is fixed relative to header.
 	 *	#
 	 *
-	 *	{ u64			id;	  } && PERF_SAMPLE_IDENTIFIER
-	 *	{ u64			ip;	  } && PERF_SAMPLE_IP
-	 *	{ u32			pid, tid; } && PERF_SAMPLE_TID
-	 *	{ u64			time;     } && PERF_SAMPLE_TIME
-	 *	{ u64			addr;     } && PERF_SAMPLE_ADDR
-	 *	{ u64			id;	  } && PERF_SAMPLE_ID
-	 *	{ u64			stream_id;} && PERF_SAMPLE_STREAM_ID
-	 *	{ u32			cpu, res; } && PERF_SAMPLE_CPU
-	 *	{ u64			period;   } && PERF_SAMPLE_PERIOD
+	 *	{ uint64_t			id;	  } && PERF_SAMPLE_IDENTIFIER
+	 *	{ uint64_t			ip;	  } && PERF_SAMPLE_IP
+	 *	{ uint32_t			pid, tid; } && PERF_SAMPLE_TID
+	 *	{ uint64_t			time;     } && PERF_SAMPLE_TIME
+	 *	{ uint64_t			addr;     } && PERF_SAMPLE_ADDR
+	 *	{ uint64_t			id;	  } && PERF_SAMPLE_ID
+	 *	{ uint64_t			stream_id;} && PERF_SAMPLE_STREAM_ID
+	 *	{ uint32_t			cpu, res; } && PERF_SAMPLE_CPU
+	 *	{ uint64_t			period;   } && PERF_SAMPLE_PERIOD
 	 *
 	 *	{ struct read_format	values;	  } && PERF_SAMPLE_READ
 	 *
-	 *	{ u64			nr,
-	 *	  u64			ips[nr];  } && PERF_SAMPLE_CALLCHAIN
+	 *	{ uint64_t			nr,
+	 *	  uint64_t			ips[nr];  } && PERF_SAMPLE_CALLCHAIN
 	 *
 	 *	#
 	 *	# The RAW record below is opaque data wrt the ABI
@@ -842,25 +842,25 @@ enum perf_event_type {
 	 *	# In other words, PERF_SAMPLE_RAW contents are not an ABI.
 	 *	#
 	 *
-	 *	{ u32			size;
+	 *	{ uint32_t			size;
 	 *	  char                  data[size];}&& PERF_SAMPLE_RAW
 	 *
-	 *	{ u64                   nr;
-	 *        { u64 from, to, flags } lbr[nr];} && PERF_SAMPLE_BRANCH_STACK
+	 *	{ uint64_t                   nr;
+	 *        { uint64_t from, to, flags } lbr[nr];} && PERF_SAMPLE_BRANCH_STACK
 	 *
-	 * 	{ u64			abi; # enum perf_sample_regs_abi
-	 * 	  u64			regs[weight(mask)]; } && PERF_SAMPLE_REGS_USER
+	 * 	{ uint64_t			abi; # enum perf_sample_regs_abi
+	 * 	  uint64_t			regs[weight(mask)]; } && PERF_SAMPLE_REGS_USER
 	 *
-	 * 	{ u64			size;
+	 * 	{ uint64_t			size;
 	 * 	  char			data[size];
-	 * 	  u64			dyn_size; } && PERF_SAMPLE_STACK_USER
+	 * 	  uint64_t			dyn_size; } && PERF_SAMPLE_STACK_USER
 	 *
-	 *	{ u64			weight;   } && PERF_SAMPLE_WEIGHT
-	 *	{ u64			data_src; } && PERF_SAMPLE_DATA_SRC
-	 *	{ u64			transaction; } && PERF_SAMPLE_TRANSACTION
-	 *	{ u64			abi; # enum perf_sample_regs_abi
-	 *	  u64			regs[weight(mask)]; } && PERF_SAMPLE_REGS_INTR
-	 *	{ u64			phys_addr;} && PERF_SAMPLE_PHYS_ADDR
+	 *	{ uint64_t			weight;   } && PERF_SAMPLE_WEIGHT
+	 *	{ uint64_t			data_src; } && PERF_SAMPLE_DATA_SRC
+	 *	{ uint64_t			transaction; } && PERF_SAMPLE_TRANSACTION
+	 *	{ uint64_t			abi; # enum perf_sample_regs_abi
+	 *	  uint64_t			regs[weight(mask)]; } && PERF_SAMPLE_REGS_INTR
+	 *	{ uint64_t			phys_addr;} && PERF_SAMPLE_PHYS_ADDR
 	 * };
 	 */
 	PERF_RECORD_SAMPLE			= 9,
@@ -872,15 +872,15 @@ enum perf_event_type {
 	 * struct {
 	 *	struct perf_event_header	header;
 	 *
-	 *	u32				pid, tid;
-	 *	u64				addr;
-	 *	u64				len;
-	 *	u64				pgoff;
-	 *	u32				maj;
-	 *	u32				min;
-	 *	u64				ino;
-	 *	u64				ino_generation;
-	 *	u32				prot, flags;
+	 *	uint32_t				pid, tid;
+	 *	uint64_t				addr;
+	 *	uint64_t				len;
+	 *	uint64_t				pgoff;
+	 *	uint32_t				maj;
+	 *	uint32_t				min;
+	 *	uint64_t				ino;
+	 *	uint64_t				ino_generation;
+	 *	uint32_t				prot, flags;
 	 *	char				filename[];
 	 * 	struct sample_id		sample_id;
 	 * };
@@ -893,9 +893,9 @@ enum perf_event_type {
 	 * struct {
 	 * 	struct perf_event_header	header;
 	 *
-	 * 	u64				aux_offset;
-	 * 	u64				aux_size;
-	 *	u64				flags;
+	 * 	uint64_t				aux_offset;
+	 * 	uint64_t				aux_size;
+	 *	uint64_t				flags;
 	 * 	struct sample_id		sample_id;
 	 * };
 	 */
@@ -906,8 +906,8 @@ enum perf_event_type {
 	 *
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u32				pid;
-	 *	u32				tid;
+	 *	uint32_t				pid;
+	 *	uint32_t				tid;
 	 *	struct sample_id		sample_id;
 	 * };
 	 */
@@ -919,7 +919,7 @@ enum perf_event_type {
 	 * struct {
 	 *	struct perf_event_header	header;
 	 *
-	 *	u64				lost;
+	 *	uint64_t				lost;
 	 *	struct sample_id		sample_id;
 	 * };
 	 */
@@ -944,8 +944,8 @@ enum perf_event_type {
 	 *
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u32				next_prev_pid;
-	 *	u32				next_prev_tid;
+	 *	uint32_t				next_prev_pid;
+	 *	uint32_t				next_prev_tid;
 	 *	struct sample_id		sample_id;
 	 * };
 	 */
@@ -954,10 +954,10 @@ enum perf_event_type {
 	/*
 	 * struct {
 	 *	struct perf_event_header	header;
-	 *	u32				pid;
-	 *	u32				tid;
-	 *	u64				nr_namespaces;
-	 *	{ u64				dev, inode; } [nr_namespaces];
+	 *	uint32_t				pid;
+	 *	uint32_t				tid;
+	 *	uint64_t				nr_namespaces;
+	 *	{ uint64_t				dev, inode; } [nr_namespaces];
 	 *	struct sample_id		sample_id;
 	 * };
 	 */

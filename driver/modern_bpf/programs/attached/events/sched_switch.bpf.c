@@ -53,15 +53,15 @@ int BPF_PROG(sched_switch,
 	READ_TASK_FIELD_INTO(&mm, prev, mm);
 
 	/* Parameter 4: vm_size (type: PT_UINT32) */
-	u32 vm_size = extract__vm_size(mm);
+	uint32_t vm_size = extract__vm_size(mm);
 	ringbuf__store_u32(&ringbuf, vm_size);
 
 	/* Parameter 5: vm_rss (type: PT_UINT32) */
-	u32 vm_rss = extract__vm_rss(mm);
+	uint32_t vm_rss = extract__vm_rss(mm);
 	ringbuf__store_u32(&ringbuf, vm_rss);
 
 	/* Parameter 6: vm_swap (type: PT_UINT32) */
-	u32 vm_swap = extract__vm_swap(mm);
+	uint32_t vm_swap = extract__vm_swap(mm);
 	ringbuf__store_u32(&ringbuf, vm_swap);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

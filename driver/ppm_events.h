@@ -34,16 +34,16 @@ struct fault_data_t {
 struct event_filler_arguments {
 	ppm_consumer_t *consumer;
 	char *buffer; /* the buffer that will be filled with the data */
-	u32 buffer_size; /* the space in the ring buffer available for this event */
-	u32 syscall_id; /* the system call ID */
+	uint32_t buffer_size; /* the space in the ring buffer available for this event */
+	uint32_t syscall_id; /* the system call ID */
 #ifdef PPM_ENABLE_SENTINEL
-	u32 sentinel;
+	uint32_t sentinel;
 #endif
-	u32 nevents;
-	u32 curarg;
-	u32 nargs;
-	u32 arg_data_offset;
-	u32 arg_data_size;
+	uint32_t nevents;
+	uint32_t curarg;
+	uint32_t nargs;
+	uint32_t arg_data_offset;
+	uint32_t arg_data_size;
 	ppm_event_code event_type;	/* the event type */
 	/* Eventually convert this to an event_info union and move all the
 	 * below per-event params in this union, it's not good to waste kernel
@@ -96,7 +96,7 @@ extern const struct ppm_event_entry g_ppm_events[];
  */
 int32_t dpi_lookahead_init(void);
 int32_t push_empty_param(struct event_filler_arguments *args);
-int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, bool fromuser, u8 dyn_idx);
+int32_t val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_len, bool fromuser, uint8_t dyn_idx);
 uint16_t pack_addr(struct sockaddr *usrsockaddr, int ulen, char *targetbuf, uint16_t targetbufsize);
 uint16_t fd_to_socktuple(int fd, struct sockaddr *usrsockaddr, int ulen, bool use_userdata, bool is_inbound, char *targetbuf, uint16_t targetbufsize);
 int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr);
@@ -109,8 +109,8 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 static inline int add_sentinel(struct event_filler_arguments *args)
 {
 #ifdef PPM_ENABLE_SENTINEL
-	if (likely(args->arg_data_size >= sizeof(u32))) {
-		*(u32 *)(args->buffer + args->arg_data_offset) = args->sentinel;
+	if (likely(args->arg_data_size >= sizeof(uint32_t))) {
+		*(uint32_t *)(args->buffer + args->arg_data_offset) = args->sentinel;
 		args->arg_data_offset += 4;
 		args->arg_data_size -= 4;
 		return PPM_SUCCESS;

@@ -64,11 +64,11 @@ int BPF_PROG(mknod_x,
 	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/* Parameter 3: mode (type: PT_MODE) */
-	u32 mode = (u32)extract__syscall_argument(regs, 1);
+	uint32_t mode = (uint32_t)extract__syscall_argument(regs, 1);
 	auxmap__store_u32_param(auxmap,mknod_mode_to_scap(mode));
 
 	/* Parameter 4: dev (type: PT_UINT32) */
-	u32 dev = (u32)extract__syscall_argument(regs, 2);
+	uint32_t dev = (uint32_t)extract__syscall_argument(regs, 2);
 	auxmap__store_u32_param(auxmap, encode_dev(dev));
 
 

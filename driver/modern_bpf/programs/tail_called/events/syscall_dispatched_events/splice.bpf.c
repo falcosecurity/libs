@@ -26,11 +26,11 @@ int BPF_PROG(splice_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd_in (type: PT_FD) */
-	s32 fd_in = (s32)extract__syscall_argument(regs, 0);
+	int32_t fd_in = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd_in);
 
 	/* Parameter 2: fd_out (type: PT_FD) */
-	s32 fd_out = (s32)extract__syscall_argument(regs, 2);
+	int32_t fd_out = (int32_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_s64(&ringbuf, (int64_t)fd_out);
 
 	/* Parameter 3: size (type: PT_UINT64) */
@@ -38,7 +38,7 @@ int BPF_PROG(splice_e,
 	ringbuf__store_u64(&ringbuf, size);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	u32 flags = extract__syscall_argument(regs, 5);
+	uint32_t flags = extract__syscall_argument(regs, 5);
 	ringbuf__store_u32(&ringbuf, splice_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

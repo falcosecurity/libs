@@ -26,7 +26,7 @@ int BPF_PROG(semop_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: semid (type: PT_INT32)*/
-	s32 semid = (s32)extract__syscall_argument(regs, 0);
+	int32_t semid = (int32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_s32(&ringbuf, semid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -59,7 +59,7 @@ int BPF_PROG(semop_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Parameter 2: nsops (type: PT_UINT32) */
-	u32 nsops = (u32)extract__syscall_argument(regs, 2);
+	uint32_t nsops = (uint32_t)extract__syscall_argument(regs, 2);
 	ringbuf__store_u32(&ringbuf, nsops);
 
 	/* Extract pointer to the `sembuf` struct */

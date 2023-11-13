@@ -58,19 +58,19 @@ int BPF_PROG(getresgid_x,
 	unsigned long rgid_pointer = extract__syscall_argument(regs, 0);
 	gid_t rgid;
 	bpf_probe_read_user((void *)&rgid, sizeof(rgid), (void *)rgid_pointer);
-	ringbuf__store_u32(&ringbuf, (u32)rgid);
+	ringbuf__store_u32(&ringbuf, (uint32_t)rgid);
 
 	/* Parameter 3: egid (type: PT_GID) */
 	unsigned long egid_pointer = extract__syscall_argument(regs, 1);
 	gid_t egid;
 	bpf_probe_read_user((void *)&egid, sizeof(egid), (void *)egid_pointer);
-	ringbuf__store_u32(&ringbuf, (u32)egid);
+	ringbuf__store_u32(&ringbuf, (uint32_t)egid);
 
 	/* Parameter 4: sgid (type: PT_GID) */
 	unsigned long sgid_pointer = extract__syscall_argument(regs, 2);
 	gid_t sgid;
 	bpf_probe_read_user((void *)&sgid, sizeof(sgid), (void *)sgid_pointer);
-	ringbuf__store_u32(&ringbuf, (u32)sgid);
+	ringbuf__store_u32(&ringbuf, (uint32_t)sgid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

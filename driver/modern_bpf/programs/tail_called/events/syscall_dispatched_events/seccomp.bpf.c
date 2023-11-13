@@ -29,7 +29,7 @@ int BPF_PROG(seccomp_e,
 	uint64_t operation = (uint64_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u64(&ringbuf, operation);
 
-	u32 flags = (u32)extract__syscall_argument(regs, 1);
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 1);
 	ringbuf__store_u64(&ringbuf, (uint64_t)flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

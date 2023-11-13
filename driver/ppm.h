@@ -50,7 +50,7 @@ struct ppm_ring_buffer_context {
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
 	nanoseconds last_print_time;
-	u32 nevents;
+	uint32_t nevents;
 #ifndef UDIG
 	atomic_t preempt_count;
 #endif	

@@ -63,9 +63,9 @@ int BPF_PROG(brk_x,
 	struct mm_struct *mm = NULL;
 	READ_TASK_FIELD_INTO(&mm, task, mm);
 
-	u32 vm_size = extract__vm_size(mm);
-	u32 rss_size = extract__vm_rss(mm);
-	u32 swap_size = extract__vm_swap(mm);
+	uint32_t vm_size = extract__vm_size(mm);
+	uint32_t rss_size = extract__vm_rss(mm);
+	uint32_t swap_size = extract__vm_swap(mm);
 
 	/* Parameter 2: vm_size (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, vm_size);

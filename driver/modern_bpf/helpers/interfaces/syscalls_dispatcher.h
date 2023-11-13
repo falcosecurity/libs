@@ -13,12 +13,12 @@
 #include <helpers/base/read_from_task.h>
 #include <helpers/extract/extract_from_kernel.h>
 
-static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(u32 syscall_id)
+static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint32_t syscall_id)
 {
 	return maps__64bit_interesting_syscall(syscall_id);
 }
 
-static __always_inline u32 syscalls_dispatcher__convert_ia32_to_64(u32 syscall_id)
+static __always_inline uint32_t syscalls_dispatcher__convert_ia32_to_64(uint32_t syscall_id)
 {
 	return maps__ia32_to_64(syscall_id);
 }

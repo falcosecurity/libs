@@ -58,7 +58,7 @@ int BPF_PROG(open_by_handle_at_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: mountfd (type: PT_FD) */
-	s32 mountfd = (s32)extract__syscall_argument(regs, 0);
+	int32_t mountfd = (int32_t)extract__syscall_argument(regs, 0);
 	if(mountfd == AT_FDCWD)
 	{
 		mountfd = PPM_AT_FDCWD;
@@ -66,8 +66,8 @@ int BPF_PROG(open_by_handle_at_x,
 	auxmap__store_s64_param(auxmap, (int64_t)mountfd);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 2);
-	flags = (u32)open_flags_to_scap(flags);
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
+	flags = (uint32_t)open_flags_to_scap(flags);
 	/* update flags if file is created */
 	flags |= extract__fmode_created_from_fd(ret);
 

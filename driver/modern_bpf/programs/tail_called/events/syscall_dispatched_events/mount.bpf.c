@@ -27,7 +27,7 @@ int BPF_PROG(mount_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 3);
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 3);
 
 	/* The `mountflags` argument may have the magic number 0xC0ED
 	 * (MS_MGC_VAL) in the top 16 bits. (All of the other flags

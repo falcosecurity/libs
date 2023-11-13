@@ -62,7 +62,7 @@ int BPF_PROG(symlinkat_x,
 	auxmap__store_charbuf_param(auxmap, target_pointer, MAX_PATH, USER);
 
 	/* Parameter 3: linkdirfd (type: PT_FD) */
-	s32 linkdirfd = (s32)extract__syscall_argument(regs, 1);
+	int32_t linkdirfd = (int32_t)extract__syscall_argument(regs, 1);
 	if(linkdirfd == AT_FDCWD)
 	{
 		linkdirfd = PPM_AT_FDCWD;

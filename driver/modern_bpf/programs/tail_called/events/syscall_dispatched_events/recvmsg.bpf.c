@@ -31,7 +31,7 @@ int BPF_PROG(recvmsg_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD)*/
-	s32 fd = (s32)args[0];
+	int32_t fd = (int32_t)args[0];
 	ringbuf__store_s64(&ringbuf, (int64_t)fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -71,7 +71,7 @@ int BPF_PROG(recvmsg_x,
 	{
 
 		/* Parameter 2: size (type: PT_UINT32) */
-		auxmap__store_u32_param(auxmap, (u32)ret);
+		auxmap__store_u32_param(auxmap, (uint32_t)ret);
 
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
@@ -92,7 +92,7 @@ int BPF_PROG(recvmsg_x,
 		struct user_msghdr msghhdr = auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, snaplen);
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-		u32 socket_fd = (u32)args[0];
+		uint32_t socket_fd = (uint32_t)args[0];
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
 
 		/* Parameter 5: msg_control (type: PT_BYTEBUF) */

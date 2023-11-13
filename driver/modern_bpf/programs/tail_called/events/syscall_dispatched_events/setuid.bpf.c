@@ -26,7 +26,7 @@ int BPF_PROG(setuid_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: uid (type: PT_UID) */
-	uid_t uid = (u32)extract__syscall_argument(regs, 0);
+	uid_t uid = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u32(&ringbuf, uid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

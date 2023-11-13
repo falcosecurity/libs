@@ -35,7 +35,7 @@ int BPF_PROG(quotactl_e,
 	ringbuf__store_u8(&ringbuf, quotactl_type_to_scap(cmd));
 
 	/* Parameter 3: id (type: PT_UINT32) */
-	u32 id = (u32)extract__syscall_argument(regs, 2);
+	uint32_t id = (uint32_t)extract__syscall_argument(regs, 2);
 	if(scap_cmd != PPM_Q_GETQUOTA &&
 	   scap_cmd != PPM_Q_SETQUOTA &&
 	   scap_cmd != PPM_Q_XGETQUOTA &&
@@ -50,7 +50,7 @@ int BPF_PROG(quotactl_e,
 	}
 
 	/* Parameter 4: quota_fmt (type: PT_FLAGS8) */
-	u8 quota_fmt = PPM_QFMT_NOT_USED;
+	uint8_t quota_fmt = PPM_QFMT_NOT_USED;
 	if(scap_cmd == PPM_Q_QUOTAON)
 	{
 		quota_fmt = quotactl_fmt_to_scap(id);
@@ -233,10 +233,10 @@ int BPF_PROG(quotactl_x,
 	}
 
 	/* Parameter 14: quota_fmt_out (type: PT_FLAGS8) */
-	u32 quota_fmt_out = PPM_QFMT_NOT_USED;
+	uint32_t quota_fmt_out = PPM_QFMT_NOT_USED;
 	if(scap_cmd == PPM_Q_GETFMT)
 	{
-		u32 quota_fmt_out_tmp = 0;
+		uint32_t quota_fmt_out_tmp = 0;
 		bpf_probe_read_user(&quota_fmt_out_tmp, sizeof(quota_fmt_out_tmp), (void *)addr_pointer);
 		quota_fmt_out = quotactl_fmt_to_scap(quota_fmt_out_tmp);
 	}

@@ -29,7 +29,7 @@ int BPF_PROG(sendmsg_e,
 	extract__network_args(args, 2, regs);
 
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 socket_fd = (s32)args[0];
+	int32_t socket_fd = (int32_t)args[0];
 	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */

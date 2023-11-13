@@ -157,15 +157,15 @@ int BPF_PROG(execve_x,
 	READ_TASK_FIELD_INTO(&mm, task, mm);
 
 	/* Parameter 11: vm_size (type: PT_UINT32) */
-	u32 vm_size = extract__vm_size(mm);
+	uint32_t vm_size = extract__vm_size(mm);
 	auxmap__store_u32_param(auxmap, vm_size);
 
 	/* Parameter 12: vm_rss (type: PT_UINT32) */
-	u32 vm_rss = extract__vm_rss(mm);
+	uint32_t vm_rss = extract__vm_rss(mm);
 	auxmap__store_u32_param(auxmap, vm_rss);
 
 	/* Parameter 13: vm_swap (type: PT_UINT32) */
-	u32 vm_swap = extract__vm_swap(mm);
+	uint32_t vm_swap = extract__vm_swap(mm);
 	auxmap__store_u32_param(auxmap, vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
@@ -227,20 +227,20 @@ int BPF_PROG(t1_execve_x,
 	}
 
 	/* Parameter 17: tty (type: PT_INT32) */
-	u32 tty = exctract__tty(task);
-	auxmap__store_u32_param(auxmap, (u32)tty);
+	uint32_t tty = exctract__tty(task);
+	auxmap__store_u32_param(auxmap, (uint32_t)tty);
 
 	/* Parameter 18: pgid (type: PT_PID) */
 	pid_t pgid = extract__task_xid_vnr(task, PIDTYPE_PGID);
 	auxmap__store_s64_param(auxmap, (int64_t)pgid);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
-	u32 loginuid;
+	uint32_t loginuid;
 	extract__loginuid(task, &loginuid);
-	auxmap__store_u32_param(auxmap, (u32)loginuid);
+	auxmap__store_u32_param(auxmap, (uint32_t)loginuid);
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
-	u32 flags = 0;
+	uint32_t flags = 0;
 	struct inode *exe_inode = extract__exe_inode_from_task(task);
 	struct file *exe_file = extract__exe_file_from_task(task);
 
@@ -294,7 +294,7 @@ int BPF_PROG(t1_execve_x,
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 27: euid (type: PT_UID) */
-	u32 euid;
+	uint32_t euid;
 	extract__euid(task, &euid);
 	auxmap__store_u32_param(auxmap, euid);
 
