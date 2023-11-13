@@ -1205,7 +1205,7 @@ public:
 	std::vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
-	// meta event management for other sources like k8s, mesos.
+	// meta event management for other sources.
 	//
 	sinsp_evt* m_metaevt;
 	meta_event_callback m_meta_event_callback;
@@ -1360,7 +1360,6 @@ public:
 	friend class sinsp_worker;
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
-	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
 	friend class sinsp_baseliner;
 	friend class sinsp_memory_dumper;

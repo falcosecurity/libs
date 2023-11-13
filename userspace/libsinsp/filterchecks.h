@@ -30,7 +30,6 @@ limitations under the License.
 #include "sinsp_filtercheck_fspath.h"
 #include "sinsp_filtercheck_gen_event.h"
 #include "sinsp_filtercheck_group.h"
-#include "sinsp_filtercheck_mesos.h"
 #include "sinsp_filtercheck_rawstring.h"
 #include "sinsp_filtercheck_reference.h"
 #include "sinsp_filtercheck_syslog.h"
