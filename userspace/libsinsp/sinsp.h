@@ -1360,7 +1360,6 @@ public:
 	friend class sinsp_worker;
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
-	friend class sinsp_filter_check_k8s;
 	friend class sinsp_filter_check_mesos;
 	friend class sinsp_filter_check_evtin;
 	friend class sinsp_baseliner;
