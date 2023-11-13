@@ -1879,10 +1879,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
 			{
 				ipv4tuple addr;
-				addr.m_fields.m_sip = *(uint32_t*)(payload + 1);
-				addr.m_fields.m_sport = *(uint16_t*)(payload+5);
-				addr.m_fields.m_dip = *(uint32_t*)(payload + 7);
-				addr.m_fields.m_dport = *(uint16_t*)(payload+11);
+				memcpy(&addr.m_fields.m_sip, payload + 1, sizeof(uint32_t));
+				memcpy(&addr.m_fields.m_sport, payload + 5, sizeof(uint16_t));
+				memcpy(&addr.m_fields.m_dip, payload + 7, sizeof(uint32_t));
+				memcpy(&addr.m_fields.m_dport, payload + 11, sizeof(uint16_t));
 				addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				std::string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 				snprintf(&m_paramstr_storage[0],
@@ -1910,10 +1910,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
 				{
 					ipv4tuple addr;
-					addr.m_fields.m_sip = *(uint32_t*)sip;
-					addr.m_fields.m_sport = *(uint16_t*)(payload+17);
-					addr.m_fields.m_dip = *(uint32_t*)dip;
-					addr.m_fields.m_dport = *(uint16_t*)(payload+35);
+					memcpy(&addr.m_fields.m_sip, sip, sizeof(uint32_t));
+					memcpy(&addr.m_fields.m_sport, payload + 17, sizeof(uint16_t));
+					memcpy(&addr.m_fields.m_dip, dip, sizeof(uint32_t));
+					memcpy(&addr.m_fields.m_dport, payload + 35, sizeof(uint16_t));
 					addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 					std::string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 
@@ -1954,14 +1954,18 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			//
 			// Sanitize the file string.
 			//
-            std::string sanitized_str = payload + 17;
-	    sanitize_string(sanitized_str);
+			std::string sanitized_str = payload + 17;
+			sanitize_string(sanitized_str);
+
+			uint64_t src, dst;
+			memcpy(&src, payload + 1, sizeof(uint64_t));
+			memcpy(&dst, payload + 9, sizeof(uint64_t));
 
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
 				"%" PRIx64 "->%" PRIx64 " %s",
-				*(uint64_t*)(payload + 1),
-				*(uint64_t*)(payload + 9),
+				src,
+				dst,
 				sanitized_str.c_str());
 		}
 		else
