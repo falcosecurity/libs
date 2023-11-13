@@ -1423,7 +1423,6 @@ void sinsp_thread_manager::clear()
 	m_thread_groups.clear();
 	m_last_tid = 0;
 	m_last_flush_time_ns = 0;
-	m_n_drops = 0;
 }
 
 /* This is called on the table after the `/proc` scan */
@@ -1509,10 +1508,6 @@ std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
  */
 bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
 {
-	if (m_inspector->m_sinsp_stats_v2)
-	{
-		m_inspector->m_sinsp_stats_v2->m_n_added_threads++;
-	}
 
 	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size
@@ -1521,13 +1516,16 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 #endif
 	)
 	{
-		// rate limit messages to avoid spamming the logs
-		if (m_n_drops % m_max_thread_table_size == 0)
+		if (m_inspector->m_sinsp_stats_v2)
 		{
-			g_logger.format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
-				threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
+			// rate limit messages to avoid spamming the logs
+			if (m_inspector->m_sinsp_stats_v2->m_n_drops_full_threadtable % m_max_thread_table_size == 0)
+			{
+				g_logger.format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
+					threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
+			}
+			m_inspector->m_sinsp_stats_v2->m_n_drops_full_threadtable++;
 		}
-		m_n_drops++;
 		return false;
 	}
 
@@ -1549,6 +1547,11 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 
 	tinfo_shared_ptr->compute_program_hash();
 	m_threadtable.put(std::move(tinfo_shared_ptr));
+
+	if (m_inspector->m_sinsp_stats_v2)
+	{
+		m_inspector->m_sinsp_stats_v2->m_n_added_threads++;
+	}
 
 	return true;
 }
