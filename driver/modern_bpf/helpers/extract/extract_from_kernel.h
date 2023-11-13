@@ -72,6 +72,9 @@ static __always_inline bool bpf_in_ia32_syscall()
 #elif defined(__TARGET_ARCH_s390)
 	READ_TASK_FIELD_INTO(&status, task, thread_info.flags);
 	return status & _TIF_31BIT;
+#elif defined(__TARGET_ARCH_powerpc)
+	READ_TASK_FIELD_INTO(&status, task, thread_info.flags);
+	return status & _TIF_32BIT;
 #else
 	return false;
 #endif
