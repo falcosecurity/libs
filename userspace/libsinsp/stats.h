@@ -37,6 +37,7 @@ typedef struct sinsp_stats_v2
 	uint64_t m_n_failed_thread_lookups;
 	uint64_t m_n_added_threads;
 	uint64_t m_n_removed_threads;
+	uint32_t m_n_drops_full_threadtable;
 	uint32_t m_n_missing_container_images;
 	uint32_t m_n_containers;
 }sinsp_stats_v2;

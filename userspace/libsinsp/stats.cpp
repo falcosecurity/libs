@@ -390,7 +390,10 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 		threadinfo_map_t* threadtable = thread_manager->get_threads();
 		threadtable->loop([&] (sinsp_threadinfo& tinfo) {
 			sinsp_fdtable* fdtable = tinfo.get_fd_table();
-			buffer[SINSP_STATS_V2_N_FDS].value.u64 += fdtable->size();
+			if (fdtable != nullptr)
+			{
+				buffer[SINSP_STATS_V2_N_FDS].value.u64 += fdtable->size();
+			}
 			return true;
 		});
 		buffer[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS].value.u64 = stats_v2->m_n_noncached_fd_lookups;
@@ -407,7 +410,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 		buffer[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS].value.u64 = stats_v2->m_n_failed_thread_lookups;
 		buffer[SINSP_STATS_V2_ADDED_THREADS].value.u64 = stats_v2->m_n_added_threads;
 		buffer[SINSP_STATS_V2_REMOVED_THREADS].value.u64 = stats_v2->m_n_removed_threads;
-		buffer[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE].value.u32 = thread_manager->get_m_n_drops();
+		buffer[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE].value.u32 = stats_v2->m_n_drops_full_threadtable;
 		buffer[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES].value.u32 = stats_v2->m_n_missing_container_images;
 		buffer[SINSP_STATS_V2_N_CONTAINERS].value.u32 = stats_v2->m_n_containers;
 

@@ -794,7 +794,6 @@ public:
 	int32_t get_m_n_proc_lookups() const { return m_n_proc_lookups; }
 	int32_t get_m_n_main_thread_lookups() const { return m_n_main_thread_lookups; }
 	uint64_t get_m_n_proc_lookups_duration_ns() const { return m_n_proc_lookups_duration_ns; }
-	uint32_t get_m_n_drops() const { return m_n_drops; }
 	void reset_thread_counters() { m_n_proc_lookups = 0; m_n_main_thread_lookups = 0; m_n_proc_lookups_duration_ns = 0; }
 
 	void set_m_max_n_proc_lookups(int32_t val) { m_max_n_proc_lookups = val; }
@@ -892,7 +891,6 @@ VISIBILITY_PRIVATE
 	int64_t m_last_tid;
 	std::weak_ptr<sinsp_threadinfo> m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
-	uint32_t m_n_drops;
 	const uint32_t m_thread_table_absolute_max_size = 131072;
 	uint32_t m_max_thread_table_size;
 	int32_t m_n_proc_lookups = 0;

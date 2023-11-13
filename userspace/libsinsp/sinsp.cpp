@@ -43,7 +43,6 @@ limitations under the License.
 #include "plugin_filtercheck.h"
 #include "strl.h"
 #include "scap-int.h"
-#include "stats.h"
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
@@ -2340,6 +2339,7 @@ void sinsp::set_sinsp_stats_v2_enabled()
 		m_sinsp_stats_v2->m_n_failed_thread_lookups = 0;
 		m_sinsp_stats_v2->m_n_added_threads = 0;
 		m_sinsp_stats_v2->m_n_removed_threads = 0;
+		m_sinsp_stats_v2->m_n_drops_full_threadtable = 0;
 		m_sinsp_stats_v2->m_n_missing_container_images = 0;
 		m_sinsp_stats_v2->m_n_containers= 0;
 	}
