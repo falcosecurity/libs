@@ -21,6 +21,11 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 /**
  * \brief Get the timestamp of boot with subsecond accuracy
  *
@@ -36,3 +41,7 @@ limitations under the License.
 int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time);
 
 bool scap_get_bpf_stats_enabled();
+
+#ifdef __cplusplus
+};
+#endif
