@@ -30,7 +30,6 @@ limitations under the License.
 using namespace std;
 
 extern sinsp_evttables g_infotables;
-static int32_t g_screen_w = -1;
 
 #define RETURN_EXTRACT_VAR(x) do {  \
         *len = sizeof((x));         \
@@ -784,7 +783,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 						llatency = 11;
 					}
 
-					m_u64val = (uint64_t)(llatency * g_screen_w / 11) + 1;
+					m_u64val = (uint64_t)(llatency * m_inspector->get_quantization_interval() / 11) + 1;
 
 					RETURN_EXTRACT_VAR(m_u64val);
 				}
