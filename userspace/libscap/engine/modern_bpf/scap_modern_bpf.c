@@ -264,6 +264,12 @@ int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_st
 
 const struct scap_stats_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
+	struct modern_bpf_engine* handle = engine.m_handle;
+	if (!(handle->m_flags & ENGINE_FLAG_BPF_STATS_ENABLED))
+	{
+		// we can't collect libbpf stats if bpf stats are not enabled
+		flags &= ~PPM_SCAP_STATS_LIBBPF_STATS;
+	}
 	return pman_get_scap_stats_v2(flags, nstats, rc);
 }
 

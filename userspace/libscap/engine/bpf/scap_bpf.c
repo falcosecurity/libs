@@ -1736,6 +1736,12 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 		return NULL;
 	}
 
+	// we can't collect libbpf stats if bpf stats are not enabled
+	if (!(handle->m_flags & ENGINE_FLAG_BPF_STATS_ENABLED))
+	{
+		flags &= ~PPM_SCAP_STATS_LIBBPF_STATS;
+	}
+
 	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS <= nstats_allocated))
 	{
 		/* KERNEL SIDE STATS COUNTERS */
