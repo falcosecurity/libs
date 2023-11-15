@@ -51,8 +51,9 @@ if(WITH_CHISEL)
 	include(tinydir)
 endif()
 
+include(zlib)
+
 if(NOT MINIMAL_BUILD)
-	include(zlib)
 	if (NOT WIN32 AND NOT EMSCRIPTEN)
 		include(curl)
 		include(cares)
@@ -194,6 +195,7 @@ target_link_libraries(sinsp
 
 set(SINSP_PKGCONFIG_LIBRARIES
 	scap
+	"${ZLIB_LIB}"
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
 	"${RE2_LIB}"

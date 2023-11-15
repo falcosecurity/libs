@@ -23,9 +23,7 @@ if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 	include(curl)
 endif() # MINIMAL_BUILD
 
-if(NOT MINIMAL_BUILD)
-	include(zlib)
-endif()
+include(zlib)
 
 if(WIN32)
 	set(CMAKE_CXX_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi /std:c++17")
