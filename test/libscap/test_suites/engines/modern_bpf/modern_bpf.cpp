@@ -1,5 +1,6 @@
 #include <scap.h>
 #include <scap_engines.h>
+#include <scap_engine_util.h>
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <syscall.h>
@@ -244,7 +245,11 @@ TEST(modern_bpf, scap_stats_v2_check_results)
 	ASSERT_GT(nstats, 0);
 
 	/* These names should always be available */
-	std::unordered_set<std::string> minimal_stats_name = {"n_evts", "sys_enter.run_cnt", "sys_enter.run_time_ns", "sys_exit.run_cnt", "sys_exit.run_time_ns", "signal_deliver.run_cnt", "signal_deliver.run_time_ns"};
+	std::unordered_set<std::string> minimal_stats_name = {"n_evts"};
+	if (scap_get_bpf_stats_enabled())
+	{
+		minimal_stats_name.insert({"sys_enter.run_cnt", "sys_enter.run_time_ns", "sys_exit.run_cnt", "sys_exit.run_time_ns", "signal_deliver.run_cnt", "signal_deliver.run_time_ns"});
+	}
 
 	uint32_t i = 0;
 	for(const auto& stat_name : minimal_stats_name)
