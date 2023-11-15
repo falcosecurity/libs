@@ -989,6 +989,9 @@ public:
 	const std::string& get_host_root() const { return m_host_root; }
 	void set_host_root(const std::string& s) { m_host_root = s; }
 
+	const int32_t& get_quantization_interval() const { return m_quantization_interval; }
+	void set_quantization_interval(const int32_t& v) { m_quantization_interval = v; }
+
 	void set_observer(sinsp_observer* observer) { m_observer = observer; }
 	sinsp_observer* get_observer() const { return m_observer; }
 
@@ -1112,6 +1115,8 @@ private:
 	sinsp_network_interfaces m_network_interfaces {};
 
 	std::string m_host_root;
+
+	int32_t m_quantization_interval = -1;
 
 public:
 	sinsp_thread_manager* m_thread_manager;

@@ -27,8 +27,6 @@ limitations under the License.
 
 using namespace std;
 
-static int32_t g_screen_w = -1;
-
 #define RETURN_EXTRACT_VAR(x) do {  \
         *len = sizeof((x));         \
         return (uint8_t*) &(x);     \
@@ -590,7 +588,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 						lduration = 11;
 					}
 
-					m_s64val = (uint64_t)(lduration * g_screen_w / 11) + 1;
+					m_s64val = (uint64_t)(lduration * m_inspector->get_quantization_interval() / 11) + 1;
 
 					RETURN_EXTRACT_VAR(m_s64val);
 				}
