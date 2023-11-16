@@ -32,6 +32,19 @@ using namespace std;
         return (uint8_t*) (x).c_str(); \
 } while(0)
 
+// We use a macro to avoid a performance overhead, even using an inline function
+// we are not sure the compiler will inline it
+#define CHECK_LABEL_PRESENCE(x)                                                                                        \
+	if(is_host || !container_info || container_info->m_labels.count(x) <= 0)                                       \
+	{                                                                                                              \
+		return NULL;                                                                                           \
+	}                                                                                                              \
+	else                                                                                                           \
+	{                                                                                                              \
+		m_tstr = container_info->m_labels.at(x);                                                               \
+		RETURN_EXTRACT_STRING(m_tstr);                                                                         \
+	}
+
 static const filtercheck_field_info sinsp_filter_check_container_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "Container ID", "The truncated container id (first 12 characters)."},
@@ -57,6 +70,11 @@ static const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since container.start_ts", "Number of nanoseconds since container.start_ts."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's / pod's primary ip address as retrieved from the container engine. Only ipv4 addresses are tracked. Consider container.cni.json (CRI use case) for logging ip addresses for each network interface."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.cni.json", "Container's / pod's CNI result json", "The container's / pod's CNI result field from the respective pod status info. It contains ip addresses for each network interface exposed as unparsed escaped JSON string. Supported for CRI container engine (containerd, cri-o runtimes), optimized for containerd (some non-critical JSON keys removed). Useful for tracking ips (ipv4 and ipv6, dual-stack support) for each network interface (multi-interface support)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.pod.name", "Pod Name", "When the container belongs to a Kubernetes pod it provides the pod name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.pod.id", "Pod ID", "When the container belongs to a Kubernetes pod it provides the pod id."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.k8s.pod.label", "Pod Label", "When the container belongs to a Kubernetes pod it provides a specific pod label. 'container.k8s.pod.label.foo'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.pod.labels", "Pod Labels", "When the container belongs to a Kubernetes pod it provides the pod comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.ns.name", "Pod Namespace Name", "When the container belongs to a Kubernetes pod it provides the pod namespace name."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -574,10 +592,76 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			RETURN_EXTRACT_STRING(container_info->m_pod_cniresult);
 		}
 		break;
+	case TYPE_CONTAINER_K8S_POD_NAME:
+		CHECK_LABEL_PRESENCE("io.kubernetes.pod.name");
+		break;
+	case TYPE_CONTAINER_K8S_POD_ID:
+		CHECK_LABEL_PRESENCE("io.kubernetes.pod.uid");
+		break;
+	case TYPE_CONTAINER_K8S_POD_LABEL:
+	case TYPE_CONTAINER_K8S_POD_LABELS:
+		if(is_host 
+			|| !container_info
+			|| container_info->m_labels.count("io.kubernetes.sandbox.id") <= 0)
+		{
+			return NULL;
+		}
+		else
+		{
+			std::string sandbox_container_id = container_info->m_labels.at("io.kubernetes.sandbox.id");
+			if(sandbox_container_id.size() > 12)
+			{
+				sandbox_container_id.resize(12);
+			}
+			const sinsp_container_info::ptr_t sandbox_container_info = m_inspector->m_container_manager.get_container(sandbox_container_id);
+			if(!sandbox_container_info || sandbox_container_info->m_labels.empty())
+			{
+				return NULL;
+			}
+			
+			if(m_field_id == TYPE_CONTAINER_K8S_POD_LABEL 
+				&& sandbox_container_info->m_labels.count(m_argstr) > 0)
+			{
+				m_tstr = sandbox_container_info->m_labels.at(m_argstr);
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			
+			if(m_field_id == TYPE_CONTAINER_K8S_POD_LABELS)
+			{
+				concatenate_container_labels(sandbox_container_info->m_labels, m_tstr);
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+		}
+		break;
+	case TYPE_CONTAINER_K8S_NS_NAME:
+		CHECK_LABEL_PRESENCE("io.kubernetes.pod.namespace");
+		break;
 	default:
 		ASSERT(false);
 		break;
 	}
 
 	return NULL;
+}
+
+void sinsp_filter_check_container::concatenate_container_labels(const std::map<std::string, std::string>& labels, std::string& s)
+{
+	for (auto const& label_pair : labels)
+	{
+		// exclude annotations and internal labels
+		if(label_pair.first.find("annotation.") == 0
+			|| label_pair.first.find("io.kubernetes.") == 0) 
+		{
+			continue;
+		}
+		if(!s.empty())
+		{
+			s.append(", ");
+		}
+		s.append(label_pair.first);
+		if(!label_pair.second.empty())
+		{
+			s.append(":" + label_pair.second);
+		}
+	}
 }

@@ -51,6 +51,11 @@ public:
 		TYPE_CONTAINER_DURATION,
 		TYPE_CONTAINER_IP_ADDR,
 		TYPE_CONTAINER_CNIRESULT,
+		TYPE_CONTAINER_K8S_POD_NAME,
+		TYPE_CONTAINER_K8S_POD_ID,
+		TYPE_CONTAINER_K8S_POD_LABEL,
+		TYPE_CONTAINER_K8S_POD_LABELS,
+		TYPE_CONTAINER_K8S_NS_NAME,
 	};
 
 	sinsp_filter_check_container();
@@ -61,6 +66,7 @@ public:
 private:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	int32_t extract_arg(const std::string& val, size_t basename);
+	void concatenate_container_labels(const std::map<std::string, std::string>& labels, std::string& s);
 
 	std::string m_tstr;
 	uint32_t m_u32val;
