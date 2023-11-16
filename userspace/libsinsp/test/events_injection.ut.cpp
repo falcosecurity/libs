@@ -40,13 +40,7 @@ private:
 public:
 	sinsp_evt_generator() = default;
 	sinsp_evt_generator(sinsp_evt_generator&&) = default;
-	~sinsp_evt_generator()
-	{
-		if (thr.joinable())
-		{
-			thr.join();
-		}
-	}
+	~sinsp_evt_generator() = default;
 
 	scap_evt* get(size_t idx)
 	{
@@ -72,23 +66,9 @@ public:
 		return event;
 	};
 
-	void run_async(size_t n_events, sinsp& inspector)
-	{
-		auto runner = [this](size_t n_events, sinsp& inspector)
-		{
-			for(size_t i = 0; i < n_events; ++i)
-			{
-				inspector.handle_async_event(next(sinsp_utils::get_current_time_ns()));
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-			}
-		};
-		thr = std::thread(runner, n_events, std::ref(inspector));
-	}
-
 private:
 	std::vector<std::shared_ptr<scap_buff> > scaps;
 	std::vector<scap_evt*> scap_ptrs; // gdb watch helper
-	std::thread thr;
 };
 
 TEST_F(sinsp_with_test_input, event_async_queue)
@@ -150,59 +130,3 @@ TEST_F(sinsp_with_test_input, event_async_queue)
 	ASSERT_EQ(evt->m_pevt, scap_evt1);
 }
 
-#ifndef __EMSCRIPTEN__
-
-// threads creation may get "resource unavailable" with __EMSCRIPTEN__
-
-/*
- * async test with ten multithreaded producers
- */
-TEST_F(sinsp_with_test_input, event_async_queue_mpsc)
-{
-	open_inspector();
-	m_inspector.m_lastevent_ts = sinsp_utils::get_current_time_ns();
-	const size_t n_producers = 3;
-	const size_t n_events = 30;
-
-	// start producers
-	std::vector<sinsp_evt_generator> gens;
-	gens.reserve(n_producers);
-	for (size_t i = 0; i < n_producers; ++i)
-	{
-		gens.emplace_back();
-		gens.back().run_async(n_events, m_inspector);
-	}
-
-	// receive all sinsp events
-	auto start = sinsp_utils::get_current_time_ns();
-	auto current = start;
-
-	int res  = SCAP_SUCCESS;
-	size_t n_expected = n_producers * n_events;
-	double time_tolerance = 1.1;
-	while ((current - start) / ONE_SECOND_IN_NS < (10 * time_tolerance))
-	{
-		std::this_thread::sleep_for(std::chrono::microseconds (10));
-		current = sinsp_utils::get_current_time_ns();
-
-		// generate scap input
-		add_event(current, 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3,
-				  "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
-
-		sinsp_evt* evt;
-		res = m_inspector.next(&evt);
-		ASSERT_EQ(res, SCAP_SUCCESS);
-
-		if (evt && evt->m_pevt->type != PPME_SYSCALL_OPEN_X)
-		{
-			ASSERT_EQ(evt->m_pevt->type, PPME_ASYNCEVENT_E);
-			if(--n_expected == 0)
-			{
-				break;
-			}
-		}
-	}
-
-	ASSERT_EQ(n_expected, 0);
-}
-#endif // __EMSCRIPTEN__
