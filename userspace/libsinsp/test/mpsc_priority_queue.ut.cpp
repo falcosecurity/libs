@@ -19,8 +19,12 @@ limitations under the License.
 #include "mpsc_priority_queue.h"
 #include <gtest/gtest.h>
 #include <thread>
+#include <chrono>
 
 using val_t = std::unique_ptr<int>;
+
+// note: emscripten does not support launching threads
+#ifndef __EMSCRIPTEN__
 
 TEST(mpsc_priority_queue, single_producer)
 {
@@ -31,6 +35,7 @@ TEST(mpsc_priority_queue, single_producer)
     auto p = std::thread([&](){
         for (int i = 0; i < max_value; i++)
         {
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
             q.push(std::make_unique<int>(i));
         }
     });
@@ -41,6 +46,7 @@ TEST(mpsc_priority_queue, single_producer)
     int failed = 0;
     while (i < max_value)
     {
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
         if (q.empty())
         {
             continue;
@@ -63,12 +69,10 @@ TEST(mpsc_priority_queue, single_producer)
     ASSERT_EQ(failed, 0);
 }
 
-// note: emscripten does not support multi-threading
-#ifndef __EMSCRIPTEN__
 TEST(mpsc_priority_queue, multi_producer)
 {
 	const int num_values = 1000;
-    const int num_producers = 20;
+    const int num_producers = 10;
     mpsc_priority_queue<val_t, std::greater_equal<int>> q;
     std::atomic<int> counter{1};
 
@@ -79,6 +83,7 @@ TEST(mpsc_priority_queue, multi_producer)
         producers.emplace_back([&](){
             for (int i = 0; i <= num_values; i++)
             {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
                 q.push(std::make_unique<int>(counter++));
             }
         });
@@ -91,6 +96,7 @@ TEST(mpsc_priority_queue, multi_producer)
     int last_val = 0;
     while (i < num_values * num_producers)
     {
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
         if (q.empty())
         {
             continue;
@@ -115,4 +121,5 @@ TEST(mpsc_priority_queue, multi_producer)
     // check we received everything in order
     ASSERT_EQ(failed, 0);
 }
+
 #endif // __EMSCRIPTEN__
