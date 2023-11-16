@@ -69,19 +69,21 @@ public:
 	 */
 	inline bool pop(OUT Elm& res)
 	{
-		// first we try lock-free m_queue_top and if it passes the check, then
-		// we lock the queue and pop its top
-		elm_ptr top = m_queue_top.load();
-		if (top == nullptr)
+		// we check that the queue is not empty before acquiring the lock
+		if (m_queue_top == nullptr)
 		{
 			return false;
 		}
 
-		std::scoped_lock<Mtx> lk(m_mtx);
-		res = std::move(m_queue.top().elm);
-		m_queue.pop();
-		m_queue_top = m_queue.empty() ? nullptr : m_queue.top().elm.get();
-		return true;
+		// at this point, we're sure that the queue is not empty and that
+		// we're the only one attempting pop-ing (single consumer guarantee).
+		{
+			std::scoped_lock<Mtx> lk(m_mtx);
+			res = std::move(m_queue.top().elm);
+			m_queue.pop();
+			m_queue_top = m_queue.empty() ? nullptr : m_queue.top().elm.get();
+			return true;
+		}
 	}
 
 	/**
@@ -90,22 +92,64 @@ public:
 	 * element is not popped from the queue and this method returns false.
 	 */
 	template <typename Callable>
-	inline bool pop_if(const Callable& cl, OUT Elm& res)
+	inline bool pop_if(const Callable& pred, OUT Elm& res)
 	{
-		elm_ptr top = m_queue_top.load();
-		if (top == nullptr || !cl(top))
+		// we check that the queue is not empty before acquiring the lock
+		if (m_queue_top == nullptr)
 		{
 			return false;
 		}
 
-		// at this point, we have a guarantee
-		// that queue.top() has priority not less than the local top,
-		// and we can pop the queue top safely
-		std::scoped_lock<Mtx> lk(m_mtx);
-		res = std::move(m_queue.top().elm);
-		m_queue.pop();
-		m_queue_top = m_queue.empty() ? nullptr : m_queue.top().elm.get();
-		return true;
+		while (true)
+		{
+			// we need to evaluate the top element against the predicate, but
+			// we must be careful in case other producers push a new element in
+			// the queue, which can potentially have more priority than the one
+			// we just checked.
+			elm_ptr top = m_queue_top.load();
+			auto should_pop = pred(top);
+			
+			// we must not pop the element
+			if (!should_pop)
+			{
+				// check that the top-priority element ha not changed since
+				// we evaluated it, otherwise keep looping
+				if (top == m_queue_top.load())
+				{
+					return false;
+				}
+				continue;
+			}
+
+			// check that the top-priority elem has changed since evaluating it,
+			// otherwise keep looping. We check this before acquiring the lock
+			// as an extra concurrency optimization.
+			if (top != m_queue_top.load())
+			{
+				continue;
+			}
+
+			// let's acquire the lock so that producers are blocked from
+			// pushing new elements, potentially with higher priority
+			{
+				std::scoped_lock<Mtx> lk(m_mtx);
+
+				// while the lock is held no element can be pushed between
+				// our checks, so we verify that the actual top element is
+				// the one we wish to pop, otherwise release the lock and
+				// keep looping
+				if (m_queue.top().elm.get() != top)
+				{
+					continue;
+				}
+
+				// the top-priority element is the one we want to pop
+				res = std::move(m_queue.top().elm);
+				m_queue.pop();
+				m_queue_top = m_queue.empty() ? nullptr : m_queue.top().elm.get();
+				return true;
+			}
+		}
 	}
 
 private:
