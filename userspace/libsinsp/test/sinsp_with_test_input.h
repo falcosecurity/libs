@@ -114,9 +114,9 @@ protected:
 		va_list args2;
 		va_copy(args2, args);
 
-		if (ts <= m_last_recorded_timestamp) {
+		if (ts < m_last_recorded_timestamp) {
 			va_end(args2);
-			throw std::runtime_error("the test framework does not currently support equal timestamps or out of order events");
+			throw std::runtime_error("the test framework does not currently support out of order events with decreasing timestamps");
 		}
 
 		int32_t ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
