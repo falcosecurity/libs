@@ -35,14 +35,22 @@ using namespace std;
 // We use a macro to avoid a performance overhead, even using an inline function
 // we are not sure the compiler will inline it
 #define CHECK_LABEL_PRESENCE(x)                                                                                        \
-	if(is_host || !container_info || container_info->m_labels.count(x) <= 0)                                       \
+	if(is_host || !container_info)                                                                                 \
 	{                                                                                                              \
-		return NULL;                                                                                           \
+		return nullptr;                                                                                           \
 	}                                                                                                              \
 	else                                                                                                           \
 	{                                                                                                              \
-		m_tstr = container_info->m_labels.at(x);                                                               \
-		RETURN_EXTRACT_STRING(m_tstr);                                                                         \
+		auto label = container_info->m_labels.find(x);                                                         \
+		if(label != container_info->m_labels.end())                                                            \
+		{                                                                                                      \
+			m_tstr = label->second;                                                                        \
+			RETURN_EXTRACT_STRING(m_tstr);                                                                 \
+		}                                                                                                      \
+		else                                                                                                   \
+		{                                                                                                      \
+			return nullptr;                                                                                   \
+		}                                                                                                      \
 	}
 
 static const filtercheck_field_info sinsp_filter_check_container_fields[] =
@@ -72,8 +80,8 @@ static const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.cni.json", "Container's / pod's CNI result json", "The container's / pod's CNI result field from the respective pod status info. It contains ip addresses for each network interface exposed as unparsed escaped JSON string. Supported for CRI container engine (containerd, cri-o runtimes), optimized for containerd (some non-critical JSON keys removed). Useful for tracking ips (ipv4 and ipv6, dual-stack support) for each network interface (multi-interface support)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.pod.name", "Pod Name", "When the container belongs to a Kubernetes pod it provides the pod name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.pod.id", "Pod ID", "When the container belongs to a Kubernetes pod it provides the pod id."},
-	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.k8s.pod.label", "Pod Label", "When the container belongs to a Kubernetes pod it provides a specific pod label. 'container.k8s.pod.label.foo'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.pod.labels", "Pod Labels", "When the container belongs to a Kubernetes pod it provides the pod comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.k8s.pod.label", "Pod Label", "When the container belongs to a Kubernetes pod it provides a specific pod label. 'container.k8s.pod.label[foo]'."},
+	{PT_CHARBUF, EPF_IS_LIST, PF_NA, "container.k8s.pod.labels", "Pod Labels", "When the container belongs to a Kubernetes pod it provides the pod comma-separated key/value labels. E.g. '(foo1:bar1,foo2:bar2)'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.k8s.ns.name", "Pod Namespace Name", "When the container belongs to a Kubernetes pod it provides the pod namespace name."},
 };
 
@@ -91,34 +99,47 @@ sinsp_filter_check* sinsp_filter_check_container::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_container();
 }
 
-int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t basepos)
+int32_t sinsp_filter_check_container::extract_arg(const std::string& val, size_t basepos, container_arg_type type)
 {
 	size_t start = val.find_first_of('[', basepos);
 	if(start == string::npos)
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("the field '" + val + "' requires an argument but '[' is not found");
 	}
 
 	size_t end = val.find_first_of(']', start);
 	if(end == string::npos)
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("the field '" + val + "' requires an argument but ']' is not found");
 	}
 
-	string numstr = val.substr(start + 1, end-start-1);
-	try
+	string str = val.substr(start + 1, end-start-1);
+
+	if(type == container_arg_type::TYPE_S32)
 	{
-		m_argid = sinsp_numparser::parsed32(numstr);
-	}
-	catch (const sinsp_exception& e)
-	{
-		if(strstr(e.what(), "is not a valid number") == NULL)
+		try
 		{
-			throw;
+			m_argid = sinsp_numparser::parsed32(str);
 		}
+		catch (const sinsp_exception& e)
+		{
+			if(strstr(e.what(), "is not a valid number") == NULL)
+			{
+				throw;
+			}
 
-		m_argid = -1;
-		m_argstr = numstr;
+			m_argid = -1;
+			m_argstr = str;
+		}
+	}
+	else if(type == container_arg_type::TYPE_STRING)
+	{
+		m_argstr = str;
+	}
+	else
+	{
+		ASSERT(false);
+		throw sinsp_exception("argument type unknown during 'sinsp_filter_check_container::extract_arg'");
 	}
 
 	return end+1;
@@ -167,7 +188,7 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 		}
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg(val, basepos);
+		res = extract_arg(val, basepos, container_arg_type::TYPE_S32);
 	}
 	else if (val.find("container.mount") == 0 &&
 		 val[basepos-1] != 's')
@@ -175,7 +196,17 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 		m_field_id = TYPE_CONTAINER_MOUNT;
 		m_field = &m_info.m_fields[m_field_id];
 
-		res = extract_arg(val, basepos-1);
+		res = extract_arg(val, basepos-1, container_arg_type::TYPE_S32);
+	}
+	// We need to check that is `pod.label` and not `pod.labels`
+	else if(val.find("container.k8s.pod.label") == 0 &&
+		 val[sizeof("container.k8s.pod.label")-1] != 's')
+	{
+		m_field_id = TYPE_CONTAINER_K8S_POD_LABEL;
+		m_field = &m_info.m_fields[m_field_id];
+
+		// We don't need to check the return value, if no arg was specified we throw an exception
+		res = extract_arg(val, sizeof("container.k8s.pod.label")-1, container_arg_type::TYPE_STRING);
 	}
 	else
 	{
@@ -599,38 +630,36 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		CHECK_LABEL_PRESENCE("io.kubernetes.pod.uid");
 		break;
 	case TYPE_CONTAINER_K8S_POD_LABEL:
-	case TYPE_CONTAINER_K8S_POD_LABELS:
-		if(is_host 
-			|| !container_info
-			|| container_info->m_labels.count("io.kubernetes.sandbox.id") <= 0)
+		if(is_host || !container_info)
 		{
-			return NULL;
+			return nullptr;
 		}
 		else
 		{
-			std::string sandbox_container_id = container_info->m_labels.at("io.kubernetes.sandbox.id");
+			auto label = container_info->m_labels.find("io.kubernetes.sandbox.id");
+			if(label == container_info->m_labels.end())
+			{
+				return nullptr;
+			}
+
+			std::string sandbox_container_id = label->second;
 			if(sandbox_container_id.size() > 12)
 			{
 				sandbox_container_id.resize(12);
 			}
-			const sinsp_container_info::ptr_t sandbox_container_info = m_inspector->m_container_manager.get_container(sandbox_container_id);
+			const auto sandbox_container_info = m_inspector->m_container_manager.get_container(sandbox_container_id);
 			if(!sandbox_container_info || sandbox_container_info->m_labels.empty())
 			{
-				return NULL;
+				return nullptr;
 			}
-			
-			if(m_field_id == TYPE_CONTAINER_K8S_POD_LABEL 
-				&& sandbox_container_info->m_labels.count(m_argstr) > 0)
+
+			label = sandbox_container_info->m_labels.find(m_argstr);
+			if(label == sandbox_container_info->m_labels.end())
 			{
-				m_tstr = sandbox_container_info->m_labels.at(m_argstr);
-				RETURN_EXTRACT_STRING(m_tstr);
+				return nullptr;
 			}
-			
-			if(m_field_id == TYPE_CONTAINER_K8S_POD_LABELS)
-			{
-				concatenate_container_labels(sandbox_container_info->m_labels, m_tstr);
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
+			m_tstr = label->second;
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
 	case TYPE_CONTAINER_K8S_NS_NAME:
@@ -644,24 +673,71 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	return NULL;
 }
 
-void sinsp_filter_check_container::concatenate_container_labels(const std::map<std::string, std::string>& labels, std::string& s)
+bool sinsp_filter_check_container::extract(sinsp_evt* evt, OUT std::vector<extract_value_t>& values,
+					   bool sanitize_strings)
 {
-	for (auto const& label_pair : labels)
+	values.clear();
+
+	// `TYPE_CONTAINER_K8S_POD_LABELS` has the `EPF_IS_LIST` flag.
+	if(m_field_id == TYPE_CONTAINER_K8S_POD_LABELS)
 	{
-		// exclude annotations and internal labels
-		if(label_pair.first.find("annotation.") == 0
-			|| label_pair.first.find("io.kubernetes.") == 0) 
+		sinsp_threadinfo* tinfo = evt->get_thread_info();
+		// Without the container id we can do nothing
+		if(tinfo == nullptr || tinfo->m_container_id.empty())
 		{
-			continue;
+			return false;
 		}
-		if(!s.empty())
+
+		auto container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+
+		if(container_info == nullptr)
 		{
-			s.append(", ");
+			return false;
 		}
-		s.append(label_pair.first);
-		if(!label_pair.second.empty())
+
+		// We need the label `io.kubernetes.sandbox.id` to extract pod labels.
+		auto sandbox_label = container_info->m_labels.find("io.kubernetes.sandbox.id");
+		if(sandbox_label == container_info->m_labels.end())
 		{
-			s.append(":" + label_pair.second);
+			return false;
 		}
+
+		std::string sandbox_container_id = sandbox_label->second;
+		if(sandbox_container_id.size() > 12)
+		{
+			sandbox_container_id.resize(12);
+		}
+		const auto sandbox_container_info =
+			m_inspector->m_container_manager.get_container(sandbox_container_id);
+
+		if(sandbox_container_info == nullptr || sandbox_container_info->m_labels.empty())
+		{
+			return false;
+		}
+
+		// Clean a possible not empty storage
+		m_labels_storage.clear();
+		for(const auto& label : sandbox_container_info->m_labels)
+		{
+			// Exclude annotations and internal labels
+			if(label.first.find("annotation.") == 0 || label.first.find("io.kubernetes.") == 0)
+			{
+				continue;
+			}
+
+			// We use a storage because these strings should survive until the next filtercheck call.
+			m_labels_storage.emplace_back(label.first + ":" + label.second);
+		}
+
+		for(const auto& label : m_labels_storage)
+		{
+			extract_value_t val;
+			val.ptr = (uint8_t*)label.c_str();
+			val.len = label.size();
+			values.emplace_back(val);
+		}
+		return true;
 	}
+
+	return sinsp_filter_check::extract(evt, values, sanitize_strings);
 }

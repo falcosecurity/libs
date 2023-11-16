@@ -58,16 +58,25 @@ public:
 		TYPE_CONTAINER_K8S_NS_NAME,
 	};
 
+	enum container_arg_type {
+		TYPE_S32,
+		TYPE_STRING
+	};
+
 	sinsp_filter_check_container();
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+	// This is needed to extract arguments with `EPF_IS_LIST` flags
+	bool extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	const std::string &get_argstr();
 private:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	int32_t extract_arg(const std::string& val, size_t basename);
-	void concatenate_container_labels(const std::map<std::string, std::string>& labels, std::string& s);
+	int32_t extract_arg(const std::string& val, size_t basepos, container_arg_type type);
 
+	// This vector is used to save the concatenated labels (`key:value`)
+	// between invocations of `TYPE_CONTAINER_K8S_POD_LABELS` filtercheck.
+	std::vector<std::string> m_labels_storage;
 	std::string m_tstr;
 	uint32_t m_u32val;
 	int32_t m_argid;
