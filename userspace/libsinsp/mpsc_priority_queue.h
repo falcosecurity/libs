@@ -135,9 +135,9 @@ public:
 				std::scoped_lock<Mtx> lk(m_mtx);
 
 				// while the lock is held no element can be pushed between
-				// our checks, so we verify that the actual top element is
-				// the one we wish to pop, otherwise release the lock and
-				// keep looping
+				// our checks, so we verify one last time that the actual
+				// top element is the one we wish to pop, otherwise release
+				// the lock and keep looping
 				if (m_queue.top().elm.get() != top)
 				{
 					continue;

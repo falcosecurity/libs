@@ -1337,14 +1337,10 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 	{
 		if (!m_async_events_queue.empty())
 		{
-			const auto check_ts = [this](const sinsp_evt& evt)
-			{
-				return compare_evt_timestamps(evt.m_pevt->ts, m_delayed_scap_evt.m_pevt->ts);
-			};
-
 			// This is thread-safe as we're in a MPSC case in which
 			// sinsp::next is the single consumer
-			if (m_async_events_queue.try_pop_if(m_async_evt, check_ts))
+			m_async_events_checker.ts = m_delayed_scap_evt.m_pevt->ts;
+			if (m_async_events_queue.try_pop_if(m_async_evt, m_async_events_checker))
 			{
 				// the async event is the one with most priority
 				evt = m_async_evt.get();
