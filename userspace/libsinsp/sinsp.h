@@ -1236,6 +1236,19 @@ public:
 	// priority queue to hold injected events
 	mpsc_priority_queue<sinsp_evt_ptr, state_evts_less> m_async_events_queue;
 
+	// predicate struct for checking the head of the async events queue.
+	// keeping a struct in the internal state makes sure that we don't do
+	// any extra allocation by creating a lambda and its closure
+	struct
+	{
+		uint64_t ts{0};
+
+		bool operator()(const sinsp_evt& evt) const
+		{
+			return compare_evt_timestamps(evt.m_pevt->ts, ts);
+		};
+	} m_async_events_checker;
+
 	// Holds an event dequeued from the above queue
 	sinsp_evt_ptr m_async_evt;
 
