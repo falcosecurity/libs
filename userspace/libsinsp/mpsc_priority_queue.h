@@ -67,7 +67,7 @@ public:
 	 * @brief Pops the highest priority element from the queue. Returns false
 	 * in case of empty queue.
 	 */
-	inline bool pop(OUT Elm& res)
+	inline bool pop(Elm& res)
 	{
 		// we check that the queue is not empty before acquiring the lock
 		if (m_queue_top == nullptr)
@@ -92,7 +92,7 @@ public:
 	 * element is not popped from the queue and this method returns false.
 	 */
 	template <typename Callable>
-	inline bool pop_if(const Callable& pred, OUT Elm& res)
+	inline bool pop_if(const Callable& pred, Elm& res)
 	{
 		// we check that the queue is not empty before acquiring the lock
 		if (m_queue_top == nullptr)
