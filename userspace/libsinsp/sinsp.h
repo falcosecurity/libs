@@ -1225,11 +1225,11 @@ public:
 	using sinsp_evt_ptr = std::unique_ptr<sinsp_evt>;
 	struct state_evts_less
 	{
-		bool operator()(const sinsp_evt_ptr& l, const sinsp_evt_ptr& r)
+		bool operator()(const sinsp_evt& l, const sinsp_evt& r)
 		{
 			// order events in reverse-order as the lowest timestamp
 			// has the highest priority
-			return !compare_evt_timestamps(l->get_ts(), r->get_ts());
+			return !compare_evt_timestamps(l.get_ts(), r.get_ts());
 		}
 	};
 

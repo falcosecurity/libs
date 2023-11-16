@@ -51,7 +51,7 @@ public:
 	 * @brief Push an element into queue, and returns false in case the
 	 * maximum queue capacity is met.
 	 */
-	inline bool push(Elm e)
+	inline bool push(Elm&& e)
 	{
 		std::scoped_lock<Mtx> lk(m_mtx);
 		if (m_capacity == 0 || m_queue.size() < m_capacity)
@@ -67,7 +67,7 @@ public:
 	 * @brief Pops the highest priority element from the queue. Returns false
 	 * in case of empty queue.
 	 */
-	inline bool pop(Elm& res)
+	inline bool try_pop(Elm& res)
 	{
 		// we check that the queue is not empty before acquiring the lock
 		if (m_queue_top == nullptr)
@@ -92,7 +92,7 @@ public:
 	 * element is not popped from the queue and this method returns false.
 	 */
 	template <typename Callable>
-	inline bool pop_if(const Callable& pred, Elm& res)
+	inline bool try_pop_if(Elm& res, const Callable& pred)
 	{
 		// we check that the queue is not empty before acquiring the lock
 		if (m_queue_top == nullptr)
@@ -107,7 +107,7 @@ public:
 			// the queue, which can potentially have more priority than the one
 			// we just checked.
 			elm_ptr top = m_queue_top.load();
-			auto should_pop = pred(top);
+			auto should_pop = pred(*top);
 			
 			// we must not pop the element
 			if (!should_pop)
@@ -159,7 +159,7 @@ private:
 	// which is const unique<ptr>& and denies moving
 	struct queue_elm
 	{
-		inline bool operator < (const queue_elm& r) const {return Cmp{}(elm, r.elm);}
+		inline bool operator < (const queue_elm& r) const {return Cmp{}(*elm.get(), *r.elm.get());}
 		mutable Elm elm;
 	};
 

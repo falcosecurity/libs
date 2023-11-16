@@ -1305,7 +1305,7 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 	// event queue. If none is available, we just return the timeout.
 	// note: the queue is optimized for checking for emptyness before popping
 	if (res == SCAP_TIMEOUT &&
-		!m_async_events_queue.empty() && m_async_events_queue.pop(m_async_evt))
+		!m_async_events_queue.empty() && m_async_events_queue.try_pop(m_async_evt))
 	{
 		evt = m_async_evt.get();
 		if(evt->m_pevt->ts == (uint64_t) -1)
@@ -1323,14 +1323,14 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 	{
 		if (!m_async_events_queue.empty())
 		{
-			const auto check_ts = [this](const sinsp_evt* evt)
+			const auto check_ts = [this](const sinsp_evt& evt)
 			{
-				return compare_evt_timestamps(evt->m_pevt->ts, m_delayed_scap_evt.m_pevt->ts);
+				return compare_evt_timestamps(evt.m_pevt->ts, m_delayed_scap_evt.m_pevt->ts);
 			};
 
 			// This is thread-safe as we're in a MPSC case in which
 			// sinsp::next is the single consumer
-			if (m_async_events_queue.pop_if(check_ts, m_async_evt))
+			if (m_async_events_queue.try_pop_if(m_async_evt, check_ts))
 			{
 				// the async event is the one with most priority
 				evt = m_async_evt.get();

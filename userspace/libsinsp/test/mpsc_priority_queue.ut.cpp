@@ -22,18 +22,10 @@ limitations under the License.
 
 using val_t = std::unique_ptr<int>;
 
-struct val_asc_order
-{
-    bool operator()(const val_t& a, const val_t& b) const 
-    {
-        return std::less<int>{}(*b.get(), *a.get());
-    }
-};
-
 TEST(mpsc_priority_queue, single_producer)
 {
     const int max_value = 1000;
-    mpsc_priority_queue<val_t, val_asc_order> q;
+    mpsc_priority_queue<val_t, std::greater_equal<int>> q;
 
     // single producer
     auto p = std::thread([&](){
@@ -49,11 +41,19 @@ TEST(mpsc_priority_queue, single_producer)
     int failed = 0;
     while (i < max_value)
     {
-        if (q.pop(v))
+        if (q.empty())
         {
-            failed += (*v.get() != i) ? 1 : 0;
-            i++;
+            continue;
         }
+        
+        if (!q.try_pop(v))
+        {
+            failed++;
+            continue;
+        }
+
+        failed += (*v.get() != i) ? 1 : 0;
+        i++;
     }
 
     // wait for producer to stop
@@ -69,7 +69,7 @@ TEST(mpsc_priority_queue, multi_producer)
 {
 	const int num_values = 1000;
     const int num_producers = 20;
-    mpsc_priority_queue<val_t, val_asc_order> q;
+    mpsc_priority_queue<val_t, std::greater_equal<int>> q;
     std::atomic<int> counter{1};
 
     // multiple producer
@@ -96,7 +96,7 @@ TEST(mpsc_priority_queue, multi_producer)
             continue;
         }
 
-        if (!q.pop_if([&](int* n) { return *n >= last_val; }, v))
+        if (!q.try_pop_if(v, [&](const int& n) { return n >= last_val; }))
         {
             failed++;
             continue;
