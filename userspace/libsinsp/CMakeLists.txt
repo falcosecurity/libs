@@ -126,7 +126,6 @@ set(SINSP_SOURCES
 	sinsp.cpp
 	stats.cpp
 	token_bucket.cpp
-	stopwatch.cpp
 	utils.cpp
 	value_parser.cpp
 	user.cpp
