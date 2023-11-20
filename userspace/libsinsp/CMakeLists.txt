@@ -111,7 +111,6 @@ set(SINSP_SOURCES
 	gen_filter.cpp
 	ifinfo.cpp
 	memmem.cpp
-	tracers.cpp
 	logger.cpp
 	parsers.cpp
 	../plugin/plugin_loader.c
