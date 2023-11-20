@@ -391,9 +391,9 @@ public:
 		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
 		FLAGS_CLOSE_CANCELED = (1 << 5),
 		FLAGS_IS_SOCKET_PIPE = (1 << 6),
-		FLAGS_IS_TRACER_FILE = (1 << 7),
-		FLAGS_IS_TRACER_FD = (1 << 8),
-		FLAGS_IS_NOT_TRACER_FD = (1 << 9),
+		// FLAGS_IS_TRACER_FILE = (1 << 7), // note: deprecated
+		// FLAGS_IS_TRACER_FD = (1 << 8), // note: deprecated
+		// FLAGS_IS_NOT_TRACER_FD = (1 << 9), // note: deprecated
 		FLAGS_IN_BASELINE_R = (1 << 10),
 		FLAGS_IN_BASELINE_RW = (1 << 11),
 		FLAGS_IN_BASELINE_OTHER = (1 << 12),
