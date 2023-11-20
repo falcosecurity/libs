@@ -200,7 +200,6 @@ static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
 static int g_ppm_major;
-bool g_tracers_enabled = false;
 static DEFINE_PER_CPU(long, g_n_tracepoint_hit);
 static const struct file_operations g_ppm_fops = {
 	.open = ppm_open,
@@ -1127,13 +1126,6 @@ cleanup_ioctl_procinfo:
 		ret = task_tgid_nr(current);
 		goto cleanup_ioctl;
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
-	case PPM_IOCTL_SET_TRACERS_CAPTURE:
-	{
-		vpr_info("PPM_IOCTL_SET_TRACERS_CAPTURE, consumer %p\n", consumer_id);
-		g_tracers_enabled = true;
-		ret = 0;
-		goto cleanup_ioctl;
-	}
 	case PPM_IOCTL_ENABLE_TP:
 	{
 		uint32_t new_tp_set;

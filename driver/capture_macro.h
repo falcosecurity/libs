@@ -10,7 +10,7 @@ or GPL2.txt for full copies of the license.
 /* Possible snaplen */
 #define SNAPLEN 80
 #define SNAPLEN_EXTENDED 2000
-#define SNAPLEN_TRACERS_ENABLED 4096
+// #define SNAPLEN_TRACERS_ENABLED 4096 // note: deprecated
 #define SNAPLEN_FULLCAPTURE_PORT 16000
 #define SNAPLEN_MAX 65000
 
