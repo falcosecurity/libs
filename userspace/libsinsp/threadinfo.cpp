@@ -27,12 +27,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "protodecoder.h"
-#include "tracers.h"
 #include "scap-int.h"
-
-#ifdef HAS_ANALYZER
-#include "tracer_emitter.h"
-#endif
 
 constexpr static const char* s_thread_table_name = "threads";
 
@@ -53,7 +48,6 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields):
 	table_entry(dyn_fields),
 	m_cgroups(new cgroups_t),
-	m_tracer_parser(NULL),
 	m_inspector(inspector),
 	m_fdtable(inspector)
 {
@@ -162,11 +156,6 @@ sinsp_threadinfo::~sinsp_threadinfo()
 	if(m_lastevent_data)
 	{
 		free(m_lastevent_data);
-	}
-
-	if(m_tracer_parser)
-	{
-		delete m_tracer_parser;
 	}
 }
 
@@ -368,16 +357,6 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_name = fdi->info.regularinfo.fname;
 		newfdi->m_dev = fdi->info.regularinfo.dev;
 		newfdi->m_mount_id = fdi->info.regularinfo.mount_id;
-
-		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
-		}
-		else
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
-		}
-
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -395,16 +374,6 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_MEMFD:
 	case SCAP_FD_PIDFD:
 		newfdi->m_name = fdi->info.fname;
-
-		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
-		}
-		else
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
-		}
-
 		break;
 	default:
 		ASSERT(false);
@@ -2087,10 +2056,6 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         if(m_max_n_proc_lookups < 0 ||
            m_n_proc_lookups <= m_max_n_proc_lookups)
         {
-#ifdef HAS_ANALYZER
-            tracer_emitter("sinsp_proc_lookup");
-#endif
-
             bool scan_sockets = false;
 
             if(m_max_n_proc_socket_lookups < 0 ||

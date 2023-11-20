@@ -24,7 +24,6 @@ limitations under the License.
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "protodecoder.h"
-#include "tracers.h"
 #include "value_parser.h"
 
 using namespace std;

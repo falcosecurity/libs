@@ -51,7 +51,6 @@ limitations under the License.
 #ifdef HAS_ANALYZER
 #include "analyzer_int.h"
 #include "analyzer.h"
-#include "tracer_emitter.h"
 #endif
 
 /**
@@ -117,11 +116,9 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_output_time_flag = 'h';
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
-	m_track_tracers_state = false;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
-	m_is_tracers_capture_enabled = false;
 	m_flush_memory_dump = false;
 	m_next_stats_print_time_ns = 0;
 	m_large_envs_enabled = false;
@@ -218,24 +215,6 @@ sinsp::~sinsp()
 void sinsp::add_protodecoders()
 {
 	m_parser->add_protodecoder("syslog");
-}
-
-void sinsp::enable_tracers_capture()
-{
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
-	if(!m_is_tracers_capture_enabled)
-	{
-		if(is_live() && m_h != NULL)
-		{
-			if(scap_enable_tracers_capture(m_h) != SCAP_SUCCESS)
-			{
-				throw sinsp_exception("error enabling tracers capture");
-			}
-		}
-
-		m_is_tracers_capture_enabled = true;
-	}
-#endif
 }
 
 bool sinsp::is_initialstate_event(scap_evt* pevent)
@@ -344,15 +323,6 @@ void sinsp::init()
 	m_lastevent_ts = 0;
 	m_firstevent_ts = 0;
 	m_fds_to_remove->clear();
-
-	//
-	// Return the tracers to the pool and clear the tracers list
-	//
-	for(auto it = m_partial_tracers_list.begin(); it != m_partial_tracers_list.end(); ++it)
-	{
-		m_partial_tracers_pool->push(*it);
-	}
-	m_partial_tracers_list.clear();
 
 	//
 	// If we're reading from file, we try to pre-parse the container events before

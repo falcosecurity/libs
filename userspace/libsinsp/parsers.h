@@ -89,7 +89,6 @@ private:
 	void parse_thread_exit(sinsp_evt* evt);
 	void parse_memfd_create_exit(sinsp_evt* evt, scap_fd_type type);
 	void parse_pidfd_open_exit(sinsp_evt *evt);
-	inline bool detect_and_process_tracer_write(sinsp_evt *evt, int64_t retval, ppm_event_flags eflags);
 	void parse_pidfd_getfd_exit(sinsp_evt* evt);
 	void parse_fspath_related_exit(sinsp_evt* evt);
 	inline void parse_rw_exit(sinsp_evt* evt);
@@ -118,7 +117,6 @@ private:
 	void parse_container_json_evt(sinsp_evt *evt);
 	void parse_user_evt(sinsp_evt *evt);
 	void parse_group_evt(sinsp_evt *evt);
-	inline uint32_t parse_tracer(sinsp_evt *evt, int64_t retval);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
 	void parse_chroot_exit(sinsp_evt *evt);
 	void parse_setsid_exit(sinsp_evt *evt);
@@ -154,9 +152,6 @@ private:
 	// Temporary storage to avoid memory allocation
 	//
 	sinsp_evt m_tmp_evt;
-	uint8_t m_fake_userevt_storage[4096];
-	scap_evt* m_fake_userevt;
-	std::string m_tracer_error_string;
 
 	bool m_track_connection_status = false;
 

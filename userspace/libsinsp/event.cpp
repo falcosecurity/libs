@@ -2712,11 +2712,6 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 		}
 	}
 
-	if(m_flags & sinsp_evt::SINSP_EF_IS_TRACER)
-	{
-		dflags |= SCAP_DF_TRACER;
-	}
-
 	if(get_info_flags() & EF_LARGE_PAYLOAD)
 	{
 		dflags |= SCAP_DF_LARGE;
