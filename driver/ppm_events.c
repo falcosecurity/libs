@@ -51,8 +51,6 @@ or GPL2.txt for full copies of the license.
 #endif
 #endif
 
-extern bool g_tracers_enabled;
-
 static void memory_dump(char *p, size_t size)
 {
 	unsigned int j;
@@ -330,46 +328,6 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 		 * snaplen given to certain applications, just use the greater value.
 		 */
 		dynamic_snaplen = args->consumer->snaplen;
-	}
-
-	/* Increase snaplen on writes to /dev/null */
-	if (g_tracers_enabled && args->event_type == PPME_SYSCALL_WRITE_X) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
-		struct fd f = fdget(args->fd);
-
-		if (f.file && f.file->f_inode) {
-			if (f.file->f_inode->i_rdev == PPM_NULL_RDEV) {
-				res = SNAPLEN_TRACERS_ENABLED;
-				fdput(f);
-				return res;
-			}
-
-			fdput(f);
-		}
-#else
-		struct file* file = fget(args->fd);
-		/* Use cached f_inode only on kernel versions that have it
-		 * https://github.com/torvalds/linux/commit/dd37978c50bc8b354e5c4633f69387f16572fdac
-		 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0)
-		if (file && file->f_inode) {
-			if (file->f_inode->i_rdev == PPM_NULL_RDEV) {
-		// Use f_dentry for older kernel versions
-#elif LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,20)
-		if (file && file->f_dentry && file->f_dentry->d_inode) {
-			if (file->f_dentry->d_inode->i_rdev == PPM_NULL_RDEV) {
-#else
-		if (file && file->f_path.dentry && file->f_path.dentry->d_inode) {
-			if (file->f_path.dentry->d_inode->i_rdev == PPM_NULL_RDEV) {
-#endif
-				res = SNAPLEN_TRACERS_ENABLED;
-				fput(file);
-				return res;
-			}
-
-			fput(file);
-		}
-#endif
 	}
 
 	if (!args->consumer->do_dynamic_snaplen)

@@ -441,25 +441,6 @@ static __always_inline uint32_t bpf_compute_snaplen(struct filler_data *data,
 	uint16_t sport;
 	uint16_t dport;
 
-	if (data->settings->tracers_enabled &&
-	    data->state->tail_ctx.evt_type == PPME_SYSCALL_WRITE_X) {
-		struct file *fil;
-		struct inode *f_inode;
-		dev_t i_rdev;
-
-		fil = bpf_fget(data->fd);
-		if (!fil)
-			return res;
-
-		f_inode = _READ(fil->f_inode);
-		if (!f_inode)
-			return res;
-
-		i_rdev = _READ(f_inode->i_rdev);
-		if (i_rdev == PPM_NULL_RDEV)
-			return SNAPLEN_TRACERS_ENABLED;
-	}
-
 	if (!data->settings->do_dynamic_snaplen)
 		return res;
 

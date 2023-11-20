@@ -240,7 +240,6 @@ struct scap_bpf_settings {
 	bool dropping_mode;
 	bool is_dropping;
 	bool drop_failed;
-	bool tracers_enabled;
 	uint16_t fullcapture_port_range_start;
 	uint16_t fullcapture_port_range_end;
 	uint16_t statsd_port;
