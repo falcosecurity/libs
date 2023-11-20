@@ -108,9 +108,6 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 		{
 			return scap_modern_bpf_start_dropping_mode(engine, arg1);
 		}
-	case SCAP_TRACERS_CAPTURE:
-		/* Not supported */
-		return SCAP_SUCCESS;
 	case SCAP_SNAPLEN:
 		pman_set_snaplen(arg1);
 		break;

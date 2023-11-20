@@ -320,18 +320,6 @@ int32_t scap_start_capture(scap_t* handle)
 	return SCAP_FAILURE;
 }
 
-int32_t scap_enable_tracers_capture(scap_t* handle)
-{
-	if(handle->m_vtable)
-	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_TRACERS_CAPTURE, 1, 0);
-	}
-
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
-	ASSERT(false);
-	return SCAP_FAILURE;
-}
-
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
 	if(handle->m_vtable)

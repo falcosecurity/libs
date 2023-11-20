@@ -435,7 +435,7 @@ typedef enum scap_dump_flags
 	SCAP_DF_NONE = 0,
 	SCAP_DF_STATE_ONLY = 1,		///< The event should be used for state update but it should
 								///< not be shown to the user
-	SCAP_DF_TRACER = (1 << 1),	///< This event is a tracer
+	// SCAP_DF_TRACER = (1 << 1),	/// note: deprecated
 	SCAP_DF_LARGE = (1 << 2)	///< This event has large payload (up to UINT_MAX Bytes, ie 4GB)
 }scap_dump_flags;
 
@@ -870,7 +870,6 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
-int32_t scap_enable_tracers_capture(scap_t* handle);
 int32_t scap_fd_add(scap_threadinfo* tinfo, scap_fdinfo* fdinfo);
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);

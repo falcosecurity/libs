@@ -1337,27 +1337,6 @@ int32_t scap_bpf_enable_dynamic_snaplen(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_enable_tracers_capture(struct scap_engine_handle engine)
-{
-	struct scap_bpf_settings settings;
-	struct bpf_engine *handle = engine.m_handle;
-	int k = 0;
-	int ret;
-
-	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
-	{
-		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
-	}
-
-	settings.tracers_enabled = true;
-	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
-	{
-		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_bpf_close(struct scap_engine_handle engine)
 {
 	struct bpf_engine *handle = engine.m_handle;
@@ -1484,7 +1463,6 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
 	settings.drop_failed = false;
-	settings.tracers_enabled = false;
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
 	settings.statsd_port = PPM_PORT_STATSD;
@@ -1949,12 +1927,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		{
 			return scap_bpf_start_dropping_mode(engine, arg1);
 		}
-	case SCAP_TRACERS_CAPTURE:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Tracers cannot be disabled once enabled");
-		}
-		return scap_bpf_enable_tracers_capture(engine);
 	case SCAP_SNAPLEN:
 		return scap_bpf_set_snaplen(engine, arg1);
 	case SCAP_PPM_SC_MASK:

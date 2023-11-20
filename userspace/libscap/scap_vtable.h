@@ -50,11 +50,6 @@ enum scap_setting {
 	 */
 	SCAP_SAMPLING_RATIO,
 	/**
-	 * @brief control tracers capture
-	 * arg1: enabled?
-	 */
-	SCAP_TRACERS_CAPTURE,
-	/**
 	 * @brief length of captured data buffers
 	 * arg1: the length (< 65536)
 	 */
