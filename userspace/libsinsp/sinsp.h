@@ -104,7 +104,6 @@ class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_protodecoder;
-class sinsp_partial_tracer;
 class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
@@ -868,15 +867,6 @@ public:
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
 	}
 
-	//
-	// Used by filters to enable app event state tracking, which is disabled
-	// by default for performance reasons
-	//
-	void request_tracer_state_tracking()
-	{
-		m_track_tracers_state = true;
-	}
-
 	sinsp_parser* get_parser();
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
@@ -912,7 +902,6 @@ public:
 	void add_meta_event(sinsp_evt *metaevt);
 	void add_meta_event_callback(meta_event_callback cback, void* data);
 	void remove_meta_event_callback();
-	void enable_tracers_capture();
 	uint64_t get_bytes_read()
 	{
 		return scap_ftell(m_h);
@@ -1113,7 +1102,6 @@ private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_stats_v2 m_sinsp_stats_v2_buffer[SINSP_MAX_STATS_V2];
 	uint32_t m_num_cpus;
-	bool m_is_tracers_capture_enabled;
 	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
 	scap_test_input_data *m_test_input_data = nullptr;
@@ -1193,13 +1181,6 @@ public:
 	// Some dropping infrastructure
 	//
 	bool m_isdropping;
-
-	//
-	// App events
-	//
-	bool m_track_tracers_state;
-	std::list<sinsp_partial_tracer*> m_partial_tracers_list;
-	simple_lifo_queue<sinsp_partial_tracer>* m_partial_tracers_pool;
 
 	//
 	// Protocol decoding state
@@ -1367,7 +1348,6 @@ public:
 	friend class sinsp_container_manager;
 	friend class sinsp_dumper;
 	friend class sinsp_chisel;
-	friend class sinsp_tracerparser;
 	friend class sinsp_filter_check_event;
 	friend class sinsp_protodecoder;
 	friend class lua_cbacks;

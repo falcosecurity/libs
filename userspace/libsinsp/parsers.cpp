@@ -33,7 +33,6 @@ limitations under the License.
 #include "container_engine/mesos.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "tracers.h"
 #include "parsers.h"
 #include "sinsp_errno.h"
 #include "filter.h"
@@ -60,13 +59,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_tmp_evt(m_inspector),
 	m_syscall_event_source_idx(sinsp_no_event_source_idx)
 {
-	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
 
-	//
-	// Note: allocated here instead of in the sinsp constructor because sinsp_partial_tracer
-	//       is not defined in sinsp.cpp
-	//
-	m_inspector->m_partial_tracers_pool = new simple_lifo_queue<sinsp_partial_tracer>(128);
 }
 
 sinsp_parser::~sinsp_parser()
@@ -83,11 +76,6 @@ sinsp_parser::~sinsp_parser()
 		m_tmp_events_buffer.pop();
 	}
 	m_protodecoders.clear();
-
-	if(m_inspector->m_partial_tracers_pool != NULL)
-	{
-		delete m_inspector->m_partial_tracers_pool;
-	}
 }
 
 void sinsp_parser::set_track_connection_status(bool enabled)
@@ -138,36 +126,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	if(m_inspector->m_filter)
 	{
 		ppm_event_flags eflags = evt->get_info_flags();
-
-		if(etype == PPME_SYSCALL_WRITE_X)
-		{
-			//
-			// Check if this is a tracer
-			//
-			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
-
-			if(fdinfo == NULL && evt->m_tinfo != nullptr)
-			{
-				fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
-				evt->m_fdinfo = fdinfo;
-			}
-
-			if(fdinfo && (fdinfo->m_flags & (sinsp_fdinfo_t::FLAGS_IS_TRACER_FD | sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE)))
-			{
-				eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
-			}
-			else
-			{
-				if(m_inspector->is_capture())
-				{
-					if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
-					{
-						evt->m_fdinfo = NULL;
-						eflags = (ppm_event_flags)(((uint64_t)eflags) | EF_MODIFIES_STATE);
-					}
-				}
-			}
-		}
 
 		if(eflags & EF_MODIFIES_STATE)
 		{
@@ -240,15 +198,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_WRITE_E:
 		if(!m_inspector->m_is_dumping && evt->m_tinfo != nullptr)
 		{
+			// note(jasondellaluce): this may be useless now that we removed tracers support
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
-			if(evt->m_fdinfo)
-			{
-				if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
-				{
-					evt->m_filtered_out = true;
-					return;
-				}
-			}
 		}
 		break;
 	case PPME_SYSCALL_MKDIR_X:
@@ -2897,18 +2848,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi.add_filename(fullpath);
 
 		//
-		// If this is a user event fd, mark it with the proper flag
-		//
-		if(fdi.m_name == USER_EVT_DEVICE_NAME)
-		{
-			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
-		}
-		else
-		{
-			fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
-		}
-
-		//
 		// Add the fd to the table.
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
@@ -4213,175 +4152,6 @@ void sinsp_parser::swap_addresses(sinsp_fdinfo_t* fdinfo)
 	}
 }
 
-uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
-{
-	sinsp_threadinfo* tinfo = evt->m_tinfo;
-	ASSERT(tinfo);
-
-	//
-	// Extract the data buffer
-	//
-	sinsp_evt_param *parinfo = evt->get_param(1);
-	const char* data = parinfo->m_val;
-	uint32_t datalen = parinfo->m_len;
-	sinsp_tracerparser* p = tinfo->m_tracer_parser;
-
-	if(p == NULL)
-	{
-		p = tinfo->m_tracer_parser = new sinsp_tracerparser(m_inspector);
-	}
-
-	p->m_tinfo = tinfo;
-
-	p->process_event_data(data, datalen, evt->get_ts());
-
-	if(p->m_res == sinsp_tracerparser::RES_TRUNCATED)
-	{
-		if(!m_inspector->m_is_dumping)
-		{
-			evt->m_filtered_out = true;
-		}
-
-		return p->m_res;
-	}
-
-	p->m_args.first = &p->m_argnames;
-	p->m_args.second = &p->m_argvals;
-
-	//
-	// Populate the user event that we will send up the stack instead of the write
-	//
-	uint8_t* fakeevt_storage = (uint8_t*)m_fake_userevt;
-	m_fake_userevt->ts = evt->m_pevt->ts;
-	m_fake_userevt->tid = evt->m_pevt->tid;
-	m_fake_userevt->nparams = 3;
-
-	if(p->m_res == sinsp_tracerparser::RES_OK)
-	{
-		if(p->m_type_str[0] == '>')
-		{
-			m_fake_userevt->type = PPME_TRACER_E;
-		}
-		else
-		{
-			m_fake_userevt->type = PPME_TRACER_X;
-		}
-
-		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
-		lens[0] = 8;
-		lens[1] = 8;
-		lens[2] = 8;
-
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = p->m_id;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
-	}
-	else
-	{
-		uint32_t flags = evt->m_fdinfo->m_flags;
-
-		if(!(flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD))
-		{
-			return p->m_res;
-		}
-
-		//
-		// Parsing error.
-		// We don't know the direction, so we use enter.
-		//
-		p->m_argnames.clear();
-		p->m_argvals.clear();
-
-		m_fake_userevt->type = PPME_TRACER_E;
-
-		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
-		lens[0] = 8;
-		lens[1] = 8;
-		lens[2] = 8;
-
-		p->m_tags.clear();
-		m_tracer_error_string = "invalid tracer " + std::string(data, datalen) + ", len" + std::to_string(datalen);
-		p->m_tags.push_back((char*)m_tracer_error_string.c_str());
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
-	}
-
-	scap_evt* tevt = evt->m_pevt;
-	evt->m_pevt = m_fake_userevt;
-	evt->init();
-	evt->m_poriginal_evt = tevt;
-	evt->m_flags |= (uint32_t)sinsp_evt::SINSP_EF_IS_TRACER;
-
-	//
-	// Update some thread information
-	//
-	tinfo->m_lastevent_fd = -1;
-	tinfo->m_lastevent_type = PPME_TRACER_E;
-	tinfo->m_latency = 0;
-	tinfo->m_last_latency_entertime = 0;
-
-	return p->m_res;
-}
-
-bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt,
-	int64_t retval,
-	ppm_event_flags eflags)
-{
-	//
-	// Tracers get into the engine as normal writes, but the FD has a flag to
-	// quickly recognize them.
-	//
-	uint32_t flags = evt->m_fdinfo->m_flags;
-
-	if(!(flags & sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD))
-	{
-		sinsp_fdinfo_t* orifdinfo = evt->m_fdinfo;
-		if(orifdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FD)
-		{
-			parse_tracer(evt, retval);
-			return true;
-		}
-		else
-		{
-			if(orifdinfo->m_flags & sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE)
-			{
-				if(eflags & EF_WRITES_TO_FD)
-				{
-					//
-					// We have not determined if this FD is a tracer FD or not.
-					// We're going to try to parse it.
-					// If the parsing succeeds, we mark it as a tracer FD. If it
-					// fails we mark it an NOT a tracer FD. Otherwise, we wait
-					// for the next buffer and we'll try again.
-					//
-					sinsp_tracerparser::parse_result pres =
-						(sinsp_tracerparser::parse_result)parse_tracer(evt, retval);
-
-					if(pres == sinsp_tracerparser::RES_OK)
-					{
-						//
-						// This FD has been recognized to be a tracer one.
-						// We do two things: mark it for future reference, and tell
-						// the driver to enable tracers capture (if we haven't done
-						// it yet).
-						//
-						orifdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FD;
-						m_inspector->enable_tracers_capture();
-						return true;
-					}
-					else if (pres == sinsp_tracerparser::RES_FAILED)
-					{
-						orifdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
-					}
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
 void sinsp_parser::parse_fspath_related_exit(sinsp_evt* evt)
 {
 	sinsp_evt *enter_evt = &m_tmp_evt;
@@ -4405,23 +4175,6 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 	retval = evt->get_param<int64_t>(0);
 
 	if(evt->m_fdinfo == NULL)
-	{
-		if(m_inspector->is_capture())
-		{
-			if((evt->get_dump_flags() & SCAP_DF_TRACER) != 0)
-			{
-				parse_tracer(evt, retval);
-				return;
-			}
-		}
-
-		return;
-	}
-
-	//
-	// Check if this is a tracer write on /dev/null, treat it in a special way
-	//
-	if(detect_and_process_tracer_write(evt, retval, eflags))
 	{
 		return;
 	}
@@ -6034,15 +5787,6 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
 		fdi.m_type = type;
 		fdi.add_filename(name.c_str());
 		fdi.m_openflags = flags;
-	}
-
-	if(fdi.m_name == USER_EVT_DEVICE_NAME)
-	{
-		fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
-	}
-	else
-	{
-		fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
 	}
 
 	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);

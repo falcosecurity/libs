@@ -41,7 +41,6 @@ struct iovec {
 #include "thread_group_info.h"
 
 class sinsp_delays_info;
-class sinsp_tracerparser;
 class blprogram;
 
 typedef struct erase_fd_params
@@ -476,11 +475,6 @@ public:
 	uint64_t m_clone_ts; ///< When the clone that started this process happened.
 	uint64_t m_lastexec_ts; ///< The last time exec was called
 
-	//
-	// Parser for the user events. Public so that filter fields can access it
-	//
-	sinsp_tracerparser* m_tracer_parser;
-
 	size_t args_len() const;
 	size_t env_len() const;
 
@@ -628,7 +622,6 @@ VISIBILITY_PRIVATE
 	friend class sinsp_evt;
 	friend class sinsp_thread_manager;
 	friend class sinsp_transaction_table;
-	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 	friend class sinsp_baseliner;
 	friend class sinsp_cgroup; // for set_cgroups
