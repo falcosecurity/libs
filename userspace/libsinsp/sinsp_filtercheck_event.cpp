@@ -30,6 +30,8 @@ using namespace std;
 
 extern sinsp_evttables g_infotables;
 
+#define UESTORAGE_INITIAL_BUFSIZE 256
+
 #define RETURN_EXTRACT_VAR(x) do {  \
         *len = sizeof((x));         \
         return (uint8_t*) &(x);     \

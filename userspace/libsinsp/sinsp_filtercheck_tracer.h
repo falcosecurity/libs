@@ -20,10 +20,6 @@ limitations under the License.
 
 #include "sinsp_filtercheck.h"
 
-#define TEXT_ARG_ID -1000000
-
-class sinsp_filter_check_reference;
-
 class sinsp_filter_check_tracer : public sinsp_filter_check
 {
 public:
@@ -59,17 +55,8 @@ public:
 
 private:
 	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
-	inline uint8_t* extract_duration(uint16_t etype, sinsp_tracerparser* eparser, OUT uint32_t* len);
-	uint8_t* extract_args(sinsp_partial_tracer* pae, OUT uint32_t *len);
-	uint8_t* extract_arg(sinsp_partial_tracer* pae, OUT uint32_t *len);
 
 	int32_t m_argid;
 	std::string m_argname;
 	const char* m_cargname;
-	char* m_storage;
-	uint32_t m_storage_size;
-	int64_t m_s64val;
-	int32_t m_u32val;
-	sinsp_filter_check_reference* m_converter;
-	std::string m_strstorage;
 };

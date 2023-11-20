@@ -61,32 +61,10 @@ public:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
-	bool compare(sinsp_evt *evt);
 
-	uint64_t m_u64val;
-	uint64_t m_tsdelta;
-	uint32_t m_u32val;
-	std::string m_strstorage;
 	std::string m_argname;
 	int32_t m_argid;
-	uint32_t m_evtid;
-	uint32_t m_evtid1;
-	const ppm_param_info* m_arginfo;
-
-	//
-	// Note: this copy of the field is used by some fields, like TYPE_ARGS and
-	// TYPE_RESARG, that need to do on the fly type customization
-	//
-	filtercheck_field_info m_customfield;
 
 private:
 	int32_t extract_arg(std::string fldname, std::string val);
-	inline uint8_t* extract_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae, OUT uint32_t* len);
-	inline bool compare_tracer(sinsp_evt *evt, sinsp_partial_tracer* pae);
-
-	bool m_is_compare;
-	char* m_storage;
-	uint32_t m_storage_size;
-	const char* m_cargname;
-	sinsp_filter_check_reference* m_converter;
 };
