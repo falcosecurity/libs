@@ -704,23 +704,6 @@ static int32_t scap_kmod_set_dropping_mode(struct scap_engine_handle engine, int
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_enable_tracers_capture(struct scap_engine_handle engine)
-{
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	if(devset->m_ndevs)
-	{
-		{
-			if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
-			{
-				ASSERT(false);
-				return scap_errprintf(engine.m_handle->m_lasterr, errno, "%s failed", __FUNCTION__);
-			}
-		}
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_kmod_stop_dropping_mode(struct scap_engine_handle engine)
 {
 	return scap_kmod_set_dropping_mode(engine, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
@@ -881,12 +864,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		{
 			return scap_kmod_start_dropping_mode(engine, arg1);
 		}
-	case SCAP_TRACERS_CAPTURE:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Tracers cannot be disabled once enabled");
-		}
-		return scap_kmod_enable_tracers_capture(engine);
 	case SCAP_SNAPLEN:
 		return scap_kmod_set_snaplen(engine, arg1);
 	case SCAP_PPM_SC_MASK:
