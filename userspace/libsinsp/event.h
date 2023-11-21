@@ -342,7 +342,7 @@ public:
 
 	  \param id The parameter number.
 	*/
-	sinsp_evt_param* get_param(uint32_t id);
+	const sinsp_evt_param* get_param(uint32_t id);
 
 	/*!
 	  \brief Get a parameter in raw format by name.
