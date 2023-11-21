@@ -1,4 +1,4 @@
-#include "scap.h"
+#include <libscap/scap.h>
 #include <gtest/gtest.h>
 
 TEST(ppm_sc_names, scap_get_ppm_sc_name)

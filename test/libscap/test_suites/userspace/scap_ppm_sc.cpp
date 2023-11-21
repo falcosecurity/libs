@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <scap.h>
+#include <libscap/scap.h>
 #include <gtest/gtest.h>
 #include <sys/syscall.h>
 

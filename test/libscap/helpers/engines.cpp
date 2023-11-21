@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <syscall.h>
-#include <scap.h>
+#include <libscap/scap.h>
 #include <errno.h>
 #include <fcntl.h>
 

@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include "strl.h"
+#include <libscap/strl.h>
 
 static const char* s_10_chars = "0123456789";
 static const char* s_20_chars = "abcdefghijklmnopqrst";
