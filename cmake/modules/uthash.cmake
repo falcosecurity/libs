@@ -14,7 +14,7 @@
 
 option(USE_BUNDLED_UTHASH "Enable downloading of the bundled uthash library" ${USE_BUNDLED_DEPS})
 set(UTHASH_DOWNLOAD_URL "https://raw.githubusercontent.com/troydhanson/uthash/v1.9.8/src/uthash.h")
-set(UTHASH_DOWNLOAD_DIR "${LIBSCAP_DIR}/userspace/libscap")
+set(UTHASH_DOWNLOAD_DIR "${LIBS_DIR}/userspace/libscap")
 
 if(UTHASH_INCLUDE)
 	# we already have uthash

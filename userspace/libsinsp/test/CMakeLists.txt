@@ -31,9 +31,6 @@ if(WIN32)
 	set(CMAKE_CXX_STANDARD 17)
 endif()
 
-# We need `${CMAKE_BINARY_DIR}/libsinsp` to include `cri...pb.h` files for container tests
-include_directories(${LIBSCAP_DIR}/driver ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR}/libsinsp)
-
 # Create a libsinsp_test_var.h file with some variables used by our tests
 configure_file (
     "${CMAKE_CURRENT_SOURCE_DIR}/libsinsp_test_var.h.in"
@@ -179,6 +176,13 @@ if (EMSCRIPTEN)
 	# for reading from local capture files.
 	target_link_options(unit-test-libsinsp PRIVATE "-sNODERAWFS=1")
 endif()
+
+target_include_directories(unit-test-libsinsp
+	PRIVATE
+	${LIBS_DIR} # needed for driver/event_stats.h
+	${CMAKE_CURRENT_BINARY_DIR} # needed for libsinsp_test_var.h.in
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 target_link_libraries(unit-test-libsinsp
 	sinsp

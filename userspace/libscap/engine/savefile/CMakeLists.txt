@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(${LIBSCAP_INCLUDE_DIRS})
-
 # Since we have circular dependencies between libscap and the savefile engine,
 # make this library always static (directly linked into libscap)
 add_library(scap_engine_savefile STATIC

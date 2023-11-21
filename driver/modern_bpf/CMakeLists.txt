@@ -180,7 +180,7 @@ list(APPEND MODERN_PROBE_INCLUDE "-I${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Note here we use the libs root directory since we want to avoid conflicts between the `bpf` folder inside
 # `driver` and the `libbpf` includes.
-set(PPM_INCLUDE ${LIBSCAP_DIR})
+set(PPM_INCLUDE ${LIBS_DIR})
 
 ## Set CLANG FLAGS
 set(CLANG_FLAGS "")

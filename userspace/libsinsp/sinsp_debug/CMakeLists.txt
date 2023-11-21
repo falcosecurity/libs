@@ -20,6 +20,7 @@ add_executable(sinsp-debug
 )
 
 target_link_libraries(sinsp-debug
+	PRIVATE
 	sinsp
 )
 

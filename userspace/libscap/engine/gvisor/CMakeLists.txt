@@ -17,8 +17,6 @@
 include(protobuf)
 include(jsoncpp)
 
-include_directories(${LIBSCAP_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR} ${JSONCPP_INCLUDE})
-
 find_package(Threads)
 
 set(scap_engine_gvisor_sources
@@ -94,5 +92,11 @@ else()
         ${PROTOBUF_LIB}
         ${JSONCPP_LIB}
     )
+
+    target_include_directories(scap_engine_gvisor
+        PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}
+    )
+
     set_scap_target_properties(scap_engine_gvisor)
 endif()

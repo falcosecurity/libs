@@ -101,7 +101,7 @@ add_library(sinsp
 	memmem.cpp
 	logger.cpp
 	parsers.cpp
-	../plugin/plugin_loader.c
+	${LIBS_DIR}/userspace/plugin/plugin_loader.c
 	plugin.cpp
 	plugin_table_api.cpp
 	plugin_filtercheck.cpp
@@ -128,12 +128,12 @@ endif()
 if(WITH_CHISEL)
 	target_sources(sinsp
 	PRIVATE
-		../chisel/chisel_api.cpp
-		../chisel/chisel_fields_info.cpp
-		../chisel/chisel_utils.cpp
-		../chisel/chisel.cpp
-		../chisel/chisel_viewinfo.cpp
-		../chisel/chisel_table.cpp
+		${LIBS_DIR}/userspace/chisel/chisel_api.cpp
+		${LIBS_DIR}/userspace/chisel/chisel_fields_info.cpp
+		${LIBS_DIR}/userspace/chisel/chisel_utils.cpp
+		${LIBS_DIR}/userspace/chisel/chisel.cpp
+		${LIBS_DIR}/userspace/chisel/chisel_viewinfo.cpp
+		${LIBS_DIR}/userspace/chisel/chisel_table.cpp
 	)
 endif()
 

@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(${LIBSCAP_INCLUDE_DIRS})
 add_library(scap_engine_bpf scap_bpf.c attached_prog.c)
 add_dependencies(scap_engine_bpf libelf zlib)
 target_link_libraries(scap_engine_bpf
