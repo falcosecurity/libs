@@ -5762,8 +5762,6 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
-	int flags;
-
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -5786,8 +5784,8 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(args, 2, 1, &flags);
-	res = val_to_ring(args, dup3_flags_to_scap(flags), 0, false, 0);
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, dup3_flags_to_scap((int) val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
