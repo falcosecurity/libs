@@ -831,9 +831,6 @@ void sinsp::close()
 	if (!is_capture() && m_mode != SINSP_MODE_NONE)
 	{
 		std::string err;
-		// note(jasondellaluce,rohith-raju): for now the emscripten build does not support
-		// tbb queues, so async event production is disabled
-#ifndef __EMSCRIPTEN__
 		for (auto& p : m_plugin_manager->plugins())
 		{
 			if (p->caps() & CAP_ASYNC)
@@ -849,7 +846,6 @@ void sinsp::close()
 				}
 			}
 		}
-#endif
 		if (!err.empty())
 		{
 			throw sinsp_exception(err);
