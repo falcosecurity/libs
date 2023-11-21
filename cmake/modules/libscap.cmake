@@ -15,9 +15,8 @@
 if(NOT HAVE_LIBSCAP)
 set(HAVE_LIBSCAP On)
 
-# This should be renamed in `LIBS_DIR` not `LIBSCAP_DIR`
-if(NOT LIBSCAP_DIR)
-	get_filename_component(LIBSCAP_DIR ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)
+if(NOT LIBS_DIR)
+	get_filename_component(LIBS_DIR ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)
 endif()
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
@@ -54,8 +53,8 @@ else()
 	get_filename_component(DRIVER_CONFIG_DIR ${PROJECT_SOURCE_DIR}/driver ABSOLUTE)
 endif()
 
-get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/libscap ABSOLUTE)
-set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${PROJECT_BINARY_DIR}/libscap ${DRIVER_CONFIG_DIR})
+get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBS_DIR}/userspace/libscap ABSOLUTE)
+set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${PROJECT_BINARY_DIR} ${DRIVER_CONFIG_DIR})
 
 function(set_scap_target_properties target)
 	set_target_properties(${target} PROPERTIES
@@ -64,14 +63,14 @@ function(set_scap_target_properties target)
 	)
 endfunction()
 
-add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
+add_subdirectory(${LIBS_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
 
 set(LIBSCAP_INSTALL_LIBS)
 
 # All of the targets in userspace/libscap
-get_directory_property(libscap_subdirs DIRECTORY ${LIBSCAP_DIR}/userspace/libscap SUBDIRECTORIES)
+get_directory_property(libscap_subdirs DIRECTORY ${LIBS_DIR}/userspace/libscap SUBDIRECTORIES)
 set(libscap_subdir_targets)
-foreach(libscap_subdir ${LIBSCAP_DIR}/userspace/libscap ${libscap_subdirs})
+foreach(libscap_subdir ${LIBS_DIR}/userspace/libscap ${libscap_subdirs})
 	get_directory_property(subdir_targets DIRECTORY ${libscap_subdir} BUILDSYSTEM_TARGETS)
 	list(APPEND libscap_subdir_targets ${subdir_targets})
 endforeach()
@@ -119,7 +118,7 @@ endforeach()
 
 string(REPLACE ";" " " LIBSCAP_LINK_LIBRARIES_FLAGS "${libscap_link_flags}")
 string(REPLACE ";" " " LIBSCAP_LINK_LIBDIRS_FLAGS "${libscap_link_libdirs}")
-configure_file(${LIBSCAP_DIR}/userspace/libscap/libscap.pc.in ${PROJECT_BINARY_DIR}/libscap/libscap.pc @ONLY)
+configure_file(${LIBS_DIR}/userspace/libscap/libscap.pc.in ${PROJECT_BINARY_DIR}/libscap/libscap.pc @ONLY)
 
 install(TARGETS ${LIBSCAP_INSTALL_LIBS}
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -134,7 +133,7 @@ install(DIRECTORY "${LIBSCAP_INCLUDE_DIR}" DESTINATION "${CMAKE_INSTALL_INCLUDED
 install(DIRECTORY "${DRIVER_CONFIG_DIR}/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/driver"
 			COMPONENT "scap"
 			FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "${LIBSCAP_DIR}/userspace/plugin" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
+install(DIRECTORY "${LIBS_DIR}/userspace/plugin" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
 		COMPONENT "scap"
 		FILES_MATCHING PATTERN "*.h")
 install(FILES ${PROJECT_BINARY_DIR}/libscap/scap_config.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace/libscap)

@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories("${PROJECT_BINARY_DIR}/libscap")
 
 include(engine_config)
 
@@ -32,35 +31,33 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	endif()
 
 	# do not remove this since when WITH_DRIVER is off
-	if(NOT DEFINED DRIVER_NAME)
-		set(DRIVER_NAME "scap")
-	endif()
+	set(DRIVER_NAME "scap" CACHE STRING _)
 
 	string(REPLACE "-" "_" SCAP_KERNEL_MODULE_NAME "${DRIVER_NAME}")
 	add_definitions(-DSCAP_KERNEL_MODULE_NAME="${SCAP_KERNEL_MODULE_NAME}")
 endif()
 
-if(NOT DEFINED SCAP_HOST_ROOT_ENV_VAR_NAME)
-	set(SCAP_HOST_ROOT_ENV_VAR_NAME "HOST_ROOT")
-endif()
+set(SCAP_HOST_ROOT_ENV_VAR_NAME "HOST_ROOT" CACHE STRING _)
 add_definitions(-DSCAP_HOST_ROOT_ENV_VAR_NAME="${SCAP_HOST_ROOT_ENV_VAR_NAME}")
 
-if(NOT DEFINED SCAP_HOSTNAME_ENV_VAR)
-	set(SCAP_HOSTNAME_ENV_VAR "SCAP_HOSTNAME")
-endif()
+set(SCAP_HOSTNAME_ENV_VAR "SCAP_HOSTNAME" CACHE STRING _)
 add_definitions(-DSCAP_HOSTNAME_ENV_VAR="${SCAP_HOSTNAME_ENV_VAR}")
 
 if (DEFINED SCAP_BPF_PROGS_TAIL_CALLED_MAX)
 	add_definitions(-DBPF_PROGS_TAIL_CALLED_MAX=${SCAP_BPF_PROGS_TAIL_CALLED_MAX})
 endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    include_directories(${PROJECT_BINARY_DIR}/driver/src)
-endif()
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_strl_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/scap_strl_config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/scap_config.h)
+
+
+add_library(scap_error STATIC strerror.c)
+
+target_include_directories(scap_error
+	PUBLIC
+	${LIBS_DIR}/userspace/
+)
 
 add_library(scap
 	scap.c
@@ -87,65 +84,73 @@ add_library(scap_platform_util STATIC
 )
 add_dependencies(scap_platform_util uthash)
 
-target_link_libraries(scap PRIVATE "${ZLIB_LIB}")
+target_include_directories(scap_platform_util
+PUBLIC
+	${LIBS_DIR}/userspace/
+	${PROJECT_BINARY_DIR}
+	${LIBS_DIR}
+)
 
-add_library(scap_error STATIC strerror.c)
-
-target_link_libraries(scap PRIVATE scap_error)
-
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
-	include(FindMakedev)
-endif()
-
-if(HAS_ENGINE_TEST_INPUT)
-	# Add engine only used for testing
-	add_subdirectory(engine/test_input)
-	target_link_libraries(scap PUBLIC scap_engine_test_input)
-endif()
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_subdirectory(linux)
-	include_directories(linux)
-	target_link_libraries(scap PUBLIC scap_platform)
-elseif(EMSCRIPTEN)
-	include_directories(emscripten)
-elseif(WIN32)
-	include_directories(win32)
-elseif(APPLE)
-	include_directories(macos)
-endif()
+target_link_libraries(scap
+PRIVATE
+	scap_error
+	"${ZLIB_LIB}"
+)
 
 add_library(scap_event_schema STATIC
 	scap_event.c
 	ppm_sc_names.c
-	../../driver/dynamic_params_table.c
-	../../driver/event_table.c
-	../../driver/flags_table.c
-	../../driver/syscall_table64.c
-	../../driver/syscall_ia32_64_map.c
+	${LIBS_DIR}/driver/dynamic_params_table.c
+	${LIBS_DIR}/driver/event_table.c
+	${LIBS_DIR}/driver/flags_table.c
+	${LIBS_DIR}/driver/syscall_table64.c
+	${LIBS_DIR}/driver/syscall_ia32_64_map.c
 	linux/scap_ppm_sc.c
 )
+
 add_dependencies(scap_event_schema uthash)
+
+target_include_directories(scap_event_schema
+PUBLIC
+	${LIBS_DIR}/userspace
+	${LIBS_DIR}
+	${PROJECT_BINARY_DIR}
+)
 
 target_link_libraries(scap PUBLIC scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_library(driver_event_schema
-		STATIC
-		../../driver/fillers_table.c)
-	target_link_libraries(scap_event_schema PRIVATE driver_event_schema)
-endif()
+	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
+	include(FindMakedev)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+	add_subdirectory(linux)
+	target_link_libraries(scap PUBLIC scap_platform)
+
+
+	add_library(driver_event_schema STATIC
+		${LIBS_DIR}/driver/fillers_table.c)
+
+	target_link_libraries(scap_event_schema driver_event_schema)
+
+
 	add_library(scap_engine_util STATIC
 		scap_engine_util.c
 		ringbuffer/devset.c
 		ringbuffer/ringbuffer.c
 	)
 	add_dependencies(scap_engine_util uthash)
-
+	target_include_directories(scap_engine_util
+	PUBLIC
+		${LIBS_DIR}
+		${LIBS_DIR}/userspace
+		${PROJECT_BINARY_DIR}
+	)
 	target_link_libraries(scap PRIVATE scap_engine_util)
 endif()
+
+
+################## LISCAP ENGINES ##################
 
 add_subdirectory(engine/noop)
 # don't link the noop engine to libscap directly,
@@ -154,6 +159,12 @@ add_subdirectory(engine/noop)
 if(HAS_ENGINE_NODRIVER)
 	add_subdirectory(engine/nodriver)
 	target_link_libraries(scap PUBLIC scap_engine_nodriver)
+endif()
+
+if(HAS_ENGINE_TEST_INPUT)
+	# Add engine only used for testing
+	add_subdirectory(engine/test_input)
+	target_link_libraries(scap PUBLIC scap_engine_test_input)
 endif()
 
 if(HAS_ENGINE_SAVEFILE)
@@ -169,18 +180,30 @@ endif()
 if(HAS_ENGINE_KMOD)
 	add_subdirectory(engine/kmod)
 	target_link_libraries(scap PUBLIC scap_engine_kmod)
+	target_include_directories(scap_engine_kmod
+	PRIVATE
+		${PROJECT_BINARY_DIR}/driver/src
+	)
 endif()
 
 if(HAS_ENGINE_BPF)
 	include(libelf)
 	add_subdirectory(engine/bpf)
 	target_link_libraries(scap PUBLIC scap_engine_bpf)
+	target_include_directories(scap_engine_bpf
+	PRIVATE
+		${PROJECT_BINARY_DIR}/driver/src
+	)
 endif()
 
 if(HAS_ENGINE_MODERN_BPF)
 	include(libelf)
 	add_subdirectory(engine/modern_bpf)
 	target_link_libraries(scap PUBLIC scap_engine_modern_bpf)
+	target_include_directories(scap_engine_modern_bpf
+	PRIVATE
+		${PROJECT_BINARY_DIR}/driver/src
+	)
 endif()
 
 if(HAS_ENGINE_GVISOR)
@@ -202,7 +225,7 @@ if(HAS_ENGINE_GVISOR)
 	endif()
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/scap_config.h)
+####################################################
 
 if (BUILD_LIBSCAP_EXAMPLES)
 	add_subdirectory(examples/01-open)

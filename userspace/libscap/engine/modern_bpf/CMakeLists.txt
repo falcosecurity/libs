@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(${LIBSCAP_INCLUDE_DIRS})
-
 message(STATUS "Build modern BPF engine")
 option(USE_BUNDLED_MODERN_BPF "use bundled modern BPF" ON)
 set(MODERN_BPF_LOG_PREFIX "[MODERN BPF]")
@@ -36,7 +34,7 @@ if(NOT MODERN_BPF_SKEL_DIR)
   set(MODERN_BPF_SKEL_DIR "${CMAKE_BINARY_DIR}/skel_dir")
   file(MAKE_DIRECTORY ${MODERN_BPF_SKEL_DIR})
   # Build the BPF skeleton as custom target.
-  add_subdirectory(${LIBSCAP_DIR}/driver/modern_bpf ${CMAKE_BINARY_DIR}/driver/modern_bpf)
+  add_subdirectory(${LIBS_DIR}/driver/modern_bpf ${CMAKE_BINARY_DIR}/driver/modern_bpf)
 else()
   set(USE_BUNDLED_MODERN_BPF OFF)
   # If it is a relative path we convert it to an absolute one relative to the root source directory.
@@ -46,7 +44,7 @@ message(STATUS "${MODERN_BPF_LOG_PREFIX} USE_BUNDLED_MODERN_BPF: ${USE_BUNDLED_M
 message(STATUS "${MODERN_BPF_LOG_PREFIX} full skeleton path: ${MODERN_BPF_SKEL_DIR}/${UNIQUE_BPF_O_FILE_NAME}.skel.h")
 
 # Build `libpman` library.
-add_subdirectory(${LIBSCAP_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
+add_subdirectory(${LIBS_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
 
 add_library(scap_engine_modern_bpf
 	scap_modern_bpf.c
