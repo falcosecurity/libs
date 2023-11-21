@@ -24,9 +24,9 @@ limitations under the License.
 #include <assert.h>
 #include <algorithm>
 
-#include <sinsp.h>
-#include "chisel.h"
-#include "chisel_fields_info.h"
+#include <libsinsp/sinsp.h>
+#include <chisel/chisel.h>
+#include <chisel/chisel_fields_info.h>
 
 // Must match the value in the zsh tab completion
 #define DESCRIPTION_TEXT_START 16

@@ -16,12 +16,12 @@ limitations under the License.
 
 */
 
-#include "filterchecks.h"
+#include <libsinsp/filterchecks.h>
 
-#include "chisel.h"
-#include "chisel_api.h"
-#include "chisel_table.h"
-#include "chisel_capture_interrupt_exception.h"
+#include <chisel/chisel.h>
+#include <chisel/chisel_api.h>
+#include <chisel/chisel_table.h>
+#include <chisel/chisel_capture_interrupt_exception.h>
 
 #define HAS_LUA_CHISELS
 

@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 #include <algorithm>
-#include <sinsp.h>
-#include "chisel_viewinfo.h"
+#include <libsinsp/sinsp.h>
+#include <chisel/chisel_viewinfo.h>
 
 using namespace std;
 

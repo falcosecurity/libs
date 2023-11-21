@@ -18,8 +18,8 @@ limitations under the License.
 
 #include <algorithm>
 
-#include <sinsp.h>
-#include "chisel_table.h"
+#include <libsinsp/sinsp.h>
+#include <chisel/chisel_table.h>
 
 using namespace std;
 

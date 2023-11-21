@@ -16,13 +16,13 @@ limitations under the License.
 
 */
 
-#include "strl.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "chisel.h"
-#include "chisel_api.h"
-#include "filter.h"
-#include "filterchecks.h"
+#include <libscap/strl.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <chisel/chisel.h>
+#include <chisel/chisel_api.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
 #ifdef HAS_ANALYZER
 #include "analyzer.h"
 #endif

@@ -17,7 +17,7 @@ limitations under the License.
 */
 #pragma once
 
-#include <sinsp_exception.h>
+#include <libsinsp/sinsp_exception.h>
 
 /*!
   \brief sinsp library exception.
