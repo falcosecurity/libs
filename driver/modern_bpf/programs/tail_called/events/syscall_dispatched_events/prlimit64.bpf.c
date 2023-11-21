@@ -80,13 +80,21 @@ int BPF_PROG(prlimit64_x,
 	{
 		rlimit_pointer = extract__syscall_argument(regs, 3);
 		bpf_probe_read_user((void *)&old_rlimit, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
+
+		/* Parameter 4: oldcur (type: PT_INT64) */
+		ringbuf__store_s64(&ringbuf, old_rlimit.rlim_cur);
+
+		/* Parameter 5: oldmax (type: PT_INT64) */
+		ringbuf__store_s64(&ringbuf, old_rlimit.rlim_max);	
 	}
+	else
+	{
+		/* Parameter 4: oldcur (type: PT_INT64) */
+		ringbuf__store_s64(&ringbuf, -1);
 
-	/* Parameter 4: oldcur (type: PT_INT64) */
-	ringbuf__store_s64(&ringbuf, old_rlimit.rlim_cur);
-
-	/* Parameter 5: oldmax (type: PT_INT64) */
-	ringbuf__store_s64(&ringbuf, old_rlimit.rlim_max);
+		/* Parameter 5: oldmax (type: PT_INT64) */
+		ringbuf__store_s64(&ringbuf, -1);
+	}
 
 	/* Parameter 6: pid (type: PT_PID) */
 	pid_t pid = (s32)extract__syscall_argument(regs, 0);
