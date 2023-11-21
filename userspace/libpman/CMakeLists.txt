@@ -48,8 +48,6 @@ set(PMAN_LINK_LIBRARIES
     scap_platform
 )
 
-set(PMAN_DEPENDENCIES scap_platform)
-
 if(USE_BUNDLED_MODERN_BPF)
     list(APPEND
         PMAN_DEPENDENCIES
@@ -64,7 +62,7 @@ if(USE_BUNDLED_LIBBPF)
     )
 endif()
 
-add_library(pman ${PMAN_SOURCES})
+add_library(pman STATIC ${PMAN_SOURCES})
 
 target_include_directories(pman
     PUBLIC

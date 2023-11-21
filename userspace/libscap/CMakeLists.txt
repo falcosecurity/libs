@@ -87,12 +87,11 @@ add_library(scap_platform_util STATIC
 )
 add_dependencies(scap_platform_util uthash)
 
-target_link_libraries(scap
-	"${ZLIB_LIB}")
+target_link_libraries(scap PRIVATE "${ZLIB_LIB}")
 
 add_library(scap_error STATIC strerror.c)
 
-target_link_libraries(scap scap_error)
+target_link_libraries(scap PRIVATE scap_error)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
@@ -102,12 +101,12 @@ endif()
 if(HAS_ENGINE_TEST_INPUT)
 	# Add engine only used for testing
 	add_subdirectory(engine/test_input)
-	target_link_libraries(scap scap_engine_test_input)
+	target_link_libraries(scap PRIVATE scap_engine_test_input)
 endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_subdirectory(linux)
 	include_directories(linux)
-	target_link_libraries(scap scap_platform)
+	target_link_libraries(scap PRIVATE scap_platform)
 elseif(EMSCRIPTEN)
 	include_directories(emscripten)
 elseif(WIN32)
@@ -128,13 +127,13 @@ add_library(scap_event_schema STATIC
 )
 add_dependencies(scap_event_schema uthash)
 
-target_link_libraries(scap scap_event_schema)
+target_link_libraries(scap PRIVATE scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
 		STATIC
 		../../driver/fillers_table.c)
-	target_link_libraries(scap_event_schema driver_event_schema)
+	target_link_libraries(scap_event_schema PRIVATE driver_event_schema)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -145,7 +144,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	)
 	add_dependencies(scap_engine_util uthash)
 
-	target_link_libraries(scap scap_engine_util)
+	target_link_libraries(scap PRIVATE scap_engine_util)
 endif()
 
 add_subdirectory(engine/noop)
@@ -154,34 +153,34 @@ add_subdirectory(engine/noop)
 
 if(HAS_ENGINE_NODRIVER)
 	add_subdirectory(engine/nodriver)
-	target_link_libraries(scap scap_engine_nodriver)
+	target_link_libraries(scap PRIVATE scap_engine_nodriver)
 endif()
 
 if(HAS_ENGINE_SAVEFILE)
 	add_subdirectory(engine/savefile)
-	target_link_libraries(scap scap_engine_savefile)
+	target_link_libraries(scap PRIVATE scap_engine_savefile)
 endif()
 
 if(HAS_ENGINE_SOURCE_PLUGIN)
 	add_subdirectory(engine/source_plugin)
-	target_link_libraries(scap scap_engine_source_plugin)
+	target_link_libraries(scap PRIVATE scap_engine_source_plugin)
 endif()
 
 if(HAS_ENGINE_KMOD)
 	add_subdirectory(engine/kmod)
-	target_link_libraries(scap scap_engine_kmod)
+	target_link_libraries(scap PRIVATE scap_engine_kmod)
 endif()
 
 if(HAS_ENGINE_BPF)
 	include(libelf)
 	add_subdirectory(engine/bpf)
-	target_link_libraries(scap scap_engine_bpf)
+	target_link_libraries(scap PRIVATE scap_engine_bpf)
 endif()
 
 if(HAS_ENGINE_MODERN_BPF)
 	include(libelf)
 	add_subdirectory(engine/modern_bpf)
-	target_link_libraries(scap scap_engine_modern_bpf)
+	target_link_libraries(scap PRIVATE scap_engine_modern_bpf)
 endif()
 
 if(HAS_ENGINE_GVISOR)
@@ -193,12 +192,13 @@ if(HAS_ENGINE_GVISOR)
 		# CMake 3.13 or later.
 		# https://cmake.org/cmake/help/latest/policy/CMP0079.html
 		target_link_libraries(scap
+		PRIVATE
 			${CMAKE_THREAD_LIBS_INIT}
 			${PROTOBUF_LIB}
 			${JSONCPP_LIB}
-			)
+		)
 	else()
-		target_link_libraries(scap scap_engine_gvisor)
+		target_link_libraries(scap PRIVATE scap_engine_gvisor)
 	endif()
 endif()
 

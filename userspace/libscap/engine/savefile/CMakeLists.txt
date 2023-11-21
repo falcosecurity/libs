@@ -25,4 +25,4 @@ add_library(scap_engine_savefile
     scap_reader_buffered.c)
 
 add_dependencies(scap_engine_savefile zlib)
-target_link_libraries(scap_engine_savefile scap_engine_noop scap_platform_util ${ZLIB_LIB})
+target_link_libraries(scap_engine_savefile PRIVATE scap_engine_noop scap_platform_util ${ZLIB_LIB})

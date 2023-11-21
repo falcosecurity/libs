@@ -16,6 +16,5 @@
 #
 include_directories(${LIBSCAP_INCLUDE_DIRS})
 add_library(scap_engine_kmod scap_kmod.c)
-target_link_libraries(scap_engine_kmod scap_event_schema scap_platform scap_engine_util scap_error)
-add_dependencies(scap_engine_kmod scap_event_schema scap_platform scap_engine_util scap_error)
+target_link_libraries(scap_engine_kmod PRIVATE scap_event_schema scap_platform scap_engine_util scap_error)
 set_scap_target_properties(scap_engine_kmod)
