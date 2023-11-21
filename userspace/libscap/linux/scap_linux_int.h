@@ -21,7 +21,7 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "uthash_ext.h"
+#include <libscap/uthash_ext.h>
 
 typedef struct scap_fdinfo scap_fdinfo;
 

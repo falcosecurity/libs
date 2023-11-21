@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <sys/types.h>
 #include <string.h>
-#include "scap_strl_config.h"
+#include <libscap/scap_strl_config.h>
 
 #pragma once
 

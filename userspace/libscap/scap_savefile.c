@@ -30,12 +30,12 @@ struct iovec {
 };
 #endif
 
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_platform_impl.h"
-#include "scap_savefile_api.h"
-#include "scap_savefile.h"
-#include "strl.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_platform_impl.h>
+#include <libscap/scap_savefile_api.h>
+#include <libscap/scap_savefile.h>
+#include <libscap/strl.h>
 
 const char* scap_dump_getlasterr(scap_dumper_t* d)
 {

@@ -18,19 +18,19 @@ limitations under the License.
 
 #include <stdio.h>
 
-#include "compat/misc.h"
-#include "scap.h"
-#include "strerror.h"
-#include "strl.h"
-#include "scap-int.h"
-#include "scap_api_version.h"
-#include "scap_platform.h"
+#include <libscap/compat/misc.h>
+#include <libscap/scap.h>
+#include <libscap/strerror.h>
+#include <libscap/strl.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_api_version.h>
+#include <libscap/scap_platform.h>
 
 #define SCAP_HANDLE_T void
-#include "scap_engines.h"
+#include <libscap/scap_engines.h>
 
 #ifdef __linux__
-#include "scap_linux_platform.h"
+#include <libscap/linux/scap_linux_platform.h>
 #else
 // The test_input and source_plugin engines can optionally use a linux_platform
 // but only on an actual Linux system.

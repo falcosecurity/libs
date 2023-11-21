@@ -26,9 +26,9 @@ struct noop_engine
 
 #define SCAP_HANDLE_T struct noop_engine
 
-#include "noop.h"
-#include "scap.h"
-#include "strl.h"
+#include <libscap/engine/noop/noop.h>
+#include <libscap/scap.h>
+#include <libscap/strl.h>
 
 struct noop_engine* noop_alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {

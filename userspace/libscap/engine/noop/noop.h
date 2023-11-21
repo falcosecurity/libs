@@ -18,8 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#include "engine_handle.h"
-#include "scap_vtable.h"
+#include <libscap/engine_handle.h>
+#include <libscap/scap_vtable.h>
 
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;

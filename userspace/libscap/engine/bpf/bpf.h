@@ -19,11 +19,11 @@ limitations under the License.
 #pragma once
 
 #include <stdbool.h>
-#include "../../ringbuffer/devset.h"
-#include "scap_open.h"
-#include "attached_prog.h"
-#include "scap_stats_v2.h"
-#include "scap_bpf_stats.h"
+#include <libscap/ringbuffer/devset.h>
+#include <libscap/scap_open.h>
+#include <libscap/engine/bpf/attached_prog.h>
+#include <libscap/scap_stats_v2.h>
+#include <libscap/engine/bpf/scap_bpf_stats.h>
 
 //
 // ebpf defs

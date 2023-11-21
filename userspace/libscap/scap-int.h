@@ -26,15 +26,15 @@ limitations under the License.
 #define SCAP_HANDLE_T void
 #endif
 
-#include "engine_handle.h"
-#include "scap_vtable.h"
+#include <libscap/engine_handle.h>
+#include <libscap/scap_vtable.h>
 
-#include "settings.h"
-#include "scap_assert.h"
-#include "scap_log.h"
+#include <libscap/settings.h>
+#include <libscap/scap_assert.h>
+#include <libscap/scap_log.h>
 
 #ifdef __linux__
-#include "linux/scap_cgroup.h"
+#include <libscap/linux/scap_cgroup.h>
 #endif // __linux__
 
 #ifdef __cplusplus

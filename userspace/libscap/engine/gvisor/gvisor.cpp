@@ -22,13 +22,13 @@ namespace scap_gvisor {
 
 #define SCAP_HANDLE_T scap_gvisor::engine
 
-#include "gvisor.h"
-#include "gvisor_platform.h"
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_proc_util.h"
-#include "strerror.h"
-#include "strl.h"
+#include <libscap/engine/gvisor/gvisor.h>
+#include <libscap/engine/gvisor/gvisor_platform.h>
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_proc_util.h>
+#include <libscap/strerror.h>
+#include <libscap/strl.h>
 
 #include <cerrno>
 #include <cstdint>

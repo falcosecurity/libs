@@ -21,7 +21,7 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "scap_cgroup_set.h"
+#include <libscap/scap_cgroup_set.h>
 
 #define FOR_EACH_SUBSYS(cgset, subsys) for(                                       \
 	const char *subsys = (cgset)->path, *_end = (cgset)->path + (cgset)->len; \

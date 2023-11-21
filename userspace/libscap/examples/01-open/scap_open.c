@@ -19,12 +19,12 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <scap.h>
-#include <scap-int.h>
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
-#include "strl.h"
-#include "scap_engines.h"
+#include <libscap/strl.h>
+#include <libscap/scap_engines.h>
 
 #define SYSCALL_NAME_MAX_LEN 40
 

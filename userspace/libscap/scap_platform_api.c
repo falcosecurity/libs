@@ -18,11 +18,11 @@ limitations under the License.
 
 #include <stdio.h>
 
-#include "scap_platform_api.h"
-#include "scap_platform_impl.h"
+#include <libscap/scap_platform_api.h>
+#include <libscap/scap_platform_impl.h>
 
-#include "scap.h"
-#include "scap-int.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
 
 scap_addrlist* scap_get_ifaddr_list(struct scap_platform* platform)
 {

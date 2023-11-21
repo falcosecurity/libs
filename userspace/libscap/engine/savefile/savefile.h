@@ -19,10 +19,10 @@ limitations under the License.
 
 #include <stdint.h>
 #include <stddef.h>
-#include "scap_const.h"
-#include "scap_limits.h"
-#include "scap_reader.h"
-#include "scap_savefile.h"
+#include <libscap/scap_const.h>
+#include <libscap/scap_limits.h>
+#include <libscap/engine/savefile/scap_reader.h>
+#include <libscap/scap_savefile.h>
 
 #define READER_BUF_SIZE (1 << 16) // UINT16_MAX + 1, ie: 65536
 

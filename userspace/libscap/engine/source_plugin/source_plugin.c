@@ -22,13 +22,13 @@ limitations under the License.
 #include <stdio.h>
 #include <stddef.h>
 
-#include "source_plugin.h"
-#include "noop.h"
+#include <libscap/engine/source_plugin/source_plugin.h>
+#include <libscap/engine/noop/noop.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "strl.h"
-#include "gettimeofday.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/strl.h>
+#include <libscap/scap_gettimeofday.h>
 
 static const char * const source_plugin_counters_stats_names[] = {
 	[N_EVTS] = "n_evts",

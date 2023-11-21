@@ -18,9 +18,9 @@ limitations under the License.
 
 #pragma once
 
-#include "scap_const.h"
-#include "scap_platform_api.h"
-#include "scap_stats_v2.h"
+#include <libscap/scap_const.h>
+#include <libscap/scap_platform_api.h>
+#include <libscap/scap_stats_v2.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,29 +63,29 @@ struct scap_vtable;
 //
 #include <time.h>
 #include <stdarg.h>
-#include "uthash_ext.h"
-#include "../../driver/ppm_api_version.h"
-#include "../../driver/ppm_events_public.h"
-#include "../../driver/capture_macro.h"
+#include <libscap/uthash_ext.h>
+#include <driver/ppm_api_version.h>
+#include <driver/ppm_events_public.h>
+#include <driver/capture_macro.h>
 #ifdef _WIN32
 #include <time.h>
 #endif
 
-#include "scap_limits.h"
-#include "scap_open.h"
-#include "scap_machine_info.h"
-#include "scap_procs.h"
-#include "scap_cgroup_set.h"
+#include <libscap/scap_limits.h>
+#include <libscap/scap_open.h>
+#include <libscap/scap_machine_info.h>
+#include <libscap/scap_procs.h>
+#include <libscap/scap_cgroup_set.h>
 
 /* Include engine-specific params. */
-#include <engine/bpf/bpf_public.h>
-#include <engine/gvisor/gvisor_public.h>
-#include <engine/kmod/kmod_public.h>
-#include <engine/modern_bpf/modern_bpf_public.h>
-#include <engine/nodriver/nodriver_public.h>
-#include <engine/savefile/savefile_public.h>
-#include <engine/source_plugin/source_plugin_public.h>
-#include <engine/test_input/test_input_public.h>
+#include <libscap/engine/bpf/bpf_public.h>
+#include <libscap/engine/gvisor/gvisor_public.h>
+#include <libscap/engine/kmod/kmod_public.h>
+#include <libscap/engine/modern_bpf/modern_bpf_public.h>
+#include <libscap/engine/nodriver/nodriver_public.h>
+#include <libscap/engine/savefile/savefile_public.h>
+#include <libscap/engine/source_plugin/source_plugin_public.h>
+#include <libscap/engine/test_input/test_input_public.h>
 
 //
 // The minimum API and schema versions the driver has to support before we can use it

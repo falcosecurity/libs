@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "scap_limits.h"
+#include <libscap/scap_limits.h>
 
 #ifdef __cplusplus
 extern "C"

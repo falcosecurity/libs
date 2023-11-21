@@ -29,16 +29,16 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include "unixid.h"
 
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_cgroup.h"
-#include "scap_linux_int.h"
-#include "scap_linux_platform.h"
-#include "strerror.h"
-#include "clock_helpers.h"
-#include "debug_log_helpers.h"
+#include <libscap/linux/unixid.h>
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/linux/scap_cgroup.h>
+#include <libscap/linux/scap_linux_int.h>
+#include <libscap/linux/scap_linux_platform.h>
+#include <libscap/strerror.h>
+#include <libscap/clock_helpers.h>
+#include <libscap/debug_log_helpers.h>
 
 int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinfo* tinfo)
 {

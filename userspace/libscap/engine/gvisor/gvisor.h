@@ -27,10 +27,10 @@ limitations under the License.
 #include <unordered_map>
 #include <stdint.h>
 #include <utility>
-#include "scap.h"
-#include "scap_stats_v2.h"
-#include "scap_gvisor_stats.h"
-#include "gvisor_platform.h"
+#include <libscap/scap.h>
+#include <libscap/scap_stats_v2.h>
+#include <libscap/engine/gvisor/scap_gvisor_stats.h>
+#include <libscap/engine/gvisor/gvisor_platform.h>
 
 namespace scap_gvisor {
 

@@ -21,9 +21,9 @@ limitations under the License.
 #include <stdlib.h>
 #include <string.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "strerror.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/strerror.h>
 
 //
 // Delete a process entry

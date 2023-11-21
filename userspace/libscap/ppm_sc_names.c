@@ -16,10 +16,10 @@ limitations under the License.
 
 */
 
-#include "../../driver/ppm_events_public.h"
-#include "scap.h"
-#include "scap-int.h"
-#include "strl.h"
+#include <driver/ppm_events_public.h>
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/strl.h>
 #include <ctype.h>
 
 /*

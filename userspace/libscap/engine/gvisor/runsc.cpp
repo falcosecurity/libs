@@ -22,7 +22,7 @@ limitations under the License.
 #include <fstream>
 #include <string>
 
-#include "gvisor.h"
+#include <libscap/engine/gvisor/gvisor.h>
 
 namespace scap_gvisor {
 

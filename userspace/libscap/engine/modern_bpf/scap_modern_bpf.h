@@ -20,9 +20,9 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <stdlib.h>
-#include "../../../../driver/ppm_events_public.h"
-#include "scap_open.h"
-#include "../libscap/engine/modern_bpf/modern_bpf_public.h"
+#include <driver/ppm_events_public.h>
+#include <libscap/scap_open.h>
+#include <libscap/engine/modern_bpf/modern_bpf_public.h>
 
 struct scap;
 

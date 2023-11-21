@@ -18,9 +18,9 @@ limitations under the License.
 #pragma once
 
 #include <stdint.h>
-#include "plugin_info.h"
-#include "source_plugin_stats.h"
-#include "scap_stats_v2.h"
+#include <libscap/engine/source_plugin/plugin_info.h>
+#include <libscap/engine/source_plugin/source_plugin_stats.h>
+#include <libscap/scap_stats_v2.h>
 
 struct scap;
 

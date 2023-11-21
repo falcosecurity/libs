@@ -16,14 +16,14 @@ limitations under the License.
 
 */
 
-#include "scap_linux_platform.h"
+#include <libscap/linux/scap_linux_platform.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_machine_info.h"
-#include "scap_linux_int.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_machine_info.h>
+#include <libscap/linux/scap_linux_int.h>
 
-#include "compat/misc.h"
+#include <libscap/compat/misc.h>
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -22,9 +22,9 @@ limitations under the License.
 #include <unistd.h>
 #include <assert.h>
 
-#include <scap.h>
-#include "../../../../driver/ppm_events_public.h"
-#include "scap_engines.h"
+#include <libscap/scap.h>
+#include <driver/ppm_events_public.h>
+#include <libscap/scap_engines.h>
 
 extern const struct ppm_event_info g_event_info[];
 

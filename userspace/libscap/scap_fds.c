@@ -17,9 +17,9 @@ limitations under the License.
 */
 #include <stdlib.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "uthash_ext.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/uthash_ext.h>
 #include <string.h>
 
 void scap_fd_free_table(scap_fdinfo **fds)

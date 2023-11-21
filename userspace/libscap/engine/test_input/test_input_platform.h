@@ -22,7 +22,7 @@ limitations under the License.
 extern "C" {
 #endif
 
-#include "scap_platform_impl.h"
+#include <libscap/scap_platform_impl.h>
 
 struct scap_test_input_data;
 

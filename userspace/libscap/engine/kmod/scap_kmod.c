@@ -24,16 +24,16 @@ limitations under the License.
 #include <sys/mman.h>
 
 #define SCAP_HANDLE_T struct kmod_engine
-#include "kmod.h"
-#include "scap.h"
-#include "driver_config.h"
-#include "../../driver/ppm_ringbuffer.h"
-#include "scap-int.h"
-#include "scap_engine_util.h"
-#include "ringbuffer/ringbuffer.h"
-#include "strl.h"
-#include "strerror.h"
-#include "../../driver/ppm_tp.h"
+#include <libscap/engine/kmod/kmod.h>
+#include <libscap/scap.h>
+#include <driver_config.h>
+#include <driver/ppm_ringbuffer.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_engine_util.h>
+#include <libscap/ringbuffer/ringbuffer.h>
+#include <libscap/strl.h>
+#include <libscap/strerror.h>
+#include <driver/ppm_tp.h>
 
 //#define NDEBUG
 #include <assert.h>

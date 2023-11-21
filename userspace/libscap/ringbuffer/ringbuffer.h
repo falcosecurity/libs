@@ -19,10 +19,10 @@ limitations under the License.
 #include <stdio.h>
 #include <stdint.h>
 
-#include "devset.h"
-#include "../../../driver/ppm_ringbuffer.h"
-#include "barrier.h"
-#include "sleep.h"
+#include <libscap/ringbuffer/devset.h>
+#include <driver/ppm_ringbuffer.h>
+#include <libscap/scap_barrier.h>
+#include <libscap/scap_sleep.h>
 
 /* Check buffer dimension in bytes. 
  * Our 2 eBPF probes require that this number is a power of 2! Right now we force this

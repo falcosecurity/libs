@@ -18,7 +18,7 @@ limitations under the License.
 #ifndef __DEBUG_LOG_HELPERS_H
 #define __DEBUG_LOG_HELPERS_H
 
-#include "scap_log.h"
+#include <libscap/scap_log.h>
 
 #include <stdio.h>
 

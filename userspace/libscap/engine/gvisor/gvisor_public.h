@@ -14,7 +14,7 @@ limitations under the License.
 
 #pragma once
 
-#include "scap_procs.h"
+#include <libscap/scap_procs.h>
 
 #define GVISOR_ENGINE "gvisor"
 

@@ -18,8 +18,8 @@ limitations under the License.
 #ifndef _SCAP_BPF_H
 #define _SCAP_BPF_H
 
-#include "bpf.h"
-#include "../compat/perf_event.h"
+#include <libscap/compat/bpf.h>
+#include <libscap/compat/perf_event.h>
 
 struct perf_event_sample {
 	struct perf_event_header header;

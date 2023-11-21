@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "settings.h"
+#include <libscap/settings.h>
 
 #if defined(USE_ZLIB)
 #ifdef _WIN32

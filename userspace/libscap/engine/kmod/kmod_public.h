@@ -22,7 +22,7 @@ limitations under the License.
 extern "C"
 {
 #endif
-	#include "linux/scap_linux_platform.h"
+	#include <libscap/linux/scap_linux_platform.h>
 
 	struct scap_kmod_engine_params
 	{

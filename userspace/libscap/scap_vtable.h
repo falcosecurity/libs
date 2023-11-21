@@ -20,8 +20,8 @@ limitations under the License.
 
 #include <stdint.h>
 
-#include "engine_handle.h"
-#include "scap_open.h"
+#include <libscap/engine_handle.h>
+#include <libscap/scap_open.h>
 
 #ifdef __cplusplus
 extern "C" {

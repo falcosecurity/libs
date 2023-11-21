@@ -34,12 +34,12 @@ limitations under the License.
 
 #include <json/json.h>
 
-#include "gvisor.h"
-#include "compat/misc.h"
-#include "../../driver/ppm_events_public.h"
-#include "strl.h"
+#include <libscap/engine/gvisor/gvisor.h>
+#include <libscap/compat/misc.h>
+#include <driver/ppm_events_public.h>
+#include <libscap/strl.h>
 
-#include "userspace_flag_helpers.h"
+#include <libscap/userspace_flag_helpers.h>
 
 #include "pkg/sentry/seccheck/points/syscall.pb.h"
 #include "pkg/sentry/seccheck/points/sentry.pb.h"

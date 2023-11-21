@@ -21,8 +21,8 @@ limitations under the License.
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <scap.h>
-#include "../../../driver/ppm_ringbuffer.h"
+#include <libscap/scap.h>
+#include <driver/ppm_ringbuffer.h>
 
 int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim)
 {

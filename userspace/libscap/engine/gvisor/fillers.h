@@ -19,7 +19,7 @@ limitations under the License.
 #include <vector>
 #include <functional>
 
-#include "gvisor.h"
+#include <libscap/engine/gvisor/gvisor.h>
 #include "pkg/sentry/seccheck/points/syscall.pb.h"
 
 namespace scap_gvisor {

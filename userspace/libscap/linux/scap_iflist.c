@@ -18,10 +18,10 @@ limitations under the License.
 
 #include <stdio.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_linux_platform.h"
-#include "strl.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/linux/scap_linux_platform.h>
+#include <libscap/strl.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>

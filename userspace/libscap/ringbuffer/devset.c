@@ -15,15 +15,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "devset.h"
+#include <libscap/ringbuffer/devset.h>
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#include "strl.h"
-#include "../scap.h"
-#include "scap_assert.h"
+#include <libscap/strl.h>
+#include <libscap/scap.h>
+#include <libscap/scap_assert.h>
 
 int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr)
 {

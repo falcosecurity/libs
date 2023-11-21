@@ -54,5 +54,5 @@ limitations under the License.
 #define u64 uint64_t
 
 #if defined(__linux__)
-#include "../../driver/ppm_flag_helpers.h"
+#include <driver/ppm_flag_helpers.h>
 #endif

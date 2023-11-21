@@ -21,13 +21,13 @@ limitations under the License.
 
 #define SCAP_HANDLE_T struct nodriver_engine
 
-#include "nodriver.h"
-#include "noop.h"
+#include <libscap/engine/nodriver/nodriver.h>
+#include <libscap/engine/noop/noop.h>
 
-#include "scap.h"
-#include "strl.h"
-#include "gettimeofday.h"
-#include "sleep.h"
+#include <libscap/scap.h>
+#include <libscap/strl.h>
+#include <libscap/scap_gettimeofday.h>
+#include <libscap/scap_sleep.h>
 
 static struct nodriver_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
