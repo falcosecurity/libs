@@ -16,9 +16,9 @@ limitations under the License.
 
 */
 
-#include <sinsp.h>
-#include "filterchecks.h"
-#include "chisel_viewinfo.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/filterchecks.h>
+#include <chisel/chisel_viewinfo.h>
 
 #define CHISEL_TABLE_DEFAULT_REFRESH_INTERVAL_NS 1000000000
 #define CHISEL_TABLE_BUFFER_ENTRY_SIZE 16384

@@ -18,8 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#include <sinsp.h>
-#include "chisel_viewinfo.h"
+#include <libsinsp/sinsp.h>
+#include <chisel/chisel_viewinfo.h>
 
 class sinsp_filter_check;
 

@@ -41,15 +41,15 @@ limitations under the License.
 #include <functional>
 #include <errno.h>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "sinsp_errno.h"
-#include "sinsp_signal.h"
-#include "filter.h"
-#include "filterchecks.h"
-#include "utils.h"
-#include "chisel.h"
-#include "chisel_utils.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/sinsp_errno.h>
+#include <libsinsp/sinsp_signal.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
+#include <libsinsp/utils.h>
+#include <chisel/chisel.h>
+#include <chisel/chisel_utils.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
