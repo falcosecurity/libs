@@ -73,7 +73,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	}
 
 	uint32_t j = 0;
-	char* payload = parinfo->m_val;
+	const char* payload = parinfo->m_val;
 	uint16_t nfds = *(uint16_t *)payload;
 	uint32_t pos = 2;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();

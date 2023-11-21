@@ -98,16 +98,10 @@ public:
 class SINSP_PUBLIC sinsp_evt_param
 {
 public:
-	char* m_val;	///< Pointer to the event parameter data.
+	const char* m_val;	///< Pointer to the event parameter data.
 	uint32_t m_len; ///< Length of the parameter pointed by m_val.
-private:
-	inline void init(char* valptr, uint32_t len)
-	{
-		m_val = valptr;
-		m_len = len;
-	}
 
-	friend class sinsp_evt;
+	sinsp_evt_param(const char *val, uint32_t len): m_val(val), m_len(len) {}
 };
 
 /*!
@@ -546,7 +540,6 @@ private:
 	inline void load_params()
 	{
 		uint32_t j;
-		sinsp_evt_param par;
 		struct scap_sized_buffer params[PPM_MAX_EVENT_PARAMS];
 
 		m_params.clear();
@@ -617,8 +610,7 @@ private:
 				params[j].size = 5;
 			}
 
-			par.init((char*)params[j].buf, (int)params[j].size);
-			m_params.push_back(par);
+			m_params.emplace_back(static_cast<const char*>(params[j].buf), params[j].size);
 		}
 	}
 	std::string get_param_value_str(uint32_t id, bool resolved);
