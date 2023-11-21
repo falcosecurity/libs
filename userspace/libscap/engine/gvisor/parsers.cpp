@@ -1472,7 +1472,7 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 			                 gvisor_evt.exit().result(),
 			                 gvisor_evt.old_fd(),
 			                 gvisor_evt.new_fd(),
-			                 dup3_flags_to_scap(gvisor_evt.flags()));
+			                 dup3_flags_to_scap((int) gvisor_evt.flags()));
 			break;
 
 		default:
