@@ -1,6 +1,6 @@
-#include "scap.h"
+#include <libscap/scap.h>
 #include <gtest/gtest.h>
-#include <event_stats.h>
+#include <driver/event_stats.h>
 
 TEST(event_table, scap_get_syscall_category_from_event)
 {

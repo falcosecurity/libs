@@ -16,14 +16,14 @@ limitations under the License.
 
 */
 
-#include <scap.h>
+#include <libscap/scap.h>
 #include <gtest/gtest.h>
 #include <google/protobuf/any.pb.h>
 
 #include <pkg/sentry/seccheck/points/syscall.pb.h>
 #include <pkg/sentry/seccheck/points/sentry.pb.h>
 #include <pkg/sentry/seccheck/points/container.pb.h>
-#include <engine/gvisor/gvisor.h>
+#include <libscap/engine/gvisor/gvisor.h>
 
 #ifdef __x86_64__
 #include "../../driver/syscall_compat_x86_64.h"

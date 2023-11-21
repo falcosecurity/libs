@@ -1,12 +1,12 @@
 #include <iostream>
 #include <string>
-#include <scap.h>
-#include <scap_engines.h>
-#include <scap_vtable.h>
+#include <libscap/scap.h>
+#include <libscap/scap_engines.h>
+#include <libscap/scap_vtable.h>
 #include <getopt.h>
 #include <gtest/gtest.h>
 #include "./event_class/event_class.h"
-#include "strl.h"
+#include <libscap/strl.h>
 
 /* We support only these arguments */
 #define HELP_OPTION "help"

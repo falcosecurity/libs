@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <scap.h>
+#include <libscap/scap.h>
 #include <gtest/gtest.h>
 
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];

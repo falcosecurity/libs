@@ -12,15 +12,15 @@
 #include "network_utils.h"
 #include <arpa/inet.h>
 #include <sys/un.h>
-#include <scap.h>
+#include <libscap/scap.h>
 
 #define CURRENT_PID -1
 #define CURRENT_EVENT_TYPE -1
 
 extern "C"
 {
-#include <ppm_events_public.h>
-#include <feature_gates.h>
+#include <driver/ppm_events_public.h>
+#include <driver/feature_gates.h>
 }
 
 struct param

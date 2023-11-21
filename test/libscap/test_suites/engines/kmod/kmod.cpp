@@ -1,5 +1,5 @@
-#include <scap.h>
-#include <scap_engines.h>
+#include <libscap/scap.h>
+#include <libscap/scap_engines.h>
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <helpers/engines.h>

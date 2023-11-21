@@ -1,4 +1,4 @@
-#include "strl.h"
+#include <libscap/strl.h>
 #include "event_class.h"
 #include <time.h>
 
