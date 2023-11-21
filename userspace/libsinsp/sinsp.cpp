@@ -89,8 +89,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_h = NULL;
 	m_parser = NULL;
 	m_is_dumping = false;
-	m_metaevt = NULL;
-	m_meinfo.m_piscapevt = NULL;
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
@@ -134,27 +132,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
 	m_proc_scan_log_interval_ms = SCAP_PROC_SCAN_LOG_NONE;
 
-	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
-	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
-	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
-	m_meinfo.m_piscapevt->len = evlen;
-	m_meinfo.m_piscapevt->nparams = 2;
-	uint16_t* lens = (uint16_t*)((char *)m_meinfo.m_piscapevt + sizeof(struct ppm_evt_hdr));
-	lens[0] = 8;
-	lens[1] = 8;
-	m_meinfo.m_piscapevt_vals = (uint64_t*)(lens + 2);
-
-	m_meinfo.m_pievt.m_inspector = this;
-	m_meinfo.m_pievt.m_info = &(g_infotables.m_event_info[PPME_SCAPEVENT_X]);
-	m_meinfo.m_pievt.m_pevt = NULL;
-	m_meinfo.m_pievt.m_cpuid = 0;
-	m_meinfo.m_pievt.m_evtnum = 0;
-	m_meinfo.m_pievt.m_pevt = m_meinfo.m_piscapevt;
-	m_meinfo.m_pievt.m_fdinfo = NULL;
-	m_meinfo.m_n_procinfo_evts = 0;
-	m_meta_event_callback = NULL;
-	m_meta_event_callback_data = NULL;
-
 	m_replay_scap_evt = NULL;
 
 	// the "syscall" event source is implemented by sinsp itself
@@ -193,11 +170,6 @@ sinsp::~sinsp()
 	{
 		delete m_cycle_writer;
 		m_cycle_writer = NULL;
-	}
-
-	if(m_meinfo.m_piscapevt)
-	{
-		delete[] m_meinfo.m_piscapevt;
 	}
 
 	m_container_manager.cleanup();
@@ -1101,55 +1073,6 @@ void sinsp::refresh_ifaddr_list()
 
 bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
 
-void sinsp::add_meta_event(sinsp_evt *metaevt)
-{
-	m_metaevt = metaevt;
-}
-
-void sinsp::add_meta_event_callback(meta_event_callback cback, void* data)
-{
-	m_meta_event_callback = cback;
-	m_meta_event_callback_data = data;
-}
-
-void sinsp::remove_meta_event_callback()
-{
-	m_meta_event_callback = NULL;
-}
-
-void schedule_next_threadinfo_evt(sinsp* _this, void* data)
-{
-	sinsp_proc_metainfo* mei = (sinsp_proc_metainfo*)data;
-	ASSERT(mei->m_pli != NULL);
-
-	while(true)
-	{
-		ASSERT(mei->m_cur_procinfo_evt <= (int32_t)mei->m_n_procinfo_evts);
-		ppm_proc_info* pi = &(mei->m_pli->entries[mei->m_cur_procinfo_evt]);
-
-		if(mei->m_cur_procinfo_evt >= 0)
-		{
-			mei->m_piscapevt->tid = pi->pid;
-			mei->m_piscapevt_vals[0] = pi->utime;
-			mei->m_piscapevt_vals[1] = pi->stime;
-		}
-
-		mei->m_cur_procinfo_evt++;
-
-		if(mei->m_cur_procinfo_evt < (int32_t)mei->m_n_procinfo_evts)
-		{
-			if(pi->utime == 0 && pi->stime == 0)
-			{
-				continue;
-			}
-
-			_this->add_meta_event(&mei->m_pievt);
-		}
-
-		break;
-	}
-}
-
 //
 // This restarts the current event capture. This de-initializes and
 // re-initializes the internal state of both sinsp and scap, and is
@@ -1218,20 +1141,38 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 	m_last_procrequest_tod = procrequest_tod;
 
 	char error[SCAP_LASTERR_SIZE];
-	m_meinfo.m_pli = scap_get_threadlist(get_scap_platform(), error);
-	if(m_meinfo.m_pli == NULL)
+	auto* threadlist = scap_get_threadlist(get_scap_platform(), error);
+	if(threadlist == NULL)
 	{
 		throw sinsp_exception(std::string("scap error: ") + error);
 	}
 
-	m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
-	if(m_meinfo.m_n_procinfo_evts > 0)
+	for (int64_t i = 0; i < threadlist->n_entries; i++)
 	{
-		m_meinfo.m_cur_procinfo_evt = -1;
+		ppm_proc_info* pi = &(threadlist->entries[i]);
 
-		m_meinfo.m_piscapevt->ts = ts;
-		add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
-		schedule_next_threadinfo_evt(this, &m_meinfo);
+		if(pi->utime == 0 && pi->stime == 0)
+		{
+			continue;
+		}
+
+		// create scap event
+		uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
+		auto piscapevt_buf = std::unique_ptr<uint8_t, std::default_delete<uint8_t[]>>(new uint8_t[evlen]);
+		uint16_t* evt_lens = (uint16_t*) (piscapevt_buf.get() + sizeof(struct ppm_evt_hdr));
+		auto piscapevt = (scap_evt*) piscapevt_buf.get();
+		piscapevt->len = evlen;
+		piscapevt->type = PPME_PROCINFO_E;
+		piscapevt->nparams = 2;
+		piscapevt->tid = pi->pid;
+		piscapevt->ts = ts;
+		evt_lens[0] = 8; // cpu_usr (len)
+		evt_lens[1] = 8; // cpu_sys (len)
+		((uint64_t*)(evt_lens + 2))[0] = pi->utime; // cpu_usr (val)
+		((uint64_t*)(evt_lens + 2))[1] = pi->stime; // cpu_sys (val)
+
+		// push event into async event queue
+		handle_async_event(sinsp_evt::from_scap_evt(std::move(piscapevt_buf)));
 	}
 }
 
@@ -1305,84 +1246,63 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 
 int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
-	sinsp_evt* evt;
-	int32_t res;
-
 	*puevt = NULL;
-	
-	//
-	// Check if there are fake cpu events to  events
-	//
-	if(m_metaevt != NULL)
-	{
-		res = SCAP_SUCCESS;
-		evt = m_metaevt;
-		m_metaevt = NULL;
+	sinsp_evt* evt = &m_evt;
 
-		if(m_meta_event_callback != NULL)
-		{
-			m_meta_event_callback(this, m_meta_event_callback_data);
-		}
+	// fetch the next event 
+	int32_t res = fetch_next_event(evt);
+
+	// if we fetched an event successfully, check if we need to suppress
+	// it from userspace and update the result status
+	if (res == SCAP_SUCCESS)
+	{
+		res = m_suppress.process_event(evt->m_pevt, evt->m_cpuid);
 	}
-	else
+
+	// in case we don't succeed, handle each scenario and return
+	if(res != SCAP_SUCCESS)
 	{
-		evt = &m_evt;
-
-		// fetch the next event 
-		res = fetch_next_event(evt);
-
-		// if we fetched an event successfully, check if we need to suppress
-		// it from userspace and update the result status
-		if (res == SCAP_SUCCESS)
+		if(res == SCAP_TIMEOUT)
 		{
-			res = m_suppress.process_event(evt->m_pevt, evt->m_cpuid);
+			if (m_external_event_processor)
+			{
+				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
+			}
+		}
+		else if(res == SCAP_EOF)
+		{
+			if (m_external_event_processor)
+			{
+				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
+			}
+		}
+		else if(res == SCAP_UNEXPECTED_BLOCK)
+		{
+			// This mostly happens in concatenated scap files, where an unexpected block
+			// represents the end of a file and the start of the next appended one.
+			// In this case, we restart the capture so that the internal states gets reset
+			// and the blocks coming from the next appended file get consumed.
+			restart_capture();
+			res = SCAP_TIMEOUT;
+		}
+		else if(res == SCAP_FILTERED_EVENT)
+		{
+			// This will happen if SCAP has filtered the event in userspace (tid suppression).
+			// A valid event was read from the driver, but we are choosing to not report it to
+			// the client at the client's request.
+			// However, we still need to return here so that the client doesn't time out the
+			// request.
+			if(m_external_event_processor)
+			{
+				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_FILTERED);
+			}
+		}
+		else
+		{
+			m_lasterr = scap_getlasterr(m_h);
 		}
 
-		// in case we don't succeed, handle each scenario and return
-		if(res != SCAP_SUCCESS)
-		{
-			if(res == SCAP_TIMEOUT)
-			{
-				if (m_external_event_processor)
-				{
-					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
-				}
-			}
-			else if(res == SCAP_EOF)
-			{
-				if (m_external_event_processor)
-				{
-					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
-				}
-			}
-			else if(res == SCAP_UNEXPECTED_BLOCK)
-			{
-				// This mostly happens in concatenated scap files, where an unexpected block
-				// represents the end of a file and the start of the next appended one.
-				// In this case, we restart the capture so that the internal states gets reset
-				// and the blocks coming from the next appended file get consumed.
-				restart_capture();
-				res = SCAP_TIMEOUT;
-			}
-			else if(res == SCAP_FILTERED_EVENT)
-			{
-				// This will happen if SCAP has filtered the event in userspace (tid suppression).
-				// A valid event was read from the driver, but we are choosing to not report it to
-				// the client at the client's request.
-				// However, we still need to return here so that the client doesn't time out the
-				// request.
-				if(m_external_event_processor)
-				{
-					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_FILTERED);
-				}
-			}
-			else
-			{
-				m_lasterr = scap_getlasterr(m_h);
-			}
-
-			return res;
-		}
+		return res;
 	}
 
 	/* Here we shouldn't receive unknown events */
