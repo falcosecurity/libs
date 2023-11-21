@@ -23,12 +23,12 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <atomic>
-#include <engine/source_plugin/source_plugin_public.h>
-#include "event.h"
-#include "version.h"
-#include "events/sinsp_events.h"
-#include "state/table_registry.h"
-#include "../plugin/plugin_loader.h"
+#include <libscap/engine/source_plugin/source_plugin_public.h>
+#include <libsinsp/event.h>
+#include <libsinsp/version.h>
+#include <libsinsp/events/sinsp_events.h>
+#include <libsinsp/state/table_registry.h>
+#include <plugin/plugin_loader.h>
 
 // todo(jasondellaluce: remove this forward declaration)
 class sinsp_filter_check;

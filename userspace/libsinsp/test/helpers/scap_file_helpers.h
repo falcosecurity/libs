@@ -18,8 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#include <sinsp.h>
-#include <event.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/event.h>
 
 namespace scap_file_test_helpers
 {

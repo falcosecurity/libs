@@ -16,10 +16,10 @@ limitations under the License.
 
 */
 
-#include "sinsp_filtercheck_fd.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "dns_manager.h"
+#include <libsinsp/sinsp_filtercheck_fd.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/dns_manager.h>
 
 using namespace std;
 

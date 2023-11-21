@@ -14,8 +14,8 @@ limitations under the License.
 
 #pragma once
 
-#include "../sinsp_exception.h"
-#include "table.h"
+#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/state/table.h>
 
 #include <unordered_map>
 

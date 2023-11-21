@@ -15,12 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "sinsp_suppress.h"
+#include <libsinsp/sinsp_suppress.h>
 
-#include "sinsp_exception.h"
-#include "../../driver/ppm_events_public.h"
-#include "scap_const.h"
-#include "scap_assert.h"
+#include <libsinsp/sinsp_exception.h>
+#include <driver/ppm_events_public.h>
+#include <libscap/scap_const.h>
+#include <libscap/scap_assert.h>
 
 void libsinsp::sinsp_suppress::suppress_comm(const std::string &comm)
 {

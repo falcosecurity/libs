@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "container_info.h"
+#include <libsinsp/container_info.h>
 #include <gtest/gtest.h>
 #include <tuple>
 #include <vector>

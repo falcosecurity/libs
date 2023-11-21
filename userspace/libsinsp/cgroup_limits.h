@@ -2,7 +2,7 @@
 
 #include <string>
 #include <utility>
-#include "async/async_key_value_source.h"
+#include <libsinsp/async/async_key_value_source.h>
 
 namespace {
 bool less_than(const std::string& lhs, const std::string& rhs, bool if_equal=false)

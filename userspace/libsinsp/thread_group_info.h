@@ -19,7 +19,7 @@ limitations under the License.
 #include <memory>
 #include <stdint.h>
 #include <list>
-#include "sinsp_exception.h"
+#include <libsinsp/sinsp_exception.h>
 
 /* Forward declaration */
 class sinsp_threadinfo;

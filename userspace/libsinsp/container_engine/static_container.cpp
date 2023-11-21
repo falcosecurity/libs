@@ -16,9 +16,9 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
+#include <libsinsp/sinsp.h>
 
-#include "container_engine/static_container.h"
+#include <libsinsp/container_engine/static_container.h>
 #include <iostream>
 
 using namespace libsinsp::container_engine;

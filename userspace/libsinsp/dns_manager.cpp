@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "dns_manager.h"
+#include <libsinsp/dns_manager.h>
 
 void sinsp_dns_resolver::refresh(uint64_t erase_timeout, uint64_t base_refresh_timeout, uint64_t max_refresh_timeout, std::future<void> f_exit)
 {

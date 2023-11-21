@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "tuples.h"
+#include <libsinsp/tuples.h>
 
 #include <unordered_map>
 #include <vector>

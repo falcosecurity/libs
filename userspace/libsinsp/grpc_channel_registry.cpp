@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "grpc_channel_registry.h"
+#include <libsinsp/grpc_channel_registry.h>
 
 
 std::map<std::string, std::weak_ptr<grpc::Channel>> libsinsp::grpc_channel_registry::s_channels;

@@ -21,9 +21,9 @@ limitations under the License.
 #include <algorithm>
 #include <sstream>
 #include "stdint.h"
-#include "gen_filter.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/gen_filter.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // gen_event_filter_expression implementation

@@ -16,10 +16,10 @@ limitations under the License.
 
 */
 
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 #include <gtest/gtest.h>
 
-#include "sinsp_with_test_input.h"
+#include <sinsp_with_test_input.h>
 #include "filter_compiler.h"
 
 

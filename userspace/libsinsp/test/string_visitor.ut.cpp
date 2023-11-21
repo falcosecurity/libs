@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <filter/parser.h>
+#include <libsinsp/filter/parser.h>
 #include <gtest/gtest.h>
 
 #include <memory>

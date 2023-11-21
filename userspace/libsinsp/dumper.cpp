@@ -16,10 +16,10 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "scap.h"
-#include "dumper.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/scap.h>
+#include <libsinsp/dumper.h>
 
 sinsp_dumper::sinsp_dumper()
 {

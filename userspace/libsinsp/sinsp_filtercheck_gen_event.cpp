@@ -16,11 +16,11 @@ limitations under the License.
 
 */
 
-#include "sinsp_filtercheck_gen_event.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "plugin.h"
-#include "plugin_manager.h"
+#include <libsinsp/sinsp_filtercheck_gen_event.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/plugin_manager.h>
 
 using namespace std;
 

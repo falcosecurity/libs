@@ -16,12 +16,12 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "utils.h"
-#include "strl.h"
-#include "sinsp_filtercheck.h"
-#include "value_parser.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/utils.h>
+#include <libscap/strl.h>
+#include <libsinsp/sinsp_filtercheck.h>
+#include <libsinsp/value_parser.h>
 
 #ifndef _GNU_SOURCE
 //

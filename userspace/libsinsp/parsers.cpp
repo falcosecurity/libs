@@ -30,24 +30,24 @@ limitations under the License.
 #include <fcntl.h>
 #include <limits>
 
-#include "container_engine/mesos.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "parsers.h"
-#include "sinsp_errno.h"
-#include "filter.h"
-#include "filterchecks.h"
-#include "strl.h"
-#include "plugin_manager.h"
-#include "sinsp_observer.h"
+#include <libsinsp/container_engine/mesos.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/parsers.h>
+#include <libsinsp/sinsp_errno.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
+#include <libscap/strl.h>
+#include <libsinsp/plugin_manager.h>
+#include <libsinsp/sinsp_observer.h>
 
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
 #endif
-#include "sinsp_int.h"
+#include <libsinsp/sinsp_int.h>
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#include "container_engine/docker/async_source.h"
+#include <libsinsp/container_engine/docker/async_source.h>
 #endif
 
 sinsp_parser::sinsp_parser(sinsp *inspector) :

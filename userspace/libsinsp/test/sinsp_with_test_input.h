@@ -21,10 +21,10 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include <stdexcept>
 
-#include "scap.h"
-#include "sinsp.h"
-#include "filterchecks.h"
-#include "strl.h"
+#include <libscap/scap.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/filterchecks.h>
+#include <libscap/strl.h>
 #include "test_utils.h"
 #include <libsinsp_test_var.h>
 

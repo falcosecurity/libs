@@ -36,8 +36,8 @@ limitations under the License.
 #endif //_WIN32
 #include <stdint.h>
 
-#include "ppm_events_public.h"
-#include "userspace_flag_helpers.h"
+#include <driver/ppm_events_public.h>
+#include <libscap/userspace_flag_helpers.h>
 
 namespace test_utils {
 

@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "container_engine/bpm.h"
-#include "sinsp.h"
+#include <libsinsp/container_engine/bpm.h>
+#include <libsinsp/sinsp.h>
 
 using namespace libsinsp::container_engine;
 

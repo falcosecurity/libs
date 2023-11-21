@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "ast.h"
+#include <libsinsp/filter/ast.h>
 #include <cstdint>
 
 namespace re2 { class RE2; };

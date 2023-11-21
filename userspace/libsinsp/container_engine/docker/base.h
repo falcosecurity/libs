@@ -1,7 +1,7 @@
 #pragma once
 
-#include "container_engine/container_engine_base.h"
-#include "container_engine/docker/async_source.h"
+#include <libsinsp/container_engine/container_engine_base.h>
+#include <libsinsp/container_engine/docker/async_source.h>
 
 class sinsp_threadinfo;
 

@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include "container_engine/docker/lookup_request.h"
+#include <libsinsp/container_engine/docker/lookup_request.h>
 
 namespace libsinsp {
 namespace container_engine {

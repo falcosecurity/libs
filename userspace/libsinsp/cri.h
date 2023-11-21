@@ -23,14 +23,14 @@ limitations under the License.
 #include <string>
 
 #ifndef MINIMAL_BUILD
-#include "cri-v1alpha2.pb.h"
-#include "cri-v1alpha2.grpc.pb.h"
-#include "cri-v1.pb.h"
-#include "cri-v1.grpc.pb.h"
+#include <libsinsp/cri-v1alpha2.pb.h>
+#include <libsinsp/cri-v1alpha2.grpc.pb.h>
+#include <libsinsp/cri-v1.pb.h>
+#include <libsinsp/cri-v1.grpc.pb.h>
 #endif // MINIMAL_BUILD
 
-#include "container_info.h"
-#include "cgroup_limits.h"
+#include <libsinsp/container_info.h>
+#include <libsinsp/cgroup_limits.h>
 
 #ifdef GRPC_INCLUDE_IS_GRPCPP
 #	include <grpcpp/grpcpp.h>

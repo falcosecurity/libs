@@ -15,12 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "async_source.h"
-#include "cgroup_list_counter.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "container.h"
-#include "utils.h"
+#include <libsinsp/container_engine/docker/async_source.h>
+#include <libsinsp/cgroup_list_counter.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/container.h>
+#include <libsinsp/utils.h>
 #include <unordered_set>
 
 using namespace libsinsp::container_engine;

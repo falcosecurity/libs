@@ -17,8 +17,8 @@ limitations under the License.
 
 */
 
-#include <test/helpers/threads_helpers.h>
-#include <test/helpers/scap_file_helpers.h>
+#include <helpers/threads_helpers.h>
+#include <helpers/scap_file_helpers.h>
 
 TEST(scap_file_kexec_arm64, tail_lineage)
 {

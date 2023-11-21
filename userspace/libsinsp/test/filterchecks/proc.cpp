@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <test/helpers/threads_helpers.h>
+#include <helpers/threads_helpers.h>
 
 TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads)
 {

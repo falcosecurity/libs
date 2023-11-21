@@ -18,8 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#include "async/async_key_value_source.h"
-#include "container_info.h"
+#include <libsinsp/async/async_key_value_source.h>
+#include <libsinsp/container_info.h>
 #include <chrono>
 
 namespace libsinsp
@@ -72,4 +72,4 @@ private:
 } // namespace container_engine
 } // namespace libsinsp
 
-#include "container_async_source.tpp"
+#include <libsinsp/container_engine/container_async_source.tpp>

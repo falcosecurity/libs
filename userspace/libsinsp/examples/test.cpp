@@ -22,12 +22,12 @@ limitations under the License.
 #include <getopt.h>
 #endif // _WIN32
 #include <csignal>
-#include <sinsp.h>
-#include <scap_engines.h>
+#include <libsinsp/sinsp.h>
+#include <libscap/scap_engines.h>
 #include <functional>
 #include <memory>
 #include "util.h"
-#include "filter/ppm_codes.h"
+#include <libsinsp/filter/ppm_codes.h>
 #include <unordered_set>
 #include <memory>
 

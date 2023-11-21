@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "escaping.h"
-#include "sinsp_exception.h"
+#include <libsinsp/filter/escaping.h>
+#include <libsinsp/sinsp_exception.h>
 
 namespace libsinsp {
 namespace filter {

@@ -17,9 +17,9 @@ limitations under the License.
 */
 #pragma once
 
-#include "sinsp_public.h"
+#include <libsinsp/sinsp_public.h>
 #include <stdint.h>
-#include "logger.h"
+#include <libsinsp/logger.h>
 
 struct scap_stats;
 

@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <async/async_key_value_source.h>
+#include <libsinsp/async/async_key_value_source.h>
 #include <gtest/gtest.h>
 #include <chrono>
 #include <cassert>

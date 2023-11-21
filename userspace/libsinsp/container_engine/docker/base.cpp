@@ -1,6 +1,6 @@
-#include "base.h"
+#include <libsinsp/container_engine/docker/base.h>
 
-#include "sinsp.h"
+#include <libsinsp/sinsp.h>
 
 using namespace libsinsp::container_engine;
 

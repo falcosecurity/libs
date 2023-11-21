@@ -20,25 +20,25 @@ limitations under the License.
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #ifdef HAS_CAPTURE
-#include "container_engine/cri.h"
+#include <libsinsp/container_engine/cri.h>
 #endif // HAS_CAPTURE
 #ifndef _WIN32
-#include "container_engine/docker/docker_linux.h"
-#include "container_engine/docker/podman.h"
+#include <libsinsp/container_engine/docker/docker_linux.h>
+#include <libsinsp/container_engine/docker/podman.h>
 #endif
-#include "container_engine/rkt.h"
-#include "container_engine/libvirt_lxc.h"
-#include "container_engine/lxc.h"
-#include "container_engine/mesos.h"
-#include "container_engine/bpm.h"
+#include <libsinsp/container_engine/rkt.h>
+#include <libsinsp/container_engine/libvirt_lxc.h>
+#include <libsinsp/container_engine/lxc.h>
+#include <libsinsp/container_engine/mesos.h>
+#include <libsinsp/container_engine/bpm.h>
 #endif // MINIMAL_BUILD
-#include "container_engine/static_container.h"
+#include <libsinsp/container_engine/static_container.h>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "container.h"
-#include "utils.h"
-#include "sinsp_observer.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/container.h>
+#include <libsinsp/utils.h>
+#include <libsinsp/sinsp_observer.h>
 
 using namespace libsinsp;
 

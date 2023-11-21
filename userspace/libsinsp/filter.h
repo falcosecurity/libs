@@ -18,9 +18,9 @@ limitations under the License.
 
 #pragma once
 
-#include "filter_check_list.h"
-#include "gen_filter.h"
-#include "filter/parser.h"
+#include <libsinsp/filter_check_list.h>
+#include <libsinsp/gen_filter.h>
+#include <libsinsp/filter/parser.h>
 
 #include <set>
 #include <string>

@@ -22,7 +22,7 @@ limitations under the License.
 #include <string>
 #include <algorithm>
 #include <memory>
-#include "../sinsp_public.h"
+#include <libsinsp/sinsp_public.h>
 
 namespace libsinsp {
 namespace filter {

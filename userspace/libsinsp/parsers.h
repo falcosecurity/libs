@@ -20,8 +20,8 @@ limitations under the License.
 // Public definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include "sinsp.h"
-#include "sinsp_syslog.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_syslog.h>
 
 class sinsp_parser
 {

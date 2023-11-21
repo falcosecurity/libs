@@ -1,5 +1,5 @@
 
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 #include <iostream>
 #include <csignal>
 

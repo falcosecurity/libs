@@ -25,8 +25,8 @@ limitations under the License.
 #include <list>
 #include <unordered_map>
 
-#include "filter_value.h"
-#include "utils.h"
+#include <libsinsp/filter_value.h>
+#include <libsinsp/utils.h>
 
 namespace path_prefix_map_ut
 {

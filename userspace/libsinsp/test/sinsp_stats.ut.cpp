@@ -19,7 +19,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "sinsp_with_test_input.h"
-#include <test/helpers/threads_helpers.h>
+#include <libsinsp/test/helpers/threads_helpers.h>
 
 TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
 {

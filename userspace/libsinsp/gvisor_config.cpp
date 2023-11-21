@@ -20,7 +20,7 @@ limitations under the License.
 #include <vector>
 #include <json/json.h>
 
-#include "gvisor_config.h"
+#include <libsinsp/gvisor_config.h>
 
 namespace gvisor_config
 {

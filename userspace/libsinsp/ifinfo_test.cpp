@@ -17,9 +17,9 @@ limitations under the License.
 */
 
 #define VISIBILITY_PRIVATE
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "ifinfo.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/ifinfo.h>
 
 #include <gtest/gtest.h>
 

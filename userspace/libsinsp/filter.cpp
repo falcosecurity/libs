@@ -28,12 +28,12 @@ limitations under the License.
 
 #include <algorithm>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "utils.h"
-#include "filter.h"
-#include "filter/parser.h"
-#include "sinsp_filtercheck.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/utils.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filter/parser.h>
+#include <libsinsp/sinsp_filtercheck.h>
 
 sinsp_filter::sinsp_filter(sinsp *inspector)
 {

@@ -16,9 +16,9 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "sinsp_filtercheck_container.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/sinsp_filtercheck_container.h>
 
 using namespace std;
 

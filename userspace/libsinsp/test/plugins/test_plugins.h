@@ -17,7 +17,7 @@ limitations under the License.
 */
 #pragma once
 
-#include <engine/source_plugin/source_plugin_public.h>
+#include <libscap/engine/source_plugin/source_plugin_public.h>
 
 void get_plugin_api_sample_syscall_source(plugin_api& out);
 void get_plugin_api_sample_syscall_extract(plugin_api& out);

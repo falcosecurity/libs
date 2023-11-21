@@ -18,12 +18,12 @@ limitations under the License.
 
 #ifdef __linux__
 
-#include "sinsp_int.h"
+#include <libsinsp/sinsp_int.h>
 #include <cmath>
 #include <sys/times.h>
 #include <sys/stat.h>
-#include "stats.h"
-#include "strl.h"
+#include <libsinsp/stats.h>
+#include <libscap/strl.h>
 
 static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 	[SINSP_RESOURCE_UTILIZATION_CPU_PERC] = "cpu_usage_perc",

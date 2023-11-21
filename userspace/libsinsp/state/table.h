@@ -14,9 +14,9 @@ limitations under the License.
 
 #pragma once
 
-#include "../sinsp_exception.h"
-#include "static_struct.h"
-#include "dynamic_struct.h"
+#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/state/static_struct.h>
+#include <libsinsp/state/dynamic_struct.h>
 
 #include <functional>
 #include <type_traits>

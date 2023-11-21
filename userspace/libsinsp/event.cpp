@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "sinsp_errno.h"
+#include <libsinsp/sinsp_errno.h>
 
 #ifndef _WIN32
 #include <inttypes.h>
@@ -34,11 +34,11 @@ limitations under the License.
 #include <functional>
 #include <filesystem>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "strl.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/strl.h>
 
-#include "scap.h"
+#include <libscap/scap.h>
 
 extern sinsp_evttables g_infotables;
 

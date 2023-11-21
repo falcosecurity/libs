@@ -16,13 +16,13 @@ limitations under the License.
 
 */
 
-#include "user.h"
-#include "event.h"
-#include "procfs_utils.h"
-#include "utils.h"
-#include "logger.h"
-#include "sinsp.h"
-#include "strl.h"
+#include <libsinsp/user.h>
+#include <libsinsp/event.h>
+#include <libsinsp/procfs_utils.h>
+#include <libsinsp/utils.h>
+#include <libsinsp/logger.h>
+#include <libsinsp/sinsp.h>
+#include <libscap/strl.h>
 #include <sys/types.h>
 
 #ifdef HAVE_PWD_H

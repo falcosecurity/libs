@@ -31,7 +31,7 @@ limitations under the License.
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__)
 #include "tbb/concurrent_unordered_map.h"
 #endif
-#include "sinsp.h"
+#include <libsinsp/sinsp.h>
 
 
 struct sinsp_dns_resolver

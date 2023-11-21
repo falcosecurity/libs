@@ -18,8 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#include "sinsp.h"
-#include "sinsp_filtercheck.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_filtercheck.h>
 
 class sinsp_filter_check_reference;
 

@@ -42,18 +42,18 @@ limitations under the License.
 
 #pragma once
 
-#include "capture_stats_source.h"
+#include <libsinsp/capture_stats_source.h>
 
-#include "sinsp_inet.h"
-#include "sinsp_public.h"
-#include "sinsp_exception.h"
-#include "events/sinsp_events.h"
-#include "filter/ast.h"
-#include "filter/escaping.h"
-#include "filter/ppm_codes.h"
-#include "filter/parser.h"
-#include "state/table_registry.h"
-#include "plugin_parser.h"
+#include <libsinsp/sinsp_inet.h>
+#include <libsinsp/sinsp_public.h>
+#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/events/sinsp_events.h>
+#include <libsinsp/filter/ast.h>
+#include <libsinsp/filter/escaping.h>
+#include <libsinsp/filter/ppm_codes.h>
+#include <libsinsp/filter/parser.h>
+#include <libsinsp/state/table_registry.h>
+#include <libsinsp/plugin_parser.h>
 
 #include <string>
 #include <map>
@@ -63,18 +63,18 @@ limitations under the License.
 #include <list>
 #include <memory>
 
-#include <scap.h>
-#include "settings.h"
-#include "logger.h"
-#include "event.h"
-#include "filter.h"
-#include "dumper.h"
-#include "ifinfo.h"
-#include "container.h"
-#include "user.h"
-#include "utils.h"
-#include "stats.h"
-#include "sinsp_cycledumper.h"
+#include <libscap/scap.h>
+#include <libsinsp/settings.h>
+#include <libsinsp/logger.h>
+#include <libsinsp/event.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/dumper.h>
+#include <libsinsp/ifinfo.h>
+#include <libsinsp/container.h>
+#include <libsinsp/user.h>
+#include <libsinsp/utils.h>
+#include <libsinsp/stats.h>
+#include <libsinsp/sinsp_cycledumper.h>
 
 #ifndef VISIBILITY_PRIVATE
 // Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
@@ -86,18 +86,17 @@ limitations under the License.
 
 #define ONE_SECOND_IN_NS 1000000000LL
 
-#include "tuples.h"
-#include "fdinfo.h"
-#include "threadinfo.h"
-#include "ifinfo.h"
-#include "eventformatter.h"
+#include <libsinsp/tuples.h>
+#include <libsinsp/fdinfo.h>
+#include <libsinsp/threadinfo.h>
+#include <libsinsp/ifinfo.h>
+#include <libsinsp/eventformatter.h>
 
-#include "include/sinsp_external_processor.h"
-#include "plugin.h"
-#include "gvisor_config.h"
-#include "sinsp_suppress.h"
-#include "mpsc_priority_queue.h"
-
+#include <libsinsp/include/sinsp_external_processor.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/gvisor_config.h>
+#include <libsinsp/mpsc_priority_queue.h>
+#include <libsinsp/sinsp_suppress.h>
 class sinsp_partial_transaction;
 class sinsp_parser;
 class sinsp_analyzer;

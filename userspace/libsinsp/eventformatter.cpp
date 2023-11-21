@@ -16,11 +16,11 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "filter.h"
-#include "filterchecks.h"
-#include "eventformatter.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
+#include <libsinsp/eventformatter.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // rawstring_check implementation

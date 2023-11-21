@@ -21,9 +21,9 @@ limitations under the License.
 
 #include <unordered_map>
 #include <string>
-#include "container_info.h"
-#include "procfs_utils.h"
-#include "scap.h"
+#include <libsinsp/container_info.h>
+#include <libsinsp/procfs_utils.h>
+#include <libscap/scap.h>
 
 class sinsp;
 class sinsp_dumper;

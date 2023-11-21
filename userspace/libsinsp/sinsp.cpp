@@ -27,20 +27,20 @@ limitations under the License.
 #include <sys/time.h>
 #endif // _WIN32
 
-#include "scap_config.h"
-#include "scap_engines.h"
-#include "scap_open_exception.h"
-#include "scap_platform.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "filter.h"
-#include "filterchecks.h"
-#include "dns_manager.h"
-#include "plugin.h"
-#include "plugin_manager.h"
-#include "plugin_filtercheck.h"
-#include "strl.h"
-#include "scap-int.h"
+#include <libscap/scap_config.h>
+#include <libscap/scap_engines.h>
+#include <libsinsp/scap_open_exception.h>
+#include <libscap/scap_platform.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filterchecks.h>
+#include <libsinsp/dns_manager.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/plugin_manager.h>
+#include <libsinsp/plugin_filtercheck.h>
+#include <libscap/strl.h>
+#include <libscap/scap-int.h>
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>

@@ -21,10 +21,10 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <vector>
-#include "sinsp_int.h"
-#include "version.h"
-#include "filter.h"
-#include "sinsp_filtercheck.h"
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/version.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/sinsp_filtercheck.h>
 
 /**
 	\brief This class implements a dynamic filter check that acts as a

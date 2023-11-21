@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include "utils.h"
+#include <libsinsp/utils.h>
 
 TEST(sinsp_utils_test, concatenate_paths)
 {

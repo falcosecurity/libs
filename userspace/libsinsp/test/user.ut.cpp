@@ -21,8 +21,8 @@ limitations under the License.
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "sinsp_with_test_input.h"
-#include "user.h"
+#include <sinsp_with_test_input.h>
+#include <libsinsp/user.h>
 
 using namespace libsinsp;
 

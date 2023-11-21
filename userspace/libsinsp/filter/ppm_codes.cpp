@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "ppm_codes.h"
+#include <libsinsp/filter/ppm_codes.h>
 
 /**
  * NOTE: the following code has been ported from Falco and updated with the

@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 
-#include "sinsp_with_test_input.h"
+#include <sinsp_with_test_input.h>
 #include "test_utils.h"
 
 const char* mock_plugin_get_version()
