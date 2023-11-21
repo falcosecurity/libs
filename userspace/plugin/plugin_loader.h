@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "plugin_api.h"
+#include <plugin/plugin_api.h>
 
 #include <stdbool.h>
 
