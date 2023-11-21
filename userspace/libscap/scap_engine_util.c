@@ -20,11 +20,11 @@ limitations under the License.
 #include <stdio.h>
 #include <time.h>
 
-#include "scap_engine_util.h"
-#include "scap_const.h"
-#include "strerror.h"
+#include <libscap/scap_engine_util.h>
+#include <libscap/scap_const.h>
+#include <libscap/strerror.h>
 
-#include "compat/misc.h"
+#include <libscap/compat/misc.h>
 
 static inline uint64_t timespec_to_nsec(const struct timespec* ts)
 {

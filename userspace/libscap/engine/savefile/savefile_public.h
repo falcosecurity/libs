@@ -15,7 +15,7 @@ limitations under the License.
 #pragma once
 
 #include <stdint.h>
-#include "scap_procs.h"
+#include <libscap/scap_procs.h>
 
 #define SAVEFILE_ENGINE "savefile"
 

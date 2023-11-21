@@ -18,8 +18,8 @@ limitations under the License.
 
 #include <stdio.h>
 
-#include "scap.h"
-#include "scap-int.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
 
 //
 // Free a previously allocated list of interfaces

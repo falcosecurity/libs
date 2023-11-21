@@ -23,9 +23,9 @@ limitations under the License.
 #ifndef SCAP_HANDLE_T
 #define SCAP_HANDLE_T void
 #endif
-#include "engine_handle.h"
+#include <libscap/engine_handle.h>
 
-#include "scap_procs.h"
+#include <libscap/scap_procs.h>
 
 // this header is designed to be useful to platform *users*
 

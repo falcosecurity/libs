@@ -31,16 +31,16 @@ struct iovec {
 #endif
 
 #define SCAP_HANDLE_T struct savefile_engine
-#include "savefile.h"
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_platform.h"
-#include "scap_savefile.h"
-#include "savefile_platform.h"
-#include "scap_reader.h"
-#include "noop.h"
+#include <libscap/engine/savefile/savefile.h>
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_platform.h>
+#include <libscap/scap_savefile.h>
+#include <libscap/engine/savefile/savefile_platform.h>
+#include <libscap/engine/savefile/scap_reader.h>
+#include <libscap/engine/noop/noop.h>
 
-#include "strl.h"
+#include <libscap/strl.h>
 
 //
 // Read the section header block

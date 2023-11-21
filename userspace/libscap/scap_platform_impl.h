@@ -32,9 +32,9 @@ extern "C" {
 #define SCAP_HANDLE_T void
 #endif
 
-#include "engine_handle.h"
-#include "scap_machine_info.h"
-#include "scap_procs.h"
+#include <libscap/engine_handle.h>
+#include <libscap/scap_machine_info.h>
+#include <libscap/scap_procs.h>
 
 struct scap_addrlist;
 struct scap_open_args;

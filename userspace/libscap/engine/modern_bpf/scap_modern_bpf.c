@@ -20,16 +20,16 @@ limitations under the License.
 #include <stdio.h>
 
 #define SCAP_HANDLE_T struct modern_bpf_engine
-#include "scap_modern_bpf.h"
+#include <libscap/engine/modern_bpf/scap_modern_bpf.h>
 #include <libpman.h>
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_procs.h"
-#include "noop.h"
-#include "strl.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_procs.h>
+#include <libscap/engine/noop/noop.h>
+#include <libscap/strl.h>
 #include <sys/utsname.h>
-#include "ringbuffer/ringbuffer.h"
-#include "scap_engine_util.h"
+#include <libscap/ringbuffer/ringbuffer.h>
+#include <libscap/scap_engine_util.h>
 
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
 {

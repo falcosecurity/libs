@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "scap_proc_util.h"
-#include "scap.h"
+#include <libscap/scap_proc_util.h>
+#include <libscap/scap.h>
 
 int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint64_t n_tinfos, const scap_threadinfo *tinfos, void* ctx, get_fdinfos_fn get_fdinfos)
 {

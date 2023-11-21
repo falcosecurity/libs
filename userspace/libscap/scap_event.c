@@ -26,10 +26,10 @@ limitations under the License.
 #include <netinet/in.h>
 #endif // _WIN32
 
-#include "scap.h"
-#include "scap-int.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
 
-#include "strl.h"
+#include <libscap/strl.h>
 
 //
 // Get the event info table

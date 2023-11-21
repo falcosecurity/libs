@@ -16,19 +16,12 @@ limitations under the License.
 
 */
 
-#include <stdio.h>
-#include <libscap/scap.h>
-#include <libscap/scap-int.h>
-
-//
-// Free a previously allocated list of users
-//
-void scap_free_userlist(scap_userlist* uhandle)
-{
-	if(uhandle)
-	{
-		free(uhandle->users);
-		free(uhandle->groups);
-		free(uhandle);
-	}
-}
+#if defined(__linux__)
+#include <libscap/linux/barrier.h>
+#elif defined(__APPLE__)
+#include <libscap/macos/barrier.h>
+#elif defined(_WIN32)
+#include <libscap/win32/barrier.h>
+#elif defined(__EMSCRIPTEN__)
+#include <libscap/emscripten/barrier.h>
+#endif

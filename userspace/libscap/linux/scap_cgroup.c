@@ -16,12 +16,12 @@ limitations under the License.
 
 */
 
-#include "scap_cgroup.h"
+#include <libscap/linux/scap_cgroup.h>
 
-#include "scap_assert.h"
-#include "scap_const.h"
-#include "strerror.h"
-#include "uthash_ext.h"
+#include <libscap/scap_assert.h>
+#include <libscap/scap_const.h>
+#include <libscap/strerror.h>
+#include <libscap/uthash_ext.h>
 
 #include <dirent.h>
 #include <errno.h>

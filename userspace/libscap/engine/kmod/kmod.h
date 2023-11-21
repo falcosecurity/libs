@@ -18,10 +18,10 @@ limitations under the License.
 #pragma once
 
 #include <stdint.h>
-#include "ringbuffer/devset.h"
-#include "scap_open.h"
-#include "scap_stats_v2.h"
-#include "scap_kmod_stats.h"
+#include <libscap/ringbuffer/devset.h>
+#include <libscap/scap_open.h>
+#include <libscap/scap_stats_v2.h>
+#include <libscap/engine/kmod/scap_kmod_stats.h>
 
 
 struct kmod_engine

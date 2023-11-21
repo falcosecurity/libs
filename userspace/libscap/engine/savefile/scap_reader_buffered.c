@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "scap_reader.h"
+#include <libscap/engine/savefile/scap_reader.h>
 #include <string.h>
 
 typedef struct reader_handle

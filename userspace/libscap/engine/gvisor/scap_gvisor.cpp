@@ -29,11 +29,11 @@ limitations under the License.
 #include <fstream>
 #include <sstream>
 
-#include "gvisor.h"
+#include <libscap/engine/gvisor/gvisor.h>
 #include "pkg/sentry/seccheck/points/common.pb.h"
 
-#include "strl.h"
-#include "scap_gvisor_stats.h"
+#include <libscap/strl.h>
+#include <libscap/engine/gvisor/scap_gvisor_stats.h>
 
 namespace scap_gvisor {
 

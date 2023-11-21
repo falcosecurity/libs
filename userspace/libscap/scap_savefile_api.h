@@ -21,8 +21,8 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "scap_const.h"
-#include "scap_zlib.h"
+#include <libscap/scap_const.h>
+#include <libscap/scap_zlib.h>
 
 #ifdef __cplusplus
 extern "C" {

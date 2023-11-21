@@ -17,13 +17,13 @@ limitations under the License.
 */
 
 #include <stdio.h>
-#include "test_input_platform.h"
-#include "scap.h" // for scap_threadinfo
-#include "scap_const.h"
-#include "scap_open.h"
-#include "scap_proc_util.h"
-#include "test_input_public.h"
-#include "strl.h"
+#include <libscap/engine/test_input/test_input_platform.h>
+#include <libscap/scap.h> // for scap_threadinfo
+#include <libscap/scap_const.h>
+#include <libscap/scap_open.h>
+#include <libscap/scap_proc_util.h>
+#include <libscap/engine/test_input/test_input_public.h>
+#include <libscap/strl.h>
 
 static int32_t get_fdinfos(void* ctx, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
 {

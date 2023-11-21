@@ -26,10 +26,10 @@ extern "C" {
 #define SCAP_HANDLE_T void
 #endif
 
-#include "scap_cgroup.h"
-#include "scap_platform_impl.h"
-#include "engine_handle.h"
-#include "scap_log.h"
+#include <libscap/linux/scap_cgroup.h>
+#include <libscap/scap_platform_impl.h>
+#include <libscap/engine_handle.h>
+#include <libscap/scap_log.h>
 
 	struct scap_mountinfo;
 

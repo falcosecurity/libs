@@ -32,12 +32,12 @@ typedef struct test_input_engine test_input_engine;
 
 #define SCAP_HANDLE_T struct test_input_engine
 
-#include "noop.h"
+#include <libscap/engine/noop/noop.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_proc_util.h"
-#include "strl.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/scap_proc_util.h>
+#include <libscap/strl.h>
 
 static struct test_input_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {

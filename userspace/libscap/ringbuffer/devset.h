@@ -26,7 +26,7 @@ limitations under the License.
 #define INVALID_FD (-1)
 #define INVALID_MAPPING MAP_FAILED
 
-#include "scap_assert.h"
+#include <libscap/scap_assert.h>
 
 //
 // Read buffer timeout constants

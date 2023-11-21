@@ -19,7 +19,7 @@ limitations under the License.
 #include <vector>
 #include <functional>
 
-#include "gvisor.h"
+#include <libscap/engine/gvisor/gvisor.h>
 #include "pkg/sentry/seccheck/points/syscall.pb.h"
 #include "pkg/sentry/seccheck/points/sentry.pb.h"
 #include "pkg/sentry/seccheck/points/container.pb.h"

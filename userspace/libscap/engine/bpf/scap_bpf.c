@@ -31,23 +31,23 @@ limitations under the License.
 #include <ctype.h>
 #include <time.h>
 #include <dirent.h>
-#include "strl.h"
+#include <libscap/strl.h>
 
 #define SCAP_HANDLE_T struct bpf_engine
 
-#include "bpf.h"
-#include "engine_handle.h"
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_bpf.h"
-#include "scap_engine_util.h"
-#include "driver_config.h"
-#include "../../driver/bpf/types.h"
-#include "../../driver/bpf/maps.h"
-#include "compat/misc.h"
-#include "compat/bpf.h"
-#include "strl.h"
-#include "strerror.h"
+#include <libscap/engine/bpf/bpf.h>
+#include <libscap/engine_handle.h>
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/engine/bpf/scap_bpf.h>
+#include <libscap/scap_engine_util.h>
+#include <driver_config.h>
+#include <driver/bpf/types.h>
+#include <driver/bpf/maps.h>
+#include <libscap/compat/misc.h>
+#include <libscap/compat/bpf.h>
+#include <libscap/strl.h>
+#include <libscap/strerror.h>
 
 static const char * const bpf_kernel_counters_stats_names[] = {
 	[BPF_N_EVTS] = "n_evts",
@@ -97,7 +97,7 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 #define READBUF scap_bpf_readbuf
 #define NEXT_EVENT scap_bpf_next_event
 
-#include "ringbuffer/ringbuffer.h"
+#include <libscap/ringbuffer/ringbuffer.h>
 
 //
 // Some of this code is taken from the kernel samples under samples/bpf,

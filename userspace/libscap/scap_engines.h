@@ -22,8 +22,8 @@ limitations under the License.
 #define SCAP_HANDLE_T void
 #endif
 
-#include "scap_vtable.h"
-#include "scap_config.h"
+#include <libscap/scap_vtable.h>
+#include <libscap/scap_config.h>
 
 #ifdef __cplusplus
 extern "C" {

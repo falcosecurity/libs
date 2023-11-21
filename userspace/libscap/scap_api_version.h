@@ -25,7 +25,7 @@ limitations under the License.
 #define SCAP_HANDLE_T void
 #endif
 
-#include "engine_handle.h"
+#include <libscap/engine_handle.h>
 
 struct scap_vtable;
 

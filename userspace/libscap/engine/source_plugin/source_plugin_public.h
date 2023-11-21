@@ -14,7 +14,7 @@ limitations under the License.
 
 #pragma once
 
-#include "plugin_info.h"
+#include <libscap/engine/source_plugin/plugin_info.h>
 
 #define SOURCE_PLUGIN_ENGINE "source_plugin"
 

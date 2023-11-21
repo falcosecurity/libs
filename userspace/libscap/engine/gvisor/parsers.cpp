@@ -28,15 +28,15 @@ limitations under the License.
 #include <unistd.h>
 
 #ifdef __x86_64__
-#include "../../driver/syscall_compat_x86_64.h"
+#include <driver/syscall_compat_x86_64.h>
 #elif __aarch64__
-#include "../../driver/syscall_compat_aarch64.h"
+#include <driver/syscall_compat_aarch64.h>
 #elif __s390x__
-#include "../../driver/syscall_compat_s390x.h"
+#include <driver/syscall_compat_s390x.h>
 #elif __powerpc64__
-#include "../../driver/syscall_compat_ppc64le.h"
+#include <driver/syscall_compat_ppc64le.h>
 #elif __riscv
-#include "../../driver/syscall_compat_riscv64.h"
+#include <driver/syscall_compat_riscv64.h>
 #endif /* __x86_64__ */
 
 #include <functional>
@@ -46,14 +46,14 @@ limitations under the License.
 
 #include <json/json.h>
 
-#include "gvisor.h"
-#include "parsers.h"
-#include "fillers.h"
-#include "compat/misc.h"
-#include "../../driver/ppm_events_public.h"
-#include "strl.h"
+#include <libscap/engine/gvisor/gvisor.h>
+#include <libscap/engine/gvisor/parsers.h>
+#include <libscap/engine/gvisor/fillers.h>
+#include <libscap/compat/misc.h>
+#include <driver/ppm_events_public.h>
+#include <libscap/strl.h>
 
-#include "userspace_flag_helpers.h"
+#include <libscap/userspace_flag_helpers.h>
 
 #include "pkg/sentry/seccheck/points/syscall.pb.h"
 #include "pkg/sentry/seccheck/points/sentry.pb.h"

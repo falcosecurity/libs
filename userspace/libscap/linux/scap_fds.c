@@ -18,17 +18,17 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_linux_int.h"
-#include "scap_linux_platform.h"
-#include "strl.h"
-#include "strerror.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
+#include <libscap/linux/scap_linux_int.h>
+#include <libscap/linux/scap_linux_platform.h>
+#include <libscap/strl.h>
+#include <libscap/strerror.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include "uthash_ext.h"
-#include "compat/misc.h"
+#include <libscap/uthash_ext.h>
+#include <libscap/compat/misc.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include <sys/param.h>

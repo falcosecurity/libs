@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "scap.h"
-#include "scap-int.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
 #include <string.h>
 
 /*

@@ -31,7 +31,7 @@ limitations under the License.
 #include <stdio.h>
 #include <string.h>
 
-#include "scap_const.h"
+#include <libscap/scap_const.h>
 
 #ifdef _WIN32
 #define strerror_r(errnum, buf, size) strerror_s(buf, size, errnum)

@@ -16,11 +16,11 @@ limitations under the License.
 
 */
 
-#include "scap_api_version.h"
-#include "scap.h"
-#include "scap_engine_util.h"
-#include "scap_vtable.h"
-#include "strerror.h"
+#include <libscap/scap_api_version.h>
+#include <libscap/scap.h>
+#include <libscap/scap_engine_util.h>
+#include <libscap/scap_vtable.h>
+#include <libscap/strerror.h>
 
 
 bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uint32_t current_patch,

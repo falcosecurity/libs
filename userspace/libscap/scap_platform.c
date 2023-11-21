@@ -16,11 +16,11 @@ limitations under the License.
 
 */
 
-#include "scap_platform_impl.h"
-#include "scap_platform.h"
+#include <libscap/scap_platform_impl.h>
+#include <libscap/scap_platform.h>
 
-#include "scap.h"
-#include "scap-int.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
 
 int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
 {

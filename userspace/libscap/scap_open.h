@@ -25,10 +25,10 @@ limitations under the License.
 #define SCAP_HANDLE_T void
 #endif
 
-#include "scap_limits.h"
-#include "scap_procs.h"
-#include "../../driver/ppm_events_public.h"
-#include "scap_log.h"
+#include <libscap/scap_limits.h>
+#include <libscap/scap_procs.h>
+#include <driver/ppm_events_public.h>
+#include <libscap/scap_log.h>
 
 #ifdef __cplusplus
 extern "C"
