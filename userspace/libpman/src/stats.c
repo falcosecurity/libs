@@ -17,8 +17,8 @@ limitations under the License.
 */
 
 #include "state.h"
-#include <scap.h>
-#include "strl.h"
+#include <libscap/scap.h>
+#include <libscap/strl.h>
 
 typedef enum modern_bpf_kernel_counters_stats
 {

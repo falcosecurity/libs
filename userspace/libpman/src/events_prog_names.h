@@ -18,8 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#include <ppm_events_public.h>
-#include <feature_gates.h>
+#include <driver/ppm_events_public.h>
+#include <driver/feature_gates.h>
 
 /* For every event here we have the name of the corresponding bpf program. */
 static const char* event_prog_names[PPM_EVENT_MAX] = {

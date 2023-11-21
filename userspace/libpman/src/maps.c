@@ -20,7 +20,7 @@ limitations under the License.
 
 #include <stdint.h>
 #include "events_prog_names.h"
-#include <scap.h>
+#include <libscap/scap.h>
 
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];

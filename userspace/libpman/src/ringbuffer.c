@@ -22,7 +22,7 @@ limitations under the License.
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/mman.h>
-#include <ppm_events_public.h>
+#include <driver/ppm_events_public.h>
 
 #include "ringbuffer_definitions.h"
 

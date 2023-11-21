@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #include "state.h"
-#include <feature_gates.h>
+#include <driver/feature_gates.h>
 
 int pman_open_probe()
 {
