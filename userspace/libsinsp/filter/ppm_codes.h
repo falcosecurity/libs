@@ -17,8 +17,8 @@ limitations under the License.
 
 #pragma once
 
-#include "ast.h"
-#include "../events/sinsp_events.h"
+#include <libsinsp/filter/ast.h>
+#include <libsinsp/events/sinsp_events.h>
 
 namespace libsinsp {
 namespace filter {

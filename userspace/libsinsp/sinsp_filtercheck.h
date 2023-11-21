@@ -21,12 +21,12 @@ limitations under the License.
 #include <string>
 #include <unordered_set>
 #include <json/json.h>
-#include "scap.h"
-#include "tuples.h"
-#include "filter_value.h"
-#include "prefix_search.h"
-#include "sinsp.h"
-#include "gen_filter.h"
+#include <libscap/scap.h>
+#include <libsinsp/tuples.h>
+#include <libsinsp/filter_value.h>
+#include <libsinsp/prefix_search.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/gen_filter.h>
 
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);

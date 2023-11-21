@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <filter/escaping.h>
+#include <libsinsp/filter/escaping.h>
 #include <gtest/gtest.h>
 
 using namespace libsinsp::filter;

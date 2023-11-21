@@ -15,10 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "connection.h"
+#include <libsinsp/container_engine/docker/connection.h>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 namespace {
 const uint32_t max_allowed_timeouts = 5;

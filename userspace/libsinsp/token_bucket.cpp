@@ -21,8 +21,8 @@ limitations under the License.
 #include <sys/time.h>
 #endif
 
-#include "token_bucket.h"
-#include "utils.h"
+#include <libsinsp/token_bucket.h>
+#include <libsinsp/utils.h>
 
 token_bucket::token_bucket():
 	token_bucket(sinsp_utils::get_current_time_ns)

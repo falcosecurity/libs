@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <ppm_api_version.h>
+#include <driver/ppm_api_version.h>
 
 TEST(api_version, unpack)
 {

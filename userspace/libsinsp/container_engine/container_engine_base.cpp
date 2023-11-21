@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "container_engine/container_engine_base.h"
-#include "logger.h"
+#include <libsinsp/container_engine/container_engine_base.h>
+#include <libsinsp/logger.h>
 
 namespace libsinsp
 {

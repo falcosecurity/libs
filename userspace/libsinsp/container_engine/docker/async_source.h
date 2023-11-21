@@ -1,10 +1,10 @@
 #pragma once
 
-#include "container_info.h"
+#include <libsinsp/container_info.h>
 
-#include "container_engine/container_async_source.h"
-#include "container_engine/docker/connection.h"
-#include "container_engine/docker/lookup_request.h"
+#include <libsinsp/container_engine/container_async_source.h>
+#include <libsinsp/container_engine/docker/connection.h>
+#include <libsinsp/container_engine/docker/lookup_request.h>
 
 namespace libsinsp {
 namespace container_engine {

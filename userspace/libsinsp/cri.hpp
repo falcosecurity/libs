@@ -18,11 +18,11 @@ limitations under the License.
 
 #pragma once
 
-#include "cri.h"
+#include <libsinsp/cri.h>
 
-#include "grpc_channel_registry.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/grpc_channel_registry.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 #include <chrono>
 

@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "container_info.h"
+#include <libsinsp/container_info.h>
 
 namespace libsinsp
 {

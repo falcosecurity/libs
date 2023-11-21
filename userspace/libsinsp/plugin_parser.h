@@ -14,8 +14,8 @@ limitations under the License.
 
 #pragma once
 
-#include "logger.h"
-#include "plugin.h"
+#include <libsinsp/logger.h>
+#include <libsinsp/plugin.h>
 
 #include <memory>
 #include <string>

@@ -25,7 +25,7 @@ limitations under the License.
 #if !defined(_WIN32)
 #include <netinet/in.h>
 #endif //_WIN32
-#include <event_stats.h>
+#include <driver/event_stats.h>
 
 #define ASSERT_NAMES_EQ(a, b)                                                                                \
 	{                                                                                                        \

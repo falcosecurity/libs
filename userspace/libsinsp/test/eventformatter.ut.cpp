@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
-#include "eventformatter.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/eventformatter.h>
 
 #include <gtest/gtest.h>
 

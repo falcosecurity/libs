@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "container_engine/lxc.h"
-#include "sinsp.h"
+#include <libsinsp/container_engine/lxc.h>
+#include <libsinsp/sinsp.h>
 
 using namespace libsinsp::container_engine;
 

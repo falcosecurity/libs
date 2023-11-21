@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 
 /* Check the `is_unused_event` API works correctly */
 TEST(events, check_unused_events)

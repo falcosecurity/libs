@@ -15,13 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "podman.h"
+#include <libsinsp/container_engine/docker/podman.h>
 
-#include "container_engine/docker/lookup_request.h"
-#include "procfs_utils.h"
-#include "runc.h"
-#include "sinsp.h"
-#include "sinsp_cgroup.h"
+#include <libsinsp/container_engine/docker/lookup_request.h>
+#include <libsinsp/procfs_utils.h>
+#include <libsinsp/runc.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_cgroup.h>
 
 #include <glob.h>
 #include <unistd.h>

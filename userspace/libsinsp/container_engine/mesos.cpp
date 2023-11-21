@@ -16,12 +16,12 @@ limitations under the License.
 
 */
 
-#include "container_engine/mesos.h"
+#include <libsinsp/container_engine/mesos.h>
 
 #include <unistd.h>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
 {

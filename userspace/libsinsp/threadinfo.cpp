@@ -23,10 +23,10 @@ limitations under the License.
 #endif
 #include <stdio.h>
 #include <algorithm>
-#include "strl.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "scap-int.h"
+#include <libscap/strl.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/scap-int.h>
 
 constexpr static const char* s_thread_table_name = "threads";
 

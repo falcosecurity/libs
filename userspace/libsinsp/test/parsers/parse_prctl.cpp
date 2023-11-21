@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <test/helpers/threads_helpers.h>
+#include <helpers/threads_helpers.h>
 
 /*=============================== PRCTL EXIT EVENT ===========================*/
 

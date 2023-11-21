@@ -25,7 +25,7 @@ limitations under the License.
 #include <list>
 #include <string>
 #include <vector>
-#include "container_engine/sinsp_container_type.h"
+#include <libsinsp/container_engine/sinsp_container_type.h>
 #include "json/json.h"
 
 class sinsp;

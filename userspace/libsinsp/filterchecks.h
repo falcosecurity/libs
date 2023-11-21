@@ -21,21 +21,21 @@ limitations under the License.
 // note(jasondellaluce): keeping this as an import entrypoint for legacy
 // reasons, as all filterchecks used to be defined in this file
 
-#include "sinsp_filtercheck.h"
-#include "sinsp_filtercheck_container.h"
-#include "sinsp_filtercheck_event.h"
-#include "sinsp_filtercheck_evtin.h"
-#include "sinsp_filtercheck_fd.h"
-#include "sinsp_filtercheck_fdlist.h"
-#include "sinsp_filtercheck_fspath.h"
-#include "sinsp_filtercheck_gen_event.h"
-#include "sinsp_filtercheck_group.h"
-#include "sinsp_filtercheck_k8s.h"
-#include "sinsp_filtercheck_mesos.h"
-#include "sinsp_filtercheck_rawstring.h"
-#include "sinsp_filtercheck_reference.h"
-#include "sinsp_filtercheck_syslog.h"
-#include "sinsp_filtercheck_thread.h"
-#include "sinsp_filtercheck_tracer.h"
-#include "sinsp_filtercheck_user.h"
-#include "sinsp_filtercheck_utils.h"
+#include <libsinsp/sinsp_filtercheck.h>
+#include <libsinsp/sinsp_filtercheck_container.h>
+#include <libsinsp/sinsp_filtercheck_event.h>
+#include <libsinsp/sinsp_filtercheck_evtin.h>
+#include <libsinsp/sinsp_filtercheck_fd.h>
+#include <libsinsp/sinsp_filtercheck_fdlist.h>
+#include <libsinsp/sinsp_filtercheck_fspath.h>
+#include <libsinsp/sinsp_filtercheck_gen_event.h>
+#include <libsinsp/sinsp_filtercheck_group.h>
+#include <libsinsp/sinsp_filtercheck_k8s.h>
+#include <libsinsp/sinsp_filtercheck_mesos.h>
+#include <libsinsp/sinsp_filtercheck_rawstring.h>
+#include <libsinsp/sinsp_filtercheck_reference.h>
+#include <libsinsp/sinsp_filtercheck_syslog.h>
+#include <libsinsp/sinsp_filtercheck_thread.h>
+#include <libsinsp/sinsp_filtercheck_tracer.h>
+#include <libsinsp/sinsp_filtercheck_user.h>
+#include <libsinsp/sinsp_filtercheck_utils.h>

@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 #include "../test_utils.h"
 
 TEST(events_set, check_size)

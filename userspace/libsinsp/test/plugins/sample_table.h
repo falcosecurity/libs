@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include <engine/source_plugin/source_plugin_public.h>
+#include <libscap/engine/source_plugin/source_plugin_public.h>
 
 #include <cstring>
 #include <string>

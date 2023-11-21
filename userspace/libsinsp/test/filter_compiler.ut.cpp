@@ -1,5 +1,5 @@
-#include <sinsp.h>
-#include <filter.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/filter.h>
 #include <gtest/gtest.h>
 #include <list>
 

@@ -15,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "procfs_utils.h"
-#include "logger.h"
+#include <libsinsp/procfs_utils.h>
+#include <libsinsp/logger.h>
 
 #include <cstring>
 #include <sstream>

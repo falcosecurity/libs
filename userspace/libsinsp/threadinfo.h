@@ -36,9 +36,9 @@ struct iovec {
 #include <functional>
 #include <memory>
 #include <set>
-#include "fdinfo.h"
-#include "state/table.h"
-#include "thread_group_info.h"
+#include <libsinsp/fdinfo.h>
+#include <libsinsp/state/table.h>
+#include <libsinsp/thread_group_info.h>
 
 class sinsp_delays_info;
 class blprogram;

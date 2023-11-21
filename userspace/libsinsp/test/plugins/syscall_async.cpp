@@ -22,7 +22,7 @@ limitations under the License.
 #include <thread>
 #include <atomic>
 
-#include <ppm_events_public.h>
+#include <driver/ppm_events_public.h>
 
 #include "test_plugins.h"
 

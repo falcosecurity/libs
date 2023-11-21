@@ -1,5 +1,5 @@
-#include "sinsp_events.h"
-#include "../utils.h"
+#include <libsinsp/events/sinsp_events.h>
+#include <libsinsp/utils.h>
 
 const ppm_event_info* libsinsp::events::info(ppm_event_code event_type)
 {

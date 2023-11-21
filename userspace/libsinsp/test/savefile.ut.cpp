@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
-#include "sinsp_cycledumper.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_cycledumper.h>
 
 #include <gtest/gtest.h>
 

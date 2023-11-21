@@ -22,8 +22,8 @@ limitations under the License.
 #include <string>
 #include <json/json.h>
 
-#include "filter_check_list.h"
-#include "gen_filter.h"
+#include <libsinsp/filter_check_list.h>
+#include <libsinsp/gen_filter.h>
 
 class sinsp_filter_check;
 

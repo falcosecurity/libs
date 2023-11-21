@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "linux/scap_cgroup.h"
+#include <libscap/linux/scap_cgroup.h>
 
 #include <memory>
 #include <string>

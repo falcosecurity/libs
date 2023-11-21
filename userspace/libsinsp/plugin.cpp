@@ -32,11 +32,11 @@ limitations under the License.
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
 
-#include "sinsp_int.h"
-#include "sinsp_exception.h"
-#include "plugin.h"
-#include "plugin_filtercheck.h"
-#include "strl.h"
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/plugin_filtercheck.h>
+#include <libscap/strl.h>
 
 using namespace std;
 

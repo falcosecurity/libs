@@ -16,12 +16,12 @@ limitations under the License.
 
 */
 
-#include "runc.h"
+#include <libsinsp/runc.h>
 
 #include <cstring>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 namespace {
 

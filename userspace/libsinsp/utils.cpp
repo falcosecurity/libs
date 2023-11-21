@@ -16,14 +16,14 @@ limitations under the License.
 
 */
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "sinsp_errno.h"
-#include "sinsp_signal.h"
-#include "filter.h"
-#include "filter_check_list.h"
-#include "filterchecks.h"
-#include "strl.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/sinsp_errno.h>
+#include <libsinsp/sinsp_signal.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/filter_check_list.h>
+#include <libsinsp/filterchecks.h>
+#include <libscap/strl.h>
 
 #if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>

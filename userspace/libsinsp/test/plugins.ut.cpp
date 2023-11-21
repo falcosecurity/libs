@@ -17,9 +17,9 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <plugin.h>
+#include <libsinsp/plugin.h>
 
-#include "sinsp_with_test_input.h"
+#include <sinsp_with_test_input.h>
 #include "test_utils.h"
 #include "plugins/test_plugins.h"
 

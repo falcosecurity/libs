@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "type_info.h"
+#include <libsinsp/state/type_info.h>
 
 #include <string>
 #include <unordered_map>

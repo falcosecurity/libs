@@ -20,7 +20,7 @@ limitations under the License.
 #include <cstdlib>
 #include <sstream>
 
-#include <ppm_events_public.h>
+#include <driver/ppm_events_public.h>
 
 #include "test_plugins.h"
 

@@ -17,8 +17,8 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <plugin.h>
-#include <plugin_manager.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/plugin_manager.h>
 
 class mock_sinsp_plugin: public sinsp_plugin
 {

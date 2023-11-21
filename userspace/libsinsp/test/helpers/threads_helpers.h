@@ -18,7 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <gtest/gtest.h>
-#include <test/sinsp_with_test_input.h>
+#include <sinsp_with_test_input.h>
 
 #define HUGE_THREAD_NUMBER 150
 

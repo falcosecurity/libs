@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "plugin.h"
+#include <libsinsp/plugin.h>
 
 #define __CATCH_ERR_MSG(_ERR, _F) \
 { \

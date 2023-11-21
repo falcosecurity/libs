@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <test/helpers/threads_helpers.h>
+#include <helpers/threads_helpers.h>
 
 /* These are a sort of e2e for the sinsp state, they assert some flows in sinsp */
 

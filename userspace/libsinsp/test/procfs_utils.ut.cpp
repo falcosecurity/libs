@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <procfs_utils.h>
+#include <libsinsp/procfs_utils.h>
 #include <sstream>
 
 using namespace libsinsp::procfs_utils;

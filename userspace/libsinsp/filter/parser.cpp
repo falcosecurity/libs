@@ -19,10 +19,11 @@ limitations under the License.
 #include <cstring>
 #include <iterator>
 #include <memory>
-#include "escaping.h"
-#include "parser.h"
-#include "../utils.h"
-#include "../sinsp_exception.h"
+#include <libsinsp/filter/escaping.h>
+#include <libsinsp/filter/parser.h>
+#include <libsinsp/utils.h>
+#include <libsinsp/sinsp_exception.h>
+
 
 #include <re2/re2.h>
 

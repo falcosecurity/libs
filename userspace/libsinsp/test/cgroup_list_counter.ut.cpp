@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <cgroup_list_counter.h>
+#include <libsinsp/cgroup_list_counter.h>
 
 TEST(cgroup_list_counter_test, basic)
 {

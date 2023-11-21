@@ -22,10 +22,10 @@ limitations under the License.
 #include <memory>
 #include <unordered_map>
 
-#include "scap.h"
+#include <libscap/scap.h>
 
-#include "event.h"
-#include "container_info.h"
+#include <libsinsp/event.h>
+#include <libsinsp/container_info.h>
 
 #if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
@@ -33,10 +33,10 @@ limitations under the License.
 #include <curl/multi.h>
 #endif
 
-#include "container_engine/container_cache_interface.h"
-#include "container_engine/container_engine_base.h"
-#include "container_engine/sinsp_container_type.h"
-#include "mutex.h"
+#include <libsinsp/container_engine/container_cache_interface.h>
+#include <libsinsp/container_engine/container_engine_base.h>
+#include <libsinsp/container_engine/sinsp_container_type.h>
+#include <libsinsp/mutex.h>
 
 class sinsp_dumper;
 

@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "sinsp_filtercheck.h"
+#include <libsinsp/sinsp_filtercheck.h>
 
 class rawstring_check : public sinsp_filter_check
 {

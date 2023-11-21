@@ -1,9 +1,9 @@
-#include "cgroup_limits.h"
+#include <libsinsp/cgroup_limits.h>
 
 #include <fstream>
 #include <string>
-#include "cgroup_list_counter.h"
-#include "sinsp_cgroup.h"
+#include <libsinsp/cgroup_list_counter.h>
+#include <libsinsp/sinsp_cgroup.h>
 
 namespace {
 // to prevent 32-bit number of kilobytes from overflowing, ignore values larger than 4 TiB.

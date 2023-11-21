@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "container_engine/cri.h"
+#include <libsinsp/container_engine/cri.h>
 
 #include <sys/stat.h>
 #ifdef GRPC_INCLUDE_IS_GRPCPP
@@ -25,14 +25,14 @@ limitations under the License.
 #	include <grpc++/grpc++.h>
 #endif
 
-#include "runc.h"
-#include "container_engine/mesos.h"
+#include <libsinsp/runc.h>
+#include <libsinsp/container_engine/mesos.h>
 
-#include "cri.hpp"
+#include <libsinsp/cri.hpp>
 
 #include <memory>
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 using namespace std;
 using namespace libsinsp::cri;

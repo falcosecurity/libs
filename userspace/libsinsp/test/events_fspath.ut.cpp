@@ -21,7 +21,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include "filter_compiler.h"
-#include "sinsp_with_test_input.h"
+#include <sinsp_with_test_input.h>
 
 class fspath : public sinsp_with_test_input
 {

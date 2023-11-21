@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "scap_file_helpers.h"
+#include <helpers/scap_file_helpers.h>
 
 namespace scap_file_test_helpers
 {

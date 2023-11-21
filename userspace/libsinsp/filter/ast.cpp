@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "ast.h"
-#include "escaping.h"
+#include <libsinsp/filter/ast.h>
+#include <libsinsp/filter/escaping.h>
 
 using namespace libsinsp::filter::ast;
 

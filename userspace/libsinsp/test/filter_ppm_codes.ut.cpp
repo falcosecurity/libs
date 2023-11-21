@@ -16,8 +16,8 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <filter/parser.h>
-#include <filter/ppm_codes.h>
+#include <libsinsp/filter/parser.h>
+#include <libsinsp/filter/ppm_codes.h>
 
 // helps testing that ppm_sc_codes are correctly found in a filter
 struct testdata_sc_set 

@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <string.h>
 
-#include "prefix_search.h"
+#include <libsinsp/prefix_search.h>
 
 using namespace std;
 

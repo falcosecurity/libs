@@ -18,12 +18,12 @@ limitations under the License.
 
 #include <cstdint>
 
-#include "sinsp.h"
+#include <libsinsp/sinsp.h>
 
-#include "filter_check_list.h"
-#include "filterchecks.h"
+#include <libsinsp/filter_check_list.h>
+#include <libsinsp/filterchecks.h>
 
-#include "strl.h"
+#include <libscap/strl.h>
 
 using namespace std;
 

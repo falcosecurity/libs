@@ -15,9 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "value_parser.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/value_parser.h>
 
 #ifdef _WIN32
 #pragma comment(lib, "Ws2_32.lib")

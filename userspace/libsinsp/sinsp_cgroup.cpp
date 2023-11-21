@@ -16,10 +16,10 @@ limitations under the License.
 
 */
 
-#include "sinsp_cgroup.h"
-#include "scap_const.h"
-#include "scap.h"
-#include "sinsp.h"
+#include <libsinsp/sinsp_cgroup.h>
+#include <libscap/scap_const.h>
+#include <libscap/scap.h>
+#include <libsinsp/sinsp.h>
 
 sinsp_cgroup::sinsp_cgroup() :
 	sinsp_cgroup(scap_get_host_root())

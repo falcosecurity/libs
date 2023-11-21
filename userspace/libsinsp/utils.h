@@ -18,9 +18,9 @@ limitations under the License.
 
 #pragma once
 
-#include "scap.h"
-#include "sinsp_public.h"
-#include "tuples.h"
+#include <libscap/scap.h>
+#include <libsinsp/sinsp_public.h>
+#include <libsinsp/tuples.h>
 
 #include <json/json.h>
 

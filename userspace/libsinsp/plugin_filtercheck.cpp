@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "plugin_filtercheck.h"
-#include "plugin_manager.h"
+#include <libsinsp/plugin_filtercheck.h>
+#include <libsinsp/plugin_manager.h>
 
 using namespace std;
 

@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "mpsc_priority_queue.h"
+#include <libsinsp/mpsc_priority_queue.h>
 #include <gtest/gtest.h>
 #include <thread>
 #include <chrono>

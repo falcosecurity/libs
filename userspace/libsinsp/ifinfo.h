@@ -18,9 +18,9 @@ limitations under the License.
 
 #pragma once
 
-#include "settings.h"
-#include "sinsp_public.h"
-#include "tuples.h"
+#include <libsinsp/settings.h>
+#include <libsinsp/sinsp_public.h>
+#include <libsinsp/tuples.h>
 
 #include <string>
 #include <vector>

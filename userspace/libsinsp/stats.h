@@ -17,9 +17,9 @@ limitations under the License.
 */
 
 #pragma once
-#include <scap_stats_v2.h>
-#include <scap_machine_info.h>
-#include "threadinfo.h"
+#include <libscap/scap_stats_v2.h>
+#include <libscap/scap_machine_info.h>
+#include <libsinsp/threadinfo.h>
 
 typedef struct sinsp_stats_v2
 {

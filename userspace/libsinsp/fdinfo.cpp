@@ -20,9 +20,9 @@ limitations under the License.
 #include <inttypes.h>
 #include <algorithm>
 #endif
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "scap-int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/scap-int.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdinfo implementation

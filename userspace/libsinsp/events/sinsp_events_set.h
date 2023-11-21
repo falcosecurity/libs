@@ -18,9 +18,9 @@ limitations under the License.
 
 #pragma once
 
-#include "../event.h"
-#include "sinsp_exception.h"
-#include "sinsp_public.h"
+#include <libsinsp/event.h>
+#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/sinsp_public.h>
 
 #include <vector>
 #include <functional>

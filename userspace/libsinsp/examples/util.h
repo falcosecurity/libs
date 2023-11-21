@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 #include <string>
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 
 //
 // Get the string representation of a ppm_event_category

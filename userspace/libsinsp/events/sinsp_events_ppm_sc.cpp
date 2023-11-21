@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "sinsp_events.h"
-#include "../utils.h"
+#include <libsinsp/events/sinsp_events.h>
+#include <libsinsp/utils.h>
 
 /*
  * Repair base syscalls flags.

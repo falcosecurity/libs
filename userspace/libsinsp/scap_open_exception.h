@@ -17,7 +17,7 @@ limitations under the License.
 */
 #pragma once
 
-#include "sinsp_exception.h"
+#include <libsinsp/sinsp_exception.h>
 
 /*!
   \brief Instances of this exception are thrown when calls to scap_open()

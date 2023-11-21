@@ -23,12 +23,12 @@ limitations under the License.
 
 class sinsp_threadinfo;
 
-#include "cgroup_limits.h"
-#include "container_engine/container_engine_base.h"
-#include "container_engine/sinsp_container_type.h"
-#include "container_info.h"
-#include "container_async_source.h"
-#include <cri.h>
+#include <libsinsp/cgroup_limits.h>
+#include <libsinsp/container_engine/container_engine_base.h>
+#include <libsinsp/container_engine/sinsp_container_type.h>
+#include <libsinsp/container_info.h>
+#include <libsinsp/container_engine/container_async_source.h>
+#include <libsinsp/cri.h>
 
 namespace libsinsp {
 namespace container_engine {

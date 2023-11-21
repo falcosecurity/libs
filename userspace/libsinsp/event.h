@@ -28,13 +28,13 @@ limitations under the License.
 #define VISIBILITY_PRIVATE private:
 #endif
 
-#include "sinsp_inet.h"
-#include "sinsp_public.h"
-#include "sinsp_event_source.h"
-#include "scap.h"
-#include "gen_filter.h"
-#include "settings.h"
-#include "sinsp_exception.h"
+#include <libsinsp/sinsp_inet.h>
+#include <libsinsp/sinsp_public.h>
+#include <libsinsp/sinsp_event_source.h>
+#include <libscap/scap.h>
+#include <libsinsp/gen_filter.h>
+#include <libsinsp/settings.h>
+#include <libsinsp/sinsp_exception.h>
 
 typedef class sinsp sinsp;
 typedef class sinsp_threadinfo sinsp_threadinfo;

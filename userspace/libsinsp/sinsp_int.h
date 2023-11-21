@@ -21,12 +21,12 @@ limitations under the License.
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include "ifinfo.h"
-#include "scap.h"
-#include "settings.h"
-#include "sinsp_public.h"
-#include "parsers.h"
-#include "utils.h"
+#include <libsinsp/ifinfo.h>
+#include <libscap/scap.h>
+#include <libsinsp/settings.h>
+#include <libsinsp/sinsp_public.h>
+#include <libsinsp/parsers.h>
+#include <libsinsp/utils.h>
 
 #ifdef _WIN32
 #include <winsock2.h>

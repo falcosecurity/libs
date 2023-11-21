@@ -21,10 +21,10 @@ limitations under the License.
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include "version.h"
-#include "event.h"
-#include "plugin.h"
-#include "sinsp_exception.h"
+#include <libsinsp/version.h>
+#include <libsinsp/event.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/sinsp_exception.h>
 
 /**
  * @brief Manager for plugins loaded at runtime.

@@ -15,10 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "logger.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "strl.h"
+#include <libsinsp/logger.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/strl.h>
 
 #ifndef _WIN32
 #include <sys/time.h>

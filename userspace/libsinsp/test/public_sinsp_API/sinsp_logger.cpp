@@ -17,8 +17,8 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <sinsp.h>
-#include <logger.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/logger.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 

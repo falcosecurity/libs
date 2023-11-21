@@ -17,10 +17,10 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include "state/static_struct.h"
-#include "state/dynamic_struct.h"
-#include "state/table_registry.h"
-#include "sinsp.h"
+#include <libsinsp/state/static_struct.h>
+#include <libsinsp/state/dynamic_struct.h>
+#include <libsinsp/state/table_registry.h>
+#include <libsinsp/sinsp.h>
 
 TEST(typeinfo, basic_tests)
 {
