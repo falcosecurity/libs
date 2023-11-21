@@ -31,7 +31,7 @@ if(WIN32)
 	set(CMAKE_CXX_STANDARD 17)
 endif()
 
-include_directories(${LIBSINSP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver "${CMAKE_CURRENT_BINARY_DIR}")
+include_directories(${LIBSCAP_DIR}/driver ${CMAKE_CURRENT_BINARY_DIR})
 
 # Create a libsinsp_test_var.h file with some variables used by our tests
 configure_file (
@@ -177,10 +177,10 @@ if (EMSCRIPTEN)
 endif()
 
 target_link_libraries(unit-test-libsinsp
+	sinsp
 	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
 	"${TBB_LIB}"
-	sinsp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Coverage")

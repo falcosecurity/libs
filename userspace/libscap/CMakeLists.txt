@@ -55,7 +55,6 @@ if (DEFINED SCAP_BPF_PROGS_TAIL_CALLED_MAX)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
 
@@ -63,22 +62,29 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_strl_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/scap_strl_config.h)
 
-add_library(scap
+add_library(scap STATIC
 	scap.c
 	scap_api_version.c
 	scap_savefile.c
-	scap_platform_api.c)
+	scap_platform_api.c
+)
+
+target_include_directories(scap
+PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}
+)
 
 set_scap_target_properties(scap)
 
-add_library(scap_platform_util
-	STATIC
+add_library(scap_platform_util STATIC
 	scap_platform.c
 	scap_fds.c
 	scap_iflist.c
 	scap_proc_util.c
 	scap_procs.c
-	scap_userlist.c)
+	scap_userlist.c
+)
 add_dependencies(scap_platform_util uthash)
 
 target_link_libraries(scap
@@ -110,17 +116,16 @@ elseif(APPLE)
 	include_directories(macos)
 endif()
 
-add_library(scap_event_schema
-		STATIC
-		scap_event.c
-		ppm_sc_names.c
-		../../driver/dynamic_params_table.c
-		../../driver/event_table.c
-		../../driver/flags_table.c
-		../../driver/syscall_table64.c
-		../../driver/syscall_ia32_64_map.c
-		linux/scap_ppm_sc.c
-        )
+add_library(scap_event_schema STATIC
+	scap_event.c
+	ppm_sc_names.c
+	../../driver/dynamic_params_table.c
+	../../driver/event_table.c
+	../../driver/flags_table.c
+	../../driver/syscall_table64.c
+	../../driver/syscall_ia32_64_map.c
+	linux/scap_ppm_sc.c
+)
 add_dependencies(scap_event_schema uthash)
 
 target_link_libraries(scap scap_event_schema)
@@ -133,11 +138,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_library(scap_engine_util
-		STATIC
+	add_library(scap_engine_util STATIC
 		scap_engine_util.c
 		ringbuffer/devset.c
-		ringbuffer/ringbuffer.c)
+		ringbuffer/ringbuffer.c
+	)
 	add_dependencies(scap_engine_util uthash)
 
 	target_link_libraries(scap scap_engine_util)
