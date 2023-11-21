@@ -338,11 +338,18 @@ public:
 	const struct ppm_param_info* get_param_info(uint32_t id);
 
 	/*!
-	  \brief Get a parameter in raw format.
+	  \brief Get a parameter in raw format by position.
 
 	  \param id The parameter number.
 	*/
 	sinsp_evt_param* get_param(uint32_t id);
+
+	/*!
+	  \brief Get a parameter in raw format by name.
+
+	  \param name The parameter name.
+	*/
+	const sinsp_evt_param* get_param_by_name(const char* name);
 
 	/*!
 	  \brief Get the value of a fixed param (fixed length type or packed struct).
@@ -394,13 +401,6 @@ public:
 
 		return param->m_val;
 	}
-
-	/*!
-	  \brief Get a parameter in raw format.
-
-	  \param name The parameter name.
-	*/
-	const sinsp_evt_param* get_param_value_raw(const char* name);
 
 	/*!
 	  \brief Get a parameter as a C++ string.

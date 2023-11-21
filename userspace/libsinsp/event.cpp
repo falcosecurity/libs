@@ -199,6 +199,33 @@ sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
 	return &(m_params.at(id));
 }
 
+const sinsp_evt_param* sinsp_evt::get_param_by_name(const char* name)
+{
+	//
+	// Make sure the params are actually loaded
+	//
+	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
+	{
+		load_params();
+		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
+	}
+
+	//
+	// Locate the parameter given the name
+	//
+	uint32_t np = get_num_params();
+
+	for(uint32_t j = 0; j < np; j++)
+	{
+		if(strcmp(name, get_param_name(j)) == 0)
+		{
+			return &(m_params[j]);
+		}
+	}
+
+	return NULL;
+}
+
 const char *sinsp_evt::get_param_name(uint32_t id)
 {
 	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
@@ -2576,33 +2603,6 @@ const char* sinsp_evt::get_param_value_str(const char* name, OUT const char** re
 	return NULL;
 }
 
-const sinsp_evt_param* sinsp_evt::get_param_value_raw(const char* name)
-{
-	//
-	// Make sure the params are actually loaded
-	//
-	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
-	{
-		load_params();
-		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
-	}
-
-	//
-	// Locate the parameter given the name
-	//
-	uint32_t np = get_num_params();
-
-	for(uint32_t j = 0; j < np; j++)
-	{
-		if(strcmp(name, get_param_name(j)) == 0)
-		{
-			return &(m_params[j]);
-		}
-	}
-
-	return NULL;
-}
-
 void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 {
 	/* We always search the category inside the event table */
@@ -2884,7 +2884,7 @@ void sinsp_evt::save_enter_event_params(sinsp_evt* enter_evt)
 	{
 		const sinsp_evt_param *param;
 
-		param = enter_evt->get_param_value_raw(pname);
+		param = enter_evt->get_param_by_name(pname);
 		if(param)
 		{
 			std::string val;

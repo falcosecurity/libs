@@ -424,7 +424,7 @@ const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
 
 uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 {
-	const sinsp_evt_param* pi = evt->get_param_value_raw(argname);
+	const sinsp_evt_param* pi = evt->get_param_by_name(argname);
 
 	if(pi != NULL)
 	{
@@ -652,7 +652,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 
 uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint32_t* len)
 {
-	const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+	const sinsp_evt_param* pi = evt->get_param_by_name("res");
 
 	if(pi != NULL)
 	{
@@ -672,7 +672,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 
 	if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 	{
-		pi = evt->get_param_value_raw("fd");
+		pi = evt->get_param_by_name("fd");
 
 		if(pi != NULL)
 		{
@@ -1191,7 +1191,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		break;
 	case TYPE_RESRAW:
 		{
-			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+			const sinsp_evt_param* pi = evt->get_param_by_name("res");
 
 			if(pi != NULL)
 			{
@@ -1201,7 +1201,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
-				pi = evt->get_param_value_raw("fd");
+				pi = evt->get_param_by_name("fd");
 
 				if(pi != NULL)
 				{
@@ -1218,7 +1218,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			const char* resolved_argstr;
 			const char* argstr;
 
-			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+			const sinsp_evt_param* pi = evt->get_param_by_name("res");
 
 			if(pi != NULL)
 			{
@@ -1249,7 +1249,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			{
 				if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 				{
-					pi = evt->get_param_value_raw("fd");
+					pi = evt->get_param_by_name("fd");
 					if (pi)
 					{
 						int64_t res = *(int64_t*)pi->m_val;
@@ -1282,7 +1282,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_FAILED:
 		{
 			m_u32val = 0;
-			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
+			const sinsp_evt_param* pi = evt->get_param_by_name("res");
 
 			if(pi != NULL)
 			{
@@ -1294,7 +1294,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			}
 			else if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
-				pi = evt->get_param_value_raw("fd");
+				pi = evt->get_param_by_name("fd");
 
 				if(pi != NULL)
 				{
