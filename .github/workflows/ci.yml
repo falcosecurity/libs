@@ -362,6 +362,42 @@ jobs:
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make scap-open driver bpf unit-test-libsinsp -j6
             ./libsinsp/test/unit-test-libsinsp
 
+  build-libs-ppc64le:
+    name: build-libs-ppc64le 😇 (system_deps)
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - uses: uraimo/run-on-arch-action@4ed76f16f09d12e83abd8a49e1ac1e5bf08784d4 # v2.5.1
+        name: Run ppc64le build 🏗️
+        with:
+          arch: ppc64le
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libcap-dev libprotobuf-dev linux-headers-generic           
+            git clone https://github.com/libbpf/bpftool.git --branch v7.0.0 --single-branch
+            cd bpftool
+            git submodule update --init
+            cd src && make install
+            cd ../../
+            git clone https://github.com/libbpf/libbpf.git --branch v1.0.1 --single-branch
+            cd libbpf/src && BUILD_STATIC_ONLY=y DESTDIR=/ make install
+            ln -s /usr/lib64/libbpf.a /usr/lib/powerpc64le-linux-gnu/
+          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
+          run: |
+            git config --global --add safe.directory $GITHUB_WORKSPACE
+            .github/install-deps.sh
+            mkdir -p build
+            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/powerpc64le-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make scap-open driver bpf unit-test-libsinsp -j6
+            ./libsinsp/test/unit-test-libsinsp
+
   # This job checks that a bundled deps of libs is as static as possible
   test-libs-static:
     name: test-libs-static (bundled_deps)
