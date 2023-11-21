@@ -24,11 +24,11 @@ limitations under the License.
     typedef void* library_handle_t;
 #endif
 
-#include "strl.h"
+#include <libscap/strl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "plugin_loader.h"
+#include <plugin/plugin_loader.h>
 
 static inline void err_prepend(char* s, const char* prefix, const char* sep)
 {

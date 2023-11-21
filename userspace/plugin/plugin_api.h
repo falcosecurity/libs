@@ -18,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "plugin_types.h"
+#include <plugin/plugin_types.h>
 
 #ifdef __cplusplus
 extern "C" {
