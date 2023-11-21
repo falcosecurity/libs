@@ -27,7 +27,7 @@ if(RESULT STREQUAL NOTFOUND)
 endif()
 
 # This will be the name of the final `bpf.o` file. We put it here this way
-# we can log it even if `USE_BUNDLED_MODERN_BPF` is `OFF` 
+# we can log it even if `USE_BUNDLED_MODERN_BPF` is `OFF`
 set(UNIQUE_BPF_O_FILE_NAME bpf_probe)
 
 # This must be a dir because we use it as an include path
@@ -53,6 +53,6 @@ add_library(scap_engine_modern_bpf
 )
 
 add_dependencies(scap_engine_modern_bpf pman)
-target_link_libraries(scap_engine_modern_bpf pman scap_engine_util scap_engine_noop)
+target_link_libraries(scap_engine_modern_bpf PRIVATE pman scap_engine_util scap_engine_noop)
 
 set_scap_target_properties(scap_engine_modern_bpf)

@@ -86,12 +86,13 @@ else()
 
     add_dependencies(scap_engine_gvisor uthash)
     target_link_libraries(scap_engine_gvisor
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${PROTOBUF_LIB}
-        ${JSONCPP_LIB}
+    PRIVATE
         scap
         scap_platform_util
         scap_error
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${PROTOBUF_LIB}
+        ${JSONCPP_LIB}
     )
     set_scap_target_properties(scap_engine_gvisor)
 endif()
