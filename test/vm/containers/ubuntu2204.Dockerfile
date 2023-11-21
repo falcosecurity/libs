@@ -35,7 +35,6 @@ RUN apt --fix-broken -y install && apt-get install -y --no-install-recommends \
     libc-ares-dev \
     libprotobuf-dev \
     protobuf-compiler \
-    libjq-dev \
     libgrpc++-dev \
     protobuf-compiler-grpc \
     libcurl4-openssl-dev \

@@ -66,7 +66,6 @@ if(NOT WIN32 AND NOT APPLE )
 		include(protobuf)
 		include(openssl)
 	endif() # NOT MINIMAL_BUILD
-	include(jq)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
@@ -268,7 +267,7 @@ if(NOT WIN32)
 						"${GPR_LIB}"
 						"${PROTOBUF_LIB}"
 						"${CARES_LIB}"
-						"${JQ_LIB}")
+			)
 			list(APPEND SINSP_PKGCONFIG_LIBRARIES
 						"${GRPC_LIBRARIES}"
 						"${GRPCPP_LIB}"
@@ -276,7 +275,7 @@ if(NOT WIN32)
 						"${GPR_LIB}"
 						"${PROTOBUF_LIB}"
 						"${CARES_LIB}"
-						"${JQ_LIB}")
+			)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				target_link_libraries(sinsp INTERFACE rt anl)
@@ -284,16 +283,9 @@ if(NOT WIN32)
 			endif()
 
 		else()
-			target_link_libraries(sinsp INTERFACE "${JQ_LIB}" rt)
-			list(APPEND SINSP_PKGCONFIG_LIBRARIES "${JQ_LIB}" rt)
+			target_link_libraries(sinsp INTERFACE rt)
+			list(APPEND SINSP_PKGCONFIG_LIBRARIES rt)
 		endif() # NOT MINIMAL_BUILD
-		# when JQ is compiled statically, it will
-		# also compile a static object for oniguruma we need to link
-		if(ONIGURUMA_LIB)
-			target_link_libraries(sinsp INTERFACE "${ONIGURUMA_LIB}")
-			list(APPEND SINSP_PKGCONFIG_LIBRARIES "${ONIGURUMA_LIB}")
-			add_dependencies(sinsp jq)
-		endif()
 	endif() # NOT APPLE
 
 	target_link_libraries(sinsp INTERFACE "${OPENSSL_LIBRARIES}")
