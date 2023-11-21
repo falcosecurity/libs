@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "../version.h"
+#include "version.h"
 
 #include <gtest/gtest.h>
 
@@ -53,7 +53,7 @@ TEST(versions, operator_gt)
     EXPECT_TRUE(sinsp_version("1.2.4") > sinsp_version("1.2.3"));
     EXPECT_FALSE(sinsp_version("1.2.3") > sinsp_version("1.2.3"));
     EXPECT_TRUE(sinsp_version("2.2.3") > sinsp_version("1.5.5"));
-    
+
     EXPECT_TRUE(sinsp_version("2.2.3") >= sinsp_version("1.2.3"));
     EXPECT_TRUE(sinsp_version("1.3.3") >= sinsp_version("1.2.3"));
     EXPECT_TRUE(sinsp_version("1.2.4") >= sinsp_version("1.2.3"));

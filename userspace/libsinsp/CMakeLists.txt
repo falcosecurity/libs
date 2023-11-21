@@ -14,11 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(./)
-include_directories(${LIBSCAP_INCLUDE_DIRS})
-include_directories(../async)
-include_directories(./include)
-include_directories(../plugin)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
@@ -42,7 +37,6 @@ include(ExternalProject)
 
 include(jsoncpp)
 if(WITH_CHISEL)
-	include_directories(../chisel)
 	include(luajit)
 endif()
 
@@ -61,14 +55,14 @@ if(NOT WIN32 AND NOT APPLE )
 		include(protobuf)
 		include(openssl)
 	endif() # NOT MINIMAL_BUILD
-	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+	include(jq)
 endif()
 
 if (NOT EMSCRIPTEN)
 	include(tbb)
 endif()
 
-set(SINSP_SOURCES
+add_library(sinsp STATIC
 	filter/ast.cpp
 	filter/escaping.cpp
 	filter/parser.cpp
@@ -125,41 +119,49 @@ set(SINSP_SOURCES
 	gvisor_config.cpp
 	sinsp_suppress.cpp
 	events/sinsp_events.cpp
-	events/sinsp_events_ppm_sc.cpp)
+	events/sinsp_events_ppm_sc.cpp
+)
 
 if(NOT WIN32 AND NOT APPLE)
-	list(APPEND SINSP_SOURCES procfs_utils.cpp sinsp_cgroup.cpp)
+	target_sources(sinsp PRIVATE procfs_utils.cpp sinsp_cgroup.cpp)
 endif()
 
 if(WITH_CHISEL)
-	list(APPEND SINSP_SOURCES
+	target_sources(sinsp
+	PRIVATE
 		../chisel/chisel_api.cpp
 		../chisel/chisel_fields_info.cpp
 		../chisel/chisel_utils.cpp
 		../chisel/chisel.cpp
 		../chisel/chisel_viewinfo.cpp
-		../chisel/chisel_table.cpp)
+		../chisel/chisel_table.cpp
+	)
 endif()
 
 if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
-	list(APPEND SINSP_SOURCES
+	target_sources(sinsp
+	PRIVATE
 		container_engine/docker/async_source.cpp
-		container_engine/docker/base.cpp)
+		container_engine/docker/base.cpp
+	)
 	if(NOT WIN32)
-	list(APPEND SINSP_SOURCES
-		container_engine/docker/docker_linux.cpp
-		container_engine/docker/connection_linux.cpp
-		container_engine/docker/podman.cpp
-		container_engine/libvirt_lxc.cpp
-		container_engine/lxc.cpp
-		container_engine/mesos.cpp
-		container_engine/rkt.cpp
-		container_engine/bpm.cpp
-		runc.cpp)
+		target_sources(sinsp
+		PRIVATE
+			container_engine/docker/docker_linux.cpp
+			container_engine/docker/connection_linux.cpp
+			container_engine/docker/podman.cpp
+			container_engine/libvirt_lxc.cpp
+			container_engine/lxc.cpp
+			container_engine/mesos.cpp
+			container_engine/rkt.cpp
+			container_engine/bpm.cpp
+			runc.cpp
+		)
 	endif()
 
 	if(NOT WIN32 AND NOT APPLE)
-		list(APPEND SINSP_SOURCES
+		target_sources(sinsp
+		PRIVATE
 			cgroup_limits.cpp
 			container_engine/cri.cpp
 			grpc_channel_registry.cpp
@@ -167,7 +169,15 @@ if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 	endif()
 endif()
 
-add_library(sinsp ${SINSP_SOURCES})
+target_include_directories(sinsp
+PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/../plugin
+)
+
+if(WITH_CHISEL)
+	target_include_directories(sinsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../chisel)
+endif()
 
 if (EMSCRIPTEN)
 	target_compile_options(sinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
@@ -229,6 +239,7 @@ function(prepare_cri_grpc api_version)
 			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 	add_library(cri_${api_version} STATIC ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc)
+	target_include_directories(cri_${api_version} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 	add_dependencies(cri_${api_version} grpc)
 endfunction()
 
@@ -252,8 +263,8 @@ if(NOT WIN32)
 
 			target_link_libraries(sinsp
 					PRIVATE
-						"cri_v1alpha2"
-						"cri_v1"
+						cri_v1alpha2
+						cri_v1
 					INTERFACE
 						"${GRPC_LIBRARIES}"
 						"${GRPCPP_LIB}"
