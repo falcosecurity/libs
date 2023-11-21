@@ -1039,8 +1039,8 @@ FILLER(sys_getrlimit_x, true)
 {
 	unsigned long val;
 	long retval;
-	s64 cur;
-	s64 max;
+	int64_t cur;
+	int64_t max;
 	int res;
 
 	/* Parameter 1: ret (type: PT_ERRNO) */
@@ -1051,16 +1051,12 @@ FILLER(sys_getrlimit_x, true)
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if(retval >= 0){
-		struct rlimit rl;
-
+	if(retval == 0){
+		struct rlimit rl = {0};
 		val = bpf_syscall_get_argument(data, 1);
-		if(bpf_probe_read_user(&rl, sizeof(rl), (void *)val))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
+		bpf_probe_read_user(&rl, sizeof(rl), (void *)val);
 		cur = rl.rlim_cur;
 		max = rl.rlim_max;
-
 	} else {
 		cur = -1;
 		max = -1;
@@ -1070,7 +1066,7 @@ FILLER(sys_getrlimit_x, true)
 	res = bpf_push_s64_to_ring(data, cur);
 	CHECK_RES(res);
 
-	/* Parameter 3: max (type: PT_ERRNO) */
+	/* Parameter 3: max (type: PT_INT64) */
 	return bpf_push_s64_to_ring(data, max);
 }
 
@@ -1090,22 +1086,21 @@ FILLER(sys_setrlimit_x, true)
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-		struct rlimit rl = {0};
-		
-		val = bpf_syscall_get_argument(data, 1);
-		bpf_probe_read_user(&rl, sizeof(rl), (void *)val);
-		cur = rl.rlim_cur;
-		max = rl.rlim_max;
+	struct rlimit rl = {0};	
+	val = bpf_syscall_get_argument(data, 1);
+	bpf_probe_read_user(&rl, sizeof(rl), (void *)val);
+	cur = rl.rlim_cur;
+	max = rl.rlim_max;
 
 	/* Parameter 2: cur (type: PT_INT64) */
 	res = bpf_push_s64_to_ring(data, cur);
 	CHECK_RES(res);
 
-	/* Parameter 3: max (type: PT_ERRNO) */
+	/* Parameter 3: max (type: PT_INT64) */
 	res = bpf_push_s64_to_ring(data, max);
 	CHECK_RES(res);
 	
-	/* Parameter 4: resource (type: PT_ERRNO) */
+	/* Parameter 4: resource (type: PT_ENUMFLAGS8) */
 	uint32_t resource = bpf_syscall_get_argument(data, 0);
 	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }
@@ -3859,67 +3854,58 @@ FILLER(sys_prlimit_e, true)
 FILLER(sys_prlimit_x, true)
 {
 	unsigned long val;
-	struct rlimit rl;
-	long retval;
-	int64_t newcur;
-	int64_t newmax;
-	int64_t oldcur;
-	int64_t oldmax;
-	int res;
 
-	/* Parameter 1: res */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if (retval >= 0) {
-		val = bpf_syscall_get_argument(data, 2);
-		if (bpf_probe_read_user(&rl, sizeof(rl), (void *)val)) {
-			newcur = -1;
-			newmax = -1;
-		} else {
-			newcur = rl.rlim_cur;
-			newmax = rl.rlim_max;
-		}
-	} else {
-		newcur = -1;
-		newmax = -1;
+	struct rlimit new_rlimit = {0};
+	val = bpf_syscall_get_argument(data, 2);
+	bpf_probe_read_user(&new_rlimit, sizeof(new_rlimit), (void *)val);
+
+	/* Parameter 2: newcur (type: PT_INT64) */
+	res = bpf_push_s64_to_ring(data, new_rlimit.rlim_cur);
+	CHECK_RES(res);
+
+	/* Parameter 3: newmax (type: PT_INT64) */
+	res = bpf_push_s64_to_ring(data, new_rlimit.rlim_max);
+	CHECK_RES(res);
+
+	struct rlimit old_rlimit = {0};
+	if(retval == 0)
+	{
+		val = bpf_syscall_get_argument(data, 3);
+		bpf_probe_read_user(&old_rlimit, sizeof(old_rlimit), (void *)val);
+
+		/* Parameter 4: oldcur (type: PT_INT64) */
+		res = bpf_push_s64_to_ring(data, old_rlimit.rlim_cur);
+		CHECK_RES(res);
+
+		/* Parameter 5: oldmax (type: PT_INT64) */
+		res = bpf_push_s64_to_ring(data, old_rlimit.rlim_max);
+		CHECK_RES(res);		
+	}
+	else
+	{
+		/* Parameter 4: oldcur (type: PT_INT64) */
+		res = bpf_push_s64_to_ring(data, -1);
+		CHECK_RES(res);
+
+		/* Parameter 5: oldmax (type: PT_INT64) */
+		res = bpf_push_s64_to_ring(data, -1);
+		CHECK_RES(res);		
 	}
 
-	val = bpf_syscall_get_argument(data, 3);
-	if (bpf_probe_read_user(&rl, sizeof(rl), (void *)val)) {
-		oldcur = -1;
-		oldmax = -1;
-	} else {
-		oldcur = rl.rlim_cur;
-		oldmax = rl.rlim_max;
-	}
-
-	/* Parameter 2: newcur */
-	res = bpf_push_s64_to_ring(data, newcur);
-	CHECK_RES(res);
-
-	/* Parameter 3: newmax */
-	res = bpf_push_s64_to_ring(data, newmax);
-	CHECK_RES(res);
-
-	/* Parameter 4: oldcur */
-	res = bpf_push_s64_to_ring(data, oldcur);
-	CHECK_RES(res);
-
-	/* Parameter 5: oldmax */
-	res = bpf_push_s64_to_ring(data, oldmax);
-	CHECK_RES(res);
-
-	/* Parameter 6: pid */
+	/* Parameter 6: pid (type: PT_PID) */
 	pid_t pid = bpf_syscall_get_argument(data, 0);
 	res = bpf_push_s64_to_ring(data, (s64)pid);
 	CHECK_RES(res);
 
-	/* Parameter 7: resource */
+	/* Parameter 7: resource (type: PT_ENUMFLAGS8) */
 	uint32_t resource = bpf_syscall_get_argument(data, 1);
 	return bpf_push_u8_to_ring(data, rlimit_resource_to_scap(resource));
 }

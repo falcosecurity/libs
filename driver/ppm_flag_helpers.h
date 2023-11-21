@@ -1293,9 +1293,9 @@ static __always_inline uint32_t access_flags_to_scap(unsigned flags)
 	return res;
 }
 
-static __always_inline u8 rlimit_resource_to_scap(uint32_t rresource)
+static __always_inline u8 rlimit_resource_to_scap(uint32_t resource)
 {
-	switch (rresource) {
+	switch (resource) {
 	case RLIMIT_CPU:
 		return PPM_RLIMIT_CPU;
 	case RLIMIT_FSIZE:

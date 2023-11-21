@@ -4085,9 +4085,9 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
-	struct rlimit rl;
+	struct rlimit rl = {0};
 #ifdef CONFIG_COMPAT
-	struct compat_rlimit compat_rl;
+	struct compat_rlimit compat_rl = {0};
 #endif
 	int64_t cur;
 	int64_t max;
@@ -4100,8 +4100,8 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-if(retval >= 0) {
-		
+	if(retval == 0)
+	{	
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
@@ -4109,18 +4109,29 @@ if(retval >= 0) {
 		{
 #endif
 			if(unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-			cur = rl.rlim_cur;
-			max = rl.rlim_max;
+			{
+				cur = 0;
+				max = 0;
+			}
+			else
+			{
+				cur = rl.rlim_cur;
+				max = rl.rlim_max;
+			}
 #ifdef CONFIG_COMPAT
 		}
 		else
 		{
-			if(unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)compat_ptr(val),
-						       sizeof(struct compat_rlimit))))
-				return PPM_FAILURE_INVALID_USER_MEMORY;
-			cur = compat_rl.rlim_cur;
-			max = compat_rl.rlim_max;
+			if(unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)compat_ptr(val), sizeof(struct compat_rlimit))))
+			{
+				cur = 0;
+				max = 0;
+			}
+			else
+			{
+				cur = compat_rl.rlim_cur;
+				max = compat_rl.rlim_max;
+			}
 		}
 #endif
 	}
@@ -4141,15 +4152,13 @@ if(retval >= 0) {
 	return add_sentinel(args);
 }
 
-
-
 int f_sys_setrlimit_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
 	int64_t retval;
 #ifdef CONFIG_COMPAT
-	struct compat_rlimit compat_rl;
+	struct compat_rlimit compat_rl = {0};
 #endif
 	int64_t cur;
 	int64_t max;
@@ -4163,24 +4172,23 @@ int f_sys_setrlimit_x(struct event_filler_arguments *args)
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-		syscall_get_arguments_deprecated(args, 1, 1, &val);
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
-		if (!args->compat) {
+	if (!args->compat) {
 #endif
-			ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));    
-			cur = rl.rlim_cur;
-			max = rl.rlim_max;
+		ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));    
+		cur = rl.rlim_cur;
+		max = rl.rlim_max;
 #ifdef CONFIG_COMPAT
-		} else {
-			if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)compat_ptr(val), sizeof(struct compat_rlimit))))
-				return PPM_FAILURE_INVALID_USER_MEMORY;
-			cur = compat_rl.rlim_cur;
-			max = compat_rl.rlim_max;
-		}
+	} else {
+		ppm_copy_from_user(&compat_rl, (const void __user *)compat_ptr(val), sizeof(struct compat_rlimit));
+		cur = compat_rl.rlim_cur;
+		max = compat_rl.rlim_max;
+	}
 #endif
 
-	/* Parameter 2: curr (type: PT_INT64) */
+	/* Parameter 2: cur (type: PT_INT64) */
 	res = val_to_ring(args, cur, 0, false, 0);
 	CHECK_RES(res);
 
@@ -4221,9 +4229,9 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int res;
 	int64_t retval;
-	struct rlimit rl;
+	struct rlimit rl = {0};
 #ifdef CONFIG_COMPAT
-	struct compat_rlimit compat_rl;
+	struct compat_rlimit compat_rl = {0};
 #endif
 	int64_t newcur;
 	int64_t newmax;
@@ -4239,65 +4247,68 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if (retval >= 0) {
-		syscall_get_arguments_deprecated(args, 2, 1, &val);
-#ifdef CONFIG_COMPAT
-		if (!args->compat) {
-#endif
-			if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
-				newcur = -1;
-				newmax = -1;
-			} else {
-				newcur = rl.rlim_cur;
-				newmax = rl.rlim_max;
-			}
-#ifdef CONFIG_COMPAT
-		} else {
-			if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit)))) {
-				newcur = -1;
-				newmax = -1;
-			} else {
-				newcur = compat_rl.rlim_cur;
-				newmax = compat_rl.rlim_max;
-			}
-		}
-#endif
-	} else {
-		newcur = -1;
-		newmax = -1;
-	}
-
-	syscall_get_arguments_deprecated(args, 3, 1, &val);
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
-			oldcur = -1;
-			oldmax = -1;
-		} else {
-			oldcur = rl.rlim_cur;
-			oldmax = rl.rlim_max;
-		}
+		ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));
+		newcur = rl.rlim_cur;
+		newmax = rl.rlim_max;
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit)))) {
-			oldcur = -1;
-			oldmax = -1;
-		} else {
-			oldcur = compat_rl.rlim_cur;
-			oldmax = compat_rl.rlim_max;
-		}
+		ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit));
+		newcur = compat_rl.rlim_cur;
+		newmax = compat_rl.rlim_max;
 	}
 #endif
+
 	/* Parameter 2: newcur (type: PT_INT64) */
 	res = val_to_ring(args, newcur, 0, false, 0);
-	CHECK_RES(res);
 	CHECK_RES(res);
 
 	/* Parameter 3: newmax (type: PT_INT64) */
 	res = val_to_ring(args, newmax, 0, false, 0);
 	CHECK_RES(res);
-	CHECK_RES(res);
+
+	if(retval == 0)
+	{
+		syscall_get_arguments_deprecated(args, 3, 1, &val);
+
+#ifdef CONFIG_COMPAT
+		if (!args->compat) {
+#endif
+			if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit))))
+			{
+				oldcur = 0;
+				oldmax = 0;
+			}
+			else
+			{
+				oldcur = rl.rlim_cur;
+				oldmax = rl.rlim_max;
+			}
+#ifdef CONFIG_COMPAT
+		}
+		else
+		{
+			if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit))))
+			{
+				oldcur = 0;
+				oldmax = 0;
+			}
+			else
+			{
+				oldcur = compat_rl.rlim_cur;
+				oldmax = compat_rl.rlim_max;
+			}
+		}
+#endif
+	}
+	else
+	{
+		oldcur = -1;
+		oldmax = -1;	
+	}
 
 	/* Parameter 4: oldcur (type: PT_INT64) */
 	res = val_to_ring(args, oldcur, 0, false, 0);
@@ -4307,7 +4318,7 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, oldmax, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 6: pid (type: PT_INT64) */
+	/* Parameter 6: pid (type: PT_PID) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	pid = (s32)val;
 	res = val_to_ring(args, (s64)pid, 0, false, 0);
