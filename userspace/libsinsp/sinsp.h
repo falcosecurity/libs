@@ -147,21 +147,6 @@ public:
 */
 #define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
-//
-// Internal stuff for meta event management
-//
-typedef void (*meta_event_callback)(sinsp*, void* data);
-class sinsp_proc_metainfo
-{
-public:
-	sinsp_evt m_pievt;
-	scap_evt* m_piscapevt;
-	uint64_t* m_piscapevt_vals;
-	uint64_t m_n_procinfo_evts;
-	int64_t m_cur_procinfo_evt;
-	ppm_proclist_info* m_pli;
-};
-
 /*!
   \brief Sinsp possible modes
 */
@@ -883,9 +868,7 @@ public:
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
-	void add_meta_event(sinsp_evt *metaevt);
-	void add_meta_event_callback(meta_event_callback cback, void* data);
-	void remove_meta_event_callback();
+
 	uint64_t get_bytes_read()
 	{
 		return scap_ftell(m_h);
@@ -1165,13 +1148,6 @@ public:
 	//
 	bool m_isdropping;
 
-	//
-	// meta event management for other sources like k8s, mesos.
-	//
-	sinsp_evt* m_metaevt;
-	meta_event_callback m_meta_event_callback;
-	void* m_meta_event_callback_data;
-
 	// A queue of pending internal state events:
 	// * 	container events. Written from async
 	// 	callbacks that occur after looking up container
@@ -1247,14 +1223,16 @@ public:
 		uint32_t  m_dump_flags;
 	} m_delayed_scap_evt;
 
-
 	//
-	// End of second housekeeping
+	// Used for collecting process CPU and res usage info from the kernel
 	//
 	bool m_get_procs_cpu_from_driver;
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_last_procrequest_tod;
-	sinsp_proc_metainfo m_meinfo;
+
+	//
+	// End of second housekeeping
+	//
 	uint64_t m_next_stats_print_time_ns;
 
 	static unsigned int m_num_possible_cpus;
