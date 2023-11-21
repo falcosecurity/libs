@@ -9,7 +9,7 @@
 #pragma once
 
 #include <helpers/base/common.h>
-#include <shared_definitions/struct_definitions.h>
+#include <driver/modern_bpf/shared_definitions/struct_definitions.h>
 #include <driver/ppm_events_public.h>
 
 /////////////////////////////////////////
