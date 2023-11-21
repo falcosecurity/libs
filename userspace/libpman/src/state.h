@@ -18,11 +18,11 @@ limitations under the License.
 
 #pragma once
 
-#include "scap_log.h"
+#include <libscap/scap_log.h>
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
-#include <shared_definitions/struct_definitions.h>
+#include <driver/modern_bpf/shared_definitions/struct_definitions.h>
 #include <bpf_probe.skel.h>
 #include <unistd.h>
 #include <errno.h>

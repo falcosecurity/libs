@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "state.h"
 #include <libpman.h>
-#include <scap.h>
+#include <libscap/scap.h>
 
 /* This function should be idempotent, every time it is called it should enforce again the state */
 int pman_enforce_sc_set(bool *sc_set)
