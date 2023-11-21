@@ -4106,7 +4106,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 		if(eflags & EF_READS_FROM_FD)
 		{
-			char *data;
+			const char *data;
 			uint32_t datalen;
 			int32_t tupleparam = -1;
 
@@ -4221,7 +4221,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			char *data;
+			const char *data;
 			uint32_t datalen;
 			int32_t tupleparam = -1;
 

@@ -252,7 +252,7 @@ const struct ppm_param_info* sinsp_evt::get_param_info(uint32_t id)
 	return &(m_info->params[id]);
 }
 
-uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_hex_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
 	uint32_t k;
@@ -260,7 +260,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 	uint32_t num_chunks;
 	uint32_t row_len;
 	char row[128];
-	char *ptr;
+	const char *ptr;
 	bool truncated = false;
 
 	for(j = 0; j < srclen; j += 8 * sizeof(uint16_t))
@@ -346,7 +346,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 	}
 }
 
-uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_asciionly_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
 	uint32_t k = 0;
@@ -403,7 +403,7 @@ uint32_t binary_buffer_to_asciionly_string(char *dst, char *src, uint32_t dstlen
 	return k;
 }
 
-uint32_t binary_buffer_to_string_dots(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_string_dots(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
 	uint32_t k = 0;
@@ -446,7 +446,7 @@ uint32_t binary_buffer_to_string_dots(char *dst, char *src, uint32_t dstlen, uin
 	return k;
 }
 
-uint32_t binary_buffer_to_base64_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_base64_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	//
 	// base64 encoder, malloc-free version of:
@@ -493,7 +493,7 @@ uint32_t binary_buffer_to_base64_string(char *dst, char *src, uint32_t dstlen, u
 	return enc_dstlen;
 }
 
-uint32_t binary_buffer_to_json_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_json_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t k = 0;
 	switch(fmt)
@@ -514,7 +514,7 @@ uint32_t binary_buffer_to_json_string(char *dst, char *src, uint32_t dstlen, uin
 	return k;
 }
 
-uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t k = 0;
 
@@ -557,7 +557,7 @@ uint32_t binary_buffer_to_string(char *dst, char *src, uint32_t dstlen, uint32_t
 	return k;
 }
 
-uint32_t strcpy_sanitized(char *dest, char *src, uint32_t dstsize)
+uint32_t strcpy_sanitized(char *dest, const char *src, uint32_t dstsize)
 {
 	volatile char* tmp = (volatile char *)dest;
 	uint32_t j = 0;
@@ -798,7 +798,7 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	const ppm_param_info* param_info = NULL;
-	char* payload = NULL;
+	const char* payload = NULL;
 	uint32_t payload_len = 0;
 	Json::Value ret = Json::nullValue;
 
@@ -1543,7 +1543,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 {
 	char* prfmt = NULL;
 	const ppm_param_info* param_info = NULL;
-	char* payload = NULL;
+	const char* payload = NULL;
 	uint32_t j = 0;
 	uint32_t payload_len = 0;
 

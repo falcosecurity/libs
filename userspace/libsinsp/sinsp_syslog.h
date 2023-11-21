@@ -34,7 +34,7 @@ public:
     sinsp_syslog_decoder(const sinsp_syslog_decoder& s) = default;
     sinsp_syslog_decoder& operator = (const sinsp_syslog_decoder& s) = default;
 
-	void parse_data(char *data, uint32_t len);
+	void parse_data(const char *data, uint32_t len);
 
 	const std::string get_info_line();
 
@@ -73,7 +73,7 @@ public:
 	}
 
 private:
-	void decode_message(char *data, uint32_t len, char* pristr, uint32_t pristrlen);
+	void decode_message(const char *data, uint32_t len, char* pristr, uint32_t pristrlen);
 
 	int32_t m_priority{s_invalid_priority};
 	uint32_t m_facility{0};

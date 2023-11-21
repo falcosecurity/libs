@@ -54,11 +54,11 @@ static std::string s_syslog_facility_strings[] =
 	"local7"
 };
 
-void sinsp_syslog_decoder::parse_data(char *data, uint32_t len)
+void sinsp_syslog_decoder::parse_data(const char *data, uint32_t len)
 {
 	char pri[PRI_BUF_SIZE];
-	char* tc = data + 1;
-	char* te = data + len;
+	const char* tc = data + 1;
+	const char* te = data + len;
 	uint32_t j = 0;
 
 	while(tc < te && *tc != '>' && *tc != '\0' && j < PRI_BUF_SIZE - 1)
@@ -96,7 +96,7 @@ const std::string sinsp_syslog_decoder::get_facility_str() const
 	}
 }
 
-void sinsp_syslog_decoder::decode_message(char *data, uint32_t len, char* pristr, uint32_t pristrlen)
+void sinsp_syslog_decoder::decode_message(const char *data, uint32_t len, char* pristr, uint32_t pristrlen)
 {
 	if(len < pristrlen + 2 || pristrlen == 0)
 	{
