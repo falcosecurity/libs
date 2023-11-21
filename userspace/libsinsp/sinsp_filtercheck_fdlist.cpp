@@ -55,7 +55,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 {
 	*len = 0;
 	ASSERT(evt);
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 
 	uint16_t etype = evt->get_type();
 

@@ -111,7 +111,7 @@ TEST_F(sinsp_with_test_input, bytebuf_empty_param)
 
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_evt_param* param = NULL;
+	const sinsp_evt_param* param = NULL;
 
 	int64_t test_errno = 0;
 
@@ -133,7 +133,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param)
 
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_evt_param* param = NULL;
+	const sinsp_evt_param* param = NULL;
 
 	int64_t fd = 0;
 

@@ -945,7 +945,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 
 void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 {
-	sinsp_evt_param* parinfo = nullptr;
+	const sinsp_evt_param* parinfo = nullptr;
 	uint16_t etype = evt->get_type();
 	int64_t caller_tid = evt->get_tid();
 
@@ -1467,7 +1467,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 
 void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo = nullptr;
+	const sinsp_evt_param *parinfo = nullptr;
 	uint16_t etype = evt->get_type();
 	int64_t child_tid = evt->get_tid();
 
@@ -2019,7 +2019,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	uint16_t etype = evt->get_type();
 	sinsp_evt *enter_evt = &m_tmp_evt;
@@ -2954,7 +2954,7 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 	const uint32_t FILE_DESCRIPTOR_PARAM = 0;
 	const uint32_t SOCKET_TUPLE_PARAM = 2;
 
-	sinsp_evt_param* parinfo = nullptr;
+	const sinsp_evt_param* parinfo = nullptr;
 
 	ASSERT(evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
 	int64_t fd = evt->get_param<int64_t>(FILE_DESCRIPTOR_PARAM);
@@ -3044,7 +3044,7 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	const char *parstr;
 	uint8_t *packed_data;
@@ -3139,7 +3139,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
  * Register a socket in pending state
  */
 void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
-    sinsp_evt_param *parinfo;
+    const sinsp_evt_param *parinfo;
     const char *parstr;
     uint8_t *packed_data;
 
@@ -3336,7 +3336,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packe
 
 void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	uint8_t *packed_data;
 	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	int64_t retval;
@@ -3428,7 +3428,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	int64_t fd;
 	uint8_t* packed_data;
 	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
@@ -3944,7 +3944,7 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t*
 
 
 // Return false if the update didn't happen (for example because the tuple is NULL)
-bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
+bool sinsp_parser::update_fd(sinsp_evt *evt, const sinsp_evt_param *parinfo)
 {
 	uint8_t* packed_data = (uint8_t*)parinfo->m_val;
 	uint8_t family = *packed_data;
@@ -4076,7 +4076,7 @@ void sinsp_parser::parse_fspath_related_exit(sinsp_evt* evt)
 
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t tid = evt->get_tid();
 	sinsp_evt *enter_evt = &m_tmp_evt;
@@ -4413,7 +4413,7 @@ void sinsp_parser::parse_chdir_exit(sinsp_evt *evt)
 	//
 	if(retval >= 0)
 	{
-		sinsp_evt_param *parinfo;
+		const sinsp_evt_param *parinfo;
 
 		// Update the thread working directory
 		parinfo = evt->get_param(1);
@@ -4451,7 +4451,7 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	int64_t retval;
 
 	//
@@ -5064,7 +5064,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		}
 	}
 
-	sinsp_evt_param *parinfo = evt->get_param(0);
+	const sinsp_evt_param *parinfo = evt->get_param(0);
 	ASSERT(parinfo);
 	ASSERT(parinfo->m_len > 0);
 	std::string json(parinfo->m_val, parinfo->m_len);
@@ -5314,7 +5314,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 
 void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	auto container = std::make_shared<sinsp_container_info>();
 
 	parinfo = evt->get_param(0);
@@ -5491,7 +5491,7 @@ void sinsp_parser::parse_setsid_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	int64_t retval;
 	int64_t err;
 	int64_t fd;

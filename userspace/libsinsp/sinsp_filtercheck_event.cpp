@@ -439,7 +439,7 @@ uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 
 uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t *len)
 {
-	sinsp_evt_param *parinfo;
+	const sinsp_evt_param *parinfo;
 	string spath;
 
 	if(evt->m_tinfo == NULL)

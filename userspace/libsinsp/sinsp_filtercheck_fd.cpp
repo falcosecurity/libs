@@ -213,7 +213,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	case PPME_SYSCALL_OPENAT2_X:
 		{
 			sinsp_evt enter_evt;
-			sinsp_evt_param *parinfo;
+			const sinsp_evt_param *parinfo;
 			char *name;
 			uint32_t namelen;
 			string sdir;

@@ -188,7 +188,7 @@ uint32_t sinsp_evt::get_num_params()
 	return (uint32_t)m_params.size();
 }
 
-sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
+const sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
 {
 	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
@@ -819,7 +819,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	//
 	// Get the parameter
 	//
-	sinsp_evt_param *param = get_param(id);
+	const sinsp_evt_param *param = get_param(id);
 	payload = param->m_val;
 	payload_len = param->m_len;
 	param_info = &(m_info->params[id]);
@@ -1566,7 +1566,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Get the parameter
 	//
-	sinsp_evt_param *param = get_param(id);
+	const sinsp_evt_param *param = get_param(id);
 	payload = param->m_val;
 	payload_len = param->m_len;
 	param_info = &(m_info->params[id]);
