@@ -1746,7 +1746,7 @@ static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized
 		                 context_data.cwd().c_str(),
 		                 context_data.process_name().c_str(),  // comm
 		                 scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
-		                 clone_flags_to_scap(gvisor_evt.flags()),
+		                 clone_flags_to_scap((int) gvisor_evt.flags()),
 		                 context_data.credentials().effective_uid(), // uid
 		                 context_data.credentials().effective_gid(), // gid
 		                 context_data.thread_id(),             // vtid
