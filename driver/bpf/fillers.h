@@ -3043,6 +3043,18 @@ FILLER(sys_generic, true)
 	const struct syscall_evt_pair *sc_evt;
 
 	native_id = bpf_syscall_get_nr(data->ctx);
+
+	// We are already in a tail-called filler.
+	// if we are in ia32 syscall sys_{enter,exit} already
+	// validated the converted 32bit->64bit syscall ID for us,
+	// otherwise the event would've been discarded.
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	if (bpf_in_ia32_syscall())
+	{
+		native_id = convert_ia32_to_64(native_id);
+	}
+#endif
+
 	sc_evt = get_syscall_info(native_id);
 	if (!sc_evt) {
 		bpf_printk("no routing for syscall %d\n", native_id);

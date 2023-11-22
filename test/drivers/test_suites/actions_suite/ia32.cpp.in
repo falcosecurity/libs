@@ -90,13 +90,6 @@ TEST(Actions, ia32)
     	 */
     	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_ACCEPT4_6_E);
     	evt_test->assert_event_absence(ret_pid, PPME_SOCKET_ACCEPT4_6_X);
-
-      /*
-       * Last event sent by the script is a socketcall with non existing SYS_ code.
-       * We don't expect any event generated.
-       */
-      evt_test->assert_event_absence(ret_pid, PPME_GENERIC_E);
-      evt_test->assert_event_absence(ret_pid, PPME_GENERIC_X);
 	}
 	else
 	{
@@ -112,14 +105,15 @@ TEST(Actions, ia32)
      */
     evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT_5_E);
     evt_test->assert_event_presence(ret_pid, PPME_SOCKET_ACCEPT_5_X);
-
-    /*
-     * Last event sent by the script is a socketcall with non existing SYS_ code.
-     * We expect generic events to be pushed.
-     */
-    evt_test->assert_event_presence(ret_pid, PPME_GENERIC_E);
-    evt_test->assert_event_presence(ret_pid, PPME_GENERIC_X);
 	}
+  /*
+   * Last event sent by the script is a socketcall with non existing SYS_ code.
+   * We don't expect any event generated.
+   */
+  // We cannot assert PPME_GENERIC_E since 'exit_group' syscall is sent when program exits,
+  // and it is mapped to a generic enter event.
+  // evt_test->assert_event_absence(ret_pid, PPME_GENERIC_E);
+  evt_test->assert_event_absence(ret_pid, PPME_GENERIC_X);
 }
 
 #ifdef __NR_execve

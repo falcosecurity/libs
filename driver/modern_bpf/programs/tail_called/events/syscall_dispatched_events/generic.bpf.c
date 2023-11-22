@@ -25,6 +25,17 @@ int BPF_PROG(generic_e,
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
+	// We are already in a tail-called filler.
+	// if we are in ia32 syscall sys_{enter,exit} already
+	// validated the converted 32bit->64bit syscall ID for us,
+	// otherwise the event would've been discarded.
+#if defined(__TARGET_ARCH_x86)
+	if(bpf_in_ia32_syscall())
+	{
+		id = maps__ia32_to_64(id);
+	}
+#endif
+
 	/* Parameter 1: ID (type: PT_SYSCALLID) */
 	/* This is the PPM_SC code obtained from the syscall id. */
 	ringbuf__store_u16(&ringbuf, maps__get_ppm_sc(id));
@@ -58,9 +69,21 @@ int BPF_PROG(generic_x,
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
+	uint32_t id = extract__syscall_id(regs);
+	// We are already in a tail-called filler.
+	// if we are in ia32 syscall sys_{enter,exit} already
+	// validated the converted 32bit->64bit syscall ID for us,
+	// otherwise the event would've been discarded.
+#if defined(__TARGET_ARCH_x86)
+	if(bpf_in_ia32_syscall())
+	{
+		id = maps__ia32_to_64(id);
+	}
+#endif
+
 	/* Parameter 1: ID (type: PT_SYSCALLID) */
 	/* This is the PPM_SC code obtained from the syscall id. */
-	ringbuf__store_u16(&ringbuf, maps__get_ppm_sc(extract__syscall_id(regs)));
+	ringbuf__store_u16(&ringbuf, maps__get_ppm_sc(id));
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 

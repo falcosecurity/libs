@@ -1408,6 +1408,12 @@ static inline struct event_data_t *manage_socketcall(struct event_data_t *event_
 {
 	bool is_syscall_return;
 	int return_code = convert_network_syscalls(event_data->event_info.syscall_data.regs, &is_syscall_return);
+	if (return_code == -1)
+	{
+		// Wrong SYS_ argument passed. Drop the syscall.
+		return NULL;
+	}
+
 
 	/* If the return code is not the generic event we will need to extract parameters
 	 * with the socket call mechanism.
@@ -1423,14 +1429,6 @@ static inline struct event_data_t *manage_socketcall(struct event_data_t *event_
 		// and`id=__NR_ia32_socketcall`...We resolved the correct event type but we cannot
 		// update the `id`.
 		event_data->deny_syscalls_filtering = true;
-	
-		/* The user provided a wrong code, we will send a generic event,
-		 * no need for socket call arguments extraction logic.
-		 */
-		if(return_code == PPME_GENERIC_E)
-		{
-			event_data->extract_socketcall_params = false;
-		}
 		/* we need to use `return_code + 1` because return_code
 		 * is the enter event.
 		 */

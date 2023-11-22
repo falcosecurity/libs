@@ -42,7 +42,7 @@ int BPF_PROG(sys_exit,
 			 */
 			if(syscall_id != X86_64_NR_EXECVE && syscall_id != X86_64_NR_EXECVEAT)
 			{
-				syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
+				syscall_id = maps__ia32_to_64(syscall_id);
 				if(syscall_id == (uint32_t)-1)
 				{
 					return 0;

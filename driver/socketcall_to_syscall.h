@@ -215,7 +215,7 @@ static inline int socketcall_code_to_syscall_code(int socketcall_code, bool* is_
 		break;
 	}
 
-	return PPME_GENERIC_E;
+	return -1;
 }
 
 #endif /* SOCKETCALL_TO_SYSCALL_H */
