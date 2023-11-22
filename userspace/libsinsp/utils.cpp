@@ -67,7 +67,6 @@ limitations under the License.
 // These are the libsinsp globals
 //
 sinsp_evttables g_infotables;
-sinsp_logger g_logger;
 sinsp_initializer g_initializer;
 
 //
@@ -83,7 +82,7 @@ sinsp_initializer::sinsp_initializer()
 	//
 	// Init the logger
 	//
-	g_logger.set_severity(sinsp_logger::SEV_INFO);
+	sinsp_logger::instance().set_severity(sinsp_logger::SEV_INFO);
 
 	//
 	// Sockets initialization on windows
@@ -729,12 +728,12 @@ void sinsp_utils::bt(void)
 
 	bt_size = backtrace(bt, 1024);
 	bt_syms = backtrace_symbols(bt, bt_size);
-	g_logger.format("%s", start);
+	sinsp_logger::instance().format("%s", start);
 	for (i = 1; i < bt_size; i++)
 	{
-		g_logger.format("%s", bt_syms[i]);
+		sinsp_logger::instance().format("%s", bt_syms[i]);
 	}
-	g_logger.format("%s", end);
+	sinsp_logger::instance().format("%s", end);
 
 	free(bt_syms);
 }
@@ -1783,7 +1782,7 @@ unsigned int read_num_possible_cpus(void)
 void sinsp_scap_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
 {
 	std::string prefix = (component == NULL) ? "" : std::string(component) + ": ";
-	g_logger.log(prefix + msg, (sinsp_logger::severity)sev);
+	sinsp_logger::instance().log(prefix + msg, (sinsp_logger::severity)sev);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

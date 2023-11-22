@@ -186,14 +186,12 @@ private:
 
 using sinsp_logger_callback = sinsp_logger::callback_t;
 
-//extern sinsp_logger g_logger;
-
 #define SINSP_LOG_(severity, fmt, ...)                                         \
 	do                                                                     \
 	{                                                                      \
-		if(g_logger.is_enabled(severity))                              \
+		if(sinsp_logger::instance().is_enabled(severity))                              \
 		{                                                              \
-			g_logger.format((severity), ("" fmt), ##__VA_ARGS__);  \
+			sinsp_logger::instance().format((severity), ("" fmt), ##__VA_ARGS__);  \
 		}                                                              \
 	}                                                                      \
 	while(false)
@@ -201,9 +199,9 @@ using sinsp_logger_callback = sinsp_logger::callback_t;
 #define SINSP_LOG_STR_(severity, msg)                                          \
 	do                                                                     \
 	{                                                                      \
-		if(g_logger.is_enabled(severity))                              \
+		if(sinsp_logger::instance().is_enabled(severity))                              \
 		{                                                              \
-			g_logger.log((msg), (severity));                       \
+			sinsp_logger::instance().log((msg), (severity));                       \
 		}                                                              \
 	}                                                                      \
 	while(false)
