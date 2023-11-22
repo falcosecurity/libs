@@ -496,6 +496,47 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	m_inspector.close();
 	ASSERT_EQ(count, max_count);
 }
+
+TEST_F(sinsp_with_test_input, plugin_bug_syscall_async)
+{
+	uint64_t max_count = 10;
+	uint64_t period_ns = 1000000; // 1ms
+	/* async plugin config */
+	std::string async_pl_cfg = std::to_string(max_count) + ":" + std::to_string(period_ns);
+	std::string srcname = sinsp_syscall_event_source_name;
+
+	sinsp_filter_check_list filterlist;
+	register_plugin(&m_inspector, get_plugin_api_sample_syscall_async, async_pl_cfg);
+	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
+	add_plugin_filterchecks(&m_inspector, ext_pl, srcname, filterlist);
+
+	// check that the async event name is an accepted evt.type value
+	std::unique_ptr<sinsp_filter_check> chk(filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
+	ASSERT_GT(chk->parse_field_name("evt.type", true, false), 0);
+	ASSERT_NO_THROW(chk->add_filter_value("openat", strlen("openat") + 1, 0));
+	ASSERT_NO_THROW(chk->add_filter_value("sampleticker", strlen("sampleticker") + 1, 1));
+	ASSERT_ANY_THROW(chk->add_filter_value("badname", strlen("badname") + 1, 2));
+
+	// we will not use the test scap engine here, but open the no-driver instead
+	sinsp_evt *evt = NULL;
+	int32_t rc = SCAP_SUCCESS;
+	
+	open_inspector();
+	sleep(3);
+
+	uint32_t num_async_events = 0;
+	while(num_async_events != max_count)
+	{
+		rc = m_inspector.next(&evt);
+        if(rc == SCAP_SUCCESS && evt != nullptr && evt->get_type() == PPME_ASYNCEVENT_E)
+		{
+            printf("<- Sinsp receives: tid: %ld\n", evt->get_tid());
+            num_async_events++;
+		}
+	}
+	m_inspector.close();
+}
+
 #endif // !defined(__EMSCRIPTEN__)
 
 // Scenario we load a plugin that parses any event and plays with the
