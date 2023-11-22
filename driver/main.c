@@ -1432,8 +1432,7 @@ static inline struct event_data_t *manage_socketcall(struct event_data_t *event_
 		/* we need to use `return_code + 1` because return_code
 		 * is the enter event.
 		 */
-		record_event_all_consumers(return_code + is_exit,
-					   return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED,
+		record_event_all_consumers(return_code + is_exit, UF_USED,
 					   event_data, is_exit ? KMOD_PROG_SYS_EXIT : KMOD_PROG_SYS_ENTER);
 		return NULL; // managed
 	}
