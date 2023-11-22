@@ -4,8 +4,9 @@
 
 #include <linux/sched.h>
 #include <linux/bpf.h>
+#include <sys/mman.h>
 
-TEST(SyscallExit, bpfX)
+TEST(SyscallExit, bpfX_invalid_cmd)
 {
 	auto evt_test = get_syscall_event_test(__NR_bpf, EXIT_EVENT);
 
@@ -72,8 +73,89 @@ TEST(SyscallExit, bpfX)
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: cmd (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)cmd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(2);
+}
+
+
+TEST(SyscallExit, bpfX_MAP_CREATE)
+{
+	auto evt_test = get_syscall_event_test(__NR_bpf, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t cmd = BPF_MAP_CREATE;
+	union bpf_attr attr = {
+		.map_type = BPF_MAP_TYPE_ARRAY,
+		.key_size = sizeof(int),
+		.value_size = sizeof(int),
+		.max_entries = 1024
+	};
+	//
+	int *ret = (int*) mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	/* Here we need to call the `bpf` from a child because the main process throws lots of
+	 * `bpf` syscalls to manage the bpf drivers.
+	 */
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* When BPF_MAP_CREATE is used, the new file descriptor associated with the eBPF map is returned.*/
+
+		*ret = syscall(__NR_bpf, cmd, &attr, sizeof(attr));
+		/* In this way in the father we know if the call was successful or not. */
+		if(*ret != -1)
+		{
+			exit(EXIT_SUCCESS);
+		}
+		else
+		{
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	int fd = *ret;
+	if (munmap(ret, sizeof(ret) != -1)){
+		//munmap returns -1 when failed 
+		FAIL() << "Shared memory failed to clear..."<<std::endl;
+	};
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence(ret_pid);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(1, (int64_t)fd);
+	evt_test->assert_numeric_param(2, (int64_t)cmd);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
 }
 #endif

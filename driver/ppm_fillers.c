@@ -6721,16 +6721,21 @@ int f_sys_bpf_e(struct event_filler_arguments *args)
 
 int f_sys_bpf_x(struct event_filler_arguments *args)
 {
-	int res;
-	int64_t fd;
+	int res = 0;
+	int64_t fd = 0;
+	unsigned long val = 0;
+	int32_t cmd = 0;
 
-	/*
-	 * fd
-	 */
+	/* Parameter 1: fd (type: PT_DEC) */
 	fd = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, fd, 0, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 2: cmd (type: PT_INT64) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	cmd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)cmd, 0, false, 0);
+	CHECK_RES(res);
 	return add_sentinel(args);
 }
 
