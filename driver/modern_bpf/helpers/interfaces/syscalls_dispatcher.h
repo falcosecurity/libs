@@ -18,11 +18,6 @@ static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint3
 	return maps__64bit_interesting_syscall(syscall_id);
 }
 
-static __always_inline uint32_t syscalls_dispatcher__convert_ia32_to_64(uint32_t syscall_id)
-{
-	return maps__ia32_to_64(syscall_id);
-}
-
 static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 {
 	int socketcall_id = (int)extract__syscall_argument(regs, 0);

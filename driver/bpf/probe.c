@@ -90,10 +90,15 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
+		if (return_code == -1)
+		{
+			// Wrong SYS_ argument passed. Drop the syscall.
+			return 0;
+		}
 		if(!is_syscall_return)
 		{
 			evt_type = return_code;
-			drop_flags = return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED;
+			drop_flags = UF_USED;
 		}
 		else
 		{
@@ -210,10 +215,15 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 		bool is_syscall_return = false;
 		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
+		if (return_code == -1)
+		{
+			// Wrong SYS_ argument passed. Drop the syscall.
+			return 0;
+		}
 		if(!is_syscall_return)
 		{
 			evt_type = return_code + 1; // we are in sys_exit!
-			drop_flags = return_code == PPME_GENERIC_X ? UF_ALWAYS_DROP : UF_USED;
+			drop_flags = UF_USED;
 		}
 		else
 		{
