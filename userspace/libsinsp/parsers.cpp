@@ -1177,7 +1177,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 			else
 			{
 				/* This should never happen */
-				g_logger.format(sinsp_logger::SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
+				sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
 				ASSERT(false);
 			}
 
@@ -1776,7 +1776,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 			else
 			{
 				/* This should never happen */
-				g_logger.format(sinsp_logger::SEV_DEBUG,
+				sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
 						"cannot get fd table in sinsp_parser::parse_clone_exit.");
 				ASSERT(false);
 			}
@@ -4192,7 +4192,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 						// with the new file descriptors.
 						if (scap_get_fdlist(m_inspector->get_scap_platform(), &scap_tinfo, error) != SCAP_SUCCESS)
 						{
-							g_logger.format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed: %s, proc table will not be updated with new fds.",
+							sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed: %s, proc table will not be updated with new fds.",
 									error);
 						}
 					}
@@ -5012,7 +5012,7 @@ namespace
 				err_msg = generate_error_message(value, field);
 				SINSP_WARNING("%s",err_msg.c_str());
 			} else {
-				if(g_logger.get_severity() >= sinsp_logger::SEV_DEBUG) {
+				if(sinsp_logger::instance().get_severity() >= sinsp_logger::SEV_DEBUG) {
 					err_msg = generate_error_message(value, field);
 					SINSP_DEBUG("%s",err_msg.c_str());
 				}

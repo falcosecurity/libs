@@ -68,7 +68,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			g_logger.format(sinsp_logger::SEV_ERROR,
+			sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
 					"Invalid List Format: %s. Detail: %s",
 					buffer,
 					ex.what());

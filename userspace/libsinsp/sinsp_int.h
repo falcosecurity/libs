@@ -50,5 +50,4 @@ limitations under the License.
 //
 // The logger
 //
-extern sinsp_logger g_logger;
-#define glogf g_logger.format
+#define glogf sinsp_logger::instance().format

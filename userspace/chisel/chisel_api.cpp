@@ -1435,7 +1435,7 @@ int lua_cbacks::log(lua_State *ls)
 		sevcode = sinsp_logger::SEV_CRITICAL;
 	}
 
-	g_logger.log(message, sevcode);
+	sinsp_logger::instance().log(message, sevcode);
 
 	return 0;
 }
