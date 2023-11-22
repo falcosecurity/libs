@@ -470,7 +470,7 @@ static __always_inline uint16_t signalfd4_flags_to_scap(int32_t flags)
 	return res;
 }
 
-static __always_inline uint32_t clone_flags_to_scap(unsigned long flags)
+static __always_inline uint32_t clone_flags_to_scap(int flags)
 {
 	uint32_t res = 0;
 
@@ -1411,7 +1411,7 @@ static __always_inline uint32_t pf_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static __always_inline uint32_t flock_flags_to_scap(unsigned long flags)
+static __always_inline uint32_t flock_flags_to_scap(int flags)
 {
 	uint32_t res = 0;
 

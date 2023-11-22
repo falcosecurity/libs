@@ -31,7 +31,7 @@ int BPF_PROG(flock_e,
 
 	/* Parameter 2: operation (type: PT_FLAGS32) */
 	unsigned long operation = extract__syscall_argument(regs, 1);
-	ringbuf__store_u32(&ringbuf, flock_flags_to_scap(operation));
+	ringbuf__store_u32(&ringbuf, flock_flags_to_scap((int) operation));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -1210,7 +1210,7 @@ cgroups_error:
 		if(pidns != &init_pid_ns || pid_ns_for_children(current) != pidns)
 			in_pidns = PPM_CL_CHILD_IN_PIDNS;
 #endif
-		res = val_to_ring(args, (uint64_t)clone_flags_to_scap(val) | in_pidns, 0, false, 0);
+		res = val_to_ring(args, (uint64_t)clone_flags_to_scap((int) val) | in_pidns, 0, false, 0);
 		CHECK_RES(res);
 
 		/*
@@ -6330,7 +6330,7 @@ int f_sys_flock_e(struct event_filler_arguments *args)
 
 	/* Parameter 2: operation (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	flags = flock_flags_to_scap(val);
+	flags = flock_flags_to_scap((int) val);
 	res = val_to_ring(args, flags, 0, false, 0);
 	CHECK_RES(res);
 
@@ -6389,7 +6389,7 @@ int f_sys_setns_e(struct event_filler_arguments *args)
 
 	/* Parameter 2: nstype (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, clone_flags_to_scap(val), 0, true, 0);
+	res = val_to_ring(args, clone_flags_to_scap((int) val), 0, true, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -6427,7 +6427,7 @@ int f_sys_unshare_e(struct event_filler_arguments *args)
 	 * get type, parse as clone flags as it's a subset of it
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	flags = clone_flags_to_scap(val);
+	flags = clone_flags_to_scap((int) val);
 	res = val_to_ring(args, flags, 0, true, 0);
 	CHECK_RES(res);
 

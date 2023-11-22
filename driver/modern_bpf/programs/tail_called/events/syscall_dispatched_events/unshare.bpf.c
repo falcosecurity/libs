@@ -27,7 +27,7 @@ int BPF_PROG(unshare_e,
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
 	unsigned long flags = extract__syscall_argument(regs, 0);
-	ringbuf__store_u32(&ringbuf, clone_flags_to_scap(flags));
+	ringbuf__store_u32(&ringbuf, clone_flags_to_scap((int) flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

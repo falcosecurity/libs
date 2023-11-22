@@ -749,7 +749,7 @@ static __always_inline void extract__loginuid(struct task_struct *task, uint32_t
  */
 static __always_inline unsigned long extract__clone_flags(struct task_struct *task, unsigned long flags)
 {
-	unsigned long ppm_flags = clone_flags_to_scap(flags);
+	unsigned long ppm_flags = clone_flags_to_scap((int) flags);
 	struct pid *pid = extract__task_pid_struct(task, PIDTYPE_PID);
 	struct pid_namespace *ns = extract__namespace_of_pid(pid);
 	unsigned int ns_level;

@@ -31,7 +31,7 @@ int BPF_PROG(setns_e,
 
 	/* Parameter 2: nstype (type: PT_FLAGS32) */
 	unsigned long nstype = extract__syscall_argument(regs, 1);
-	ringbuf__store_u32(&ringbuf, clone_flags_to_scap(nstype));
+	ringbuf__store_u32(&ringbuf, clone_flags_to_scap((int) nstype));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

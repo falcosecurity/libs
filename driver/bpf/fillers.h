@@ -2597,7 +2597,7 @@ FILLER(proc_startupdate_3, true)
 			break;
 		}
 
-		flags = clone_flags_to_scap(flags);
+		flags = clone_flags_to_scap((int) flags);
 
 		if(pidns_level != 0) {
 			flags |= PPM_CL_CHILD_IN_PIDNS;
@@ -3010,7 +3010,7 @@ FILLER(sys_setns_e, true)
 
 	/* Parameter 2: nstype (type: PT_FLAGS32) */
 	unsigned long nstype = bpf_syscall_get_argument(data, 1);
-	return bpf_push_u32_to_ring(data, clone_flags_to_scap(nstype));
+	return bpf_push_u32_to_ring(data, clone_flags_to_scap((int) nstype));
 }
 
 FILLER(sys_setpgid_e, true)
@@ -3031,7 +3031,7 @@ FILLER(sys_unshare_e, true)
 	uint32_t flags;
 
 	val = bpf_syscall_get_argument(data, 0);
-	flags = clone_flags_to_scap(val);
+	flags = clone_flags_to_scap((int) val);
 	return bpf_push_u32_to_ring(data, flags);
 }
 
@@ -4789,7 +4789,7 @@ FILLER(sys_flock_e, true)
 	CHECK_RES(res);
 
 	/* Parameter 2: operation (type: PT_FLAGS32) */
-	unsigned long operation = bpf_syscall_get_argument(data, 1);
+	int operation = bpf_syscall_get_argument(data, 1);
 	return bpf_push_u32_to_ring(data, flock_flags_to_scap(operation));
 }
 
