@@ -141,7 +141,7 @@ public:
 	{
 		if(evt && evt->get_type() == PPME_PLUGINEVENT_E)
 		{
-			return plugin_by_id(evt->get_param<int32_t>(0));
+			return plugin_by_id(evt->get_param(0)->as<int32_t>());
 		}
 		return nullptr;
 	}

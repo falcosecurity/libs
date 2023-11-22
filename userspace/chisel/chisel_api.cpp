@@ -272,7 +272,7 @@ int lua_cbacks::get_type(lua_State *ls)
 		 * we get the ppm_sc from the event (first param) and we consider
 		 * the syscall name as the event name.
 		 */
-		uint16_t ppm_sc = evt->get_param<uint16_t>(0);
+		uint16_t ppm_sc = evt->get_param(0)->as<uint16_t>();
 
 		evname = scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 	}

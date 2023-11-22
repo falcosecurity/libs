@@ -400,12 +400,12 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 
 		if(extract_user)
 		{
-			user = evt->get_param<uint64_t>(0);
+			user = evt->get_param(0)->as<uint64_t>();
 		}
 
 		if(extract_system)
 		{
-			system = evt->get_param<uint64_t>(1);
+			system = evt->get_param(1)->as<uint64_t>();
 		}
 
 		tcpu = user + system;

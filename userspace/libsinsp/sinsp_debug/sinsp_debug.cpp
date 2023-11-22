@@ -146,7 +146,7 @@ int main(int argc, char** argv)
 		case PPME_SYSCALL_VFORK_20_X:
 		case PPME_SYSCALL_CLONE3_X:
 		{
-			int64_t child_tid = ev->get_param<int64_t>(0);
+			int64_t child_tid = ev->get_param(0)->as<int64_t>();
 			if(child_tid == 0)
 			{
 				printf("🧵 CLONE CHILD EXIT: evt_num(%ld)\n", ev->get_num());

@@ -43,7 +43,7 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param)
 
 	// this, and the following similar checks, verify that the internal state is set as we need right now.
 	// if the internal state changes we can remove or update this check
-	ASSERT_STREQ(evt->get_param_const_char(1), "<NA>");
+	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "<NA>");
 
 	/* `PPME_SYSCALL_CREAT_E` is a simple event that uses a `PT_FSPATH`
 	 * A `NULL` `PT_FSPATH` param is always converted to `<NA>`.
@@ -51,7 +51,7 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 2, NULL, 0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "<NA>");
 
-	ASSERT_STREQ(evt->get_param_const_char(0), "<NA>");
+	ASSERT_STREQ(evt->get_param(0)->as<std::string_view>().data(), "<NA>");
 
 	int64_t dirfd = 0;
 
@@ -61,7 +61,7 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, NULL, 0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.pathname"), "<NA>");
 
-	ASSERT_STREQ(evt->get_param_const_char(1), "<NA>");
+	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "<NA>");
 }
 
 /* Assert that a `PT_CHARBUF` with `len==1` (just the `\0`) is not changed. */
@@ -81,7 +81,7 @@ TEST_F(sinsp_with_test_input, param_charbuf_len_1)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, "");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "");
 
-	ASSERT_STREQ(evt->get_param_const_char(1), "");
+	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "");
 }
 
 /* Assert that a "(NULL)" `PT_CHARBUF` param is converted to `<NA>`
@@ -101,7 +101,7 @@ TEST_F(sinsp_with_test_input, charbuf_NULL_param)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, "(NULL)");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "<NA>");
 
-	ASSERT_STREQ(evt->get_param_const_char(1), "<NA>");
+	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "<NA>");
 }
 
 /* Assert that an empty `PT_BYTEBUF` param is NOT converted to `<NA>` */
@@ -305,7 +305,7 @@ TEST_F(sinsp_with_test_input, enumparams)
 	/* `PPME_SOCKET_SOCKET_E` is a simple event that uses a PT_ENUMFLAGS32 (param 1) */
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_UNIX, 0, 0);
 
-	ASSERT_EQ(evt->get_param<uint32_t>(0), PPM_AF_UNIX);
+	ASSERT_EQ(evt->get_param(0)->as<uint32_t>(), PPM_AF_UNIX);
 
 	const char *val_str = NULL;
 	evt->get_param_as_str(0, &val_str);
@@ -325,7 +325,7 @@ TEST_F(sinsp_with_test_input, enumparams_fcntl_dupfd)
 	uint8_t flag = PPM_FCNTL_F_DUPFD;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCNTL_E, 2, (int64_t) 0, flag);
 
-	ASSERT_EQ(evt->get_param<uint8_t>(1), PPM_FCNTL_F_DUPFD);
+	ASSERT_EQ(evt->get_param(1)->as<uint8_t>(), PPM_FCNTL_F_DUPFD);
 
 	const char *val_str = NULL;
 	evt->get_param_as_str(1, &val_str);
@@ -345,7 +345,7 @@ TEST_F(sinsp_with_test_input, bitmaskparams)
 	/* `PPME_SYSCALL_OPENAT_E` is a simple event that uses a PT_FLAGS32 (param 3) */
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_E, 4, dirfd, "/tmp/foo", PPM_O_RDONLY|PPM_O_CLOEXEC, 0);
 
-	ASSERT_EQ(evt->get_param<uint32_t>(2), PPM_O_RDONLY|PPM_O_CLOEXEC);
+	ASSERT_EQ(evt->get_param(2)->as<uint32_t>(), PPM_O_RDONLY|PPM_O_CLOEXEC);
 
 	const char *val_str = NULL;
 	evt->get_param_as_str(2, &val_str);

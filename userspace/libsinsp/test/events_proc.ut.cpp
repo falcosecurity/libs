@@ -394,7 +394,6 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.pvpid"), "1");
 	ASSERT_FALSE(field_has_value(evt, "proc.apid[2]"));
-
 	ASSERT_EQ(get_field_as_string(evt, "proc.cmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.pcmdline"), "init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[0]"), "test-exe -c 'echo aGVsbG8K | base64 -d'");

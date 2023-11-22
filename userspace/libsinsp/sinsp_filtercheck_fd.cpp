@@ -267,7 +267,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 		}
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
 		{
-			m_tstr = evt->get_param_const_char(3);
+			m_tstr = evt->get_param(3)->as<std::string_view>();
 
 			if(sanitize_strings)
 			{
@@ -532,7 +532,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X)
 		{
-			int64_t retval = evt->get_param<int64_t>(0);
+			int64_t retval = evt->get_param(0)->as<int64_t>();
 
 			if(retval < 0)
 			{
