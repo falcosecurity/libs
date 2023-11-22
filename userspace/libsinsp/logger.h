@@ -59,11 +59,11 @@ public:
 	const static uint32_t OT_NOTS;
 	const static uint32_t OT_ENCODE_SEV;
 
-	/**
-	 * Initialize this sinsp_logger with no output sinks enabled.
-	 */
-	sinsp_logger();
-	~sinsp_logger();
+	static sinsp_logger& instance()
+	{
+		static sinsp_logger instance;
+		return instance;
+	}
 
 	/**
 	 * Get the currently configured output type, which includes the
@@ -162,6 +162,16 @@ public:
 	static size_t decode_severity(const std::string &s, severity& sev);
 
 private:
+	/**
+	 * Initialize this sinsp_logger with no output sinks enabled.
+	 */
+	sinsp_logger();
+	~sinsp_logger();
+
+	/** Disable copy constructor and assignment operator */
+	sinsp_logger(const sinsp_logger&) = delete;
+	sinsp_logger& operator=(const sinsp_logger&) = delete;
+
 	/** Returns true if the callback log sync is enabled, false otherwise. */
 	bool is_callback() const;
 
@@ -176,7 +186,7 @@ private:
 
 using sinsp_logger_callback = sinsp_logger::callback_t;
 
-extern sinsp_logger g_logger;
+//extern sinsp_logger g_logger;
 
 #define SINSP_LOG_(severity, fmt, ...)                                         \
 	do                                                                     \
