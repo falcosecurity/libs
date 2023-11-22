@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <optional>
 #include <unordered_map>
+#include <string_view>
 
 #include <json/json.h>
 
@@ -37,7 +38,7 @@ limitations under the License.
 
 typedef class sinsp sinsp;
 typedef class sinsp_threadinfo sinsp_threadinfo;
-
+class sinsp_evt;
 
 namespace test_helpers {
 	class event_builder;
@@ -91,18 +92,80 @@ public:
 	const struct ppm_event_info* m_event_info; ///< List of events supported by the capture and analysis subsystems. Each entry fully documents an event and its parameters.
 };
 
+template<class T> inline T get_event_param_as(const class sinsp_evt_param& param);
+
 /*!
   \brief Event parameter wrapper.
-  This class describes a raw event coming from the driver.
+  This class describes an event parameter coming from the driver.
 */
 class SINSP_PUBLIC sinsp_evt_param
 {
 public:
+	const sinsp_evt *m_evt; ///< Pointer to the event that contains this param
+	uint32_t m_idx; ///< Index of the parameter within the event
+
 	const char* m_val;	///< Pointer to the event parameter data.
 	uint32_t m_len; ///< Length of the parameter pointed by m_val.
 
-	sinsp_evt_param(const char *val, uint32_t len): m_val(val), m_len(len) {}
+	sinsp_evt_param(const sinsp_evt *evt, uint32_t idx, const char *val, uint32_t len):
+		m_evt(evt), m_idx(idx), m_val(val), m_len(len) {}
+
+	/*!
+	  \brief Interpret the parameter as a specific type, like:
+	  	- Fixed size values (uint32_t, int8_t ..., e.g. param->as<uint32_t>())
+		- String-like types with std::string_view (e.g. param->as<std::string_view>())
+	*/
+	template<class T>
+	inline T as() const
+	{
+		return get_event_param_as<T>(*this);
+	}
+
+	const struct ppm_param_info* get_info() const;
+	std::string invalid_len_error(size_t requested_len) const;
 };
+
+/*!
+  \brief Get the value of a parameter, interpreted with the type specified in the template argument.
+  \param param The parameter.
+*/
+template<class T>
+inline T get_event_param_as(const sinsp_evt_param& param)
+{
+	T ret;
+
+	if (param.m_len != sizeof(T))
+	{
+		// By moving this error string building operation to a separate function
+		// the compiler is more likely to inline this entire function.
+		// This is important since get_param<> is called in the hot path.
+		throw sinsp_exception(param.invalid_len_error(sizeof(T)));
+	}
+
+	memcpy(&ret, param.m_val, sizeof(T));
+
+	return ret;
+}
+
+template<>
+inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_param& param)
+{
+	if (param.m_len == 0)
+	{
+		return {};
+	}
+
+	size_t string_len = strnlen(param.m_val, param.m_len);
+	if (param.m_len == string_len)
+	{
+		// By moving this error string building operation to a separate function
+		// the compiler is more likely to inline this entire function.
+		// This is important since get_param<> is called in the hot path.
+		throw sinsp_exception(param.invalid_len_error(string_len));
+	}
+
+	return {param.m_val, string_len};
+}
 
 /*!
   \brief Event class.
@@ -216,6 +279,14 @@ public:
 	inline const char* get_source_name() const
 	{
 		return m_source_name;
+	}
+
+	/*!
+	  \brief Get the event info
+	*/
+	inline const ppm_event_info* get_info() const
+	{
+		return m_info;
 	}
 
 	/*!
@@ -344,57 +415,6 @@ public:
 	  \param name The parameter name.
 	*/
 	const sinsp_evt_param* get_param_by_name(const char* name);
-
-	/*!
-	  \brief Get the value of a fixed param (fixed length type or packed struct).
-
-	  \param id The parameter number.
-	*/
-	template<class T>
-	inline T get_param(uint32_t id)
-	{
-		T ret;
-		const sinsp_evt_param *param = get_param(id);
-
-		if (param->m_len != sizeof(T))
-		{
-			// By moving this error string building operation to a separate function
-			// the compiler is more likely to inline this entire function.
-			// This is important since get_param<> is called in the hot path.
-			throw sinsp_exception(invalid_param_len_error(id, sizeof(T)));
-		}
-
-		memcpy(&ret, param->m_val, sizeof(T));
-
-		return ret;
-	}
-
-	/*!
-	  \brief Get the value of a string param as a const char*.
-
-	  \param id The parameter number.
-	*/
-
-	inline const char* get_param_const_char(uint32_t id)
-	{
-		const sinsp_evt_param *param = get_param(id);
-
-		if (param->m_len == 0)
-		{
-			return nullptr;
-		}
-
-		size_t string_len = strnlen(param->m_val, param->m_len);
-		if (param->m_len == string_len)
-		{
-			// By moving this error string building operation to a separate function
-			// the compiler is more likely to inline this entire function.
-			// This is important since get_param<> is called in the hot path.
-			throw sinsp_exception(invalid_param_len_error(id, string_len));
-		}
-
-		return param->m_val;
-	}
 
 	/*!
 	  \brief Get a parameter as a C++ string.
@@ -610,7 +630,7 @@ private:
 				params[j].size = 5;
 			}
 
-			m_params.emplace_back(static_cast<const char*>(params[j].buf), params[j].size);
+			m_params.emplace_back(this, j, static_cast<const char*>(params[j].buf), params[j].size);
 		}
 	}
 	std::string get_param_value_str(uint32_t id, bool resolved);
@@ -625,9 +645,6 @@ private:
 	// are accessible from get_enter_evt_param().
 	void save_enter_event_params(sinsp_evt* enter_evt);
 	std::optional<std::reference_wrapper<std::string>> get_enter_evt_param(const std::string& param);
-
-	// Get a string describing why a parameter could not be read because of mismatched length
-	std::string invalid_param_len_error(uint32_t id, size_t requested_length);
 
 VISIBILITY_PRIVATE
 	enum flags

@@ -481,7 +481,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		//
 		// We can extract the file path only in case of a successful file opening (fd>0).
 		//
-		fd = evt->get_param<int64_t>(0);
+		fd = evt->get_param(0)->as<int64_t>();
 
 		if(fd>0)
 		{
@@ -556,9 +556,9 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		return 0;
 	}
 
-	int64_t dirfd = evt->get_param<int64_t>(dirfdargidx);
+	int64_t dirfd = evt->get_param(dirfdargidx)->as<int64_t>();
 
-	const char *path = evt->get_param_const_char(pathargidx);
+	std::string_view path = evt->get_param(pathargidx)->as<std::string_view>();
 
 	string sdir;
 
@@ -600,7 +600,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 
 	char fullname[SCAP_MAX_PATH_SIZE];
 	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(),
-		(uint32_t)sdir.length(), path, strlen(path));
+		(uint32_t)sdir.length(), path.data(), path.size());
 
 	m_strstorage = fullname;
 
@@ -614,7 +614,7 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uin
 		//
 		// Extract the return value
 		//
-		m_s64val = evt->get_param<int64_t>(0);
+		m_s64val = evt->get_param(0)->as<int64_t>();
 
 		if(m_s64val >= 0)
 		{
@@ -899,7 +899,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 			{
-				uint16_t ppm_sc = evt->get_param<uint16_t>(0);
+				uint16_t ppm_sc = evt->get_param(0)->as<uint16_t>();
 
 				// Only generic enter event has the nativeID as second param
 				if(m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
@@ -909,7 +909,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					// by looking up using nativeID.
 					// Of course, this will only reliably work for
 					// same architecture scap capture->replay.
-					uint16_t nativeid = evt->get_param<uint16_t>(1);
+					uint16_t nativeid = evt->get_param(1)->as<uint16_t>();
 					ppm_sc = scap_native_id_to_ppm_sc(nativeid);
 				}
 				evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
@@ -959,7 +959,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 			{
-				uint16_t ppm_sc = evt->get_param<uint16_t>(0);
+				uint16_t ppm_sc = evt->get_param(0)->as<uint16_t>();
 
 				// Only generic enter event has the nativeID as second param
 				if (m_inspector && m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
@@ -969,7 +969,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					// by looking up using nativeID.
 					// Of course, this will only reliably work for
 					// same architecture scap capture->replay.
-					uint16_t nativeid = evt->get_param<uint16_t>(1);
+					uint16_t nativeid = evt->get_param(1)->as<uint16_t>();
 					ppm_sc = scap_native_id_to_ppm_sc(nativeid);
 				}
 				evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
@@ -1684,7 +1684,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				bool is_new_version = etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
 				// For both OPEN_X and OPENAT_E,
 				// flags is the 3rd argument.
-				uint32_t flags = evt->get_param<uint32_t>(is_new_version ? 3 : 2);
+				uint32_t flags = evt->get_param(is_new_version ? 3 : 2)->as<uint32_t>();
 
 				// PPM open flags use 0x11 for
 				// PPM_O_RDWR, so there's no need to
@@ -1712,7 +1712,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					// If PPM_O_TMPFILE is set and syscall is successful the file is created
 					if(flags & PPM_O_TMPFILE)
 					{
-						int64_t retval = evt->get_param<int64_t>(0);
+						int64_t retval = evt->get_param(0)->as<int64_t>();
 
 						if(retval >= 0)
 						{
@@ -1724,13 +1724,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				/* `open_by_handle_at` exit event has no `mode` parameter. */
 				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT) && etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X))
 				{
-					uint32_t mode_bits = evt->get_param<uint32_t>(is_new_version ? 4 : 3);
+					uint32_t mode_bits = evt->get_param(is_new_version ? 4 : 3)->as<uint32_t>();
 					m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
 				}
 			}
 			else if ((m_field_id == TYPE_ISOPEN_EXEC) && (etype == PPME_SYSCALL_CREAT_X))
 			{
-				uint32_t mode_bits = evt->get_param<uint32_t>(2);
+				uint32_t mode_bits = evt->get_param(2)->as<uint32_t>();
 				m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
 			}
 
@@ -1747,7 +1747,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype == PPME_INFRASTRUCTURE_EVENT_E)
 			{
-				const char *descstr = evt->get_param_const_char(2);
+				std::string descstr{evt->get_param(2)->as<std::string_view>()};
 				vector<string> elements = sinsp_split(descstr, ';');
 				for(string ute : elements)
 				{

@@ -758,7 +758,7 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
 	}
 
-	if (evt->get_type() != PPME_PLUGINEVENT_E || evt->get_param<uint32_t>(0) != m_id)
+	if (evt->get_type() != PPME_PLUGINEVENT_E || evt->get_param(0)->as<uint32_t>() != m_id)
 	{
 		throw sinsp_exception("can't format unknown non-plugin event to string");
 	}
