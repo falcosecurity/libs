@@ -155,10 +155,9 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 	 * -> In this case we drop the event
 	 */
 
-	// Reset NR_socketcall to send a generic even with correct id
-#ifdef __NR_socketcall
-	return __NR_socketcall;
-#else
+	/* If we are not able to convert to a syscall we drop the event.
+	 * This should happen in the cases listed above or when we receive
+	 * a wrong SOCKETCALL code.
+	 */
 	return -1;
-#endif
 }
