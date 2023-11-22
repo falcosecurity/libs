@@ -3043,6 +3043,22 @@ FILLER(sys_generic, true)
 	const struct syscall_evt_pair *sc_evt;
 
 	native_id = bpf_syscall_get_nr(data->ctx);
+
+	if (bpf_in_ia32_syscall())
+	{
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+		native_id = convert_ia32_to_64(native_id);
+		if (native_id == -1)
+		{
+			// syscall defined only on 32 bits should be dropped before.
+			return PPM_FAILURE_BUG;
+		}
+#else
+		// 32-bit syscall on non-x86 arch should be dropped before. 
+		return PPM_FAILURE_BUG;
+#endif		
+	}
+
 	sc_evt = get_syscall_info(native_id);
 	if (!sc_evt) {
 		bpf_printk("no routing for syscall %d\n", native_id);
