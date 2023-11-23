@@ -278,7 +278,6 @@ uint64_t get_container_memory_usage()
 	FILE* f = fopen(filepath, "r");
 	if(!f)
 	{
-		ASSERT(false);
 		return 0;
 	}
 
