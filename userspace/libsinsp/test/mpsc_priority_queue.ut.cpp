@@ -21,14 +21,61 @@ limitations under the License.
 #include <thread>
 #include <chrono>
 
-using val_t = std::unique_ptr<int>;
+TEST(mpsc_priority_queue, order_consistency)
+{
+    struct val
+    {
+        int v;
+        int order;
+    };
+
+    struct val_less
+	{
+		bool operator()(const val& l, const val& r)
+		{
+			return std::greater_equal<int>{}(l.v, r.v);
+		}
+	};
+    
+    using val_t = std::unique_ptr<val>;
+
+    mpsc_priority_queue<val_t, val_less> q;
+    for (int i = 0; i < 100; i++)
+    {
+        for (int j = 0; j < 100; j++)
+        {
+            // j is used only for tracking the order in which elements
+            // are pushed for checking it later
+            q.push(val_t{new val{i,j}});
+        }
+    }
+
+    val_t cur{nullptr};
+    val_t prev{nullptr};
+    while (!q.empty())
+    {
+        ASSERT_TRUE(q.try_pop(cur));
+        if (prev != nullptr)
+        {
+            ASSERT_GE(cur->v, prev->v);
+            if (cur->v == prev->v)
+            {
+                ASSERT_GT(cur->order, prev->order);
+            }
+        }
+        prev = std::move(cur);
+    }
+
+}
 
 // note: emscripten does not support launching threads
 #ifndef __EMSCRIPTEN__
 
-TEST(mpsc_priority_queue, single_producer)
+TEST(mpsc_priority_queue, single_concurrent_producer)
 {
+    using val_t = std::unique_ptr<int>;
     const int max_value = 1000;
+
     mpsc_priority_queue<val_t, std::greater_equal<int>> q;
 
     // single producer
@@ -69,10 +116,12 @@ TEST(mpsc_priority_queue, single_producer)
     ASSERT_EQ(failed, 0);
 }
 
-TEST(mpsc_priority_queue, multi_producer)
+TEST(mpsc_priority_queue, multi_concurrent_producers)
 {
+    using val_t = std::unique_ptr<int>;
 	const int num_values = 1000;
     const int num_producers = 10;
+
     mpsc_priority_queue<val_t, std::greater_equal<int>> q;
     std::atomic<int> counter{1};
 
