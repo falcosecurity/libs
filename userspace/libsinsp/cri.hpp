@@ -44,12 +44,18 @@ namespace libsinsp
 {
 namespace cri
 {
-inline std::vector<std::string> s_cri_unix_socket_paths;
-inline int64_t s_cri_timeout = 1000;
-inline int64_t s_cri_size_timeout = 10000;
-inline sinsp_container_type s_cri_runtime_type = CT_CRI;
-inline std::string s_cri_unix_socket_path;
-inline bool s_cri_extra_queries = true;
+
+settings::settings():
+	m_cri_unix_socket_paths(),
+	m_cri_timeout(1000),
+	m_cri_size_timeout(10000),
+	m_cri_runtime_type(CT_CRI),
+	m_cri_unix_socket_path(),
+	m_cri_extra_queries(true)
+{ }
+
+settings::~settings()
+{ }
 
 template<typename api> 
 inline cri_interface<api>::cri_interface(const std::string &cri_path)
@@ -63,7 +69,7 @@ inline cri_interface<api>::cri_interface(const std::string &cri_path)
 
 	vreq.set_version(api::version);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(settings::instance().get_cri_timeout());
 	context.set_deadline(deadline);
 	grpc::Status status = m_cri->Version(&context, vreq, &vresp);
 
@@ -94,7 +100,7 @@ inline cri_interface<api>::cri_interface(const std::string &cri_path)
 	{
 		m_cri_runtime_type = CT_CRI;
 	}
-	s_cri_runtime_type = m_cri_runtime_type;
+	settings::instance().set_cri_runtime_type(m_cri_runtime_type);
 }
 
 template<typename api> 
@@ -111,7 +117,7 @@ inline grpc::Status cri_interface<api>::get_container_status(const std::string &
 	req.set_container_id(container_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(settings::instance().get_cri_timeout());
 	context.set_deadline(deadline);
 	return m_cri->ContainerStatus(&context, req, &resp);
 }
@@ -123,7 +129,7 @@ inline grpc::Status cri_interface<api>::get_container_stats(const std::string &c
 	typename api::ContainerStatsRequest req;
 	req.set_container_id(container_id);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_size_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(settings::instance().get_cri_size_timeout());
 	context.set_deadline(deadline);
 	return m_cri->ContainerStats(&context, req, &resp);
 }
@@ -549,7 +555,7 @@ inline void cri_interface<api>::get_pod_sandbox_resp(const std::string &pod_sand
 	req.set_pod_sandbox_id(pod_sandbox_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(settings::instance().get_cri_timeout());
 	context.set_deadline(deadline);
 	status = m_cri->PodSandboxStatus(&context, req, &resp);
 }
@@ -591,7 +597,7 @@ inline void cri_interface<api>::get_container_ip(const std::string &container_id
 	auto filter = req.mutable_filter();
 	filter->set_id(container_id);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(settings::instance().get_cri_timeout());
 	context.set_deadline(deadline);
 	grpc::Status lstatus = m_cri->ListContainers(&context, req, &resp);
 
@@ -631,7 +637,7 @@ inline std::string cri_interface<api>::get_container_image_id(const std::string 
 	auto spec = filter->mutable_image();
 	spec->set_image(image_ref);
 	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(settings::instance().get_cri_timeout());
 	context.set_deadline(deadline);
 	grpc::Status status = m_cri_image->ListImages(&context, req, &resp);
 
@@ -793,7 +799,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
 
-	if(s_cri_extra_queries)
+	if(settings::instance().get_cri_extra_queries())
 	{
 		if(!container.m_container_ip)
 		{

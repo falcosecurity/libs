@@ -41,13 +41,99 @@ limitations under the License.
 namespace libsinsp {
 namespace cri {
 
-// these shouldn't be globals but we still need references to *the* CRI runtime
-extern std::vector<std::string> s_cri_unix_socket_paths;
-extern int64_t s_cri_timeout;
-// TODO: drop these 2 below
-extern std::string s_cri_unix_socket_path;
-extern sinsp_container_type s_cri_runtime_type;
-extern bool s_cri_extra_queries;
+class settings
+{
+public:
+	static settings& instance()
+	{
+		static settings instance;
+		return instance;
+	}
+
+	std::vector<std::string> get_cri_unix_socket_paths() const
+	{
+		return m_cri_unix_socket_paths;
+	}
+
+	void set_cri_unix_socket_paths(std::vector<std::string> v)
+	{
+		m_cri_unix_socket_paths = v;
+	}
+
+	int64_t get_cri_timeout() const
+	{
+		return m_cri_timeout;
+	}
+
+	void set_cri_timeout(int64_t v)
+	{
+		m_cri_timeout = v;
+	}
+
+	int64_t get_cri_size_timeout() const
+	{
+		return m_cri_size_timeout;
+	}
+
+	void set_cri_size_timeout(int64_t v)
+	{
+		m_cri_size_timeout = v;
+	}
+
+	sinsp_container_type get_cri_runtime_type() const
+	{
+		return m_cri_runtime_type;
+	}
+
+	void set_cri_runtime_type(sinsp_container_type v)
+	{
+		m_cri_runtime_type = v;
+	}
+
+	std::string get_cri_unix_socket_path() const
+	{
+		return m_cri_unix_socket_path;
+	}
+
+	void set_cri_unix_socket_path(std::string v)
+	{
+		m_cri_unix_socket_path = v;
+	}
+
+	bool get_cri_extra_queries() const
+	{
+		return m_cri_extra_queries;
+	}
+
+	void set_cri_extra_queries(bool v)
+	{
+		m_cri_extra_queries = v;
+	}
+
+	void add_cri_unix_socket_path(std::string v)
+	{
+		m_cri_unix_socket_paths.emplace_back(v);
+	}
+
+	void clear_cri_unix_socket_paths()
+	{
+		m_cri_unix_socket_paths.clear();
+	}
+
+private:
+	settings();
+	~settings();
+
+	settings(const settings&) = delete;
+	settings& operator=(const settings&) = delete;
+
+	std::vector<std::string> m_cri_unix_socket_paths;
+	int64_t m_cri_timeout;
+	int64_t m_cri_size_timeout;
+	sinsp_container_type m_cri_runtime_type;
+	std::string m_cri_unix_socket_path;
+	bool m_cri_extra_queries;
+};
 
 class cri_api_v1alpha2
 {
