@@ -399,6 +399,7 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 		throw scap_open_exception(error, scap_rc);
 	}
 
+	m_platform = platform;
 	scap_rc = scap_platform_init(platform, m_platform_lasterr, m_h->m_engine, oargs);
 	if(scap_rc != SCAP_SUCCESS)
 	{
@@ -409,7 +410,6 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 
 		throw scap_open_exception(m_platform_lasterr, scap_rc);
 	}
-	m_platform = platform;
 
 	init();
 
