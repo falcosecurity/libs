@@ -28,7 +28,10 @@ limitations under the License.
  * @brief Concurrent priority queue optimized for multiple producer/single consumer
  * (mpsc) use cases. This queue allows checking the top element against
  * a provided predicate before popping. It is optimized for checking for
- * emptyness before popping.
+ * emptyness before popping. The queue accepts only elements of pointer-type
+ * in the form of std::shared_ptr<T> or std::unique_ptr<T>. The priority queue
+ * bases its element ordering constraints on Cmp. Elements with equal priority
+ * follow the temporal order with which they have been pushed.
  */
 template<typename Elm, typename Cmp, typename Mtx = std::mutex>
 class mpsc_priority_queue
@@ -56,7 +59,7 @@ public:
 		std::scoped_lock<Mtx> lk(m_mtx);
 		if (m_capacity == 0 || m_queue.size() < m_capacity)
 		{
-			m_queue.push(queue_elm{std::move(e)});
+			m_queue.push(queue_elm{std::move(e), m_elem_counter++});
 			m_queue_top = m_queue.top().elm.get();
 			return true;
 		}
@@ -155,16 +158,36 @@ public:
 private:
 	using elm_ptr = typename Elm::element_type*;
 
-	// workaround to make unique_ptr usable when copying the queue top
-	// which is const unique<ptr>& and denies moving
 	struct queue_elm
 	{
-		inline bool operator < (const queue_elm& r) const {return Cmp{}(*elm.get(), *r.elm.get());}
+		inline bool operator < (const queue_elm& r) const
+		{
+			// we check if this elem is less than the other. If the comparison
+			// gives the same result when inverting the operands, then we can
+			// assume them being equal.
+			Cmp c{};
+			auto res = c(*elm.get(), *r.elm.get());
+			if (res == c(*r.elm.get(), *elm.get()))
+			{
+				// if elements have the same priority, order them by
+				// temporal order of arrival in the queue by using an atomic
+				// logical clock (counter).
+				// note(jasondellaluce): this approach is vulnerable to integer overflow
+				// that would cause the second-level ordering guarantee to be broken,
+				// but given that we use a uint64_t counter we find this unlikely
+				return std::greater_equal<uint64_t>{}(num, r.num);
+			}
+			return res;
+		}
+		// using mutable is a workaround to make unique_ptr usable when copying
+		// the queue top(), which is returned a const unique<ptr>& and denies moving
 		mutable Elm elm;
+		uint64_t num;
 	};
 
 	const size_t m_capacity;
 	std::priority_queue<queue_elm> m_queue{};
 	std::atomic<elm_ptr> m_queue_top{nullptr};
+	std::atomic<uint64_t> m_elem_counter{0};
 	Mtx m_mtx;
 };
