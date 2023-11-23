@@ -77,11 +77,11 @@ void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uin
 	{
 		if(strncmp(line, "VmSize:", 7) == 0)
 		{
-			sscanf(line, "VmSize: %u", &vsz);		/* memory size returned in kb */
+			sscanf(line, "VmSize: %" SCNu32, &vsz);		/* memory size returned in kb */
 		}
 		else if(strncmp(line, "VmRSS:", 6) == 0)
 		{
-			sscanf(line, "VmRSS: %u", &rss);		/* memory size returned in kb */
+			sscanf(line, "VmRSS: %" SCNu32, &rss);		/* memory size returned in kb */
 		}
 	}
 	fclose(f);
@@ -97,7 +97,7 @@ void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uin
 	{
 		if(strncmp(line, "Pss:", 4) == 0)
 		{
-			sscanf(line, "Pss: %u", &pss);		/* memory size returned in kb */
+			sscanf(line, "Pss: %" SCNu32, &pss);		/* memory size returned in kb */
 			break;
 		}
 	}
@@ -115,25 +115,25 @@ void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uin
 		return;
 	}
 
-	unsigned long long mem_total, mem_free, mem_buff, mem_cache = 0;
+	uint64_t mem_total, mem_free, mem_buff, mem_cache = 0;
 
 	while(fgets(line, sizeof(line), f) != NULL)
 	{
 		if(strncmp(line, "MemTotal:", 9) == 0)
 		{
-			sscanf(line, "MemTotal: %llu", &mem_total);		/* memory size returned in kb */
+			sscanf(line, "MemTotal: %" SCNu64, &mem_total);		/* memory size returned in kb */
 		}
 		else if(strncmp(line, "MemFree:", 8) == 0)
 		{
-			sscanf(line, "MemFree: %llu", &mem_free);		/* memory size returned in kb */
+			sscanf(line, "MemFree: %" SCNu64, &mem_free);		/* memory size returned in kb */
 		}
 		else if(strncmp(line, "Buffers:", 8) == 0)
 		{
-			sscanf(line, "Buffers: %llu", &mem_buff);		/* memory size returned in kb */
+			sscanf(line, "Buffers: %" SCNu64, &mem_buff);		/* memory size returned in kb */
 		}
 		else if(strncmp(line, "Cached:", 7) == 0)
 		{
-			sscanf(line, "Cached: %llu", &mem_cache);		/* memory size returned in kb */
+			sscanf(line, "Cached: %" SCNu64, &mem_cache);		/* memory size returned in kb */
 		}
 	}
 	fclose(f);
@@ -151,7 +151,7 @@ void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uin
 		ASSERT(false);
 		return;
 	}
-	int matched_fds = fscanf(f, "%lu", &open_fds_host);
+	int matched_fds = fscanf(f, "%" SCNu64, &open_fds_host);
 	fclose(f);
 
 	if (matched_fds != 1) {
@@ -235,17 +235,17 @@ void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, do
 	}
 
     /* Need only first 7 columns of /proc/stat cpu line */
-	unsigned long long user, nice, system, idle, iowait, irq, softirq = 0;
+	uint64_t user, nice, system, idle, iowait, irq, softirq = 0;
 	while(fgets(line, sizeof(line), f) != NULL)
 	{
 		if(strncmp(line, "cpu ", 4) == 0)
 		{
 			/* Always first line in /proc/stat file, unit: jiffies */
-			sscanf(line, "cpu %llu %llu %llu %llu %llu %llu %llu", &user, &nice, &system, &idle, &iowait, &irq, &softirq);
+			sscanf(line, "cpu %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64 " %" SCNu64, &user, &nice, &system, &idle, &iowait, &irq, &softirq);
 		}
 		else if(strncmp(line, "procs_running ", 14) == 0)
 		{
-			sscanf(line, "procs_running %u", &procs_running_host);
+			sscanf(line, "procs_running %" SCNu32, &procs_running_host);
 			break;
 		}
 	}
@@ -268,7 +268,7 @@ uint64_t get_container_memory_usage()
 	 * typically libs clients (e.g. Falco) pods contain sidekick containers that use memory as well.
 	 * This metric accounts only for the container with the security monitoring agent running.
 	*/
-	unsigned long long memory_used = 0;
+	uint64_t memory_used = 0;
 	const char* filepath = getenv(SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR);
 	if (filepath == nullptr)
 	{
@@ -283,7 +283,7 @@ uint64_t get_container_memory_usage()
 	}
 
 	/* memory size returned in bytes */
-	int fscanf_matched = fscanf(f, "%llu", &memory_used);
+	int fscanf_matched = fscanf(f, "%" SCNu64, &memory_used);
 	fclose(f);
 
 	if (fscanf_matched != 1) {
