@@ -151,7 +151,7 @@ void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uin
 		ASSERT(false);
 		return;
 	}
-	int matched_fds = fscanf(f, "%llu", &open_fds_host);
+	int matched_fds = fscanf(f, "%lu", &open_fds_host);
 	fclose(f);
 
 	if (matched_fds != 1) {
