@@ -744,6 +744,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		else
 		{
 			tinfo->set_lastevent_data_validity(false);
+
+			if(tinfo->m_lastevent_type != PPME_TRACER_E)
+			{
+				return false;
+			}
 		}
 
 		//
