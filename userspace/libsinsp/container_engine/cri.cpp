@@ -57,14 +57,15 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 
 cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 {
-	if (s_cri_unix_socket_paths.empty())
+	auto& cri_settings = libsinsp::cri::settings::instance();
+	if (cri_settings.get_cri_unix_socket_paths().empty())
 	{
 		// containerd as primary default value when empty
-		s_cri_unix_socket_paths.emplace_back("/run/containerd/containerd.sock");
+		cri_settings.add_cri_unix_socket_path("/run/containerd/containerd.sock");
 		// crio-o as secondary default value when empty
-		s_cri_unix_socket_paths.emplace_back("/run/crio/crio.sock");
+		cri_settings.add_cri_unix_socket_path("/run/crio/crio.sock");
 		// k3s containerd as third option when empty
-		s_cri_unix_socket_paths.emplace_back("/run/k3s/containerd/containerd.sock");
+		cri_settings.add_cri_unix_socket_path("/run/k3s/containerd/containerd.sock");
 	}
 
 
@@ -73,7 +74,7 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 	// so we wouldn't make things complex to support that.
 	// On the other hand, specifying multiple unix socket paths (and using only the first match)
 	// will solve the "same config, multiple hosts" use case.
-	for (auto &p : s_cri_unix_socket_paths)
+	for (auto &p : cri_settings.get_cri_unix_socket_paths())
 	{
 		if(p.empty())
 		{
@@ -95,7 +96,7 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 		else
 		{
 			// Store used unix_socket_path
-			s_cri_unix_socket_path = p;
+			cri_settings.set_cri_unix_socket_path(p);
 			break;
 		}
 
@@ -107,7 +108,7 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 		else
 		{
 			// Store used unix_socket_path
-			s_cri_unix_socket_path = p;
+			cri_settings.set_cri_unix_socket_path(p);
 			break;
 		}
 	}
@@ -119,27 +120,27 @@ void cri::cleanup()
 	{
 		m_async_source->quiesce();
 	}
-	s_cri_extra_queries = true;
+	libsinsp::cri::settings::instance().set_cri_extra_queries(true);
 }
 
 void cri::set_cri_socket_path(const std::string& path)
 {
-	s_cri_unix_socket_paths.clear();
+	libsinsp::cri::settings::instance().clear_cri_unix_socket_paths();
 	add_cri_socket_path(path);
 }
 
 void cri::add_cri_socket_path(const std::string& path)
 {
-	s_cri_unix_socket_paths.push_back(path);
+	libsinsp::cri::settings::instance().add_cri_unix_socket_path(path);
 }
 
 void cri::set_cri_timeout(int64_t timeout_ms)
 {
-	s_cri_timeout = timeout_ms;
+	libsinsp::cri::settings::instance().set_cri_timeout(timeout_ms);
 }
 
 void cri::set_extra_queries(bool extra_queries) {
-	s_cri_extra_queries = extra_queries;
+	libsinsp::cri::settings::instance().set_cri_extra_queries(extra_queries);
 }
 
 void cri::set_async(bool async)
