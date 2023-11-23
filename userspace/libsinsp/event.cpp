@@ -2862,7 +2862,7 @@ std::optional<std::reference_wrapper<std::string>> sinsp_evt::get_enter_evt_para
 	return ret;
 }
 
-std::string sinsp_evt_param::invalid_len_error(size_t requested_length) const
+void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const
 {
 	const struct ppm_param_info* parinfo = get_info();
 
@@ -2871,7 +2871,7 @@ std::string sinsp_evt_param::invalid_len_error(size_t requested_length) const
 		<< m_evt->get_num() << " of type " << m_evt->get_type() << " (" << m_evt->get_name() << "): expected length "
 		<< requested_length << ", found " << m_len;
 
-	return std::string(ss.str());
+	throw sinsp_exception(ss.str());
 }
 
 const struct ppm_param_info* sinsp_evt_param::get_info() const

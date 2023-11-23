@@ -122,7 +122,12 @@ public:
 	}
 
 	const struct ppm_param_info* get_info() const;
-	std::string invalid_len_error(size_t requested_len) const;
+
+	// Throws a sinsp_exception detailing why the requested_len is incorrect.
+	// This is only meant to be called by get_event_param_as. This way, this function will not be inlined
+	// while get_event_param_as will be inlined.
+	[[gnu::cold]]
+	void throw_invalid_len_error(size_t requested_len) const;
 };
 
 /*!
@@ -139,7 +144,7 @@ inline T get_event_param_as(const sinsp_evt_param& param)
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
 		// This is important since get_param<> is called in the hot path.
-		throw sinsp_exception(param.invalid_len_error(sizeof(T)));
+		param.throw_invalid_len_error(sizeof(T));
 	}
 
 	memcpy(&ret, param.m_val, sizeof(T));
@@ -161,7 +166,7 @@ inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_par
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
 		// This is important since get_param<> is called in the hot path.
-		throw sinsp_exception(param.invalid_len_error(string_len));
+		param.throw_invalid_len_error(string_len);
 	}
 
 	return {param.m_val, string_len};
