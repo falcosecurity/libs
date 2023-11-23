@@ -6734,7 +6734,7 @@ int f_sys_bpf_x(struct event_filler_arguments *args)
 	/* Parameter 2: cmd (type: PT_INT64) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	cmd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)cmd, 0, false, 0);
+	res = val_to_ring(args, cmd, 0, false, 0);
 	CHECK_RES(res);
 	return add_sentinel(args);
 }

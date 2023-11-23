@@ -5782,9 +5782,9 @@ FILLER(sys_bpf_x, true)
 	long fd = bpf_syscall_get_retval(data->ctx);
 	bpf_push_s64_to_ring(data, fd);
 
-	/* Parameter 2: cmd (type: PT_INT64) */
+	/* Parameter 2: cmd (type: PT_INT32) */
 	int32_t cmd = (int32_t)bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data,(int64_t)cmd);
+	return bpf_push_s32_to_ring(data, cmd);
 }
 
 FILLER(sys_unlinkat_x, true)
