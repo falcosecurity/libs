@@ -71,10 +71,10 @@ TEST(SyscallExit, bpfX_invalid_cmd)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	evt_test->assert_numeric_param(1, errno_value);
 
-	/* Parameter 2: cmd (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)cmd);
+	/* Parameter 2: cmd (type: PT_INT32) */
+	evt_test->assert_numeric_param(2, cmd);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -90,15 +90,10 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	int32_t cmd = BPF_MAP_CREATE;
-	union bpf_attr attr = {
-		.map_type = BPF_MAP_TYPE_ARRAY,
-		.key_size = sizeof(int),
-		.value_size = sizeof(int),
-		.max_entries = 1024
-	};
-	//
-	int *ret = (int*) mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	int32_t cmd = 1;
+	union bpf_attr *attr = NULL; 
+	
+
 	/* Here we need to call the `bpf` from a child because the main process throws lots of
 	 * `bpf` syscalls to manage the bpf drivers.
 	 */
@@ -108,12 +103,10 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 
 	if(ret_pid == 0)
 	{
-		/* When BPF_MAP_CREATE is used, the new file descriptor associated with the eBPF map is returned.*/
-
-		*ret = syscall(__NR_bpf, cmd, &attr, sizeof(attr));
 		/* In this way in the father we know if the call was successful or not. */
-		if(*ret != -1)
+		if(syscall(__NR_bpf, cmd, attr, sizeof(attr) == -1))
 		{
+			/* SUCCESS because we want the call to fail */
 			exit(EXIT_SUCCESS);
 		}
 		else
@@ -127,11 +120,13 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 	int status = 0;
 	int options = 0;
 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
-	int fd = *ret;
-	if (munmap(ret, sizeof(ret) != -1)){
-		//munmap returns -1 when failed 
-		FAIL() << "Shared memory failed to clear..."<<std::endl;
-	};
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The bpf call is successful while it should fail..." << std::endl;
+	}
+	
+	int64_t errno_value = -EINVAL;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -151,8 +146,9 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)fd);
-	evt_test->assert_numeric_param(2, (int64_t)cmd);
+	evt_test->assert_numeric_param(1, errno_value);
+	/* Parameter 2: cmd (type: PT_INT32)*/
+	evt_test->assert_numeric_param(2, cmd);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
