@@ -88,7 +88,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 		});
 
 		auto containers = m_containers.lock();
-		if (m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_missing_container_images = 0;
 			// Will include pod sanboxes, but that's ok
@@ -97,7 +97,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 		for(auto it = containers->begin(); it != containers->end();)
 		{
 			sinsp_container_info::ptr_t container = it->second;
-			if (m_inspector->m_sinsp_stats_v2)
+			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 			{
 				auto container_info = container.get();
 				if (!container_info || (container_info && !container_info->m_is_pod_sandbox && container_info->m_image.empty()))

@@ -677,7 +677,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			etype == PPME_SYSCALL_VFORK_20_X ||
 			etype == PPME_SYSCALL_CLONE3_X)
 		{
-			if (m_inspector->m_sinsp_stats_v2)
+			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 			{
 				m_inspector->m_sinsp_stats_v2->m_n_failed_thread_lookups--;
 			}
@@ -826,7 +826,7 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 		// we won't be able to parse the corresponding exit event and we'll have
 		// to drop the information it carries.
 		//
-		if (m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_store_evts_drops++;
 		}
@@ -862,7 +862,7 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 	memcpy(tinfo->m_lastevent_data, evt->m_pevt, elen);
 	tinfo->m_lastevent_cpuid = evt->get_cpuid();
 
-	if (m_inspector->m_sinsp_stats_v2)
+	if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 	{
 		m_inspector->m_sinsp_stats_v2->m_n_stored_evts++;
 	}
@@ -887,7 +887,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 		// This happen especially at the beginning of trace files, where events
 		// can be truncated
 		//
-		if (m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
 		}
@@ -910,7 +910,7 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 		&&
 		enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
 	{
-		if (m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_retrieved_evts++;
 		}
@@ -925,13 +925,13 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	{
 		//ASSERT(false);
 		exit_evt->m_tinfo->set_lastevent_data_validity(false);
-		if (m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_retrieve_evts_drops++;
 		}
 		return false;
 	}
-	if (m_inspector->m_sinsp_stats_v2)
+	if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 	{
 		m_inspector->m_sinsp_stats_v2->m_n_retrieved_evts++;
 	}
@@ -3654,13 +3654,13 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 		// It is normal when a close fails that the fd lookup failed, so we revert the
 		// increment of m_n_failed_fd_lookups (for the enter event too if there's one).
 		//
-		if (m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_failed_fd_lookups--;
 		}
 		if(evt->m_tinfo && evt->m_tinfo->is_lastevent_data_valid())
 		{
-			if (m_inspector->m_sinsp_stats_v2)
+			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 			{
 				m_inspector->m_sinsp_stats_v2->m_n_failed_fd_lookups--;
 			}
