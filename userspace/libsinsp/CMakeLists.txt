@@ -370,9 +370,7 @@ endforeach()
 # Build our pkg-config "Cflags:" flags.
 set(SINSP_PKG_CONFIG_INCLUDES "")
 foreach(sinsp_include_directory ${LIBSINSP_INCLUDE_DIRS})
-	if(NOT sinsp_include_directory MATCHES "(^${PROJECT_SOURCE_DIR}|^${PROJECT_BINARY_DIR})")
-		list(APPEND SINSP_PKG_CONFIG_INCLUDES -I${sinsp_include_directory})
-	endif()
+	list(APPEND SINSP_PKG_CONFIG_INCLUDES -I${sinsp_include_directory})
 endforeach()
 
 string(REPLACE ";" " " SINSP_PKG_CONFIG_LIBS "${SINSP_PKG_CONFIG_LIBS}")
