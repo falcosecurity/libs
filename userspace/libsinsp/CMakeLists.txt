@@ -55,7 +55,6 @@ if(NOT WIN32 AND NOT APPLE )
 		include(protobuf)
 		include(openssl)
 	endif() # NOT MINIMAL_BUILD
-	include(jq)
 endif()
 
 if (NOT EMSCRIPTEN)
