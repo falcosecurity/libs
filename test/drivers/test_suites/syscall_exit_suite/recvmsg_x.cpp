@@ -562,7 +562,7 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 	};
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
+	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, NULL, NULL, 0);
 	assert_syscall_state(SYSCALL_SUCCESS, "accept (server)", connected_socket_fd, NOT_EQUAL, -1);
 
 	/* Now we can fork. We still maintain the connected_socket_fd in both parent and child processes */
