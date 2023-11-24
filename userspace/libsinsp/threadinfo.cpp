@@ -26,7 +26,6 @@ limitations under the License.
 #include "strl.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "protodecoder.h"
 #include "scap-int.h"
 
 constexpr static const char* s_thread_table_name = "threads";
@@ -381,17 +380,6 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		break;
 	}
 
-	//
-	// Call the protocol decoder callbacks associated to notify them about this FD
-	//
-	ASSERT(m_inspector != NULL);
-	std::vector<sinsp_protodecoder*>::iterator it;
-
-	for(it = m_inspector->m_parser->m_open_callbacks.begin();
-		it != m_inspector->m_parser->m_open_callbacks.end(); ++it)
-	{
-		(*it)->on_fd_from_proc(newfdi);
-	}
 
 	//
 	// Add the FD to the table

@@ -17,7 +17,9 @@ limitations under the License.
 */
 
 #pragma once
-#include "sinsp_pd_callback_type.h"
+
+#include "tuples.h"
+
 #include <unordered_map>
 #include <vector>
 
@@ -26,8 +28,6 @@ limitations under the License.
 #else
 #define CANCELED_FD_NUMBER std::numeric_limits<int64_t>::max()
 #endif
-
-class sinsp_protodecoder;
 
 // fd type characters
 #define CHAR_FD_FILE			'f'
@@ -66,13 +66,6 @@ typedef union _sinsp_sockinfo
 	unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
 }sinsp_sockinfo;
 
-class fd_callbacks_info
-{
-public:
-	std::vector<sinsp_protodecoder*> m_write_callbacks;
-	std::vector<sinsp_protodecoder*> m_read_callbacks;
-};
-
 /*!
   \brief File Descriptor information class.
   This class contains the full state for a FD, and a bunch of functions to
@@ -94,11 +87,6 @@ public:
 
 	~sinsp_fdinfo()
 	{
-		if(m_callbacks != NULL)
-		{
-			delete m_callbacks;
-		}
-
 		if(m_usrstate != NULL)
 		{
 			delete m_usrstate;
@@ -130,25 +118,10 @@ public:
 		
 		if(free_state)
 		{
-			if(m_callbacks != NULL)
-			{
-				delete m_callbacks;
-			}
-
 			if(m_usrstate != NULL)
 			{
 				delete m_usrstate;
 			}
-		}
-
-		if(other.m_callbacks != NULL)
-		{
-			m_callbacks = new fd_callbacks_info();
-			*m_callbacks = *other.m_callbacks;
-		}
-		else
-		{
-			m_callbacks = NULL;
 		}
 
 		if(other.m_usrstate != NULL)
@@ -179,6 +152,14 @@ public:
 	  \brief Return the fd name, after removing unprintable or invalid characters from it.
 	*/
 	std::string tostring_clean();
+
+	/*!
+	  \brief Return true if this is a log device.
+	*/
+	inline bool is_syslog() const
+	{
+		return m_name.find("/dev/log") != std::string::npos;
+	}
 
 	/*!
 	  \brief Returns true if this is a unix socket.
@@ -307,16 +288,6 @@ public:
 	scap_l4_proto get_l4proto();
 
 	/*!
-	  \brief Used by protocol decoders to register callbacks related to this FD.
-	*/
-	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
-
-	/*!
-	  \brief Used by protocol decoders to unregister callbacks related to this FD.
-	*/
-	void unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
-
-	/*!
 	  \brief Return true if this FD is a socket server
 	*/
 	inline bool is_role_server()
@@ -372,11 +343,6 @@ public:
 	std::string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
 	std::string m_name_raw; // Human readable rendering of this FD. See m_name, only used if fd is a file path. Path is kept "raw" with limited sanitization and without absolute path derivation.
 	std::string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
-
-	inline bool has_decoder_callbacks()
-	{
-		return (m_callbacks != NULL);
-	}
 
 	/*!
 	  \brief FD flags.
@@ -518,8 +484,6 @@ public:
 	uint32_t m_mount_id;
 	uint64_t m_ino;
 	int64_t m_pid; // only if fd is a pidfd
-
-	fd_callbacks_info* m_callbacks;
 };
 
 /*@}*/

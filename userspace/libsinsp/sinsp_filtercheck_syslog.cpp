@@ -19,7 +19,6 @@ limitations under the License.
 #include "sinsp_filtercheck_syslog.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "protodecoder.h"
 
 using namespace std;
 
@@ -56,7 +55,6 @@ sinsp_filter_check_syslog::sinsp_filter_check_syslog()
 	m_info.m_desc = "Content of Syslog messages.";
 	m_info.m_fields = sinsp_filter_check_syslog_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]);
-	m_decoder = NULL;
 }
 
 sinsp_filter_check* sinsp_filter_check_syslog::allocate_new()
@@ -64,23 +62,11 @@ sinsp_filter_check* sinsp_filter_check_syslog::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_syslog();
 }
 
-int32_t sinsp_filter_check_syslog::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
-{
-	int32_t res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
-	if(res != -1)
-	{
-		m_decoder = (sinsp_decoder_syslog*)m_inspector->require_protodecoder("syslog");
-	}
-
-	return res;
-}
-
 uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
-	const char *str;
-	ASSERT(m_decoder != NULL);
-	if(!m_decoder->is_data_valid())
+	auto& decoder = m_inspector->m_parser->get_syslog_decoder();
+	if (!decoder.is_data_valid())
 	{
 		return NULL;
 	}
@@ -88,17 +74,17 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	switch(m_field_id)
 	{
 	case TYPE_FACILITY:
-		RETURN_EXTRACT_VAR(m_decoder->m_facility);
+		m_storageu32 = decoder.get_facility();
+		RETURN_EXTRACT_VAR(m_storageu32);
 	case TYPE_FACILITY_STR:
-		str = m_decoder->get_facility_str();
-		RETURN_EXTRACT_CSTR(str);
+		RETURN_EXTRACT_STRING(decoder.get_facility_str());
 	case TYPE_SEVERITY:
-		RETURN_EXTRACT_VAR(m_decoder->m_severity);
+		m_storageu32 = decoder.get_severity();
+		RETURN_EXTRACT_VAR(m_storageu32);
 	case TYPE_SEVERITY_STR:
-		str = m_decoder->get_severity_str();
-		RETURN_EXTRACT_CSTR(str);
+		RETURN_EXTRACT_STRING(decoder.get_severity_str());
 	case TYPE_MESSAGE:
-		RETURN_EXTRACT_STRING(m_decoder->m_msg);
+		RETURN_EXTRACT_STRING(decoder.get_msg());
 	default:
 		ASSERT(false);
 		return NULL;

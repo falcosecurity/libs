@@ -31,7 +31,6 @@ template<> sinsp_fdinfo_t::sinsp_fdinfo()
 {
 	m_type = SCAP_FD_UNINITIALIZED;
 	m_flags = FLAGS_NONE;
-	m_callbacks = NULL;
 	m_usrstate = NULL;
 	m_name = "";
 	m_name_raw = "";
@@ -47,8 +46,6 @@ template<> void sinsp_fdinfo_t::reset()
 {
 	m_type = SCAP_FD_UNINITIALIZED;
 	m_flags = FLAGS_NONE;
-	delete(m_callbacks);
-	m_callbacks = NULL;
 	m_usrstate = NULL;
 	m_name = "";
 	m_name_raw = "";
@@ -269,71 +266,6 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 	{
 		return SCAP_L4_NA;
 	}
-}
-
-template<> void sinsp_fdinfo_t::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
-{
-	if(this->m_callbacks == NULL)
-	{
-		m_callbacks = new fd_callbacks_info();
-	}
-
-	switch(etype)
-	{
-	case CT_READ:
-		m_callbacks->m_read_callbacks.push_back(dec);
-		break;
-	case CT_WRITE:
-		m_callbacks->m_write_callbacks.push_back(dec);
-		break;
-	default:
-		ASSERT(false);
-		break;
-	}
-
-	return;
-}
-
-template<> void sinsp_fdinfo_t::unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
-{
-	std::vector<sinsp_protodecoder*>::iterator it;
-
-	if(m_callbacks == NULL)
-	{
-		ASSERT(false);
-		return;
-	}
-
-	switch(etype)
-	{
-	case CT_READ:
-		for(it = m_callbacks->m_read_callbacks.begin(); it != m_callbacks->m_read_callbacks.end(); ++it)
-		{
-			if(*it == dec)
-			{
-				m_callbacks->m_read_callbacks.erase(it);
-				return;
-			}
-		}
-
-		break;
-	case CT_WRITE:
-		for(it = m_callbacks->m_write_callbacks.begin(); it != m_callbacks->m_write_callbacks.end(); ++it)
-		{
-			if(*it == dec)
-			{
-				m_callbacks->m_write_callbacks.erase(it);
-				return;
-			}
-		}
-
-		break;
-	default:
-		ASSERT(false);
-		break;
-	}
-
-	return;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

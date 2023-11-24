@@ -118,7 +118,7 @@ set(SINSP_SOURCES
 	plugin_table_api.cpp
 	plugin_filtercheck.cpp
 	prefix_search.cpp
-	protodecoder.cpp
+	sinsp_syslog.cpp
 	threadinfo.cpp
 	tuples.cpp
 	sinsp.cpp

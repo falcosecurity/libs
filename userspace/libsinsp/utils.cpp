@@ -49,7 +49,6 @@ limitations under the License.
 #include "filter.h"
 #include "filter_check_list.h"
 #include "filterchecks.h"
-#include "protodecoder.h"
 #include "strl.h"
 #if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include "curl/curl.h"
@@ -69,7 +68,6 @@ limitations under the License.
 sinsp_evttables g_infotables;
 sinsp_logger g_logger;
 sinsp_initializer g_initializer;
-sinsp_protodecoder_list g_decoderlist;
 
 //
 // loading time initializations
