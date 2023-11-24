@@ -20,8 +20,6 @@ limitations under the License.
 
 #include "sinsp_filtercheck.h"
 
-class sinsp_decoder_syslog;
-
 class sinsp_filter_check_syslog : public sinsp_filter_check
 {
 public:
@@ -36,10 +34,8 @@ public:
 
 	sinsp_filter_check_syslog();
 	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
-	sinsp_decoder_syslog* m_decoder;
-	uint32_t m_gid;
+	uint32_t m_storageu32;
 	std::string m_name;
 };

@@ -36,7 +36,6 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "cyclewriter.h"
-#include "protodecoder.h"
 #include "dns_manager.h"
 #include "plugin.h"
 #include "plugin_manager.h"
@@ -212,11 +211,6 @@ sinsp::~sinsp()
 #endif
 }
 
-void sinsp::add_protodecoders()
-{
-	m_parser->add_protodecoder("syslog");
-}
-
 bool sinsp::is_initialstate_event(scap_evt* pevent)
 {
 	return  pevent->type == PPME_CONTAINER_E ||
@@ -297,12 +291,6 @@ void sinsp::init()
 		ASSERT(false);
 	}
 
-	//
-	// Attach the protocol decoders
-	//
-#ifndef HAS_ANALYZER
-	add_protodecoders();
-#endif
 	//
 	// Allocate the cycle writer
 	//
@@ -1340,20 +1328,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		evt = &m_evt;
 
-		//
-		// Reset previous event's decoders if required
-		//
-		if(m_decoders_reset_list.size() != 0)
-		{
-			std::vector<sinsp_protodecoder*>::iterator it;
-			for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
-			{
-				(*it)->on_reset(evt);
-			}
-
-			m_decoders_reset_list.clear();
-		}
-
 		// fetch the next event 
 		res = fetch_next_event(evt);
 
@@ -2136,16 +2110,6 @@ void sinsp::set_hostname_and_port_resolution_mode(bool enable)
 void sinsp::set_max_evt_output_len(uint32_t len)
 {
 	m_max_evt_output_len = len;
-}
-
-sinsp_protodecoder* sinsp::require_protodecoder(std::string decoder_name)
-{
-	return m_parser->add_protodecoder(decoder_name);
-}
-
-void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)
-{
-	m_decoders_reset_list.push_back(dec);
 }
 
 sinsp_parser* sinsp::get_parser()

@@ -90,7 +90,6 @@ limitations under the License.
 #include "threadinfo.h"
 #include "ifinfo.h"
 #include "eventformatter.h"
-#include "sinsp_pd_callback_type.h"
 
 #include "include/sinsp_external_processor.h"
 #include "plugin.h"
@@ -103,7 +102,6 @@ class sinsp_parser;
 class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
-class sinsp_protodecoder;
 class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
@@ -805,20 +803,6 @@ public:
 	}
 
 	/*!
-	  \brief Lets a filter plugin request a protocol decoder.
-
-	  \param the name of the required decoder
-	*/
-	sinsp_protodecoder* require_protodecoder(std::string decoder_name);
-
-	/*!
-	  \brief Lets a filter plugin request a protocol decoder.
-
-	  \param the name of the required decoder
-	*/
-	void protodecoder_register_reset(sinsp_protodecoder* dec);
-
-	/*!
 	  \brief If this is an offline capture, return the name of the file that is
 	   being read, otherwise return an empty string.
 	*/
@@ -1023,7 +1007,6 @@ private:
 	bool is_initialstate_event(scap_evt* pevent);
 	void import_ifaddr_list();
 	void import_user_list();
-	void add_protodecoders();
 	void remove_thread(int64_t tid);
 	int32_t fetch_next_event(sinsp_evt*& evt);
 
@@ -1181,11 +1164,6 @@ public:
 	// Some dropping infrastructure
 	//
 	bool m_isdropping;
-
-	//
-	// Protocol decoding state
-	//
-	std::vector<sinsp_protodecoder*> m_decoders_reset_list;
 
 	//
 	// meta event management for other sources like k8s, mesos.
@@ -1349,7 +1327,7 @@ public:
 	friend class sinsp_dumper;
 	friend class sinsp_chisel;
 	friend class sinsp_filter_check_event;
-	friend class sinsp_protodecoder;
+	friend class sinsp_filter_check_syslog;
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
 	friend class sinsp_worker;

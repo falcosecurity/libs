@@ -37,7 +37,6 @@ limitations under the License.
 #include "sinsp_errno.h"
 #include "filter.h"
 #include "filterchecks.h"
-#include "protodecoder.h"
 #include "strl.h"
 #include "plugin_manager.h"
 #include "sinsp_observer.h"
@@ -51,9 +50,6 @@ bool should_drop(sinsp_evt *evt);
 #include "container_engine/docker/async_source.h"
 #endif
 
-extern sinsp_protodecoder_list g_decoderlist;
-extern sinsp_evttables g_infotables;
-
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
@@ -64,18 +60,12 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 sinsp_parser::~sinsp_parser()
 {
-	for(uint32_t j = 0; j < m_protodecoders.size(); j++)
-	{
-		delete m_protodecoders[j];
-	}
-
 	while(!m_tmp_events_buffer.empty())
 	{
 		auto ptr = m_tmp_events_buffer.top();
 		free(ptr);
 		m_tmp_events_buffer.pop();
 	}
-	m_protodecoders.clear();
 }
 
 void sinsp_parser::set_track_connection_status(bool enabled)
@@ -505,6 +495,8 @@ void sinsp_parser::event_cleanup(sinsp_evt *evt)
 //
 bool sinsp_parser::reset(sinsp_evt *evt)
 {
+	m_syslog_decoder.reset();
+
 	uint16_t etype = evt->get_type();
 	//
 	// Before anything can happen, the event needs to be
@@ -945,48 +937,6 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	}
 
 	return true;
-}
-
-sinsp_protodecoder* sinsp_parser::add_protodecoder(std::string decoder_name)
-{
-	//
-	// Make sure this decoder is not present yet
-	//
-	std::vector<sinsp_protodecoder*>::iterator it;
-	for(it = m_protodecoders.begin(); it != m_protodecoders.end(); ++it)
-	{
-		if((*it)->get_name() == decoder_name)
-		{
-			return (*it);
-		}
-	}
-
-	sinsp_protodecoder* nd = g_decoderlist.new_protodecoder_from_name(decoder_name,
-		m_inspector);
-
-	nd->init();
-
-	m_protodecoders.push_back(nd);
-
-	return nd;
-}
-
-void sinsp_parser::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
-{
-	switch(etype)
-	{
-	case CT_OPEN:
-		m_open_callbacks.push_back(dec);
-		break;
-	case CT_CONNECT:
-		m_connect_callbacks.push_back(dec);
-		break;
-	default:
-		ASSERT(false);
-		break;
-	}
-
-	return;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2852,14 +2802,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		//
 		evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 
-		//
-		// Call the protocol decoder callbacks associated to this event
-		//
-		std::vector<sinsp_protodecoder*>::iterator it;
-		for(it = m_open_callbacks.begin(); it != m_open_callbacks.end(); ++it)
-		{
-			(*it)->on_event(evt, CT_OPEN);
-		}
 	}
 
 	if(m_inspector->get_observer() && !(flags & PPM_O_DIRECTORY))
@@ -3476,15 +3418,6 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
     fill_client_socket_info(evt, packed_data, force_overwrite_stale_data);
 
 	//
-	// Call the protocol decoder callbacks associated to this event
-	//
-	std::vector<sinsp_protodecoder*>::iterator it;
-	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
-	{
-		(*it)->on_event(evt, CT_CONNECT);
-	}
-
-	//
 	// If there's a listener callback, invoke it
 	//
 	if(m_inspector->get_observer())
@@ -4071,16 +4004,6 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 		evt->m_fdinfo->set_unix_info(packed_data);
 		evt->m_fdinfo->m_name = ((char*)packed_data) + 17;
 
-		//
-		// Call the protocol decoder callbacks to notify the decoders that this FD
-		// changed.
-		//
-		std::vector<sinsp_protodecoder*>::iterator it;
-		for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
-		{
-			(*it)->on_event(evt, CT_TUPLE_CHANGE);
-		}
-
 		return true;
 	}
 
@@ -4108,16 +4031,6 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	// If this is an incomplete tuple, patch it using interface info
 	//
 	m_inspector->m_network_interfaces.update_fd(evt->m_fdinfo);
-
-	//
-	// Call the protocol decoder callbacks to notify the decoders that this FD
-	// changed.
-	//
-	std::vector<sinsp_protodecoder*>::iterator it;
-	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
-	{
-		(*it)->on_event(evt, CT_TUPLE_CHANGE);
-	}
 
 	return true;
 }
@@ -4275,19 +4188,6 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			}
 
 			//
-			// Call the protocol decoder callbacks associated to this event
-			//
-			if(evt->m_fdinfo->m_callbacks)
-			{
-				std::vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_read_callbacks);
-
-				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
-				{
-					(*it)->on_read(evt, data, datalen);
-				}
-			}
-
-			//
 			// Check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS,
 			// which is used to pass FDs between processes, and update the sinsp state 
 			// accordingly via procfs scan.
@@ -4394,17 +4294,10 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 					data, (uint32_t)retval, datalen);
 			}
 
-			//
-			// Call the protocol decoder callbacks associated to this event
-			//
-			if(evt->m_fdinfo->m_callbacks)
+			// perform syslog decoding if applicable
+			if (evt->m_fdinfo->is_syslog())
 			{
-				std::vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_write_callbacks);
-
-				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
-				{
-					(*it)->on_write(evt, data, datalen);
-				}
+				m_syslog_decoder.parse_data(data, datalen);
 			}
 		}
 	} else if (m_track_connection_status) {

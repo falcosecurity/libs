@@ -21,6 +21,7 @@ limitations under the License.
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "sinsp.h"
+#include "sinsp_syslog.h"
 
 class sinsp_parser
 {
@@ -46,20 +47,13 @@ public:
 	//
 	static void parse_dirfd(sinsp_evt *evt, const char* name, int64_t dirfd, OUT std::string* sdir);
 
-	//
-	// Protocol decoder infrastructure methods
-	//
-	sinsp_protodecoder* add_protodecoder(std::string decoder_name);
-	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
-
-	//
-	// Protocol decoders callback lists
-	//
-	std::vector<sinsp_protodecoder*> m_open_callbacks;
-	std::vector<sinsp_protodecoder*> m_connect_callbacks;
-
 	void set_track_connection_status(bool enabled);
 	bool get_track_connection_status() { return m_track_connection_status; }
+
+	inline sinsp_syslog_decoder& get_syslog_decoder()
+	{
+		return m_syslog_decoder;
+	}
 
 private:
 	//
@@ -155,15 +149,10 @@ private:
 
 	bool m_track_connection_status = false;
 
-	//
-	// The protocol decoders allocated by this parser
-	//
-	std::vector<sinsp_protodecoder*> m_protodecoders;
-
 	std::stack<uint8_t*> m_tmp_events_buffer;
 
 	// caches the index of the "syscall" event source
 	size_t m_syscall_event_source_idx;
 
-	friend class sinsp_protodecoder;
+	sinsp_syslog_decoder m_syslog_decoder;
 };

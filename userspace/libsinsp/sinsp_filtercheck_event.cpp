@@ -23,7 +23,6 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "plugin.h"
 #include "plugin_manager.h"
-#include "protodecoder.h"
 #include "value_parser.h"
 
 using namespace std;
@@ -1120,20 +1119,10 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		break;
 	case TYPE_INFO:
 		{
-			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
-
-			if(fdinfo != NULL && fdinfo->m_callbacks != NULL)
+			if(m_inspector->m_parser->get_syslog_decoder().is_data_valid())
 			{
-				char* il;
-				vector<sinsp_protodecoder*>* cbacks = &(fdinfo->m_callbacks->m_write_callbacks);
-
-				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
-				{
-					if((*it)->get_info_line(&il))
-					{
-						RETURN_EXTRACT_CSTR(il);
-					}
-				}
+				// syslog is actually the only info line we support up until now
+				RETURN_EXTRACT_STRING(m_inspector->m_parser->get_syslog_decoder().get_info_line());
 			}
 		}
 		//
@@ -1426,12 +1415,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			{
 				sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
 
-				if(fdinfo != NULL)
+				if(fdinfo != NULL && fdinfo->is_syslog())
 				{
-					if(fdinfo->m_name.find("/dev/log") != string::npos)
-					{
-						m_u32val = 1;
-					}
+					m_u32val = 1;
 				}
 			}
 
