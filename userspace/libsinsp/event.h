@@ -113,7 +113,8 @@ public:
 	/*!
 	  \brief Interpret the parameter as a specific type, like:
 	  	- Fixed size values (uint32_t, int8_t ..., e.g. param->as<uint32_t>())
-		- String-like types with std::string_view (e.g. param->as<std::string_view>())
+		- String-like types (NUL-terminated strings) with std::string_view (e.g. param->as<std::string_view>())
+		  that can be used to instantiate an std::string and can also be accessed with .data() to get a pointer to a NUL-terminated string
 	*/
 	template<class T>
 	inline T as() const
@@ -143,7 +144,6 @@ inline T get_event_param_as(const sinsp_evt_param& param)
 	{
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
-		// This is important since get_param<> is called in the hot path.
 		param.throw_invalid_len_error(sizeof(T));
 	}
 
@@ -161,12 +161,12 @@ inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_par
 	}
 
 	size_t string_len = strnlen(param.m_val, param.m_len);
-	if (param.m_len == string_len)
+	// We expect the parameter to be exactly one null-terminated string
+	if (param.m_len != string_len + 1)
 	{
 		// By moving this error string building operation to a separate function
 		// the compiler is more likely to inline this entire function.
-		// This is important since get_param<> is called in the hot path.
-		param.throw_invalid_len_error(string_len);
+		param.throw_invalid_len_error(string_len + 1);
 	}
 
 	return {param.m_val, string_len};
