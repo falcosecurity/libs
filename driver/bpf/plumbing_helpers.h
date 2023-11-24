@@ -130,6 +130,14 @@ static __always_inline bool bpf_in_ia32_syscall()
 	status = _READ(task->thread_info.flags);
 	return status & _TIF_31BIT;
 
+#elif defined(CONFIG_PPC64)
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/9b6de136b5f0158c60844f85286a593cb70fb364/arch/powerpc/include/asm/thread_info.h#L127
+	 */
+	status = _READ(task->thread_info.flags);
+	return status & _TIF_32BIT;
+
 #else
 
 	/* Unknown architecture. */
@@ -171,6 +179,13 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 	 */
 	id = _READ(regs->int_code);
 	id = id & 0xffff;
+
+#elif CONFIG_PPC64
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/f1a09972a45ae63efbd1587337c4be13b1893330/arch/powerpc/include/asm/syscall.h#L37
+	 */
+	id = _READ(regs->gpr[0]);
 
 #endif /* CONFIG_X86_64 */
 
@@ -299,6 +314,26 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	case 4:
 	case 5:
 		arg = _READ(user_regs->gprs[idx+2]);
+		break;
+	default:
+		arg = 0;
+	}
+
+#elif CONFIG_PPC64
+
+	/* See here for the definition:
+	 * https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h#L290-L306
+	 */
+	switch (idx) {
+	case 0:
+		arg = _READ(regs->orig_gpr3);
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		arg = _READ(regs->gpr[idx+3]);
 		break;
 	default:
 		arg = 0;
