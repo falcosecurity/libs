@@ -17,8 +17,8 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <linux/scap_cgroup.h>
-#include <linux/scap_cgroup.c>
+#include <libscap/linux/scap_cgroup.h>
+#include <libscap/linux/scap_cgroup.c>
 
 TEST(cgroups, path_relative)
 {

@@ -1,6 +1,6 @@
 #include <libscap/scap.h>
 #include <libscap/scap_engines.h>
-#include <libscap/scap_engine_utils.h>
+#include <libscap/scap_engine_util.h>
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <helpers/engines.h>
