@@ -585,7 +585,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		f = fopen(filename, "r");
 		if(f == NULL)
 		{
-			return SCAP_SUCCESS;
+			return scap_errprintf(error, errno, "can't find valid proc dir in %s", dir_name);
 		}
 
 		ASSERT(sizeof(line) >= SCAP_MAX_PATH_SIZE);
@@ -593,7 +593,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL)
 		{
 			fclose(f);
-			return SCAP_SUCCESS;
+			return scap_errprintf(error, errno, "can't read cmdline file %s", filename);
 		}
 		else
 		{
