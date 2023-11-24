@@ -72,7 +72,7 @@ void sinsp_syslog_decoder::parse_data(char *data, uint32_t len)
 	decode_message(data, len, pri, j);
 }
 
-const std::string& sinsp_syslog_decoder::get_severity_str() const
+const std::string sinsp_syslog_decoder::get_severity_str() const
 {
 	if(!is_data_valid() || m_severity >= sizeof(s_syslog_severity_strings) / sizeof(s_syslog_severity_strings[0]))
 	{
@@ -84,7 +84,7 @@ const std::string& sinsp_syslog_decoder::get_severity_str() const
 	}
 }
 
-const std::string& sinsp_syslog_decoder::get_facility_str() const
+const std::string sinsp_syslog_decoder::get_facility_str() const
 {
 	if(!is_data_valid() || m_facility >= sizeof(s_syslog_facility_strings) / sizeof(s_syslog_facility_strings[0]))
 	{
@@ -118,7 +118,7 @@ void sinsp_syslog_decoder::decode_message(char *data, uint32_t len, char* pristr
 	m_msg.assign(data + pristrlen + 2, len - pristrlen - 2);
 }
 
-const std::string& sinsp_syslog_decoder::get_info_line()
+const std::string sinsp_syslog_decoder::get_info_line()
 {
 	if (!is_data_valid())
 	{

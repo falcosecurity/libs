@@ -36,11 +36,11 @@ public:
 
 	void parse_data(char *data, uint32_t len);
 
-	const std::string& get_info_line();
+	const std::string get_info_line();
 
-	const std::string& get_severity_str() const;
+	const std::string get_severity_str() const;
 
-	const std::string& get_facility_str() const;
+	const std::string get_facility_str() const;
 
 	inline void reset()
 	{
@@ -67,7 +67,7 @@ public:
 		return m_severity;
 	}
 
-	inline const std::string& get_msg() const
+	inline const std::string get_msg() const
 	{
 		return m_msg;
 	}
