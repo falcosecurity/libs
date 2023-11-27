@@ -838,6 +838,14 @@ public:
 
 	sinsp_parser* get_parser();
 
+	/*!
+	  \brief Get the logger instance.
+	*/
+	static sinsp_logger& get_logger()
+	{
+		return sinsp::get_logger();
+	}
+
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
 	/*!
