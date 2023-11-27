@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-set(PMAN_SOURCES
+add_library(pman STATIC
     src/stats.c
     src/maps.c
     src/lifecycle.c
@@ -26,60 +26,33 @@ set(PMAN_SOURCES
     src/sc_set.c
 )
 
-set(PMAN_PRIVATE_INCLUDES
-    "${ZLIB_INCLUDE}"
-    "${LIBBPF_INCLUDE}"
-    "${MODERN_BPF_SKEL_DIR}"
-    "${LIBELF_INCLUDE}"
-    "${LIBSCAP_DIR}/driver/" ## ppm_enum and tables
-    "${LIBSCAP_DIR}/userspace/libscap" ## scap-stats struct
-    "${LIBSCAP_DIR}/driver/modern_bpf/" ## bpf-shared structs
-)
-
-set(PMAN_PUBLIC_INCLUDES
-    "./include"
-)
-
-set(PMAN_LINK_LIBRARIES
-    "${LIBBPF_LIB}"
-    "${LIBELF_LIB}"
-    "${ZLIB_LIB}"
-    scap_event_schema
-    scap_platform
-)
-
-if(USE_BUNDLED_MODERN_BPF)
-    list(APPEND
-        PMAN_DEPENDENCIES
-        ProbeSkeleton
-    )
-endif()
-
-if(USE_BUNDLED_LIBBPF)
-    list(APPEND
-        PMAN_DEPENDENCIES
-        libbpf
-    )
-endif()
-
-add_library(pman STATIC ${PMAN_SOURCES})
-
 target_include_directories(pman
-    PUBLIC
-    ${PMAN_PUBLIC_INCLUDES}
-    PRIVATE
+PUBLIC
+    ./include
+PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${PMAN_PRIVATE_INCLUDES}
+    ${ZLIB_INCLUDE}
+    ${LIBBPF_INCLUDE}
+    ${MODERN_BPF_SKEL_DIR}
+    ${LIBELF_INCLUDE}
+    ${LIBSCAP_DIR}/driver ## ppm_enum and tables
+    ${LIBSCAP_DIR}/userspace/libscap ## scap-stats struct
+    ${LIBSCAP_DIR}/driver/modern_bpf ## bpf-shared structs
 )
 
 target_link_libraries(pman
-    PUBLIC
-    ${PMAN_LINK_LIBRARIES}
+PUBLIC
+    scap_event_schema
+    scap_platform
+    ${LIBBPF_LIB}
+    ${LIBELF_LIB}
+    ${ZLIB_LIB}
 )
 
-add_dependencies(pman ${PMAN_DEPENDENCIES})
-set(LIBPMAN_PREFIX "[LIBPMAN]")
-message(STATUS "${LIBPMAN_PREFIX} LIBSCAP_TESTS_SOURCES: ${PMAN_SOURCES}")
-message(STATUS "${LIBPMAN_PREFIX} LIBSCAP_TESTS_INCLUDE: ${PMAN_PRIVATE_INCLUDES}")
-message(STATUS "${LIBPMAN_PREFIX} LIBSCAP_TESTS_LIBRARIES: ${PMAN_LINK_LIBRARIES}")
-message(STATUS "${LIBPMAN_PREFIX} LIBSCAP_TESTS_DEPENDENCIES: ${PMAN_DEPENDENCIES}")
+if(USE_BUNDLED_MODERN_BPF)
+    add_dependencies(pman ProbeSkeleton)
+endif()
+
+if(USE_BUNDLED_LIBBPF)
+    add_dependencies(pman libbpf)
+endif()
