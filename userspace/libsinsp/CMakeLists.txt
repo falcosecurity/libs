@@ -48,7 +48,6 @@ include(jsoncpp)
 if(WITH_CHISEL)
 	include_directories(../chisel)
 	include(luajit)
-	include(tinydir)
 endif()
 
 include(zlib)
@@ -219,7 +218,7 @@ if(USE_BUNDLED_JSONCPP)
 endif()
 
 if(WITH_CHISEL)
-	add_dependencies(sinsp luajit tinydir)
+	add_dependencies(sinsp luajit)
 endif()
 
 function(prepare_cri_grpc api_version)
@@ -245,7 +244,7 @@ if(NOT WIN32)
 	if(NOT MINIMAL_BUILD)
 		if(NOT EMSCRIPTEN)
 			add_dependencies(sinsp openssl curl)
-		endif()	
+		endif()
 	endif()
 
 	if(NOT APPLE)
@@ -294,7 +293,7 @@ if(NOT WIN32)
 		target_link_libraries(sinsp INTERFACE "${LUAJIT_LIB}")
 		list(APPEND SINSP_PKGCONFIG_LIBRARIES "${LUAJIT_LIB}")
 	endif()
-	
+
 	target_link_libraries(sinsp INTERFACE dl pthread)
 	list(APPEND SINSP_PKGCONFIG_LIBRARIES dl pthread)
 

@@ -16,18 +16,6 @@ limitations under the License.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include <cctype>
-#include <locale>
-#ifdef _WIN32
-#include <io.h>
-#else
-#include <limits.h>
-#include <stdlib.h>
-#include <unistd.h>
-#endif
-#include <tinydir.h>
 #include "filterchecks.h"
 
 #include "chisel.h"
@@ -45,6 +33,19 @@ extern "C" {
 #include "lualib.h"
 #include "lauxlib.h"
 }
+#endif
+
+#include <cctype>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <locale>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <climits>
+#include <cstdlib>
+#include <unistd.h>
 #endif
 
 using namespace std;
@@ -1074,23 +1075,6 @@ struct filename
     string ext;
 };
 
-static filename split_filename(string const &fname)
-{
-	filename res;
-	string::size_type idx = fname.rfind('.');
-	if(idx == std::string::npos)
-	{
-		res.valid = false;
-	}
-	else
-	{
-		res.valid = true;
-		res.name = fname.substr(0, idx);
-		res.ext = fname.substr(idx+1);
-	}
-	return res;
-}
-
 //
 // 1. Iterates through the chisel files on disk (.sc and .lua)
 // 2. Opens them and extracts the fields (name, description, etc)
@@ -1098,60 +1082,36 @@ static filename split_filename(string const &fname)
 //
 void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 {
-	for(vector<chiseldir_info>::const_iterator it = g_chisel_dirs->begin();
-		it != g_chisel_dirs->end(); ++it)
+#ifdef HAS_LUA_CHISELS
+	for(auto& dir_info : *g_chisel_dirs)
 	{
-		if(string(it->m_dir).empty())
+		if(dir_info.m_dir.empty())
 		{
 			continue;
 		}
 
-		tinydir_dir dir = {};
-
-		tinydir_open(&dir, it->m_dir.c_str());
-
-		while(dir.has_next)
+		for (auto const& dir_entry : filesystem::directory_iterator(dir_info.m_dir))
 		{
-			tinydir_file file;
-			tinydir_readfile(&dir, &file);
-
-			string fpath(file.path);
-			bool add_to_vector = false;
-			chisel_desc cd;
-
-			filename fn = split_filename(string(file.name));
-			if(fn.ext != "sc" && fn.ext != "lua")
+			if(dir_entry.path().extension() == ".lua")
 			{
-				goto next_file;
-			}
-
-			for(vector<chisel_desc>::const_iterator it_desc = chisel_descs->begin();
-				it_desc != chisel_descs->end(); ++it_desc)
-			{
-				if(fn.name == it_desc->m_name)
+				auto res = find_if(chisel_descs->begin(), chisel_descs->end(),
+					[&dir_entry](auto& desc) { return dir_entry.path().filename() == desc.m_name; });
+				if (res != chisel_descs->end())
 				{
-					goto next_file;
+					continue;
+				}
+
+				chisel_desc cd;
+				cd.m_name = dir_entry.path().filename();
+
+				if (init_lua_chisel(cd, dir_entry.path().generic_string()))
+				{
+					chisel_descs->emplace_back(std::move(cd));
 				}
 			}
-			cd.m_name = fn.name;
-
-#ifdef HAS_LUA_CHISELS
-			if(fn.ext == "lua")
-			{
-				add_to_vector = init_lua_chisel(cd, fpath);
-			}
-
-			if(add_to_vector)
-			{
-				chisel_descs->push_back(cd);
-			}
-#endif
-next_file:
-			tinydir_next(&dir);
 		}
-
-		tinydir_close(&dir);
 	}
+#endif
 }
 
 //
