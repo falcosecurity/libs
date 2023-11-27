@@ -120,27 +120,27 @@ void cri::cleanup()
 	{
 		m_async_source->quiesce();
 	}
-	libsinsp::cri::settings::instance().set_cri_extra_queries(true);
+	libsinsp::cri::settings::set_cri_extra_queries(true);
 }
 
 void cri::set_cri_socket_path(const std::string& path)
 {
-	libsinsp::cri::settings::instance().clear_cri_unix_socket_paths();
+	libsinsp::cri::settings::clear_cri_unix_socket_paths();
 	add_cri_socket_path(path);
 }
 
 void cri::add_cri_socket_path(const std::string& path)
 {
-	libsinsp::cri::settings::instance().add_cri_unix_socket_path(path);
+	libsinsp::cri::settings::add_cri_unix_socket_path(path);
 }
 
 void cri::set_cri_timeout(int64_t timeout_ms)
 {
-	libsinsp::cri::settings::instance().set_cri_timeout(timeout_ms);
+	libsinsp::cri::settings::set_cri_timeout(timeout_ms);
 }
 
 void cri::set_extra_queries(bool extra_queries) {
-	libsinsp::cri::settings::instance().set_cri_extra_queries(extra_queries);
+	libsinsp::cri::settings::set_cri_extra_queries(extra_queries);
 }
 
 void cri::set_async(bool async)
