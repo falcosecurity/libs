@@ -40,12 +40,12 @@ public:
 	};
 
 	sinsp_filter_check_mesos();
-	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+	sinsp_filter_check* allocate_new() override;
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
-
 	int32_t extract_arg(const std::string& fldname, const std::string& val);
 
 	std::string m_argname;

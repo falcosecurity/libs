@@ -18,12 +18,13 @@ limitations under the License.
 
 #pragma once
 
-#include <set>
-#include <string>
-#include <vector>
 #include "filter_check_list.h"
 #include "gen_filter.h"
 #include "filter/parser.h"
+
+#include <set>
+#include <string>
+#include <vector>
 
 /** @defgroup filter Filtering events
  * Filtering infrastructure.
@@ -145,10 +146,8 @@ public:
 
 	virtual ~sinsp_filter_factory();
 
-	gen_event_filter *new_filter();
-
-	gen_event_filter_check *new_filtercheck(const char *fldname);
-
+	gen_event_filter* new_filter() override;
+	gen_event_filter_check* new_filtercheck(const char* fldname) override;
 	std::list<gen_event_filter_factory::filter_fieldclass_info> get_fields() override;
 
 	// Convienence method to convert a vector of
@@ -162,4 +161,3 @@ protected:
 	sinsp *m_inspector;
 	filter_check_list &m_available_checks;
 };
-

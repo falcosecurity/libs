@@ -30,7 +30,11 @@ public:
 	};
 
 	sinsp_filter_check_reference();
-	sinsp_filter_check* allocate_new();
+
+	sinsp_filter_check* allocate_new() override;
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+
 	inline void set_val(ppm_param_type type, filtercheck_field_flags flags,
 		uint8_t* val, int32_t len,
 		uint32_t cnt, ppm_print_format print_format)
@@ -42,9 +46,9 @@ public:
 		m_cnt = cnt;
 		m_print_format = print_format;
 	}
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
+	using sinsp_filter_check::tojson; // to avoid warning: "... hides overloaded virtual function"
 	Json::Value tojson(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
 private:

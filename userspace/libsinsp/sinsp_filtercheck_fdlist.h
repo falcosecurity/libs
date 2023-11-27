@@ -34,8 +34,9 @@ public:
 	};
 
 	sinsp_filter_check_fdlist();
-	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+	sinsp_filter_check* allocate_new() override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
 	std::string m_strval;

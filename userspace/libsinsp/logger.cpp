@@ -152,27 +152,21 @@ void sinsp_logger::log(std::string msg, const severity sev)
 
 		if(gettimeofday(&ts, nullptr) == 0)
 		{
-			const std::string::size_type ts_length = sizeof("31-12 23:59:59.999999 ");
-			char ts_buf[ts_length];
-			struct tm* ti;
-			struct tm time_info = {};
-
 #ifdef _WIN32
-			ti = _gmtime32((__time32_t*)&ts.tv_sec);
+			tm* ti = _gmtime32((__time32_t*)&ts.tv_sec);
 #else
+			tm time_info;
 			gmtime_r(&ts.tv_sec, &time_info);
-			ti = &time_info;
+			tm* ti = &time_info;
 #endif
-
-			snprintf(ts_buf,
-				 sizeof(ts_buf),
-				 "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
-				 ti->tm_mon + 1,
-				 ti->tm_mday,
-				 ti->tm_hour,
-				 ti->tm_min,
-				 ti->tm_sec,
-				 (int)ts.tv_usec);
+			char ts_buf[80]; // holds date/time string: "31-12 23:59:59.999999 "
+			snprintf(ts_buf, sizeof(ts_buf), "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
+				ti->tm_mon + 1,
+				ti->tm_mday,
+				ti->tm_hour,
+				ti->tm_min,
+				ti->tm_sec,
+				(int)ts.tv_usec);
 
 			ts_buf[sizeof(ts_buf) - 1] = '\0';
 			msg.insert(0, ts_buf);

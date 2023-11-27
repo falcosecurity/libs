@@ -1142,7 +1142,7 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 		/* Here we are searching for the longest match */
 		if(strncmp(str, m_info.m_fields[j].m_name, fldlen) == 0)
 		{
-			/* we found some info about the required field, we save it in this way 
+			/* we found some info about the required field, we save it in this way
 			 * we don't have to loop again through the fields.
 			 */
 			m_field_id = j;
@@ -1264,7 +1264,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<
 				{
 					item.first = it.ptr;
 					item.second = it.len;
-					
+
 					// note: PT_IPNET would not work with simple memcmp comparison
 					// todo(jasondellaluce): refactor filter_value_t to actually use flt_compare instead of memcmp.
 					if (type == PT_IPNET)
@@ -1431,7 +1431,7 @@ bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t
 {
 	values.clear();
 	extract_value_t val;
-	val.ptr = extract(evt, &val.len, sanitize_string);
+	val.ptr = extract(evt, &val.len, sanitize_strings);
 	if (val.ptr != NULL)
 	{
 		values.push_back(val);

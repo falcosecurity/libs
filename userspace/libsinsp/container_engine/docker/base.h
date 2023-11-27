@@ -8,7 +8,7 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-class docker_lookup_request;
+struct docker_lookup_request;
 
 class docker_base : public container_engine_base
 {

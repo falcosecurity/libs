@@ -88,14 +88,16 @@ public:
 
 	sinsp_filter_check_event();
 	~sinsp_filter_check_event();
-	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
+
+	sinsp_filter_check* allocate_new() override;
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	size_t parse_filter_value(const char* str, uint32_t len, uint8_t* storage, uint32_t storage_len) override;
+	const filtercheck_field_info* get_field_info() override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
+	bool compare(sinsp_evt*) override;
+
 	void validate_filter_value(const char* str, uint32_t len);
-	const filtercheck_field_info* get_field_info();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
-	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
-	bool compare(sinsp_evt *evt);
 
 	uint64_t m_u64val;
 	int64_t m_s64val;
