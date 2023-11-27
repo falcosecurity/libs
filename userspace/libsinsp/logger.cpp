@@ -299,3 +299,16 @@ size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
 
 	return 0;
 }
+
+void sinsp_logger::reset()
+{
+	m_callback = nullptr;
+	m_flags = OT_NONE;
+	m_sev = SEV_INFO;
+	if(m_file)
+	{
+		ASSERT(m_flags & sinsp_logger::OT_FILE);
+		fclose(m_file);
+		m_file = nullptr;
+	}
+}

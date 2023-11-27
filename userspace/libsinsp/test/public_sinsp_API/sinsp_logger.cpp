@@ -29,41 +29,41 @@ static void log_callback_fn(std::string&& str, const sinsp_logger::severity sev)
 
 TEST(sinsp_logger, constructor)
 {
-	ASSERT_FALSE(sinsp_logger::instance().has_output());
-	ASSERT_EQ(sinsp_logger::instance().get_severity(), sinsp_logger::SEV_INFO);
-	ASSERT_EQ(sinsp_logger::instance().get_log_output_type(), sinsp_logger::OT_NONE);
+	ASSERT_FALSE(sinsp::get_logger().has_output());
+	ASSERT_EQ(sinsp::get_logger().get_severity(), sinsp_logger::SEV_INFO);
+	ASSERT_EQ(sinsp::get_logger().get_log_output_type(), sinsp_logger::OT_NONE);
 }
 
 TEST(sinsp_logger, output_type)
 {
-	ASSERT_FALSE(sinsp_logger::instance().has_output());
-	sinsp_logger::instance().add_stdout_log();
-	sinsp_logger::instance().add_stderr_log();
-	sinsp_logger::instance().disable_timestamps();
-	sinsp_logger::instance().add_encoded_severity();
-	sinsp_logger::instance().add_callback_log(log_callback_fn);
+	ASSERT_FALSE(sinsp::get_logger().has_output());
+	sinsp::get_logger().add_stdout_log();
+	sinsp::get_logger().add_stderr_log();
+	sinsp::get_logger().disable_timestamps();
+	sinsp::get_logger().add_encoded_severity();
+	sinsp::get_logger().add_callback_log(log_callback_fn);
 
 	// int fd = open(".", O_WRONLY | O_TMPFILE, 0);
 
 	int fd = open("./xyazd", O_RDWR | O_CREAT, S_IWUSR);
-	sinsp_logger::instance().add_file_log("./xyazd");
+	sinsp::get_logger().add_file_log("./xyazd");
 	close(fd);
 
-	ASSERT_EQ(sinsp_logger::instance().get_log_output_type(), (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE | sinsp_logger::OT_CALLBACK | sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
+	ASSERT_EQ(sinsp::get_logger().get_log_output_type(), (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE | sinsp_logger::OT_CALLBACK | sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
 
-	sinsp_logger::instance().remove_callback_log();
-	ASSERT_EQ(sinsp_logger::instance().get_log_output_type(), (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE | sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
-	ASSERT_TRUE(sinsp_logger::instance().has_output());
+	sinsp::get_logger().remove_callback_log();
+	ASSERT_EQ(sinsp::get_logger().get_log_output_type(), (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE | sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
+	ASSERT_TRUE(sinsp::get_logger().has_output());
 }
 
 TEST(sinsp_logger, get_set_severity)
 {
-	sinsp_logger::instance().set_severity(sinsp_logger::SEV_FATAL);
-	ASSERT_EQ(sinsp_logger::instance().get_severity(), sinsp_logger::SEV_FATAL);
-	ASSERT_TRUE(sinsp_logger::instance().is_enabled(sinsp_logger::SEV_FATAL));
-	ASSERT_FALSE(sinsp_logger::instance().is_enabled(sinsp_logger::SEV_TRACE));
-	ASSERT_FALSE(sinsp_logger::instance().is_enabled(sinsp_logger::SEV_CRITICAL));
-	sinsp_logger::instance().set_severity(sinsp_logger::SEV_NOTICE);
-	ASSERT_FALSE(sinsp_logger::instance().is_enabled(sinsp_logger::SEV_INFO));
-	ASSERT_TRUE(sinsp_logger::instance().is_enabled(sinsp_logger::SEV_ERROR));
+	sinsp::get_logger().set_severity(sinsp_logger::SEV_FATAL);
+	ASSERT_EQ(sinsp::get_logger().get_severity(), sinsp_logger::SEV_FATAL);
+	ASSERT_TRUE(sinsp::get_logger().is_enabled(sinsp_logger::SEV_FATAL));
+	ASSERT_FALSE(sinsp::get_logger().is_enabled(sinsp_logger::SEV_TRACE));
+	ASSERT_FALSE(sinsp::get_logger().is_enabled(sinsp_logger::SEV_CRITICAL));
+	sinsp::get_logger().set_severity(sinsp_logger::SEV_NOTICE);
+	ASSERT_FALSE(sinsp::get_logger().is_enabled(sinsp_logger::SEV_INFO));
+	ASSERT_TRUE(sinsp::get_logger().is_enabled(sinsp_logger::SEV_ERROR));
 }
