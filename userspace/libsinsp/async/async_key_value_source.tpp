@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "logger.h"
+#include "sinsp.h"
 
 #include <assert.h>
 #include <algorithm>
@@ -53,7 +53,7 @@ async_key_value_source<key_type, value_type>::~async_key_value_source()
 	}
 	catch(...)
 	{
-		sinsp_logger::instance().log(std::string(__FUNCTION__) +
+		sinsp::get_logger().log(std::string(__FUNCTION__) +
 		             ": Exception in destructor",
 		             sinsp_logger::SEV_ERROR);
 	}
@@ -180,7 +180,7 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 
 		if(!inserted)
 		{
-			sinsp_logger::instance().log("async_key_value_source: Failed to insert",
+			sinsp::get_logger().log("async_key_value_source: Failed to insert",
 				     sinsp_logger::SEV_ERROR);
 			return false;
 		}
@@ -298,7 +298,7 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 			}
 			else
 			{
-				sinsp_logger::instance().log("async_key_value_source: Key not found when"
+				sinsp::get_logger().log("async_key_value_source: Key not found when"
 					"retrieving value, TTL expired",
 					sinsp_logger::SEV_DEBUG);
 			}
@@ -306,7 +306,7 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 		else
 		{
 			std::chrono::duration<double> dur = top_element.first - now;
-			sinsp_logger::instance().log("async_key_value_source: Waiting " +
+			sinsp::get_logger().log("async_key_value_source: Waiting " +
 				     std::to_string(dur.count()) +
 				     " before dequeuing top job",
 				     sinsp_logger::SEV_DEBUG);
@@ -335,7 +335,7 @@ void async_key_value_source<key_type, value_type>::store_value(
 	auto itr = m_value_map.find(key);
 	if(itr == m_value_map.end())
 	{
-		sinsp_logger::instance().log("async_key_value_source: Key not found when storing value",
+		sinsp::get_logger().log("async_key_value_source: Key not found when storing value",
 			     sinsp_logger::SEV_WARNING);
 		return;
 	}
@@ -363,7 +363,7 @@ void async_key_value_source<key_type, value_type>::defer_lookup(
 
 	auto start_time = std::chrono::steady_clock::now() + delay;
 
-	sinsp_logger::instance().log("async_key_value_source: defer_lookup re-adding to request queue delay=" +
+	sinsp::get_logger().log("async_key_value_source: defer_lookup re-adding to request queue delay=" +
 		     std::to_string(delay.count()),
 		     sinsp_logger::SEV_DEBUG);
 

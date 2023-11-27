@@ -37,7 +37,7 @@ docker_async_source::docker_async_source(uint64_t max_wait_ms,
 docker_async_source::~docker_async_source()
 {
 	this->stop();
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async: Source destructor");
 }
 
@@ -66,7 +66,7 @@ bool docker_async_source::get_k8s_pod_spec(const Json::Value &config_obj,
 	Json::Value cfg;
 	if(!reader.parse(cfg_str.c_str(), cfg))
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_WARNING, "Could not parse pod config '%s'", cfg_str.c_str());
+		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Could not parse pod config '%s'", cfg_str.c_str());
 		return false;
 	}
 
@@ -108,13 +108,13 @@ std::string docker_async_source::normalize_arg(const std::string &arg)
 void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 					    sinsp_container_info &container)
 {
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker (%s): Trying to parse healthcheck from %s",
 			container.m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
 
 	if(healthcheck_obj.isNull())
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (No Healthcheck property)",
+		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (No Healthcheck property)",
 				Json::FastWriter().write(healthcheck_obj).c_str());
 
 		return;
@@ -122,7 +122,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 	if(!healthcheck_obj.isMember("Test"))
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck does not have Test property)",
+		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck does not have Test property)",
 				Json::FastWriter().write(healthcheck_obj).c_str());
 
 		return;
@@ -132,7 +132,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 
 	if(!test_obj.isArray())
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck Test property is not array)",
+		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck Test property is not array)",
 				Json::FastWriter().write(healthcheck_obj).c_str());
 		return;
 	}
@@ -141,7 +141,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 	{
 		if(test_obj[0].asString() != "NONE")
 		{
-			sinsp_logger::instance().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected NONE for single-element Test array)",
+			sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected NONE for single-element Test array)",
 					Json::FastWriter().write(healthcheck_obj).c_str());
 		}
 		return;
@@ -157,7 +157,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 			args.push_back(normalize_arg(test_obj[i].asString()));
 		}
 
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
 				container.m_id.c_str(), exe.c_str(), args.size());
 
@@ -173,7 +173,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 		args.push_back("-c");
 		args.push_back(test_obj[1].asString());
 
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
 				container.m_id.c_str(), exe.c_str(), args.size());
 
@@ -183,7 +183,7 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 	}
 	else
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected CMD/CMD-SHELL for multi-element Test array)",
+		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected CMD/CMD-SHELL for multi-element Test array)",
 				Json::FastWriter().write(healthcheck_obj).c_str());
 		return;
 	}
@@ -197,7 +197,7 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 	   !probe_obj.isMember("exec") ||
 	   !probe_obj["exec"].isMember("command"))
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_WARNING, "Could not parse liveness/readiness probe from %s",
+		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Could not parse liveness/readiness probe from %s",
 				Json::FastWriter().write(probe_obj).c_str());
 		return false;
 	}
@@ -215,7 +215,7 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 			args.push_back(normalize_arg(command_obj[i].asString()));
 		}
 
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting %s exe=%s nargs=%d",
 				container.m_id.c_str(),
 				sinsp_container_info::container_health_probe::probe_type_names[ptype].c_str(),
@@ -282,7 +282,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 	// contains the probes.
 	if (get_k8s_pod_spec(config_obj, spec))
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Parsing liveness/readiness probes from pod spec",
 				container.m_id.c_str());
 
@@ -312,7 +312,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 	}
 	else
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): No liveness/readiness probes found",
 				container.m_id.c_str());
 	}
@@ -328,7 +328,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 
 void docker_async_source::set_query_image_info(bool query_image_info)
 {
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async: Setting query_image_info=%s",
 			(query_image_info ? "true" : "false"));
 
@@ -339,7 +339,7 @@ void docker_async_source::fetch_image_info(const docker_lookup_request& request,
 {
 	Json::Reader reader;
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s) image (%s): Fetching image info",
 			request.container_id.c_str(),
 			container.m_imageid.c_str());
@@ -347,20 +347,20 @@ void docker_async_source::fetch_image_info(const docker_lookup_request& request,
 	std::string img_json;
 	std::string url = "/images/" + container.m_imageid + "/json?digests=1";
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async url: %s",
 			url.c_str());
 
 	if(m_connection.get_docker(request, url, img_json) != docker_connection::RESP_OK)
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+		sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s) image (%s): Could not fetch image info",
 				request.container_id.c_str(),
 				container.m_imageid.c_str());
 		return;
 	}
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s) image (%s): Image info fetch returned \"%s\"",
 			request.container_id.c_str(),
 			container.m_imageid.c_str(),
@@ -369,7 +369,7 @@ void docker_async_source::fetch_image_info(const docker_lookup_request& request,
 	Json::Value img_root;
 	if(!reader.parse(img_json, img_root))
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+		sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s) image (%s): Could not parse json image info \"%s\"",
 				request.container_id.c_str(),
 				container.m_imageid.c_str(),
@@ -384,14 +384,14 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 {
 	Json::Reader reader;
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Fetching image list",
 			request.container_id.c_str());
 
 	std::string img_json;
 	std::string url = "/images/json?digests=1";
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async url: %s",
 			url.c_str());
 
@@ -409,20 +409,20 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 	if(m_connection.get_docker(request, url, img_json) != docker_connection::RESP_OK
 		|| img_json.empty())
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+		sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s): Could not fetch image list; trying without ?digests=1",
 				request.container_id.c_str());
 
 		std::string url = "/images/json";
 
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker_async url: %s",
 				url.c_str());
 
 		if(m_connection.get_docker(request, url, img_json) != docker_connection::RESP_OK
 			|| img_json.empty())
 		{
-			sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+			sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 					"docker_async (%s): Could not fetch image list",
 					request.container_id.c_str());
 
@@ -430,7 +430,7 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 		}
 	}
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Image list fetch returned \"%s\"",
 			request.container_id.c_str(),
 			img_json.c_str());
@@ -438,7 +438,7 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 	Json::Value img_root;
 	if(!reader.parse(img_json, img_root))
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+		sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s): Could not parse json image list \"%s\"",
 				request.container_id.c_str(),
 				img_json.c_str());
@@ -646,7 +646,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 {
 	std::string json;
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Looking up info for container via socket %s",
 			request.container_id.c_str(), request.docker_socket.c_str());
 
@@ -660,7 +660,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 
 	switch(resp) {
 	case docker_connection::docker_response::RESP_BAD_REQUEST:
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Initial url fetch failed, trying w/o api version",
 				request.container_id.c_str());
 
@@ -674,7 +674,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		/* FALLTHRU */
 	case docker_connection::docker_response::RESP_ERROR:
 	case docker_connection::docker_response::RESP_TIMEOUT:
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Url fetch failed, returning false",
 				request.container_id.c_str());
 		return false;
@@ -683,7 +683,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		break;
 	}
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Parsing containers response \"%s\"",
 			request.container_id.c_str(),
 			json.c_str());
@@ -693,7 +693,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 	bool parsingSuccessful = reader.parse(json, root);
 	if(!parsingSuccessful)
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+		sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s): Could not parse json \"%s\", returning false",
 				request.container_id.c_str(),
 				json.c_str());
@@ -748,7 +748,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 			// This is a *blocking* fetch of the
 			// secondary container, but we're in a
 			// separate thread so this is ok.
-			sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+			sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s), secondary (%s): Doing blocking fetch of secondary container",
 					request.container_id.c_str(),
 					secondary_container_id.c_str());
@@ -760,7 +760,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 						       false /*don't request size since we just need the IP*/),
 				 pcnt))
 			{
-				sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+				sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 						"docker_async (%s), secondary (%s): Secondary fetch successful",
 						request.container_id.c_str(),
 						secondary_container_id.c_str());
@@ -768,7 +768,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 			}
 			else
 			{
-				sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+				sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 						"docker_async (%s), secondary (%s): Secondary fetch failed",
 						request.container_id.c_str(),
 						secondary_container_id.c_str());
@@ -902,7 +902,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 
 	container.m_size_rw_bytes = root["SizeRw"].asInt64();
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): parse returning true",
 			request.container_id.c_str());
 	return true;

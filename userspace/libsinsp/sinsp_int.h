@@ -46,8 +46,3 @@ limitations under the License.
 #include <sstream>
 #include <string>
 #include <vector>
-
-//
-// The logger
-//
-#define glogf sinsp_logger::instance().format

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdexcept>
-#include "logger.h"
+#include "sinsp.h"
 
 namespace libsinsp
 {
@@ -68,7 +68,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+			sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 					"Invalid List Format: %s. Detail: %s",
 					buffer,
 					ex.what());

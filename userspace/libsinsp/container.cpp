@@ -69,7 +69,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
-		sinsp_logger::instance().format(sinsp_logger::SEV_INFO, "Flushing container table");
+		sinsp::get_logger().format(sinsp_logger::SEV_INFO, "Flushing container table");
 
 		std::set<std::string> containers_in_use;
 
@@ -352,7 +352,7 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 				// engine made multiple attempts to
 				// look up the info and all attempts
 				// failed. Log that as a warning.
-				sinsp_logger::instance().format(sinsp_logger::SEV_WARNING,
+				sinsp::get_logger().format(sinsp_logger::SEV_WARNING,
 						"notify_new_container (%s): Saving empty container info after repeated failed lookups",
 						container_info.m_id.c_str());
 			}
@@ -368,7 +368,7 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 
 	if(container_to_sinsp_event(container_to_json(container_info), evt.get(), container_info.get_tinfo(m_inspector)))
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"notify_new_container (%s): created CONTAINER_JSON event, queuing to inspector",
 				container_info.m_id.c_str());
 
@@ -377,7 +377,7 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 	}
 	else
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+		sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 				"notify_new_container (%s): could not create CONTAINER_JSON event, dropping",
 				container_info.m_id.c_str());
 	}
@@ -439,9 +439,9 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 
 	if(tinfo->m_vpid == 1)
 	{
-		if(sinsp_logger::instance().get_severity() >= sinsp_logger::SEV_DEBUG)
+		if(sinsp::get_logger().get_severity() >= sinsp_logger::SEV_DEBUG)
 		{
-			sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+			sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 					"identify_category (%ld) (%s): initial process for container, assigning CAT_CONTAINER",
 					tinfo->m_tid, tinfo->m_comm.c_str());
 		}
@@ -456,9 +456,9 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 
 	if(ptinfo && ptinfo->m_category != sinsp_threadinfo::CAT_NONE)
 	{
-		if(sinsp_logger::instance().get_severity() >= sinsp_logger::SEV_DEBUG)
+		if(sinsp::get_logger().get_severity() >= sinsp_logger::SEV_DEBUG)
 		{
-			sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+			sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 					"identify_category (%ld) (%s): taking parent category %d",
 					tinfo->m_tid, tinfo->m_comm.c_str(), ptinfo->m_category);
 		}
@@ -475,9 +475,9 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 
 	if(!cinfo->is_successful())
 	{
-		if(sinsp_logger::instance().get_severity() >= sinsp_logger::SEV_DEBUG)
+		if(sinsp::get_logger().get_severity() >= sinsp_logger::SEV_DEBUG)
 		{
-			sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+			sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 					"identify_category (%ld) (%s): container metadata incomplete",
 					tinfo->m_tid, tinfo->m_comm.c_str());
 		}
@@ -498,7 +498,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 
 	if(ptype == sinsp_container_info::container_health_probe::PT_NONE)
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"identify_category (%ld) (%s): container health probe PT_NONE",
 				tinfo->m_tid, tinfo->m_comm.c_str());
 
@@ -523,7 +523,7 @@ void sinsp_container_manager::identify_category(sinsp_threadinfo *tinfo)
 
 	if(!found_container_init)
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 				"identify_category (%ld) (%s): not under container init, assigning category %s",
 				tinfo->m_tid, tinfo->m_comm.c_str(),
 				sinsp_container_info::container_health_probe::probe_type_names[ptype].c_str());
@@ -637,14 +637,14 @@ void sinsp_container_manager::update_container_with_size(sinsp_container_type ty
 	auto found = m_container_engine_by_type.find(type);
 	if(found == m_container_engine_by_type.end())
 	{
-		sinsp_logger::instance().format(sinsp_logger::SEV_ERROR,
+		sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
 				"Container type %d not found when requesting size for %s",
 				type,
 				container_id.c_str());
 		return;
 	}
 
-	sinsp_logger::instance().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
 			"Request size for %s",
 			container_id.c_str());
 	found->second->update_with_size(container_id);
