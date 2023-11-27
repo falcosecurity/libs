@@ -59,7 +59,7 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 
 	if (!data->events || data->event_count == 0)
 	{
-		return SCAP_EOF;
+		return SCAP_TIMEOUT;
 	}
 
 	*pevent = *(data->events++);
