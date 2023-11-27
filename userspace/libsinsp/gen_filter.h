@@ -136,21 +136,20 @@ public:
 	// The following methods are part of the filter check interface but are irrelevant
 	// for this class, because they are used only for the leaves of the filtering tree.
 	//
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override
 	{
 		return 0;
 	}
 
-	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 )
+	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0) override
 	{
 		return;
 	}
 
+	bool compare(gen_event*) override;
+	bool extract(gen_event*, std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
+
 	void add_check(gen_event_filter_check* chk);
-
-	bool compare(gen_event *evt);
-
-	bool extract(gen_event *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
 	// An expression is consistent if all its checks are of the same type (or/and).

@@ -33,8 +33,9 @@ public:
 	};
 
 	sinsp_filter_check_syslog();
-	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+	sinsp_filter_check* allocate_new() override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 	uint32_t m_storageu32;
 	std::string m_name;

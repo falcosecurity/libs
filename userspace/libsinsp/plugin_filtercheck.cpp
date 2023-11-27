@@ -16,10 +16,10 @@ limitations under the License.
 
 */
 
-using namespace std;
-
 #include "plugin_filtercheck.h"
 #include "plugin_manager.h"
+
+using namespace std;
 
 sinsp_filter_check_plugin::sinsp_filter_check_plugin()
 {
@@ -70,7 +70,7 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 			val = val.substr(0, val_end);
 		}
 		trim(val);
-		
+
 		// search for the field's argument
 		size_t arg_len = 0;
 		size_t arg_pos = val.find_first_of('[', 0);
@@ -104,7 +104,7 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 				throw sinsp_exception(string("filter '") + string(str) + string("': ")
 					+ m_field->m_name + string(" does not allow nor require an argument but one is provided: " + m_argstr));
 			}
-			
+
 			// parse the argument content, which can either be an index or a key
 			if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
 			{
@@ -118,7 +118,7 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 			// update the parsed len taking into account both the name and the argument
 			res = arg_pos + arg_len + 2;
 		}
-	
+
 		if (!m_arg_present && (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
 		{
 			throw sinsp_exception(string("filter '") + string(str) + string("': ") + m_field->m_name + string(" requires an argument but none provided"));
@@ -232,14 +232,14 @@ void sinsp_filter_check_plugin::extract_arg_index(const char* full_field_name)
 	int length = m_argstr.length();
 	bool is_valid = true;
 	std::string message = "";
-	
-	// Please note that numbers starting with `0` (`01`, `02`, `0003`, ...) are not indexes. 
+
+	// Please note that numbers starting with `0` (`01`, `02`, `0003`, ...) are not indexes.
 	if(length == 0 || (length > 1 && m_argstr[0] == '0'))
 	{
 		is_valid = false;
 		message = " has an invalid index argument starting with 0: ";
 	}
-	
+
 	// The index must be composed only by digits (0-9).
 	for(int j = 0; j < length; j++)
 	{
@@ -252,8 +252,8 @@ void sinsp_filter_check_plugin::extract_arg_index(const char* full_field_name)
 	}
 
 	// If the argument is valid we can convert it with `stoul`.
-	// Please note that `stoul` alone is not enough, since it also consider as valid 
-	// strings like "0123 i'm a number", converting them into '0123'. This is why in the 
+	// Please note that `stoul` alone is not enough, since it also consider as valid
+	// strings like "0123 i'm a number", converting them into '0123'. This is why in the
 	// previous step we check that every character is a digit.
 	if(is_valid)
 	{
@@ -261,7 +261,7 @@ void sinsp_filter_check_plugin::extract_arg_index(const char* full_field_name)
 		{
 			m_arg_index = std::stoul(m_argstr);
 			return;
-		} 
+		}
 		catch(...)
 		{
 			message = " has an invalid index argument not representable on 64 bit: ";
@@ -272,7 +272,7 @@ void sinsp_filter_check_plugin::extract_arg_index(const char* full_field_name)
 }
 
 // extract_arg_key() extracts a valid string from the argument. If we pass
-// a numeric argument, it will be converted to string. 
+// a numeric argument, it will be converted to string.
 void sinsp_filter_check_plugin::extract_arg_key()
 {
 	m_arg_key = (char*)m_argstr.c_str();

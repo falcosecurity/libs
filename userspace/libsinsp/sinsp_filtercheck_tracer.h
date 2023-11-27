@@ -49,9 +49,10 @@ public:
 
 	sinsp_filter_check_tracer();
 	~sinsp_filter_check_tracer();
-	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+	sinsp_filter_check* allocate_new() override;
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
 	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);

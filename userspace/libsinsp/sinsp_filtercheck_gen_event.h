@@ -47,9 +47,10 @@ public:
 
 	sinsp_filter_check_gen_event();
 	~sinsp_filter_check_gen_event();
-	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
-	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
+
+	sinsp_filter_check* allocate_new() override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
 
 	uint64_t m_u64val;
 	uint32_t m_u32val;

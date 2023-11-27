@@ -58,9 +58,10 @@ public:
 
 	sinsp_filter_check_evtin();
 	~sinsp_filter_check_evtin();
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+	sinsp_filter_check* allocate_new() override;
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 	std::string m_argname;
 	int32_t m_argid;

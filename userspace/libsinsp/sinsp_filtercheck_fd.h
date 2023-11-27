@@ -88,16 +88,12 @@ public:
 	};
 
 	sinsp_filter_check_fd();
-	sinsp_filter_check* allocate_new();
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
-	bool extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
-	int32_t extract_arg(std::string fldname, std::string val);
-	bool compare_ip(sinsp_evt *evt);
-	bool compare_net(sinsp_evt *evt);
-	bool compare_port(sinsp_evt *evt);
-	bool compare_domain(sinsp_evt *evt);
-	bool compare(sinsp_evt *evt);
+
+	sinsp_filter_check* allocate_new() override;
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	bool extract(sinsp_evt*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	bool compare(sinsp_evt*) override;
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
@@ -111,7 +107,13 @@ public:
 	uint64_t m_conv_uint64;
 
 private:
+	int32_t extract_arg(std::string fldname, std::string val);
 	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings);
 	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings, bool fd_nameraw = false);
 	bool extract_fd(sinsp_evt *evt);
+
+	bool compare_ip(sinsp_evt *evt);
+	bool compare_net(sinsp_evt *evt);
+	bool compare_port(sinsp_evt *evt);
+	bool compare_domain(sinsp_evt *evt);
 };

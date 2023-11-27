@@ -34,8 +34,9 @@ public:
 	};
 
 	sinsp_filter_check_fspath();
-	sinsp_filter_check* allocate_new();
-	uint8_t* extract(sinsp_evt* evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+	sinsp_filter_check* allocate_new() override;
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
 	typedef std::map<uint16_t, std::shared_ptr<sinsp_filter_check>> filtercheck_map_t;

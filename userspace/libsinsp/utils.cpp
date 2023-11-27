@@ -1295,21 +1295,20 @@ std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
 
 std::string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 {
-	char source_address[100];
-	char destination_address[100];
-	char buf[200];
-
+	char source_address[INET6_ADDRSTRLEN];
 	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100))
 	{
 		return std::string();
 	}
 
+	char destination_address[INET6_ADDRSTRLEN];
 	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip.m_b, destination_address, 100))
 	{
 		return std::string();
 	}
 
-	snprintf(buf,200,"%s:%s->%s:%s",
+	char buf[200];
+	snprintf(buf, sizeof(buf), "%s:%s->%s:%s",
 		source_address,
 		port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
 		destination_address,
@@ -1547,7 +1546,7 @@ bool sinsp_utils::startswith(const std::string& s, const std::string& prefix)
 
 bool sinsp_utils::unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes)
 {
-	if(hex_chars.size() % 2 != 0 || 
+	if(hex_chars.size() % 2 != 0 ||
 		!std::all_of(hex_chars.begin(), hex_chars.end(), [](unsigned char c){ return std::isxdigit(c); }))
 	{
 		return false;
@@ -1563,7 +1562,7 @@ bool sinsp_utils::unhex(const std::vector<char> &hex_chars, std::vector<char> &h
 		ss.str(std::string());
 		ss.clear();
 	}
-	
+
 	return true;
 }
 
@@ -1617,7 +1616,7 @@ std::string sinsp_utils::caps_to_string(const uint64_t caps)
 
 	for(size_t i = 0; i < capabilities.size(); ++i)
 	{
-		uint64_t current_cap = (uint64_t)1 << i; 
+		uint64_t current_cap = (uint64_t)1 << i;
 		if(caps & current_cap)
 		{
 			res += capabilities[i];

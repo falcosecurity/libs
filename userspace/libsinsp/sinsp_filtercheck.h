@@ -73,10 +73,7 @@ class sinsp_filter_check : public gen_event_filter_check
 {
 public:
 	sinsp_filter_check();
-
-	virtual ~sinsp_filter_check()
-	{
-	}
+	virtual ~sinsp_filter_check() = default;
 
 	//
 	// Allocate a new check of the same type.
@@ -97,13 +94,13 @@ public:
 	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
 	//
-	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 
 	//
 	// If this check is used by a filter, extract the constant to compare it to
 	// Doesn't return the field length because the filtering engine can calculate it.
 	//
-	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 );
+	void add_filter_value(const char* str, uint32_t len, uint32_t i = 0) override;
 	virtual size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	//
@@ -120,14 +117,14 @@ public:
 	// Extract the field from the event. In sanitize_strings is true, any
 	// string values are sanitized to remove nonprintable characters.
 	//
-	bool extract(gen_event *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	bool extract(gen_event*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
 
 	// Alias of extract that uses the sinsp_evt type.
 	// By default, this fills the vector with only one value, retireved by calling the single-result
 	// extract method.
 	// If a NULL value is returned by extract, the vector is emptied.
 	// Subclasses are meant to either override this, or the single-valued extract method.
-	virtual bool extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	virtual bool extract(sinsp_evt*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
 	// Wrapper for extract() that implements caching to speed up multiple extractions of the same value,
@@ -139,7 +136,7 @@ public:
 	// Extract the field as json from the event (by default, fall
 	// back to the regular extract functionality)
 	//
-	virtual Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+	virtual Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len)
 	{
 		return Json::nullValue;
 	}
@@ -147,8 +144,8 @@ public:
 	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
-	bool compare(gen_event *evt);
-	virtual bool compare(sinsp_evt *evt);
+	bool compare(gen_event*) override;
+	virtual bool compare(sinsp_evt*);
 
 	//
 	// Extract the value from the event and convert it into a string
@@ -172,8 +169,8 @@ protected:
 	// This is a single-value version of extract for subclasses non supporting extracting
 	// multiple values. By default, this returns NULL.
 	// Subclasses are meant to either override this, or the multi-valued extract method.
-	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
-	
+	virtual uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true);
+
 	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
 	bool flt_compare(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values, uint32_t op2_len = 0);
 
