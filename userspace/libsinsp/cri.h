@@ -50,74 +50,74 @@ public:
 		return instance;
 	}
 
-	std::vector<std::string> get_cri_unix_socket_paths() const
+	static const std::vector<std::string>& get_cri_unix_socket_paths()
 	{
-		return m_cri_unix_socket_paths;
+		return instance().m_cri_unix_socket_paths;
 	}
 
-	void set_cri_unix_socket_paths(std::vector<std::string> v)
+	static void set_cri_unix_socket_paths(const std::vector<std::string>& v)
 	{
-		m_cri_unix_socket_paths = v;
+		instance().m_cri_unix_socket_paths = v;
 	}
 
-	int64_t get_cri_timeout() const
+	static const int64_t& get_cri_timeout()
 	{
-		return m_cri_timeout;
+		return instance().m_cri_timeout;
 	}
 
-	void set_cri_timeout(int64_t v)
+	static void set_cri_timeout(const int64_t& v)
 	{
-		m_cri_timeout = v;
+		instance().m_cri_timeout = v;
 	}
 
-	int64_t get_cri_size_timeout() const
+	static const int64_t& get_cri_size_timeout()
 	{
-		return m_cri_size_timeout;
+		return instance().m_cri_size_timeout;
 	}
 
-	void set_cri_size_timeout(int64_t v)
+	static void set_cri_size_timeout(const int64_t& v)
 	{
-		m_cri_size_timeout = v;
+		instance().m_cri_size_timeout = v;
 	}
 
-	sinsp_container_type get_cri_runtime_type() const
+	static const sinsp_container_type& get_cri_runtime_type()
 	{
-		return m_cri_runtime_type;
+		return instance().m_cri_runtime_type;
 	}
 
-	void set_cri_runtime_type(sinsp_container_type v)
+	static void set_cri_runtime_type(const sinsp_container_type& v)
 	{
-		m_cri_runtime_type = v;
+		instance().m_cri_runtime_type = v;
 	}
 
-	std::string get_cri_unix_socket_path() const
+	static const std::string& get_cri_unix_socket_path()
 	{
-		return m_cri_unix_socket_path;
+		return instance().m_cri_unix_socket_path;
 	}
 
-	void set_cri_unix_socket_path(std::string v)
+	static void set_cri_unix_socket_path(const std::string& v)
 	{
-		m_cri_unix_socket_path = v;
+		instance().m_cri_unix_socket_path = v;
 	}
 
-	bool get_cri_extra_queries() const
+	static const bool& get_cri_extra_queries()
 	{
-		return m_cri_extra_queries;
+		return instance().m_cri_extra_queries;
 	}
 
-	void set_cri_extra_queries(bool v)
+	static void set_cri_extra_queries(const bool& v)
 	{
-		m_cri_extra_queries = v;
+		instance().m_cri_extra_queries = v;
 	}
 
-	void add_cri_unix_socket_path(std::string v)
+	static void add_cri_unix_socket_path(const std::string& v)
 	{
-		m_cri_unix_socket_paths.emplace_back(v);
+		instance().m_cri_unix_socket_paths.emplace_back(v);
 	}
 
-	void clear_cri_unix_socket_paths()
+	static void clear_cri_unix_socket_paths()
 	{
-		m_cri_unix_socket_paths.clear();
+		instance().m_cri_unix_socket_paths.clear();
 	}
 
 private:
