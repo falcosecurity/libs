@@ -156,6 +156,13 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 		public_sinsp_API/ppm_sc_codes.cpp)
 endif()
 
+# Link against additional files could be useful when testing plugins
+# `ADDITIONAL_SINSP_TESTS_SUITE` is a list of source files `;` separated
+if(ADDITIONAL_SINSP_TESTS_SUITE)
+	message(STATUS "- Additional sinsp source files: ${ADDITIONAL_SINSP_TESTS_SUITE}")
+	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES "${ADDITIONAL_SINSP_TESTS_SUITE}")
+endif()
+
 add_executable(unit-test-libsinsp ${LIBSINSP_UNIT_TESTS_SOURCES})
 
 if (EMSCRIPTEN)
@@ -178,6 +185,13 @@ if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
 	target_link_libraries(unit-test-libsinsp
 		gcov
 	)
+endif()
+
+# Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`
+# `ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS` is a list of include paths `;` separated
+if(ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS)
+	message(STATUS "- Additional include directories: ${ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS}")
+	target_include_directories(unit-test-libsinsp PRIVATE ${ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS})
 endif()
 
 add_custom_target(run-unit-test-libsinsp
