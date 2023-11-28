@@ -155,18 +155,18 @@ jobs:
           cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ../
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
           make run-unit-tests
-          
+
       - name: Install
         run: |
           cd build
           make install
-          
+
       - name: Test sinsp-example build with pkg-config
         run: |
           cd userspace/libsinsp/examples
           export PKG_CONFIG_PATH=/tmp/libs-test/lib/pkgconfig
           g++ -o sinsp-example test.cpp util.cpp $(pkg-config --cflags --libs libsinsp)
-          
+
       - name: Test sinsp-example runtime linker
         run: |
           cd userspace/libsinsp/examples
@@ -210,7 +210,7 @@ jobs:
       - name: Build 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DUSE_BUNDLED_TINYDIR=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=ON -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=ON -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
           cmake --build . --config Release
 
       - name: Install
@@ -343,7 +343,7 @@ jobs:
           githubToken: ${{ github.token }}
 
           install: |
-            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic            
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic
             git clone https://github.com/libbpf/bpftool.git --branch v7.0.0 --single-branch
             cd bpftool
             git submodule update --init
