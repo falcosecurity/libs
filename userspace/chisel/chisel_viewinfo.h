@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#pragma once	
+#pragma once
 
 #define VIEW_ID_SPY -1
 #define VIEW_ID_DIG -2
@@ -32,7 +32,7 @@ typedef enum chisel_field_aggregation
 	A_AVG,
 	A_TIME_AVG,
 	A_MIN,
-	A_MAX,		
+	A_MAX,
 } chisel_field_aggregation;
 
 //
@@ -53,7 +53,7 @@ public:
 	chisel_view_column_info()
 	{
 	}
-	
+
 	chisel_view_column_info(std::string field,
 		std::string name,
 		std::string description,
@@ -169,7 +169,7 @@ public:
 	std::string m_description;
 	std::vector<std::string> m_tags;
 	std::vector<std::string> m_tips;
-	uint32_t m_sortingcol;
+	int32_t m_sortingcol;
 	std::vector<std::string> m_applies_to;
 	std::vector<chisel_view_column_info> m_columns;
 	bool m_use_defaults;

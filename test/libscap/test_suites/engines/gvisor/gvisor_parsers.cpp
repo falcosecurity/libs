@@ -316,7 +316,7 @@ TEST(gvisor_parsers, parse_socketpair_x)
     EXPECT_EQ(res.scap_events.size(), 1);
 
     EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_X);
-    
+
     struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 5);
@@ -405,7 +405,7 @@ TEST(gvisor_parsers, small_buffer)
 
 TEST(gvisor_parsers, procfs_entry)
 {
-    scap_gvisor::parsers::procfs_result res = {0};
+    scap_gvisor::parsers::procfs_result res;
     std::string not_json = "not a json string";
     std::string sandbox_id = "deadbeef";
 
@@ -504,7 +504,7 @@ TEST(gvisor_parsers, config_socket)
         "name": "Default",
         "points": [
         {
-            "name": "container/start", 
+            "name": "container/start",
             "context_fields": [
                 "cwd",
                 "time"

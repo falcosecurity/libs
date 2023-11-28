@@ -77,7 +77,7 @@ chisel_view_info::chisel_view_info()
 	m_valid = false;
 }
 
-chisel_view_info::chisel_view_info(viewtype type, 
+chisel_view_info::chisel_view_info(viewtype type,
 	string id,
 	string name,
 	string description,
@@ -99,7 +99,7 @@ chisel_view_info::chisel_view_info(viewtype type,
 	m_description = description;
 	m_does_groupby = false;
 	m_type = type;
-	m_tags = tags;	
+	m_tags = tags;
 	m_tips = tips;
 	m_columns = columns;
 	m_drilldown_target = drilldown_target;
@@ -110,7 +110,7 @@ chisel_view_info::chisel_view_info(viewtype type,
 	m_propagate_filter = propagate_filter;
 
 	m_use_defaults = use_defaults;
-	
+
 	//
 	// Make sure the keys go at the beginning
 	//
@@ -133,9 +133,9 @@ void chisel_view_info::set_col_sorting_hotkeys()
 {
 	const char shift_number_keys [] = {'!', '@', '#', '$', '%', '^', '&', '*', '('};
 	uint32_t size = sizeof(shift_number_keys) / sizeof(shift_number_keys[0]);
-	for(uint32_t i=0; i<size; i++) 
+	for(uint32_t i=0; i<size; i++)
 	{
-		m_col_sort_hotkeys.push_back(shift_number_keys[i]); 
+		m_col_sort_hotkeys.push_back(shift_number_keys[i]);
 	}
 	max_col_sort_hotkeys = m_col_sort_hotkeys.size();
 }
@@ -179,7 +179,7 @@ void chisel_view_info::set_sorting_col()
 		throw sinsp_exception("view format error: more than one sorting column");
 	}
 
-	if((int64_t)m_sortingcol < 0)
+	if(m_sortingcol < 0)
 	{
 		ASSERT(false);
 		throw sinsp_exception("view sorting column configuration error");

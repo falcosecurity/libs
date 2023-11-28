@@ -41,7 +41,7 @@ if(NOT MSVC)
 
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
-		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-sign-compare -Wno-type-limits -Wno-implicit-fallthrough -Wno-format-truncation")
+		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-format-truncation")
 		set(FALCOSECURITY_LIBS_COMMON_FLAGS "${FALCOSECURITY_LIBS_COMMON_FLAGS} -Wextra ${CMAKE_SUPPRESSED_WARNINGS}")
 	endif()
 

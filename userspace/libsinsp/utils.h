@@ -18,20 +18,21 @@ limitations under the License.
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <list>
-#include <set>
-#include <unordered_set>
-#include <cctype>
-#include <algorithm>
-#include <locale>
-#include <sstream>
-
-#include <tuples.h>
-#include <scap.h>
-#include "json/json.h"
+#include "scap.h"
 #include "sinsp_public.h"
+#include "tuples.h"
+
+#include <json/json.h>
+
+#include <algorithm>
+#include <cctype>
+#include <list>
+#include <locale>
+#include <set>
+#include <sstream>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
@@ -53,7 +54,6 @@ class sinsp_initializer
 {
 public:
 	sinsp_initializer();
-	~sinsp_initializer();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ public:
 	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve = false);
 
 	//
-	// Check if string ends with another 
+	// Check if string ends with another
 	//
 	static bool endswith(const std::string& str, const std::string& ending);
 	static bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
@@ -89,7 +89,7 @@ public:
 	static bool startswith(const std::string& s, const std::string& prefix);
 
 	//
-	// Transform a hex string into bytes 
+	// Transform a hex string into bytes
 	//
 	static bool unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes);
 
@@ -151,7 +151,7 @@ public:
 	// Convert caps from their numeric representation to a space-separated string list
 	//
 	static std::string caps_to_string(const uint64_t caps);
-	
+
 	static uint64_t get_max_caps();
 };
 
