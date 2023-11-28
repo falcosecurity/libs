@@ -51,6 +51,12 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 {
 	bool match = false;
 
+	if (errno == ENOSYS)
+	{
+		GTEST_SKIP() << "Syscall " << syscall_name << " not implemented"  << std::endl;
+		return;
+	}
+
 	switch(op)
 	{
 	case EQUAL:
