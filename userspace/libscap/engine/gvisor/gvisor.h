@@ -20,7 +20,7 @@ limitations under the License.
 
 #include <stdint.h>
 #include <string>
-#include <thread> 
+#include <thread>
 #include <atomic>
 #include <deque>
 #include <vector>
@@ -46,7 +46,7 @@ namespace parsers {
 
 struct parse_result {
     // the scap status of the operation
-	uint32_t status;
+	uint32_t status = 0;
     // description of the error in case of failure
 	std::string error;
     // the total encoded event(s) size
@@ -59,7 +59,7 @@ struct parse_result {
 
 struct procfs_result {
     // the scap status of the operation
-    uint32_t status;
+    uint32_t status = 0;
     // description of the error in case of failure
     std::string error;
     // the resulting thread information
@@ -81,7 +81,7 @@ struct config_result {
     \brief Translate a gVisor seccheck protobuf into one, or more, scap events
     \param gvisor_buf the source buffer that contains the raw event coming from gVisor
     \param scap_buf the buffer that will be used to store the encoded scap events
-    \return a parse_result struct. 
+    \return a parse_result struct.
         If the encoding is successful:
             - the status field will be set as SCAP_SUCCESS
             - the scap_events vector will contain pointers to each encoded event, all located within scap_buf's memory
@@ -107,7 +107,7 @@ namespace runsc
 {
 
     struct result {
-        int error;
+        int error = 0;
         std::vector<std::string> output;
     };
 

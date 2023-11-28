@@ -22,25 +22,24 @@ namespace scap_gvisor {
 
 #define SCAP_HANDLE_T scap_gvisor::engine
 
-#include "scap.h"
 #include "gvisor.h"
 #include "gvisor_platform.h"
+#include "scap.h"
 #include "scap-int.h"
 #include "scap_proc_util.h"
+#include "strerror.h"
+#include "strl.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
+#include <cerrno>
+#include <cstdint>
+#include <cstdio>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/epoll.h>
 #include <sys/stat.h>
-#include <stdint.h>
+#include <unistd.h>
 #include <utility>
-
-#include "strerror.h"
-#include "strl.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -217,10 +216,11 @@ static uint64_t gvisor_get_max_buf_used(struct scap_engine_handle engine)
 
 extern const struct scap_vtable scap_gvisor_engine = {
 	.name = GVISOR_ENGINE,
-	.savefile_ops = NULL,
+	.savefile_ops = nullptr,
 
 	.alloc_handle = gvisor_alloc_handle,
 	.init = gvisor_init,
+	.get_flags = nullptr,
 	.free_handle = gvisor_free_handle,
 	.close = gvisor_close,
 	.next = gvisor_next,
@@ -232,6 +232,6 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_n_tracepoint_hit = gvisor_get_n_tracepoint_hit,
 	.get_n_devs = gvisor_get_n_devs,
 	.get_max_buf_used = gvisor_get_max_buf_used,
-	.get_api_version = NULL,
-	.get_schema_version = NULL,
+	.get_api_version = nullptr,
+	.get_schema_version = nullptr
 };

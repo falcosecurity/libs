@@ -16,32 +16,6 @@ limitations under the License.
 
 */
 
-#ifndef _WIN32
-#include <unistd.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#ifdef __GLIBC__
-#include <execinfo.h>
-#endif
-#include <unistd.h>
-#include <sys/time.h>
-#include <netdb.h>
-#include <strings.h>
-#include <sys/ioctl.h>
-#include <fnmatch.h>
-#include <string>
-#else
-#pragma comment(lib, "Ws2_32.lib")
-#include <WinSock2.h>
-#include "Shlwapi.h"
-#pragma comment(lib,"shlwapi.lib")
-#endif
-#include <algorithm>
-#include <functional>
-#include <errno.h>
-#include <sys/stat.h>
-
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "sinsp_errno.h"
@@ -50,9 +24,35 @@ limitations under the License.
 #include "filter_check_list.h"
 #include "filterchecks.h"
 #include "strl.h"
+
 #if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#include "curl/curl.h"
+#include <curl/curl.h>
 #endif
+
+#ifndef _WIN32
+	#include <climits>
+	#include <cstdlib>
+	#include <cstring>
+	#ifdef __GLIBC__
+	#include <execinfo.h>
+	#endif
+	#include <fnmatch.h>
+	#include <netdb.h>
+	#include <string>
+	#include <sys/ioctl.h>
+	#include <sys/time.h>
+	#include <unistd.h>
+#else
+	#pragma comment(lib, "Ws2_32.lib")
+	#include <WinSock2.h>
+	#include "Shlwapi.h"
+	#pragma comment(lib,"shlwapi.lib")
+#endif
+
+#include <algorithm>
+#include <cerrno>
+#include <functional>
+#include <sys/stat.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -92,10 +92,6 @@ sinsp_initializer::sinsp_initializer()
 	WORD version = MAKEWORD( 2, 0 );
 	WSAStartup( version, &wsaData );
 #endif
-}
-
-sinsp_initializer::~sinsp_initializer()
-{
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1084,10 +1080,8 @@ void sinsp_utils::ts_to_iso_8601(uint64_t ts, OUT std::string* res)
 bool sinsp_utils::parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns)
 {
 #ifndef _WIN32
-	char *rem;
-
-	struct tm tm_time = {0};
-	rem = strptime(time_str.c_str(), "%Y-%m-%dT%H:%M:", &tm_time);
+	tm tm_time;
+	char* rem = strptime(time_str.c_str(), "%Y-%m-%dT%H:%M:", &tm_time);
 	if(rem == NULL || *rem == '\0')
 	{
 		return false;
@@ -1118,7 +1112,7 @@ time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt
 	{
 		throw sinsp_exception("get_epoch_utc_seconds(): empty time or format string.");
 	}
-	struct tm tm_time = {0};
+	tm tm_time;
 	strptime(time_str.c_str(), fmt.c_str(), &tm_time);
 	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
 	return timegm(&tm_time);

@@ -95,7 +95,7 @@ static int32_t process_unhandled_syscall(uint64_t sysno, char* error_buf)
 
 static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -123,14 +123,14 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 		env += gvisor_evt.env(j);
 		env.push_back('\0');
 	}
-	
+
 	std::string container_id = gvisor_evt.id();
 
 	std::string cgroups = "gvisor_container_id=/";
 	cgroups += container_id;
 
 	std::string exe, comm;
-	exe = gvisor_evt.args(0).c_str(); // exe, best available info from gVisor evt 
+	exe = gvisor_evt.args(0).c_str(); // exe, best available info from gVisor evt
 	size_t pos = exe.find_last_of("/");
 	if (pos != std::string::npos)
 	{
@@ -245,7 +245,7 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	                 scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
 	                 scap_const_sized_buffer{env.data(), env.size()},
 	                 context_data.credentials().effective_uid()); // uid
-	
+
 	if (ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
 		return ret;
@@ -270,7 +270,7 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 
 static parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -401,7 +401,7 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 
 static parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -446,7 +446,7 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 		ret.error = scap_err;
 		return ret;
 	}
-	
+
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
 	evt->ts = context_data.time_ns();
 	evt->tid = tid_field;
@@ -458,7 +458,7 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 
 static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Read gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -659,7 +659,7 @@ static size_t pack_sockaddr_to_remote_tuple(sockaddr *sa, char *targetbuf)
 		case AF_UNIX:
 		{
 			size += pack_sock_family(sa, buf);
-			memset(targetbuf + 1, 0, sizeof(uint64_t)); // TODO: understand how to fill this 
+			memset(targetbuf + 1, 0, sizeof(uint64_t)); // TODO: understand how to fill this
 			memset(targetbuf + 1 + 8, 0, sizeof(uint64_t));
 			size += sizeof(uint64_t) + sizeof(uint64_t);
 			buf = targetbuf + size;
@@ -684,7 +684,7 @@ static size_t pack_sockaddr(sockaddr *sa, char *targetbuf)
 
 static parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Connect gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -753,7 +753,7 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 
 static parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Socket gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -793,7 +793,7 @@ static parse_result parse_socket(const char *proto, size_t proto_size, scap_size
 
 static parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Syscall gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -866,7 +866,7 @@ static parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 
 static parse_result parse_accept(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Accept gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -951,7 +951,7 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 
 static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Fcntl gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -989,7 +989,7 @@ static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized
 
 static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Bind gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1045,7 +1045,7 @@ static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_
 
 static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Pipe gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1083,7 +1083,7 @@ static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_
 
 static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Open gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1181,7 +1181,7 @@ static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_
 
 static parse_result parse_chdir(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Chdir gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1249,7 +1249,7 @@ static parse_result parse_chdir(const char *proto, size_t proto_size, scap_sized
 
 static parse_result parse_setresid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Setresid gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1321,7 +1321,7 @@ static parse_result parse_setresid(const char *proto, size_t proto_size, scap_si
 
 static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Setid gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1400,7 +1400,7 @@ static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized
 
 static parse_result parse_chroot(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Chroot gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1437,7 +1437,7 @@ static parse_result parse_chroot(const char *proto, size_t proto_size, scap_size
 
 static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Dup gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1523,7 +1523,7 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 
 static parse_result parse_sentry_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 
 	gvisor::sentry::TaskExit gvisor_evt;
@@ -1557,7 +1557,7 @@ static parse_result parse_sentry_task_exit(const char *proto, size_t proto_size,
 
 static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Prlimit gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1600,7 +1600,7 @@ static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_s
 
 static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Signalfd gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1640,7 +1640,7 @@ static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_si
 
 static parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Eventfd gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1679,7 +1679,7 @@ static parse_result parse_eventfd(const char *proto, size_t proto_size, scap_siz
 
 static parse_result parse_close(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Close gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1716,7 +1716,7 @@ static parse_result parse_close(const char *proto, size_t proto_size, scap_sized
 
 static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Clone gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1774,7 +1774,7 @@ static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized
 
 static parse_result parse_timerfd_create(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::TimerfdCreate gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1813,7 +1813,7 @@ static parse_result parse_timerfd_create(const char *proto, size_t proto_size, s
 
 static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Fork gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1912,7 +1912,7 @@ static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_
 
 static parse_result parse_inotify_init(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Eventfd gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1950,7 +1950,7 @@ static parse_result parse_inotify_init(const char *proto, size_t proto_size, sca
 
 static parse_result parse_socketpair(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::SocketPair gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -1991,7 +1991,7 @@ static parse_result parse_socketpair(const char *proto, size_t proto_size, scap_
 
 static parse_result parse_write(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Write gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -2088,7 +2088,7 @@ static parse_result parse_write(const char *proto, size_t proto_size, scap_sized
 
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)
 {
-	parse_result ret = {0};
+	parse_result ret;
 	const char *buf = static_cast<const char*>(gvisor_buf.buf);
 
 	const header *hdr = reinterpret_cast<const header *>(buf);
@@ -2130,7 +2130,7 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 
 procfs_result parse_procfs_json(const std::string &input, const std::string &sandbox)
 {
-	procfs_result res = {0};
+	procfs_result res;
 	Json::Value root;
 	Json::CharReaderBuilder builder;
 	std::string err;
@@ -2253,8 +2253,8 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	}
 	strlcpy(tinfo.cwd, root["cwd"].asCString(), SCAP_MAX_PATH_SIZE + 1);
 
-	// uid 
-	if(!status.isMember("uid") || !status["uid"].isMember("effective") || 
+	// uid
+	if(!status.isMember("uid") || !status["uid"].isMember("effective") ||
 		!status["uid"]["effective"].isUInt64())
 	{
 		return res;
@@ -2262,7 +2262,7 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	tinfo.uid = status["uid"]["effective"].asUInt64();
 
 	// gid
-	if(!status.isMember("gid") || !status["gid"].isMember("effective") || 
+	if(!status.isMember("gid") || !status["gid"].isMember("effective") ||
 		!status["gid"]["effective"].isUInt64())
 	{
 		return res;
@@ -2289,7 +2289,7 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	}
 	tinfo.clone_ts = root["clone_ts"].asUInt64();
 
-	// fdinfos 
+	// fdinfos
 
 	// set error so that we can understand that parsing failed here
 	res.error = "Error parsing fdlist";
@@ -2303,7 +2303,7 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	{
 		Json::Value &entry = root["fdlist"][i];
 		scap_fdinfo fdinfo;
-		
+
 		if(!entry.isMember("number") || !entry["number"].isUInt64())
 		{
 			return res;
@@ -2314,7 +2314,7 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 		{
 			return res;
 		}
-		
+
 		if(!entry.isMember("path") || !entry["path"].isString())
 		{
 			return res;
@@ -2345,13 +2345,13 @@ config_result parse_config(std::string config)
 	config_result res;
 	res.socket_path = "";
 	res.error = "";
-	res.status = SCAP_FAILURE;	
+	res.status = SCAP_FAILURE;
 
 	std::string err;
 	Json::Value root;
 	Json::CharReaderBuilder builder;
 	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-	
+
 	bool json_parse = reader->parse(config.c_str(), config.c_str() + config.size(), &root, &err);
 	if(!json_parse)
 	{
@@ -2394,7 +2394,7 @@ config_result parse_config(std::string config)
 		res.error = "Could not find endpoint in sink configuration";
 		return res;
 	}
-	
+
 	res.socket_path = sink_config["endpoint"].asString();
 	res.status = SCAP_SUCCESS;
 	return res;
