@@ -40,10 +40,6 @@ add_definitions(-DCHISEL_TOOL_LIBRARY_NAME="${CHISEL_TOOL_LIBRARY_NAME}")
 
 include(ExternalProject)
 
-if(NOT WIN32 AND NOT APPLE)
-	include(b64)
-endif()
-
 include(jsoncpp)
 if(WITH_CHISEL)
 	include_directories(../chisel)
