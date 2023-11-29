@@ -326,6 +326,8 @@ jobs:
   build-libs-s390x-ppc64le:
     name: build-libs-${{ matrix.arch }} 😁 (system_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     strategy:
       matrix:
         arch: [s390x, ppc64le]
