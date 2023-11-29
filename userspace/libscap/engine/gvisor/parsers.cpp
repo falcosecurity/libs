@@ -33,8 +33,10 @@ limitations under the License.
 #include "../../driver/syscall_compat_aarch64.h"
 #elif __s390x__
 #include "../../driver/syscall_compat_s390x.h"
-#elif __ppc64le__
+#elif __powerpc64__
 #include "../../driver/syscall_compat_ppc64le.h"
+#elif __riscv
+#include "../../driver/syscall_compat_riscv64.h"
 #endif /* __x86_64__ */
 
 #include <functional>
