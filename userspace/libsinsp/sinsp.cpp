@@ -35,7 +35,6 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "filter.h"
 #include "filterchecks.h"
-#include "cyclewriter.h"
 #include "dns_manager.h"
 #include "plugin.h"
 #include "plugin_manager.h"
@@ -94,8 +93,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_deleted_users_groups_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
-	m_cycle_writer = NULL;
-	m_write_cycling = false;
 	m_filter = NULL;
 	m_fds_to_remove = new std::vector<int64_t>;
 	m_machine_info = NULL;
@@ -165,12 +162,6 @@ sinsp::~sinsp()
 	{
 		delete m_thread_manager;
 		m_thread_manager = NULL;
-	}
-
-	if(m_cycle_writer)
-	{
-		delete m_cycle_writer;
-		m_cycle_writer = NULL;
 	}
 
 	m_container_manager.cleanup();
@@ -263,17 +254,6 @@ void sinsp::init()
 	{
 		ASSERT(false);
 	}
-
-	//
-	// Allocate the cycle writer
-	//
-	if(m_cycle_writer)
-	{
-		delete m_cycle_writer;
-		m_cycle_writer = NULL;
-	}
-
-	m_cycle_writer = new cycle_writer(!is_offline());
 
 	//
 	// Basic inits
@@ -818,12 +798,6 @@ void sinsp::close()
 		m_h = NULL;
 	}
 
-	if(m_dumper != nullptr)
-	{
-		m_dumper->close();
-		m_dumper.reset(nullptr);
-	}
-
 	m_is_dumping = false;
 
 	deinit_state();
@@ -870,55 +844,6 @@ void sinsp::deinit_state()
 {
 	m_network_interfaces.clear();
 	m_thread_manager->clear();
-}
-
-void sinsp::autodump_start(const std::string& dump_filename, bool compress)
-{
-	if(NULL == m_h)
-	{
-		throw sinsp_exception("inspector not opened yet");
-	}
-
-	std::unique_ptr<sinsp_dumper> dumper(new sinsp_dumper);
-
-	if(compress)
-	{
-		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_GZIP);
-	}
-	else
-	{
-		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_NONE);
-	}
-
-	m_is_dumping = true;
-
-	m_dumper = std::move(dumper);
-
-	m_container_manager.dump_containers(*m_dumper);
-
-	m_usergroup_manager.dump_users_groups(*m_dumper);
-}
-
-void sinsp::autodump_next_file()
-{
-	autodump_stop();
-	autodump_start(m_cycle_writer->get_current_file_name(), m_compress);
-}
-
-void sinsp::autodump_stop()
-{
-	if(NULL == m_h)
-	{
-		throw sinsp_exception("inspector not opened yet");
-	}
-
-	if(m_dumper != NULL)
-	{
-		m_dumper->close();
-		m_dumper = NULL;
-	}
-
-	m_is_dumping = false;
 }
 
 void sinsp::on_new_entry_from_proc(void* context,
@@ -1491,33 +1416,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		pp.process_event(evt, m_event_sources);
 	}
 
-	//
-	// If needed, dump the event to file
-	//
-	if(NULL != m_dumper)
-	{
-		if(m_write_cycling)
-		{
-			switch(m_cycle_writer->consider(evt, m_dumper->written_bytes()))
-			{
-				case cycle_writer::NEWFILE:
-					autodump_next_file();
-					break;
-
-				case cycle_writer::DOQUIT:
-					stop_capture();
-					return SCAP_EOF;
-					break;
-
-				case cycle_writer::SAMEFILE:
-					// do nothing.
-					break;
-			}
-		}
-
-		m_dumper->dump(evt);
-	}
-
 	// Finally set output evt;
 	// From now on, any return must have the correct output being set.
 	*puevt = evt;
@@ -2084,18 +1982,6 @@ void sinsp::set_max_evt_output_len(uint32_t len)
 sinsp_parser* sinsp::get_parser()
 {
 	return m_parser;
-}
-
-bool sinsp::setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
-{
-	m_compress = compress;
-
-	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || event_limit != 0)
-	{
-		m_write_cycling = true;
-	}
-
-	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit);
 }
 
 double sinsp::get_read_progress_file()

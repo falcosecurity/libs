@@ -74,6 +74,7 @@ limitations under the License.
 #include "user.h"
 #include "utils.h"
 #include "stats.h"
+#include "sinsp_cycledumper.h"
 
 #ifndef VISIBILITY_PRIVATE
 // Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
@@ -423,39 +424,6 @@ public:
 	 * \brief enabling sinsp state counters on the hot path via initializing the respective smart pointer.
 	 */
 	void set_sinsp_stats_v2_enabled();
-
-
-	/*!
-	  \brief Start writing the captured events to file.
-
-	  \param dump_filename the destination trace file.
-
-	  \param compress true to save the trace file in a compressed format.
-
-	  \note only the events that pass the capture filter set with \ref set_filter()
-	   will be saved to disk.
-	  \note this simplified dump interface allows only one dump per capture.
-	   For more flexibility, refer to the \ref sinsp_dumper class, that can
-	   also be combined with \ref sinsp_filter to filter what will go into
-	   the file.
-
-	  @throws a sinsp_exception containing the error string is thrown in case
-	   of failure.
-	*/
-	void autodump_start(const std::string& dump_filename, bool compress);
-
- 	/*!
-	  \brief Cycles the file pointer to a new capture file
-	*/
-	void autodump_next_file();
-
-	/*!
-	  \brief Stops an event dump that was started with \ref autodump_start().
-
-	  @throws a sinsp_exception containing the error string is thrown in case
-	   of failure.
-	*/
-	void autodump_stop();
 
 	/*!
 	  \brief Returns a new instance of a filtercheck supporting fields for
@@ -1051,7 +1019,6 @@ private:
 	bool m_hostname_and_port_resolution_enabled;
 	char m_output_time_flag;
 	uint32_t m_max_evt_output_len;
-	bool m_compress;
 	sinsp_evt m_evt;
 	std::string m_lasterr;
 	int64_t m_tid_to_remove;
@@ -1136,12 +1103,6 @@ public:
 	// How to render the data buffers
 	//
 	sinsp_evt::param_fmt m_buffer_format;
-
-	//
-	// The cycle-writer for files
-	//
-	cycle_writer* m_cycle_writer;
-	bool m_write_cycling;
 
 	//
 	// Some dropping infrastructure
@@ -1318,6 +1279,7 @@ public:
 	friend class sinsp_memory_dumper;
 	friend class test_helper;
 	friend class sinsp_usergroup_manager;
+	friend class sinsp_cycledumper;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };

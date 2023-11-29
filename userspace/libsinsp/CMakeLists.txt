@@ -70,7 +70,7 @@ add_library(sinsp
 	container_engine/container_engine_base.cpp
 	container_engine/static_container.cpp
 	container_info.cpp
-	cyclewriter.cpp
+	sinsp_cycledumper.cpp
 	event.cpp
 	eventformatter.cpp
 	dns_manager.cpp

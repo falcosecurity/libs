@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include "sinsp.h"
+#include "sinsp_cycledumper.h"
 
 #include <gtest/gtest.h>
 
@@ -43,8 +44,9 @@ TEST(savefile, filter)
 		sinsp inspector;
 		inspector.set_filter("proc.name=ifplugd");
 		inspector.open_savefile(RESOURCE_DIR "/sample.scap");
-		inspector.setup_cycle_writer(filtered_scap, 0, 0, 0, 0, true);
-		inspector.autodump_next_file();
+
+		sinsp_cycledumper* dumper = new sinsp_cycledumper(&inspector, filtered_scap,
+								  0, 0, 0, 0, true);
 
 		int32_t res;
 		sinsp_evt* evt;
@@ -52,11 +54,16 @@ TEST(savefile, filter)
 		{
 			res = inspector.next(&evt);
 			EXPECT_NE(res, SCAP_FAILURE);
+			if(res != SCAP_EOF)
+			{
+				dumper->dump(evt);
+			}
 		}
 		while(res != SCAP_EOF);
 
-		inspector.autodump_stop();
+		dumper->close();
 		inspector.close();
+		delete dumper;
 	}
 
 	{
