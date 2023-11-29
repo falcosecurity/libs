@@ -1540,7 +1540,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			strftime(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
 				"%Y-%m-%d %H:%M:%S.XXXXXXXXX %z", &tm);
-			snprintf(&m_paramstr_storage[20], 9, "%09ld", nsec);
+			snprintf(&m_paramstr_storage[20], 10, "%09ld", nsec);
 			break;
 		}
 	case PT_DYN:
