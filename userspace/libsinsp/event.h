@@ -492,7 +492,6 @@ private:
 	std::string get_base_dir(uint32_t id, sinsp_threadinfo *tinfo);
 
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
-	Json::Value get_param_as_json(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
 	const char* get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
