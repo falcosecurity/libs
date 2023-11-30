@@ -230,7 +230,7 @@ public:
 
 	sinsp_evt();
 	sinsp_evt(sinsp* inspector);
-	~sinsp_evt();
+	virtual ~sinsp_evt();
 
 	/*!
 	  \brief Set the inspector.

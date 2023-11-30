@@ -440,8 +440,8 @@ std::string path_prefix_map<Value>::as_string(const std::string &prefix, bool in
 class path_prefix_search : public path_prefix_map<bool>
 {
 public:
-	path_prefix_search();
-	~path_prefix_search();
+	path_prefix_search() = default;
+	virtual ~path_prefix_search() = default;
 
 	void add_search_path(const char *path);
 	void add_search_path(const filter_value_t &path);

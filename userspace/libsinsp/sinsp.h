@@ -203,7 +203,7 @@ public:
 		  const std::string &static_name = "",
 		  const std::string &static_image = "");
 
-	~sinsp() override;
+	virtual ~sinsp() override;
 
 
 	/* Wrappers to open a specific engine. */

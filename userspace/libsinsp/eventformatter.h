@@ -54,7 +54,7 @@ public:
 
 	void set_format(gen_event_formatter::output_format of, const std::string& fmt) override;
 
-	~sinsp_evt_formatter();
+	virtual ~sinsp_evt_formatter();
 
 	/*!
 	  \brief Resolve all the formatted tokens and return them in a key/value
@@ -121,7 +121,7 @@ class sinsp_evt_formatter_factory : public gen_event_formatter_factory
 {
 public:
 	sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks);
-	virtual ~sinsp_evt_formatter_factory();
+	virtual ~sinsp_evt_formatter_factory() = default;
 
 	void set_output_format(gen_event_formatter::output_format of) override;
 

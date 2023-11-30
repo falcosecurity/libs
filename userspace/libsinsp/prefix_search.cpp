@@ -22,14 +22,6 @@ limitations under the License.
 
 using namespace std;
 
-path_prefix_search::path_prefix_search()
-{
-}
-
-path_prefix_search::~path_prefix_search()
-{
-}
-
 void path_prefix_search::add_search_path(const char *path)
 {
 	bool dummy = true;

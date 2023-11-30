@@ -28,7 +28,7 @@ class token_bucket
 public:
 	token_bucket();
 	token_bucket(std::function<uint64_t()> timer);
-	virtual ~token_bucket();
+	virtual ~token_bucket() = default;
 
 	//
 	// Initialize the token bucket and start accumulating tokens

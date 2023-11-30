@@ -71,10 +71,6 @@ sinsp_filter_check_evtin::sinsp_filter_check_evtin()
 	m_info.m_nfields = sizeof(sinsp_filter_check_evtin_fields) / sizeof(sinsp_filter_check_evtin_fields[0]);
 }
 
-sinsp_filter_check_evtin::~sinsp_filter_check_evtin()
-{
-}
-
 int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 {
 	uint32_t parsed_len = 0;

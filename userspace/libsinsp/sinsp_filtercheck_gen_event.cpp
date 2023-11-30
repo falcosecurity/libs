@@ -75,10 +75,6 @@ sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
 	m_u64val = 0;
 }
 
-sinsp_filter_check_gen_event::~sinsp_filter_check_gen_event()
-{
-}
-
 sinsp_filter_check* sinsp_filter_check_gen_event::allocate_new()
 {
 	return (sinsp_filter_check*) new sinsp_filter_check_gen_event();

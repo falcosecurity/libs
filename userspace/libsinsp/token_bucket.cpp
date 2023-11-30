@@ -35,10 +35,6 @@ token_bucket::token_bucket(std::function<uint64_t()> timer)
 	init(1, 1);
 }
 
-token_bucket::~token_bucket()
-{
-}
-
 void token_bucket::init(double rate, double max_tokens, uint64_t now)
 {
 	m_rate = rate;

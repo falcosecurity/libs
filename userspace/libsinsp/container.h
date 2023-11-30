@@ -59,7 +59,7 @@ public:
 	                        const std::string static_name = "",
 	                        const std::string static_image = "");
 
-	virtual ~sinsp_container_manager();
+	virtual ~sinsp_container_manager() = default;
 
 	/**
 	 * @brief Get the whole container map (read-only)

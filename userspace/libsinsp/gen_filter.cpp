@@ -25,22 +25,6 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
-gen_event::gen_event()
-{
-}
-
-gen_event::~gen_event()
-{
-}
-
-gen_event_filter_check::gen_event_filter_check()
-{
-}
-
-gen_event_filter_check::~gen_event_filter_check()
-{
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // gen_event_filter_expression implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -459,18 +443,3 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool ver
 	return os.str();
 }
 
-gen_event_formatter::gen_event_formatter()
-{
-}
-
-gen_event_formatter::~gen_event_formatter()
-{
-}
-
-gen_event_formatter_factory::gen_event_formatter_factory()
-{
-}
-
-gen_event_formatter_factory::~gen_event_formatter_factory()
-{
-}

@@ -40,10 +40,6 @@ sinsp_filter::sinsp_filter(sinsp *inspector)
 	m_inspector = inspector;
 }
 
-sinsp_filter::~sinsp_filter()
-{
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_compiler implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -386,10 +382,6 @@ cmpop sinsp_filter_compiler::str_to_cmpop(const std::string& str)
 sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
 					   filter_check_list &available_checks)
 	: m_inspector(inspector), m_available_checks(available_checks)
-{
-}
-
-sinsp_filter_factory::~sinsp_filter_factory()
 {
 }
 

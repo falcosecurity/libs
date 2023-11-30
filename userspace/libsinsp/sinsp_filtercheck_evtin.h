@@ -57,7 +57,7 @@ public:
 	};
 
 	sinsp_filter_check_evtin();
-	~sinsp_filter_check_evtin();
+	virtual ~sinsp_filter_check_evtin() = default;
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
