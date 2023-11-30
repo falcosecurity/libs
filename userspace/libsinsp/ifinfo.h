@@ -18,11 +18,21 @@ limitations under the License.
 
 #pragma once
 
+#include "settings.h"
+#include "sinsp_public.h"
 #include "tuples.h"
+
+#include <string>
+#include <vector>
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
 #endif
+
+typedef struct scap_addrlist scap_addrlist;
+typedef struct scap_ifinfo_ipv4 scap_ifinfo_ipv4;
+typedef struct scap_ifinfo_ipv6 scap_ifinfo_ipv6;
+class sinsp_threadinfo;
 
 //
 // network interface info ipv4
@@ -30,8 +40,7 @@ limitations under the License.
 class SINSP_PUBLIC sinsp_ipv4_ifinfo
 {
 public:
-	sinsp_ipv4_ifinfo() {};
-
+	sinsp_ipv4_ifinfo() = default;
 	sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t bcast, const char* name);
 
 	std::string to_string() const;
@@ -41,6 +50,7 @@ public:
 	uint32_t m_netmask;
 	uint32_t m_bcast;
 	std::string m_name;
+
 private:
 	static void convert_to_string(char * dest, size_t len, const uint32_t addr);
 };
@@ -51,7 +61,7 @@ private:
 class SINSP_PUBLIC sinsp_ipv6_ifinfo
 {
 public:
-	sinsp_ipv6_ifinfo() {};
+	sinsp_ipv6_ifinfo() = default;
 
 	ipv6addr m_net;
 

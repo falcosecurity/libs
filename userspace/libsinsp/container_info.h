@@ -39,8 +39,6 @@ template<> struct hash<sinsp_container_type> {
 };
 }
 
-class sinsp_threadinfo;
-
 // Docker and CRI-compatible runtimes are very similar
 static inline bool is_docker_compatible(sinsp_container_type t)
 {
@@ -353,7 +351,7 @@ public:
 	int64_t m_created_time;
 
 	/**
-	 * The max container label length value. This is static because it is 
+	 * The max container label length value. This is static because it is
 	 * universal across all instances and needs to be set once only.
 	 */
 	static uint32_t m_container_label_max_length;

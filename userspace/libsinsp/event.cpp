@@ -112,7 +112,6 @@ sinsp_evt::sinsp_evt(sinsp *inspector) :
 		m_filtered_out(false),
 		m_event_info_table(g_infotables.m_event_info)
 {
-	
 }
 
 sinsp_evt::~sinsp_evt()
@@ -1025,7 +1024,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		std::string_view path = param->as<std::string_view>();
 		strcpy_sanitized(&m_paramstr_storage[0],
 			path.data(),
-			MIN(path.size() + 1, (uint32_t)m_paramstr_storage.size()));
+			std::min(path.size() + 1, m_paramstr_storage.size()));
 
 		sinsp_threadinfo* tinfo = get_thread_info();
 
@@ -1081,7 +1080,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				blen > m_inspector->m_max_evt_output_len &&
 				fmt == PF_NORMAL)
 			{
-				uint32_t real_len = MIN(blen, m_inspector->m_max_evt_output_len);
+				uint32_t real_len = std::min(blen, m_inspector->m_max_evt_output_len);
 
 				m_rawbuf_str_len = real_len;
 				if(real_len > 3)

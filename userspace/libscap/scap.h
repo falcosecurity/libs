@@ -104,7 +104,7 @@ struct scap_vtable;
 #define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(8, 0, 0)
 #define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(2, 0, 0)
 
-// 
+//
 // This is the dimension we used before introducing the variable buffer size.
 //
 #define DEFAULT_DRIVER_BUFFER_BYTES_DIM 8 * 1024 * 1024
@@ -729,9 +729,9 @@ const struct ppm_event_info* scap_get_event_info_table();
     - `EC_TRACEPOINT
     - `EC_PLUGIN`
     - `EC_METAEVENT`
- 
+
   2. The lowest bits represent the syscall category to which the specific event belongs.
-  
+
   With this method, we are retrieving the syscall category
 */
 enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev);
@@ -744,9 +744,9 @@ enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev);
     - `EC_TRACEPOINT
     - `EC_PLUGIN`
     - `EC_METAEVENT`
- 
+
   2. The lowest bits represent the syscall category to which the specific event belongs.
-  
+
   With this method, we are retrieving the event category
 */
 enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev);
@@ -783,7 +783,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
   \param enabled whether to enable or disable the syscall
   \note This function can only be called for live captures.
 */
-int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled);
+int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled);
 
 /*!
   \brief (Un)Set the drop failed feature of the drivers.
@@ -809,7 +809,7 @@ bool scap_check_current_engine(scap_t *handle, const char* engine_name);
 
 /*!
   \brief Get (at most) n parameters for this event.
- 
+
   \param e The scap event.
   \param params An array large enough to contain at least one entry per event parameter (which is at most PPM_MAX_EVENT_PARAMS).
  */
@@ -823,7 +823,7 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
    - String types (including PT_FSPATH, PT_FSRELPATH) are passed via a null-terminated char*
    - Buffer types, variable size types and similar, including PT_BYTEBUF, PT_SOCKTUPLE are passed with
      a struct scap_const_sized_buffer
-  
+
   If the event was written successfully, SCAP_SUCCESS is returned. If the supplied buffer is not large enough to contain
   the event, SCAP_INPUT_TOO_SMALL is returned and event_size is set with the required size to contain the entire event.
 

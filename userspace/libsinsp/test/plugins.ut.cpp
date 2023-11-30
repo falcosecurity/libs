@@ -82,7 +82,7 @@ TEST(plugins, broken_source_capability)
 	api.get_id = NULL;
 	api.get_event_source = NULL;
 	ASSERT_NO_THROW(register_plugin_api(inspector.get(), api));
-	
+
 	// restore inspector and source API
 	inspector.reset(new sinsp());
 	get_plugin_api_sample_plugin_source(api);
@@ -92,8 +92,8 @@ TEST(plugins, broken_source_capability)
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
 	api.close = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
-	api.next_batch = NULL; 
-	
+	api.next_batch = NULL;
+
 	// Now that all the 3 methods are NULL the plugin has no more capabilities
 	// so we should throw an exception because every plugin should implement at least one
 	// capability
@@ -121,7 +121,7 @@ TEST(plugins, broken_parsing_capability)
 	plugin_api api;
 	auto inspector = std::unique_ptr<sinsp>(new sinsp());
 	get_plugin_api_sample_syscall_parse(api);
-	
+
 	// The plugin has no capabilities
 	api.parse_event = NULL;
 	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
@@ -161,7 +161,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 
 	// This plugin tells that it can receive `syscall` events
 	add_plugin_filterchecks(&m_inspector, pl, sinsp_syscall_event_source_name, pl_flist);
-	
+
 	// Open the inspector in test mode
 	add_default_init_thread();
 	open_inspector();
@@ -577,7 +577,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 		table->new_entry();
 
 		// creating and adding a thread to the table
-		auto t = table->add_entry(i, std::move(table->new_entry()));
+		auto t = table->add_entry(i, table->new_entry());
 		ASSERT_NE(t, nullptr);
 		ASSERT_NE(table->get_entry(i), nullptr);
 		ASSERT_EQ(table->entries_count(), i + 1);
@@ -635,7 +635,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	// erase one of the newly-created thread
 	ASSERT_EQ(table->erase_entry(0), true);
 	ASSERT_EQ(table->entries_count(), max_iterations - 1);
-	
+
 	// clear all
 	ASSERT_NO_THROW(table->clear_entries());
 	ASSERT_EQ(table->entries_count(), 0);
