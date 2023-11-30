@@ -53,10 +53,6 @@ sinsp_container_manager::sinsp_container_manager(sinsp* inspector, bool static_c
 {
 }
 
-sinsp_container_manager::~sinsp_container_manager()
-{
-}
-
 bool sinsp_container_manager::remove_inactive_containers()
 {
 	bool res = false;

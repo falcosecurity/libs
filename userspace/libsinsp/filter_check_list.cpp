@@ -30,9 +30,6 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_list implementation
 ///////////////////////////////////////////////////////////////////////////////
-filter_check_list::filter_check_list()
-{
-}
 
 filter_check_list::~filter_check_list()
 {
@@ -127,6 +124,3 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_evtin());
 }
 
-sinsp_filter_check_list::~sinsp_filter_check_list()
-{
-}

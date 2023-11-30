@@ -68,10 +68,6 @@ sinsp_filter_check_tracer::sinsp_filter_check_tracer()
 	m_cargname = NULL;
 }
 
-sinsp_filter_check_tracer::~sinsp_filter_check_tracer()
-{
-}
-
 sinsp_filter_check* sinsp_filter_check_tracer::allocate_new()
 {
 	return (sinsp_filter_check*) new sinsp_filter_check_tracer();

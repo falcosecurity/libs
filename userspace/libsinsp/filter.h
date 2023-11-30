@@ -38,7 +38,7 @@ class SINSP_PUBLIC sinsp_filter : public gen_event_filter
 {
 public:
 	sinsp_filter(sinsp* inspector);
-	~sinsp_filter();
+	virtual ~sinsp_filter() = default;
 
 private:
 	sinsp* m_inspector;
@@ -144,7 +144,7 @@ class sinsp_filter_factory : public gen_event_filter_factory
 public:
 	sinsp_filter_factory(sinsp *inspector, filter_check_list &available_checks);
 
-	virtual ~sinsp_filter_factory();
+	virtual ~sinsp_filter_factory() = default;
 
 	gen_event_filter* new_filter() override;
 	gen_event_filter_check* new_filtercheck(const char* fldname) override;

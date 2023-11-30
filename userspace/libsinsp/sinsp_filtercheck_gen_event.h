@@ -46,7 +46,7 @@ public:
 	};
 
 	sinsp_filter_check_gen_event();
-	~sinsp_filter_check_gen_event();
+	virtual ~sinsp_filter_check_gen_event() = default;
 
 	sinsp_filter_check* allocate_new() override;
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;

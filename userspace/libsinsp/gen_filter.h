@@ -78,8 +78,8 @@ enum evt_src
 class gen_event
 {
 public:
-	gen_event();
-	virtual ~gen_event();
+	gen_event() = default;
+	virtual ~gen_event() = default;
 
 	// Every event must expose a timestamp
 	virtual uint64_t get_ts() const = 0;
@@ -104,8 +104,8 @@ typedef struct extract_value {
 class gen_event_filter_check
 {
 public:
-	gen_event_filter_check();
-	virtual ~gen_event_filter_check();
+	gen_event_filter_check() = default;
+	virtual ~gen_event_filter_check() = default;
 
 	boolop m_boolop;
 	cmpop m_cmpop;
@@ -275,8 +275,8 @@ public:
 		OF_JSON   = 1
 	};
 
-	gen_event_formatter();
-	virtual ~gen_event_formatter();
+	gen_event_formatter() = default;
+	virtual ~gen_event_formatter() = default;
 
 	virtual void set_format(output_format of, const std::string &format) = 0;
 
@@ -300,8 +300,8 @@ public:
 class gen_event_formatter_factory
 {
 public:
-	gen_event_formatter_factory();
-	virtual ~gen_event_formatter_factory();
+	gen_event_formatter_factory() = default;
+	virtual ~gen_event_formatter_factory() = default;
 
 	// This should be called before any calls to
 	// create_formatter(), and changes the output format of new

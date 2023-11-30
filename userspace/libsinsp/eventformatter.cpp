@@ -346,10 +346,6 @@ sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp *inspector, filte
 {
 }
 
-sinsp_evt_formatter_factory::~sinsp_evt_formatter_factory()
-{
-}
-
 void sinsp_evt_formatter_factory::set_output_format(gen_event_formatter::output_format of)
 {
 	m_formatters.clear();
