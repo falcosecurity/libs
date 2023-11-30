@@ -48,11 +48,11 @@ public:
 
 	void cleanup();
 
-        static sinsp_dns_manager& get()
-        {
-            static sinsp_dns_manager instance;
-            return instance;
-        };
+	static sinsp_dns_manager& get()
+	{
+		static sinsp_dns_manager instance;
+		return instance;
+	};
 
 	void set_erase_timeout(uint64_t ns)
 	{
@@ -83,8 +83,13 @@ private:
 		m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
 		m_max_refresh_timeout(320 * ONE_SECOND_IN_NS)
 	{};
-        sinsp_dns_manager(sinsp_dns_manager const&) = delete;
-        void operator=(sinsp_dns_manager const&) = delete;
+
+	~sinsp_dns_manager() {
+		cleanup();
+	}
+
+	sinsp_dns_manager(sinsp_dns_manager const&) = delete;
+	void operator=(sinsp_dns_manager const&) = delete;
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	struct dns_info
