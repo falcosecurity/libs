@@ -4,7 +4,7 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES "Linux")
 endif()
 
 if(NOT BUILD_BPF)
-	message(WARNING e2e tests can only be run with the eBPF probe)
+	message(WARNING "e2e tests can only be run with the eBPF probe")
 	return()
 endif()
 

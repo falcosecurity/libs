@@ -16,44 +16,36 @@ limitations under the License.
 
 */
 
-
 ////////////////////////////////////////////////////////////////////////////
 // Public definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 #pragma once
+
+#include "ifinfo.h"
+#include "scap.h"
+#include "settings.h"
+#include "sinsp_public.h"
+#include "parsers.h"
+#include "utils.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
 #else
 #include <csignal>
 #endif
-#include <assert.h>
 
-#include <string>
-#include <memory>
-#include <iostream>
-#include <fstream>
-#include <exception>
-#include <sstream>
+#include <cassert>
 #include <deque>
-#include <queue>
-#include <list>
-#include <vector>
+#include <exception>
+#include <fstream>
 #include <iostream>
 #include <limits>
-
-#include "scap.h"
-#include "settings.h"
-#include "utils.h"
-#include "scap.h"
-#include "parsers.h"
-#include "ifinfo.h"
-#include "sinsp_public.h"
-
-#ifndef MIN
-#define MIN(X,Y) ((X) < (Y)? (X):(Y))
-#define MAX(X,Y) ((X) > (Y)? (X):(Y))
-#endif
+#include <list>
+#include <memory>
+#include <queue>
+#include <sstream>
+#include <string>
+#include <vector>
 
 //
 // The logger

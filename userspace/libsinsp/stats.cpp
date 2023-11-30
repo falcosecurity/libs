@@ -312,7 +312,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 		double cpu_usage_perc_total_host = 0.0;
 		uint32_t procs_running_host = 0;
 
-		if(buffer[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name != nullptr && strncmp(buffer[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name, sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC], 15) != 0)
+		if(strncmp(buffer[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name, sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC], 15) != 0)
 		{
 			// Init
 			for(uint32_t i = SINSP_RESOURCE_UTILIZATION_CPU_PERC; i < SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST + 1; i++)
@@ -330,7 +330,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 			buffer[SINSP_RESOURCE_UTILIZATION_PROCS_HOST].type = STATS_VALUE_TYPE_U32;
 			buffer[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST].type = STATS_VALUE_TYPE_U64;
 			buffer[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST].type = STATS_VALUE_TYPE_U64;
-		} 
+		}
 
 		// Get stats / metrics snapshot
 
@@ -353,7 +353,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 
 	if((flags & PPM_SCAP_STATS_STATE_COUNTERS) && stats_v2)
 	{
-		if(buffer[SINSP_STATS_V2_N_THREADS].name != nullptr && strncmp(buffer[SINSP_STATS_V2_N_THREADS].name, sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_THREADS], 10) != 0)
+		if(strncmp(buffer[SINSP_STATS_V2_N_THREADS].name, sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_THREADS], 10) != 0)
 		{
 			// Init
 			for(uint32_t i = SINSP_STATS_V2_N_THREADS; i < SINSP_MAX_STATS_V2; i++)
@@ -415,7 +415,7 @@ const scap_stats_v2* libsinsp::stats::get_sinsp_stats_v2(uint32_t flags, const s
 
 		*nstats = SINSP_MAX_STATS_V2;
 	}
-	
+
 	*rc = SCAP_SUCCESS;
 	return buffer;
 }

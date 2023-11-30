@@ -52,7 +52,7 @@ static void load_ppm_sc_table()
 		if(!sc_names[i])
 		{
 			continue;
-		}	
+		}
 
 		strlcpy(g_ppm_sc_names[i], sc_names[i], PPM_MAX_NAME_LEN);
 		char *p = g_ppm_sc_names[i];
@@ -70,7 +70,7 @@ const char *scap_get_ppm_sc_name(ppm_sc_code sc)
 	ASSERT(sc >= 0 && sc < PPM_SC_MAX);
 
 	/* Lazy loading */
-	if(g_ppm_sc_names[0] && (strcmp(g_ppm_sc_names[0], "") == 0))
+	if(g_ppm_sc_names[0][0] == '\0')
 	{
 		load_ppm_sc_table();
 	}

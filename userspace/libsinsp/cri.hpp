@@ -18,13 +18,12 @@ limitations under the License.
 
 #include "cri.h"
 
-#include <chrono>
 #include "grpc_channel_registry.h"
-
 #include "sinsp.h"
 #include "sinsp_int.h"
 
-using namespace std;
+#include <chrono>
+
 #define MAX_CNIRESULT_LENGTH 4096
 
 namespace
@@ -40,12 +39,12 @@ namespace libsinsp
 {
 namespace cri
 {
-std::vector<std::string> s_cri_unix_socket_paths;
-int64_t s_cri_timeout = 1000;
-int64_t s_cri_size_timeout = 10000;
-sinsp_container_type s_cri_runtime_type = CT_CRI;
-std::string s_cri_unix_socket_path;
-bool s_cri_extra_queries = true;
+inline std::vector<std::string> s_cri_unix_socket_paths;
+inline int64_t s_cri_timeout = 1000;
+inline int64_t s_cri_size_timeout = 10000;
+inline sinsp_container_type s_cri_runtime_type = CT_CRI;
+inline std::string s_cri_unix_socket_path;
+inline bool s_cri_extra_queries = true;
 
 template<typename api> cri_interface<api>::cri_interface(const std::string &cri_path)
 {
@@ -190,7 +189,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 	case 0: // sha256:digest
 		have_digest = true;
 		break;
-	case string::npos:
+	case std::string::npos:
 		break;
 	default: // host/image@sha256:digest
 		have_digest = image_ref[digest_start - 1] == '@';
@@ -241,7 +240,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: have_digest=%d image_name=%s",
 			container.m_id.c_str(), have_digest, image_name.c_str());
 
-	string hostname, port, digest;
+	std::string hostname, port, digest;
 	sinsp_utils::split_container_image(image_name, hostname, port, container.m_imagerepo, container.m_imagetag,
 					   digest, false);
 
@@ -250,7 +249,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
 				container.m_id.c_str(), container.m_imagetag.c_str(), status.image().image().c_str());
 
-		string digest2, repo;
+		std::string digest2, repo;
 		sinsp_utils::split_container_image(status.image().image(), hostname, port, repo, container.m_imagetag,
 						   digest2, false);
 
@@ -389,9 +388,9 @@ bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_con
 
 	auto image_str = image->asString();
 	auto pos = image_str.find(':');
-	if(pos == string::npos)
+	if(pos == std::string::npos)
 	{
-		container.m_imageid = move(image_str);
+		container.m_imageid = std::move(image_str);
 	}
 	else
 	{

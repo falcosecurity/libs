@@ -26,7 +26,7 @@ public:
 	//
 	// The conclusion is what consider() tells you to do
 	// after you tell it how many more bytes to consider.
-	// 
+	//
 	// We don't deal directly with file pointers here to
 	// keep the concerns separated.  This engine only advises
 	// a course of action.
@@ -57,21 +57,21 @@ public:
 	};
 
 	//
-	// Setup sets all the parameters of the 
+	// Setup sets all the parameters of the
 	// engine in one go so you don't miss anything.
 	//
-	// Also, if the engine has already started 
+	// Also, if the engine has already started
 	// (via a call to consider()), then this will
 	// be locked down and return false.
 	//
 	bool setup(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit);
-	
+
 	//
 	// Consider file size at the current time
-	// and tell us whether 
+	// and tell us whether
 	//
 	//  * a new file should be written,
-	//  * we should use the same file, or 
+	//  * we should use the same file, or
 	//  * we should quit.
 	//
 	// If we should use a new file, or should quit,
@@ -79,12 +79,12 @@ public:
 	// thought so, and in the case of a new file,
 	// get_current_file_name() will tell us the new
 	// capture file name to use.
-	// 
+	//
 	cycle_writer::conclusion consider(sinsp_evt* evt, uint64_t written_bytes);
 
 	//
-	// The yields the current file name 
-	// based on the input parameters and 
+	// The yields the current file name
+	// based on the input parameters and
 	// what has been past into consider.
 	//
 	std::string get_current_file_name();
@@ -95,7 +95,7 @@ public:
 private:
 	//
 	// This will yield a new file if
-	// needed or conclude that we need 
+	// needed or conclude that we need
 	// to exit.
 	//
 	cycle_writer::conclusion next_file();
@@ -103,12 +103,12 @@ private:
 	//
 	// These are the variables that are set
 	// to specify how the engine will work.
-	// 
+	//
 	// Use the setup() function to set them up.
 	//
 	// values <= 0 mean don't use the feature.
-	// 
-	
+	//
+
 	// The base file name to write to
 	std::string m_base_file_name; // = ""
 
@@ -142,7 +142,7 @@ private:
 	// we don't know what's what at first
 	// we just leave this hanging.
 	//
-	char m_limit_format[6];
+	char m_limit_format[16];
 
 	// The last file name that
 	// was created (mostly for debugging)
@@ -151,7 +151,7 @@ private:
 	//
 	// This is toggled to true the
 	// first time consider is run ...
-	// it will lock the setup() from 
+	// it will lock the setup() from
 	// being further run
 	//
 	bool m_first_consider; // = false
@@ -165,4 +165,3 @@ private:
 	// name format for deleting "out-of-range" files
 	std::string *m_past_names;
 };
-

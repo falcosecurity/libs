@@ -272,7 +272,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 				field = &container_info->m_imagedigest;
 				break;
 			default:
-				break;
+				return nullptr;
 			}
 
 			if(field->empty())

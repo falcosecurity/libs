@@ -135,7 +135,7 @@ sinsp_plugin::~sinsp_plugin()
 {
 	destroy();
 	plugin_unload(m_handle);
-	
+
 	auto cur_async_handler = m_async_evt_handler.load();
 	if (cur_async_handler)
 	{
@@ -779,7 +779,7 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 		ret += "datalen=";
 		ret += std::to_string(datalen);
 		ret += " data=";
-		for (size_t i = 0; i < MIN(datalen, 50); ++i)
+		for (size_t i = 0; i < std::min(datalen, uint32_t(50)); ++i)
 		{
 			if (!std::isprint(data[i]))
 			{
@@ -787,7 +787,7 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 				return ret;
 			}
 		}
-		ret.append((char*) data, MIN(datalen, 50));
+		ret.append((char*) data, std::min(datalen, uint32_t(50)));
 		if (datalen > 50)
 		{
 			ret += "...";
@@ -1010,7 +1010,7 @@ bool sinsp_plugin::set_async_event_handler(async_event_handler_t handler)
 	//   - CH not-null, NH null: the handler value must be updated after setting
 	//     it to the plugin, so that any already-running thread in the plugin
 	//     can be stopped before setting the handler to null. In case of success,
-	//     we can set the handler value to null. 
+	//     we can set the handler value to null.
 	//   - CH not-null, NH not-null: not supported for now, need to reset
 	//     the current handler to null before setting a new one.
 
