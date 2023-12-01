@@ -61,7 +61,7 @@ if (NOT EMSCRIPTEN)
 	include(tbb)
 endif()
 
-add_library(sinsp STATIC
+add_library(sinsp
 	filter/ast.cpp
 	filter/escaping.cpp
 	filter/parser.cpp
