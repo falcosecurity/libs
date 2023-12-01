@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-add_library(pman STATIC
+add_library(pman
     src/stats.c
     src/maps.c
     src/lifecycle.c
