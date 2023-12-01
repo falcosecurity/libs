@@ -214,9 +214,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 		{
 			sinsp_evt enter_evt;
 			const sinsp_evt_param *parinfo;
-			const char *name;
-			uint32_t namelen;
-			string sdir;
+			std::string sdir;
 
 			if(etype == PPME_SYSCALL_OPENAT_X)
 			{
@@ -232,22 +230,16 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			}
 
 			parinfo = etype == PPME_SYSCALL_OPENAT_X ? enter_evt.get_param(1) : evt->get_param(2);
-			name = parinfo->m_val;
-			namelen = parinfo->m_len;
+			std::string_view name = parinfo->as<std::string_view>();
 
 			parinfo = etype == PPME_SYSCALL_OPENAT_X ? enter_evt.get_param(0) : evt->get_param(1);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			int64_t dirfd = *(int64_t *)parinfo->m_val;
+			int64_t dirfd = parinfo->as<int64_t>();
 
-			sinsp_parser::parse_dirfd(evt, name, dirfd, &sdir);
+			sinsp_parser::parse_dirfd(evt, name.data(), dirfd, &sdir);
 
 			char fullpath[SCAP_MAX_PATH_SIZE];
 
-			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-				sdir.c_str(),
-				(uint32_t)sdir.length(),
-				name,
-				namelen);
+			sinsp_utils::concatenate_paths(sdir, name);
 
 			if(fd_nameraw)
 			{
@@ -255,7 +247,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			}
 			else
 			{
-				m_tstr = fullpath;
+				m_tstr = fullpath; // here we'd like a string
 			}
 
 			if(sanitize_strings)

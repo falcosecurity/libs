@@ -19,122 +19,63 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "utils.h"
 
-// copy_and_sanitize_path is not exported in utils.h
-void copy_and_sanitize_path(char* target, char* targetbase, const char* path, char separator);
-
-TEST(sinsp_utils_test, copy_and_sanitize_path)
+TEST(sinsp_utils_test, concatenate_paths)
 {
-	char target[SCAP_MAX_PATH_SIZE];
+	std::string path1, path2, res;
 
-	std::string path = "/dir/term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ(path, std::string(target));
+	/*
+	 * SUCCESS concatenate_paths
+	*/
 
-	path = "/dir/term/";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term", std::string(target));
+	path1 = "";
+	path2 = "dir/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ(path2, res);
 
-	path = "/dir/../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/term", std::string(target));
+	path1 = "//";
+	path2 = "dir/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("//dir/term", res);
 
-	path = "/dir/dir/../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term", std::string(target));
+	path1 = "////";
+	path2 = "dir/term/";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("////dir/term", res);
 
-	path = "/dir/dir/../../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/term", std::string(target));
+	path1 = "///../.../";
+	path2 = "dir/./././///./term/";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/.../dir/term", res);
 
-	path = "/dir/term/..";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir", std::string(target));
+	path1 = "../.../";
+	path2 = "dir/././././../../.../term/";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("../.../term", res);
 
-	path = "/dir/./term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term", std::string(target));
+	/*
+	 * FAILED concatenate_paths
+	*/
 
-	path = "/dir/././term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term", std::string(target));
+	res = sinsp_utils::concatenate_paths("", "");
+	EXPECT_EQ("", res);
 
-	path = "/dir/term/.";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term", std::string(target));
+	path1 = "";
+	path2 = "/dir/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ(path2, res);
 
-	path = "/dir/.../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/.../term", std::string(target));
+	path1 = "//";
+	path2 = "/dir/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/dir/term", res);
 
-	path = "/dir/term/...";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term/...", std::string(target));
+	path1 = "//";
+	path2 = "////dir/../../././term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/term", res);
 
-	path = "/dir/term/....";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term/....", std::string(target));
-
-	path = "/dir/..../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/..../term", std::string(target));
-
-	path = "/dir/dir../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/dir../term", std::string(target));
-
-	path = "/dir/dir./term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/dir./term", std::string(target));
-
-	path = "/dir/..dir/term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/..dir/term", std::string(target));
-
-	path = "/dir/.dir/term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/.dir/term", std::string(target));
-
-	path = ".dir";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ(".dir", std::string(target));
-
-	path = "./";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("", std::string(target));
-
-	path = "./.";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("", std::string(target));
-
-	path = ".";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("", std::string(target));
-
-	path = "../";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("", std::string(target));
-
-	path = "../..";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("", std::string(target));
-
-	path = "..";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("", std::string(target));
-
-	path = "/dir//./term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/term", std::string(target));
-
-	path = "/dir//../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/term", std::string(target));
-
-	path = "/dir//.../term";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/.../term", std::string(target));
-
-	path = "/dir//...";
-	copy_and_sanitize_path(target, target, path.c_str(), '/');
-	EXPECT_EQ("/dir/...", std::string(target));
+	path1 = "//";
+	path2 = "////";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("///", res);
 }

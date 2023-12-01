@@ -1039,14 +1039,14 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					m_resolved_paramstr_storage.resize(path.length() + cwd.length() + 2, 0);
 				}
 
-				if(!sinsp_utils::concatenate_paths(&m_resolved_paramstr_storage[0],
-					(uint32_t)m_resolved_paramstr_storage.size(),
-					(char*)cwd.c_str(),
-					(uint32_t)cwd.length(),
-					path.data(),
-					path.length()))
+				if(path.length() == 0 || path[0] == '/')
 				{
 					m_resolved_paramstr_storage[0] = 0;
+				}
+				else
+				{
+					std::string concatenated_path = sinsp_utils::concatenate_paths(cwd, path);
+					strcpy_sanitized(&m_paramstr_storage[0], concatenated_path.data(), std::min(concatenated_path.size() + 1, m_paramstr_storage.size()));
 				}
 			}
 		}

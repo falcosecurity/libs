@@ -899,19 +899,11 @@ std::string sinsp_threadinfo::get_cwd()
 
 void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 {
-	char tpath[SCAP_MAX_PATH_SIZE];
 	sinsp_threadinfo* tinfo = get_main_thread();
 
 	if(tinfo)
 	{
-		sinsp_utils::concatenate_paths(tpath,
-			SCAP_MAX_PATH_SIZE,
-			(char*)tinfo->m_cwd.c_str(),
-			(uint32_t)tinfo->m_cwd.size(),
-			cwd,
-			cwdlen);
-
-		tinfo->m_cwd = tpath;
+		tinfo->m_cwd = sinsp_utils::concatenate_paths(m_cwd, std::string_view(cwd, cwdlen));
 
 		uint32_t size = tinfo->m_cwd.size();
 

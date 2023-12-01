@@ -439,8 +439,7 @@ uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 
 uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t *len)
 {
-	const sinsp_evt_param *parinfo;
-	string spath;
+	std::string spath;
 
 	if(evt->m_tinfo == NULL)
 	{
@@ -476,7 +475,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	else if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
 	{
 		int fd = 0;
-		char fullname[SCAP_MAX_PATH_SIZE];
+		std::string fullname;
 
 		//
 		// We can extract the file path only in case of a successful file opening (fd>0).
@@ -488,12 +487,8 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 			//
 			// Get the file path directly from the ring buffer.
 			//
-			parinfo = evt->get_param(3);
+			m_strstorage = sinsp_utils::concatenate_paths("", evt->get_param(3)->as<std::string_view>());
 
-			sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, "", 0,
-				parinfo->m_val, parinfo->m_len);
-
-			m_strstorage = fullname;
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	}
@@ -598,11 +593,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		}
 	}
 
-	char fullname[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(),
-		(uint32_t)sdir.length(), path.data(), path.size());
-
-	m_strstorage = fullname;
+	m_strstorage = sinsp_utils::concatenate_paths(sdir, path);
 
 	RETURN_EXTRACT_STRING(m_strstorage);
 }
