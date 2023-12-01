@@ -5047,7 +5047,6 @@ namespace
 
 void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 {
-
 	if(evt->m_tinfo_ref != nullptr)
 	{
 		const auto& container_id = evt->m_tinfo_ref->m_container_id;
@@ -5058,7 +5057,6 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			evt->m_filtered_out = true;
 			return;
 		}
-		return;
 	}
 
 	const sinsp_evt_param *parinfo = evt->get_param(0);
