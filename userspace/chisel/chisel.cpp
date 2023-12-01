@@ -1102,7 +1102,7 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 				}
 
 				chisel_desc cd;
-				cd.m_name = dir_entry.path().filename();
+				cd.m_name = dir_entry.path().filename().generic_string();
 
 				if (init_lua_chisel(cd, dir_entry.path().generic_string()))
 				{
