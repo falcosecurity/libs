@@ -53,6 +53,7 @@ limitations under the License.
 #include <cerrno>
 #include <functional>
 #include <sys/stat.h>
+#include <filesystem>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -595,171 +596,30 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 	return true;
 }
 
-//
-// Helper function to move a directory up in a path string
-//
-void rewind_to_parent_path(char* targetbase, char** tc, const char** pc, uint32_t delta)
+std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2, ssize_t max_len)
 {
-	if(*tc <= targetbase + 1)
+    auto p1 = std::filesystem::path(path1, std::filesystem::path::format::generic_format);
+    auto p2 = std::filesystem::path(path2, std::filesystem::path::format::generic_format);
+
+	auto path_concat = (p1 / p2).lexically_normal();
+	std::string result = path_concat;
+
+	//
+	// If the path ends with a separator, remove it, as the OS does.
+	//
+	if (result.length() > 1 && result.back() == '/')
 	{
-		(*pc) += delta;
-		return;
+		result.pop_back();
 	}
 
-	(*tc)--;
-
-	while(*((*tc) - 1) != '/' && (*tc) >= targetbase + 1)
+	if (max_len != -1 && result.length() > max_len)
 	{
-		(*tc)--;
+		return "/PATH_TOO_LONG";
 	}
 
-	(*pc) += delta;
+	return result;
 }
 
-//
-// Args:
-//  - target: the string where we are supposed to start copying
-//  - targetbase: the base of the path, i.e. the furthest we can go back when
-//                following parent directories
-//  - path: the path to copy
-//
-void copy_and_sanitize_path(char* target, char* targetbase, const char* path, char separator)
-{
-	char* tc = target;
-	const char* pc = path;
-	g_invalidchar ic;
-
-	while(true)
-	{
-		if(*pc == 0)
-		{
-			*tc = 0;
-
-			//
-			// If the path ends with a separator, remove it, as the OS does.
-			//
-			if((tc > (targetbase + 1)) && (*(tc - 1) == separator))
-			{
-				*(tc - 1) = 0;
-			}
-
-			return;
-		}
-
-		if(ic(*pc))
-		{
-			//
-			// Invalid char, substitute with a '.'
-			//
-			*tc = '.';
-			tc++;
-			pc++;
-		}
-		else
-		{
-			//
-			// If path begins with '.' or '.' is the first char after a '/'
-			//
-			if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator))
-			{
-				//
-				// '../', rewind to the previous separator
-				//
-				if(*(pc + 1) == '.' && *(pc + 2) == separator)
-				{
-					rewind_to_parent_path(targetbase, &tc, &pc, 3);
-				}
-				//
-				// '..', with no separator.
-				// This is valid if we are at the end of the string, and in that case we rewind.
-				//
-				else if(*(pc + 1) == '.' && *(pc + 2) == 0)
-				{
-					rewind_to_parent_path(targetbase, &tc, &pc, 2);
-				}
-				//
-				// './', just skip it
-				//
-				else if(*(pc + 1) == separator)
-				{
-					pc += 2;
-				}
-				//
-				// '.', with no separator.
-				// This is valid if we are at the end of the string, and in that case we rewind.
-				//
-				else if(*(pc + 1) == 0)
-				{
-					pc++;
-				}
-				//
-				// Otherwise, we leave the string intact.
-				//
-				else
-				{
-					*tc = *pc;
-					pc++;
-					tc++;
-				}
-			}
-			else if(*pc == separator)
-			{
-				//
-				// separator, if the last char is already a separator, skip it
-				//
-				if(tc > targetbase && *(tc - 1) == separator)
-				{
-					pc++;
-				}
-				else
-				{
-					*tc = *pc;
-					tc++;
-					pc++;
-				}
-			}
-			else
-			{
-				//
-				// Normal char, copy it
-				//
-				*tc = *pc;
-				tc++;
-				pc++;
-			}
-		}
-	}
-}
-
-//
-// Return false if path2 is an absolute path
-//
-bool sinsp_utils::concatenate_paths(char* target,
-									uint32_t targetlen,
-									const char* path1,
-									uint32_t len1,
-									const char* path2,
-									uint32_t len2)
-{
-	if(targetlen < (len1 + len2 + 1))
-	{
-		strlcpy(target, "/PATH_TOO_LONG", targetlen);
-		return false;
-	}
-
-	if(len2 != 0 && path2[0] != '/')
-	{
-		memcpy(target, path1, len1);
-		copy_and_sanitize_path(target + len1, target, path2, '/');
-		return true;
-	}
-	else
-	{
-		target[0] = 0;
-		copy_and_sanitize_path(target, target, path2, '/');
-		return false;
-	}
-}
 
 bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
 {

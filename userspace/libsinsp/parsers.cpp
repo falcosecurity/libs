@@ -2247,7 +2247,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			&&
 			retrieve_enter_event(enter_evt, evt))
 		{
-			char fullpath[SCAP_MAX_PATH_SIZE] = {0};
+			std::string fullpath;
 
 			/* We need to manage the 2 possible cases:
 			* - enter event is an `EXECVE`
@@ -2259,24 +2259,20 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 				/*
 				* Get filename
 				*/
-				parinfo = enter_evt->get_param(0);
+				std::string_view filename = enter_evt->get_param(0)->as<std::string_view>();
 				/* This could happen only if we are not able to get the info from the kernel,
 				* because if the syscall was successful the pathname was surely here the problem
 				* is that for some reason we were not able to get it with our instrumentation,
 				* for example when the `bpf_probe_read()` call fails in BPF.
 				*/
-				if(strncmp(parinfo->m_val, "<NA>", 5) == 0)
+				if(filename == "<NA>")
 				{
-					strlcpy(fullpath, "<NA>", 5);
+					fullpath = "<NA>";
 				}
 				else
 				{
 					/* Here the filename can be relative or absolute. */
-					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-													evt->m_tinfo->m_cwd.c_str(),
-													(uint32_t)evt->m_tinfo->m_cwd.size(),
-													parinfo->m_val,
-													(uint32_t)parinfo->m_len);
+					fullpath = sinsp_utils::concatenate_paths(evt->m_tinfo->m_cwd, filename);
 				}
 			}
 			else if(enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
@@ -2322,23 +2318,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 				sdir.compare("<UNKNOWN>") == 0)
 				{
 					/* we copy also the string terminator `\0`. */
-					strlcpy(fullpath, "<NA>", 5);
+					fullpath = "<NA>";
 				}
 				/* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just need
 				* to sanitize it.
 				*/
 				else if(flags & PPM_EXVAT_AT_EMPTY_PATH)
 				{
-					/* We explicitly set the `pathlen` to `0`, since `pathname` is `<NA>`
-					* as we said in case (3), and we don't want to consider it as a valid
-					* part of the final path. In this case `sdir` will always be
-					* an absolute path.
+					/* In this case `sdir` will always be an absolute path.
 					*/
-					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-									"\0",
-									0,
-									sdir.c_str(),
-									(uint32_t)sdir.length());
+					fullpath = sinsp_utils::concatenate_paths("", sdir);
 
 				}
 				/* (2)/(1) If it is relative or absolute we craft the `fullpath` as usual:
@@ -2346,11 +2335,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 				*/
 				else
 				{
-					sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-												sdir.c_str(),
-												(uint32_t)sdir.length(),
-												pathname.data(),
-												pathname.size());
+					fullpath = sinsp_utils::concatenate_paths(sdir, pathname);
 				}
 			}
 			evt->m_tinfo->m_exepath = fullpath;
@@ -2766,10 +2751,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//ASSERT(parinfo->m_len == sizeof(uint32_t));
 	//mode = *(uint32_t*)parinfo->m_val;
 
-	char fullpath[SCAP_MAX_PATH_SIZE];
-
-	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(),
-		name.data(), name.size());
+	std::string fullpath = sinsp_utils::concatenate_paths(sdir, name);
 
 	if(fd >= 0)
 	{
@@ -2790,7 +2772,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi.m_dev = dev;
 		fdi.m_ino = ino;
 		fdi.add_filename_raw(name.data());
-		fdi.add_filename(fullpath);
+		fdi.add_filename(fullpath.c_str());
 
 		//
 		// Add the fd to the table.

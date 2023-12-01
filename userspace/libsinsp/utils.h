@@ -99,7 +99,7 @@ public:
 	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.
 	// Assumes that path1 is well formed.
 	//
-	static bool concatenate_paths(char* target, uint32_t targetlen, const char* path1, uint32_t len1, const char* path2, uint32_t len2);
+	static std::string concatenate_paths(std::string_view path1, std::string_view path2, ssize_t max_len=SCAP_MAX_PATH_SIZE-1);
 
 	//
 	// Determines if an IPv6 address is IPv4-mapped
