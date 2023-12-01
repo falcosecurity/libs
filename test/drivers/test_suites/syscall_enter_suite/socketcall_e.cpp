@@ -1093,7 +1093,7 @@ TEST(SyscallEnter, socketcall_getsocknameE)
 
 TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting)
 {
-	/* if we set the socket call as interesting we will obtain a generic event */
+	// We send a wrong code so the event will be dropped
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -1112,36 +1112,12 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting)
 
 	evt_test->disable_capture();
 
-	evt_test->assert_event_presence(CURRENT_PID, PPME_GENERIC_E);
-
-	if(HasFatalFailure())
-	{
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	/* Parameter 1: ID (type: PT_SYSCALLID) */
-	/* this is the PPM_SC code obtained from the syscall id. */
-	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_SOCKETCALL);
-
-	/* Parameter 2: nativeID (type: PT_UINT16) */
-	evt_test->assert_numeric_param(2, (uint16_t)__NR_socketcall);
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_event_absence(CURRENT_PID, PPME_GENERIC_E);
 }
 
 TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting)
 {
-	/* if we don't set the socketcall as interesting we won't obtain a generic event.
-	 * In this case we set `setsockopt` as interesting
-	 */
+	// Same as the previous test
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -1214,6 +1190,7 @@ TEST(SyscallEnter, socketcall_null_pointer)
 
 TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting)
 {
+	// We send a wrong code so the event will be dropped
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -1227,32 +1204,7 @@ TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting
 
 	evt_test->disable_capture();
 
-	/* Even if we have a null pointer, we will send a generic event so we don't need to preload
-	 * the socketcall params! This is the reason why we don't drop the event in this case.
-	 */
-	evt_test->assert_event_presence(CURRENT_PID, PPME_GENERIC_E);
-
-	if(HasFatalFailure())
-	{
-		return;
-	}
-
-	evt_test->parse_event();
-
-	evt_test->assert_header();
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	/* Parameter 1: ID (type: PT_SYSCALLID) */
-	/* this is the PPM_SC code obtained from the syscall id. */
-	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_SOCKETCALL);
-
-	/* Parameter 2: nativeID (type: PT_UINT16) */
-	evt_test->assert_numeric_param(2, (uint16_t)__NR_socketcall);
-
-	/*=============================== ASSERT PARAMETERS  ===========================*/
-
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_event_absence(CURRENT_PID, PPME_GENERIC_E);
 }
 
 #endif /* __NR_socketcall */
