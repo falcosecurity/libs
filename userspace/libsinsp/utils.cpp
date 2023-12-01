@@ -608,7 +608,7 @@ void rewind_to_parent_path(char* targetbase, char** tc, const char** pc, uint32_
 
 	(*tc)--;
 
-	while(*((*tc) - 1) != '/' && (*tc) >= targetbase + 1)
+	while((*tc) >= targetbase + 1 && (*((*tc) - 1) != '/' || (*tc - 1) < targetbase))
 	{
 		(*tc)--;
 	}
