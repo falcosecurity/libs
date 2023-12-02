@@ -1080,7 +1080,7 @@ void sinsp_utils::ts_to_iso_8601(uint64_t ts, OUT std::string* res)
 bool sinsp_utils::parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns)
 {
 #ifndef _WIN32
-	tm tm_time;
+	tm tm_time{0};
 	char* rem = strptime(time_str.c_str(), "%Y-%m-%dT%H:%M:", &tm_time);
 	if(rem == NULL || *rem == '\0')
 	{
@@ -1112,7 +1112,7 @@ time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt
 	{
 		throw sinsp_exception("get_epoch_utc_seconds(): empty time or format string.");
 	}
-	tm tm_time;
+	tm tm_time{0};
 	strptime(time_str.c_str(), fmt.c_str(), &tm_time);
 	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
 	return timegm(&tm_time);
