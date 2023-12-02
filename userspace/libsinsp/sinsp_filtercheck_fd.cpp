@@ -237,17 +237,14 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 
 			sinsp_parser::parse_dirfd(evt, name.data(), dirfd, &sdir);
 
-			char fullpath[SCAP_MAX_PATH_SIZE];
-
-			sinsp_utils::concatenate_paths(sdir, name);
-
 			if(fd_nameraw)
 			{
 				m_tstr = name;
 			}
 			else
 			{
-				m_tstr = fullpath; // here we'd like a string
+				// fullpath
+				m_tstr = sinsp_utils::concatenate_paths(sdir, name); // here we'd like a string
 			}
 
 			if(sanitize_strings)
