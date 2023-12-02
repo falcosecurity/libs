@@ -21,61 +21,106 @@ limitations under the License.
 
 TEST(sinsp_utils_test, concatenate_paths)
 {
+	// Some tests were motivated by this resource:
+	// https://pubs.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap04.html#tag_04_11
+
 	std::string path1, path2, res;
 
-	/*
-	 * SUCCESS concatenate_paths
-	*/
+	res = sinsp_utils::concatenate_paths("", "");
+	EXPECT_EQ("", res);
+
+	path1 = "";
+	path2 = "../";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("..", res);
+
+	path1 = "";
+	path2 = "./";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ(".", res);
 
 	path1 = "";
 	path2 = "dir/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ(path2, res);
 
-	path1 = "//";
+	path1 = "";
+	path2 = "//dir/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/dir/term", res);
+
+	path1 = "/";
 	path2 = "dir/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("//dir/term", res);
+	EXPECT_EQ("/dir/term", res);
 
-	path1 = "////";
-	path2 = "dir/term/";
+	path1 = "";
+	path2 = "///dir/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("////dir/term", res);
+	EXPECT_EQ("/dir/term", res);
 
-	path1 = "///../.../";
-	path2 = "dir/./././///./term/";
+	path1 = "";
+	path2 = "./dir/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/.../dir/term", res);
+	EXPECT_EQ("dir/term", res);
+
+	path1 = "/";
+	path2 = "//dir//////term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/dir/term", res);
+
+	path1 = "/";
+	path2 = "/dir/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/dir/term", res);
 
 	path1 = "../.../";
 	path2 = "dir/././././../../.../term/";
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("../.../term", res);
 
-	/*
-	 * FAILED concatenate_paths
-	*/
-
-	res = sinsp_utils::concatenate_paths("", "");
-	EXPECT_EQ("", res);
-
-	path1 = "";
-	path2 = "/dir/term";
+	path1 = "../.../";
+	path2 = "/app/custom/dir/././././../../.../term/";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ(path2, res);
+	EXPECT_EQ("/app/.../term", res);
 
-	path1 = "//";
-	path2 = "/dir/term";
+	path1 = "../.../";
+	path2 = "/app/custom/dir/././././../../term/";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/dir/term", res);
+	EXPECT_EQ("/app/term", res);
 
-	path1 = "//";
-	path2 = "////dir/../../././term";
+	path1 = "./app";
+	path2 = "custom/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/term", res);
+	EXPECT_EQ("app/custom/term", res);
 
-	path1 = "//";
-	path2 = "////";
+	path1 = "/app";
+	path2 = "custom/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("///", res);
+	EXPECT_EQ("/app/custom/term", res);
+
+	path1 = "app";
+	path2 = "custom/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("app/custom/term", res);
+
+	path1 = "app//";
+	path2 = "custom/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("app/custom/term", res);
+
+	path1 = "app/////";
+	path2 = "custom////term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("app/custom/term", res);
+
+	path1 = "/";
+	path2 = "/app/custom/dir/././././../../term/";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/app/term", res);
+
+	path1 = "/";
+	path2 = "////app";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/app", res);
 }
