@@ -94,10 +94,7 @@ public:
 	static bool unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes);
 
 	//
-	// Concatenate two paths and puts the result in "target".
-	// If path2 is relative, the concatenation happens and the result is true.
-	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.
-	// Assumes that path1 is well formed.
+	// Concatenate path1 and path2 using std::filesystem
 	//
 	static std::string concatenate_paths(std::string_view path1, std::string_view path2, ssize_t max_len=SCAP_MAX_PATH_SIZE-1);
 
