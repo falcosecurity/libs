@@ -27,20 +27,11 @@ limitations under the License.
 class sinsp_syslog_decoder
 {
 public:
-	sinsp_syslog_decoder() = default;
-	~sinsp_syslog_decoder() = default;
-	sinsp_syslog_decoder(sinsp_syslog_decoder&&) = default;
-    sinsp_syslog_decoder& operator = (sinsp_syslog_decoder&&) = default;
-    sinsp_syslog_decoder(const sinsp_syslog_decoder& s) = default;
-    sinsp_syslog_decoder& operator = (const sinsp_syslog_decoder& s) = default;
-
 	void parse_data(const char *data, uint32_t len);
 
-	const std::string get_info_line();
-
-	const std::string get_severity_str() const;
-
-	const std::string get_facility_str() const;
+	const std::string& get_info_line();
+	const std::string& get_severity_str() const;
+	const std::string& get_facility_str() const;
 
 	inline void reset()
 	{
@@ -67,7 +58,7 @@ public:
 		return m_severity;
 	}
 
-	inline const std::string get_msg() const
+	inline const std::string& get_msg() const
 	{
 		return m_msg;
 	}

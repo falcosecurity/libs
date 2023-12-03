@@ -59,7 +59,7 @@ TEST_P(sinsp_container_lookup_test, delays_match)
 	}
 }
 
-INSTANTIATE_TEST_CASE_P(sinsp_container_lookup,
+INSTANTIATE_TEST_SUITE_P(sinsp_container_lookup,
 			 sinsp_container_lookup_test,
 			 ::testing::Values(
 				 std::tuple<short, short, std::vector<short>>{3, 500, {125, 250, 500}},

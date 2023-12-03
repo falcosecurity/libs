@@ -16,11 +16,12 @@ limitations under the License.
 
 */
 
-#include <gtest.h>
 #define VISIBILITY_PRIVATE
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "ifinfo.h"
+
+#include <gtest/gtest.h>
 
 
 uint32_t parse_ipv4_addr(const char *dotted_notation)
@@ -58,9 +59,9 @@ sinsp_ipv4_ifinfo make_ipv4_localhost()
 void convert_to_string(char* dest, size_t len, uint32_t addr)
 {
 	snprintf(
-		dest, 
+		dest,
 		len,
-		"%d.%d.%d.%d", 
+		"%d.%d.%d.%d",
 		(addr & 0xFF),
 		((addr & 0xFF00) >> 8),
 		((addr & 0xFF0000) >> 16),
