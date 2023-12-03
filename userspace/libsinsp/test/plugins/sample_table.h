@@ -60,9 +60,7 @@ public:
         name(n), lasterr(err), strings(), entries(), fields() { }
     virtual ~sample_table() = default;
     sample_table(sample_table&&) = default;
-    sample_table& operator = (sample_table&&) = default;
     sample_table(const sample_table& s) = default;
-    sample_table& operator = (const sample_table& s) = default;
 
     static const char* get_name(ss_plugin_table_t* _t)
     {

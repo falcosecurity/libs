@@ -61,7 +61,7 @@ public:
 		const std::string& path,
 		const std::shared_ptr<libsinsp::state::table_registry>& treg,
 		std::string& errstr);
-	
+
 	/**
 	 * @brief Create a plugin from the provided api vtable.
 	 * On error, the shared_ptr will == nullptr and errstr is set with an error.
@@ -79,7 +79,7 @@ public:
 	/**
 	 * @brief If the plugin has CAP_EXTRACTION capability, returns a
 	 * filtercheck with its exported fields. Returns NULL otherwise.
-	 * 
+	 *
 	 * todo(jasondellaluce): make this return a unique_ptr
 	 */
 	static sinsp_filter_check* new_filtercheck(std::shared_ptr<sinsp_plugin> plugin);
@@ -122,8 +122,6 @@ public:
 		m_async_event_names(),
 		m_async_evt_handler(nullptr) { }
 	virtual ~sinsp_plugin();
-	sinsp_plugin(sinsp_plugin&&) = default;
-	sinsp_plugin& operator = (sinsp_plugin&&) = default;
 	sinsp_plugin(const sinsp_plugin& s) = delete;
 	sinsp_plugin& operator = (const sinsp_plugin& s) = delete;
 

@@ -21,28 +21,29 @@ limitations under the License.
 
 #define PRI_BUF_SIZE 16
 
-static std::string s_syslog_severity_strings[] =
+static const std::string s_syslog_severity_not_available = "<NA>";
+static const std::string s_syslog_severity_strings[] =
 {
 	"emerg", "alert", "crit", "err", "warn", "notice", "info", "debug"
 };
 
-static std::string s_syslog_facility_strings[] =
+static const std::string s_syslog_facility_strings[] =
 {
-	"kern", 
-	"user", 
-	"mail", 
-	"daemon", 
-	"auth", 
-	"syslog", 
-	"lpr", 
-	"news", 
-	"uucp", 
-	"clock", 
-	"authpriv", 
-	"ftp", 
-	"ntp", 
-	"logaudit", 
-	"logalert", 
+	"kern",
+	"user",
+	"mail",
+	"daemon",
+	"auth",
+	"syslog",
+	"lpr",
+	"news",
+	"uucp",
+	"clock",
+	"authpriv",
+	"ftp",
+	"ntp",
+	"logaudit",
+	"logalert",
 	"cron",
 	"local0",
 	"local1",
@@ -72,11 +73,11 @@ void sinsp_syslog_decoder::parse_data(const char *data, uint32_t len)
 	decode_message(data, len, pri, j);
 }
 
-const std::string sinsp_syslog_decoder::get_severity_str() const
+const std::string& sinsp_syslog_decoder::get_severity_str() const
 {
 	if(!is_data_valid() || m_severity >= sizeof(s_syslog_severity_strings) / sizeof(s_syslog_severity_strings[0]))
 	{
-		return "<NA>";
+		return s_syslog_severity_not_available;
 	}
 	else
 	{
@@ -84,11 +85,11 @@ const std::string sinsp_syslog_decoder::get_severity_str() const
 	}
 }
 
-const std::string sinsp_syslog_decoder::get_facility_str() const
+const std::string& sinsp_syslog_decoder::get_facility_str() const
 {
 	if(!is_data_valid() || m_facility >= sizeof(s_syslog_facility_strings) / sizeof(s_syslog_facility_strings[0]))
 	{
-		return "<NA>";
+		return s_syslog_severity_not_available;
 	}
 	else
 	{
@@ -118,11 +119,11 @@ void sinsp_syslog_decoder::decode_message(const char *data, uint32_t len, char* 
 	m_msg.assign(data + pristrlen + 2, len - pristrlen - 2);
 }
 
-const std::string sinsp_syslog_decoder::get_info_line()
+const std::string& sinsp_syslog_decoder::get_info_line()
 {
 	if (!is_data_valid())
 	{
-		m_infostr = "<NA>";
+		m_infostr = s_syslog_severity_not_available;
 	}
 	else
 	{

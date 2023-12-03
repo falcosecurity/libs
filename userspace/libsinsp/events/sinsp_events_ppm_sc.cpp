@@ -159,7 +159,7 @@ static inline libsinsp::events::set<ppm_sc_code> get_sc_set_from_cat(const std::
 			ev_vec[ev] = 1;
 		}
 	}
-	
+
 	/* Obtain all sc associated with those events */
 	if(scap_get_ppm_sc_from_events(ev_vec.data(), sc_vec.data()) != SCAP_SUCCESS)
 	{
@@ -167,7 +167,7 @@ static inline libsinsp::events::set<ppm_sc_code> get_sc_set_from_cat(const std::
 	}
 
 	libsinsp::events::set<ppm_sc_code> sc_set;
-	
+
 	for(int sc = 0; sc < PPM_SC_MAX; sc++)
 	{
 		if(sc_vec[sc])
@@ -270,7 +270,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sc_names_to_sc_set(const st
 	for (const auto &name : syscalls)
 	{
 		auto ppm_sc = scap_ppm_sc_from_name(name.c_str());
-		if(ppm_sc != -1)
+		if(static_cast<int>(ppm_sc) != -1)
 		{
 			ppm_sc_set.insert(ppm_sc);
 		}
@@ -343,7 +343,7 @@ std::unordered_set<std::string> libsinsp::events::sc_set_to_event_names(const li
 	// event code mapping. This is only expected to happen for generic events.
 	auto remaining_sc_set = ppm_sc_set.diff(event_set_to_sc_set(event_set));
 	auto remaining_sc_names_set = sc_set_to_sc_names(remaining_sc_set);
-	
+
 	return unordered_set_union(event_names_set, remaining_sc_names_set);
 }
 

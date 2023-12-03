@@ -18,14 +18,14 @@ limitations under the License.
 
 #include "sinsp.h"
 
-#include <gtest.h>
+#include <gtest/gtest.h>
 
 sinsp_procinfo make_procinfo(sinsp* inspector, int64_t tid, int64_t tgid)
 {
 	sinsp_procinfo procinfo(inspector);
 	procinfo.m_tid = tid;
 	procinfo.m_tgid = tgid;
-	return procinfo;	
+	return procinfo;
 }
 
 sinsp_procinfo make_procinfo(int64_t tid, int64_t tgid)
@@ -105,7 +105,7 @@ TEST(procinfo_multi_thread,add_non_existing_fd)
 
 	inspector.add_process(parent);
 	inspector.add_process(child);
-	
+
 	EXPECT_TRUE(NULL == inspector.get_process(1)->get_fd(0));
 
 	sinsp_fdinfo fdinfo;

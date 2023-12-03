@@ -43,7 +43,6 @@ public:
 		m_last_source_out(-1) { }
 	virtual ~sinsp_plugin_manager() = default;
 	sinsp_plugin_manager(sinsp_plugin_manager&&) = default;
-	sinsp_plugin_manager& operator = (sinsp_plugin_manager&&) = default;
 	sinsp_plugin_manager(const sinsp_plugin_manager& s) = delete;
 	sinsp_plugin_manager& operator = (const sinsp_plugin_manager& s) = delete;
 
@@ -77,7 +76,7 @@ public:
 		{
 			// note: we avoid duplicate entries in the evt sources list
 			bool existing = false;
-			
+
 			/* Get the source index:
 			 * - First we search it in the array to see if it is already present
 			 * - if not present the new source position will be the first available in the `m_event_sources` array
@@ -174,13 +173,13 @@ private:
 	 * This is a reference to the inspector one!
 	 */
 	std::vector<std::string>& m_event_sources;
-	
+
 	/* vector containing all loaded plugins, added in order of arrival */
 	std::vector<std::shared_ptr<sinsp_plugin>> m_plugins;
 
 	/* The key is the plugin id the value is the index of the plugin in the `m_plugins` vector */
 	std::unordered_map<uint32_t, size_t> m_plugins_id_index;
-	
+
 	/* The key is the plugin id the value is the index of the plugin source in the `m_event_sources` vector */
 	std::unordered_map<uint32_t, size_t> m_plugins_id_source_index;
 	mutable size_t m_last_id_in;
