@@ -68,7 +68,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			sinsp::get_logger().format(sinsp_logger::SEV_ERROR,
+			sinsp::get_logger()->format(sinsp_logger::SEV_ERROR,
 					"Invalid List Format: %s. Detail: %s",
 					buffer,
 					ex.what());

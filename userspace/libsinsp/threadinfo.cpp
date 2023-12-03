@@ -605,10 +605,10 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 		// this may fail for short-lived processes
 		if (set_env_from_proc())
 		{
-			sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
+			sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
 			return;
 		} else {
-			sinsp::get_logger().format(sinsp_logger::SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
+			sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
 		}
 	}
 
@@ -1063,7 +1063,7 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 				// Note we only log a loop once for a given main thread, to avoid flooding logs.
 				if(!m_parent_loop_detected)
 				{
-					sinsp::get_logger().log(std::string("Loop in parent thread state detected for pid ") +
+					sinsp::get_logger()->log(std::string("Loop in parent thread state detected for pid ") +
 						     std::to_string(m_pid) +
 						     ". stopped at tid= " + std::to_string(slow->m_tid) +
 						     " ptid=" + std::to_string(slow->m_ptid),
@@ -1160,7 +1160,7 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
 		if (ret < 0)
 		{
-			sinsp::get_logger().log("Unable to determine path for file descriptor.",
+			sinsp::get_logger()->log("Unable to determine path for file descriptor.",
 			             sinsp_logger::SEV_INFO);
 			return "";
 		}
@@ -1168,10 +1168,10 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		std::string rel_path_base = dirfd_path;
 		sanitize_string(rel_path_base);
 		rel_path_base.append("/");
-		sinsp::get_logger().log(std::string("Translating to ") + rel_path_base);
+		sinsp::get_logger()->log(std::string("Translating to ") + rel_path_base);
 		return rel_path_base;
 #else
-		sinsp::get_logger().log("Can't translate working directory outside of live capture.",
+		sinsp::get_logger()->log("Can't translate working directory outside of live capture.",
 		             sinsp_logger::SEV_INFO);
 		return "";
 #endif
@@ -1486,7 +1486,7 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 			// rate limit messages to avoid spamming the logs
 			if (m_inspector->m_sinsp_stats_v2->m_n_drops_full_threadtable % m_max_thread_table_size == 0)
 			{
-				sinsp::get_logger().format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
+				sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
 					threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
 			}
 			m_inspector->m_sinsp_stats_v2->m_n_drops_full_threadtable++;
@@ -2029,7 +2029,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         // defensive check here to protect both, callers of get_env and get_thread.
         if (!m_inspector->m_h)
         {
-            sinsp::get_logger().format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
+            sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
                             PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
             return NULL;
         }
@@ -2057,7 +2057,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
 
         if(m_n_proc_lookups == m_max_n_proc_lookups)
         {
-            sinsp::get_logger().format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
+            sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
                 m_n_proc_lookups_duration_ns / 1000000);
         }
 
@@ -2072,7 +2072,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
                 scan_sockets = true;
                 if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
                 {
-                    sinsp::get_logger().format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64 "ms",
+                    sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64 "ms",
                         tid, m_n_proc_lookups_duration_ns / 1000000);
                 }
             }

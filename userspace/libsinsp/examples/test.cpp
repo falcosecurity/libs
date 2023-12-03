@@ -398,8 +398,8 @@ int main(int argc, char** argv)
 	if (enable_glogger)
 	{
 		std::cout << "-- Enabled g_logger.'" << std::endl;
-		sinsp::get_logger().set_severity(sinsp_logger::SEV_DEBUG);
-		sinsp::get_logger().add_stdout_log();
+		sinsp::get_logger()->set_severity(sinsp_logger::SEV_DEBUG);
+		sinsp::get_logger()->add_stdout_log();
 	}
 
 	if(!filter_string.empty())

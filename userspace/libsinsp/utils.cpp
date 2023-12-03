@@ -82,7 +82,7 @@ sinsp_initializer::sinsp_initializer()
 	//
 	// Init the logger
 	//
-	sinsp::get_logger().set_severity(sinsp_logger::SEV_INFO);
+	sinsp::get_logger()->set_severity(sinsp_logger::SEV_INFO);
 
 	//
 	// Sockets initialization on windows
@@ -728,12 +728,12 @@ void sinsp_utils::bt(void)
 
 	bt_size = backtrace(bt, 1024);
 	bt_syms = backtrace_symbols(bt, bt_size);
-	sinsp::get_logger().format("%s", start);
+	sinsp::get_logger()->format("%s", start);
 	for (i = 1; i < bt_size; i++)
 	{
-		sinsp::get_logger().format("%s", bt_syms[i]);
+		sinsp::get_logger()->format("%s", bt_syms[i]);
 	}
-	sinsp::get_logger().format("%s", end);
+	sinsp::get_logger()->format("%s", end);
 
 	free(bt_syms);
 }
@@ -1782,7 +1782,7 @@ unsigned int read_num_possible_cpus(void)
 void sinsp_scap_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
 {
 	std::string prefix = (component == NULL) ? "" : std::string(component) + ": ";
-	sinsp::get_logger().log(prefix + msg, (sinsp_logger::severity)sev);
+	sinsp::get_logger()->log(prefix + msg, (sinsp_logger::severity)sev);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

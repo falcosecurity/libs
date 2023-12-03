@@ -69,14 +69,14 @@ inline cri_interface<api>::cri_interface(const std::string &cri_path)
 
 	if(!status.ok())
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_NOTICE,
+		sinsp::get_logger()->format(sinsp_logger::SEV_NOTICE,
 				"cri: CRI runtime returned an error after version check at %s: %s", cri_path.c_str(),
 				status.error_message().c_str());
 		m_cri.reset(nullptr);
 		return;
 	}
 
-	sinsp::get_logger().format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(),
+	sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(),
 			vresp.runtime_version().c_str());
 
 	m_cri_image = api::ImageService::NewStub(channel);
@@ -136,7 +136,7 @@ inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const 
 	typename api::ContainerStatsResponse resp;
 	grpc::Status status = get_container_stats(container_id, resp);
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStats: (%s)", container_id.c_str(),
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStats: (%s)", container_id.c_str(),
 			status.error_message().empty() ? "SUCCESS" : status.error_message().c_str());
 
 	if(!status.ok())
@@ -146,7 +146,7 @@ inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const 
 
 	if(!resp.has_stats())
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: stats() not found",
+		sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: stats() not found",
 				container_id.c_str());
 		ASSERT(false);
 		return std::nullopt;
@@ -156,7 +156,7 @@ inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const 
 
 	if(!resp_stats.has_writable_layer())
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: writable_layer() not found",
+		sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: writable_layer() not found",
 				container_id.c_str());
 		ASSERT(false);
 		return std::nullopt;
@@ -164,7 +164,7 @@ inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const 
 
 	if(!resp_stats.writable_layer().has_used_bytes())
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: used_bytes() not found",
+		sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: used_bytes() not found",
 				container_id.c_str());
 		ASSERT(false);
 		return std::nullopt;
@@ -188,7 +188,7 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 	bool get_tag_from_image = false;
 	auto digest_start = image_ref.find("sha256:");
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: image_ref=%s, digest_start=%d",
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: image_ref=%s, digest_start=%d",
 			container.m_id.c_str(), image_ref.c_str(), digest_start);
 
 	switch(digest_start)
@@ -244,7 +244,7 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 		}
 	}
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: have_digest=%d image_name=%s",
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: have_digest=%d image_name=%s",
 			container.m_id.c_str(), have_digest, image_name.c_str());
 
 	std::string hostname, port, digest;
@@ -253,7 +253,7 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 
 	if(get_tag_from_image)
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
+		sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
 				container.m_id.c_str(), container.m_imagetag.c_str(), status.image().image().c_str());
 
 		std::string digest2, repo;
@@ -275,7 +275,7 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 		container.m_imagedigest = digest;
 	}
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: repo=%s tag=%s image=%s digest=%s",
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: repo=%s tag=%s image=%s digest=%s",
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
 
@@ -598,7 +598,7 @@ inline void cri_interface<api>::get_container_ip(const std::string &container_id
 	switch(resp.containers_size())
 	{
 	case 0:
-		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI",
+		sinsp::get_logger()->format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI",
 				container_id.c_str());
 		ASSERT(false);
 		break;
@@ -615,7 +615,7 @@ inline void cri_interface<api>::get_container_ip(const std::string &container_id
 		}
 	}
 	default:
-		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI",
+		sinsp::get_logger()->format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI",
 				container_id.c_str());
 		ASSERT(false);
 		break;
@@ -638,7 +638,7 @@ inline std::string cri_interface<api>::get_container_image_id(const std::string 
 	switch(resp.images_size())
 	{
 	case 0:
-		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
+		sinsp::get_logger()->format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
 		ASSERT(false);
 		break;
 	case 1:
@@ -647,7 +647,7 @@ inline std::string cri_interface<api>::get_container_image_id(const std::string 
 		return image.id();
 	}
 	default:
-		sinsp::get_logger().format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI",
+		sinsp::get_logger()->format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI",
 				image_ref.c_str());
 		ASSERT(false);
 		break;
@@ -660,12 +660,12 @@ template<typename api>
 inline bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusResponse &status,
 					  sinsp_container_info &container)
 {
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
 
 	const auto &info_it = status.info().find("info");
 	if(info_it == status.info().end())
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s) no info property, returning",
+		sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) no info property, returning",
 				container.m_id.c_str());
 		return false;
 	}
@@ -674,13 +674,13 @@ inline bool cri_interface<api>::parse_containerd(const typename api::ContainerSt
 	Json::Reader reader;
 	if(!reader.parse(info_it->second, root))
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s) could not json parse info, returning",
+		sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) could not json parse info, returning",
 				container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): will parse info json: %s", container.m_id.c_str(),
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): will parse info json: %s", container.m_id.c_str(),
 			info_it->second.c_str());
 
 	parse_cri_env(root, container);
@@ -713,7 +713,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 	typename api::ContainerStatusResponse resp;
 	grpc::Status status = get_container_status(container.m_id, resp);
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStatus: (%s)", container.m_id.c_str(),
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStatus: (%s)", container.m_id.c_str(),
 			status.error_message().c_str());
 
 	// If getting the container status fails then try to get the pod sandbox status.
@@ -739,7 +739,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		}
 		else
 		{
-			sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+			sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri (%s): id is neither a container nor a pod sandbox: %s",
 					container.m_id.c_str(), status.error_message().c_str());
 			return false;
@@ -748,7 +748,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 
 	if(!resp.has_status())
 	{
-		sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s) no status, returning", container.m_id.c_str());
+		sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) no status, returning", container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
@@ -789,7 +789,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		// name stays at its default "<NA>" value.
 	}
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG, "cri (%s): after parse_containerd: repo=%s tag=%s image=%s digest=%s",
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): after parse_containerd: repo=%s tag=%s image=%s digest=%s",
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
 
@@ -802,7 +802,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		if(container.m_imageid.empty())
 		{
 			container.m_imageid = get_container_image_id(resp_container.image_ref());
-			sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+			sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri (%s): after get_container_image_id: repo=%s tag=%s image=%s digest=%s",
 					container.m_id.c_str(), container.m_imagerepo.c_str(),
 					container.m_imagetag.c_str(), container.m_image.c_str(),
