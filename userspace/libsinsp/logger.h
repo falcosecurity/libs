@@ -162,11 +162,7 @@ public:
 
 protected:
 
-	static sinsp_logger& instance()
-	{
-		static sinsp_logger instance;
-		return instance;
-	}
+	static sinsp_logger* instance();
 
 private:
 	/**
@@ -174,6 +170,8 @@ private:
 	 */
 	sinsp_logger();
 	~sinsp_logger();
+
+	static sinsp_logger* s_logger;
 
 	/** Disable copy constructor and assignment operator */
 	sinsp_logger(const sinsp_logger&) = delete;

@@ -307,7 +307,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, int
 
 scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"adding host user: name: %s", name);
 
 	scap_userinfo *retval{nullptr};
@@ -348,7 +348,7 @@ scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid, uint32_t gid
 
 scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify)
 {
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"adding container [%s] user %d", container_id.c_str(), uid);
 
 	scap_userinfo *retval{nullptr};
@@ -394,7 +394,7 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 
 bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify)
 {
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"removing user: container: %s, uid: %d",
 			container_id.c_str(), uid);
 	bool res = false;
@@ -439,7 +439,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, i
 
 scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid, const char *name, bool notify)
 {
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"adding host group: name: %s", name);
 
 	scap_groupinfo *gr = nullptr;
@@ -468,7 +468,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid, const char
 
 scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify)
 {
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"adding container [%s] group: %d", container_id.c_str(), gid);
 
 	scap_groupinfo *retval{nullptr};
@@ -508,7 +508,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 
 bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify)
 {
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"removing group: container: %s, gid: %d",
 			container_id.c_str(), gid);
 	bool res = false;
@@ -686,7 +686,7 @@ void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user, con
 		user_to_sinsp_event(user, evt.get(), container_id, PPME_USER_DELETED_E);
 	}
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"notify_user_changed (%d): USER event, queuing to inspector",
 			user->uid);
 
@@ -710,7 +710,7 @@ void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, 
 		group_to_sinsp_event(group, evt.get(), container_id, PPME_GROUP_DELETED_E);
 	}
 
-	sinsp::get_logger().format(sinsp_logger::SEV_DEBUG,
+	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
 			"notify_group_changed (%d): GROUP event, queuing to inspector",
 			group->gid);
 
