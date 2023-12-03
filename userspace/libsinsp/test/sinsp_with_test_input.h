@@ -447,7 +447,17 @@ protected:
 			throw sinsp_exception("The event class is NULL");
 		}
 
-		return flist.new_filter_check_from_fldname(field_name, &m_inspector, false) != nullptr;
+		auto new_fl = flist.new_filter_check_from_fldname(field_name, &m_inspector, false);
+		if(new_fl != nullptr)
+		{
+			// if we can create a filter check it means that the field exists
+			delete new_fl;
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	// Return true if `field_name` value is not NULL for this event.
