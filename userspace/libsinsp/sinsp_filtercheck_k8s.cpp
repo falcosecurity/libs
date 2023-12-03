@@ -202,81 +202,100 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 	{
 		return NULL;
 	}
-	m_tstr.clear();
-	// there is metadata we can pull from the container directly instead of the k8s apiserver
-	const sinsp_container_info::ptr_t container_info =
-		m_inspector->m_container_manager.get_container(tinfo->m_container_id);
-	if(!tinfo->m_container_id.empty() && container_info && !container_info->m_labels.empty())
-	{
-		switch(m_field_id)
-		{
-		case TYPE_K8S_POD_NAME:
-			if(container_info->m_labels.count("io.kubernetes.pod.name") > 0)
-			{
-				m_tstr = container_info->m_labels.at("io.kubernetes.pod.name");
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			break;
-		case TYPE_K8S_NS_NAME:
-			if(container_info->m_labels.count("io.kubernetes.pod.namespace") > 0)
-			{
-				m_tstr = container_info->m_labels.at("io.kubernetes.pod.namespace");
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			break;
-		case TYPE_K8S_POD_ID:
-			if(container_info->m_labels.count("io.kubernetes.pod.uid") > 0)
-			{
-				m_tstr = container_info->m_labels.at("io.kubernetes.pod.uid");
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			break;
-		case TYPE_K8S_POD_LABEL:
-		case TYPE_K8S_POD_LABELS:
-			if(container_info->m_labels.count("io.kubernetes.sandbox.id") > 0)
-			{
-				std::string sandbox_container_id;
-				sandbox_container_id = container_info->m_labels.at("io.kubernetes.sandbox.id");
-				if(sandbox_container_id.size() > 12)
-				{
-					sandbox_container_id.resize(12);
-				}
-				const sinsp_container_info::ptr_t sandbox_container_info =
-					m_inspector->m_container_manager.get_container(sandbox_container_id);
-				if(sandbox_container_info && !sandbox_container_info->m_labels.empty())
-				{
-					if (m_field_id == TYPE_K8S_POD_LABEL && sandbox_container_info->m_labels.count(m_argname) > 0)
-					{
-						m_tstr = sandbox_container_info->m_labels.at(m_argname);
-						RETURN_EXTRACT_STRING(m_tstr);
-					}
-					if (m_field_id == TYPE_K8S_POD_LABELS)
-					{
-						concatenate_container_labels(sandbox_container_info->m_labels, &m_tstr);
-						RETURN_EXTRACT_STRING(m_tstr);
-					}
-				}
 
-			}
-			break;
-		case TYPE_K8S_POD_IP:
-			m_u32val = htonl(container_info->m_container_ip);
-			char addrbuff[100];
-			inet_ntop(AF_INET, &m_u32val, addrbuff, sizeof(addrbuff));
-			m_tstr = addrbuff;
+	// Here we extract info only if we have the container
+	if(tinfo->m_container_id.empty())
+	{
+		return NULL;
+	}
+
+	const auto container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+	// No labels means no k8s metadata.
+	if(container_info == nullptr || container_info->m_labels.empty())
+	{
+		return NULL;
+	}
+
+	m_tstr.clear();
+
+	switch(m_field_id)
+	{
+	case TYPE_K8S_POD_NAME:
+		if(container_info->m_labels.count("io.kubernetes.pod.name") > 0)
+		{
+			m_tstr = container_info->m_labels.at("io.kubernetes.pod.name");
 			RETURN_EXTRACT_STRING(m_tstr);
-			break;
-		case TYPE_K8S_POD_CNIRESULT:
-			RETURN_EXTRACT_STRING(container_info->m_pod_cniresult);
-			break;
-		default:
-			ASSERT(false);
-			break;
 		}
+		break;
+	case TYPE_K8S_NS_NAME:
+		if(container_info->m_labels.count("io.kubernetes.pod.namespace") > 0)
+		{
+			m_tstr = container_info->m_labels.at("io.kubernetes.pod.namespace");
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
+	case TYPE_K8S_POD_ID:
+		if(container_info->m_labels.count("io.kubernetes.pod.uid") > 0)
+		{
+			m_tstr = container_info->m_labels.at("io.kubernetes.pod.uid");
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
+	case TYPE_K8S_POD_LABEL:
+	case TYPE_K8S_POD_LABELS:
+		if(container_info->m_labels.count("io.kubernetes.sandbox.id") > 0)
+		{
+			std::string sandbox_container_id;
+			sandbox_container_id = container_info->m_labels.at("io.kubernetes.sandbox.id");
+			if(sandbox_container_id.size() > 12)
+			{
+				sandbox_container_id.resize(12);
+			}
+			const sinsp_container_info::ptr_t sandbox_container_info =
+				m_inspector->m_container_manager.get_container(sandbox_container_id);
+			if(sandbox_container_info && !sandbox_container_info->m_labels.empty())
+			{
+				if (m_field_id == TYPE_K8S_POD_LABEL && sandbox_container_info->m_labels.count(m_argname) > 0)
+				{
+					m_tstr = sandbox_container_info->m_labels.at(m_argname);
+					RETURN_EXTRACT_STRING(m_tstr);
+				}
+				if (m_field_id == TYPE_K8S_POD_LABELS)
+				{
+					concatenate_container_labels(sandbox_container_info->m_labels, &m_tstr);
+					RETURN_EXTRACT_STRING(m_tstr);
+				}
+			}
+
+		}
+		break;
+	case TYPE_K8S_POD_IP:
+		// We populate this field only if we are in a k8s pod.
+		// If there is no uid label we assume we are not in a pod.
+		if(container_info->m_labels.count("io.kubernetes.pod.uid") <= 0)
+		{
+			return NULL;
+		}
+		m_u32val = htonl(container_info->m_container_ip);
+		char addrbuff[100];
+		inet_ntop(AF_INET, &m_u32val, addrbuff, sizeof(addrbuff));
+		m_tstr = addrbuff;
+		RETURN_EXTRACT_STRING(m_tstr);
+		break;
+	case TYPE_K8S_POD_CNIRESULT:
+		// We populate this field only if we are in a k8s pod.
+		// If there is no uid label we assume we are not in a pod.
+		if(container_info->m_labels.count("io.kubernetes.pod.uid") <= 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_STRING(container_info->m_pod_cniresult);
+		break;
+	default:
+		break;
 	}
 
 	// all the rest of the fields are deprecated and return NULL since
 	// we removed the k8s client from the inspector.
 	return NULL;
 }
-
