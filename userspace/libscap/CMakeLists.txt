@@ -101,7 +101,7 @@ endif()
 if(HAS_ENGINE_TEST_INPUT)
 	# Add engine only used for testing
 	add_subdirectory(engine/test_input)
-	target_link_libraries(scap PRIVATE scap_engine_test_input)
+	target_link_libraries(scap PUBLIC scap_engine_test_input)
 endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_subdirectory(linux)
@@ -127,7 +127,7 @@ add_library(scap_event_schema STATIC
 )
 add_dependencies(scap_event_schema uthash)
 
-target_link_libraries(scap PRIVATE scap_event_schema)
+target_link_libraries(scap PUBLIC scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
@@ -153,7 +153,7 @@ add_subdirectory(engine/noop)
 
 if(HAS_ENGINE_NODRIVER)
 	add_subdirectory(engine/nodriver)
-	target_link_libraries(scap PRIVATE scap_engine_nodriver)
+	target_link_libraries(scap PUBLIC scap_engine_nodriver)
 endif()
 
 if(HAS_ENGINE_SAVEFILE)
@@ -163,7 +163,7 @@ endif()
 
 if(HAS_ENGINE_SOURCE_PLUGIN)
 	add_subdirectory(engine/source_plugin)
-	target_link_libraries(scap PRIVATE scap_engine_source_plugin)
+	target_link_libraries(scap PUBLIC scap_engine_source_plugin)
 endif()
 
 if(HAS_ENGINE_KMOD)
