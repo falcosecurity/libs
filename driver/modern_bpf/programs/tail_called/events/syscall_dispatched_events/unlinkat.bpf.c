@@ -71,7 +71,7 @@ int BPF_PROG(unlinkat_x,
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	unsigned long flags = extract__syscall_argument(regs, 2);
-	auxmap__store_u32_param(auxmap, unlinkat_flags_to_scap(flags));
+	auxmap__store_u32_param(auxmap, unlinkat_flags_to_scap((int32_t) flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

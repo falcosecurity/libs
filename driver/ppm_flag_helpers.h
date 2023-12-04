@@ -1756,7 +1756,7 @@ static __always_inline uint32_t memfd_create_flags_to_scap(uint32_t flags)
 return res;
 }
 
-static __always_inline uint32_t unlinkat_flags_to_scap(unsigned long flags)
+static __always_inline uint32_t unlinkat_flags_to_scap(int32_t flags)
 {
 	uint32_t res = 0;
 
@@ -1766,7 +1766,7 @@ static __always_inline uint32_t unlinkat_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static __always_inline uint32_t linkat_flags_to_scap(unsigned long flags)
+static __always_inline uint32_t linkat_flags_to_scap(int32_t flags)
 {
 	uint32_t res = 0;
 
