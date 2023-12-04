@@ -1122,7 +1122,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(m_inspector->m_parser->get_syslog_decoder().is_data_valid())
 			{
 				// syslog is actually the only info line we support up until now
-				RETURN_EXTRACT_STRING(m_inspector->m_parser->get_syslog_decoder().get_info_line());
+				m_strstorage = m_inspector->m_parser->get_syslog_decoder().get_info_line();
+				RETURN_EXTRACT_STRING(m_strstorage);
 			}
 		}
 		//
@@ -1703,7 +1704,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 				if(m_field_id == TYPE_ISOPEN_CREATE)
 				{
-					// If PPM_O_F_CREATED is set the file is created 
+					// If PPM_O_F_CREATED is set the file is created
 					if(flags & PPM_O_F_CREATED)
 					{
 						m_u32val = 1;
@@ -1736,7 +1737,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			RETURN_EXTRACT_VAR(m_u32val);
 		}
-		
+
 		break;
 	case TYPE_INFRA_DOCKER_NAME:
 	case TYPE_INFRA_DOCKER_CONTAINER_ID:
