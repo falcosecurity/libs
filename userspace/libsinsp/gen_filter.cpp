@@ -85,6 +85,7 @@ std::string std::to_string(cmpop c)
 	case CO_ICONTAINS: return "ICONTAINS";
 	case CO_STARTSWITH: return "STARTSWITH";
 	case CO_GLOB: return "GLOB";
+	case CO_IGLOB: return "IGLOB";
 	case CO_PMATCH: return "PMATCH";
 	case CO_ENDSWITH: return "ENDSWITH";
 	case CO_INTERSECTS: return "INTERSECTS";

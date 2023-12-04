@@ -80,6 +80,9 @@ bool flt_compare_uint64(cmpop op, uint64_t operand1, uint64_t operand2)
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
+	case CO_IGLOB:
+		throw sinsp_exception("'iglob' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
@@ -123,6 +126,9 @@ bool flt_compare_int64(cmpop op, int64_t operand1, int64_t operand2)
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
+	case CO_IGLOB:
+		throw sinsp_exception("'iglob' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
@@ -160,7 +166,9 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 	case CO_ENDSWITH:
 		return (sinsp_utils::endswith(operand1, operand2));
 	case CO_GLOB:
-		return sinsp_utils::glob_match(operand2, operand1);
+		return sinsp_utils::glob_match(operand2, operand1, false);
+	case CO_IGLOB:
+		return sinsp_utils::glob_match(operand2, operand1, true);
 	case CO_LT:
 		return (strcmp(operand1, operand2) < 0);
 	case CO_LE:
@@ -198,6 +206,8 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		return (sinsp_utils::endswith(operand1, operand2, op1_len, op2_len));
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for buffer filters");
+	case CO_IGLOB:
+		throw sinsp_exception("'iglob' not supported for buffer filters");
 	case CO_LT:
 		throw sinsp_exception("'<' not supported for buffer filters");
 	case CO_LE:
@@ -250,6 +260,9 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
+	case CO_IGLOB:
+		throw sinsp_exception("'iglob' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("'unknown' not supported for numeric filters");
 		return false;
@@ -288,6 +301,9 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2)
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
+	case CO_IGLOB:
+		throw sinsp_exception("'iglob' not supported for numeric filters");
+		return false;
 	default:
 		throw sinsp_exception("comparison operator not supported for ipv4 networks");
 	}
@@ -320,6 +336,9 @@ bool flt_compare_ipv6addr(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for ipv6 addresses");
 		return false;
+	case CO_IGLOB:
+		throw sinsp_exception("'iglob' not supported for ipv6 addresses");
+		return false;
 	default:
 		throw sinsp_exception("comparison operator not supported for ipv6 addresses");
 	}
@@ -351,6 +370,9 @@ bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *oper
 		return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for ipv6 networks");
+		return false;
+	case CO_IGLOB:
+		throw sinsp_exception("'iglob' not supported for ipv6 networks");
 		return false;
 	default:
 		throw sinsp_exception("comparison operator not supported for ipv6 networks");
