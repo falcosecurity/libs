@@ -361,7 +361,7 @@ void sinsp::set_import_users(bool import_users)
 void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform,
 			sinsp_mode_t mode)
 {
-	sinsp::get_logger()->log("Trying to open the right engine!");
+	sinsp::logger()->log("Trying to open the right engine!");
 
 	/* Reset the thread manager */
 	m_thread_manager->clear();
@@ -759,7 +759,7 @@ unsigned sinsp::num_possible_cpus()
 		m_num_possible_cpus = read_num_possible_cpus();
 		if(m_num_possible_cpus == 0)
 		{
-			sinsp::get_logger()->log("Unable to read num_possible_cpus, falling back to 128", sinsp_logger::SEV_WARNING);
+			sinsp::logger()->log("Unable to read num_possible_cpus, falling back to 128", sinsp_logger::SEV_WARNING);
 			m_num_possible_cpus = 128;
 		}
 	}
@@ -1769,7 +1769,7 @@ void sinsp::stop_capture()
 		}
 		return true;
 	});
-	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
+	sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
 		"total threads in the table:%" PRIu64
 		", total fds in all threads:%" PRIu64
 		"\n",
@@ -1790,7 +1790,7 @@ void sinsp::stop_dropping_mode()
 {
 	if(is_live())
 	{
-		sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "stopping drop mode");
+		sinsp::logger()->format(sinsp_logger::SEV_INFO, "stopping drop mode");
 
 		if(scap_stop_dropping_mode(m_h) != SCAP_SUCCESS)
 		{
@@ -1803,7 +1803,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
 	if(is_live())
 	{
-		sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
+		sinsp::logger()->format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
 
 		if(scap_start_dropping_mode(m_h, sampling_ratio) != SCAP_SUCCESS)
 		{
@@ -1899,7 +1899,7 @@ void sinsp::print_capture_stats(sinsp_logger::severity sev) const
 	scap_stats stats;
 	get_capture_stats(&stats);
 
-	sinsp::get_logger()->format(sev,
+	sinsp::logger()->format(sev,
 		"\nn_evts:%" PRIu64
 		"\nn_drops:%" PRIu64
 		"\nn_drops_buffer:%" PRIu64
@@ -1959,27 +1959,27 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 {
 	if(cb)
 	{
-		sinsp::get_logger()->add_callback_log(cb);
+		sinsp::logger()->add_callback_log(cb);
 	}
 	else
 	{
-		sinsp::get_logger()->remove_callback_log();
+		sinsp::logger()->remove_callback_log();
 	}
 }
 
 void sinsp::set_log_file(std::string filename)
 {
-	sinsp::get_logger()->add_file_log(filename);
+	sinsp::logger()->add_file_log(filename);
 }
 
 void sinsp::set_log_stderr()
 {
-	sinsp::get_logger()->add_stderr_log();
+	sinsp::logger()->add_stderr_log();
 }
 
 void sinsp::set_min_log_severity(sinsp_logger::severity sev)
 {
-	sinsp::get_logger()->set_severity(sev);
+	sinsp::logger()->set_severity(sev);
 }
 
 sinsp_evttables* sinsp::get_event_info_tables()
@@ -2037,7 +2037,7 @@ sinsp_parser* sinsp::get_parser()
 	return m_parser;
 }
 
-sinsp_logger* sinsp::get_logger()
+sinsp_logger* sinsp::logger()
 {
 	return sinsp_logger::instance();
 }
@@ -2219,7 +2219,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
-		sinsp::get_logger()->format(sinsp_logger::SEV_INFO, "Flushing thread table");
+		sinsp::logger()->format(sinsp_logger::SEV_INFO, "Flushing thread table");
 
 		/* Here we loop over the table in search of threads to delete. We remove:
 		 * 1. Invalid threads.
@@ -2262,13 +2262,13 @@ void sinsp::handle_async_event(std::unique_ptr<sinsp_evt> evt)
 	if(evt->m_pevt->ts != (uint64_t)-1 &&
 		evt->m_pevt->ts > sinsp_utils::get_current_time_ns() + ONE_SECOND_IN_NS * 10)
 	{
-		sinsp::get_logger()->log("async event ts too far in future", sinsp_logger::SEV_WARNING);
+		sinsp::logger()->log("async event ts too far in future", sinsp_logger::SEV_WARNING);
 		return;
 	}
 
 	if(!m_async_events_queue.push(std::move(evt)))
 	{
-		sinsp::get_logger()->log("async event queue is full", sinsp_logger::SEV_WARNING);
+		sinsp::logger()->log("async event queue is full", sinsp_logger::SEV_WARNING);
 	}
 }
 

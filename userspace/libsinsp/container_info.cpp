@@ -80,7 +80,7 @@ void sinsp_container_info::container_health_probe::parse_health_probes(const Jso
 						}
 					}
 				}
-				sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
+				sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
 						"add_health_probes: adding %s %s %d",
 						probe_type_names[i].c_str(),
 						probe_exe.c_str(),
@@ -164,12 +164,12 @@ std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspect
 
 sinsp_container_info::container_health_probe::probe_type sinsp_container_info::match_health_probe(sinsp_threadinfo *tinfo) const
 {
-	sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
+	sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
 			"match_health_probe (%s): %u health probes to consider",
 			m_id.c_str(), m_health_probes.size());
 
 	auto pred = [&] (const container_health_probe &p) {
-                sinsp::get_logger()->format(sinsp_logger::SEV_DEBUG,
+                sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
 				"match_health_probe (%s): Matching tinfo %s %d against %s %d",
 				m_id.c_str(),
 				tinfo->m_exe.c_str(), tinfo->m_args.size(),
