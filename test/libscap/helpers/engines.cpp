@@ -297,7 +297,7 @@ int num_possible_cpus(void)
 	int n = 0;
 
 	/* array of bools for each CPU */
-	bool *mask;
+	bool* mask = nullptr;
 	int err = parse_cpu_mask_file(fcpu, &mask, &n);
 	if(err)
 		return -1;

@@ -22,6 +22,8 @@ or GPL2.txt for full copies of the license.
 
 #define f_sys_socket_x f_sys_single_x
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_GENERIC_E] = {FILLER_REF(sys_generic)},
 	[PPME_GENERIC_X] = {FILLER_REF(sys_generic)},
@@ -354,3 +356,4 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MKNODAT_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_MKNODAT_X] = {FILLER_REF(sys_mknodat_x)}
 };
+#pragma GCC diagnostic pop
