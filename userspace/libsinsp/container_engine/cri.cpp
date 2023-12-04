@@ -57,15 +57,15 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 
 cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 {
-	auto& cri_settings = libsinsp::cri::settings::instance();
-	if (cri_settings.get_cri_unix_socket_paths().empty())
+	libsinsp::cri::settings* cri_settings = libsinsp::cri::settings::instance();
+	if (cri_settings->get_cri_unix_socket_paths().empty())
 	{
 		// containerd as primary default value when empty
-		cri_settings.add_cri_unix_socket_path("/run/containerd/containerd.sock");
+		cri_settings->add_cri_unix_socket_path("/run/containerd/containerd.sock");
 		// crio-o as secondary default value when empty
-		cri_settings.add_cri_unix_socket_path("/run/crio/crio.sock");
+		cri_settings->add_cri_unix_socket_path("/run/crio/crio.sock");
 		// k3s containerd as third option when empty
-		cri_settings.add_cri_unix_socket_path("/run/k3s/containerd/containerd.sock");
+		cri_settings->add_cri_unix_socket_path("/run/k3s/containerd/containerd.sock");
 	}
 
 
@@ -74,7 +74,7 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 	// so we wouldn't make things complex to support that.
 	// On the other hand, specifying multiple unix socket paths (and using only the first match)
 	// will solve the "same config, multiple hosts" use case.
-	for (auto &p : cri_settings.get_cri_unix_socket_paths())
+	for (auto &p : cri_settings->get_cri_unix_socket_paths())
 	{
 		if(p.empty())
 		{
@@ -96,7 +96,7 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 		else
 		{
 			// Store used unix_socket_path
-			cri_settings.set_cri_unix_socket_path(p);
+			cri_settings->set_cri_unix_socket_path(p);
 			break;
 		}
 
@@ -108,7 +108,7 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 		else
 		{
 			// Store used unix_socket_path
-			cri_settings.set_cri_unix_socket_path(p);
+			cri_settings->set_cri_unix_socket_path(p);
 			break;
 		}
 	}

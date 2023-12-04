@@ -44,83 +44,81 @@ namespace cri {
 class settings
 {
 public:
-	static settings& instance()
-	{
-		static settings instance;
-		return instance;
-	}
+	static settings* instance();
 
 	static const std::vector<std::string>& get_cri_unix_socket_paths()
 	{
-		return instance().m_cri_unix_socket_paths;
+		return instance()->m_cri_unix_socket_paths;
 	}
 
 	static void set_cri_unix_socket_paths(const std::vector<std::string>& v)
 	{
-		instance().m_cri_unix_socket_paths = v;
+		instance()->m_cri_unix_socket_paths = v;
 	}
 
 	static const int64_t& get_cri_timeout()
 	{
-		return instance().m_cri_timeout;
+		return instance()->m_cri_timeout;
 	}
 
 	static void set_cri_timeout(const int64_t& v)
 	{
-		instance().m_cri_timeout = v;
+		instance()->m_cri_timeout = v;
 	}
 
 	static const int64_t& get_cri_size_timeout()
 	{
-		return instance().m_cri_size_timeout;
+		return instance()->m_cri_size_timeout;
 	}
 
 	static void set_cri_size_timeout(const int64_t& v)
 	{
-		instance().m_cri_size_timeout = v;
+		instance()->m_cri_size_timeout = v;
 	}
 
 	static const sinsp_container_type& get_cri_runtime_type()
 	{
-		return instance().m_cri_runtime_type;
+		return instance()->m_cri_runtime_type;
 	}
 
 	static void set_cri_runtime_type(const sinsp_container_type& v)
 	{
-		instance().m_cri_runtime_type = v;
+		instance()->m_cri_runtime_type = v;
 	}
 
 	static const std::string& get_cri_unix_socket_path()
 	{
-		return instance().m_cri_unix_socket_path;
+		return instance()->m_cri_unix_socket_path;
 	}
 
 	static void set_cri_unix_socket_path(const std::string& v)
 	{
-		instance().m_cri_unix_socket_path = v;
+		instance()->m_cri_unix_socket_path = v;
 	}
 
 	static const bool& get_cri_extra_queries()
 	{
-		return instance().m_cri_extra_queries;
+		return instance()->m_cri_extra_queries;
 	}
 
 	static void set_cri_extra_queries(const bool& v)
 	{
-		instance().m_cri_extra_queries = v;
+		instance()->m_cri_extra_queries = v;
 	}
 
 	static void add_cri_unix_socket_path(const std::string& v)
 	{
-		instance().m_cri_unix_socket_paths.emplace_back(v);
+		instance()->m_cri_unix_socket_paths.emplace_back(v);
 	}
 
 	static void clear_cri_unix_socket_paths()
 	{
-		instance().m_cri_unix_socket_paths.clear();
+		instance()->m_cri_unix_socket_paths.clear();
 	}
 
 private:
+	static settings* s_instance;
+
 	settings();
 	~settings();
 
