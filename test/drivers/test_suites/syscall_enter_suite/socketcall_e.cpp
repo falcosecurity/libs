@@ -327,8 +327,8 @@ TEST(SyscallEnter, socketcall_acceptE)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, ENTER_EVENT);
-	/* The kmod can correctly handle accept also on s390x */
-	if(evt_test->is_kmod_engine())
+	/* The kmod/bpf can correctly handle accept also on s390x */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine())
 	{
 		/* we cannot set `__NR_accept` explicitly since it is not defined on s390x
 		 * we activate all syscalls.
@@ -370,9 +370,9 @@ TEST(SyscallEnter, socketcall_acceptE)
 	evt_test->assert_header();
 
 #ifdef __s390x__
-	if(!evt_test->is_kmod_engine())
+	if(evt_test->is_modern_bpf_engine())
 	{
-		/* socketcall uses accept4 event for SYS_ACCEPT */
+		/* socketcall uses accept4 event for SYS_ACCEPT for modern BPF */
 
 		/*=============================== ASSERT PARAMETERS  ===========================*/
 

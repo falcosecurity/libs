@@ -346,8 +346,8 @@ TEST(SyscallExit, socketcall_acceptX_INET)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
-	/* The kmod can correctly handle accept also on s390x */
-	if(evt_test->is_kmod_engine())
+	/* The kmod/bpf can correctly handle accept also on s390x */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine())
 	{
 		/* we cannot set `__NR_accept` explicitly since it is not defined on s390x
 		 * we activate all syscalls.
@@ -429,8 +429,8 @@ TEST(SyscallExit, socketcall_acceptX_INET6)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
-	/* The kmod can correctly handle accept also on s390x */
-	if(evt_test->is_kmod_engine())
+	/* The kmod/bpf can correctly handle accept also on s390x */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine())
 	{
 		/* we cannot set `__NR_accept` explicitly since it is not defined on s390x
 		 * we activate all syscalls.
@@ -513,8 +513,8 @@ TEST(SyscallExit, socketcall_acceptX_UNIX)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
-	/* The kmod can correctly handle accept also on s390x */
-	if(evt_test->is_kmod_engine())
+	/* The kmod/bpf can correctly handle accept also on s390x */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine())
 	{
 		/* we cannot set `__NR_accept` explicitly since it is not defined on s390x
 		 * we activate all syscalls.
@@ -599,8 +599,8 @@ TEST(SyscallExit, socketcall_acceptX_failure)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
-	/* The kmod can correctly handle accept also on s390x */
-	if(evt_test->is_kmod_engine())
+	/* The kmod/bpf can correctly handle accept also on s390x */
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine())
 	{
 		/* we cannot set `__NR_accept` explicitly since it is not defined on s390x
 		 * we activate all syscalls.
