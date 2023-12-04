@@ -223,8 +223,9 @@ public:
 	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>>* get_container_engines() {
 		return &m_container_engines;
 	}
-private:
+	uint64_t m_last_flush_time_ns;
 	std::string container_to_json(const sinsp_container_info& container_info);
+private:
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
 	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
 
@@ -234,7 +235,6 @@ private:
 	sinsp* m_inspector;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
 	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup::state>> m_lookups;
-	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;
 
