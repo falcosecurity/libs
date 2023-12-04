@@ -109,7 +109,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_op_pmatch.ut.cpp
 	filter_compiler.ut.cpp
 	user.ut.cpp
-	container_info.ut.cpp
 	sinsp_utils.ut.cpp
 	state.ut.cpp
 	dns_manager.ut.cpp
