@@ -841,7 +841,7 @@ public:
 	/*!
 	  \brief Get the logger instance.
 	*/
-	static sinsp_logger* get_logger();
+	static sinsp_logger* logger();
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
@@ -1332,9 +1332,9 @@ public:
 #define SINSP_LOG_(severity, fmt, ...)                                         \
 	do                                                                     \
 	{                                                                      \
-		if(sinsp::get_logger()->is_enabled(severity))                              \
+		if(sinsp::logger()->is_enabled(severity))                              \
 		{                                                              \
-			sinsp::get_logger()->format((severity), ("" fmt), ##__VA_ARGS__);  \
+			sinsp::logger()->format((severity), ("" fmt), ##__VA_ARGS__);  \
 		}                                                              \
 	}                                                                      \
 	while(false)
@@ -1342,9 +1342,9 @@ public:
 #define SINSP_LOG_STR_(severity, msg)                                          \
 	do                                                                     \
 	{                                                                      \
-		if(sinsp::get_logger()->is_enabled(severity))                              \
+		if(sinsp::logger()->is_enabled(severity))                              \
 		{                                                              \
-			sinsp::get_logger()->log((msg), (severity));                       \
+			sinsp::logger()->log((msg), (severity));                       \
 		}                                                              \
 	}                                                                      \
 	while(false)
