@@ -373,6 +373,10 @@ cmpop sinsp_filter_compiler::str_to_cmpop(const std::string& str)
 	{
 		return CO_GLOB;
 	}
+	else if(str == "iglob")
+	{
+		return CO_IGLOB;
+	}
 	// we are not supposed to get here, as the parser pre-checks this
 	ASSERT(false);
 	throw sinsp_exception("filter error: unrecognized comparison operator '" + std::string(str) + "'");

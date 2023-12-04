@@ -59,8 +59,8 @@ static const vector<string> binary_num_ops =
 
 static const vector<string> binary_str_ops =
 {
-	"==", "=", "!=", "glob ", "contains ", "icontains ", "bcontains ",
-	"startswith ", "bstartswith ", "endswith ",
+	"==", "=", "!=", "glob ", "iglob ", "contains ", "icontains ",
+	"bcontains ", "startswith ", "bstartswith ", "endswith ",
 };
 
 static const vector<string> binary_list_ops =

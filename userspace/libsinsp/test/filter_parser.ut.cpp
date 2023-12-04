@@ -78,7 +78,7 @@ TEST(parser, supported_operators)
 {
 	static vector<string> expected_all = {
 		"=", "==", "!=", "<=", ">=", "<", ">", "exists",
-		"contains", "icontains", "bcontains", "glob", "bstartswith",
+		"contains", "icontains", "bcontains", "glob", "iglob", "bstartswith",
 		"startswith", "endswith", "in", "intersects", "pmatch"};
 	static vector<string> expected_list_only = {
 		"in", "intersects", "pmatch"};
@@ -335,6 +335,7 @@ TEST(parser, parse_operators)
 	test_accept("test.op == value");
 	test_accept("test.op != value");
 	test_accept("test.op glob value");
+	test_accept("test.op iglob value");
 	test_accept("test.op contains value");
 	test_accept("test.op icontains value");
 	test_accept("test.op bcontains 48545450");
@@ -363,6 +364,7 @@ TEST(parser, parse_operators)
 	test_reject("test.op icontainsvalue");
 	test_reject("test.op bcontainsvalue");
 	test_reject("test.op globvalue");
+	test_reject("test.op iglobvalue");
 }
 
 TEST(parser, parse_position_info)

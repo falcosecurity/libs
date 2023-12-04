@@ -703,12 +703,12 @@ uint64_t sinsp_utils::get_current_time_ns()
     return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
 }
 
-bool sinsp_utils::glob_match(const char *pattern, const char *string)
+bool sinsp_utils::glob_match(const char *pattern, const char *string, const bool& case_insensitive)
 {
 #ifdef _WIN32
 	return PathMatchSpec(string, pattern) == TRUE;
 #else
-	int flags = 0;
+	int flags = case_insensitive ? FNM_CASEFOLD : 0;
 	return fnmatch(pattern, string, flags) == 0;
 #endif
 }
