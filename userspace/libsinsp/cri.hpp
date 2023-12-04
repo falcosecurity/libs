@@ -57,6 +57,17 @@ settings::settings():
 settings::~settings()
 { }
 
+settings* settings::s_instance = nullptr;
+
+settings* settings::instance()
+{
+	if(s_instance == nullptr)
+	{
+		s_instance = new settings();
+	}
+	return s_instance;
+}
+
 template<typename api> 
 inline cri_interface<api>::cri_interface(const std::string &cri_path)
 {
