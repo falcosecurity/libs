@@ -59,9 +59,12 @@ TEST_P(sinsp_container_lookup_test, delays_match)
 	}
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 INSTANTIATE_TEST_CASE_P(sinsp_container_lookup,
 			 sinsp_container_lookup_test,
 			 ::testing::Values(
 				 std::tuple<short, short, std::vector<short>>{3, 500, {125, 250, 500}},
 				 std::tuple<short, short, std::vector<short>>{5, 1000, {125, 250, 500, 1000, 1000}},
 				 std::tuple<short, short, std::vector<short>>{2, 1, {1, 1}}));
+#pragma GCC diagnostic pop

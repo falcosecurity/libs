@@ -42,6 +42,13 @@ if(NOT MSVC)
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 		set(CMAKE_SUPPRESSED_WARNINGS "-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-format-truncation")
+		if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+			# Clang needs these for suppressing these warnings:
+			#   - C++20 array designators used with C++17
+			#   - C99 array designators used in C++
+			#   - avoid complaining about the option above `-Wno-format-truncation`
+			set(CMAKE_SUPPRESSED_WARNINGS "${CMAKE_SUPPRESSED_WARNINGS} -Wno-c++20-designator -Wno-c99-designator -Wno-unknown-warning-option")
+		endif()
 		set(FALCOSECURITY_LIBS_COMMON_FLAGS "${FALCOSECURITY_LIBS_COMMON_FLAGS} -Wextra ${CMAKE_SUPPRESSED_WARNINGS}")
 	endif()
 

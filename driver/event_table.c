@@ -12,41 +12,43 @@ or GPL2.txt for full copies of the license.
  * - Enter and exit events should have the same flags unless the exit one is `EC_UNKNOWN`.
  *
  * - The `ppm_event_category` is composed of 2 parts:
- * 	
+ *
  *    1. The highest bits represent the event category:
  *  	- `EC_SYSCALL`
  *   	- `EC_TRACEPOINT
  *   	- `EC_PLUGIN`
  *   	- `EC_METAEVENT`
- * 
+ *
  *    2. The lowest bits represent the syscall category to which the specific event belongs.
- * 
- *   All events must have only one syscall category and one event category. Exception: events 
+ *
+ *   All events must have only one syscall category and one event category. Exception: events
  *   marked with `EC_UNKNOWN` flag must only have the syscall category equal to `EC_UNKNOWN`.
- * 
+ *
  * - All events that are no more sent by our drivers must have the `EF_OLD_VERSION` flag.
- * 
+ *
  * - Events marked with `EC_UNKNOWN` must have a name equal to `NA`.
- * 
+ *
  * - All events that have the "EF_USES_FD" flag should return as first parameter a file descriptor.
- *	 "libsinsp" will try to access the first parameter and use it as a file descriptor. If the event has 
- *	 0 parameters but has the "EF_USES_FD" flag then a runtime error will occur shutting down the process. 
- *   Furthermore if an exit event has the "EF_USES_FD" then also the related enter event must have 
- *   it (following the logic described above). Otherwise the exit event will not trigger "libsinsp" code 
+ *	 "libsinsp" will try to access the first parameter and use it as a file descriptor. If the event has
+ *	 0 parameters but has the "EF_USES_FD" flag then a runtime error will occur shutting down the process.
+ *   Furthermore if an exit event has the "EF_USES_FD" then also the related enter event must have
+ *   it (following the logic described above). Otherwise the exit event will not trigger "libsinsp" code
  *   in order to properly manage the file descriptor returned by the exit event.
- * 
+ *
  * - The only kind of change permitted for pre-existent events is adding parameters. If you need to modify or
  *   remove some existing parameters you must create a new event pair. The new enum name should be equal to the previous one
  *   but with the version bumped by 1.
- * 	 Consider the `PPME_SYSCALL_EXECVE_19_E` event as an example, if you want to create a new version for it, the new enum 
- *   will be called `PPME_SYSCALL_EXECVE_20_E`. 
- * 
- * - All the versions of the same event must have the same name 
+ * 	 Consider the `PPME_SYSCALL_EXECVE_19_E` event as an example, if you want to create a new version for it, the new enum
+ *   will be called `PPME_SYSCALL_EXECVE_20_E`.
+ *
+ * - All the versions of the same event must have the same name
  */
 
 
 #include "ppm_events_public.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 const struct ppm_event_info g_event_info[] = {
 	[PPME_GENERIC_E] = {"syscall", EC_OTHER | EC_SYSCALL, EF_NONE, 2, {{"ID", PT_SYSCALLID, PF_DEC}, {"nativeID", PT_UINT16, PF_DEC} } },
 	[PPME_GENERIC_X] = {"syscall", EC_OTHER | EC_SYSCALL, EF_NONE, 1, {{"ID", PT_SYSCALLID, PF_DEC} } },
@@ -459,7 +461,7 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_PIDFD_GETFD_E] = {"pidfd_getfd", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
 	[PPME_SYSCALL_PIDFD_GETFD_X] = {"pidfd_getfd", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"fd", PT_FD, PF_DEC}, {"pid_fd", PT_FD, PF_DEC}, {"target_fd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX}}},
 	[PPME_SYSCALL_PIDFD_OPEN_E] = {"pidfd_open", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
-	[PPME_SYSCALL_PIDFD_OPEN_X] = {"pidfd_open", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"fd", PT_FD, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX}}}, 
+	[PPME_SYSCALL_PIDFD_OPEN_X] = {"pidfd_open", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"fd", PT_FD, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX}}},
 	[PPME_SYSCALL_INIT_MODULE_E] = {"init_module", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_INIT_MODULE_X] = {"init_module", EC_OTHER | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"img", PT_BYTEBUF, PF_NA}, {"length", PT_UINT64, PF_DEC}, {"uargs", PT_CHARBUF, PF_NA}}},
 	[PPME_SYSCALL_FINIT_MODULE_E] = {"finit_module", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
@@ -469,6 +471,7 @@ const struct ppm_event_info g_event_info[] = {
  	[PPME_SYSCALL_MKNODAT_E] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_MKNODAT_X] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_USES_FD, 5, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
 };
+#pragma GCC diagnostic pop
 
 // We don't need this check in kmod (this source file is included during kmod compilation!)
 // This also avoids weird situation where the _Static_assert is not available in some very old compilers,
