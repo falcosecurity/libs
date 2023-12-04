@@ -5822,7 +5822,7 @@ FILLER(sys_unlinkat_x, true)
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	unsigned long flags = bpf_syscall_get_argument(data, 2);
-	return bpf_push_u32_to_ring(data, unlinkat_flags_to_scap(flags));
+	return bpf_push_u32_to_ring(data, unlinkat_flags_to_scap((int32_t) flags));
 }
 
 FILLER(sys_mkdirat_x, true)
@@ -5899,7 +5899,7 @@ FILLER(sys_linkat_x, true)
 	 * flags
 	 */
 	val = bpf_syscall_get_argument(data, 4);
-	return bpf_push_u32_to_ring(data, linkat_flags_to_scap(val));
+	return bpf_push_u32_to_ring(data, linkat_flags_to_scap((int32_t) val));
 }
 
 FILLER(sys_autofill, true)

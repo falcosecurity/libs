@@ -3608,7 +3608,7 @@ int f_sys_unlinkat_x(struct event_filler_arguments *args)
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, unlinkat_flags_to_scap(val), 0, false, 0);
+	res = val_to_ring(args, unlinkat_flags_to_scap((int32_t) val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -3666,7 +3666,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 4, 1, &flags);
-	res = val_to_ring(args, linkat_flags_to_scap(flags), 0, false, 0);
+	res = val_to_ring(args, linkat_flags_to_scap((int32_t) flags), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
