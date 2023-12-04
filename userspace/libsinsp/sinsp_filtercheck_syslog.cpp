@@ -77,14 +77,17 @@ uint8_t* sinsp_filter_check_syslog::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		m_storageu32 = decoder.get_facility();
 		RETURN_EXTRACT_VAR(m_storageu32);
 	case TYPE_FACILITY_STR:
-		RETURN_EXTRACT_STRING(decoder.get_facility_str());
+		mstrstorage = decoder.get_facility_str();
+		RETURN_EXTRACT_STRING(mstrstorage);
 	case TYPE_SEVERITY:
 		m_storageu32 = decoder.get_severity();
 		RETURN_EXTRACT_VAR(m_storageu32);
 	case TYPE_SEVERITY_STR:
-		RETURN_EXTRACT_STRING(decoder.get_severity_str());
+		mstrstorage = decoder.get_severity_str();
+		RETURN_EXTRACT_STRING(mstrstorage);
 	case TYPE_MESSAGE:
-		RETURN_EXTRACT_STRING(decoder.get_msg());
+		mstrstorage = decoder.get_msg();
+		RETURN_EXTRACT_STRING(mstrstorage);
 	default:
 		ASSERT(false);
 		return NULL;
