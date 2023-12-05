@@ -20,7 +20,8 @@ limitations under the License.
 
 #if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
 
-#include "../cri.h"
+#include <cri.h>
+#include <cri.hpp>
 #include <test/helpers/threads_helpers.h>
 #include "../sinsp_with_test_input.h"
 

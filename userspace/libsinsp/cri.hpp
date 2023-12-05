@@ -16,6 +16,9 @@ limitations under the License.
 
 */
 
+#ifndef LIBSINSP_CRI_HPP
+#define LIBSINSP_CRI_HPP
+
 #include "cri.h"
 
 #include "grpc_channel_registry.h"
@@ -46,7 +49,8 @@ inline sinsp_container_type s_cri_runtime_type = CT_CRI;
 inline std::string s_cri_unix_socket_path;
 inline bool s_cri_extra_queries = true;
 
-template<typename api> cri_interface<api>::cri_interface(const std::string &cri_path)
+template<typename api> 
+inline cri_interface<api>::cri_interface(const std::string &cri_path)
 {
 	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
 
@@ -91,13 +95,14 @@ template<typename api> cri_interface<api>::cri_interface(const std::string &cri_
 	s_cri_runtime_type = m_cri_runtime_type;
 }
 
-template<typename api> sinsp_container_type cri_interface<api>::get_cri_runtime_type() const
+template<typename api> 
+inline sinsp_container_type cri_interface<api>::get_cri_runtime_type() const
 {
 	return m_cri_runtime_type;
 }
 
 template<typename api>
-grpc::Status cri_interface<api>::get_container_status(const std::string &container_id,
+inline grpc::Status cri_interface<api>::get_container_status(const std::string &container_id,
 						      typename api::ContainerStatusResponse &resp)
 {
 	typename api::ContainerStatusRequest req;
@@ -110,7 +115,7 @@ grpc::Status cri_interface<api>::get_container_status(const std::string &contain
 }
 
 template<typename api>
-grpc::Status cri_interface<api>::get_container_stats(const std::string &container_id,
+inline grpc::Status cri_interface<api>::get_container_stats(const std::string &container_id,
 						     typename api::ContainerStatsResponse &resp)
 {
 	typename api::ContainerStatsRequest req;
@@ -122,7 +127,7 @@ grpc::Status cri_interface<api>::get_container_stats(const std::string &containe
 }
 
 template<typename api>
-std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::string &container_id)
+inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::string &container_id)
 {
 	// Synchronously get the stats response and update the container table.
 	// Note that this needs to use the full id.
@@ -167,7 +172,7 @@ std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::st
 }
 
 template<typename api>
-bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &status,
+inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &status,
 					 const google::protobuf::Map<std::string, std::string> &info,
 					 sinsp_container_info &container)
 {
@@ -276,7 +281,7 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 }
 
 template<typename api>
-bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerStatus &status, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerStatus &status, sinsp_container_info &container)
 {
 	for(const auto &mount : status.mounts())
 	{
@@ -302,7 +307,7 @@ bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerStatus &s
 	return true;
 }
 
-bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key)
+inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key)
 {
 	if(root.isMember(key))
 	{
@@ -313,7 +318,7 @@ bool walk_down_json(const Json::Value &root, const Json::Value **out, const std:
 }
 
 template<typename... Args>
-bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key, Args... args)
+inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key, Args... args)
 {
 	if(root.isMember(key))
 	{
@@ -322,7 +327,7 @@ bool walk_down_json(const Json::Value &root, const Json::Value **out, const std:
 	return false;
 }
 
-bool set_numeric_32(const Json::Value &dict, const std::string &key, int32_t &val)
+inline bool set_numeric_32(const Json::Value &dict, const std::string &key, int32_t &val)
 {
 	if(!dict.isMember(key))
 	{
@@ -337,7 +342,7 @@ bool set_numeric_32(const Json::Value &dict, const std::string &key, int32_t &va
 	return true;
 }
 
-bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &val)
+inline bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &val)
 {
 	if(!dict.isMember(key))
 	{
@@ -352,7 +357,8 @@ bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &va
 	return true;
 }
 
-template<typename api> bool cri_interface<api>::parse_cri_env(const Json::Value &info, sinsp_container_info &container)
+template<typename api> 
+inline bool cri_interface<api>::parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *envs;
 	if(!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
@@ -378,7 +384,7 @@ template<typename api> bool cri_interface<api>::parse_cri_env(const Json::Value 
 }
 
 template<typename api>
-bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *image;
 	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
@@ -401,7 +407,7 @@ bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_con
 }
 
 template<typename api>
-bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &info, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
@@ -453,7 +459,7 @@ bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &info, s
 }
 
 template<typename api>
-bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *uid = nullptr;
 	if(!walk_down_json(info, &uid, "runtimeSpec", "process", "user", "uid") || !uid->isInt())
@@ -467,7 +473,7 @@ bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sinsp_cont
 
 // TODO: Explore future schema standardizations, https://github.com/falcosecurity/falco/issues/2387
 template<typename api>
-void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusResponse &resp, std::string &cniresult)
+inline void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusResponse &resp, std::string &cniresult)
 {
 	Json::Value root;
 	Json::Reader reader;
@@ -534,7 +540,7 @@ void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusRe
 }
 
 template<typename api>
-void cri_interface<api>::get_pod_sandbox_resp(const std::string &pod_sandbox_id,
+inline void cri_interface<api>::get_pod_sandbox_resp(const std::string &pod_sandbox_id,
 					      typename api::PodSandboxStatusResponse &resp, grpc::Status &status)
 {
 	typename api::PodSandboxStatusRequest req;
@@ -546,7 +552,8 @@ void cri_interface<api>::get_pod_sandbox_resp(const std::string &pod_sandbox_id,
 	status = m_cri->PodSandboxStatus(&context, req, &resp);
 }
 
-template<typename api> uint32_t cri_interface<api>::get_pod_sandbox_ip(typename api::PodSandboxStatusResponse &resp)
+template<typename api> 
+inline uint32_t cri_interface<api>::get_pod_sandbox_ip(typename api::PodSandboxStatusResponse &resp)
 {
 	if(pod_uses_host_netns<api>(resp))
 	{
@@ -572,7 +579,7 @@ template<typename api> uint32_t cri_interface<api>::get_pod_sandbox_ip(typename 
 }
 
 template<typename api>
-void cri_interface<api>::get_container_ip(const std::string &container_id, uint32_t &container_ip,
+inline void cri_interface<api>::get_container_ip(const std::string &container_id, uint32_t &container_ip,
 					  std::string &cniresult)
 {
 	container_ip = 0;
@@ -613,7 +620,8 @@ void cri_interface<api>::get_container_ip(const std::string &container_id, uint3
 	}
 }
 
-template<typename api> std::string cri_interface<api>::get_container_image_id(const std::string &image_ref)
+template<typename api> 
+inline std::string cri_interface<api>::get_container_image_id(const std::string &image_ref)
 {
 	typename api::ListImagesRequest req;
 	typename api::ListImagesResponse resp;
@@ -647,7 +655,7 @@ template<typename api> std::string cri_interface<api>::get_container_image_id(co
 }
 
 template<typename api>
-bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusResponse &status,
+inline bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusResponse &status,
 					  sinsp_container_info &container)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
@@ -698,7 +706,7 @@ bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusRes
 }
 
 template<typename api>
-bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container)
+inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container)
 {
 	typename api::ContainerStatusResponse resp;
 	grpc::Status status = get_container_status(container.m_id, resp);
@@ -804,3 +812,5 @@ bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key 
 }
 } // namespace cri
 } // namespace libsinsp
+
+#endif // LIBSINSP_CRI_HPP
