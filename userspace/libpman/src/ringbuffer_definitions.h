@@ -36,7 +36,7 @@ struct ring
 struct ring_buffer
 {
 	struct epoll_event *events;
-	struct ring *rings;
+	struct ring **rings;
 	size_t page_size;
 	int epoll_fd;
 	int ring_cnt;

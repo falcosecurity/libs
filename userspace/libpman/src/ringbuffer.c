@@ -297,14 +297,14 @@ static void ringbuf__consume_first_event(struct ring_buffer *rb, struct ppm_evt_
 	/* If the last consume operation was successful we can push the consumer position */
 	if(g_state.last_ring_read != -1)
 	{
-		struct ring *r = &(rb->rings[g_state.last_ring_read]);
+		struct ring *r = rb->rings[g_state.last_ring_read];
 		g_state.cons_pos[g_state.last_ring_read] += g_state.last_event_size;
 		smp_store_release(r->consumer_pos, g_state.cons_pos[g_state.last_ring_read]);
 	}
 
 	for(uint16_t pos = 0; pos < rb->ring_cnt; pos++)
 	{
-		*event_ptr = ringbuf__get_first_ring_event(&rb->rings[pos], pos);
+		*event_ptr = ringbuf__get_first_ring_event(rb->rings[pos], pos);
 
 		/* if NULL search for events in another buffer */
 		if(*event_ptr == NULL)
