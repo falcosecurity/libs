@@ -19,7 +19,7 @@ jobs:
           path: libs
 
       - name: Bump syscalls
-        uses: falcosecurity/syscalls-bumper@latest
+        uses: falcosecurity/syscalls-bumper@main
         with:
           repo-root: libs
 
