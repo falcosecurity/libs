@@ -716,3 +716,12 @@ const struct ppm_name_value mknod_mode[] = {
 	{0, 0},
 };
 
+const struct ppm_name_value bpf_commands[] = {
+	{"BPF_MAP_CREATE", PPM_BPF_MAP_CREATE},
+	{"BPF_MAP_LOOKUP_ELEM", PPM_BPF_MAP_LOOKUP_ELEM},
+	{"BPF_MAP_UPDATE_ELEM", PPM_BPF_MAP_UPDATE_ELEM},
+	{"BPF_MAP_DELETE_ELEM", PPM_BPF_MAP_DELETE_ELEM},
+	{"BPF_MAP_GET_NEXT_KEY", PPM_BPF_MAP_GET_NEXT_KEY},
+	{"BPF_PROG_LOAD", PPM_BPF_PROG_LOAD},
+	{0,0},
+};

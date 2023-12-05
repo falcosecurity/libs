@@ -806,6 +806,16 @@ or GPL2.txt for full copies of the license.
 #define PPM_MODULE_INIT_COMPRESSED_FILE     4
 
 /*
+ * bpf_commands 
+*/
+#define PPM_BPF_MAP_CREATE 		 (0<<1)
+#define PPM_BPF_MAP_LOOKUP_ELEM  (1<<1)
+#define PPM_BPF_MAP_UPDATE_ELEM  (1<<2)
+#define PPM_BPF_MAP_DELETE_ELEM  (1<<3)
+#define PPM_BPF_MAP_GET_NEXT_KEY (1<<4)
+#define PPM_BPF_PROG_LOAD 		 (1<<5)
+
+/*
  * Get/set the timerslack as used by poll/select/nanosleep
  * A value of 0 means "use default"
  */
@@ -2171,10 +2181,10 @@ extern const struct ppm_name_value fchownat_flags[];
 extern const struct ppm_name_value prctl_options[];
 extern const struct ppm_name_value memfd_create_flags[];
 extern const struct ppm_name_value pidfd_open_flags[];
+extern const struct ppm_name_value bpf_commands[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
-
 /*!
   \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
 */
