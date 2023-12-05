@@ -2222,4 +2222,34 @@ static __always_inline uint32_t mknod_mode_to_scap(uint32_t modes)
 	return res;
 }
 
+static __always_inline uint32_t bpf_cmd_to_scap (unsigned long cmd){
+	switch (cmd)
+	{
+#ifdef BPF_MAP_CREATE
+	case BPF_MAP_CREATE: 
+		return PPM_BPF_MAP_CREATE;
+#endif
+#ifdef BPF_MAP_LOOKUP_ELEM
+	case BPF_MAP_LOOKUP_ELEM: 
+		return PPM_BPF_MAP_LOOKUP_ELEM;
+#endif
+#ifdef BPF_MAP_UPDATE_ELEM
+	case BPF_MAP_UPDATE_ELEM: 
+		return PPM_BPF_MAP_UPDATE_ELEM;
+#endif
+#ifdef BPF_MAP_DELETE_ELEM
+	case BPF_MAP_DELETE_ELEM: 
+		return PPM_BPF_MAP_DELETE_ELEM;
+#endif
+#ifdef BPF_MAP_GET_NEXT_KEY
+	case BPF_MAP_GET_NEXT_KEY: 
+		return PPM_BPF_MAP_GET_NEXT_KEY;
+#endif
+#ifdef BPF_PROG_LOAD
+	case BPF_PROG_LOAD:
+		return PPM_BPF_PROG_LOAD;
+#endif 	
+	}
+	return cmd;
+}
 #endif /* PPM_FLAG_HELPERS_H_ */

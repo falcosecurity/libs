@@ -90,9 +90,9 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	int32_t cmd = 1;
-	union bpf_attr *attr = NULL;
-
+	int32_t cmd = BPF_MAP_CREATE;
+	union bpf_attr *attr = NULL; 
+	
 
 	/* Here we need to call the `bpf` from a child because the main process throws lots of
 	 * `bpf` syscalls to manage the bpf drivers.
@@ -148,7 +148,7 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, errno_value);
 	/* Parameter 2: cmd (type: PT_INT32)*/
-	evt_test->assert_numeric_param(2, cmd);
+	evt_test->assert_numeric_param(2, PPM_BPF_MAP_CREATE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

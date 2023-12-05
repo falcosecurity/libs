@@ -67,3 +67,16 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str)
 					      (uint32_t)0, (uint32_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.name"), path);
 }
+
+TEST_F(sinsp_with_test_input, EVT_FILTER_cmd_str)
+{
+	add_default_init_thread();
+	
+	open_inspector();
+
+	int fd = 1;
+
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_X, 2, fd, (uint32_t)PPM_BPF_PROG_LOAD);
+
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.cmd"), "BPF_PROG_LOAD");
+}
