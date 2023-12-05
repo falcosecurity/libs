@@ -366,6 +366,10 @@ uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt)
 		const scap_machine_info* minfo = m_inspector->get_machine_info();
 		ASSERT(minfo->num_cpus != 0);
 
+		if (minfo == NULL || minfo->num_cpus == 0) {
+			return res;
+		}
+
 		for(uint32_t j = 0; j < minfo->num_cpus; j++)
 		{
 			m_last_proc_switch_times.push_back(0);
