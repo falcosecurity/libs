@@ -50,11 +50,11 @@ struct parse_result {
     // description of the error in case of failure
 	std::string error;
     // the total encoded event(s) size
-	size_t size;
+	size_t size = 0;
     // pointers to each encoded event within the supplied output buffer
 	std::vector<scap_evt*> scap_events;
     // number of events dropped by gVisor
-    uint32_t dropped_count;
+    uint32_t dropped_count = 0;
 };
 
 struct procfs_result {

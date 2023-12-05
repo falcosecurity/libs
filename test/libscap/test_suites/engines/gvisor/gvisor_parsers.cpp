@@ -405,11 +405,10 @@ TEST(gvisor_parsers, small_buffer)
 
 TEST(gvisor_parsers, procfs_entry)
 {
-    scap_gvisor::parsers::procfs_result res;
     std::string not_json = "not a json string";
     std::string sandbox_id = "deadbeef";
 
-    res = scap_gvisor::parsers::parse_procfs_json(not_json, sandbox_id);
+    scap_gvisor::parsers::procfs_result res = scap_gvisor::parsers::parse_procfs_json(not_json, sandbox_id);
     EXPECT_EQ(res.status, SCAP_FAILURE);
 
     std::string json = R"(
