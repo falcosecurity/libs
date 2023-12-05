@@ -18,10 +18,8 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 
-#include "cri-v1alpha2.pb.h"
-#include "cri-v1alpha2.grpc.pb.h"
-#include "cri-v1.pb.h"
-#include "cri-v1.grpc.pb.h"
+#if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
+
 #include "../cri.h"
 #include <test/helpers/threads_helpers.h>
 #include "../sinsp_with_test_input.h"
@@ -620,8 +618,6 @@ std::string pod_info_json = R"({
     ]
     }
 })";
-
-#if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
 
 runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_status_resp()
 {
