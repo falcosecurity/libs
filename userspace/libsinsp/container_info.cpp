@@ -125,7 +125,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	// note: linear search
 	for (auto &mntinfo :m_mounts)
 	{
-		if(sinsp_utils::glob_match(source.c_str(), mntinfo.m_source.c_str(), false))
+		if(sinsp_utils::glob_match(source.c_str(), mntinfo.m_source.c_str()))
 		{
 			return &mntinfo;
 		}
@@ -139,7 +139,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	// note: linear search
 	for (auto &mntinfo :m_mounts)
 	{
-		if(sinsp_utils::glob_match(dest.c_str(), mntinfo.m_dest.c_str(), false))
+		if(sinsp_utils::glob_match(dest.c_str(), mntinfo.m_dest.c_str()))
 		{
 			return &mntinfo;
 		}
