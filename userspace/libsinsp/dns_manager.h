@@ -124,7 +124,7 @@ private:
 	// used to let m_resolver know when to terminate
 	std::promise<void> m_exit_signal;
 
-	std::thread *m_resolver;
+	std::unique_ptr<std::thread> m_resolver;
 
 	uint64_t m_erase_timeout;
 	uint64_t m_base_refresh_timeout;
