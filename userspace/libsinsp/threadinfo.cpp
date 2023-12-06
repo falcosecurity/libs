@@ -903,10 +903,11 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 
 	if(tinfo)
 	{
-		tinfo->m_cwd = sinsp_utils::concatenate_paths(m_cwd, std::string_view(cwd, cwdlen)).c_str();
-		uint32_t len = tinfo->m_cwd.length();
+		// tinfo->m_cwd is a std::string, c_str() is a workaround because of issues with appending the final slash
+		// consider properly resolving the mystery in the future
+		tinfo->m_cwd.assign(sinsp_utils::concatenate_paths(m_cwd, std::string_view(cwd, cwdlen)).c_str());
 
-		if(len == 0 || (tinfo->m_cwd[len - 1] != '/'))
+		if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/')
 		{
 			tinfo->m_cwd += '/';
 		}
