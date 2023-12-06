@@ -112,7 +112,7 @@ public:
 
 	static uint64_t get_current_time_ns();
 
-	static bool glob_match(const char *pattern, const char *string, const bool& case_insensitive);
+	static bool glob_match(const char *pattern, const char *string, const bool& case_insensitive = false);
 
 #ifndef _WIN32
 	//

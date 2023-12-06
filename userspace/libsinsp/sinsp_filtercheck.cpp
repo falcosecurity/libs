@@ -166,7 +166,7 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 	case CO_ENDSWITH:
 		return (sinsp_utils::endswith(operand1, operand2));
 	case CO_GLOB:
-		return sinsp_utils::glob_match(operand2, operand1, false);
+		return sinsp_utils::glob_match(operand2, operand1);
 	case CO_IGLOB:
 		return sinsp_utils::glob_match(operand2, operand1, true);
 	case CO_LT:
