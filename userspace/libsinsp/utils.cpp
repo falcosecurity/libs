@@ -601,6 +601,7 @@ std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_v
     auto p1 = std::filesystem::path(path1, std::filesystem::path::format::generic_format);
     auto p2 = std::filesystem::path(path2, std::filesystem::path::format::generic_format);
 
+	// note: if p2 happens to be an absolute path, p1 / p2 == p2
 	auto path_concat = (p1 / p2).lexically_normal();
 	std::string result = path_concat.generic_string();
 

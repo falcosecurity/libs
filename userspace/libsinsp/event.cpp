@@ -32,6 +32,7 @@ limitations under the License.
 #include <string>
 #include <optional>
 #include <functional>
+#include <filesystem>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -1039,7 +1040,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					m_resolved_paramstr_storage.resize(path.length() + cwd.length() + 2, 0);
 				}
 
-				if(path.empty() || path[0] == '/')
+				if(path.empty() || std::filesystem::path(path).is_absolute())
 				{
 					m_resolved_paramstr_storage[0] = 0;
 				}
