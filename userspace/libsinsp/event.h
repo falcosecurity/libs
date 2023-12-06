@@ -249,6 +249,14 @@ public:
 	}
 
 	/*!
+	  \brief Set the number of this event.
+	*/
+	inline void set_num(uint64_t evtnum)
+	{
+		m_evtnum = evtnum;
+	}
+
+	/*!
 	  \brief Get the number of the CPU where this event was captured.
 	*/
 	inline int16_t get_cpuid() const
