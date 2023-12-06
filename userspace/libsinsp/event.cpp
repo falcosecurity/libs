@@ -1039,7 +1039,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					m_resolved_paramstr_storage.resize(path.length() + cwd.length() + 2, 0);
 				}
 
-				if(path.length() == 0 || path[0] == '/')
+				if(path.empty() || path[0] == '/')
 				{
 					m_resolved_paramstr_storage[0] = 0;
 				}

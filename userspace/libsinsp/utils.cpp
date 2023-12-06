@@ -602,7 +602,7 @@ std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_v
     auto p2 = std::filesystem::path(path2, std::filesystem::path::format::generic_format);
 
 	auto path_concat = (p1 / p2).lexically_normal();
-	std::string result = path_concat;
+	std::string result = path_concat.generic_string();
 
 	//
 	// If the path ends with a separator, remove it, as the OS does.
