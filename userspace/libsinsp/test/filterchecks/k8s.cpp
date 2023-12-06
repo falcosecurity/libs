@@ -96,6 +96,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 						     {"io.kubernetes.pod.name", pod_name},
 						     {"io.kubernetes.pod.uid", pod_uid},
 						     {"io.kubernetes.pod.namespace", pod_namespace},
+						     {"app.kubernetes.io/name", "example"},
 						     {"sample", "nginx"}};
 
 	auto init_thread_info = m_inspector.get_thread_ref(INIT_TID).get();
@@ -121,8 +122,9 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), pod_name);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), pod_uid);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.sample"), "nginx");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.app.kubernetes.io/name"), "example");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"),
-		  "io.x-k8s.kind.cluster:kind, io.x-k8s.kind.role:control-plane, sample:nginx");
+		  "app.kubernetes.io/name:example, io.x-k8s.kind.cluster:kind, io.x-k8s.kind.role:control-plane, sample:nginx");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), ip_string);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), cni_json);
 
