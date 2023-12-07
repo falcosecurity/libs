@@ -93,7 +93,7 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.minor", "FD Minor Device", "minor device number containing the referenced file"},
 	{PT_INT64, EPF_NONE, PF_DEC, "fd.ino", "FD Inode Number", "inode number of the referenced file"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.nameraw", "FD Name Raw", "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is kept raw with limited sanitization and without deriving the absolute path."},
-	{PT_CHARBUF, EPF_IS_LIST, PF_DEC, "fd.types", "FD Type", "List of FD types in used. Can be passed an fd number e.g. fd.types[0] to get the type of stdout as a single item list."},
+	{PT_CHARBUF, EPF_IS_LIST|EPF_ARG_ALLOWED, PF_DEC, "fd.types", "FD Type", "List of FD types in used. Can be passed an fd number e.g. fd.types[0] to get the type of stdout as a single item list."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
