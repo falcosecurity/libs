@@ -1226,6 +1226,14 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 	return &m_info.m_fields[m_field_id];
 }
 
+bool sinsp_filter_check::can_have_argument()
+{
+	const filtercheck_field_info *info = get_field_info();
+
+	return ((info->m_flags & EPF_ARG_REQUIRED) ||
+		(info->m_flags & EPF_ARG_ALLOWED));
+}
+
 bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values, uint32_t op2_len)
 {
 	if (m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST)
@@ -1452,7 +1460,9 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT std::vector<extract_
 		m_cache_metrics->m_num_extract++;
 	}
 
-	if(m_extraction_cache_entry != NULL)
+	// Never cache extractions for fields that contain arguments.
+	if(m_extraction_cache_entry != NULL &&
+	   !can_have_argument())
 	{
 		uint64_t en = ((sinsp_evt *)evt)->get_num();
 
@@ -1488,7 +1498,9 @@ bool sinsp_filter_check::compare(gen_event *evt)
 		m_cache_metrics->m_num_eval++;
 	}
 
-	if(m_eval_cache_entry != NULL)
+	// Never cache extractions for fields that contain arguments.
+	if(m_eval_cache_entry != NULL &&
+	   !can_have_argument())
 	{
 		uint64_t en = ((sinsp_evt *)evt)->get_num();
 

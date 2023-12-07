@@ -114,6 +114,13 @@ public:
 	virtual const filtercheck_field_info* get_field_info();
 
 	//
+	// Return true if this filtercheck can have an argument,
+	// either due to being required (flag EPF_ARG_REQUIRED) or
+	// allowed (flag EPF_ARG_ALLOWED).
+	//
+	bool can_have_argument();
+
+	//
 	// Extract the field from the event. In sanitize_strings is true, any
 	// string values are sanitized to remove nonprintable characters.
 	//
