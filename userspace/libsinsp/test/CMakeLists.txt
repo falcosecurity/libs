@@ -110,6 +110,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	container_info.ut.cpp
 	sinsp_utils.ut.cpp
 	state.ut.cpp
+	dns_manager.ut.cpp
 	eventformatter.ut.cpp
 	savefile.ut.cpp
 	sinsp_stats.ut.cpp
