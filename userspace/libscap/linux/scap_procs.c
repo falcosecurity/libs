@@ -563,7 +563,6 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	size_t filesize;
 	size_t exe_len;
 	int32_t res = SCAP_SUCCESS;
-	struct stat dirstat;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -787,12 +786,24 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 
 	// Container start time for host processes will be equal to when the
 	// host init started
-	char proc_cmdline[SCAP_MAX_PATH_SIZE];
-	snprintf(proc_cmdline, sizeof(proc_cmdline), "%scmdline", dir_name);
-	if(stat(proc_cmdline, &dirstat) == 0)
+	char proc_stat[SCAP_MAX_PATH_SIZE];
+	snprintf(proc_stat, sizeof(proc_stat), "%sstat", dir_name);
+	f = fopen(proc_stat, "r");
+	if(f != NULL)
 	{
-		tinfo.clone_ts = dirstat.st_ctim.tv_sec * SECOND_TO_NS + dirstat.st_ctim.tv_nsec;
+		uint64_t start_time_since_boot_ticks;
+		if (fscanf(f, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*u %lu", &start_time_since_boot_ticks) == 1)
+		{
+			uint64_t start_time_since_boot_ns =
+			           (start_time_since_boot_ticks * SECOND_TO_NS) /
+				    linux_platform->m_generic.m_machine_info.hz;
+			tinfo.clone_ts =
+			    linux_platform->m_generic.m_machine_info.boot_ts_epoch +
+			    start_time_since_boot_ns;
+		}
+		fclose(f);
 	}
+
 
 	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
 	// corresponding process flags.

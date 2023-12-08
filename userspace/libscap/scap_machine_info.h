@@ -43,6 +43,7 @@ typedef struct _scap_machine_info
 	uint64_t memory_size_bytes; ///< Physical memory size
 	uint64_t max_pid; ///< Highest PID number on this machine
 	char hostname[128]; ///< The machine hostname
+	uint64_t hz; ///< Clock ticks per second on this machine
 	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
 	uint64_t flags; ///< flags
 	uint64_t reserved3; ///< reserved for future use

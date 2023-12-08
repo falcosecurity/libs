@@ -162,6 +162,17 @@ int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
 	machine_info->num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	machine_info->memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	scap_gethostname(machine_info->hostname, sizeof(machine_info->hostname));
+
+#ifdef _SC_CLK_TCK
+	machine_info->hz = sysconf(_SC_CLK_TCK);
+	if (machine_info->hz < 0)
+	{
+		machine_info->hz = 100;
+	}
+#else
+	machine_info->hz = 100;
+#endif
+
 	machine_info->boot_ts_epoch = scap_linux_get_host_boot_time_ns(lasterr);
 	if(machine_info->boot_ts_epoch == 0)
 	{
