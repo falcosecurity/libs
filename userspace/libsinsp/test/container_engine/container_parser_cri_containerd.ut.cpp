@@ -16,10 +16,8 @@ limitations under the License.
 
 */
 
-#include <gtest/gtest.h>
-
 #if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
-
+#include <gtest/gtest.h>
 #include <cri.h>
 #include <cri.hpp>
 #include <test/helpers/threads_helpers.h>
@@ -43,6 +41,7 @@ limitations under the License.
  * sudo crictl pods
  * sudo crictl inspectp ${POD_ID}
  *
+ * Many lists in the mock example JSONs were truncated and are not complete
  */
 
 std::string container_info_json = R"({
@@ -60,6 +59,12 @@ std::string container_info_json = R"({
     "image": {
         "image": "busybox"
     },
+    "envs": [
+        {
+          "key": "HOST_ROOT",
+          "value": "/host"
+        }
+      ],
     "command": [
         "/bin/sh"
     ],
@@ -166,103 +171,6 @@ std::string container_info_json = R"({
     },
     "mounts": [
         {
-        "destination": "/proc",
-        "type": "proc",
-        "source": "proc",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev"
-        ]
-        },
-        {
-        "destination": "/dev",
-        "type": "tmpfs",
-        "source": "tmpfs",
-        "options": [
-            "nosuid",
-            "strictatime",
-            "mode=755",
-            "size=65536k"
-        ]
-        },
-        {
-        "destination": "/dev/pts",
-        "type": "devpts",
-        "source": "devpts",
-        "options": [
-            "nosuid",
-            "noexec",
-            "newinstance",
-            "ptmxmode=0666",
-            "mode=0620",
-            "gid=5"
-        ]
-        },
-        {
-        "destination": "/dev/mqueue",
-        "type": "mqueue",
-        "source": "mqueue",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev"
-        ]
-        },
-        {
-        "destination": "/sys",
-        "type": "sysfs",
-        "source": "sysfs",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev",
-            "ro"
-        ]
-        },
-        {
-        "destination": "/sys/fs/cgroup",
-        "type": "cgroup",
-        "source": "cgroup",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev",
-            "relatime",
-            "ro"
-        ]
-        },
-        {
-        "destination": "/etc/hostname",
-        "type": "bind",
-        "source": "/var/lib/containerd/io.containerd.grpc.v1.cri/sandboxes/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a/hostname",
-        "options": [
-            "rbind",
-            "rprivate",
-            "rw"
-        ]
-        },
-        {
-        "destination": "/etc/hosts",
-        "type": "bind",
-        "source": "/var/lib/containerd/io.containerd.grpc.v1.cri/sandboxes/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a/hosts",
-        "options": [
-            "rbind",
-            "rprivate",
-            "rw"
-        ]
-        },
-        {
-        "destination": "/etc/resolv.conf",
-        "type": "bind",
-        "source": "/var/lib/containerd/io.containerd.grpc.v1.cri/sandboxes/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a/resolv.conf",
-        "options": [
-            "rbind",
-            "rprivate",
-            "rw"
-        ]
-        },
-        {
         "destination": "/dev/shm",
         "type": "bind",
         "source": "/run/containerd/io.containerd.grpc.v1.cri/sandboxes/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a/shm",
@@ -302,25 +210,6 @@ std::string container_info_json = R"({
         },
         "cgroupsPath": "/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
         "namespaces": [
-        {
-            "type": "pid",
-            "path": "/proc/3721379/ns/pid"
-        },
-        {
-            "type": "ipc",
-            "path": "/proc/3721379/ns/ipc"
-        },
-        {
-            "type": "uts",
-            "path": "/proc/3721379/ns/uts"
-        },
-        {
-            "type": "mount"
-        },
-        {
-            "type": "network",
-            "path": "/proc/3721379/ns/net"
-        },
         {
             "type": "cgroup"
         }
@@ -425,82 +314,6 @@ std::string pod_info_json = R"({
     },
     "mounts": [
         {
-        "destination": "/proc",
-        "type": "proc",
-        "source": "proc",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev"
-        ]
-        },
-        {
-        "destination": "/dev",
-        "type": "tmpfs",
-        "source": "tmpfs",
-        "options": [
-            "nosuid",
-            "strictatime",
-            "mode=755",
-            "size=65536k"
-        ]
-        },
-        {
-        "destination": "/dev/pts",
-        "type": "devpts",
-        "source": "devpts",
-        "options": [
-            "nosuid",
-            "noexec",
-            "newinstance",
-            "ptmxmode=0666",
-            "mode=0620",
-            "gid=5"
-        ]
-        },
-        {
-        "destination": "/dev/shm",
-        "type": "tmpfs",
-        "source": "shm",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev",
-            "mode=1777",
-            "size=65536k"
-        ]
-        },
-        {
-        "destination": "/dev/mqueue",
-        "type": "mqueue",
-        "source": "mqueue",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev"
-        ]
-        },
-        {
-        "destination": "/sys",
-        "type": "sysfs",
-        "source": "sysfs",
-        "options": [
-            "nosuid",
-            "noexec",
-            "nodev",
-            "ro"
-        ]
-        },
-        {
-        "destination": "/dev/shm",
-        "type": "bind",
-        "source": "/run/containerd/io.containerd.grpc.v1.cri/sandboxes/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a/shm",
-        "options": [
-            "rbind",
-            "ro"
-        ]
-        },
-        {
         "destination": "/etc/resolv.conf",
         "type": "bind",
         "source": "/var/lib/containerd/io.containerd.grpc.v1.cri/sandboxes/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a/resolv.conf",
@@ -533,40 +346,15 @@ std::string pod_info_json = R"({
         "cgroupsPath": "/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
         "namespaces": [
         {
-            "type": "pid"
-        },
-        {
-            "type": "ipc"
-        },
-        {
-            "type": "uts"
-        },
-        {
-            "type": "mount"
-        },
-        {
             "type": "network",
             "path": "/var/run/netns/cni-5ddce098-32ee-e39c-19c2-d6db782f6d20"
         }
         ],
         "maskedPaths": [
-        "/proc/acpi",
-        "/proc/asound",
-        "/proc/kcore",
-        "/proc/keys",
-        "/proc/latency_stats",
-        "/proc/timer_list",
-        "/proc/timer_stats",
-        "/proc/sched_debug",
-        "/sys/firmware",
-        "/proc/scsi"
+        "/proc/acpi"
         ],
         "readonlyPaths": [
-        "/proc/bus",
-        "/proc/fs",
-        "/proc/irq",
-        "/proc/sys",
-        "/proc/sysrq-trigger"
+        "/proc/bus"
         ]
     }
     },
@@ -679,12 +467,13 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_
 	auto status = resp.mutable_status();
 	status->set_id("3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e");
 	status->set_state(runtime::v1alpha2::ContainerState::CONTAINER_RUNNING); // "CONTAINER_RUNNING"
-	status->set_image_ref(
-		"docker.io/library/busybox@sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
+    status->set_created_at((uint64_t)1676262698000004577); // dummy
+    status->set_started_at((uint64_t)1676262698000004577); // dummy
+	status->set_image_ref("docker.io/library/busybox@sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
 	status->mutable_image()->set_image("docker.io/library/busybox:latest");
 	auto labels = status->mutable_labels();
-	(*labels)["io.kubernetes.sandbox.id"] =
-		"63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a"; // could not always be present
+	// todo @incertum fix sinsp filterchecks to not rely on this label for pod id and labels retrieval as it could not always be present
+	(*labels)["io.kubernetes.sandbox.id"] = "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a";
 	(*labels)["io.kubernetes.container.name"] = "busybox";
 	(*labels)["io.kubernetes.pod.uid"] = "hdishddjaidwnduw9a43535366368";
 	(*labels)["io.kubernetes.pod.namespace"] = "default";
@@ -701,6 +490,7 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_
 	mount.set_selinux_relabel(false);
 	mount.set_propagation(runtime::v1alpha2::MountPropagation::PROPAGATION_PRIVATE);
 	status->mutable_mounts()->Add()->CopyFrom(mount);
+
 	resp.mutable_info()->insert({"info", container_info_json});
 
 	return resp;
@@ -733,8 +523,16 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_containerd_pod_statu
 	//         }
 	//       }
 	//     },
-	//     "labels": {},
-	//     "annotations": {},
+	//     "labels": {
+	//       "app": "myapp",
+	//       "example.label": "mylabel",
+	//       "io.kubernetes.pod.name": "nginx-sandbox",
+	//       "io.kubernetes.pod.namespace": "default"
+	//     },
+	//     "annotations": {
+	//       "ip-annotation-custom": "non-routable-ipv4",
+	//       "example.annotation/custom": "myannotation"
+	//     },
 	//     "runtimeHandler": ""
 	//   },
 
@@ -745,18 +543,24 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_containerd_pod_statu
 	auto status = resp.mutable_status();
 	status->set_id("63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
 	status->set_state(runtime::v1alpha2::PodSandboxState::SANDBOX_READY);
+    status->set_created_at((uint64_t)1676262698000004577); // dummy
 	status->mutable_metadata()->set_name("nginx-sandbox");
-	resp.mutable_info()->insert({"info", pod_info_json});
 	status->mutable_network()->set_ip("10.244.0.2");
 	auto labels = status->mutable_labels();
-	(*labels)["io.kubernetes.pod.uid"] = "hdishddjaidwnduw9a43535366368";
+	(*labels)["app"] = "myapp";
+	(*labels)["example.label/custom"] = "mylabel";
 	(*labels)["io.kubernetes.pod.namespace"] = "default";
 	(*labels)["io.kubernetes.pod.name"] = "nginx-sandbox";
+	auto annotations = status->mutable_annotations();
+	(*annotations)["ip-annotation-custom"] = "non-routable-ipv4";
+	(*annotations)["example.annotation/custom"] = "myannotation";
 	auto metadata = status->mutable_metadata();
 	metadata->set_attempt(0);
 	metadata->set_name("nginx-sandbox");
 	metadata->set_namespace_("default");
 	metadata->set_uid("hdishddjaidwnduw9a43535366368");
+
+	resp.mutable_info()->insert({"info", pod_info_json});
 
 	return resp;
 }
@@ -774,11 +578,19 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	// Step-by-step testing of core parsers given the current unit test limitations
 	const auto &resp_container = resp.status();
 	const auto &resp_container_info = resp.info();
+	const auto &resp_sandbox_container = resp_pod.status();
+	const auto &resp_sandbox_container_info = resp_pod.info();
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	sinsp_container_info &container = *container_ptr;
+	std::shared_ptr<sinsp_container_info> sandbox_container_ptr = std::make_shared<sinsp_container_info>();
+	sinsp_container_info &sandbox_container = *sandbox_container_ptr;
+
+	//
+	// create and test sinsp_container_info for container
+	//
 
 	// Add basic fields manually
-	container.m_type = CT_CRIO;
+	container.m_type = CT_CONTAINERD;
 	container.m_id = "3ad7b26ded6d"; // truncated id extracted from cgroups
 	container.m_full_id = resp_container.id();
 	container.m_name = resp_container.metadata().name();
@@ -816,9 +628,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(183762946, container.m_container_ip); // decimal of "10.244.0.2"
 	std::string cniresult = "";
 	cri_api_v1alpha2->get_pod_info_cniresult(resp_pod, cniresult);
-	ASSERT_EQ("{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10."
-		  "244.0.2\"}]}}",
-		  cniresult);
+	ASSERT_EQ("{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}", cniresult);
 	container.m_pod_cniresult = cniresult;
 
 	// Extra info such as privileged flag
@@ -835,7 +645,32 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(1073741824, container.m_memory_limit);
 	ASSERT_EQ(50000, container.m_cpu_quota);
 
-    /* In addition test sinsp filterchecks, similar to spawn_process_container test. */
+	res = cri_api_v1alpha2->parse_cri_json_image(root, container);
+	ASSERT_TRUE(res);
+	ASSERT_EQ("busybox", container.m_imageid); // info.config.image.image can sometimes be in the format sha256: ...
+
+	//
+	// create and test sinsp_container_info for sandbox_container
+	//
+
+	// Add basic fields manually
+	sandbox_container.m_is_pod_sandbox = true;
+	sandbox_container.m_type = CT_CONTAINERD;
+	sandbox_container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups, here for the sandbox id / pod
+	sandbox_container.m_full_id = resp_sandbox_container.id();
+	sandbox_container.m_name = resp_sandbox_container.metadata().name();
+	for(const auto &pair : resp_sandbox_container.labels())
+	{
+		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
+		{
+			sandbox_container.m_labels[pair.first] = pair.second;
+		}
+	}
+
+	// 
+	// Test sinsp filterchecks, similar to spawn_process_container test
+	// 
+
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt *evt = NULL;
@@ -844,7 +679,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
 	uint64_t exe_ino = 242048, ctime = 1676262698000004577, mtime = 1676262698000004588;
 	uint32_t loginuid = UINT32_MAX, euid = UINT32_MAX;
-
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
@@ -860,48 +694,51 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	std::string argsv = test_utils::to_null_delimited(args);
 
 	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
-	// {"container":{"Mounts":[{"Destination":"/host/boot","Mode":"","Propagation":"private","RW":false,"Source":"/boot"}],"User":"<NA>","cni_json":"{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}","cpu_period":100,"cpu_quota":50000,"cpu_shares":102,"cpuset_cpu_count":0,"created_time":-4702111234474983746,"env":[],"full_id":"3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e","id":"3ad7b26ded6d","image":"docker.io/library/busybox:latest","imagedigest":"sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79","imageid":"","imagerepo":"docker.io/library/busybox","imagetag":"latest","ip":"10.244.0.2","is_pod_sandbox":false,"labels":{"io.kubernetes.container.name":"busybox","io.kubernetes.pod.name":"nginx-sandbox","io.kubernetes.pod.namespace":"default","io.kubernetes.pod.uid":"hdishddjaidwnduw9a43535366368","io.kubernetes.sandbox.id":"63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a"},"lookup_state":1,"memory_limit":1073741824,"metadata_deadline":0,"name":"busybox","port_mappings":[],"privileged":true,"swap_limit":1073741824,"type":8}}
+	std::string sandbox_container_json = m_inspector.m_container_manager.container_to_json(sandbox_container);
 
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf,
-			     (uint64_t)1, (uint64_t)1, (uint64_t)0, "", fdlimit, pgft_maj, pgft_min, (uint32_t)12088,
-			     (uint32_t)7208, (uint32_t)0, "bash",
-			     scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
-			     (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID |
-					PPM_CL_CHILD_IN_PIDNS),
-			     (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash",
-			     empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", fdlimit, pgft_maj, pgft_min,
-			     (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash",
-			     scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
-			     (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID |
-					PPM_CL_CHILD_IN_PIDNS),
-			     (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", fdlimit, pgft_maj, pgft_min, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", fdlimit, pgft_maj, pgft_min, (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container_json.c_str());
-
+	// todo: don't seem to be able to add the sandbox container via injecting another container event
+	// add manually to container cache for now
+	m_inspector.m_container_manager.add_container(sandbox_container_ptr, nullptr);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0,
-				   "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid,
-				   child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t)29612, (uint32_t)4,
-				   (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
-				   scap_const_sized_buffer{envv.data(), envv.size()}, (int32_t)34818, parent_pid,
-				   loginuid, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino,
-				   ctime, mtime, euid);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t)29612, (uint32_t)4, (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (int32_t)34818, parent_pid, loginuid, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
 
+    // Check containers were added to the container cache
+	const sinsp_container_info::ptr_t container_info_check = m_inspector.m_container_manager.get_container(container.m_id);
+	ASSERT_TRUE(container_info_check);
+	ASSERT_EQ("3ad7b26ded6d", container_info_check->m_id);
+	const sinsp_container_info::ptr_t sandbox_container_info_check = m_inspector.m_container_manager.get_container(sandbox_container.m_id);
+	ASSERT_TRUE(sandbox_container_info_check);
+	ASSERT_EQ("63060edc2d3a", sandbox_container_info_check->m_id);
+
+	// Check container and k8s related filter fields that are retrieved from the container runtime socket
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "3ad7b26ded6d");
-	ASSERT_EQ(get_field_as_string(evt, "container.image"), "docker.io/library/busybox:latest");
-	ASSERT_EQ(get_field_as_string(evt, "container.image.repository"), "docker.io/library/busybox");
-	ASSERT_EQ(get_field_as_string(evt, "container.image.tag"), "latest");
-	ASSERT_EQ(get_field_as_string(evt, "container.ip"), "10.244.0.2");
-	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"),
-		  "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10."
-		  "244.0.2\"}]}}");
 	ASSERT_EQ(get_field_as_string(evt, "container.name"), "busybox");
+	ASSERT_EQ(get_field_as_string(evt, "container.image"), "docker.io/library/busybox:latest");
+	ASSERT_EQ(get_field_as_string(evt, "container.image.id"), "busybox");
+	ASSERT_EQ(get_field_as_string(evt, "container.type"), "containerd");
 	ASSERT_EQ(get_field_as_string(evt, "container.privileged"), "true");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "default");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "nginx-sandbox");
 	ASSERT_EQ(get_field_as_string(evt, "container.mounts"), "/boot:/host/boot::false:private");
 	ASSERT_EQ(get_field_as_string(evt, "container.mount.source[0]"), "/boot");
 	ASSERT_EQ(get_field_as_string(evt, "container.mount.dest[0]"), "/host/boot");
+	ASSERT_EQ(get_field_as_string(evt, "container.mount.propagation[/boot]"), "private");
+	ASSERT_EQ(get_field_as_string(evt, "container.image.repository"), "docker.io/library/busybox");
+	ASSERT_EQ(get_field_as_string(evt, "container.image.tag"), "latest");
+	ASSERT_EQ(get_field_as_string(evt, "container.image.digest"), "sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
+	ASSERT_EQ(get_field_as_string(evt, "container.ip"), "10.244.0.2");
+	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
+
+	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "default");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "nginx-sandbox");
+	// todo @incertum fix pod id with next refactor, pod.id is sandbox id not pod uid
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "hdishddjaidwnduw9a43535366368");
+	// todo @Andreagit97 refactor pod labels queries to k8s.pod.label[example.label]
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example.label/custom"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example.label/custom:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "1");
