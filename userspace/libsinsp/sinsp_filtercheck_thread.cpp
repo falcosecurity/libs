@@ -63,6 +63,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Characters in Command Line args", "The total count of characters / length of the comamnd line args (proc.args) combined excluding whitespaces between args."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exeline", "Executable Command Line", "The full command line, with exe as first argument (proc.exe + proc.args) when starting the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.env", "Environment", "The environment variables of the process generating the event as concatenated string \"ENV_NAME=value ENV_NAME1=value1\". Can also be used to extract the value of a known env variable, e.g. proc.env[ENV_NAME]."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aenv", "Ancestor Environment", "Extract the first matched value of a known env variable among the ancestors (up to 7 levels) of the current process, e.g. proc.aenv[ENV_NAME]. proc.aenv can also be used for filtering the ancestors' proc.env. When used as output field without [ENV_NAME] it returns proc.env."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "Current Working Directory", "The current working directory of the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "Login Shell ID", "The pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
 	{PT_UINT32, EPF_NONE, PF_ID, "proc.tty", "Process TTY", "The controlling terminal of the process. 0 for processes without a terminal."},
@@ -169,7 +170,8 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 			throw sinsp_exception("filter syntax error: " + val);
 		}
 	}
-	else if(m_field_id == TYPE_ENV)
+	else if(m_field_id == TYPE_ENV ||
+			m_field_id == TYPE_AENV	)
 	{
 		if(val[fldname.size()] == '[')
 		{
@@ -349,6 +351,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		catch(...)
 		{
 			if(val == "proc.env")
+			{
+				m_argname.clear();
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
+	else if(STR_MATCH("proc.aenv"))
+	{
+		m_field_id = TYPE_AENV;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.aenv", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.aenv")
 			{
 				m_argname.clear();
 				res = (int32_t)val.size();
@@ -812,7 +836,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(!m_argname.empty()) // contains ENV_NAME we are looking to extract
 			{
-				// proc.env[ENV_NAME] use cases, return value for matched env variable
+				// proc.env[ENV_NAME] use case: returns matched env variable value
 				for (const auto& item : env)
 				{
 					std::string str(item.data(), item.data() + item.size());
@@ -829,6 +853,66 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				RETURN_EXTRACT_STRING(m_tstr); // return empty in case of no match
 			} else
 			{ // proc.env return concatenated env string of format "ENV_NAME=value ENV_NAME1=value1" ...
+				for(j = 0; j < nargs; j++)
+				{
+					m_tstr += env[j];
+					if(j < nargs -1)
+					{
+						m_tstr += ' ';
+					}
+				}
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+		}
+	case TYPE_AENV:
+		{
+			m_tstr.clear();
+			uint32_t j;
+			const auto& env = tinfo->get_env();
+			uint32_t nargs = (uint32_t)env.size();
+
+			if(!m_argname.empty()) // contains ENV_NAME we are looking to extract
+			{
+				sinsp_threadinfo* mt = NULL;
+				if(tinfo->is_main_thread())
+				{
+					mt = tinfo;
+				}
+				else
+				{
+					mt = tinfo->get_main_thread();
+					if(mt == NULL)
+					{
+						RETURN_EXTRACT_STRING(m_tstr);
+					}
+				}
+
+				for(int32_t j = 0; j < 7; j++) // up to 7 levels
+				{
+					mt = mt->get_parent_thread();
+
+					if(mt == NULL)
+					{
+						break;
+					}
+					// proc.aenv[ENV_NAME] use case: returns first ENV_NAME match in parent lineage
+					for (const auto& item : mt->get_env())
+					{
+						std::string str(item.data(), item.data() + item.size());
+						if(str.find(m_argname) == 0)
+						{
+							size_t pos = str.find('=');
+							if (pos != std::string::npos)
+							{
+								m_tstr = str.substr(pos + 1);
+								RETURN_EXTRACT_STRING(m_tstr);
+							}
+						}
+					}
+				}
+				RETURN_EXTRACT_STRING(m_tstr); // return empty in case of no match
+			} else
+			{ // in case of proc.aenv without [ENV_NAME] return proc.env
 				for(j = 0; j < nargs; j++)
 				{
 					m_tstr += env[j];
@@ -1809,6 +1893,74 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt *evt)
 	return found;
 }
 
+bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt *evt)
+{
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	if(tinfo == NULL)
+	{
+		return false;
+	}
+
+	sinsp_threadinfo* mt = NULL;
+
+	if(tinfo->is_main_thread())
+	{
+		mt = tinfo;
+	}
+	else
+	{
+		mt = tinfo->get_main_thread();
+
+		if(mt == NULL)
+		{
+			return false;
+		}
+	}
+
+	//
+	// No id specified, search in all of the ancestors
+	//
+	bool found = false;
+	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
+	{
+		bool res;
+		std::string full_env;
+
+		uint32_t j;
+		const auto& env = pt->m_env;
+		uint32_t nargs = (uint32_t)env.size();
+
+		for(j = 0; j < nargs; j++)
+		{
+			full_env += env[j];
+			if(j < nargs -1)
+			{
+				full_env += ' ';
+			}
+		}
+
+
+		res = flt_compare(m_cmpop,
+				  PT_CHARBUF,
+				  (void*)full_env.c_str());
+
+		if(res == true)
+		{
+			found = true;
+
+			// Can stop traversing parent state
+			return false;
+		}
+
+		return true;
+	};
+
+	mt->traverse_parent_state(visitor);
+
+	return found;
+}
+
 bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 {
 	if(m_field_id == TYPE_APID)
@@ -1844,6 +1996,13 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 		if(m_argid == -1)
 		{
 			return compare_full_acmdline(evt);
+		}
+	}
+	else if(m_field_id == TYPE_AENV)
+	{
+		if(m_argname.empty())
+		{
+			return compare_full_aenv(evt);
 		}
 	}
 

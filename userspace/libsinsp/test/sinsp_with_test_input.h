@@ -403,7 +403,8 @@ protected:
 
 	void add_default_init_thread()
 	{
-		scap_threadinfo tinfo = create_threadinfo(1, 1, 0, 1, 1, 1, "init", "/sbin/init", "/sbin/init", increasing_ts(), 0, 0, {}, 0, {}, "/root/");
+		std::vector<std::string> env = {"TEST_ENV_PARENT_LINEAGE=secret", "HOME=/home/user"};
+		scap_threadinfo tinfo = create_threadinfo(1, 1, 0, 1, 1, 1, "init", "/sbin/init", "/sbin/init", increasing_ts(), 0, 0, {}, 0, env, "/root/");
 
 		std::vector<scap_fdinfo> fdinfos;
 		scap_fdinfo fdinfo;
