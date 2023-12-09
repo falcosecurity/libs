@@ -62,7 +62,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdnargs", "Number of Command Line args", "The number of command line args (proc.args)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Characters in Command Line args", "The total count of characters / length of the comamnd line args (proc.args) combined excluding whitespaces between args."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exeline", "Executable Command Line", "The full command line, with exe as first argument (proc.exe + proc.args) when starting the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.env", "Environment", "The environment variables of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.env", "Environment", "The environment variables of the process generating the event as concatenated string \"ENV_NAME=value ENV_NAME1=value1\". Can also be used to extract the value of a known env variable, e.g. proc.env[ENV_NAME]."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "Current Working Directory", "The current working directory of the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "Login Shell ID", "The pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
 	{PT_UINT32, EPF_NONE, PF_ID, "proc.tty", "Process TTY", "The controlling terminal of the process. 0 for processes without a terminal."},
@@ -163,6 +163,24 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 			string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
 			m_argid = sinsp_numparser::parsed32(numstr);
 			parsed_len++;
+		}
+		else
+		{
+			throw sinsp_exception("filter syntax error: " + val);
+		}
+	}
+	else if(m_field_id == TYPE_ENV)
+	{
+		if(val[fldname.size()] == '[')
+		{
+			size_t startpos = fldname.size();
+			parsed_len = (uint32_t)val.find(']', startpos);
+
+			if (startpos != std::string::npos && parsed_len != std::string::npos)
+			{
+				m_argname = val.substr(startpos + 1, parsed_len - startpos - 1);
+				parsed_len++;
+			}
 		}
 		else
 		{
@@ -311,6 +329,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 			if(val == "proc.acmdline")
 			{
 				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
+	else if(STR_MATCH("proc.env"))
+	{
+		m_field_id = TYPE_ENV;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.env", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.env")
+			{
+				m_argname.clear();
 				res = (int32_t)val.size();
 			}
 		}
@@ -761,21 +801,44 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_ENV:
 		{
 			m_tstr.clear();
-
 			uint32_t j;
 			const auto& env = tinfo->get_env();
 			uint32_t nargs = (uint32_t)env.size();
 
-			for(j = 0; j < nargs; j++)
+			if(nargs == 0)
 			{
-				m_tstr += env[j];
-				if(j < nargs -1)
-				{
-					m_tstr += ' ';
-				}
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 
-			RETURN_EXTRACT_STRING(m_tstr);
+			if(!m_argname.empty()) // contains ENV_NAME we are looking to extract
+			{
+				// proc.env[ENV_NAME] use cases, return value for matched env variable
+				for (const auto& item : env)
+				{
+					std::string str(item.data(), item.data() + item.size());
+					if(str.find(m_argname) == 0)
+					{
+						size_t pos = str.find('=');
+						if (pos != std::string::npos)
+						{
+							m_tstr = str.substr(pos + 1);
+							RETURN_EXTRACT_STRING(m_tstr);
+						}
+					}
+				}
+				RETURN_EXTRACT_STRING(m_tstr); // return empty in case of no match
+			} else
+			{ // proc.env return concatenated env string of format "ENV_NAME=value ENV_NAME1=value1" ...
+				for(j = 0; j < nargs; j++)
+				{
+					m_tstr += env[j];
+					if(j < nargs -1)
+					{
+						m_tstr += ' ';
+					}
+				}
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
 		}
 	case TYPE_CMDLINE:
 		{

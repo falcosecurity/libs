@@ -421,6 +421,8 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cmdnargs"), "2");
 	ASSERT_EQ(get_field_as_string(evt, "proc.cmdlenargs"), "29");
 	ASSERT_EQ(get_field_as_string(evt, "proc.sname"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.env"), "SHELL=/bin/bash PWD=/home/user HOME=/home/user");
+	ASSERT_EQ(get_field_as_string(evt, "proc.env[HOME]"), "/home/user");
 }
 
 // check parsing of container events (possibly from capture files)
