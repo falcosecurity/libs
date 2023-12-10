@@ -158,15 +158,12 @@ public:
 
 struct g_invalidchar
 {
-    bool operator()(char c) const
-    {
-	    if(c < -1)
-	    {
-		    return true;
-	    }
-
-	    return !isprint((unsigned)c);
-    }
+	bool operator()(char c) const
+	{
+		// Exclude all non-printable characters and control characters while
+		// including a wide range of languages (emojis, cyrillic, chinese etc)
+		return !(isprint((unsigned)c) || (c < 0));
+	}
 };
 
 inline void sanitize_string(std::string &str)
