@@ -123,4 +123,19 @@ TEST(sinsp_utils_test, concatenate_paths)
 	path2 = "////app";
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("/app", res);
+
+	path1 = "/root/";
+	path2 = "../😉";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/😉", res);
+
+	path1 = "/root/";
+	path2 = "../诶比西";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/诶比西", res);
+
+	path1 = "/root/";
+	path2 = "../АБВЙЛж";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/АБВЙЛж", res);
 }
