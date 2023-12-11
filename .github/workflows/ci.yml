@@ -153,7 +153,7 @@ jobs:
         run: |
           mkdir -p build
           cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+          make -j4
           make run-unit-tests
 
       - name: Install
@@ -364,7 +364,7 @@ jobs:
             .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/${{env.PLATFORM}}-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DENABLE_DRIVERS_TESTS=On -DCREATE_TEST_TARGETS=On -DBUILD_LIBSCAP_GVISOR=OFF ../
-            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make driver bpf drivers_test -j6
+            make driver bpf drivers_test -j6
 
   # This job checks that a bundled deps of libs is as static as possible
   test-libs-static:
@@ -510,5 +510,5 @@ jobs:
         run: |
           mkdir -p build
           cd build && emcmake cmake -DUSE_BUNDLED_DEPS=True ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build emmake make -j4
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build emmake make run-unit-tests -j4
+          emmake make -j4
+          emmake make run-unit-tests -j4
