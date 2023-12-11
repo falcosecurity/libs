@@ -596,7 +596,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 	return true;
 }
 
-std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2, ssize_t max_len)
+std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2, size_t max_len)
 {
     auto p1 = std::filesystem::path(path1, std::filesystem::path::format::generic_format);
     auto p2 = std::filesystem::path(path2, std::filesystem::path::format::generic_format);
@@ -613,7 +613,7 @@ std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_v
 		result.pop_back();
 	}
 
-	if (max_len != -1 && result.length() > max_len)
+	if (result.length() > max_len)
 	{
 		return "/PATH_TOO_LONG";
 	}
