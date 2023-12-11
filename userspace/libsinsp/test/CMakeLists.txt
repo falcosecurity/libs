@@ -179,6 +179,7 @@ endif()
 target_link_libraries(unit-test-libsinsp
 	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
+	"${TBB_LIB}"
 	sinsp
 )
 
