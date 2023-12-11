@@ -212,13 +212,6 @@ public:
 	bool parse_cri_user_info(const Json::Value &info, sinsp_container_info &container);
 
 	/**
-	 * @brief check if the passed container ID is a pod sandbox (pause container)
-	 * @param container_id the container ID to check
-	 * @return true if it's a pod sandbox
-	 */
-	bool is_pod_sandbox(const std::string &container_id);
-
-	/**
 	 * @brief get pod IP address
 	 * @param resp initialized api::PodSandboxStatusResponse of the pod sandbox
 	 * @return the IP address if possible, 0 otherwise (e.g. when the pod uses host netns)

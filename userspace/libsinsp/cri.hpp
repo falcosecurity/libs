@@ -465,20 +465,6 @@ bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sinsp_cont
 	return true;
 }
 
-template<typename api> bool cri_interface<api>::is_pod_sandbox(const std::string &container_id)
-{
-	typename api::PodSandboxStatusRequest req;
-	typename api::PodSandboxStatusResponse resp;
-	req.set_pod_sandbox_id(container_id);
-	req.set_verbose(true);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
-	context.set_deadline(deadline);
-	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
-
-	return status.ok();
-}
-
 // TODO: Explore future schema standardizations, https://github.com/falcosecurity/falco/issues/2387
 template<typename api>
 void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusResponse &resp, std::string &cniresult)
