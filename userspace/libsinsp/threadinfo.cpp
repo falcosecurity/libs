@@ -459,7 +459,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	if(is_main_thread())
 	{
 		set_env(pi->env, pi->env_len);
-		set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
+		set_cwd({pi->cwd});
 	}
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
@@ -897,24 +897,21 @@ std::string sinsp_threadinfo::get_cwd()
 	}
 }
 
-void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
+void sinsp_threadinfo::set_cwd(std::string_view cwd)
 {
 	sinsp_threadinfo* tinfo = get_main_thread();
 
-	if(tinfo)
-	{
-		// tinfo->m_cwd is a std::string, c_str() is a workaround because of issues with appending the final slash
-		// consider properly resolving the mystery in the future
-		tinfo->m_cwd.assign(sinsp_utils::concatenate_paths(m_cwd, std::string_view(cwd, cwdlen)).c_str());
-
-		if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/')
-		{
-			tinfo->m_cwd += '/';
-		}
-	}
-	else
+	if (tinfo == nullptr)
 	{
 		ASSERT(false);
+		return;
+	}
+
+	tinfo->m_cwd = sinsp_utils::concatenate_paths(m_cwd, cwd);
+
+	if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/')
+	{
+		tinfo->m_cwd += '/';
 	}
 }
 
