@@ -4391,11 +4391,8 @@ void sinsp_parser::parse_chdir_exit(sinsp_evt *evt)
 	//
 	if(retval >= 0)
 	{
-		const sinsp_evt_param *parinfo;
-
 		// Update the thread working directory
-		parinfo = evt->get_param(1);
-		evt->m_tinfo->set_cwd(parinfo->m_val, parinfo->m_len);
+		evt->m_tinfo->set_cwd(evt->get_param(1)->as<std::string_view>());
 	}
 }
 
@@ -4422,14 +4419,12 @@ void sinsp_parser::parse_fchdir_exit(sinsp_evt *evt)
 		}
 
 		// Update the thread working directory
-		evt->m_tinfo->set_cwd((char *)evt->m_fdinfo->m_name.c_str(),
-		                 (uint32_t)evt->m_fdinfo->m_name.size());
+		evt->m_tinfo->set_cwd(evt->m_fdinfo->m_name);
 	}
 }
 
 void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 {
-	const sinsp_evt_param *parinfo;
 	int64_t retval;
 
 	//
@@ -4452,14 +4447,12 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 			return;
 		}
 
-		parinfo = evt->get_param(1);
+		std::string cwd = std::string(evt->get_param(1)->as<std::string_view>());
 
 #ifdef _DEBUG
-		std::string chkstr = std::string(parinfo->m_val);
-
-		if(chkstr != "/")
+		if(cwd != "/")
 		{
-			if(chkstr + "/"  != evt->m_tinfo->get_cwd())
+			if(cwd + "/" != evt->m_tinfo->get_cwd())
 			{
 				//
 				// This shouldn't happen, because we should be able to stay in synch by
@@ -4470,7 +4463,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 #ifdef _DEBUG
 				int target_res;
 				char target_name[1024];
-				target_res = readlink((chkstr + "/").c_str(),
+				target_res = readlink((cwd + "/").c_str(),
 					target_name,
 					sizeof(target_name) - 1);
 
@@ -4490,7 +4483,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 		}
 #endif
 
-		evt->m_tinfo->set_cwd(parinfo->m_val, parinfo->m_len);
+		evt->m_tinfo->set_cwd(cwd);
 	}
 }
 
