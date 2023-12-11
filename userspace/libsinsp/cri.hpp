@@ -695,6 +695,9 @@ bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusRes
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
 		const auto pod_sandbox_id = root["sandboxID"].asString();
+		// Add the pod sandbox id as label to the container.
+		// This labels is needed by the filterchecks code to get the pod labels.
+		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
 		typename api::PodSandboxStatusResponse resp_pod;
 		grpc::Status status_pod;
 		get_pod_sandbox_resp(pod_sandbox_id, resp_pod, status_pod);
@@ -717,16 +720,34 @@ bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key 
 	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStatus: (%s)", container.m_id.c_str(),
 			status.error_message().c_str());
 
+	// If getting the container status fails then try to get the pod sandbox status.
 	if(!status.ok())
 	{
-		if(is_pod_sandbox(container.m_id))
+		typename api::PodSandboxStatusResponse resp;
+		grpc::Status status_pod;
+		get_pod_sandbox_resp(container.m_id, resp, status_pod);
+
+		if(status_pod.ok())
 		{
 			container.m_is_pod_sandbox = true;
+			// Fill the labels for the pod sanbox.
+			// Used to populate the k8s.pod.labels field.
+			for(const auto &pair : resp.status().labels())
+			{
+				if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
+				{
+					container.m_labels[pair.first] = pair.second;;
+				}
+			}
 			return true;
 		}
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): id is neither a container nor a pod sandbox: %s",
-				container.m_id.c_str(), status.error_message().c_str());
-		return false;
+		else
+		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"cri (%s): id is neither a container nor a pod sandbox: %s",
+					container.m_id.c_str(), status.error_message().c_str());
+			return false;
+		}
 	}
 
 	if(!resp.has_status())
