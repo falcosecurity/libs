@@ -226,7 +226,15 @@ int BPF_PROG(t1_sched_p_exec,
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
+	if(bpf_core_field_exists(exe_inode->i_mtime))
+	{
+		BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
+	}
+	else
+	{
+		struct inode___v6_7 *exe_inode_v6_7 = (void *)exe_inode;
+		BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
+	}
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 27: euid (type: PT_UID) */

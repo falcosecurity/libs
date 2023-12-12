@@ -523,6 +523,12 @@ struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
 	if (exe_file && !get_file_rcu(exe_file))
 		exe_file = NULL;
 	rcu_read_unlock();
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+	// Since linux 6.7.0, `get_file_rcu` is no more a define and takes a double pointer parameter.
+	// See https://github.com/torvalds/linux/commit/0ede61d8589cc2d93aa78230d74ac58b5b8d0244.
+	rcu_read_lock();
+	exe_file = get_file_rcu(&mm->exe_file);
+	rcu_read_unlock();
 #else
 	/* We need mmap_sem to protect against races with removal of
 	 * VM_EXECUTABLE vmas */
@@ -1421,7 +1427,15 @@ cgroups_error:
 				 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
 				 * but fields names should be always the same.
 				 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+				{
+					struct timespec64 inode_mtime;
+					inode_mtime = inode_get_mtime(file_inode(exe_file));
+					mtime = inode_mtime.tv_sec * (uint64_t)1000000000 + inode_mtime.tv_nsec;
+				}
+#else
 				mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+#endif
 			}
 #endif
 			/* Before freeing the exefile we catch the resolved path for symlink resolution */
@@ -7439,7 +7453,15 @@ cgroups_error:
 			 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
 			 * but fields names should be always the same.
 			 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+			{
+				struct timespec64 inode_mtime;
+				inode_mtime = inode_get_mtime(file_inode(exe_file));
+				mtime = inode_mtime.tv_sec * (uint64_t)1000000000 + inode_mtime.tv_nsec;
+			}
+#else
 			mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+#endif
 		}
 		/* Before free the exefile we catch the resolved path for symlink resolution */
 		trusted_exepath = d_path(&exe_file->f_path, buf, PAGE_SIZE);

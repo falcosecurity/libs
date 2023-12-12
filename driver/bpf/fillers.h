@@ -2877,7 +2877,11 @@ FILLER(execve_extra_tail_1, true)
 	CHECK_RES(res);
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+	time = _READ(inode->__i_mtime);
+#else
 	time = _READ(inode->i_mtime);
+#endif
 	res = bpf_push_u64_to_ring(data, bpf_epoch_ns_from_time(time));
 	CHECK_RES(res);
 
@@ -6745,7 +6749,11 @@ FILLER(sched_prog_exec_4, false)
 	CHECK_RES(res);
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+	time = _READ(inode->__i_mtime);
+#else
 	time = _READ(inode->i_mtime);
+#endif
 	res = bpf_push_u64_to_ring(data, bpf_epoch_ns_from_time(time));
 	CHECK_RES(res);
 
