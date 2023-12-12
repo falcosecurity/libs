@@ -459,13 +459,11 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_crio_container_status
 	auto status = resp.mutable_status();
 	status->set_id("49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad");
 	status->set_state(runtime::v1alpha2::ContainerState::CONTAINER_RUNNING); // "CONTAINER_RUNNING"
-    status->set_created_at((uint64_t)1676262698000004577); // dummy
-    status->set_started_at((uint64_t)1676262698000004577); // dummy
+	status->set_created_at((uint64_t)1676262698000004577); // dummy
+	status->set_started_at((uint64_t)1676262698000004577); // dummy
 	status->set_image_ref("quay.io/crio/redis@sha256:1780b5a5496189974b94eb2595d86731d7a0820e4beb8ea770974298a943ed55");
 	status->mutable_image()->set_image("quay.io/crio/redis:alpine");
 	auto labels = status->mutable_labels();
-	// todo @incertum fix sinsp filterchecks to not rely on this label for pod id and labels retrieval as it could not always be present
-	(*labels)["io.kubernetes.sandbox.id"] = "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca";
 	(*labels)["io.kubernetes.container.name"] = "redis";
 	(*labels)["io.kubernetes.pod.uid"] = "redhat-test-crio";
 	(*labels)["io.kubernetes.pod.namespace"] = "redhat.test.crio";
@@ -637,6 +635,14 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_TRUE(container.m_privileged);
 	ASSERT_EQ(209715200, container.m_memory_limit);
 	ASSERT_EQ(20000, container.m_cpu_quota);
+
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	{
+		const auto pod_sandbox_id = root["sandboxID"].asString();
+		// Add the pod sandbox id as label to the container.
+		// This labels is needed by the filterchecks code to get the pod labels.
+		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
+	}
 
 	//
 	// create and test sinsp_container_info for sandbox_container
