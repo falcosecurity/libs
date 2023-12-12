@@ -16,7 +16,6 @@ limitations under the License.
 
 */
 
-#include <filesystem>
 #include "sinsp_filtercheck_fspath.h"
 #include "sinsp_filtercheck_event.h"
 #include "sinsp_filtercheck_fd.h"
@@ -350,8 +349,7 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 			return NULL;
 		}
 
-		std::filesystem::path tstr = tinfo->get_cwd() + m_tstr;
-		m_tstr = std::filesystem::absolute(tstr).lexically_normal().string();
+		m_tstr = sinsp_utils::concatenate_paths(tinfo->get_cwd(), m_tstr);
 	}
 
 	// If m_tstr ends in a c-style \0, remove it to be

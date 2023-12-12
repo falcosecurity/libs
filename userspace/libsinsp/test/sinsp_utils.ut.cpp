@@ -138,4 +138,9 @@ TEST(sinsp_utils_test, concatenate_paths)
 	path2 = "../АБВЙЛж";
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("/АБВЙЛж", res);
+
+	path1 = "/root";
+	path2 = "c:/hello/world/";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/root/c:/hello/world", res);
 }
