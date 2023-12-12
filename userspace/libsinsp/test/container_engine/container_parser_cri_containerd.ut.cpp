@@ -467,13 +467,11 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_
 	auto status = resp.mutable_status();
 	status->set_id("3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e");
 	status->set_state(runtime::v1alpha2::ContainerState::CONTAINER_RUNNING); // "CONTAINER_RUNNING"
-    status->set_created_at((uint64_t)1676262698000004577); // dummy
-    status->set_started_at((uint64_t)1676262698000004577); // dummy
+	status->set_created_at((uint64_t)1676262698000004577); // dummy
+	status->set_started_at((uint64_t)1676262698000004577); // dummy
 	status->set_image_ref("docker.io/library/busybox@sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
 	status->mutable_image()->set_image("docker.io/library/busybox:latest");
 	auto labels = status->mutable_labels();
-	// todo @incertum fix sinsp filterchecks to not rely on this label for pod id and labels retrieval as it could not always be present
-	(*labels)["io.kubernetes.sandbox.id"] = "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a";
 	(*labels)["io.kubernetes.container.name"] = "busybox";
 	(*labels)["io.kubernetes.pod.uid"] = "hdishddjaidwnduw9a43535366368";
 	(*labels)["io.kubernetes.pod.namespace"] = "default";
@@ -645,6 +643,14 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_TRUE(container.m_privileged);
 	ASSERT_EQ(1073741824, container.m_memory_limit);
 	ASSERT_EQ(50000, container.m_cpu_quota);
+
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	{
+		const auto pod_sandbox_id = root["sandboxID"].asString();
+		// Add the pod sandbox id as label to the container.
+		// This labels is needed by the filterchecks code to get the pod labels.
+		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
+	}
 
 	res = cri_api_v1alpha2->parse_cri_json_image(root, container);
 	ASSERT_TRUE(res);
