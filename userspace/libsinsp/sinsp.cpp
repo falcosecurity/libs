@@ -121,6 +121,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_large_envs_enabled = false;
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
 	m_statsd_port = -1;
+	m_platform = nullptr;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -388,6 +389,7 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 	{
 		scap_platform_close(platform);
 		scap_platform_free(platform);
+		m_platform = nullptr;
 
 		std::string error = scap_getlasterr(m_h);
 		scap_close(m_h);
@@ -405,6 +407,8 @@ void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable,
 	{
 		scap_platform_close(platform);
 		scap_platform_free(platform);
+		m_platform = nullptr;
+
 		scap_close(m_h);
 		m_h = NULL;
 
