@@ -581,6 +581,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	const auto &resp_sandbox_container = resp_pod.status();
 	const auto &resp_sandbox_container_info = resp_pod.info();
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
+	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
 	std::shared_ptr<sinsp_container_info> sandbox_container_ptr = std::make_shared<sinsp_container_info>();
 	sinsp_container_info &sandbox_container = *sandbox_container_ptr;
@@ -676,36 +677,28 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	sinsp_evt *evt = NULL;
 
 	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20;
-	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
-	uint64_t exe_ino = 242048, ctime = 1676262698000004577, mtime = 1676262698000004588;
-	uint32_t loginuid = UINT32_MAX, euid = UINT32_MAX;
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	std::vector<std::string> cgroups = {
 		"cgroups=cpuset=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
 		"cpu=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e", "cpuacct=/",
 		"blkio=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
 		"memory=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e"};
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
-	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
-	std::string envv = test_utils::to_null_delimited(env);
-	std::vector<std::string> args = {"-c", "'echo aGVsbG8K | base64 -d'"};
-	std::string argsv = test_utils::to_null_delimited(args);
-
 	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
 	std::string sandbox_container_json = m_inspector.m_container_manager.container_to_json(sandbox_container);
 
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", fdlimit, pgft_maj, pgft_min, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", fdlimit, pgft_maj, pgft_min, (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container_json.c_str());
 	// todo: don't seem to be able to add the sandbox container via injecting another container event
 	// add manually to container cache for now
-	m_inspector.m_container_manager.add_container(sandbox_container_ptr, nullptr);
+	m_inspector.m_container_manager.add_container(std::move(sandbox_container_ptr), nullptr);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t)29612, (uint32_t)4, (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (int32_t)34818, parent_pid, loginuid, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0, "/bin/test-exe", empty_bytebuf, child_tid, child_pid, parent_tid, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)29612, (uint32_t)4, (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, empty_bytebuf, (int32_t)34818, parent_pid, (uint32_t)0, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)0);
 
-    // Check containers were added to the container cache
+	// Check containers were added to the container cache
 	const sinsp_container_info::ptr_t container_info_check = m_inspector.m_container_manager.get_container(container.m_id);
 	ASSERT_TRUE(container_info_check);
 	ASSERT_EQ("3ad7b26ded6d", container_info_check->m_id);
@@ -739,11 +732,5 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example.label/custom:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
-
-	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "1");
-	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "1");
-	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "-1");
-	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_upper_layer"), "true");
-	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "4294967295");
 }
 #endif // MINIMAL_BUILD

@@ -109,7 +109,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	container_info->m_labels = labels;
 	container_info->m_container_ip = ip;
 	container_info->m_pod_cniresult = cni_json;
-	m_inspector.m_container_manager.add_container(container_info, init_thread_info);
+	m_inspector.m_container_manager.add_container(std::move(container_info), init_thread_info);
 
 	auto evt = generate_random_event();
 	// basic filterchecks
@@ -175,7 +175,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value_with_no_labels)
 	container_info->m_labels = labels;
 	container_info->m_container_ip = ip;
 	container_info->m_pod_cniresult = cni_json;
-	m_inspector.m_container_manager.add_container(container_info, init_thread_info);
+	m_inspector.m_container_manager.add_container(std::move(container_info), init_thread_info);
 
 	auto evt = generate_random_event();
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), container_id);

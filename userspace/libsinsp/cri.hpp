@@ -16,6 +16,8 @@ limitations under the License.
 
 */
 
+#pragma once
+
 #ifndef LIBSINSP_CRI_HPP
 #define LIBSINSP_CRI_HPP
 
