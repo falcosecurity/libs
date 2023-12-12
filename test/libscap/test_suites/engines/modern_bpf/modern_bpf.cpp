@@ -6,6 +6,24 @@
 #include <syscall.h>
 #include <helpers/engines.h>
 
+static enum falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
+
+static void test_open_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
+{
+	if(sev <= severity_level)
+	{
+		if(component!= NULL)
+		{
+			printf("%s: %s", component, msg);
+		}
+		else
+		{
+			// libbpf logs have no components
+			printf("%s", msg);
+		}
+	}
+}
+
 scap_t* open_modern_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, uint16_t cpus_for_each_buffer, bool online_only, std::unordered_set<uint32_t> ppm_sc_set = {})
 {
 	struct scap_open_args oargs {};
@@ -32,6 +50,7 @@ scap_t* open_modern_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffe
 		.buffer_bytes_dim = buffer_dim,
 	};
 	oargs.engine_params = &modern_bpf_params;
+	oargs.log_fn = test_open_log_fn;
 
 	return scap_open(&oargs, &scap_modern_bpf_engine, error_buf, rc);
 }
