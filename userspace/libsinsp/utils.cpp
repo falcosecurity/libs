@@ -596,10 +596,34 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 	return true;
 }
 
+std::filesystem::path workaround_win_root_name(std::filesystem::path p)
+{
+	if (!p.has_root_name())
+	{
+		return p;
+	}
+
+	if (p.root_name().string().rfind("//", 0) == 0)
+	{
+		// this is something like //dir/hello. Add a leading slash to identify an absolute path rooted at /
+		return std::filesystem::path("/" + p.string());
+	}
+
+	// last case: this is a relative path, like c:/dir/hello. Add a leading ./ to identify a relative path
+	return std::filesystem::path("./" + p.string());
+}
+
 std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2, size_t max_len)
 {
     auto p1 = std::filesystem::path(path1, std::filesystem::path::format::generic_format);
     auto p2 = std::filesystem::path(path2, std::filesystem::path::format::generic_format);
+
+#ifdef _WIN32
+	// This is an ugly workaround to make sure we will not try to interpret root names (e.g. "c:/", "//?/") on Windows
+	// since this function only deals with unix-like paths
+	p1 = workaround_win_root_name(p1);
+	p2 = workaround_win_root_name(p2);
+#endif // _WIN32
 
 	// note: if p2 happens to be an absolute path, p1 / p2 == p2
 	auto path_concat = (p1 / p2).lexically_normal();
