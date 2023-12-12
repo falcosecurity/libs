@@ -63,20 +63,20 @@ jobs:
           name: Run scap-open with modern bpf 🏎️
           command: |
             cd /tmp/libs/build
-            sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 0
+            sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 10
 
       - run:
           name: Run scap-open with bpf 🏎️
           command: |
             cd /tmp/libs/build
-            sudo ./libscap/examples/01-open/scap-open --bpf ./driver/bpf/probe.o --num_events 0
+            sudo ./libscap/examples/01-open/scap-open --bpf ./driver/bpf/probe.o --num_events 10
 
       - run:
           name: Run scap-open with kmod 🏎️
           command: |
             cd /tmp/libs/build
             sudo insmod ./driver/scap.ko || true
-            sudo ./libscap/examples/01-open/scap-open --kmod --num_events 0
+            sudo ./libscap/examples/01-open/scap-open --kmod --num_events 10
             sudo rmmod scap
 
   # Here we test libraries
