@@ -48,6 +48,10 @@ struct inode___v6_6 {
 	struct timespec64 __i_ctime;
 };
 
+struct inode___v6_7 {
+	struct timespec64 __i_mtime;
+};
+
 struct ovl_entry___before_v6_5
 {
 	long unsigned int flags;
