@@ -17,11 +17,10 @@ limitations under the License.
 */
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
-#include "sinsp_with_test_input.h"
 #include <dns_manager.h>
 #include <gtest/gtest.h>
 
-TEST_F(sinsp_with_test_input, simple_dns_manager_invocation) 
+TEST(sinsp_dns_manager, simple_dns_manager_invocation)
 {
     // Simple dummy test to assert that sinsp_dns_manager is invocated correctly
     // and not leaking memory
