@@ -35,6 +35,7 @@ using namespace std;
 static const filtercheck_field_info sinsp_filter_check_container_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "Container ID", "The truncated container ID (first 12 characters), e.g. 3ad7b26ded6d. The container ID is extracted from the Linux cgroups."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.full_id", "Container ID", "The full container ID, e.g. 3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "Container Name", "The container name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "Image Name", "The container image name (e.g. falcosecurity/falco:latest for docker)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.id", "Image ID", "The container image id (e.g. 6f7e2741b66b)."},
@@ -198,6 +199,26 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = tinfo->m_container_id;
 		}
 
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_CONTAINER_FULL_ID:
+		if(is_host)
+		{
+			m_tstr = "host";
+		}
+		else
+		{
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			if(container_info->m_full_id.empty())
+			{
+				return NULL;
+			}
+
+			m_tstr = container_info->m_full_id;
+		}
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_NAME:
 		if(is_host)

@@ -705,6 +705,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 
 	// Check container and k8s related filter fields that are retrieved from the container runtime socket
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "49ecc2820215");
+	ASSERT_EQ(get_field_as_string(evt, "container.full_id"), "49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad");
 	ASSERT_EQ(get_field_as_string(evt, "container.name"), "redis");
 	ASSERT_EQ(get_field_as_string(evt, "container.image"), "quay.io/crio/redis:alpine");
 	// ASSERT_EQ(get_field_as_string(evt, "container.image.id"), "redis"); // TBD unsure how it's parsed in cri.hpp for cri-o
@@ -723,6 +724,8 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "redhat.test.crio");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "podsandbox1");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "1f04600dc694");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_id"), "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), "redhat-test-crio");
 	// todo @Andreagit97 refactor pod labels queries to k8s.pod.label[example.label]
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example.label/custom"), "mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example.label/custom:mylabel");
