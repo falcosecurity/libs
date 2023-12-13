@@ -722,8 +722,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "redhat.test.crio");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "podsandbox1");
-	// todo @incertum fix pod id with next refactor, pod.id is sandbox id not pod uid
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "redhat-test-crio");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "1f04600dc694");
 	// todo @Andreagit97 refactor pod labels queries to k8s.pod.label[example.label]
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example.label/custom"), "mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example.label/custom:mylabel");
