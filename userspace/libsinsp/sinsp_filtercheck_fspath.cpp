@@ -339,8 +339,7 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 	// prepend the cwd of the threadinfo to the path.
 	if((m_field_id == TYPE_NAME ||
 	    m_field_id == TYPE_SOURCE ||
-	    m_field_id == TYPE_TARGET)
-	   && m_tstr.front() != '/')
+	    m_field_id == TYPE_TARGET))
 	{
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -349,7 +348,14 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 			return NULL;
 		}
 
-		m_tstr = sinsp_utils::concatenate_paths(tinfo->get_cwd(), m_tstr);
+		if(m_tstr.front() != '/')
+		{
+			m_tstr = sinsp_utils::concatenate_paths(tinfo->get_cwd(), m_tstr);
+		} else
+		{
+			// concatenate_paths takes care of resolving the path
+			m_tstr = sinsp_utils::concatenate_paths("", m_tstr);
+		}
 	}
 
 	// If m_tstr ends in a c-style \0, remove it to be

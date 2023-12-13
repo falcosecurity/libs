@@ -486,6 +486,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		{
 			//
 			// Get the file path directly from the ring buffer.
+			// concatenate_paths takes care of resolving the path
 			//
 			m_strstorage = sinsp_utils::concatenate_paths("", evt->get_param(3)->as<std::string_view>());
 
