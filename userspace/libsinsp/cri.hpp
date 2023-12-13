@@ -722,7 +722,7 @@ bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key 
 			{
 				if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
 				{
-					container.m_labels[pair.first] = pair.second;;
+					container.m_labels[pair.first] = pair.second;
 				}
 			}
 			return true;
