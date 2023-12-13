@@ -38,6 +38,7 @@ static const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.name", "Pod Name", "Kubernetes pod name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.id", "Pod / Sandbox ID", "The truncated Kubernetes pod / sandbox ID (first 12 characters), e.g 63060edc2d3a. Note that the pod ID is the sandbox ID in the Kubernetes control plane context, not the pod UID. The pod ID is specific to the container runtime environment. It is the equivalent of the container ID for the pod / sandbox and extracted from the Linux cgroups."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.full_id", "Pod / Sandbox ID", "The full Kubernetes pod / sandbox ID, e.g 63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a. See k8s.pod.id for more info."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.uid", "Pod UID", "The Kubernetes pod UID, e.g. 3e41dc6b-08a8-44db-bc2a-3724b18ab19a. Note that the pod UID is a unique identifier assigned upon pod creation within Kubernetes, allowing the Kubernetes control plane to manage and track pods reliably. As such, it is fundamentally a different concept compared to the pod ID."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "k8s.pod.label", "Pod Label", "Kubernetes pod label. E.g. 'k8s.pod.label.foo'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.labels", "Pod Labels", "Kubernetes pod comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
@@ -244,6 +245,14 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 			{
 				m_tstr.resize(12);
 			}
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
+	case TYPE_K8S_POD_FULL_ID:
+		// presence of io.kubernetes.sandbox.id is enforced based on the info.sandboxID in the container status response
+		if(container_info->m_labels.count("io.kubernetes.sandbox.id") > 0)
+		{
+			m_tstr = container_info->m_labels.at("io.kubernetes.sandbox.id");
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;

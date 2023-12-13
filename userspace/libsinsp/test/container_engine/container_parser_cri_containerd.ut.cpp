@@ -713,6 +713,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 
 	// Check container and k8s related filter fields that are retrieved from the container runtime socket
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "3ad7b26ded6d");
+	ASSERT_EQ(get_field_as_string(evt, "container.full_id"), "3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e");
 	ASSERT_EQ(get_field_as_string(evt, "container.name"), "busybox");
 	ASSERT_EQ(get_field_as_string(evt, "container.image"), "docker.io/library/busybox:latest");
 	ASSERT_EQ(get_field_as_string(evt, "container.image.id"), "busybox");
@@ -731,6 +732,8 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "default");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "nginx-sandbox");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "63060edc2d3a");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_id"), "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), "hdishddjaidwnduw9a43535366368");
 	// todo @Andreagit97 refactor pod labels queries to k8s.pod.label[example.label]
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example.label/custom"), "mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example.label/custom:mylabel");

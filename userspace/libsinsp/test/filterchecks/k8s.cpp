@@ -86,13 +86,15 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	std::string ip_string = "192.168.1.1";
 	std::string cni_json = "cni.pod";
 	std::string container_id = "fce2a82f930f";
+	std::string container_full_id = "fce2a82f930fa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6";
 	std::string container_name = "kind-control-plane";
 	std::string pod_name = "nginx";
 	std::string pod_id = "1f04600dc694";
+	std::string pod_full_id = "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca";
 	std::string pod_uid = "5eaeeca9-2277-460b-a4bf-5a0783f6d49f";
 	std::string pod_namespace = "default";
 	std::map<std::string, std::string> container_labels = {
-						     {"io.kubernetes.sandbox.id", pod_id},
+						     {"io.kubernetes.sandbox.id", pod_full_id},
 						     {"io.kubernetes.pod.name", pod_name},
 						     {"io.kubernetes.pod.uid", pod_uid},
 						     {"io.kubernetes.pod.namespace", pod_namespace}};
@@ -104,6 +106,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	auto init_thread_info = m_inspector.get_thread_ref(INIT_TID).get();
 	auto container_info = std::make_shared<sinsp_container_info>();
 	container_info->m_id = container_id;
+	container_info->m_full_id = container_full_id;
 	init_thread_info->m_container_id = container_id;
 	container_info->m_name = container_name;
 	container_info->m_type = CT_DOCKER;
@@ -121,6 +124,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	auto evt = generate_random_event();
 	// basic filterchecks
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), container_id);
+	ASSERT_EQ(get_field_as_string(evt, "container.full_id"), container_full_id);
 	ASSERT_EQ(get_field_as_string(evt, "container.name"), container_name);
 	ASSERT_EQ(get_field_as_string(evt, "container.ip"), ip_string);
 	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"), cni_json);
@@ -128,6 +132,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	// k8s filterchecks, populated because our mock container is in a pod
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), pod_name);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), pod_id);
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_id"), pod_full_id);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), pod_uid);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.sample"), "nginx");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.app.kubernetes.io/name"), "example");
@@ -167,9 +172,11 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value_with_no_labels)
 	std::string ip_string = "192.168.1.1";
 	std::string cni_json = "cni.pod";
 	std::string container_id = "fce2a82f930f";
+	std::string container_full_id = "fce2a82f930fa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6";
 	std::string container_name = "kind-control-plane";
 	std::string pod_name = "nginx";
 	std::string pod_id = "1f04600dc694";
+	std::string pod_full_id = "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca";
 	std::string pod_uid = "5eaeeca9-2277-460b-a4bf-5a0783f6d49f";
 	std::string pod_namespace = "default";
 	std::map<std::string, std::string> container_labels = {{"sample", "nginx"}};
@@ -178,6 +185,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value_with_no_labels)
 	auto init_thread_info = m_inspector.get_thread_ref(INIT_TID).get();
 	auto container_info = std::make_shared<sinsp_container_info>();
 	container_info->m_id = container_id;
+	container_info->m_full_id = container_full_id;
 	init_thread_info->m_container_id = container_id;
 	container_info->m_name = container_name;
 	container_info->m_type = CT_DOCKER;
@@ -194,6 +202,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value_with_no_labels)
 
 	auto evt = generate_random_event();
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), container_id);
+	ASSERT_EQ(get_field_as_string(evt, "container.full_id"), container_full_id);
 	ASSERT_EQ(get_field_as_string(evt, "container.name"), container_name);
 	ASSERT_EQ(get_field_as_string(evt, "container.ip"), ip_string);
 	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"), cni_json);
@@ -201,6 +210,7 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value_with_no_labels)
 	// If we don't have the `io.kubernetes...` labels on the container we cannot obtain these values
 	ASSERT_FALSE(field_has_value(evt, "k8s.pod.name"));
 	ASSERT_FALSE(field_has_value(evt, "k8s.pod.id"));
+	ASSERT_FALSE(field_has_value(evt, "k8s.pod.full_id"));
 	ASSERT_FALSE(field_has_value(evt, "k8s.pod.uid"));
 	ASSERT_FALSE(field_has_value(evt, "k8s.pod.label.one"));
 	ASSERT_FALSE(field_has_value(evt, "k8s.pod.labels"));
