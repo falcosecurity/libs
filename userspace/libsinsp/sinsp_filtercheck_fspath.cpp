@@ -282,7 +282,7 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 			{
 				return NULL;
 			}
-			m_tstr.assign((char *) extract_values[0].ptr, extract_values[0].len);
+			m_tstr.assign((const char*) extract_values[0].ptr, strnlen((const char*) extract_values[0].ptr, extract_values[0].len));
 		};
 
 		break;
@@ -305,7 +305,7 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 			{
 				return NULL;
 			}
-			m_tstr.assign((char *) extract_values[0].ptr, extract_values[0].len);
+			m_tstr.assign((const char*) extract_values[0].ptr, strnlen((const char*) extract_values[0].ptr, extract_values[0].len));
 		};
 		break;
 	case TYPE_TARGET:
@@ -328,7 +328,7 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 			{
 				return NULL;
 			}
-			m_tstr.assign((char *) extract_values[0].ptr, extract_values[0].len);
+			m_tstr.assign((const char*) extract_values[0].ptr, strnlen((const char*) extract_values[0].ptr, extract_values[0].len));
 		};
 		break;
 	default:
@@ -356,16 +356,6 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 			// concatenate_paths takes care of resolving the path
 			m_tstr = sinsp_utils::concatenate_paths("", m_tstr);
 		}
-	}
-
-	// If m_tstr ends in a c-style \0, remove it to be
-	// consistent. Generally, the evt.rawarg fields above *will*
-	// end in c-style \0 characters, while the ones that extract
-	// from the enter event or have values populated by parsers
-	// (e.g. fchmod/fchown) will not.
-	if(m_tstr.back() == '\0')
-	{
-		m_tstr.pop_back();
 	}
 
 	RETURN_EXTRACT_STRING(m_tstr);
