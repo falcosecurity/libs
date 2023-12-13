@@ -41,17 +41,20 @@ jobs:
     name: test-scap-${{ matrix.arch }} 😆 (bundled_deps)
     runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
     needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     strategy:
       matrix:
         arch: [amd64, arm64]
     steps:
       - name: Checkout Libs ⤵️
+        # We need to skip each step because of https://github.com/orgs/community/discussions/9141.
+        # This avoids having a skipped job whose name is not the resolved matrix name, like "test-scap-${{ matrix.arch }} 😆 (bundled_deps)"
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
       - name: Install deps ⛓️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r)
@@ -60,6 +63,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
 
       - name: Build scap-open and drivers 🏗️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           mkdir -p build
           cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=On -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
@@ -68,16 +72,19 @@ jobs:
           make libscap_test
 
       - name: Run scap-open with modern bpf 🏎️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           cd build
           sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 10
 
       - name: Run scap-open with bpf 🏎️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           cd build
           sudo ./libscap/examples/01-open/scap-open --bpf ./driver/bpf/probe.o --num_events 10
 
       - name: Run scap-open with kmod 🏎️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           cd build
           sudo insmod ./driver/scap.ko
@@ -85,6 +92,7 @@ jobs:
           sudo rmmod scap
 
       - name: Run libscap_test 🏎️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           cd build
           sudo ./test/libscap/libscap_test
@@ -93,17 +101,18 @@ jobs:
     name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
     runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
     needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     strategy:
       matrix:
         arch: [amd64, arm64]
     steps:
       - name: Checkout Libs ⤵️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
       - name: Install deps ⛓️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev linux-headers-$(uname -r) clang-14 llvm-14 libtool gcc-multilib g++-multilib
@@ -112,6 +121,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
 
       - name: Build drivers tests 🏗️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           mkdir -p build
           cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
@@ -119,16 +129,19 @@ jobs:
           make driver bpf
 
       - name: Run drivers_test with modern bpf 🏎️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           cd build
           sudo ./test/drivers/drivers_test -m
 
       - name: Run drivers_test with bpf 🏎️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           cd build
           sudo ./test/drivers/drivers_test -b
 
       - name: Run drivers_test with kmod 🏎️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           cd build
           sudo ./test/drivers/drivers_test -k
@@ -137,7 +150,6 @@ jobs:
     name: build-drivers-${{ matrix.arch }} 😁 (system_deps)
     runs-on: ubuntu-22.04
     needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     strategy:
       matrix:
         arch: [s390x, ppc64le]
@@ -145,14 +157,15 @@ jobs:
     env:
       PLATFORM: ${{ matrix.arch == 'ppc64le' && 'powerpc64le' || 's390x' }}
     steps:
-
       - name: Checkout Libs ⤵️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
       - uses: uraimo/run-on-arch-action@4ed76f16f09d12e83abd8a49e1ac1e5bf08784d4 # v2.5.1
         name: Run ${{ matrix.arch }} build 🏗️
+        if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         with:
           arch: ${{ matrix.arch }}
           distro: ubuntu22.04
