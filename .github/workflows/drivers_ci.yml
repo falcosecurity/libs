@@ -1,18 +1,15 @@
 name: CI Build
 on:
   pull_request:
-    paths:
-      - driver/**
-      - userspace/libscap/**
   push:
     branches:
       - master
       - 'release/**'
       - 'maintainers/**'
-    paths:
-      - driver/**
-      - userspace/libscap/**  
   workflow_dispatch:
+  # we cannot use paths key here since otherwise required_status_checks jobs won't run.
+  # See https://github.com/orgs/community/discussions/26251.
+  # We need to use the paths-filter job.
 
 # Checks if any concurrent jobs under the same pull request or branch are being executed
 concurrency:
@@ -43,6 +40,8 @@ jobs:
   test-scap:
     name: test-scap-${{ matrix.arch }} 😆 (bundled_deps)
     runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -93,6 +92,8 @@ jobs:
   test-drivers:
     name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
     runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -135,6 +136,8 @@ jobs:
   build-drivers-s390x-ppc64le:
     name: build-drivers-${{ matrix.arch }} 😁 (system_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     strategy:
       matrix:
         arch: [s390x, ppc64le]
