@@ -569,7 +569,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	const auto &resp_container = resp.status();
 	const auto &resp_container_info = resp.info();
 	const auto &resp_sandbox_container = resp_pod.status();
-	const auto &resp_sandbox_container_info = resp_pod.info();
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
