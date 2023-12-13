@@ -42,10 +42,10 @@ jobs:
   # This job run all engine tests and scap-open
   test-scap:
     name: test-scap-${{ matrix.arch }} 😆 (bundled_deps)
-    runs-on: ${{ (matrix.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [amd64, arm64]
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -92,10 +92,10 @@ jobs:
 
   test-drivers:
     name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
-    runs-on: ${{ (matrix.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [amd64, arm64]
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
