@@ -2326,6 +2326,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 				else if(flags & PPM_EXVAT_AT_EMPTY_PATH)
 				{
 					/* In this case `sdir` will always be an absolute path.
+					 * concatenate_paths takes care of resolving the path
 					*/
 					fullpath = sinsp_utils::concatenate_paths("", sdir);
 
