@@ -34,7 +34,7 @@ using namespace std;
 
 static const filtercheck_field_info sinsp_filter_check_container_fields[] =
 {
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "Container ID", "The truncated container id (first 12 characters)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "Container ID", "The truncated container ID (first 12 characters), e.g. 3ad7b26ded6d. The container ID is extracted from the Linux cgroups."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "Container Name", "The container name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "Image Name", "The container image name (e.g. falcosecurity/falco:latest for docker)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.id", "Image ID", "The container image id (e.g. 6f7e2741b66b)."},

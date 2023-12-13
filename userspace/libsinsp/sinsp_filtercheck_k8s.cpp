@@ -37,7 +37,8 @@ static inline bool str_match_start(const std::string& val, size_t len, const cha
 static const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.name", "Pod Name", "Kubernetes pod name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.id", "Pod ID", "Kubernetes pod id."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.id", "Pod / Sandbox ID", "The truncated Kubernetes pod / sandbox ID (first 12 characters), e.g 63060edc2d3a. Note that the pod ID is the sandbox ID in the Kubernetes control plane context, not the pod UID. The pod ID is specific to the container runtime environment. It is the equivalent of the container ID for the pod / sandbox and extracted from the Linux cgroups."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.uid", "Pod UID", "The Kubernetes pod UID, e.g. 3e41dc6b-08a8-44db-bc2a-3724b18ab19a. Note that the pod UID is a unique identifier assigned upon pod creation within Kubernetes, allowing the Kubernetes control plane to manage and track pods reliably. As such, it is fundamentally a different concept compared to the pod ID."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "k8s.pod.label", "Pod Label", "Kubernetes pod label. E.g. 'k8s.pod.label.foo'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.labels", "Pod Labels", "Kubernetes pod comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.ip", "Pod Ip", "Kubernetes pod ip, same as container.ip field as each container in a pod shares the network stack of the sandbox / pod. Only ipv4 addresses are tracked. Consider k8s.pod.cni.json for logging ip addresses for each network interface."},
@@ -235,6 +236,18 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		}
 		break;
 	case TYPE_K8S_POD_ID:
+		// presence of io.kubernetes.sandbox.id is enforced based on the info.sandboxID in the container status response
+		if(container_info->m_labels.count("io.kubernetes.sandbox.id") > 0)
+		{
+			m_tstr = container_info->m_labels.at("io.kubernetes.sandbox.id");
+			if(m_tstr.size() > 12)
+			{
+				m_tstr.resize(12);
+			}
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
+	case TYPE_K8S_POD_UID:
 		if(container_info->m_labels.count("io.kubernetes.pod.uid") > 0)
 		{
 			m_tstr = container_info->m_labels.at("io.kubernetes.pod.uid");
