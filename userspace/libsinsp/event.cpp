@@ -2161,8 +2161,7 @@ void sinsp_evt::save_enter_event_params(sinsp_evt* enter_evt)
 		param = enter_evt->get_param_by_name(pname);
 		if(param)
 		{
-			std::string val;
-			val.assign((char *) param->m_val, param->m_len);
+			std::string val {param->as<std::string_view>()};
 			m_enter_path_param[pname] = val;
 		}
 	}
