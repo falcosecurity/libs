@@ -341,35 +341,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_FILENAME:
 	{
-		if(evt->get_type() != PPME_SYSCALL_OPEN_E && evt->get_type() != PPME_SYSCALL_OPENAT_E &&
-			evt->get_type() != PPME_SYSCALL_OPENAT_2_E && evt->get_type() != PPME_SYSCALL_OPENAT2_E &&
-			evt->get_type() != PPME_SYSCALL_CREAT_E)
-		{
-			return NULL;
-		}
-
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
-		{
-			if(sanitize_strings)
-			{
-				sanitize_string(m_tstr);
-			}
-
-			size_t pos = m_tstr.rfind('/');
-			if(pos != string::npos)
-			{
-				if(pos < m_tstr.size() - 1)
-				{
-					m_tstr = m_tstr.substr(pos + 1, string::npos);
-				}
-			}
-
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
-		else
-		{
-			return NULL;
-		}
+		return NULL;
 	}
 	case TYPE_FDTYPECHAR:
 		*len = 1;
