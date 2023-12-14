@@ -808,12 +808,43 @@ or GPL2.txt for full copies of the license.
 /*
  * bpf_commands 
 */
-#define PPM_BPF_MAP_CREATE 		 (0<<1)
-#define PPM_BPF_MAP_LOOKUP_ELEM  (1<<1)
-#define PPM_BPF_MAP_UPDATE_ELEM  (1<<2)
-#define PPM_BPF_MAP_DELETE_ELEM  (1<<3)
-#define PPM_BPF_MAP_GET_NEXT_KEY (1<<4)
-#define PPM_BPF_PROG_LOAD 		 (1<<5)
+#define PPM_BPF_MAP_CREATE			0
+#define	PPM_BPF_MAP_LOOKUP_ELEM     1
+#define	PPM_BPF_MAP_UPDATE_ELEM		2
+#define	PPM_BPF_MAP_DELETE_ELEM		3
+#define	PPM_BPF_MAP_GET_NEXT_KEY	4
+#define	PPM_BPF_PROG_LOAD			5
+#define	PPM_BPF_OBJ_PIN				6
+#define	PPM_BPF_OBJ_GET				7
+#define	PPM_BPF_PROG_ATTACH			8
+#define	PPM_BPF_PROG_DETACH			9
+#define	PPM_BPF_PROG_TEST_RUN		10
+#define	PPM_BPF_PROG_RUN  PPM_BPF_PROG_TEST_RUN
+#define	PPM_BPF_PROG_GET_NEXT_ID	11
+#define	PPM_BPF_MAP_GET_NEXT_ID		12
+#define	PPM_BPF_PROG_GET_FD_BY_ID	13
+#define	PPM_BPF_MAP_GET_FD_BY_ID	14
+#define	PPM_BPF_OBJ_GET_INFO_BY_FD	15
+#define	PPM_BPF_PROG_QUERY			16
+#define	PPM_BPF_RAW_TRACEPOINT_OPEN	17
+#define	PPM_BPF_BTF_LOAD			18
+#define	PPM_BPF_BTF_GET_FD_BY_ID	19
+#define	PPM_BPF_TASK_FD_QUERY		20
+#define	PPM_BPF_MAP_LOOKUP_AND_DELETE_ELEM 21
+#define	PPM_BPF_MAP_FREEZE			22
+#define	PPM_BPF_BTF_GET_NEXT_ID		23
+#define	PPM_BPF_MAP_LOOKUP_BATCH	24		
+#define	PPM_BPF_MAP_LOOKUP_AND_DELETE_BATCH 25
+#define	PPM_BPF_MAP_UPDATE_BATCH	26
+#define	PPM_BPF_MAP_DELETE_BATCH	27
+#define	PPM_BPF_LINK_CREATE			28
+#define	PPM_BPF_LINK_UPDATE			29
+#define	PPM_BPF_LINK_GET_FD_BY_ID	30
+#define	PPM_BPF_LINK_GET_NEXT_ID	31
+#define	PPM_BPF_ENABLE_STATS		32
+#define	PPM_BPF_ITER_CREATE			33
+#define	PPM_BPF_LINK_DETACH			34
+#define	PPM_BPF_PROG_BIND_MAP		35
 
 /*
  * Get/set the timerslack as used by poll/select/nanosleep
