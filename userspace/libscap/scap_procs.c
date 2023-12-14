@@ -139,7 +139,7 @@ int32_t default_proc_entry_callback(void* context, char* error, int64_t tid, sca
 		// add a thread
 		// get a copy of tinfo on the heap
 		scap_threadinfo *heap_tinfo = malloc(sizeof(*heap_tinfo));
-		if(tinfo == NULL)
+		if(heap_tinfo == NULL)
 		{
 			return scap_errprintf(error, errno, "can't allocate procinfo struct");
 		}
