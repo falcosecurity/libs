@@ -164,7 +164,7 @@ public:
 	/*!
 	  \brief Returns true if this is a unix socket.
 	*/
-	bool is_unix_socket()
+	inline bool is_unix_socket() const
 	{
 		return m_type == SCAP_FD_UNIX_SOCK;
 	}
@@ -172,7 +172,7 @@ public:
 	/*!
 	  \brief Returns true if this is an IPv4 socket.
 	*/
-	bool is_ipv4_socket()
+	inline bool is_ipv4_socket() const
 	{
 		return m_type == SCAP_FD_IPV4_SOCK;
 	}
@@ -180,7 +180,7 @@ public:
 	/*!
 	  \brief Returns true if this is an IPv4 socket.
 	*/
-	bool is_ipv6_socket()
+	inline bool is_ipv6_socket() const
 	{
 		return m_type == SCAP_FD_IPV6_SOCK;
 	}
@@ -188,7 +188,7 @@ public:
 	/*!
 	  \brief Returns true if this is a UDP socket.
 	*/
-	bool is_udp_socket()
+	inline bool is_udp_socket() const
 	{
 		return m_type == SCAP_FD_IPV4_SOCK && m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP;
 	}
@@ -196,7 +196,7 @@ public:
 	/*!
 	  \brief Returns true if this is a unix TCP.
 	*/
-	bool is_tcp_socket()
+	inline bool is_tcp_socket() const
 	{
 		return m_type == SCAP_FD_IPV4_SOCK && m_sockinfo.m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP;
 	}
@@ -204,7 +204,7 @@ public:
 	/*!
 	  \brief Returns true if this is a pipe.
 	*/
-	bool is_pipe()
+	inline bool is_pipe() const
 	{
 		return m_type == SCAP_FD_FIFO;
 	}
@@ -212,7 +212,7 @@ public:
 	/*!
 	  \brief Returns true if this is a file.
 	*/
-	bool is_file()
+	inline bool is_file() const
 	{
 		return m_type == SCAP_FD_FILE || m_type == SCAP_FD_FILE_V2;
 	}
@@ -220,7 +220,7 @@ public:
 	/*!
 	  \brief Returns true if this is a directory.
 	*/
-	bool is_directory()
+	inline bool is_directory() const
 	{
 		return m_type == SCAP_FD_DIRECTORY;
 	}
@@ -228,7 +228,7 @@ public:
 	/*!
 	  \brief Returns true if this is a pidfd, created through pidfd_open.
 	*/
-	bool is_pidfd()
+	inline bool is_pidfd() const
 	{
 		return m_type == SCAP_FD_PIDFD;
 	}
