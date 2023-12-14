@@ -136,7 +136,9 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.sandbox_id"), pod_sandbox_id);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"), pod_full_sandbox_id);
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.sample"), "nginx");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[sample]"), "nginx");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.app.kubernetes.io/name"), "example");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[app.kubernetes.io/name]"), "example");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"),
 		  "app.kubernetes.io/name:example, io.x-k8s.kind.cluster:kind, io.x-k8s.kind.role:control-plane, sample:nginx");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), ip_string);

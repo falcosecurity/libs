@@ -68,7 +68,7 @@ TEST(filtercheck_has_args, has_args)
 				}
 				else if (field_str == "k8s.pod.label")
 				{
-					field_str += ".foo";
+					field_str += "[foo]";
 				}
 				else
 				{
