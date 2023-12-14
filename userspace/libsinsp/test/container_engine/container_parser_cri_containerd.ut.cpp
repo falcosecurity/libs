@@ -731,9 +731,10 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "default");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "nginx-sandbox");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "63060edc2d3a");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_id"), "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "hdishddjaidwnduw9a43535366368"); // legacy pod UID
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), "hdishddjaidwnduw9a43535366368");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.sandbox_id"), "63060edc2d3a");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"), "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
 	// todo @Andreagit97 refactor pod labels queries to k8s.pod.label[example.label]
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example.label/custom"), "mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example.label/custom:mylabel");
