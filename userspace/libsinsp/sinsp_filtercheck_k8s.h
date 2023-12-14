@@ -25,7 +25,8 @@ class sinsp_filter_check_k8s : public sinsp_filter_check
 public:
 	enum check_type
 	{
-		TYPE_K8S_POD_NAME = 0,
+		TYPE_K8S_NS_NAME = 0,
+		TYPE_K8S_POD_NAME,
 		TYPE_K8S_POD_ID,
 		TYPE_K8S_POD_UID,
 		TYPE_K8S_POD_SANDBOX_ID,
@@ -34,6 +35,7 @@ public:
 		TYPE_K8S_POD_LABELS,
 		TYPE_K8S_POD_IP,
 		TYPE_K8S_POD_CNIRESULT,
+		// below fields are all deprecated
 		TYPE_K8S_RC_NAME,
 		TYPE_K8S_RC_ID,
 		TYPE_K8S_RC_LABEL,
@@ -42,7 +44,6 @@ public:
 		TYPE_K8S_SVC_ID,
 		TYPE_K8S_SVC_LABEL,
 		TYPE_K8S_SVC_LABELS,
-		TYPE_K8S_NS_NAME,
 		TYPE_K8S_NS_ID,
 		TYPE_K8S_NS_LABEL,
 		TYPE_K8S_NS_LABELS,
