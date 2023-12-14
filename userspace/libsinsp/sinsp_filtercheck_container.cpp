@@ -200,7 +200,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 
 		RETURN_EXTRACT_STRING(m_tstr);
-	case TYPE_CONTAINER_FULL_ID:
+	case TYPE_CONTAINER_FULL_CONTAINER_ID:
 		if(is_host)
 		{
 			m_tstr = "host";
