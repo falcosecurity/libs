@@ -538,7 +538,7 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_crio_pod_status_resp
 	status->mutable_network()->set_ip("10.244.0.3");
 	auto labels = status->mutable_labels();
 	(*labels)["app"] = "myapp";
-	(*labels)["example.label/custom"] = "mylabel";
+	(*labels)["example-label/custom"] = "mylabel";
 	(*labels)["io.kubernetes.pod.namespace"] = "redhat.test.crio";
 	(*labels)["io.kubernetes.pod.name"] = "podsandbox1";
 	auto annotations = status->mutable_annotations();
@@ -728,9 +728,9 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.sandbox_id"), "1f04600dc694");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"), "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca");
 	// todo @Andreagit97 refactor pod labels queries to k8s.pod.label[example.label]
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example.label/custom"), "mylabel");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example.label/custom]"), "mylabel");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example.label/custom:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom]"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.3");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"cniVersion\":\"1.0.0\",\"interfaces\":[{\"name\":\"bridge\",\"mac\":\"ce:64:08:76:88:6a\"},{\"name\":\"veth71b0e931\",\"mac\":\"72:b7:4f:bc:e4:a4\"},{\"name\":\"eth0\",\"mac\":\"fe:06:00:f8:2f:4d\",\"sandbox\":\"/var/run/netns/dec735d1-0e86-44c1-94e0-a102173334a4\"}],\"ips\":[{\"interface\":2,\"address\":\"10.244.0.3/16\",\"gateway\":\"10.244.0.1\"}],\"routes\":[{\"dst\":\"0.0.0.0/0\",\"gw\":\"10.244.0.1\"}],\"dns\":{}}");
 }
