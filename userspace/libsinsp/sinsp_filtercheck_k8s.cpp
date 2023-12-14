@@ -36,6 +36,7 @@ static inline bool str_match_start(const std::string& val, size_t len, const cha
 
 static const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 {
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.name", "Namespace Name", "Kubernetes namespace name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.name", "Pod Name", "Kubernetes pod name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.id", "Legacy Pod UID", "[LEGACY] The Kubernetes pod UID, e.g. 3e41dc6b-08a8-44db-bc2a-3724b18ab19a. This legacy field points to `k8s.pod.uid`; however, the pod ID typically refers to the pod sandbox ID. We recommend using the semantically more accurate `k8s.pod.uid` field."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.uid", "Pod UID", "The Kubernetes pod UID, e.g. 3e41dc6b-08a8-44db-bc2a-3724b18ab19a. Note that the pod UID is a unique identifier assigned upon pod creation within Kubernetes, allowing the Kubernetes control plane to manage and track pods reliably. As such, it is fundamentally a different concept compared to the pod sandbox ID."},
@@ -53,7 +54,6 @@ static const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "k8s.svc.id", "Service ID", "Kubernetes service id (can return more than one value, concatenated)."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED|EPF_DEPRECATED, PF_NA, "k8s.svc.label", "Service Label", "Kubernetes service label. E.g. 'k8s.svc.label.foo' (can return more than one value, concatenated)."},
 	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "k8s.svc.labels", "Service Labels", "Kubernetes service comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.name", "Namespace Name", "Kubernetes namespace name."},
 	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "k8s.ns.id", "Namespace ID", "Kubernetes namespace id."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED|EPF_DEPRECATED, PF_NA, "k8s.ns.label", "Namespace Label", "Kubernetes namespace label. E.g. 'k8s.ns.label.foo'."},
 	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "k8s.ns.labels", "Namespace Labels", "Kubernetes namespace comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
