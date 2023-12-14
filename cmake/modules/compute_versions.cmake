@@ -32,6 +32,8 @@ macro(compute_versions api_version_path schema_version_path)
     message(STATUS "Driver schema version ${PPM_SCHEMA_CURRENT_VERSION_MAJOR}.${PPM_SCHEMA_CURRENT_VERSION_MINOR}.${PPM_SCHEMA_CURRENT_VERSION_PATCH}")
 
     # GIT COMMIT
-    execute_process(COMMAND git rev-parse HEAD OUTPUT_VARIABLE GIT_COMMIT ERROR_QUIET WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    if(NOT DEFINED GIT_COMMIT)
+        execute_process(COMMAND git rev-parse HEAD OUTPUT_VARIABLE GIT_COMMIT ERROR_QUIET WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
     string(STRIP "${GIT_COMMIT}" GIT_COMMIT)
 endmacro()
