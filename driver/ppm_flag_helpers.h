@@ -2223,33 +2223,14 @@ static __always_inline uint32_t mknod_mode_to_scap(uint32_t modes)
 }
 
 static __always_inline uint32_t bpf_cmd_to_scap (unsigned long cmd){
-	switch (cmd)
-	{
-#ifdef BPF_MAP_CREATE
-	case BPF_MAP_CREATE: 
-		return PPM_BPF_MAP_CREATE;
-#endif
-#ifdef BPF_MAP_LOOKUP_ELEM
-	case BPF_MAP_LOOKUP_ELEM: 
-		return PPM_BPF_MAP_LOOKUP_ELEM;
-#endif
-#ifdef BPF_MAP_UPDATE_ELEM
-	case BPF_MAP_UPDATE_ELEM: 
-		return PPM_BPF_MAP_UPDATE_ELEM;
-#endif
-#ifdef BPF_MAP_DELETE_ELEM
-	case BPF_MAP_DELETE_ELEM: 
-		return PPM_BPF_MAP_DELETE_ELEM;
-#endif
-#ifdef BPF_MAP_GET_NEXT_KEY
-	case BPF_MAP_GET_NEXT_KEY: 
-		return PPM_BPF_MAP_GET_NEXT_KEY;
-#endif
-#ifdef BPF_PROG_LOAD
-	case BPF_PROG_LOAD:
-		return PPM_BPF_PROG_LOAD;
-#endif 	
-	}
+	/*
+	 * bpf opcodes are defined via enum in uapi/linux/bpf.h.
+	 * It is userspace API (thus stable) and arch-independent.
+	 * Therefore we map them 1:1; if any unmapped flag arrives,
+	 * we will just print its value to userspace without mapping it to a string flag.
+	 * We then need to append new flags to both flags_table and ppm_events_public PPM_ flags.
+	 */
+
 	return cmd;
 }
 #endif /* PPM_FLAG_HELPERS_H_ */
