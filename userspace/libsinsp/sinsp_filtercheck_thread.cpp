@@ -844,18 +844,18 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 
-			if(!m_argname.empty()) // contains ENV_NAME we are looking to extract
+			if(!m_argname.empty()) // extract a specific ENV_NAME value
 			{
 				// proc.env[ENV_NAME] use case: returns matched env variable value
 				for (const auto& item : env)
 				{
-					std::string str(item.data(), item.data() + item.size());
-					if(str.find(m_argname) == 0)
+					// item is a Json::String
+					size_t pos = item.find('=');
+					if (pos != std::string::npos) 
 					{
-						size_t pos = str.find('=');
-						if (pos != std::string::npos)
-						{
-							m_tstr = str.substr(pos + 1);
+						std::string key = item.substr(0, pos);
+						if (key == m_argname) {
+							m_tstr = item.substr(pos + 1); // assign value
 							RETURN_EXTRACT_STRING(m_tstr);
 						}
 					}
@@ -907,13 +907,13 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 					// proc.aenv[ENV_NAME] use case: returns first ENV_NAME match in parent lineage
 					for (const auto& item : mt->get_env())
 					{
-						std::string str(item.data(), item.data() + item.size());
-						if(str.find(m_argname) == 0)
+						// item is a Json::String
+						size_t pos = item.find('=');
+						if (pos != std::string::npos) 
 						{
-							size_t pos = str.find('=');
-							if (pos != std::string::npos)
-							{
-								m_tstr = str.substr(pos + 1);
+							std::string key = item.substr(0, pos);
+							if (key == m_argname) {
+								m_tstr = item.substr(pos + 1); // assign value
 								RETURN_EXTRACT_STRING(m_tstr);
 							}
 						}
