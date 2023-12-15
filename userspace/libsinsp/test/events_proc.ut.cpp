@@ -434,6 +434,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.env"), "SHELL=/bin/bash SHELL_NEW=/bin/sh PWD=/home/user HOME=/home/user");
 	ASSERT_EQ(get_field_as_string(evt, "proc.env[HOME]"), "/home/user");
 	ASSERT_EQ(get_field_as_string(evt, "proc.env[SHELL]"), "/bin/bash");
+	ASSERT_EQ(get_field_as_string(evt, "proc.env[SHELL_NEW]"), "/bin/sh"); // test for prefix similarity
 	ASSERT_EQ(get_field_as_string(evt, "proc.aenv"), "SHELL=/bin/bash SHELL_NEW=/bin/sh PWD=/home/user HOME=/home/user");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[0]"), "SHELL=/bin/bash SHELL_NEW=/bin/sh PWD=/home/user HOME=/home/user");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[1]"), "TEST_ENV_PARENT_LINEAGE=secret HOME=/home/user/parent");
