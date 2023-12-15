@@ -40,6 +40,7 @@ else()
 
 	if(NOT WIN32)
 		set(RE2_LIB "${RE2_SRC}/lib/libre2${RE2_LIB_SUFFIX}")
+		set(RE2_LIB_PATTERN "libre2*")
 		ExternalProject_Add(re2
 			PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
 			URL "${RE2_URL}"
@@ -53,6 +54,7 @@ else()
 				-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
 	else()
 		set(RE2_LIB "${RE2_SRC}/lib/re2.lib")
+		set(RE2_LIB_PATTERN "re2.lib")
 		# see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
 		if(CMAKE_VERSION VERSION_LESS 3.15.0)
 			ExternalProject_Add(re2
@@ -87,7 +89,7 @@ else()
 
 	install(DIRECTORY ${RE2_SRC}/lib/ DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 			COMPONENT "libs-deps"
-			FILES_MATCHING PATTERN "libre2*")
+			FILES_MATCHING PATTERN ${RE2_LIB_PATTERN})
 	install(DIRECTORY "${RE2_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
 			COMPONENT "libs-deps")
 endif()
