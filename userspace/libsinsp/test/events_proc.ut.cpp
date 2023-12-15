@@ -329,7 +329,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	std::vector<std::string> cgroups = {"cpuset=/", "cpu=/user.slice", "cpuacct=/user.slice", "io=/user.slice", "memory=/user.slice/user-1000.slice/session-1.scope", "devices=/user.slice", "freezer=/", "net_cls=/", "perf_event=/", "net_prio=/", "hugetlb=/", "pids=/user.slice/user-1000.slice/session-1.scope", "rdma=/", "misc=/"};
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
-	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
+	std::vector<std::string> env = {"SHELL=/bin/bash", "SHELL_NEW=/bin/sh", "PWD=/home/user", "HOME=/home/user"};
 	std::string envv = test_utils::to_null_delimited(env);
 	std::vector<std::string> args = {"-c", "'echo aGVsbG8K | base64 -d'"};
 	std::string argsv = test_utils::to_null_delimited(args);
@@ -431,11 +431,13 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cmdlenargs"), "29");
 	ASSERT_EQ(get_field_as_string(evt, "proc.sname"), "init");
 
-	ASSERT_EQ(get_field_as_string(evt, "proc.env"), "SHELL=/bin/bash PWD=/home/user HOME=/home/user");
+	ASSERT_EQ(get_field_as_string(evt, "proc.env"), "SHELL=/bin/bash SHELL_NEW=/bin/sh PWD=/home/user HOME=/home/user");
 	ASSERT_EQ(get_field_as_string(evt, "proc.env[HOME]"), "/home/user");
 	ASSERT_EQ(get_field_as_string(evt, "proc.env[SHELL]"), "/bin/bash");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aenv"), "SHELL=/bin/bash PWD=/home/user HOME=/home/user");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[HOME]"), "/home/user");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aenv"), "SHELL=/bin/bash SHELL_NEW=/bin/sh PWD=/home/user HOME=/home/user");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[0]"), "SHELL=/bin/bash SHELL_NEW=/bin/sh PWD=/home/user HOME=/home/user");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[1]"), "TEST_ENV_PARENT_LINEAGE=secret HOME=/home/user/parent");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[HOME]"), "/home/user/parent"); // the parent has /home/user/parent vs /home/user in the same named HOME env variable of the current proc
 	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[SHELL]"), "");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aenv[TEST_ENV_PARENT_LINEAGE]"), "secret");
 }
