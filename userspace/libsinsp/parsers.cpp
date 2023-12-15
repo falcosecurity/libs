@@ -147,12 +147,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	switch(etype)
 	{
 	case PPME_SOCKET_SENDTO_E:
-		if((evt->m_fdinfo == nullptr) && (evt->m_tinfo != nullptr))
-		{
-			infer_sendto_fdinfo(evt);
-		}
-
-		// FALLTHRU
 	case PPME_SYSCALL_OPEN_E:
 	case PPME_SYSCALL_CREAT_E:
 	case PPME_SYSCALL_OPENAT_E:
@@ -2908,64 +2902,6 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 	// Add the fd to the table.
 	//
 	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
-}
-
-/**
- * If we receive a call to 'sendto()' and the event's m_fdinfo is nullptr,
- * then we likely missed the call to 'socket()' that created the file
- * descriptor.  In that case, we'll guess that it's a SOCK_DGRAM/UDP socket
- * and create the fdinfo based on that.
- *
- * Preconditions: evt->m_fdinfo == nullptr and
- *                evt->m_tinfo != nullptr
- *
- */
-inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
-{
-	if((evt->m_fdinfo != nullptr) || (evt->m_tinfo == nullptr))
-	{
-		return;
-	}
-
-	const uint32_t FILE_DESCRIPTOR_PARAM = 0;
-	const uint32_t SOCKET_TUPLE_PARAM = 2;
-
-	const sinsp_evt_param* parinfo = nullptr;
-
-	ASSERT(evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
-	int64_t fd = evt->get_param(FILE_DESCRIPTOR_PARAM)->as<int64_t>();
-
-	if(fd < 0)
-	{
-		// Call to sendto() with an invalid file descriptor
-		return;
-	}
-
-	parinfo = evt->get_param(SOCKET_TUPLE_PARAM);
-	const char addr_family = *((char*) parinfo->m_val);
-
-	if((addr_family == AF_INET) || (addr_family == AF_INET6))
-	{
-		const uint32_t domain = (addr_family == AF_INET)
-		                        ? PPM_AF_INET
-		                        : PPM_AF_INET6;
-
-#ifndef _WIN32
-		SINSP_DEBUG("Call to sendto() with fd=%d; missing socket() "
-		            "data. Adding socket %s/SOCK_DGRAM/IPPROTO_UDP "
-		            "for command '%s', pid %d",
-		            fd,
-		            (domain == PPM_AF_INET) ? "PPM_AF_INET"
-		                                    : "PPM_AF_INET6",
-		            evt->m_tinfo->get_comm().c_str(),
-		            evt->m_tinfo->m_pid);
-#endif
-
-		// Here we're assuming sendto() means SOCK_DGRAM/UDP, but it
-		// can be used with TCP.  We have no way to know for sure at
-		// this point.
-		add_socket(evt, fd, domain, SOCK_DGRAM, IPPROTO_UDP);
-	}
 }
 
 void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
