@@ -63,7 +63,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Characters in Command Line args", "The total count of characters / length of the command line args (proc.args) combined excluding whitespaces between args."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exeline", "Executable Command Line", "The full command line, with exe as first argument (proc.exe + proc.args) when starting the process generating the event."},
 	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.env", "Environment", "The environment variables of the process generating the event as concatenated string 'ENV_NAME=value ENV_NAME1=value1'. Can also be used to extract the value of a known env variable, e.g. proc.env[ENV_NAME]."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aenv", "Ancestor Environment", "[EXPERIMENTAL] Extract the first matched value of a known env variable among the ancestors (up to 7 levels) of the current process, e.g. proc.aenv[ENV_NAME]. proc.aenv can also be used for filtering the ancestors' proc.env. When used as output field without [ENV_NAME] it returns proc.env. The behavior of this ancestor filtering differs from that in existing fields like proc.aname. For instance, specifying the traversal level is not supported. This field may be deprecated or undergo breaking changes in future releases, such as proc.aenv[1][ENV_NAME]. Please use it with caution."},
+	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.aenv", "Ancestor Environment", "[EXPERIMENTAL] This field can be used in three flavors: (1) as a filter checking all parents, e.g. 'proc.aenv contains xyz', which is similar to the familiar 'proc.aname contains xyz' approach, (2) checking the `proc.env` of a specified level of the parent, e.g. 'proc.aenv[2]', which is similar to the familiar 'proc.aname[2]' approach, or (3) checking the first matched value of a known ENV_NAME in the parent lineage, such as 'proc.aenv[ENV_NAME]' (across a max of 20 ancestor levels). This field may be deprecated or undergo breaking changes in future releases. Please use it with caution."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cwd", "Current Working Directory", "The current working directory of the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "Login Shell ID", "The pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
 	{PT_UINT32, EPF_NONE, PF_ID, "proc.tty", "Process TTY", "The controlling terminal of the process. 0 for processes without a terminal."},
@@ -161,6 +161,10 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 		if(val[fldname.size()] == '[')
 		{
 			parsed_len = (uint32_t)val.find(']');
+			if(parsed_len == std::string::npos)
+			{
+				throw sinsp_exception("the field '" + fldname + "' requires an argument but ']' is not found");
+			}
 			string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
 			m_argid = sinsp_numparser::parsed32(numstr);
 			parsed_len++;
@@ -178,11 +182,17 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 			size_t startpos = fldname.size();
 			parsed_len = (uint32_t)val.find(']', startpos);
 
-			if (startpos != std::string::npos && parsed_len != std::string::npos)
+			if(parsed_len == std::string::npos)
 			{
-				m_argname = val.substr(startpos + 1, parsed_len - startpos - 1);
-				parsed_len++;
+				throw sinsp_exception("the field '" + fldname + "' requires an argument but ']' is not found");
 			}
+			m_argname = val.substr(startpos + 1, parsed_len - startpos - 1);
+			if(!m_argname.empty() && std::all_of(m_argname.begin(), m_argname.end(), [](unsigned char c) { return std::isdigit(c); }))
+			{
+				m_argid = sinsp_numparser::parsed32(m_argname);
+				m_argname.clear();
+			}
+			parsed_len++;
 		}
 		else
 		{
@@ -867,27 +877,26 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_AENV:
 		{
 			m_tstr.clear();
-			uint32_t j;
-			const auto& env = tinfo->get_env();
-			uint32_t nargs = (uint32_t)env.size();
 
-			if(!m_argname.empty()) // contains ENV_NAME we are looking to extract
+			// get current tinfo / init for subsequent parent lineage traversal
+			sinsp_threadinfo* mt = NULL;
+			if(tinfo->is_main_thread())
 			{
-				sinsp_threadinfo* mt = NULL;
-				if(tinfo->is_main_thread())
+				mt = tinfo;
+			}
+			else
+			{
+				mt = tinfo->get_main_thread();
+				if(mt == NULL)
 				{
-					mt = tinfo;
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
-				else
-				{
-					mt = tinfo->get_main_thread();
-					if(mt == NULL)
-					{
-						RETURN_EXTRACT_STRING(m_tstr);
-					}
-				}
+			}
 
-				for(int32_t j = 0; j < 7; j++) // up to 7 levels
+			if(!m_argname.empty()) // extract a specific ENV_NAME value
+			{
+				// start parent lineage traversal
+				for(int32_t j = 0; j < 20; j++) // up to 20 levels, but realistically we will exit way before given the mt nullptr check
 				{
 					mt = mt->get_parent_thread();
 
@@ -911,9 +920,36 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 					}
 				}
 				RETURN_EXTRACT_STRING(m_tstr); // return empty in case of no match
+			} else if(m_argid > 0)
+			{
+				// start parent lineage traversal
+				for(int32_t j = 0; j < m_argid; j++)
+				{
+					mt = mt->get_parent_thread();
+
+					if(mt == NULL)
+					{
+						return NULL;
+					}
+				}
+
+				// parent tinfo specified found; extract env
+				const auto& env = mt->get_env();
+				uint32_t nargs = (uint32_t)env.size();
+				for(int32_t j = 0; j < nargs; j++)
+				{
+					m_tstr += env[j];
+					if(j < nargs -1)
+					{
+						m_tstr += ' ';
+					}
+				}
+				RETURN_EXTRACT_STRING(m_tstr);
 			} else
-			{ // in case of proc.aenv without [ENV_NAME] return proc.env
-				for(j = 0; j < nargs; j++)
+			{ // in case of proc.aenv without [ENV_NAME] return proc.env; same applies for  proc.aenv[0]
+				const auto& env = tinfo->get_env();
+				uint32_t nargs = (uint32_t)env.size();
+				for(int32_t j = 0; j < nargs; j++)
 				{
 					m_tstr += env[j];
 					if(j < nargs -1)
