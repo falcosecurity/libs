@@ -258,22 +258,18 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		}
 		break;
 	case TYPE_K8S_POD_SANDBOX_ID:
-		// presence of io.kubernetes.sandbox.id is enforced based on the info.sandboxID in the container status response
-		if(container_info->m_labels.count("io.kubernetes.sandbox.id") > 0)
-		{
-			m_tstr = container_info->m_labels.at("io.kubernetes.sandbox.id");
-			if(m_tstr.size() > 12)
-			{
-				m_tstr.resize(12);
-			}
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
-		break;
 	case TYPE_K8S_POD_FULL_SANDBOX_ID:
 		// presence of io.kubernetes.sandbox.id is enforced based on the info.sandboxID in the container status response
 		if(container_info->m_labels.count("io.kubernetes.sandbox.id") > 0)
 		{
 			m_tstr = container_info->m_labels.at("io.kubernetes.sandbox.id");
+			if(m_field_id == TYPE_K8S_POD_SANDBOX_ID)
+			{
+				if(m_tstr.size() > 12)
+				{
+					m_tstr.resize(12);
+				}
+			}
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;
