@@ -53,7 +53,7 @@ TEST(sinsp_thread_manager, thread_group_manager)
 TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer)
 {
 	sinsp m_inspector;
-	struct scap_test_input_data data;
+	scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
@@ -68,7 +68,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer)
 TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo)
 {
 	sinsp m_inspector;
-	struct scap_test_input_data data;
+	scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
@@ -86,7 +86,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo)
 TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there)
 {
 	sinsp m_inspector;
-	struct scap_test_input_data data;
+	scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
@@ -107,7 +107,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there)
 TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo)
 {
 	sinsp m_inspector;
-	struct scap_test_input_data data;
+	scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);
@@ -128,7 +128,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo)
 TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo)
 {
 	sinsp m_inspector;
-	struct scap_test_input_data data;
+	scap_test_input_data data;
 	data.event_count = 0;
 	data.thread_count = 0;
 	m_inspector.open_test_input(&data, SINSP_MODE_TEST);

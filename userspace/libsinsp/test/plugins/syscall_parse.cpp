@@ -33,14 +33,14 @@ limitations under the License.
  * - Owns and defines a new table that has one entry for each event type,
  *   with a field representing a counter for all events of that type across all threads.
  */
-typedef struct plugin_state
+struct plugin_state
 {
     std::string lasterr;
     ss_plugin_table_t* thread_table;
     ss_plugin_table_field_t* thread_opencount_field;
     sample_table::ptr_t event_count_table;
     ss_plugin_table_field_t* event_count_table_count_field;
-} plugin_state;
+};
 
 static inline bool evt_type_is_open(uint16_t type)
 {

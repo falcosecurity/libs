@@ -17,14 +17,14 @@ TEST(SyscallExit, sendtoX_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr*)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* Cleaning phase */
@@ -72,14 +72,14 @@ TEST(SyscallExit, sendtoX_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr*)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* Cleaning phase */

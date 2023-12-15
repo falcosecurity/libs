@@ -434,7 +434,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_PRCTL_X:
 		parse_prctl_exit_event(evt);
-		break;		
+		break;
 	default:
 		break;
 	}
@@ -967,10 +967,10 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	 */
 
 	/*=============================== ENRICH/CREATE ESSENTIAL CALLER STATE ===========================*/
-	
+
 	/* Let's see if we have some info regarding the caller */
 	auto caller_tinfo = m_inspector->get_thread_ref(caller_tid, true);
-	
+
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new fresh empty
 	 * thread info to populate even if we are not able to recover any information!
 	 * If `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
@@ -985,7 +985,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	/* We have an invalid thread:
 	 * 1. The process is dead and we are not able to find it in /proc.
 	 * 2. We have done too much /proc scan and we cannot recover it.
-	 */	
+	 */
 	if(caller_tinfo->is_invalid())
 	{
 		/* In case of invalid thread we enrich it with fresh info and we obtain a sort of valid thread info */
@@ -1017,7 +1017,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		case PPME_SYSCALL_CLONE3_X:
 			caller_tinfo->m_vtid = evt->get_param(18)->as<int64_t>();
 
-			caller_tinfo->m_vpid = evt->get_param(19)->as<int64_t>();		
+			caller_tinfo->m_vpid = evt->get_param(19)->as<int64_t>();
 			break;
 		default:
 			ASSERT(false);
@@ -1072,10 +1072,10 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	 * Please note: if only the child is running into a container
 	 * (so when the child is the init process of the new namespace)
 	 * this flag is not set
-	 * 
+	 *
 	 * PPM_CL_CLONE_NEWPID is true when:
 	 * - the child is the init process of a new namespace
-	 * 
+	 *
 	 * PPM_CL_CLONE_PARENT is set by `runc:[0:PARENT]` when it creates
 	 * the first process in the new pid namespace. In new sinsp versions
 	 * `PPM_CL_CHILD_IN_PIDNS` is enough but in old scap-files where we don't have
@@ -1083,13 +1083,13 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	 * is set since we don't know if the new child is in a pid namespace or not.
 	 * Moreover when `PPM_CL_CLONE_PARENT` is set `PPM_CL_CLONE_NEWPID` cannot
 	 * be set according to the clone manual.
-	 * 
+	 *
 	 * When `caller_tid != caller_tinfo->m_vtid` is true we are for
 	 * sure in a container, and so is the child.
 	 * This is not a strict requirement (leave it here for compatibility with old
 	 * scap-files)
 	 */
-	if(flags & PPM_CL_CHILD_IN_PIDNS || 
+	if(flags & PPM_CL_CHILD_IN_PIDNS ||
 		flags & PPM_CL_CLONE_NEWPID ||
 		flags & PPM_CL_CLONE_PARENT ||
 		caller_tid != caller_tinfo->m_vtid)
@@ -1200,7 +1200,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	{
 		/* pid */
 		child_tinfo->m_pid = caller_tinfo->m_pid;
-		
+
 		/* ptid */
 		/* The parent is the parent of the calling process */
 		child_tinfo->m_ptid = caller_tinfo->m_ptid;
@@ -1212,7 +1212,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		 */
 		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
 
-		/* If we are a new thread we keep the same lastexec time of the main thread 
+		/* If we are a new thread we keep the same lastexec time of the main thread
 		 * If the caller is invalid we are re-initializing this value to 0 again.
 		 */
 		child_tinfo->m_lastexec_ts = caller_tinfo->m_lastexec_ts;
@@ -1224,9 +1224,9 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 
 	/* vtid */
 	child_tinfo->m_vtid = child_tinfo->m_tid;
-	
+
 	/* vpid */
-	child_tinfo->m_vpid = child_tinfo->m_pid;	
+	child_tinfo->m_vpid = child_tinfo->m_pid;
 
 	/* exe */
 	child_tinfo->m_exe = evt->get_param(1)->as<std::string_view>();
@@ -1256,7 +1256,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	default:
 		ASSERT(false);
 	}
-	
+
 	/* fdlimit */
 	child_tinfo->m_fdlimit = evt->get_param(7)->as<int64_t>();
 
@@ -1924,7 +1924,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	if(evt->get_num_params() > 20)
 	{
 		/* If we are in container! */
-		if(child_tinfo->m_flags & PPM_CL_CHILD_IN_PIDNS || 
+		if(child_tinfo->m_flags & PPM_CL_CHILD_IN_PIDNS ||
 			child_tinfo->m_flags & PPM_CL_CLONE_NEWPID ||
 			child_tinfo->m_tid != child_tinfo->m_vtid)
 		{
@@ -1994,9 +1994,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 {
 	int64_t childtid = evt->get_param(0)->as<int64_t>();
 	/* Please note that if the child is in a namespace different from the init one
-	 * we should never use this `childtid` otherwise we will use a thread id referred to 
+	 * we should never use this `childtid` otherwise we will use a thread id referred to
 	 * an internal namespace and not to the init one!
-	 */	
+	 */
 	if(childtid < 0)
 	{
 		//
@@ -2049,7 +2049,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		return;
 	}
 
-	/* In some corner cases an execve is thrown by a secondary thread when 
+	/* In some corner cases an execve is thrown by a secondary thread when
 	 * the main thread is already dead. In these cases the secondary thread
 	 * will become a main thread (it will change its tid) and here we will have
 	 * an execve exit event called by a main thread that is dead.
@@ -2231,7 +2231,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->m_exepath = parinfo->m_val;
 	}
 	else
-	{	
+	{
 		/* ONLY VALID FOR OLD SCAP-FILES:
 		 * In older event versions we can only rely on our userspace reconstruction
 		 */
@@ -2481,7 +2481,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	 * execve, then all threads other than the thread group
 	 * leader are terminated, and the new program is executed in
 	 * the thread group leader.
-	 * 
+	 *
 	 * if `evt->m_tinfo->m_tginfo->get_thread_count() > 1` it means
 	 * we still have some not leader threads in the group.
 	 */
@@ -3748,7 +3748,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	}
 
 	/* [Mark thread as dead]
-	 * We mark the thread as dead here and we will remove it 
+	 * We mark the thread as dead here and we will remove it
 	 * from the table during remove_thread().
 	 * Please note that the `!evt->m_tinfo->is_dead()` shouldn't be
 	 * necessary at all since here we shouldn't receive dead threads.
@@ -3760,7 +3760,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	}
 	evt->m_tinfo->set_dead();
 
-	/* [Store the tid to remove] 
+	/* [Store the tid to remove]
 	 * We set the current tid to remove. We don't remove it here so we can parse the event
 	 */
 	m_inspector->m_tid_to_remove = evt->get_tid();
@@ -4159,16 +4159,16 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 			//
 			// Check if recvmsg contains ancillary data. If so, we check for SCM_RIGHTS,
-			// which is used to pass FDs between processes, and update the sinsp state 
+			// which is used to pass FDs between processes, and update the sinsp state
 			// accordingly via procfs scan.
 			//
 #ifndef _WIN32
 			if(etype == PPME_SOCKET_RECVMSG_X && evt->get_num_params() >= 5)
 			{
 				parinfo = evt->get_param(4);
-				if(parinfo->m_len > sizeof(struct cmsghdr))
+				if(parinfo->m_len > sizeof(cmsghdr))
 				{
-					struct cmsghdr *cmsg = (struct cmsghdr *)parinfo->m_val;
+					cmsghdr *cmsg = (cmsghdr *)parinfo->m_val;
 					if(cmsg->cmsg_type == SCM_RIGHTS)
 					{
 						char error[SCAP_LASTERR_SIZE];
@@ -4189,7 +4189,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				}
 			}
 #endif
-		
+
 		}
 		else
 		{
@@ -5631,14 +5631,14 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
 	/* ret (fd) */
 	ASSERT(evt->get_param_info(0)->type == PT_FD);
 	fd = evt->get_param(0)->as<int64_t>();
-	
+
 	/* name */
 	/*
-	Suppose you create a memfd named libstest resulting in a fd.name libstest while on disk 
+	Suppose you create a memfd named libstest resulting in a fd.name libstest while on disk
 	(e.g. ls -l /proc/$PID/fd/$FD_NUM) it may look like /memfd:libstest (deleted)
 	*/
 	auto name = evt->get_param(1)->as<std::string_view>();
-	
+
 	/* flags */
 	flags = evt->get_param(2)->as<uint32_t>();
 
@@ -5671,7 +5671,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
 	/* pid (fd) */
 	ASSERT(evt->get_param_info(1)->type == PT_PID);
 	pid = evt->get_param(1)->as<int64_t>();
-	
+
 	/* flags */
 	flags = evt->get_param(2)->as<uint32_t>();
 
@@ -5726,7 +5726,7 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
 	{
 		return;
 	}
-	
+
 	auto targetfd_fdinfo = pidfd_tinfo->get_fd(targetfd);
 	if (targetfd_fdinfo == nullptr)
 	{

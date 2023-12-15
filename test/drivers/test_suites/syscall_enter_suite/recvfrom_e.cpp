@@ -14,7 +14,7 @@ TEST(SyscallEnter, recvfromE)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t flags = 0;
-	struct sockaddr *src_addr = NULL;
+	sockaddr* src_addr = NULL;
 	socklen_t *addrlen = NULL;
 	assert_syscall_state(SYSCALL_FAILURE, "recvfrom", syscall(__NR_recvfrom, mock_fd, received_data, received_data_len, flags, src_addr, addrlen));
 

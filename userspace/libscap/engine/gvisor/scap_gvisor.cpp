@@ -497,7 +497,7 @@ int32_t engine::process_message_from_fd(int fd)
 		{
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE,"Cannot realloc gvisor buffer to %zu", parse_result.size);
 			return SCAP_FAILURE;
-		};
+		}
 		parse_result = parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
 	}
 

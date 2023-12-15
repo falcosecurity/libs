@@ -16,10 +16,10 @@ TEST(SyscallExit, bindX_INET)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket", server_socket_fd, NOT_EQUAL, -1);
 	evt_test->server_reuse_address_port(server_socket_fd);
 
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, server_socket_fd);
@@ -64,10 +64,10 @@ TEST(SyscallExit, bindX_INET6)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket", server_socket_fd, NOT_EQUAL, -1);
 	evt_test->server_reuse_address_port(server_socket_fd);
 
-	struct sockaddr_in6 server_addr;
+	sockaddr_in6 server_addr;
 	evt_test->server_fill_sockaddr_in6(&server_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, server_socket_fd);
@@ -115,7 +115,7 @@ TEST(SyscallExit, bindX_UNIX)
 	struct sockaddr_un server_addr;
 	evt_test->server_fill_sockaddr_un(&server_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, server_socket_fd);
@@ -159,7 +159,7 @@ TEST(SyscallExit, bindX_failure)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t addrlen = 0;
 	assert_syscall_state(SYSCALL_FAILURE, "bind", syscall(__NR_bind, mock_fd, addr, addrlen));
 	int64_t errno_value = -errno;

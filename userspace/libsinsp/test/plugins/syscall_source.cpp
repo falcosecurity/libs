@@ -27,19 +27,19 @@ limitations under the License.
 /**
  * Example of plugin implementing only the event sourcing capability, which:
  * - Does not implement a specific event source, thus can create any syscall event
- * - Sources events of type PPME_SYSCALL_OPEN_X 
+ * - Sources events of type PPME_SYSCALL_OPEN_X
  */
-typedef struct plugin_state
+struct plugin_state
 {
     std::string lasterr;
-} plugin_state;
+};
 
-typedef struct instance_state
+struct instance_state
 {
     uint64_t count;
     uint8_t evt_buf[2048];
     ss_plugin_event* evt;
-} instance_state;
+};
 
 static const char* plugin_get_required_api_version()
 {

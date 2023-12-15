@@ -39,7 +39,7 @@ limitations under the License.
 #endif
 
 class sinsp_evttables;
-typedef union _sinsp_sockinfo sinsp_sockinfo;
+union sinsp_sockinfo;
 class filter_check_info;
 
 extern sinsp_evttables g_infotables;

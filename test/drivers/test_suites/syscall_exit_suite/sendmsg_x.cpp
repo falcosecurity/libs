@@ -17,8 +17,8 @@ TEST(SyscallExit, sendmsgX_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -26,7 +26,7 @@ TEST(SyscallExit, sendmsgX_no_snaplen)
 	struct iovec iov[2];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr*)&server_addr;
+	send_msg.msg_name = (sockaddr*)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -86,8 +86,8 @@ TEST(SyscallExit, sendmsgX_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -95,7 +95,7 @@ TEST(SyscallExit, sendmsgX_snaplen)
 	struct iovec iov[3];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr*)&server_addr;
+	send_msg.msg_name = (sockaddr*)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";

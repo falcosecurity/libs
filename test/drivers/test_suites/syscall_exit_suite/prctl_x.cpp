@@ -133,7 +133,7 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.exit_signal = SIGCHLD;
 
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
@@ -209,7 +209,7 @@ TEST(SyscallExit, prctlX_set_name)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.exit_signal = SIGCHLD;
 
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));

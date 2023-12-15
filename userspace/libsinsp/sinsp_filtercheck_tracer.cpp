@@ -73,7 +73,7 @@ sinsp_filter_check* sinsp_filter_check_tracer::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_tracer();
 }
 
-int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 

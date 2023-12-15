@@ -31,7 +31,7 @@ class sinsp_threadinfo;
 #define DEFAULT_DEAD_THREADS_THRESHOLD 11
 
 /* New struct that keep information regarding the thread group */
-typedef struct thread_group_info
+struct thread_group_info
 {
 public:
 	thread_group_info(int64_t group_pid, bool reaper, std::weak_ptr<sinsp_threadinfo> current_thread):
@@ -116,4 +116,4 @@ private:
 	uint64_t m_alive_count;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_threads;
 	bool m_reaper;
-} thread_group_info;
+};

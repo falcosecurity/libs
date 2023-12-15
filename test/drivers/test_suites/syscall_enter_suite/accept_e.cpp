@@ -11,7 +11,7 @@ TEST(SyscallEnter, acceptE)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	assert_syscall_state(SYSCALL_FAILURE, "accept", syscall(__NR_accept, mock_fd, addr, addrlen));
 

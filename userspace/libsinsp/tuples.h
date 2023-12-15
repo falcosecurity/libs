@@ -26,29 +26,29 @@ limitations under the License.
  */
 
 /*!
-	\brief An IPv4 tuple. 
+	\brief An IPv4 tuple.
 */
-typedef union _ipv4tuple
+union ipv4tuple
 {
-	struct 
+	struct
 	{
-		uint32_t m_sip; ///< Source (i.e. client) address. 
+		uint32_t m_sip; ///< Source (i.e. client) address.
 		uint32_t m_dip; ///< Destination (i.e. server) address.
 		uint16_t m_sport; ///< Source (i.e. client) port.
 		uint16_t m_dport; ///< Destination (i.e. server) port.
 		uint8_t m_l4proto; ///< Layer 4 protocol (e.g. TCP, UDP...).
-	}m_fields;
+	} m_fields;
 	uint8_t m_all[13]; ///< The fields as a raw array ob bytes. Used for hashing.
-}ipv4tuple;
+};
 
 /*!
 	\brief An IPv4 network.
 */
-typedef struct ipv4net
+struct ipv4net
 {
 	uint32_t m_ip; ///< IP addr
 	uint32_t m_netmask; ///< Subnet mask
-}ipv4net;
+};
 
 struct ipv6addr
 {
@@ -77,9 +77,9 @@ public:
 };
 
 /*!
-	\brief An IPv6 tuple. 
+	\brief An IPv6 tuple.
 */
-typedef union _ipv6tuple
+union ipv6tuple
 {
 	struct {
 
@@ -90,32 +90,32 @@ typedef union _ipv6tuple
 		uint8_t m_l4proto; ///< Layer 4 protocol (e.g. TCP, UDP...)
 	} m_fields;
 	uint8_t m_all[37]; ///< The fields as a raw array ob bytes. Used for hashing.
-} ipv6tuple;
+};
 
 /*!
-	\brief An IPv4 server address. 
+	\brief An IPv4 server address.
 */
-typedef struct ipv4serverinfo
+struct ipv4serverinfo
 {
 	uint32_t m_ip; ///< address
 	uint16_t m_port; ///< port
 	uint8_t m_l4proto; ///< IP protocol
-} ipv4serverinfo;
+};
 
 /*!
-	\brief An IPv6 server address. 
+	\brief An IPv6 server address.
 */
-typedef struct ipv6serverinfo
+struct ipv6serverinfo
 {
 	ipv6addr m_ip;  ///< address
 	uint16_t m_port;  ///< port
 	uint8_t m_l4proto;  ///< IP protocol
-} ipv6serverinfo;
+};
 
 /*!
-	\brief A unix socket tuple. 
+	\brief A unix socket tuple.
 */
-typedef union _unix_tuple
+union unix_tuple
 {
 	struct
 	{
@@ -123,6 +123,6 @@ typedef union _unix_tuple
 		uint64_t m_dest;  ///< destination OS pointer.
 	} m_fields;
 	uint8_t m_all[16]; ///< The fields as a raw array ob bytes. Used for hashing.
-} unix_tuple;
+};
 
 /*@}*/

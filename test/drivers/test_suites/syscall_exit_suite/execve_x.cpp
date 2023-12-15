@@ -178,7 +178,7 @@ TEST(SyscallExit, execveX_success)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -361,7 +361,7 @@ TEST(SyscallExit, execveX_not_upperlayer)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -558,7 +558,7 @@ TEST(SyscallExit, execveX_upperlayer_success)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -717,7 +717,7 @@ TEST(SyscallExit, execveX_success_memfd)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -818,7 +818,7 @@ TEST(SyscallExit, execveX_symlink)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 

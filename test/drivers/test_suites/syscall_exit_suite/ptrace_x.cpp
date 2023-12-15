@@ -14,7 +14,7 @@ TEST(SyscallExit, ptraceX_failure)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	enum __ptrace_request request = PTRACE_PEEKSIGINFO;
+	__ptrace_request request = PTRACE_PEEKSIGINFO;
 	pid_t pid = -1;
 	void* addr = NULL;
 	void* data = NULL;

@@ -28,7 +28,7 @@ limitations under the License.
  * Example of plugin that accesses the thread table and that exposes its own
  * sta table. The goal is to test all the methods of the table API.
  */
-typedef struct plugin_state
+struct plugin_state
 {
 	std::string lasterr;
 	ss_plugin_table_t* thread_table;
@@ -37,7 +37,7 @@ typedef struct plugin_state
 	ss_plugin_table_field_t* thread_dynamic_field_str;
 	sample_table::ptr_t internal_table;
 	ss_plugin_table_field_t* internal_dynamic_field;
-} plugin_state;
+};
 
 static const char* plugin_get_required_api_version()
 {
@@ -416,7 +416,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 			exit(1);
 		}
 	}
-	
+
 	// loop over all threads, we expect to only find two (init, and our new one)
 	step++;
 	{

@@ -1477,7 +1477,7 @@ int lua_cbacks::udp_send(lua_State *ls)
 	string message(lua_tostring(ls, 1));
 
 	if(sendto(ch->m_udp_socket, message.c_str(), message.size(), 0,
-		(struct sockaddr *)&ch->m_serveraddr, sizeof(ch->m_serveraddr)) < 0)
+		(sockaddr*)&ch->m_serveraddr, sizeof(ch->m_serveraddr)) < 0)
 	{
 		string err = "udp_send error: cannot send the buffer: ";
 		fprintf(stderr, "%s\n", err.c_str());

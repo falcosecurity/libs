@@ -663,10 +663,10 @@ bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
 	}
 }
 
-const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string name)
+const ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string name)
 {
 	uint32_t maxlen = 0;
-	const struct ppm_param_info* res = nullptr;
+	const ppm_param_info* res = nullptr;
 	const auto name_len = name.size();
 
 	for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
@@ -1171,7 +1171,7 @@ std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
 	return std::string(buf);
 }
 
-std::string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
+std::string ipv6tuple_to_string(ipv6tuple* tuple, bool resolve)
 {
 	char source_address[INET6_ADDRSTRLEN];
 	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100))
@@ -1779,7 +1779,7 @@ unsigned int read_num_possible_cpus(void)
 ///////////////////////////////////////////////////////////////////////////////
 // Log helper
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_scap_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
+void sinsp_scap_log_fn(const char* component, const char* msg, falcosecurity_log_severity sev)
 {
 	std::string prefix = (component == NULL) ? "" : std::string(component) + ": ";
 	libsinsp_logger()->log(prefix + msg, (sinsp_logger::severity)sev);

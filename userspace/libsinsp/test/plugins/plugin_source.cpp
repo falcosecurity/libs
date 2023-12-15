@@ -29,19 +29,19 @@ static constexpr const char* s_evt_data = "hello world";
 /**
  * Example of plugin implementing only the event sourcing capability, which:
  * - Implements a specific event source "sample"
- * - Sources plugin events containing a sample string 
+ * - Sources plugin events containing a sample string
  */
-typedef struct plugin_state
+struct plugin_state
 {
     std::string lasterr;
-} plugin_state;
+};
 
-typedef struct instance_state
+struct instance_state
 {
     uint64_t count;
     uint8_t evt_buf[2048];
     ss_plugin_event* evt;
-} instance_state;
+};
 
 static const char* plugin_get_required_api_version()
 {

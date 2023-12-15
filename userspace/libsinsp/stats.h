@@ -21,7 +21,7 @@ limitations under the License.
 #include <libscap/scap_machine_info.h>
 #include <libsinsp/threadinfo.h>
 
-typedef struct sinsp_stats_v2
+struct sinsp_stats_v2
 {
 	uint64_t m_n_noncached_fd_lookups;
 	uint64_t m_n_cached_fd_lookups;
@@ -40,9 +40,10 @@ typedef struct sinsp_stats_v2
 	uint32_t m_n_drops_full_threadtable;
 	uint32_t m_n_missing_container_images;
 	uint32_t m_n_containers;
-}sinsp_stats_v2;
+};
 
-typedef enum sinsp_stats_v2_resource_utilization {
+enum sinsp_stats_v2_resource_utilization
+{
 	SINSP_RESOURCE_UTILIZATION_CPU_PERC = 0, ///< Current CPU usage, `ps` like, unit: percentage of one CPU.
 	SINSP_RESOURCE_UTILIZATION_MEMORY_RSS, ///< Current RSS (Resident Set Size), unit: kb.
 	SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ, ///< Current VSZ (Virtual Memory Size), unit: kb.
@@ -72,7 +73,7 @@ typedef enum sinsp_stats_v2_resource_utilization {
 	SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES, ///<  Number of cached containers (cgroups) without container info such as image, hijacked sinsp_container_manager::remove_inactive_containers() -> every flush snapshot update, unit: count.
 	SINSP_STATS_V2_N_CONTAINERS, ///<  Number of containers (cgroups) currently cached by sinsp_container_manager, hijacked sinsp_container_manager::remove_inactive_containers() -> every flush snapshot update, unit: count.
 	SINSP_MAX_STATS_V2
-}sinsp_stats_v2_resource_utilization;
+};
 
 #ifdef __linux__
 namespace libsinsp {

@@ -48,7 +48,7 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag)
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", PPM_EXVAT_AT_EMPTY_PATH);
 
 	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be the file pointed by the `dirfd` since `execveat` is called with
@@ -88,7 +88,7 @@ TEST_F(sinsp_with_test_input, execveat_relative_path)
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
 
 	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be the directory pointed by the `dirfd` + the pathname
@@ -130,7 +130,7 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path)
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
 
 	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be `<NA>`, sinsp should recognize that the `pathname`
@@ -162,7 +162,7 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path)
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, invalid_dirfd, "/tmp/file", (uint32_t) 0);
 
 	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be the absolute file path that we passed in the
@@ -198,7 +198,7 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag_s390)
 	 */
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", PPM_EXVAT_AT_EMPTY_PATH);
 
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be the file pointed by the `dirfd` since `execveat` is called with
@@ -234,7 +234,7 @@ TEST_F(sinsp_with_test_input, execveat_relative_path_s390)
 	 */
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
 
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be the directory pointed by the `dirfd` + the pathname
@@ -264,7 +264,7 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path_s390)
 	uint64_t invalid_dirfd = 0;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, invalid_dirfd, "/tmp/s390/file", 0);
 
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be the absolute file path that we passed in the
@@ -300,7 +300,7 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path_s390)
 	 */
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
 
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, (int64_t) 0, "<NA>", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	/* The `exepath` should be `<NA>`, sinsp should recognize that the `pathname`
@@ -336,13 +336,13 @@ TEST_F(sinsp_with_test_input, spawn_process)
 
 	/* Parent clone exit event */
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, null_pid, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "init", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
-	
+
 	/* Child clone exit event */
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 12088, 3764, 0, "init", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child_pid, child_tid);
 
 	/* Execve enter event */
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	
+
 	/* Execve exit event */
 	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t) 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (int32_t) 34818, parent_pid, loginuid, (int32_t) PPM_EXE_WRITABLE, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
 
@@ -550,7 +550,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 
 	/* Execve enter event */
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	
+
 	/* Execve exit event */
 	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, (int64_t) 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", (uint64_t) 1024, (uint64_t) 0, (uint64_t) 28, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (uint32_t) 34818, parent_pid, (int32_t) 1000, (uint32_t) 1);
 
@@ -564,7 +564,7 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 	// spawn a child process to verify ppid/apid
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_E, 0);
 
-	/* Child clone exit event 
+	/* Child clone exit event
 	 * Please note that now we are calling the child exit event before the parent one.
 	 */
 	add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_CLONE_20_X, 20, (int64_t) 0, "/bin/test-exe", empty_bytebuf, child2_pid, child2_tid, child_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 12088, (uint32_t) 3764, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t) (PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID), (uint32_t) 1000, (uint32_t) 1000, child2_vpid, child2_vtid);

@@ -42,9 +42,9 @@ limitations under the License.
 namespace test_utils {
 
 #if !defined(_WIN32)
-struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string)
+sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string)
 {
-	struct sockaddr_in sockaddr;
+	sockaddr_in sockaddr;
 	memset(&sockaddr, 0, sizeof(sockaddr));
 	sockaddr.sin_family = AF_INET;
 	sockaddr.sin_port = htons(ipv4_port);
@@ -52,9 +52,9 @@ struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string)
 	return sockaddr;
 }
 
-struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string)
+sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string)
 {
-	struct sockaddr_in6 sockaddr;
+	sockaddr_in6 sockaddr;
 	memset(&sockaddr, 0, sizeof(sockaddr));
 	sockaddr.sin6_family = AF_INET6;
 	sockaddr.sin6_port = htons(ipv6_port);

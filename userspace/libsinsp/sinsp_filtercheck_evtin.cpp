@@ -89,7 +89,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 	}
 	else if(val[fldname.size()] == '.')
 	{
-		const struct ppm_param_info* pi =
+		const ppm_param_info* pi =
 			sinsp_utils::find_longest_matching_evt_param(val.substr(fldname.size() + 1));
 
 		if(pi == NULL)

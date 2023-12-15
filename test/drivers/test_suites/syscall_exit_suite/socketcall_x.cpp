@@ -26,7 +26,7 @@ TEST(SyscallExit, socketcall_socketX)
 	/* Here we need to call the `socket` from a child because the main process throws a `socket`
 	 * syscall to calibrate the socket file options if we are using the bpf probe.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
@@ -96,7 +96,7 @@ TEST(SyscallExit, socketcall_bindX)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket", server_socket_fd, NOT_EQUAL, -1);
 	evt_test->server_reuse_address_port(server_socket_fd);
 
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
 	unsigned long args[3] = {0};
@@ -149,14 +149,14 @@ TEST(SyscallExit, socketcall_connectX)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
 	evt_test->client_reuse_address_port(client_socket_fd);
 
-	struct sockaddr_in client_addr;
+	sockaddr_in client_addr;
 	evt_test->client_fill_sockaddr_in(&client_addr);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (sockaddr*)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
 
 	/* Now we associate the client socket with the server address. */
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
 	/* With `SOCK_DGRAM` the `connect` will not perform a connection this is why the syscall doesn't fail. */
@@ -365,8 +365,8 @@ TEST(SyscallExit, socketcall_acceptX_INET)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
@@ -448,8 +448,8 @@ TEST(SyscallExit, socketcall_acceptX_INET6)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in6 client_addr = {0};
-	struct sockaddr_in6 server_addr = {0};
+	sockaddr_in6 client_addr = {0};
+	sockaddr_in6 server_addr = {0};
 	evt_test->connect_ipv6_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
@@ -617,7 +617,7 @@ TEST(SyscallExit, socketcall_acceptX_failure)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 
 	unsigned long args[3] = {0};
@@ -678,12 +678,12 @@ TEST(SyscallExit, socketcall_accept4X_INET)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
@@ -753,12 +753,12 @@ TEST(SyscallExit, socketcall_accept4X_INET6)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in6 client_addr = {0};
-	struct sockaddr_in6 server_addr = {0};
+	sockaddr_in6 client_addr = {0};
+	sockaddr_in6 server_addr = {0};
 	evt_test->connect_ipv6_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
@@ -834,7 +834,7 @@ TEST(SyscallExit, socketcall_accept4X_UNIX)
 	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
@@ -906,7 +906,7 @@ TEST(SyscallExit, socketcall_accept4X_failure)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
@@ -1014,14 +1014,14 @@ TEST(SyscallExit, socketcall_recvfromX_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
@@ -1031,9 +1031,9 @@ TEST(SyscallExit, socketcall_recvfromX_no_snaplen)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	/// TODO: if we use `struct sockaddr_in* src_addr = NULL` kernel module and old bpf are not able to get correct data.
+	/// TODO: if we use `sockaddr_in* src_addr = NULL` kernel module and old bpf are not able to get correct data.
 	/// Fixing them means changing how we retrieve network data, so it would be quite a big change.
-	struct sockaddr_in src_addr = {0};
+	sockaddr_in src_addr = {0};
 	socklen_t addrlen = sizeof(src_addr);
 
 	unsigned long args[6] = {0};
@@ -1097,14 +1097,14 @@ TEST(SyscallExit, socketcall_recvfromX_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
@@ -1114,7 +1114,7 @@ TEST(SyscallExit, socketcall_recvfromX_snaplen)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	struct sockaddr_in src_addr = {0};
+	sockaddr_in src_addr = {0};
 	socklen_t addrlen = sizeof(src_addr);
 
 	unsigned long args[6] = {0};
@@ -1181,7 +1181,7 @@ TEST(SyscallExit, socketcall_recvfromX_fail)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t flags = 0;
-	struct sockaddr *src_addr = NULL;
+	sockaddr* src_addr = NULL;
 	socklen_t *addrlen = NULL;
 
 	unsigned long args[6] = {0};
@@ -1370,8 +1370,8 @@ TEST(SyscallExit, socketcall_sendtoX_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -1433,8 +1433,8 @@ TEST(SyscallExit, socketcall_sendtoX_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -1498,7 +1498,7 @@ TEST(SyscallExit, socketcall_sendtoX_fail)
 	char sent_data[DEFAULT_SNAPLEN / 2] = "some-data";
 	size_t len = DEFAULT_SNAPLEN / 2;
 	uint32_t sendto_flags = 0;
-	struct sockaddr *dest_addr = NULL;
+	sockaddr* dest_addr = NULL;
 	socklen_t addrlen = 0;
 
 	unsigned long args[6] = {0};
@@ -1551,7 +1551,7 @@ TEST(SyscallExit, socketcall_sendtoX_empty)
 	char *sent_data = NULL;
 	size_t len = 0;
 	uint32_t sendto_flags = 0;
-	struct sockaddr *dest_addr = NULL;
+	sockaddr* dest_addr = NULL;
 	socklen_t addrlen = 0;
 
 	unsigned long args[6] = {0};
@@ -1611,8 +1611,8 @@ TEST(SyscallExit, socketcall_sendmsgX_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -1620,7 +1620,7 @@ TEST(SyscallExit, socketcall_sendmsgX_no_snaplen)
 	struct iovec iov[2];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr *)&server_addr;
+	send_msg.msg_name = (sockaddr*)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -1684,8 +1684,8 @@ TEST(SyscallExit, socketcall_sendmsgX_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -1693,7 +1693,7 @@ TEST(SyscallExit, socketcall_sendmsgX_snaplen)
 	struct iovec iov[3];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr *)&server_addr;
+	send_msg.msg_name = (sockaddr*)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -1942,14 +1942,14 @@ TEST(SyscallExit, socketcall_recvmsgX_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
@@ -1960,7 +1960,7 @@ TEST(SyscallExit, socketcall_recvmsgX_no_snaplen)
 	struct iovec iov[2];
 	memset(&recv_msg, 0, sizeof(recv_msg));
 	memset(iov, 0, sizeof(iov));
-	recv_msg.msg_name = (struct sockaddr *)&client_addr;
+	recv_msg.msg_name = (sockaddr*)&client_addr;
 	recv_msg.msg_namelen = sizeof(client_addr);
 	char data_1[MAX_RECV_BUF_SIZE];
 	char data_2[MAX_RECV_BUF_SIZE];
@@ -2048,14 +2048,14 @@ TEST(SyscallExit, socketcall_recvmsgX_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
@@ -2066,7 +2066,7 @@ TEST(SyscallExit, socketcall_recvmsgX_snaplen)
 	struct iovec iov[2];
 	memset(&recv_msg, 0, sizeof(recv_msg));
 	memset(iov, 0, sizeof(iov));
-	recv_msg.msg_name = (struct sockaddr *)&client_addr;
+	recv_msg.msg_name = (sockaddr*)&client_addr;
 	recv_msg.msg_namelen = sizeof(client_addr);
 	char data_1[MAX_RECV_BUF_SIZE];
 	char data_2[MAX_RECV_BUF_SIZE];

@@ -25,7 +25,7 @@ limitations under the License.
 //
 // Aggregation type for table fields
 //
-typedef enum chisel_field_aggregation
+enum chisel_field_aggregation
 {
 	A_NONE,
 	A_SUM,
@@ -33,7 +33,7 @@ typedef enum chisel_field_aggregation
 	A_TIME_AVG,
 	A_MIN,
 	A_MAX,
-} chisel_field_aggregation;
+};
 
 //
 // chisel_view_column_info flags

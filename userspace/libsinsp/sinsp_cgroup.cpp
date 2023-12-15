@@ -59,7 +59,7 @@ std::shared_ptr<std::string> sinsp_cgroup::lookup_cgroup_dir(const std::string &
 void sinsp_cgroup::lookup_cgroups(sinsp_threadinfo& tinfo)
 {
 	std::string procdirname = m_root + "/proc/" + std::to_string(tinfo.m_tid) + '/';
-	struct scap_cgroup_set thread_cgroups = {};
+	scap_cgroup_set thread_cgroups = {};
 	char error[SCAP_LASTERR_SIZE];
 
 	int ret = scap_cgroup_get_thread(&m_scap_cgroup, procdirname.c_str(), &thread_cgroups, error);

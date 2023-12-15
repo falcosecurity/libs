@@ -43,14 +43,14 @@ struct iovec {
 class sinsp_delays_info;
 class blprogram;
 
-typedef struct erase_fd_params
+struct erase_fd_params
 {
 	bool m_remove_from_table;
 	int64_t m_fd;
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo_t* m_fdinfo;
 	uint64_t m_ts;
-}erase_fd_params;
+};
 
 /** @defgroup state State management
  *  @{
@@ -67,15 +67,13 @@ typedef struct erase_fd_params
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo: public libsinsp::state::table_entry
+class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry
 {
-
 public:
 	sinsp_threadinfo(
 		sinsp *inspector = nullptr,
 		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
-
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".

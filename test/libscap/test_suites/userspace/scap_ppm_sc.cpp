@@ -20,7 +20,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include <sys/syscall.h>
 
-extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
+extern const syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
 TEST(scap_ppm_sc, scap_get_modifies_state_ppm_sc)
 {
@@ -98,7 +98,7 @@ TEST(scap_ppm_sc, scap_get_events_from_ppm_sc)
 		ASSERT_EQ(scap_get_events_from_ppm_sc(ppm_sc_array, events_array), SCAP_SUCCESS);
 		for(int sys_id = 0; sys_id < SYSCALL_TABLE_SIZE; sys_id++)
 		{
-			struct syscall_evt_pair pair = g_syscall_table[sys_id];
+			syscall_evt_pair pair = g_syscall_table[sys_id];
 			if(pair.ppm_sc == ppm_sc)
 			{
 				ASSERT_TRUE(events_array[pair.enter_event_type]) << "ppm_sc: " << scap_get_ppm_sc_name((ppm_sc_code)pair.ppm_sc) << " (" << pair.ppm_sc << ") should be associated with event: " << pair.enter_event_type << std::endl;
@@ -143,7 +143,7 @@ TEST(scap_ppm_sc, scap_get_ppm_sc_from_events)
 		ASSERT_EQ(scap_get_ppm_sc_from_events(events_array, ppm_sc_array), SCAP_SUCCESS);
 		for(int sys_id = 0; sys_id < SYSCALL_TABLE_SIZE; sys_id++)
 		{
-			struct syscall_evt_pair pair = g_syscall_table[sys_id];
+			syscall_evt_pair pair = g_syscall_table[sys_id];
 			if(pair.enter_event_type == evt_id || pair.exit_event_type == evt_id)
 			{
 				ASSERT_TRUE(ppm_sc_array[pair.ppm_sc]) << "event: " << scap_get_event_info_table()[evt_id].name << " (" << evt_id << ") should be associated with ppm_sc: " << pair.ppm_sc << std::endl;

@@ -30,13 +30,13 @@ limitations under the License.
  * - Is compatible with the "sample" event source only
  * - Extracts a simple field containing the string inside the events' payload
  */
-typedef struct plugin_state
+struct plugin_state
 {
     std::string lasterr;
     std::string strstorage;
     const char* strptr;
     std::vector<uint16_t> event_types;
-} plugin_state;
+};
 
 static const char* plugin_get_required_api_version()
 {

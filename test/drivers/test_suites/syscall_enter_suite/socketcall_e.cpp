@@ -26,7 +26,7 @@ TEST(SyscallEnter, socketcall_socketE)
 	/* Here we need to call the `socket` from a child because the main process throws a `socket`
 	 * syscall to calibrate the socket file options if we are using the bpf probe.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
@@ -136,7 +136,7 @@ TEST(SyscallEnter, socketcall_connectE)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 	unsigned long args[3] = {0};
 	args[0] = mock_fd;
@@ -345,7 +345,7 @@ TEST(SyscallEnter, socketcall_acceptE)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 
 	unsigned long args[3] = {0};
@@ -409,7 +409,7 @@ TEST(SyscallEnter, socketcall_accept4E)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
@@ -507,7 +507,7 @@ TEST(SyscallEnter, socketcall_recvfromE)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t flags = 0;
-	struct sockaddr *src_addr = NULL;
+	sockaddr* src_addr = NULL;
 	socklen_t *addrlen = NULL;
 
 	unsigned long args[6] = {0};
@@ -617,8 +617,8 @@ TEST(SyscallEnter, socketcall_sendtoE)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -685,8 +685,8 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -694,7 +694,7 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 	struct iovec iov[3];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr *)&server_addr;
+	send_msg.msg_name = (sockaddr*)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -1185,7 +1185,7 @@ TEST(SyscallEnter, socketcall_null_pointer)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);	
+	evt_test->assert_num_params_pushed(2);
 }
 
 TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting)

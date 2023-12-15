@@ -19,7 +19,7 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <gtest/gtest.h>
 
-extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
+extern const syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
 /* Each syscall_id should have its own PPM_SC, note that this should be true also for generic syscalls
  * only the event type is generic, the PPM_SC code is defined! This test is architecture dependent!

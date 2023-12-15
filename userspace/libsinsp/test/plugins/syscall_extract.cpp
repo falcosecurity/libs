@@ -32,7 +32,7 @@ limitations under the License.
  * - Optionally accesses a field defined at runtime by another plugin on the thread table
  * - Optionally accesses a table defined at runtime by another plugin
  */
-typedef struct plugin_state
+struct plugin_state
 {
     std::string lasterr;
     uint64_t u64storage;
@@ -43,7 +43,7 @@ typedef struct plugin_state
     ss_plugin_table_field_t* thread_opencount_field;
     ss_plugin_table_t* evtcount_table;
     ss_plugin_table_field_t* evtcount_count_field;
-} plugin_state;
+};
 
 static inline bool evt_type_is_open(uint16_t type)
 {

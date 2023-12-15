@@ -338,7 +338,7 @@ void sinsp::set_import_users(bool import_users)
 
 /*=============================== OPEN METHODS ===============================*/
 
-void sinsp::open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform,
+void sinsp::open_common(scap_open_args* oargs, const scap_vtable* vtable, scap_platform* platform,
 			sinsp_mode_t mode)
 {
 	libsinsp_logger()->log("Trying to open the right engine!");
@@ -466,14 +466,14 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::eve
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
 
 	/* Engine-specific args. */
-	struct scap_kmod_engine_params params;
+	scap_kmod_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	oargs.engine_params = &params;
 
-	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
 	if(platform)
 	{
-		auto linux_plat = (struct scap_linux_platform*)platform;
+		auto linux_plat = (scap_linux_platform*)platform;
 		linux_plat->m_linux_vtable = &scap_kmod_linux_vtable;
 	}
 
@@ -498,12 +498,12 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
 
 	/* Engine-specific args. */
-	struct scap_bpf_engine_params params;
+	scap_bpf_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	params.bpf_probe = bpf_path.data();
 	oargs.engine_params = &params;
 
-	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
 	open_common(&oargs, &scap_bpf_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("BPF engine is not supported in this build");
@@ -514,12 +514,12 @@ void sinsp::open_nodriver(bool full_proc_scan)
 {
 #ifdef HAS_ENGINE_NODRIVER
 	scap_open_args oargs {};
-	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
 	if(platform)
 	{
 		if(!full_proc_scan)
 		{
-			auto linux_plat = (struct scap_linux_platform*)platform;
+			auto linux_plat = (scap_linux_platform*)platform;
 			linux_plat->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP;
 			linux_plat->m_minimal_scan = true;
 		}
@@ -539,7 +539,7 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 {
 #ifdef HAS_ENGINE_SAVEFILE
 	scap_open_args oargs {};
-	struct scap_savefile_engine_params params;
+	scap_savefile_engine_params params;
 
 	m_input_filename = filename;
 	m_input_fd = fd; /* default is 0. */
@@ -573,7 +573,7 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 	params.fbuffer_size = 0;
 	oargs.engine_params = &params;
 
-	struct scap_platform* platform = scap_savefile_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_savefile_alloc_platform(::on_new_entry_from_proc, this);
 	params.platform = platform;
 	open_common(&oargs, &scap_savefile_engine, platform, SINSP_MODE_CAPTURE);
 #else
@@ -585,13 +585,13 @@ void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugi
 {
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
 	scap_open_args oargs {};
-	struct scap_source_plugin_engine_params params;
+	scap_source_plugin_engine_params params;
 	set_input_plugin(plugin_name, plugin_open_params);
 	params.input_plugin = &m_input_plugin->as_scap_source();
 	params.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
 	oargs.engine_params = &params;
 
-	struct scap_platform* platform;
+	scap_platform* platform;
 	switch(mode)
 	{
 		case SINSP_MODE_PLUGIN:
@@ -618,13 +618,13 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	}
 
 	scap_open_args oargs {};
-	struct scap_gvisor_engine_params params;
+	scap_gvisor_engine_params params;
 	params.gvisor_root_path = root_path.c_str();
 	params.gvisor_config_path = config_path.c_str();
 	params.no_events = no_events;
 	params.gvisor_epoll_timeout = epoll_timeout;
 
-	struct scap_platform* platform = scap_gvisor_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_gvisor_alloc_platform(::on_new_entry_from_proc, this);
 	params.gvisor_platform = reinterpret_cast<scap_gvisor_platform*>(platform);
 
 	oargs.engine_params = &params;
@@ -646,13 +646,13 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
 
 	/* Engine-specific args. */
-	struct scap_modern_bpf_engine_params params;
+	scap_modern_bpf_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	params.cpus_for_each_buffer = cpus_for_each_buffer;
 	params.allocate_online_only = online_only;
 	oargs.engine_params = &params;
 
-	struct scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+	scap_platform* platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
 	open_common(&oargs, &scap_modern_bpf_engine, platform, SINSP_MODE_LIVE);
 #else
 	throw sinsp_exception("MODERN_BPF engine is not supported in this build");
@@ -663,11 +663,11 @@ void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode)
 {
 #ifdef HAS_ENGINE_TEST_INPUT
 	scap_open_args oargs {};
-	struct scap_test_input_engine_params params;
+	scap_test_input_engine_params params;
 	params.test_input_data = data;
 	oargs.engine_params = &params;
 
-	struct scap_platform* platform;
+	scap_platform* platform;
 	switch(mode)
 	{
 	case SINSP_MODE_TEST:
@@ -1133,7 +1133,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 		// create scap event
 		uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
 		auto piscapevt_buf = std::unique_ptr<uint8_t, std::default_delete<uint8_t[]>>(new uint8_t[evlen]);
-		uint16_t* evt_lens = (uint16_t*) (piscapevt_buf.get() + sizeof(struct ppm_evt_hdr));
+		uint16_t* evt_lens = (uint16_t*) (piscapevt_buf.get() + sizeof(ppm_evt_hdr));
 		auto piscapevt = (scap_evt*) piscapevt_buf.get();
 		piscapevt->len = evlen;
 		piscapevt->type = PPME_PROCINFO_E;
@@ -1900,10 +1900,10 @@ void sinsp::print_capture_stats(sinsp_logger::severity sev) const
 		stats.n_drops_bug);
 }
 
-const struct scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
+const scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
 {
 	/* On purpose ignoring failures to not interrupt in case of stats retrieval failure. */
-	const struct scap_stats_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
+	const scap_stats_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
 	if (!stats_v2)
 	{
 		*nstats = 0;
@@ -2304,7 +2304,7 @@ uint64_t sinsp::get_new_ts() const
 			: m_lastevent_ts;
 }
 
-struct scap_platform* sinsp::get_scap_platform()
+scap_platform* sinsp::get_scap_platform()
 {
 	return m_platform;
 }

@@ -162,7 +162,7 @@ sinsp_filter_check* sinsp_filter_check_event::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_event();
 }
 
-int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -197,7 +197,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 			throw sinsp_exception("wrong syntax for evt.around");
 		}
 
-		const struct ppm_param_info* pi =
+		const ppm_param_info* pi =
 			sinsp_utils::find_longest_matching_evt_param(val.substr(fldname.size() + 1));
 
 		if(pi == NULL)
@@ -222,7 +222,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -360,7 +360,7 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 	if(m_field_id == TYPE_TYPE)
 	{
 		sinsp_evttables* einfo = m_inspector->get_event_info_tables();
-		const struct ppm_event_info* etable = einfo->m_event_info;
+		const ppm_event_info* etable = einfo->m_event_info;
 		string stype(str, len);
 
 		for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)

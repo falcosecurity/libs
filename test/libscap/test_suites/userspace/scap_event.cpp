@@ -19,7 +19,7 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <gtest/gtest.h>
 
-// fills the buffer with ASCII data to catch bugs 
+// fills the buffer with ASCII data to catch bugs
 static void fill_buffer(scap_sized_buffer buf)
 {
     char *cbuf = static_cast<char*>(buf.buf);
@@ -44,7 +44,7 @@ static void fill_buffer(scap_sized_buffer buf)
 // This function behaves exactly like scap_event_encode_params but it will allocate the event and return it by setting the event pointer.
 static int32_t scap_event_generate(scap_evt **event, char *error, ppm_event_code event_type, uint32_t n, ...)
 {
-    struct scap_sized_buffer event_buf = {NULL, 0};
+    scap_sized_buffer event_buf = {NULL, 0};
     size_t event_size;
     va_list args;
     va_start(args, n);
@@ -93,7 +93,7 @@ TEST(scap_event, empty_clone)
 
     EXPECT_EQ(evt->nparams, 0);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
     EXPECT_EQ(n, 0);
 }
@@ -109,7 +109,7 @@ TEST(scap_event, int_args)
 
     EXPECT_EQ(evt->nparams, 2);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
     EXPECT_EQ(n, 2);
     EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
@@ -135,7 +135,7 @@ TEST(scap_event, empty_buffers)
 
     EXPECT_EQ(evt->nparams, 2);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
     EXPECT_EQ(n, 2);
     EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));

@@ -57,14 +57,14 @@ limitations under the License.
  *  @{
  */
 
-typedef union _sinsp_sockinfo
+union sinsp_sockinfo
 {
 	ipv4tuple m_ipv4info; ///< The tuple if this an IPv4 socket.
 	ipv6tuple m_ipv6info; ///< The tuple if this an IPv6 socket.
 	ipv4serverinfo m_ipv4serverinfo;  ///< Information about an IPv4 server socket.
 	ipv6serverinfo m_ipv6serverinfo; ///< Information about an IPv6 server socket.
 	unix_tuple m_unixinfo; ///< The tuple if this a unix socket.
-}sinsp_sockinfo;
+};
 
 /*!
   \brief File Descriptor information class.
