@@ -97,10 +97,10 @@ public:
 
 };
 
-typedef struct extract_value {
+struct extract_value_t {
 	uint8_t* ptr;
 	uint32_t len;
-} extract_value_t;
+};
 
 class gen_event_filter_check
 {

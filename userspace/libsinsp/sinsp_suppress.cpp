@@ -68,7 +68,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e, uint16_t devid)
 		const char *comm = nullptr;
 		uint64_t *ptid = nullptr;
 
-		auto *lens = (uint16_t *)((char *)e + sizeof(struct ppm_evt_hdr));
+		auto *lens = (uint16_t *)((char *)e + sizeof(ppm_evt_hdr));
 		char *valptr = (char *)lens + e->nparams * sizeof(uint16_t);
 
 		ASSERT(e->nparams >= 14);

@@ -23,7 +23,7 @@ limitations under the License.
 #define CHISEL_TABLE_DEFAULT_REFRESH_INTERVAL_NS 1000000000
 #define CHISEL_TABLE_BUFFER_ENTRY_SIZE 16384
 
-typedef enum chisel_table_action
+enum chisel_table_action
 {
 	STA_NONE,
 	STA_PARENT_HANDLE,
@@ -38,7 +38,7 @@ typedef enum chisel_table_action
 	STA_SPECTRO,
 	STA_SPECTRO_FILE,
 	STA_DESTROY_CHILD,
-} chisel_table_action;
+};
 
 class chisel_table_field
 {

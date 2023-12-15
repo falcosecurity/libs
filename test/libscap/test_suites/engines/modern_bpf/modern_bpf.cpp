@@ -6,9 +6,9 @@
 #include <syscall.h>
 #include <helpers/engines.h>
 
-static enum falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
+static falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
 
-static void test_open_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
+static void test_open_log_fn(const char* component, const char* msg, falcosecurity_log_severity sev)
 {
 	if(sev <= severity_level)
 	{
@@ -240,10 +240,10 @@ TEST(modern_bpf, double_scap_stats_call)
 	ASSERT_EQ(scap_get_stats(h, &stats), SCAP_SUCCESS);
 	ASSERT_GT(stats.n_evts, 0);
 
-	/* Double call */	
+	/* Double call */
 	ASSERT_EQ(scap_get_stats(h, &stats), SCAP_SUCCESS);
 	ASSERT_GT(stats.n_evts, 0);
-	
+
 	ASSERT_EQ(scap_stop_capture(h), SCAP_SUCCESS);
 	scap_close(h);
 }

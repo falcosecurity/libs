@@ -33,7 +33,7 @@ static sinsp_filter_check_list s_filterlist;
 //
 //
 // Table sorter functor
-typedef struct table_row_cmp
+struct table_row_cmp
 {
 	bool operator()(const chisel_sample_row& src, const chisel_sample_row& dst)
 	{
@@ -72,7 +72,7 @@ typedef struct table_row_cmp
 	uint32_t m_colid;
 	ppm_param_type m_type;
 	bool m_ascending;
-}table_row_cmp;
+};
 
 chisel_table::chisel_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns,
 	chisel_table::output_type output_type, uint32_t json_first_row, uint32_t json_last_row)

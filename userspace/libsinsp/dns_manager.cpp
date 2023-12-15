@@ -85,8 +85,8 @@ inline sinsp_dns_manager::dns_info sinsp_dns_manager::resolve(const std::string 
 {
 	dns_info dinfo;
 
-	struct addrinfo hints, *result, *rp;
-	memset(&hints, 0, sizeof(struct addrinfo));
+	addrinfo hints, *result, *rp;
+	memset(&hints, 0, sizeof(addrinfo));
 
 	// Allow IPv4 or IPv6, all socket types, all protocols
 	hints.ai_family = AF_UNSPEC;
@@ -98,12 +98,12 @@ inline sinsp_dns_manager::dns_info sinsp_dns_manager::resolve(const std::string 
 		{
 			if(rp->ai_family == AF_INET)
 			{
-				dinfo.m_v4_addrs.insert(((struct sockaddr_in*)rp->ai_addr)->sin_addr.s_addr);
+				dinfo.m_v4_addrs.insert(((sockaddr_in*)rp->ai_addr)->sin_addr.s_addr);
 			}
 			else // AF_INET6
 			{
 				ipv6addr v6;
-				memcpy(v6.m_b, ((struct sockaddr_in6*)rp->ai_addr)->sin6_addr.s6_addr, sizeof(ipv6addr));
+				memcpy(v6.m_b, ((sockaddr_in6*)rp->ai_addr)->sin6_addr.s6_addr, sizeof(ipv6addr));
 				dinfo.m_v6_addrs.insert(v6);
 			}
 		}

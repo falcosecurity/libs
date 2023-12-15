@@ -239,7 +239,7 @@ const char *sinsp_evt::get_param_name(uint32_t id)
 	return m_info->params[id].name;
 }
 
-const struct ppm_param_info* sinsp_evt::get_param_info(uint32_t id)
+const ppm_param_info* sinsp_evt::get_param_info(uint32_t id)
 {
 	if((m_flags & sinsp_evt::SINSP_EF_PARAMS_LOADED) == 0)
 	{
@@ -875,8 +875,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		memcpy(&dyn_idx, param->m_val, sizeof(uint8_t));
 
 		if(dyn_idx < param_info->ninfo) {
-			const struct ppm_param_info* dyn_params =
-				(const struct ppm_param_info*)param_info->info;
+			auto dyn_params = (const ppm_param_info*)param_info->info;
 
 			dyn_param = sinsp_evt_param(param->m_evt, param->m_idx,
 				param->m_val + sizeof(uint8_t), param->m_len - sizeof(uint8_t));
@@ -1426,7 +1425,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
 
-			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
+			auto flags = (const ppm_name_value*)m_info->params[id].info;
 			const bool exact_match = param_info->type == PT_ENUMFLAGS8 || param_info->type == PT_ENUMFLAGS16 || param_info->type == PT_ENUMFLAGS32;
 			const char *separator = "";
 			uint32_t initial_val = val;
@@ -1488,7 +1487,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					m_paramstr_storage.size(),
 					prfmt, val);
 
-			const struct ppm_name_value *mode = (const struct ppm_name_value *)m_info->params[id].info;
+			auto mode = (const ppm_name_value*)m_info->params[id].info;
 			const char *separator = "";
 			uint32_t initial_val = val;
 			uint32_t j = 0;
@@ -2181,7 +2180,7 @@ std::optional<std::reference_wrapper<const std::string>> sinsp_evt::get_enter_ev
 
 void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const
 {
-	const struct ppm_param_info* parinfo = get_info();
+	const ppm_param_info* parinfo = get_info();
 
 	std::stringstream ss;
 	ss << "could not parse param " << m_idx << " (" << parinfo->name << ") for event "
@@ -2191,7 +2190,7 @@ void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const
 	throw sinsp_exception(ss.str());
 }
 
-const struct ppm_param_info* sinsp_evt_param::get_info() const
+const ppm_param_info* sinsp_evt_param::get_info() const
 {
 	return &(m_evt->get_info()->params[m_idx]);
 }

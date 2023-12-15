@@ -43,11 +43,11 @@ typedef struct lua_State lua_State;
 /*!
   \brief This is the class that compiles and runs filters.
 */
-typedef struct chiseldir_info
+struct chiseldir_info
 {
 	bool m_need_to_resolve;
 	std::string m_dir;
-}chiseldir_info;
+};
 
 class chiselarg_desc
 {

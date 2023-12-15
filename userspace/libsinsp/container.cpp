@@ -282,7 +282,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, 
 	scapevt->type = PPME_CONTAINER_JSON_2_E;
 	scapevt->nparams = 1;
 
-	uint32_t* lens = (uint32_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	uint32_t* lens = (uint32_t*)((char *)scapevt + sizeof(ppm_evt_hdr));
 	char* valptr = (char*)lens + sizeof(uint32_t);
 
 	*lens = (uint32_t)json.length() + 1;
@@ -711,4 +711,3 @@ void sinsp_container_manager::set_container_labels_max_len(uint32_t max_label_le
 {
 	sinsp_container_info::m_container_label_max_length = max_label_len;
 }
-

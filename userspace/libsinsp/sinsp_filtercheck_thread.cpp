@@ -145,7 +145,7 @@ sinsp_filter_check* sinsp_filter_check_thread::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_thread();
 }
 
-int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo)
+int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string val, OUT const ppm_param_info** parinfo)
 {
 	std::string::size_type parsed_len = 0;
 

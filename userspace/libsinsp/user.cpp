@@ -595,7 +595,7 @@ bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user, sin
 	scapevt->type = ev_type;
 	scapevt->nparams = 6;
 
-	auto* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	auto* lens = (uint16_t*)((char *)scapevt + sizeof(ppm_evt_hdr));
 	char* valptr = (char*)lens + scapevt->nparams * sizeof(uint16_t);
 
 	lens[0] = sizeof(uint32_t);
@@ -645,7 +645,7 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 	scapevt->type = ev_type;
 	scapevt->nparams = 3;
 
-	auto* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	auto* lens = (uint16_t*)((char *)scapevt + sizeof(ppm_evt_hdr));
 	char* valptr = (char*)lens + scapevt->nparams * sizeof(uint16_t);
 
 	lens[0] = sizeof(uint32_t);

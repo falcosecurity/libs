@@ -14,12 +14,12 @@ TEST(SyscallExit, accept4X_INET)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, addr, addrlen, flags);
@@ -83,12 +83,12 @@ TEST(SyscallExit, accept4X_INET6)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in6 client_addr = {0};
-	struct sockaddr_in6 server_addr = {0};
+	sockaddr_in6 client_addr = {0};
+	sockaddr_in6 server_addr = {0};
 	evt_test->connect_ipv6_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, addr, addrlen, flags);
@@ -158,7 +158,7 @@ TEST(SyscallExit, accept4X_UNIX)
 	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, addr, addrlen, flags);
@@ -224,7 +224,7 @@ TEST(SyscallExit, accept4X_failure)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 	assert_syscall_state(SYSCALL_FAILURE, "accept4", syscall(__NR_accept4, mock_fd, addr, addrlen, flags));

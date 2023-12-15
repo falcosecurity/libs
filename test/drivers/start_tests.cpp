@@ -20,7 +20,7 @@
 #define KMOD_NAME "scap"
 
 scap_t* event_test::s_scap_handle = NULL;
-static enum falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
+static falcosecurity_log_severity severity_level = FALCOSECURITY_LOG_SEV_WARNING;
 
 int remove_kmod()
 {
@@ -79,7 +79,7 @@ int insert_kmod(const std::string& kmod_path)
 	return EXIT_SUCCESS;
 }
 
-void abort_if_already_configured(const struct scap_vtable* vtable)
+void abort_if_already_configured(const scap_vtable* vtable)
 {
 	if(vtable != nullptr)
 	{
@@ -88,7 +88,7 @@ void abort_if_already_configured(const struct scap_vtable* vtable)
 	}
 }
 
-void test_open_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev)
+void test_open_log_fn(const char* component, const char* msg, falcosecurity_log_severity sev)
 {
 	if(sev <= severity_level)
 	{
@@ -143,11 +143,11 @@ int open_engine(int argc, char** argv)
 		{0, 0, 0, 0}};
 
 	// They should live until we call 'scap_open'
-	struct scap_modern_bpf_engine_params modern_bpf_params = {0};
-	struct scap_bpf_engine_params bpf_params = {0};
-	struct scap_kmod_engine_params kmod_params = {0};
+	scap_modern_bpf_engine_params modern_bpf_params = {0};
+	scap_bpf_engine_params bpf_params = {0};
+	scap_kmod_engine_params kmod_params = {0};
 	int ret = 0;
-	const struct scap_vtable* vtable = nullptr;
+	const scap_vtable* vtable = nullptr;
 	scap_open_args oargs = {};
 	oargs.log_fn = test_open_log_fn;
 	unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
@@ -279,7 +279,7 @@ int open_engine(int argc, char** argv)
 					std::cerr << "Invalid logging level. Valid range is '" << std::to_string(FALCOSECURITY_LOG_SEV_FATAL) <<"' <= lev <= '" << std::to_string(FALCOSECURITY_LOG_SEV_TRACE) << "'" << std::endl;
 					return EXIT_FAILURE;
 				}
-				severity_level = (enum falcosecurity_log_severity)level;
+				severity_level = (falcosecurity_log_severity)level;
 			}
 			break;
 

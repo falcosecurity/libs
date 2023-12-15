@@ -14,14 +14,14 @@ TEST(SyscallExit, recvmsgX_tcp_connection_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
@@ -32,7 +32,7 @@ TEST(SyscallExit, recvmsgX_tcp_connection_no_snaplen)
 	struct iovec iov[2];
 	memset(&recv_msg, 0, sizeof(recv_msg));
 	memset(iov, 0, sizeof(iov));
-	recv_msg.msg_name = (struct sockaddr *)&client_addr;
+	recv_msg.msg_name = (sockaddr*)&client_addr;
 	recv_msg.msg_namelen = sizeof(client_addr);
 	char data_1[MAX_RECV_BUF_SIZE];
 	char data_2[MAX_RECV_BUF_SIZE];
@@ -115,14 +115,14 @@ TEST(SyscallExit, recvmsgX_tcp_connection_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
@@ -133,7 +133,7 @@ TEST(SyscallExit, recvmsgX_tcp_connection_snaplen)
 	struct iovec iov[2];
 	memset(&recv_msg, 0, sizeof(recv_msg));
 	memset(iov, 0, sizeof(iov));
-	recv_msg.msg_name = (struct sockaddr *)&client_addr;
+	recv_msg.msg_name = (sockaddr*)&client_addr;
 	recv_msg.msg_namelen = sizeof(client_addr);
 	char data_1[MAX_RECV_BUF_SIZE];
 	char data_2[MAX_RECV_BUF_SIZE];
@@ -213,14 +213,14 @@ TEST(SyscallExit, recvmsgX_tcp_connection_NULL_sockaddr)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
@@ -311,21 +311,21 @@ TEST(SyscallExit, recvmsgX_udp_connection_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	struct msghdr recv_msg;
 	struct iovec iov[2];
 	memset(&recv_msg, 0, sizeof(recv_msg));
 	memset(iov, 0, sizeof(iov));
-	recv_msg.msg_name = (struct sockaddr *)&client_addr;
+	recv_msg.msg_name = (sockaddr*)&client_addr;
 	recv_msg.msg_namelen = sizeof(client_addr);
 	char data_1[MAX_RECV_BUF_SIZE];
 	char data_2[MAX_RECV_BUF_SIZE];
@@ -405,14 +405,14 @@ TEST(SyscallExit, recvmsgX_udp_connection_NULL_sockaddr)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_in client_addr = {0};
-	struct sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {0};
+	sockaddr_in server_addr = {0};
 	evt_test->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	struct msghdr recv_msg;
@@ -557,7 +557,7 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 	struct cmsghdr *cmsg;
 	char cmsg_buf[CMSG_SPACE(sizeof(int))];
 	struct iovec iov = {
-		.iov_base = (void *)FULL_MESSAGE, 
+		.iov_base = (void *)FULL_MESSAGE,
 		.iov_len = FULL_MESSAGE_LEN,
 	};
 
@@ -643,7 +643,7 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 	evt_test->parse_event();
 
 	evt_test->assert_header();
-	
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
@@ -656,7 +656,7 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 	evt_test->assert_bytebuf_param(3, FULL_MESSAGE, DEFAULT_SNAPLEN);
 
 	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
-	evt_test->assert_bytebuf_param(5, (const char *)cmsg, msg_controllen);	
+	evt_test->assert_bytebuf_param(5, (const char *)cmsg, msg_controllen);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

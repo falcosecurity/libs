@@ -20,7 +20,7 @@ TEST(SyscallExit, socketX)
 	/* Here we need to call the `socket` from a child because the main process throws a `socket`
 	 * syscall to calibrate the socket file options if we are using the bpf probe.
 	 */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));

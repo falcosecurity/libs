@@ -36,8 +36,8 @@ limitations under the License.
 #include "settings.h"
 #include "sinsp_exception.h"
 
-typedef class sinsp sinsp;
-typedef class sinsp_threadinfo sinsp_threadinfo;
+class sinsp;
+class sinsp_threadinfo;
 class sinsp_evt;
 
 namespace test_helpers {
@@ -45,11 +45,10 @@ namespace test_helpers {
 	class sinsp_mock;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // Event arguments
 ///////////////////////////////////////////////////////////////////////////////
-typedef enum filtercheck_field_flags
+enum filtercheck_field_flags
 {
 	EPF_NONE              = 0,
 	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
@@ -63,12 +62,12 @@ typedef enum filtercheck_field_flags
 	EPF_ARG_INDEX         = 1 << 8, ///< this field accepts numeric arguments.
 	EPF_ARG_KEY           = 1 << 9, ///< this field accepts string arguments.
 	EPF_DEPRECATED        = 1 << 10,///< this field is deprecated.
-}filtercheck_field_flags;
+};
 
 /*!
   \brief Information about a filter/formatting field.
 */
-typedef struct filtercheck_field_info
+struct filtercheck_field_info
 {
 	ppm_param_type m_type; ///< Field type.
 	uint32_t m_flags;  ///< Field flags.
@@ -76,7 +75,7 @@ typedef struct filtercheck_field_info
 	char m_name[64];  ///< Field name.
 	char m_display[64];  ///< Field display name (short description). May be empty.
 	char m_description[1024];  ///< Field description.
-}filtercheck_field_info;
+};
 
 /** @defgroup event Event manipulation
  * Classes to manipulate events, extract their content and convert them into strings.

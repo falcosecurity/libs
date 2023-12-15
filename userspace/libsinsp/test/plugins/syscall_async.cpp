@@ -32,7 +32,7 @@ limitations under the License.
  * - Defines only one async event name
  * - Sends an async event periodically given the configured time period
  */
-typedef struct plugin_state
+struct plugin_state
 {
     std::string lasterr;
     uint64_t async_period;
@@ -41,7 +41,7 @@ typedef struct plugin_state
     std::atomic<bool> async_thread_run;
     uint8_t async_evt_buf[2048];
     ss_plugin_event* async_evt;
-} plugin_state;
+};
 
 static const char* plugin_get_required_api_version()
 {

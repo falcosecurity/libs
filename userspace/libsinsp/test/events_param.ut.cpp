@@ -116,7 +116,7 @@ TEST_F(sinsp_with_test_input, bytebuf_empty_param)
 	int64_t test_errno = 0;
 
 	/* `PPME_SYSCALL_PWRITE_X` is a simple event that uses a `PT_BYTEBUF` */
-	struct scap_const_sized_buffer bytebuf_param;
+	scap_const_sized_buffer bytebuf_param;
 	bytebuf_param.buf = NULL;
 	bytebuf_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PWRITE_X, 2, test_errno, bytebuf_param);
@@ -138,7 +138,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param)
 	int64_t fd = 0;
 
 	/* `PPME_SOCKET_CONNECT_E` is a simple event that uses a `PT_SOCKADDR` */
-	struct scap_const_sized_buffer sockaddr_param;
+	scap_const_sized_buffer sockaddr_param;
 	sockaddr_param.buf = NULL;
 	sockaddr_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, fd, sockaddr_param);
@@ -146,7 +146,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param)
 	ASSERT_EQ(param->m_len, 0);
 
 	/* `PPME_SOCKET_CONNECT_X` is a simple event that uses a `PT_SOCKTUPLE` */
-	struct scap_const_sized_buffer socktuple_param;
+	scap_const_sized_buffer socktuple_param;
 	socktuple_param.buf = NULL;
 	socktuple_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 3, fd, socktuple_param, fd);
@@ -154,7 +154,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param)
 	ASSERT_EQ(param->m_len, 0);
 
 	/* `PPME_SYSCALL_POLL_X` is a simple event that uses a `PT_FDLIST` */
-	struct scap_const_sized_buffer fdlist_param;
+	scap_const_sized_buffer fdlist_param;
 	fdlist_param.buf = NULL;
 	fdlist_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_POLL_X, 2, fd, fdlist_param);
@@ -286,7 +286,7 @@ TEST_F(sinsp_with_test_input, execve_invalid_path_entry)
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_E, 1, "<NA>");
 
-	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, (int64_t) 0, "/bin/test-exe", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 1, "<NA>", (uint64_t) 0, (uint64_t) 0, (uint64_t) 0, 0, 0, 0, "test-exe", empty_bytebuf, empty_bytebuf, 0, (uint64_t) 0, 0, 0, (uint64_t) 0, (uint64_t) 0, (uint64_t) 0);
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");

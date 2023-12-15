@@ -323,13 +323,13 @@ void chisel_view_manager::add(chisel_view_info* vinfo)
 	m_views.push_back(*vinfo);
 }
 
-typedef struct view_cmp
+struct view_cmp
 {
 	bool operator()(const chisel_view_info& src, const chisel_view_info& dst)
 	{
 		return src.m_name < dst.m_name;
 	}
-}table_row_cmp;
+};
 
 void chisel_view_manager::sort_views()
 {

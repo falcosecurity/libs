@@ -13,7 +13,7 @@ TEST(SyscallEnter, clone3E)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* flags are invalid so the syscall will fail. */
-	struct clone_args cl_args = {0};
+	clone_args cl_args = {0};
 	cl_args.flags = (unsigned long)-1;
 	assert_syscall_state(SYSCALL_FAILURE, "clone3", syscall(__NR_clone3, &cl_args, sizeof(cl_args)));
 

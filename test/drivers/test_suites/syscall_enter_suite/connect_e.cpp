@@ -11,9 +11,9 @@ TEST(SyscallEnter, connectE_INET)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -62,9 +62,9 @@ TEST(SyscallEnter, connectE_INET6)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct sockaddr_in6 server_addr;
+	sockaddr_in6 server_addr;
 	evt_test->server_fill_sockaddr_in6(&server_addr);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -116,9 +116,9 @@ TEST(SyscallEnter, connectE_UNIX)
 	 * the maximum length (`MAX_SUN_PATH`).
 	 */
 	int32_t mock_fd = -1;
-	struct sockaddr_un server_addr;
+	sockaddr_un server_addr;
 	evt_test->server_fill_sockaddr_un(&server_addr);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -178,9 +178,9 @@ TEST(SyscallEnter, connectE_UNIX_max_path)
 	 */
 
 	int32_t mock_fd = -1;
-	struct sockaddr_un server_addr;
+	sockaddr_un server_addr;
 	evt_test->server_fill_sockaddr_un(&server_addr, UNIX_LONG_PATH);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -232,7 +232,7 @@ TEST(SyscallEnter, connectE_null_sockaddr)
 	 * The invalid socket fd, in this case, is negative so the `sockaddr` param will be empty.
 	 */
 	int32_t mock_fd = -1;
-	struct sockaddr *addr = NULL;
+	sockaddr* addr = NULL;
 	socklen_t addrlen = 0;
 	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, addr, addrlen));
 

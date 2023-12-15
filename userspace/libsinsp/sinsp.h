@@ -151,7 +151,7 @@ public:
 /*!
   \brief Sinsp possible modes
 */
-typedef enum
+enum sinsp_mode_t
 {
 	/*!
 		 * Default value that mostly exists so that sinsp can have a valid value
@@ -180,7 +180,7 @@ typedef enum
 		 * Do not attempt to query the underlying system.
 	 */
 	SINSP_MODE_TEST,
-} sinsp_mode_t;
+};
 
 /** @defgroup inspector Main library
  @{
@@ -205,7 +205,6 @@ public:
 		  const std::string &static_image = "");
 
 	virtual ~sinsp() override;
-
 
 	/* Wrappers to open a specific engine. */
 	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});

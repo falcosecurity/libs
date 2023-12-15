@@ -17,18 +17,18 @@ TEST(SyscallExit, connectX_INET)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
 	evt_test->client_reuse_address_port(client_socket_fd);
 
-	struct sockaddr_in client_addr;
+	sockaddr_in client_addr;
 	evt_test->client_fill_sockaddr_in(&client_addr);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (sockaddr*)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
 
 	/* Now we associate the client socket with the server address. */
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
 	/* With `SOCK_DGRAM` the `connect` will not perform a connection this is why the syscall doesn't fail. */
-	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, client_socket_fd);
@@ -77,17 +77,17 @@ TEST(SyscallExit, connectX_INET6)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
 	evt_test->client_reuse_address_port(client_socket_fd);
 
-	struct sockaddr_in6 client_addr;
+	sockaddr_in6 client_addr;
 	evt_test->client_fill_sockaddr_in6(&client_addr);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (sockaddr*)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
 
-	struct sockaddr_in6 server_addr;
+	sockaddr_in6 server_addr;
 	evt_test->server_fill_sockaddr_in6(&server_addr);
 
 	/* Now we associate the client socket with the server address. */
-	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, client_socket_fd);
@@ -140,7 +140,7 @@ TEST(SyscallExit, connectX_UNIX)
 	evt_test->client_fill_sockaddr_un(&client_addr);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (sockaddr*)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
 
 	/* We need to create a server socket. */
 	int32_t server_socket_fd = syscall(__NR_socket, AF_UNIX, SOCK_DGRAM, 0);
@@ -149,9 +149,9 @@ TEST(SyscallExit, connectX_UNIX)
 	struct sockaddr_un server_addr;
 	evt_test->server_fill_sockaddr_un(&server_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, client_socket_fd);
@@ -201,7 +201,7 @@ TEST(SyscallExit, connectX_failure)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	const struct sockaddr *addr = NULL;
+	const sockaddr* addr = NULL;
 	socklen_t addrlen = 0;
 	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, addr, addrlen));
 	int64_t errno_value = -errno;
@@ -249,17 +249,17 @@ TEST(SyscallExit, connectX_failure_ECONNREFUSED)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
 	evt_test->client_reuse_address_port(client_socket_fd);
 
-	struct sockaddr_in client_addr;
+	sockaddr_in client_addr;
 	evt_test->client_fill_sockaddr_in(&client_addr);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (sockaddr*)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
 
 	/* We try to reach this server that doesn't exist */
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
-	assert_syscall_state(SYSCALL_FAILURE, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(SYSCALL_FAILURE, "connect (client)", syscall(__NR_connect, client_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -313,26 +313,26 @@ TEST(SyscallExit, connectX_failure_EINPROGRESS)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
 	evt_test->client_reuse_address_port(client_socket_fd);
 
-	struct sockaddr_in client_addr;
+	sockaddr_in client_addr;
 	evt_test->client_fill_sockaddr_in(&client_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (sockaddr*)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
 
 	int32_t server_socket_fd = syscall(__NR_socket, AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", server_socket_fd, NOT_EQUAL, -1);
 	evt_test->server_reuse_address_port(server_socket_fd);
 
-	struct sockaddr_in server_addr;
+	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
 	/* Now we bind the server socket with the server address. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Here we don't call listen so the connection from the client should be
 	 * in progress.
 	 */
 
-	assert_syscall_state(SYSCALL_FAILURE, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(SYSCALL_FAILURE, "connect (client)", syscall(__NR_connect, client_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

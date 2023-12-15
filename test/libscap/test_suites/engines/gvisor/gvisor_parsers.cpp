@@ -75,7 +75,7 @@ TEST(gvisor_parsers, parse_execve_e)
 
     EXPECT_EQ(res.scap_events.size(), 1);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 1);
     EXPECT_STREQ(static_cast<const char*>(decoded_params[0].buf), "/usr/bin/ls");
@@ -159,7 +159,7 @@ TEST(gvisor_parsers, parse_execve_x)
 
     EXPECT_EQ(res.scap_events.size(), 1);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 27);
     EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "/usr/bin/ls"); // exe
@@ -191,7 +191,7 @@ TEST(gvisor_parsers, parse_fork_e)
 
     EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_FORK_20_E);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 0);
 }
@@ -222,7 +222,7 @@ TEST(gvisor_parsers, parse_fork_x)
 
     EXPECT_EQ(res.scap_events.size(), 1);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 21);
     EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "ls"); // exe
@@ -253,7 +253,7 @@ TEST(gvisor_parsers, parse_clone_e)
 
     EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_CLONE_20_E);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 0);
 }
@@ -283,7 +283,7 @@ TEST(gvisor_parsers, parse_clone_x)
 
     EXPECT_EQ(res.scap_events.size(), 1);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 21);
     EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "ls"); // exe
@@ -320,7 +320,7 @@ TEST(gvisor_parsers, parse_socketpair_e)
 
     EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_E);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 3);
 
@@ -366,7 +366,7 @@ TEST(gvisor_parsers, parse_socketpair_x)
 
     EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_X);
 
-    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 5);
 
