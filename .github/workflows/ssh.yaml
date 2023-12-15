@@ -1,0 +1,20 @@
+name: connect
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  connect:
+    name: connect
+    runs-on: actuated
+    steps:
+    - uses: self-actuated/connect-ssh@master
