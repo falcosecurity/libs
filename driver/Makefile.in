@@ -10,14 +10,13 @@
 obj-m += @DRIVER_NAME@.o
 ccflags-y := @KBUILD_FLAGS@
 
-KERNELDIR 		?= /lib/modules/$(shell uname -r)/build
-
 ifeq ($(strip $(MAKEFILE_LIST)),Makefile)
 #
 # If MAKEFILE_LIST is just "Makefile", it means `make` was invoked pointing to
 # this Makefile. Targets don't make any sense if the Makefile was included.
 #
-TOP := $(shell pwd)
+KERNELDIR 	?= /lib/modules/$(shell uname -r)/build
+TOP 		:= $(shell pwd)
 
 all:
 	$(MAKE) -C $(KERNELDIR) M=$(TOP) modules
@@ -27,7 +26,10 @@ clean:
 
 install: all
 	$(MAKE) -C $(KERNELDIR) M=$(TOP) modules_install
+
 else
+
+KERNELDIR 	?= $(CURDIR)
 #
 # Get the path of the module sources
 #
