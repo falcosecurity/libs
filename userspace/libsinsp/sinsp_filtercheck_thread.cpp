@@ -385,6 +385,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 			if(val == "proc.aenv")
 			{
 				m_argname.clear();
+				m_argid = -1;
 				res = (int32_t)val.size();
 			}
 		}
@@ -878,6 +879,22 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		{
 			m_tstr.clear();
 
+			if(m_argname.empty() && m_argid < 1)
+			{
+				// in case of proc.aenv without [ENV_NAME] return proc.env; same applies for  proc.aenv[0]
+				const auto& env = tinfo->get_env();
+				uint32_t nargs = (uint32_t)env.size();
+				for(int32_t j = 0; j < nargs; j++)
+				{
+					m_tstr += env[j];
+					if(j < nargs -1)
+					{
+						m_tstr += ' ';
+					}
+				}
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+
 			// get current tinfo / init for subsequent parent lineage traversal
 			sinsp_threadinfo* mt = NULL;
 			if(tinfo->is_main_thread())
@@ -945,20 +962,8 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 					}
 				}
 				RETURN_EXTRACT_STRING(m_tstr);
-			} else
-			{ // in case of proc.aenv without [ENV_NAME] return proc.env; same applies for  proc.aenv[0]
-				const auto& env = tinfo->get_env();
-				uint32_t nargs = (uint32_t)env.size();
-				for(int32_t j = 0; j < nargs; j++)
-				{
-					m_tstr += env[j];
-					if(j < nargs -1)
-					{
-						m_tstr += ' ';
-					}
-				}
-				RETURN_EXTRACT_STRING(m_tstr);
 			}
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_CMDLINE:
 		{
