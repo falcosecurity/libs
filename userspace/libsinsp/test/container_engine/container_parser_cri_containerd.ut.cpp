@@ -546,7 +546,7 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_containerd_pod_statu
 	status->mutable_network()->set_ip("10.244.0.2");
 	auto labels = status->mutable_labels();
 	(*labels)["app"] = "myapp";
-	(*labels)["example-label/custom"] = "mylabel";
+	(*labels)["example-label/custom_one"] = "mylabel";
 	(*labels)["io.kubernetes.pod.namespace"] = "default";
 	(*labels)["io.kubernetes.pod.name"] = "nginx-sandbox";
 	auto annotations = status->mutable_annotations();
@@ -732,13 +732,12 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "default");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "nginx-sandbox");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "hdishddjaidwnduw9a43535366368"); // legacy pod UID
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), "hdishddjaidwnduw9a43535366368");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), get_field_as_string(evt, "k8s.pod.id")); // new semantically correct pod UID
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.sandbox_id"), "63060edc2d3a");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"), "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
-	// todo @Andreagit97 refactor pod labels queries to k8s.pod.label[example.label]
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom"), "mylabel");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom]"), "mylabel");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom_one"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom_one]"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
 }

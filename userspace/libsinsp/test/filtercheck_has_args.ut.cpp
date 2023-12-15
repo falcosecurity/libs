@@ -66,10 +66,6 @@ TEST(filtercheck_has_args, has_args)
 				{
 					field_str += ".cpuacct";
 				}
-				else if (field_str == "k8s.pod.label")
-				{
-					field_str += "[foo]";
-				}
 				else
 				{
 					field_str += "[1]";
