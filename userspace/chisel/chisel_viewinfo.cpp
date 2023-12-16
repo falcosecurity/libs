@@ -287,7 +287,7 @@ chisel_view_column_info* chisel_view_info::get_key()
 	return NULL;
 }
 
-string chisel_view_info::get_filter(uint32_t depth)
+string chisel_view_info::get_filter(uint32_t depth) const
 {
 	if(m_filter.find("%depth+1") != string::npos)
 	{

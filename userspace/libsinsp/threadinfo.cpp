@@ -459,7 +459,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_exe_writable = pi->exe_writable;
 	m_exe_upper_layer = pi->exe_upper_layer;
 	m_exe_from_memfd = pi->exe_from_memfd;
-	
 
 	/* We cannot obtain the reaper_tid from a /proc scan */
 	m_reaper_tid = -1;
@@ -831,29 +830,27 @@ bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_visitor_t visitor)
 	return fdt->loop(visitor);
 }
 
-bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
+bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const
 {
-	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
-
-	sinsp_fdtable* fdt = get_fd_table();
+	const sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL)
 	{
 		ASSERT(false);
 		return false;
 	}
 
-	for(it = fdt->m_table.begin(); it != fdt->m_table.end(); ++it)
+	for(auto& [_, info] : fdt->m_table)
 	{
-		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
+		if(info.m_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(it->second.m_sockinfo.m_ipv4info.m_fields.m_dport == number)
+			if(info.m_sockinfo.m_ipv4info.m_fields.m_dport == number)
 			{
 				return true;
 			}
 		}
-		else if(it->second.m_type == SCAP_FD_IPV4_SERVSOCK)
+		else if(info.m_type == SCAP_FD_IPV4_SERVSOCK)
 		{
-			if(it->second.m_sockinfo.m_ipv4serverinfo.m_port == number)
+			if(info.m_sockinfo.m_ipv4serverinfo.m_port == number)
 			{
 				return true;
 			}
@@ -863,23 +860,20 @@ bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
 	return false;
 }
 
-bool sinsp_threadinfo::uses_client_port(uint16_t number)
+bool sinsp_threadinfo::uses_client_port(uint16_t number) const
 {
-	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
-
-	sinsp_fdtable* fdt = get_fd_table();
+	const sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL)
 	{
 		ASSERT(false);
 		return false;
 	}
 
-	for(it = fdt->m_table.begin();
-		it != fdt->m_table.end(); ++it)
+	for(auto& [_, info] : fdt->m_table)
 	{
-		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
+		if(info.m_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(it->second.m_sockinfo.m_ipv4info.m_fields.m_sport == number)
+			if(info.m_sockinfo.m_ipv4info.m_fields.m_sport == number)
 			{
 				return true;
 			}
@@ -889,7 +883,7 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 	return false;
 }
 
-bool sinsp_threadinfo::is_lastevent_data_valid()
+bool sinsp_threadinfo::is_lastevent_data_valid() const
 {
 	return (m_lastevent_cpuid != (uint16_t) - 1);
 }
@@ -1141,7 +1135,7 @@ void sinsp_threadinfo::populate_cmdline(std::string &cmdline, const sinsp_thread
 	}
 }
 
-bool sinsp_threadinfo::is_health_probe()
+bool sinsp_threadinfo::is_health_probe() const
 {
 	return (m_category == sinsp_threadinfo::CAT_HEALTHCHECK ||
 		m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE ||
@@ -1315,8 +1309,7 @@ void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string> &strs,
 	}
 }
 
-
-void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
+static void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 {
 	dst->type = src->m_type;
 	dst->ino = src->m_ino;
@@ -1453,7 +1446,7 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 	}
 
 	/* Assign the child to the parent for the first time, we are a thread
-	 * just created and we need to assign us to a parent. 
+	 * just created and we need to assign us to a parent.
 	 * Remember that in `/proc` scan the `ptid` is `ppid`.
 	 * If we don't find the parent in the table we can do nothing, so we consider
 	 * INIT as the new parent.
@@ -1568,7 +1561,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	 * the current `tinfo` it is possible that we are not
 	 * able to detect the loop and we assign the wrong reaper.
 	 * By the way, this should never happen and this logic is here
-	 * just to avoid infinite loops, is not here to guarantee 100% 
+	 * just to avoid infinite loops, is not here to guarantee 100%
 	 * correctness.
 	 * We should never have a self-loop but if we have it
 	 * we break it and we return a `nullptr` as a reaper.
@@ -1590,7 +1583,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 
 		/* The only possible case in which we break here is:
 		 * - the parent is not in a namespace while the child yes
-		 * 
+		 *
 		 * WARNING: this is a best-effort check, in sinsp we have no knowledge of
 		 * namespace level so it's possible that the parent is in a different namespace causing
 		 * a container escape! We are not able to detect it with the actual info.
@@ -1600,7 +1593,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 			break;
 		}
 
-		if(parent_tinfo->m_tginfo != nullptr && 
+		if(parent_tinfo->m_tginfo != nullptr &&
 			parent_tinfo->m_tginfo->is_reaper() &&
 			parent_tinfo->m_tginfo->get_thread_count() > 0)
 		{
@@ -1619,7 +1612,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 		}
 		parent_tinfo = parent_tinfo->get_parent_thread();
 	}
-	
+
 	return nullptr;
 }
 
@@ -1627,7 +1620,7 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 {
 	///todo(@Andreagit97): all this logic is useful only if we have a `m_fd_listener`
 	///we could avoid it if not present.
-	
+
 	/* Please note that the main thread is not always here, it is possible
 	 * that for some reason we lose it!
 	 */
@@ -1635,7 +1628,7 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 	{
 		return;
 	}
-	
+
 	sinsp_fdtable* fd_table_ptr = main_thread->get_fd_table();
 	if(fd_table_ptr == nullptr)
 	{
@@ -1712,12 +1705,12 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	 *   - Reaper -1 means that we cannot find the correct reaper info in the kernel due
 	 *     to BPF verifier limits. In this case, we will use our userspace logic to find a reaper.
 	 *   - Reaper > 0 means the kernel sent us a valid reaper we will use it if present in our thread table.
-	 * 	   If not present we will use our userspace logic.	
+	 * 	   If not present we will use our userspace logic.
 	 * 3. We receive an old version of the PROC_EXIT event without reaper info. In this case,
 	 *    we use our userspace logic.
 	 * 4. We lost the PROC_EXIT event, so we are here because the purging logic called us. Also
 	 *    in this case we use our userspace logic.
-	 * 
+	 *
 	 * So excluding the case in which the kernel sent us a valid reaper we always fallback to
 	 * our userspace logic.
 	 */
@@ -1997,7 +1990,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				// Populate the fd info
 				//
 				scfdinfo->fd = it->first;
-				tinfo.fd_to_scap(scfdinfo, &it->second);
+				fd_to_scap(scfdinfo, &it->second);
 
 				//
 				// Add the new fd to the scap table.

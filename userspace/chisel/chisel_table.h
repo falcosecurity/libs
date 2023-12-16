@@ -76,7 +76,7 @@ public:
 	uint32_t m_cnt;		// For averages, this stores the entry count
 	uint8_t* m_val;
 
-	friend class curses_table;	
+	friend class curses_table;
 };
 
 #define STF_STORAGE_BUFSIZE 512
@@ -138,7 +138,7 @@ struct chisel_table_field_hasher
 		  h = h * 101 + (unsigned) *s++;
 	  }
 
-	  return h;  
+	  return h;
   }
 };
 
@@ -222,7 +222,7 @@ public:
 
 class chisel_table
 {
-public:	
+public:
 	enum tabletype
 	{
 		TT_NONE = 0,
@@ -230,7 +230,7 @@ public:
 		TT_LIST,
 	};
 
-	enum output_type 
+	enum output_type
 	{
 		OT_CURSES,
 		OT_RAW,
@@ -253,13 +253,13 @@ public:
 		{
 			delete m_check;
 		}
-	
+
 		sinsp_filter_check* m_check;
 		chisel_field_aggregation m_aggregation;
 		chisel_field_aggregation m_merge_aggregation;
 	};
 
-	chisel_table(sinsp* inspector, tabletype type, 
+	chisel_table(sinsp* inspector, tabletype type,
 		uint64_t refresh_interval_ns, chisel_table::output_type output_type,
 		uint32_t json_first_row, uint32_t json_last_row);
 	~chisel_table();
@@ -285,16 +285,16 @@ public:
 		}
 	}
 	void set_sorting_col(uint32_t col);
-	uint32_t get_sorting_col();
+	uint32_t get_sorting_col() const;
 	std::pair<filtercheck_field_info*, std::string> get_row_key_name_and_val(uint32_t rownum, bool force);
 	chisel_table_field* get_row_key(uint32_t rownum);
-	int32_t get_row_from_key(chisel_table_field* key);
+	int32_t get_row_from_key(chisel_table_field* key) const;
 	void set_paused(bool paused);
 	void set_freetext_filter(std::string filter)
 	{
 		m_freetext_filter = filter;
 	}
-	tabletype get_type()
+	tabletype get_type() const
 	{
 		return m_type;
 	}
@@ -303,11 +303,11 @@ public:
 		m_refresh_interval_ns = newinterval_ns;
 	}
 	void clear();
-	bool is_merging()
+	bool is_merging() const
 	{
 		return m_do_merging;
 	}
-	bool is_sorting_ascending()
+	bool is_sorting_ascending() const
 	{
 		return m_is_sorting_ascending;
 	}
@@ -330,7 +330,7 @@ private:
 	inline void add_fields_min(ppm_param_type type, chisel_table_field* dst, chisel_table_field* src);
 	inline void add_fields(uint32_t dst_id, chisel_table_field* src, uint32_t aggr);
 	void process_proctable(sinsp_evt* evt);
-	inline uint32_t get_field_len(uint32_t id);
+	inline uint32_t get_field_len(uint32_t id) const;
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
@@ -385,6 +385,6 @@ private:
 	uint32_t m_json_first_row;
 	uint32_t m_json_last_row;
 
-	friend class curses_table;	
+	friend class curses_table;
 	friend class sinsp_cursesui;
 };

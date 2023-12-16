@@ -135,7 +135,7 @@ int32_t engine::init(std::string config_path, std::string root_path, bool no_eve
 	m_platform = platform;
 
 	m_trace_session_path = config_path;
-	
+
 	std::ifstream config_file(config_path);
 	if (config_file.fail())
 	{
@@ -266,7 +266,7 @@ static bool handshake(int client)
 	{
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -324,7 +324,7 @@ int32_t engine::start_capture()
 	m_accept_thread.detach();
 
 	m_capture_started = true;
-	
+
 	for(const auto& sandbox : existing_sandboxes)
 	{
 		// Since they were already running, we need to force the creation
@@ -398,18 +398,18 @@ int32_t engine::stop_capture()
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot delete session for sandbox %s", sandbox.c_str());
 			return SCAP_FAILURE;
 		}
-	}	
+	}
 
 	m_capture_started = false;
     return SCAP_SUCCESS;
 }
 
-uint32_t engine::get_vxid(uint64_t xid)
+uint32_t engine::get_vxid(uint64_t xid) const
 {
 	return parsers::get_vxid(xid);
 }
 
-int32_t engine::get_stats(scap_stats *stats)
+int32_t engine::get_stats(scap_stats *stats) const
 {
 	stats->n_drops = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
 	stats->n_drops_bug = m_gvisor_stats.n_drops_parsing;
@@ -418,7 +418,7 @@ int32_t engine::get_stats(scap_stats *stats)
 	return SCAP_SUCCESS;
 }
 
-const struct scap_stats_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc)
+const scap_stats_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	*nstats = scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS;
 	scap_stats_v2* stats = engine::m_stats;
@@ -499,7 +499,7 @@ int32_t engine::process_message_from_fd(int fd)
 			return SCAP_FAILURE;
 		};
 		parse_result = parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
-	} 
+	}
 
 	if(parse_result.status == SCAP_NOT_SUPPORTED)
 	{
@@ -546,7 +546,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags)
 
 	// at this moment, there are no events in any of the buffers we allocated
 	// for each sandbox: this is the right place to close fds and deallocate
-	// buffers safely for all the sandboxes that are no longer connected. 
+	// buffers safely for all the sandboxes that are no longer connected.
 
 	for(auto it = m_sandbox_data.begin(); it != m_sandbox_data.end(); )
 	{

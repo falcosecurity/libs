@@ -174,26 +174,24 @@ bool gen_event_filter_expression::extract(gen_event *evt, std::vector<extract_va
 	return false;
 }
 
-int32_t gen_event_filter_expression::get_expr_boolop()
+int32_t gen_event_filter_expression::get_expr_boolop() const
 {
-	std::vector<gen_event_filter_check*>* cks = &(m_checks);
-
-	if(cks->size() <= 1)
+	if(m_checks.size() <= 1)
 	{
 		return m_boolop;
 	}
 
 	// Reset bit 0 to remove irrelevant not
-	boolop b0 = (boolop)((uint32_t)(cks->at(1)->m_boolop) & (uint32_t)~1);
+	boolop b0 = (boolop)((uint32_t)(m_checks.at(1)->m_boolop) & (uint32_t)~1);
 
-	if(cks->size() <= 2)
+	if(m_checks.size() <= 2)
 	{
 		return b0;
 	}
 
-	for(uint32_t l = 2; l < cks->size(); l++)
+	for(uint32_t l = 2; l < m_checks.size(); l++)
 	{
-		if((boolop)((uint32_t)(cks->at(l)->m_boolop) & (uint32_t)~1) != b0)
+		if((boolop)((uint32_t)(m_checks.at(l)->m_boolop) & (uint32_t)~1) != b0)
 		{
 			return -1;
 		}
@@ -253,13 +251,13 @@ void gen_event_filter::add_check(gen_event_filter_check* chk)
 	m_curexpr->add_check((gen_event_filter_check *) chk);
 }
 
-bool gen_event_filter_factory::filter_field_info::is_skippable()
+bool gen_event_filter_factory::filter_field_info::is_skippable() const
 {
 	// Skip fields with the EPF_TABLE_ONLY flag.
 	return (tags.find("EPF_TABLE_ONLY") != tags.end());
 }
 
-bool gen_event_filter_factory::filter_field_info::is_deprecated()
+bool gen_event_filter_factory::filter_field_info::is_deprecated() const
 {
 	// Skip fields with the EPF_DEPRECATED flag.
 	return (tags.find("EPF_DEPRECATED") != tags.end());
@@ -443,4 +441,3 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool ver
 
 	return os.str();
 }
-

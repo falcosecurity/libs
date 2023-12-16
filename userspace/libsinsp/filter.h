@@ -148,7 +148,7 @@ public:
 
 	gen_event_filter* new_filter() override;
 	gen_event_filter_check* new_filtercheck(const char* fldname) override;
-	std::list<gen_event_filter_factory::filter_fieldclass_info> get_fields() override;
+	std::list<gen_event_filter_factory::filter_fieldclass_info> get_fields() const override;
 
 	// Convienence method to convert a vector of
 	// filter_check_infos into a list of

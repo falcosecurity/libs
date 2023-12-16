@@ -175,7 +175,7 @@ public:
 		{
 			return;
 		}
-		/* we increment again the threadcount since we 
+		/* we increment again the threadcount since we
 		 * decremented it during the proc_exit event.
 		 */
 		m_tginfo->increment_thread_count();
@@ -198,7 +198,7 @@ public:
 		{
 			return 0;
 		}
-		
+
 		auto main_thread = get_main_thread();
 		if(main_thread != nullptr && !main_thread->is_dead())
 		{
@@ -220,26 +220,31 @@ public:
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
-	inline sinsp_threadinfo* get_main_thread() const
+	inline sinsp_threadinfo* get_main_thread()
 	{
-		if(this->is_main_thread())
+		if(is_main_thread())
 		{
-			return const_cast<sinsp_threadinfo*>(this);
+			return this;
 		}
 
-		/* This is possible when we have invalid threads */
+		// This is possible when we have invalid threads
 		if(m_tginfo == nullptr)
 		{
 			return nullptr;
 		}
 
-		/* If we have the main thread in the group, it is always the first one */
+		// If we have the main thread in the group, it is always the first one
 		auto possible_main = m_tginfo->get_first_thread();
 		if(possible_main == nullptr || !possible_main->is_main_thread())
 		{
 			return nullptr;
 		}
 		return possible_main;
+	}
+
+	inline const sinsp_threadinfo* get_main_thread() const
+	{
+		return const_cast<sinsp_threadinfo*>(this)->get_main_thread();
 	}
 
 	/*!
@@ -290,12 +295,12 @@ public:
 	/*!
 	  \brief Return true if this thread is bound to the given server port.
 	*/
-	bool is_bound_to_port(uint16_t number);
+	bool is_bound_to_port(uint16_t number) const;
 
 	/*!
 	  \brief Return true if this thread has a client socket open on the given port.
 	*/
-	bool uses_client_port(uint16_t number);
+	bool uses_client_port(uint16_t number) const;
 
 	/*!
 	  \brief Return the ratio between open FDs and maximum available FDs for this thread.
@@ -344,7 +349,7 @@ public:
 		/* Set current thread as parent */
 		child->m_ptid = m_tid;
 		/* Increment the number of not expired children */
-		m_not_expired_children++;		
+		m_not_expired_children++;
 	}
 
 	/* We call it immediately before removing the thread from the thread table. */
@@ -387,7 +392,7 @@ public:
 
 	// Return true if this thread is a part of a healthcheck,
 	// readiness probe, or liveness probe.
-	bool is_health_probe();
+	bool is_health_probe() const;
 
 	/*!
 	  \brief Translate a directory's file descriptor into its path
@@ -545,20 +550,10 @@ public: // types required for use in sets
 		}
 	}
 
-#ifndef _WIN32
 	inline const sinsp_fdtable* get_fd_table() const
 	{
-		if(!(m_flags & PPM_CL_CLONE_FILES))
-		{
-			return &m_fdtable;
-		}
-		else
-		{
-			sinsp_threadinfo* root = get_main_thread();
-			return (root == nullptr) ? nullptr : &(root->m_fdtable);
-		}
+		return const_cast<sinsp_threadinfo*>(this)->get_fd_table();
 	}
-#endif
 
 public:
 VISIBILITY_PRIVATE
@@ -575,7 +570,7 @@ VISIBILITY_PRIVATE
 	void set_env(const char* env, size_t len);
 	bool set_env_from_proc();
 	void set_cgroups(const char* cgroups, size_t len);
-	bool is_lastevent_data_valid();
+	bool is_lastevent_data_valid() const;
 	inline void set_lastevent_data_validity(bool isvalid)
 	{
 		if(isvalid)
@@ -599,8 +594,6 @@ VISIBILITY_PRIVATE
 			  struct iovec &iov,
 			  uint32_t &alen,
 			  std::string &rem) const;
-
-	void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src);
 
 	//  void push_fdop(sinsp_fdop* op);
 	// the queue of recent fd operations
@@ -852,9 +845,8 @@ public:
 		return false;
 	}
 
-	
 	inline std::shared_ptr<thread_group_info> get_thread_group_info(int64_t pid) const
-	{ 
+	{
 		auto tgroup = m_thread_groups.find(pid);
 		if(tgroup != m_thread_groups.end())
 		{
@@ -864,13 +856,13 @@ public:
 	}
 
 	inline void set_thread_group_info(int64_t pid, const std::shared_ptr<thread_group_info>& tginfo)
-	{ 
+	{
 		/* It should be impossible to have a pid conflict...
 		 * Right now we manage it but we could also remove it.
 		 */
 		auto ret = m_thread_groups.insert({pid, tginfo});
 		if(!ret.second)
-		{	
+		{
 			m_thread_groups.erase(ret.first);
 			m_thread_groups.insert({pid, tginfo});
 		}

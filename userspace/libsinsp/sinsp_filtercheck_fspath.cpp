@@ -248,7 +248,7 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 		return NULL;
 	}
 
-	std::optional<std::reference_wrapper<std::string>> enter_param;
+	std::optional<std::reference_wrapper<const std::string>> enter_param;
 	std::vector<extract_value_t> extract_values;
 
 	switch(m_field_id)

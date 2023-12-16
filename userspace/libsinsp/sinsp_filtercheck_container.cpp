@@ -107,7 +107,7 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	return end+1;
 }
 
-const std::string &sinsp_filter_check_container::get_argstr()
+const std::string &sinsp_filter_check_container::get_argstr() const
 {
 	return m_argstr;
 }

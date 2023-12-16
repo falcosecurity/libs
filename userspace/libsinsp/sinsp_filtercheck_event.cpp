@@ -410,7 +410,7 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 	}
 }
 
-const filtercheck_field_info* sinsp_filter_check_event::get_field_info()
+const filtercheck_field_info* sinsp_filter_check_event::get_field_info() const
 {
 	if(m_field_id == TYPE_ARGRAW)
 	{

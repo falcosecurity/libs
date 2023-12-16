@@ -133,7 +133,7 @@ event_direction sinsp_evt::get_direction() const
 	return (event_direction)(m_pevt->type & PPME_DIRECTION_FLAG);
 }
 
-int64_t sinsp_evt::get_tid()
+int64_t sinsp_evt::get_tid() const
 {
 	return m_pevt->tid;
 }
@@ -143,7 +143,7 @@ void sinsp_evt::set_iosize(uint32_t size)
 	m_iosize = size;
 }
 
-uint32_t sinsp_evt::get_iosize()
+uint32_t sinsp_evt::get_iosize() const
 {
 	return m_iosize;
 }
@@ -164,7 +164,7 @@ sinsp_threadinfo* sinsp_evt::get_thread_info(bool query_os_if_not_found)
 	return m_inspector->get_thread_ref(m_pevt->tid, query_os_if_not_found, false).get();
 }
 
-int64_t sinsp_evt::get_fd_num()
+int64_t sinsp_evt::get_fd_num() const
 {
 	if(m_fdinfo)
 	{
@@ -252,7 +252,7 @@ const struct ppm_param_info* sinsp_evt::get_param_info(uint32_t id)
 	return &(m_info->params[id]);
 }
 
-uint32_t binary_buffer_to_hex_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+static uint32_t binary_buffer_to_hex_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
 	uint32_t k;
@@ -346,7 +346,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, const char *src, uint32_t dstlen
 	}
 }
 
-uint32_t binary_buffer_to_asciionly_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+static uint32_t binary_buffer_to_asciionly_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
 	uint32_t k = 0;
@@ -403,7 +403,7 @@ uint32_t binary_buffer_to_asciionly_string(char *dst, const char *src, uint32_t 
 	return k;
 }
 
-uint32_t binary_buffer_to_string_dots(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+static uint32_t binary_buffer_to_string_dots(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t j;
 	uint32_t k = 0;
@@ -446,7 +446,7 @@ uint32_t binary_buffer_to_string_dots(char *dst, const char *src, uint32_t dstle
 	return k;
 }
 
-uint32_t binary_buffer_to_base64_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+static uint32_t binary_buffer_to_base64_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	//
 	// base64 encoder, malloc-free version of:
@@ -493,7 +493,7 @@ uint32_t binary_buffer_to_base64_string(char *dst, const char *src, uint32_t dst
 	return enc_dstlen;
 }
 
-uint32_t binary_buffer_to_json_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+static uint32_t binary_buffer_to_json_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t k = 0;
 	switch(fmt)
@@ -514,7 +514,7 @@ uint32_t binary_buffer_to_json_string(char *dst, const char *src, uint32_t dstle
 	return k;
 }
 
-uint32_t binary_buffer_to_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+static uint32_t binary_buffer_to_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t k = 0;
 
@@ -557,7 +557,7 @@ uint32_t binary_buffer_to_string(char *dst, const char *src, uint32_t dstlen, ui
 	return k;
 }
 
-uint32_t strcpy_sanitized(char *dest, const char *src, uint32_t dstsize)
+static uint32_t strcpy_sanitized(char *dest, const char *src, uint32_t dstsize)
 {
 	volatile char* tmp = (volatile char *)dest;
 	uint32_t j = 0;
@@ -1877,7 +1877,7 @@ const char* sinsp_evt::get_param_value_str(const char* name, OUT const char** re
 	return NULL;
 }
 
-void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
+void sinsp_evt::get_category(OUT sinsp_evt::category* cat) const
 {
 	/* We always search the category inside the event table */
 	cat->m_category = get_category();
@@ -1946,12 +1946,12 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 	}
 }
 
-bool sinsp_evt::is_filtered_out()
+bool sinsp_evt::is_filtered_out() const
 {
 	return m_filtered_out;
 }
 
-scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
+scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop) const
 {
 	uint32_t dflags = SCAP_DF_NONE;
 	*should_drop = false;
@@ -2167,18 +2167,16 @@ void sinsp_evt::save_enter_event_params(sinsp_evt* enter_evt)
 	}
 }
 
-std::optional<std::reference_wrapper<std::string>> sinsp_evt::get_enter_evt_param(const std::string& param)
+std::optional<std::reference_wrapper<const std::string>> sinsp_evt::get_enter_evt_param(const std::string& param) const
 {
-	std::optional<std::reference_wrapper<std::string>> ret;
-
 	auto it = m_enter_path_param.find(param);
 
 	if(it != m_enter_path_param.end())
 	{
-		ret = it->second;
+		return it->second;
 	}
 
-	return ret;
+	return std::nullopt;
 }
 
 void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const

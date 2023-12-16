@@ -81,7 +81,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_inited(false)
 {
 	++instance_count;
-#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE) 
+#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE)
 	// used by container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
@@ -175,7 +175,7 @@ sinsp::~sinsp()
 #endif
 }
 
-bool sinsp::is_initialstate_event(scap_evt* pevent)
+bool sinsp::is_initialstate_event(scap_evt* pevent) const
 {
 	return  pevent->type == PPME_CONTAINER_E ||
 			pevent->type == PPME_CONTAINER_JSON_E ||
@@ -628,7 +628,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	params.gvisor_platform = reinterpret_cast<scap_gvisor_platform*>(platform);
 
 	oargs.engine_params = &params;
-	
+
 	open_common(&oargs, &scap_gvisor_engine, platform, SINSP_MODE_LIVE);
 
 	set_get_procs_cpu_from_driver(false);
@@ -749,7 +749,7 @@ unsigned sinsp::num_possible_cpus()
 	return m_num_possible_cpus;
 }
 
-std::vector<long> sinsp::get_n_tracepoint_hit()
+std::vector<long> sinsp::get_n_tracepoint_hit() const
 {
 	std::vector<long> ret(num_possible_cpus(), 0);
 	if(scap_get_n_tracepoint_hit(m_h, ret.data()) != SCAP_SUCCESS)
@@ -1005,7 +1005,7 @@ void sinsp::import_ifaddr_list()
 	m_network_interfaces.import_interfaces(scap_get_ifaddr_list(get_scap_platform()));
 }
 
-const sinsp_network_interfaces& sinsp::get_ifaddr_list()
+const sinsp_network_interfaces& sinsp::get_ifaddr_list() const
 {
 	return m_network_interfaces;
 }
@@ -1077,7 +1077,7 @@ void sinsp::restart_capture()
 	m_nevts = nevts;
 }
 
-uint64_t sinsp::max_buf_used()
+uint64_t sinsp::max_buf_used() const
 {
 	if(m_h)
 	{
@@ -1223,7 +1223,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	*puevt = NULL;
 	sinsp_evt* evt = &m_evt;
 
-	// fetch the next event 
+	// fetch the next event
 	int32_t res = fetch_next_event(evt);
 
 	// if we fetched an event successfully, check if we need to suppress
@@ -1360,7 +1360,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	uint32_t nfdr = (uint32_t)m_fds_to_remove->size();
 	if(nfdr != 0)
 	{
-		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread 
+		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread
 		 * to remove we are fine.
 		 */
 		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, false).get();
@@ -1459,7 +1459,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	return res;
 }
 
-uint64_t sinsp::get_num_events()
+uint64_t sinsp::get_num_events() const
 {
 	if(m_h)
 	{
@@ -1504,7 +1504,7 @@ bool sinsp::suppress_events_tid(int64_t tid)
 	return true;
 }
 
-bool sinsp::check_suppressed(int64_t tid)
+bool sinsp::check_suppressed(int64_t tid) const
 {
 	return m_suppress.is_suppressed_tid(tid, UINT16_MAX);
 }
@@ -1721,7 +1721,7 @@ void sinsp::stop_capture()
 		", total fds in all threads:%" PRIu64
 		"\n",
 		thread_cnt,
-		fd_cnt); 
+		fd_cnt);
 }
 
 void sinsp::start_capture()
@@ -1785,7 +1785,7 @@ void sinsp::set_filter(const std::string& filter)
 	m_internal_flt_ast = compiler.get_filter_ast();
 }
 
-const std::string sinsp::get_filter()
+std::string sinsp::get_filter() const
 {
 	return m_filterstring;
 }
@@ -1808,12 +1808,12 @@ bool sinsp::run_filters_on_evt(sinsp_evt *evt)
 	return false;
 }
 
-const scap_machine_info* sinsp::get_machine_info()
+const scap_machine_info* sinsp::get_machine_info() const
 {
 	return m_machine_info;
 }
 
-const scap_agent_info* sinsp::get_agent_info()
+const scap_agent_info* sinsp::get_agent_info() const
 {
 	return m_agent_info;
 }
@@ -1939,7 +1939,7 @@ void sinsp::set_buffer_format(sinsp_evt::param_fmt format)
 	m_buffer_format = format;
 }
 
-sinsp_evt::param_fmt sinsp::get_buffer_format()
+sinsp_evt::param_fmt sinsp::get_buffer_format() const
 {
 	return m_buffer_format;
 }
@@ -1984,7 +1984,19 @@ sinsp_parser* sinsp::get_parser()
 	return m_parser;
 }
 
-double sinsp::get_read_progress_file()
+bool sinsp::setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
+{
+	m_compress = compress;
+
+	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || event_limit != 0)
+	{
+		m_write_cycling = true;
+	}
+
+	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit);
+}
+
+double sinsp::get_read_progress_file() const
 {
 	if(m_input_fd != 0)
 	{
@@ -2010,7 +2022,7 @@ double sinsp::get_read_progress_file()
 	return (double)fpos * 100 / m_filesize;
 }
 
-void sinsp::get_read_progress_plugin(OUT double* nres, std::string* sres)
+void sinsp::get_read_progress_plugin(OUT double* nres, std::string* sres) const
 {
 	ASSERT(nres != NULL);
 	ASSERT(sres != NULL);
@@ -2033,7 +2045,7 @@ void sinsp::get_read_progress_plugin(OUT double* nres, std::string* sres)
 	*nres = ((double)nplg) / 100;
 }
 
-double sinsp::get_read_progress()
+double sinsp::get_read_progress() const
 {
 	if(is_plugin())
 	{
@@ -2047,7 +2059,7 @@ double sinsp::get_read_progress()
 	}
 }
 
-double sinsp::get_read_progress_with_str(OUT std::string* progress_str)
+double sinsp::get_read_progress_with_str(OUT std::string* progress_str) const
 {
 	if(is_plugin())
 	{
@@ -2230,11 +2242,11 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		// todo(jasondellaluce): here we are assuming that the "syscall" event
 		// source is always at index 0 in the inspector's event source list,
 		// change this code if this assumption ever stops being true.
-		
+
 		// default: syscall source
 		size_t cur_evtsrc_idx = 0;
 		uint32_t cur_plugin_id = 0;
-		
+
 		// If we have a source plugin, we search for its event source and we update the current event source.
 		// Otherwise the current event source remains the syscall one.
 		if (is_plugin())
@@ -2274,7 +2286,7 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 	}
 }
 
-bool sinsp::get_track_connection_status()
+bool sinsp::get_track_connection_status() const
 {
 	return m_parser->get_track_connection_status();
 }
@@ -2284,7 +2296,7 @@ void sinsp::set_track_connection_status(bool enabled)
 	m_parser->set_track_connection_status(enabled);
 }
 
-uint64_t sinsp::get_new_ts()
+uint64_t sinsp::get_new_ts() const
 {
 	// m_lastevent_ts = 0 at startup when containers are
 	// being created as a part of the initial process

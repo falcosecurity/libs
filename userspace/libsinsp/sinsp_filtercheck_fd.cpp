@@ -435,13 +435,13 @@ bool sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT std::vector<extract_valu
 		// All of the pointers come from the fd_typesting() function so
 		// we shouldn't have the situation of two distinct pointers to
 		// the same string literal and we can just compare based on pointer
-		std::unordered_set<char*> fd_types;
+		std::unordered_set<const char*> fd_types;
 
 		// Iterate over the list of open file descriptors and add all
 		// unique file descriptor types to the vector for comparison
 		auto fd_type_gather = [&fd_types, &values](uint64_t, const sinsp_fdinfo_t& fdinfo)
 		{
-			char* type = fdinfo.get_typestring();
+			const char* type = fdinfo.get_typestring();
 
 			if (fd_types.emplace(type).second)
 			{

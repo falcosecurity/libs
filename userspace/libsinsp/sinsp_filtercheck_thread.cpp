@@ -572,7 +572,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as 
+			// is running in a pid namespace and we only have the virtual session id, as
 			// seen from its pid namespace.
 			// Find the highest ancestor process that has the same session id and
 			// declare it to be the session leader.
@@ -614,7 +614,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as 
+			// is running in a pid namespace and we only have the virtual session id, as
 			// seen from its pid namespace.
 			// Find the highest ancestor process that has the same session id and
 			// declare it to be the session leader.
@@ -654,9 +654,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 					RETURN_EXTRACT_STRING(m_tstr);
 				}
 			}
-			
+
 			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as 
+			// is running in a pid namespace and we only have the virtual session id, as
 			// seen from its pid namespace.
 			// Find the highest ancestor process that has the same session id and
 			// declare it to be the session leader.
@@ -697,7 +697,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as 
+			// is running in a pid namespace and we only have the virtual process group id, as
 			// seen from its pid namespace.
 			// Find the highest ancestor process that has the same process group id and
 			// declare it to be the process group leader.
@@ -738,7 +738,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 			}
 			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as 
+			// is running in a pid namespace and we only have the virtual process group id, as
 			// seen from its pid namespace.
 			// Find the highest ancestor process that has the same process group id and
 			// declare it to be the process group leader.
@@ -781,7 +781,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as 
+			// is running in a pid namespace and we only have the virtual process group id, as
 			// seen from its pid namespace.
 			// Find the highest ancestor process that has the same process group id and
 			// declare it to be the process group leader.
@@ -1983,7 +1983,7 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 	return sinsp_filter_check::compare(evt);
 }
 
-int32_t sinsp_filter_check_thread::get_argid()
+int32_t sinsp_filter_check_thread::get_argid() const
 {
 	return m_argid;
 }

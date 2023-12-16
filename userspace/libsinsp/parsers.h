@@ -48,7 +48,7 @@ public:
 	std::string parse_dirfd(sinsp_evt *evt, std::string_view name, int64_t dirfd);
 
 	void set_track_connection_status(bool enabled);
-	bool get_track_connection_status() { return m_track_connection_status; }
+	bool get_track_connection_status() const { return m_track_connection_status; }
 
 	inline sinsp_syslog_decoder& get_syslog_decoder()
 	{

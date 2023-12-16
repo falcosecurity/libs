@@ -342,10 +342,10 @@ public:
 		 *   - `EC_TRACEPOINT
 		 *   - `EC_PLUGIN`
 		 *   - `EC_METAEVENT`
-		 * 
+		 *
 		 * 2. The lowest bits represent the syscall category
 		 * to which the specific event belongs.
-		 * 
+		 *
 		 * This function removes the highest bits, so we consider only the syscall category.
 		 */
 		const int bitmask = EC_SYSCALL - 1;
@@ -355,7 +355,7 @@ public:
 	/*!
 	  \brief Get the ID of the thread that generated the event.
 	*/
-	int64_t get_tid();
+	int64_t get_tid() const;
 
 	/*!
 	  \brief Return the information about the thread that generated the event.
@@ -371,7 +371,7 @@ public:
 
 	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
-	inline sinsp_fdinfo_t* get_fd_info()
+	inline sinsp_fdinfo_t* get_fd_info() const
 	{
 		return m_fdinfo;
 	}
@@ -391,7 +391,7 @@ public:
 
 	  \note For events that are not I/O related, get_fd_num() returns sinsp_evt::INVALID_FD_NUM.
 	*/
-	int64_t get_fd_num();
+	int64_t get_fd_num() const;
 
 	/*!
 	  \brief Return the number of parameters that this event has.
@@ -443,13 +443,13 @@ public:
 	  \brief Return the event's category, based on the event type and the FD on
 	   which the event operates.
 	*/
-	void get_category(OUT sinsp_evt::category* cat);
+	void get_category(OUT sinsp_evt::category* cat) const;
 
 	/*!
 	  \brief Return true if the event has been rejected by the filtering system.
 	*/
-	bool is_filtered_out();
-	scap_dump_flags get_dump_flags(OUT bool* should_drop);
+	bool is_filtered_out() const;
+	scap_dump_flags get_dump_flags(OUT bool* should_drop) const;
 
 	// todo(jasondellaluce): this is deprecated and will need to be removed
 	inline uint16_t get_source() const override
@@ -495,9 +495,9 @@ private:
 #endif
 
 	void set_iosize(uint32_t size);
-	uint32_t get_iosize();
+	uint32_t get_iosize() const;
 
-	std::string get_base_dir(uint32_t id, sinsp_threadinfo *tinfo);
+	std::string get_base_dir(uint32_t id, sinsp_threadinfo*);
 
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
@@ -581,43 +581,43 @@ private:
 		/* We need the event info to overwrite some parameters if necessary. */
 		const struct ppm_event_info* event_info = &m_event_info_table[m_pevt->type];
 		int param_type = 0;
-		
+
 		for(j = 0; j < nparams; j++)
 		{
 			/* Here we need to manage a particular case:
-			* 
+			*
 			*    - PT_CHARBUF
 			*    - PT_FSRELPATH
 			*    - PT_BYTEBUF
 			*    - PT_BYTEBUF
-			* 
+			*
 			* In the past these params could be `<NA>` or `(NULL)` or empty.
 			* Now they can be only empty! The ideal solution would be:
 			* 	params[i].buf = NULL;
 			*	params[i].size = 0;
-			* 
+			*
 			* The problem is that userspace is not
 			* able to manage `NULL` pointers... but it manages `<NA>` so we
 			* convert all these cases to `<NA>` when they are empty!
-			* 
+			*
 			* If we read scap-files we could face `(NULL)` params, so also in
 			* this case we convert them to `<NA>`.
-			* 
+			*
 			* To be honest there could be another corner case, but right now
 			* we don't have to manage it:
-			*    
+			*
 			*    - PT_SOCKADDR
 			*    - PT_SOCKTUPLE
 			*    - PT_FDLIST
-			* 
+			*
 			* Could be empty, so we will have:
 			* 	params[i].buf = "pointer to the next param";
 			*	params[i].size = 0;
-			* 
+			*
 			* However, as we said in the previous case, the ideal outcome would be:
 			* 	params[i].buf = NULL;
 			*	params[i].size = 0;
-			* 
+			*
 			* The difference with the previous case is that the userspace can manage
 			* these params when they have `params[i].size == 0`, so we don't have
 			* to use the `<NA>` workaround! We could also introduce the `NULL` and so
@@ -627,7 +627,7 @@ private:
 			* step we would keep them as they are.
 			*/
 			param_type = event_info->params[j].type;
-			
+
 			if((param_type == PT_CHARBUF ||
 				param_type == PT_FSRELPATH ||
 				param_type == PT_FSPATH)
@@ -651,12 +651,12 @@ private:
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	inline uint32_t get_dump_flags() const { return m_dump_flags; }
 	static bool clone_event(sinsp_evt& dest, const sinsp_evt& src);
-	int32_t get_errorcode() { return m_errorcode; }
+	int32_t get_errorcode() const { return m_errorcode; }
 
 	// Save important values from the provided enter event. They
 	// are accessible from get_enter_evt_param().
 	void save_enter_event_params(sinsp_evt* enter_evt);
-	std::optional<std::reference_wrapper<std::string>> get_enter_evt_param(const std::string& param);
+	std::optional<std::reference_wrapper<const std::string>> get_enter_evt_param(const std::string& param) const;
 
 VISIBILITY_PRIVATE
 	enum flags

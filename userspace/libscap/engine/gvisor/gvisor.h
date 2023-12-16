@@ -181,8 +181,8 @@ public:
 
     int32_t next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags);
 
-    uint32_t get_vxid(uint64_t pid);
-    int32_t get_stats(scap_stats *stats);
+    uint32_t get_vxid(uint64_t pid) const;
+    int32_t get_stats(scap_stats *stats) const;
     const struct scap_stats_v2* get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
 private:
     int32_t process_message_from_fd(int fd);

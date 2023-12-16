@@ -62,7 +62,7 @@ template<> std::string* sinsp_fdinfo_t::tostring()
 	return &m_name;
 }
 
-template<> char sinsp_fdinfo_t::get_typechar()
+template<> char sinsp_fdinfo_t::get_typechar() const
 {
 	switch(m_type)
 	{
@@ -115,58 +115,58 @@ template<> char sinsp_fdinfo_t::get_typechar()
 	}
 }
 
-template<> char* sinsp_fdinfo_t::get_typestring() const
+template<> const char* sinsp_fdinfo_t::get_typestring() const
 {
 	switch(m_type)
 	{
 	case SCAP_FD_FILE_V2:
 	case SCAP_FD_FILE:
-		return (char*)"file";
+		return "file";
 	case SCAP_FD_DIRECTORY:
-		return (char*)"directory";
+		return "directory";
 	case SCAP_FD_IPV4_SOCK:
 	case SCAP_FD_IPV4_SERVSOCK:
-		return (char*)"ipv4";
+		return "ipv4";
 	case SCAP_FD_IPV6_SOCK:
 	case SCAP_FD_IPV6_SERVSOCK:
-		return (char*)"ipv6";
+		return "ipv6";
 	case SCAP_FD_UNIX_SOCK:
-		return (char*)"unix";
+		return "unix";
 	case SCAP_FD_FIFO:
-		return (char*)"pipe";
+		return "pipe";
 	case SCAP_FD_EVENT:
-		return (char*)"event";
+		return "event";
 	case SCAP_FD_SIGNALFD:
-		return (char*)"signalfd";
+		return "signalfd";
 	case SCAP_FD_EVENTPOLL:
-		return (char*)"eventpoll";
+		return "eventpoll";
 	case SCAP_FD_INOTIFY:
-		return (char*)"inotify";
+		return "inotify";
 	case SCAP_FD_TIMERFD:
-		return (char*)"timerfd";
+		return "timerfd";
 	case SCAP_FD_NETLINK:
-		return (char*)"netlink";
+		return "netlink";
 	case SCAP_FD_BPF:
-		return (char*)"bpf";
+		return "bpf";
 	case SCAP_FD_USERFAULTFD:
-		return (char*)"userfaultfd";
+		return "userfaultfd";
 	case SCAP_FD_IOURING:
-		return (char*)"io_uring";
+		return "io_uring";
 	case SCAP_FD_MEMFD:
-		return (char*)"memfd";	
+		return "memfd";
 	case SCAP_FD_PIDFD:
-		return (char*)"pidfd";
+		return "pidfd";
 	default:
-		return (char*)"<NA>";
+		return "<NA>";
 	}
 }
 
-template<> std::string sinsp_fdinfo_t::tostring_clean()
+template<> std::string sinsp_fdinfo_t::tostring_clean() const
 {
-	std::string m_tstr = m_name;
-	sanitize_string(m_tstr);
+	std::string tstr = m_name;
+	sanitize_string(tstr);
 
-	return m_tstr;
+	return tstr;
 }
 
 template<> void sinsp_fdinfo_t::add_filename_raw(std::string_view rawpath)
@@ -222,7 +222,7 @@ wildass_guess:
 	return true;
 }
 
-template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
+template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto() const
 {
 	scap_fd_type evt_type = m_type;
 
@@ -433,7 +433,7 @@ void sinsp_fdtable::clear()
 	m_table.clear();
 }
 
-size_t sinsp_fdtable::size()
+size_t sinsp_fdtable::size() const
 {
 	return m_table.size();
 }
