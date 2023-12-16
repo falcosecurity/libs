@@ -255,7 +255,7 @@ public:
 	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
      */
-	uint64_t max_buf_used();
+	uint64_t max_buf_used() const;
 
 	/*!
 	  \brief Get the number of events that have been captured and processed
@@ -263,7 +263,7 @@ public:
 
 	  \return the number of captured events.
 	*/
-	uint64_t get_num_events();
+	uint64_t get_num_events() const;
 
 	/*!
 	  \brief Set the capture snaplen, i.e. the maximum size an event
@@ -350,7 +350,7 @@ public:
 	  \return the filter previously set with \ref set_filter(), or an empty
 	   string if no filter has been set yet.
 	*/
-	const std::string get_filter();
+	std::string get_filter() const;
 
 	/*!
 	  \brief Return the AST (wrapped in a shared pointer) for the filter set for this capture.
@@ -431,7 +431,7 @@ public:
 	*/
 	static sinsp_filter_check* new_generic_filtercheck();
 
-	bool has_metrics();
+	bool has_metrics() const;
 
 	/*!
 	  \brief Return information about the machine generating the events.
@@ -440,14 +440,14 @@ public:
 	   info is stored in the trace files. In that case, the returned
 	   machine info is the one of the machine where the capture happened.
 	*/
-	const scap_machine_info* get_machine_info();
+	const scap_machine_info* get_machine_info() const;
 
 	/*!
 	  \brief Return information about the agent based on start up conditions.
 
 	  \note not for use in scap files.
 	*/
-	const scap_agent_info* get_agent_info();
+	const scap_agent_info* get_agent_info() const;
 
 	/*!
 	  \brief Return sinsp stats v2 static size buffer w/ scap_stats_v2 schema.
@@ -541,7 +541,7 @@ public:
 	/*!
 	  \brief get last library error.
 	*/
-	std::string getlasterr()
+	std::string getlasterr() const
 	{
 		return m_lasterr;
 	}
@@ -551,7 +551,7 @@ public:
 
 	  \return Pointer to the interface list manager.
 	*/
-	const sinsp_network_interfaces& get_ifaddr_list();
+	const sinsp_network_interfaces& get_ifaddr_list() const;
 
 	/*!
 	  \brief Set the format used to render event data
@@ -563,12 +563,12 @@ public:
 	  \brief Get the format used to render event data
 	   buffer arguments.
 	*/
-	sinsp_evt::param_fmt get_buffer_format();
+	sinsp_evt::param_fmt get_buffer_format() const;
 
 	/*!
 	  \brief Returns true if the current capture is happening from a scap file
 	*/
-	inline bool is_capture()
+	inline bool is_capture() const
 	{
 		return m_mode == SINSP_MODE_CAPTURE;
 	}
@@ -576,7 +576,7 @@ public:
 	/*!
 	  \brief Returns true if the current capture is offline
 	*/
-	inline bool is_offline()
+	inline bool is_offline() const
 	{
 		return is_capture() || m_mode == SINSP_MODE_TEST;
 	}
@@ -584,7 +584,7 @@ public:
 	/*!
 	  \brief Returns true if the current capture is live
 	*/
-	inline bool is_live()
+	inline bool is_live() const
 	{
 		return m_mode == SINSP_MODE_LIVE;
 	}
@@ -592,7 +592,7 @@ public:
 	/*!
 	  \brief Returns true if the kernel module is not loaded
 	*/
-	inline bool is_nodriver()
+	inline bool is_nodriver() const
 	{
 		return m_mode == SINSP_MODE_NODRIVER;
 	}
@@ -600,7 +600,7 @@ public:
 	/*!
 	  \brief Returns true if the current capture has a plugin producing events.
 	*/
-	inline bool is_plugin()
+	inline bool is_plugin() const
 	{
 		return m_mode == SINSP_MODE_PLUGIN && m_input_plugin != nullptr;
 	}
@@ -608,7 +608,7 @@ public:
 	/*!
 	  \brief Returns true if the current capture has a plugin producing syscall events.
 	*/
-	inline bool is_syscall_plugin()
+	inline bool is_syscall_plugin() const
 	{
 		return is_plugin() && m_input_plugin->id() == 0;
 	}
@@ -734,7 +734,7 @@ public:
 	/*!
 	  \brief Returns true if the debug mode is enabled.
 	*/
-	inline bool is_debug_enabled()
+	inline bool is_debug_enabled() const
 	{
 		return m_isdebug_enabled;
 	}
@@ -750,7 +750,7 @@ public:
 	/*!
 	  \brief Returns true if the command line argument is set to show container information.
 	*/
-	inline bool is_print_container_data()
+	inline bool is_print_container_data() const
 	{
 		return m_print_container_data;
 	}
@@ -759,7 +759,7 @@ public:
 	  \brief If this is an offline capture, return the name of the file that is
 	   being read, otherwise return an empty string.
 	*/
-	std::string get_input_filename()
+	std::string get_input_filename() const
 	{
 		return m_input_filename;
 	}
@@ -768,14 +768,14 @@ public:
 	  \brief When reading events from a trace file or a plugin, this function
 	   returns the read progress as a number between 0 and 100.
 	*/
-	double get_read_progress();
+	double get_read_progress() const;
 
 	/*!
 	  \brief When reading events from a trace file or a plugin, this function
 	   returns the read progress as a number and as a string, giving the plugins
 	   flexibility on the format.
 	*/
-	double get_read_progress_with_str(OUT std::string* progress_str);
+	double get_read_progress_with_str(OUT std::string* progress_str) const;
 
 	/*!
 	  \brief Make the amount of data gathered for a syscall to be
@@ -826,7 +826,7 @@ public:
 
 	/**
 	 * @brief Check if the current engine is the one passed as parameter.
-	 * 
+	 *
 	 * @param engine_name engine that we want to check.
 	 * @return true if the passed engine is the active one otherwise false.
 	 */
@@ -837,7 +837,7 @@ public:
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 
-	uint64_t get_bytes_read()
+	uint64_t get_bytes_read() const
 	{
 		return scap_ftell(m_h);
 	}
@@ -846,7 +846,7 @@ public:
 		scap_refresh_proc_table(get_scap_platform());
 	}
 
-	std::vector<long> get_n_tracepoint_hit();
+	std::vector<long> get_n_tracepoint_hit() const;
 
 	static unsigned num_possible_cpus();
 
@@ -861,7 +861,7 @@ public:
 
 	bool suppress_events_tid(int64_t tid);
 
-	bool check_suppressed(int64_t tid);
+	bool check_suppressed(int64_t tid) const;
 
 	void set_docker_socket_path(std::string socket_path);
 	void set_query_docker_image_info(bool query_image_info);
@@ -924,16 +924,16 @@ public:
 	void set_observer(sinsp_observer* observer) { m_observer = observer; }
 	sinsp_observer* get_observer() const { return m_observer; }
 
-	bool get_track_connection_status();
+	bool get_track_connection_status() const;
 	void set_track_connection_status(bool enabled);
 
 	/**
 	 * \brief Get a new timestamp.
-	 * 
+	 *
 	 * \return The current time in nanoseconds if the last event timestamp is 0,
 	 * otherwise, the last event timestamp.
 	 */
-	uint64_t get_new_ts();
+	uint64_t get_new_ts() const;
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
@@ -955,7 +955,7 @@ private:
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();
-	bool is_initialstate_event(scap_evt* pevent);
+	bool is_initialstate_event(scap_evt* pevent) const;
 	void import_ifaddr_list();
 	void import_user_list();
 	void remove_thread(int64_t tid);
@@ -987,8 +987,8 @@ private:
 		       m_increased_snaplen_port_range.range_end > 0;
 	}
 
-	double get_read_progress_file();
-	void get_read_progress_plugin(OUT double* nres, std::string* sres);
+	double get_read_progress_file() const;
+	void get_read_progress_plugin(OUT double* nres, std::string* sres) const;
 
 	void get_procs_cpu_from_driver(uint64_t ts);
 

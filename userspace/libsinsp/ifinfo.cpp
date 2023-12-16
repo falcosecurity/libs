@@ -195,10 +195,8 @@ void sinsp_network_interfaces::update_fd(sinsp_fdinfo_t *fd)
 	}
 }
 
-bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
+bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr) const
 {
-	std::vector<sinsp_ipv4_ifinfo>::iterator it;
-
 	//
 	// Accept everything that comes from private internets:
 	// - 10.0.0.0/8
@@ -214,9 +212,9 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
 	}
 
 	// try to find an interface for the same subnet
-	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++)
+	for(auto& el : m_ipv4_interfaces)
 	{
-		if((it->m_addr & it->m_netmask) == (addr & it->m_netmask))
+		if((el.m_addr & el.m_netmask) == (addr & el.m_netmask))
 		{
 			return true;
 		}

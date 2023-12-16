@@ -1221,7 +1221,7 @@ size_t sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uin
 	return parsed_len;
 }
 
-const filtercheck_field_info* sinsp_filter_check::get_field_info()
+const filtercheck_field_info* sinsp_filter_check::get_field_info() const
 {
 	return &m_info.m_fields[m_field_id];
 }
@@ -1490,7 +1490,7 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT std::vector<extract_
 	}
 }
 
-bool sinsp_filter_check::compare(gen_event *evt)
+bool sinsp_filter_check::compare(gen_event* evt)
 {
 	m_hits++;
 	if(m_cache_metrics != NULL)
@@ -1537,7 +1537,7 @@ bool sinsp_filter_check::compare(gen_event *evt)
 	}
 }
 
-bool sinsp_filter_check::compare(sinsp_evt *evt)
+bool sinsp_filter_check::compare(sinsp_evt* evt)
 {
 	m_extracted_values.clear();
 	if(!extract_cached(evt, m_extracted_values, false))

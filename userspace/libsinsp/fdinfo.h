@@ -52,7 +52,7 @@ limitations under the License.
 #define CHAR_FD_MEMFD			'm'
 #define CHAR_FD_PIDFD			'P'
 
-/** @defgroup state State management 
+/** @defgroup state State management
  * A collection of classes to query process and FD state.
  *  @{
  */
@@ -72,7 +72,7 @@ typedef union _sinsp_sockinfo
   manipulate FDs and retrieve FD information.
 
   \note As a library user, you won't need to construct thread objects. Rather,
-   you get them by calling \ref sinsp_evt::get_fd_info or 
+   you get them by calling \ref sinsp_evt::get_fd_info or
    \ref sinsp_threadinfo::get_fd.
 */
 template<class T>
@@ -80,7 +80,7 @@ class SINSP_PUBLIC sinsp_fdinfo
 {
 public:
 	sinsp_fdinfo();
-	sinsp_fdinfo (const sinsp_fdinfo &other) 
+	sinsp_fdinfo (const sinsp_fdinfo &other)
 	{
 		copy(other, false);
 	}
@@ -105,7 +105,7 @@ public:
 	inline void copy(const sinsp_fdinfo &other, bool free_state)
 	{
 		m_type = other.m_type;
-		m_openflags = other.m_openflags;	
+		m_openflags = other.m_openflags;
 		m_sockinfo = other.m_sockinfo;
 		m_name = other.m_name;
 		m_name_raw = other.m_name_raw;
@@ -115,7 +115,7 @@ public:
 		m_mount_id = other.m_mount_id;
 		m_ino = other.m_ino;
 		m_pid = other.m_pid;
-		
+
 		if(free_state)
 		{
 			if(m_usrstate != NULL)
@@ -139,19 +139,19 @@ public:
 
 	  Refer to the CHAR_FD_* defines in this fdinfo.h.
 	*/
-	char get_typechar();
+	char get_typechar() const;
 
 	/*!
 	  \brief Return an ASCII string that identifies the FD type.
 
 	  Can be on of 'file', 'directory', ipv4', 'ipv6', 'unix', 'pipe', 'event', 'signalfd', 'eventpoll', 'inotify', 'signalfd'.
 	*/
-	char* get_typestring() const;
+	const char* get_typestring() const;
 
 	/*!
 	  \brief Return the fd name, after removing unprintable or invalid characters from it.
 	*/
-	std::string tostring_clean();
+	std::string tostring_clean() const;
 
 	/*!
 	  \brief Return true if this is a log device.
@@ -233,7 +233,7 @@ public:
 		return m_type == SCAP_FD_PIDFD;
 	}
 
-	uint16_t get_serverport()
+	uint16_t get_serverport() const
 	{
 		if(m_type == SCAP_FD_IPV4_SOCK)
 		{
@@ -285,12 +285,12 @@ public:
 	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/
-	scap_l4_proto get_l4proto();
+	scap_l4_proto get_l4proto() const;
 
 	/*!
 	  \brief Return true if this FD is a socket server
 	*/
-	inline bool is_role_server()
+	inline bool is_role_server() const
 	{
 		return (m_flags & FLAGS_ROLE_SERVER) == FLAGS_ROLE_SERVER;
 	}
@@ -298,7 +298,7 @@ public:
 	/*!
 	  \brief Return true if this FD is a socket client
 	*/
-	inline bool is_role_client()
+	inline bool is_role_client() const
 	{
 		return (m_flags & FLAGS_ROLE_CLIENT) == FLAGS_ROLE_CLIENT;
 	}
@@ -306,34 +306,34 @@ public:
 	/*!
 	  \brief Return true if this FD is neither a client nor a server
 	*/
-	inline bool is_role_none()
+	inline bool is_role_none() const
 	{
 		return (m_flags & (FLAGS_ROLE_CLIENT | FLAGS_ROLE_SERVER)) == 0;
 	}
 
-	inline bool is_socket_connected()
+	inline bool is_socket_connected() const
 	{
 		return (m_flags & FLAGS_SOCKET_CONNECTED) == FLAGS_SOCKET_CONNECTED;
 	}
 
-	inline bool is_socket_pending()
+	inline bool is_socket_pending() const
 	{
 		return (m_flags & FLAGS_CONNECTION_PENDING) == FLAGS_CONNECTION_PENDING;
 	}
 
-	inline bool is_socket_failed()
+	inline bool is_socket_failed() const
 	{
 		return (m_flags & FLAGS_CONNECTION_FAILED) == FLAGS_CONNECTION_FAILED;
 	}
 
-	inline bool is_cloned()
+	inline bool is_cloned() const
 	{
 		return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
 	}
 
 	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
 	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
-	
+
 	/*!
 	  \brief Socket-specific state.
 	  This is uninitialized (zero) for non-socket FDs.
@@ -374,7 +374,7 @@ public:
 
 	inline bool is_transaction() const
 	{
-		return (m_usrstate != NULL); 
+		return (m_usrstate != NULL);
 	}
 
 	T* get_usrstate()
@@ -382,6 +382,10 @@ public:
 		return m_usrstate;
 	}
 
+	const T* get_usrstate() const
+	{
+		return m_usrstate;
+	}
 
 	inline void set_role_server()
 	{
@@ -393,8 +397,8 @@ public:
 		m_flags |= FLAGS_ROLE_CLIENT;
 	}
 
-	bool set_net_role_by_guessing(sinsp* inspector, 
-		sinsp_threadinfo* ptinfo, 
+	bool set_net_role_by_guessing(sinsp* inspector,
+		sinsp_threadinfo* ptinfo,
 		sinsp_fdinfo_t* pfdinfo,
 		bool incoming);
 
@@ -403,17 +407,17 @@ public:
 		m_flags = FLAGS_NONE;
 	}
 
-	inline void set_socketpipe()
+	inline void set_socketpipe() const
 	{
 		m_flags |= FLAGS_IS_SOCKET_PIPE;
 	}
 
-	inline bool is_socketpipe()
+	inline bool is_socketpipe() const
 	{
-		return (m_flags & FLAGS_IS_SOCKET_PIPE) == FLAGS_IS_SOCKET_PIPE; 
+		return (m_flags & FLAGS_IS_SOCKET_PIPE) == FLAGS_IS_SOCKET_PIPE;
 	}
 
-	inline bool has_no_role()
+	inline bool has_no_role() const
 	{
 		return !is_role_client() && !is_role_server();
 	}
@@ -440,19 +444,19 @@ public:
 		m_flags &= ~FLAGS_IN_BASELINE_OTHER;
 	}
 
-	inline bool is_inpipeline_r()
+	inline bool is_inpipeline_r() const
 	{
-		return (m_flags & FLAGS_IN_BASELINE_R) == FLAGS_IN_BASELINE_R; 
+		return (m_flags & FLAGS_IN_BASELINE_R) == FLAGS_IN_BASELINE_R;
 	}
 
-	inline bool is_inpipeline_rw()
+	inline bool is_inpipeline_rw() const
 	{
-		return (m_flags & FLAGS_IN_BASELINE_RW) == FLAGS_IN_BASELINE_RW; 
+		return (m_flags & FLAGS_IN_BASELINE_RW) == FLAGS_IN_BASELINE_RW;
 	}
 
-	inline bool is_inpipeline_other()
+	inline bool is_inpipeline_other() const
 	{
-		return (m_flags & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER; 
+		return (m_flags & FLAGS_IN_BASELINE_OTHER) == FLAGS_IN_BASELINE_OTHER;
 	}
 
 	inline void set_socket_connected()
@@ -497,7 +501,7 @@ public:
 	sinsp_fdtable(sinsp* inspector);
 
 	sinsp_fdinfo_t* find(int64_t fd);
-	
+
 	// If the key is already present, overwrite the existing value and return false.
 	sinsp_fdinfo_t* add(int64_t fd, sinsp_fdinfo_t* fdinfo);
 
@@ -518,7 +522,7 @@ public:
 	// If the key is present, returns true, otherwise returns false.
 	void erase(int64_t fd);
 	void clear();
-	size_t size();
+	size_t size() const;
 	void reset_cache();
 
 	sinsp* m_inspector;

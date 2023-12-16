@@ -342,8 +342,8 @@ public:
 			m_avail_list.pop_front();
 		}
 	}
-	void push(OBJ* newentry)
 
+	void push(OBJ* newentry)
 	{
 		m_avail_list.push_front(newentry);
 	}
@@ -359,7 +359,7 @@ public:
 		return head;
 	}
 
-	bool empty()
+	bool empty() const
 	{
 		return m_avail_list.empty();
 	}
@@ -387,7 +387,7 @@ private:
 template<typename T>
 int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::locale())
 {
-	typename T::const_iterator it = std::search(str1.begin(), str1.end(),
+	auto it = std::search(str1.begin(), str1.end(),
 		str2.begin(), str2.end(), ci_equal<typename T::value_type>(loc) );
 	if(it != str1.end()) { return it - str1.begin(); }
 	return -1;

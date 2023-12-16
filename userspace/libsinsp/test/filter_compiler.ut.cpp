@@ -7,7 +7,7 @@ using namespace std;
 
 // A mock filtercheck that returns always true or false depending on
 // the passed-in field name. The operation is ignored.
-class mock_compiler_filter_check: public gen_event_filter_check
+class mock_compiler_filter_check : public gen_event_filter_check
 {
 public:
 	inline int32_t parse_field_name(const char* str, bool a, bool n) override
@@ -16,7 +16,7 @@ public:
 		return 0;
 	}
 
-	inline bool compare(gen_event *evt) override
+	inline bool compare(gen_event*) override
 	{
 		if (m_name == "c.true")
 		{
@@ -38,7 +38,7 @@ public:
 	}
 
 	inline void add_filter_value(const char* str, uint32_t l, uint32_t i) override
-	{ 
+	{
 		m_value = string(str, l);
 	}
 
@@ -67,7 +67,7 @@ public:
 		return new mock_compiler_filter_check();
 	}
 
-	inline list<gen_event_filter_factory::filter_fieldclass_info> get_fields() override
+	inline list<gen_event_filter_factory::filter_fieldclass_info> get_fields() const override
 	{
 		return m_list;
 	}
@@ -101,7 +101,7 @@ void test_filter_run(bool result, string filter_str)
 }
 
 void test_filter_compile(
-		std::shared_ptr<gen_event_filter_factory> factory, 
+		std::shared_ptr<gen_event_filter_factory> factory,
 		string filter_str,
 		bool expect_fail=false)
 {

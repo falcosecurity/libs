@@ -35,7 +35,7 @@ public:
 	filter_check_list() = default;
 	virtual ~filter_check_list();
 	void add_filter_check(sinsp_filter_check* filter_check);
-	void get_all_fields(std::vector<const filter_check_info*>& list);
+	void get_all_fields(std::vector<const filter_check_info*>&) const;
 	sinsp_filter_check* new_filter_check_from_fldname(const std::string& name, sinsp* inspector, bool do_exact_check);
 
 protected:
@@ -50,4 +50,3 @@ public:
 	sinsp_filter_check_list();
 	virtual ~sinsp_filter_check_list() = default;
 };
-

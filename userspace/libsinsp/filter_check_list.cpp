@@ -59,7 +59,7 @@ void filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
 	m_check_list.push_back(filter_check);
 }
 
-void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& list)
+void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& list) const
 {
 	for(auto *chk : m_check_list)
 	{
@@ -123,4 +123,3 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
 }
-

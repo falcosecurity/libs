@@ -398,7 +398,7 @@ gen_event_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldnam
 								true);
 }
 
-std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields()
+std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields() const
 {
 	std::vector<const filter_check_info*> fc_plugins;
 	m_available_checks.get_all_fields(fc_plugins);

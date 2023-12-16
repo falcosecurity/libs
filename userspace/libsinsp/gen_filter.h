@@ -115,9 +115,9 @@ public:
 	size_t m_matched_true = 0;
 
 	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) = 0;
-	virtual void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 ) = 0;
-	virtual bool compare(gen_event *evt) = 0;
-	virtual bool extract(gen_event *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true) = 0;
+	virtual void add_filter_value(const char* str, uint32_t len, uint32_t i = 0) = 0;
+	virtual bool compare(gen_event*) = 0;
+	virtual bool extract(gen_event*, std::vector<extract_value_t>& values, bool sanitize_strings = true) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -157,13 +157,11 @@ public:
 	// This method returns the expression operator (BO_AND/BO_OR/BO_NONE) if the
 	// expression is consistent. It returns -1 if the expression is not consistent.
 	//
-	int32_t get_expr_boolop();
+	int32_t get_expr_boolop() const;
 
 	gen_event_filter_expression* m_parent;
 	std::vector<gen_event_filter_check*> m_checks;
 };
-
-
 
 class gen_event_filter
 {
@@ -215,8 +213,8 @@ public:
 		// etc
 		std::set<std::string> tags;
 
-		bool is_skippable();
-		bool is_deprecated();
+		bool is_skippable() const;
+		bool is_deprecated() const;
 	};
 
 	// Describes a group of filtercheck fields ("ka")
@@ -264,7 +262,7 @@ public:
 	virtual gen_event_filter_check *new_filtercheck(const char *fldname) = 0;
 
 	// Return the set of fields supported by this factory
-	virtual std::list<filter_fieldclass_info> get_fields() = 0;
+	virtual std::list<filter_fieldclass_info> get_fields() const = 0;
 };
 
 class gen_event_formatter
@@ -295,7 +293,6 @@ public:
 
 	virtual output_format get_output_format() = 0;
 };
-
 
 class gen_event_formatter_factory
 {

@@ -60,7 +60,7 @@ public:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
-	const std::string& get_argstr();
+	const std::string& get_argstr() const;
 
 private:
 	int32_t extract_arg(const std::string& val, size_t basename);

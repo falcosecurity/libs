@@ -114,7 +114,7 @@ public:
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 	bool compare(sinsp_evt*) override;
 
-	int32_t get_argid();
+	int32_t get_argid() const;
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);

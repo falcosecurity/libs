@@ -67,7 +67,7 @@ public:
 		m_max_refresh_timeout = ns;
 	};
 
-	size_t size()
+	size_t size() const
 	{
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 		return m_cache.size();
