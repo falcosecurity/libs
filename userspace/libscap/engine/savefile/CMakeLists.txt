@@ -14,15 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
+include_directories(${LIBSCAP_INCLUDE_DIRS})
 
 # Since we have circular dependencies between libscap and the savefile engine,
 # make this library always static (directly linked into libscap)
-add_library(scap_engine_savefile
-    STATIC
+add_library(scap_engine_savefile STATIC
     scap_savefile.c
     scap_reader_gzfile.c
-    scap_reader_buffered.c)
+    scap_reader_buffered.c
+)
 
 add_dependencies(scap_engine_savefile zlib)
-target_link_libraries(scap_engine_savefile PRIVATE scap_engine_noop scap_platform_util ${ZLIB_LIB})
+target_link_libraries(scap_engine_savefile
+PRIVATE
+    scap_engine_noop
+    scap_platform_util
+    ${ZLIB_LIB}
+)

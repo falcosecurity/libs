@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
+include_directories(${LIBSCAP_INCLUDE_DIRS})
 
 message(STATUS "Build modern BPF engine")
 option(USE_BUNDLED_MODERN_BPF "use bundled modern BPF" ON)
@@ -52,7 +52,11 @@ add_library(scap_engine_modern_bpf
 	scap_modern_bpf.c
 )
 
-add_dependencies(scap_engine_modern_bpf pman)
-target_link_libraries(scap_engine_modern_bpf PRIVATE pman scap_engine_util scap_engine_noop)
+target_link_libraries(scap_engine_modern_bpf
+PRIVATE
+    pman
+    scap_engine_util
+    scap_engine_noop
+)
 
 set_scap_target_properties(scap_engine_modern_bpf)

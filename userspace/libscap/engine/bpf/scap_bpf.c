@@ -47,7 +47,6 @@ limitations under the License.
 #include "compat/misc.h"
 #include "compat/bpf.h"
 #include "strl.h"
-#include "noop.h"
 #include "strerror.h"
 
 static const char * const bpf_kernel_counters_stats_names[] = {
@@ -1636,18 +1635,18 @@ int32_t scap_bpf_load(
 	{
 		return scap_errprintf(handle->m_lasterr, 0, "mismatch, processors online after the 'for' loop: %d, '_SC_NPROCESSORS_ONLN' before the 'for' loop: %d", online_idx, devset->m_ndevs);
 	}
-	
+
 	// Check that no CPUs were hotplugged during the for loop
 	uint32_t final_ndevs = sysconf(_SC_NPROCESSORS_ONLN);
 	if(final_ndevs == -1)
 	{
 		return scap_errprintf(handle->m_lasterr, errno, "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN' to check against the previous value");
 	}
-	if (online_idx != final_ndevs) 
+	if (online_idx != final_ndevs)
 	{
 		return scap_errprintf(handle->m_lasterr, 0, "mismatch, processors online after the 'for' loop: %d, '_SC_NPROCESSORS_ONLN' after the 'for' loop: %d", online_idx, final_ndevs);
 	}
-	
+
 
 	if(set_default_settings(handle) != SCAP_SUCCESS)
 	{
@@ -1773,7 +1772,7 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	 * Hopefully someone upstreams such capabilities to libbpf one day :)
 	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
 	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
-	 * 
+	 *
 	 * Please note that libbpf stats are available only on kernels >= 5.1, they could be backported but
 	 * it's possible that in some of our supported kernels they won't be available.
 	 */
@@ -1803,7 +1802,7 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				}
 				stats[offset].type = STATS_VALUE_TYPE_U64;
 				stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
-				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15 
+				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15
 				 * https://github.com/torvalds/linux/commit/cb4d2b3f03d8eed90be3a194e5b54b734ec4bbe9
 				 * So it's possible that in some of our supported kernels `info.name` will be "".
 				 */
