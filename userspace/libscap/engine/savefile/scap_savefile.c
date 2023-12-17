@@ -38,7 +38,7 @@ struct iovec {
 #include "scap_savefile.h"
 #include "savefile_platform.h"
 #include "scap_reader.h"
-#include "../noop/noop.h"
+#include "noop.h"
 
 #include "strl.h"
 

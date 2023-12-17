@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
+include_directories(${LIBSCAP_INCLUDE_DIRS})
 add_library(scap_engine_test_input test_input.c test_input_platform.c)
 target_link_libraries(scap_engine_test_input PRIVATE scap_engine_noop scap_platform_util)
 

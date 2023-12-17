@@ -16,4 +16,5 @@
 #
 include_directories(${LIBSCAP_INCLUDE_DIRS})
 add_library(scap_engine_noop STATIC noop.c)
+target_include_directories(scap_engine_noop PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_dependencies(scap_engine_noop uthash)
