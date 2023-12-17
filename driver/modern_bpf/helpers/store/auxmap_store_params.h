@@ -720,11 +720,18 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		}
 
 		unsigned long start_reading_point;
-		/* We have to skip the two bytes of socket family. */
 		char first_path_byte = *(char *)path;
 		if(first_path_byte == '\0')
 		{
-			/* This is an abstract socket address, we need to skip the initial `\0`. */
+			/* Please note exceptions in the `sun_path`:
+			 * Taken from: https://man7.org/linux/man-pages/man7/unix.7.html
+			 *
+			 * An `abstract socket address` is distinguished (from a
+			 * pathname socket) by the fact that sun_path[0] is a null byte
+			 * ('\0').
+			 * 
+			 * So in this case, we need to skip the initial `\0`.
+			 */
 			start_reading_point = (unsigned long)path + 1;
 		}
 		else
