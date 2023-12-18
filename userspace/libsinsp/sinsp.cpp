@@ -691,7 +691,7 @@ void sinsp::open_test_input(scap_test_input_data* data, sinsp_mode_t mode)
 
 /*=============================== Engine related ===============================*/
 
-bool sinsp::check_current_engine(const std::string& engine_name)
+bool sinsp::check_current_engine(const std::string& engine_name) const
 {
 	return scap_check_current_engine(m_h, engine_name.data());
 }
@@ -1823,7 +1823,17 @@ scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer()
 	return m_sinsp_stats_v2_buffer;
 }
 
+const scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer() const
+{
+	return m_sinsp_stats_v2_buffer;
+}
+
 std::shared_ptr<sinsp_stats_v2> sinsp::get_sinsp_stats_v2()
+{
+	return m_sinsp_stats_v2;
+}
+
+std::shared_ptr<const sinsp_stats_v2> sinsp::get_sinsp_stats_v2() const
 {
 	return m_sinsp_stats_v2;
 }
@@ -1982,18 +1992,6 @@ void sinsp::set_max_evt_output_len(uint32_t len)
 sinsp_parser* sinsp::get_parser()
 {
 	return m_parser;
-}
-
-bool sinsp::setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
-{
-	m_compress = compress;
-
-	if(rollover_mb != 0 || duration_seconds != 0 || file_limit != 0 || event_limit != 0)
-	{
-		m_write_cycling = true;
-	}
-
-	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit);
 }
 
 double sinsp::get_read_progress_file() const
