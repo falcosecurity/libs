@@ -110,6 +110,11 @@ public:
 	std::string get_env(const std::string& name);
 
 	/*!
+	  \brief Return concatenated environment variables with the format of "ENV_NAME=value ENV_NAME1=value1" ...
+	*/
+	std::string concatenate_all_env();
+
+	/*!
 	  \brief Return true if this is a process' main thread.
 	*/
 	inline bool is_main_thread() const

@@ -836,42 +836,16 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_ENV:
 		{
 			m_tstr.clear();
-			uint32_t j;
-			const auto& env = tinfo->get_env();
-			uint32_t nargs = (uint32_t)env.size();
 
-			if(nargs == 0)
+			// proc.env[ENV_NAME] use case: returns matched env variable value
+			if(!m_argname.empty())
 			{
+				m_tstr = tinfo->get_env(m_argname);
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
-
-			if(!m_argname.empty()) // extract a specific ENV_NAME value
+			else
 			{
-				// proc.env[ENV_NAME] use case: returns matched env variable value
-				for (const auto& item : env)
-				{
-					// item is a Json::String
-					size_t pos = item.find('=');
-					if (pos != std::string::npos) 
-					{
-						std::string key = item.substr(0, pos);
-						if (key == m_argname) {
-							m_tstr = item.substr(pos + 1); // assign value
-							RETURN_EXTRACT_STRING(m_tstr);
-						}
-					}
-				}
-				RETURN_EXTRACT_STRING(m_tstr); // return empty in case of no match
-			} else
-			{ // proc.env return concatenated env string of format "ENV_NAME=value ENV_NAME1=value1" ...
-				for(j = 0; j < nargs; j++)
-				{
-					m_tstr += env[j];
-					if(j < nargs -1)
-					{
-						m_tstr += ' ';
-					}
-				}
+				m_tstr = tinfo->concatenate_all_env();
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
@@ -879,19 +853,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		{
 			m_tstr.clear();
 
+			// in case of proc.aenv without [ENV_NAME] return proc.env; same applies for proc.aenv[0]
 			if(m_argname.empty() && m_argid < 1)
 			{
-				// in case of proc.aenv without [ENV_NAME] return proc.env; same applies for  proc.aenv[0]
-				const auto& env = tinfo->get_env();
-				uint32_t nargs = (uint32_t)env.size();
-				for(int32_t j = 0; j < nargs; j++)
-				{
-					m_tstr += env[j];
-					if(j < nargs -1)
-					{
-						m_tstr += ' ';
-					}
-				}
+				m_tstr = tinfo->concatenate_all_env();
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 
@@ -921,23 +886,16 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 					{
 						break;
 					}
-					// proc.aenv[ENV_NAME] use case: returns first ENV_NAME match in parent lineage
-					for (const auto& item : mt->get_env())
+
+					m_tstr = mt->get_env(m_argname);
+					if(!m_tstr.empty())
 					{
-						// item is a Json::String
-						size_t pos = item.find('=');
-						if (pos != std::string::npos) 
-						{
-							std::string key = item.substr(0, pos);
-							if (key == m_argname) {
-								m_tstr = item.substr(pos + 1); // assign value
-								RETURN_EXTRACT_STRING(m_tstr);
-							}
-						}
+						break;
 					}
 				}
-				RETURN_EXTRACT_STRING(m_tstr); // return empty in case of no match
-			} else if(m_argid > 0)
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			else if(m_argid > 0)
 			{
 				// start parent lineage traversal
 				for(int32_t j = 0; j < m_argid; j++)
@@ -951,16 +909,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				}
 
 				// parent tinfo specified found; extract env
-				const auto& env = mt->get_env();
-				uint32_t nargs = (uint32_t)env.size();
-				for(int32_t j = 0; j < nargs; j++)
-				{
-					m_tstr += env[j];
-					if(j < nargs -1)
-					{
-						m_tstr += ' ';
-					}
-				}
+				m_tstr = mt->concatenate_all_env();
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 			RETURN_EXTRACT_STRING(m_tstr);
@@ -1965,24 +1914,8 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt *evt)
 	bool found = false;
 	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
 	{
-		bool res;
-		std::string full_env;
-
-		uint32_t j;
-		const auto& env = pt->m_env;
-		uint32_t nargs = (uint32_t)env.size();
-
-		for(j = 0; j < nargs; j++)
-		{
-			full_env += env[j];
-			if(j < nargs -1)
-			{
-				full_env += ' ';
-			}
-		}
-
-
-		res = flt_compare(m_cmpop,
+		std::string full_env = pt->concatenate_all_env();
+		bool res = flt_compare(m_cmpop,
 				  PT_CHARBUF,
 				  (void*)full_env.c_str());
 
