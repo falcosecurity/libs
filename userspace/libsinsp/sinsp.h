@@ -455,6 +455,7 @@ public:
 	  \note sinsp stats may be refactored near-term.
 	*/
 	scap_stats_v2* get_sinsp_stats_v2_buffer();
+	const scap_stats_v2* get_sinsp_stats_v2_buffer() const;
 
 	/*!
 	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd state tables.
@@ -462,6 +463,7 @@ public:
 	  \note sinsp stats may be refactored near-term.
 	*/
 	std::shared_ptr<sinsp_stats_v2> get_sinsp_stats_v2();
+	std::shared_ptr<const sinsp_stats_v2> get_sinsp_stats_v2() const;
 
 	/*!
 	  \brief Look up a thread given its tid and return its information,
@@ -830,11 +832,10 @@ public:
 	 * @param engine_name engine that we want to check.
 	 * @return true if the passed engine is the active one otherwise false.
 	 */
-	bool check_current_engine(const std::string& engine_name);
+	bool check_current_engine(const std::string& engine_name) const;
 
 	/*=============================== Engine related ===============================*/
 
-	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 
 	uint64_t get_bytes_read() const

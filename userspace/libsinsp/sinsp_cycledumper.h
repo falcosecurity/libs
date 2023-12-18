@@ -87,7 +87,7 @@ private:
     at the current time. The reason for the return code is written to
     m_last_reason.
     */
-    bool is_new_file_needed(sinsp_evt*) const;
+    bool is_new_file_needed(sinsp_evt* evt);
 
     /*!
     \brief Setups the new current filename.

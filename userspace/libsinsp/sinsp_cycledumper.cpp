@@ -213,7 +213,7 @@ void sinsp_cycledumper::next_file()
 	m_file_index++;
 }
 
-bool sinsp_cycledumper::is_new_file_needed(sinsp_evt* evt) const
+bool sinsp_cycledumper::is_new_file_needed(sinsp_evt* evt)
 {
 	m_event_count++;
 
