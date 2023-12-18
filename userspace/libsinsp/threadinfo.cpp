@@ -708,6 +708,25 @@ std::string sinsp_threadinfo::get_env(const std::string& name)
 	return "";
 }
 
+std::string sinsp_threadinfo::concatenate_all_env()
+{
+	auto all_env = get_env();
+	if(all_env.size() == 0)
+	{
+		return "";
+	}
+
+	// Here we have at least one env so we can pop the last character at the end of the loop.
+	std::string concatenate_env;
+	for(const auto& env_var : all_env)
+	{
+		concatenate_env += env_var;
+		concatenate_env += ' ';
+	}
+	concatenate_env.pop_back();
+	return concatenate_env;
+}
+
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 {
 	decltype(m_cgroups) tmp_cgroups(new cgroups_t);
