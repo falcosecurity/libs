@@ -16,11 +16,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-permissions:
-  id-token: write
-  contents: read
-  actions: read
-  
 jobs:
   paths-filter:
     runs-on: ubuntu-latest
@@ -49,6 +44,11 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            enable_gvisor: True
+          - arch: amd64
+            enable_gvisor: False  
       fail-fast: false  
     steps:
       - name: Checkout Libs ⤵️
@@ -87,14 +87,12 @@ jobs:
         if: matrix.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends linux-headers-$(uname -r)
-
-      - uses: self-actuated/connect-ssh@master    
           
       - name: Build scap-open and drivers 🏗️
         if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=On -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
+          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
           make scap-open driver bpf libscap_test -j6
 
       - name: Run scap-open with modern bpf 🏎️
