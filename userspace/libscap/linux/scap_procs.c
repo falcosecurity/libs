@@ -565,6 +565,8 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	int32_t res = SCAP_SUCCESS;
 	struct stat dirstat;
 
+	memset(&tinfo, 0, sizeof(scap_threadinfo));
+
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
 

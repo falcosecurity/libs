@@ -1895,6 +1895,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		uint32_t entrylen = 0;
 		auto cg = tinfo.cgroups();
 
+		memset(&sctinfo, 0, sizeof(scap_threadinfo));
+
 		thread_to_scap(tinfo, &sctinfo);
 		tinfo.args_to_iovec(&args_iov, &argscnt, argsrem);
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
@@ -1940,6 +1942,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		}
 
 		scap_threadinfo sctinfo {};
+
+		memset(&sctinfo, 0, sizeof(scap_threadinfo));
 
 		// Note: as scap_fd_add/scap_write_proc_fds do not use
 		// any of the array-based fields like comm, etc. a
@@ -2023,7 +2027,15 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         }
 
         scap_threadinfo scap_proc {};
-	bool have_scap_proc = false;
+        bool have_scap_proc = false;
+
+        // leaving scap_proc uninitialized could lead to undefined behaviour.
+        // to be safe we should initialized to zero.
+        memset(&scap_proc, 0, sizeof(scap_threadinfo));
+
+        scap_proc.tid = -1;
+        scap_proc.pid = -1;
+        scap_proc.ptid = -1;
 
 		// unfortunately, sinsp owns the threade factory
         sinsp_threadinfo* newti = m_inspector->build_threadinfo();

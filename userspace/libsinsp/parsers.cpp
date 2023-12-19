@@ -4201,6 +4201,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 						char error[SCAP_LASTERR_SIZE];
 						scap_threadinfo scap_tinfo {};
 
+						memset(&scap_tinfo, 0, sizeof(scap_tinfo));
+
 						m_inspector->m_thread_manager->thread_to_scap(*evt->m_tinfo, &scap_tinfo);
 
 						// Get the new fds. The callbacks we have registered populate the fd table
