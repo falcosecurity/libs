@@ -71,18 +71,11 @@ jobs:
           cd bpftool
           git submodule update --init
           cd src && sudo make install
-       
-      - name: Install kernel headers (workaround)
+
+      - name: Install kernel headers (actuated)
+        uses: self-actuated/get-kernel-sources@master
         if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'arm64'
-        run: |
-          sudo apt install -y --no-install-recommends
-          sudo mkdir -p /usr/src
-          sudo git clone --depth 1 --branch v$(uname -r) git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git /usr/src/linux
-          sudo rm /lib/modules/$(uname -r)/build
-          sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/build
-          sudo rm /lib/modules/$(uname -r)/source
-          sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/source
-          
+
       - name: Install kernel headers
         if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'amd64'
         run: |
@@ -148,18 +141,11 @@ jobs:
           cd bpftool
           git submodule update --init
           cd src && sudo make install
-          
-      - name: Install kernel headers (workaround) and gcc
+
+      - name: Install kernel headers (actuated)
+        uses: self-actuated/get-kernel-sources@master
         if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'arm64'
-        run: |
-          sudo apt install -y --no-install-recommends gcc g++
-          sudo mkdir -p /usr/src
-          sudo git clone --depth 1 --branch v$(uname -r) git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git /usr/src/linux
-          sudo rm /lib/modules/$(uname -r)/build
-          sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/build
-          sudo rm /lib/modules/$(uname -r)/source
-          sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/source
-          
+
       - name: Install kernel headers and gcc
         if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'amd64'
         run: |
