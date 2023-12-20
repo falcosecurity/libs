@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include <test/helpers/threads_helpers.h>
+#include <test/sinsp_with_test_input.h>
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create)
 {
@@ -44,26 +44,55 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create)
 	ASSERT_EQ(evt->m_fdinfo->m_openflags, PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
 }
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_int)
+// Check all filterchecks `evt.arg*`
+TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg)
 {
 	add_default_init_thread();
-
 	open_inspector();
 
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, (uint32_t)1000);
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.uid"), "1000");
-}
+	std::string target = "sym";
+	std::string linkpath = "/new/sym";
+	int64_t err = 3;
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str)
-{
-	add_default_init_thread();
+	auto evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_SYMLINK_X, 3, err, target.c_str(),
+					linkpath.c_str());
+	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "symlink");
 
-	open_inspector();
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), std::to_string(err));
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), std::to_string(err));
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.res"), std::to_string(err));
 
-	std::string path = "/home/file.txt";
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.target"), target);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg[1]"), target);
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.target"), target);
 
-	// In the enter event we don't send the `PPM_O_F_CREATED`
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path.c_str(),
-					      (uint32_t)0, (uint32_t)0);
-	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.name"), path);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.linkpath"), linkpath);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg[2]"), linkpath);
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.linkpath"), linkpath);
+
+	// These fields should always have an argument
+	ASSERT_THROW(field_exists(evt, "evt.arg"), sinsp_exception);
+	ASSERT_THROW(field_exists(evt, "evt.rawarg"), sinsp_exception);
+
+	// If the field is not contained in the event table we throw an exception
+	ASSERT_THROW(field_exists(evt, "evt.arg.not_exists"), sinsp_exception);
+	ASSERT_THROW(field_exists(evt, "evt.rawarg.not_exists"), sinsp_exception);
+
+	// The validation is not during the argument extraction because we cannot access the event
+	// So here we return true.
+	ASSERT_TRUE(field_exists(evt, "evt.arg[126]"));
+	// Here we try to extract the field so we return an exception
+	ASSERT_THROW(field_has_value(evt, "evt.arg[126]"), sinsp_exception);
+
+	// If the field is contained in the thread table but is not associated with this event we throw an
+	// exception during the extraction of the field, but we don't fail during the extraction of the argument.
+	// `.newpath` is not associated with `PPME_SYSCALL_SYMLINK_X` event.
+	ASSERT_TRUE(field_exists(evt, "evt.arg.newpath"));
+	ASSERT_THROW(field_has_value(evt, "evt.arg.newpath"), sinsp_exception);
+
+	ASSERT_TRUE(field_exists(evt, "evt.rawarg.newpath"));
+	ASSERT_THROW(field_has_value(evt, "evt.rawarg.newpath"), sinsp_exception);
+
+	// All the args of an event
+	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "res=3 target=sym linkpath=/new/sym");
 }

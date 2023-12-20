@@ -1827,6 +1827,27 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	return &m_paramstr_storage[0];
 }
 
+void sinsp_evt::check_param_name_exists(const std::string &name)
+{
+	for(uint32_t i = 0; i < get_num_params(); i++)
+	{
+		if(name.compare(get_param_name(i)) == 0)
+		{
+			return;
+		}
+	}
+
+	throw sinsp_exception("Event '" + std::string(this->get_name()) + "' has no parameters called '" + name +"'. Double check the documentation.");
+}
+
+void sinsp_evt::check_param_id_exists(int32_t id)
+{
+	if(id >= (int32_t)this->get_num_params())
+	{
+		throw sinsp_exception("Event '" + std::string(this->get_name()) + "' has '" + std::to_string(this->get_num_params()) +"' parameters, so '" + std::to_string(id) +"' cannot be used as an index. Only indexes '< " + std::to_string(this->get_num_params())+ "' are allowed.");
+	}
+}
+
 std::string sinsp_evt::get_param_value_str(const std::string &name, bool resolved)
 {
 	for(uint32_t i = 0; i < get_num_params(); i++)

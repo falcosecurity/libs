@@ -1076,6 +1076,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_CPU:
 		RETURN_EXTRACT_VAR(evt->m_cpuid);
 	case TYPE_ARGRAW:
+		evt->check_param_name_exists(m_argname);
 		return extract_argraw(evt, len, m_arginfo->name);
 		break;
 	case TYPE_ARGSTR:
@@ -1087,15 +1088,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(m_argid != -1)
 			{
-				if(m_argid >= (int32_t)evt->get_num_params())
-				{
-					return NULL;
-				}
-
+				evt->check_param_id_exists(m_argid);
 				argstr = evt->get_param_as_str(m_argid, &resolved_argstr, m_inspector->get_buffer_format());
 			}
 			else
 			{
+				evt->check_param_name_exists(m_argname);
 				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, m_inspector->get_buffer_format());
 			}
 
