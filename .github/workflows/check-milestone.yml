@@ -1,0 +1,20 @@
+name: Check release notes
+on:
+  pull_request:
+    types: [milestoned]
+    branches: [master]
+
+jobs:
+  check-release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Try to generate release notes
+        uses: leodido/rn2md@0669e5f3b21492c11c2db43cd6e267566f5880f3
+        with:
+          milestone: ${{ github.event.milestone.title }}
+          output: ./notes.md
+          
+      - name: Print error
+        if: failure()
+        run: |
+          echo "Wrong release note label. Check it out."
