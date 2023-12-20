@@ -1047,7 +1047,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				else
 				{
 					std::string concatenated_path = sinsp_utils::concatenate_paths(cwd, path);
-					strcpy_sanitized(&m_paramstr_storage[0], concatenated_path.data(), std::min(concatenated_path.size() + 1, m_paramstr_storage.size()));
+					strcpy_sanitized(&m_resolved_paramstr_storage[0], concatenated_path.data(), std::min(concatenated_path.size() + 1, m_resolved_paramstr_storage.size()));
 				}
 			}
 		}
