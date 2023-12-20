@@ -145,6 +145,10 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e, uint16_t devid)
 
 bool libsinsp::sinsp_suppress::is_suppressed_tid(uint64_t tid, uint16_t devid) const
 {
+	if (tid == 0)
+	{
+		return false;
+	}
 	if(devid != UINT16_MAX && cache_slot(devid) == tid)
 	{
 		return true;
