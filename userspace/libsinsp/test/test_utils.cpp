@@ -20,17 +20,6 @@ limitations under the License.
 
 #include <cstring>
 
-#if defined(__linux__)
-#include <linux/un.h>
-#else
-#if !defined(_WIN32)
-#include <sys/un.h>
-# endif //_WIN32
-#ifndef UNIX_PATH_MAX
-#define UNIX_PATH_MAX 108
-#endif
-#endif
-
 #if !defined(_WIN32)
 #include <arpa/inet.h>
 #endif //_WIN32
@@ -38,6 +27,7 @@ limitations under the License.
 
 #include <driver/ppm_events_public.h>
 #include <libscap/userspace_flag_helpers.h>
+#include <strl.h>
 
 namespace test_utils {
 
@@ -59,6 +49,15 @@ sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string)
 	sockaddr.sin6_family = AF_INET6;
 	sockaddr.sin6_port = htons(ipv6_port);
 	inet_pton(AF_INET6, ipv6_string, &(sockaddr.sin6_addr));
+	return sockaddr;
+}
+
+struct sockaddr_un fill_sockaddr_un(const char* unix_path)
+{
+	struct sockaddr_un sockaddr;
+	memset(&sockaddr, 0, sizeof(sockaddr));
+	sockaddr.sun_family = AF_UNIX;
+	strlcpy(sockaddr.sun_path, unix_path, UNIX_PATH_MAX);
 	return sockaddr;
 }
 #endif //_WIN32
@@ -260,6 +259,31 @@ std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest)
 	res.insert(res.end(), src_addr.begin(), src_addr.end());
 	res.insert(res.end(), dest_addr.begin(), dest_addr.end());
 
+	return res;
+}
+
+std::vector<uint8_t> pack_unix_socktuple(uint64_t scr_pointer, uint64_t dst_pointer, std::string unix_path)
+{
+	std::vector<uint8_t> res;
+
+	// Assert family.
+	res.push_back(PPM_AF_UNIX);
+
+	// Scr pointer 
+	for (size_t i = 0; i < sizeof(scr_pointer); ++i)
+	{
+    	res.push_back(scr_pointer & 0xFF);
+    	scr_pointer >>= 8;
+	}
+
+	// Dest pointer 
+	for (size_t i = 0; i < sizeof(dst_pointer); ++i)
+	{
+    	res.push_back(dst_pointer & 0xFF);
+    	dst_pointer >>= 8;
+	}
+
+	res.insert(res.end(), unix_path.begin(), unix_path.end());
 	return res;
 }
 #endif //_WIN32 __EMSCRIPTEN__

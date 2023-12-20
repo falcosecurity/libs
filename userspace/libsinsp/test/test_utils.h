@@ -42,6 +42,17 @@ limitations under the License.
 
 #define DEFAULT_IP_STRING_SIZE 100
 
+#if defined(__linux__)
+#include <linux/un.h>
+#else
+#if !defined(_WIN32)
+#include <sys/un.h>
+# endif //_WIN32
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
+#endif
+
 #define ASSERT_NAMES_EQ(a, b)                                                                                \
 	{                                                                                                        \
 		auto a1 = a;                                                                                         \
@@ -107,8 +118,10 @@ std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set);
 #if !defined(_WIN32)
 struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string);
 struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string);
+struct sockaddr_un fill_sockaddr_un(const char* unix_path);
 std::vector<uint8_t> pack_sockaddr(sockaddr *sa);
 std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest);
+std::vector<uint8_t> pack_unix_socktuple(uint64_t scr_pointer, uint64_t dst_pointer, std::string unix_path);
 #endif //_WIN32
 
 void print_bytes(uint8_t *buf, size_t size);
