@@ -1135,6 +1135,10 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				}
 			}
 
+			if(!m_strstorage.empty())
+			{
+				m_strstorage.pop_back();
+			}
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 		break;
