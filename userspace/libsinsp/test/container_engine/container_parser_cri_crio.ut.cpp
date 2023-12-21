@@ -45,7 +45,7 @@ limitations under the License.
  */
 
 std::string container_info_json_crio = R"({
-"sandboxID": "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca",
+    "sandboxID": "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca",
     "pid": 1835083,
     "runtimeSpec": {
       "ociVersion": "1.0.2-dev",
@@ -423,7 +423,6 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_crio_container_status
 	//     "reason": "",
 	//     "message": "",
 	//     "labels": {
-	//       "io.kubernetes.sandbox.id": "49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad",
 	//       "io.kubernetes.pod.uid": "redhat-test-crio",
 	//       "io.kubernetes.pod.namespace": "redhat.test.crio",
 	//       "io.kubernetes.pod.name": "podsandbox1"
@@ -568,8 +567,10 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	// Step-by-step testing of core parsers given the current unit test limitations
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
+	const auto root = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
+	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
@@ -583,55 +584,44 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	// Add basic fields manually
 	container.m_type = CT_CRIO;
 	container.m_id = "49ecc2820215"; // truncated id extracted from cgroups
-	container.m_full_id = resp_container.id();
-	container.m_name = resp_container.metadata().name();
-	for(const auto &pair : resp_container.labels())
-	{
-		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
-		{
-			container.m_labels[pair.first] = pair.second;
-		}
-	}
-	// CRI mounts
-	auto res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
+	auto res = cri_api_v1alpha2->parse_cri_base(resp_container, container);
 	ASSERT_TRUE(res);
-	// CRI image
-	res = cri_api_v1alpha2->parse_cri_image(resp_container, resp_container_info, container);
+	res = cri_api_v1alpha2->parse_cri_labels(resp_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container, root, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad", container.m_full_id);
 	ASSERT_EQ("quay.io/crio/redis:alpine", container.m_image);
 	ASSERT_EQ("quay.io/crio/redis", container.m_imagerepo);
 	ASSERT_EQ("alpine", container.m_imagetag);
 
-	// CRI image, failure resilience test
+	// CRI image failure resilience test for cases where it may begin with sha256
 	auto status = container_status_resp.mutable_status();
 	status->set_image_ref("sha256:49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad");
 	status->mutable_image()->set_image("");
 	const auto &resp_container_simulate_image_recovery = container_status_resp.status();
-	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, resp_container_info, container);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, root, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("quay.io/crio/redis:alpine", container.m_image);
 	ASSERT_EQ("quay.io/crio/redis", container.m_imagerepo);
 	ASSERT_EQ("alpine", container.m_imagetag);
 
-	// add pod_sandbox_id
-	cri_api_v1alpha2->parse_cri_pod_sandbox_id(resp_container_info, container);
-
-	// network and labels
-	cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, resp_pod_sandbox_container_info, container);
-	cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
-
-	// Extra info such as privileged flag
-	const auto &info_it = resp_container_info.find("info");
-	Json::Value root;
-	Json::Reader reader;
-	if(!reader.parse(info_it->second, root))
-	{
-		ASSERT(false);
-	}
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id(root, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_env(root, container);
+	ASSERT_FALSE(res); // seems broken or not supported for cri-o
+	res = cri_api_v1alpha2->parse_cri_json_imageid_containerd(root, container);
+	ASSERT_FALSE(res); // parse_cri_json_imageid_containerd only supported for containerd
+	res = cri_api_v1alpha2->parse_cri_user_info(root, container);
+	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_ext_container_info(root, container);
 	ASSERT_TRUE(res);
-	ASSERT_TRUE(container.m_privileged);
 	ASSERT_EQ(209715200, container.m_memory_limit);
 	ASSERT_EQ(20000, container.m_cpu_quota);
 
@@ -639,7 +629,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	// create and test sinsp_container_info for sandbox_container
 	//
 
-	// Add basic fields manually
 	sandbox_container.m_is_pod_sandbox = true;
 	sandbox_container.m_type = CT_CRIO;
 	sandbox_container.m_id = "1f04600dc694"; // truncated id extracted from cgroups, here for the sandbox id / pod

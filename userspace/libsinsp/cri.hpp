@@ -156,8 +156,34 @@ inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const 
 }
 
 template<typename api>
+inline Json::Value cri_interface<api>::get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info)
+{
+
+	Json::Value root;
+	Json::Reader reader;
+	const auto &info_it = info.find("info");
+	if(info_it == info.end())
+	{
+		return root;
+	}
+	reader.parse(info_it->second, root);
+	return root;
+}
+
+template<typename api>
+inline bool cri_interface<api>::parse_cri_base(const typename api::ContainerStatus &status, sinsp_container_info &container)
+{
+	container.m_full_id = status.id();
+	container.m_name = status.metadata().name();
+	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
+	container.m_created_time = static_cast<int64_t>(status.created_at() / ONE_SECOND_IN_NS);
+
+	return true;
+}
+
+template<typename api>
 inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &status,
-					 const google::protobuf::Map<std::string, std::string> &info,
+					 const Json::Value &root,
 					 sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
@@ -195,33 +221,24 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 		or otherwise was not retrieved. Brute force try each schema we know of for containerd and crio container
 		runtimes. */
 
-		Json::Value root;
-		Json::Reader reader;
-		const auto &info_it = info.find("info");
-		if(info_it != info.end())
+		if(!root.isNull())
 		{
-			if(reader.parse(info_it->second, root))
+			Json::Value jvalue;
+			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri.image-name"];
+			if(jvalue.isNull())
 			{
-				if(!root.isNull())
-				{
-					Json::Value jvalue;
-					jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri.image-name"];
-					if(jvalue.isNull())
-					{
-						jvalue =
-							root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
-					}
-					if(jvalue.isNull())
-					{
-						jvalue = root["runtimeSpec"]["annotations"]
-							     ["io.kubernetes.cri-o.ImageName"];
-					}
-					if(!jvalue.isNull())
-					{
-						image_name = jvalue.asString();
-						get_tag_from_image = false;
-					}
-				}
+				jvalue =
+					root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
+			}
+			if(jvalue.isNull())
+			{
+				jvalue = root["runtimeSpec"]["annotations"]
+							["io.kubernetes.cri-o.ImageName"];
+			}
+			if(!jvalue.isNull())
+			{
+				image_name = jvalue.asString();
+				get_tag_from_image = false;
 			}
 		}
 	}
@@ -342,10 +359,15 @@ inline bool set_numeric_64(const Json::Value &dict, const std::string &key, int6
 }
 
 template<typename api> 
-inline bool cri_interface<api>::parse_cri_env(const Json::Value &info, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_env(const Json::Value &root, sinsp_container_info &container)
 {
+	if(root.isNull())
+	{
+		return false;
+	}
+
 	const Json::Value *envs = nullptr;
-	if(!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
+	if(!walk_down_json(root, &envs, "config", "envs") || !envs->isArray())
 	{
 		return false;
 	}
@@ -363,12 +385,11 @@ inline bool cri_interface<api>::parse_cri_env(const Json::Value &info, sinsp_con
 			container.m_env.emplace_back(var);
 		}
 	}
-
 	return true;
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_json_imageid_containerd(const Json::Value &root, sinsp_container_info &container)
 {
 	const Json::Value *image = nullptr;
 	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
@@ -391,10 +412,10 @@ inline bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, si
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &info, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &root, sinsp_container_info &container)
 {
 	const Json::Value *linux = nullptr;
-	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
+	if(!walk_down_json(root, &linux, "runtimeSpec", "linux") || !linux->isObject())
 	{
 		return false;
 	}
@@ -425,7 +446,7 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 	}
 
 	// containerd
-	if(!priv_found && walk_down_json(info, &privileged, "config", "linux", "security_context", "privileged") &&
+	if(!priv_found && walk_down_json(root, &privileged, "config", "linux", "security_context", "privileged") &&
 	   privileged->isBool())
 	{
 		container.m_privileged = privileged->asBool();
@@ -433,7 +454,7 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 	}
 
 	// cri-o
-	if(!priv_found && walk_down_json(info, &privileged, "privileged") && privileged->isBool())
+	if(!priv_found && walk_down_json(root, &privileged, "privileged") && privileged->isBool())
 	{
 		container.m_privileged = privileged->asBool();
 		priv_found = true;
@@ -443,10 +464,10 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &root, sinsp_container_info &container)
 {
 	const Json::Value *uid = nullptr;
-	if(!walk_down_json(info, &uid, "runtimeSpec", "process", "user", "uid") || !uid->isInt())
+	if(!walk_down_json(root, &uid, "runtimeSpec", "process", "user", "uid") || !uid->isInt())
 	{
 		return false;
 	}
@@ -456,15 +477,23 @@ inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sin
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_pod_sandbox_id(const google::protobuf::Map<std::string, std::string> &info,
+inline bool cri_interface<api>::parse_cri_labels(const typename api::ContainerStatus &status, sinsp_container_info &container)
+{
+	for(const auto &pair : status.labels())
+	{
+		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
+		{
+			container.m_labels[pair.first] = pair.second;
+		}
+	}
+	return true;
+}
+
+template<typename api>
+inline bool cri_interface<api>::parse_cri_pod_sandbox_id(const Json::Value &root,
 			     sinsp_container_info &container)
 {
-	Json::Value root;
-	Json::Reader reader;
-	const auto &info_it = info.find("info");
-	if(info_it == info.end() ||
-		!reader.parse(info_it->second, root) ||
-		root.isNull())
+	if(root.isNull())
 	{
 		return false;
 	}
@@ -496,7 +525,7 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_labels(const typename api:
 
 template<typename api>
 inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api::PodSandboxStatus &status,
-			     const google::protobuf::Map<std::string, std::string> &info,
+			     const Json::Value &root,
 			     sinsp_container_info &container)
 {
 	//
@@ -520,13 +549,8 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api
 	// Pod Sandbox CNI Result
 	//
 
-	Json::Value root;
-	Json::Reader reader;
 	std::string cniresult;
-	const auto &info_it = info.find("info");
-	if(info_it == info.end() ||
-		!reader.parse(info_it->second, root) ||
-		root.isNull())
+	if(root.isNull())
 	{
 		return false;
 	}
@@ -631,41 +655,6 @@ inline std::string cri_interface<api>::get_container_image_id(const std::string 
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusResponse &status,
-					  sinsp_container_info &container)
-{
-	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
-
-	const auto &info_it = status.info().find("info");
-	if(info_it == status.info().end())
-	{
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) no info property, returning",
-				container.m_id.c_str());
-		return false;
-	}
-
-	Json::Value root;
-	Json::Reader reader;
-	if(!reader.parse(info_it->second, root))
-	{
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) could not json parse info, returning",
-				container.m_id.c_str());
-		ASSERT(false);
-		return false;
-	}
-
-	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): will parse info json: %s", container.m_id.c_str(),
-			info_it->second.c_str());
-
-	parse_cri_env(root, container);
-	parse_cri_json_image(root, container);
-	bool ret = parse_cri_ext_container_info(root, container);
-	parse_cri_user_info(root, container);
-
-	return ret;
-}
-
-template<typename api>
 inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container)
 {
 	typename api::ContainerStatusResponse container_status_resp;
@@ -703,24 +692,18 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
-	container.m_full_id = resp_container.id();
-	container.m_name = resp_container.metadata().name();
-
-	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
-	container.m_created_time = static_cast<int64_t>(resp_container.created_at() / ONE_SECOND_IN_NS);
-
-	for(const auto &pair : resp_container.labels())
-	{
-		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
-		{
-			container.m_labels[pair.first] = pair.second;
-		}
-	}
-
-	parse_cri_image(resp_container, resp_container_info, container);
+	const auto root = get_info_jvalue(resp_container_info);
+	parse_cri_base(resp_container, container);
+	parse_cri_labels(resp_container, container);
+	parse_cri_image(resp_container, root, container);
 	parse_cri_mounts(resp_container, container);
-
-	if(!parse_containerd(container_status_resp, container))
+	parse_cri_pod_sandbox_id(root, container);
+	parse_cri_env(root, container);
+	parse_cri_json_imageid_containerd(root, container);
+	// In some cases (e.g. openshift), the cri-o response may not have an info property, which is used to set the container user. In those cases, the container name stays at its default "<NA>" value.
+	parse_cri_user_info(root, container);
+	bool ret = parse_cri_ext_container_info(root, container);
+	if(!ret)
 	{
 		libsinsp::cgroup_limits::cgroup_limits_value limits;
 		libsinsp::cgroup_limits::get_cgroup_resource_limits(key, limits);
@@ -730,18 +713,11 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		container.m_cpu_quota = limits.m_cpu_quota;
 		container.m_cpu_period = limits.m_cpu_period;
 		container.m_cpuset_cpu_count = limits.m_cpuset_cpu_count;
-
-		// In some cases (e.g. openshift), the cri-o response
-		// may not have an info property, which is used to set
-		// the container user. In those cases, the container
-		// name stays at its default "<NA>" value.
 	}
 
-	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): after parse_containerd: repo=%s tag=%s image=%s digest=%s",
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): after container parsing: repo=%s tag=%s image=%s digest=%s",
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
-
-	parse_cri_pod_sandbox_id(resp_container_info, container);
 
 	if(cri_settings::get_cri_extra_queries())
 	{
@@ -749,8 +725,9 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		status = get_pod_sandbox_status_resp(container.m_pod_sandbox_id, pod_sandbox_status_resp);
 		const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 		const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-
-		parse_cri_pod_sandbox_network(resp_pod_sandbox_container, resp_pod_sandbox_container_info, container);
+		const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
+		// Add pod response network and labels to original container
+		parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
 		parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 
 		if(container.m_imageid.empty())
