@@ -328,7 +328,9 @@ public:
 	int64_t m_cpu_period;
 	int32_t m_cpuset_cpu_count;
 	std::list<container_health_probe> m_health_probes;
-	std::string m_pod_cniresult;
+	std::string m_pod_sandbox_id;
+	std::map<std::string, std::string> m_pod_sandbox_labels;
+	std::string m_pod_sandbox_cniresult;
 
 	bool m_is_pod_sandbox;
 

@@ -557,18 +557,19 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_crio_pod_status_resp
 
 TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 {
-	std::string cri_path = "/run/crio/crio_mock.sock";
+	std::string cri_path = "/run/containerd/containerd_mock.sock";
 	auto cri_api_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
 	ASSERT_FALSE(cri_api_v1alpha2->is_ok()); // we are not querying a container runtime socket in this mock test
 
 	// Get mock responses
-	runtime::v1alpha2::ContainerStatusResponse resp = get_default_cri_crio_container_status_resp();
-	runtime::v1alpha2::PodSandboxStatusResponse resp_pod = get_default_cri_crio_pod_status_resp();
+	runtime::v1alpha2::ContainerStatusResponse container_status_resp = get_default_cri_crio_container_status_resp();
+	runtime::v1alpha2::PodSandboxStatusResponse pod_sandbox_status_resp = get_default_cri_crio_pod_status_resp();
 
 	// Step-by-step testing of core parsers given the current unit test limitations
-	const auto &resp_container = resp.status();
-	const auto &resp_container_info = resp.info();
-	const auto &resp_sandbox_container = resp_pod.status();
+	const auto &resp_container = container_status_resp.status();
+	const auto &resp_container_info = container_status_resp.info();
+	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
+	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
@@ -603,30 +604,29 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_EQ("alpine", container.m_imagetag);
 
 	// CRI image, failure resilience test
-	auto status = resp.mutable_status();
+	auto status = container_status_resp.mutable_status();
 	status->set_image_ref("sha256:49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad");
 	status->mutable_image()->set_image("");
-	const auto &resp_container_simulate_image_recovery = resp.status();
+	const auto &resp_container_simulate_image_recovery = container_status_resp.status();
 	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, resp_container_info, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("quay.io/crio/redis:alpine", container.m_image);
 	ASSERT_EQ("quay.io/crio/redis", container.m_imagerepo);
 	ASSERT_EQ("alpine", container.m_imagetag);
 
-	// network
-	container.m_container_ip = ntohl(cri_api_v1alpha2->get_pod_sandbox_ip(resp_pod));
-	ASSERT_EQ(183762947, container.m_container_ip); // decimal of "10.244.0.3"
-	std::string cniresult = "";
-	cri_api_v1alpha2->get_pod_info_cniresult(resp_pod, cniresult);
-	ASSERT_EQ("{\"cniVersion\":\"1.0.0\",\"interfaces\":[{\"name\":\"bridge\",\"mac\":\"ce:64:08:76:88:6a\"},{\"name\":\"veth71b0e931\",\"mac\":\"72:b7:4f:bc:e4:a4\"},{\"name\":\"eth0\",\"mac\":\"fe:06:00:f8:2f:4d\",\"sandbox\":\"/var/run/netns/dec735d1-0e86-44c1-94e0-a102173334a4\"}],\"ips\":[{\"interface\":2,\"address\":\"10.244.0.3/16\",\"gateway\":\"10.244.0.1\"}],\"routes\":[{\"dst\":\"0.0.0.0/0\",\"gw\":\"10.244.0.1\"}],\"dns\":{}}", cniresult);
-	container.m_pod_cniresult = cniresult;
+	// add pod_sandbox_id
+	cri_api_v1alpha2->parse_cri_pod_sandbox_id(resp_container_info, container);
+
+	// network and labels
+	cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, resp_pod_sandbox_container_info, container);
+	cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 
 	// Extra info such as privileged flag
-	const auto &info_it = resp.info().find("info");
+	const auto &info_it = resp_container_info.find("info");
 	Json::Value root;
 	Json::Reader reader;
 	if(!reader.parse(info_it->second, root))
-	{\
+	{
 		ASSERT(false);
 	}
 	res = cri_api_v1alpha2->parse_cri_ext_container_info(root, container);
@@ -634,14 +634,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_TRUE(container.m_privileged);
 	ASSERT_EQ(209715200, container.m_memory_limit);
 	ASSERT_EQ(20000, container.m_cpu_quota);
-
-	if(root.isMember("sandboxID") && root["sandboxID"].isString())
-	{
-		const auto pod_sandbox_id = root["sandboxID"].asString();
-		// Add the pod sandbox id as label to the container.
-		// This labels is needed by the filterchecks code to get the pod labels.
-		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
-	}
 
 	//
 	// create and test sinsp_container_info for sandbox_container
@@ -651,15 +643,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	sandbox_container.m_is_pod_sandbox = true;
 	sandbox_container.m_type = CT_CRIO;
 	sandbox_container.m_id = "1f04600dc694"; // truncated id extracted from cgroups, here for the sandbox id / pod
-	sandbox_container.m_full_id = resp_sandbox_container.id();
-	sandbox_container.m_name = resp_sandbox_container.metadata().name();
-	for(const auto &pair : resp_sandbox_container.labels())
-	{
-		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
-		{
-			sandbox_container.m_labels[pair.first] = pair.second;
-		}
-	}
 
 	// 
 	// Test sinsp filterchecks, similar to spawn_process_container test
@@ -681,17 +664,11 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 		"pids=/pod_123.slice/pod_123-456.slice/crio-49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad.scope",
 		"misc=/pod_123.slice/pod_123-456.slice/crio-49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad.scope"};
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
-
 	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
-	std::string sandbox_container_json = m_inspector.m_container_manager.container_to_json(sandbox_container);
-
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container_json.c_str());
-	// todo: don't seem to be able to add the sandbox container via injecting another container event
-	// add manually to container cache for now
-	m_inspector.m_container_manager.add_container(std::move(sandbox_container_ptr), nullptr);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0, "/bin/test-exe", empty_bytebuf, child_tid, child_pid, parent_tid, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)29612, (uint32_t)4, (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, empty_bytebuf, (int32_t)34818, parent_pid, (uint32_t)0, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)0);
 
@@ -699,9 +676,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	const sinsp_container_info::ptr_t container_info_check = m_inspector.m_container_manager.get_container(container.m_id);
 	ASSERT_TRUE(container_info_check);
 	ASSERT_EQ("49ecc2820215", container_info_check->m_id);
-	const sinsp_container_info::ptr_t sandbox_container_info_check = m_inspector.m_container_manager.get_container(sandbox_container.m_id);
-	ASSERT_TRUE(sandbox_container_info_check);
-	ASSERT_EQ("1f04600dc694", sandbox_container_info_check->m_id);
 
 	// Check container and k8s related filter fields that are retrieved from the container runtime socket
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "49ecc2820215");

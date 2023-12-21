@@ -112,14 +112,11 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value)
 	container_info->m_type = CT_DOCKER;
 	container_info->m_lookup.set_status(sinsp_container_lookup::state::SUCCESSFUL);
 	container_info->m_labels = container_labels;
+	container_info->m_pod_sandbox_labels = pod_sandbox_labels;
 	container_info->m_container_ip = ip;
-	container_info->m_pod_cniresult = cni_json;
+	container_info->m_pod_sandbox_cniresult = cni_json;
+	container_info->m_pod_sandbox_id = pod_full_sandbox_id;
 	m_inspector.m_container_manager.add_container(std::move(container_info), init_thread_info);
-
-	auto sandbox_container_info = std::make_shared<sinsp_container_info>();
-	sandbox_container_info->m_id = pod_sandbox_id;
-	sandbox_container_info->m_labels = pod_sandbox_labels;
-	m_inspector.m_container_manager.add_container(std::move(sandbox_container_info), nullptr);
 
 	auto evt = generate_random_event();
 	// basic filterchecks
@@ -194,14 +191,10 @@ TEST_F(sinsp_with_test_input, K8S_FILTER_check_fields_value_with_no_labels)
 	container_info->m_type = CT_DOCKER;
 	container_info->m_lookup.set_status(sinsp_container_lookup::state::SUCCESSFUL);
 	container_info->m_labels = container_labels;
+	container_info->m_pod_sandbox_labels = pod_sandbox_labels;
 	container_info->m_container_ip = ip;
-	container_info->m_pod_cniresult = cni_json;
+	container_info->m_pod_sandbox_cniresult = cni_json;
 	m_inspector.m_container_manager.add_container(std::move(container_info), init_thread_info);
-
-	auto sandbox_container_info = std::make_shared<sinsp_container_info>();
-	sandbox_container_info->m_id = pod_sandbox_id;
-	sandbox_container_info->m_labels = pod_sandbox_labels;
-	m_inspector.m_container_manager.add_container(std::move(sandbox_container_info), nullptr);
 
 	auto evt = generate_random_event();
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), container_id);

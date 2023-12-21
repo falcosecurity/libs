@@ -207,7 +207,8 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
-	container["cni_json"] = container_info.m_pod_cniresult;
+	container["cni_json"] = container_info.m_pod_sandbox_cniresult;
+	container["pod_sandbox_id"] = container_info.m_pod_sandbox_id;
 
 	Json::Value port_mappings = Json::arrayValue;
 
@@ -229,6 +230,13 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 		labels[pair.first] = pair.second;
 	}
 	container["labels"] = labels;
+
+	Json::Value pod_sandbox_labels;
+	for (auto &pair : container_info.m_pod_sandbox_labels)
+	{
+		pod_sandbox_labels[pair.first] = pair.second;
+	}
+	container["pod_sandbox_labels"] = pod_sandbox_labels;
 
 	Json::Value env_vars = Json::arrayValue;
 
