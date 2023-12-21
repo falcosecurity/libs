@@ -181,6 +181,20 @@ inline bool cri_interface<api>::parse_cri_base(const typename api::ContainerStat
 	return true;
 }
 
+// overloaded w/ PodSandboxStatus
+template<typename api>
+inline bool cri_interface<api>::parse_cri_base(const typename api::PodSandboxStatus &status, sinsp_container_info &container)
+{
+	container.m_full_id = status.id();
+	container.m_name = status.metadata().name();
+	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
+	container.m_created_time = static_cast<int64_t>(status.created_at() / ONE_SECOND_IN_NS);
+	container.m_pod_sandbox_id = container.m_full_id;
+	container.m_labels["io.kubernetes.sandbox.id"] = container.m_full_id;
+
+	return true;
+}
+
 template<typename api>
 inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &status,
 					 const Json::Value &root,
@@ -489,6 +503,24 @@ inline bool cri_interface<api>::parse_cri_labels(const typename api::ContainerSt
 	return true;
 }
 
+// overloaded w/ PodSandboxStatus
+template<typename api>
+inline bool cri_interface<api>::parse_cri_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container)
+{
+	for(const auto &pair : status.labels())
+	{
+		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
+		{
+			container.m_labels[pair.first] = pair.second;
+		}
+	}
+	container.m_labels["io.kubernetes.pod.uid"] = status.metadata().uid();
+	container.m_labels["io.kubernetes.pod.name"] = status.metadata().name();
+	container.m_labels["io.kubernetes.pod.namespace"] = status.metadata().namespace_();
+
+	return true;
+}
+
 template<typename api>
 inline bool cri_interface<api>::parse_cri_pod_sandbox_id(const Json::Value &root,
 			     sinsp_container_info &container)
@@ -508,7 +540,6 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_id(const Json::Value &root
 
 	return true;
 }
-
 
 template<typename api>
 inline bool cri_interface<api>::parse_cri_pod_sandbox_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container)
@@ -549,12 +580,12 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api
 	// Pod Sandbox CNI Result
 	//
 
-	std::string cniresult;
 	if(root.isNull())
 	{
 		return false;
 	}
 
+	std::string cniresult;
 	Json::Value jvalue;
 	/* Lookup approach is brute force "try all schemas" we know of, do not condition by container runtime for
 	 * possible future "would just work" luck in case other runtimes standardize on one of the current schemas. */
@@ -671,7 +702,21 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		status = get_pod_sandbox_status_resp(container.m_id, pod_sandbox_status_resp);
 		if(status.ok())
 		{
+			/*
+			* We also want to ensure that the pod sandbox container stored in the container cache is
+			* fully filled out with available information as applicable.
+			* Most notably, the container's m_full_id and m_pod_sandbox_id will be the same, and the
+			* absence of container images can be attributed to the fact that they are not available for
+			* pod sandbox container processes.
+			*/
 			container.m_is_pod_sandbox = true;
+			const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
+			const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
+			const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
+			parse_cri_base(resp_pod_sandbox_container, container);
+			parse_cri_labels(resp_pod_sandbox_container, container);
+			parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+			parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 			return true;
 		}
 		else
@@ -719,8 +764,17 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
 
+	// Enabled by default for Falco consumer
 	if(cri_settings::get_cri_extra_queries())
 	{
+		/*
+		* The recent refactor makes full use of PodSandboxStatusResponse, removing the need to access pod sandbox containers
+		* in k8s filterchecks. Now, we also store the pod sandbox labels in the container.
+		* While this might seem redundant in cases where multiple containers exist in a pod, considering that the concurrent
+		* number of containers on a node is typically capped at 100-300 and many pods contain only 1-3 containers,
+		* it  doesn't add significant overhead. Moreover, these extra lookups have always been performed for container ips in the past
+		* and therefore are no new additions.
+		*/
 		typename api::PodSandboxStatusResponse pod_sandbox_status_resp;
 		status = get_pod_sandbox_status_resp(container.m_pod_sandbox_id, pod_sandbox_status_resp);
 		const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
