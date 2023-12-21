@@ -247,12 +247,20 @@ public:
 	Json::Value get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info);
 
 	/**
-	 * @brief fill out pod sandbox labels
+	 * @brief fill out status base fields
 	 * @param status `status` field of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_base(const typename api::ContainerStatus &status, sinsp_container_info &container); 
+	bool parse_cri_base(const typename api::ContainerStatus &status, sinsp_container_info &container);
+
+	/**
+	 * @brief fill out status base fields; overloaded w/ PodSandboxStatus
+	 * @param status `status` field of the PodSandboxStatusResponse
+	 * @param container the container info to fill out
+	 * @return true if successful
+	 */
+	bool parse_cri_base(const typename api::PodSandboxStatus &status, sinsp_container_info &container);
 
 	/**
 	 * @brief fill out container image information based on CRI response
@@ -274,7 +282,7 @@ public:
 	bool parse_cri_mounts(const typename api::ContainerStatus &status, sinsp_container_info &container);
 
 	/**
-	 * @brief fill out container environment variables based on CRI response
+	 * @brief fill out container environment variables based on CRI response, valid for containerd only
 	 * @param root Json::Value of status.info() at "info of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
@@ -284,7 +292,7 @@ public:
 	bool parse_cri_env(const Json::Value &root, sinsp_container_info &container);
 
 	/**
-	 * @brief fill out extra image info based on CRI response
+	 * @brief fill out extra image info based on CRI response, valid for containerd only
 	 * @param root Json::Value of status.info() at "info of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
@@ -312,16 +320,24 @@ public:
 	bool parse_cri_user_info(const Json::Value &root, sinsp_container_info &container);
 
 	/**
-	 * @brief fill out pod sandbox labels
+	 * @brief fill out container labels
 	 * @param status `status` field of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_labels(const typename api::ContainerStatus &status, sinsp_container_info &container); 
+	bool parse_cri_labels(const typename api::ContainerStatus &status, sinsp_container_info &container);
 
 	/**
-	 * @brief fill out pod sandbox labels
-	 * @param root Json::Value of status.info() at "info of the PodSandboxStatusResponse
+	 * @brief fill out container labels; overloaded w/ PodSandboxStatus
+	 * @param status `status` field of the PodSandboxStatusResponse
+	 * @param container the container info to fill out
+	 * @return true if successful
+	 */
+	bool parse_cri_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container);
+
+	/**
+	 * @brief fill out pod sandbox id
+	 * @param root Json::Value of status.info() at "info of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
@@ -329,7 +345,7 @@ public:
 			     sinsp_container_info &container);
 
 	/**
-	 * @brief fill out pod sandbox labels
+	 * @brief fill out pod sandbox network info
 	 * @param status `status` field of the PodSandboxStatusResponse
 	 * @param root Json::Value of status.info() at "info of the PodSandboxStatusResponse
 	 * @param container the container info to fill out
@@ -345,7 +361,7 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_pod_sandbox_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container); 
+	bool parse_cri_pod_sandbox_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container);
 
 	/**
 	 * @brief make request and get PodSandboxStatusResponse

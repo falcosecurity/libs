@@ -556,7 +556,7 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_crio_pod_status_resp
 
 TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 {
-	std::string cri_path = "/run/containerd/containerd_mock.sock";
+	std::string cri_path = "/run/crio/crio_mock.sock";
 	auto cri_api_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
 	ASSERT_FALSE(cri_api_v1alpha2->is_ok()); // we are not querying a container runtime socket in this mock test
 
@@ -564,7 +564,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	runtime::v1alpha2::ContainerStatusResponse container_status_resp = get_default_cri_crio_container_status_resp();
 	runtime::v1alpha2::PodSandboxStatusResponse pod_sandbox_status_resp = get_default_cri_crio_pod_status_resp();
 
-	// Step-by-step testing of core parsers given the current unit test limitations
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
 	const auto root = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
@@ -574,14 +573,11 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
-	std::shared_ptr<sinsp_container_info> sandbox_container_ptr = std::make_shared<sinsp_container_info>();
-	sinsp_container_info &sandbox_container = *sandbox_container_ptr;
 
 	//
 	// create and test sinsp_container_info for container
 	//
 
-	// Add basic fields manually
 	container.m_type = CT_CRIO;
 	container.m_id = "49ecc2820215"; // truncated id extracted from cgroups
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_container, container);
@@ -624,14 +620,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_TRUE(res);
 	ASSERT_EQ(209715200, container.m_memory_limit);
 	ASSERT_EQ(20000, container.m_cpu_quota);
-
-	//
-	// create and test sinsp_container_info for sandbox_container
-	//
-
-	sandbox_container.m_is_pod_sandbox = true;
-	sandbox_container.m_type = CT_CRIO;
-	sandbox_container.m_id = "1f04600dc694"; // truncated id extracted from cgroups, here for the sandbox id / pod
 
 	// 
 	// Test sinsp filterchecks, similar to spawn_process_container test
@@ -695,5 +683,92 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.3");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"cniVersion\":\"1.0.0\",\"interfaces\":[{\"name\":\"bridge\",\"mac\":\"ce:64:08:76:88:6a\"},{\"name\":\"veth71b0e931\",\"mac\":\"72:b7:4f:bc:e4:a4\"},{\"name\":\"eth0\",\"mac\":\"fe:06:00:f8:2f:4d\",\"sandbox\":\"/var/run/netns/dec735d1-0e86-44c1-94e0-a102173334a4\"}],\"ips\":[{\"interface\":2,\"address\":\"10.244.0.3/16\",\"gateway\":\"10.244.0.1\"}],\"routes\":[{\"dst\":\"0.0.0.0/0\",\"gw\":\"10.244.0.1\"}],\"dns\":{}}");
+}
+
+TEST_F(sinsp_with_test_input, container_parser_cri_crio_sandbox_container)
+{
+	std::string cri_path = "/run/crio/crio_mock.sock";
+	auto cri_api_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
+	ASSERT_FALSE(cri_api_v1alpha2->is_ok()); // we are not querying a container runtime socket in this mock test
+
+	// Get mock responses
+	runtime::v1alpha2::PodSandboxStatusResponse pod_sandbox_status_resp = get_default_cri_crio_pod_status_resp();
+
+	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
+	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
+	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
+	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
+	sinsp_container_info &container = *container_ptr;
+
+	//
+	// create and test sinsp_container_info for sandbox container, use some overloaded functions
+	//
+
+	container.m_type = CT_CONTAINERD;
+	container.m_id = "1f04600dc694"; // truncated id extracted from cgroups for the sandbox container
+	container.m_is_pod_sandbox = true;
+	auto res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
+	ASSERT_TRUE(container.m_is_pod_sandbox);
+
+	// 
+	// Test sinsp filterchecks, similar to spawn_process_container test
+	// 
+
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20;
+	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+
+	std::vector<std::string> cgroups = {
+		"cpuset=/pod_123.slice/pod_123-456.slice/crio-1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca.scope",
+		"cpu=/pod_123.slice/pod_123-456.slice/crio-1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca.scope",
+		"blkio=/pod_123.slice/pod_123-456.slice/crio-1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca.scope",
+		"memory=/pod_123.slice/pod_123-456.slice/crio-1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca.scope",
+		"hugetlb=/pod_123.slice/pod_123-456.slice/crio-1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca.scope", 
+		"pids=/pod_123.slice/pod_123-456.slice/crio-1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca.scope",
+		"misc=/pod_123.slice/pod_123-456.slice/crio-1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca.scope"};
+	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
+	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
+	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container_json.c_str());
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0, "/bin/test-exe", empty_bytebuf, child_tid, child_pid, parent_tid, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)29612, (uint32_t)4, (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, empty_bytebuf, (int32_t)34818, parent_pid, (uint32_t)0, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)0);
+
+	// Check containers were added to the container cache
+	const sinsp_container_info::ptr_t container_info_check = m_inspector.m_container_manager.get_container(container.m_id);
+	ASSERT_TRUE(container_info_check);
+	ASSERT_EQ("1f04600dc694", container_info_check->m_id);
+
+	// Check container and k8s related filter fields that are retrieved from the container runtime socket
+	ASSERT_EQ(get_field_as_string(evt, "container.id"), "1f04600dc694");
+	ASSERT_EQ(get_field_as_string(evt, "container.full_id"), "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca");
+	ASSERT_EQ(get_field_as_string(evt, "container.ip"), "10.244.0.3");
+	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"), "{\"cniVersion\":\"1.0.0\",\"interfaces\":[{\"name\":\"bridge\",\"mac\":\"ce:64:08:76:88:6a\"},{\"name\":\"veth71b0e931\",\"mac\":\"72:b7:4f:bc:e4:a4\"},{\"name\":\"eth0\",\"mac\":\"fe:06:00:f8:2f:4d\",\"sandbox\":\"/var/run/netns/dec735d1-0e86-44c1-94e0-a102173334a4\"}],\"ips\":[{\"interface\":2,\"address\":\"10.244.0.3/16\",\"gateway\":\"10.244.0.1\"}],\"routes\":[{\"dst\":\"0.0.0.0/0\",\"gw\":\"10.244.0.1\"}],\"dns\":{}}");
+
+	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "redhat.test.crio");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "podsandbox1");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "redhat-test-crio"); // legacy pod UID
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), get_field_as_string(evt, "k8s.pod.id")); // new semantically correct pod UID
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.sandbox_id"), "1f04600dc694");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"), "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom_one"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom_one]"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.3");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"cniVersion\":\"1.0.0\",\"interfaces\":[{\"name\":\"bridge\",\"mac\":\"ce:64:08:76:88:6a\"},{\"name\":\"veth71b0e931\",\"mac\":\"72:b7:4f:bc:e4:a4\"},{\"name\":\"eth0\",\"mac\":\"fe:06:00:f8:2f:4d\",\"sandbox\":\"/var/run/netns/dec735d1-0e86-44c1-94e0-a102173334a4\"}],\"ips\":[{\"interface\":2,\"address\":\"10.244.0.3/16\",\"gateway\":\"10.244.0.1\"}],\"routes\":[{\"dst\":\"0.0.0.0/0\",\"gw\":\"10.244.0.1\"}],\"dns\":{}}");
+
+	// Since this is a pod sandbox container, making it clear that container ID and sandbox ID are the same
+	ASSERT_EQ(get_field_as_string(evt, "container.id"), get_field_as_string(evt, "k8s.pod.sandbox_id"));
 }
 #endif // MINIMAL_BUILD

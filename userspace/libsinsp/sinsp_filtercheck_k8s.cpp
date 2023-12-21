@@ -225,7 +225,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 	}
 
 	const auto container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);
-	// No pod_sandbox_id means no k8s.
+	// No m_pod_sandbox_id means no k8s.
+	// m_pod_sandbox_id retrieved from the ContainerStatusResponse CRI API call.
 	if(container_info == nullptr || container_info->m_pod_sandbox_id.empty())
 	{
 		return NULL;
@@ -236,6 +237,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 	switch(m_field_id)
 	{
 	case TYPE_K8S_POD_NAME:
+		// Retrieved from the ContainerStatusResponse CRI API call.
 		if(container_info->m_labels.count("io.kubernetes.pod.name") > 0)
 		{
 			m_tstr = container_info->m_labels.at("io.kubernetes.pod.name");
@@ -243,6 +245,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		}
 		break;
 	case TYPE_K8S_NS_NAME:
+		// Retrieved from the ContainerStatusResponse CRI API call.
 		if(container_info->m_labels.count("io.kubernetes.pod.namespace") > 0)
 		{
 			m_tstr = container_info->m_labels.at("io.kubernetes.pod.namespace");
@@ -251,6 +254,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		break;
 	case TYPE_K8S_POD_ID:
 	case TYPE_K8S_POD_UID:
+		// Retrieved from the ContainerStatusResponse CRI API call.
 		if(container_info->m_labels.count("io.kubernetes.pod.uid") > 0)
 		{
 			m_tstr = container_info->m_labels.at("io.kubernetes.pod.uid");
@@ -259,6 +263,7 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		break;
 	case TYPE_K8S_POD_SANDBOX_ID:
 	case TYPE_K8S_POD_FULL_SANDBOX_ID:
+		// Retrieved from the ContainerStatusResponse CRI API call.
 		m_tstr = container_info->m_pod_sandbox_id;
 		if(m_field_id == TYPE_K8S_POD_SANDBOX_ID)
 		{
@@ -271,6 +276,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		break;
 	case TYPE_K8S_POD_LABEL:
 	case TYPE_K8S_POD_LABELS:
+		// Requires s_cri_extra_queries enabled, which is the default for Falco.
+		// Note that m_pod_sandbox_labels, while part of the container, is retrieved from an extra PodSandboxStatusResponse call, not the ContainerStatusResponse CRI API call.
 		{
 			if (m_field_id == TYPE_K8S_POD_LABEL && container_info->m_pod_sandbox_labels.count(m_argname) > 0)
 			{
@@ -285,6 +292,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		}
 		break;
 	case TYPE_K8S_POD_IP:
+		// Requires s_cri_extra_queries enabled, which is the default for Falco.
+		// Note that m_pod_sandbox_labels, while part of the container, is retrieved from an extra PodSandboxStatusResponse call, not the ContainerStatusResponse CRI API call.
 		m_u32val = htonl(container_info->m_container_ip);
 		char addrbuff[100];
 		inet_ntop(AF_INET, &m_u32val, addrbuff, sizeof(addrbuff));
@@ -292,6 +301,8 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 		RETURN_EXTRACT_STRING(m_tstr);
 		break;
 	case TYPE_K8S_POD_CNIRESULT:
+		// Requires s_cri_extra_queries enabled, which is the default for Falco.
+		// Note that m_pod_sandbox_labels, while part of the container, is retrieved from an extra PodSandboxStatusResponse call, not the ContainerStatusResponse CRI API call.
 		RETURN_EXTRACT_STRING(container_info->m_pod_sandbox_cniresult);
 		break;
 	default:
