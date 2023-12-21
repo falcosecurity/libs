@@ -186,6 +186,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 				container_id.c_str(), container.m_mesos_task_id.c_str());
 	}
 
+	// note: query_os_for_missing_info is set to 'true' by default
 	if (query_os_for_missing_info)
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -243,7 +244,27 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri_async (%s): Starting synchronous lookup",
 					container_id.c_str());
+			// lookup_sync function directly invokes the container engine specific parser `parse`
 			done = m_async_source->lookup_sync(key, result);
+			// explicitly check for the most crucial retrieved value to be present
+			if(!result.m_image.empty())
+			{
+				/*
+				* Only for synchronous lookup option (e.g. Falco's default is async not sync)
+				*
+				* Fast-track addition of enriched containers (fields successfully retrieved from the container runtime socket)
+				* to the container cache, bypassing the round-trip process:
+				* `source_callback` -> `notify_new_container` ->
+				* `container_to_sinsp_event(container_to_json(container_info), ...)` ->
+				* `parse_container_json_evt` -> `m_inspector->m_container_manager.add_container()`
+				*
+				* Although we still re-add the container in `parse_container_json_evt` to also support native 'container' events, it
+				* introduces an avoidable delay in the incoming syscall event stream. Syscall events do not explicitly require container
+				* events and instead directly retrieve container details from the container cache. This behavior could potentially
+				* contribute to the issues noted by adopters, such as the absence of container images in syscall events.
+				*/
+				cache->replace_container(std::make_shared<sinsp_container_info>(result));
+			}
 		}
 
 		if (done)
