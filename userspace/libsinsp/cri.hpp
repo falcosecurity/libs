@@ -28,15 +28,6 @@ limitations under the License.
 
 #define MAX_CNIRESULT_LENGTH 4096
 
-namespace
-{
-template<typename api> bool pod_uses_host_netns(const typename api::PodSandboxStatusResponse &resp)
-{
-	const auto netns = resp.status().linux().namespaces().options().network();
-	return netns == api::NamespaceMode::NODE;
-}
-} // namespace
-
 namespace libsinsp
 {
 namespace cri
@@ -95,7 +86,7 @@ inline sinsp_container_type cri_interface<api>::get_cri_runtime_type() const
 }
 
 template<typename api>
-inline grpc::Status cri_interface<api>::get_container_status(const std::string &container_id,
+inline grpc::Status cri_interface<api>::get_container_status_resp(const std::string &container_id,
 						      typename api::ContainerStatusResponse &resp)
 {
 	typename api::ContainerStatusRequest req;
@@ -464,24 +455,80 @@ inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sin
 	return true;
 }
 
-// TODO: Explore future schema standardizations, https://github.com/falcosecurity/falco/issues/2387
 template<typename api>
-inline void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusResponse &resp, std::string &cniresult)
+inline bool cri_interface<api>::parse_cri_pod_sandbox_id(const google::protobuf::Map<std::string, std::string> &info,
+			     sinsp_container_info &container)
 {
 	Json::Value root;
 	Json::Reader reader;
-	const auto &info_it = resp.info().find("info");
-	if(info_it == resp.info().end())
+	const auto &info_it = info.find("info");
+	if(info_it == info.end() ||
+		!reader.parse(info_it->second, root) ||
+		root.isNull())
 	{
-		return;
+		return false;
 	}
-	if(!reader.parse(info_it->second, root))
+
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
-		return;
+		std::string pod_sandbox_id = root["sandboxID"].asString();
+		container.m_pod_sandbox_id = pod_sandbox_id;
+		// Add the pod sandbox id as label to the container for backward compatibility
+		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
 	}
-	if(root.isNull())
+
+	return true;
+}
+
+
+template<typename api>
+inline bool cri_interface<api>::parse_cri_pod_sandbox_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container)
+{
+	for(const auto &pair : status.labels())
 	{
-		return;
+		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
+		{
+			container.m_pod_sandbox_labels[pair.first] = pair.second;
+		}
+	}
+	return true;
+}
+
+template<typename api>
+inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api::PodSandboxStatus &status,
+			     const google::protobuf::Map<std::string, std::string> &info,
+			     sinsp_container_info &container)
+{
+	//
+	// Pod IP
+	//
+
+	const auto pod_ip = status.network().ip();
+	uint32_t ip;
+	if(pod_ip.empty() || 
+		(inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1) || 
+		// using host netns
+		(status.linux().namespaces().options().network() == api::NamespaceMode::NODE))
+	{
+		container.m_container_ip = 0;
+	} else
+	{
+		container.m_container_ip = ntohl(ip);
+	}
+
+	//
+	// Pod Sandbox CNI Result
+	//
+
+	Json::Value root;
+	Json::Reader reader;
+	std::string cniresult;
+	const auto &info_it = info.find("info");
+	if(info_it == info.end() ||
+		!reader.parse(info_it->second, root) ||
+		root.isNull())
+	{
+		return false;
 	}
 
 	Json::Value jvalue;
@@ -530,11 +577,15 @@ inline void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxS
 	{
 		cniresult.resize(MAX_CNIRESULT_LENGTH);
 	}
+
+	container.m_pod_sandbox_cniresult = cniresult;
+
+	return true;
 }
 
 template<typename api>
-inline void cri_interface<api>::get_pod_sandbox_resp(const std::string &pod_sandbox_id,
-					      typename api::PodSandboxStatusResponse &resp, grpc::Status &status)
+grpc::Status cri_interface<api>::get_pod_sandbox_status_resp(const std::string &pod_sandbox_id,
+					      typename api::PodSandboxStatusResponse &resp)
 {
 	typename api::PodSandboxStatusRequest req;
 	req.set_pod_sandbox_id(pod_sandbox_id);
@@ -542,75 +593,7 @@ inline void cri_interface<api>::get_pod_sandbox_resp(const std::string &pod_sand
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_settings::get_cri_timeout());
 	context.set_deadline(deadline);
-	status = m_cri->PodSandboxStatus(&context, req, &resp);
-}
-
-template<typename api> 
-inline uint32_t cri_interface<api>::get_pod_sandbox_ip(typename api::PodSandboxStatusResponse &resp)
-{
-	if(pod_uses_host_netns<api>(resp))
-	{
-		return 0;
-	}
-
-	const auto &pod_ip = resp.status().network().ip();
-	if(pod_ip.empty())
-	{
-		return 0;
-	}
-
-	uint32_t ip;
-	if(inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1)
-	{
-		ASSERT(false);
-		return 0;
-	}
-	else
-	{
-		return ip;
-	}
-}
-
-template<typename api>
-inline void cri_interface<api>::get_container_ip(const std::string &container_id, uint32_t &container_ip,
-					  std::string &cniresult)
-{
-	container_ip = 0;
-	cniresult = "";
-	typename api::ListContainersRequest req;
-	typename api::ListContainersResponse resp;
-	auto filter = req.mutable_filter();
-	filter->set_id(container_id);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_settings::get_cri_timeout());
-	context.set_deadline(deadline);
-	grpc::Status lstatus = m_cri->ListContainers(&context, req, &resp);
-
-	switch(resp.containers_size())
-	{
-	case 0:
-		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI",
-				container_id.c_str());
-		ASSERT(false);
-		break;
-	case 1:
-	{
-		const auto &cri_container = resp.containers(0);
-		typename api::PodSandboxStatusResponse resp_pod;
-		grpc::Status status_pod;
-		get_pod_sandbox_resp(cri_container.pod_sandbox_id(), resp_pod, status_pod);
-		if(status_pod.ok())
-		{
-			container_ip = ntohl(get_pod_sandbox_ip(resp_pod));
-			get_pod_info_cniresult(resp_pod, cniresult);
-		}
-	}
-	default:
-		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI",
-				container_id.c_str());
-		ASSERT(false);
-		break;
-	}
+	return m_cri->PodSandboxStatus(&context, req, &resp);
 }
 
 template<typename api> 
@@ -679,53 +662,27 @@ inline bool cri_interface<api>::parse_containerd(const typename api::ContainerSt
 	bool ret = parse_cri_ext_container_info(root, container);
 	parse_cri_user_info(root, container);
 
-	if(root.isMember("sandboxID") && root["sandboxID"].isString())
-	{
-		const auto pod_sandbox_id = root["sandboxID"].asString();
-		// Add the pod sandbox id as label to the container.
-		// This labels is needed by the filterchecks code to get the pod labels.
-		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
-		typename api::PodSandboxStatusResponse resp_pod;
-		grpc::Status status_pod;
-		get_pod_sandbox_resp(pod_sandbox_id, resp_pod, status_pod);
-		if(status_pod.ok())
-		{
-			container.m_container_ip = ntohl(get_pod_sandbox_ip(resp_pod));
-			get_pod_info_cniresult(resp_pod, container.m_pod_cniresult);
-		}
-	}
-
 	return ret;
 }
 
 template<typename api>
 inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container)
 {
-	typename api::ContainerStatusResponse resp;
-	grpc::Status status = get_container_status(container.m_id, resp);
+	typename api::ContainerStatusResponse container_status_resp;
+	// status contains info around if API call suceeded and is not the container status property
+	grpc::Status status = get_container_status_resp(container.m_id, container_status_resp);
 
-	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStatus: (%s)", container.m_id.c_str(),
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): ContainerStatusResponse status error message: (%s)", container.m_id.c_str(),
 			status.error_message().c_str());
 
-	// If getting the container status fails then try to get the pod sandbox status.
+	// If container status failed try to get the pod sandbox status.
 	if(!status.ok())
 	{
-		typename api::PodSandboxStatusResponse resp;
-		grpc::Status status_pod;
-		get_pod_sandbox_resp(container.m_id, resp, status_pod);
-
-		if(status_pod.ok())
+		typename api::PodSandboxStatusResponse pod_sandbox_status_resp;
+		status = get_pod_sandbox_status_resp(container.m_id, pod_sandbox_status_resp);
+		if(status.ok())
 		{
 			container.m_is_pod_sandbox = true;
-			// Fill the labels for the pod sanbox.
-			// Used to populate the k8s.pod.labels field.
-			for(const auto &pair : resp.status().labels())
-			{
-				if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
-				{
-					container.m_labels[pair.first] = pair.second;
-				}
-			}
 			return true;
 		}
 		else
@@ -737,15 +694,15 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		}
 	}
 
-	if(!resp.has_status())
+	if(!container_status_resp.has_status())
 	{
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s) no status, returning", container.m_id.c_str());
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): ContainerStatusResponse call no status, returning", container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
 
-	const auto &resp_container = resp.status();
-	const auto &resp_container_info = resp.info();
+	const auto &resp_container = container_status_resp.status();
+	const auto &resp_container_info = container_status_resp.info();
 	container.m_full_id = resp_container.id();
 	container.m_name = resp_container.metadata().name();
 
@@ -763,7 +720,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 	parse_cri_image(resp_container, resp_container_info, container);
 	parse_cri_mounts(resp_container, container);
 
-	if(!parse_containerd(resp, container))
+	if(!parse_containerd(container_status_resp, container))
 	{
 		libsinsp::cgroup_limits::cgroup_limits_value limits;
 		libsinsp::cgroup_limits::get_cgroup_resource_limits(key, limits);
@@ -784,12 +741,18 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
 			container.m_image.c_str(), container.m_imagedigest.c_str());
 
+	parse_cri_pod_sandbox_id(resp_container_info, container);
+
 	if(cri_settings::get_cri_extra_queries())
 	{
-		if(!container.m_container_ip)
-		{
-			get_container_ip(container.m_id, container.m_container_ip, container.m_pod_cniresult);
-		}
+		typename api::PodSandboxStatusResponse pod_sandbox_status_resp;
+		status = get_pod_sandbox_status_resp(container.m_pod_sandbox_id, pod_sandbox_status_resp);
+		const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
+		const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
+
+		parse_cri_pod_sandbox_network(resp_pod_sandbox_container, resp_pod_sandbox_container_info, container);
+		parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
+
 		if(container.m_imageid.empty())
 		{
 			container.m_imageid = get_container_image_id(resp_container.image_ref());

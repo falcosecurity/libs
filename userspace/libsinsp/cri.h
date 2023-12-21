@@ -154,6 +154,7 @@ public:
 
 	using PodSandboxStatusRequest = runtime::v1alpha2::PodSandboxStatusRequest;
 	using PodSandboxStatusResponse = runtime::v1alpha2::PodSandboxStatusResponse;
+	using PodSandboxStatus = runtime::v1alpha2::PodSandboxStatus;
 
 	using VersionRequest = runtime::v1alpha2::VersionRequest;
 	using VersionResponse = runtime::v1alpha2::VersionResponse;
@@ -184,6 +185,7 @@ public:
 
 	using PodSandboxStatusRequest = runtime::v1::PodSandboxStatusRequest;
 	using PodSandboxStatusResponse = runtime::v1::PodSandboxStatusResponse;
+	using PodSandboxStatus = runtime::v1::PodSandboxStatus;
 
 	using VersionRequest = runtime::v1::VersionRequest;
 	using VersionResponse = runtime::v1::VersionResponse;
@@ -220,7 +222,7 @@ public:
 	 * @param resp reference to the response (if the RPC is successful, it will be filled out)
 	 * @return status of the gRPC call
 	 */
-	grpc::Status get_container_status(const std::string &container_id, typename api::ContainerStatusResponse &resp);
+	grpc::Status get_container_status_resp(const std::string &container_id, typename api::ContainerStatusResponse &resp);
 
 	/**
 	 * @brief thin wrapper around CRI gRPC ContainerStats call
@@ -295,40 +297,40 @@ public:
 	bool parse_cri_user_info(const Json::Value &info, sinsp_container_info &container);
 
 	/**
-	 * @brief get pod IP address
-	 * @param resp initialized api::PodSandboxStatusResponse of the pod sandbox
-	 * @return the IP address if possible, 0 otherwise (e.g. when the pod uses host netns)
+	 * @brief fill out pod sandbox labels
+	 * @param info `info` field of the PodSandboxStatusResponse
+	 * @param container the container info to fill out
+	 * @return true if successful
 	 */
-	uint32_t get_pod_sandbox_ip(typename api::PodSandboxStatusResponse &resp);
+	bool parse_cri_pod_sandbox_id(const google::protobuf::Map<std::string, std::string> &info,
+			     sinsp_container_info &container);
 
 	/**
-	 * @brief get unparsed JSON string with cni result of the pod sandbox from PodSandboxStatusResponse info()
-	 * field.
-	 * @param resp initialized api::PodSandboxStatusResponse of the pod sandbox
-	 * @param cniresult initialized cniresult
+	 * @brief fill out pod sandbox labels
+	 * @param status `status` field of the PodSandboxStatusResponse
+	 * @param info `info` field of the PodSandboxStatusResponse
+	 * @param container the container info to fill out
+	 * @return true if successful
 	 */
-	void get_pod_info_cniresult(typename api::PodSandboxStatusResponse &resp, std::string &cniresult);
+	bool parse_cri_pod_sandbox_network(const typename api::PodSandboxStatus &status,
+			     const google::protobuf::Map<std::string, std::string> &info,
+			     sinsp_container_info &container);
 
 	/**
-	 * @brief make request and get PodSandboxStatusResponse and grpc::Status.
+	 * @brief fill out pod sandbox labels
+	 * @param status `status` field of the PodSandboxStatusResponse
+	 * @param container the container info to fill out
+	 * @return true if successful
+	 */
+	bool parse_cri_pod_sandbox_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container); 
+
+	/**
+	 * @brief make request and get PodSandboxStatusResponse
 	 * @param pod_sandbox_id ID of the pod sandbox
 	 * @param resp initialized api::PodSandboxStatusResponse of the pod sandbox
-	 * @param status initialized grpc::Status
+	 * @return grpc::Status
 	 */
-	void get_pod_sandbox_resp(const std::string &pod_sandbox_id, typename api::PodSandboxStatusResponse &resp,
-				  grpc::Status &status);
-
-	/**
-	 * @brief get container IP address if possible, 0 otherwise (e.g. when the pod uses host netns),
-	 *  get unparsed JSON string with cni result of the pod sandbox from PodSandboxStatusResponse info() field.
-	 * @param container_id the container ID
-	 * @param container_ip initialized container_ip
-	 * @param cniresult initialized cniresult
-	 *
-	 * This method first finds the pod ID, then gets the IP address and also checks for cni result
-	 * of the pod sandbox container
-	 */
-	void get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult);
+	grpc::Status get_pod_sandbox_status_resp(const std::string &pod_sandbox_id, typename api::PodSandboxStatusResponse &resp);
 
 	/**
 	 * @brief get image id info from CRI

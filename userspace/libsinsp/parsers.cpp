@@ -5137,7 +5137,13 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		const Json::Value& cniresult = container["cni_json"];
 		if(check_json_val_is_convertible(cniresult, Json::stringValue, "cni_json"))
 		{
-			container_info->m_pod_cniresult = cniresult.asString();
+			container_info->m_pod_sandbox_cniresult = cniresult.asString();
+		}
+
+		const Json::Value& pod_sandbox_id = container["pod_sandbox_id"];
+		if(check_json_val_is_convertible(pod_sandbox_id, Json::stringValue, "pod_sandbox_id"))
+		{
+			container_info->m_pod_sandbox_id = pod_sandbox_id.asString();
 		}
 
 		const Json::Value &port_mappings = container["port_mappings"];
@@ -5171,6 +5177,13 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		{
 			std::string val = container["labels"][*it].asString();
 			container_info->m_labels[*it] = val;
+		}
+
+		std::vector<std::string> pod_sandbox_labels = container["pod_sandbox_labels"].getMemberNames();
+		for(std::vector<std::string>::const_iterator it = pod_sandbox_labels.begin(); it != pod_sandbox_labels.end(); ++it)
+		{
+			std::string val = container["pod_sandbox_labels"][*it].asString();
+			container_info->m_pod_sandbox_labels[*it] = val;
 		}
 
 		const Json::Value& env_vars = container["env"];
