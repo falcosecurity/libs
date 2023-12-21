@@ -53,46 +53,46 @@ std::string container_info_json = R"({
     "runtimeType": "io.containerd.runc.v2",
     "runtimeOptions": {},
     "config": {
-    "metadata": {
-        "name": "busybox"
-    },
-    "image": {
-        "image": "busybox"
-    },
-    "envs": [
-        {
-          "key": "HOST_ROOT",
-          "value": "/host"
-        }
-      ],
-    "command": [
-        "/bin/sh"
-    ],
-    "args": [
-        "-c",
-        "while true; do cat /etc/shadow; sleep 1; done"
-    ],
-    "log_path": "busybox.0.log",
-    "linux": {
-        "resources": {
+        "metadata": {
+            "name": "busybox"
         },
-        "security_context": {
-            "privileged": true,
-            "namespace_options": {
-                "pid": 1
+        "image": {
+            "image": "busybox"
         },
-        "run_as_user": {},
-        "masked_paths": [
-            "/proc/mocl_masked"
+        "envs": [
+            {
+            "key": "HOST_ROOT",
+            "value": "/host"
+            }
         ],
-        "readonly_paths": [
-            "/proc/mock-readonly_path"
+        "command": [
+            "/bin/sh"
         ],
-        "seccomp": {
-            "profile_type": 1
+        "args": [
+            "-c",
+            "while true; do cat /etc/shadow; sleep 1; done"
+        ],
+        "log_path": "busybox.0.log",
+        "linux": {
+            "resources": {
+            },
+            "security_context": {
+                "privileged": true,
+                "namespace_options": {
+                    "pid": 1
+            },
+            "run_as_user": {},
+            "masked_paths": [
+                "/proc/mocl_masked"
+            ],
+            "readonly_paths": [
+                "/proc/mock-readonly_path"
+            ],
+            "seccomp": {
+                "profile_type": 1
+            }
+            }
         }
-        }
-    }
     },
     "runtimeSpec": {
     "ociVersion": "1.0.2-dev",
@@ -431,7 +431,6 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_
 	//     "reason": "",
 	//     "message": "",
 	//     "labels": {
-	//       "io.kubernetes.sandbox.id": "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
 	//       "io.kubernetes.pod.uid": "hdishddjaidwnduw9a43535366368",
 	//       "io.kubernetes.pod.namespace": "default",
 	//       "io.kubernetes.pod.name": "nginx-sandbox"
@@ -576,8 +575,10 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	// Step-by-step testing of core parsers given the current unit test limitations
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
+	const auto root = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
+	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
@@ -588,68 +589,54 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	// create and test sinsp_container_info for container
 	//
 
-	// Add basic fields manually
 	container.m_type = CT_CONTAINERD;
 	container.m_id = "3ad7b26ded6d"; // truncated id extracted from cgroups
-	container.m_full_id = resp_container.id();
-	container.m_name = resp_container.metadata().name();
-	for(const auto &pair : resp_container.labels())
-	{
-		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
-		{
-			container.m_labels[pair.first] = pair.second;
-		}
-	}
-	// CRI mounts
-	auto res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
+	auto res = cri_api_v1alpha2->parse_cri_base(resp_container, container);
 	ASSERT_TRUE(res);
-	// CRI image
-	res = cri_api_v1alpha2->parse_cri_image(resp_container, resp_container_info, container);
+	res = cri_api_v1alpha2->parse_cri_labels(resp_container, container);
 	ASSERT_TRUE(res);
-	ASSERT_EQ("3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e", container.m_full_id);
+	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container, root, container);
+	ASSERT_TRUE(res);
 	ASSERT_EQ("docker.io/library/busybox:latest", container.m_image);
 	ASSERT_EQ("docker.io/library/busybox", container.m_imagerepo);
 	ASSERT_EQ("latest", container.m_imagetag);
 
-	// CRI image, failure resilience test
+	// CRI image failure resilience test for cases where it may begin with sha256
 	auto status = container_status_resp.mutable_status();
 	status->set_image_ref("sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
 	status->mutable_image()->set_image("");
 	const auto &resp_container_simulate_image_recovery = container_status_resp.status();
-	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, resp_container_info, container);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, root, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("docker.io/library/busybox:latest", container.m_image);
 	ASSERT_EQ("docker.io/library/busybox", container.m_imagerepo);
 	ASSERT_EQ("latest", container.m_imagetag);
 
-    // add pod_sandbox_id
-    cri_api_v1alpha2->parse_cri_pod_sandbox_id(resp_container_info, container);
-
-	// network and labels
-    cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, resp_pod_sandbox_container_info, container);
-	cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
-
-	// Extra info such as privileged flag
-	const auto &info_it = resp_container_info.find("info");
-	Json::Value root;
-	Json::Reader reader;
-	if(!reader.parse(info_it->second, root))
-	{
-		ASSERT(false);
-	}
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id(root, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_env(root, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_json_imageid_containerd(root, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_user_info(root, container);
+	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_ext_container_info(root, container);
 	ASSERT_TRUE(res);
-	ASSERT_TRUE(container.m_privileged);
 	ASSERT_EQ(1073741824, container.m_memory_limit);
 	ASSERT_EQ(50000, container.m_cpu_quota);
-
-	res = cri_api_v1alpha2->parse_cri_json_image(root, container);
+	res = cri_api_v1alpha2->parse_cri_json_imageid_containerd(root, container);
 	ASSERT_TRUE(res);
+
 	//
 	// create and test sinsp_container_info for sandbox_container
 	//
 
-	// Add basic fields manually
 	sandbox_container.m_is_pod_sandbox = true;
 	sandbox_container.m_type = CT_CONTAINERD;
 	sandbox_container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups, here for the sandbox id / pod
