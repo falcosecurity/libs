@@ -60,7 +60,7 @@ TEST(GenericTracepoints, security_file_mprotect)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(4);
 }
 
 #endif
