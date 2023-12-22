@@ -179,12 +179,11 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	}
 
 	sinsp_container_info::ptr_t container_info = NULL;
-	bool is_host = true;
+	bool is_host = tinfo->m_container_id.empty() && !tinfo->is_in_pid_namespace();
 
 	if(!tinfo->m_container_id.empty())
 	{
-		is_host = false;
-		container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+		container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);	
 	}
 
 	switch(m_field_id)
