@@ -155,7 +155,6 @@ static int32_t mark_attached_prog(struct kmod_engine* handle, uint32_t ioctl_op,
 	struct scap_device_set *devset = &handle->m_dev_set;
 	if(ioctl(devset->m_devs[0].m_fd, ioctl_op, tp))
 	{
-		ASSERT(false);
 		return scap_errprintf(handle->m_lasterr, errno,
 				      "%s(%d) failed for tp %d",
 				      __FUNCTION__, ioctl_op, tp);
@@ -168,7 +167,6 @@ static int32_t mark_syscall(struct kmod_engine* handle, uint32_t ioctl_op, int s
 	struct scap_device_set *devset = &handle->m_dev_set;
 	if(ioctl(devset->m_devs[0].m_fd, ioctl_op, syscall_id))
 	{
-		ASSERT(false);
 		return scap_errprintf(handle->m_lasterr, errno,
 						"%s(%d) failed for syscall %d",
 						__FUNCTION__, ioctl_op, syscall_id);
@@ -696,7 +694,6 @@ static int32_t scap_kmod_set_dropping_mode(struct scap_engine_handle engine, int
 
 		if(ioctl(devset->m_devs[0].m_fd, request, sampling_ratio))
 		{
-			ASSERT(false);
 			return scap_errprintf(engine.m_handle->m_lasterr, errno, "%s, request %d for sampling ratio %u",
 					      __FUNCTION__, request, sampling_ratio);
 		}
@@ -722,7 +719,6 @@ int32_t scap_kmod_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen
 	//
 	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_SET_SNAPLEN, snaplen))
 	{
-		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_set_snaplen failed");
 	}
 
@@ -747,7 +743,6 @@ int32_t scap_kmod_handle_dropfailed(struct scap_engine_handle engine, bool enabl
 	int req = enable ? PPM_IOCTL_ENABLE_DROPFAILED : PPM_IOCTL_DISABLE_DROPFAILED;
 	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, req))
 	{
-		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_enable_dynamic_snaplen failed");
 	}
 	return SCAP_SUCCESS;
@@ -761,7 +756,6 @@ int32_t scap_kmod_handle_dynamic_snaplen(struct scap_engine_handle engine, bool 
 	int req = enable ? PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN : PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN;
 	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, req))
 	{
-		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_enable_dynamic_snaplen failed");
 	}
 	return SCAP_SUCCESS;
@@ -771,7 +765,6 @@ int32_t scap_kmod_get_n_tracepoint_hit(struct scap_engine_handle engine, long* r
 {
 	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret))
 	{
-		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_get_n_tracepoint_hit failed");
 	}
 
@@ -791,7 +784,6 @@ int32_t scap_kmod_set_fullcapture_port_range(struct scap_engine_handle engine, u
 	//
 	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE, arg))
 	{
-		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_set_fullcapture_port_range failed");
 	}
 
@@ -820,7 +812,6 @@ int32_t scap_kmod_set_statsd_port(struct scap_engine_handle engine, const uint16
 	//
 	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_SET_STATSD_PORT, port))
 	{
-		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr,
 				      errno, "scap_set_statsd_port: ioctl failed");
 	}
@@ -927,7 +918,6 @@ static int32_t scap_kmod_get_vpid(struct scap_engine_handle engine, uint64_t pid
 
 	if(*vpid == -1)
 	{
-		ASSERT(false);
 		return scap_errprintf(kmod_engine->m_lasterr, errno, "ioctl to get vpid failed");
 	}
 
@@ -941,7 +931,6 @@ static int32_t scap_kmod_get_vtid(struct scap_engine_handle engine, uint64_t tid
 
 	if(*vtid == -1)
 	{
-		ASSERT(false);
 		return scap_errprintf(kmod_engine->m_lasterr, errno, "ioctl to get vtid failed");
 	}
 
@@ -954,7 +943,6 @@ int32_t scap_kmod_getpid_global(struct scap_engine_handle engine, int64_t* pid, 
 	*pid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
 	if(*pid == -1)
 	{
-		ASSERT(false);
 		return scap_errprintf(kmod_engine->m_lasterr, errno, "ioctl to get pid failed");
 	}
 
