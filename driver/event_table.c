@@ -470,6 +470,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_MKNOD_X] = {"mknod", EC_OTHER | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
  	[PPME_SYSCALL_MKNODAT_E] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_MKNODAT_X] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_USES_FD, 5, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
+	[PPME_LSM_SECURITY_FILE_MPROTECT_E] = {"security_file_mprotect", EC_OTHER, EF_SKIPPARSERESET | EF_NONE, 4, {{"addr_start", PT_UINT64, PF_HEX}, {"addr_end", PT_UINT64, PF_HEX}, {"reqprot", PT_FLAGS32, PF_HEX, prot_flags}, {"prot", PT_FLAGS32, PF_HEX, prot_flags}}},
+	[PPME_LSM_SECURITY_FILE_MPROTECT_X] = {"NA", EC_UNKNOWN, EF_UNUSED | EF_OLD_VERSION, 0},
 };
 #pragma GCC diagnostic pop
 

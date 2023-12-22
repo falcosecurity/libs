@@ -18,7 +18,8 @@
 	X(KMOD_PROG_PAGE_FAULT_KERNEL, "page_fault_kernel") \
 	X(KMOD_PROG_SIGNAL_DELIVER, "signal_deliver")       \
 	X(KMOD_PROG_SCHED_PROC_FORK, "sched_process_fork")  \
-	X(KMOD_PROG_SCHED_PROC_EXEC, "sched_process_exec")
+	X(KMOD_PROG_SCHED_PROC_EXEC, "sched_process_exec")  \
+	X(KMOD_PROG_SECUTIRY_FILE_MPROTECT, "security_file_mprotect") 
 
 typedef enum
 {
