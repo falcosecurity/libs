@@ -566,9 +566,9 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api
 	const auto pod_ip = status.network().ip();
 	uint32_t ip;
 	if(pod_ip.empty() || 
-		(inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1) || 
 		// using host netns
-		(status.linux().namespaces().options().network() == api::NamespaceMode::NODE))
+		(status.linux().namespaces().options().network() == api::NamespaceMode::NODE) ||
+		(inet_pton(AF_INET, pod_ip.c_str(), &ip) == -1))
 	{
 		container.m_container_ip = 0;
 	} else
@@ -767,6 +767,16 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 	// Enabled by default for Falco consumer
 	if(cri_settings::get_cri_extra_queries())
 	{
+		if(container.m_imageid.empty())
+		{
+			container.m_imageid = get_container_image_id(resp_container.image_ref());
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+					"cri (%s): after get_container_image_id: repo=%s tag=%s image=%s digest=%s",
+					container.m_id.c_str(), container.m_imagerepo.c_str(),
+					container.m_imagetag.c_str(), container.m_image.c_str(),
+					container.m_imagedigest.c_str());
+		}
+
 		/*
 		* The recent refactor makes full use of PodSandboxStatusResponse, removing the need to access pod sandbox containers
 		* in k8s filterchecks. Now, we also store the pod sandbox labels in the container.
@@ -777,22 +787,18 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		*/
 		typename api::PodSandboxStatusResponse pod_sandbox_status_resp;
 		status = get_pod_sandbox_status_resp(container.m_pod_sandbox_id, pod_sandbox_status_resp);
+		if (!status.ok())
+		{
+			// do not mark overall lookup as false only because the PodSandboxStatusResponse failed, 
+			// but previous ContainerStatusResponse succeeded
+			return true;
+		}
 		const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 		const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
 		const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
 		// Add pod response network and labels to original container
 		parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
 		parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
-
-		if(container.m_imageid.empty())
-		{
-			container.m_imageid = get_container_image_id(resp_container.image_ref());
-			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-					"cri (%s): after get_container_image_id: repo=%s tag=%s image=%s digest=%s",
-					container.m_id.c_str(), container.m_imagerepo.c_str(),
-					container.m_imagetag.c_str(), container.m_image.c_str(),
-					container.m_imagedigest.c_str());
-		}
 	}
 
 	return true;
