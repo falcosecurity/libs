@@ -47,16 +47,16 @@ TEST(GenericTracepoints, security_file_mprotect)
 	/* Please note here we cannot assert all the params, we check only the possible ones. */
 
 	/* Parameter 1: addr_start (type: PT_UINT64) */
-	evt_test->assert_only_param_len(2, sizeof(uint64_t));
+	evt_test->assert_only_param_len(1, sizeof(uint64_t));
 
 	/* Parameter 2: addr_end (type: PT_UINT64) */
-	evt_test->assert_only_param_len(3, sizeof(uint64_t));
+	evt_test->assert_only_param_len(2, sizeof(uint64_t));
 
 	/* Parameter 3: reqprot (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(4, (int32_t)PROT_READ);
+	evt_test->assert_numeric_param(3, (int32_t)PROT_READ);
 
 	/* Parameter 4: prot (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(5, (int32_t)PROT_READ);
+	evt_test->assert_numeric_param(4, (int32_t)PROT_READ);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
