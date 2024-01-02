@@ -974,8 +974,26 @@ void sinsp::on_new_entry_from_proc(void* context,
 		{
 			if(m_filter != nullptr && is_capture())
 			{
-				// we'll run the filter when we see the fds and possibly clear the filtered_out flag
-				newti->m_filtered_out = true;
+				scap_evt tscapevt;
+				tscapevt.tid = tid;
+				tscapevt.ts = 0;
+				tscapevt.type = PPME_SYSCALL_READ_X;
+				tscapevt.len = 0;
+				tscapevt.nparams = 0;
+
+				auto tinfo = find_thread(tid, true);
+				sinsp_evt tevt;
+				tevt.m_pevt = &tscapevt;
+				tevt.m_inspector = this;
+				tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+				tevt.m_cpuid = 0;
+				tevt.m_evtnum = 0;
+				tevt.m_tinfo = tinfo.get();
+				tevt.m_fdinfo = NULL;
+				tinfo->m_lastevent_fd = -1;
+				tinfo->m_lastevent_data = NULL;
+
+				tinfo->m_filtered_out = !m_filter->run(&tevt);
 			}
 
 			// we shouldn't see any fds yet
