@@ -689,6 +689,38 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
+
+
+	//
+	// Simulate unsuccessful simultaneous PodSandboxStatusResponse lookup and subsequent k8s filterchecks fallbacks
+	//
+
+	container.m_pod_sandbox_cniresult.clear();
+	container.m_container_ip = 0;
+	container.m_pod_sandbox_labels.clear();
+	m_inspector.m_container_manager.replace_container(std::move(container_ptr));
+
+	std::shared_ptr<sinsp_container_info> sandbox_container_ptr = std::make_shared<sinsp_container_info>();
+	sinsp_container_info &sandbox_container = *sandbox_container_ptr;
+
+	sandbox_container.m_type = CT_CONTAINERD;
+	sandbox_container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups for the sandbox container
+	sandbox_container.m_is_pod_sandbox = true;
+	res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, sandbox_container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, sandbox_container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, sandbox_container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, sandbox_container);
+	ASSERT_TRUE(res);
+	m_inspector.m_container_manager.add_container(std::move(sandbox_container_ptr), nullptr);
+
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom_one"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom_one]"), "mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
 }
 
 TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
@@ -712,7 +744,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 
 	container.m_type = CT_CONTAINERD;
 	container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups for the sandbox container
-    container.m_is_pod_sandbox = true;
+	container.m_is_pod_sandbox = true;
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, container);
@@ -721,7 +753,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
-    ASSERT_TRUE(container.m_is_pod_sandbox);
+	ASSERT_TRUE(container.m_is_pod_sandbox);
 
 	// 
 	// Test sinsp filterchecks, similar to spawn_process_container test

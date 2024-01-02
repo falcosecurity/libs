@@ -190,6 +190,7 @@ inline bool cri_interface<api>::parse_cri_base(const typename api::PodSandboxSta
 	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
 	container.m_created_time = static_cast<int64_t>(status.created_at() / ONE_SECOND_IN_NS);
 	container.m_pod_sandbox_id = container.m_full_id;
+	// Add the pod sandbox id as label to the container for backward compatibility
 	container.m_labels["io.kubernetes.sandbox.id"] = container.m_full_id;
 
 	return true;
@@ -231,9 +232,10 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 
 	if(image_name.empty() || strncmp(image_name.c_str(), "sha256", 6) == 0)
 	{
-		/* Retrieve image_name from annotations as backup when image name may start with sha256
-		or otherwise was not retrieved. Brute force try each schema we know of for containerd and crio container
-		runtimes. */
+		/* Retrieve image_name from annotations as backup when image name may (still) start with sha256
+		 * or otherwise was not successfully retrieved. Brute force try each schema we know of for containerd 
+		 * and cri-o container runtimes. 
+		*/
 
 		if(!root.isNull())
 		{
@@ -405,8 +407,13 @@ inline bool cri_interface<api>::parse_cri_env(const Json::Value &root, sinsp_con
 template<typename api>
 inline bool cri_interface<api>::parse_cri_json_imageid_containerd(const Json::Value &root, sinsp_container_info &container)
 {
+	if(root.isNull())
+	{
+		return false;
+	}
+
 	const Json::Value *image = nullptr;
-	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
+	if(!walk_down_json(root, &image, "config", "image", "image") || !image->isString())
 	{
 		return false;
 	}
@@ -428,6 +435,11 @@ inline bool cri_interface<api>::parse_cri_json_imageid_containerd(const Json::Va
 template<typename api>
 inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &root, sinsp_container_info &container)
 {
+	if(root.isNull())
+	{
+		return false;
+	}
+
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(root, &linux, "runtimeSpec", "linux") || !linux->isObject())
 	{
@@ -480,6 +492,11 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 template<typename api>
 inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &root, sinsp_container_info &container)
 {
+	if(root.isNull())
+	{
+		return false;
+	}
+
 	const Json::Value *uid = nullptr;
 	if(!walk_down_json(root, &uid, "runtimeSpec", "process", "user", "uid") || !uid->isInt())
 	{
@@ -782,7 +799,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		* in k8s filterchecks. Now, we also store the pod sandbox labels in the container.
 		* While this might seem redundant in cases where multiple containers exist in a pod, considering that the concurrent
 		* number of containers on a node is typically capped at 100-300 and many pods contain only 1-3 containers,
-		* it  doesn't add significant overhead. Moreover, these extra lookups have always been performed for container ips in the past
+		* it doesn't add significant overhead. Moreover, these extra lookups have always been performed for container ips in the past
 		* and therefore are no new additions.
 		*/
 		typename api::PodSandboxStatusResponse pod_sandbox_status_resp;
