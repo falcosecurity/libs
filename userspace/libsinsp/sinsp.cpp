@@ -974,7 +974,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 		{
 			if(m_filter != nullptr && is_capture())
 			{
-				scap_evt tscapevt;
+				scap_evt tscapevt = {};
 				tscapevt.tid = tid;
 				tscapevt.ts = 0;
 				tscapevt.type = PPME_SYSCALL_READ_X;
@@ -982,7 +982,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 				tscapevt.nparams = 0;
 
 				auto tinfo = find_thread(tid, true);
-				sinsp_evt tevt;
+				sinsp_evt tevt = {};
 				tevt.m_pevt = &tscapevt;
 				tevt.m_inspector = this;
 				tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
