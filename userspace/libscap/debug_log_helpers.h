@@ -22,7 +22,7 @@ limitations under the License.
 
 #include <stdio.h>
 
-#define scap_log(HANDLE, sev, ...) scap_debug_log_impl(HANDLE->m_log_fn, sev, __VA_ARGS__)
+#define scap_log(HANDLE, sev, ...) scap_log_impl(HANDLE->m_log_fn, sev, __VA_ARGS__)
 #define scap_debug_log(HANDLE, ...) scap_log_impl(HANDLE->m_log_fn, FALCOSECURITY_LOG_SEV_DEBUG, __VA_ARGS__)
 
 /**
