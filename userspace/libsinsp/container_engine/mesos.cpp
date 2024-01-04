@@ -123,12 +123,12 @@ bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info &
 			if(!mtid.empty() && mtid.length()>=3 &&
 			   (mtid.find_first_of("._") != std::string::npos))
 			{
-				sinsp::logger()->log("Mesos native container: [" + container.m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
+				libsinsp_logger()->log("Mesos native container: [" + container.m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
 				return true;
 			}
 			else
 			{
-				sinsp::logger()->log("Mesos container [" + container.m_id + "],"
+				libsinsp_logger()->log("Mesos container [" + container.m_id + "],"
 										     "thread [" + std::to_string(tinfo->m_tid) +
 					     "], has likely malformed mesos task id [" + mtid + "], ignoring", sinsp_logger::SEV_DEBUG);
 			}

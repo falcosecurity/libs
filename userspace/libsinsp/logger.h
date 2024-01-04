@@ -160,8 +160,6 @@ public:
 	 */
 	void reset();
 
-protected:
-
 	static sinsp_logger* instance();
 
 private:
@@ -187,8 +185,11 @@ private:
 	std::atomic<callback_t> m_callback;
 	std::atomic<uint32_t> m_flags;
 	std::atomic<severity> m_sev;
-	
-	friend class sinsp;
 };
+
+/*!
+  \brief Get the logger instance.
+*/
+sinsp_logger* libsinsp_logger();
 
 using sinsp_logger_callback = sinsp_logger::callback_t;

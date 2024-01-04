@@ -838,11 +838,6 @@ public:
 
 	sinsp_parser* get_parser();
 
-	/*!
-	  \brief Get the logger instance.
-	*/
-	static sinsp_logger* logger();
-
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
 	/*!
@@ -1332,9 +1327,9 @@ public:
 #define SINSP_LOG_(severity, fmt, ...)                                         \
 	do                                                                     \
 	{                                                                      \
-		if(sinsp::logger()->is_enabled(severity))                              \
+		if(libsinsp_logger()->is_enabled(severity))                              \
 		{                                                              \
-			sinsp::logger()->format((severity), ("" fmt), ##__VA_ARGS__);  \
+			libsinsp_logger()->format((severity), ("" fmt), ##__VA_ARGS__);  \
 		}                                                              \
 	}                                                                      \
 	while(false)
@@ -1342,9 +1337,9 @@ public:
 #define SINSP_LOG_STR_(severity, msg)                                          \
 	do                                                                     \
 	{                                                                      \
-		if(sinsp::logger()->is_enabled(severity))                              \
+		if(libsinsp_logger()->is_enabled(severity))                              \
 		{                                                              \
-			sinsp::logger()->log((msg), (severity));                       \
+			libsinsp_logger()->log((msg), (severity));                       \
 		}                                                              \
 	}                                                                      \
 	while(false)

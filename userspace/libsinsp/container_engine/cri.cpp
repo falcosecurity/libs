@@ -164,7 +164,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		// configured unix domain socket doesn't exist. In
 		// that case, s_cri isn't initialized at all. Hence,
 		// the DEBUG.
-		sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"cri (%s): Could not parse cri (no s_cri object)",
 				container_id.c_str());
 		return false;
@@ -180,14 +180,14 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	container.m_type = get_cri_runtime_type();
 	if (mesos::set_mesos_task_id(container, tinfo))
 	{
-		sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
 				container_id.c_str(), container.m_mesos_task_id.c_str());
 	}
 
 	if (query_os_for_missing_info)
 	{
-		sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"cri (%s): Performing lookup",
 				container_id.c_str());
 
@@ -232,14 +232,14 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		const bool async = s_async && cache->async_allowed();
 		if(async)
 		{
-			sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri_async (%s): Starting asynchronous lookup",
 					container_id.c_str());
 			done = m_async_source->lookup(key, result);
 		}
 		else
 		{
-			sinsp::logger()->format(sinsp_logger::SEV_DEBUG,
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri_async (%s): Starting synchronous lookup",
 					container_id.c_str());
 			done = m_async_source->lookup_sync(key, result);
@@ -253,7 +253,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 			if(async)
 			{
 				// This should *never* happen, in async mode as ttl is 0 (never wait)
-				sinsp::logger()->format(sinsp_logger::SEV_ERROR,
+				libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
 						"cri_async (%s): Unexpected immediate return from cri_async lookup",
 						container_id.c_str());
 
@@ -272,7 +272,7 @@ void cri::update_with_size(const std::string& container_id)
 	sinsp_container_info::ptr_t existing = container_cache().get_container(container_id);
 	if(!existing)
 	{
-		sinsp::logger()->format(sinsp_logger::SEV_ERROR,
+		libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
 				"cri (%s): Failed to locate existing container data",
 				container_id.c_str());
 		ASSERT(false);

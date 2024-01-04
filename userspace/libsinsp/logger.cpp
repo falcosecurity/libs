@@ -323,3 +323,8 @@ void sinsp_logger::reset()
 		m_file = nullptr;
 	}
 }
+
+sinsp_logger* libsinsp_logger()
+{
+	return sinsp_logger::instance();
+}

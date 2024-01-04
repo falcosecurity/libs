@@ -53,7 +53,7 @@ async_key_value_source<key_type, value_type>::~async_key_value_source()
 	}
 	catch(...)
 	{
-		sinsp::logger()->log(std::string(__FUNCTION__) +
+		libsinsp_logger()->log(std::string(__FUNCTION__) +
 		             ": Exception in destructor",
 		             sinsp_logger::SEV_ERROR);
 	}
@@ -180,7 +180,7 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 
 		if(!inserted)
 		{
-			sinsp::logger()->log("async_key_value_source: Failed to insert",
+			libsinsp_logger()->log("async_key_value_source: Failed to insert",
 				     sinsp_logger::SEV_ERROR);
 			return false;
 		}
@@ -298,7 +298,7 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 			}
 			else
 			{
-				sinsp::logger()->log("async_key_value_source: Key not found when"
+				libsinsp_logger()->log("async_key_value_source: Key not found when"
 					"retrieving value, TTL expired",
 					sinsp_logger::SEV_DEBUG);
 			}
@@ -306,7 +306,7 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 		else
 		{
 			std::chrono::duration<double> dur = top_element.first - now;
-			sinsp::logger()->log("async_key_value_source: Waiting " +
+			libsinsp_logger()->log("async_key_value_source: Waiting " +
 				     std::to_string(dur.count()) +
 				     " before dequeuing top job",
 				     sinsp_logger::SEV_DEBUG);
@@ -335,7 +335,7 @@ void async_key_value_source<key_type, value_type>::store_value(
 	auto itr = m_value_map.find(key);
 	if(itr == m_value_map.end())
 	{
-		sinsp::logger()->log("async_key_value_source: Key not found when storing value",
+		libsinsp_logger()->log("async_key_value_source: Key not found when storing value",
 			     sinsp_logger::SEV_WARNING);
 		return;
 	}
@@ -363,7 +363,7 @@ void async_key_value_source<key_type, value_type>::defer_lookup(
 
 	auto start_time = std::chrono::steady_clock::now() + delay;
 
-	sinsp::logger()->log("async_key_value_source: defer_lookup re-adding to request queue delay=" +
+	libsinsp_logger()->log("async_key_value_source: defer_lookup re-adding to request queue delay=" +
 		     std::to_string(delay.count()),
 		     sinsp_logger::SEV_DEBUG);
 
