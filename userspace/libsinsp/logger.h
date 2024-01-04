@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include "logger_macros.h"
 #include "sinsp_public.h"
 #include "scap_log.h"
 

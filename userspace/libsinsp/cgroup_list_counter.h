@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdexcept>
-#include "sinsp.h"
+#include "logger.h"
 
 namespace libsinsp
 {
