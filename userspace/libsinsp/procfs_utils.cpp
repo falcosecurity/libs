@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 #include "procfs_utils.h"
-#include "sinsp.h"
+#include "logger.h"
 
 #include <cstring>
 #include <sstream>

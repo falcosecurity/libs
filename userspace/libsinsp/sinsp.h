@@ -66,7 +66,6 @@ limitations under the License.
 #include <scap.h>
 #include "settings.h"
 #include "logger.h"
-#include "logger_macros.h"
 #include "event.h"
 #include "filter.h"
 #include "dumper.h"
