@@ -347,7 +347,7 @@ void chisel_view_manager::sort_views()
 	//
 	//for(uint32_t j = 0; j < m_views.size(); j++)
 	//{
-	//	sinsp::logger()->format("> %d) %s", j, m_views[j].m_name.c_str());
+	//	libsinsp_logger()->format("> %d) %s", j, m_views[j].m_name.c_str());
 	//}
 }
 
