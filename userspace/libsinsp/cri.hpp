@@ -18,9 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#ifndef LIBSINSP_CRI_HPP
-#define LIBSINSP_CRI_HPP
-
 #include "cri.h"
 
 #include "grpc_channel_registry.h"
@@ -44,29 +41,6 @@ namespace libsinsp
 {
 namespace cri
 {
-
-settings::settings():
-	m_cri_unix_socket_paths(),
-	m_cri_timeout(1000),
-	m_cri_size_timeout(10000),
-	m_cri_runtime_type(CT_CRI),
-	m_cri_unix_socket_path(),
-	m_cri_extra_queries(true)
-{ }
-
-settings::~settings()
-{ }
-
-settings* settings::s_instance = nullptr;
-
-settings* settings::instance()
-{
-	if(s_instance == nullptr)
-	{
-		s_instance = new settings();
-	}
-	return s_instance;
-}
 
 template<typename api> 
 inline cri_interface<api>::cri_interface(const std::string &cri_path)
@@ -831,5 +805,3 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 }
 } // namespace cri
 } // namespace libsinsp
-
-#endif // LIBSINSP_CRI_HPP

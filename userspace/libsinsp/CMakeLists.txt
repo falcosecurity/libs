@@ -154,6 +154,7 @@ if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 			container_engine/mesos.cpp
 			container_engine/rkt.cpp
 			container_engine/bpm.cpp
+			cri_settings.cpp
 			runc.cpp
 		)
 	endif()
