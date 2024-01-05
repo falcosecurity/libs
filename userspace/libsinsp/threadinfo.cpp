@@ -390,41 +390,50 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		return;
 	}
 
-	m_fdtable.add(fdi->fd, newfdi);
+	newfdi = m_fdtable.add(fdi->fd, newfdi);
 	if(m_inspector->m_filter != nullptr && m_inspector->is_capture())
 	{
-		sinsp_evt tevt;
-		scap_evt tscapevt;
-		//
-		// Initialize the fake events for filtering
-		//
-		tscapevt.ts = 0;
-		tscapevt.type = PPME_SYSCALL_READ_X;
-		tscapevt.len = 0;
-		tscapevt.nparams = 0;
+		// in case the inspector is configured with an internal filter, we can
+		// filter-out thread infos (and their fd infos) to not dump them in
+		// captures unless actually used. Here, we simulate an internal event
+		// using the new file descriptor info to understand if we can set
+		// its thread info as non-filterable.
 
-		tevt.m_inspector = m_inspector;
+		// note: just like the case of  PPME_SCAPEVENT_E used for thread info
+		// filtering, the usage of PPME_SYSCALL_READ_X is opinionated. This
+		// kind of event has been chosen as a tradeoff of a lightweight and
+		// usually-ignored event (in the context of filtering), but that is also
+		// marked as using a file descriptor so that file-descriptor filter fields
+		// can extract meaningful values.
+		scap_evt tscapevt = {};
+		tscapevt.type = PPME_SYSCALL_READ_X;
+		tscapevt.tid = m_tid;
+		tscapevt.ts = 0;
+		tscapevt.nparams = 0;
+		tscapevt.len = sizeof(scap_evt);
+
+		sinsp_evt tevt = {};
+		tevt.m_pevt = &tscapevt;
 		tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-		tevt.m_pevt = NULL;
 		tevt.m_cpuid = 0;
 		tevt.m_evtnum = 0;
-		tevt.m_pevt = &tscapevt;
+		tevt.m_inspector = m_inspector;
 		tevt.m_tinfo = this;
 		tevt.m_fdinfo = newfdi;
-		tscapevt.tid = m_tid;
 		int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
 		tevt.m_tinfo->m_lastevent_fd = fdi->fd;
 
 		if(m_inspector->m_filter->run(&tevt))
 		{
-			// keep the thread from being filtered out
+			// we mark the thread info as non-filterable due to one event
+			// using one of its file descriptor has passed the filter
 			m_filtered_out = false;
 		}
 		else
 		{
-			//
-			// This tells scap not to include this FD in the write file
-			//
+			// we can't say if the thread info for this fd is filterable or not,
+			// but we can mark the given file descriptor as filterable. This flag
+			// will prevent the fd info from being written in captures.
 			fdi->type = SCAP_FD_UNINITIALIZED;
 		}
 

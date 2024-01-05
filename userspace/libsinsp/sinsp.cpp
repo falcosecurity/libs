@@ -972,28 +972,56 @@ void sinsp::on_new_entry_from_proc(void* context,
 		}
 		else
 		{
+			auto sinsp_tinfo = find_thread(tid, true);
+
+			// in case the inspector is configured with an internal filter,
+			// we filter out thread infos in case we determine them not passing
+			// the given filter. Filtered out thread infos will not be dumped
+			// in capture files.
+			//
+			// In case we have a filter, we set the "filtered out" thread info
+			// flag as true by default and toggle it to false later when one of
+			// the following cases occurs:
+			//   - One event referencing the thread info passes the filter
+			//   - One event referencing one of the file descriptors
+			//     owned by the thread info passes the filter
+			// However, when first adding a thread info or a file descriptor
+			// we have no guarantee that an event referencing them will actually
+			// ever occur, so we simulate an internal event right away and
+			// see if it gets filtered out or not.
+			sinsp_tinfo->m_filtered_out = false;
 			if(m_filter != nullptr && is_capture())
 			{
+				// note: the choice of PPME_SCAPEVENT_E is opinionated as by
+				// nature it will always pass filters using "evt.type=scapevent".
+				// However:
+				//   1. It does not represent a real-world use case given that
+				//      PPME_SCAPEVENT_E is an internal-usage mock event
+				//   2. This approach is still not effective for evttype-based
+				//      filtering: a filter like "evt.type=execve" will filter-out
+				//      any simulated event that is not an execve. Performing
+				//      correct thread info filtering based on the type of event
+				//      would require scanning the whole capture file twice, which
+				//      is a performance overhead not acceptable for some use cases.
 				scap_evt tscapevt = {};
+				tscapevt.type = PPME_SCAPEVENT_X;
 				tscapevt.tid = tid;
 				tscapevt.ts = 0;
-				tscapevt.type = PPME_SYSCALL_READ_X;
-				tscapevt.len = 0;
 				tscapevt.nparams = 0;
+				tscapevt.len = sizeof(scap_evt);
 
-				auto tinfo = find_thread(tid, true);
 				sinsp_evt tevt = {};
 				tevt.m_pevt = &tscapevt;
-				tevt.m_inspector = this;
-				tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
+				tevt.m_info = &(g_infotables.m_event_info[PPME_SCAPEVENT_X]);
 				tevt.m_cpuid = 0;
 				tevt.m_evtnum = 0;
-				tevt.m_tinfo = tinfo.get();
+				tevt.m_inspector = this;
+				tevt.m_tinfo = sinsp_tinfo.get();
 				tevt.m_fdinfo = NULL;
-				tinfo->m_lastevent_fd = -1;
-				tinfo->m_lastevent_data = NULL;
+				sinsp_tinfo->m_lastevent_fd = -1;
+				sinsp_tinfo->m_lastevent_data = NULL;
 
-				tinfo->m_filtered_out = !m_filter->run(&tevt);
+				sinsp_tinfo->m_filtered_out = !m_filter->run(&tevt);
 			}
 
 			// we shouldn't see any fds yet
