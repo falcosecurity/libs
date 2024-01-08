@@ -69,7 +69,7 @@ TEST(gvisor_parsers, parse_execve_e)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -80,6 +80,55 @@ TEST(gvisor_parsers, parse_execve_e)
     EXPECT_EQ(n, 1);
     EXPECT_STREQ(static_cast<const char*>(decoded_params[0].buf), "/usr/bin/ls");
 }
+
+TEST(gvisor_parsers, parse_container_id)
+{
+    char message[1024];
+
+    std::string container_id = "1234";
+    std::string parsed_container_id;
+    gvisor::syscall::Execve execve_evt;
+    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
+    execve_evt.set_sysno(__NR_execve);
+    execve_evt.set_pathname("/usr/bin/ls");
+    auto *context_data = execve_evt.mutable_context_data();
+    context_data->set_container_id(container_id);
+
+    uint32_t total_size = prepare_message(message, 1024, message_type, execve_evt);
+
+    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+
+    parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
+    EXPECT_EQ(container_id, parsed_container_id);
+
+    gvisor::syscall::Fork fork_evt;
+    message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_FORK;
+    fork_evt.set_sysno(__NR_fork);
+    context_data = fork_evt.mutable_context_data();
+    container_id = "my_container_id";
+    context_data->set_container_id(container_id);
+
+    total_size = prepare_message(message, 1024, message_type, fork_evt);
+
+    gvisor_msg = {.buf = message, .size = total_size};
+    parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
+    EXPECT_EQ(container_id, parsed_container_id);
+
+    gvisor::container::Start start_evt;
+    message_type = gvisor::common::MessageType::MESSAGE_CONTAINER_START;
+    container_id = "deadbeef";
+    start_evt.set_id(container_id);
+    start_evt.mutable_args()->Add("ls");
+    context_data = start_evt.mutable_context_data();
+    context_data->set_cwd("/root");
+
+    total_size = prepare_message(message, 1024, message_type, start_evt);
+
+    gvisor_msg = {.buf = message, .size = total_size};
+    parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
+    EXPECT_EQ(container_id, parsed_container_id);
+}
+
 
 TEST(gvisor_parsers, parse_execve_x)
 {
@@ -104,7 +153,7 @@ TEST(gvisor_parsers, parse_execve_x)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -134,7 +183,7 @@ TEST(gvisor_parsers, parse_fork_e)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -167,7 +216,7 @@ TEST(gvisor_parsers, parse_fork_x)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -196,7 +245,7 @@ TEST(gvisor_parsers, parse_clone_e)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -228,7 +277,7 @@ TEST(gvisor_parsers, parse_clone_x)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -263,7 +312,7 @@ TEST(gvisor_parsers, parse_socketpair_e)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -309,7 +358,7 @@ TEST(gvisor_parsers, parse_socketpair_x)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -345,7 +394,7 @@ TEST(gvisor_parsers, parse_container_start)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
 
     EXPECT_EQ(res.scap_events.size(), 4);
     EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_CLONE_20_E);
@@ -370,7 +419,7 @@ TEST(gvisor_parsers, unhandled_syscall)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_NE(res.error.find("Unhandled syscall"), std::string::npos);
     EXPECT_EQ(res.status, SCAP_NOT_SUPPORTED);
 }
@@ -396,17 +445,17 @@ TEST(gvisor_parsers, small_buffer)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ(res.status, SCAP_INPUT_TOO_SMALL);
     scap_buf.size = res.size;
-    res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 }
 
 TEST(gvisor_parsers, procfs_entry)
 {
     std::string not_json = "not a json string";
-    std::string sandbox_id = "deadbeef";
+    uint32_t sandbox_id = 0xdeadbeef;
 
     scap_gvisor::parsers::procfs_result res = scap_gvisor::parsers::parse_procfs_json(not_json, sandbox_id);
     EXPECT_EQ(res.status, SCAP_FAILURE);
