@@ -212,7 +212,7 @@ bool sinsp_cycledumper::is_new_file_needed(sinsp_evt* evt)
         if(m_duration_seconds > 0)
         {
             // timer setup
-            m_last_time = evt->get_ts() / 1000000000; // 10^(-9) because it's nanoseconds
+            m_last_time = evt->get_ts() / ONE_SECOND_IN_NS; // 10^(-9) because it's nanoseconds
         }
 
         if(!m_inspector->is_live())
@@ -225,9 +225,9 @@ bool sinsp_cycledumper::is_new_file_needed(sinsp_evt* evt)
 
 	if(m_duration_seconds > 0)
 	{
-		if((int)difftime(evt->get_ts() / 1000000000, m_last_time) >= m_duration_seconds)
+		if((int)difftime(evt->get_ts() / ONE_SECOND_IN_NS, m_last_time) >= m_duration_seconds)
 		{
-			m_last_time = evt->get_ts() / 1000000000;
+			m_last_time = evt->get_ts() / ONE_SECOND_IN_NS;
 			m_last_reason = "Maximum Time Reached";
 			next_file();
 			return true;
