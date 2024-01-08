@@ -45,7 +45,7 @@ TEST(savefile, filter)
 		inspector.set_filter("proc.name=ifplugd");
 		inspector.open_savefile(RESOURCE_DIR "/sample.scap");
 
-		sinsp_cycledumper* dumper = new sinsp_cycledumper(&inspector, filtered_scap,
+		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, filtered_scap,
 								  0, 0, 0, 0, true);
 
 		int32_t res;
@@ -63,7 +63,6 @@ TEST(savefile, filter)
 
 		dumper->close();
 		inspector.close();
-		delete dumper;
 	}
 
 	{
