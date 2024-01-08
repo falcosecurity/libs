@@ -30,6 +30,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap_stats_v2.h"
 #include "scap_gvisor_stats.h"
+#include "gvisor_platform.h"
 
 namespace scap_gvisor {
 
@@ -79,6 +80,7 @@ struct config_result {
 
 /*!
     \brief Translate a gVisor seccheck protobuf into one, or more, scap events
+    \param id a positive numeric ID that uniquely identifies a running sandbox.
     \param gvisor_buf the source buffer that contains the raw event coming from gVisor
     \param scap_buf the buffer that will be used to store the encoded scap events
     \return a parse_result struct.
@@ -90,12 +92,19 @@ struct config_result {
             - the status field will be set as SCAP_INPUT_TOO_SMALL
             - the size field will be set to the total required size to fully translate the supplied gVisor event
         In case of any error:
-            - the status field will be set to SCAP_FAILURE for parsing erros, SCAP_NOT_SUPPORTED for unsupported events
+            - the status field will be set to SCAP_FAILURE for parsing errors, SCAP_NOT_SUPPORTED for unsupported events
             - the error field will contain a string representation of the error
 */
-parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf);
+parse_result parse_gvisor_proto(uint32_t id, scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf);
 
-procfs_result parse_procfs_json(const std::string &input, const std::string &sandbox);
+/*!
+    \brief Get the container ID from a gVisor seccheck protobuf
+    \param gvisor_buf the source buffer that contains the raw event coming from gVisor
+    \return The container ID, or an empty string if it is not available or in case of error
+*/
+std::string parse_container_id(scap_const_sized_buffer gvisor_buf);
+
+procfs_result parse_procfs_json(const std::string &input, uint32_t sandbox_id);
 
 uint64_t get_vxid(uint64_t vxid);
 
@@ -130,13 +139,41 @@ public:
     scap_sized_buffer m_buf;
     uint64_t m_last_dropped_count;
 	bool m_closing;
+    uint32_t m_id;
+    std::string m_container_id;
+};
+
+class platform
+{
+public:
+	platform(char *lasterr, std::string &&root_path) :
+		m_lasterr(lasterr),
+		m_root_path(std::move(root_path)) {}
+
+	uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
+	uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
+
+    // obtains a unique ID for each active sandbox
+    uint32_t get_numeric_sandbox_id(std::string container_id);
+    void release_sandbox_id(std::string container_id);
+
+private:
+	// the following two maps store and manage memory for thread information requested
+	// when get_threadinfos() is called. They are only updated upon get_threadinfos()
+	std::vector<scap_threadinfo> m_threadinfos_threads;
+	std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
+
+    std::unordered_map<std::string, uint32_t> m_sandbox_ids;
+
+	char* m_lasterr;
+	std::string m_root_path;
 };
 
 class engine {
 public:
     engine(char *lasterr);
     ~engine();
-    int32_t init(std::string config_path, std::string root_path, bool no_events, int epoll_timeout);
+    int32_t init(std::string config_path, std::string root_path, bool no_events, int epoll_timeout, scap_gvisor_platform *platform);
     int32_t close();
 
     int32_t start_capture();
@@ -151,12 +188,13 @@ private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
 
-    char *m_lasterr;
+    char *m_lasterr = nullptr;
     int m_listenfd = 0;
     int m_epollfd = 0;
     int m_epoll_timeout = -1;
     bool m_capture_started = false;
     bool m_no_events = false;
+    scap_gvisor_platform *m_platform = nullptr;
 
     std::string m_socket_path;
     std::thread m_accept_thread;
@@ -184,27 +222,7 @@ private:
 
     // Stats v2.
     scap_stats_v2 m_stats[scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS];
-
 };
 
-class platform
-{
-public:
-	platform(char *lasterr, std::string &&root_path) :
-		m_lasterr(lasterr),
-		m_root_path(std::move(root_path)) {}
-
-	uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
-	uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
-
-private:
-	// the following two maps store and manage memory for thread information requested
-	// when get_threadinfos() is called. They are only updated upon get_threadinfos()
-	std::vector<scap_threadinfo> m_threadinfos_threads;
-	std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
-
-	char* m_lasterr;
-	std::string m_root_path;
-};
 
 } // namespace scap_gvisor

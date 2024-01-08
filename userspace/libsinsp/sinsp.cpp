@@ -643,9 +643,12 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	params.gvisor_config_path = config_path.c_str();
 	params.no_events = no_events;
 	params.gvisor_epoll_timeout = epoll_timeout;
-	oargs.engine_params = &params;
 
 	struct scap_platform* platform = scap_gvisor_alloc_platform(::on_new_entry_from_proc, this);
+	params.gvisor_platform = platform;
+
+	oargs.engine_params = &params;
+	
 	open_common(&oargs, &scap_gvisor_engine, platform, SINSP_MODE_LIVE);
 
 	set_get_procs_cpu_from_driver(false);
