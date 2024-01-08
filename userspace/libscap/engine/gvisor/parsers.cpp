@@ -66,12 +66,10 @@ constexpr size_t socktuple_buffer_size = 1024;
 
 // In gVisor there's no concept of tid and tgid but only vtid and vtgid.
 // However, to fit into sinsp we do need values for tid and tgid.
-static uint64_t generate_tid_field(uint64_t tid, std::string container_id_hex)
+static uint64_t generate_tid_field(uint64_t tid, uint32_t sandbox_id)
 {
-	std::string container_id_64 = container_id_hex.length() > 16 ? container_id_hex.substr(0, 15) : container_id_hex;
-
-	uint64_t tid_field = stoull(container_id_64, nullptr, 16);
-	tid_field = (tid_field & 0xffffffff00000000) ^ tid;
+	uint64_t tid_field = sandbox_id;
+	tid_field = tid | (tid_field << 32);
 	return tid_field;
 }
 
@@ -82,11 +80,11 @@ uint64_t get_vxid(uint64_t xid)
 }
 
 template<class T>
-static void fill_context_data(scap_evt *evt, T& gvisor_evt)
+static void fill_context_data(scap_evt *evt, T& gvisor_evt, uint32_t id)
 {
 	auto& context_data = gvisor_evt.context_data();
 	evt->ts = context_data.time_ns();
-	evt->tid = generate_tid_field(context_data.thread_id(), context_data.container_id());
+	evt->tid = generate_tid_field(context_data.thread_id(), id);
 }
 
 static int32_t process_unhandled_syscall(uint64_t sysno, char* error_buf)
@@ -97,7 +95,7 @@ static int32_t process_unhandled_syscall(uint64_t sysno, char* error_buf)
 	return SCAP_NOT_SUPPORTED;
 }
 
-static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_container_start(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -109,7 +107,7 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	size_t event_size;
 
 	gvisor::container::Start gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking container start protobuf message";
@@ -149,8 +147,8 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 
 	std::string cwd = context_data.cwd();
 
-	uint64_t tid_field = generate_tid_field(1, container_id);
-	uint64_t tgid_field = generate_tid_field(1, container_id);
+	uint64_t tid_field = generate_tid_field(1, id);
+	uint64_t tgid_field = generate_tid_field(1, id);
 
 	// encode clone entry
 	ret.status = scap_gvisor::fillers::fill_event_clone_20_e(
@@ -272,7 +270,7 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	return ret;
 }
 
-static parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_execve(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -281,7 +279,7 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 	scap_err[0] = '\0';
 
 	gvisor::syscall::Execve gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking execve protobuf message";
@@ -331,10 +329,8 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 			                 gvisor_evt.exit().result(), // res
 			                 pathname.c_str(), // exe
 			                 scap_const_sized_buffer{args.data(), args.size()},
-			                 generate_tid_field(context_data.thread_id(),
-					                    context_data.container_id()), // tid
-			                 generate_tid_field(context_data.thread_group_id(),
-					                    context_data.container_id()), // pid
+			                 generate_tid_field(context_data.thread_id(), id), // tid
+			                 generate_tid_field(context_data.thread_group_id(), id), // pid
 			                 cwd.c_str(), // cwd
 			                 comm.c_str(), // comm
 			                 scap_const_sized_buffer{cgroups.c_str(),
@@ -349,10 +345,8 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 			                 gvisor_evt.exit().result(), // res
 			                 pathname.c_str(), // exe
 			                 scap_const_sized_buffer{args.data(), args.size()},
-			                 generate_tid_field(context_data.thread_id(),
-					                    context_data.container_id()), // tid
-			                 generate_tid_field(context_data.thread_group_id(),
-					                    context_data.container_id()), // pid
+			                 generate_tid_field(context_data.thread_id(), id), // tid
+			                 generate_tid_field(context_data.thread_group_id(), id), // pid
 			                 cwd.c_str(), // cwd
 			                 comm.c_str(), // comm
 			                 scap_const_sized_buffer{cgroups.c_str(),
@@ -397,13 +391,13 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_sentry_clone(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -412,7 +406,7 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 	scap_err[0] = '\0';
 
 	gvisor::sentry::CloneInfo gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking sentry clone protobuf message";
@@ -424,7 +418,7 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 	std::string cgroups = "gvisor_container_id=/";
 	cgroups += context_data.container_id();
 
-	uint64_t tid_field = generate_tid_field(gvisor_evt.created_thread_id(), context_data.container_id());
+	uint64_t tid_field = generate_tid_field(gvisor_evt.created_thread_id(), id);
 
 	ret.status = scap_gvisor::fillers::fill_event_clone_20_x(
 	                 scap_buf, &ret.size, scap_err,
@@ -432,10 +426,8 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 	                 context_data.process_name().c_str(),     // exe
 	                 scap_const_sized_buffer{"", 0},          // args -- INV/not available
 	                 tid_field,                               // tid
-	                 generate_tid_field(gvisor_evt.created_thread_group_id(),
-			                    context_data.container_id()), // pid
-	                 generate_tid_field(context_data.thread_id(),
-			                    context_data.container_id()), // ptid
+	                 generate_tid_field(gvisor_evt.created_thread_group_id(), id), // pid
+	                 generate_tid_field(context_data.thread_id(), id), // ptid
 	                 context_data.cwd().c_str(),              // cwd
 	                 context_data.process_name().c_str(),     // comm
 	                 scap_const_sized_buffer{cgroups.c_str(), cgroups.size() + 1},
@@ -460,12 +452,12 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 	return ret;
 }
 
-static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_read(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Read gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking read protobuf message";
@@ -551,7 +543,7 @@ static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
@@ -686,12 +678,12 @@ static size_t pack_sockaddr(sockaddr *sa, char *targetbuf)
 	return size;
 }
 
-static parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_connect(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Connect gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking connect protobuf message";
@@ -749,18 +741,18 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_socket(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Socket gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking socket protobuf message";
@@ -789,18 +781,18 @@ static parse_result parse_socket(const char *proto, size_t proto_size, scap_size
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_generic_syscall(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Syscall gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking generic syscall protobuf message";
@@ -862,18 +854,18 @@ static parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_accept(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_accept(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Accept gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking accept protobuf message";
@@ -947,18 +939,18 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_fcntl(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Fcntl gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking fcntl protobuf message";
@@ -985,18 +977,18 @@ static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_bind(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Bind gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking bind protobuf message";
@@ -1041,18 +1033,18 @@ static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_pipe(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Pipe gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking pipe protobuf message";
@@ -1079,18 +1071,18 @@ static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_open(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Open gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking open protobuf message";
@@ -1177,18 +1169,18 @@ static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_chdir(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_chdir(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Chdir gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking chdir protobuf message";
@@ -1245,18 +1237,18 @@ static parse_result parse_chdir(const char *proto, size_t proto_size, scap_sized
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_setresid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_setresid(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Setresid gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking setresid protobuf message";
@@ -1317,18 +1309,18 @@ static parse_result parse_setresid(const char *proto, size_t proto_size, scap_si
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_setid(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Setid gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking setid protobuf message";
@@ -1396,18 +1388,18 @@ static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_chroot(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_chroot(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Chroot gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking chroot protobuf message";
@@ -1433,18 +1425,18 @@ static parse_result parse_chroot(const char *proto, size_t proto_size, scap_size
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_dup(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Dup gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking dup protobuf message";
@@ -1519,19 +1511,19 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_sentry_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_sentry_task_exit(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 
 	gvisor::sentry::TaskExit gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking task exit protobuf message";
@@ -1553,18 +1545,18 @@ static parse_result parse_sentry_task_exit(const char *proto, size_t proto_size,
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_prlimit64(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Prlimit gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking prlimit64 protobuf message";
@@ -1596,18 +1588,18 @@ static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_s
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_signalfd(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Signalfd gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking signalfd protobuf message";
@@ -1636,18 +1628,18 @@ static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_si
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_eventfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_eventfd(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Eventfd gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking eventfd protobuf message";
@@ -1675,18 +1667,18 @@ static parse_result parse_eventfd(const char *proto, size_t proto_size, scap_siz
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_close(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_close(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Close gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking close protobuf message";
@@ -1712,18 +1704,18 @@ static parse_result parse_close(const char *proto, size_t proto_size, scap_sized
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_clone(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Clone gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking clone protobuf message";
@@ -1742,11 +1734,9 @@ static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized
 			         gvisor_evt.exit().result(),
 		                 context_data.process_name().c_str(),  // exe
 		                 scap_const_sized_buffer{"", 0},   // args -- INV/not available
-		                 generate_tid_field(context_data.thread_id(),
-		                                    context_data.container_id()), // tid
-		                 generate_tid_field(context_data.thread_group_id(),
-		                                    context_data.container_id()), // pid
-				 0,                                // ptid -- INV/not available
+		                 generate_tid_field(context_data.thread_id(), id), // tid
+		                 generate_tid_field(context_data.thread_group_id(), id), // pid
+				 		 0,                                // ptid -- INV/not available
 		                 context_data.cwd().c_str(),
 		                 context_data.process_name().c_str(),  // comm
 		                 scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1},
@@ -1770,18 +1760,18 @@ static parse_result parse_clone(const char *proto, size_t proto_size, scap_sized
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_timerfd_create(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_timerfd_create(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::TimerfdCreate gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking timerfd_create protobuf message";
@@ -1809,18 +1799,18 @@ static parse_result parse_timerfd_create(const char *proto, size_t proto_size, s
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_fork(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Fork gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking fork protobuf message";
@@ -1841,10 +1831,8 @@ static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_
 			                 scap_buf, &ret.size, scap_err,
 				         gvisor_evt.exit().result(),
 			                 context_data.process_name().c_str(),  // exe
-			                 generate_tid_field(context_data.thread_id(),
-			                                    context_data.container_id()), // tid
-			                 generate_tid_field(context_data.thread_group_id(),
-			                                    context_data.container_id()), // pid
+			                 generate_tid_field(context_data.thread_id(), id), // tid
+			                 generate_tid_field(context_data.thread_group_id(), id), // pid
 			                 context_data.cwd().c_str(),
 			                 context_data.process_name().c_str(),  // comm
 			                 scap_const_sized_buffer{cgroups.c_str(),
@@ -1860,10 +1848,8 @@ static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_
 			                 scap_buf, &ret.size, scap_err,
 				         gvisor_evt.exit().result(),
 			                 context_data.process_name().c_str(), // exe
-			                 generate_tid_field(context_data.thread_id(),
-			                                    context_data.container_id()), // tid
-			                 generate_tid_field(context_data.thread_group_id(),
-			                                    context_data.container_id()), // pid
+			                 generate_tid_field(context_data.thread_id(), id), // tid
+			                 generate_tid_field(context_data.thread_group_id(), id), // pid
 			                 context_data.cwd().c_str(),
 			                 context_data.process_name().c_str(), // comm
 			                 scap_const_sized_buffer{cgroups.c_str(),
@@ -1908,18 +1894,18 @@ static parse_result parse_fork(const char *proto, size_t proto_size, scap_sized_
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_inotify_init(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_inotify_init(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Eventfd gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking inotify_init protobuf message";
@@ -1946,18 +1932,18 @@ static parse_result parse_inotify_init(const char *proto, size_t proto_size, sca
 	}
 
 	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_socketpair(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_socketpair(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::SocketPair gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking socketpair protobuf message";
@@ -1987,18 +1973,18 @@ static parse_result parse_socketpair(const char *proto, size_t proto_size, scap_
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-static parse_result parse_write(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_write(uint32_t id, scap_const_sized_buffer proto, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Write gvisor_evt;
-	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	if(!gvisor_evt.ParseFromArray(proto.buf, proto.size))
 	{
 		ret.status = SCAP_FAILURE;
 		ret.error = "Error unpacking write protobuf message";
@@ -2084,17 +2070,24 @@ static parse_result parse_write(const char *proto, size_t proto_size, scap_sized
 	}
 
 	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
-	fill_context_data(evt, gvisor_evt);
+	fill_context_data(evt, gvisor_evt, id);
 	ret.scap_events.push_back(evt);
 
 	return ret;
 }
 
-parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)
+parse_result parse_gvisor_proto(uint32_t id, scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)
 {
 	parse_result ret;
-	const char *buf = static_cast<const char*>(gvisor_buf.buf);
 
+	if(id == 0)
+	{
+		ret.error = "Invalid sandbox ID 0";
+		ret.status = SCAP_FAILURE;
+		return ret;
+	}
+
+	const char *buf = static_cast<const char*>(gvisor_buf.buf);
 	const header *hdr = reinterpret_cast<const header *>(buf);
 	if(hdr->header_size > gvisor_buf.size)
 	{
@@ -2106,7 +2099,7 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	// dropped count is the absolute number of events dropped from gVisor side
 	ret.dropped_count = hdr->dropped_count;
 	const char *proto = &buf[hdr->header_size];
-	ssize_t proto_size = gvisor_buf.size - hdr->header_size;
+	size_t proto_size = gvisor_buf.size - hdr->header_size;
 
 	size_t message_type = hdr->message_type;
 	if (message_type == 0) {
@@ -2121,18 +2114,48 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 		return ret;
 	}
 
-	parser parser = dispatchers[message_type];
-	if(parser == nullptr)
+	event_parser parser = dispatchers[message_type];
+	if(parser.parse_msg == nullptr)
 	{
 		ret.error = std::string("No parser registered for message type: ") + std::to_string(message_type);
 		ret.status = SCAP_NOT_SUPPORTED;
 		return ret;
 	}
 
-	return parser(proto, proto_size, scap_buf);
+	return parser.parse_msg(id, scap_const_sized_buffer{proto, proto_size}, scap_buf);
 }
 
-procfs_result parse_procfs_json(const std::string &input, const std::string &sandbox)
+std::string parse_container_id(scap_const_sized_buffer gvisor_buf)
+{
+	const char *buf = static_cast<const char*>(gvisor_buf.buf);
+	const header *hdr = reinterpret_cast<const header *>(buf);
+	if(hdr->header_size > gvisor_buf.size)
+	{
+		return "";
+	}
+
+	const char *proto = &buf[hdr->header_size];
+	size_t proto_size = gvisor_buf.size - hdr->header_size;
+
+	size_t message_type = hdr->message_type;
+	if (message_type == 0) {
+		return "";
+	}
+
+	if (message_type >= dispatchers.size()) {
+		return "";
+	}
+
+	event_parser parser = dispatchers[message_type];
+	if(parser.parse_container_id == nullptr)
+	{
+		return "";
+	}
+
+	return parser.parse_container_id(scap_const_sized_buffer{proto, proto_size});
+}
+
+procfs_result parse_procfs_json(const std::string &input, uint32_t sandbox_id)
 {
 	procfs_result res;
 	memset(&res.tinfo, 0, sizeof(res.tinfo));
@@ -2179,14 +2202,14 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	{
 		return res;
 	}
-	tinfo.tid = generate_tid_field(status["pid"].asUInt64(), sandbox);
+	tinfo.tid = generate_tid_field(status["pid"].asUInt64(), sandbox_id);
 
 	// pid
 	if(!stat.isMember("pgid") || !stat["pgid"].isUInt64())
 	{
 		return res;
 	}
-	tinfo.pid = generate_tid_field(stat["pgid"].asUInt64(), sandbox);
+	tinfo.pid = generate_tid_field(stat["pgid"].asUInt64(), sandbox_id);
 
 	// sid
 	if(!stat.isMember("sid") || !stat["sid"].isUInt64())
