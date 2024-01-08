@@ -103,7 +103,10 @@ void sinsp_cycledumper::autodump_start(const std::string& dump_filename)
 		throw sinsp_exception("inspector not opened yet");
 	}
 
-	m_dumper = std::make_unique<sinsp_dumper>();
+	if(!m_dumper)
+	{
+		m_dumper = std::make_unique<sinsp_dumper>();
+	}
 
 	m_dumper->open(m_inspector, dump_filename.c_str(),
                    m_compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE);
