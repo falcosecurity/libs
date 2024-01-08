@@ -58,6 +58,7 @@ sandbox_entry::sandbox_entry()
 	m_buf.size = 0;
 	m_last_dropped_count = 0;
 	m_closing = false;
+	m_id = 0xffffffff;
 }
 
 sandbox_entry::~sandbox_entry()
@@ -106,7 +107,7 @@ engine::~engine()
 
 }
 
-int32_t engine::init(std::string config_path, std::string root_path, bool no_events, int epoll_timeout)
+int32_t engine::init(std::string config_path, std::string root_path, bool no_events, int epoll_timeout, scap_gvisor_platform *platform)
 {
 	if(root_path.empty())
 	{
@@ -125,6 +126,13 @@ int32_t engine::init(std::string config_path, std::string root_path, bool no_eve
 	{
 		m_epoll_timeout = -1;
 	}
+
+	if(platform == nullptr)
+	{
+		strlcpy(m_lasterr, "A platform is required for gVisor", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+	m_platform = platform;
 
 	m_trace_session_path = config_path;
 	
@@ -459,7 +467,9 @@ int32_t engine::process_message_from_fd(int fd)
 		return SCAP_EOF;
 	}
 
-	// check if we need to allocate a new buffer for this sandbox
+	scap_const_sized_buffer gvisor_msg = {.buf = static_cast<void*>(message), .size = static_cast<size_t>(nbytes)};
+
+	// check if we need to create a new entry for this sandbox
 	if(m_sandbox_data.count(fd) != 1)
 	{
 		m_sandbox_data.emplace(fd, sandbox_entry{});
@@ -467,11 +477,20 @@ int32_t engine::process_message_from_fd(int fd)
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize %zu bytes for gvisor sandbox on fd %d", initial_event_buffer_size, fd);
 			return SCAP_FAILURE;
 		}
+
+		std::string container_id = parsers::parse_container_id(gvisor_msg);
+		if (container_id == "")
+		{
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize sandbox on fd %d: could not parse container ID", fd);
+			return SCAP_FAILURE;
+		}
+
+		m_sandbox_data[fd].m_container_id = container_id;
+		m_sandbox_data[fd].m_id = m_platform->m_platform->get_numeric_sandbox_id(container_id);
 	}
 
-	scap_const_sized_buffer gvisor_msg = {.buf = static_cast<void*>(message), .size = static_cast<size_t>(nbytes)};
-
-	parsers::parse_result parse_result = parsers::parse_gvisor_proto(gvisor_msg, m_sandbox_data[fd].m_buf);
+	uint32_t id = m_sandbox_data[fd].m_id;
+	parsers::parse_result parse_result = parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
 	if(parse_result.status == SCAP_INPUT_TOO_SMALL)
 	{
 		if (m_sandbox_data[fd].expand_buffer(parse_result.size) == SCAP_FAILURE)
@@ -479,7 +498,7 @@ int32_t engine::process_message_from_fd(int fd)
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE,"Cannot realloc gvisor buffer to %zu", parse_result.size);
 			return SCAP_FAILURE;
 		};
-		parse_result = parsers::parse_gvisor_proto(gvisor_msg, m_sandbox_data[fd].m_buf);
+		parse_result = parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
 	} 
 
 	if(parse_result.status == SCAP_NOT_SUPPORTED)
@@ -534,8 +553,10 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags)
 		sandbox_entry &sandbox = it->second;
 		if(sandbox.m_closing)
 		{
+			std::string container_id = sandbox.m_container_id;
 			::close(it->first);
 			it = m_sandbox_data.erase(it);
+			m_platform->m_platform->release_sandbox_id(container_id);
 		}
 		else
 		{
