@@ -2221,16 +2221,4 @@ static __always_inline uint32_t mknod_mode_to_scap(uint32_t modes)
 
 	return res;
 }
-
-static __always_inline uint32_t bpf_cmd_to_scap (unsigned long cmd){
-	/*
-	 * bpf opcodes are defined via enum in uapi/linux/bpf.h.
-	 * It is userspace API (thus stable) and arch-independent.
-	 * Therefore we map them 1:1; if any unmapped flag arrives,
-	 * we will just print its value to userspace without mapping it to a string flag.
-	 * We then need to append new flags to both flags_table and ppm_events_public PPM_ flags.
-	 */
-
-	return cmd;
-}
 #endif /* PPM_FLAG_HELPERS_H_ */
