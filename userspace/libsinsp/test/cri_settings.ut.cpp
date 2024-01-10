@@ -24,17 +24,17 @@ limitations under the License.
 
 TEST_F(sinsp_with_test_input, default_cri_socket_paths)
 {
-	libsinsp::cri::settings* cri_settings = libsinsp::cri::settings::instance();
+	libsinsp::cri::cri_settings& cri_settings = libsinsp::cri::cri_settings::get();
 
-	if (!cri_settings->get_cri_unix_socket_paths().empty())
+	if (!cri_settings.get_cri_unix_socket_paths().empty())
 	{
-		cri_settings->clear_cri_unix_socket_paths();
+		cri_settings.clear_cri_unix_socket_paths();
 	}
 
 	add_default_init_thread();
 	open_inspector();
 
-	auto socket_paths = cri_settings->get_cri_unix_socket_paths();
+	auto socket_paths = cri_settings.get_cri_unix_socket_paths();
 
 	ASSERT_EQ(socket_paths.size(), 3);
 	ASSERT_TRUE("/run/containerd/containerd.sock"==socket_paths[0]);

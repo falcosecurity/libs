@@ -23,7 +23,7 @@ namespace libsinsp
 namespace cri
 {
 
-settings::settings():
+cri_settings::cri_settings():
 	m_cri_unix_socket_paths(),
 	m_cri_timeout(1000),
 	m_cri_size_timeout(10000),
@@ -32,18 +32,18 @@ settings::settings():
 	m_cri_extra_queries(true)
 { }
 
-settings::~settings()
+cri_settings::~cri_settings()
 { }
 
-settings* settings::s_instance = nullptr;
+std::unique_ptr<cri_settings> cri_settings::s_instance = nullptr;
 
-settings* settings::instance()
+cri_settings& cri_settings::get()
 {
 	if(s_instance == nullptr)
 	{
-		s_instance = new settings();
+		s_instance = std::make_unique<cri_settings>();
 	}
-	return s_instance;
+	return *s_instance;
 }
 
 } // namespace cri
