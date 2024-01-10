@@ -1062,8 +1062,6 @@ public:
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 
-	std::vector<uint64_t> m_tid_collisions;
-
 	//
 	// Saved snaplen
 	//

@@ -1436,7 +1436,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	/* If there's a listener, invoke it */
 	if(m_inspector->get_observer())
 	{
-		m_inspector->get_observer()->on_clone(evt, child_tinfo);
+		m_inspector->get_observer()->on_clone(evt, child_tinfo, tid_collision);
 	}
 
 	/* If we had to erase a previous entry for this tid and rebalance the table,
@@ -1446,9 +1446,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	if(tid_collision != -1)
 	{
 		reset(evt);
-#ifdef HAS_ANALYZER
-		m_inspector->m_tid_collisions.push_back(tid_collision);
-#endif
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
 		               child_tinfo->m_comm.c_str());
@@ -1961,7 +1958,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	//
 	if(m_inspector->get_observer())
 	{
-		m_inspector->get_observer()->on_clone(evt, child_tinfo);
+		m_inspector->get_observer()->on_clone(evt, child_tinfo, tid_collision);
 	}
 
 	/* If we had to erase a previous entry for this tid and rebalance the table,
@@ -1972,9 +1969,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	if(tid_collision != -1)
 	{
 		reset(evt);
-#ifdef HAS_ANALYZER
-		m_inspector->m_tid_collisions.push_back(tid_collision);
-#endif
 		/* Right now we have collisions only on the clone() caller */
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)", tid_collision, child_tinfo->m_comm.c_str());
 	}
