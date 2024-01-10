@@ -74,6 +74,13 @@ void sinsp_cycledumper::close()
 	autodump_stop();
 }
 
+void sinsp_cycledumper::set_callbacks(std::vector<callback> open_cbs,
+									  std::vector<callback> close_cbs)
+{
+	m_open_file_callbacks = open_cbs;
+	m_close_file_callbacks = close_cbs;
+}
+
 void sinsp_cycledumper::autodump_next_file()
 {
 	autodump_stop();
@@ -94,6 +101,8 @@ void sinsp_cycledumper::autodump_stop()
 	}
 
 	m_inspector->m_is_dumping = false;
+
+	std::for_each(m_close_file_callbacks.begin(), m_close_file_callbacks.end(), std::ref(*this));
 }
 
 void sinsp_cycledumper::autodump_start(const std::string& dump_filename)
@@ -107,6 +116,8 @@ void sinsp_cycledumper::autodump_start(const std::string& dump_filename)
 	{
 		m_dumper = std::make_unique<sinsp_dumper>();
 	}
+
+	std::for_each(m_open_file_callbacks.begin(), m_open_file_callbacks.end(), std::ref(*this));
 
 	m_dumper->open(m_inspector, dump_filename.c_str(),
                    m_compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE);
