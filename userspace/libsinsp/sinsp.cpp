@@ -86,8 +86,8 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
-	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
-	m_deleted_users_groups_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_containers_purging_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = NULL;
 	m_fds_to_remove = new std::vector<int64_t>;
 	m_machine_info = NULL;
@@ -1297,7 +1297,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	evt->m_evtnum = m_nevts;
 	m_lastevent_ts = ts;
 
-	if(m_automatic_threadtable_purging)
+	if (m_auto_threads_purging)
 	{
 		//
 		// Delayed removal of threads from the thread table, so that
@@ -1315,9 +1315,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		}
 	}
 
-#ifndef HAS_ANALYZER
-
-	if(is_debug_enabled() && is_live())
+	if (m_auto_stats_print && is_debug_enabled() && is_live())
 	{
 		if(ts > m_next_stats_print_time_ns)
 		{
@@ -1330,18 +1328,15 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		}
 	}
 
-	//
-	// Run the periodic connection, thread and users/groups table cleanup
-	//
-	if(!is_offline())
+	if (m_auto_containers_purging && !is_offline())
 	{
 		m_container_manager.remove_inactive_containers();
-
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-		m_usergroup_manager.clear_host_users_groups();
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	}
-#endif // HAS_ANALYZER
+
+	if (m_auto_usergroups_purging && !is_offline())
+	{
+		m_usergroup_manager.clear_host_users_groups();
+	}
 
 	//
 	// Delayed removal of the fd, so that
@@ -1662,7 +1657,10 @@ void sinsp::stop_capture()
 	}
 
 	/* Print scap stats */
-	print_capture_stats(sinsp_logger::SEV_DEBUG);
+	if (m_auto_stats_print)
+	{
+		print_capture_stats(sinsp_logger::SEV_DEBUG);
+	}
 
 	/* Print the number of threads and fds in our tables */
 	uint64_t thread_cnt = 0;
@@ -2042,16 +2040,6 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
-void sinsp::disable_automatic_threadtable_purging()
-{
-	m_automatic_threadtable_purging = false;
-}
-
-void sinsp::set_thread_purge_interval_s(uint32_t val)
-{
-	m_inactive_thread_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
-}
-
 void sinsp::set_thread_timeout_s(uint32_t val)
 {
 	m_thread_timeout_ns = (uint64_t)val * ONE_SECOND_IN_NS;
@@ -2105,20 +2093,20 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		// Set the first table scan for 30 seconds in, so that we can spot bugs in the logic without having
 		// to wait for tens of minutes
 		//
-		if(m_inspector->m_inactive_thread_scan_time_ns > 30 * ONE_SECOND_IN_NS)
+		if(m_inspector->m_threads_purging_scan_time_ns > 30 * ONE_SECOND_IN_NS)
 		{
 			m_last_flush_time_ns =
-				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns + 30 * ONE_SECOND_IN_NS);
+				(m_inspector->m_lastevent_ts - m_inspector->m_threads_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS);
 		}
 		else
 		{
 			m_last_flush_time_ns =
-				(m_inspector->m_lastevent_ts - m_inspector->m_inactive_thread_scan_time_ns);
+				(m_inspector->m_lastevent_ts - m_inspector->m_threads_purging_scan_time_ns);
 		}
 	}
 
 	if(m_inspector->m_lastevent_ts >
-		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
+		m_last_flush_time_ns + m_inspector->m_threads_purging_scan_time_ns)
 	{
 		std::unordered_set<int64_t> to_delete;
 

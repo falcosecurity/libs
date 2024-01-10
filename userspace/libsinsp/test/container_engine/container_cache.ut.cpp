@@ -42,7 +42,7 @@ TEST_F(sinsp_with_test_input, container_manager_cache_threadtable_lifecycle)
     ASSERT_EQ(test_container_id, container_info_check->m_id);
 
     // Arbitrary time travel to invoke removal / flush logic remove_inactive_containers
-    m_inspector.m_inactive_container_scan_time_ns = 0;
+    m_inspector.m_containers_purging_scan_time_ns = 0;
     m_inspector.m_container_manager.m_last_flush_time_ns = 1;
     m_inspector.m_container_manager.remove_inactive_containers();
     const sinsp_container_info::ptr_t container_info_check_not_removed = m_inspector.m_container_manager.get_container(test_container_id);
@@ -52,7 +52,7 @@ TEST_F(sinsp_with_test_input, container_manager_cache_threadtable_lifecycle)
     // Mock remove test_container1 container from threadtable
     tinfo = m_inspector.get_thread_ref(p4_t1_tid, false, true).get();
     tinfo->m_container_id = "";
-    m_inspector.m_inactive_container_scan_time_ns = 0;
+    m_inspector.m_containers_purging_scan_time_ns = 0;
     m_inspector.m_container_manager.m_last_flush_time_ns = 1;
     m_inspector.m_container_manager.remove_inactive_containers();
 

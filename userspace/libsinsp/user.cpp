@@ -220,11 +220,11 @@ bool sinsp_usergroup_manager::clear_host_users_groups()
 
 	if(m_last_flush_time_ns == 0)
 	{
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_deleted_users_groups_scan_time_ns + 60 * ONE_SECOND_IN_NS;
+		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_usergroups_purging_scan_time_ns + 60 * ONE_SECOND_IN_NS;
 	}
 
 	if(m_inspector->m_lastevent_ts >
-	   m_last_flush_time_ns + m_inspector->m_deleted_users_groups_scan_time_ns)
+	   m_last_flush_time_ns + m_inspector->m_usergroups_purging_scan_time_ns)
 	{
 		res = true;
 

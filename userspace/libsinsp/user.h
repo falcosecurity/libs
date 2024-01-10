@@ -46,7 +46,7 @@ namespace libsinsp { namespace procfs_utils { class ns_helper; }}
  * * on PPME_{USER,GROUP}_ADDED, the new user/group is stored in the m_{user,group}_list<container_id>, if not present.
  *
  * * Host users and groups lists are cleared once every DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S (1 min by default),
- * 		see sinsp::m_deleted_users_groups_scan_time_ns.
+ * 		see sinsp::m_usergroups_purging_scan_time_ns.
  * 		Then, the users and groups will be refreshed as explained above, every time a threadinfo is created.
  * 		This is needed to fetch deleted users/groups, or overwritten ones.
  * 		Note: PPME_USER_DELETED_E is never sent for host users; we miss

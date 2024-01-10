@@ -383,18 +383,72 @@ public:
 	void set_min_log_severity(sinsp_logger::severity sev);
 
 	/*!
-	 * \brief set whether the library will automatically purge the threadtable
-	 *        at specific times. If not, client is responsible for thread lifetime
-	 *        management. If invoked, then the purge interval and thread timeout change
-	 *        defaults, but have no observable effect.
+	 * \brief Enables or disables an automatic routine that periodically purges
+	 * thread infos from the internal state. If disabled, the client is
+	 * responsible of manually-handling the lifetime of threads.
+	 * When the routine is run, then the purge interval and thread timeout
+	 * change defaults, but with no observable effect.
 	 */
-	void disable_automatic_threadtable_purging();
+	void set_auto_threads_purging(bool enabled)
+	{
+		m_auto_threads_purging = enabled;
+	}
 
 	/*!
-	 * \brief sets the interval at which the thread purge code runs. This does
-	 *        not run every event as it's mildly expensive if there are lots of threads
+	 * \brief Sets the interval (in seconds) at which the automatic threads
+	 * purging routine runs (if enabled).
 	 */
-	void set_thread_purge_interval_s(uint32_t val);
+	inline void set_auto_threads_purging_interval_s(uint32_t val)
+	{
+		m_threads_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
+	}
+
+	/*!
+	 * \brief Enables or disables an automatic routine that periodically purges
+	 * thread infos from the internal state. If disabled, the client is
+	 * responsible of manually-handling the lifetime of containers.
+	 */
+	void set_auto_containers_purging(bool enabled)
+	{
+		m_auto_containers_purging = enabled;
+	}
+
+	/*!
+	 * \brief Sets the interval (in seconds) at which the automatic containers
+	 * purging routine runs (if enabled).
+	 */
+	inline void set_auto_containers_purging_interval_s(uint32_t val)
+	{
+		m_containers_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
+	}
+
+	/*!
+	 * \brief Enables or disables an automatic routine that periodically purges
+	 * users and groups infos from the internal state. If disabled, the client
+	 * is responsible of manually-handling the lifetime of users and groups.
+	 */
+	void set_auto_usergroups_purging(bool enabled)
+	{
+		m_auto_usergroups_purging = enabled;
+	}
+
+	/*!
+	 * \brief Sets the interval (in seconds) at which the automatic
+	 * users and groups purging routine runs (if enabled).
+	 */
+	inline void set_auto_usergroups_purging_interval_s(uint32_t val)
+	{
+		m_usergroups_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
+	}
+
+	/*!
+	 * \brief Enables or disables an automatic routine that periodically logs
+	 * the current capture stats.
+	 */
+	inline void set_auto_stats_print(bool enabled)
+	{
+		m_auto_stats_print = enabled;
+	}
 
 	/*!
 	 * \brief sets the amount of time after which a thread which has seen no events
@@ -1081,19 +1135,21 @@ public:
 	// Some thread table limits
 	//
 	uint32_t m_max_fdtable_size;
-	bool m_automatic_threadtable_purging = true;
+	bool m_auto_threads_purging = true;
 	uint64_t m_thread_timeout_ns = (uint64_t)1800 * ONE_SECOND_IN_NS;
-	uint64_t m_inactive_thread_scan_time_ns = (uint64_t)1200 * ONE_SECOND_IN_NS;
+	uint64_t m_threads_purging_scan_time_ns = (uint64_t)1200 * ONE_SECOND_IN_NS;
 
 	//
 	// Container limits
 	//
-	uint64_t m_inactive_container_scan_time_ns;
+	bool m_auto_containers_purging = true;
+	uint64_t m_containers_purging_scan_time_ns;
 
 	//
 	// Users/groups limits
 	//
-	uint64_t m_deleted_users_groups_scan_time_ns;
+	bool m_auto_usergroups_purging = true;
+	uint64_t m_usergroups_purging_scan_time_ns;
 
 	//
 	// How to render the data buffers
@@ -1185,6 +1241,7 @@ public:
 	//
 	// End of second housekeeping
 	//
+	bool m_auto_stats_print = true;
 	uint64_t m_next_stats_print_time_ns;
 
 	static unsigned int m_num_possible_cpus;
