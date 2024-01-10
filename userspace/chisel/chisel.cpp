@@ -130,9 +130,7 @@ const static struct luaL_Reg ll_tool [] =
 	{"udp_setpeername", &lua_cbacks::udp_setpeername},
 	{"udp_send", &lua_cbacks::udp_send},
 	{"get_read_progress", &lua_cbacks::get_read_progress},
-#ifdef HAS_ANALYZER
 	{"push_metric", &lua_cbacks::push_metric},
-#endif
 	{NULL,NULL}
 };
 
