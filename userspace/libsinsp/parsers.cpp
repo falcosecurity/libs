@@ -3182,12 +3182,10 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
         //
         evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 
-#ifndef HAS_ANALYZER
         //
         // Update the FD with this tuple
         //
         evt->m_fdinfo->set_unix_info(packed_data);
-#endif
 	}
 
     //
@@ -3277,12 +3275,10 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packe
         //
         evt->m_fdinfo->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 
-#ifndef HAS_ANALYZER
         //
         // Update the FD with this tuple
         //
         evt->m_fdinfo->set_unix_info(packed_data);
-#endif
     }
 
     if(evt->m_fdinfo->is_role_none())

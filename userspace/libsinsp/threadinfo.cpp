@@ -2080,16 +2080,12 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
                 }
             }
 
-#ifdef HAS_ANALYZER
             uint64_t ts = sinsp_utils::get_current_time_ns();
-#endif
             if(scap_proc_get(m_inspector->get_scap_platform(), tid, &scap_proc, scan_sockets) == SCAP_SUCCESS)
-	    {
-		have_scap_proc = true;
-	    }
-#ifdef HAS_ANALYZER
+            {
+                have_scap_proc = true;
+            }
             m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
-#endif
         }
 
         if(have_scap_proc)
