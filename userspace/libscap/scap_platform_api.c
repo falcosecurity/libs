@@ -96,14 +96,19 @@ bool scap_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t t
 
 int32_t scap_getpid_global(struct scap_platform* platform, int64_t* pid)
 {
-	if (platform && platform->m_vtable->get_global_pid)
+	if (platform == NULL)
 	{
-		char lasterr[SCAP_LASTERR_SIZE];
-		return platform->m_vtable->get_global_pid(platform, pid, lasterr);
+		ASSERT(false);
+		return SCAP_FAILURE;
 	}
 
-	ASSERT(false);
-	return SCAP_FAILURE;
+	if (platform->m_vtable->get_global_pid == NULL)
+	{
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	char lasterr[SCAP_LASTERR_SIZE];
+	return platform->m_vtable->get_global_pid(platform, pid, lasterr);
 }
 
 const scap_machine_info* scap_get_machine_info(struct scap_platform* platform)
