@@ -6,8 +6,7 @@
  * sinsp in order to start receiving appropriate callbacks.
  */
 
-// Required until the chisel_api dependency on the analyzer can be removed
-class statsd_metric;
+class chisel_metric;
 class sinsp;
 class threadinfo;
 
@@ -40,9 +39,9 @@ public:
 	virtual void process_event(sinsp_evt* evt, event_return rc) = 0;
 
 	/**
-	 * Required until the chisel_api dependency on the analyzer can be removed
+	 * Handles a metric pushed by a chisel
 	 */
-	virtual void add_chisel_metric(statsd_metric* metric) = 0;
+	virtual void add_chisel_metric(chisel_metric* metric) = 0;
 
 	/**
 	 * Some event processors allocate different thread types with extra data.

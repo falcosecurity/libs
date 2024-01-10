@@ -86,6 +86,21 @@ public:
 	chisel_view_info m_viewinfo;
 };
 
+class chisel_metric
+{
+public:
+	void reset()
+	{
+		m_name = "";
+		m_value = 0;
+		m_tags.clear();
+	}
+
+	std::string m_name;
+	double m_value = 0;
+	std::map<std::string, std::string> m_tags;
+};
+
 class chiselinfo
 {
 public:

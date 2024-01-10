@@ -23,9 +23,6 @@ limitations under the License.
 #include <chisel/chisel_api.h>
 #include <libsinsp/filter.h>
 #include <libsinsp/filterchecks.h>
-#ifdef HAS_ANALYZER
-#include "analyzer.h"
-#endif
 
 #define HAS_LUA_CHISELS
 
@@ -1504,11 +1501,9 @@ int lua_cbacks::get_read_progress(lua_State *ls)
 	return 1;
 }
 
-#ifdef HAS_ANALYZER
 int lua_cbacks::push_metric(lua_State *ls)
 {
-	statsd_metric metric;
-	metric.m_type = statsd_metric::type_t::GAUGE;
+	chisel_metric metric;
 
 	lua_getglobal(ls, "sichisel");
 
@@ -1579,5 +1574,5 @@ int lua_cbacks::push_metric(lua_State *ls)
 	return 0;
 }
 
-#endif // HAS_ANALYZER
+
 #endif // HAS_LUA_CHISELS

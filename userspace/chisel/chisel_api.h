@@ -63,9 +63,7 @@ public:
 	static int udp_setpeername(lua_State *ls);
 	static int udp_send(lua_State *ls);
 	static int get_read_progress(lua_State *ls);
-#ifdef HAS_ANALYZER
 	static int push_metric(lua_State *ls);
-#endif
 private:
 	static int get_thread_table_int(lua_State *ls, bool include_fds, bool barebone);
 };
