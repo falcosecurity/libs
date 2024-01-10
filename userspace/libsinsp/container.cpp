@@ -59,11 +59,11 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 	if(m_last_flush_time_ns == 0)
 	{
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_inactive_container_scan_time_ns + 30 * ONE_SECOND_IN_NS;
+		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_containers_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS;
 	}
 
 	if(m_inspector->m_lastevent_ts >
-		m_last_flush_time_ns + m_inspector->m_inactive_container_scan_time_ns)
+		m_last_flush_time_ns + m_inspector->m_containers_purging_scan_time_ns)
 	{
 		res = true;
 

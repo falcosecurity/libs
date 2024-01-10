@@ -322,7 +322,7 @@ protected:
 	{
 		/* We need to set these 2 variables to enable the remove_inactive_logic */
 		m_inspector.m_thread_manager->m_last_flush_time_ns = 1;
-		m_inspector.m_inactive_thread_scan_time_ns = 2;
+		m_inspector.m_threads_purging_scan_time_ns = 2;
 
 		m_inspector.m_lastevent_ts = m_lastevent_ts;
 		m_inspector.m_thread_timeout_ns = thread_timeout;
