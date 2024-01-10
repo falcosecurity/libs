@@ -37,6 +37,7 @@ std::string podman::m_user_api_sock_pattern = "/run/user/*/podman/podman.sock";
 namespace {
 constexpr const cgroup_layout ROOT_PODMAN_CGROUP_LAYOUT[] = {
 	{"/libpod-", ".scope"}, // podman
+	{"/libpod-", ".scope/container"}, // podman
 	{"/libpod-", ""}, // non-systemd podman, e.g. on alpine
 	{nullptr,    nullptr}
 };
