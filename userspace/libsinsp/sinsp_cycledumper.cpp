@@ -58,6 +58,11 @@ sinsp_cycledumper::~sinsp_cycledumper()
 		m_dumper->close();
 		m_dumper.reset();
 	}
+
+	if(m_past_names != nullptr)
+	{
+		delete[] m_past_names;
+	}
 }
 
 void sinsp_cycledumper::dump(sinsp_evt* evt)
