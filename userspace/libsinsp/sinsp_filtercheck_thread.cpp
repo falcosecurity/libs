@@ -145,9 +145,9 @@ sinsp_filter_check* sinsp_filter_check_thread::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_thread();
 }
 
-int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT const struct ppm_param_info** parinfo)
+int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo)
 {
-	uint32_t parsed_len = 0;
+	std::string::size_type parsed_len = 0;
 
 	//
 	// 'arg' and 'resarg' are handled in a custom way
@@ -160,7 +160,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 	{
 		if(val[fldname.size()] == '[')
 		{
-			parsed_len = (uint32_t)val.find(']');
+			parsed_len = val.find(']');
 			if(parsed_len == std::string::npos)
 			{
 				throw sinsp_exception("the field '" + fldname + "' requires an argument but ']' is not found");
@@ -179,8 +179,8 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 	{
 		if(val[fldname.size()] == '[')
 		{
-			size_t startpos = fldname.size();
-			parsed_len = (uint32_t)val.find(']', startpos);
+			std::string::size_type startpos = fldname.size();
+			parsed_len = val.find(']', startpos);
 
 			if(parsed_len == std::string::npos)
 			{
@@ -203,7 +203,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 	{
 		if(val[fldname.size()] == '.')
 		{
-			size_t endpos;
+			std::string::size_type endpos;
 			for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
 			{
 				if(!isalpha(val[endpos])
@@ -213,7 +213,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 				}
 			}
 
-			parsed_len = (uint32_t)endpos;
+			parsed_len = endpos;
 			m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
 		}
 		else
@@ -222,7 +222,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 		}
 	}
 
-	return parsed_len;
+	return (int32_t)parsed_len;
 }
 
 int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
