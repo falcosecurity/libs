@@ -16,20 +16,6 @@ limitations under the License.
 
 */
 
-#include <iostream>
-#include <fstream>
-#include <cctype>
-#include <locale>
-#ifdef _WIN32
-#include <io.h>
-#else
-#include <limits.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#endif
-#include <json/json.h>
-
 #include "strl.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -50,6 +36,19 @@ extern "C" {
 #include "lualib.h"
 #include "lauxlib.h"
 }
+#endif
+
+#include <cctype>
+#include <fstream>
+#include <iostream>
+#include <locale>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <climits>
+#include <cstdlib>
+#include <unistd.h>
+#include <sys/ioctl.h>
 #endif
 
 using namespace std;

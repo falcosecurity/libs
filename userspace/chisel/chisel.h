@@ -90,7 +90,7 @@ class chiselinfo
 {
 public:
 	chiselinfo(sinsp* inspector);
-	void init(std::string filterstr, std::string formatterstr); 
+	void init(std::string filterstr, std::string formatterstr);
 	void set_filter(std::string filterstr);
 	void set_formatter(std::string formatterstr);
 	void set_callback_interval(uint64_t interval);
@@ -114,8 +114,10 @@ class SINSP_PUBLIC sinsp_chisel
 public:
 	sinsp_chisel(sinsp* inspector, std::string filename, bool is_file = true);
 	~sinsp_chisel();
-	static void add_lua_package_path(lua_State* ls, const char* path);
+
+	static void add_lua_package_path(lua_State* ls, const std::string& path);
 	static void get_chisel_list(std::vector<chisel_desc>* chisel_descs);
+
 	void load(std::string cmdstr, bool is_file = true);
 	std::string get_name()
 	{
@@ -171,4 +173,3 @@ private:
 };
 
 /*@}*/
-
