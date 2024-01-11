@@ -164,7 +164,7 @@ struct g_invalidchar
 	{
 		// Exclude all non-printable characters and control characters while
 		// including a wide range of languages (emojis, cyrillic, chinese etc)
-		return !(isprint((unsigned)c) || (c < 0));
+		return !(isprint((unsigned)c));
 	}
 };
 
