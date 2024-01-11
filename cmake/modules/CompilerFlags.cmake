@@ -49,7 +49,7 @@ if(NOT MSVC)
 			#   - avoid complaining about the option above `-Wno-format-truncation`
 			set(CMAKE_SUPPRESSED_WARNINGS "${CMAKE_SUPPRESSED_WARNINGS} -Wno-c++20-designator -Wno-c99-designator -Wno-unknown-warning-option")
 		endif()
-		set(FALCOSECURITY_LIBS_COMMON_FLAGS "${FALCOSECURITY_LIBS_COMMON_FLAGS} -Wextra ${CMAKE_SUPPRESSED_WARNINGS}")
+		set(FALCOSECURITY_LIBS_COMMON_FLAGS "${FALCOSECURITY_LIBS_COMMON_FLAGS} -Werror -Wextra ${CMAKE_SUPPRESSED_WARNINGS}")
 	endif()
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FALCOSECURITY_LIBS_COMMON_FLAGS}")
