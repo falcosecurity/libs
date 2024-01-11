@@ -37,9 +37,9 @@ namespace scap_gvisor {
 #pragma pack(push, 1)
 struct header
 {
-	uint16_t header_size;
-	uint16_t message_type;
-	uint32_t dropped_count;
+    uint16_t header_size;
+    uint16_t message_type;
+    uint32_t dropped_count;
 };
 #pragma pack(pop)
 
@@ -47,13 +47,13 @@ namespace parsers {
 
 struct parse_result {
     // the scap status of the operation
-	uint32_t status = 0;
+    uint32_t status = 0;
     // description of the error in case of failure
-	std::string error;
+    std::string error;
     // the total encoded event(s) size
-	size_t size = 0;
+    size_t size = 0;
     // pointers to each encoded event within the supplied output buffer
-	std::vector<scap_evt*> scap_events;
+    std::vector<scap_evt*> scap_events;
     // number of events dropped by gVisor
     uint32_t dropped_count = 0;
 };
@@ -131,14 +131,14 @@ namespace runsc
 // contains entries to store per-sandbox data and buffers to use to write events in
 class sandbox_entry {
 public:
-	sandbox_entry();
+    sandbox_entry();
     ~sandbox_entry();
 
     int32_t expand_buffer(size_t size);
 
     scap_sized_buffer m_buf;
     uint64_t m_last_dropped_count;
-	bool m_closing;
+    bool m_closing;
     uint32_t m_id;
     std::string m_container_id;
 };
@@ -146,27 +146,27 @@ public:
 class platform
 {
 public:
-	platform(char *lasterr, std::string &&root_path) :
-		m_lasterr(lasterr),
-		m_root_path(std::move(root_path)) {}
+    platform(char *lasterr, std::string &&root_path) :
+        m_lasterr(lasterr),
+        m_root_path(std::move(root_path)) {}
 
-	uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
-	uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
+    uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
+    uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
 
     // obtains a unique ID for each active sandbox
     uint32_t get_numeric_sandbox_id(std::string container_id);
     void release_sandbox_id(std::string container_id);
 
 private:
-	// the following two maps store and manage memory for thread information requested
-	// when get_threadinfos() is called. They are only updated upon get_threadinfos()
-	std::vector<scap_threadinfo> m_threadinfos_threads;
-	std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
+    // the following two maps store and manage memory for thread information requested
+    // when get_threadinfos() is called. They are only updated upon get_threadinfos()
+    std::vector<scap_threadinfo> m_threadinfos_threads;
+    std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
 
     std::unordered_map<std::string, uint32_t> m_sandbox_ids;
 
-	char* m_lasterr;
-	std::string m_root_path;
+    char* m_lasterr;
+    std::string m_root_path;
 };
 
 class engine {
