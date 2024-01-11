@@ -99,7 +99,6 @@ limitations under the License.
 #include <libsinsp/sinsp_suppress.h>
 class sinsp_partial_transaction;
 class sinsp_parser;
-class sinsp_analyzer;
 class sinsp_filter;
 class cycle_writer;
 class sinsp_plugin;
@@ -1100,11 +1099,6 @@ public:
 	// How to render the data buffers
 	//
 	sinsp_evt::param_fmt m_buffer_format;
-
-	//
-	// Some dropping infrastructure
-	//
-	bool m_isdropping;
 
 	// A queue of pending internal state events:
 	// * 	container events. Written from async

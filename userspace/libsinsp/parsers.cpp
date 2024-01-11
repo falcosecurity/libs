@@ -40,10 +40,6 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libsinsp/plugin_manager.h>
 #include <libsinsp/sinsp_observer.h>
-
-#ifdef SIMULATE_DROP_MODE
-bool should_drop(sinsp_evt *evt);
-#endif
 #include <libsinsp/sinsp_int.h>
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)

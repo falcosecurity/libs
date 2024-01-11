@@ -46,11 +46,6 @@ limitations under the License.
 #include <curl/curl.h>
 #endif
 
-#ifdef HAS_ANALYZER
-#include "analyzer_int.h"
-#include "analyzer.h"
-#endif
-
 /**
  * This is the maximum size assigned to the concurrent asynchronous event
  * queue that can be used to inject async events during an event capture.
@@ -97,9 +92,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_fds_to_remove = new std::vector<int64_t>;
 	m_machine_info = NULL;
 	m_agent_info = NULL;
-#ifdef SIMULATE_DROP_MODE
-	m_isdropping = false;
-#endif
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
@@ -1045,8 +1037,6 @@ void sinsp::refresh_ifaddr_list()
 #endif
 }
 
-bool should_drop(sinsp_evt *evt, bool* stopped, bool* switched);
-
 //
 // This restarts the current event capture. This de-initializes and
 // re-initializes the internal state of both sinsp and scap, and is
@@ -1374,35 +1364,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		m_fds_to_remove->clear();
 	}
 
-#ifdef SIMULATE_DROP_MODE
-	bool sd = false;
-	bool sw = false;
-
-	if(m_analyzer)
-	{
-		m_analyzer->m_configuration->set_analyzer_sample_len_ns(500000000);
-	}
-
-	sd = should_drop(evt, &m_isdropping, &sw);
-#endif
-
 	//
 	// Run the state engine
 	//
-#ifdef SIMULATE_DROP_MODE
-	if(!sd || m_isdropping)
-	{
-		m_parser->process_event(evt);
-	}
-
-	if(sd && !m_isdropping)
-	{
-		*evt = NULL;
-		return SCAP_TIMEOUT;
-	}
-#else
 	m_parser->process_event(evt);
-#endif
 
 	// run plugin-implemented parsers
 	// note: we run the parsers even if the event has been filtered out,
