@@ -372,7 +372,7 @@ void parse_lua_chisel_args(lua_State *ls, OUT chisel_desc* cd)
 	}
 }
 
-void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
+void sinsp_chisel::add_lua_package_path(lua_State* ls, const std::string& path)
 {
 	lua_getglobal(ls, "package");
 	lua_getfield(ls, -1, "path");
@@ -976,19 +976,24 @@ bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 	//
 	// Load our own lua libs
 	//
-	luaL_openlib(ls, CHISEL_TOOL_LIBRARY_NAME, ll_tool, 0);
-	luaL_openlib(ls, "chisel", ll_chisel, 0);
-	luaL_openlib(ls, "evt", ll_evt, 0);
+	lua_newtable(ls);
+	luaL_setfuncs(ls, ll_tool, 0);
+	lua_setglobal(ls, CHISEL_TOOL_LIBRARY_NAME);
+
+	lua_newtable(ls);
+	luaL_setfuncs(ls, ll_chisel, 0);
+	lua_setglobal(ls, "chisel");
+
+	lua_newtable(ls);
+	luaL_setfuncs(ls, ll_evt, 0);
+	lua_setglobal(ls, "evt");
 
 	//
 	// Add our chisel paths to package.path
 	//
-	for(vector<chiseldir_info>::const_iterator it = g_chisel_dirs->begin();
-		it != g_chisel_dirs->end(); ++it)
+	for(auto& el : *g_chisel_dirs)
 	{
-		string path(it->m_dir);
-		path += "?.lua";
-		add_lua_package_path(ls, path.c_str());
+		add_lua_package_path(ls, el.m_dir + "?.lua");
 	}
 
 	//
@@ -1188,11 +1193,9 @@ void sinsp_chisel::load(string cmdstr, bool is_file)
 	//
 	// Add our chisel paths to package.path
 	//
-	for(uint32_t j = 0; j < g_chisel_dirs->size(); j++)
+	for(auto& el : *g_chisel_dirs)
 	{
-		string path(g_chisel_dirs->at(j).m_dir);
-		path += "?.lua";
-		add_lua_package_path(m_ls, path.c_str());
+		add_lua_package_path(m_ls, el.m_dir + "?.lua");
 	}
 
 	//
