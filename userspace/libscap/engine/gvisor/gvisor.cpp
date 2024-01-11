@@ -151,8 +151,7 @@ static int32_t gvisor_init(scap_t* main_handle, scap_open_args* oargs)
 {
 	scap_gvisor::engine *gv = main_handle->m_engine.m_handle;
 	struct scap_gvisor_engine_params *params = (struct scap_gvisor_engine_params *)oargs->engine_params;
-	scap_gvisor_platform *gvisor_platform = reinterpret_cast<struct scap_gvisor_platform*>(params->gvisor_platform);
-	return gv->init(params->gvisor_config_path, params->gvisor_root_path, params->no_events, params->gvisor_epoll_timeout, gvisor_platform);
+	return gv->init(params->gvisor_config_path, params->gvisor_root_path, params->no_events, params->gvisor_epoll_timeout, params->gvisor_platform);
 }
 
 static void gvisor_free_handle(struct scap_engine_handle engine)

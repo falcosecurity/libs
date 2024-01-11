@@ -30,7 +30,7 @@ extern "C"
 
 		bool no_events; //< Pinky swear we don't want any event from it (i.e. next will always fail, just have proc scan)
 		int gvisor_epoll_timeout;	///< When using gvisor, the timeout to wait for a new event
-		struct scap_platform *gvisor_platform; ///< The gvisor engine and platform have a bit of shared state
+		struct scap_gvisor_platform *gvisor_platform; ///< The gvisor engine and platform have a bit of shared state
 	};
 
 	struct scap_platform;
