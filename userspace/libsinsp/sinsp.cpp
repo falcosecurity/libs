@@ -645,7 +645,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	params.gvisor_epoll_timeout = epoll_timeout;
 
 	struct scap_platform* platform = scap_gvisor_alloc_platform(::on_new_entry_from_proc, this);
-	params.gvisor_platform = platform;
+	params.gvisor_platform = reinterpret_cast<scap_gvisor_platform*>(platform);
 
 	oargs.engine_params = &params;
 	
