@@ -16,10 +16,11 @@ limitations under the License.
 
 */
 
+#if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
 #include <gtest/gtest.h>
 #include <cri.h>
 #include <cri.hpp>
-#include "./sinsp_with_test_input.h"
+#include "../sinsp_with_test_input.h"
 
 
 TEST_F(sinsp_with_test_input, default_cri_socket_paths)
@@ -41,3 +42,4 @@ TEST_F(sinsp_with_test_input, default_cri_socket_paths)
 	ASSERT_TRUE("/run/crio/crio.sock"==socket_paths[1]);
 	ASSERT_TRUE("/run/k3s/containerd/containerd.sock"==socket_paths[2]);
 }
+#endif
