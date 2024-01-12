@@ -169,14 +169,14 @@ template<> std::string sinsp_fdinfo_t::tostring_clean()
 	return m_tstr;
 }
 
-template<> void sinsp_fdinfo_t::add_filename_raw(const char* rawpath)
+template<> void sinsp_fdinfo_t::add_filename_raw(std::string_view rawpath)
 {
-	m_name_raw = rawpath;
+	m_name_raw = std::string(rawpath);
 }
 
-template<> void sinsp_fdinfo_t::add_filename(const char* fullpath)
+template<> void sinsp_fdinfo_t::add_filename(std::string_view fullpath)
 {
-	m_name = fullpath;
+	m_name = std::string(fullpath);
 }
 
 template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
