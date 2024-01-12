@@ -73,7 +73,7 @@ jobs:
           cd src && sudo make install
        
       - name: Install kernel headers (workaround)
-        if: matrix.arch == 'arm64'
+        if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'arm64'
         run: |
           sudo apt install -y --no-install-recommends
           sudo mkdir -p /usr/src
@@ -84,7 +84,7 @@ jobs:
           sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/source
           
       - name: Install kernel headers
-        if: matrix.arch == 'amd64'
+        if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends linux-headers-$(uname -r)
           
@@ -150,7 +150,7 @@ jobs:
           cd src && sudo make install
           
       - name: Install kernel headers (workaround) and gcc
-        if: matrix.arch == 'arm64'
+        if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'arm64'
         run: |
           sudo apt install -y --no-install-recommends gcc g++
           sudo mkdir -p /usr/src
@@ -161,7 +161,7 @@ jobs:
           sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/source
           
       - name: Install kernel headers and gcc
-        if: matrix.arch == 'amd64'
+        if: (needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true') && matrix.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
 
