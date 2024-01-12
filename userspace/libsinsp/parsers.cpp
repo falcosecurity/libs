@@ -2313,10 +2313,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 				* we are not able to recover information about `dirfd` in our `sinsp` state.
 				* Fallback to `<NA>`.
 				*/
-				if((!(flags & PPM_EXVAT_AT_EMPTY_PATH) && strncmp(pathname.data(), "<NA>", 5) == 0) ||
-				sdir.compare("<UNKNOWN>") == 0)
+				if((!(flags & PPM_EXVAT_AT_EMPTY_PATH) && pathname == "<NA>") || sdir == "<UNKNOWN>")
 				{
-					/* we copy also the string terminator `\0`. */
 					fullpath = "<NA>";
 				}
 				/* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just need
@@ -2618,7 +2616,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			enter_evt_name = enter_evt->get_param(0)->as<std::string_view>();
 			enter_evt_flags = enter_evt->get_param(1)->as<uint32_t>();
 
-			if(enter_evt_name.data() != nullptr && strncmp(enter_evt_name.data(), "<NA>", 5) != 0)
+			if(enter_evt_name.data() != nullptr && enter_evt_name != "<NA>")
 			{
 				name = enter_evt_name;
 
@@ -2652,7 +2650,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			enter_evt_name = enter_evt->get_param(0)->as<std::string_view>();
 			enter_evt_flags = 0;
 
-			if(enter_evt_name.data() != nullptr && strncmp(enter_evt_name.data(), "<NA>", 5) != 0)
+			if(enter_evt_name.data() != nullptr && enter_evt_name != "<NA>")
 			{
 				name = enter_evt_name;
 
@@ -2702,7 +2700,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			enter_evt_flags = enter_evt->get_param(2)->as<uint32_t>();
 			int64_t enter_evt_dirfd = enter_evt->get_param(0)->as<int64_t>();
 
-			if(enter_evt_name.data() != nullptr && strncmp(enter_evt_name.data(), "<NA>", 5) != 0)
+			if(enter_evt_name.data() != nullptr && enter_evt_name != "<NA>")
 			{
 				name = enter_evt_name;
 
