@@ -369,8 +369,8 @@ public:
 		FLAGS_CONNECTION_FAILED = (1 << 16),
 	};
 
-	void add_filename_raw(const char* rawpath);
-	void add_filename(const char* fullpath);
+	void add_filename_raw(std::string_view rawpath);
+	void add_filename(std::string_view fullpath);
 
 	inline bool is_transaction() const
 	{

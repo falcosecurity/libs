@@ -2762,8 +2762,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi.m_mount_id = 0;
 		fdi.m_dev = dev;
 		fdi.m_ino = ino;
-		fdi.add_filename_raw(name.data());
-		fdi.add_filename(fullpath.c_str());
+		fdi.add_filename_raw(name);
+		fdi.add_filename(fullpath);
 
 		//
 		// Add the fd to the table.
@@ -5637,7 +5637,7 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
 	Suppose you create a memfd named libstest resulting in a fd.name libstest while on disk 
 	(e.g. ls -l /proc/$PID/fd/$FD_NUM) it may look like /memfd:libstest (deleted)
 	*/
-	std::string name = std::string(evt->get_param(1)->as<std::string_view>());
+	auto name = evt->get_param(1)->as<std::string_view>();
 	
 	/* flags */
 	flags = evt->get_param(2)->as<uint32_t>();
@@ -5645,7 +5645,7 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
 	if(fd >= 0)
 	{
 		fdi.m_type = type;
-		fdi.add_filename(name.c_str());
+		fdi.add_filename(name);
 		fdi.m_openflags = flags;
 	}
 
