@@ -2307,8 +2307,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 				/* If the pathname is `<NA>` here we shouldn't have problems during `parse_dirfd`.
 				* It doesn't start with "/" so it is not considered an absolute path.
 				*/
-				std::string sdir;
-				parse_dirfd(evt, pathname.data(), dirfd, &sdir);
+				std::string sdir = parse_dirfd(evt, pathname, dirfd);
 
 				/* (4) In this case, we were not able to recover the pathname from the kernel or
 				* we are not able to recover information about `dirfd` in our `sinsp` state.
@@ -2514,11 +2513,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
  *   - if we have no information about `dirfd` -> sdir = "<UNKNOWN>".
  *   - if `dirfd` has a valid vaule for us -> sdir = path + "/" at the end.
  */
-void sinsp_parser::parse_dirfd(sinsp_evt *evt, const char* name, int64_t dirfd, OUT std::string* sdir)
+std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int64_t dirfd)
 {
 	bool is_absolute = false;
 	/* This should never happen but just to be sure. */
-	if(name != NULL)
+	if(name.data() != nullptr)
 	{
 		is_absolute = (name[0] == '/');
 	}
@@ -2532,40 +2531,33 @@ void sinsp_parser::parse_dirfd(sinsp_evt *evt, const char* name, int64_t dirfd, 
 		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
 		// and absolute path, and openat succeeds.
 		//
-		*sdir = ".";
+		return ".";
 	}
-	else if(dirfd == PPM_AT_FDCWD)
+
+	if(dirfd == PPM_AT_FDCWD)
 	{
 		if(evt->m_tinfo != NULL)
 		{
-			*sdir = evt->m_tinfo->get_cwd();
+			return evt->m_tinfo->get_cwd();
 		}
-		else
-		{
-			*sdir = "<UNKNOWN>";
-		}
-	}
-	else
-	{
-		evt->m_fdinfo = evt->m_tinfo->get_fd(dirfd);
 
-		if(evt->m_fdinfo == NULL)
-		{
-			*sdir = "<UNKNOWN>";
-		}
-		else
-		{
-			if(evt->m_fdinfo->m_name[evt->m_fdinfo->m_name.length()] == '/')
-			{
-				*sdir = evt->m_fdinfo->m_name;
-			}
-			else
-			{
-				tdirstr = evt->m_fdinfo->m_name + '/';
-				*sdir = tdirstr;
-			}
-		}
+		return "<UNKNOWN>";
 	}
+
+	evt->m_fdinfo = evt->m_tinfo->get_fd(dirfd);
+
+	if(evt->m_fdinfo == NULL)
+	{
+		return "<UNKNOWN>";
+	}
+
+	if(evt->m_fdinfo->m_name[evt->m_fdinfo->m_name.length()] == '/')
+	{
+		return evt->m_fdinfo->m_name;
+	}
+
+	tdirstr = evt->m_fdinfo->m_name + '/';
+	return tdirstr;
 }
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
@@ -2682,7 +2674,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		int64_t dirfd = enter_evt->get_param(0)->as<int64_t>();
 
-		parse_dirfd(evt, name.data(), dirfd, &sdir);
+		sdir = parse_dirfd(evt, name, dirfd);
 	}
 	else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X)
 	{
@@ -2724,7 +2716,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			}
 		}
 
-		parse_dirfd(evt, name.data(), dirfd, &sdir);
+		sdir = parse_dirfd(evt, name, dirfd);
 	}
 	else if (etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
 	{
