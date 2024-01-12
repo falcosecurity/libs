@@ -5310,10 +5310,10 @@ void sinsp_parser::parse_user_evt(sinsp_evt *evt)
 
 	if (evt->m_pevt->type == PPME_USER_ADDED_E)
 	{
-		m_inspector->m_usergroup_manager.add_user(container_id.data(), -1, uid, gid, name.data(), home.data(), shell.data());
+		m_inspector->m_usergroup_manager.add_user(std::string(container_id), -1, uid, gid, name, home, shell);
 	} else
 	{
-		m_inspector->m_usergroup_manager.rm_user(container_id.data(), uid);
+		m_inspector->m_usergroup_manager.rm_user(std::string(container_id), uid);
 	}
 }
 
