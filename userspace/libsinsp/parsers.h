@@ -45,7 +45,7 @@ public:
 	//
 	// Combine the openat arguments into a full file name
 	//
-	static void parse_dirfd(sinsp_evt *evt, const char* name, int64_t dirfd, OUT std::string* sdir);
+	std::string parse_dirfd(sinsp_evt *evt, std::string_view name, int64_t dirfd);
 
 	void set_track_connection_status(bool enabled);
 	bool get_track_connection_status() { return m_track_connection_status; }

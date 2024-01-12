@@ -214,7 +214,6 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 		{
 			sinsp_evt enter_evt;
 			const sinsp_evt_param *parinfo;
-			std::string sdir;
 
 			if(etype == PPME_SYSCALL_OPENAT_X)
 			{
@@ -235,7 +234,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			parinfo = etype == PPME_SYSCALL_OPENAT_X ? enter_evt.get_param(0) : evt->get_param(1);
 			int64_t dirfd = parinfo->as<int64_t>();
 
-			sinsp_parser::parse_dirfd(evt, name.data(), dirfd, &sdir);
+			std::string sdir = m_inspector->get_parser()->parse_dirfd(evt, name, dirfd);
 
 			if(fd_nameraw)
 			{
