@@ -516,7 +516,7 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 	if (!user)
 	{
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		user = m_inspector->m_usergroup_manager.add_user(m_container_id, m_pid, uid, m_group.gid, NULL, NULL, NULL, notify);
+		user = m_inspector->m_usergroup_manager.add_user(m_container_id, m_pid, uid, m_group.gid, {}, {}, {}, notify);
 	}
 	if (user)
 	{
@@ -538,7 +538,7 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 	if (!group)
 	{
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		group = m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, NULL, notify);
+		group = m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, {}, notify);
 	}
 	if (group)
 	{

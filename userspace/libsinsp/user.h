@@ -121,8 +121,8 @@ public:
 
 	// Note: pid is an unused parameter when container_id is an empty string
 	// ie: it is only used when adding users/groups from containers.
-	scap_userinfo *add_user(const std::string &container_id, int64_t pid, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
-	scap_groupinfo *add_group(const std::string &container_id, int64_t pid, uint32_t gid, const char *name, bool notify = false);
+	scap_userinfo *add_user(const std::string &container_id, int64_t pid, uint32_t uid, uint32_t gid, std::string_view name, std::string_view home, std::string_view shell, bool notify = false);
+	scap_groupinfo *add_group(const std::string &container_id, int64_t pid, uint32_t gid, std::string_view name, bool notify = false);
 
 	bool rm_user(const std::string &container_id, uint32_t uid, bool notify = false);
 	bool rm_group(const std::string &container_id, uint32_t gid, bool notify = false);
@@ -135,10 +135,10 @@ public:
 	bool m_import_users;
 
 private:
-	scap_userinfo *add_host_user(uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify);
+	scap_userinfo *add_host_user(uint32_t uid, uint32_t gid, std::string_view name, std::string_view home, std::string_view shell, bool notify);
 	scap_userinfo *add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify);
 
-	scap_groupinfo *add_host_group(uint32_t gid, const char *name, bool notify);
+	scap_groupinfo *add_host_group(uint32_t gid, std::string_view name, bool notify);
 	scap_groupinfo *add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify);
 
 	bool user_to_sinsp_event(const scap_userinfo *user, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
@@ -156,13 +156,14 @@ private:
 		userinfo_map &map,
 		uint32_t uid,
 		uint32_t gid,
-		const char *name,
-		const char *home,
-		const char *shell);
+		std::string_view name,
+		std::string_view home,
+		std::string_view shell);
+
 	scap_groupinfo *groupinfo_map_insert(
 		groupinfo_map &map,
 		uint32_t gid,
-		const char *name);
+		std::string_view name);
 
 	std::unordered_map<std::string, userinfo_map> m_userlist;
 	std::unordered_map<std::string, groupinfo_map> m_grouplist;
