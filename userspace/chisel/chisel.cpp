@@ -1186,9 +1186,17 @@ void sinsp_chisel::load(string cmdstr, bool is_file)
 	//
 	// Load our own lua libs
 	//
-	luaL_openlib(m_ls, CHISEL_TOOL_LIBRARY_NAME, ll_tool, 0);
-	luaL_openlib(m_ls, "chisel", ll_chisel, 0);
-	luaL_openlib(m_ls, "evt", ll_evt, 0);
+	lua_newtable(m_ls);
+	luaL_setfuncs(m_ls, ll_tool, 0);
+	lua_setglobal(m_ls, CHISEL_TOOL_LIBRARY_NAME);
+
+	lua_newtable(m_ls);
+	luaL_setfuncs(m_ls, ll_chisel, 0);
+	lua_setglobal(m_ls, "chisel");
+
+	lua_newtable(m_ls);
+	luaL_setfuncs(m_ls, ll_evt, 0);
+	lua_setglobal(m_ls, "evt");
 
 	//
 	// Add our chisel paths to package.path
