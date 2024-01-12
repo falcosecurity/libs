@@ -5679,12 +5679,7 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt)
 	{
 		// note: approximating equivalent filename as in:
 		// https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html
-		char fname[SCAP_MAX_PATH_SIZE];
-		snprintf(fname,
-		         sizeof(fname),
-		         "%s/proc/%lld",
-		         scap_get_host_root(),
-		         (long long) pid);
+		std::string fname = std::string(scap_get_host_root()) + "/proc/" + std::to_string(pid);
 		fdi.m_type = scap_fd_type::SCAP_FD_PIDFD;
 		fdi.add_filename(fname);
 		fdi.m_openflags = flags;
