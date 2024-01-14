@@ -1103,7 +1103,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	break;
 	case PT_SOCKADDR:
 		sockfamily = param->m_val[0];
-		if(sockfamily == AF_UNIX)
+		if(sockfamily == PPM_AF_UNIX)
 		{
 			ASSERT(param->m_len > 1);
 
@@ -1247,7 +1247,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				        m_paramstr_storage.size(),
 				        "INVALID IPv6");
 		}
-		else if(sockfamily == AF_UNIX)
+		else if(sockfamily == PPM_AF_UNIX)
 		{
 			ASSERT(param->m_len > 17);
 
