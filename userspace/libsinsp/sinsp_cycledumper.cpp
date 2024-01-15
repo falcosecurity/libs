@@ -128,10 +128,6 @@ void sinsp_cycledumper::autodump_start(const std::string& dump_filename)
                    m_compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE);
 
 	m_inspector->m_is_dumping = true;
-
-	m_inspector->m_container_manager.dump_containers(*m_dumper);
-
-	m_inspector->m_usergroup_manager.dump_users_groups(*m_dumper);
 }
 
 void sinsp_cycledumper::next_file()
