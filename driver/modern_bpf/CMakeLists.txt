@@ -69,7 +69,8 @@ execute_process(COMMAND ${MODERN_CLANG_EXE} --version
   OUTPUT_VARIABLE CLANG_version_output
   ERROR_VARIABLE CLANG_version_error
   RESULT_VARIABLE CLANG_version_result
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 if(${CLANG_version_result} EQUAL 0)
   if("${CLANG_version_output}" MATCHES "clang version ([^\n]+)\n")
@@ -120,7 +121,8 @@ execute_process(COMMAND sh -c "${MODERN_BPFTOOL_EXE} help 2>&1 | grep -wq 'gen'"
   OUTPUT_VARIABLE BPFTOOL_version_output
   ERROR_VARIABLE BPFTOOL_version_error
   RESULT_VARIABLE BPFTOOL_version_result
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 if(NOT ${BPFTOOL_version_result} EQUAL 0)
     message(WARNING "${MODERN_BPF_LOG_PREFIX} bpftool does not support gen command")
@@ -136,7 +138,9 @@ execute_process(
   OUTPUT_VARIABLE CLANG_SYSTEM_INCLUDES_output
   ERROR_VARIABLE CLANG_SYSTEM_INCLUDES_error
   RESULT_VARIABLE CLANG_SYSTEM_INCLUDES_result
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 if(${CLANG_SYSTEM_INCLUDES_result} EQUAL 0)
   string(REPLACE "\n" " " CLANG_SYSTEM_INCLUDES "${CLANG_SYSTEM_INCLUDES_output}")
   message(STATUS "${MODERN_BPF_LOG_PREFIX} BPF system include flags: ${CLANG_SYSTEM_INCLUDES}")
@@ -157,7 +161,9 @@ execute_process(COMMAND uname -m
   OUTPUT_VARIABLE ARCH_output
   ERROR_VARIABLE ARCH_error
   RESULT_VARIABLE ARCH_result
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 if(${ARCH_result} EQUAL 0)
   set(ARCH ${ARCH_output})
   message(STATUS "${MODERN_BPF_LOG_PREFIX} Target arch: ${ARCH}")
@@ -256,5 +262,4 @@ add_custom_command(
 # Add the skeleton as a custom target
 ########################
 
-set(BPF_SKEL_TARGET ProbeSkeleton)
-add_custom_target(${BPF_SKEL_TARGET} ALL DEPENDS ${BPF_SKEL_FILE})
+add_custom_target(ProbeSkeleton ALL DEPENDS ${BPF_SKEL_FILE})
