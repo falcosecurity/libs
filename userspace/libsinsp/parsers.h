@@ -22,6 +22,8 @@ limitations under the License.
 #pragma once
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_syslog.h>
+#include <libsinsp/fdinfo.h>
+#include <memory>
 
 class sinsp_parser
 {
@@ -118,7 +120,7 @@ private:
 	void parse_capset_exit(sinsp_evt *evt);
 	void parse_unshare_setns_exit(sinsp_evt *evt);
 
-	inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo,
+	inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo* fdinfo,
 		uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport, bool overwrite_dest=true);
 	inline void fill_client_socket_info(sinsp_evt* evt, uint8_t* packed_data, bool overwrite_dest);
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
@@ -128,12 +130,12 @@ private:
 	bool update_fd(sinsp_evt *evt, const sinsp_evt_param* parinfo);
 
 	// Next 4 return false if the update didn't happen because the tuple is identical to the given address
-	bool set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
-	bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
-	bool set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
-	bool set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
+	bool set_ipv4_addresses_and_ports(sinsp_fdinfo* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
+	bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
+	bool set_ipv6_addresses_and_ports(sinsp_fdinfo* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
+	bool set_unix_info(sinsp_fdinfo* fdinfo, uint8_t* packed_data);
 
-	void swap_addresses(sinsp_fdinfo_t* fdinfo);
+	void swap_addresses(sinsp_fdinfo* fdinfo);
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
 

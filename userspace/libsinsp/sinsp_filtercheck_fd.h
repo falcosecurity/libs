@@ -96,7 +96,7 @@ public:
 	bool compare(sinsp_evt*) override;
 
 	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo_t* m_fdinfo;
+	sinsp_fdinfo* m_fdinfo;
 	fd_type m_fd_type;
 	std::string m_tstr;
 	uint8_t m_tcstr[2];

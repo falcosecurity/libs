@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 /**
  * This api defines a relationship between libsinsp and an external event processor.
  * Such external processors should derive from event_processor and register themselves with
@@ -51,6 +53,15 @@ public:
 	 * before the sinsp object is init-ed
 	 */
 	virtual sinsp_threadinfo* build_threadinfo(sinsp* inspector);
+
+	/**
+	 * Some event processors allocate different fd info types with extra data.
+	 *
+	 * This allows the processor to override the fd info builder. Note that
+	 * If this is overridden by the event processor, the processor MUST be registered
+	 * before the sinsp object is init-ed
+	 */
+	virtual std::unique_ptr<sinsp_fdinfo> build_fdinfo(sinsp* inspector);
 };
 
 }  // namespace libsinsp

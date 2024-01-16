@@ -602,7 +602,7 @@ int sinsp_evt::render_fd_json(Json::Value *ret, int64_t fd, const char** resolve
 
 	if(fd >= 0)
 	{
-		sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
+		sinsp_fdinfo *fdinfo = tinfo->get_fd(fd);
 		if(fdinfo)
 		{
 			char tch = fdinfo->get_typechar();
@@ -695,7 +695,7 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 
 	if(fd >= 0)
 	{
-		sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
+		sinsp_fdinfo *fdinfo = tinfo->get_fd(fd);
 		if(fdinfo)
 		{
 			char tch = fdinfo->get_typechar();
@@ -1295,7 +1295,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				int64_t fd = 0;
 				memcpy(&fd, param->m_val + pos, sizeof(uint64_t));
 
-				sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
+				sinsp_fdinfo *fdinfo = tinfo->get_fd(fd);
 				if(fdinfo)
 				{
 					tch = fdinfo->get_typechar();
@@ -2111,11 +2111,12 @@ bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 
 	// fd info
 	dest.m_fdinfo = nullptr;
+	dest.m_fdinfo_ref.reset();
 	if (src.m_fdinfo != nullptr)
 	{
 		//m_fdinfo_ref is only used to keep a handle to this
 		// copy of the fdinfo which was copied from the global fdinfo table
-		dest.m_fdinfo_ref.reset(new sinsp_fdinfo_t(*src.m_fdinfo));
+		dest.m_fdinfo_ref = std::move(src.m_fdinfo->clone());
 		dest.m_fdinfo = dest.m_fdinfo_ref.get();
 	}
 	dest.m_fdinfo_name_changed = src.m_fdinfo_name_changed;

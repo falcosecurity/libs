@@ -439,7 +439,7 @@ bool sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT std::vector<extract_valu
 
 		// Iterate over the list of open file descriptors and add all
 		// unique file descriptor types to the vector for comparison
-		auto fd_type_gather = [&fd_types, &values](uint64_t, const sinsp_fdinfo_t& fdinfo)
+		auto fd_type_gather = [&fd_types, &values](uint64_t, const sinsp_fdinfo& fdinfo)
 		{
 			const char* type = fdinfo.get_typestring();
 

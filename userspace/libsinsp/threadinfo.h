@@ -48,7 +48,7 @@ struct erase_fd_params
 	bool m_remove_from_table;
 	int64_t m_fd;
 	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo_t* m_fdinfo;
+	sinsp_fdinfo* m_fdinfo;
 	uint64_t m_ts;
 };
 
@@ -258,7 +258,7 @@ public:
 	  \return Pointer to the FD information, or NULL if the given FD doesn't
 	   exist
 	*/
-	inline sinsp_fdinfo_t* get_fd(int64_t fd)
+	inline sinsp_fdinfo* get_fd(int64_t fd)
 	{
 		if(fd < 0)
 		{
@@ -269,7 +269,7 @@ public:
 
 		if(fdt)
 		{
-			sinsp_fdinfo_t *fdinfo = fdt->find(fd);
+			sinsp_fdinfo *fdinfo = fdt->find(fd);
 			if(fdinfo)
 			{
 				// Its current name is now its old
@@ -559,8 +559,8 @@ VISIBILITY_PRIVATE
 	// return true if, based on the current inspector filter, this thread should be kept
 	void init(scap_threadinfo* pi);
 	void fix_sockets_coming_from_proc();
-	sinsp_fdinfo_t* add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo);
-	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
+	sinsp_fdinfo* add_fd(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
+	void add_fd_from_scap(scap_fdinfo *fdinfo);
 	void remove_fd(int64_t fd);
 	void set_cwd(std::string_view cwd);
 	sinsp_threadinfo* get_cwd_root();
@@ -723,6 +723,9 @@ public:
 	void clear();
 
 	std::unique_ptr<sinsp_threadinfo> new_threadinfo() const;
+
+	std::unique_ptr<sinsp_fdinfo> new_fdinfo() const;
+
 	bool add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable);
 	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);

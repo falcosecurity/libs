@@ -1406,7 +1406,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
-				sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+				sinsp_fdinfo* fdinfo = evt->m_fdinfo;
 
 				if(fdinfo != NULL && fdinfo->is_syslog())
 				{
@@ -1423,7 +1423,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		return extract_error_count(evt, len);
 	case TYPE_COUNT_ERROR_FILE:
 		{
-			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+			sinsp_fdinfo* fdinfo = evt->m_fdinfo;
 
 			if(fdinfo != NULL)
 			{
@@ -1453,7 +1453,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 	case TYPE_COUNT_ERROR_NET:
 		{
-			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+			sinsp_fdinfo* fdinfo = evt->m_fdinfo;
 
 			if(fdinfo != NULL)
 			{
@@ -1496,7 +1496,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 	case TYPE_COUNT_ERROR_OTHER:
 		{
-			sinsp_fdinfo_t* fdinfo = evt->m_fdinfo;
+			sinsp_fdinfo* fdinfo = evt->m_fdinfo;
 
 			if(fdinfo != NULL)
 			{

@@ -561,10 +561,16 @@ public:
 
 	libsinsp::event_processor* m_external_event_processor;
 
-	sinsp_threadinfo* build_threadinfo()
+	inline sinsp_threadinfo* build_threadinfo()
     {
         return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
                                           : m_thread_manager->new_threadinfo().release();
+    }
+
+	inline std::unique_ptr<sinsp_fdinfo> build_fdinfo()
+    {
+        return m_external_event_processor ? m_external_event_processor->build_fdinfo(this)
+                                          : m_thread_manager->new_fdinfo();
     }
 
 	/*!

@@ -24,45 +24,7 @@ limitations under the License.
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
 
-///////////////////////////////////////////////////////////////////////////////
-// sinsp_fdinfo implementation
-///////////////////////////////////////////////////////////////////////////////
-template<> sinsp_fdinfo_t::sinsp_fdinfo()
-{
-	m_type = SCAP_FD_UNINITIALIZED;
-	m_flags = FLAGS_NONE;
-	m_usrstate = NULL;
-	m_name = "";
-	m_name_raw = "";
-	m_oldname = "";
-	m_dev = 0;
-	m_mount_id = 0;
-	m_ino = 0;
-	m_openflags = 0;
-	m_pid = 0;
-}
-
-template<> void sinsp_fdinfo_t::reset()
-{
-	m_type = SCAP_FD_UNINITIALIZED;
-	m_flags = FLAGS_NONE;
-	m_usrstate = NULL;
-	m_name = "";
-	m_name_raw = "";
-	m_oldname = "";
-	m_dev = 0;
-	m_mount_id = 0;
-	m_ino = 0;
-	m_openflags = 0;
-	m_pid = 0;
-}
-
-template<> std::string* sinsp_fdinfo_t::tostring()
-{
-	return &m_name;
-}
-
-template<> char sinsp_fdinfo_t::get_typechar() const
+char sinsp_fdinfo::get_typechar() const
 {
 	switch(m_type)
 	{
@@ -115,7 +77,7 @@ template<> char sinsp_fdinfo_t::get_typechar() const
 	}
 }
 
-template<> const char* sinsp_fdinfo_t::get_typestring() const
+const char* sinsp_fdinfo::get_typestring() const
 {
 	switch(m_type)
 	{
@@ -161,7 +123,7 @@ template<> const char* sinsp_fdinfo_t::get_typestring() const
 	}
 }
 
-template<> std::string sinsp_fdinfo_t::tostring_clean() const
+std::string sinsp_fdinfo::tostring_clean() const
 {
 	std::string tstr = m_name;
 	sanitize_string(tstr);
@@ -169,19 +131,19 @@ template<> std::string sinsp_fdinfo_t::tostring_clean() const
 	return tstr;
 }
 
-template<> void sinsp_fdinfo_t::add_filename_raw(std::string_view rawpath)
+void sinsp_fdinfo::add_filename_raw(std::string_view rawpath)
 {
 	m_name_raw = std::string(rawpath);
 }
 
-template<> void sinsp_fdinfo_t::add_filename(std::string_view fullpath)
+void sinsp_fdinfo::add_filename(std::string_view fullpath)
 {
 	m_name = std::string(fullpath);
 }
 
-template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
+bool sinsp_fdinfo::set_net_role_by_guessing(sinsp* inspector,
 										  sinsp_threadinfo* ptinfo,
-										  sinsp_fdinfo_t* pfdinfo,
+										  sinsp_fdinfo* pfdinfo,
 										  bool incoming)
 {
 	//
@@ -204,7 +166,7 @@ template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
 	}
 
 wildass_guess:
-	if(!(pfdinfo->m_flags & (sinsp_fdinfo_t::FLAGS_ROLE_CLIENT | sinsp_fdinfo_t::FLAGS_ROLE_SERVER)))
+	if(!(pfdinfo->m_flags & (sinsp_fdinfo::FLAGS_ROLE_CLIENT | sinsp_fdinfo::FLAGS_ROLE_SERVER)))
 	{
 		//
 		// We just assume that a server usually starts with a read and a client with a write
@@ -222,7 +184,7 @@ wildass_guess:
 	return true;
 }
 
-template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto() const
+scap_l4_proto sinsp_fdinfo::get_l4proto() const
 {
 	scap_fd_type evt_type = m_type;
 
@@ -277,50 +239,48 @@ sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
 	reset_cache();
 }
 
-sinsp_fdinfo_t* sinsp_fdtable::find(int64_t fd)
+sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
 {
-	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
-
-		//
-		// Try looking up in our simple cache
-		//
-		if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
+	//
+	// Try looking up in our simple cache
+	//
+	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
+	{
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
 		{
-			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
-			{
-				m_inspector->m_sinsp_stats_v2->m_n_cached_fd_lookups++;
-			}
-			return m_last_accessed_fdinfo;
+			m_inspector->m_sinsp_stats_v2->m_n_cached_fd_lookups++;
+		}
+		return m_last_accessed_fdinfo;
+	}
+
+	//
+	// Caching failed, do a real lookup
+	//
+	auto fdit = m_table.find(fd);
+
+	if(fdit == m_table.end())
+	{
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		{
+			m_inspector->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+		}
+		return NULL;
+	}
+	else
+	{
+		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		{
+			m_inspector->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
 		}
 
-		//
-		// Caching failed, do a real lookup
-		//
-		fdit = m_table.find(fd);
-
-		if(fdit == m_table.end())
-		{
-			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
-			{
-				m_inspector->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
-			}
-			return NULL;
-		}
-		else
-		{
-			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
-			{
-				m_inspector->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
-			}
-
-			m_last_accessed_fd = fd;
-			m_last_accessed_fdinfo = &(fdit->second);
-			lookup_device(&(fdit->second), fd);
-			return &(fdit->second);
-		}
+		m_last_accessed_fd = fd;
+		m_last_accessed_fdinfo = fdit->second.get();
+		lookup_device(m_last_accessed_fdinfo, fd);
+		return m_last_accessed_fdinfo;
+	}
 }
 
-sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
+sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
 {
 	//
 	// Look for the FD in the table
@@ -345,8 +305,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 				m_inspector->m_sinsp_stats_v2->m_n_added_fds++;
 			}
 
-			std::pair<std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res = m_table.emplace(fd, *fdinfo);
-			return &(insert_res.first->second);
+			return m_table.emplace(fd, std::move(fdinfo)).first->second.get();
 		}
 		else
 		{
@@ -358,7 +317,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// the fd is already in the table.
 		//
-		if(it->second.m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS)
+		if(it->second->m_flags & sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS)
 		{
 			//
 			// Sometimes an FD-creating syscall can be called on an FD that is being closed (i.e
@@ -366,10 +325,10 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			// If this is the case, mark the new entry so that the successive close exit won't
 			// destroy it.
 			//
-			fdinfo->m_flags &= ~sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS;
-			fdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED;
+			fdinfo->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
+			fdinfo->m_flags |= sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
 
-			m_table[CANCELED_FD_NUMBER] = it->second;
+			m_table[CANCELED_FD_NUMBER] = std::move(it->second->clone());
 		}
 		else
 		{
@@ -389,14 +348,15 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// Replace the fd as a struct copy
 		//
-		it->second.copy(*fdinfo, true);
-		return &(it->second);
+		m_last_accessed_fd = -1;
+		it->second = std::move(fdinfo);
+		return it->second.get();
 	}
 }
 
-void sinsp_fdtable::erase(int64_t fd)
+bool sinsp_fdtable::erase(int64_t fd)
 {
-	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
+	auto fdit = m_table.find(fd);
 
 	if(fd == m_last_accessed_fd)
 	{
@@ -416,6 +376,7 @@ void sinsp_fdtable::erase(int64_t fd)
 		{
 			m_inspector->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
 		}
+		return false;
 	}
 	else
 	{
@@ -425,6 +386,7 @@ void sinsp_fdtable::erase(int64_t fd)
 			m_inspector->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
 			m_inspector->m_sinsp_stats_v2->m_n_removed_fds++;
 		}
+		return true;
 	}
 }
 
@@ -443,7 +405,7 @@ void sinsp_fdtable::reset_cache()
 	m_last_accessed_fd = -1;
 }
 
-void sinsp_fdtable::lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd)
+void sinsp_fdtable::lookup_device(sinsp_fdinfo* fdi, uint64_t fd)
 {
 #ifdef HAS_CAPTURE
 #ifndef _WIN32

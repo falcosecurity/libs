@@ -937,6 +937,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 				tevt.m_evtnum = 0;
 				tevt.m_inspector = this;
 				tevt.m_tinfo = sinsp_tinfo.get();
+				tevt.m_fdinfo_ref.reset();
 				tevt.m_fdinfo = NULL;
 				sinsp_tinfo->m_lastevent_fd = -1;
 				sinsp_tinfo->m_lastevent_data = NULL;
@@ -972,8 +973,7 @@ void sinsp::on_new_entry_from_proc(void* context,
 			}
 		}
 
-		sinsp_fdinfo_t sinsp_fdinfo;
-		sinsp_tinfo->add_fd_from_scap(fdinfo, &sinsp_fdinfo);
+		sinsp_tinfo->add_fd_from_scap(fdinfo);
 	}
 }
 
@@ -2145,6 +2145,12 @@ sinsp_threadinfo*
 libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 {
 	return new sinsp_threadinfo(inspector);
+}
+
+std::unique_ptr<sinsp_fdinfo>
+libsinsp::event_processor::build_fdinfo(sinsp* inspector)
+{
+	return std::make_unique<sinsp_fdinfo>();
 }
 
 void sinsp::handle_async_event(std::unique_ptr<sinsp_evt> evt)

@@ -81,7 +81,7 @@ TEST(sinsp_network_interfaces, fd_is_of_wrong_type)
 	sinsp_fdinfo fd;
 	fd.m_type = SCAP_FD_UNKNOWN;
 	sinsp_network_interfaces interfaces;
-	interfaces.update_fd(&fd);
+	interfaces.update_fd(fd);
 }
 
 TEST(sinsp_network_interfaces, socket_is_of_wrong_type)
@@ -90,7 +90,7 @@ TEST(sinsp_network_interfaces, socket_is_of_wrong_type)
 	fd.m_type = SCAP_FD_IPV4_SOCK;
 	fd.m_info.m_ipv4info.m_fields.m_l4proto = SCAP_L4_TCP;
 	sinsp_network_interfaces interfaces;
-	interfaces.update_fd(&fd);
+	interfaces.update_fd(fd);
 }
 
 TEST(sinsp_network_interfaces, sip_and_dip_are_not_zero)
@@ -101,7 +101,7 @@ TEST(sinsp_network_interfaces, sip_and_dip_are_not_zero)
 	fd.m_info.m_ipv4info.m_fields.m_sip = 1;
 	fd.m_info.m_ipv4info.m_fields.m_dip = 1;
 	sinsp_network_interfaces interfaces;
-	interfaces.update_fd(&fd);
+	interfaces.update_fd(fd);
 }
 
 TEST(sinsp_network_interfaces, infer_finds_exact_match)

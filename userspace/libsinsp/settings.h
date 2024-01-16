@@ -54,12 +54,3 @@ limitations under the License.
 //
 #define DEFAULT_INCREASE_SNAPLEN_PORT_RANGE {0, 0}
 
-//
-// FD class customized with the storage we need
-//
-#ifdef HAS_ANALYZER
-#include "analyzer_settings.h"
-#else
-template<class T> class sinsp_fdinfo;
-typedef sinsp_fdinfo<int> sinsp_fdinfo_t;
-#endif // HAS_ANALYZER
