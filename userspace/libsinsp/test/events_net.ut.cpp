@@ -48,7 +48,7 @@ TEST_F(sinsp_with_test_input, net_socket)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 
 	int64_t client_fd = 9;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM,  (uint32_t) 0);
@@ -82,7 +82,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 	sinsp_threadinfo* tinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
@@ -166,7 +166,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect_with_intermediate_event)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 	int64_t client_fd = 8;
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, (uint32_t) 0);
@@ -263,7 +263,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
 	int64_t server_fd = 3;
@@ -377,7 +377,7 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
 
@@ -450,7 +450,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
 
@@ -520,7 +520,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
 
@@ -578,7 +578,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo_t* fdinfo = NULL;
+	sinsp_fdinfo* fdinfo = NULL;
 	int64_t client_fd = 7;
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_DGRAM, (uint32_t) 0);

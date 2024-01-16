@@ -18,10 +18,14 @@ limitations under the License.
 
 #pragma once
 
+#include <libscap/scap.h>
 #include <libsinsp/tuples.h>
+#include <libsinsp/sinsp_public.h>
 
 #include <unordered_map>
 #include <vector>
+#include <memory>
+#include <functional>
 
 #ifdef _WIN32
 #define CANCELED_FD_NUMBER INT64_MAX
@@ -52,6 +56,10 @@ limitations under the License.
 #define CHAR_FD_MEMFD			'm'
 #define CHAR_FD_PIDFD			'P'
 
+class sinsp;
+class sinsp_threadinfo;
+class sinsp_fdinfo;
+
 /** @defgroup state State management
  * A collection of classes to query process and FD state.
  *  @{
@@ -75,63 +83,47 @@ union sinsp_sockinfo
    you get them by calling \ref sinsp_evt::get_fd_info or
    \ref sinsp_threadinfo::get_fd.
 */
-template<class T>
 class SINSP_PUBLIC sinsp_fdinfo
 {
 public:
-	sinsp_fdinfo();
-	sinsp_fdinfo (const sinsp_fdinfo &other)
+	/*!
+	  \brief FD flags.
+	*/
+	enum flags
 	{
-		copy(other, false);
-	}
+		FLAGS_NONE = 0,
+		FLAGS_FROM_PROC = (1 << 0),
+		//FLAGS_TRANSACTION = (1 << 1), // note: deprecated
+		FLAGS_ROLE_CLIENT = (1 << 2),
+		FLAGS_ROLE_SERVER = (1 << 3),
+		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
+		FLAGS_CLOSE_CANCELED = (1 << 5),
+		FLAGS_IS_SOCKET_PIPE = (1 << 6),
+		// FLAGS_IS_TRACER_FILE = (1 << 7), // note: deprecated
+		// FLAGS_IS_TRACER_FD = (1 << 8), // note: deprecated
+		// FLAGS_IS_NOT_TRACER_FD = (1 << 9), // note: deprecated
+		FLAGS_IN_BASELINE_R = (1 << 10),
+		FLAGS_IN_BASELINE_RW = (1 << 11),
+		FLAGS_IN_BASELINE_OTHER = (1 << 12),
+		FLAGS_SOCKET_CONNECTED = (1 << 13),
+		FLAGS_IS_CLONED = (1 << 14),
+		FLAGS_CONNECTION_PENDING = (1 << 15),
+		FLAGS_CONNECTION_FAILED = (1 << 16),
+	};
 
-	~sinsp_fdinfo()
+	sinsp_fdinfo() = default;
+	sinsp_fdinfo(sinsp_fdinfo&& o) = default;
+	sinsp_fdinfo& operator=(sinsp_fdinfo&& o) = default;
+	sinsp_fdinfo(const sinsp_fdinfo& o) = default;
+	sinsp_fdinfo& operator=(const sinsp_fdinfo& o) = default;
+
+	virtual ~sinsp_fdinfo() = default;
+
+	virtual std::unique_ptr<sinsp_fdinfo> clone() const
 	{
-		if(m_usrstate != NULL)
-		{
-			delete m_usrstate;
-		}
-	}
-
-	sinsp_fdinfo& operator=(const sinsp_fdinfo& other)
-	{
-		copy(other, true);
-		return *this;
-	}
-
-	void reset();
-	std::string* tostring();
-
-	inline void copy(const sinsp_fdinfo &other, bool free_state)
-	{
-		m_type = other.m_type;
-		m_openflags = other.m_openflags;
-		m_sockinfo = other.m_sockinfo;
-		m_name = other.m_name;
-		m_name_raw = other.m_name_raw;
-		m_oldname = other.m_oldname;
-		m_flags = other.m_flags;
-		m_dev = other.m_dev;
-		m_mount_id = other.m_mount_id;
-		m_ino = other.m_ino;
-		m_pid = other.m_pid;
-
-		if(free_state)
-		{
-			if(m_usrstate != NULL)
-			{
-				delete m_usrstate;
-			}
-		}
-
-		if(other.m_usrstate != NULL)
-		{
-			m_usrstate = new T(*other.m_usrstate);
-		}
-		else
-		{
-			m_usrstate = NULL;
-		}
+		auto ret = std::make_unique<sinsp_fdinfo>();
+		*(ret.get()) = *this;
+		return ret;
 	}
 
 	/*!
@@ -233,7 +225,7 @@ public:
 		return m_type == SCAP_FD_PIDFD;
 	}
 
-	uint16_t get_serverport() const
+	inline uint16_t get_serverport() const
 	{
 		if(m_type == SCAP_FD_IPV4_SOCK)
 		{
@@ -249,34 +241,34 @@ public:
 		}
 	}
 
-	uint32_t get_device() const
+	inline uint32_t get_device() const
 	{
 		return m_dev;
 	}
 
 	// see new_encode_dev in include/linux/kdev_t.h
-	uint32_t get_device_major() const
+	inline uint32_t get_device_major() const
 	{
 		return (m_dev & 0xfff00) >> 8;
 	}
 
 	// see new_encode_dev in include/linux/kdev_t.h
-	uint32_t get_device_minor() const
+	inline uint32_t get_device_minor() const
 	{
 		return (m_dev & 0xff) | ((m_dev >> 12) & 0xfff00);
 	}
 
-	uint64_t get_ino() const
+	inline uint64_t get_ino() const
 	{
 		return m_ino;
 	}
 
-	int64_t get_pid() const
+	inline int64_t get_pid() const
 	{
 		return m_pid;
 	}
 
-	void set_unix_info(uint8_t* packed_data)
+	inline void set_unix_info(uint8_t* packed_data)
 	{
 		m_sockinfo.m_unixinfo.m_fields.m_source = *(uint64_t *)(packed_data + 1);
 		m_sockinfo.m_unixinfo.m_fields.m_dest = *(uint64_t *)(packed_data + 9);
@@ -331,61 +323,9 @@ public:
 		return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
 	}
 
-	scap_fd_type m_type; ///< The fd type, e.g. file, directory, IPv4 socket...
-	uint32_t m_openflags; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
-
-	/*!
-	  \brief Socket-specific state.
-	  This is uninitialized (zero) for non-socket FDs.
-	*/
-	sinsp_sockinfo m_sockinfo = {};
-
-	std::string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
-	std::string m_name_raw; // Human readable rendering of this FD. See m_name, only used if fd is a file path. Path is kept "raw" with limited sanitization and without absolute path derivation.
-	std::string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
-
-	/*!
-	  \brief FD flags.
-	*/
-	enum flags
-	{
-		FLAGS_NONE = 0,
-		FLAGS_FROM_PROC = (1 << 0),
-		//FLAGS_TRANSACTION = (1 << 1),
-		FLAGS_ROLE_CLIENT = (1 << 2),
-		FLAGS_ROLE_SERVER = (1 << 3),
-		FLAGS_CLOSE_IN_PROGRESS = (1 << 4),
-		FLAGS_CLOSE_CANCELED = (1 << 5),
-		FLAGS_IS_SOCKET_PIPE = (1 << 6),
-		// FLAGS_IS_TRACER_FILE = (1 << 7), // note: deprecated
-		// FLAGS_IS_TRACER_FD = (1 << 8), // note: deprecated
-		// FLAGS_IS_NOT_TRACER_FD = (1 << 9), // note: deprecated
-		FLAGS_IN_BASELINE_R = (1 << 10),
-		FLAGS_IN_BASELINE_RW = (1 << 11),
-		FLAGS_IN_BASELINE_OTHER = (1 << 12),
-		FLAGS_SOCKET_CONNECTED = (1 << 13),
-		FLAGS_IS_CLONED = (1 << 14),
-		FLAGS_CONNECTION_PENDING = (1 << 15),
-		FLAGS_CONNECTION_FAILED = (1 << 16),
-	};
-
 	void add_filename_raw(std::string_view rawpath);
+
 	void add_filename(std::string_view fullpath);
-
-	inline bool is_transaction() const
-	{
-		return (m_usrstate != NULL);
-	}
-
-	T* get_usrstate()
-	{
-		return m_usrstate;
-	}
-
-	const T* get_usrstate() const
-	{
-		return m_usrstate;
-	}
 
 	inline void set_role_server()
 	{
@@ -399,7 +339,7 @@ public:
 
 	bool set_net_role_by_guessing(sinsp* inspector,
 		sinsp_threadinfo* ptinfo,
-		sinsp_fdinfo_t* pfdinfo,
+		sinsp_fdinfo* pfdinfo,
 		bool incoming);
 
 	inline void reset_flags()
@@ -407,7 +347,7 @@ public:
 		m_flags = FLAGS_NONE;
 	}
 
-	inline void set_socketpipe() const
+	inline void set_socketpipe()
 	{
 		m_flags |= FLAGS_IS_SOCKET_PIPE;
 	}
@@ -482,12 +422,17 @@ public:
 		m_flags |= FLAGS_IS_CLONED;
 	}
 
-	T* m_usrstate;
-	uint32_t m_flags;
-	uint32_t m_dev;
-	uint32_t m_mount_id;
-	uint64_t m_ino;
-	int64_t m_pid; // only if fd is a pidfd
+	scap_fd_type m_type = SCAP_FD_UNINITIALIZED; ///< The fd type, e.g. file, directory, IPv4 socket...
+	uint32_t m_openflags = 0; ///< If this FD is a file, the flags that were used when opening it. See the PPM_O_* definitions in driver/ppm_events_public.h.
+	sinsp_sockinfo m_sockinfo = {}; ///< Socket-specific state. This is uninitialized (zero) for non-socket FDs.
+	std::string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
+	std::string m_name_raw; // Human readable rendering of this FD. See m_name, only used if fd is a file path. Path is kept "raw" with limited sanitization and without absolute path derivation.
+	std::string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
+	uint32_t m_flags = FLAGS_NONE;
+	uint32_t m_dev = 0;
+	uint32_t m_mount_id = 0;
+	uint64_t m_ino = 0;
+	int64_t m_pid = 0; // only if fd is a pidfd
 };
 
 /*@}*/
@@ -498,20 +443,24 @@ public:
 class sinsp_fdtable
 {
 public:
+	typedef std::function<bool(int64_t, const sinsp_fdinfo&)> fdtable_visitor_t;
+
 	sinsp_fdtable(sinsp* inspector);
 
-	sinsp_fdinfo_t* find(int64_t fd);
+	inline std::unique_ptr<sinsp_fdinfo> new_fdinfo() const
+	{
+		return sinsp_fdinfo{}.clone();
+	}
 
-	// If the key is already present, overwrite the existing value and return false.
-	sinsp_fdinfo_t* add(int64_t fd, sinsp_fdinfo_t* fdinfo);
-
-	typedef std::function<bool(int64_t, const sinsp_fdinfo_t&)> fdtable_visitor_t;
+	sinsp_fdinfo* find(int64_t fd);
+	
+	sinsp_fdinfo* add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
 
 	bool loop(const fdtable_visitor_t callback) const
 	{
 		for(auto it = m_table.begin(); it != m_table.end(); ++it)
 		{
-			if (!callback(it->first, it->second))
+			if (!callback(it->first, *(it->second.get())))
 			{
 				return false;
 			}
@@ -520,21 +469,24 @@ public:
 	}
 
 	// If the key is present, returns true, otherwise returns false.
-	void erase(int64_t fd);
+	bool erase(int64_t fd);
+
 	void clear();
+
 	size_t size() const;
+
 	void reset_cache();
 
 	sinsp* m_inspector;
-	std::unordered_map<int64_t, sinsp_fdinfo_t> m_table;
+	std::unordered_map<int64_t, std::unique_ptr<sinsp_fdinfo>> m_table;
 
 	//
 	// Simple fd cache
 	//
 	int64_t m_last_accessed_fd;
-	sinsp_fdinfo_t *m_last_accessed_fdinfo;
+	sinsp_fdinfo *m_last_accessed_fdinfo;
 	uint64_t m_tid;
 
 private:
-	void lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd);
+	void lookup_device(sinsp_fdinfo* fdi, uint64_t fd);
 };

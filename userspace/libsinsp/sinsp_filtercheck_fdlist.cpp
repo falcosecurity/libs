@@ -89,7 +89,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		bool add_comma = true;
 		int64_t fd = *(int64_t *)(payload + pos);
 
-		sinsp_fdinfo_t *fdinfo = tinfo ? tinfo->get_fd(fd) : NULL;
+		sinsp_fdinfo *fdinfo = tinfo ? tinfo->get_fd(fd) : NULL;
 
 		switch(m_field_id)
 		{

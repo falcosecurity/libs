@@ -529,6 +529,7 @@ void chisel_table::process_proctable(sinsp_evt* evt)
 	tevt.m_cpuid = 0;
 	tevt.m_evtnum = 0;
 	tevt.m_pevt = &tscapevt;
+	tevt.m_fdinfo_ref.reset();
 	tevt.m_fdinfo = NULL;
 
 	threadtable->loop([&] (sinsp_threadinfo& tinfo) {

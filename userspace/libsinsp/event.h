@@ -35,6 +35,7 @@ limitations under the License.
 #include <libsinsp/gen_filter.h>
 #include <libsinsp/settings.h>
 #include <libsinsp/sinsp_exception.h>
+#include <libsinsp/fdinfo.h>
 
 class sinsp;
 class sinsp_threadinfo;
@@ -370,7 +371,7 @@ public:
 
 	  \note For events that are not I/O related, get_fd_info() returns NULL.
 	*/
-	inline sinsp_fdinfo_t* get_fd_info() const
+	inline sinsp_fdinfo* get_fd_info() const
 	{
 		return m_fdinfo;
 	}
@@ -507,6 +508,7 @@ private:
 		m_flags = EF_NONE;
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_fdinfo = NULL;
+		m_fdinfo_ref.reset();
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
@@ -519,6 +521,7 @@ private:
 		m_tinfo_ref.reset();
 		m_tinfo = NULL;
 		m_fdinfo = NULL;
+		m_fdinfo_ref.reset();
 		m_fdinfo_name_changed = false;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
@@ -528,6 +531,7 @@ private:
 		m_info = &(m_event_info_table[m_pevt->type]);
 		m_tinfo_ref.reset();
 		m_tinfo = NULL;
+		m_fdinfo_ref.reset();
 		m_fdinfo = NULL;
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
@@ -539,12 +543,13 @@ private:
 	inline void init(scap_evt *scap_event,
 			 ppm_event_info * ppm_event,
 			 sinsp_threadinfo *threadinfo,
-			 sinsp_fdinfo_t *fdinfo)
+			 sinsp_fdinfo *fdinfo)
 	{
 		m_pevt = scap_event;
 		m_info = ppm_event;
 		m_tinfo_ref.reset(); // we don't own the threadinfo so don't try to manage its lifetime
 		m_tinfo = threadinfo;
+		m_tinfo_ref.reset();
 		m_fdinfo = fdinfo;
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
@@ -684,7 +689,7 @@ VISIBILITY_PRIVATE
 	// it should either be null, or point to the same place as m_tinfo
 	std::shared_ptr<sinsp_threadinfo> m_tinfo_ref;
 	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo_t* m_fdinfo;
+	sinsp_fdinfo* m_fdinfo;
 
 	// If true, then the associated fdinfo changed names as a part
 	// of parsing this event.
@@ -696,7 +701,7 @@ VISIBILITY_PRIVATE
 	bool m_filtered_out;
 	const struct ppm_event_info* m_event_info_table;
 
-	std::shared_ptr<sinsp_fdinfo_t> m_fdinfo_ref;
+	std::shared_ptr<sinsp_fdinfo> m_fdinfo_ref;
 	// For some exit events, the "path" argument from the
 	// corresponding enter event is stored here.
 	std::unordered_map<std::string, std::string> m_enter_path_param;

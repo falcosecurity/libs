@@ -102,21 +102,21 @@ uint32_t sinsp_network_interfaces::infer_ipv4_address(uint32_t destination_addre
 	return 0;
 }
 
-void sinsp_network_interfaces::update_fd(sinsp_fdinfo_t *fd)
+void sinsp_network_interfaces::update_fd(sinsp_fdinfo& fd)
 {
-	ipv4tuple *pipv4info = &(fd->m_sockinfo.m_ipv4info);
-	ipv6tuple *pipv6info = &(fd->m_sockinfo.m_ipv6info);
+	ipv4tuple *pipv4info = &(fd.m_sockinfo.m_ipv4info);
+	ipv6tuple *pipv6info = &(fd.m_sockinfo.m_ipv6info);
 
 	//
 	// only handle ipv4/ipv6 udp sockets
 	//
-	if(fd->m_type != SCAP_FD_IPV4_SOCK &&
-	   fd->m_type != SCAP_FD_IPV6_SOCK)
+	if(fd.m_type != SCAP_FD_IPV4_SOCK &&
+	   fd.m_type != SCAP_FD_IPV6_SOCK)
 	{
 		return;
 	}
 
-	if(fd->m_type == SCAP_FD_IPV4_SOCK)
+	if(fd.m_type == SCAP_FD_IPV4_SOCK)
 	{
 
 		if(0 != pipv4info->m_fields.m_sip && 0 != pipv4info->m_fields.m_dip)
@@ -154,7 +154,7 @@ void sinsp_network_interfaces::update_fd(sinsp_fdinfo_t *fd)
 			pipv4info->m_fields.m_dip = newaddr;
 		}
 	}
-	else if(fd->m_type == SCAP_FD_IPV6_SOCK)
+	else if(fd.m_type == SCAP_FD_IPV6_SOCK)
 	{
 
 		if(ipv6addr::empty_address != pipv6info->m_fields.m_sip &&

@@ -21,6 +21,7 @@ limitations under the License.
 #include <libsinsp/settings.h>
 #include <libsinsp/sinsp_public.h>
 #include <libsinsp/tuples.h>
+#include <libsinsp/fdinfo.h>
 
 #include <string>
 #include <vector>
@@ -75,7 +76,7 @@ public:
 
 	void import_interfaces(scap_addrlist* paddrlist);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
-	void update_fd(sinsp_fdinfo_t *fd);
+	void update_fd(sinsp_fdinfo& fd);
 	bool is_ipv4addr_in_subnet(uint32_t addr) const;
 	bool is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo) const;
 	void import_ipv6_interface(const sinsp_ipv6_ifinfo& ifinfo);
