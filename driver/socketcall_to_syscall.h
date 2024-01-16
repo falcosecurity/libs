@@ -151,65 +151,105 @@ static inline int socketcall_code_to_syscall_code(int socketcall_code, bool* is_
 
 	switch(socketcall_code)
 	{
+#ifdef SYS_SOCKET
 	case SYS_SOCKET:
 		return PPME_SOCKET_SOCKET_E;
+#endif
 
+#ifdef SYS_SOCKETPAIR
 	case SYS_SOCKETPAIR:
 		return PPME_SOCKET_SOCKETPAIR_E;
+#endif
 
+#ifdef SYS_ACCEPT
 	case SYS_ACCEPT:
 		return PPME_SOCKET_ACCEPT_5_E;
+#endif
 
+#ifdef SYS_ACCEPT4
 	case SYS_ACCEPT4:
 		return PPME_SOCKET_ACCEPT4_6_E;
+#endif
 
+#ifdef SYS_BIND
 	case SYS_BIND:
 		return PPME_SOCKET_BIND_E;
+#endif
 
+#ifdef SYS_LISTEN
 	case SYS_LISTEN:
 		return PPME_SOCKET_LISTEN_E;
+#endif
 
+#ifdef SYS_CONNECT
 	case SYS_CONNECT:
 		return PPME_SOCKET_CONNECT_E;
+#endif
 
+#ifdef SYS_GETSOCKNAME
 	case SYS_GETSOCKNAME:
 		return PPME_SOCKET_GETSOCKNAME_E;
+#endif
 
+#ifdef SYS_GETPEERNAME
 	case SYS_GETPEERNAME:
 		return PPME_SOCKET_GETPEERNAME_E;
+#endif
 
+#ifdef SYS_GETSOCKOPT
 	case SYS_GETSOCKOPT:
 		return PPME_SOCKET_GETSOCKOPT_E;
+#endif
 
+#ifdef SYS_SETSOCKOPT
 	case SYS_SETSOCKOPT:
 		return PPME_SOCKET_SETSOCKOPT_E;
+#endif
 
+#ifdef SYS_RECV
 	case SYS_RECV:
 		return PPME_SOCKET_RECV_E;
+#endif
 
+#ifdef SYS_RECVFROM
 	case SYS_RECVFROM:
 		return PPME_SOCKET_RECVFROM_E;
+#endif
 
+#ifdef SYS_RECVMSG
 	case SYS_RECVMSG:
 		return PPME_SOCKET_RECVMSG_E;
+#endif
 
+#ifdef SYS_RECVMMSG
 	case SYS_RECVMMSG:
 		return PPME_SOCKET_RECVMMSG_E;
+#endif
 
+#ifdef SYS_SEND
 	case SYS_SEND:
 		return PPME_SOCKET_SEND_E;
+#endif
 
+#ifdef SYS_SENDTO
 	case SYS_SENDTO:
 		return PPME_SOCKET_SENDTO_E;
+#endif
 
+#ifdef SYS_SENDMSG
 	case SYS_SENDMSG:
 		return PPME_SOCKET_SENDMSG_E;
+#endif
 
+#ifdef SYS_SENDMMSG
 	case SYS_SENDMMSG:
 		return PPME_SOCKET_SENDMMSG_E;
+#endif
 
+#ifdef SYS_SHUTDOWN
 	case SYS_SHUTDOWN:
 		return PPME_SOCKET_SHUTDOWN_E;
+#endif
 
 	default:
 		break;
