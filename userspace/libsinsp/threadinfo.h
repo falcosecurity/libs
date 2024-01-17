@@ -288,7 +288,7 @@ public:
 
 	  \return True if all callback invoations returned true, false if not
 	*/
-	bool loop_fds(sinsp_fdtable::fdtable_visitor_t visitor);
+	bool loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor);
 
 	/*!
 	  \brief Return true if this thread is bound to the given server port.
