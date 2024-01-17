@@ -161,34 +161,34 @@ sinsp_threadinfo::~sinsp_threadinfo()
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc()
 {
-	for(auto it = m_fdtable.m_table.begin(); it != m_fdtable.m_table.end(); it++)
-	{
-		if(it->second->m_type == SCAP_FD_IPV4_SOCK)
+	m_fdtable.loop([this](int64_t fd, sinsp_fdinfo& fdi) {
+		if(fdi.m_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(m_inspector->m_thread_manager->m_server_ports.find(it->second->m_sockinfo.m_ipv4info.m_fields.m_sport) !=
+			if(m_inspector->m_thread_manager->m_server_ports.find(fdi.m_sockinfo.m_ipv4info.m_fields.m_sport) !=
 				m_inspector->m_thread_manager->m_server_ports.end())
 			{
 				uint32_t tip;
 				uint16_t tport;
 
-				tip = it->second->m_sockinfo.m_ipv4info.m_fields.m_sip;
-				tport = it->second->m_sockinfo.m_ipv4info.m_fields.m_sport;
+				tip = fdi.m_sockinfo.m_ipv4info.m_fields.m_sip;
+				tport = fdi.m_sockinfo.m_ipv4info.m_fields.m_sport;
 
-				it->second->m_sockinfo.m_ipv4info.m_fields.m_sip = it->second->m_sockinfo.m_ipv4info.m_fields.m_dip;
-				it->second->m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
-				it->second->m_sockinfo.m_ipv4info.m_fields.m_sport = it->second->m_sockinfo.m_ipv4info.m_fields.m_dport;
-				it->second->m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_sip = fdi.m_sockinfo.m_ipv4info.m_fields.m_dip;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_sport = fdi.m_sockinfo.m_ipv4info.m_fields.m_dport;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 
-				it->second->m_name = ipv4tuple_to_string(&it->second->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+				fdi.m_name = ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
 
-				it->second->set_role_server();
+				fdi.set_role_server();
 			}
 			else
 			{
-				it->second->set_role_client();
+				fdi.set_role_client();
 			}
 		}
-	}
+		return true;
+	});
 }
 
 #define STR_AS_NUM_JAVA 0x6176616a
@@ -471,7 +471,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
-	m_fdtable.m_tid = m_tid;
+	m_fdtable.set_tid(m_tid);
 	m_fdlimit = pi->fdlimit;
 
 	m_cap_permitted = pi->cap_permitted;
@@ -816,7 +816,7 @@ void sinsp_threadinfo::remove_fd(int64_t fd)
 	fd_table_ptr->erase(fd);
 }
 
-bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_visitor_t visitor)
+bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor)
 {
 	sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL)
@@ -825,7 +825,7 @@ bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_visitor_t visitor)
 		return false;
 	}
 
-	return fdt->loop(visitor);
+	return fdt->const_loop(visitor);
 }
 
 bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const
@@ -837,25 +837,30 @@ bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const
 		return false;
 	}
 
-	for(auto it = fdt->m_table.begin(); it != fdt->m_table.end(); ++it)
-	{
-		if(it->second->m_type == SCAP_FD_IPV4_SOCK)
+	bool ret = false;
+	fdt->const_loop([&](int64_t fd, const sinsp_fdinfo& fdi) {
+		if(fdi.m_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(it->second->m_sockinfo.m_ipv4info.m_fields.m_dport == number)
+			if(fdi.m_sockinfo.m_ipv4info.m_fields.m_dport == number)
 			{
-				return true;
+				// set result and break out of the loop
+				ret = true;
+				return false;
 			}
 		}
-		else if(it->second->m_type == SCAP_FD_IPV4_SERVSOCK)
+		else if(fdi.m_type == SCAP_FD_IPV4_SERVSOCK)
 		{
-			if(it->second->m_sockinfo.m_ipv4serverinfo.m_port == number)
+			if(fdi.m_sockinfo.m_ipv4serverinfo.m_port == number)
 			{
-				return true;
+				// set result and break out of the loop
+				ret = true;
+				return false;
 			}
 		}
-	}
+		return true;
+	});
 
-	return false;
+	return ret;
 }
 
 bool sinsp_threadinfo::uses_client_port(uint16_t number) const
@@ -867,19 +872,21 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number) const
 		return false;
 	}
 
-	for(auto it = fdt->m_table.begin();
-		it != fdt->m_table.end(); ++it)
-	{
-		if(it->second->m_type == SCAP_FD_IPV4_SOCK)
+	bool ret = false;
+	fdt->const_loop([&](int64_t fd, const sinsp_fdinfo& fdi) {
+		if(fdi.m_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(it->second->m_sockinfo.m_ipv4info.m_fields.m_sport == number)
+			if(fdi.m_sockinfo.m_ipv4info.m_fields.m_sport == number)
 			{
-				return true;
+				// set result and break out of the loop
+				ret = true;
+				return false;
 			}
 		}
-	}
+		return true;
+	});
 
-	return false;
+	return ret;
 }
 
 bool sinsp_threadinfo::is_lastevent_data_valid() const
@@ -1470,7 +1477,7 @@ std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
 
 std::unique_ptr<sinsp_fdinfo> sinsp_thread_manager::new_fdinfo() const
 {
-	return sinsp_fdtable{}.new_fdinfo();
+	return sinsp_fdtable(m_inspector).new_fdinfo();
 }
 
 /* Can be called when:
@@ -1639,27 +1646,25 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 		return;
 	}
 
-	auto* fdtable = &(fd_table_ptr->m_table);
-
 	erase_fd_params eparams;
 	eparams.m_remove_from_table = false;
 	eparams.m_tinfo = main_thread;
 	eparams.m_ts = m_inspector->m_lastevent_ts;
 
-	for(auto fdit = fdtable->begin(); fdit != fdtable->end(); ++fdit)
-	{
-		eparams.m_fd = fdit->first;
+	fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& fdinfo) {
+		eparams.m_fd = fd;
 
 		//
 		// The canceled fd should always be deleted immediately, so if it appears
 		// here it means we have a problem.
 		//
 		ASSERT(eparams.m_fd != CANCELED_FD_NUMBER);
-		eparams.m_fdinfo = fdit->second.get();
+		eparams.m_fdinfo = &fdinfo;
 
 		/* Here we are just calling the `on_erase` callback */
 		m_inspector->m_parser->erase_fd(&eparams);
-	}
+		return true;
+	});
 }
 
 void sinsp_thread_manager::remove_thread(int64_t tid)
@@ -1976,10 +1981,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				return false;
 			}
 
-			auto& fdtable = fd_table_ptr->m_table;
-
-			for(auto it = fdtable.begin(); it != fdtable.end(); ++it)
-			{
+			bool should_exit = false;
+			fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& info) {
 				//
 				// Allocate the scap fd info
 				//
@@ -1987,14 +1990,15 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				if(scfdinfo == NULL)
 				{
 					scap_fd_free_proc_fd_table(&sctinfo);
+					should_exit = true;
 					return false;
 				}
 
 				//
 				// Populate the fd info
 				//
-				scfdinfo->fd = it->first;
-				fd_to_scap(scfdinfo, it->second.get());
+				scfdinfo->fd = fd;
+				fd_to_scap(scfdinfo, &info);
 
 				//
 				// Add the new fd to the scap table.
@@ -2004,6 +2008,13 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 					scap_fd_free_proc_fd_table(&sctinfo);
 					throw sinsp_exception("Failed to add fd to hash table");
 				}
+
+				return true;
+			});
+
+			if (should_exit)
+			{
+				return false;
 			}
 		}
 

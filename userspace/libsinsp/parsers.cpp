@@ -1159,16 +1159,13 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 			if(fd_table_ptr != NULL)
 			{
 				child_tinfo->m_fdtable.clear();
-				fd_table_ptr->loop([child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
-					child_tinfo->m_fdtable.add(fd, std::move(info.clone()));
+				fd_table_ptr->const_loop([child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
+					/* Track down that those are cloned fds */
+					auto newinfo = info.clone();
+					newinfo->set_is_cloned();
+					child_tinfo->m_fdtable.add(fd, std::move(newinfo));
 					return true;
 				});
-
-				/* Track down that those are cloned fds */
-				for(auto fdit = child_tinfo->m_fdtable.m_table.begin(); fdit != child_tinfo->m_fdtable.m_table.end(); ++fdit)
-				{
-					fdit->second->set_is_cloned();
-				}
 
 				/* It's important to reset the cache of the child thread, to prevent it from
 				* referring to an element in the parent's table.
@@ -1757,18 +1754,14 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 			{
 				child_tinfo->m_fdtable.clear();
 				fd_table_ptr->loop([child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
-					child_tinfo->m_fdtable.add(fd, std::move(info.clone()));
+					/* Track down that those are cloned fds.
+					* This flag `FLAGS_IS_CLONED` seems to be never used...
+					*/
+					auto newinfo = info.clone();
+					newinfo->set_is_cloned();
+					child_tinfo->m_fdtable.add(fd, std::move(newinfo));
 					return true;
 				});
-
-				/* Track down that those are cloned fds.
-				 * This flag `FLAGS_IS_CLONED` seems to be never used...
-				 */
-				for(auto fdit = child_tinfo->m_fdtable.m_table.begin();
-				    fdit != child_tinfo->m_fdtable.m_table.end(); ++fdit)
-				{
-					fdit->second->set_is_cloned();
-				}
 
 				/* It's important to reset the cache of the child thread, to prevent it from
 				 * referring to an element in the parent's table.

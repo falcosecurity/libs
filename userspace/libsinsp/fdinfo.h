@@ -443,7 +443,9 @@ public:
 class sinsp_fdtable
 {
 public:
-	typedef std::function<bool(int64_t, const sinsp_fdinfo&)> fdtable_visitor_t;
+	typedef std::function<bool(int64_t, sinsp_fdinfo&)> fdtable_visitor_t;
+
+	typedef std::function<bool(int64_t, const sinsp_fdinfo&)> fdtable_const_visitor_t;
 
 	sinsp_fdtable(sinsp* inspector);
 
@@ -456,7 +458,19 @@ public:
 	
 	sinsp_fdinfo* add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
 
-	bool loop(const fdtable_visitor_t callback) const
+	inline bool const_loop(const fdtable_const_visitor_t callback) const
+	{
+		for(auto it = m_table.begin(); it != m_table.end(); ++it)
+		{
+			if (!callback(it->first, *(it->second.get())))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	inline bool loop(const fdtable_visitor_t callback)
 	{
 		for(auto it = m_table.begin(); it != m_table.end(); ++it)
 		{
@@ -477,6 +491,17 @@ public:
 
 	void reset_cache();
 
+	inline uint64_t get_tid() const
+	{
+		return m_tid;
+	}
+
+	inline void set_tid(uint64_t v)
+	{
+		m_tid = v;
+	}
+
+private:
 	sinsp* m_inspector;
 	std::unordered_map<int64_t, std::unique_ptr<sinsp_fdinfo>> m_table;
 
