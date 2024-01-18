@@ -1781,6 +1781,26 @@ static __always_inline uint32_t linkat_flags_to_scap(int32_t flags)
 	return res;
 }
 
+static __always_inline uint32_t newfstatat_flags_to_scap(int32_t flags)
+{
+	uint32_t res = 0;
+
+	if (flags & AT_SYMLINK_NOFOLLOW)
+		res |= PPM_AT_SYMLINK_NOFOLLOW;
+
+#ifdef AT_EMPTY_PATH
+	if (flags & AT_EMPTY_PATH)
+		res |= PPM_AT_EMPTY_PATH;
+#endif
+
+#ifdef AT_NO_AUTOMOUNT
+	if (flags & AT_NO_AUTOMOUNT)
+		res |= PPM_AT_NO_AUTOMOUNT;
+#endif
+
+	return res;
+}
+
 static __always_inline uint32_t chmod_mode_to_scap(unsigned long modes)
 {
 	uint32_t res = 0;

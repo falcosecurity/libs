@@ -422,6 +422,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_mknodat
 	[__NR_mknodat - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MKNODAT_E, PPME_SYSCALL_MKNODAT_X, PPM_SC_MKNODAT},
 #endif
+#ifdef __NR_newfstatat
+	[__NR_newfstatat - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_NEWFSTATAT_E, PPME_SYSCALL_NEWFSTATAT_X, PPM_SC_NEWFSTATAT},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -666,9 +669,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_fallocate
 	[__NR_fallocate - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FALLOCATE},
-#endif
-#ifdef __NR_newfstatat
-	[__NR_newfstatat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_NEWFSTATAT},
 #endif
 #ifdef __NR_sigaltstack
 	[__NR_sigaltstack - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGALTSTACK},

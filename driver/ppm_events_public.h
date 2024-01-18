@@ -291,6 +291,13 @@ or GPL2.txt for full copies of the license.
 #define PPM_AT_EMPTY_PATH       0x1000
 
 /*
+ * newfstatat() flags
+ */
+#define PPM_AT_NO_AUTOMOUNT		0x800
+#define PPM_AT_SYMLINK_NOFOLLOW	0x100
+
+
+/*
  * rlimit resources
  */
 #define PPM_RLIMIT_CPU 0 /* CPU time in sec */
@@ -1413,7 +1420,9 @@ typedef enum {
 	PPME_SYSCALL_MKNOD_X = 415,
 	PPME_SYSCALL_MKNODAT_E = 416,
 	PPME_SYSCALL_MKNODAT_X = 417,
-	PPM_EVENT_MAX = 418
+	PPME_SYSCALL_NEWFSTATAT_E = 418,
+	PPME_SYSCALL_NEWFSTATAT_X = 419,
+	PPM_EVENT_MAX = 420
 } ppm_event_code;
 /*@}*/
 
@@ -2136,6 +2145,7 @@ extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
+extern const struct ppm_name_value newfstatat_flags[];
 extern const struct ppm_name_value chmod_mode[];
 extern const struct ppm_name_value mknod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
