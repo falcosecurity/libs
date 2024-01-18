@@ -326,7 +326,9 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MKNOD_E] = "mknod_e",
 	[PPME_SYSCALL_MKNOD_X] = "mknod_x",
 	[PPME_SYSCALL_MKNODAT_E] = "mknodat_e",
-	[PPME_SYSCALL_MKNODAT_X] = "mknodat_x"
+	[PPME_SYSCALL_MKNODAT_X] = "mknodat_x",
+	[PPME_SYSCALL_NEWFSTATAT_E] = "newfstatat_e",
+	[PPME_SYSCALL_NEWFSTATAT_X] = "newfstatat_x"
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

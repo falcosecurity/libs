@@ -8075,3 +8075,41 @@ int f_sys_mknodat_x(struct event_filler_arguments *args)
 
        return add_sentinel(args);
 }
+
+int f_sys_newfstatat_x(struct event_filler_arguments *args)
+{
+       unsigned long val;
+       int res;
+	   int32_t fd;
+       long retval;
+
+       /* Parameter 1: ret (type: PT_ERRNO) */
+       retval = (int64_t) syscall_get_return_value(current,args->regs);
+       res = val_to_ring(args, retval, 0, false, 0);
+       CHECK_RES(res);
+
+       /* Parameter 2: dirfd (type: PT_FD) */
+	   syscall_get_arguments_deprecated(args, 0, 1, &val);
+	   fd = (int32_t)val;
+	   if (fd == AT_FDCWD)
+		   fd = PPM_AT_FDCWD;
+	   res = val_to_ring(args, (int64_t)fd, 0, true, 0);
+	   CHECK_RES(res);
+
+       /* Parameter 3: path (type: PT_CHARBUF) */
+       syscall_get_arguments_deprecated(args, 1, 1, &val);
+       res = val_to_ring(args, val, 0, true, 0);
+       CHECK_RES(res);
+
+	   /* Parameter 4: stat (type: PT_BYTEBUF) */
+       /*syscall_get_arguments_deprecated(args, 2, 1, &val);
+       res = val_to_ring(args, val, 0, true, 0);
+       CHECK_RES(res);*/
+
+	   /* Parameter 5: flags (type: PT_FLAGS32) */
+	   syscall_get_arguments_deprecated(args, 3, 1, &val);
+	   res = val_to_ring(args, newfstatat_flags_to_scap(val), 0, true, 0);
+	   CHECK_RES(res);
+
+       return add_sentinel(args);
+}

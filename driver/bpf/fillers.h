@@ -7290,4 +7290,35 @@ FILLER(sys_mknodat_x, true)
 	uint32_t dev = bpf_syscall_get_argument(data, 3);
 	return bpf_push_u32_to_ring(data, bpf_encode_dev(dev));
 }
+
+FILLER(sys_newfstatat_x, true)
+{
+	unsigned long val;
+
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
+	if (fd == AT_FDCWD)
+		fd = PPM_AT_FDCWD;
+	res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: path (type: PT_CHARBUF) */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 4: stat (type: PT_BYTEBUF) */
+	/*val = bpf_syscall_get_argument(data, 2);
+	res = bpf_push_u32_to_ring(data, val);
+	CHECK_RES(res);*/
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	uint32_t flags = bpf_syscall_get_argument(data, 3);
+	return bpf_push_u32_to_ring(data, newfstatat_flags_to_scap(flags));
+}
 #endif

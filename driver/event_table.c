@@ -470,6 +470,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_MKNOD_X] = {"mknod", EC_OTHER | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
  	[PPME_SYSCALL_MKNODAT_E] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_MKNODAT_X] = {"mknodat", EC_OTHER | EC_SYSCALL, EF_USES_FD, 5, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)},{"mode", PT_MODE, PF_OCT, mknod_mode},{"dev", PT_UINT32, PF_DEC}}},
+	[PPME_SYSCALL_NEWFSTATAT_E] = {"newfstatat", EC_FILE | EC_SYSCALL, EF_NONE, 0},
+	[PPME_SYSCALL_NEWFSTATAT_X] = {"newfstatat", EC_FILE | EC_SYSCALL, EF_USES_FD, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, newfstatat_flags}}},
 };
 #pragma GCC diagnostic pop
 

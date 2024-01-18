@@ -507,6 +507,13 @@ const struct ppm_name_value linkat_flags[] = {
 	{0, 0},
 };
 
+const struct ppm_name_value newfstatat_flags[] = {
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{"AT_NO_AUTOMOUNT", PPM_AT_NO_AUTOMOUNT},
+	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_NOFOLLOW},
+	{0, 0},
+};
+
 const struct ppm_name_value chmod_mode[] = {
     {"S_IXOTH", PPM_S_IXOTH},
     {"S_IWOTH", PPM_S_IWOTH},
