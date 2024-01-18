@@ -593,6 +593,20 @@ static __always_inline void extract__pgft_min(struct task_struct *task, unsigned
 	READ_TASK_FIELD_INTO(pgft_min, task, min_flt);
 }
 
+static __always_inline unsigned long extract__vm_start(struct vm_area_struct *vma)
+{
+	unsigned long vm_start = 0;
+	BPF_CORE_READ_INTO(&vm_start, vma, vm_start);
+	return vm_start;
+}
+
+static __always_inline unsigned long extract__vm_end(struct vm_area_struct *vma)
+{
+	unsigned long vm_end = 0;
+	BPF_CORE_READ_INTO(&vm_end, vma, vm_end);
+	return vm_end;
+}
+
 /**
  * @brief Extract total page size
  *

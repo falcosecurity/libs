@@ -247,6 +247,9 @@
 #define MKNOD_E_SIZE HEADER_LEN
 #define MKNODAT_E_SIZE HEADER_LEN
 
+/* kprobes */
+#define SECURITY_FILE_MPROTECT_SIZE HEADER_LEN + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 2 + PARAM_LEN * 4
+
 /* Generic tracepoints events. */
 #define SCHED_SWITCH_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 3 + PARAM_LEN * 6
 #define PAGE_FAULT_SIZE HEADER_LEN + sizeof(uint64_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
