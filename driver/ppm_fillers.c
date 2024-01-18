@@ -7416,15 +7416,23 @@ cgroups_error:
 		{
 			/* Support exe_writable */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
-			exe_writable |= (file_permission(exe_file, MAY_WRITE) == 0);
+			exe_writable |= (file_permission(exe_file, MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(file_mnt_idmap(exe_file), file_inode(exe_file));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
-			exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE) == 0);
+			exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
-#else
-			exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE) == 0);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0)
+			exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
+			/*
+			 * Kernels < 3.1.0 doesn't support the exe_writable flags due to the MAY_NOT_BLOCK not being
+			 * available. This limitation is related to the fact that this function (f_sched_prog_exec)
+			 * is in a RCU critical section: this means that this function (and its callee) MUST NOT
+			 * call functions that can yield the processor (e.g. inode_permission that deep down in its
+			 * call stack calls a down_read()). This is addressed after the Kernel 3.1.0 where the
+			 * MAY_OT_BLOCK flag is introduced and avoids the processor to being yield.
+			 */
 
 			/* Support exe_upper_layer */
 			exe_upper_layer = ppm_is_upper_layer(exe_file);
