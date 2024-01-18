@@ -67,13 +67,13 @@ int BPF_PROG(newfstatat_x,
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
 
-	/* Parameter 3: path (type: PT_CHARBUF) */
+	/* Parameter 3: path (type: PT_RELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
 	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
     /* Parameter 4: path (type: PT_BYTEBUF) */
-	unsigned long buf_pointer = extract__syscall_argument(regs, 2);
-	auxmap__store_charbuf_param(auxmap, buf_pointer, MAX_PATH, USER);
+	/*unsigned long buf_pointer = extract__syscall_argument(regs, 2);
+	auxmap__store_charbuf_param(auxmap, buf_pointer);*/
 
 	/* Parameter 5: dev (type: PT_FLAGS32) */
 	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 3);

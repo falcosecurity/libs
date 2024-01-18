@@ -8096,7 +8096,7 @@ int f_sys_newfstatat_x(struct event_filler_arguments *args)
 	   res = val_to_ring(args, (int64_t)fd, 0, true, 0);
 	   CHECK_RES(res);
 
-       /* Parameter 3: path (type: PT_CHARBUF) */
+       /* Parameter 3: path (type: PT_RELPATH) */
        syscall_get_arguments_deprecated(args, 1, 1, &val);
        res = val_to_ring(args, val, 0, true, 0);
        CHECK_RES(res);

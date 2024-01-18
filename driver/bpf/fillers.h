@@ -7307,7 +7307,7 @@ FILLER(sys_newfstatat_x, true)
 	res = bpf_push_s64_to_ring(data, (int64_t)fd);
 	CHECK_RES(res);
 
-	/* Parameter 3: path (type: PT_CHARBUF) */
+	/* Parameter 3: path (type: PT_RELPATH) */
 	val = bpf_syscall_get_argument(data, 1);
 	res = bpf_val_to_ring(data, val);
 	CHECK_RES(res);
