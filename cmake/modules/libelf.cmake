@@ -13,12 +13,13 @@
 #
 
 option(USE_BUNDLED_LIBELF "Enable building of the bundled libelf" ${USE_BUNDLED_DEPS})
+option(USE_SHARED_LIBELF "When not using bundled libelf, link it dynamically" ON)
 
 if(LIBELF_INCLUDE)
     # we already have LIBELF
 elseif(NOT USE_BUNDLED_LIBELF)
     find_path(LIBELF_INCLUDE elf.h PATH_SUFFIXES elf)
-    if(BUILD_SHARED_LIBS)
+    if(BUILD_SHARED_LIBS OR USE_SHARED_LIBELF)
         set(LIBELF_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
     else()
         set(LIBELF_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
