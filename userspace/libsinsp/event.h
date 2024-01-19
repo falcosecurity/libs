@@ -440,6 +440,24 @@ public:
 	std::string get_param_value_str(const std::string& name, bool resolved = true);
 
 	/*!
+	  \brief Check if a parameter is exposed by an event.
+	  Throw an exception in case the parameter doesn't exist.
+	  todo! This check should be done when loading rules not at runtime.
+
+	  \param name The parameter name.
+	 */
+	void check_param_name_exists(const std::string &name);
+
+	/*!
+	  \brief Check if a parameter id is exposed by an event.
+	  Throw an exception in case the parameter doesn't exist.
+	  todo! This check should be done when loading rules not at runtime.
+
+	  \param id The parameter id.
+	 */
+	void check_param_id_exists(int32_t id);
+
+	/*!
 	  \brief Return the event's category, based on the event type and the FD on
 	   which the event operates.
 	*/
