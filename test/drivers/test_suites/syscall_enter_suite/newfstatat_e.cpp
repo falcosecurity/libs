@@ -8,10 +8,10 @@ TEST(SyscallEnter, newfstatatE)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-    //int dirfd = AT_FDCWD;
-    int dirfd = -1;
+	//int dirfd = AT_FDCWD;
+	int dirfd = -1;
 	const char* pathname = "mock_path";
-    struct stat buffer;
+	struct stat buffer;
 	int flags = AT_EMPTY_PATH | AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW;
 
 	assert_syscall_state(SYSCALL_FAILURE, "newfstatat", syscall(__NR_newfstatat, dirfd, pathname, &buffer, flags));

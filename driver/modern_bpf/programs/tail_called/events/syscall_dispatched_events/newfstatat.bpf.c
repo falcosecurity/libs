@@ -71,7 +71,7 @@ int BPF_PROG(newfstatat_x,
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
 	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
-    /* Parameter 4: path (type: PT_BYTEBUF) */
+	/* Parameter 4: path (type: PT_BYTEBUF) */
 	/*unsigned long buf_pointer = extract__syscall_argument(regs, 2);
 	auxmap__store_charbuf_param(auxmap, buf_pointer);*/
 
