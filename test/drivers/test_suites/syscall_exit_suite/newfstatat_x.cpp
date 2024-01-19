@@ -9,9 +9,9 @@ TEST(SyscallExit, newfstatatX_success)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-    int dirfd = AT_FDCWD;
+	int dirfd = AT_FDCWD;
 	const char* pathname = ".";
-    struct stat buffer;
+	struct stat buffer;
 	int flags = AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW;
 
 	int32_t res = syscall(__NR_newfstatat, dirfd, pathname, &buffer, flags);
@@ -62,14 +62,14 @@ TEST(SyscallExit, newfstatatX_failure)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-    int dirfd = AT_FDCWD;
+	int dirfd = AT_FDCWD;
 	const char* pathname = "mock_path";
-    struct stat buffer;
+	struct stat buffer;
 	int flags = AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW;
 
 	int32_t res = syscall(__NR_newfstatat, dirfd, pathname, &buffer, flags);
 	assert_syscall_state(SYSCALL_FAILURE, "newfstatat", res);
-    int64_t errno_value = -errno;
+	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
