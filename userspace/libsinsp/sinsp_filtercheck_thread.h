@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <functional>
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/state/dynamic_struct.h>
 
@@ -134,6 +135,27 @@ private:
 	bool compare_full_aexepath(sinsp_evt *evt);
 	bool compare_full_acmdline(sinsp_evt *evt);
 	bool compare_full_aenv(sinsp_evt *evt);
+
+	template<typename T>
+	std::string concat_attribute_thread_hierarchy(sinsp_threadinfo* mt, int32_t m_argid, const std::function<T(sinsp_threadinfo*)>& get_attribute_func)
+	{
+
+		// nullptr check of mt is done within each filtercheck prior to calling this function
+		static_assert(std::is_convertible<T, std::string>::value, "T must be convertible to std::string to concat parent lineage thread attributes");
+		std::string result = get_attribute_func(mt);
+
+		for (int32_t j = 0; j < m_argid; j++)
+		{
+			mt = mt->get_parent_thread();
+			if(mt == NULL)
+			{
+				return result;
+			}
+			result = get_attribute_func(mt) + "->" + result;
+		}
+
+		return result;
+	}
 
 	int32_t m_argid;
 	std::string m_argname;
