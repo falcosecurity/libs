@@ -639,253 +639,33 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(tinfo->m_vpgid);
 	case TYPE_SNAME:
 		{
-			int64_t sid = tinfo->m_sid;
-
-			if(!tinfo->is_in_pid_namespace())
-			{
-				// Relying on the convention that a session id is the process id of the session leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* sinfo = m_inspector->get_thread_ref(sid, false, true).get();
-				if(sinfo != NULL)
-				{
-					m_tstr = sinfo->get_comm();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
-			}
-
-			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same session id and
-			// declare it to be the session leader.
-			sinsp_threadinfo* session_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_sid != sid)
-				{
-					return false;
-				}
-				session_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// session_leader has been updated to the highest process that has the same session id.
-			// session_leader's comm is considered the session leader.
-			m_tstr = session_leader->get_comm();
+			m_tstr = extract_leader_attribute_thread_hierarchy<std::string>(tinfo, [](sinsp_threadinfo* t) { return t->m_sid; }, [](sinsp_threadinfo* t) { return t->get_comm(); });
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_SID_EXE:
 		{
-			int64_t sid = tinfo->m_sid;
-
-			if(!tinfo->is_in_pid_namespace())
-			{
-				// Relying on the convention that a session id is the process id of the session leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* sinfo = m_inspector->get_thread_ref(sid, false, true).get();
-				if(sinfo != NULL)
-				{
-					m_tstr = sinfo->get_exe();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
-			}
-
-			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same session id and
-			// declare it to be the session leader.
-			sinsp_threadinfo* session_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_sid != sid)
-				{
-					return false;
-				}
-				session_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// session_leader has been updated to the highest process that has the same session id.
-			// session_leader's exe is considered the session leader.
-			m_tstr = session_leader->get_exe();
+			m_tstr = extract_leader_attribute_thread_hierarchy<std::string>(tinfo, [](sinsp_threadinfo* t) { return t->m_sid; }, [](sinsp_threadinfo* t) { return t->get_exe(); });
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_SID_EXEPATH:
 		{
-			int64_t sid = tinfo->m_sid;
-
-			if(!tinfo->is_in_pid_namespace())
-			{
-				// Relying on the convention that a session id is the process id of the session leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* sinfo = m_inspector->get_thread_ref(sid, false, true).get();
-				if(sinfo != NULL)
-				{
-					m_tstr = sinfo->get_exepath();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
-			}
-
-			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same session id and
-			// declare it to be the session leader.
-			sinsp_threadinfo* session_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_sid != sid)
-				{
-					return false;
-				}
-				session_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// session_leader has been updated to the highest process that has the same session id.
-			// session_leader's exepath is considered the session leader.
-			m_tstr = session_leader->get_exepath();
+			m_tstr = extract_leader_attribute_thread_hierarchy<std::string>(tinfo, [](sinsp_threadinfo* t) { return t->m_sid; }, [](sinsp_threadinfo* t) { return t->get_exepath(); });
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_VPGID_NAME:
 		{
-			int64_t vpgid = tinfo->m_vpgid;
-
-			if(!tinfo->is_in_pid_namespace())
-			{
-				// Relying on the convention that a process group id is the process id of the process group leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* vpgidinfo = m_inspector->get_thread_ref(vpgid, false, true).get();
-				if(vpgidinfo != NULL)
-				{
-					m_tstr = vpgidinfo->get_comm();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
-			}
-			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same process group id and
-			// declare it to be the process group leader.
-			sinsp_threadinfo* group_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_vpgid != vpgid)
-				{
-					return false;
-				}
-				group_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// group_leader has been updated to the highest process that has the same process group id.
-			// group_leader's comm is considered the process group leader.
-			m_tstr = group_leader->get_comm();
+			m_tstr = extract_leader_attribute_thread_hierarchy<std::string>(tinfo, [](sinsp_threadinfo* t) { return t->m_vpgid; }, [](sinsp_threadinfo* t) { return t->get_comm(); });
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_VPGID_EXE:
 		{
-			int64_t vpgid = tinfo->m_vpgid;
-
-			if(!tinfo->is_in_pid_namespace())
-			{
-				// Relying on the convention that a process group id is the process id of the process group leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* vpgidinfo = m_inspector->get_thread_ref(vpgid, false, true).get();
-				if(vpgidinfo != NULL)
-				{
-					m_tstr = vpgidinfo->get_exe();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
-			}
-			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same process group id and
-			// declare it to be the process group leader.
-			sinsp_threadinfo* group_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_vpgid != vpgid)
-				{
-					return false;
-				}
-				group_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// group_leader has been updated to the highest process that has the same process group id.
-			// group_leader's exe is considered the process group leader.
-			m_tstr = group_leader->get_exe();
+			m_tstr = extract_leader_attribute_thread_hierarchy<std::string>(tinfo, [](sinsp_threadinfo* t) { return t->m_vpgid; }, [](sinsp_threadinfo* t) { return t->get_exe(); });
 			RETURN_EXTRACT_STRING(m_tstr);
 
 		}
 	case TYPE_VPGID_EXEPATH:
 		{
-			int64_t vpgid = tinfo->m_vpgid;
-
-			if(!tinfo->is_in_pid_namespace())
-			{
-				// Relying on the convention that a process group id is the process id of the process group leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* vpgidinfo = m_inspector->get_thread_ref(vpgid, false, true).get();
-				if(vpgidinfo != NULL)
-				{
-					m_tstr = vpgidinfo->get_exepath();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
-			}
-
-			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same process group id and
-			// declare it to be the process group leader.
-			sinsp_threadinfo* group_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_vpgid != vpgid)
-				{
-					return false;
-				}
-				group_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// group_leader has been updated to the highest process that has the same process group id.
-			// group_leader's exepath is considered the process group leader.
-			m_tstr = group_leader->get_exepath();
+			m_tstr = extract_leader_attribute_thread_hierarchy<std::string>(tinfo, [](sinsp_threadinfo* t) { return t->m_vpgid; }, [](sinsp_threadinfo* t) { return t->get_exepath(); });
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_TTY:
