@@ -1379,7 +1379,7 @@ static void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo* src)
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
 	: table(s_thread_table_name, sinsp_threadinfo().static_fields()),
-	  m_max_thread_table_size(m_thread_table_absolute_max_size)
+	  m_max_thread_table_size(m_thread_table_default_size)
 {
 	m_inspector = inspector;
 	clear();
@@ -2177,7 +2177,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 
 void sinsp_thread_manager::set_max_thread_table_size(uint32_t value)
 {
-    m_max_thread_table_size = std::min(value, m_thread_table_absolute_max_size);
+    m_max_thread_table_size = value;
 }
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const
