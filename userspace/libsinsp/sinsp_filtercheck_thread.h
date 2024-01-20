@@ -127,6 +127,7 @@ private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
 	uint8_t* extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
+	sinsp_threadinfo* get_main_thread(sinsp_threadinfo* tinfo);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 	bool compare_full_aexe(sinsp_evt *evt);

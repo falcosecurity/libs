@@ -584,6 +584,19 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
+sinsp_threadinfo* sinsp_filter_check_thread::get_main_thread(sinsp_threadinfo* tinfo)
+{
+	if (tinfo->is_main_thread())
+    {
+        return tinfo;
+    }
+    else
+    {
+        sinsp_threadinfo* mt = tinfo->get_main_thread();
+        return mt != nullptr ? mt : nullptr;
+    }
+}
+
 // Some syscall sources, such as the gVisor integration, cannot match events to host PIDs and TIDs.
 // The event will retain the PID field which is consistent with the rest of sinsp logic, but it won't represent
 // a real PID and so it should not be displayed to the user.
@@ -932,18 +945,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			// get current tinfo / init for subsequent parent lineage traversal
-			sinsp_threadinfo* mt = NULL;
-			if(tinfo->is_main_thread())
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
+			if(mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-				if(mt == NULL)
-				{
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 
 			if(!m_argname.empty()) // extract a specific ENV_NAME value
@@ -1121,20 +1126,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 		case TYPE_ACMDLINE:
 		{
-			sinsp_threadinfo* mt = NULL;
 
-			if(tinfo->is_main_thread())
-			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+			if(mt == NULL)
+			{
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1151,20 +1148,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_APID:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			//
@@ -1188,20 +1176,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_ANAME:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1219,20 +1198,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CONCAT_ANAME:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			m_tstr = mt->get_comm();
@@ -1265,20 +1235,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_AEXE:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1296,20 +1257,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CONCAT_AEXE:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			m_tstr = mt->get_exe();
@@ -1342,20 +1294,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_AEXEPATH:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1373,20 +1316,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CONCAT_AEXEPATH:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			m_tstr = mt->get_exepath();
@@ -1404,21 +1338,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_LOGINSHELLID:
 		{
-			sinsp_threadinfo* mt = NULL;
 			int64_t* res = NULL;
+			sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			sinsp_threadinfo::visitor_func_t check_thread_for_shell = [&res] (sinsp_threadinfo *pt)
@@ -1789,20 +1714,11 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1842,20 +1758,11 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1895,20 +1802,11 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1948,20 +1846,11 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -2001,20 +1890,11 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -2056,20 +1936,11 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = get_main_thread(tinfo);
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
