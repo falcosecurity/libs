@@ -43,6 +43,7 @@ struct plugin_state
     ss_plugin_table_field_t* thread_opencount_field;
     ss_plugin_table_t* evtcount_table;
     ss_plugin_table_field_t* evtcount_count_field;
+    ss_plugin_log_func log;
 };
 
 static inline bool evt_type_is_open(uint16_t type)
@@ -155,6 +156,12 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     *rc = SS_PLUGIN_SUCCESS;
     plugin_state *ret = new plugin_state();
 
+    //set log function in the state
+    ret->log = in->log;
+
+    std::string msg = "Initializing plugin...";
+    ret->log(msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
+
 	// we have the extraction capability so the `in->tables` field should be != NULL
     if (!in || !in->tables)
     {
@@ -224,6 +231,10 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 
 static void plugin_destroy(ss_plugin_t* s)
 {
+    plugin_state *ps = (plugin_state *) s;
+    std::string msg = "Destroying plugin...";
+    ps->log(msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
+
     delete ((plugin_state *) s);
 }
 
