@@ -279,6 +279,20 @@ typedef void ss_plugin_t;
 //
 typedef void ss_instance_t;
 
+//
+// Libsinsp logger severities
+typedef enum ss_plugin_log_severity
+{
+	SS_PLUGIN_LOG_SEV_FATAL = 1,
+	SS_PLUGIN_LOG_SEV_CRITICAL = 2,
+	SS_PLUGIN_LOG_SEV_ERROR = 3,
+	SS_PLUGIN_LOG_SEV_WARNING = 4,
+	SS_PLUGIN_LOG_SEV_NOTICE = 5,
+	SS_PLUGIN_LOG_SEV_INFO = 6,
+	SS_PLUGIN_LOG_SEV_DEBUG = 7,
+	SS_PLUGIN_LOG_SEV_TRACE = 8,
+} ss_plugin_log_severity;
+
 #ifdef __cplusplus
 }
 #endif
