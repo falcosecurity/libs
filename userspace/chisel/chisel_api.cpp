@@ -740,7 +740,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		{
 			try
 			{
-				compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr, true);
+				compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr);
 				filter = compiler->compile();
 			}
 			catch(const sinsp_exception& e)

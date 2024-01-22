@@ -106,7 +106,7 @@ sinsp_filter_check_fd::sinsp_filter_check_fd()
 	m_info.m_desc = "Every syscall that has a file descriptor in its arguments has these fields set with information related to the file.";
 	m_info.m_fields = sinsp_filter_check_fd_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_fd_fields) / sizeof(sinsp_filter_check_fd_fields[0]);
-	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
 sinsp_filter_check* sinsp_filter_check_fd::allocate_new()

@@ -60,15 +60,13 @@ public:
 		\param inspector Pointer to the inspector instance that will generate
 		the events to be filtered
 		\param fltstr The filter string to compile
-		\param ttable_only For internal use only
 
 		\note This is not the primary constructor, and is only maintained for
 		backward compatibility
 	*/
 	sinsp_filter_compiler(
 		sinsp* inspector,
-		const std::string& fltstr,
-		bool ttable_only=false);
+		const std::string& fltstr);
 
 	/*!
 		\brief Constructs the compiler
@@ -76,12 +74,10 @@ public:
 		\param factory Pointer to a filter factory to be used to build
 		the filtercheck tree
 		\param fltstr The filter string to compile
-		\param ttable_only For internal use only
 	*/
 	sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		const std::string& fltstr,
-		bool ttable_only=false);
+		const std::string& fltstr);
 
 	/*!
 		\brief Constructs the compiler
@@ -90,12 +86,10 @@ public:
 		the filtercheck tree
 		\param fltast AST of a parsed filter, used to build the filtercheck
 		tree
-		\param ttable_only For internal use only
 	*/
 	sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		const libsinsp::filter::ast::expr* fltast,
-		bool ttable_only=false);
+		const libsinsp::filter::ast::expr* fltast);
 
 	/*!
 		\brief Builds a filtercheck tree and bundles it in sinsp_filter
@@ -117,13 +111,11 @@ private:
 	void visit(const libsinsp::filter::ast::list_expr*) override;
 	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
-	void check_ttable_only(std::string& field, gen_event_filter_check *check);
 	cmpop str_to_cmpop(const std::string& str);
 	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
 	gen_event_filter_check* create_filtercheck(std::string& field);
 
 	libsinsp::filter::ast::pos_info m_pos;
-	bool m_ttable_only;
 	bool m_expect_values;
 	boolop m_last_boolop;
 	std::string m_flt_str;

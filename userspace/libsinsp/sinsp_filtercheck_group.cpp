@@ -47,7 +47,7 @@ sinsp_filter_check_group::sinsp_filter_check_group()
 	m_info.m_desc = "Information about the user group.";
 	m_info.m_fields = sinsp_filter_check_group_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_group_fields) / sizeof(sinsp_filter_check_group_fields[0]);
-	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
 sinsp_filter_check* sinsp_filter_check_group::allocate_new()

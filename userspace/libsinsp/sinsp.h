@@ -116,8 +116,7 @@ public:
 	enum flags
 	{
 		FL_NONE =   0,
-		FL_WORKS_ON_THREAD_TABLE = (1 << 0),	///< This filter check class supports filtering incomplete events that contain only valid thread info and FD info.
-		FL_HIDDEN = (1 << 1),	///< This filter check class won't be shown by fields/filter listings.
+		FL_HIDDEN = (1 << 0),	///< This filter check class won't be shown by fields/filter listings.
 	};
 
 	filter_check_info()
