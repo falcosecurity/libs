@@ -32,7 +32,7 @@ limitations under the License.
 struct plugin_state
 {
     std::string lasterr;
-    ss_plugin_log_func log;
+    ss_plugin_log_func_t log;
 };
 
 struct instance_state
@@ -77,10 +77,11 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     plugin_state *ret = new plugin_state();
 
     //set log function in the state
-    ret->log = in->log;
+    ret->log = in->log_callback;
 
     std::string msg = "Initializing plugin...";
-    ret->log(msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
+    std::string component = "some plugin component";
+    ret->log(component.c_str(), SS_PLUGIN_LOG_SEV_INFO, msg.c_str());
 
     *rc = SS_PLUGIN_SUCCESS;
     return ret;
@@ -90,7 +91,8 @@ static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
     std::string msg = "Destroying plugin...";
-    ps->log(msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
+    std::string component = "some plugin component";
+    ps->log(component.c_str(), SS_PLUGIN_LOG_SEV_INFO, msg.c_str());
 
     delete ((plugin_state *) s);
 }

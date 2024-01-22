@@ -80,8 +80,9 @@ const char* sinsp_plugin::get_owner_last_error(ss_plugin_owner_t* o)
 	return t->m_last_owner_err.c_str();
 }
 
-const void sinsp_plugin::log(const char* msg, ss_plugin_log_severity sev)
+static void log_callback(const char* component, ss_plugin_log_severity sev, const char* msg)
 {
+	std::string prefix = (component == NULL) ? "" : std::string(component) + ": ";
 	libsinsp_logger()->log(msg, (sinsp_logger::severity)sev);
 }
 
@@ -172,7 +173,7 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.tables = NULL;
 	in.config = conf.c_str();
-	in.log = sinsp_plugin::log;
+	in.log_callback = &log_callback;
 
 	ss_plugin_init_tables_input tables_in = {};
 	ss_plugin_table_fields_vtable_ext table_fields_ext = {};
