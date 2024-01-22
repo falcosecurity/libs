@@ -267,6 +267,9 @@ typedef struct
 	ss_plugin_table_fields_vtable_ext* fields_ext;
 } ss_plugin_init_tables_input;
 
+// Function used by a plugin for sending messages to libsinsp logger
+typedef const void (*ss_plugin_log_func)(char* msg, ss_plugin_log_severity sev);
+
 // Input passed at the plugin through plugin_init(). This contain information
 // common to any plugin, and also information useful only in case the plugin
 // implements a given capability. If a certain capability is not implemented
@@ -291,6 +294,10 @@ typedef struct ss_plugin_init_input
 	// capabilities. The callbacks available in this input take the plugin's owner
 	// as a parameter.
 	const ss_plugin_init_tables_input* tables;
+	//
+	// Log function passed to the plugin through the init input
+	// When initializing plugin can copy this function to its state so it's accessible from there  
+	ss_plugin_log_func log;
 } ss_plugin_init_input;
 
 // Input passed to the plugin when extracting a field from an event for

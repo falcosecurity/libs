@@ -278,6 +278,7 @@ private:
 		libsinsp::events::set<ppm_event_code>& codes);
 	void validate_init_config_json_schema(std::string& config, std::string& schema);
 	static const char* get_owner_last_error(ss_plugin_owner_t* o);
+	static const void log(char* msg, ss_plugin_log_severity sev);
 
 	/** Event parsing helpers **/
 	static void table_field_api(ss_plugin_table_fields_vtable& out, ss_plugin_table_fields_vtable_ext& extout);
