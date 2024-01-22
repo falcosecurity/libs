@@ -80,7 +80,7 @@ const char* sinsp_plugin::get_owner_last_error(ss_plugin_owner_t* o)
 	return t->m_last_owner_err.c_str();
 }
 
-const void sinsp_plugin::log(char* msg, ss_plugin_log_severity sev)
+const void sinsp_plugin::log(const char* msg, ss_plugin_log_severity sev)
 {
 	libsinsp_logger()->log(msg, (sinsp_logger::severity)sev);
 }
