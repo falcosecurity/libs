@@ -40,7 +40,7 @@ struct plugin_state
     ss_plugin_table_field_t* thread_opencount_field;
     sample_table::ptr_t event_count_table;
     ss_plugin_table_field_t* event_count_table_count_field;
-    ss_plugin_log_func_t log;
+    ss_plugin_log_fn_t log;
 };
 
 static inline bool evt_type_is_open(uint16_t type)
@@ -112,11 +112,11 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     plugin_state *ret = new plugin_state();
 
     //set log function in the state
-    ret->log = in->log_callback;
+    ret->log = in->log_fn;
 
     std::string msg = "Initializing plugin...";
-    std::string component = "some plugin component";
-    ret->log(component.c_str(), SS_PLUGIN_LOG_SEV_INFO, msg.c_str());
+    std::string component = "some component";
+    ret->log(component.c_str(), msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
 
     if (!in || !in->tables)
     {
@@ -174,8 +174,8 @@ static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
     std::string msg = "Destroying plugin...";
-    std::string component = "some plugin component";
-    ps->log(component.c_str(), SS_PLUGIN_LOG_SEV_INFO, msg.c_str());
+    std::string component = "some component";
+    ps->log(component.c_str(), msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
 
     delete ((plugin_state *) s);
 }

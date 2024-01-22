@@ -36,7 +36,7 @@ struct plugin_state
     std::string strstorage;
     const char* strptr;
     std::vector<uint16_t> event_types;
-    ss_plugin_log_func_t log;
+    ss_plugin_log_fn_t log;
 };
 
 static const char* plugin_get_required_api_version()
@@ -96,11 +96,11 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     plugin_state *ret = new plugin_state();
 
     //set log function in the state
-    ret->log = in->log_callback;
+    ret->log = in->log_fn;
 
     std::string msg = "Initializing plugin...";
-    std::string component = "some plugin component";
-    ret->log(component.c_str(), SS_PLUGIN_LOG_SEV_INFO, msg.c_str());
+    std::string component = "some component";
+    ret->log(component.c_str(), msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
 
     // init config may indicate the comma-separated, event-types to filter
     std::string cfg = in->config;
@@ -132,8 +132,8 @@ static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
     std::string msg = "Destroying plugin...";
-    std::string component = "some plugin component";
-    ps->log(component.c_str(), SS_PLUGIN_LOG_SEV_INFO, msg.c_str());
+    std::string component = "some component";
+    ps->log(component.c_str(), msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
 
     delete ((plugin_state *) s);
 }
