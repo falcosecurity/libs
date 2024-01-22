@@ -649,28 +649,32 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_
 		}
 		else
 		{
-			len = (int)strlcpy(args->buffer + args->arg_data_offset,
+			len = (int)strscpy(args->buffer + args->arg_data_offset,
 							(const char *)(unsigned long)val,
 							max_arg_size);
-			/* WARNING: `strlcpy` returns the length of the string it tries to create
-			 * so `len` could also be greater than `max_arg_size`, but please note that the copied
-			 * charbuf is at max `max_arg_size` (where the last byte is used for the `\0`).
-			 * The copied string is always `\0` terminated but the returned `len` doesn't
-			 * take into consideration the `\0` like `strlen()` function.
+			/* WARNING: `strscpy` returns the length of the string it creates or -E2BIG in case
+			 * the resulting string would not fit inside the destination string.
+			 * (see https://elixir.bootlin.com/linux/latest/source/lib/string.c#L122 and
+			 * https://lwn.net/Articles/659214/)
+			 *
+			 * The copied string is always null terminated but the returned `len` doesn't
+			 * take account for it.
 			 *
 			 * Two possible cases here:
 			 *
 			 * 1. `len < max_arg_size`, the terminator is always there, but `len` doesn't take it into account,
-			 *    so we need to increment the `len`. Note that if the source string has exactly `max_arg_size`
-			 *    characters the returned `len` is `max_arg_size-1` so we need to do `len++` to obtain the copied size.
+			 *    so we need to increment the `len`.
 			 *
-			 * 2. `len >= max_arg_size`, the source string is greater than `max_arg_size`. `strlcpy` copied
-			 *    `max_arg_size - 1` and added the `\0` at the end, so our final copied `len` is `max_arg_size` we have just
-			 *    to resize it and we have done.
+			 * 2. `len == -E2BIG`, the source string is >= than `max_arg_size`. `strscpy` copied
+			 *    `max_arg_size - 1` and added the `\0` at the end, so our final copied `len` is `max_arg_size`.
 			 */
-			if(++len >= max_arg_size)
+			if (len == -E2BIG)
 			{
 				len = max_arg_size;
+			}
+			else
+			{
+				len++;
 			}
 		}
 		break;
