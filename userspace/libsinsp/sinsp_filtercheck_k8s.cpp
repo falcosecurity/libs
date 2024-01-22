@@ -73,7 +73,7 @@ sinsp_filter_check_k8s::sinsp_filter_check_k8s()
 	m_info.m_desc = "Kubernetes related context. When configured to fetch from the API server, all fields are available. Otherwise, only the `k8s.pod.*` and `k8s.ns.name` fields are populated with data gathered from the container runtime.";
 	m_info.m_fields = sinsp_filter_check_k8s_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]);
-	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
 sinsp_filter_check* sinsp_filter_check_k8s::allocate_new()

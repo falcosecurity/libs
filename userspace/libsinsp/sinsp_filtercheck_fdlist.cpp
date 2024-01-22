@@ -43,7 +43,7 @@ sinsp_filter_check_fdlist::sinsp_filter_check_fdlist()
 	m_info.m_desc = "Poll event related fields.";
 	m_info.m_fields = sinsp_filter_check_fdlist_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_fdlist_fields) / sizeof(sinsp_filter_check_fdlist_fields[0]);
-	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
 sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()

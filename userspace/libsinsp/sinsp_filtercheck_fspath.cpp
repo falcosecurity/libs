@@ -53,7 +53,7 @@ sinsp_filter_check_fspath::sinsp_filter_check_fspath()
 	m_info.m_desc = "Every syscall that has a filesystem path in its arguments has these fields set with information related to the path arguments. This differs from the fd.* fields as it includes syscalls like unlink, rename, etc. that act directly on filesystem paths as compared to opened file descriptors.";
 	m_info.m_fields = sinsp_filter_check_fspath_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_fspath_fields) / sizeof(sinsp_filter_check_fspath_fields[0]);
-	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
+	m_info.m_flags = filter_check_info::FL_NONE;
 };
 
 std::shared_ptr<sinsp_filter_check> sinsp_filter_check_fspath::create_event_check(const char *name,

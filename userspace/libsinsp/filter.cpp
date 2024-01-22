@@ -45,37 +45,31 @@ sinsp_filter::sinsp_filter(sinsp *inspector)
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_filter_compiler::sinsp_filter_compiler(
 		sinsp* inspector,
-		const std::string& fltstr,
-		bool ttable_only)
+		const std::string& fltstr)
 {
 	m_factory.reset(new sinsp_filter_factory(inspector, m_default_filterlist));
 	m_filter = NULL;
 	m_flt_str = fltstr;
 	m_flt_ast = NULL;
-	m_ttable_only = ttable_only;
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		const std::string& fltstr,
-		bool ttable_only)
+		const std::string& fltstr)
 {
 	m_factory = factory;
 	m_filter = NULL;
 	m_flt_str = fltstr;
 	m_flt_ast = NULL;
-	m_ttable_only = ttable_only;
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		const libsinsp::filter::ast::expr* fltast,
-		bool ttable_only)
+		const libsinsp::filter::ast::expr* fltast)
 {
 	m_factory = factory;
 	m_filter = NULL;
 	m_flt_ast = fltast;
-	m_ttable_only = ttable_only;
 }
 
 sinsp_filter* sinsp_filter_compiler::compile()
@@ -182,7 +176,6 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 	std::string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
-	check_ttable_only(field, check);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
@@ -213,7 +206,6 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	std::string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
-	check_ttable_only(field, check);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
@@ -279,28 +271,6 @@ gen_event_filter_check* sinsp_filter_compiler::create_filtercheck(std::string& f
 		throw sinsp_exception("filter_check called with nonexistent field " + field);
 	}
 	return chk;
-}
-
-void sinsp_filter_compiler::check_ttable_only(std::string& field, gen_event_filter_check *check)
-{
-	if(m_ttable_only)
-	{
-		sinsp_filter_check* sinsp_check = dynamic_cast<sinsp_filter_check*>(check);
-		if (sinsp_check != nullptr
-			&& !(sinsp_check->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
-		{
-			if(field != "evt.rawtime" &&
-				field != "evt.rawtime.s" &&
-				field != "evt.rawtime.ns" &&
-				field != "evt.time" &&
-				field != "evt.time.s" &&
-				field != "evt.datetime" &&
-				field != "evt.reltime")
-			{
-				throw sinsp_exception("filter error: '" + field + "' is not supported for thread table filtering");
-			}
-		}
-	}
 }
 
 cmpop sinsp_filter_compiler::str_to_cmpop(const std::string& str)
