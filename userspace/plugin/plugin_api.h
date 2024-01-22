@@ -268,7 +268,7 @@ typedef struct
 } ss_plugin_init_tables_input;
 
 // Function used by a plugin for sending messages to libsinsp logger
-typedef const void (*ss_plugin_log_func)(char* msg, ss_plugin_log_severity sev);
+typedef const void (*ss_plugin_log_func)(const char* msg, ss_plugin_log_severity sev);
 
 // Input passed at the plugin through plugin_init(). This contain information
 // common to any plugin, and also information useful only in case the plugin
