@@ -270,9 +270,9 @@ typedef struct
 // Function used by plugin for sending messages to the framework-provided logger
 // Arguments:
 //  - component: name of the component that is logging (e.g. plugin name)
-//  - sev: message severity as defined in ss_plugin_log_severity
 //  - msg: message to log
-typedef void (*ss_plugin_log_func_t)(const char* component, ss_plugin_log_severity sev, const char* msg);
+//  - sev: message severity as defined in ss_plugin_log_severity
+typedef void (*ss_plugin_log_fn_t)(const char* component, const char* msg, ss_plugin_log_severity sev);
 
 // Input passed at the plugin through plugin_init(). This contain information
 // common to any plugin, and also information useful only in case the plugin
@@ -302,7 +302,7 @@ typedef struct ss_plugin_init_input
 	// Log function passed to the plugin through the init input
 	// When initializing, the plugin can copy this function to its state so it's accessible from there
 	// It can be NULL if not set
-	ss_plugin_log_func_t log_callback;
+	ss_plugin_log_fn_t log_fn;
 } ss_plugin_init_input;
 
 // Input passed to the plugin when extracting a field from an event for
