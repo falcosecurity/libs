@@ -58,9 +58,9 @@ int BPF_PROG(bpf_x,
 	/* Parameter 1: fd (type: PT_FD) */
 	ringbuf__store_s64(&ringbuf, ret);
 
-	/* Parameter 2: cmd (type: PT_ENUMFLAGS32) */
-	int32_t cmd = (int32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_u32(&ringbuf, (uint32_t)cmd);
+	/* Parameter 2: cmd (type: PT_INT32) */
+	unsigned long cmd = extract__syscall_argument(regs, 0);
+	ringbuf__store_s32(&ringbuf,(int32_t)bpf_cmd_to_scap(cmd));
 
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

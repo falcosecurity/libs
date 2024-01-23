@@ -147,7 +147,7 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, errno_value);
-	/* Parameter 2: cmd (type: PT_INT32)*/
+	/* Parameter 2: cmd (type: PT_ENUMFLAGS32)*/
 	evt_test->assert_numeric_param(2, PPM_BPF_MAP_CREATE);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
