@@ -50,8 +50,11 @@ public:
 
 	sinsp_filter_check* allocate_new() override;
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+
+protected:
 	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
 
+private:
 	uint64_t m_u64val;
 	uint32_t m_u32val;
 	std::string m_strstorage;

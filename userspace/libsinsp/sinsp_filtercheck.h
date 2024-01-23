@@ -64,8 +64,8 @@ enum boolop
 	BO_ANDNOT = 5,
 };
 
-bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
-bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
+bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
+bool flt_compare_avg(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
 bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *operand2);
 
@@ -76,8 +76,8 @@ std::string to_string(boolop);
 }
 
 struct extract_value_t {
-	uint8_t* ptr;
-	uint32_t len;
+	uint8_t* ptr = nullptr;
+	uint32_t len = 0;
 };
 
 class check_extraction_cache_entry
@@ -91,23 +91,23 @@ class check_eval_cache_entry
 {
 public:
 	uint64_t m_evtnum = UINT64_MAX;
-	bool m_res;
+	bool m_res = false;
 };
 
 class check_cache_metrics
 {
 public:
-	// The number of times extract_cached() was called
-	uint64_t m_num_extract;
+	// The number of times extract() was called
+	uint64_t m_num_extract = 0;
 
-	// The number of times extract_cached() could use a cached value
-	uint64_t m_num_extract_cache;
+	// The number of times extract() could use a cached value
+	uint64_t m_num_extract_cache = 0;
 
 	// The number of times compare() was called
-	uint64_t m_num_eval;
+	uint64_t m_num_eval = 0;
 
 	// The number of times compare() could use a cached value
-	uint64_t m_num_eval_cache;
+	uint64_t m_num_eval_cache = 0;
 };
 
 /*!
@@ -115,9 +115,9 @@ public:
 */
 struct filtercheck_field_info
 {
-	ppm_param_type m_type; ///< Field type.
-	uint32_t m_flags;  ///< Field flags.
-	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
+	ppm_param_type m_type = PT_NONE; ///< Field type.
+	uint32_t m_flags = 0;  ///< Field flags.
+	ppm_print_format m_print_format = PF_NA;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
 	char m_name[64];  ///< Field name.
 	char m_display[64];  ///< Field display name (short description). May be empty.
 	char m_description[1024];  ///< Field description.
@@ -131,21 +131,16 @@ class filter_check_info
 public:
 	enum flags
 	{
-		FL_NONE =   0,
+		FL_NONE = 0,
 		FL_HIDDEN = (1 << 0),	///< This filter check class won't be shown by fields/filter listings.
 	};
-
-	filter_check_info()
-	{
-		m_flags = 0;
-	}
 
 	std::string m_name; ///< Field class name.
 	std::string m_shortdesc; ///< short (< 10 words) description of this filtercheck. Can be blank.
 	std::string m_desc; ///< Field class description.
-	int32_t m_nfields; ///< Number of fields in this field group.
-	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
-	uint32_t m_flags;
+	int32_t m_nfields = 0; ///< Number of fields in this field group.
+	const filtercheck_field_info* m_fields = nullptr; ///< Array containing m_nfields field descriptions.
+	uint32_t m_flags = FL_HIDDEN;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -153,12 +148,16 @@ public:
 // NOTE: in order to add a new type of filter check, you need to add a class for
 //       it and then add it to new_filter_check_from_name.
 ///////////////////////////////////////////////////////////////////////////////
-
 class sinsp_filter_check
 {
 public:
 	sinsp_filter_check();
 	virtual ~sinsp_filter_check() = default;
+
+	//
+	// Sets an inspector to be used internally.
+	//
+	void set_inspector(sinsp* inspector);
 
 	//
 	// Allocate a new check of the same type.
@@ -172,7 +171,7 @@ public:
 	//
 	// Get the list of fields that this check exports
 	//
-	virtual filter_check_info* get_fields()
+	virtual const filter_check_info* get_fields() const
 	{
 		return &m_info;
 	}
@@ -200,7 +199,7 @@ public:
 	// either due to being required (flag EPF_ARG_REQUIRED) or
 	// allowed (flag EPF_ARG_ALLOWED).
 	//
-	bool can_have_argument();
+	bool can_have_argument() const;
 
 	//
 	// Extract the field from the event. In sanitize_strings is true, any
@@ -210,21 +209,6 @@ public:
 	// If a NULL value is returned by extract, the vector is emptied.
 	// Subclasses are meant to either override this, or the single-valued extract method.
 	virtual bool extract(sinsp_evt*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
-
-	//
-	// Wrapper for extract() that implements caching to speed up multiple extractions of the same value,
-	// which are common in Falco.
-	//
-	bool extract_cached(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
-
-	//
-	// Extract the field as json from the event (by default, fall
-	// back to the regular extract functionality)
-	//
-	virtual Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len)
-	{
-		return Json::nullValue;
-	}
 
 	//
 	// Compare the field with the constant value obtained from parse_filter_value()
@@ -242,28 +226,31 @@ public:
 	//
 	virtual Json::Value tojson(sinsp_evt* evt);
 
-	sinsp* m_inspector;
-	bool m_needs_state_tracking = false;
-	check_eval_cache_entry* m_eval_cache_entry = NULL;
-	check_extraction_cache_entry* m_extraction_cache_entry = NULL;
+	sinsp* m_inspector = nullptr;
 	std::vector<extract_value_t> m_extracted_values;
-	check_cache_metrics *m_cache_metrics = NULL;
-	boolop m_boolop;
-	cmpop m_cmpop;
+	check_eval_cache_entry* m_eval_cache_entry = nullptr;
+	check_extraction_cache_entry* m_extraction_cache_entry = nullptr;
+	check_cache_metrics *m_cache_metrics = nullptr;
+	boolop m_boolop = BO_NONE;
+	cmpop m_cmpop = CO_NONE;
 	size_t m_hits = 0;
 	size_t m_cached = 0;
 	size_t m_matched_true = 0;
 
 protected:
+	virtual Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len)
+	{
+		return Json::nullValue;
+	}
+
 	virtual size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
 	// This is a single-value version of extract for subclasses non supporting extracting
 	// multiple values. By default, this returns NULL.
 	// Subclasses are meant to either override this, or the multi-valued extract method.
 	virtual uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true);
-	bool compare_nocache(sinsp_evt*);
 
-	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
+	bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
 	bool flt_compare(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values, uint32_t op2_len = 0);
 
 	char* rawval_to_string(uint8_t* rawval,
@@ -273,36 +260,33 @@ protected:
 	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
-	char m_getpropertystr_storage[1024];
-	std::vector<std::vector<uint8_t>> m_val_storages;
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline std::vector<uint8_t>* filter_value(uint16_t i = 0) { return &m_val_storages[i]; }
 
+	char m_getpropertystr_storage[1024];
+	std::vector<std::vector<uint8_t>> m_val_storages;
+
 	std::vector<filter_value_t> m_vals;
 
+	const filtercheck_field_info* m_field = nullptr;
+	filter_check_info m_info;
+	uint32_t m_field_id = (uint32_t) -1;
+
+private:
+
+	bool extract_nocache(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	bool compare_nocache(sinsp_evt*);
+
+	// used for comparing right-hand single value
+	uint32_t m_val_storage_len;
+
+	// used for comparing right-hand lists of values
 	std::unordered_set<filter_value_t,
 		g_hash_membuf,
 		g_equal_to_membuf> m_val_storages_members;
-
 	path_prefix_search m_val_storages_paths;
-
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
 
-	const filtercheck_field_info* m_field;
-	filter_check_info m_info;
-	uint32_t m_field_id;
-	uint32_t m_val_storage_len;
-
-private:
-	void set_inspector(sinsp* inspector);
-
-	//
-	// Called after parsing for optional validation of the filter value
-	//
-	void validate_filter_value(const char* str, uint32_t len) {}
-
-	friend class filter_check_list;
 	friend class sinsp_filter_optimizer;
-	friend class chk_compare_helper;
 };

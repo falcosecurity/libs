@@ -84,9 +84,6 @@ public:
 	virtual ~sinsp_filter();
 
 	bool run(sinsp_evt *evt);
-	void push_expression(boolop op);
-	void pop_expression();
-	void add_check(sinsp_filter_check* chk);
 
 	sinsp_filter_expression* m_filter;
 
@@ -95,6 +92,9 @@ protected:
 
 private:
 	sinsp* m_inspector;
+	void push_expression(boolop op);
+	void pop_expression();
+	void add_check(sinsp_filter_check* chk);
 
 	friend class sinsp_filter_compiler;
 	friend class sinsp_filter_optimizer;
@@ -167,7 +167,9 @@ public:
 	virtual ~sinsp_filter_factory() = default;
 
 	virtual sinsp_filter* new_filter();
+	
 	virtual sinsp_filter_check* new_filtercheck(const char* fldname);
+
 	virtual std::list<filter_fieldclass_info> get_fields() const;
 
 	// Convienence method to convert a vector of

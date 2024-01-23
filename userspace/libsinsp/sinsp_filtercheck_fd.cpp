@@ -1826,7 +1826,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	else if(m_field_id == TYPE_FDTYPES)
 	{
 		m_extracted_values.clear();
-		if(!extract_cached(evt, m_extracted_values, false))
+		if(!extract(evt, m_extracted_values, false))
 		{
 			return false;
 		}
