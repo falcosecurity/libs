@@ -1785,6 +1785,7 @@ static __always_inline uint32_t newfstatat_flags_to_scap(int32_t flags)
 {
 	uint32_t res = 0;
 
+	/* AT_SYMLINK_NOFOLLOW was introduced in kernel 2.6.16, we don't need to check if it's defined */ 
 	if (flags & AT_SYMLINK_NOFOLLOW)
 		res |= PPM_AT_SYMLINK_NOFOLLOW;
 
