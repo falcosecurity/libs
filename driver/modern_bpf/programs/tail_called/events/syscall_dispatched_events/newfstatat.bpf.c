@@ -71,11 +71,7 @@ int BPF_PROG(newfstatat_x,
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
 	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
-	/* Parameter 4: path (type: PT_BYTEBUF) */
-	/*unsigned long buf_pointer = extract__syscall_argument(regs, 2);
-	auxmap__store_charbuf_param(auxmap, buf_pointer);*/
-
-	/* Parameter 5: dev (type: PT_FLAGS32) */
+	/* Parameter 4: dev (type: PT_FLAGS32) */
 	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 3);
 	auxmap__store_u32_param(auxmap, newfstatat_flags_to_scap(flags));
 

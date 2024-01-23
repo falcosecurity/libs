@@ -7312,12 +7312,7 @@ FILLER(sys_newfstatat_x, true)
 	res = bpf_val_to_ring(data, val);
 	CHECK_RES(res);
 
-	/* Parameter 4: stat (type: PT_BYTEBUF) */
-	/*val = bpf_syscall_get_argument(data, 2);
-	res = bpf_push_u32_to_ring(data, val);
-	CHECK_RES(res);*/
-
-	/* Parameter 5: flags (type: PT_FLAGS32) */
+	/* Parameter 4: flags (type: PT_FLAGS32) */
 	uint32_t flags = bpf_syscall_get_argument(data, 3);
 	return bpf_push_u32_to_ring(data, newfstatat_flags_to_scap(flags));
 }

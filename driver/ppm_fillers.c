@@ -8101,12 +8101,7 @@ int f_sys_newfstatat_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
-	/* Parameter 4: stat (type: PT_BYTEBUF) */
-	/*syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	CHECK_RES(res);*/
-
-	/* Parameter 5: flags (type: PT_FLAGS32) */
+	/* Parameter 4: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 3, 1, &val);
 	res = val_to_ring(args, newfstatat_flags_to_scap(val), 0, true, 0);
 	CHECK_RES(res);
