@@ -43,7 +43,7 @@ void filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
 {
 	// If a filtercheck already exists with this name and
 	// shortdesc, don't add it--this can occur when plugins are
-	// loaded and set up gen_event_filter_checks to handle plugin
+	// loaded and set up sinsp_filter_checks to handle plugin
 	// events.
 
 	for(auto *chk : m_check_list)

@@ -16,7 +16,6 @@ limitations under the License.
 
 */
 
-#include <libsinsp/gen_filter.h>
 #include <libsinsp/filter.h>
 #include <libsinsp/event.h>
 #include <libsinsp/sinsp_exception.h>
@@ -26,7 +25,7 @@ limitations under the License.
 static void filter_compile(sinsp_filter **out, std::string filter)
 {
 	sinsp_filter_check_list flist;
-	std::shared_ptr<gen_event_filter_factory> factory(new sinsp_filter_factory(NULL, flist));
+	std::shared_ptr<sinsp_filter_factory> factory(new sinsp_filter_factory(NULL, flist));
 	sinsp_filter_compiler compiler(factory, filter);
 	try
 	{

@@ -27,6 +27,7 @@ limitations under the License.
 //
 
 #include <algorithm>
+#include <iomanip>
 
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
@@ -35,9 +36,182 @@ limitations under the License.
 #include <libsinsp/filter/parser.h>
 #include <libsinsp/sinsp_filtercheck.h>
 
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter_expression implementation
+///////////////////////////////////////////////////////////////////////////////
+sinsp_filter_expression::sinsp_filter_expression()
+{
+	m_parent = NULL;
+}
+
+sinsp_filter_expression::~sinsp_filter_expression()
+{
+	uint32_t j;
+
+	for(j = 0; j < m_checks.size(); j++)
+	{
+		delete m_checks[j];
+	}
+}
+
+void sinsp_filter_expression::add_check(sinsp_filter_check* chk)
+{
+	m_checks.push_back(chk);
+}
+
+bool sinsp_filter_expression::compare(sinsp_evt *evt)
+{
+	bool res = true;
+
+	sinsp_filter_check* chk = nullptr;
+	++m_hits;
+
+	auto size = m_checks.size();
+	for(size_t j = 0; j < size; j++)
+	{
+		chk = m_checks[j];
+		ASSERT(chk != NULL);
+
+		if(j == 0)
+		{
+			switch(chk->m_boolop)
+			{
+			case BO_NONE:
+				res = chk->compare(evt);
+				break;
+			case BO_NOT:
+				res = !chk->compare(evt);
+				break;
+			default:
+				ASSERT(false);
+				break;
+			}
+		}
+		else
+		{
+			switch(chk->m_boolop)
+			{
+			case BO_OR:
+				if(res)
+				{
+					goto done;
+				}
+				res = chk->compare(evt);
+				break;
+			case BO_AND:
+				if(!res)
+				{
+					goto done;
+				}
+				res = chk->compare(evt);
+				break;
+			case BO_ORNOT:
+				if(res)
+				{
+					goto done;
+				}
+				res = !chk->compare(evt);
+				break;
+			case BO_ANDNOT:
+				if(!res)
+				{
+					goto done;
+				}
+				res = !chk->compare(evt);
+				break;
+			default:
+				ASSERT(false);
+				break;
+			}
+		}
+	}
+ done:
+	if (res)
+	{
+		m_matched_true++;
+	}
+	return res;
+}
+
+bool sinsp_filter_expression::extract(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
+{
+	return false;
+}
+
+int32_t sinsp_filter_expression::get_expr_boolop() const
+{
+	if(m_checks.size() <= 1)
+	{
+		return m_boolop;
+	}
+
+	// Reset bit 0 to remove irrelevant not
+	boolop b0 = (boolop)((uint32_t)(m_checks.at(1)->m_boolop) & (uint32_t)~1);
+
+	if(m_checks.size() <= 2)
+	{
+		return b0;
+	}
+
+	for(uint32_t l = 2; l < m_checks.size(); l++)
+	{
+		if((boolop)((uint32_t)(m_checks.at(l)->m_boolop) & (uint32_t)~1) != b0)
+		{
+			return -1;
+		}
+	}
+
+	return b0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// sinsp_filter implementation
+///////////////////////////////////////////////////////////////////////////////
 sinsp_filter::sinsp_filter(sinsp *inspector)
 {
 	m_inspector = inspector;
+	m_filter = new sinsp_filter_expression();
+	m_curexpr = m_filter;
+}
+
+sinsp_filter::~sinsp_filter()
+{
+	if(m_filter)
+	{
+		delete m_filter;
+	}
+}
+
+void sinsp_filter::push_expression(boolop op)
+{
+	sinsp_filter_expression* newexpr = new sinsp_filter_expression();
+	newexpr->m_boolop = op;
+	newexpr->m_parent = m_curexpr;
+
+	add_check((sinsp_filter_check*)newexpr);
+	m_curexpr = newexpr;
+}
+
+void sinsp_filter::pop_expression()
+{
+	ASSERT(m_curexpr->m_parent != NULL);
+
+	if(m_curexpr->get_expr_boolop() == -1)
+	{
+		throw sinsp_exception("expression mixes 'and' and 'or' in an ambiguous way. Please use brackets.");
+	}
+
+	m_curexpr = m_curexpr->m_parent;
+}
+
+bool sinsp_filter::run(sinsp_evt *evt)
+{
+	return m_filter->compare(evt);
+}
+
+void sinsp_filter::add_check(sinsp_filter_check* chk)
+{
+	m_curexpr->add_check(chk);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -54,7 +228,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
-		std::shared_ptr<gen_event_filter_factory> factory,
+		std::shared_ptr<sinsp_filter_factory> factory,
 		const std::string& fltstr)
 {
 	m_factory = factory;
@@ -64,7 +238,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
-		std::shared_ptr<gen_event_filter_factory> factory,
+		std::shared_ptr<sinsp_filter_factory> factory,
 		const libsinsp::filter::ast::expr* fltast)
 {
 	m_factory = factory;
@@ -174,14 +348,14 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 {
 	m_pos = e->get_pos();
 	std::string field = create_filtercheck_name(e->field, e->arg);
-	gen_event_filter_check *check = create_filtercheck(field);
+	sinsp_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
 }
 
-static void add_filtercheck_value(gen_event_filter_check *chk, size_t idx, const std::string& value)
+static void add_filtercheck_value(sinsp_filter_check *chk, size_t idx, const std::string& value)
 {
 	std::vector<char> hex_bytes;
 	switch(chk->m_cmpop)
@@ -204,7 +378,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 {
 	m_pos = e->get_pos();
 	std::string field = create_filtercheck_name(e->field, e->arg);
-	gen_event_filter_check *check = create_filtercheck(field);
+	sinsp_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
@@ -263,9 +437,9 @@ std::string sinsp_filter_compiler::create_filtercheck_name(const std::string& na
 	return fld;
 }
 
-gen_event_filter_check* sinsp_filter_compiler::create_filtercheck(std::string& field)
+sinsp_filter_check* sinsp_filter_compiler::create_filtercheck(std::string& field)
 {
-	gen_event_filter_check *chk = m_factory->new_filtercheck(field.c_str());
+	sinsp_filter_check *chk = m_factory->new_filtercheck(field.c_str());
 	if(chk == NULL)
 	{
 		throw sinsp_exception("filter_check called with nonexistent field " + field);
@@ -359,20 +533,20 @@ sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
 {
 }
 
-gen_event_filter *sinsp_filter_factory::new_filter()
+sinsp_filter *sinsp_filter_factory::new_filter()
 {
 	return new sinsp_filter(m_inspector);
 }
 
 
-gen_event_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldname)
+sinsp_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldname)
 {
 	return m_available_checks.new_filter_check_from_fldname(fldname,
 								m_inspector,
 								true);
 }
 
-std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields() const
+std::list<sinsp_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields() const
 {
 	std::vector<const filter_check_info*> fc_plugins;
 	m_available_checks.get_all_fields(fc_plugins);
@@ -380,10 +554,10 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 	return check_infos_to_fieldclass_infos(fc_plugins);
 }
 
-std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::check_infos_to_fieldclass_infos(
+std::list<sinsp_filter_factory::filter_fieldclass_info> sinsp_filter_factory::check_infos_to_fieldclass_infos(
 	const std::vector<const filter_check_info*> &fc_plugins)
 {
-	std::list<gen_event_filter_factory::filter_fieldclass_info> ret;
+	std::list<sinsp_filter_factory::filter_fieldclass_info> ret;
 
 	for(auto &fci : fc_plugins)
 	{
@@ -392,7 +566,7 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 			continue;
 		}
 
-		gen_event_filter_factory::filter_fieldclass_info cinfo;
+		sinsp_filter_factory::filter_fieldclass_info cinfo;
 		cinfo.name = fci->m_name;
 		cinfo.desc = fci->m_desc;
 		cinfo.shortdesc = fci->m_shortdesc;
@@ -409,7 +583,7 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 				continue;
 			}
 
-			gen_event_filter_factory::filter_field_info info;
+			sinsp_filter_factory::filter_field_info info;
 			info.name = fld->m_name;
 			info.desc = fld->m_description;
 			info.data_type =  param_type_to_string(fld->m_type);
@@ -445,4 +619,195 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 	}
 
 	return ret;
+}
+
+bool sinsp_filter_factory::filter_field_info::is_skippable() const
+{
+	// Skip fields with the EPF_TABLE_ONLY flag.
+	return (tags.find("EPF_TABLE_ONLY") != tags.end());
+}
+
+bool sinsp_filter_factory::filter_field_info::is_deprecated() const
+{
+	// Skip fields with the EPF_DEPRECATED flag.
+	return (tags.find("EPF_DEPRECATED") != tags.end());
+}
+
+uint32_t sinsp_filter_factory::filter_fieldclass_info::s_rightblock_start = 30;
+uint32_t sinsp_filter_factory::filter_fieldclass_info::s_width = 120;
+
+void sinsp_filter_factory::filter_fieldclass_info::wrapstring(const std::string &in, std::ostringstream &os)
+{
+	std::istringstream is(in);
+	std::string word;
+	uint32_t len = 0;
+
+	while (is >> word)
+	{
+		// + 1 is trailing space.
+		uint32_t wordlen = word.length() + 1;
+
+		if((len + wordlen) <= (s_width-s_rightblock_start))
+		{
+			len += wordlen;
+		}
+		else
+		{
+			os << std::endl;
+			os << std::left << std::setw(s_rightblock_start) << " ";
+			len = wordlen;
+		}
+
+		os << word << " ";
+	}
+}
+
+std::string sinsp_filter_factory::filter_fieldclass_info::as_markdown(const std::set<std::string>& event_sources, bool include_deprecated)
+{
+	std::ostringstream os;
+	uint32_t deprecated_count = 0;
+
+	os << "## Field Class: " << name << std::endl << std::endl;
+
+	if(desc != "")
+	{
+		os << desc << std::endl << std::endl;
+	}
+
+	if(!event_sources.empty())
+	{
+		os << "Event Sources: ";
+
+		for(const auto &src : event_sources)
+		{
+			os << src << " ";
+		}
+
+		os << std::endl << std::endl;
+	}
+
+	os << "Name | Type | Description" << std::endl;
+	os << ":----|:-----|:-----------" << std::endl;
+
+	for(auto &fld_info : fields)
+	{
+		// Skip fields that should not be included
+		// (e.g. hidden fields)
+		if(fld_info.is_skippable())
+		{
+			continue;
+		}
+		if(!include_deprecated && fld_info.is_deprecated())
+		{
+			deprecated_count++;
+			continue;
+		}
+
+		os << "`" << fld_info.name << "` | " << fld_info.data_type << " | " << fld_info.desc << std::endl;
+	}
+
+	if(deprecated_count == fields.size())
+	{
+		return "";
+	}
+
+	return os.str();
+}
+
+std::string sinsp_filter_factory::filter_fieldclass_info::as_string(bool verbose, const std::set<std::string>& event_sources, bool include_deprecated)
+{
+	std::ostringstream os;
+	uint32_t deprecated_count = 0;
+
+	os << "-------------------------------" << std::endl;
+
+	os << std::left << std::setw(s_rightblock_start) << "Field Class:" << name;
+	if(shortdesc != "")
+	{
+		os << " (" << shortdesc << ")";
+	}
+	os << std::endl;
+
+	if(desc != "")
+	{
+		os << std::left << std::setw(s_rightblock_start) << "Description:";
+
+		wrapstring(desc, os);
+		os << std::endl;
+	}
+
+	if(!event_sources.empty())
+	{
+		os << std::left << std::setw(s_rightblock_start) << "Event Sources:";
+
+		for(const auto &src : event_sources)
+		{
+			os << src << " ";
+		}
+
+		os << std::endl;
+	}
+
+	os << std::endl;
+
+	for(auto &fld_info : fields)
+	{
+		// Skip fields that should not be included
+		// (e.g. hidden fields)
+		if(fld_info.is_skippable())
+		{
+			continue;
+		}
+		if(!include_deprecated && fld_info.is_deprecated())
+		{
+			deprecated_count++;
+			continue;
+		}
+
+		if(fld_info.name.length() > s_rightblock_start)
+		{
+			os << fld_info.name << std::endl;
+			os << std::left << std::setw(s_rightblock_start) << " ";
+		}
+		else
+		{
+			os << std::left << std::setw(s_rightblock_start) << fld_info.name;
+		}
+
+		// Append any tags, and if verbose, add the type, to the description.
+		std::string desc = fld_info.desc;
+
+		if(!fld_info.tags.empty())
+		{
+			std::string tagsstr = "(";
+			for(const auto &tag : fld_info.tags)
+			{
+				if(tagsstr != "(")
+				{
+					tagsstr += ",";
+				}
+
+				tagsstr += tag;
+			}
+
+			tagsstr += ")";
+
+			desc = tagsstr + " " + desc;
+		}
+
+		if(verbose)
+		{
+			desc = "(Type: " + fld_info.data_type + ") " + desc;
+		}
+
+		wrapstring(desc, os);
+		os << std::endl;
+	}
+
+	if(deprecated_count == fields.size())
+	{
+		return "";
+	}
+
+	return os.str();
 }

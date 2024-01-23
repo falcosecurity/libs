@@ -32,7 +32,6 @@ limitations under the License.
 #include <libsinsp/sinsp_public.h>
 #include <libsinsp/sinsp_event_source.h>
 #include <libscap/scap.h>
-#include <libsinsp/gen_filter.h>
 #include <libsinsp/settings.h>
 #include <libsinsp/sinsp_exception.h>
 #include <libsinsp/fdinfo.h>
@@ -45,6 +44,14 @@ namespace test_helpers {
 	class event_builder;
 	class sinsp_mock;
 }
+
+enum evt_src
+{
+	ESRC_NONE = 0,
+	ESRC_SINSP = 1,
+	ESRC_K8S_AUDIT = 2,
+	ESRC_MAX = 3,
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Event arguments
@@ -63,19 +70,6 @@ enum filtercheck_field_flags
 	EPF_ARG_INDEX         = 1 << 8, ///< this field accepts numeric arguments.
 	EPF_ARG_KEY           = 1 << 9, ///< this field accepts string arguments.
 	EPF_DEPRECATED        = 1 << 10,///< this field is deprecated.
-};
-
-/*!
-  \brief Information about a filter/formatting field.
-*/
-struct filtercheck_field_info
-{
-	ppm_param_type m_type; ///< Field type.
-	uint32_t m_flags;  ///< Field flags.
-	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
-	char m_name[64];  ///< Field name.
-	char m_display[64];  ///< Field display name (short description). May be empty.
-	char m_description[1024];  ///< Field description.
 };
 
 /** @defgroup event Event manipulation
@@ -179,7 +173,7 @@ inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_par
   events and their parameters, including parsing, formatting and extracting
   state like the event process or FD.
 */
-class SINSP_PUBLIC sinsp_evt : public gen_event
+class SINSP_PUBLIC sinsp_evt
 {
 public:
 	/*!
@@ -269,7 +263,7 @@ public:
 
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	inline uint16_t get_type() const override
+	inline uint16_t get_type() const
 	{
 		return m_pevt->type;
 	}
@@ -320,7 +314,7 @@ public:
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	inline uint64_t get_ts() const override
+	inline uint64_t get_ts() const
 	{
 		return m_pevt->ts;
 	}
@@ -452,7 +446,7 @@ public:
 	scap_dump_flags get_dump_flags(OUT bool* should_drop) const;
 
 	// todo(jasondellaluce): this is deprecated and will need to be removed
-	inline uint16_t get_source() const override
+	inline uint16_t get_source() const
 	{
 		return ESRC_SINSP;
 	}

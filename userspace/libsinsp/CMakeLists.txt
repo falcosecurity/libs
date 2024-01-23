@@ -96,7 +96,6 @@ add_library(sinsp
 	sinsp_filtercheck_user.cpp
 	sinsp_filtercheck_utils.cpp
 	filter_check_list.cpp
-	gen_filter.cpp
 	ifinfo.cpp
 	memmem.cpp
 	logger.cpp

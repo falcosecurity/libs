@@ -108,31 +108,6 @@ class sinsp_observer;
 std::vector<std::string> sinsp_split(const std::string &s, char delim);
 
 /*!
-  \brief Information about a group of filter/formatting fields.
-*/
-class filter_check_info
-{
-public:
-	enum flags
-	{
-		FL_NONE =   0,
-		FL_HIDDEN = (1 << 0),	///< This filter check class won't be shown by fields/filter listings.
-	};
-
-	filter_check_info()
-	{
-		m_flags = 0;
-	}
-
-	std::string m_name; ///< Field class name.
-	std::string m_shortdesc; ///< short (< 10 words) description of this filtercheck. Can be blank.
-	std::string m_desc; ///< Field class description.
-	int32_t m_nfields; ///< Number of fields in this field group.
-	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
-	uint32_t m_flags;
-};
-
-/*!
   \brief The user agent string to use for any libsinsp connection, can be changed at compile time
 */
 

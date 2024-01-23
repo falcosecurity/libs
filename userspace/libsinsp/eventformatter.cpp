@@ -39,7 +39,7 @@ sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
 	: m_inspector(inspector),
 	  m_available_checks(available_checks)
 {
-	gen_event_formatter::output_format of = gen_event_formatter::OF_NORMAL;
+	output_format of = sinsp_evt_formatter::OF_NORMAL;
 
 	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
@@ -47,7 +47,7 @@ sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
 	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
 	{
-		of = gen_event_formatter::OF_JSON;
+		of = sinsp_evt_formatter::OF_JSON;
 	}
 
 	set_format(of, fmt);
@@ -63,7 +63,7 @@ sinsp_evt_formatter::~sinsp_evt_formatter()
 	}
 }
 
-void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, const std::string& fmt)
+void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 {
 	uint32_t j;
 	uint32_t last_nontoken_str_start = 0;
@@ -222,10 +222,8 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, std::map<std::string,st
 	return retval;
 }
 
-bool sinsp_evt_formatter::get_field_values(gen_event *gevt, std::map<std::string, std::string> &fields)
+bool sinsp_evt_formatter::get_field_values(sinsp_evt *evt, std::map<std::string, std::string> &fields)
 {
-	sinsp_evt *evt = static_cast<sinsp_evt *>(gevt);
-
 	return resolve_tokens(evt, fields);
 }
 
@@ -242,17 +240,15 @@ void sinsp_evt_formatter::get_field_names(std::vector<std::string> &fields)
 	}
 }
 
-gen_event_formatter::output_format sinsp_evt_formatter::get_output_format()
+sinsp_evt_formatter::output_format sinsp_evt_formatter::get_output_format()
 {
 	return m_output_format;
 }
 
-bool sinsp_evt_formatter::tostring_withformat(gen_event* gevt, std::string &output, gen_event_formatter::output_format of)
+bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt, std::string &output, output_format of)
 {
 	bool retval = true;
 	const filtercheck_field_info* fi;
-
-	sinsp_evt *evt = static_cast<sinsp_evt *>(gevt);
 
 	uint32_t j = 0;
 	output.clear();
@@ -329,31 +325,26 @@ bool sinsp_evt_formatter::tostring_withformat(gen_event* gevt, std::string &outp
 	return retval;
 }
 
-bool sinsp_evt_formatter::tostring(gen_event* gevt, std::string &output)
+bool sinsp_evt_formatter::tostring(sinsp_evt* evt, std::string& res)
 {
-	return tostring_withformat(gevt, output, m_output_format);
-}
-
-bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT std::string* res)
-{
-	return tostring_withformat(evt, *res, m_output_format);
+	return tostring_withformat(evt, res, m_output_format);
 }
 
 sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks)
 	: m_inspector(inspector),
 	  m_available_checks(available_checks),
-	  m_output_format(gen_event_formatter::OF_NORMAL)
+	  m_output_format(sinsp_evt_formatter::OF_NORMAL)
 {
 }
 
-void sinsp_evt_formatter_factory::set_output_format(gen_event_formatter::output_format of)
+void sinsp_evt_formatter_factory::set_output_format(sinsp_evt_formatter::output_format of)
 {
 	m_formatters.clear();
 
 	m_output_format = of;
 }
 
-std::shared_ptr<gen_event_formatter> sinsp_evt_formatter_factory::create_formatter(const std::string &format)
+std::shared_ptr<sinsp_evt_formatter> sinsp_evt_formatter_factory::create_formatter(const std::string &format)
 {
 	auto it = m_formatters.find(format);
 
@@ -362,7 +353,7 @@ std::shared_ptr<gen_event_formatter> sinsp_evt_formatter_factory::create_formatt
 		return it->second;
 	}
 
-	std::shared_ptr<gen_event_formatter> ret;
+	std::shared_ptr<sinsp_evt_formatter> ret;
 
 	ret.reset(new sinsp_evt_formatter(m_inspector, m_available_checks));
 
