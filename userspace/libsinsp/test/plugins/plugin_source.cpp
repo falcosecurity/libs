@@ -91,9 +91,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     //set log function in the state
     ret->log = in->log_fn;
 
-    std::string msg = "Initializing plugin...";
-    std::string component = "some component";
-    ret->log(component.c_str(), msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
+    ret->log("some component", "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
     *rc = SS_PLUGIN_SUCCESS;
     return ret;
@@ -102,9 +100,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
-    std::string msg = "Destroying plugin...";
-    std::string component = "some component";
-    ps->log(component.c_str(), msg.c_str(), SS_PLUGIN_LOG_SEV_INFO);
+    ps->log("some component", "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
     
     delete ((plugin_state *) s);
 }

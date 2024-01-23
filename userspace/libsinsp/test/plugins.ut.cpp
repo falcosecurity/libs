@@ -640,3 +640,34 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	ASSERT_NO_THROW(table->clear_entries());
 	ASSERT_EQ(table->entries_count(), 0);
 }
+
+// Scenario: we load a plugin expecting it to log
+// when it's initialized and destroyed.
+// We use a callback attached to the logger to assert the message.
+// When the inspector goes out of scope,
+// the plugin is automatically destroyed.
+TEST(sinsp_plugin, plugin_logging)
+{
+	{
+		std::string tmp;
+		sinsp i;
+		plugin_api api;
+		get_plugin_api_sample_plugin_extract(api);
+
+		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
+			std::string expected = "some component: initializing plugin..."; 
+			ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
+		});
+
+		api.get_name = [](){ return "p1"; };
+		auto p = i.register_plugin(&api);
+		p->init("", tmp);
+
+		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
+			std::string expected = "some component: destroying plugin..."; 
+			ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
+		});
+	}
+
+	libsinsp_logger()->remove_callback_log();
+}
