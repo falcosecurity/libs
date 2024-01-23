@@ -94,7 +94,6 @@ public:
 	size_t parse_filter_value(const char* str, uint32_t len, uint8_t* storage, uint32_t storage_len) override;
 	const filtercheck_field_info* get_field_info() const override;
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
-	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
 	bool compare(sinsp_evt*) override;
 
 	uint64_t m_u64val;
@@ -113,6 +112,9 @@ public:
 	// TYPE_RESARG, that need to do on the fly type customization
 	//
 	filtercheck_field_info m_customfield;
+
+protected:
+	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
 
 private:
 	void validate_filter_value(const char* str, uint32_t len);

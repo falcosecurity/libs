@@ -48,8 +48,8 @@ void filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
 
 	for(auto *chk : m_check_list)
 	{
-		if(chk->m_info.m_name == filter_check->m_info.m_name &&
-		   chk->m_info.m_shortdesc == filter_check->m_info.m_shortdesc)
+		if(chk->get_fields()->m_name == filter_check->get_fields()->m_name &&
+		   chk->get_fields()->m_shortdesc == filter_check->get_fields()->m_shortdesc)
 		{
 			delete filter_check;
 			return;
@@ -63,7 +63,7 @@ void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& li
 {
 	for(auto *chk : m_check_list)
 	{
-		list.push_back((const filter_check_info*)&(chk->m_info));
+		list.push_back(chk->get_fields());
 	}
 }
 

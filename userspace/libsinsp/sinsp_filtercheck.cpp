@@ -426,7 +426,7 @@ bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *oper
 	}
 }
 
-bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len)
+bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len, uint32_t op2_len)
 {
 	//
 	// sinsp_filter_check_*::compare
@@ -524,8 +524,8 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 
 bool flt_compare_avg(cmpop op,
 					 ppm_param_type type,
-					 void* operand1,
-					 void* operand2,
+					 const void* operand1,
+					 const void* operand2,
 					 uint32_t op1_len,
 					 uint32_t op2_len,
 					 uint32_t cnt1,
@@ -1139,7 +1139,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 char* sinsp_filter_check::tostring(sinsp_evt* evt)
 {
 	m_extracted_values.clear();
-	if(!extract_cached(evt, m_extracted_values))
+	if(!extract(evt, m_extracted_values))
 	{
 		return NULL;
 	}
@@ -1170,7 +1170,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 	if(jsonval == Json::nullValue)
 	{
 		m_extracted_values.clear();
-		if(!extract_cached(evt, m_extracted_values))
+		if(!extract(evt, m_extracted_values))
 		{
 			return Json::nullValue;
 		}
@@ -1285,7 +1285,6 @@ size_t sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uin
 	{
 		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, m_field->m_type);
 	}
-	validate_filter_value(str, len);
 
 	return parsed_len;
 }
@@ -1295,7 +1294,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info() const
 	return &m_info.m_fields[m_field_id];
 }
 
-bool sinsp_filter_check::can_have_argument()
+bool sinsp_filter_check::can_have_argument() const
 {
 	const filtercheck_field_info *info = get_field_info();
 
@@ -1421,7 +1420,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<
 		op2_len);
 }
 
-bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len, uint32_t op2_len)
+bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len, uint32_t op2_len)
 {
 	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
 	{
@@ -1499,7 +1498,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 	}
 }
 
-bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check::extract_nocache(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	values.clear();
 	extract_value_t val;
@@ -1517,7 +1516,7 @@ uint8_t* sinsp_filter_check::extract(sinsp_evt *evt, OUT uint32_t* len, bool san
 	return NULL;
 }
 
-bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	if(m_cache_metrics != NULL)
 	{
@@ -1533,7 +1532,7 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT std::vector<extract_
 		if(en != m_extraction_cache_entry->m_evtnum)
 		{
 			m_extraction_cache_entry->m_evtnum = en;
-			extract(evt, m_extraction_cache_entry->m_res, sanitize_strings);
+			extract_nocache(evt, m_extraction_cache_entry->m_res, sanitize_strings);
 		}
 		else
 		{
@@ -1550,7 +1549,7 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT std::vector<extract_
 	}
 	else
 	{
-		return extract(evt, values, sanitize_strings);
+		return extract_nocache(evt, values, sanitize_strings);
 	}
 }
 
@@ -1604,7 +1603,7 @@ bool sinsp_filter_check::compare(sinsp_evt* evt)
 bool sinsp_filter_check::compare_nocache(sinsp_evt* evt)
 {
 	m_extracted_values.clear();
-	if(!extract_cached(evt, m_extracted_values, false))
+	if(!extract(evt, m_extracted_values, false))
 	{
 		return false;
 	}
