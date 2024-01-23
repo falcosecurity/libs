@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include <libsinsp/sinsp_filtercheck.h>
+#include <libsinsp/state/dynamic_struct.h>
 
 class sinsp_filter_check_thread : public sinsp_filter_check
 {

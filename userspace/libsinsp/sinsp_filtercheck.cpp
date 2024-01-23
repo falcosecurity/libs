@@ -39,6 +39,53 @@ void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_
 #include <netdb.h>
 #endif
 
+std::string std::to_string(boolop b)
+{
+	switch (b)
+	{
+	case BO_NONE:
+		return "NONE";
+	case BO_NOT:
+		return "NOT";
+	case BO_OR:
+		return "OR";
+	case BO_AND:
+		return "AND";
+	case BO_ORNOT:
+		return "OR_NOT";
+	case BO_ANDNOT:
+		return "AND_NOT";
+	};
+	return "<unset>";
+}
+
+std::string std::to_string(cmpop c)
+{
+	switch (c)
+	{
+	case CO_NONE: return "NONE";
+	case CO_EQ: return "EQ";
+	case CO_NE: return "NE";
+	case CO_LT: return "LT";
+	case CO_LE: return "LE";
+	case CO_GT: return "GT";
+	case CO_GE: return "GE";
+	case CO_CONTAINS: return "CONTAINS";
+	case CO_IN: return "IN";
+	case CO_EXISTS: return "EXISTS";
+	case CO_ICONTAINS: return "ICONTAINS";
+	case CO_STARTSWITH: return "STARTSWITH";
+	case CO_GLOB: return "GLOB";
+	case CO_IGLOB: return "IGLOB";
+	case CO_PMATCH: return "PMATCH";
+	case CO_ENDSWITH: return "ENDSWITH";
+	case CO_INTERSECTS: return "INTERSECTS";
+	case CO_BCONTAINS: return "BCONTAINS";
+	case CO_BSTARTSWITH: return "BSTARTSWITH";
+	}
+	return "<unset>";
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // type-based comparison functions
@@ -1452,11 +1499,6 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 	}
 }
 
-bool sinsp_filter_check::extract(gen_event *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
-{
-	return extract((sinsp_evt *) evt, values, sanitize_strings);
-}
-
 bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	values.clear();
@@ -1512,7 +1554,7 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT std::vector<extract_
 	}
 }
 
-bool sinsp_filter_check::compare(gen_event* evt)
+bool sinsp_filter_check::compare(sinsp_evt* evt)
 {
 	m_hits++;
 	if(m_cache_metrics != NULL)
@@ -1524,12 +1566,12 @@ bool sinsp_filter_check::compare(gen_event* evt)
 	if(m_eval_cache_entry != NULL &&
 	   !can_have_argument())
 	{
-		uint64_t en = ((sinsp_evt *)evt)->get_num();
+		uint64_t en = evt->get_num();
 
 		if(en != m_eval_cache_entry->m_evtnum)
 		{
 			m_eval_cache_entry->m_evtnum = en;
-			m_eval_cache_entry->m_res = compare((sinsp_evt *) evt);
+			m_eval_cache_entry->m_res = compare_nocache(evt);
 		}
 		else
 		{
@@ -1549,7 +1591,7 @@ bool sinsp_filter_check::compare(gen_event* evt)
 	}
 	else
 	{
-		auto res = compare((sinsp_evt *) evt);
+		auto res = compare_nocache(evt);
 		if (res)
 		{
 			m_matched_true++;
@@ -1559,7 +1601,7 @@ bool sinsp_filter_check::compare(gen_event* evt)
 	}
 }
 
-bool sinsp_filter_check::compare(sinsp_evt* evt)
+bool sinsp_filter_check::compare_nocache(sinsp_evt* evt)
 {
 	m_extracted_values.clear();
 	if(!extract_cached(evt, m_extracted_values, false))

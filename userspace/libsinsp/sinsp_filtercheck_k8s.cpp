@@ -166,7 +166,7 @@ int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string&
 		size_t startpos = fldname.size();
 		parsed_len = (uint32_t)val.find(']', startpos);
 
-		if (parsed_len == std::string::npos)
+		if ((uint32_t) parsed_len == (uint32_t) std::string::npos)
 		{
 			throw sinsp_exception("the field '" + fldname + "' requires an argument but ']' is not found");
 		}
