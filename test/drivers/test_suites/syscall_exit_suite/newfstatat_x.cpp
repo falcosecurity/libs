@@ -43,9 +43,6 @@ TEST(SyscallExit, newfstatatX_success)
 	/* Parameter 3: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(3, pathname);
 
-	/* Parameter 4: stat (type: PT_BYTEBUF) */
-	//evt_test->assert_numeric_param(4, );
-
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(4, (uint32_t)PPM_AT_NO_AUTOMOUNT | PPM_AT_SYMLINK_NOFOLLOW);
 
@@ -96,9 +93,6 @@ TEST(SyscallExit, newfstatatX_failure)
 
 	/* Parameter 3: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(3, pathname);
-
-	/* Parameter 4: stat (type: PT_BYTEBUF) */
-	//evt_test->assert_numeric_param(4, );
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(4, (uint32_t)PPM_AT_NO_AUTOMOUNT | PPM_AT_SYMLINK_NOFOLLOW);
