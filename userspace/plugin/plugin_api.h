@@ -30,7 +30,7 @@ extern "C" {
 //
 // todo(jasondellaluce): when/if major changes to v4, check and solve all todos
 #define PLUGIN_API_VERSION_MAJOR 3
-#define PLUGIN_API_VERSION_MINOR 2
+#define PLUGIN_API_VERSION_MINOR 3
 #define PLUGIN_API_VERSION_PATCH 0
 
 //
