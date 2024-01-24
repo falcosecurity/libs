@@ -280,7 +280,7 @@ typedef void ss_plugin_t;
 typedef void ss_instance_t;
 
 //
-// Libsinsp logger severities
+// Severity available in the logging facility provided by the framework
 typedef enum ss_plugin_log_severity
 {
 	SS_PLUGIN_LOG_SEV_FATAL = 1,
