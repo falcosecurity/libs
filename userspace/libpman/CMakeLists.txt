@@ -49,7 +49,9 @@ PUBLIC
     ${ZLIB_LIB}
 )
 
-add_dependencies(pman ProbeSkeleton)
+if (TARGET ProbeSkeleton)
+    add_dependencies(pman ProbeSkeleton)
+endif()
 
 if(USE_BUNDLED_LIBBPF)
     add_dependencies(pman libbpf)
