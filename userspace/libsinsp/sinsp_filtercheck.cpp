@@ -1054,20 +1054,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		case PT_BYTEBUF:
 			if(rawval[len] == 0)
 			{
+				// check if by any chance the byte buff is null-terminated,
+				// in which case we try to treat it as a regular string
 				return (char*)rawval;
 			}
 			else
 			{
-				ASSERT(len < 1024 * 1024);
-
-				if(len >= filter_value()->size())
-				{
-					filter_value()->resize(len + 1);
-				}
-
-				memcpy(filter_value_p(), rawval, len);
-				filter_value_p()[len] = 0;
-				return (char*)filter_value_p();
+				auto copy_len = std::min(len, (uint32_t) sizeof(m_getpropertystr_storage));
+				memcpy(m_getpropertystr_storage, rawval, copy_len);
+				m_getpropertystr_storage[copy_len] = 0;
+				return m_getpropertystr_storage;
 			}
 		case PT_SOCKADDR:
 			ASSERT(false);
