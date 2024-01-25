@@ -80,10 +80,11 @@ const char* sinsp_plugin::get_owner_last_error(ss_plugin_owner_t* o)
 	return t->m_last_owner_err.c_str();
 }
 
-static void plugin_log_fn(const char* component, const char* msg, ss_plugin_log_severity sev)
+static void plugin_log_fn(ss_plugin_owner_t* o, const char* component, const char* msg, ss_plugin_log_severity sev)
 {
-	std::string prefix = (component == NULL) ? "" : std::string(component) + ": ";
-	libsinsp_logger()->log(prefix + msg, (sinsp_logger::severity)sev);
+	auto t = static_cast<sinsp_plugin*>(o);
+	std::string prefix = (component == NULL) ? t->name() : std::string(component);
+	libsinsp_logger()->log(prefix + ": " + msg, (sinsp_logger::severity)sev);
 }
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
