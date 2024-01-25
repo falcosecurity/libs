@@ -302,7 +302,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id
 scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid, uint32_t gid, std::string_view name, std::string_view home, std::string_view shell, bool notify)
 {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-			"adding host user: name: %s", name);
+			"adding host user: name: %.*s", static_cast<int>(name.length()), name.data());
 
 	scap_userinfo *retval{nullptr};
 	if (name.data() != nullptr)
@@ -434,7 +434,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, i
 scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid, std::string_view name, bool notify)
 {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-			"adding host group: name: %s", name);
+			"adding host group: name: %.*s", static_cast<int>(name.length()), name.data());
 
 	scap_groupinfo *gr = nullptr;
 	if (name.data())
