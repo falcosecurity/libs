@@ -36,15 +36,11 @@ const size_t ENCODE_LEN = sizeof(uint64_t);
 
 } // end namespace
 
-sinsp_logger* sinsp_logger::s_logger = nullptr;
+sinsp_logger sinsp_logger::s_logger;
 
 sinsp_logger* sinsp_logger::instance()
 {
-	if(s_logger == nullptr)
-	{
-		s_logger = new sinsp_logger();
-	}
-	return s_logger;
+	return &s_logger;
 }
 
 const uint32_t sinsp_logger::OT_NONE       = 0;
