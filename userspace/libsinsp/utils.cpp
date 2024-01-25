@@ -612,36 +612,184 @@ std::filesystem::path workaround_win_root_name(std::filesystem::path p)
 	return std::filesystem::path("./" + p.string());
 }
 
-std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2, size_t max_len)
+//
+// Helper function to move a directory up in a path string
+//
+static inline void rewind_to_parent_path(const char* targetbase, char** tc, const char** pc, uint32_t delta)
 {
-    auto p1 = std::filesystem::path(path1, std::filesystem::path::format::generic_format);
-    auto p2 = std::filesystem::path(path2, std::filesystem::path::format::generic_format);
-
-#ifdef _WIN32
-	// This is an ugly workaround to make sure we will not try to interpret root names (e.g. "c:/", "//?/") on Windows
-	// since this function only deals with unix-like paths
-	p1 = workaround_win_root_name(p1);
-	p2 = workaround_win_root_name(p2);
-#endif // _WIN32
-
-	// note: if p2 happens to be an absolute path, p1 / p2 == p2
-	auto path_concat = (p1 / p2).lexically_normal();
-	std::string result = path_concat.generic_string();
-
-	//
-	// If the path ends with a separator, remove it, as the OS does.
-	//
-	if (result.length() > 1 && result.back() == '/')
+	if(*tc <= targetbase + 1)
 	{
-		result.pop_back();
+		(*pc) += delta;
+		return;
 	}
 
-	if (result.length() > max_len)
+	(*tc)--;
+
+	while((*tc) >= targetbase + 1 && *((*tc) - 1) != '/')
 	{
-		return "/PATH_TOO_LONG";
+		(*tc)--;
 	}
 
-	return result;
+	(*pc) += delta;
+}
+
+//
+// Args:
+//  - target: the string where we are supposed to start copying
+//  - targetbase: the base of the path, i.e. the furthest we can go back when
+//                following parent directories
+//  - path: the path to copy
+//
+static inline void copy_and_sanitize_path(char* target, char* targetbase, const char *path, char separator)
+{
+	char* tc = target;
+	const char* pc = path;
+	g_invalidchar ic;
+	const bool empty_base = target == targetbase;
+
+	while(true)
+	{
+		if(*pc == 0)
+		{
+			*tc = 0;
+
+			//
+			// If the path ends with a separator, remove it, as the OS does.
+			// Properly manage case where path is just "/".
+			//
+			if((tc > (targetbase + 1)) && (*(tc - 1) == separator))
+			{
+				*(tc - 1) = 0;
+			}
+
+			return;
+		}
+
+		if(ic(*pc))
+		{
+			//
+			// Invalid char, substitute with a '.'
+			//
+			*tc = '.';
+			tc++;
+			pc++;
+		}
+		else
+		{
+			//
+			// If path begins with '.' or '.' is the first char after a '/'
+			//
+			if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator))
+			{
+				//
+				// '../', rewind to the previous separator
+				//
+				if(*(pc + 1) == '.' && *(pc + 2) == separator)
+				{
+					rewind_to_parent_path(targetbase, &tc, &pc, 3);
+				}
+				//
+				// '..', with no separator.
+				// This is valid if we are at the end of the string, and in that case we rewind.
+				//
+				else if(*(pc + 1) == '.' && *(pc + 2) == 0)
+				{
+					rewind_to_parent_path(targetbase, &tc, &pc, 2);
+				}
+				//
+				// './', just skip it
+				//
+				else if(*(pc + 1) == separator)
+				{
+					pc += 2;
+				}
+				//
+				// '.', with no separator.
+				// This is valid if we are at the end of the string, and in that case we rewind.
+				//
+				else if(*(pc + 1) == 0)
+				{
+					pc++;
+				}
+				//
+				// Otherwise, we leave the string intact.
+				//
+				else
+				{
+					*tc = *pc;
+					pc++;
+					tc++;
+				}
+			}
+			else if(*pc == separator)
+			{
+				//
+				// separator:
+				// * if the last char is already a separator, skip it
+				// * if we are back at targetbase but targetbase was not empty before, it means we
+				//   fully rewinded back to targetbase and the string is now empty. Skip separator.
+				//   Example: "/foo/../a" -> "/a" BUT "foo/../a" -> "a"
+				//   -> Otherwise: "foo/../a" -> "/a"
+				//
+				if((tc > targetbase && *(tc - 1) == separator) || (tc == targetbase && !empty_base))
+				{
+					pc++;
+				}
+				else
+				{
+					*tc = *pc;
+					tc++;
+					pc++;
+				}
+			}
+			else
+			{
+				//
+				// Normal char, copy it
+				//
+				*tc = *pc;
+				tc++;
+				pc++;
+			}
+		}
+	}
+}
+
+/*
+ * Return false if path2 is an absolute path.
+ * path1 MUST be '/' terminated.
+ * path1 is not sanitized.
+ * If path2 is absolute, we only account for it.
+ */
+static inline bool concatenate_paths_(char* target, uint32_t targetlen, const char* path1, uint32_t len1,
+				      const char* path2, uint32_t len2)
+{
+	if(targetlen < (len1 + len2 + 1))
+	{
+		strlcpy(target, "/PATH_TOO_LONG", targetlen);
+		return false;
+	}
+
+	if(len2 != 0 && path2[0] != '/')
+	{
+		memcpy(target, path1, len1);
+		copy_and_sanitize_path(target + len1, target, path2, '/');
+		return true;
+	}
+	else
+	{
+		target[0] = 0;
+		copy_and_sanitize_path(target, target, path2, '/');
+		return false;
+	}
+}
+
+std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2)
+{
+	char fullpath[SCAP_MAX_PATH_SIZE];
+	concatenate_paths_(fullpath, SCAP_MAX_PATH_SIZE, path1.data(), (uint32_t)path1.length(), path2.data(),
+				  path2.size());
+	return std::string(fullpath);
 }
 
 
