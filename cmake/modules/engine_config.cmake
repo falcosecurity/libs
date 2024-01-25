@@ -1,4 +1,6 @@
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
+option(ENABLE_ENGINE_KMOD "Enable kernel module engine" ON)
+option(ENABLE_ENGINE_BPF "Enable bpf engine" ON)
 
 if(CREATE_TEST_TARGETS)
 	# Add engine only used for testing
@@ -8,10 +10,16 @@ endif()
 set(HAS_ENGINE_NODRIVER On)
 set(HAS_ENGINE_SAVEFILE On)
 set(HAS_ENGINE_SOURCE_PLUGIN On)
+set(HAS_ENGINE_KMOD Off)
+set(HAS_ENGINE_BPF Off)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	set(HAS_ENGINE_KMOD On)
-	set(HAS_ENGINE_BPF On)
+	if(ENABLE_ENGINE_KMOD)
+		set(HAS_ENGINE_KMOD On)
+	endif()
+	if(ENABLE_ENGINE_BPF)
+		set(HAS_ENGINE_BPF On)
+	endif()
 
 	option(BUILD_LIBSCAP_MODERN_BPF "Enable modern bpf probe" OFF)
 	if(BUILD_LIBSCAP_MODERN_BPF)
