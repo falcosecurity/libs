@@ -1649,7 +1649,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 	{
 		bool res;
 
-		res = flt_compare(m_cmpop,
+		res = compare_rhs(m_cmpop,
 				  PT_PID,
 				  &pt->m_pid);
 
@@ -1702,7 +1702,7 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 	{
 		bool res;
 
-		res = flt_compare(m_cmpop,
+		res = compare_rhs(m_cmpop,
 				  PT_CHARBUF,
 				  (void*)pt->m_comm.c_str());
 
@@ -1755,7 +1755,7 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt *evt)
 	{
 		bool res;
 
-		res = flt_compare(m_cmpop,
+		res = compare_rhs(m_cmpop,
 				  PT_CHARBUF,
 				  (void*)pt->m_exe.c_str());
 
@@ -1808,7 +1808,7 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt *evt)
 	{
 		bool res;
 
-		res = flt_compare(m_cmpop,
+		res = compare_rhs(m_cmpop,
 				  PT_CHARBUF,
 				  (void*)pt->m_exepath.c_str());
 
@@ -1863,7 +1863,7 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt *evt)
 		std::string cmdline;
 		sinsp_threadinfo::populate_cmdline(cmdline, pt);
 
-		res = flt_compare(m_cmpop,
+		res = compare_rhs(m_cmpop,
 				  PT_CHARBUF,
 				  (void*)cmdline.c_str());
 
@@ -1915,7 +1915,7 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt *evt)
 	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
 	{
 		std::string full_env = pt->concatenate_all_env();
-		bool res = flt_compare(m_cmpop,
+		bool res = compare_rhs(m_cmpop,
 				  PT_CHARBUF,
 				  (void*)full_env.c_str());
 
