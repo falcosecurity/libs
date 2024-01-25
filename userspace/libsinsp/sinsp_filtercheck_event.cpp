@@ -1833,7 +1833,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 
 		ASSERT(m_arginfo != NULL);
 
-		res = flt_compare(m_cmpop,
+		res = compare_rhs(m_cmpop,
 			m_arginfo->type,
 			extracted_val);
 	}

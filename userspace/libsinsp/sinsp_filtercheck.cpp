@@ -1298,7 +1298,7 @@ bool sinsp_filter_check::can_have_argument() const
 		(info->m_flags & EPF_ARG_ALLOWED));
 }
 
-bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values, uint32_t op2_len)
+bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values)
 {
 	if (m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST)
 	{
@@ -1409,14 +1409,13 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<
 			+ std::to_string(values.size()) + " were found");
 	}
 
-	return flt_compare(m_cmpop,
+	return compare_rhs(m_cmpop,
 		m_info.m_fields[m_field_id].m_type,
 		values[0].ptr,
-		values[0].len,
-		op2_len);
+		values[0].len);
 }
 
-bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len, uint32_t op2_len)
+bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len)
 {
 	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
 	{
@@ -1489,7 +1488,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, const void* 
 				      operand1,
 				      filter_value_p(),
 				      op1_len,
-				      op2_len)
+				      filter_value()->size())
 			);
 	}
 }
@@ -1604,8 +1603,7 @@ bool sinsp_filter_check::compare_nocache(sinsp_evt* evt)
 		return false;
 	}
 
-	return flt_compare(m_cmpop,
+	return compare_rhs(m_cmpop,
 		m_info.m_fields[m_field_id].m_type,
-		m_extracted_values,
-		m_val_storage_len);
+		m_extracted_values);
 }

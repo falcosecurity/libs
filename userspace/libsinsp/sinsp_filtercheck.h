@@ -250,8 +250,8 @@ protected:
 	// Subclasses are meant to either override this, or the multi-valued extract method.
 	virtual uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true);
 
-	bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
-	bool flt_compare(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values, uint32_t op2_len = 0);
+	bool compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0);
+	bool compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values);
 
 	char* rawval_to_string(uint8_t* rawval,
 			       ppm_param_type ptype,

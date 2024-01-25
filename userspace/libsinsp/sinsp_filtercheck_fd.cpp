@@ -1408,16 +1408,16 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		{
 			if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
 			{
-				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) ||
-					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip))
+				if(compare_rhs(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) ||
+					compare_rhs(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip))
 				{
 					return true;
 				}
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) &&
-					flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip))
+				if(compare_rhs(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip) &&
+					compare_rhs(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip))
 				{
 					return true;
 				}
@@ -1431,7 +1431,7 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		{
 			if(m_cmpop == CO_EQ || m_cmpop == CO_NE || m_cmpop == CO_IN)
 			{
-				return flt_compare(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
+				return compare_rhs(m_cmpop, PT_IPV4ADDR, &m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip);
 			}
 			else
 			{
@@ -1442,16 +1442,16 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		{
 			if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
 			{
-				if(flt_compare(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) ||
-					flt_compare(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip))
+				if(compare_rhs(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) ||
+					compare_rhs(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip))
 				{
 					return true;
 				}
 			}
 			else if(m_cmpop == CO_NE)
 			{
-				if(flt_compare(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) &&
-					flt_compare(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip))
+				if(compare_rhs(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip) &&
+					compare_rhs(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip))
 				{
 					return true;
 				}
@@ -1465,7 +1465,7 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 		{
 			if(m_cmpop == CO_EQ || m_cmpop == CO_NE || m_cmpop == CO_IN)
 			{
-				return flt_compare(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
+				return compare_rhs(m_cmpop, PT_IPV6ADDR, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
 			}
 			else
 			{
@@ -1606,11 +1606,11 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 			break;
 
 		case CO_IN:
-			if(flt_compare(m_cmpop,
+			if(compare_rhs(m_cmpop,
 				       PT_PORT,
 				       sport,
 				       sizeof(*sport)) ||
-			   flt_compare(m_cmpop,
+			   compare_rhs(m_cmpop,
 				       PT_PORT,
 				       dport,
 				       sizeof(*dport)))
@@ -1830,7 +1830,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 		{
 			return false;
 		}
-		return flt_compare(m_cmpop, m_info.m_fields[m_field_id].m_type, m_extracted_values);
+		return compare_rhs(m_cmpop, m_info.m_fields[m_field_id].m_type, m_extracted_values);
 	}
 
 	//
@@ -1858,7 +1858,7 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 		return false;
 	}
 
-	return flt_compare(m_cmpop,
+	return compare_rhs(m_cmpop,
 			   m_info.m_fields[m_field_id].m_type,
 			   extracted_val,
 			   len);
