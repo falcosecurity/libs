@@ -43,6 +43,7 @@ struct plugin_state
     ss_plugin_table_field_t* thread_opencount_field;
     ss_plugin_table_t* evtcount_table;
     ss_plugin_table_field_t* evtcount_count_field;
+    ss_plugin_owner_t* owner;
     ss_plugin_log_fn_t log;
 };
 
@@ -156,10 +157,11 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     *rc = SS_PLUGIN_SUCCESS;
     plugin_state *ret = new plugin_state();
 
-    //set log function in the state
+    //save logger and owner in the state
     ret->log = in->log_fn;
+    ret->owner = in->owner;
 
-    ret->log("some component", "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
+    ret->log(ret->owner, NULL, "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
 	// we have the extraction capability so the `in->tables` field should be != NULL
     if (!in || !in->tables)
@@ -231,7 +233,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
-    ps->log("some component", "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
+    ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
     delete ((plugin_state *) s);
 }

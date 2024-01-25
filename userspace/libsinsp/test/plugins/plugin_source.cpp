@@ -34,6 +34,7 @@ static constexpr const char* s_evt_data = "hello world";
 struct plugin_state
 {
     std::string lasterr;
+    ss_plugin_owner_t* owner;
     ss_plugin_log_fn_t log;
 };
 
@@ -88,10 +89,11 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 {
     plugin_state *ret = new plugin_state();
 
-    //set log function in the state
+    //save logger and owner in the state
     ret->log = in->log_fn;
+    ret->owner = in->owner;
 
-    ret->log("some component", "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
+    ret->log(ret->owner, NULL, "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
     *rc = SS_PLUGIN_SUCCESS;
     return ret;
@@ -100,7 +102,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
-    ps->log("some component", "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
+    ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
     
     delete ((plugin_state *) s);
 }

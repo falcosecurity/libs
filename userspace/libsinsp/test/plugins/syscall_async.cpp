@@ -41,6 +41,7 @@ struct plugin_state
     std::atomic<bool> async_thread_run;
     uint8_t async_evt_buf[2048];
     ss_plugin_event* async_evt;
+    ss_plugin_owner_t* owner;
     ss_plugin_log_fn_t log;
 };
 
@@ -84,10 +85,11 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     *rc = SS_PLUGIN_SUCCESS;
     plugin_state *ret = new plugin_state();
 
-    //set log function in the state
+    //save logger and owner in the state
     ret->log = in->log_fn;
+    ret->owner = in->owner;
 
-    ret->log("some component", "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
+    ret->log(ret->owner, NULL, "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
     
     ret->async_evt = (ss_plugin_event*) &ret->async_evt_buf;
     ret->async_thread_run = false;
@@ -102,7 +104,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
-    ps->log("some component", "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
+    ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
     // stop the async thread if it's running
     if (ps->async_thread_run)

@@ -654,17 +654,19 @@ TEST(sinsp_plugin, plugin_logging)
 		plugin_api api;
 		get_plugin_api_sample_plugin_extract(api);
 
+		// the plugin is logging with a NULL component, so we expect the component to fallback to the plugin name
+		api.get_name = [](){ return "plugin_name"; };
+
 		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
-			std::string expected = "some component: initializing plugin..."; 
+			std::string expected = "plugin_name: initializing plugin..."; 
 			ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
 		});
 
-		api.get_name = [](){ return "p1"; };
 		auto p = i.register_plugin(&api);
 		p->init("", tmp);
 
 		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
-			std::string expected = "some component: destroying plugin..."; 
+			std::string expected = "plugin_name: destroying plugin..."; 
 			ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
 		});
 	}
