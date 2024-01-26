@@ -114,7 +114,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	dns_manager.ut.cpp
 	eventformatter.ut.cpp
 	savefile.ut.cpp
-	sinsp_stats.ut.cpp
+	sinsp_metrics.ut.cpp
 	thread_table.ut.cpp
 	ifinfo.ut.cpp
 	public_sinsp_API/event_related.cpp
