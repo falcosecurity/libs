@@ -1,14 +1,12 @@
-name: Insecure API check
+name: Absolute include paths check
 on:
   pull_request:
     branches:
       - master
-      - 'release/**'
-      - 'maintainers/**'
 
 jobs:
-  insecure-api:
-    name: check-insecure-api
+  absolute-include-paths:
+    name: check-absolute-include-paths
     runs-on: ubuntu-latest
     container:
       image: returntocorp/semgrep:1.41.0
@@ -17,11 +15,10 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
-      - name: Scan PR for insecure API usage 🕵️
+      - name: Scan PR for libs relateive include paths 🕵️
         run: |
           semgrep scan \
             --error \
             --metrics=off \
             --baseline-commit ${{ github.event.pull_request.base.sha }} \
-            --config=./semgrep \
-            --exclude-rule=absolute-includes
+            --config=./semgrep/absolute-include-paths.yaml

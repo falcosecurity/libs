@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright (C) 2024 The Falco Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+rules:
+  - id: absolute-includes
+    severity: WARNING
+    metadata:
+      author: Roberto Scolaro <roberto.scolaro21@gmail.com>
+    message: 'Avoid using relative paths in includes. Use absolute paths instead (e.g. "sinsp.h" -> <libsinsp/sinsp.h> ).'
+    languages:
+      - c
+      - cpp
+    paths:
+      include:
+        - userspace/libscap/*
+        - userspace/libsinsp/*
+      exclude:
+        - userspace/libsinsp/examples/*
+    patterns:
+      - pattern-regex: ^#include "[^"]+"
+      - pattern-not-regex: ^#include <(?!libsinsp/|libscap/|driver/).*
+      - pattern-not-regex: ^#include "pkg/sentry.*
+      - pattern-not-regex: ^#include "lua.*
+      - pattern-not-regex: ^#include "stdint.h"
+      - pattern-not-regex: ^#include "json/json.h"
+      - pattern-not-regex: ^#include "uthash.h"
+      - pattern-not-regex: ^#include "tbb/.*
+      - pattern-not-regex: ^#include "arpa/inet.h"
+
