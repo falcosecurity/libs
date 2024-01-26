@@ -1488,7 +1488,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 				      operand1,
 				      filter_value_p(),
 				      op1_len,
-				      filter_value()->size())
+				      m_val_storage_len)
 			);
 	}
 }

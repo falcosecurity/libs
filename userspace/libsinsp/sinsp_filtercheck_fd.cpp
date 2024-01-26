@@ -1806,7 +1806,7 @@ bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 	return true;
 }
 
-bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
+bool sinsp_filter_check_fd::compare_nocache(sinsp_evt *evt)
 {
 	//
 	// Some fields are filter only and therefore get a special treatment

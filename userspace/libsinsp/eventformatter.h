@@ -25,8 +25,6 @@ limitations under the License.
 #include <libsinsp/filter_check_list.h>
 #include <libsinsp/filter.h>
 
-class sinsp_filter_check;
-
 /** @defgroup event Event manipulation
  *  @{
  */

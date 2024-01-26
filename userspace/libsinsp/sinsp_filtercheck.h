@@ -238,6 +238,8 @@ public:
 	size_t m_matched_true = 0;
 
 protected:
+	virtual bool compare_nocache(sinsp_evt*);
+
 	virtual Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len)
 	{
 		return Json::nullValue;
@@ -248,6 +250,7 @@ protected:
 	// This is a single-value version of extract for subclasses non supporting extracting
 	// multiple values. By default, this returns NULL.
 	// Subclasses are meant to either override this, or the multi-valued extract method.
+	bool extract_nocache(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
 	virtual uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true);
 
 	bool compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0);
@@ -273,9 +276,6 @@ protected:
 	uint32_t m_field_id = (uint32_t) -1;
 
 private:
-
-	bool extract_nocache(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
-	bool compare_nocache(sinsp_evt*);
 
 	// used for comparing right-hand single value
 	uint32_t m_val_storage_len;

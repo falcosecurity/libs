@@ -45,14 +45,6 @@ namespace test_helpers {
 	class sinsp_mock;
 }
 
-enum evt_src
-{
-	ESRC_NONE = 0,
-	ESRC_SINSP = 1,
-	ESRC_K8S_AUDIT = 2,
-	ESRC_MAX = 3,
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 // Event arguments
 ///////////////////////////////////////////////////////////////////////////////
@@ -263,7 +255,7 @@ public:
 
 	  \note For a list of event types, refer to \ref etypes.
 	*/
-	inline uint16_t get_type() const
+	virtual inline uint16_t get_type() const
 	{
 		return m_pevt->type;
 	}
@@ -314,7 +306,7 @@ public:
 
 	  \return The event timestamp, in nanoseconds from epoch
 	*/
-	inline uint64_t get_ts() const
+	virtual inline uint64_t get_ts() const
 	{
 		return m_pevt->ts;
 	}
@@ -444,12 +436,6 @@ public:
 	*/
 	bool is_filtered_out() const;
 	scap_dump_flags get_dump_flags(OUT bool* should_drop) const;
-
-	// todo(jasondellaluce): this is deprecated and will need to be removed
-	inline uint16_t get_source() const
-	{
-		return ESRC_SINSP;
-	}
 
 	/*!
 	  \brief Returns true if this event represents a system call error,
