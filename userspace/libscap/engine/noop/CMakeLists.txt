@@ -17,12 +17,12 @@
 add_library(scap_engine_noop STATIC noop.c)
 
 target_include_directories(scap_engine_noop
-  PUBLIC
-  ${LIBS_DIR}
-  ${LIBS_DIR}/userspace
-  ${PROJECT_BINARY_DIR}
-  INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}
+PUBLIC
+    $<BUILD_INTERFACE:${LIBS_DIR}>
+    $<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 add_dependencies(scap_engine_noop uthash)

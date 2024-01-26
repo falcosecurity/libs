@@ -167,12 +167,19 @@ endif()
 
 target_include_directories(sinsp
 PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_CURRENT_SOURCE_DIR}/../plugin
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../plugin>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}/libsinsp>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}/plugin>
 )
 
 if(WITH_CHISEL)
-	target_include_directories(sinsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../chisel)
+	target_include_directories(sinsp
+	PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../chisel>
+		$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}/chisel>
+	)
 endif()
 
 if (EMSCRIPTEN)
@@ -235,7 +242,10 @@ function(prepare_cri_grpc api_version)
 			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 	add_library(cri_${api_version} STATIC ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc)
-	target_include_directories(cri_${api_version} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+	target_include_directories(cri_${api_version}
+	PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+	)
 	add_dependencies(cri_${api_version} grpc)
 endfunction()
 

@@ -60,10 +60,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_config.h.in ${CMAKE_CURRENT_BINA
 
 add_library(scap_error STATIC strerror.c)
 
-target_include_directories(scap_error
-	PUBLIC
-	${LIBS_DIR}/userspace/
-)
+target_include_directories(scap_error PUBLIC $<BUILD_INTERFACE:${LIBS_DIR}/userspace>)
 
 add_library(scap
 	scap.c
@@ -74,8 +71,10 @@ add_library(scap
 
 target_include_directories(scap
 PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_CURRENT_BINARY_DIR}
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}/libscap>
 )
 
 set_scap_target_properties(scap)
@@ -92,9 +91,9 @@ add_dependencies(scap_platform_util uthash)
 
 target_include_directories(scap_platform_util
 PUBLIC
-	${LIBS_DIR}/userspace/
-	${PROJECT_BINARY_DIR}
-	${LIBS_DIR}
+	$<BUILD_INTERFACE:${LIBS_DIR}>
+	$<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
 )
 
 target_link_libraries(scap
@@ -118,9 +117,9 @@ add_dependencies(scap_event_schema uthash)
 
 target_include_directories(scap_event_schema
 PUBLIC
-	${LIBS_DIR}/userspace
-	${LIBS_DIR}
-	${PROJECT_BINARY_DIR}
+	$<BUILD_INTERFACE:${LIBS_DIR}>
+	$<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
 )
 
 target_link_libraries(scap PUBLIC scap_event_schema)
@@ -148,9 +147,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_dependencies(scap_engine_util uthash)
 	target_include_directories(scap_engine_util
 	PUBLIC
-		${LIBS_DIR}
-		${LIBS_DIR}/userspace
-		${PROJECT_BINARY_DIR}
+		$<BUILD_INTERFACE:${LIBS_DIR}>
+		$<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+		$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
 	)
 	target_link_libraries(scap PRIVATE scap_engine_util)
 endif()

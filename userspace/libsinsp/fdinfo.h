@@ -58,7 +58,6 @@ limitations under the License.
 
 class sinsp;
 class sinsp_threadinfo;
-class sinsp_fdinfo;
 
 /** @defgroup state State management
  * A collection of classes to query process and FD state.
@@ -455,7 +454,7 @@ public:
 	}
 
 	sinsp_fdinfo* find(int64_t fd);
-	
+
 	sinsp_fdinfo* add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
 
 	inline bool const_loop(const fdtable_const_visitor_t callback) const
