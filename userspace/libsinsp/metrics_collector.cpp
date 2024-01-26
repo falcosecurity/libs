@@ -295,7 +295,7 @@ uint64_t metrics_collector::get_container_memory_usage() const
 
 metrics_collector::metrics_collector(sinsp* inspector, const uint32_t flags) :
 	m_inspector(inspector),
-	m_metrics_flags((PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS | PPM_SCAP_STATS_RESOURCE_UTILIZATION | PPM_SCAP_STATS_STATE_COUNTERS))
+	m_metrics_flags((METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS))
 {
 	m_metrics_flags = flags;
 }
@@ -316,17 +316,17 @@ void metrics_collector::snapshot()
 	 * libscap metrics 
 	 */
 
-	if((m_metrics_flags & PPM_SCAP_STATS_KERNEL_COUNTERS) || (m_metrics_flags & PPM_SCAP_STATS_LIBBPF_STATS))
+	if((m_metrics_flags & METRICS_V2_KERNEL_COUNTERS) || (m_metrics_flags & METRICS_V2_LIBBPF_STATS))
 	{
 		uint32_t nstats = 0;
 		int32_t rc = 0;
 		// libscap metrics: m_metrics_flags are pushed down from consumers' input, 
 		// libbpf stats only collected when ENGINE_FLAG_BPF_STATS_ENABLED aka `kernel.bpf_stats_enabled = 1`
-		const scap_stats_v2* scap_stats_v2_snapshot = m_inspector->get_capture_stats_v2(m_metrics_flags, &nstats, &rc);
-		if (scap_stats_v2_snapshot && nstats > 0 && rc == 0)
+		const metrics_v2* metrics_v2_snapshot = m_inspector->get_capture_stats_v2(m_metrics_flags, &nstats, &rc);
+		if (metrics_v2_snapshot && nstats > 0 && rc == 0)
 		{
 			// Move into m_metrics via std::move
-			m_metrics = std::vector<scap_stats_v2>(scap_stats_v2_snapshot, scap_stats_v2_snapshot + nstats);
+			m_metrics = std::vector<metrics_v2>(metrics_v2_snapshot, metrics_v2_snapshot + nstats);
 		}
 	}
 
@@ -334,7 +334,7 @@ void metrics_collector::snapshot()
 	 * libsinsp metrics 
 	 */
 
-	if((m_metrics_flags & PPM_SCAP_STATS_RESOURCE_UTILIZATION))
+	if((m_metrics_flags & METRICS_V2_RESOURCE_UTILIZATION))
 	{
 		const scap_agent_info* agent_info = m_inspector->get_agent_info();
 		uint32_t rss = 0;
@@ -348,28 +348,28 @@ void metrics_collector::snapshot()
 		get_cpu_usage_and_total_procs(agent_info->start_time, cpu_usage_perc, cpu_usage_perc_total_host, procs_running_host);
 		get_rss_vsz_pss_total_memory_and_open_fds(rss, vsz, pss, memory_used_host, open_fds_host);
 		// Resource utilization of the agent itself
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_D, STATS_VALUE_UNIT_PERC, STATS_VALUE_NON_MONOTONIC_CURRENT, cpu_usage_perc));
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_U32, STATS_VALUE_UNIT_MEMORY_KILOBYTES, STATS_VALUE_NON_MONOTONIC_CURRENT, rss));
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_U32, STATS_VALUE_UNIT_MEMORY_KILOBYTES, STATS_VALUE_NON_MONOTONIC_CURRENT, vsz));
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_U32, STATS_VALUE_UNIT_MEMORY_KILOBYTES, STATS_VALUE_NON_MONOTONIC_CURRENT, pss));
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_MEMORY_BYTES, STATS_VALUE_NON_MONOTONIC_CURRENT, get_container_memory_usage()));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_D, METRIC_VALUE_UNIT_PERC, METRIC_VALUE_NON_MONOTONIC_CURRENT, cpu_usage_perc));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, rss));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, vsz));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, pss));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_MEMORY_BYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, get_container_memory_usage()));
 		// Resource utilization / load indicators of the underlying host
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_D, STATS_VALUE_UNIT_PERC, STATS_VALUE_NON_MONOTONIC_CURRENT, cpu_usage_perc_total_host));
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_PROCS_HOST], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_U32, STATS_VALUE_UNIT_COUNT, STATS_VALUE_NON_MONOTONIC_CURRENT, procs_running_host));
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_MEMORY_KILOBYTES, STATS_VALUE_NON_MONOTONIC_CURRENT, memory_used_host));
-		m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST], \
-		PPM_SCAP_STATS_RESOURCE_UTILIZATION, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_NON_MONOTONIC_CURRENT, open_fds_host));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_D, METRIC_VALUE_UNIT_PERC, METRIC_VALUE_NON_MONOTONIC_CURRENT, cpu_usage_perc_total_host));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_PROCS_HOST], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, procs_running_host));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, memory_used_host));
+		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST], \
+		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, open_fds_host));
 	}
 
-	if((m_metrics_flags & PPM_SCAP_STATS_STATE_COUNTERS))
+	if((m_metrics_flags & METRICS_V2_STATE_COUNTERS))
 	{
 		std::shared_ptr<const sinsp_stats_v2> sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
 
@@ -400,49 +400,49 @@ void metrics_collector::snapshot()
 				}
 			}
 
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_THREADS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_NON_MONOTONIC_CURRENT, n_threads));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_FDS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_NON_MONOTONIC_CURRENT, n_fds));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_noncached_fd_lookups));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_CACHED_FD_LOOKUPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_cached_fd_lookups));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_FAILED_FD_LOOKUPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_failed_fd_lookups));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_ADDED_FDS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_added_fds));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_REMOVED_FDS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_removed_fds));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_STORED_EVTS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_stored_evts));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_STORE_EVTS_DROPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_store_evts_drops));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_RETRIEVED_EVTS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_retrieved_evts));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_retrieve_evts_drops));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_noncached_thread_lookups));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_cached_thread_lookups));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_failed_thread_lookups));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_ADDED_THREADS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_added_threads));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_REMOVED_THREADS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U64, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_removed_threads));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U32, STATS_VALUE_UNIT_COUNT, STATS_VALUE_MONOTONIC, sinsp_stats_v2->m_n_drops_full_threadtable));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U32, STATS_VALUE_UNIT_COUNT, STATS_VALUE_NON_MONOTONIC_CURRENT, sinsp_stats_v2->m_n_missing_container_images));
-			m_metrics.push_back(new_stat(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_CONTAINERS], \
-			PPM_SCAP_STATS_STATE_COUNTERS, STATS_VALUE_TYPE_U32, STATS_VALUE_UNIT_COUNT, STATS_VALUE_NON_MONOTONIC_CURRENT, sinsp_stats_v2->m_n_containers));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_THREADS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, n_threads));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_FDS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, n_fds));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_noncached_fd_lookups));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_CACHED_FD_LOOKUPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_cached_fd_lookups));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_FAILED_FD_LOOKUPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_failed_fd_lookups));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_ADDED_FDS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_added_fds));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_REMOVED_FDS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_removed_fds));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_STORED_EVTS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_stored_evts));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_STORE_EVTS_DROPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_store_evts_drops));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_RETRIEVED_EVTS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_retrieved_evts));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_retrieve_evts_drops));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_noncached_thread_lookups));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_cached_thread_lookups));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_failed_thread_lookups));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_ADDED_THREADS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_added_threads));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_REMOVED_THREADS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_removed_threads));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_MONOTONIC, sinsp_stats_v2->m_n_drops_full_threadtable));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, sinsp_stats_v2->m_n_missing_container_images));
+			m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_STATS_V2_N_CONTAINERS], \
+			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, sinsp_stats_v2->m_n_containers));
 		}
 	}
 }
 
-const std::vector<scap_stats_v2>& metrics_collector::get_metrics() const
+const std::vector<metrics_v2>& metrics_collector::get_metrics() const
 {
 	return m_metrics;
 }

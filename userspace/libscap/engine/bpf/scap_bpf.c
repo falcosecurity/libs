@@ -856,7 +856,7 @@ static int load_all_progs(struct bpf_engine *handle)
 	return SCAP_SUCCESS;
 }
 
-static int allocate_scap_stats_v2(struct bpf_engine *handle)
+static int allocate_metrics_v2(struct bpf_engine *handle)
 {
 	int nprogs_attached = 0;
 	for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
@@ -867,7 +867,7 @@ static int allocate_scap_stats_v2(struct bpf_engine *handle)
 		}
 	}
 	handle->m_nstats = (BPF_MAX_KERNEL_COUNTERS_STATS + (nprogs_attached * BPF_MAX_LIBBPF_STATS));
-	handle->m_stats = (scap_stats_v2 *)malloc(handle->m_nstats * sizeof(scap_stats_v2));
+	handle->m_stats = (metrics_v2*)malloc(handle->m_nstats * sizeof(metrics_v2));
 
 	if(!handle->m_stats)
 	{
@@ -1515,10 +1515,10 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	/* allocate_scap_stats_v2 dynamically based on number of valid m_attached_progs,
+	/* allocate_metrics_v2 dynamically based on number of valid m_attached_progs,
 	 * In the future, it may change when and how we perform the allocation.
 	 */
-	if(allocate_scap_stats_v2(handle) != SCAP_SUCCESS)
+	if(allocate_metrics_v2(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1703,7 +1703,7 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 	return SCAP_SUCCESS;
 }
 
-const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int ret;
@@ -1711,7 +1711,7 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	int offset = 0; // offset in stats buffer
 	*nstats = 0;
 	uint32_t nstats_allocated = handle->m_nstats;
-	scap_stats_v2* stats = handle->m_stats;
+	metrics_v2* stats = handle->m_stats;
 	if (!stats)
 	{
 		*rc = SCAP_FAILURE;
@@ -1721,18 +1721,20 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	// we can't collect libbpf stats if bpf stats are not enabled
 	if (!(handle->m_flags & ENGINE_FLAG_BPF_STATS_ENABLED))
 	{
-		flags &= ~PPM_SCAP_STATS_LIBBPF_STATS;
+		flags &= ~METRICS_V2_LIBBPF_STATS;
 	}
 
-	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS <= nstats_allocated))
+	if ((flags & METRICS_V2_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS <= nstats_allocated))
 	{
 		/* KERNEL SIDE STATS COUNTERS */
 		for(int stat = 0; stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			stats[stat].type = STATS_VALUE_TYPE_U64;
-			stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
+			stats[stat].type = METRIC_VALUE_TYPE_U64;
+			stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
+			stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
+			stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
 			stats[stat].value.u64 = 0;
-			strlcpy(stats[stat].name, bpf_kernel_counters_stats_names[stat], STATS_NAME_MAX);
+			strlcpy(stats[stat].name, bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
 
 		for(int cpu = 0; cpu < handle->m_ncpus; cpu++)
@@ -1781,7 +1783,7 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	 * Please note that libbpf stats are available only on kernels >= 5.1, they could be backported but
 	 * it's possible that in some of our supported kernels they won't be available.
 	 */
-	if ((flags & PPM_SCAP_STATS_LIBBPF_STATS))
+	if ((flags & METRICS_V2_LIBBPF_STATS))
 	{
 		for(int bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
 		{
@@ -1805,8 +1807,8 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				{
 					break;
 				}
-				stats[offset].type = STATS_VALUE_TYPE_U64;
-				stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
+				stats[offset].type = METRIC_VALUE_TYPE_U64;
+				stats[offset].flags = METRICS_V2_LIBBPF_STATS;
 				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15
 				 * https://github.com/torvalds/linux/commit/cb4d2b3f03d8eed90be3a194e5b54b734ec4bbe9
 				 * So it's possible that in some of our supported kernels `info.name` will be "".
@@ -1814,25 +1816,31 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				if(strlen(info.name) == 0)
 				{
 					/* Fallback on the elf section name */
-					strlcpy(stats[offset].name, handle->m_attached_progs[bpf_prog].name, STATS_NAME_MAX);
+					strlcpy(stats[offset].name, handle->m_attached_progs[bpf_prog].name, METRIC_NAME_MAX);
 				}
 				else
 				{
-					strlcpy(stats[offset].name, info.name, STATS_NAME_MAX);
+					strlcpy(stats[offset].name, info.name, METRIC_NAME_MAX);
 				}
 				switch(stat)
 				{
 				case RUN_CNT:
 					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[offset].name));
 					stats[offset].value.u64 = info.run_cnt;
+					stats[offset].unit = METRIC_VALUE_UNIT_COUNT;
+					stats[offset].metric_type = METRIC_VALUE_MONOTONIC;
 					break;
 				case RUN_TIME_NS:
 					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[offset].name));
 					stats[offset].value.u64 = info.run_time_ns;
+					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
+					stats[offset].metric_type = METRIC_VALUE_MONOTONIC;
 					break;
 				case AVG_TIME_NS:
 					strlcat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name));
 					stats[offset].value.u64 = 0;
+					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
+					stats[offset].metric_type = METRIC_VALUE_NON_MONOTONIC_CURRENT;
 					if (info.run_cnt > 0)
 					{
 						stats[offset].value.u64 = info.run_time_ns / info.run_cnt;

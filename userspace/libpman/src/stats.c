@@ -139,7 +139,7 @@ clean_print_stats:
 	return errno;
 }
 
-struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, int32_t *rc)
+struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t *rc)
 {
 	*rc = SCAP_FAILURE;
 	/* This is the expected number of stats */
@@ -150,17 +150,17 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 	/* If it is the first time we call this function we populate the stats */
 	if(g_state.stats == NULL)
 	{
-		g_state.stats = (scap_stats_v2 *)calloc(*nstats, sizeof(scap_stats_v2));
+		g_state.stats = (metrics_v2 *)calloc(*nstats, sizeof(metrics_v2));
 		if(g_state.stats == NULL)
 		{
-			pman_print_error("unable to allocate memory for 'scap_stats_v2' array");
+			pman_print_error("unable to allocate memory for 'metrics_v2' array");
 			return NULL;
 		}
 	}
 
 	/* KERNEL COUNTER STATS */
 
-	if(flags & PPM_SCAP_STATS_KERNEL_COUNTERS)
+	if(flags & METRICS_V2_KERNEL_COUNTERS)
 	{
 		char error_message[MAX_ERROR_MESSAGE_LEN];
 		int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
@@ -172,10 +172,12 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 
 		for(uint32_t stat = 0; stat < MODERN_BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			g_state.stats[stat].type = STATS_VALUE_TYPE_U64;
-			g_state.stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
+			g_state.stats[stat].type = METRIC_VALUE_TYPE_U64;
+			g_state.stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
+			g_state.stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
+			g_state.stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
 			g_state.stats[stat].value.u64 = 0;
-			strlcpy(g_state.stats[stat].name, modern_bpf_kernel_counters_stats_names[stat], STATS_NAME_MAX);
+			strlcpy(g_state.stats[stat].name, modern_bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
 
 		/* We always take statistics from all the CPUs, even if some of them are not online.
@@ -221,7 +223,7 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
 	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
 	 */
-	if((flags & PPM_SCAP_STATS_LIBBPF_STATS))
+	if((flags & METRICS_V2_LIBBPF_STATS))
 	{
 		for(int bpf_prog = 0; bpf_prog < MODERN_BPF_PROG_ATTACHED_MAX; bpf_prog++)
 		{
@@ -247,21 +249,28 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 					pman_print_error("no enough space for all the stats");
 					return NULL;
 				}
-				g_state.stats[offset].type = STATS_VALUE_TYPE_U64;
-				g_state.stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
-				strlcpy(g_state.stats[offset].name, info.name, STATS_NAME_MAX);
+				g_state.stats[offset].type = METRIC_VALUE_TYPE_U64;
+				g_state.stats[offset].flags = METRICS_V2_LIBBPF_STATS;
+				strlcpy(g_state.stats[offset].name, info.name, METRIC_NAME_MAX);
 				switch(stat)
 				{
 				case RUN_CNT:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_CNT], sizeof(g_state.stats[offset].name));
+					g_state.stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
+					g_state.stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
+					g_state.stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
 					g_state.stats[offset].value.u64 = info.run_cnt;
 					break;
 				case RUN_TIME_NS:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(g_state.stats[offset].name));
+					g_state.stats[stat].unit = METRIC_VALUE_UNIT_TIME_NS;
+					g_state.stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
 					g_state.stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(g_state.stats[offset].name));
+					g_state.stats[stat].unit = METRIC_VALUE_UNIT_TIME_NS;
+					g_state.stats[stat].metric_type = METRIC_VALUE_NON_MONOTONIC_CURRENT;
 					g_state.stats[offset].value.u64 = 0;
 					if(info.run_cnt > 0)
 					{

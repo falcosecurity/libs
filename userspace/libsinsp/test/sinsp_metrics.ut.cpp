@@ -31,7 +31,7 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "3");
 
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
-	uint32_t test_metrics_flags = (PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS | PPM_SCAP_STATS_RESOURCE_UTILIZATION | PPM_SCAP_STATS_STATE_COUNTERS);
+	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
 	std::unique_ptr<libsinsp::metrics::metrics_collector> metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
 	metrics_collector->snapshot();
 	auto metrics_snapshot = metrics_collector->get_metrics();
@@ -78,35 +78,35 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 
 	/* Just checking that we don't crash w/ selective flags */
 	test_metrics_flags = 0;
-	test_metrics_flags |= PPM_SCAP_STATS_KERNEL_COUNTERS; // 20, but can't test it here it's 0
-	test_metrics_flags |= PPM_SCAP_STATS_LIBBPF_STATS; // 21 (x86_64 machine), but can't test it here it's 0
+	test_metrics_flags |= METRICS_V2_KERNEL_COUNTERS; // 20, but can't test it here it's 0
+	test_metrics_flags |= METRICS_V2_LIBBPF_STATS; // 21 (x86_64 machine), but can't test it here it's 0
 	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 0);
 
 	test_metrics_flags = 0;
-	test_metrics_flags |= PPM_SCAP_STATS_RESOURCE_UTILIZATION;
+	test_metrics_flags |= METRICS_V2_RESOURCE_UTILIZATION;
 	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 9);
 
 	test_metrics_flags = 0;
-	test_metrics_flags |= PPM_SCAP_STATS_STATE_COUNTERS;
+	test_metrics_flags |= METRICS_V2_STATE_COUNTERS;
 	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 19);
 
-	test_metrics_flags = (PPM_SCAP_STATS_RESOURCE_UTILIZATION | PPM_SCAP_STATS_STATE_COUNTERS);
+	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
 	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 28);
 
 	/* Check we don't crash if inspector is invalid and verify metrics vector is cleared */
-	test_metrics_flags = (PPM_SCAP_STATS_RESOURCE_UTILIZATION | PPM_SCAP_STATS_STATE_COUNTERS);
+	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
 	metrics_collector = libsinsp::metrics::metrics_collector::create(nullptr, test_metrics_flags);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();

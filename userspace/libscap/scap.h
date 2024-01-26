@@ -20,7 +20,7 @@ limitations under the License.
 
 #include <libscap/scap_const.h>
 #include <libscap/scap_platform_api.h>
-#include <libscap/scap_stats_v2.h>
+#include <libscap/metrics_v2.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -653,9 +653,9 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
   \param nstats Pointer reflecting number of statistics in returned buffer.
   \param rc Pointer to return code.
 
-  \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
+  \return Pointer to a \ref metrics_v2 structure filled with the statistics.
 */
-const struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc);
+const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.

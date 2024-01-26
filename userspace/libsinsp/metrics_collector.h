@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 #pragma once
-#include <libscap/scap_stats_v2.h>
+#include <libscap/metrics_v2.h>
 #include <libscap/scap_machine_info.h>
 #include <libsinsp/threadinfo.h>
 
@@ -91,64 +91,64 @@ public:
 	void snapshot();
 
 	// Method to get a const reference to m_metrics buffer
-	const std::vector<scap_stats_v2>& get_metrics() const;
+	const std::vector<metrics_v2>& get_metrics() const;
 
 private:
 	metrics_collector(sinsp* inspector, const uint32_t flags);
 	static std::unique_ptr<metrics_collector> mc_instance;
 	sinsp* m_inspector;
 	uint32_t m_metrics_flags;
-	std::vector<scap_stats_v2> m_metrics;
+	std::vector<metrics_v2> m_metrics;
 
 	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host);
 	void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, double &cpu_usage_perc_total_host, uint32_t &procs_running_host);
 	uint64_t get_container_memory_usage() const;
 
 	template <typename T>
-	const scap_stats_v2 new_stat(const char* name, uint32_t flags, scap_stats_v2_value_type type, scap_stats_v2_value_unit unit, scap_stats_v2_metric_type metric_type, T val)
+	const metrics_v2 new_metric(const char* name, uint32_t flags, metrics_v2_value_type type, metrics_v2_value_unit unit, metrics_v2_metric_type metric_type, T val)
 	{
-		scap_stats_v2 stat;
-		strlcpy(stat.name, name, STATS_NAME_MAX);
-		stat.flags = flags;
-		stat.type = type;
-		stat.unit = unit;
-		stat.metric_type = metric_type;
-		set_stat_value(stat, type, val);
-		return stat;
+		metrics_v2 metric;
+		strlcpy(metric.name, name, METRIC_NAME_MAX);
+		metric.flags = flags;
+		metric.type = type;
+		metric.unit = unit;
+		metric.metric_type = metric_type;
+		set_new_metric(metric, type, val);
+		return metric;
 	}
 
 	template <typename T>
-	void set_stat_value(scap_stats_v2& stat, scap_stats_v2_value_type type, T val)
+	void set_new_metric(metrics_v2& metric, metrics_v2_value_type type, T val)
 	{
 		switch (type)
 		{
-		case STATS_VALUE_TYPE_U32:
-			stat.type = STATS_VALUE_TYPE_U32;
-			stat.value.u32 = static_cast<uint32_t>(val);
+		case METRIC_VALUE_TYPE_U32:
+			metric.type = METRIC_VALUE_TYPE_U32;
+			metric.value.u32 = static_cast<uint32_t>(val);
 			break;
-		case STATS_VALUE_TYPE_S32:
-			stat.type = STATS_VALUE_TYPE_S32;
-			stat.value.s32 = static_cast<int32_t>(val);
+		case METRIC_VALUE_TYPE_S32:
+			metric.type = METRIC_VALUE_TYPE_S32;
+			metric.value.s32 = static_cast<int32_t>(val);
 			break;
-		case STATS_VALUE_TYPE_U64:
-			stat.type = STATS_VALUE_TYPE_U64;
-			stat.value.u64 = static_cast<uint64_t>(val);
+		case METRIC_VALUE_TYPE_U64:
+			metric.type = METRIC_VALUE_TYPE_U64;
+			metric.value.u64 = static_cast<uint64_t>(val);
 			break;
-		case STATS_VALUE_TYPE_S64:
-			stat.type = STATS_VALUE_TYPE_S64;
-			stat.value.s64 = static_cast<int64_t>(val);
+		case METRIC_VALUE_TYPE_S64:
+			metric.type = METRIC_VALUE_TYPE_S64;
+			metric.value.s64 = static_cast<int64_t>(val);
 			break;
-		case STATS_VALUE_TYPE_D:
-			stat.type = STATS_VALUE_TYPE_D;
-			stat.value.d = static_cast<double>(val);
+		case METRIC_VALUE_TYPE_D:
+			metric.type = METRIC_VALUE_TYPE_D;
+			metric.value.d = static_cast<double>(val);
 			break;
-		case STATS_VALUE_TYPE_F:
-			stat.type = STATS_VALUE_TYPE_F;
-			stat.value.f = static_cast<float>(val);
+		case METRIC_VALUE_TYPE_F:
+			metric.type = METRIC_VALUE_TYPE_F;
+			metric.value.f = static_cast<float>(val);
 			break;
-		case STATS_VALUE_TYPE_I:
-			stat.type = STATS_VALUE_TYPE_I;
-			stat.value.i = static_cast<int>(val);
+		case METRIC_VALUE_TYPE_I:
+			metric.type = METRIC_VALUE_TYPE_I;
+			metric.value.i = static_cast<int>(val);
 			break;
 		default:
 			break;

@@ -20,7 +20,7 @@ limitations under the License.
 #include <stdint.h>
 #include <libscap/ringbuffer/devset.h>
 #include <libscap/scap_open.h>
-#include <libscap/scap_stats_v2.h>
+#include <libscap/metrics_v2.h>
 #include <libscap/engine/kmod/scap_kmod_stats.h>
 
 
@@ -32,5 +32,5 @@ struct kmod_engine
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 	bool capturing;
-	scap_stats_v2 m_stats[KMOD_MAX_KERNEL_COUNTERS_STATS];
+	metrics_v2 m_stats[KMOD_MAX_KERNEL_COUNTERS_STATS];
 };

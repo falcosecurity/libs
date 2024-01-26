@@ -248,7 +248,7 @@ TEST(modern_bpf, double_scap_stats_call)
 	scap_close(h);
 }
 
-TEST(modern_bpf, scap_stats_v2_check_results)
+TEST(modern_bpf, metrics_v2_check_results)
 {
 	char error_buffer[FILENAME_MAX] = {0};
 	int ret = 0;
@@ -256,10 +256,10 @@ TEST(modern_bpf, scap_stats_v2_check_results)
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false) << "unable to open modern bpf engine with one single shared ring buffer: " << error_buffer << std::endl;
 
-	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS;
 	uint32_t nstats;
 	int32_t rc;
-	const scap_stats_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	const metrics_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
 	ASSERT_EQ(rc, SCAP_SUCCESS);
 	ASSERT_GT(nstats, 0);
 
@@ -289,7 +289,7 @@ TEST(modern_bpf, scap_stats_v2_check_results)
 	scap_close(h);
 }
 
-TEST(modern_bpf, scap_stats_v2_check_empty)
+TEST(modern_bpf, metrics_v2_check_empty)
 {
 	char error_buffer[FILENAME_MAX] = {0};
 	int ret = 0;
@@ -306,7 +306,7 @@ TEST(modern_bpf, scap_stats_v2_check_empty)
 	scap_close(h);
 }
 
-TEST(modern_bpf, double_scap_stats_v2_call)
+TEST(modern_bpf, double_metrics_v2_call)
 {
 	char error_buffer[FILENAME_MAX] = {0};
 	int ret = 0;
@@ -314,7 +314,7 @@ TEST(modern_bpf, double_scap_stats_v2_call)
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
 	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false) << "unable to open modern bpf engine with one single shared ring buffer: " << error_buffer << std::endl;
 
-	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS;
 	uint32_t nstats;
 	int32_t rc;
 

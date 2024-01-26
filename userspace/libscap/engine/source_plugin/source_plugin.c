@@ -274,11 +274,11 @@ static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats
 	return SCAP_SUCCESS;
 }
 
-const struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* get_source_plugin_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	*nstats = MAX_SOURCE_PLUGIN_COUNTERS_STATS;
-	scap_stats_v2* stats = handle->m_stats;
+	metrics_v2* stats = handle->m_stats;
 	if (!stats)
 	{
 		*nstats = 0;
@@ -289,9 +289,11 @@ const struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle
 	/* SOURCE PLUGIN STATS COUNTERS */
 	for(uint32_t stat = 0; stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
 	{
-		stats[stat].type = STATS_VALUE_TYPE_U64;
+		stats[stat].type = METRIC_VALUE_TYPE_U64;
 		stats[stat].value.u64 = 0;
-		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], STATS_NAME_MAX);
+		stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
+		stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
+		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], METRIC_NAME_MAX);
 	}
 	stats[N_EVTS].value.u64 = handle->m_nevts;
 

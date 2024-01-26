@@ -20,7 +20,7 @@ limitations under the License.
 #include <stdint.h>
 #include <libscap/engine/source_plugin/plugin_info.h>
 #include <libscap/engine/source_plugin/source_plugin_stats.h>
-#include <libscap/scap_stats_v2.h>
+#include <libscap/metrics_v2.h>
 
 struct scap;
 
@@ -49,6 +49,6 @@ struct source_plugin_engine
 	ss_plugin_rc m_input_plugin_last_batch_res;
 
 	// Stats v2.
-	scap_stats_v2 m_stats[MAX_SOURCE_PLUGIN_COUNTERS_STATS];
+	metrics_v2 m_stats[MAX_SOURCE_PLUGIN_COUNTERS_STATS];
 
 };

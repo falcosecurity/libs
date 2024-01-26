@@ -824,10 +824,10 @@ void print_stats()
 {
 	gettimeofday(&tval_end, NULL);
 	timersub(&tval_end, &tval_start, &tval_result);
-	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS;
 	uint32_t nstats;
 	int32_t rc;
-	const scap_stats_v2* stats_v2;
+	const metrics_v2* stats_v2;
 	stats_v2 = scap_get_stats_v2(g_h, flags, &nstats, &rc);
 	uint64_t engine_flags = scap_get_engine_flags(g_h);
 	uint64_t n_evts = 0;
@@ -835,7 +835,7 @@ void print_stats()
 	{
 		for(int stat = 0; stat < nstats; stat++)
 		{
-			if ((strncmp(stats_v2[stat].name, "n_evts", 6) == 0) && stats_v2[0].type == STATS_VALUE_TYPE_U64)
+			if ((strncmp(stats_v2[stat].name, "n_evts", 6) == 0) && stats_v2[0].type == METRIC_VALUE_TYPE_U64)
 			{
 				n_evts = stats_v2[stat].value.u64;
 				break;
@@ -876,7 +876,7 @@ void print_stats()
 	{
 		for(int stat = 0; stat < nstats; stat++)
 		{
-			if (stats_v2[stat].type == STATS_VALUE_TYPE_U64)
+			if (stats_v2[stat].type == METRIC_VALUE_TYPE_U64)
 			{
 				printf("[%u] %s: %lu\n", stats_v2[stat].flags, stats_v2[stat].name, stats_v2[stat].value.u64);
 			}
