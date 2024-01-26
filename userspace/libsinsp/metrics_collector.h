@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2024 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -76,23 +76,87 @@ enum sinsp_stats_v2_resource_utilization
 };
 
 #ifdef __linux__
+
 namespace libsinsp {
-namespace stats {
+namespace metrics {
 
-	/*!
-	  \brief Retrieve current sinsp stats v2 including resource utilization metrics.
-	  \param agent_info Pointer to a \ref scap_agent_info containing relevant constants from the agent start up moment.
-	  \param thread_manager Pointer to a \ref thread_manager to access threadtable properties.
-	  \param stats_v2 Pointer to a \ref sinsp_stats_v2 containing counters related to the sinsp state tables (e.g. adding, removing, storing, failed lookup activities).
-	  \param buffer Pointer to a \ref scap_stats_v2 pre-allocated sinsp_stats_v2_buffer (aka scap_stats_v2 schema).
-	  \param nstats Pointer reflecting number of statistics in returned buffer
-	  \param rc Pointer to return code
-	  \note Intended to be called once every x hours.
+class metrics_collector
+{
+public:
+	// Factory method for creating instances
+	static std::unique_ptr<metrics_collector> create(sinsp* inspector, const uint32_t flags);
+	~metrics_collector();
 
-	  \return Pointer to a \ref scap_stats_v2 buffer filled with the current sinsp stats v2 including resource utilization metrics.
-	*/
-	const scap_stats_v2* get_sinsp_stats_v2(uint32_t flags, const scap_agent_info* agent_info, sinsp_thread_manager* thread_manager, std::shared_ptr<sinsp_stats_v2> stats_v2, scap_stats_v2* buffer, uint32_t* nstats, int32_t* rc);
+	// Method to fill up m_metrics_buffer with current metrics; refreshes m_metrics with up-to-date metrics on each call
+	void snapshot();
 
-}
-}
+	// Method to get a const reference to m_metrics buffer
+	const std::vector<scap_stats_v2>& get_metrics() const;
+
+private:
+	metrics_collector(sinsp* inspector, const uint32_t flags);
+	static std::unique_ptr<metrics_collector> mc_instance;
+	sinsp* m_inspector;
+	uint32_t m_metrics_flags;
+	std::vector<scap_stats_v2> m_metrics;
+
+	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host);
+	void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, double &cpu_usage_perc_total_host, uint32_t &procs_running_host);
+	uint64_t get_container_memory_usage() const;
+
+	template <typename T>
+	const scap_stats_v2 new_stat(const char* name, uint32_t flags, scap_stats_v2_value_type type, scap_stats_v2_value_unit unit, scap_stats_v2_metric_type metric_type, T val)
+	{
+		scap_stats_v2 stat;
+		strlcpy(stat.name, name, STATS_NAME_MAX);
+		stat.flags = flags;
+		stat.type = type;
+		stat.unit = unit;
+		stat.metric_type = metric_type;
+		set_stat_value(stat, type, val);
+		return stat;
+	}
+
+	template <typename T>
+	void set_stat_value(scap_stats_v2& stat, scap_stats_v2_value_type type, T val)
+	{
+		switch (type)
+		{
+		case STATS_VALUE_TYPE_U32:
+			stat.type = STATS_VALUE_TYPE_U32;
+			stat.value.u32 = static_cast<uint32_t>(val);
+			break;
+		case STATS_VALUE_TYPE_S32:
+			stat.type = STATS_VALUE_TYPE_S32;
+			stat.value.s32 = static_cast<int32_t>(val);
+			break;
+		case STATS_VALUE_TYPE_U64:
+			stat.type = STATS_VALUE_TYPE_U64;
+			stat.value.u64 = static_cast<uint64_t>(val);
+			break;
+		case STATS_VALUE_TYPE_S64:
+			stat.type = STATS_VALUE_TYPE_S64;
+			stat.value.s64 = static_cast<int64_t>(val);
+			break;
+		case STATS_VALUE_TYPE_D:
+			stat.type = STATS_VALUE_TYPE_D;
+			stat.value.d = static_cast<double>(val);
+			break;
+		case STATS_VALUE_TYPE_F:
+			stat.type = STATS_VALUE_TYPE_F;
+			stat.value.f = static_cast<float>(val);
+			break;
+		case STATS_VALUE_TYPE_I:
+			stat.type = STATS_VALUE_TYPE_I;
+			stat.value.i = static_cast<int>(val);
+			break;
+		default:
+			break;
+		}
+	}
+};
+
+} // namespace metrics
+} // namespace libsinsp
+
 #endif

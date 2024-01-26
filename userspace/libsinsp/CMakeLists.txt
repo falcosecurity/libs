@@ -98,6 +98,7 @@ add_library(sinsp
 	filter_check_list.cpp
 	ifinfo.cpp
 	memmem.cpp
+	metrics_collector.cpp
 	logger.cpp
 	parsers.cpp
 	${LIBS_DIR}/userspace/plugin/plugin_loader.c
@@ -109,7 +110,6 @@ add_library(sinsp
 	threadinfo.cpp
 	tuples.cpp
 	sinsp.cpp
-	stats.cpp
 	token_bucket.cpp
 	utils.cpp
 	value_parser.cpp

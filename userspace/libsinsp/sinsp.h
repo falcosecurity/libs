@@ -70,7 +70,7 @@ limitations under the License.
 #include <libsinsp/sinsp_public.h>
 #include <libsinsp/sinsp_suppress.h>
 #include <libsinsp/state/table_registry.h>
-#include <libsinsp/stats.h>
+#include <libsinsp/metrics_collector.h>
 #include <libsinsp/threadinfo.h>
 #include <libsinsp/tuples.h>
 #include <libsinsp/user.h>
@@ -465,19 +465,9 @@ public:
 	const scap_agent_info* get_agent_info() const;
 
 	/*!
-	  \brief Return sinsp stats v2 static size buffer w/ scap_stats_v2 schema.
-
-	  \note sinsp stats may be refactored near-term.
-	*/
-	scap_stats_v2* get_sinsp_stats_v2_buffer();
-	const scap_stats_v2* get_sinsp_stats_v2_buffer() const;
-
-	/*!
 	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd state tables.
 
-	  \note sinsp stats may be refactored near-term.
 	*/
-	std::shared_ptr<sinsp_stats_v2> get_sinsp_stats_v2();
 	std::shared_ptr<const sinsp_stats_v2> get_sinsp_stats_v2() const;
 
 	/*!
