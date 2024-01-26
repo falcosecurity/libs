@@ -328,7 +328,7 @@ sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinf
 			fdinfo->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
 			fdinfo->m_flags |= sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
 
-			m_table[CANCELED_FD_NUMBER] = std::move(it->second->clone());
+			m_table[CANCELED_FD_NUMBER] = it->second->clone();
 		}
 		else
 		{
