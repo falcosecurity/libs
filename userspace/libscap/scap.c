@@ -278,7 +278,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 // Return engine statistics (including counters and `bpftool prog show` like stats)
 //
-const struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	if(handle->m_vtable)
 	{

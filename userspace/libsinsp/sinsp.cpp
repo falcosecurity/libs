@@ -1808,10 +1808,10 @@ void sinsp::print_capture_stats(sinsp_logger::severity sev) const
 		stats.n_drops_bug);
 }
 
-const scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
+const metrics_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
 {
 	/* On purpose ignoring failures to not interrupt in case of stats retrieval failure. */
-	const scap_stats_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
+	const metrics_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
 	if (!stats_v2)
 	{
 		*nstats = 0;

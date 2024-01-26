@@ -28,7 +28,7 @@ limitations under the License.
 #include <stdint.h>
 #include <utility>
 #include <libscap/scap.h>
-#include <libscap/scap_stats_v2.h>
+#include <libscap/metrics_v2.h>
 #include <libscap/engine/gvisor/scap_gvisor_stats.h>
 #include <libscap/engine/gvisor/gvisor_platform.h>
 
@@ -183,7 +183,7 @@ public:
 
     uint32_t get_vxid(uint64_t pid) const;
     int32_t get_stats(scap_stats *stats) const;
-    const struct scap_stats_v2* get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
+    const struct metrics_v2* get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
 private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
@@ -221,7 +221,7 @@ private:
     } m_gvisor_stats;
 
     // Stats v2.
-    scap_stats_v2 m_stats[scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS];
+    metrics_v2 m_stats[scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS];
 };
 
 

@@ -32,7 +32,7 @@ limitations under the License.
 /* Pay attention this need to be bumped every time we add a new bpf program that is directly attached into the kernel */
 #define MODERN_BPF_PROG_ATTACHED_MAX 9
 
-struct scap_stats_v2;
+struct metrics_v2;
 
 struct internal_state
 {
@@ -57,7 +57,7 @@ struct internal_state
 	int32_t attached_progs_fds[MODERN_BPF_PROG_ATTACHED_MAX]; /* file descriptors of attached programs, used to
 								     collect stats */
 	uint16_t n_attached_progs;				  /* number of attached progs */
-	struct scap_stats_v2* stats;				  /* array of stats collected by libpman */
+	struct metrics_v2* stats;				  /* array of stats collected by libpman */
 
 	falcosecurity_log_fn log_fn;
 };

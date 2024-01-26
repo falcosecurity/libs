@@ -29,7 +29,7 @@ extern "C" {
 
 struct scap_stats;
 typedef struct scap scap_t;
-struct scap_stats_v2;
+struct metrics_v2;
 typedef struct ppm_evt_hdr scap_evt;
 struct scap_proclist;
 
@@ -218,9 +218,9 @@ struct scap_vtable {
 	 * @param flags holding statistics category flags
 	 * @param nstats Pointer reflecting number of statistics in returned buffer
 	 * @param rc Pointer to return code
-	 * @return Pointer to a \ref scap_stats_v2 structure filled with the statistics
+	 * @return Pointer to a \ref metrics_v2 structure filled with the statistics
 	 */
-	const struct scap_stats_v2* (*get_stats_v2)(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc);
+	const struct metrics_v2* (*get_stats_v2)(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 	/**
 	 * @brief get the number of tracepoint hits

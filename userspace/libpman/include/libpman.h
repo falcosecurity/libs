@@ -29,7 +29,7 @@ extern "C"
 #endif
 
 	/* Forward declare them */
-	struct scap_stats_v2;
+	struct metrics_v2;
 	struct scap_stats;
 
 	/* `libpman` return values convention:
@@ -300,15 +300,15 @@ extern "C"
 	int pman_get_scap_stats(struct scap_stats* scap_stats_struct);
 
 	/**
-	 * @brief Return a `scap_stats_v2` struct filled with statistics.
+	 * @brief Return a `metrics_v2` struct filled with statistics.
 	 *
 	 * @param flags holding statistics category flags.
 	 * @param nstats number of stats allocated.
 	 * @param rc return code, SCAP_FAILURE in case of error.
 	 *
-	 * @return pointer to `struct scap_stats_v2`
+	 * @return pointer to `struct metrics_v2`
 	 */
-	struct scap_stats_v2* pman_get_scap_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
+	struct metrics_v2* pman_get_metrics_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU

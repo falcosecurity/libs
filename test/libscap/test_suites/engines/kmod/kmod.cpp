@@ -184,17 +184,17 @@ TEST(kmod, double_scap_stats_call)
 	scap_close(h);
 }
 
-TEST(kmod, scap_stats_v2_check_results)
+TEST(kmod, metrics_v2_check_results)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open kmod engine: " << error_buffer << std::endl;
 
-	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS;
 	uint32_t nstats;
 	int32_t rc;
-	const scap_stats_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	const metrics_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
 	ASSERT_EQ(rc, SCAP_SUCCESS);
 	ASSERT_GT(nstats, 0);
 
@@ -220,14 +220,14 @@ TEST(kmod, scap_stats_v2_check_results)
 	scap_close(h);
 }
 
-TEST(kmod, double_scap_stats_v2_call)
+TEST(kmod, double_metrics_v2_call)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
 	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open kmod engine: " << error_buffer << std::endl;
 
-	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS;
 	uint32_t nstats;
 	int32_t rc;
 
@@ -243,7 +243,7 @@ TEST(kmod, double_scap_stats_v2_call)
 	scap_close(h);
 }
 
-TEST(kmod, scap_stats_v2_check_empty)
+TEST(kmod, metrics_v2_check_empty)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;

@@ -60,7 +60,7 @@ public:
 	/**
 	 * Get engine statistics (including counters and `bpftool prog show` like stats).
 	 *
-	 * @return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
+	 * @return Pointer to a \ref metrics_v2 structure filled with the libscap stats.
 	 */
-	virtual const struct scap_stats_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const = 0;
+	virtual const struct metrics_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const = 0;
 };

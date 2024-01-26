@@ -22,7 +22,7 @@ limitations under the License.
 #include <libscap/ringbuffer/devset.h>
 #include <libscap/scap_open.h>
 #include <libscap/engine/bpf/attached_prog.h>
-#include <libscap/scap_stats_v2.h>
+#include <libscap/metrics_v2.h>
 #include <libscap/engine/bpf/scap_bpf_stats.h>
 
 //
@@ -58,7 +58,7 @@ struct bpf_engine
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 	bool capturing;
-	scap_stats_v2* m_stats;
+	metrics_v2* m_stats;
 	uint32_t m_nstats;
 	uint64_t m_flags;
 };

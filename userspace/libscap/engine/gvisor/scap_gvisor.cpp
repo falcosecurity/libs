@@ -418,10 +418,10 @@ int32_t engine::get_stats(scap_stats *stats) const
 	return SCAP_SUCCESS;
 }
 
-const scap_stats_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc)
+const metrics_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	*nstats = scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS;
-	scap_stats_v2* stats = engine::m_stats;
+	metrics_v2* stats = engine::m_stats;
 	if (!stats)
 	{
 		*nstats = 0;
@@ -432,9 +432,11 @@ const scap_stats_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int3
 	/* GVISOR STATS COUNTERS */
 	for(uint32_t stat = 0; stat < scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS; stat++)
 	{
-		stats[stat].type = STATS_VALUE_TYPE_U64;
+		stats[stat].type = METRIC_VALUE_TYPE_U64;
+		stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
+		stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
 		stats[stat].value.u64 = 0;
-		strlcpy(stats[stat].name, gvisor_counters_stats_names[stat], STATS_NAME_MAX);
+		strlcpy(stats[stat].name, gvisor_counters_stats_names[stat], METRIC_NAME_MAX);
 	}
 	stats[scap_gvisor::stats::GVISOR_N_EVTS].value.u64 = m_gvisor_stats.n_evts;
 	stats[scap_gvisor::stats::GVISOR_N_DROPS_BUG].value.u64 = m_gvisor_stats.n_drops_parsing;
