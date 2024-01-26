@@ -132,6 +132,10 @@ private:
 	std::unique_ptr<ast::expr> parse_not();
 	std::unique_ptr<ast::expr> parse_embedded_remainder();
 	std::unique_ptr<ast::expr> parse_check();
+	std::unique_ptr<ast::expr> parse_check_field(libsinsp::filter::ast::pos_info& pos);
+	void parse_check_field_arg(std::string& field_arg);
+	std::unique_ptr<ast::expr> parse_check_condition(const std::string& field, const std::string& field_arg,
+							 libsinsp::filter::ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_list_value();
 	std::unique_ptr<ast::value_expr> parse_num_value();
 	std::unique_ptr<ast::value_expr> parse_str_value();
