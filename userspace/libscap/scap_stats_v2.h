@@ -59,6 +59,18 @@ typedef enum scap_stats_v2_value_type{
 	STATS_VALUE_TYPE_I,
 }scap_stats_v2_value_type;
 
+typedef enum scap_stats_v2_value_unit{
+	STATS_VALUE_UNIT_COUNT,
+	STATS_VALUE_UNIT_PERC,
+	STATS_VALUE_UNIT_MEMORY_BYTES,
+	STATS_VALUE_UNIT_MEMORY_KILOBYTES,
+}scap_stats_v2_value_unit;
+
+typedef enum scap_stats_v2_metric_type{
+	STATS_VALUE_MONOTONIC,
+	STATS_VALUE_NON_MONOTONIC_CURRENT,
+}scap_stats_v2_metric_type;
+
 /*!
   \brief Statistics about an in progress capture (including counters and libbpf stats, compare to `bpftool prog show` CLI).
 */
@@ -67,10 +79,11 @@ typedef struct scap_stats_v2
 	/* Metadata */
 	char name[STATS_NAME_MAX];
 	uint32_t flags;
+	scap_stats_v2_metric_type metric_type;
 	/* Stats values */
 	scap_stats_v2_value value;
 	scap_stats_v2_value_type type;
-	// todo: add unit enum
+	scap_stats_v2_value_unit unit;
 }scap_stats_v2;
 
 #ifdef __cplusplus
