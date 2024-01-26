@@ -15,6 +15,6 @@
 # limitations under the License.
 #
 add_library(scap_platform STATIC scap_linux_platform.c scap_procs.c scap_fds.c scap_userlist.c scap_iflist.c scap_cgroup.c scap_machine_info.c)
-target_include_directories(scap_platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(scap_platform PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_link_libraries(scap_platform PRIVATE scap_error scap_platform_util)
 add_dependencies(scap_platform uthash)

@@ -42,53 +42,49 @@ limitations under the License.
 
 #pragma once
 
-#include <libsinsp/capture_stats_source.h>
+#include <libscap/scap.h>
 
-#include <libsinsp/sinsp_inet.h>
-#include <libsinsp/sinsp_public.h>
-#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/capture_stats_source.h>
+#include <libsinsp/container.h>
+#include <libsinsp/dumper.h>
+#include <libsinsp/event.h>
+#include <libsinsp/fdinfo.h>
+#include <libsinsp/filter.h>
+#include <libsinsp/ifinfo.h>
+#include <libsinsp/eventformatter.h>
 #include <libsinsp/events/sinsp_events.h>
 #include <libsinsp/filter/ast.h>
 #include <libsinsp/filter/escaping.h>
-#include <libsinsp/filter/ppm_codes.h>
 #include <libsinsp/filter/parser.h>
-#include <libsinsp/state/table_registry.h>
-#include <libsinsp/plugin_parser.h>
-
-#include <string>
-#include <map>
-#include <queue>
-#include <vector>
-#include <unordered_set>
-#include <list>
-#include <memory>
-
-#include <libscap/scap.h>
-#include <libsinsp/settings.h>
+#include <libsinsp/filter/ppm_codes.h>
+#include <libsinsp/gvisor_config.h>
 #include <libsinsp/logger.h>
-#include <libsinsp/event.h>
-#include <libsinsp/filter.h>
-#include <libsinsp/dumper.h>
-#include <libsinsp/ifinfo.h>
-#include <libsinsp/container.h>
+#include <libsinsp/mpsc_priority_queue.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/plugin_parser.h>
+#include <libsinsp/settings.h>
+#include <libsinsp/sinsp_cycledumper.h>
+#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/sinsp_external_processor.h>
+#include <libsinsp/sinsp_inet.h>
+#include <libsinsp/sinsp_public.h>
+#include <libsinsp/sinsp_suppress.h>
+#include <libsinsp/state/table_registry.h>
+#include <libsinsp/stats.h>
+#include <libsinsp/threadinfo.h>
+#include <libsinsp/tuples.h>
 #include <libsinsp/user.h>
 #include <libsinsp/utils.h>
-#include <libsinsp/stats.h>
-#include <libsinsp/sinsp_cycledumper.h>
+
+#include <list>
+#include <map>
+#include <memory>
+#include <queue>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
 #define ONE_SECOND_IN_NS 1000000000LL
-
-#include <libsinsp/tuples.h>
-#include <libsinsp/fdinfo.h>
-#include <libsinsp/threadinfo.h>
-#include <libsinsp/ifinfo.h>
-#include <libsinsp/eventformatter.h>
-
-#include <libsinsp/include/sinsp_external_processor.h>
-#include <libsinsp/plugin.h>
-#include <libsinsp/gvisor_config.h>
-#include <libsinsp/mpsc_priority_queue.h>
-#include <libsinsp/sinsp_suppress.h>
 
 class sinsp_parser;
 class sinsp_filter;
