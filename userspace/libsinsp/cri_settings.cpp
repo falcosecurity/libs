@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "cri.hpp"
+#include <libsinsp/cri.hpp>
 
 namespace libsinsp
 {

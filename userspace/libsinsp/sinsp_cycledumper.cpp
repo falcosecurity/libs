@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "sinsp_cycledumper.h"
+#include <libsinsp/sinsp_cycledumper.h>
 #include <iostream>
 
 

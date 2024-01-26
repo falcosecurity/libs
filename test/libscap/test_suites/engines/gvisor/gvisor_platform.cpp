@@ -17,8 +17,8 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include "scap.h"
-#include "engine/gvisor/gvisor.h"
+#include <libscap/scap.h>
+#include <libscap/engine/gvisor/gvisor.h>
 
 TEST(gvisor_platform, generate_sandbox_id)
 {

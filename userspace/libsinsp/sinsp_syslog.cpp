@@ -16,8 +16,8 @@ limitations under the License.
 
 */
 
-#include "sinsp_syslog.h"
-#include "utils.h"
+#include <libsinsp/sinsp_syslog.h>
+#include <libsinsp/utils.h>
 
 #define PRI_BUF_SIZE 16
 

@@ -18,8 +18,8 @@ limitations under the License.
 
 #pragma once
 
-#include "sinsp.h"
-#include "dumper.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/dumper.h>
 
 #include <memory>
 
