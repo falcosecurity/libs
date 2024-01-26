@@ -4829,7 +4829,7 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt)
 		// NOTE: dup2 and dup3 accept an existing FD and in that case they close it.
 		//       For us it's ok to just overwrite it.
 		//
-		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, std::move(evt->m_fdinfo->clone()));
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, evt->m_fdinfo->clone());
 	}
 }
 
@@ -5717,5 +5717,5 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
 	{
 		return;
 	}
-	evt->m_tinfo->add_fd(fd, std::move(targetfd_fdinfo->clone()));
+	evt->m_tinfo->add_fd(fd, targetfd_fdinfo->clone());
 }
