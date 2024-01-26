@@ -1935,7 +1935,7 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt *evt)
 	return found;
 }
 
-bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
+bool sinsp_filter_check_thread::compare_nocache(sinsp_evt *evt)
 {
 	if(m_field_id == TYPE_APID)
 	{
@@ -1980,7 +1980,7 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 		}
 	}
 
-	return sinsp_filter_check::compare(evt);
+	return sinsp_filter_check::compare_nocache(evt);
 }
 
 int32_t sinsp_filter_check_thread::get_argid() const

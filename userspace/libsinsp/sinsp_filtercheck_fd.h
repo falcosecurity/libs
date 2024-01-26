@@ -92,8 +92,6 @@ public:
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 	bool extract(sinsp_evt*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
-	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
-	bool compare(sinsp_evt*) override;
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo* m_fdinfo;
@@ -105,6 +103,10 @@ public:
 
 	/* Used in extract helper to save uint64_t data */
 	uint64_t m_conv_uint64;
+
+protected:
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	bool compare_nocache(sinsp_evt*) override;
 
 private:
 	int32_t extract_arg(std::string fldname, std::string val);

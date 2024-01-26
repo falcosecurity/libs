@@ -31,9 +31,6 @@ limitations under the License.
 #include <libsinsp/state/table_registry.h>
 #include <plugin/plugin_loader.h>
 
-// todo(jasondellaluce: remove this forward declaration)
-class sinsp_filter_check;
-
 /**
  * @brief An object-oriented representation of a plugin.
  */

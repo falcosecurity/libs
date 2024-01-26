@@ -87,10 +87,9 @@ public:
 
 	sinsp_filter_expression* m_filter;
 
-protected:
+private:
 	sinsp_filter_expression* m_curexpr;
 
-private:
 	sinsp* m_inspector;
 	void push_expression(boolop op);
 	void pop_expression();

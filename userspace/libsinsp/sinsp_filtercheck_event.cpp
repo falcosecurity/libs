@@ -1812,7 +1812,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	return NULL;
 }
 
-bool sinsp_filter_check_event::compare(sinsp_evt *evt)
+bool sinsp_filter_check_event::compare_nocache(sinsp_evt *evt)
 {
 	bool res;
 
@@ -1857,7 +1857,7 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 	}
 	else
 	{
-		res = sinsp_filter_check::compare(evt);
+		res = sinsp_filter_check::compare_nocache(evt);
 	}
 
 	m_is_compare = false;

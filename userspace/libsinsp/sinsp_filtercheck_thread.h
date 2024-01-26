@@ -112,10 +112,12 @@ public:
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
-	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
-	bool compare(sinsp_evt*) override;
 
 	int32_t get_argid() const;
+
+protected:
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	bool compare_nocache(sinsp_evt*) override;
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);

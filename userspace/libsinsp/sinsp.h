@@ -97,10 +97,9 @@ limitations under the License.
 #include <libsinsp/gvisor_config.h>
 #include <libsinsp/mpsc_priority_queue.h>
 #include <libsinsp/sinsp_suppress.h>
-class sinsp_partial_transaction;
+
 class sinsp_parser;
 class sinsp_filter;
-class cycle_writer;
 class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
