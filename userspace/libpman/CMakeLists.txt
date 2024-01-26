@@ -35,9 +35,6 @@ PRIVATE
     ${LIBBPF_INCLUDE}
     ${MODERN_BPF_SKEL_DIR}
     ${LIBELF_INCLUDE}
-    ${LIBSCAP_DIR}/driver ## ppm_enum and tables
-    ${LIBSCAP_DIR}/userspace/libscap ## scap-stats struct
-    ${LIBSCAP_DIR}/driver/modern_bpf ## bpf-shared structs
 )
 
 target_link_libraries(pman
