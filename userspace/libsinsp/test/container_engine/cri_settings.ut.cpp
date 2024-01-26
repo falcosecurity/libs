@@ -18,7 +18,7 @@ limitations under the License.
 
 #if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
 #include <gtest/gtest.h>
-#include <cri.h>
+#include <libsinsp/container_engine/cri.h>
 #include <libsinsp/cri.hpp>
 #include "../sinsp_with_test_input.h"
 
