@@ -131,7 +131,7 @@ void sinsp_logger::remove_callback_log()
 
 void sinsp_logger::set_severity(const severity sev)
 {
-	if(m_sev < SEV_MIN || m_sev > SEV_MAX)
+	if(sev < SEV_MIN || sev > SEV_MAX)
 	{
 		throw sinsp_exception("Invalid log severity");
 	}
