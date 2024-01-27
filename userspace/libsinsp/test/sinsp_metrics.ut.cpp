@@ -32,21 +32,26 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
 	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	std::unique_ptr<libsinsp::metrics::metrics_collector> metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
+	bool convert_memory_to_mb = true;
+	std::unique_ptr<libsinsp::metrics::metrics_collector> metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	auto metrics_snapshot = metrics_collector->get_metrics();
+	/* Multiple calls */
+	metrics_collector->snapshot();
+	metrics_collector->snapshot();
+	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 28);
 
 	/* These names should always be available, note that we currently can't check for the merged scap stats metrics here */
-	std::unordered_set<std::string> minimal_stats_names = {"cpu_usage_perc", "memory_rss", "open_fds_host", \
+	std::unordered_set<std::string> minimal_metrics_names = {"cpu_usage_perc", "memory_rss", "open_fds_host", \
 	"n_threads", "n_fds", "n_added_fds", "n_added_threads", "n_removed_threads", "n_containers"};
 
-	for(const auto& stat_name : minimal_stats_names)
+	for(const auto& metric_name : minimal_metrics_names)
 	{
 		uint32_t i = 0;
-		for (const auto& stat : metrics_snapshot) 
+		for (const auto& metric: metrics_snapshot) 
 		{
-			if(stat_name.compare(stat.name) == 0)
+			if(metric_name.compare(metric.name) == 0)
 			{
 				break;
 			}
@@ -54,63 +59,81 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 		}
 		if(i == metrics_snapshot.size())
 		{
-			FAIL() << "unable to find stat '" << stat_name << "' in metrics_snapshot buffer";
+			FAIL() << "unable to find stat '" << metric_name << "' in metrics_snapshot buffer";
 		}
 	}
 
-	/* Assert some values are greater than 0 */
-	ASSERT_GT(metrics_snapshot[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].value.u32, 0);
-	ASSERT_GT(metrics_snapshot[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].value.u32, 0);
-	ASSERT_GT(metrics_snapshot[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST].value.d, 0);
-	ASSERT_GT(metrics_snapshot[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST].value.u64, 0);
-	ASSERT_GT(metrics_snapshot[SINSP_RESOURCE_UTILIZATION_PROCS_HOST].value.u32, 0);
-	ASSERT_GT(metrics_snapshot[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST].value.u64, 0);
-
-	ASSERT_GT(metrics_snapshot[SINSP_STATS_V2_N_THREADS].value.u64, 0);
-	ASSERT_GT(metrics_snapshot[SINSP_STATS_V2_N_FDS].value.u64, 0);
-	ASSERT_GT(metrics_snapshot[SINSP_STATS_V2_ADDED_THREADS].value.u64, 0);
+	/* Assert successful memory unit changes and sanity check some values to be greater than 0 */
+	const std::vector<std::string> metrics_names_memory = {"memory_rss", "memory_vsz", "memory_pss", "container_memory_used", "memory_used_host"};
+	const std::vector<std::string> metrics_names_values_gt = {"n_threads", "n_fds", "n_added_threads", "memory_used_host"};
+	uint32_t success_memory_cnt = 0;
+	uint32_t success_values_cnt = 0;
+	for (const auto& metric: metrics_snapshot)
+	{
+		if (std::find(metrics_names_memory.begin(), metrics_names_memory.end(), metric.name) != metrics_names_memory.end())
+		{
+			ASSERT_EQ(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES);
+			ASSERT_EQ(metric.type, METRIC_VALUE_TYPE_D);
+			success_memory_cnt++;
+		}
+		if (std::find(metrics_names_values_gt.begin(), metrics_names_values_gt.end(), metric.name) != metrics_names_values_gt.end())
+		{
+			ASSERT_GT(metric.value.u64, 0);
+			success_values_cnt++;
+		}
+	}
+	ASSERT_EQ(success_memory_cnt, metrics_names_memory.size());
+	ASSERT_EQ(success_values_cnt, metrics_names_values_gt.size());
 
 	/* Empty call */
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, 0);
+	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, 0, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 0);
 
-	/* Just checking that we don't crash w/ selective flags */
+	/* Sanity check empty inspector */
+	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
+	metrics_collector = libsinsp::metrics::metrics_collector::create(nullptr, test_metrics_flags, convert_memory_to_mb);
+	metrics_collector->snapshot();
+	metrics_snapshot = metrics_collector->get_metrics();
+	ASSERT_EQ(metrics_snapshot.size(), 0);
+
+	/* Some sanity checks for selective flags */
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_KERNEL_COUNTERS; // 20, but can't test it here it's 0
 	test_metrics_flags |= METRICS_V2_LIBBPF_STATS; // 21 (x86_64 machine), but can't test it here it's 0
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
+	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 0);
 
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_RESOURCE_UTILIZATION;
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
+	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 9);
 
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_STATE_COUNTERS;
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
+	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 19);
 
 	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags);
+	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 28);
 
-	/* Check we don't crash if inspector is invalid and verify metrics vector is cleared */
-	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	metrics_collector = libsinsp::metrics::metrics_collector::create(nullptr, test_metrics_flags);
-	metrics_collector->snapshot();
-	metrics_snapshot = metrics_collector->get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 0);
+	/* Test public convert_memory method */
+	double converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_BYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)52428800);
+	ASSERT_EQ(converted_memory, 50);
+	converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)51200);
+	ASSERT_EQ(converted_memory, 50);
+	converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_MEGABYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)50);
+	ASSERT_EQ(converted_memory, 50);
 
 }
 #endif

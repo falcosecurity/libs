@@ -23,7 +23,6 @@ limitations under the License.
 #include <sys/times.h>
 #include <sys/stat.h>
 #include <libsinsp/metrics_collector.h>
-#include <libscap/strl.h>
 
 static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 	[SINSP_RESOURCE_UTILIZATION_CPU_PERC] = "cpu_usage_perc",
@@ -293,11 +292,13 @@ uint64_t metrics_collector::get_container_memory_usage() const
 	return memory_used;
 }
 
-metrics_collector::metrics_collector(sinsp* inspector, const uint32_t flags) :
+metrics_collector::metrics_collector(sinsp* inspector, const uint32_t& flags, const bool& convert_memory_to_mb) :
 	m_inspector(inspector),
-	m_metrics_flags((METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS))
+	m_metrics_flags((METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS)),
+	m_convert_memory_to_mb(true)
 {
 	m_metrics_flags = flags;
+	m_convert_memory_to_mb = convert_memory_to_mb;
 }
 
 metrics_collector::~metrics_collector()
@@ -337,34 +338,44 @@ void metrics_collector::snapshot()
 	if((m_metrics_flags & METRICS_V2_RESOURCE_UTILIZATION))
 	{
 		const scap_agent_info* agent_info = m_inspector->get_agent_info();
-		uint32_t rss = 0;
-		uint32_t vsz = 0;
-		uint32_t pss = 0;
-		uint64_t memory_used_host = 0;
-		uint64_t open_fds_host = 0;
-		double cpu_usage_perc = 0.0;
-		double cpu_usage_perc_total_host = 0.0;
-		uint32_t procs_running_host = 0;
+		uint32_t rss{0}, vsz{0}, pss{0}, procs_running_host{0};
+		uint64_t memory_used_host{0}, open_fds_host{0};
+		double cpu_usage_perc{0.0}, cpu_usage_perc_total_host{0.0};
+		uint64_t container_memory_usage = get_container_memory_usage();
+		metrics_v2_value_unit rss_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES}, vsz_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES}, \
+		pss_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES}, memory_used_host_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES}, container_memory_usage_unit{METRIC_VALUE_UNIT_MEMORY_BYTES};
+		metrics_v2_value_type rss_type{METRIC_VALUE_TYPE_U32}, vsz_type{METRIC_VALUE_TYPE_U32}, \
+		pss_type{METRIC_VALUE_TYPE_U32}, memory_used_host_type{METRIC_VALUE_TYPE_U32}, container_memory_usage_type{METRIC_VALUE_TYPE_U64};
 		get_cpu_usage_and_total_procs(agent_info->start_time, cpu_usage_perc, cpu_usage_perc_total_host, procs_running_host);
 		get_rss_vsz_pss_total_memory_and_open_fds(rss, vsz, pss, memory_used_host, open_fds_host);
+		if(m_convert_memory_to_mb)
+		{
+			rss = convert_memory(rss_unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, rss);
+			vsz = convert_memory(vsz_unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, vsz);
+			pss = convert_memory(pss_unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, pss);
+			memory_used_host = convert_memory(memory_used_host_unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, memory_used_host);
+			container_memory_usage = convert_memory(container_memory_usage_unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, container_memory_usage);
+			rss_unit = vsz_unit = pss_unit = memory_used_host_unit = container_memory_usage_unit = METRIC_VALUE_UNIT_MEMORY_MEGABYTES;
+			rss_type = vsz_type = pss_type = memory_used_host_type = container_memory_usage_type = METRIC_VALUE_TYPE_D;
+		}
 		// Resource utilization of the agent itself
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC], \
 		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_D, METRIC_VALUE_UNIT_PERC, METRIC_VALUE_NON_MONOTONIC_CURRENT, cpu_usage_perc));
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS], \
-		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, rss));
+		METRICS_V2_RESOURCE_UTILIZATION, rss_type, rss_unit, METRIC_VALUE_NON_MONOTONIC_CURRENT, rss));
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ], \
-		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, vsz));
+		METRICS_V2_RESOURCE_UTILIZATION, vsz_type, vsz_unit, METRIC_VALUE_NON_MONOTONIC_CURRENT, vsz));
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS], \
-		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, pss));
+		METRICS_V2_RESOURCE_UTILIZATION, pss_type, pss_unit, METRIC_VALUE_NON_MONOTONIC_CURRENT, pss));
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY], \
-		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_MEMORY_BYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, get_container_memory_usage()));
+		METRICS_V2_RESOURCE_UTILIZATION, container_memory_usage_type, container_memory_usage_unit, METRIC_VALUE_NON_MONOTONIC_CURRENT, container_memory_usage));
 		// Resource utilization / load indicators of the underlying host
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST], \
 		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_D, METRIC_VALUE_UNIT_PERC, METRIC_VALUE_NON_MONOTONIC_CURRENT, cpu_usage_perc_total_host));
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_PROCS_HOST], \
 		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, procs_running_host));
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST], \
-		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_NON_MONOTONIC_CURRENT, memory_used_host));
+		METRICS_V2_RESOURCE_UTILIZATION, memory_used_host_type, memory_used_host_unit, METRIC_VALUE_NON_MONOTONIC_CURRENT, memory_used_host));
 		m_metrics.push_back(new_metric(sinsp_stats_v2_resource_utilization_names[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST], \
 		METRICS_V2_RESOURCE_UTILIZATION, METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, open_fds_host));
 	}
@@ -451,11 +462,11 @@ const std::vector<metrics_v2>& metrics_collector::get_metrics() const
 std::unique_ptr<metrics_collector> metrics_collector::mc_instance = nullptr;
 
 // Factory method implementation
-std::unique_ptr<metrics_collector> metrics_collector::create(sinsp* inspector, const uint32_t flags)
+std::unique_ptr<metrics_collector> metrics_collector::create(sinsp* inspector, const uint32_t& flags, const bool& convert_memory_to_mb)
 {
 	if (!mc_instance)
 	{
-		mc_instance = std::unique_ptr<metrics_collector>(new metrics_collector(inspector, flags));
+		mc_instance = std::unique_ptr<metrics_collector>(new metrics_collector(inspector, flags, convert_memory_to_mb));
 	}
 
 	return std::move(mc_instance);
