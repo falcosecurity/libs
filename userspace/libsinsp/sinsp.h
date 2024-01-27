@@ -1140,7 +1140,6 @@ private:
 	const scap_machine_info* m_machine_info;
 	const scap_agent_info* m_agent_info;
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-	metrics_v2 m_sinsp_stats_v2_buffer[SINSP_MAX_STATS_V2];
 	uint32_t m_num_cpus;
 	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
