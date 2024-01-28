@@ -33,7 +33,7 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
 	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
 	bool convert_memory_to_mb = true;
-	std::unique_ptr<libsinsp::metrics::metrics_collector> metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
+	std::unique_ptr<libsinsp::metrics::metrics_collector> metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	auto metrics_snapshot = metrics_collector->get_metrics();
 	/* Multiple calls */
@@ -65,7 +65,7 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 
 	/* Assert successful memory unit changes and sanity check some values to be greater than 0 */
 	const std::vector<std::string> metrics_names_memory = {"memory_rss", "memory_vsz", "memory_pss", "container_memory_used", "memory_used_host"};
-	const std::vector<std::string> metrics_names_values_gt = {"n_threads", "n_fds", "n_added_threads", "memory_used_host"};
+	const std::vector<std::string> metrics_names_values_gt = {"n_threads", "n_fds", "n_added_threads"};
 	uint32_t success_memory_cnt = 0;
 	uint32_t success_values_cnt = 0;
 	for (const auto& metric: metrics_snapshot)
@@ -74,11 +74,22 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 		{
 			ASSERT_EQ(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES);
 			ASSERT_EQ(metric.type, METRIC_VALUE_TYPE_D);
-			success_memory_cnt++;
+			if (strncmp(metric.name, "memory_used_host", 17) == 0 || strncmp(metric.name, "memory_rss", 11) == 0 )
+			{
+				ASSERT_GT(metric.value.d, 0);
+				// Just making sure we don't get a high value due to an unitialized variables
+				ASSERT_LT(metric.value.d, 1000000);
+				success_memory_cnt++;
+			} else
+			{
+				success_memory_cnt++;
+			}
 		}
 		if (std::find(metrics_names_values_gt.begin(), metrics_names_values_gt.end(), metric.name) != metrics_names_values_gt.end())
 		{
 			ASSERT_GT(metric.value.u64, 0);
+			// Just making sure we don't get a high value due to an unitialized variables
+			ASSERT_LT(metric.value.u64, 106721347371);
 			success_values_cnt++;
 		}
 	}
@@ -86,43 +97,43 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 	ASSERT_EQ(success_values_cnt, metrics_names_values_gt.size());
 
 	/* Empty call */
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, 0, convert_memory_to_mb);
+	metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, 0, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 0);
+	ASSERT_TRUE(metrics_snapshot.empty());
 
 	/* Sanity check empty inspector */
 	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	metrics_collector = libsinsp::metrics::metrics_collector::create(nullptr, test_metrics_flags, convert_memory_to_mb);
+	metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(nullptr, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 0);
+	ASSERT_TRUE(metrics_snapshot.empty());
 
 	/* Some sanity checks for selective flags */
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_KERNEL_COUNTERS; // 20, but can't test it here it's 0
 	test_metrics_flags |= METRICS_V2_LIBBPF_STATS; // 21 (x86_64 machine), but can't test it here it's 0
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
+	metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
-	ASSERT_EQ(metrics_snapshot.size(), 0);
+	ASSERT_TRUE(metrics_snapshot.empty());
 
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_RESOURCE_UTILIZATION;
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
+	metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 9);
 
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_STATE_COUNTERS;
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
+	metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 19);
 
 	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	metrics_collector = libsinsp::metrics::metrics_collector::create(&m_inspector, test_metrics_flags, convert_memory_to_mb);
+	metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	metrics_snapshot = metrics_collector->get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 28);
