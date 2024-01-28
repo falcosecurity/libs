@@ -7,4 +7,4 @@ Description: lib for System CAPture
 Version: @FALCOSECURITY_LIBS_VERSION@
 
 Libs: -L${libdir} @LIBSCAP_LINK_LIBDIRS_FLAGS@ @LIBSCAP_LINK_LIBRARIES_FLAGS@
-Cflags: -I${includedir}/@LIBS_PACKAGE_NAME@/userspace/libscap
+Cflags: -I${includedir}/@LIBS_PACKAGE_NAME@/libscap
