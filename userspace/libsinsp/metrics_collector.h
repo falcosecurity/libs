@@ -17,11 +17,12 @@ limitations under the License.
 */
 
 #pragma once
-#include <cmath>
+
 #include <libscap/metrics_v2.h>
 #include <libscap/scap_machine_info.h>
 #include <libsinsp/threadinfo.h>
 #include <libscap/strl.h>
+#include <cmath>
 
 struct sinsp_stats_v2
 {
@@ -79,63 +80,58 @@ enum sinsp_stats_v2_resource_utilization
 
 #ifdef __linux__
 
-namespace libsinsp {
-namespace metrics {
+namespace libsinsp::metrics {
 
 class metrics_collector
 {
 public:
-	// Factory method for creating instances
-	static std::unique_ptr<metrics_collector> create(sinsp* inspector, const uint32_t& flags, const bool& convert_memory_to_mb);
-	~metrics_collector();
+	metrics_collector(sinsp* inspector, uint32_t flags, bool convert_memory_to_mb);
 
-	// Method to fill up m_metrics_buffer with current metrics; refreshes m_metrics with up-to-date metrics on each call
+	// Method to fill up m_metrics_buffer with metrics; refreshes m_metrics with up-to-date metrics on each call
 	void snapshot();
 
-	// Method to get a const reference to m_metrics buffer
+	// Method to get a const reference to m_metrics vector
 	const std::vector<metrics_v2>& get_metrics() const;
 
-	// Method to convert memory units; however tied to metrics_v2 definitions
+	// Method to convert memory units; tied to metrics_v2 definitions
 	template <typename T>
 	double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
 	{
-		double factor = double(1);
+		double factor = 1;
 		switch(source_unit)
 		{
 		case METRIC_VALUE_UNIT_MEMORY_BYTES:
-			factor = double(1);
+			factor = 1;
 			break;
 		case METRIC_VALUE_UNIT_MEMORY_KILOBYTES:
-			factor = (double)1024;
+			factor = 1024.;
 			break;
 		case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
-			factor = (double)1024 * (double)1024;
+			factor = 1024. * 1024.;
 			break;
 		default:
-			return (double)0;
+			return 0;
 		}
 
-		double bytes_val = val * (double)factor;
+		double bytes_val = val * factor;
 		switch(dest_unit)
 		{
 		case METRIC_VALUE_UNIT_MEMORY_BYTES:
-			return (double)bytes_val;
+			return bytes_val;
 		case METRIC_VALUE_UNIT_MEMORY_KILOBYTES:
-			return std::round((bytes_val / (double)1024) * (double)10) / (double)10; // round to 1 decimal
+			return std::round((bytes_val / 1024.) * 10.) / 10.; // round to 1 decimal
 		case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
-			return std::round((bytes_val / (double)1024 / (double)1024) * (double)10) / (double)10; // round to 1 decimal
+			return std::round((bytes_val / 1024. / 1024.) * 10.) / 10.; // round to 1 decimal
 		default:
-			return (double)0;
+			return 0;
 		}
-		return (double)0;
+		return 0;
 	}
 
 private:
-	metrics_collector(sinsp* inspector, const uint32_t& flags, const bool& convert_memory_to_mb);
-	static std::unique_ptr<metrics_collector> mc_instance;
 	sinsp* m_inspector;
-	uint32_t m_metrics_flags;
-	bool m_convert_memory_to_mb;
+	uint32_t m_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS;
+	bool m_convert_memory_to_mb = true;
 	std::vector<metrics_v2> m_metrics;
 
 	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host);
@@ -194,7 +190,6 @@ private:
 	}
 };
 
-} // namespace metrics
-} // namespace libsinsp
+} // namespace libsinsp::metrics
 
 #endif
