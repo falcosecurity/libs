@@ -87,13 +87,31 @@ class metrics_collector
 public:
 	metrics_collector(sinsp* inspector, uint32_t flags, bool convert_memory_to_mb);
 
-	// Method to fill up m_metrics_buffer with metrics; refreshes m_metrics with up-to-date metrics on each call
+	/*!
+	\brief Method to fill up m_metrics_buffer with metrics; refreshes m_metrics with up-to-date metrics on each call
+	*/
 	void snapshot();
 
-	// Method to get a const reference to m_metrics vector
+	/*!
+	\brief Method to get a const reference to m_metrics vector
+	*/
 	const std::vector<metrics_v2>& get_metrics() const;
 
-	// Method to convert memory units; tied to metrics_v2 definitions
+	/*!
+	\brief Method to convert a metric to the text-based Prometheus format.
+	 * Reference: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
+	 * Note: The design idea is to expose Prometheus metrics by piping text-based formats to new line-delimited fields 
+	 * exposed at /metrics in Falco or a similar approach, eliminating the need for implementing a full Prometheus client.
+	 * Example:
+	 * test.memory_used_host{raw_name="memory_used_host", unit="MEMORY_MEGABYTES", metric_type="NON_MONOTONIC_CURRENT"} 15096.000000 1706490801547502000
+	 * 
+	 * This method is a work in progress.
+	*/
+	const std::string convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric) const;
+
+	/*!
+	\brief Method to convert memory units; tied to metrics_v2 definitions
+	*/
 	template <typename T>
 	double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
 	{
