@@ -303,9 +303,11 @@
 
 #define MAP_32BIT 0x40 /* only give out 32bit addresses */
 
+#if defined(__TARGET_ARCH_powerpc)
 /* `/arch/mips/include/uapi/asm/mman.h` from kernel source tree. */
 
 #define MAP_RENAME 0x020 /* Assign page to file */
+#endif
 
 /* `/include/uapi/asm-generic/mman.h` from kernel source tree. */
 
