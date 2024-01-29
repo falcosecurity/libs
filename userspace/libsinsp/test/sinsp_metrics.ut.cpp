@@ -146,5 +146,19 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 	converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_MEGABYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)50);
 	ASSERT_EQ(converted_memory, 50);
 
+	/* Test public convert_metric_to_prometheus_text */
+	for (const auto& metric: metrics_snapshot)
+	{
+		// This resembles the Falco client use case
+		char metric_name[METRIC_NAME_MAX] = "test.";
+		strlcat(metric_name, metric.name, sizeof(metric_name));
+		std::string prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric_name, metric);
+		if (strncmp(metric.name, "n_missing_container_images", 17) == 0)
+		{
+			std::string prometheus_text_substring = "test.n_missing_container_images{raw_name=\"n_missing_container_images\",unit=\"COUNT\",metric_type=\"NON_MONOTONIC_CURRENT\"} 0";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+		}
+		ASSERT_GT(prometheus_text.length(), 8);
+	}
 }
 #endif

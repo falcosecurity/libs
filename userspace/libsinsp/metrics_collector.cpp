@@ -55,6 +55,22 @@ static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 	[SINSP_STATS_V2_N_CONTAINERS] = "n_containers",
 };
 
+// For simplicity, needs to stay in sync w/ typedef enum metrics_v2_value_unit
+static const char *const metrics_unit_name_mappings[] = {
+	[METRIC_VALUE_UNIT_COUNT] = "COUNT",
+	[METRIC_VALUE_UNIT_PERC] = "PERC",
+	[METRIC_VALUE_UNIT_MEMORY_BYTES] = "MEMORY_BYTES",
+	[METRIC_VALUE_UNIT_MEMORY_KILOBYTES] = "MEMORY_KILOBYTES",
+	[METRIC_VALUE_UNIT_MEMORY_MEGABYTES] = "MEMORY_MEGABYTES",
+	[METRIC_VALUE_UNIT_TIME_NS] = "TIME_NS",
+};
+
+// For simplicity, needs to stay in sync w/ typedef enum metrics_v2_metric_type
+static const char *const metrics_metric_type_name_mappings[] = {
+	[METRIC_VALUE_MONOTONIC] = "MONOTONIC",
+	[METRIC_VALUE_NON_MONOTONIC_CURRENT] = "NON_MONOTONIC_CURRENT",
+};
+
 namespace libsinsp::metrics {
 
 void metrics_collector::get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host)
@@ -438,6 +454,43 @@ void metrics_collector::snapshot()
 			METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_NON_MONOTONIC_CURRENT, sinsp_stats_v2->m_n_containers));
 		}
 	}
+}
+
+const std::string metrics_collector::convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric) const
+{
+	std::string prometheus_text = metric_name;
+	prometheus_text += "{raw_name=\"" + std::string(metric.name) + "\",unit=\"" + std::string(metrics_unit_name_mappings[metric.unit]) \
+	+ "\",metric_type=\"" + std::string(metrics_metric_type_name_mappings[metric.metric_type]) + "\"} "; // white space at the end important!
+	switch (metric.type)
+	{
+	case METRIC_VALUE_TYPE_U32:
+		prometheus_text += std::to_string(metric.value.u32);
+		break;
+	case METRIC_VALUE_TYPE_S32:
+		prometheus_text += std::to_string(metric.value.s32);
+		break;
+	case METRIC_VALUE_TYPE_U64:
+		prometheus_text += std::to_string(metric.value.u64);
+		break;
+	case METRIC_VALUE_TYPE_S64:
+		prometheus_text += std::to_string(metric.value.s64);
+		break;
+	case METRIC_VALUE_TYPE_D:
+		prometheus_text += std::to_string(metric.value.d);
+		break;
+	case METRIC_VALUE_TYPE_F:
+		prometheus_text += std::to_string(metric.value.f);
+		break;
+	case METRIC_VALUE_TYPE_I:
+		prometheus_text += std::to_string(metric.value.i);
+		break;
+	default:
+		break;
+	}
+
+	prometheus_text += " ";
+	prometheus_text += std::to_string(sinsp_utils::get_current_time_ns());
+	return prometheus_text;
 }
 
 const std::vector<metrics_v2>& metrics_collector::get_metrics() const
