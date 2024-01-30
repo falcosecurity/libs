@@ -107,13 +107,13 @@ public:
 	 * 
 	 * This method is a work in progress.
 	*/
-	const std::string convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric) const;
+	std::string convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric);
 
 	/*!
 	\brief Method to convert memory units; tied to metrics_v2 definitions
 	*/
 	template <typename T>
-	double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
+	static double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
 	{
 		double factor = 1;
 		switch(source_unit)
@@ -170,36 +170,29 @@ private:
 	}
 
 	template <typename T>
-	void set_new_metric(metrics_v2& metric, metrics_v2_value_type type, T val)
+	static void set_new_metric(metrics_v2& metric, metrics_v2_value_type type, T val)
 	{
 		switch (type)
 		{
 		case METRIC_VALUE_TYPE_U32:
-			metric.type = METRIC_VALUE_TYPE_U32;
 			metric.value.u32 = static_cast<uint32_t>(val);
 			break;
 		case METRIC_VALUE_TYPE_S32:
-			metric.type = METRIC_VALUE_TYPE_S32;
 			metric.value.s32 = static_cast<int32_t>(val);
 			break;
 		case METRIC_VALUE_TYPE_U64:
-			metric.type = METRIC_VALUE_TYPE_U64;
 			metric.value.u64 = static_cast<uint64_t>(val);
 			break;
 		case METRIC_VALUE_TYPE_S64:
-			metric.type = METRIC_VALUE_TYPE_S64;
 			metric.value.s64 = static_cast<int64_t>(val);
 			break;
 		case METRIC_VALUE_TYPE_D:
-			metric.type = METRIC_VALUE_TYPE_D;
 			metric.value.d = static_cast<double>(val);
 			break;
 		case METRIC_VALUE_TYPE_F:
-			metric.type = METRIC_VALUE_TYPE_F;
 			metric.value.f = static_cast<float>(val);
 			break;
 		case METRIC_VALUE_TYPE_I:
-			metric.type = METRIC_VALUE_TYPE_I;
 			metric.value.i = static_cast<int>(val);
 			break;
 		default:

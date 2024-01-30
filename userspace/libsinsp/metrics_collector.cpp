@@ -456,7 +456,7 @@ void metrics_collector::snapshot()
 	}
 }
 
-const std::string metrics_collector::convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric) const
+std::string metrics_collector::convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric)
 {
 	std::string prometheus_text = metric_name;
 	prometheus_text += "{raw_name=\"" + std::string(metric.name) + "\",unit=\"" + std::string(metrics_unit_name_mappings[metric.unit]) \
