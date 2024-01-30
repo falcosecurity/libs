@@ -190,6 +190,7 @@ target_link_libraries(unit-test-libsinsp
 	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
 	"${TBB_LIB}"
+	"${JSONCPP_LIB}"
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
