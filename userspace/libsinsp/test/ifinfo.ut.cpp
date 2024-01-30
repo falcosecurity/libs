@@ -16,8 +16,6 @@ limitations under the License.
 
 */
 
-#define VISIBILITY_PRIVATE
-
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/ifinfo.h>
@@ -105,8 +103,8 @@ TEST(sinsp_network_interfaces, sip_and_dip_are_not_zero)
 TEST(sinsp_network_interfaces, infer_finds_exact_match)
 {
 	sinsp_network_interfaces interfaces;
-	interfaces.m_ipv4_interfaces.push_back(make_ipv4_localhost());
-	interfaces.m_ipv4_interfaces.push_back(make_ipv4_interface("192.168.22.149", "255.255.255.0", "192.168.22.255", "eth0"));
+	interfaces.get_ipv4_list()->push_back(make_ipv4_localhost());
+	interfaces.get_ipv4_list()->push_back(make_ipv4_interface("192.168.22.149", "255.255.255.0", "192.168.22.255", "eth0"));
 	EXPECT_ADDR_EQ("127.0.0.1",interfaces.infer_ipv4_address(parse_ipv4_addr("127.0.0.1")));
 	EXPECT_ADDR_EQ("192.168.22.149",interfaces.infer_ipv4_address(parse_ipv4_addr("192.168.22.149")));
 }
@@ -114,16 +112,16 @@ TEST(sinsp_network_interfaces, infer_finds_exact_match)
 TEST(sinsp_network_interfaces, infer_finds_same_subnet)
 {
 	sinsp_network_interfaces interfaces;
-	interfaces.m_ipv4_interfaces.push_back(make_ipv4_localhost());
-	interfaces.m_ipv4_interfaces.push_back(make_ipv4_interface("192.168.22.149", "255.255.255.0", "192.168.22.255", "eth0"));
+	interfaces.get_ipv4_list()->push_back(make_ipv4_localhost());
+	interfaces.get_ipv4_list()->push_back(make_ipv4_interface("192.168.22.149", "255.255.255.0", "192.168.22.255", "eth0"));
 	EXPECT_ADDR_EQ("192.168.22.149",interfaces.infer_ipv4_address(parse_ipv4_addr("192.168.22.11")));
 }
 
 TEST(sinsp_network_interfaces, infer_defaults_to_first_non_loopback)
 {
 	sinsp_network_interfaces interfaces;
-	interfaces.m_ipv4_interfaces.push_back(make_ipv4_localhost());
-	interfaces.m_ipv4_interfaces.push_back(make_ipv4_interface("192.168.22.149", "255.255.255.0", "192.168.22.255", "eth0"));
-	interfaces.m_ipv4_interfaces.push_back(make_ipv4_interface("192.168.22.150", "255.255.255.0", "192.168.22.255", "eth1"));
+	interfaces.get_ipv4_list()->push_back(make_ipv4_localhost());
+	interfaces.get_ipv4_list()->push_back(make_ipv4_interface("192.168.22.149", "255.255.255.0", "192.168.22.255", "eth0"));
+	interfaces.get_ipv4_list()->push_back(make_ipv4_interface("192.168.22.150", "255.255.255.0", "192.168.22.255", "eth1"));
 	EXPECT_ADDR_EQ("192.168.22.149",interfaces.infer_ipv4_address(parse_ipv4_addr("193.168.22.11")));
 }

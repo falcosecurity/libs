@@ -26,10 +26,6 @@ limitations under the License.
 #include <string>
 #include <vector>
 
-#ifndef VISIBILITY_PRIVATE
-#define VISIBILITY_PRIVATE private:
-#endif
-
 typedef struct scap_addrlist scap_addrlist;
 typedef struct scap_ifinfo_ipv4 scap_ifinfo_ipv4;
 typedef struct scap_ifinfo_ipv6 scap_ifinfo_ipv6;
@@ -85,13 +81,13 @@ public:
 	std::vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
 	inline void clear();
 
-	ipv6addr m_ipv6_loopback_addr;
-
-VISIBILITY_PRIVATE
 	uint32_t infer_ipv4_address(uint32_t destination_address);
 	void import_ipv4_ifaddr_list(uint32_t count, scap_ifinfo_ipv4* plist);
 	ipv6addr infer_ipv6_address(ipv6addr &destination_address);
 	void import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist);
+
+private:
+	ipv6addr m_ipv6_loopback_addr;
 	std::vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
 	std::vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;
 };
