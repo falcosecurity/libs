@@ -33,7 +33,7 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
 	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
 	bool convert_memory_to_mb = true;
-	std::unique_ptr<libsinsp::metrics::metrics_collector> metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, test_metrics_flags, convert_memory_to_mb);
+	auto metrics_collector = std::make_unique<libsinsp::metrics::metrics_collector>(&m_inspector, test_metrics_flags, convert_memory_to_mb);
 	metrics_collector->snapshot();
 	auto metrics_snapshot = metrics_collector->get_metrics();
 	/* Multiple calls */
