@@ -2864,7 +2864,7 @@ int scap_init(void)
 		goto init_module_err;
 	}
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
+#ifndef HAS_CLASS_CREATE_1
 	g_ppm_class = class_create(THIS_MODULE, DRIVER_DEVICE_NAME);
 #else
 	g_ppm_class = class_create(DRIVER_DEVICE_NAME);
