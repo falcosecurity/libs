@@ -38,6 +38,11 @@ if(POLICY CMP0042)
 	cmake_policy(SET CMP0042 NEW)
 endif()
 
+# Enable CMAKE_MSVC_RUNTIME_LIBRARY on Windows + CMake >= 3.15
+if(POLICY CMP0091)
+	cmake_policy(SET CMP0091 NEW)
+endif()
+
 if(POLICY CMP0135)
 	cmake_policy(SET CMP0135 NEW)
 endif()
