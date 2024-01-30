@@ -456,9 +456,9 @@ void metrics_collector::snapshot()
 	}
 }
 
-std::string metrics_collector::convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric)
+std::string metrics_collector::convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric)
 {
-	std::string prometheus_text = metric_name;
+	std::string prometheus_text(metric_name.begin(), metric_name.end());
 	prometheus_text += "{raw_name=\"" + std::string(metric.name) + "\",unit=\"" + std::string(metrics_unit_name_mappings[metric.unit]) \
 	+ "\",metric_type=\"" + std::string(metrics_metric_type_name_mappings[metric.metric_type]) + "\"} "; // white space at the end important!
 	switch (metric.type)
