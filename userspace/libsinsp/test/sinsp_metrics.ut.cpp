@@ -152,7 +152,8 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 		// This resembles the Falco client use case
 		char metric_name[METRIC_NAME_MAX] = "test.";
 		strlcat(metric_name, metric.name, sizeof(metric_name));
-		std::string prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric_name, metric);
+		std::string_view s(metric_name);
+		std::string prometheus_text = metrics_collector->convert_metric_to_prometheus_text(s, metric);
 		if (strncmp(metric.name, "n_missing_container_images", 17) == 0)
 		{
 			std::string prometheus_text_substring = "test.n_missing_container_images{raw_name=\"n_missing_container_images\",unit=\"COUNT\",metric_type=\"NON_MONOTONIC_CURRENT\"} 0";

@@ -23,6 +23,7 @@ limitations under the License.
 #include <libsinsp/threadinfo.h>
 #include <libscap/strl.h>
 #include <cmath>
+#include <string_view>
 
 struct sinsp_stats_v2
 {
@@ -107,7 +108,7 @@ public:
 	 * 
 	 * This method is a work in progress.
 	*/
-	std::string convert_metric_to_prometheus_text(std::string metric_name, metrics_v2 metric);
+	std::string convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric);
 
 	/*!
 	\brief Method to convert memory units; tied to metrics_v2 definitions
