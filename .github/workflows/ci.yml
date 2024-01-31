@@ -109,7 +109,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_BPF=On -DBUILD_DRIVER=Off -DUSE_BUNDLED_DEPS=On -DUSE_BUNDLED_LIBELF=Off -DBUILD_LIBSCAP_MODERN_BPF=ON -DMUSL_OPTIMIZED_BUILD=On ../
+          cd build && cmake -DBUILD_BPF=On -DBUILD_DRIVER=Off -DUSE_BUNDLED_DEPS=On -DUSE_BUNDLED_LIBELF=Off -DUSE_SHARED_LIBELF=Off -DBUILD_LIBSCAP_MODERN_BPF=ON -DMUSL_OPTIMIZED_BUILD=On ../
           make run-unit-tests -j4
 
   build-shared-libs-linux-amd64:
