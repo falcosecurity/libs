@@ -30,12 +30,12 @@ TEST(mpsc_priority_queue, order_consistency)
     };
 
     struct val_less
-	{
-		bool operator()(const val& l, const val& r)
-		{
-			return std::greater_equal<int>{}(l.v, r.v);
-		}
-	};
+    {
+        bool operator()(const val& l, const val& r)
+        {
+            return std::greater_equal<int>{}(l.v, r.v);
+        }
+    };
     
     using val_t = std::unique_ptr<val>;
 
@@ -119,8 +119,10 @@ TEST(mpsc_priority_queue, single_concurrent_producer)
 TEST(mpsc_priority_queue, multi_concurrent_producers)
 {
     using val_t = std::unique_ptr<int>;
-	const int num_values = 1000;
-    const int num_producers = 10;
+    const constexpr int64_t timeout_secs = 10;
+    const constexpr int num_values = 1000;
+    const constexpr int num_producers = 10;
+    const constexpr int num_total_elems = num_values * num_producers;
 
     mpsc_priority_queue<val_t, std::greater_equal<int>> q;
     std::atomic<int> counter{1};
@@ -143,8 +145,17 @@ TEST(mpsc_priority_queue, multi_concurrent_producers)
     int i = 0;
     int failed = 0;
     int last_val = 0;
-    while (i < num_values * num_producers)
+    int64_t elapsed_secs = 0;
+    auto start = std::chrono::steady_clock::now();
+    while (i < num_total_elems)
     {
+        auto now = std::chrono::steady_clock::now();
+        elapsed_secs = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
+        if (elapsed_secs >= timeout_secs)
+        {
+            break;
+        }
+
         std::this_thread::sleep_for(std::chrono::microseconds(100));
         if (q.empty())
         {
@@ -154,7 +165,6 @@ TEST(mpsc_priority_queue, multi_concurrent_producers)
         if (!q.try_pop_if(v, [&](const int& n) { return n >= last_val; }))
         {
             failed++;
-            continue;
         }
 
         last_val = *v.get();
@@ -162,13 +172,34 @@ TEST(mpsc_priority_queue, multi_concurrent_producers)
     }
 
     // wait for producers to stop
-    for (int i = 0; i < num_producers; i++)
+    bool all_joinable = false;
+    while (!all_joinable)
     {
-        producers[i].join();
+        all_joinable = true;
+        for (int j = 0; j < num_producers; j++)
+        {
+            if (!producers[j].joinable())
+            {
+                all_joinable = false;
+                break;
+            }
+        }
+    }
+    for (int j = 0; j < num_producers; j++)
+    {
+        producers[j].join();
+    }
+
+    if (elapsed_secs >= timeout_secs)
+    {
+        FAIL() << "timout expired, test stopped after "
+            << elapsed_secs << " seconds. Received "
+            << i << "/" << num_total_elems << " elements, of which "
+            << failed << " out of order" << std::endl;
     }
 
     // check we received everything in order
-    ASSERT_EQ(failed, 0);
+    ASSERT_EQ(failed, 0) << "received " << failed << " elements out of order";
 }
 
 #endif // __EMSCRIPTEN__
