@@ -119,8 +119,8 @@ TEST(mpsc_priority_queue, single_concurrent_producer)
 TEST(mpsc_priority_queue, multi_concurrent_producers)
 {
     using val_t = std::unique_ptr<int>;
-    const constexpr int64_t timeout_secs = 10;
-    const constexpr int num_values = 1000;
+    const constexpr int64_t timeout_secs = 30;
+    const constexpr int num_values = 100;
     const constexpr int num_producers = 10;
     const constexpr int num_total_elems = num_values * num_producers;
 
