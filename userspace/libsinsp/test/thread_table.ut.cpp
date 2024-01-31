@@ -430,6 +430,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree)
 
 TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size)
 {
+	m_inspector.m_thread_manager->set_max_thread_table_size(10000);
+
 	add_default_init_thread();
 	open_inspector();
 
@@ -440,7 +442,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size)
 	/* Here we want to check that creating a number of threads grater
 	 * than m_max_thread_table_size doesn't cause a crash.
 	 */
-	for(uint32_t i = 1; i < (m_inspector.m_thread_manager->m_max_thread_table_size + 10000); i++)
+	for(uint32_t i = 1; i < (m_inspector.m_thread_manager->m_max_thread_table_size + 1000); i++)
 	{
 		/* we change only the tid */
 		generate_clone_x_event(0, pid + i, pid, INIT_TID, PPM_CL_CLONE_THREAD);
