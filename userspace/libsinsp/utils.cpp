@@ -861,7 +861,6 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string, const bool
 #endif
 }
 
-#ifndef CYGWING_AGENT
 #ifndef _WIN32
 #ifdef __GLIBC__
 void sinsp_utils::bt(void)
@@ -887,7 +886,6 @@ void sinsp_utils::bt(void)
 }
 #endif // __GLIBC__
 #endif // _WIN32
-#endif // CYGWING_AGENT
 
 bool sinsp_utils::find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys)
 {

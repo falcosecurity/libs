@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 #include <dns_manager.h>
 #include <gtest/gtest.h>
 
