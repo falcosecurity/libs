@@ -28,7 +28,7 @@ or GPL2.txt for full copies of the license.
 /*
  * Macros for packing in different build environments
  */
-#if !defined(CYGWING_AGENT) && defined(_WIN32)
+#if defined(_WIN32)
 #define _packed __pragma(pack(push, 1)); __pragma(pack(pop))
 #else
 #define _packed __attribute__((packed))
@@ -2082,7 +2082,6 @@ struct ppm_evt_hdr {
 /*
  * IOCTL codes
  */
-#ifndef CYGWING_AGENT
 #define PPM_IOCTL_MAGIC	's'
 // #define PPM_IOCTL_DISABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 0) Support dropped
 // #define PPM_IOCTL_ENABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 1) Support dropped
@@ -2119,7 +2118,6 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_DISABLE_TP _IO(PPM_IOCTL_MAGIC, 32)
 #define PPM_IOCTL_ENABLE_DROPFAILED _IO(PPM_IOCTL_MAGIC, 33)
 #define PPM_IOCTL_DISABLE_DROPFAILED _IO(PPM_IOCTL_MAGIC, 34)
-#endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];

@@ -42,7 +42,7 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/scap-int.h>
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
+#if defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
 #endif
 
@@ -76,7 +76,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_inited(false)
 {
 	++instance_count;
-#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE)
 	// used by container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
@@ -158,7 +158,7 @@ sinsp::~sinsp()
 
 	m_container_manager.cleanup();
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
+#if defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	curl_global_cleanup();
 	if (--instance_count == 0)
 	{

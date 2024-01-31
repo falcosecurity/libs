@@ -28,7 +28,7 @@ limitations under the License.
 #include <chrono>
 #include <future>
 #include <mutex>
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__)
+#if defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
 #include "tbb/concurrent_unordered_map.h"
 #endif
 #include <libsinsp/sinsp.h>
@@ -69,7 +69,7 @@ public:
 
 	size_t size() const
 	{
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 		return m_cache.size();
 #else
 		return 0;
@@ -91,7 +91,7 @@ private:
 	sinsp_dns_manager(sinsp_dns_manager const&) = delete;
 	void operator=(sinsp_dns_manager const&) = delete;
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	struct dns_info
 	{
 		bool operator==(const dns_info &other) const
