@@ -1,0 +1,126 @@
+name: e2e CI
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'release/**'
+      - 'maintainers/**'
+  workflow_dispatch:
+
+# Checks if any concurrent jobs under the same pull request or branch are being executed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test-e2e:
+    name: test-e2e-${{ matrix.arch }} 😇 (bundled_deps)
+    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    runs-on: 'ubuntu-22.04'
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+      fail-fast: false
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang-14 llvm-14 libtool quota
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
+          sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
+          sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
+          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
+          cd bpftool
+          git submodule update --init
+          cd src && sudo make install
+
+      - name: Install kernel headers (actuated)
+        uses: self-actuated/get-kernel-sources@master
+        if: matrix.arch == 'arm64'
+
+      - name: Install kernel headers and gcc
+        if: matrix.arch == 'amd64'
+        run: |
+          sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
+
+      - name: Build e2e tests 🏗️
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_LIBSINSP_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+          make -j6
+
+      - name: Run e2e tests with modern bpf 🏎️
+        run: |
+          cd build/test/libsinsp/
+          sudo ./tests -m
+
+      - name: Run e2e tests with bpf 🏎️
+        run: |
+          cd build/test/libsinsp/
+          sudo ./tests -b
+
+      - name: Run e2e tests with kmod 🏎️
+        run: |
+          cd build/test/libsinsp/
+          sudo ./tests -k
+
+  build-drivers-s390x-ppc64le:
+    name: build-drivers-${{ matrix.arch }} 😁 (system_deps)
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        arch: [s390x, ppc64le]
+      fail-fast: false
+    env:
+      PLATFORM: ${{ matrix.arch == 'ppc64le' && 'powerpc64le' || 's390x' }}
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - uses: uraimo/run-on-arch-action@4ed76f16f09d12e83abd8a49e1ac1e5bf08784d4 # v2.5.1
+        name: Run ${{ matrix.arch }} build 🏗️
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libcap-dev libgtest-dev libprotobuf-dev linux-headers-generic            
+            git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
+            cd bpftool
+            git submodule update --init
+            cd src && make install
+            cd ../../
+            git clone https://github.com/libbpf/libbpf.git --branch v1.3.0 --single-branch
+            cd libbpf/src && BUILD_STATIC_ONLY=y DESTDIR=/ make install
+            ln -s /usr/lib64/libbpf.a /usr/lib/${{env.PLATFORM}}-linux-gnu/
+          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
+          run: |
+            git config --global --add safe.directory $GITHUB_WORKSPACE
+            .github/install-deps.sh
+            mkdir -p build
+            cd build && cmake -DBUILD_BPF=ON -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/${{env.PLATFORM}}-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DENABLE_LIBSINSP_TESTS=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j6
+
+      - name: Run e2e tests with modern bpf 🏎️
+        run: |
+          cd build/test/libsinsp/
+          sudo ./tests -m
+
+      - name: Run e2e tests with bpf 🏎️
+        run: |
+          cd build/test/libsinsp/
+          sudo ./tests -b
+
+      - name: Run e2e tests with kmod 🏎️
+        run: |
+          cd build/test/libsinsp/
+          sudo ./tests -k
