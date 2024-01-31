@@ -1,7 +1,7 @@
 def container_spec(syscall: str) -> dict:
     return {
         'image': 'falcosecurity/event-generator',
-        'args': ['run', syscall],
+        'args': ['run', syscall, '--all'],
         'privileged': True,
     }
 
