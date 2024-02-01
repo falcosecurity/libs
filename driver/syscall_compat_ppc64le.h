@@ -1178,3 +1178,18 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_futex_requeue
 #define __NR_futex_requeue 456
 #endif
+#ifndef __NR_statmount
+#define __NR_statmount 457
+#endif
+#ifndef __NR_listmount
+#define __NR_listmount 458
+#endif
+#ifndef __NR_lsm_get_self_attr
+#define __NR_lsm_get_self_attr 459
+#endif
+#ifndef __NR_lsm_set_self_attr
+#define __NR_lsm_set_self_attr 460
+#endif
+#ifndef __NR_lsm_list_modules
+#define __NR_lsm_list_modules 461
+#endif
