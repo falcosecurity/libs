@@ -27,7 +27,7 @@ limitations under the License.
 #include <libsinsp/event.h>
 #include <libsinsp/container_info.h>
 
-#if !defined(_WIN32) && defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
+#if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>

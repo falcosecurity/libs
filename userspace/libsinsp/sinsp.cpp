@@ -42,7 +42,7 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/scap-int.h>
 
-#if defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
 #endif
 
@@ -76,7 +76,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_inited(false)
 {
 	++instance_count;
-#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	// used by container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
@@ -115,9 +115,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
 
-#if defined(HAS_CAPTURE)
 	m_self_pid = getpid();
-#endif
 
 	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
 	m_proc_scan_log_interval_ms = SCAP_PROC_SCAN_LOG_NONE;
@@ -158,7 +156,7 @@ sinsp::~sinsp()
 
 	m_container_manager.cleanup();
 
-#if defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	curl_global_cleanup();
 	if (--instance_count == 0)
 	{
@@ -312,14 +310,12 @@ void sinsp::init()
 		set_statsd_port(m_statsd_port);
 	}
 
-#if defined(HAS_CAPTURE)
 	if(is_live())
 	{
 		int32_t res = scap_getpid_global(get_scap_platform(), &m_self_pid);
 		ASSERT(res == SCAP_SUCCESS || res == SCAP_NOT_SUPPORTED);
 		(void)res;
 	}
-#endif
 	m_inited = true;
 }
 
@@ -1028,7 +1024,7 @@ void sinsp::import_user_list()
 
 void sinsp::refresh_ifaddr_list()
 {
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
+#if !defined(_WIN32)
 	if(is_live() || is_syscall_plugin())
 	{
 		scap_refresh_iflist(get_scap_platform());

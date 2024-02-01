@@ -18,9 +18,6 @@
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
 if(NOT MSVC)
-	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-		add_definitions(-DHAS_CAPTURE)
-	endif()
 	add_definitions(-DHAVE_PWD_H)
 	add_definitions(-DHAVE_GRP_H)
 	if(MUSL_OPTIMIZED_BUILD)
