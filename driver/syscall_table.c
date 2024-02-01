@@ -988,4 +988,19 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_pciconfig_write
 	[__NR_pciconfig_write - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PCICONFIG_WRITE},
 #endif
+#ifdef __NR_statmount
+	[__NR_statmount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_STATMOUNT},
+#endif
+#ifdef __NR_lsm_get_self_attr
+	[__NR_lsm_get_self_attr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LSM_GET_SELF_ATTR},
+#endif
+#ifdef __NR_lsm_set_self_attr
+	[__NR_lsm_set_self_attr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LSM_SET_SELF_ATTR},
+#endif
+#ifdef __NR_lsm_list_modules
+	[__NR_lsm_list_modules - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LSM_LIST_MODULES},
+#endif
+#ifdef __NR_listmount
+	[__NR_listmount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LISTMOUNT},
+#endif
 };
