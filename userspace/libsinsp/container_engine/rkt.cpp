@@ -72,12 +72,10 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 				// an entry in /var/lib/rkt. In capture mode only the former will be used.
 				// In live mode former will be used only if we already hit that container
 				bool is_rkt_pod_id_valid = cache->container_exists(rkt_podid + ":" + rkt_appname); // if it's already on our table
-#ifdef HAS_CAPTURE
 				if(!is_rkt_pod_id_valid && query_os_for_missing_info)
 				{
 					is_rkt_pod_id_valid = (access(image_manifest_path, F_OK) == 0);
 				}
-#endif
 				if(is_rkt_pod_id_valid)
 				{
 					container_info.m_type = CT_RKT;

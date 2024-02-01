@@ -19,9 +19,7 @@ limitations under the License.
 #include <algorithm>
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#ifdef HAS_CAPTURE
 #include <libsinsp/container_engine/cri.h>
-#endif // HAS_CAPTURE
 #ifndef _WIN32
 #include <libsinsp/container_engine/docker/docker_linux.h>
 #include <libsinsp/container_engine/docker/podman.h>
@@ -584,7 +582,6 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 
-#if defined(HAS_CAPTURE)
 	if (m_container_engine_mask &
 	   ((1 << CT_CRI) |
 	    (1 << CT_CRIO) |
@@ -596,7 +593,6 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_CRIO] = cri_engine;
 		m_container_engine_by_type[CT_CONTAINERD] = cri_engine;
 	}
-#endif
 	if (m_container_engine_mask & (1 << CT_LXC))
 	{
 		auto lxc_engine = std::make_shared<container_engine::lxc>(*this);
@@ -660,7 +656,7 @@ void sinsp_container_manager::cleanup()
 
 void sinsp_container_manager::set_docker_socket_path(std::string socket_path)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::docker_linux::set_docker_sock(std::move(socket_path));
 #endif
 }
@@ -674,35 +670,35 @@ void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 
 void sinsp_container_manager::set_cri_extra_queries(bool extra_queries)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_extra_queries(extra_queries);
 #endif
 }
 
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_cri_socket_path(path);
 #endif
 }
 
 void sinsp_container_manager::add_cri_socket_path(const std::string &path)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::add_cri_socket_path(path);
 #endif
 }
 
 void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_cri_timeout(timeout_ms);
 #endif
 }
 
 void sinsp_container_manager::set_cri_async(bool async)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_async(async);
 #endif
 }

@@ -37,7 +37,6 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 			return true;
 		}
 
-#ifdef HAS_CAPTURE
 		if(cache->should_lookup(request.container_id, request.container_type))
 		{
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -48,7 +47,6 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 			cache->set_lookup_status(request.container_id, request.container_type, sinsp_container_lookup::state::STARTED);
 			parse_docker(request, cache);
 		}
-#endif
 		return false;
 	}
 

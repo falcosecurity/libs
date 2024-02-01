@@ -1154,7 +1154,6 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 	if (!dir_fdinfo || dir_fdinfo->m_name.empty())
 	{
 #ifndef _WIN32 // we will have to implement this for Windows
-#ifdef HAS_CAPTURE
 		// Sad day; we don't have the directory in the tinfo's fd cache.
 		// Must manually look it up so we can resolve filenames correctly.
 		char proc_path[PATH_MAX];
@@ -1180,11 +1179,6 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		rel_path_base.append("/");
 		libsinsp_logger()->log(std::string("Translating to ") + rel_path_base);
 		return rel_path_base;
-#else
-		libsinsp_logger()->log("Can't translate working directory outside of live capture.",
-		             sinsp_logger::SEV_INFO);
-		return "";
-#endif
 #endif // _WIN32
 	}
 	return dir_fdinfo->m_name;
@@ -1490,9 +1484,7 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 
 	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size
-#if defined(HAS_CAPTURE)
 	   && threadinfo->m_pid != m_inspector->m_self_pid
-#endif
 	)
 	{
 		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
@@ -2036,11 +2028,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
     auto sinsp_proc = find_thread(tid, lookup_only);
 
     if(!sinsp_proc && query_os_if_not_found &&
-       (m_threadtable.size() < m_max_thread_table_size
-#if defined(HAS_CAPTURE)
-	|| tid == m_inspector->m_self_pid
-#endif
-	))
+       (m_threadtable.size() < m_max_thread_table_size || tid == m_inspector->m_self_pid))
     {
         // Certain code paths can lead to this point from scap_open() (incomplete example:
         // scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a

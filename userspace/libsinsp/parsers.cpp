@@ -85,7 +85,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	// When debug mode is not enabled, filter out events about itself
 	//
-#if defined(HAS_CAPTURE)
 	if(is_live && !m_inspector->is_debug_enabled())
 	{
 		if(evt->get_tid() == m_inspector->m_self_pid &&
@@ -102,7 +101,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 			return;
 		}
 	}
-#endif
 
 	//
 	// Filtering
@@ -4437,7 +4435,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 				// following chdir(). If it does, it's almost sure there was an event drop.
 				// In that case, we use this value to update the thread cwd.
 				//
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
+#if !defined(_WIN32)
 #ifdef _DEBUG
 				int target_res;
 				char target_name[1024];
