@@ -37,6 +37,7 @@ extern "C" {
 #define METRICS_V2_LIBBPF_STATS (1 << 1)
 #define METRICS_V2_RESOURCE_UTILIZATION (1 << 2)
 #define METRICS_V2_STATE_COUNTERS (1 << 3)
+#define METRICS_V2_RULE_COUNTERS (1 << 4)
 
 typedef union metrics_v2_value {
 	uint32_t u32;
