@@ -101,14 +101,22 @@ public:
 	/*!
 	\brief Method to convert a metric to the text-based Prometheus format.
 	 * Reference: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-	 * Note: The design idea is to expose Prometheus metrics by piping text-based formats to new line-delimited fields 
-	 * exposed at /metrics in Falco or a similar approach, eliminating the need for implementing a full Prometheus client.
-	 * Example:
-	 * test.memory_used_host{raw_name="memory_used_host", unit="MEMORY_MEGABYTES", metric_type="NON_MONOTONIC_CURRENT"} 15096.000000 1706490801547502000
+	 * Note: The design idea is to expose Prometheus metrics by piping text-based formats to new line-delimited fields
+	 * exposed at /metrics in Falco's existing HTTP webserver, eliminating the need for implementing a complete Prometheus client.
+	 * 
+	 * We exclusively support counter and gauge Prometheus metric types, covering metrics from kernel driver tracepoints
+	 * to linsinsp and client metrics. Introducing a registry seems excessive, especially given the dynamic nature of the final
+	 * metric string names, such as variations in tracepoints across architectures.
+	 * There are no plans to include # HELP or # TYPE lines. Instead, we incorporate the Prometheus type as a label and direct
+	 * users to our documentation at:
+	 * https://falco.org/docs/metrics/falco-metrics/
+	 * 
+	 * Example
+	 * test.memory_used_host{raw_name="memory_used_host",unit="MEMORY_MEGABYTES",type="gauge",host="testbox",kernel="6.6.7-200.fc39.x86_64"} 15096.000000 1706490801547502000
 	 * 
 	 * This method is a work in progress.
 	*/
-	std::string convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric);
+	std::string convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric, std::map<std::string, std::string> custom_labels = {});
 
 	/*!
 	\brief Method to convert memory units; tied to metrics_v2 definitions
