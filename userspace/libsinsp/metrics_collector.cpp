@@ -66,9 +66,10 @@ static const char *const metrics_unit_name_mappings[] = {
 };
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_metric_type
-static const char *const metrics_metric_type_name_mappings[] = {
-	[METRIC_VALUE_MONOTONIC] = "MONOTONIC",
-	[METRIC_VALUE_NON_MONOTONIC_CURRENT] = "NON_MONOTONIC_CURRENT",
+// https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
+static const char *const metrics_metric_type_name_mappings_prom[] = {
+	[METRIC_VALUE_MONOTONIC] = "counter",
+	[METRIC_VALUE_NON_MONOTONIC_CURRENT] = "gauge",
 };
 
 namespace libsinsp::metrics {
@@ -456,11 +457,19 @@ void metrics_collector::snapshot()
 	}
 }
 
-std::string metrics_collector::convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric)
+std::string metrics_collector::convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric, std::map<std::string, std::string> custom_labels)
 {
 	std::string prometheus_text(metric_name.begin(), metric_name.end());
-	prometheus_text += "{raw_name=\"" + std::string(metric.name) + "\",unit=\"" + std::string(metrics_unit_name_mappings[metric.unit]) \
-	+ "\",metric_type=\"" + std::string(metrics_metric_type_name_mappings[metric.metric_type]) + "\"} "; // white space at the end important!
+	prometheus_text += "{raw_name=\"" + std::string(metric.name)
+	+ "\",unit=\"" + std::string(metrics_unit_name_mappings[metric.unit])
+	+ "\",type=\"" + std::string(metrics_metric_type_name_mappings_prom[metric.metric_type])
+	+ "\"" ;
+	// add custom prom labels if applicable
+	for (const auto& [key, value] : custom_labels)
+	{
+		prometheus_text += "," + key + "=\"" + value + "\"" ;
+	}
+	prometheus_text += "} "; // white space at the end important!
 	switch (metric.type)
 	{
 	case METRIC_VALUE_TYPE_U32:

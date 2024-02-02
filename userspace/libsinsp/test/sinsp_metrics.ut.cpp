@@ -147,16 +147,18 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 	ASSERT_EQ(converted_memory, 50);
 
 	/* Test public convert_metric_to_prometheus_text */
+	// using an ordered map to ensure metrics text is predictable, as the goal is to have them be human-readable
+	std::map<std::string, std::string> custom_prom_labels = {{"kernel", "6.6.7-200.fc39.x86_64"},{"host", "testbox"}};
 	for (const auto& metric: metrics_snapshot)
 	{
 		// This resembles the Falco client use case
 		char metric_name[METRIC_NAME_MAX] = "test.";
 		strlcat(metric_name, metric.name, sizeof(metric_name));
 		std::string_view s(metric_name);
-		std::string prometheus_text = metrics_collector->convert_metric_to_prometheus_text(s, metric);
+		std::string prometheus_text = metrics_collector->convert_metric_to_prometheus_text(s, metric, custom_prom_labels);
 		if (strncmp(metric.name, "n_missing_container_images", 17) == 0)
 		{
-			std::string prometheus_text_substring = "test.n_missing_container_images{raw_name=\"n_missing_container_images\",unit=\"COUNT\",metric_type=\"NON_MONOTONIC_CURRENT\"} 0";
+			std::string prometheus_text_substring = "test.n_missing_container_images{raw_name=\"n_missing_container_images\",unit=\"COUNT\",type=\"gauge\",host=\"testbox\",kernel=\"6.6.7-200.fc39.x86_64\"} 0";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 		}
 		ASSERT_GT(prometheus_text.length(), 8);
