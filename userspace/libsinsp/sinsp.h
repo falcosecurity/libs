@@ -76,14 +76,6 @@ limitations under the License.
 #include <libsinsp/stats.h>
 #include <libsinsp/sinsp_cycledumper.h>
 
-#ifndef VISIBILITY_PRIVATE
-// Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
-#define VISIBILITY_PRIVATE private:
-#define VISIBILITY_PROTECTED protected:
-#else
-#define VISIBILITY_PROTECTED
-#endif
-
 #define ONE_SECOND_IN_NS 1000000000LL
 
 #include <libsinsp/tuples.h>
@@ -455,8 +447,6 @@ public:
 	*/
 	static sinsp_filter_check* new_generic_filtercheck();
 
-	bool has_metrics() const;
-
 	/*!
 	  \brief Return information about the machine generating the events.
 
@@ -465,6 +455,11 @@ public:
 	   machine info is the one of the machine where the capture happened.
 	*/
 	const scap_machine_info* get_machine_info() const;
+
+	inline void set_machine_info(const scap_machine_info *v)
+	{
+		m_machine_info = v;
+	}
 
 	/*!
 	  \brief Return information about the agent based on start up conditions.
@@ -584,6 +579,16 @@ public:
 	  \return Pointer to the interface list manager.
 	*/
 	const sinsp_network_interfaces& get_ifaddr_list() const;
+
+	inline sinsp_network_interfaces& get_ifaddr_list()
+	{
+		return m_network_interfaces;
+	}
+
+	inline void set_ifaddr_list(const sinsp_network_interfaces& v)
+	{
+		m_network_interfaces = v;
+	}
 
 	/*!
 	  \brief Set the format used to render event data
@@ -719,6 +724,11 @@ public:
 	*/
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
+	inline bool is_fatfile_enabled() const
+	{
+		return m_isfatfile_enabled;
+	}
+
 	/*!
 	  \brief Set internal events mode.
 
@@ -743,6 +753,11 @@ public:
 	*/
 	void set_hostname_and_port_resolution_mode(bool enable);
 
+	inline bool is_hostname_and_port_resolution_enabled() const
+	{
+		return m_hostname_and_port_resolution_enabled;
+	}
+
 	/*!
 	  \brief Set the runtime flag for resolving the timespan in a human
 	   readable mode.
@@ -754,6 +769,11 @@ public:
 		m_output_time_flag = flag;
 	}
 
+	inline char get_time_output_mode() const
+	{
+		return m_output_time_flag;
+	}
+
 	/*!
 	  \brief Sets the max length of event argument strings.
 
@@ -762,6 +782,11 @@ public:
 	   on screen.
 	*/
 	void set_max_evt_output_len(uint32_t len);
+
+	inline uint32_t get_max_evt_output_len() const
+	{
+		return m_max_evt_output_len;
+	}
 
 	/*!
 	  \brief Returns true if the debug mode is enabled.
@@ -837,6 +862,11 @@ public:
 	}
 
 	sinsp_parser* get_parser();
+
+	inline const sinsp_parser* get_parser() const
+	{
+		return m_parser;
+	}
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
@@ -944,19 +974,20 @@ public:
 		return m_table_registry;
 	}
 
-	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
+	inline uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
+	inline void set_lastevent_ts(uint64_t v) { m_lastevent_ts = v; }
 
-	const std::string& get_host_root() const { return m_host_root; }
-	void set_host_root(const std::string& s) { m_host_root = s; }
+	inline const std::string& get_host_root() const { return m_host_root; }
+	inline void set_host_root(const std::string& s) { m_host_root = s; }
 
-	const int32_t& get_quantization_interval() const { return m_quantization_interval; }
-	void set_quantization_interval(const int32_t& v) { m_quantization_interval = v; }
+	inline const int32_t& get_quantization_interval() const { return m_quantization_interval; }
+	inline void set_quantization_interval(const int32_t& v) { m_quantization_interval = v; }
 
-	void set_observer(sinsp_observer* observer) { m_observer = observer; }
-	sinsp_observer* get_observer() const { return m_observer; }
+	inline void set_observer(sinsp_observer* observer) { m_observer = observer; }
+	inline sinsp_observer* get_observer() const { return m_observer; }
 
-	bool get_track_connection_status() const;
-	void set_track_connection_status(bool enabled);
+	inline bool get_track_connection_status() const;
+	inline void set_track_connection_status(bool enabled);
 
 	/**
 	 * \brief Get a new timestamp.
@@ -966,20 +997,83 @@ public:
 	 */
 	uint64_t get_new_ts() const;
 
-VISIBILITY_PROTECTED
+	bool remove_inactive_threads();
+
 	bool add_thread(const sinsp_threadinfo *ptinfo);
+
 	void set_mode(sinsp_mode_t value)
 	{
 		m_mode = value;
 	}
 
-VISIBILITY_PRIVATE
+	void remove_thread(int64_t tid);
 
-// Doxygen doesn't understand VISIBILITY_PRIVATE
-#ifdef _DOXYGEN
+	inline const struct scap_platform* get_scap_platform() const
+	{
+		return m_platform;
+	}
+
+	inline struct scap_platform* get_scap_platform()
+	{
+		return m_platform;
+	}
+
+	inline const scap_t* get_scap_handle() const
+	{
+		return m_h;
+	}
+
+	inline scap_t* get_scap_handle()
+	{
+		return m_h;
+	}
+
+	inline int64_t get_tid_to_remove() const
+	{
+		return m_tid_to_remove;
+	}
+
+	inline void set_tid_to_remove(int64_t v)
+	{
+		m_tid_to_remove = v;
+	}
+
+	inline bool is_dumping() const
+	{
+		return m_is_dumping;
+	}
+
+	inline void set_dumping(bool v)
+	{
+		m_is_dumping = v;
+	}
+
+	inline int64_t get_tid_of_fd_to_remove() const
+	{
+		return m_tid_of_fd_to_remove;
+	}
+
+	inline void set_tid_of_fd_to_remove(int64_t v)
+	{
+		m_tid_of_fd_to_remove = v;
+	}
+
+	inline uint32_t get_num_cpus() const
+	{
+		return m_num_cpus;
+	}
+
+	inline const std::vector<int64_t>& get_fds_to_remove() const
+	{
+		return m_fds_to_remove;
+	}
+
+	inline std::vector<int64_t>& get_fds_to_remove()
+	{
+		return m_fds_to_remove;
+	}
+
 private:
-#endif
-
 	void set_input_plugin(const std::string& name, const std::string& params);
 	void open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform,
 			 sinsp_mode_t mode);
@@ -989,7 +1083,6 @@ private:
 	bool is_initialstate_event(scap_evt* pevent) const;
 	void import_ifaddr_list();
 	void import_user_list();
-	void remove_thread(int64_t tid);
 	int32_t fetch_next_event(sinsp_evt*& evt);
 
 	//
@@ -1002,10 +1095,6 @@ private:
 	{
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
-
-	// this is here for testing purposes only
-	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
-	bool remove_inactive_threads();
 
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
@@ -1031,8 +1120,6 @@ private:
 		return left == static_cast<uint64_t>(-1) || left <= right;
 	}
 
-	struct scap_platform* get_scap_platform();
-
 	scap_t* m_h;
 	struct scap_platform* m_platform {};
 	char m_platform_lasterr[SCAP_LASTERR_SIZE];
@@ -1054,7 +1141,7 @@ private:
 	std::string m_lasterr;
 	int64_t m_tid_to_remove;
 	int64_t m_tid_of_fd_to_remove;
-	std::vector<int64_t>* m_fds_to_remove;
+	std::vector<int64_t> m_fds_to_remove;
 	uint64_t m_lastevent_ts;
 	// the parsing engine
 	sinsp_parser* m_parser;
@@ -1191,7 +1278,7 @@ public:
 		{
 			evt->m_pevt = m_pevt;
 			evt->m_cpuid = m_cpuid;
-			evt->m_dump_flags = m_dump_flags;
+			evt->set_dump_flags(m_dump_flags);
 			clear();
 		}
 		inline bool empty() const
@@ -1281,34 +1368,6 @@ public:
 
 	bool m_inited;
 	static std::atomic<int> instance_count;
-
-	friend class sinsp_parser;
-	friend class sinsp_analyzer;
-	friend class sinsp_analyzer_parsers;
-	friend class sinsp_evt;
-	friend class sinsp_threadinfo;
-	friend class sinsp_fdtable;
-	friend class sinsp_thread_manager;
-	friend class sinsp_container_manager;
-	friend class sinsp_dumper;
-	friend class sinsp_chisel;
-	friend class sinsp_filter_check_event;
-	friend class sinsp_filter_check_syslog;
-	friend class lua_cbacks;
-	friend class sinsp_filter_check_container;
-	friend class sinsp_worker;
-	friend class curses_textbox;
-	friend class sinsp_filter_check_fd;
-	friend class sinsp_filter_check_k8s;
-	friend class sinsp_filter_check_mesos;
-	friend class sinsp_filter_check_evtin;
-	friend class sinsp_baseliner;
-	friend class sinsp_memory_dumper;
-	friend class test_helper;
-	friend class sinsp_usergroup_manager;
-	friend class sinsp_cycledumper;
-
-	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
 };
 
 /*@}*/

@@ -20,10 +20,6 @@ limitations under the License.
 
 #define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
 
-#ifndef VISIBILITY_PRIVATE
-#define VISIBILITY_PRIVATE private:
-#endif
-
 #ifdef _WIN32
 struct iovec {
 	void  *iov_base;    /* Starting address */
@@ -40,7 +36,6 @@ struct iovec {
 #include <libsinsp/state/table.h>
 #include <libsinsp/thread_group_info.h>
 
-class sinsp_delays_info;
 class blprogram;
 
 struct erase_fd_params
@@ -94,6 +89,11 @@ public:
 	  \brief Return the working directory of the process containing this thread.
 	*/
 	std::string get_cwd();
+
+	inline void set_cwd(const std::string& v)
+	{
+		m_cwd = v;
+	}
 
 	/*!
 	  \brief Return the values of all environment variables for the process
@@ -213,6 +213,11 @@ public:
 	inline bool parent_loop_detected() const
 	{
 		return m_parent_loop_detected;
+	}
+
+	inline void set_parent_loop_detected(bool v)
+	{
+		m_parent_loop_detected = v;
 	}
 
 	/*!
@@ -506,7 +511,6 @@ public:
 	//
 	sinsp *m_inspector;
 
-public: // types required for use in sets
 	struct hasher {
 		size_t operator()(sinsp_threadinfo* tinfo) const
 		{
@@ -553,8 +557,6 @@ public: // types required for use in sets
 		return const_cast<sinsp_threadinfo*>(this)->get_fd_table();
 	}
 
-public:
-VISIBILITY_PRIVATE
 	void init();
 	// return true if, based on the current inspector filter, this thread should be kept
 	void init(scap_threadinfo* pi);
@@ -562,11 +564,9 @@ VISIBILITY_PRIVATE
 	sinsp_fdinfo* add_fd(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
 	void add_fd_from_scap(scap_fdinfo *fdinfo);
 	void remove_fd(int64_t fd);
-	void set_cwd(std::string_view cwd);
-	sinsp_threadinfo* get_cwd_root();
+	void update_cwd(std::string_view cwd);
 	void set_args(const char* args, size_t len);
 	void set_env(const char* env, size_t len);
-	bool set_env_from_proc();
 	void set_cgroups(const char* cgroups, size_t len);
 	bool is_lastevent_data_valid() const;
 	inline void set_lastevent_data_validity(bool isvalid)
@@ -582,6 +582,80 @@ VISIBILITY_PRIVATE
 	}
 	void compute_program_hash();
 
+	inline const uint8_t* get_last_event_data() const
+	{
+		return m_lastevent_data;
+	}
+
+	inline uint8_t* get_last_event_data()
+	{
+		return m_lastevent_data;
+	}
+
+	inline void set_last_event_data(uint8_t* v)
+	{
+		m_lastevent_data = v;
+	}
+
+	inline const sinsp_fdtable& get_fdtable() const
+	{
+		return m_fdtable;
+	}
+
+	inline sinsp_fdtable& get_fdtable()
+	{
+		return m_fdtable;
+	}
+
+	inline uint16_t get_lastevent_type() const
+	{
+		return m_lastevent_type;
+	}
+	
+	inline void set_lastevent_type(uint16_t v)
+	{
+		m_lastevent_type = v;
+	}
+
+	inline uint16_t get_lastevent_cpuid() const
+	{
+		return m_lastevent_cpuid;
+	}
+	
+	inline void set_lastevent_cpuid(uint16_t v)
+	{
+		m_lastevent_cpuid = v;
+	}
+
+	inline blprogram* get_blprogram()
+	{
+		return m_blprogram;
+	}
+
+	inline const blprogram* get_blprogram() const
+	{
+		return m_blprogram;
+	}
+
+	inline void set_blprogram(blprogram* v)
+	{
+		m_blprogram = v;
+	}
+
+	inline const sinsp_evt::category& get_lastevent_category() const
+	{
+		return m_lastevent_category;
+	}
+
+	inline sinsp_evt::category& get_lastevent_category()
+	{
+		return m_lastevent_category;
+	}
+
+
+private:
+	sinsp_threadinfo* get_cwd_root();
+	bool set_env_from_proc();
 	size_t strvec_len(const std::vector<std::string> &strs) const;
 	void strvec_to_iovec(const std::vector<std::string> &strs,
 			     struct iovec **iov, int *iovcnt,
@@ -592,10 +666,6 @@ VISIBILITY_PRIVATE
 			  struct iovec &iov,
 			  uint32_t &alen,
 			  std::string &rem) const;
-
-	//  void push_fdop(sinsp_fdop* op);
-	// the queue of recent fd operations
-	//  std::deque<sinsp_fdop> m_last_fdop;
 
 	//
 	// Parameters that can't be accessed directly because they could be in the
@@ -610,17 +680,6 @@ VISIBILITY_PRIVATE
 	sinsp_evt::category m_lastevent_category;
 	bool m_parent_loop_detected;
 	blprogram* m_blprogram;
-
-	friend class sinsp;
-	friend class sinsp_parser;
-	friend class sinsp_analyzer;
-	friend class sinsp_analyzer_parsers;
-	friend class sinsp_evt;
-	friend class sinsp_thread_manager;
-	friend class sinsp_transaction_table;
-	friend class lua_cbacks;
-	friend class sinsp_baseliner;
-	friend class sinsp_cgroup; // for set_cgroups
 };
 
 /*@}*/
@@ -869,11 +928,28 @@ public:
 		}
 	}
 
-VISIBILITY_PRIVATE
 	void create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo);
+
+	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
+
+	inline uint64_t get_last_flush_time_ns() const
+	{
+		return m_last_flush_time_ns;
+	}
+
+	inline void set_last_flush_time_ns(uint64_t v)
+	{
+		m_last_flush_time_ns = v;
+	}
+
+	inline uint32_t get_max_thread_table_size() const
+	{
+		return m_max_thread_table_size;
+	}
+
+private:
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
-	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;
 	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info */
@@ -891,10 +967,4 @@ VISIBILITY_PRIVATE
 	int32_t m_n_main_thread_lookups = 0;
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
-
-	friend class sinsp_parser;
-	friend class sinsp_analyzer;
-	friend class sinsp;
-	friend class sinsp_threadinfo;
-	friend class sinsp_baseliner;
 };

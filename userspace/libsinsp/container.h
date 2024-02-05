@@ -45,6 +45,7 @@ class sinsp_container_manager :
 {
 public:
 	using map_ptr_t = libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
+	using map_mut_ptr_t = libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
 
 	/**
 	 * Due to how the container manager is architected, it makes it difficult
@@ -66,6 +67,12 @@ public:
 	 * @return the map of container_id -> shared_ptr<container_info>
 	 */
 	map_ptr_t get_containers() const;
+
+	inline map_mut_ptr_t get_containers()
+	{
+		return m_containers.lock();
+	}
+
 	bool remove_inactive_containers();
 
 	/**
@@ -225,6 +232,8 @@ public:
 	}
 	uint64_t m_last_flush_time_ns;
 	std::string container_to_json(const sinsp_container_info& container_info);
+
+
 private:
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
 	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
@@ -246,7 +255,5 @@ private:
 	std::string m_static_name;
 	std::string m_static_image;
 	uint64_t m_container_engine_mask;
-
-	friend class test_helper;
 };
 

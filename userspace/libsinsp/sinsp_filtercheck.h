@@ -237,6 +237,16 @@ public:
 	size_t m_cached = 0;
 	size_t m_matched_true = 0;
 
+	char* rawval_to_string(uint8_t* rawval,
+			       ppm_param_type ptype,
+			       ppm_print_format print_format,
+			       uint32_t len);
+
+	inline const std::vector<filter_value_t>& get_filter_values() const
+	{
+		return m_vals;
+	}
+
 protected:
 	virtual bool compare_nocache(sinsp_evt*);
 
@@ -256,10 +266,6 @@ protected:
 	bool compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0);
 	bool compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values);
 
-	char* rawval_to_string(uint8_t* rawval,
-			       ppm_param_type ptype,
-			       ppm_print_format print_format,
-			       uint32_t len);
 	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
 	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
@@ -287,6 +293,4 @@ private:
 	path_prefix_search m_val_storages_paths;
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
-
-	friend class sinsp_filter_optimizer;
 };
