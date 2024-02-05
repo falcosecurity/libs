@@ -7319,4 +7319,87 @@ FILLER(sys_newfstatat_x, true)
 	uint32_t flags = bpf_syscall_get_argument(data, 3);
 	return bpf_push_u32_to_ring(data, newfstatat_flags_to_scap(flags));
 }
+
+
+FILLER(sys_process_vm_readv_x, true)
+{
+	const struct iovec __user *iov;
+	unsigned long iovcnt;
+
+	/* Parameter 1: ret (type: PT_INT32) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int32_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)pid);
+	CHECK_RES(res);
+
+	/*
+	* data and size
+	*/
+	if (retval > 0)
+	{
+		iov = (const struct iovec __user *)bpf_syscall_get_argument(data, 3);
+		iovcnt = bpf_syscall_get_argument(data, 4);
+
+		res = bpf_parse_readv_writev_bufs(data,
+						iov,
+						iovcnt,
+						retval,
+						PRB_FLAG_PUSH_ALL);
+	}
+	else
+	{
+		/* Parameter 2: size (type: PT_UINT32) */
+		res = bpf_push_u32_to_ring(data, 0);
+
+		/* Parameter 3: data (type: PT_BYTEBUF) */
+		res = bpf_push_empty_param(data);
+	}
+
+	return res;
+}
+
+FILLER(sys_process_vm_writev_x, true)
+{
+	const struct iovec __user *iov;
+	unsigned long iovcnt;
+
+	/* Parameter 1: ret (type: PT_INT32) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int32_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	pid_t pid = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)pid);
+	CHECK_RES(res);
+
+	/*
+	* data and size
+	*/
+	if (retval > 0)
+	{
+		iov = (const struct iovec __user *)bpf_syscall_get_argument(data, 1);
+		iovcnt = bpf_syscall_get_argument(data, 2);
+
+		res = bpf_parse_readv_writev_bufs(data,
+						iov,
+						iovcnt,
+						retval,
+						PRB_FLAG_PUSH_ALL);
+	}
+	else
+	{
+		/* Parameter 2: size (type: PT_UINT32) */
+		res = bpf_push_u32_to_ring(data, 0);
+
+		/* Parameter 3: data (type: PT_BYTEBUF) */
+		res = bpf_push_empty_param(data);
+	}
+
+	return res;
+}
 #endif

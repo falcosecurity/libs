@@ -425,6 +425,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_newfstatat
 	[__NR_newfstatat - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_NEWFSTATAT_E, PPME_SYSCALL_NEWFSTATAT_X, PPM_SC_NEWFSTATAT},
 #endif
+#ifdef __NR_process_vm_readv
+	[__NR_process_vm_readv - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_PROCESS_VM_READV_E, PPME_SYSCALL_PROCESS_VM_READV_X, PPM_SC_PROCESS_VM_READV},
+#endif
+#ifdef __NR_process_vm_writev
+	[__NR_process_vm_writev - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_PROCESS_VM_WRITEV_E, PPME_SYSCALL_PROCESS_VM_WRITEV_X, PPM_SC_PROCESS_VM_WRITEV},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -847,9 +853,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_epoll_ctl
 	[__NR_epoll_ctl - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EPOLL_CTL},
 #endif
-#ifdef __NR_process_vm_writev
-	[__NR_process_vm_writev - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PROCESS_VM_WRITEV},
-#endif
 #ifdef __NR_sched_getparam
 	[__NR_sched_getparam - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SCHED_GETPARAM},
 #endif
@@ -858,9 +861,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_sched_setparam
 	[__NR_sched_setparam - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SCHED_SETPARAM},
-#endif
-#ifdef __NR_process_vm_readv
-	[__NR_process_vm_readv - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PROCESS_VM_READV},
 #endif
 #ifdef __NR_pause
 	[__NR_pause - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PAUSE},
