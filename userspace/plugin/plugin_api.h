@@ -940,6 +940,11 @@ typedef struct
 		ss_plugin_rc (*set_async_event_handler)(ss_plugin_t* s, ss_plugin_owner_t* owner, const ss_plugin_async_event_handler_t handler);
 	};
 
+	// Sets a new plugin configuration when provided by the framework.
+	// Required: no
+	// Arguments:
+	// - s: the plugin state, returned by init(). Can be NULL.
+	// - config: the new configuration, as an opaque string.
 	//
 	void (*set_config)(ss_plugin_t* s, const char* config);
 } plugin_api;
