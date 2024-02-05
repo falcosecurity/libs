@@ -674,3 +674,27 @@ TEST(sinsp_plugin, plugin_logging)
 
 	libsinsp_logger()->remove_callback_log();
 }
+
+// Scenario: we provide the plugin with a new configuration,
+// expecting it to log when it's notified.
+TEST(sinsp_plugin, plugin_set_config)
+{
+	std::string tmp;
+	sinsp i;
+	plugin_api api;
+	get_plugin_api_sample_plugin_extract(api);
+
+	api.get_name = [](){ return "plugin_name"; };
+
+	auto p = i.register_plugin(&api);
+	p->init("", tmp);
+
+	libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
+		std::string expected = "plugin_name: new config!"; 
+		ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
+	});
+
+	p->set_config("some config");
+
+	libsinsp_logger()->remove_callback_log();
+}
