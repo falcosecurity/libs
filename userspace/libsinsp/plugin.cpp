@@ -166,8 +166,9 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	}
 
 	ss_plugin_rc rc;
+
 	std::string conf = config;
-	validate_init_config(conf);
+	validate_config(conf);
 
 	ss_plugin_init_input in = {};
 	in.owner = this;
@@ -635,7 +636,7 @@ const libsinsp::events::set<ppm_event_code>& sinsp_plugin::parse_event_codes() c
 	return m_parse_event_codes;
 }
 
-void sinsp_plugin::validate_init_config(std::string& config)
+void sinsp_plugin::validate_config(std::string& config)
 {
 	ss_plugin_schema_type schema_type;
 	std::string schema = get_init_schema(schema_type);
@@ -644,7 +645,7 @@ void sinsp_plugin::validate_init_config(std::string& config)
 		switch (schema_type)
 		{
 			case SS_PLUGIN_SCHEMA_JSON:
-				validate_init_config_json_schema(config, schema);
+				validate_config_json_schema(config, schema);
 				break;
 			default:
 				ASSERT(false);
@@ -657,7 +658,7 @@ void sinsp_plugin::validate_init_config(std::string& config)
 	}
 }
 
-void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::string &schema)
+void sinsp_plugin::validate_config_json_schema(std::string& config, std::string &schema)
 {
 	Json::Value schemaJson;
 	if(!Json::Reader().parse(schema, schemaJson) || schemaJson.type() != Json::objectValue)
@@ -709,6 +710,18 @@ void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::st
 			string("error in plugin ")
 			+ name()
 			+ " init config: failed parsing with provided schema");
+	}
+}
+
+void sinsp_plugin::set_config(const std::string& config)
+{
+	std::string conf = config;
+	validate_config(conf);
+
+	if(m_state && m_handle->api.set_config)
+	{
+		m_handle->api.set_config(m_state, conf.c_str());
+		m_state = NULL;
 	}
 }
 
