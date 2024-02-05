@@ -85,19 +85,16 @@ public:
 
 	bool run(sinsp_evt *evt);
 
+	void push_expression(boolop op);
+	void pop_expression();
+	void add_check(sinsp_filter_check* chk);
+
 	sinsp_filter_expression* m_filter;
 
 private:
 	sinsp_filter_expression* m_curexpr;
 
 	sinsp* m_inspector;
-	void push_expression(boolop op);
-	void pop_expression();
-	void add_check(sinsp_filter_check* chk);
-
-	friend class sinsp_filter_compiler;
-	friend class sinsp_filter_optimizer;
-	friend class sinsp_evt_formatter;
 };
 
 class sinsp_filter_factory
@@ -261,8 +258,6 @@ private:
 	const libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<sinsp_filter_factory> m_factory;
 	sinsp_filter_check_list m_default_filterlist;
-
-	friend class sinsp_evt_formatter;
 };
 
 /*@}*/

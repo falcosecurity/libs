@@ -144,8 +144,6 @@ elseif(APPLE OR EMSCRIPTEN)
 	)
 endif()
 
-add_definitions(-DVISIBILITY_PRIVATE=)
-
 if(NOT MINIMAL_BUILD)
 	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
 endif()
