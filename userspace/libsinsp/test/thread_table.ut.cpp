@@ -442,7 +442,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size)
 	/* Here we want to check that creating a number of threads grater
 	 * than m_max_thread_table_size doesn't cause a crash.
 	 */
-	for(uint32_t i = 1; i < (m_inspector.m_thread_manager->m_max_thread_table_size + 1000); i++)
+	for(uint32_t i = 1; i < (m_inspector.m_thread_manager->get_max_thread_table_size() + 1000); i++)
 	{
 		/* we change only the tid */
 		generate_clone_x_event(0, pid + i, pid, INIT_TID, PPM_CL_CLONE_THREAD);
@@ -452,7 +452,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size)
 	 * We already have `init` so the final size of the group will be
 	 * `m_max_thread_table_size -1`
 	 */
-	int64_t thread_group_size = m_inspector.m_thread_manager->m_max_thread_table_size - 1;
+	int64_t thread_group_size = m_inspector.m_thread_manager->get_max_thread_table_size() - 1;
 	ASSERT_THREAD_GROUP_INFO(pid, thread_group_size, false, thread_group_size, thread_group_size);
 }
 

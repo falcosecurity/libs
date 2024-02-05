@@ -89,7 +89,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_containers_purging_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = NULL;
-	m_fds_to_remove = new std::vector<int64_t>;
 	m_machine_info = NULL;
 	m_agent_info = NULL;
 	m_snaplen = DEFAULT_SNAPLEN;
@@ -136,11 +135,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 sinsp::~sinsp()
 {
 	close();
-
-	if(m_fds_to_remove)
-	{
-		delete m_fds_to_remove;
-	}
 
 	if(m_parser)
 	{
@@ -253,7 +247,7 @@ void sinsp::init()
 	m_tid_to_remove = -1;
 	m_lastevent_ts = 0;
 	m_firstevent_ts = 0;
-	m_fds_to_remove->clear();
+	m_fds_to_remove.clear();
 
 	//
 	// If we're reading from file, we try to pre-parse the container events before
@@ -927,16 +921,16 @@ void sinsp::on_new_entry_from_proc(void* context,
 				tscapevt.len = sizeof(scap_evt);
 
 				sinsp_evt tevt = {};
-				tevt.m_pevt = &tscapevt;
-				tevt.m_info = &(g_infotables.m_event_info[PPME_SCAPEVENT_X]);
-				tevt.m_cpuid = 0;
-				tevt.m_evtnum = 0;
-				tevt.m_inspector = this;
-				tevt.m_tinfo = sinsp_tinfo.get();
-				tevt.m_fdinfo_ref.reset();
-				tevt.m_fdinfo = NULL;
+				tevt.set_scap_evt(&tscapevt);
+				tevt.set_info(&(g_infotables.m_event_info[PPME_SCAPEVENT_X]));
+				tevt.set_cpuid(0);
+				tevt.set_num(0);
+				tevt.set_inspector(this);
+				tevt.set_tinfo(sinsp_tinfo.get());
+				tevt.set_fdinfo_ref(nullptr);
+				tevt.set_fd_info(NULL);
 				sinsp_tinfo->m_lastevent_fd = -1;
-				sinsp_tinfo->m_lastevent_data = NULL;
+				sinsp_tinfo->set_last_event_data(NULL);
 
 				sinsp_tinfo->m_filtered_out = !m_filter->run(&tevt);
 			}
@@ -1143,9 +1137,9 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 	// after the initial "machine state" section
 	if (m_replay_scap_evt != NULL)
 	{
-		evt->m_pevt = m_replay_scap_evt;
-		evt->m_cpuid = m_replay_scap_cpuid;
-		evt->m_dump_flags = m_replay_scap_flags;
+		evt->set_scap_evt(m_replay_scap_evt);
+		evt->set_cpuid(m_replay_scap_cpuid);
+		evt->set_dump_flags(m_replay_scap_flags);
 		m_replay_scap_evt = NULL;
 		return SCAP_SUCCESS;
 	}
@@ -1167,9 +1161,9 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 		!m_async_events_queue.empty() && m_async_events_queue.try_pop(m_async_evt))
 	{
 		evt = m_async_evt.get();
-		if(evt->m_pevt->ts == (uint64_t) -1)
+		if(evt->get_scap_evt()->ts == (uint64_t) -1)
 		{
-			evt->m_pevt->ts = get_new_ts();
+			evt->get_scap_evt()->ts = get_new_ts();
 		}
 		return SCAP_SUCCESS;
 	}
@@ -1189,9 +1183,9 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 			{
 				// the async event is the one with most priority
 				evt = m_async_evt.get();
-				if(evt->m_pevt->ts == (uint64_t) -1)
+				if(evt->get_scap_evt()->ts == (uint64_t) -1)
 				{
-					evt->m_pevt->ts = get_new_ts();
+					evt->get_scap_evt()->ts = get_new_ts();
 				}
 				return SCAP_SUCCESS;
 			}
@@ -1216,7 +1210,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// it from userspace and update the result status
 	if (res == SCAP_SUCCESS)
 	{
-		res = m_suppress.process_event(evt->m_pevt, evt->m_cpuid);
+		res = m_suppress.process_event(evt->get_scap_evt(), evt->get_cpuid());
 	}
 
 	// in case we don't succeed, handle each scenario and return
@@ -1290,7 +1284,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// state management.
 	//
 	m_nevts++;
-	evt->m_evtnum = m_nevts;
+	evt->set_num(m_nevts);
 	m_lastevent_ts = ts;
 
 	if (m_auto_threads_purging)
@@ -1338,7 +1332,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// Delayed removal of the fd, so that
 	// things like exit() or close() can be parsed.
 	//
-	uint32_t nfdr = (uint32_t)m_fds_to_remove->size();
+	uint32_t nfdr = (uint32_t)m_fds_to_remove.size();
 	if(nfdr != 0)
 	{
 		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread
@@ -1349,10 +1343,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			for(uint32_t j = 0; j < nfdr; j++)
 			{
-				ptinfo->remove_fd(m_fds_to_remove->at(j));
+				ptinfo->remove_fd(m_fds_to_remove.at(j));
 			}
 		}
-		m_fds_to_remove->clear();
+		m_fds_to_remove.clear();
 	}
 
 	//
@@ -1375,7 +1369,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// Finally set output evt;
 	// From now on, any return must have the correct output being set.
 	*puevt = evt;
-	if(evt->m_filtered_out)
+	if(evt->is_filtered_out())
 	{
 		ppm_event_category cat = evt->get_category();
 
@@ -1401,12 +1395,12 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Update the last event time for this thread
 	//
-	if(evt->m_tinfo &&
+	if(evt->get_tinfo() &&
 		evt->get_type() != PPME_SCHEDSWITCH_1_E &&
 		evt->get_type() != PPME_SCHEDSWITCH_6_E)
 	{
-		evt->m_tinfo->m_prevevent_ts = evt->m_tinfo->m_lastevent_ts;
-		evt->m_tinfo->m_lastevent_ts = m_lastevent_ts;
+		evt->get_tinfo()->m_prevevent_ts = evt->get_tinfo()->m_lastevent_ts;
+		evt->get_tinfo()->m_lastevent_ts = m_lastevent_ts;
 	}
 
 	//
@@ -1425,12 +1419,6 @@ uint64_t sinsp::get_num_events() const
 	{
 		return 0;
 	}
-}
-
-sinsp_threadinfo* sinsp::find_thread_test(int64_t tid, bool lookup_only)
-{
-	// TODO: we pay the refcount manipulation price here
-	return &*find_thread(tid, lookup_only);
 }
 
 threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
@@ -1661,7 +1649,7 @@ void sinsp::stop_capture()
 	/* Print the number of threads and fds in our tables */
 	uint64_t thread_cnt = 0;
 	uint64_t fd_cnt = 0;
-	m_thread_manager->m_threadtable.loop([&thread_cnt, &fd_cnt] (sinsp_threadinfo& tinfo) {
+	m_thread_manager->get_threads()->loop([&thread_cnt, &fd_cnt] (sinsp_threadinfo& tinfo) {
 		thread_cnt++;
 
 		/* Only main threads have an associated fdtable */
@@ -2092,21 +2080,21 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		if(m_inspector->m_threads_purging_scan_time_ns > 30 * ONE_SECOND_IN_NS)
 		{
 			m_last_flush_time_ns =
-				(m_inspector->m_lastevent_ts - m_inspector->m_threads_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS);
+				(m_inspector->get_lastevent_ts() - m_inspector->m_threads_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS);
 		}
 		else
 		{
 			m_last_flush_time_ns =
-				(m_inspector->m_lastevent_ts - m_inspector->m_threads_purging_scan_time_ns);
+				(m_inspector->get_lastevent_ts() - m_inspector->m_threads_purging_scan_time_ns);
 		}
 	}
 
-	if(m_inspector->m_lastevent_ts >
+	if(m_inspector->get_lastevent_ts() >
 		m_last_flush_time_ns + m_inspector->m_threads_purging_scan_time_ns)
 	{
 		std::unordered_set<int64_t> to_delete;
 
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
+		m_last_flush_time_ns = m_inspector->get_lastevent_ts();
 
 		libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Flushing thread table");
 
@@ -2116,7 +2104,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		 */
 		m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 			if(tinfo.is_invalid() ||
-				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
+				((m_inspector->get_lastevent_ts() > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
 					!scap_is_thread_alive(m_inspector->get_scap_platform(), tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str())))
 			{
 				to_delete.insert(tinfo.m_tid);
@@ -2153,9 +2141,9 @@ void sinsp::handle_async_event(std::unique_ptr<sinsp_evt> evt)
 {
 	// see comments in handle_plugin_async_event
 	ASSERT(!is_capture());
-	evt->inspector(this);
-	if(evt->m_pevt->ts != (uint64_t)-1 &&
-		evt->m_pevt->ts > sinsp_utils::get_current_time_ns() + ONE_SECOND_IN_NS * 10)
+	evt->set_inspector(this);
+	if(evt->get_scap_evt()->ts != (uint64_t)-1 &&
+		evt->get_scap_evt()->ts > sinsp_utils::get_current_time_ns() + ONE_SECOND_IN_NS * 10)
 	{
 		libsinsp_logger()->log("async event ts too far in future", sinsp_logger::SEV_WARNING);
 		return;
@@ -2226,14 +2214,14 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 
 		// if the async event is generated by a non-syscall event source, then
 		// async events must have no thread associated.
-		if (cur_plugin_id != 0 && evt->m_pevt->tid != (uint64_t) -1)
+		if (cur_plugin_id != 0 && evt->get_scap_evt()->tid != (uint64_t) -1)
 		{
 			throw sinsp_exception("async events of plugin '" + p.name()
 				+ "' can have no thread associated with open event source '" + cur_evtsrc + "'");
 		}
 
 		// write plugin ID and timestamp in the event and kick it in the queue
-		auto plid = (uint32_t*)((uint8_t*) evt->m_pevt + sizeof(scap_evt) + 4+4+4);
+		auto plid = (uint32_t*)((uint8_t*) evt->get_scap_evt() + sizeof(scap_evt) + 4+4+4);
 		*plid = cur_plugin_id;
 		handle_async_event(std::move(evt));
 	}
@@ -2259,7 +2247,3 @@ uint64_t sinsp::get_new_ts() const
 			: m_lastevent_ts;
 }
 
-scap_platform* sinsp::get_scap_platform()
-{
-	return m_platform;
-}

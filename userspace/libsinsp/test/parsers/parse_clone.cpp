@@ -238,33 +238,33 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_check_event_tinfo)
 
 	/* New main thread, caller already present */
 	auto evt = generate_clone_x_event(11, 1, 1, 0);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 1);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 1);
 
 	/* New main thread, caller not already present */
 	evt = generate_clone_x_event(13, 24, 24, 26);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 24);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 24);
 
 	/* New thread */
 	evt = generate_clone_x_event(14, 33, 32, 30, PPM_CL_CLONE_THREAD);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 33);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 33);
 
 	/* New main thread container init */
 	evt = generate_clone_x_event(15, 37, 37, 36, PPM_CL_CLONE_NEWNS);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 37);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 37);
 
 	/* Caller in container */
 	evt = generate_clone_x_event(2, 38, 38, 37, PPM_CL_CHILD_IN_PIDNS);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 38);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 38);
 }
 
 TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_leader_thread)
@@ -423,7 +423,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_already_there)
 	int64_t new_pid = 35;
 	sinsp_evt* evt = generate_clone_x_event(0, p1_t1_tid, new_pid, p1_t1_ptid);
 
-	/* The child parser should find a valid `evt->m_tinfo` set by the previous
+	/* The child parser should find a valid `evt->get_tinfo()` set by the previous
 	 * parent clone event, so this new child event should be ignored and so
 	 * the pid shouldn't be updated
 	 */
@@ -462,7 +462,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision)
 	int64_t new_pid = 35;
 	sinsp_evt* evt = generate_clone_x_event(0, p1_t1_tid, new_pid, p1_t1_ptid);
 
-	/* The child parser should find a "stale" `evt->m_tinfo` set by the previous
+	/* The child parser should find a "stale" `evt->get_tinfo()` set by the previous
 	 * parent clone event and should replace it with new thread info.
 	 */
 	ASSERT_TRUE(evt);
@@ -566,33 +566,33 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_check_event_tinfo)
 
 	/* New main thread, caller already present */
 	auto evt = generate_clone_x_event(0, 11, 11, 1);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 11);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 11);
 
 	/* New main thread, caller not already present */
 	evt = generate_clone_x_event(0, 24, 24, 26);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 24);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 24);
 
 	/* New thread */
 	evt = generate_clone_x_event(0, 33, 32, 30, PPM_CL_CLONE_THREAD);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 33);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 33);
 
 	/* New main thread container init */
 	evt = generate_clone_x_event(0, 37, 37, 36, PPM_CL_CLONE_NEWNS | PPM_CL_CHILD_IN_PIDNS);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 37);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 37);
 
 	/* container */
 	evt = generate_clone_x_event(0, 38, 38, 37, PPM_CL_CHILD_IN_PIDNS);
-	ASSERT_TRUE(evt->m_tinfo);
-	ASSERT_FALSE(evt->m_tinfo_ref);
-	ASSERT_EQ(evt->m_tinfo->m_tid, 38);
+	ASSERT_TRUE(evt->get_tinfo());
+	ASSERT_FALSE(evt->get_tinfo_ref());
+	ASSERT_EQ(evt->get_tinfo()->m_tid, 38);
 }
 
 /* Here we are using the child clone exit event to reconstruct the tree */

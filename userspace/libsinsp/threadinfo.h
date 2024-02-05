@@ -548,7 +548,7 @@ public:
 		else
 		{
 			sinsp_threadinfo* root = get_main_thread();
-			return (root == nullptr) ? nullptr : &(root->m_fdtable);
+			return (root == nullptr) ? nullptr : &(root->get_fdtable());
 		}
 	}
 

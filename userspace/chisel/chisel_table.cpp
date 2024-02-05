@@ -523,18 +523,17 @@ void chisel_table::process_proctable(sinsp_evt* evt)
 	tscapevt.len = 0;
 	tscapevt.nparams = 0;
 
-	tevt.m_inspector = m_inspector;
-	tevt.m_info = &(g_infotables.m_event_info[PPME_SCAPEVENT_X]);
-	tevt.m_pevt = NULL;
-	tevt.m_cpuid = 0;
-	tevt.m_evtnum = 0;
-	tevt.m_pevt = &tscapevt;
-	tevt.m_fdinfo_ref.reset();
-	tevt.m_fdinfo = NULL;
+	tevt.set_inspector(m_inspector);
+	tevt.set_info(&(g_infotables.m_event_info[PPME_SCAPEVENT_X]));
+	tevt.set_cpuid(0);
+	tevt.set_num(0);
+	tevt.set_scap_evt(&tscapevt);
+	tevt.set_fdinfo_ref(nullptr);
+	tevt.set_fd_info(NULL);
 
 	threadtable->loop([&] (sinsp_threadinfo& tinfo) {
-		tevt.m_tinfo = &tinfo;
-		tscapevt.tid = tevt.m_tinfo->m_tid;
+		tevt.set_tinfo(&tinfo);
+		tscapevt.tid = tevt.get_tinfo()->m_tid;
 
 		if(m_filter)
 		{

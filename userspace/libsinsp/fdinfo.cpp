@@ -246,9 +246,9 @@ sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
 	//
 	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
 	{
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_cached_fd_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_cached_fd_lookups++;
 		}
 		return m_last_accessed_fdinfo;
 	}
@@ -260,17 +260,17 @@ sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
 
 	if(fdit == m_table.end())
 	{
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_failed_fd_lookups++;
 		}
 		return NULL;
 	}
 	else
 	{
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_noncached_fd_lookups++;
 		}
 
 		m_last_accessed_fd = fd;
@@ -300,9 +300,9 @@ sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinf
 			// No entry in the table, this is the normal case
 			//
 			m_last_accessed_fd = -1;
-			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+			if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 			{
-				m_inspector->m_sinsp_stats_v2->m_n_added_fds++;
+				m_inspector->get_sinsp_stats_v2()->m_n_added_fds++;
 			}
 
 			return m_table.emplace(fd, std::move(fdinfo)).first->second.get();
@@ -372,19 +372,19 @@ bool sinsp_fdtable::erase(int64_t fd)
 		// keep going.
 		//
 		ASSERT(false);
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_failed_fd_lookups++;
 		}
 		return false;
 	}
 	else
 	{
 		m_table.erase(fdit);
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
-			m_inspector->m_sinsp_stats_v2->m_n_removed_fds++;
+			m_inspector->get_sinsp_stats_v2()->m_n_noncached_fd_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_removed_fds++;
 		}
 		return true;
 	}

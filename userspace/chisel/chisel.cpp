@@ -1750,7 +1750,7 @@ void sinsp_chisel::on_capture_end()
 	if(lua_isfunction(m_ls, -1))
 	{
 		uint64_t ts = m_inspector->m_firstevent_ts;
-		uint64_t te = m_inspector->m_lastevent_ts;
+		uint64_t te = m_inspector->get_lastevent_ts();
 		int64_t delta = te - ts;
 
 		lua_pushnumber(m_ls, (double)(te / 1000000000));

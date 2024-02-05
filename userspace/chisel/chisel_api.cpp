@@ -749,17 +749,16 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 				throw sinsp_exception("chisel error");
 			}
 
-			tscapevt.ts = ch->m_inspector->m_lastevent_ts;
+			tscapevt.ts = ch->m_inspector->get_lastevent_ts();
 			tscapevt.type = PPME_SYSCALL_READ_X;
 			tscapevt.len = 0;
 			tscapevt.nparams = 0;
 
-			tevt.m_inspector = ch->m_inspector;
-			tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-			tevt.m_pevt = NULL;
-			tevt.m_cpuid = 0;
-			tevt.m_evtnum = 0;
-			tevt.m_pevt = &tscapevt;
+			tevt.set_inspector(ch->m_inspector);
+			tevt.set_info(&(g_infotables.m_event_info[PPME_SYSCALL_READ_X]));
+			tevt.set_scap_evt(&tscapevt);
+			tevt.set_cpuid(0);
+			tevt.set_num(0);
 		}
 	}
 
@@ -786,11 +785,11 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			bool match = false;
 
 			fdtable->loop([&](int64_t fd, sinsp_fdinfo& fdi) {
-				tevt.m_tinfo = &tinfo;
-				tevt.m_fdinfo = &fdi;
+				tevt.set_tinfo(&tinfo);
+				tevt.set_fd_info(&fdi);
 				tscapevt.tid = tinfo.m_tid;
-				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
-				tevt.m_tinfo->m_lastevent_fd = fd;
+				int64_t tlefd = tevt.get_tinfo()->m_lastevent_fd;
+				tevt.get_tinfo()->m_lastevent_fd = fd;
 
 				if(filter->run(&tevt))
 				{
@@ -798,7 +797,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 					return false; // break out of the loop
 				}
 
-				tevt.m_tinfo->m_lastevent_fd = tlefd;
+				tevt.get_tinfo()->m_lastevent_fd = tlefd;
 				return true;
 			});
 
@@ -910,11 +909,11 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		if(include_fds)
 		{
 			fdtable->loop([&](int64_t fd, sinsp_fdinfo& fdi) {
-				tevt.m_tinfo = &tinfo;
-				tevt.m_fdinfo = &fdi;
+				tevt.set_tinfo(&tinfo);
+				tevt.set_fd_info(&fdi);
 				tscapevt.tid = tinfo.m_tid;
-				int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
-				tevt.m_tinfo->m_lastevent_fd = fd;
+				int64_t tlefd = tevt.get_tinfo()->m_lastevent_fd;
+				tevt.get_tinfo()->m_lastevent_fd = fd;
 
 				if(filter != NULL)
 				{
@@ -925,7 +924,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 					}
 				}
 
-				tevt.m_tinfo->m_lastevent_fd = tlefd;
+				tevt.get_tinfo()->m_lastevent_fd = tlefd;
 
 				lua_newtable(ls);
 				if(!barebone)
@@ -1290,7 +1289,7 @@ int lua_cbacks::get_lastevent_ts(lua_State *ls)
 	ASSERT(ch);
 	ASSERT(ch->m_lua_cinfo);
 
-	lua_pushstring(ls, to_string(ch->m_inspector->m_lastevent_ts).c_str());
+	lua_pushstring(ls, to_string(ch->m_inspector->get_lastevent_ts()).c_str());
 
 	return 1;
 }

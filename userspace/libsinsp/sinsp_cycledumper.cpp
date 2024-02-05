@@ -105,7 +105,7 @@ void sinsp_cycledumper::autodump_stop()
 		m_dumper.reset();
 	}
 
-	m_inspector->m_is_dumping = false;
+	m_inspector->set_dumping(false);
 
 	std::for_each(m_close_file_callbacks.begin(), m_close_file_callbacks.end(), std::ref(*this));
 }
@@ -127,7 +127,7 @@ void sinsp_cycledumper::autodump_start(const std::string& dump_filename)
 	m_dumper->open(m_inspector, dump_filename.c_str(),
                    m_compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE);
 
-	m_inspector->m_is_dumping = true;
+	m_inspector->set_dumping(true);
 }
 
 void sinsp_cycledumper::next_file()
