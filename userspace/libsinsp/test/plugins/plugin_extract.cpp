@@ -162,6 +162,12 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
     return SS_PLUGIN_SUCCESS;
 }
 
+static void plugin_set_config(ss_plugin_t *s, const char* config)
+{
+    plugin_state *ps = (plugin_state *) s;
+    ps->log(ps->owner, NULL, "new config!", SS_PLUGIN_LOG_SEV_INFO);
+}
+
 void get_plugin_api_sample_plugin_extract(plugin_api& out)
 {
     memset(&out, 0, sizeof(plugin_api));
@@ -177,4 +183,5 @@ void get_plugin_api_sample_plugin_extract(plugin_api& out)
     out.get_extract_event_sources = plugin_get_extract_event_sources;
     out.get_extract_event_types = plugin_get_extract_event_types;
     out.extract_fields = plugin_extract_fields;
+    out.set_config = plugin_set_config;
 }
