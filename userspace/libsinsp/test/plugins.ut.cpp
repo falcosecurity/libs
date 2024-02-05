@@ -665,6 +665,7 @@ TEST(sinsp_plugin, plugin_logging)
 		auto p = i.register_plugin(&api);
 		p->init("", tmp);
 
+		libsinsp_logger()->remove_callback_log();
 		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
 			std::string expected = "plugin_name: destroying plugin..."; 
 			ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));

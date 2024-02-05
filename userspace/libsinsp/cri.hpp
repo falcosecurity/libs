@@ -353,7 +353,7 @@ inline bool set_numeric_64(const Json::Value &dict, const std::string &key, int6
 template<typename api> 
 inline bool cri_interface<api>::parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 {
-	const Json::Value *envs;
+	const Json::Value *envs = nullptr;
 	if(!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
 	{
 		return false;
@@ -379,7 +379,7 @@ inline bool cri_interface<api>::parse_cri_env(const Json::Value &info, sinsp_con
 template<typename api>
 inline bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
 {
-	const Json::Value *image;
+	const Json::Value *image = nullptr;
 	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
 	{
 		return false;
@@ -425,7 +425,7 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 	}
 
 	bool priv_found = false;
-	const Json::Value *privileged;
+	const Json::Value *privileged = nullptr;
 	// old containerd?
 	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
 	{
