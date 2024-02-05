@@ -8124,3 +8124,113 @@ int f_sys_newfstatat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+int f_sys_process_vm_readv_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	long retval;
+	int res;
+	unsigned long iovcnt;
+	int32_t pid;
+
+	/* Parameter 1: ret (type: PT_INT64) */
+	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	res = val_to_ring(args, (int64_t)retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	pid = (int32_t)val;
+	res = val_to_ring(args, (int64_t)pid, 0, false, 0);
+	CHECK_RES(res);
+
+
+	if(retval > 0)
+	{
+		/* Parameter 4: remote_iov (type: PT_UINT64) */
+		syscall_get_arguments_deprecated(args, 3, 1, &val);
+
+		/* Parameter 4: riovcnt (type: PT_INT32) */
+		syscall_get_arguments_deprecated(args, 4, 1, &iovcnt);
+
+	#ifdef CONFIG_COMPAT
+		if (unlikely(args->compat)) {
+			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
+			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		} else
+	#endif
+		{
+			const struct iovec __user *iov = (const struct iovec __user *)val;
+			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		}
+
+		CHECK_RES(res);
+	}
+	else
+	{
+		/* pushing a zero size */
+		res = val_to_ring(args, 0, 0, false, 0);
+		CHECK_RES(res);
+
+		/* pushing empty data */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+	}
+
+	return add_sentinel(args);
+}
+
+int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	long retval;
+	int res;
+	unsigned long iovcnt;
+	int32_t pid;
+
+	/* Parameter 1: ret (type: PT_INT64) */
+	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	res = val_to_ring(args, (int64_t)retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	pid = (int32_t)val;
+	res = val_to_ring(args, (int64_t)pid, 0, false, 0);
+	CHECK_RES(res);
+
+
+	if(retval > 0)
+	{
+		/* Parameter 4: remote_iov (type: PT_UINT64) */
+		syscall_get_arguments_deprecated(args, 1, 1, &val);
+
+		/* Parameter 4: riovcnt (type: PT_INT32) */
+		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
+
+	#ifdef CONFIG_COMPAT
+		if (unlikely(args->compat)) {
+			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
+			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		} else
+	#endif
+		{
+			const struct iovec __user *iov = (const struct iovec __user *)val;
+			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		}
+
+		CHECK_RES(res);
+	}
+	else
+	{
+		/* pushing a zero size */
+		res = val_to_ring(args, 0, 0, false, 0);
+		CHECK_RES(res);
+
+		/* pushing empty data */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+	}
+
+	return add_sentinel(args);
+}

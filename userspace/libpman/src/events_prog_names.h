@@ -328,7 +328,11 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MKNODAT_E] = "mknodat_e",
 	[PPME_SYSCALL_MKNODAT_X] = "mknodat_x",
 	[PPME_SYSCALL_NEWFSTATAT_E] = "newfstatat_e",
-	[PPME_SYSCALL_NEWFSTATAT_X] = "newfstatat_x"
+	[PPME_SYSCALL_NEWFSTATAT_X] = "newfstatat_x",
+	[PPME_SYSCALL_PROCESS_VM_READV_E] = "process_vm_readv_e",
+	[PPME_SYSCALL_PROCESS_VM_READV_X] = "process_vm_readv_x",
+	[PPME_SYSCALL_PROCESS_VM_WRITEV_E] = "process_vm_writev_e",
+	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = "process_vm_writev_x"
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
