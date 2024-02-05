@@ -162,7 +162,7 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper& dumper) {
 		for (const auto &user: usrlist) {
 			sinsp_evt evt;
 			if (user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E)) {
-				evt.m_pevt->ts = m_inspector->get_new_ts();
+				evt.get_scap_evt()->ts = m_inspector->get_new_ts();
 				dumper.dump(&evt);
 			}
 		}
@@ -174,7 +174,7 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper& dumper) {
 		for (const auto &group: grplist) {
 			sinsp_evt evt;
 			if (group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E)) {
-				evt.m_pevt->ts = m_inspector->get_new_ts();
+				evt.get_scap_evt()->ts = m_inspector->get_new_ts();
 				dumper.dump(&evt);
 			}
 		}
@@ -220,15 +220,15 @@ bool sinsp_usergroup_manager::clear_host_users_groups()
 
 	if(m_last_flush_time_ns == 0)
 	{
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_usergroups_purging_scan_time_ns + 60 * ONE_SECOND_IN_NS;
+		m_last_flush_time_ns = m_inspector->get_lastevent_ts() - m_inspector->m_usergroups_purging_scan_time_ns + 60 * ONE_SECOND_IN_NS;
 	}
 
-	if(m_inspector->m_lastevent_ts >
+	if(m_inspector->get_lastevent_ts() >
 	   m_last_flush_time_ns + m_inspector->m_usergroups_purging_scan_time_ns)
 	{
 		res = true;
 
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
+		m_last_flush_time_ns = m_inspector->get_lastevent_ts();
 
 		// Clear everything, so that new threadinfos incoming will update
 		// user and group informations
@@ -579,15 +579,15 @@ bool sinsp_usergroup_manager::user_to_sinsp_event(const scap_userinfo *user, sin
 			strlen(user->shell) + 1 +
 			container_id.length() + 1;
 
-	ASSERT(evt->m_pevt_storage == nullptr);
-	evt->m_pevt_storage = new char[totlen];
-	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+	ASSERT(evt->get_scap_evt_storage() == nullptr);
+	evt->set_scap_evt_storage(new char[totlen]);
+	evt->set_scap_evt((scap_evt *) evt->get_scap_evt_storage());
 
-	evt->m_cpuid = 0;
-	evt->m_evtnum = 0;
-	evt->m_inspector = m_inspector;
+	evt->set_cpuid(0);
+	evt->set_num(0);
+	evt->set_inspector(m_inspector);
 
-	scap_evt* scapevt = evt->m_pevt;
+	scap_evt* scapevt = evt->get_scap_evt();
 
 	scapevt->ts = (uint64_t) - 1;
 	scapevt->tid = -1;
@@ -629,15 +629,15 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 			strlen(group->name) + 1 +
 			container_id.length() + 1;
 
-	ASSERT(evt->m_pevt_storage == nullptr);
-	evt->m_pevt_storage = new char[totlen];
-	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+	ASSERT(evt->get_scap_evt_storage() == nullptr);
+	evt->set_scap_evt_storage(new char[totlen]);
+	evt->set_scap_evt((scap_evt *) evt->get_scap_evt_storage());
 
-	evt->m_cpuid = 0;
-	evt->m_evtnum = 0;
-	evt->m_inspector = m_inspector;
+	evt->set_cpuid(0);
+	evt->set_num(0);
+	evt->set_inspector(m_inspector);
 
-	scap_evt* scapevt = evt->m_pevt;
+	scap_evt* scapevt = evt->get_scap_evt();
 
 	scapevt->ts = (uint64_t) - 1;
 	scapevt->tid = -1;

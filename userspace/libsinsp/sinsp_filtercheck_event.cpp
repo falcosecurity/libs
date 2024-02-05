@@ -441,7 +441,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 {
 	std::string spath;
 
-	if(evt->m_tinfo == NULL)
+	if(evt->get_tinfo() == NULL)
 	{
 		return NULL;
 	}
@@ -570,26 +570,26 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	}
 	else if(dirfd == PPM_AT_FDCWD)
 	{
-		sdir = evt->m_tinfo->get_cwd();
+		sdir = evt->get_tinfo()->get_cwd();
 	}
 	else
 	{
-		evt->m_fdinfo = evt->m_tinfo->get_fd(dirfd);
+		evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
 
-		if(evt->m_fdinfo == NULL)
+		if(evt->get_fd_info() == NULL)
 		{
 			ASSERT(false);
 			sdir = "<UNKNOWN>/";
 		}
 		else
 		{
-			if(evt->m_fdinfo->m_name[evt->m_fdinfo->m_name.length()] == '/')
+			if(evt->get_fd_info()->m_name[evt->get_fd_info()->m_name.length()] == '/')
 			{
-				sdir = evt->m_fdinfo->m_name;
+				sdir = evt->get_fd_info()->m_name;
 			}
 			else
 			{
-				sdir = evt->m_fdinfo->m_name + '/';
+				sdir = evt->get_fd_info()->m_name + '/';
 			}
 		}
 	}
@@ -691,7 +691,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			m_u64val = 0;
 
-			if(evt->m_tinfo != NULL)
+			if(evt->get_tinfo() != NULL)
 			{
 				ppm_event_category ecat = evt->get_category();
 				if(ecat & EC_INTERNAL)
@@ -699,7 +699,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					return NULL;
 				}
 
-				m_u64val = evt->m_tinfo->m_latency;
+				m_u64val = evt->get_tinfo()->m_latency;
 			}
 
 			RETURN_EXTRACT_VAR(m_u64val);
@@ -708,7 +708,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			m_u64val = 0;
 
-			if(evt->m_tinfo != NULL)
+			if(evt->get_tinfo() != NULL)
 			{
 				ppm_event_category ecat = evt->get_category();
 				if(ecat & EC_INTERNAL)
@@ -718,7 +718,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 				m_converter->set_val(PT_RELTIME,
 					EPF_NONE,
-					(uint8_t*)&evt->m_tinfo->m_latency,
+					(uint8_t*)&evt->get_tinfo()->m_latency,
 					8,
 					0,
 					ppm_print_format::PF_DEC);
@@ -733,7 +733,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			m_u64val = 0;
 
-			if(evt->m_tinfo != NULL)
+			if(evt->get_tinfo() != NULL)
 			{
 				ppm_event_category ecat = evt->get_category();
 				if(ecat & EC_INTERNAL)
@@ -741,7 +741,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					return NULL;
 				}
 
-				uint64_t lat = evt->m_tinfo->m_latency;
+				uint64_t lat = evt->get_tinfo()->m_latency;
 
 				if(m_field_id == TYPE_LATENCY_S)
 				{
@@ -757,7 +757,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 	case TYPE_LATENCY_QUANTIZED:
 		{
-			if(evt->m_tinfo != NULL)
+			if(evt->get_tinfo() != NULL)
 			{
 				ppm_event_category ecat = evt->get_category();
 				if(ecat & EC_INTERNAL)
@@ -765,7 +765,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					return NULL;
 				}
 
-				uint64_t lat = evt->m_tinfo->m_latency;
+				uint64_t lat = evt->get_tinfo()->m_latency;
 				if(lat != 0)
 				{
 					double llatency = log10((double)lat);
@@ -818,7 +818,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			char timebuffer[100];
 			m_strstorage = "";
-			switch(m_inspector->m_output_time_flag)
+			switch(m_inspector->get_time_output_mode())
 			{
 				case 'h':
 					sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, false, true);
@@ -839,9 +839,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 				case 'd':
 				{
-					if(evt->m_tinfo != NULL)
+					if(evt->get_tinfo() != NULL)
 					{
-						long long unsigned lat = evt->m_tinfo->m_latency;
+						long long unsigned lat = evt->get_tinfo()->m_latency;
 
 						m_strstorage += to_string(lat / 1000000000);
 						m_strstorage += ".";
@@ -887,7 +887,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_TYPE:
 		{
 			uint8_t* evname;
-			uint16_t etype = evt->m_pevt->type;
+			uint16_t etype = evt->get_scap_evt()->type;
 
 			if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 			{
@@ -926,7 +926,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		break;
 	case TYPE_TYPE_IS:
 		{
-			uint16_t etype = evt->m_pevt->type;
+			uint16_t etype = evt->get_scap_evt()->type;
 
 			if(etype == m_evtid || etype == m_evtid1)
 			{
@@ -943,7 +943,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_SYSCALL_TYPE:
 		{
 			uint8_t* evname;
-			ppm_event_code etype = (ppm_event_code)evt->m_pevt->type;
+			ppm_event_code etype = (ppm_event_code)evt->get_scap_evt()->type;
 			if(!libsinsp::events::is_syscall_event(etype))
 			{
 				return NULL;
@@ -1074,7 +1074,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_CPU:
-		RETURN_EXTRACT_VAR(evt->m_cpuid);
+		m_u16val = evt->get_cpuid();
+		RETURN_EXTRACT_VAR(m_u16val);
 	case TYPE_ARGRAW:
 		return extract_argraw(evt, len, m_arginfo->name);
 		break;
@@ -1111,10 +1112,10 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		break;
 	case TYPE_INFO:
 		{
-			if(m_inspector->m_parser->get_syslog_decoder().is_data_valid())
+			if(m_inspector->get_parser()->get_syslog_decoder().is_data_valid())
 			{
 				// syslog is actually the only info line we support up until now
-				m_strstorage = m_inspector->m_parser->get_syslog_decoder().get_info_line();
+				m_strstorage = m_inspector->get_parser()->get_syslog_decoder().get_info_line();
 				RETURN_EXTRACT_STRING(m_strstorage);
 			}
 		}
@@ -1172,12 +1173,12 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			const char* resolved_argstr;
 			const char* argstr;
 			argstr = evt->get_param_value_str("data", &resolved_argstr, m_inspector->get_buffer_format());
-			*len = evt->m_rawbuf_str_len;
+			*len = evt->get_rawbuf_str_len();
 
 			return (uint8_t*)argstr;
 		}
 	case TYPE_BUFLEN:
-		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		if(evt->get_fd_info() && evt->get_category() & EC_IO_BASE)
 		{
 			return extract_buflen(evt, len);
 		}
@@ -1379,13 +1380,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_WAIT_LATENCY:
 		{
 			ppm_event_flags eflags = evt->get_info_flags();
-			uint16_t etype = evt->m_pevt->type;
+			uint16_t etype = evt->get_scap_evt()->type;
 
 			if(eflags & (EF_WAITS) && PPME_IS_EXIT(etype))
 			{
-				if(evt->m_tinfo != NULL)
+				if(evt->get_tinfo() != NULL)
 				{
-					m_u64val = evt->m_tinfo->m_latency;
+					m_u64val = evt->get_tinfo()->m_latency;
 				}
 				else
 				{
@@ -1406,7 +1407,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
-				sinsp_fdinfo* fdinfo = evt->m_fdinfo;
+				sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 				if(fdinfo != NULL && fdinfo->is_syslog())
 				{
@@ -1423,7 +1424,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		return extract_error_count(evt, len);
 	case TYPE_COUNT_ERROR_FILE:
 		{
-			sinsp_fdinfo* fdinfo = evt->m_fdinfo;
+			sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 			if(fdinfo != NULL)
 			{
@@ -1453,7 +1454,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 	case TYPE_COUNT_ERROR_NET:
 		{
-			sinsp_fdinfo* fdinfo = evt->m_fdinfo;
+			sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 			if(fdinfo != NULL)
 			{
@@ -1496,7 +1497,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 	case TYPE_COUNT_ERROR_OTHER:
 		{
-			sinsp_fdinfo* fdinfo = evt->m_fdinfo;
+			sinsp_fdinfo* fdinfo = evt->get_fd_info();
 
 			if(fdinfo != NULL)
 			{
@@ -1578,23 +1579,23 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_ABSPATH:
 		return extract_abspath(evt, len);
 	case TYPE_BUFLEN_IN:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		if(evt->get_fd_info() && evt->get_category() == EC_IO_READ)
 		{
 			return extract_buflen(evt, len);
 		}
 
 		break;
 	case TYPE_BUFLEN_OUT:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		if(evt->get_fd_info() && evt->get_category() == EC_IO_WRITE)
 		{
 			return extract_buflen(evt, len);
 		}
 
 		break;
 	case TYPE_BUFLEN_FILE:
-		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		if(evt->get_fd_info() && evt->get_category() & EC_IO_BASE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
+			if(evt->get_fd_info()->m_type == SCAP_FD_FILE || evt->get_fd_info()->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt, len);
 			}
@@ -1602,9 +1603,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_FILE_IN:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		if(evt->get_fd_info() && evt->get_category() == EC_IO_READ)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
+			if(evt->get_fd_info()->m_type == SCAP_FD_FILE || evt->get_fd_info()->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt, len);
 			}
@@ -1612,9 +1613,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_FILE_OUT:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		if(evt->get_fd_info() && evt->get_category() == EC_IO_WRITE)
 		{
-			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
+			if(evt->get_fd_info()->m_type == SCAP_FD_FILE || evt->get_fd_info()->m_type == SCAP_FD_FILE_V2)
 			{
 				return extract_buflen(evt, len);
 			}
@@ -1622,9 +1623,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_NET:
-		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		if(evt->get_fd_info() && evt->get_category() & EC_IO_BASE)
 		{
-			scap_fd_type etype = evt->m_fdinfo->m_type;
+			scap_fd_type etype = evt->get_fd_info()->m_type;
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
@@ -1634,9 +1635,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_NET_IN:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		if(evt->get_fd_info() && evt->get_category() == EC_IO_READ)
 		{
-			scap_fd_type etype = evt->m_fdinfo->m_type;
+			scap_fd_type etype = evt->get_fd_info()->m_type;
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
@@ -1646,9 +1647,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_NET_OUT:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		if(evt->get_fd_info() && evt->get_category() == EC_IO_WRITE)
 		{
-			scap_fd_type etype = evt->m_fdinfo->m_type;
+			scap_fd_type etype = evt->get_fd_info()->m_type;
 
 			if(etype >= SCAP_FD_IPV4_SOCK && etype <= SCAP_FD_IPV6_SERVSOCK)
 			{
@@ -1736,7 +1737,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_INFRA_DOCKER_CONTAINER_NAME:
 	case TYPE_INFRA_DOCKER_CONTAINER_IMAGE:
 		{
-			uint16_t etype = evt->m_pevt->type;
+			uint16_t etype = evt->get_scap_evt()->type;
 
 			if(etype == PPME_INFRASTRUCTURE_EVENT_E)
 			{

@@ -777,7 +777,7 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 	if (m_state && m_handle->api.event_to_string)
 	{
 		ss_plugin_event_input input;
-		input.evt = (const ss_plugin_event*) evt->m_pevt;
+		input.evt = (const ss_plugin_event*) evt->get_scap_evt();
 		input.evtnum = evt->get_num();
 		input.evtsrc = evt->get_source_name();
 		ret = str_from_alloc_charbuf(m_handle->api.event_to_string(m_state, &input));
@@ -863,7 +863,7 @@ bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin
 	}
 
 	ss_plugin_event_input ev;
-	ev.evt = (const ss_plugin_event*) evt->m_pevt;
+	ev.evt = (const ss_plugin_event*) evt->get_scap_evt();
 	ev.evtnum = evt->get_num();
 	ev.evtsrc = evt->get_source_name();
 
@@ -890,7 +890,7 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) const
 	}
 
 	ss_plugin_event_input ev;
-	ev.evt = (const ss_plugin_event*) evt->m_pevt;
+	ev.evt = (const ss_plugin_event*) evt->get_scap_evt();
 	ev.evtnum = evt->get_num();
 	ev.evtsrc = evt->get_source_name();
 
@@ -963,12 +963,12 @@ ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const
 	try
 	{
 		auto evt = std::unique_ptr<sinsp_evt>(new sinsp_evt());
-		ASSERT(evt->m_pevt_storage == nullptr);
-		evt->m_pevt_storage = new char[e->len];
-		memcpy(evt->m_pevt_storage, e, e->len);
-		evt->m_cpuid = 0;
-		evt->m_evtnum = 0;
-		evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+		ASSERT(evt->get_scap_evt_storage() == nullptr);
+		evt->set_scap_evt_storage(new char[e->len]);
+		memcpy(evt->get_scap_evt_storage(), e, e->len);
+		evt->set_cpuid(0);
+		evt->set_num(0);
+		evt->set_scap_evt((scap_evt *) evt->get_scap_evt_storage());
 		evt->init();
 		// note: plugin ID and timestamp will be set by the inspector
 		(*handler)(*p, std::move(evt));

@@ -57,15 +57,15 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 	if(m_last_flush_time_ns == 0)
 	{
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts - m_inspector->m_containers_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS;
+		m_last_flush_time_ns = m_inspector->get_lastevent_ts() - m_inspector->m_containers_purging_scan_time_ns + 30 * ONE_SECOND_IN_NS;
 	}
 
-	if(m_inspector->m_lastevent_ts >
+	if(m_inspector->get_lastevent_ts() >
 		m_last_flush_time_ns + m_inspector->m_containers_purging_scan_time_ns)
 	{
 		res = true;
 
-		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
+		m_last_flush_time_ns = m_inspector->get_lastevent_ts();
 
 		libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Flushing container table");
 
@@ -82,22 +82,22 @@ bool sinsp_container_manager::remove_inactive_containers()
 		});
 
 		auto containers = m_containers.lock();
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_missing_container_images = 0;
+			m_inspector->get_sinsp_stats_v2()->m_n_missing_container_images = 0;
 			// Will include pod sanboxes, but that's ok
-			m_inspector->m_sinsp_stats_v2->m_n_containers = containers->size();
+			m_inspector->get_sinsp_stats_v2()->m_n_containers = containers->size();
 		}
 		for(auto it = containers->begin(); it != containers->end();)
 		{
 			sinsp_container_info::ptr_t container = it->second;
-			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+			if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 			{
 				auto container_info = container.get();
 				if (!container_info || (container_info && !container_info->m_is_pod_sandbox && container_info->m_image.empty()))
 				{
 					// Only count missing container images and exclude sandboxes
-					m_inspector->m_sinsp_stats_v2->m_n_missing_container_images++;
+					m_inspector->get_sinsp_stats_v2()->m_n_missing_container_images++;
 				}
 			}
 			if(containers_in_use.find(it->first) == containers_in_use.end())
@@ -265,15 +265,15 @@ bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, 
 {
 	size_t totlen = sizeof(scap_evt) + sizeof(uint32_t) + json.length() + 1;
 
-	ASSERT(evt->m_pevt_storage == nullptr);
-	evt->m_pevt_storage = new char[totlen];
-	evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+	ASSERT(evt->get_scap_evt_storage() == nullptr);
+	evt->set_scap_evt_storage(new char[totlen]);
+	evt->set_scap_evt((scap_evt *) evt->get_scap_evt_storage());
 
-	evt->m_cpuid = 0;
-	evt->m_evtnum = 0;
-	evt->m_inspector = m_inspector;
+	evt->set_cpuid(0);
+	evt->set_num(0);
+	evt->set_inspector(m_inspector);
 
-	scap_evt* scapevt = evt->m_pevt;
+	scap_evt* scapevt = evt->get_scap_evt();
 	scapevt->ts = (uint64_t) - 1;
 	scapevt->tid = -1;
 	scapevt->len = (uint32_t)totlen;
@@ -287,8 +287,8 @@ bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, 
 	memcpy(valptr, json.c_str(), *lens);
 
 	evt->init();
-	evt->m_tinfo_ref = tinfo;
-	evt->m_tinfo = tinfo.get();
+	evt->set_tinfo_ref(tinfo);
+	evt->set_tinfo(tinfo.get());
 
 	return true;
 }
@@ -394,7 +394,7 @@ void sinsp_container_manager::dump_containers(sinsp_dumper& dumper)
 		sinsp_evt evt;
 		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
 		{
-			evt.m_pevt->ts = m_inspector->get_new_ts();
+			evt.get_scap_evt()->ts = m_inspector->get_new_ts();
 			dumper.dump(&evt);
 		}
 	}

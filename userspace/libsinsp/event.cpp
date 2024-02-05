@@ -71,7 +71,6 @@ extern sinsp_evttables g_infotables;
 sinsp_evt::sinsp_evt() :
 		m_inspector(NULL),
 		m_pevt(NULL),
-		m_poriginal_evt(NULL),
 		m_pevt_storage(NULL),
 		m_cpuid(0),
 		m_evtnum(0),
@@ -95,7 +94,6 @@ sinsp_evt::sinsp_evt() :
 sinsp_evt::sinsp_evt(sinsp *inspector) :
 		m_inspector(inspector),
 		m_pevt(NULL),
-		m_poriginal_evt(NULL),
 		m_pevt_storage(NULL),
 		m_cpuid(0),
 		m_evtnum(0),
@@ -1076,11 +1074,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 
 			ASSERT(m_inspector != NULL);
-			if(m_inspector->m_max_evt_output_len != 0 &&
-				blen > m_inspector->m_max_evt_output_len &&
+			if(m_inspector->get_max_evt_output_len() != 0 &&
+				blen > m_inspector->get_max_evt_output_len() &&
 				fmt == PF_NORMAL)
 			{
-				uint32_t real_len = std::min(blen, m_inspector->m_max_evt_output_len);
+				uint32_t real_len = std::min(blen, m_inspector->get_max_evt_output_len());
 
 				m_rawbuf_str_len = real_len;
 				if(real_len > 3)
@@ -1125,7 +1123,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				memcpy(&addr.m_ip, param->m_val + 1, sizeof(addr.m_ip));
 				memcpy(&addr.m_port, param->m_val + 5, sizeof(addr.m_port));
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
-				std::string straddr = ipv4serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+				std::string straddr = ipv4serveraddr_to_string(&addr, m_inspector->is_hostname_and_port_resolution_enabled());
 				snprintf(&m_paramstr_storage[0],
 					   	 m_paramstr_storage.size(),
 					   	 "%s",
@@ -1147,7 +1145,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				memcpy((uint8_t *) addr.m_ip.m_b, (uint8_t *) param->m_val + 1, sizeof(addr.m_ip.m_b));
 				memcpy(&addr.m_port, param->m_val + 17, sizeof(addr.m_port));
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
-				std::string straddr = ipv6serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+				std::string straddr = ipv6serveraddr_to_string(&addr, m_inspector->is_hostname_and_port_resolution_enabled());
 				snprintf(&m_paramstr_storage[0],
 					   	 m_paramstr_storage.size(),
 					   	 "%s",
@@ -1180,7 +1178,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				memcpy(&addr.m_fields.m_dip, param->m_val + 7, sizeof(uint32_t));
 				memcpy(&addr.m_fields.m_dport, param->m_val + 11, sizeof(uint16_t));
 				addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
-				std::string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+				std::string straddr = ipv4tuple_to_string(&addr, m_inspector->is_hostname_and_port_resolution_enabled());
 				snprintf(&m_paramstr_storage[0],
 					   	 m_paramstr_storage.size(),
 					   	 "%s",
@@ -1211,7 +1209,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					memcpy(&addr.m_fields.m_dip, dip, sizeof(uint32_t));
 					memcpy(&addr.m_fields.m_dport, param->m_val + 35, sizeof(uint16_t));
 					addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
-					std::string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
+					std::string straddr = ipv4tuple_to_string(&addr, m_inspector->is_hostname_and_port_resolution_enabled());
 
 					snprintf(&m_paramstr_storage[0],
 							 m_paramstr_storage.size(),
@@ -1233,9 +1231,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 								 m_paramstr_storage.size(),
 								 "%s:%s->%s:%s",
 								 srcstr,
-								 port_to_string(srcport, (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->m_hostname_and_port_resolution_enabled).c_str(),
+								 port_to_string(srcport, (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->is_hostname_and_port_resolution_enabled()).c_str(),
 								 dststr,
-								 port_to_string(dstport, (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->m_hostname_and_port_resolution_enabled).c_str());
+								 port_to_string(dstport, (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->is_hostname_and_port_resolution_enabled()).c_str());
 						break;
 					}
 				}
@@ -1957,7 +1955,7 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop) const
 
 	if(m_filtered_out)
 	{
-		if(m_inspector->m_isfatfile_enabled)
+		if(m_inspector->is_fatfile_enabled())
 		{
 			ppm_event_flags eflags = get_info_flags();
 
@@ -2047,7 +2045,6 @@ uint64_t sinsp_evt::get_lastevent_ts() const
 bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 {
 	dest.m_inspector = src.m_inspector;
-	dest.m_poriginal_evt = nullptr;
 
 	// tinfo
 	if (src.m_tinfo_ref && src.m_tinfo && src.m_tinfo_ref.get() != src.m_tinfo)
@@ -2079,8 +2076,8 @@ bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 
 	if (src.m_pevt != nullptr)
 	{
-		dest.m_pevt_storage = new char[src.m_pevt->len];
-		memcpy(dest.m_pevt_storage, src.m_pevt, src.m_pevt->len);
+		dest.m_pevt_storage = new char[src.get_scap_evt()->len];
+		memcpy(dest.m_pevt_storage, src.m_pevt, src.get_scap_evt()->len);
 		dest.m_pevt = (scap_evt *) dest.m_pevt_storage;
 	}
 	else

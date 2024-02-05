@@ -61,7 +61,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_no_children)
 	ASSERT_THREAD_INFO_FLAG(p5_t1_tid, PPM_CL_CLOSED, true);
 
 	/* p5_t1 should be in `m_tid_to_remove` */
-	ASSERT_EQ(m_inspector.m_tid_to_remove, p5_t1_tid);
+	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t1_tid);
 }
 
 TEST_F(sinsp_with_test_input, PROC_EXIT_reaper_0)
@@ -86,7 +86,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_reaper_0)
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
 
 	/* p5_t1 should be in `m_tid_to_remove` */
-	ASSERT_EQ(m_inspector.m_tid_to_remove, p5_t2_tid);
+	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
 TEST_F(sinsp_with_test_input, PROC_EXIT_negative_reaper)
@@ -109,7 +109,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_negative_reaper)
 	ASSERT_TRUE(p5_t2_tinfo);
 	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, -1);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
-	ASSERT_EQ(m_inspector.m_tid_to_remove, p5_t2_tid);
+	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
 TEST_F(sinsp_with_test_input, PROC_EXIT_already_dead_thread)
@@ -143,7 +143,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_already_dead_thread)
 	ASSERT_TRUE(p5_t2_tinfo);
 	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, -1);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
-	ASSERT_EQ(m_inspector.m_tid_to_remove, p5_t2_tid);
+	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
 TEST_F(sinsp_with_test_input, PROC_EXIT_positive_reaper)
@@ -166,7 +166,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_positive_reaper)
 	ASSERT_TRUE(p5_t2_tinfo);
 	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, 8000);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
-	ASSERT_EQ(m_inspector.m_tid_to_remove, p5_t2_tid);
+	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
 TEST_F(sinsp_with_test_input, PROC_EXIT_old_event_version)
@@ -186,7 +186,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_old_event_version)
 	ASSERT_TRUE(p5_t2_tinfo);
 	ASSERT_EQ(p5_t2_tinfo->m_reaper_tid, -1);
 	ASSERT_THREAD_INFO_FLAG(p5_t2_tid, PPM_CL_CLOSED, true);
-	ASSERT_EQ(m_inspector.m_tid_to_remove, p5_t2_tid);
+	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
 /*=============================== PROC EXIT EVENT ===========================*/

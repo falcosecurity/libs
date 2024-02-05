@@ -97,6 +97,7 @@ public:
 	uint64_t m_u64val;
 	int64_t m_s64val;
 	uint64_t m_tsdelta;
+	uint16_t m_u16val;
 	uint32_t m_u32val;
 	std::string m_strstorage;
 	std::string m_argname;

@@ -929,11 +929,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			m_tstr = "";
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->is_hostname_and_port_resolution_enabled());
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport, this->m_fdinfo->get_l4proto(), m_inspector->is_hostname_and_port_resolution_enabled());
 			}
 
 			RETURN_EXTRACT_STRING(m_tstr);
@@ -1023,11 +1023,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			m_tstr = "";
 			if(evt_type == SCAP_FD_IPV4_SOCK)
 			{
-				m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->is_hostname_and_port_resolution_enabled());
 			}
 			else if(evt_type == SCAP_FD_IPV6_SOCK)
 			{
-				m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+				m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->is_hostname_and_port_resolution_enabled());
 			}
 
 			RETURN_EXTRACT_STRING(m_tstr);
@@ -1202,7 +1202,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				}
 			}
 
-			m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
+			m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->is_hostname_and_port_resolution_enabled());
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		break;

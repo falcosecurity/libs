@@ -185,9 +185,9 @@ protected:
 		m_async_events.push_back(scap_event);
 
 		auto event = std::make_unique<sinsp_evt>();
-		event->m_pevt = scap_event;
-		event->m_cpuid = 0;
-		event->m_pevt->ts = ts;
+		event->set_scap_evt(scap_event);
+		event->set_cpuid(0);
+		event->get_scap_evt()->ts = ts;
 		m_inspector.handle_async_event(std::move(event));
 
 		return scap_event;
@@ -321,10 +321,10 @@ protected:
 	void remove_inactive_threads(uint64_t m_lastevent_ts, uint64_t thread_timeout)
 	{
 		/* We need to set these 2 variables to enable the remove_inactive_logic */
-		m_inspector.m_thread_manager->m_last_flush_time_ns = 1;
+		m_inspector.m_thread_manager->set_last_flush_time_ns(1);
 		m_inspector.m_threads_purging_scan_time_ns = 2;
 
-		m_inspector.m_lastevent_ts = m_lastevent_ts;
+		m_inspector.set_lastevent_ts(m_lastevent_ts);
 		m_inspector.m_thread_timeout_ns = thread_timeout;
 		m_inspector.remove_inactive_threads();
 	}

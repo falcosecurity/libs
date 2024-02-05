@@ -986,7 +986,7 @@ public:
 	inline void set_observer(sinsp_observer* observer) { m_observer = observer; }
 	inline sinsp_observer* get_observer() const { return m_observer; }
 
-	inline bool get_track_connection_status() const;
+	bool get_track_connection_status() const;
 	inline void set_track_connection_status(bool enabled);
 
 	/**
@@ -1254,7 +1254,7 @@ public:
 
 		bool operator()(const sinsp_evt& evt) const
 		{
-			return compare_evt_timestamps(evt.m_pevt->ts, ts);
+			return compare_evt_timestamps(evt.get_scap_evt()->ts, ts);
 		};
 	} m_async_events_checker;
 
@@ -1276,8 +1276,8 @@ public:
 		}
 		inline void move(sinsp_evt * evt)
 		{
-			evt->m_pevt = m_pevt;
-			evt->m_cpuid = m_cpuid;
+			evt->set_scap_evt(m_pevt);
+			evt->set_cpuid(m_cpuid);
 			evt->set_dump_flags(m_dump_flags);
 			clear();
 		}

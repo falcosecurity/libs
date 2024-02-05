@@ -178,7 +178,7 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_sport = fdi.m_sockinfo.m_ipv4info.m_fields.m_dport;
 				fdi.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 
-				fdi.m_name = ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+				fdi.m_name = ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 
 				fdi.set_role_server();
 			}
@@ -272,14 +272,14 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 		{
 			newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 		}
-		m_inspector->m_network_interfaces.update_fd(*(newfdi.get()));
-		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+		m_inspector->get_ifaddr_list().update_fd(*(newfdi.get()));
+		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
-		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
+		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo, m_inspector->is_hostname_and_port_resolution_enabled());
 
 		//
 		// We keep note of all the host bound server ports.
@@ -306,8 +306,8 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 			{
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			m_inspector->m_network_interfaces.update_fd((*(newfdi.get())));
-			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+			m_inspector->get_ifaddr_list().update_fd((*(newfdi.get())));
+			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 		else
 		{
@@ -320,14 +320,14 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 			{
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			newfdi->m_name = ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info, m_inspector->m_hostname_and_port_resolution_enabled);
+			newfdi->m_name = ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info, m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
 		copy_ipv6_address(newfdi->m_sockinfo.m_ipv6serverinfo.m_ip.m_b, fdi->info.ipv6serverinfo.ip);
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
-		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
+		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo, m_inspector->is_hostname_and_port_resolution_enabled());
 
 		//
 		// We keep note of all the host bound server ports.
@@ -410,16 +410,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 		tscapevt.len = sizeof(scap_evt);
 
 		sinsp_evt tevt = {};
-		tevt.m_pevt = &tscapevt;
-		tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-		tevt.m_cpuid = 0;
-		tevt.m_evtnum = 0;
-		tevt.m_inspector = m_inspector;
-		tevt.m_tinfo = this;
-		tevt.m_fdinfo_ref.reset();
-		tevt.m_fdinfo = addedfdi;
-		int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
-		tevt.m_tinfo->m_lastevent_fd = fdi->fd;
+		tevt.set_scap_evt(&tscapevt);
+		tevt.set_info(&(g_infotables.m_event_info[PPME_SYSCALL_READ_X]));
+		tevt.set_cpuid(0);
+		tevt.set_num(0);
+		tevt.set_inspector(m_inspector);
+		tevt.set_tinfo(this);
+		tevt.set_fdinfo_ref(nullptr);
+		tevt.set_fd_info(addedfdi);
+		int64_t tlefd = tevt.get_tinfo()->m_lastevent_fd;
+		tevt.get_tinfo()->m_lastevent_fd = fdi->fd;
 
 		if(m_inspector->m_filter->run(&tevt))
 		{
@@ -435,7 +435,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 			fdi->type = SCAP_FD_UNINITIALIZED;
 		}
 
-		tevt.m_tinfo->m_lastevent_fd = tlefd;
+		tevt.get_tinfo()->m_lastevent_fd = tlefd;
 		m_lastevent_data = NULL;
 	}
 }
@@ -466,7 +466,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	if(is_main_thread())
 	{
 		set_env(pi->env, pi->env_len);
-		set_cwd({pi->cwd});
+		update_cwd({pi->cwd});
 	}
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
@@ -926,7 +926,7 @@ std::string sinsp_threadinfo::get_cwd()
 	}
 }
 
-void sinsp_threadinfo::set_cwd(std::string_view cwd)
+void sinsp_threadinfo::update_cwd(std::string_view cwd)
 {
 	sinsp_threadinfo* tinfo = get_main_thread();
 
@@ -995,7 +995,7 @@ uint64_t sinsp_threadinfo::get_fd_opencount() const
 	{
 		return 0;
 	}
-	return main_thread->m_fdtable.size();
+	return main_thread->get_fdtable().size();
 }
 
 uint64_t sinsp_threadinfo::get_fd_limit()
@@ -1487,15 +1487,15 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 	   && threadinfo->m_pid != m_inspector->m_self_pid
 	)
 	{
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
 			// rate limit messages to avoid spamming the logs
-			if (m_inspector->m_sinsp_stats_v2->m_n_drops_full_threadtable % m_max_thread_table_size == 0)
+			if (m_inspector->get_sinsp_stats_v2()->m_n_drops_full_threadtable % m_max_thread_table_size == 0)
 			{
 				libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
 					threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
 			}
-			m_inspector->m_sinsp_stats_v2->m_n_drops_full_threadtable++;
+			m_inspector->get_sinsp_stats_v2()->m_n_drops_full_threadtable++;
 		}
 		return false;
 	}
@@ -1519,9 +1519,9 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 	tinfo_shared_ptr->compute_program_hash();
 	m_threadtable.put(std::move(tinfo_shared_ptr));
 
-	if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+	if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 	{
-		m_inspector->m_sinsp_stats_v2->m_n_added_threads++;
+		m_inspector->get_sinsp_stats_v2()->m_n_added_threads++;
 	}
 
 	return true;
@@ -1641,7 +1641,7 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 	erase_fd_params eparams;
 	eparams.m_remove_from_table = false;
 	eparams.m_tinfo = main_thread;
-	eparams.m_ts = m_inspector->m_lastevent_ts;
+	eparams.m_ts = m_inspector->get_lastevent_ts();
 
 	fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& fdinfo) {
 		eparams.m_fd = fd;
@@ -1654,7 +1654,7 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 		eparams.m_fdinfo = &fdinfo;
 
 		/* Here we are just calling the `on_erase` callback */
-		m_inspector->m_parser->erase_fd(&eparams);
+		m_inspector->get_parser()->erase_fd(&eparams);
 		return true;
 	});
 }
@@ -1667,9 +1667,9 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	if(thread_to_remove == nullptr)
 	{
 		// Extra m_inspector nullptr check
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_failed_thread_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_failed_thread_lookups++;
 		}
 		return;
 	}
@@ -1789,9 +1789,9 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	 * the cache just to be sure.
 	 */
 	m_last_tid = -1;
-	if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+	if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 	{
-		m_inspector->m_sinsp_stats_v2->m_n_removed_threads++;
+		m_inspector->get_sinsp_stats_v2()->m_n_removed_threads++;
 	}
 }
 
@@ -1920,7 +1920,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 						  tinfo.m_exepath.c_str(),
 						  args_iov, argscnt,
 						  envs_iov, envscnt,
-						  (tinfo.m_cwd == "" ? "/" : tinfo.m_cwd.c_str()),
+						  (tinfo.get_cwd() == "" ? "/" : tinfo.get_cwd().c_str()),
 						  cgroups_iov, cgroupscnt,
 						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
@@ -2033,7 +2033,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         // Certain code paths can lead to this point from scap_open() (incomplete example:
         // scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
         // defensive check here to protect both, callers of get_env and get_thread.
-        if (!m_inspector->m_h)
+        if (!m_inspector->get_scap_handle())
         {
             libsinsp_logger()->format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
                             PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
@@ -2134,9 +2134,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		thr = m_last_tinfo.lock();
 		if (thr)
 		{
-			if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+			if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 			{
-				m_inspector->m_sinsp_stats_v2->m_n_cached_thread_lookups++;
+				m_inspector->get_sinsp_stats_v2()->m_n_cached_thread_lookups++;
 			}
 			// This allows us to avoid performing an actual timestamp lookup
 			// for something that may not need to be precise
@@ -2152,9 +2152,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 
 	if(thr)
 	{
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_noncached_thread_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_noncached_thread_lookups++;
 		}
 		if(!lookup_only)
 		{
@@ -2167,9 +2167,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	}
 	else
 	{
-		if (m_inspector != nullptr && m_inspector->m_sinsp_stats_v2)
+		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
-			m_inspector->m_sinsp_stats_v2->m_n_failed_thread_lookups++;
+			m_inspector->get_sinsp_stats_v2()->m_n_failed_thread_lookups++;
 		}
 		return NULL;
 	}
