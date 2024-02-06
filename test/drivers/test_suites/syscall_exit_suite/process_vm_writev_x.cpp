@@ -57,6 +57,7 @@ TEST(SyscallExit, process_vm_writevX_success)
 
 	ASSERT_GT(pipe(pipe_fd), -1);
 
+	pid_t parent_pid = getpid();
 	pid_t child_pid = fork();
 
 	if(child_pid == 0)
@@ -73,10 +74,7 @@ TEST(SyscallExit, process_vm_writevX_success)
 		ssize_t read = syscall(__NR_read, pipe_fd[0], &target, sizeof(void*));
 		ASSERT_GT(read, 0);
 
-		read = syscall(__NR_read, pipe_fd[0], (void*)&child_pid, sizeof(pid_t));
-		ASSERT_GT(read, 0);
-
-		read = syscall(__NR_process_vm_writev, child_pid, local, 1, target, 1, 0);
+		read = syscall(__NR_process_vm_writev, parent_pid, local, 1, target, 1, 0);
 		assert_syscall_state(SYSCALL_SUCCESS, "process_vm_writev", read, NOT_EQUAL, 0);
 
 		close(pipe_fd[0]);
@@ -95,9 +93,6 @@ TEST(SyscallExit, process_vm_writevX_success)
 		close(pipe_fd[0]);
 
 		ssize_t res = write(pipe_fd[1], &target, sizeof(void*));
-		ASSERT_GT(res, 0);
-
-		res = write(pipe_fd[1], (void*)&child_pid, sizeof(pid_t));
 		ASSERT_GT(res, 0);
 
 		close(pipe_fd[1]);
@@ -127,7 +122,7 @@ TEST(SyscallExit, process_vm_writevX_success)
 	evt_test->assert_numeric_param(1, (int64_t)10);
 
 	/* Parameter 2: pid (type: PT_PID) */
-	evt_test->assert_numeric_param(2, (int64_t)child_pid);
+	evt_test->assert_numeric_param(2, (int64_t)parent_pid);
 
 	/* Parameter 3: data (type: PT_BYTEBUF) */
 	evt_test->assert_charbuf_param(3, "QWERTYUIO");
