@@ -158,7 +158,7 @@ public:
 	void destroy();
 	std::string get_last_error() const;
 	std::string get_init_schema(ss_plugin_schema_type& schema_type) const;
-	void set_config(const std::string& config);
+	bool set_config(const std::string& config);
 
 	/** Event Sourcing **/
 	inline uint32_t id() const

@@ -693,7 +693,7 @@ TEST(sinsp_plugin, plugin_set_config)
 		ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
 	});
 
-	p->set_config("some config");
+	ASSERT_TRUE(p->set_config("some config"));
 
 	libsinsp_logger()->remove_callback_log();
 }

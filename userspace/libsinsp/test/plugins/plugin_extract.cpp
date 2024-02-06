@@ -162,10 +162,12 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
     return SS_PLUGIN_SUCCESS;
 }
 
-static void plugin_set_config(ss_plugin_t *s, const char* config)
+static ss_plugin_rc plugin_set_config(ss_plugin_t *s, const ss_plugin_set_config_input* i)
 {
     plugin_state *ps = (plugin_state *) s;
     ps->log(ps->owner, NULL, "new config!", SS_PLUGIN_LOG_SEV_INFO);
+
+    return SS_PLUGIN_SUCCESS;
 }
 
 void get_plugin_api_sample_plugin_extract(plugin_api& out)
