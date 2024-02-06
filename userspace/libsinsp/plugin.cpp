@@ -723,16 +723,15 @@ bool sinsp_plugin::set_config(const std::string& config)
 	std::string conf = config;
 	validate_config(conf);
 
-	ss_plugin_rc rc = SS_PLUGIN_FAILURE;
 	ss_plugin_set_config_input input;
 	input.config = conf.c_str();
 
-	if(m_handle->api.set_config)
+	if(!m_handle->api.set_config)
 	{
-		rc = m_handle->api.set_config(m_state, &input);
+		return false;
 	}
 
-	return rc == SS_PLUGIN_SUCCESS;
+	return m_handle->api.set_config(m_state, &input) == SS_PLUGIN_SUCCESS;
 }
 
 /** Event Source CAP **/
