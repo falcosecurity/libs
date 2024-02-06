@@ -715,13 +715,17 @@ void sinsp_plugin::validate_config_json_schema(std::string& config, std::string 
 
 void sinsp_plugin::set_config(const std::string& config)
 {
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
 	std::string conf = config;
 	validate_config(conf);
 
-	if(m_state && m_handle->api.set_config)
+	if(m_handle->api.set_config)
 	{
 		m_handle->api.set_config(m_state, conf.c_str());
-		m_state = NULL;
 	}
 }
 
