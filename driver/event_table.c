@@ -473,9 +473,9 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_NEWFSTATAT_E] = {"newfstatat", EC_FILE | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_NEWFSTATAT_X] = {"newfstatat", EC_FILE | EC_SYSCALL, EF_USES_FD, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, newfstatat_flags}}},
 	[PPME_SYSCALL_PROCESS_VM_READV_E] = {"process_vm_readv", EC_SYSCALL | EC_IPC, EF_NONE, 0},
-	[PPME_SYSCALL_PROCESS_VM_READV_X] = {"process_vm_readv", EC_SYSCALL | EC_IPC, EF_NONE, 4, {{"res", PT_INT64, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"size", PT_UINT32, PF_DEC}, {"data", PT_BYTEBUF, PF_NA}}},
+	[PPME_SYSCALL_PROCESS_VM_READV_X] = {"process_vm_readv", EC_SYSCALL | EC_IPC, EF_NONE, 3, {{"res", PT_INT64, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"data", PT_BYTEBUF, PF_NA}}},
 	[PPME_SYSCALL_PROCESS_VM_WRITEV_E] = {"process_vm_writev", EC_SYSCALL | EC_IPC, EF_NONE, 0},
-	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {"process_vm_writev", EC_SYSCALL | EC_IPC, EF_NONE, 4, {{"res", PT_INT64, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"size", PT_UINT32, PF_DEC}, {"data", PT_BYTEBUF, PF_NA}}},
+	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {"process_vm_writev", EC_SYSCALL | EC_IPC, EF_NONE, 3, {{"res", PT_INT64, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"data", PT_BYTEBUF, PF_NA}}},
 };
 #pragma GCC diagnostic pop
 
