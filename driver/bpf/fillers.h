@@ -7339,8 +7339,8 @@ FILLER(sys_process_vm_readv_x, true)
 	/* Parameter 3: data (type: PT_BYTEBUF) */
 	if (retval > 0)
 	{
-		iov = (const struct iovec __user *)bpf_syscall_get_argument(data, 3);
-		iovcnt = bpf_syscall_get_argument(data, 4);
+		iov = (const struct iovec __user *)bpf_syscall_get_argument(data, 1);
+		iovcnt = bpf_syscall_get_argument(data, 2);
 
 		res = bpf_parse_readv_writev_bufs(data,
 						iov,
