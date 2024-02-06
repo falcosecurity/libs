@@ -31,21 +31,18 @@ TEST(SyscallExit, process_vm_writevX_failure)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_INT32) */
+	/* Parameter 1: res (type: PT_INT64) */
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: pid (type: PT_PID) */
 	evt_test->assert_numeric_param(2, (int64_t)getpid());
 
-	/* Parameter 3: local_iov (type: PT_UINT64) */
-	evt_test->assert_numeric_param(3, (uint32_t)0);
-
-	/* Parameter 4: liovcnt (type: PT_UINT32)*/
-	evt_test->assert_empty_param(4);
+	/* Parameter 3: data (type: PT_BYTEBUF)*/
+	evt_test->assert_empty_param(3);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(3);
 }
 
 TEST(SyscallExit, process_vm_writevX_success)
@@ -125,20 +122,17 @@ TEST(SyscallExit, process_vm_writevX_success)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_INT32) */
+	/* Parameter 1: res (type: PT_INT64) */
 	evt_test->assert_numeric_param(1, (int64_t)10);
 
 	/* Parameter 2: pid (type: PT_PID) */
 	evt_test->assert_numeric_param(2, (int64_t)child_pid);
 
-	/* Parameter 4: liovcnt (type: PT_UINT32)*/
-	evt_test->assert_numeric_param(3, (uint32_t)10);
-
-	/* Parameter 3: local_iov (type: PT_UINT64) */
-	evt_test->assert_charbuf_param(4, "QWERTYUIO");
+	/* Parameter 3: data (type: PT_BYTEBUF) */
+	evt_test->assert_charbuf_param(3, "QWERTYUIO");
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif

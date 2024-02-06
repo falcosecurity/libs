@@ -8147,31 +8147,25 @@ int f_sys_process_vm_readv_x(struct event_filler_arguments *args)
 
 	if(retval > 0)
 	{
-		/* Parameter 4: remote_iov (type: PT_UINT64) */
+		/* We only get the source iov */
 		syscall_get_arguments_deprecated(args, 3, 1, &val);
-
-		/* Parameter 4: riovcnt (type: PT_INT32) */
 		syscall_get_arguments_deprecated(args, 4, 1, &iovcnt);
 
 	#ifdef CONFIG_COMPAT
 		if (unlikely(args->compat)) {
 			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
 		} else
 	#endif
 		{
 			const struct iovec __user *iov = (const struct iovec __user *)val;
-			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
 		}
 
 		CHECK_RES(res);
 	}
 	else
 	{
-		/* pushing a zero size */
-		res = val_to_ring(args, 0, 0, false, 0);
-		CHECK_RES(res);
-
 		/* pushing empty data */
 		res = push_empty_param(args);
 		CHECK_RES(res);
@@ -8202,31 +8196,25 @@ int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
 
 	if(retval > 0)
 	{
-		/* Parameter 4: remote_iov (type: PT_UINT64) */
+		/* We only get the source iov */
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
-
-		/* Parameter 4: riovcnt (type: PT_INT32) */
 		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
 	#ifdef CONFIG_COMPAT
 		if (unlikely(args->compat)) {
 			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
 		} else
 	#endif
 		{
 			const struct iovec __user *iov = (const struct iovec __user *)val;
-			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
 		}
 
 		CHECK_RES(res);
 	}
 	else
 	{
-		/* pushing a zero size */
-		res = val_to_ring(args, 0, 0, false, 0);
-		CHECK_RES(res);
-
 		/* pushing empty data */
 		res = push_empty_param(args);
 		CHECK_RES(res);

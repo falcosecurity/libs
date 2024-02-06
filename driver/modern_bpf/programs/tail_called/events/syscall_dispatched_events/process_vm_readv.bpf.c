@@ -55,7 +55,7 @@ int BPF_PROG(process_vm_readv_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_INT32) */
+	/* Parameter 1: res (type: PT_INT64) */
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: pid (type: PT_PID) */
@@ -64,9 +64,6 @@ int BPF_PROG(process_vm_readv_x,
 
 	if(ret > 0)
 	{
-		/* Parameter 2: size (type: PT_UINT32) */
-		auxmap__store_u32_param(auxmap, (uint32_t)ret);
-
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
@@ -80,14 +77,11 @@ int BPF_PROG(process_vm_readv_x,
 		unsigned long iov_pointer = extract__syscall_argument(regs, 3);
 		unsigned long iov_cnt = extract__syscall_argument(regs, 4);
 
-		//* Parameter 3: data (type: PT_BYTEBUF) */
+		/* Parameter 3: data (type: PT_BYTEBUF) */
 		auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, snaplen);
 	}
 	else
 	{
-		/* Parameter 2: size (type: PT_UINT32) */
-		auxmap__store_u32_param(auxmap, 0);
-
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		auxmap__store_empty_param(auxmap);
 	}
