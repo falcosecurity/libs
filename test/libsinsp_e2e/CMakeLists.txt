@@ -28,7 +28,7 @@ configure_file (
     "${CMAKE_CURRENT_BINARY_DIR}/libsinsp_test_var.h"
 )
 
-add_executable(tests
+add_executable(libsinsp_e2e_tests
     event_capture.cpp
     main.cpp
     subprocess.cpp
@@ -36,18 +36,18 @@ add_executable(tests
 )
 
 if(BUILD_BPF)
-    add_dependencies(tests driver bpf)
+    add_dependencies(libsinsp_e2e_tests driver bpf)
 else()
-    add_dependencies(tests driver)
+    add_dependencies(libsinsp_e2e_tests driver)
 endif()
 
-target_link_libraries(tests
+target_link_libraries(libsinsp_e2e_tests
     sinsp
     GTest::gtest
     pthread
 )
 
-target_include_directories(tests
+target_include_directories(libsinsp_e2e_tests
     PRIVATE
     ${PROJECT_BINARY_DIR}/driver/src
     "${CMAKE_CURRENT_BINARY_DIR}" # used to include `libsinsp_test_var.h`
@@ -80,7 +80,7 @@ if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
         install(
             PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/test_helper_32
             DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-            COMPONENT tests
+            COMPONENT libsinsp_e2e_tests
         )
     else()
         add_executable(test_helper_32 test_helper.cpp)
@@ -88,7 +88,7 @@ if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
         install(
             TARGETS test_helper_32
             DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-            COMPONENT tests
+            COMPONENT libsinsp_e2e_tests
         )
         target_link_libraries(test_helper_32 pthread)
     endif()
@@ -97,19 +97,19 @@ endif("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
 install(
     DIRECTORY
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test/captures
-    COMPONENT tests
+    COMPONENT libsinsp_e2e_tests
 )
 
 install(
     DIRECTORY
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test/resources/run
-    COMPONENT tests
+    COMPONENT libsinsp_e2e_tests
 )
 
 install(
     TARGETS test_helper vtidcollision
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test/
-    COMPONENT tests
+    COMPONENT libsinsp_e2e_tests
 )
 
 configure_file(
@@ -120,11 +120,11 @@ install(
     FILES test_helper.sh
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test/
     PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
-    COMPONENT tests
+    COMPONENT libsinsp_e2e_tests
 )
 
 install(
-    TARGETS tests
+    TARGETS libsinsp_e2e_tests
     DESTINATION ${CMAKE_INSTALL_PREFIX}/test/
-    COMPONENT tests
+    COMPONENT libsinsp_e2e_tests
 )
