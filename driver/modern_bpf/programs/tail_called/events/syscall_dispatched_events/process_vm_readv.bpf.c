@@ -74,8 +74,8 @@ int BPF_PROG(process_vm_readv_x,
 			snaplen = ret;
 		}
 
-		unsigned long iov_pointer = extract__syscall_argument(regs, 3);
-		unsigned long iov_cnt = extract__syscall_argument(regs, 4);
+		unsigned long iov_pointer = extract__syscall_argument(regs, 1);
+		unsigned long iov_cnt = extract__syscall_argument(regs, 2);
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, snaplen);

@@ -8147,9 +8147,9 @@ int f_sys_process_vm_readv_x(struct event_filler_arguments *args)
 
 	if(retval > 0)
 	{
-		/* We only get the source iov */
-		syscall_get_arguments_deprecated(args, 3, 1, &val);
-		syscall_get_arguments_deprecated(args, 4, 1, &iovcnt);
+		/* We only get the local iov */
+		syscall_get_arguments_deprecated(args, 1, 1, &val);
+		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
 	#ifdef CONFIG_COMPAT
 		if (unlikely(args->compat)) {
@@ -8196,7 +8196,7 @@ int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
 
 	if(retval > 0)
 	{
-		/* We only get the source iov */
+		/* We only get the local iov */
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
