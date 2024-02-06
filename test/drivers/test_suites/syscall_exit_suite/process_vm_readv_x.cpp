@@ -98,7 +98,9 @@ TEST(SyscallExit, process_vm_readvX_success)
 		assert_syscall_state(SYSCALL_SUCCESS, "process_vm_readv", read, NOT_EQUAL, 0);
 
 		close(pipe_fd[0]);
-		wait(NULL);
+
+		int wstatus;
+		waitpid(child_pid, &wstatus, 0);
 	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/

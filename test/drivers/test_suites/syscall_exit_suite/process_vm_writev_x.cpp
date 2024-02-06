@@ -102,7 +102,8 @@ TEST(SyscallExit, process_vm_writevX_success)
 
 		close(pipe_fd[1]);
 
-		wait(NULL);
+		int wstatus;
+		waitpid(child_pid, &wstatus, 0);
 	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
