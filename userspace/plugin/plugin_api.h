@@ -371,6 +371,14 @@ typedef struct ss_plugin_event_parse_input
 	ss_plugin_table_writer_vtable_ext* table_writer_ext;
 } ss_plugin_event_parse_input;
 
+// Input passed to the plugin when setting a new configuration
+typedef struct ss_plugin_set_config_input
+{
+	//
+	// An opaque string representing the new configuration provided by the framework
+	const char* config;
+} ss_plugin_set_config_input;
+
 //
 // Function handler used by plugin for sending asynchronous events to the
 // Falcosecurity libs during a live event capture. The asynchronous events
@@ -944,9 +952,12 @@ typedef struct
 	// Required: no
 	// Arguments:
 	// - s: the plugin state, returned by init(). Can be NULL.
-	// - config: the new configuration, as an opaque string.
+	// - i: configuration input provided by the framework.
 	//
-	void (*set_config)(ss_plugin_t* s, const char* config);
+	// Return value: A ss_plugin_rc with value SS_PLUGIN_SUCCESS if the config is accepted
+	// or SS_PLUGIN_FAILURE if the config is rejected.
+	// If rejected the plugin should provide context in the string returned by get_last_error().
+	ss_plugin_rc (*set_config)(ss_plugin_t* s, const ss_plugin_set_config_input* i);
 } plugin_api;
 
 #ifdef __cplusplus

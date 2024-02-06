@@ -713,7 +713,7 @@ void sinsp_plugin::validate_config_json_schema(std::string& config, std::string 
 	}
 }
 
-void sinsp_plugin::set_config(const std::string& config)
+bool sinsp_plugin::set_config(const std::string& config)
 {
 	if(!m_inited)
 	{
@@ -723,10 +723,16 @@ void sinsp_plugin::set_config(const std::string& config)
 	std::string conf = config;
 	validate_config(conf);
 
+	ss_plugin_rc rc = SS_PLUGIN_FAILURE;
+	ss_plugin_set_config_input input;
+	input.config = conf.c_str();
+
 	if(m_handle->api.set_config)
 	{
-		m_handle->api.set_config(m_state, conf.c_str());
+		rc = m_handle->api.set_config(m_state, &input);
 	}
+
+	return rc == SS_PLUGIN_SUCCESS;
 }
 
 /** Event Source CAP **/
