@@ -138,6 +138,7 @@ if(CREATE_TEST_TARGETS)
 	endif()
 
 	if(ENABLE_LIBSINSP_E2E_TESTS)
+		message(WARNING "LIBSINSP_E2E_TESTS are experimental!")
 		add_subdirectory(test/libsinsp_e2e)
 		add_subdirectory(test/libsinsp_e2e/resources)
 	endif()
