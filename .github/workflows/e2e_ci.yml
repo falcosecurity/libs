@@ -20,13 +20,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-        include:
-          - name: kmod
-            option: -k
-          - name: bpf
-            option: -b
-          - name: modern-bpf
-            option: -m
+        driver: [ {name: kmod, option: -k}, {name: bpf, option: -b}, {name: modern-bpf, option: -m} ]
       fail-fast: false
     steps:
       - name: Checkout Libs ⤵️
@@ -61,10 +55,10 @@ jobs:
           cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_LIBSINSP_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
           make -j6
 
-      - name: Run e2e tests with ${{ matrix.name }} 🏎️
+      - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         run: |
           cd build/test/libsinsp/
-          sudo ./libsinsp_e2e_tests ${{ matrix.option }}
+          sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }}
 
   build-drivers-s390x-ppc64le:
     name: build-drivers-${{ matrix.arch }} 😁 (system_deps)
@@ -72,13 +66,7 @@ jobs:
     strategy:
       matrix:
         arch: [s390x, ppc64le]
-        include:
-          - name: kmod
-            option: -k
-          - name: bpf
-            option: -b
-          - name: modern-bpf
-            option: -m
+        driver: [ {name: kmod, option: -k}, {name: bpf, option: -b}, {name: modern-bpf, option: -m} ]
       fail-fast: false
     env:
       PLATFORM: ${{ matrix.arch == 'ppc64le' && 'powerpc64le' || 's390x' }}
@@ -113,7 +101,7 @@ jobs:
             cd build && cmake -DBUILD_BPF=ON -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/${{env.PLATFORM}}-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DENABLE_LIBSINSP_TESTS=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j6
 
-      - name: Run e2e tests with ${{ matrix.name }} 🏎️
+      - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         run: |
           cd build/test/libsinsp/
-          sudo ./libsinsp_e2e_tests ${{ matrix.option }}
+          sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }}
