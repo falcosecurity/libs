@@ -21,6 +21,7 @@ limitations under the License.
 #include <sstream>
 
 #include <driver/ppm_events_public.h>
+#include <scap.h>
 
 #include "test_plugins.h"
 
@@ -139,27 +140,21 @@ static ss_plugin_rc plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t
 
     *nevts = 1;
     *evts = &istate->evt;
-    istate->evt->type = PPME_PLUGINEVENT_E;
+
+    char error[SCAP_LASTERR_SIZE];
+
+    int32_t encode_res = scap_event_encode_params(scap_sized_buffer{istate->evt, sizeof(istate->evt_buf)},
+        nullptr, error, PPME_PLUGINEVENT_E, 2,
+        plugin_get_id(), s_evt_data);
+
+    if (encode_res == SCAP_FAILURE)
+    {
+        return SS_PLUGIN_FAILURE;
+    }
+
     istate->evt->tid = -1;
     istate->evt->ts = UINT64_MAX;
-    istate->evt->len = sizeof(ss_plugin_event);
-    istate->evt->nparams = 2;
 
-    uint8_t* parambuf = &istate->evt_buf[0] + sizeof(ss_plugin_event);
-
-    // lenghts
-    *((uint32_t*) parambuf) = sizeof(uint32_t);
-    parambuf += sizeof(uint32_t);
-    *((uint32_t*) parambuf) = strlen(s_evt_data) + 1;
-    parambuf += sizeof(uint32_t);
-
-    // params
-    *((uint32_t*) parambuf) = plugin_get_id();
-    parambuf += sizeof(uint32_t);
-    strcpy((char*) parambuf, s_evt_data);
-    parambuf += strlen(s_evt_data) + 1;
-
-    istate->evt->len += parambuf - (&istate->evt_buf[0] + sizeof(ss_plugin_event));
     istate->count--;
     return SS_PLUGIN_SUCCESS;
 }

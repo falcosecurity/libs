@@ -23,6 +23,7 @@ limitations under the License.
 #include <atomic>
 
 #include <driver/ppm_events_public.h>
+#include <scap.h>
 
 #include "test_plugins.h"
 
@@ -124,35 +125,6 @@ static const char* plugin_get_last_error(ss_plugin_t* s)
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static void encode_async_event(ss_plugin_event* evt, uint64_t tid, const char* name, const char* data)
-{
-    // set event info
-    evt->type = PPME_ASYNCEVENT_E;
-    evt->tid = tid;
-    evt->len = sizeof(ss_plugin_event);
-    evt->nparams = 3;
-
-    // lenghts
-    uint8_t* parambuf = (uint8_t*) evt + sizeof(ss_plugin_event);
-    *((uint32_t*) parambuf) = sizeof(uint32_t);
-    parambuf += sizeof(uint32_t);
-    *((uint32_t*) parambuf) = strlen(name) + 1;
-    parambuf += sizeof(uint32_t);
-    *((uint32_t*) parambuf) = strlen(data) + 1;
-    parambuf += sizeof(uint32_t);
-
-    // params
-    // skip plugin ID, it will be filled by the framework
-    parambuf += sizeof(uint32_t);
-    strcpy((char*) parambuf, name);
-    parambuf += strlen(name) + 1;
-    strcpy((char*) parambuf, data);
-    parambuf += strlen(data) + 1;
-
-    // update event's len
-    evt->len += parambuf - ((uint8_t*) evt + sizeof(ss_plugin_event));
-}
-
 static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_owner_t* owner, const ss_plugin_async_event_handler_t handler)
 {
     plugin_state *ps = (plugin_state *) s;
@@ -179,7 +151,10 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
             for (uint64_t i = 0; i < ps->async_maxevts && ps->async_thread_run; i++)
             {
                 // attempt sending an event that is not in the allowed name list
-                encode_async_event(ps->async_evt, 1, "unsupportedname", data);
+                scap_event_encode_params(scap_sized_buffer{ps->async_evt, sizeof(ps->async_evt_buf)}, nullptr, err,
+                    PPME_ASYNCEVENT_E, 3, 0, "unsupportedname", scap_const_sized_buffer{data, strlen(data) + 1});
+                ps->async_evt->tid = 1;
+
                 if (SS_PLUGIN_SUCCESS == handler(owner, ps->async_evt, err))
                 {
                     printf("sample_syscall_async: unexpected success in sending unsupported asynchronous event from plugin\n");
@@ -189,7 +164,10 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
                 // send an event in the allowed name list
                 // note: we set a tid=1 to test that async events can have
                 // either an empty (-1) or a non-empty tid value
-                encode_async_event(ps->async_evt, 1, name, data);
+                scap_event_encode_params(scap_sized_buffer{ps->async_evt, sizeof(ps->async_evt_buf)}, nullptr, err,
+                    PPME_ASYNCEVENT_E, 3, 0, name, scap_const_sized_buffer{data, strlen(data) + 1});
+                ps->async_evt->tid = 1;
+
                 if (SS_PLUGIN_SUCCESS != handler(owner, ps->async_evt, err))
                 {
                     printf("sample_syscall_async: unexpected failure in sending asynchronous event from plugin: %s\n", err);
