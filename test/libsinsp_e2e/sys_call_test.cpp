@@ -1202,7 +1202,7 @@ TEST_F(sys_call_test, unshare_)
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
 		auto tinfo = evt->get_thread_info(true);
-		return tinfo->get_comm() == "tests" && (evt->get_type() == PPME_SYSCALL_UNSHARE_E ||
+		return tinfo->get_comm() == "libsinsp_e2e_te" && (evt->get_type() == PPME_SYSCALL_UNSHARE_E ||
 		                                        evt->get_type() == PPME_SYSCALL_UNSHARE_X);
 	};
 	run_callback_t test = [&](sinsp* inspector)
@@ -1211,7 +1211,8 @@ TEST_F(sys_call_test, unshare_)
 		if (child == 0)
 		{
 			unshare(CLONE_NEWUTS);
-			exit(0);
+			// _exit prevents asan from complaining for a false positive memory leak.
+			_exit(0);
 		}
 		waitpid(child, NULL, 0);
 	};
