@@ -57,7 +57,7 @@ jobs:
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         run: |
-          cd build/test/libsinsp/
+          cd build/test/libsinsp_e2e/
           sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }}
 
   build-drivers-s390x-ppc64le:
@@ -103,5 +103,5 @@ jobs:
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         run: |
-          cd build/test/libsinsp/
+          cd build/test/libsinsp_e2e/
           sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }}
