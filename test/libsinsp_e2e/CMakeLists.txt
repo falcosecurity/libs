@@ -67,22 +67,7 @@ execute_process(
 
 if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
     # Build 32-bit tests only for architectures where that is supported
-    if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-        # We're forced to use an explicit custom command with
-        # `scl enable devtoolset-2` as in CentOS-6 we're building with g++ from
-        # devtoolset-9 which lacks 32-bit support.
-        add_custom_command(
-            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test_helper_32
-            COMMAND g++ -std=c++11 -m32 -pthread -o ${CMAKE_CURRENT_BINARY_DIR}/test_helper_32 ${CMAKE_CURRENT_SOURCE_DIR}/test_helper.cpp
-            DEPENDS test_helper.cpp
-        )
-        add_custom_target(test_helper_32 ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/test_helper_32)
-        install(
-            PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/test_helper_32
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-            COMPONENT libsinsp_e2e_tests
-        )
-    else()
+    if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
         add_executable(test_helper_32 test_helper.cpp)
         set_target_properties(test_helper_32 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
         install(
