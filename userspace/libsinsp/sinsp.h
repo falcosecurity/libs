@@ -468,6 +468,7 @@ public:
 	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd state tables.
 
 	*/
+	std::shared_ptr<sinsp_stats_v2> get_sinsp_stats_v2();
 	std::shared_ptr<const sinsp_stats_v2> get_sinsp_stats_v2() const;
 
 	/*!

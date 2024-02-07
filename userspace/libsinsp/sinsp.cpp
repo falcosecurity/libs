@@ -1740,6 +1740,11 @@ const scap_agent_info* sinsp::get_agent_info() const
 	return m_agent_info;
 }
 
+std::shared_ptr<sinsp_stats_v2> sinsp::get_sinsp_stats_v2()
+{
+	return m_sinsp_stats_v2;
+}
+
 std::shared_ptr<const sinsp_stats_v2> sinsp::get_sinsp_stats_v2() const
 {
 	return m_sinsp_stats_v2;
