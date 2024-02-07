@@ -1021,7 +1021,7 @@ TEST_F(sys_call_test32, execve_ia32_emulation)
 			switch (callnum)
 			{
 			case 1:
-				EXPECT_EQ(tinfo->m_comm, "tests");
+				EXPECT_EQ(tinfo->m_comm, "libsinsp_e2e_te");
 				break;
 			case 3:
 				EXPECT_EQ(tinfo->m_comm, "sh");
