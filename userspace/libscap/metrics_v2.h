@@ -65,7 +65,7 @@ typedef enum metrics_v2_value_unit{
 	METRIC_VALUE_UNIT_MEMORY_BYTES,
 	METRIC_VALUE_UNIT_MEMORY_KILOBYTES,
 	METRIC_VALUE_UNIT_MEMORY_MEGABYTES,
-	METRIC_VALUE_UNIT_TIME_NS,
+	METRIC_VALUE_UNIT_DURATION_NS,
 }metrics_v2_value_unit;
 
 typedef enum metrics_v2_metric_type{
