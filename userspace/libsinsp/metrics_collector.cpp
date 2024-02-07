@@ -56,13 +56,14 @@ static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 };
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_value_unit
-static const char *const metrics_unit_name_mappings[] = {
-	[METRIC_VALUE_UNIT_COUNT] = "COUNT",
-	[METRIC_VALUE_UNIT_PERC] = "PERC",
-	[METRIC_VALUE_UNIT_MEMORY_BYTES] = "MEMORY_BYTES",
-	[METRIC_VALUE_UNIT_MEMORY_KILOBYTES] = "MEMORY_KILOBYTES",
-	[METRIC_VALUE_UNIT_MEMORY_MEGABYTES] = "MEMORY_MEGABYTES",
-	[METRIC_VALUE_UNIT_TIME_NS] = "TIME_NS",
+// https://prometheus.io/docs/practices/naming/
+static const char *const metrics_unit_name_mappings_prom[] = {
+	[METRIC_VALUE_UNIT_COUNT] = "total",
+	[METRIC_VALUE_UNIT_PERC] = "percentage",
+	[METRIC_VALUE_UNIT_MEMORY_BYTES] = "bytes",
+	[METRIC_VALUE_UNIT_MEMORY_KILOBYTES] = "kilobytes",
+	[METRIC_VALUE_UNIT_MEMORY_MEGABYTES] = "megabytes",
+	[METRIC_VALUE_UNIT_DURATION_NS] = "duration_nanoseconds",
 };
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_metric_type
@@ -457,49 +458,91 @@ void metrics_collector::snapshot()
 	}
 }
 
-std::string metrics_collector::convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric, std::map<std::string, std::string> custom_labels)
+std::string metrics_collector::convert_metric_to_prom_text(metrics_v2 metric, std::string_view prom_namespace, std::string_view prom_subsystem, std::map<std::string, std::string> const_labels)
 {
-	std::string prometheus_text(metric_name.begin(), metric_name.end());
-	prometheus_text += "{raw_name=\"" + std::string(metric.name)
-	+ "\",unit=\"" + std::string(metrics_unit_name_mappings[metric.unit])
-	+ "\",type=\"" + std::string(metrics_metric_type_name_mappings_prom[metric.metric_type])
-	+ "\"" ;
-	// add custom prom labels if applicable
-	for (const auto& [key, value] : custom_labels)
+	// Create `prom_metric_name_fully_qualified`
+	std::string prom_metric_name_fully_qualified;
+	if (!prom_namespace.empty())
 	{
-		prometheus_text += "," + key + "=\"" + value + "\"" ;
+		prom_metric_name_fully_qualified += std::string(prom_namespace) + "_";
 	}
-	prometheus_text += "} "; // white space at the end important!
+	if (!prom_subsystem.empty())
+	{
+		prom_metric_name_fully_qualified += std::string(prom_subsystem) + "_";
+	}
+	prom_metric_name_fully_qualified += std::string(metric.name) + "_";
+	prom_metric_name_fully_qualified += std::string(metrics_unit_name_mappings_prom[metric.unit]);
+
+	// Create the complete 3-lines text-based Prometheus exposition format https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
+	std::string prom_text = "# HELP " + prom_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
+	prom_text += "# TYPE " + prom_metric_name_fully_qualified + " " + std::string(metrics_metric_type_name_mappings_prom[metric.metric_type]) + "\n";
+	prom_text += prom_metric_name_fully_qualified;
+	prom_text += "{raw_name=\"" + std::string(metric.name) + "\"" ;
+	for (const auto& [key, value] : const_labels)
+	{
+		prom_text += "," + key + "=\"" + value + "\"" ;
+	}
+	prom_text += "} "; // white space at the end important!
 	switch (metric.type)
 	{
 	case METRIC_VALUE_TYPE_U32:
-		prometheus_text += std::to_string(metric.value.u32);
+		prom_text += std::to_string(metric.value.u32);
 		break;
 	case METRIC_VALUE_TYPE_S32:
-		prometheus_text += std::to_string(metric.value.s32);
+		prom_text += std::to_string(metric.value.s32);
 		break;
 	case METRIC_VALUE_TYPE_U64:
-		prometheus_text += std::to_string(metric.value.u64);
+		prom_text += std::to_string(metric.value.u64);
 		break;
 	case METRIC_VALUE_TYPE_S64:
-		prometheus_text += std::to_string(metric.value.s64);
+		prom_text += std::to_string(metric.value.s64);
 		break;
 	case METRIC_VALUE_TYPE_D:
-		prometheus_text += std::to_string(metric.value.d);
+		prom_text += std::to_string(metric.value.d);
 		break;
 	case METRIC_VALUE_TYPE_F:
-		prometheus_text += std::to_string(metric.value.f);
+		prom_text += std::to_string(metric.value.f);
 		break;
 	case METRIC_VALUE_TYPE_I:
-		prometheus_text += std::to_string(metric.value.i);
+		prom_text += std::to_string(metric.value.i);
 		break;
 	default:
 		break;
 	}
 
-	prometheus_text += " ";
-	prometheus_text += std::to_string(sinsp_utils::get_current_time_ns());
-	return prometheus_text;
+	prom_text += " ";
+	prom_text += std::to_string(sinsp_utils::get_current_time_ns());
+	prom_text += "\n";
+	return prom_text;
+}
+
+std::string metrics_collector::convert_metric_to_prom_text(std::string_view metric_name, std::string_view prom_namespace, std::string_view prom_subsystem, std::map<std::string, std::string> const_labels)
+{
+	// Create `prom_metric_name_fully_qualified`
+	std::string prom_metric_name_fully_qualified;
+	if (!prom_namespace.empty())
+	{
+		prom_metric_name_fully_qualified += std::string(prom_namespace) + "_";
+	}
+	if (!prom_subsystem.empty())
+	{
+		prom_metric_name_fully_qualified += std::string(prom_subsystem) + "_";
+	}
+	prom_metric_name_fully_qualified += std::string(metric_name) + "_info";
+
+	// Create the complete 3-lines text-based Prometheus exposition format https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
+	std::string prom_text = "# HELP " + prom_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
+	prom_text += "# TYPE " + prom_metric_name_fully_qualified + " untyped\n";
+	prom_text += prom_metric_name_fully_qualified;
+	prom_text += "{raw_name=\"" + std::string(metric_name) + "\"" ;
+	for (const auto& [key, value] : const_labels)
+	{
+		prom_text += "," + key + "=\"" + value + "\"" ;
+	}
+	prom_text += "} 1 "; // white space at the end important!
+	prom_text += std::to_string(sinsp_utils::get_current_time_ns());
+	prom_text += "\n";
+	return prom_text;
 }
 
 const std::vector<metrics_v2>& metrics_collector::get_metrics() const

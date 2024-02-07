@@ -99,24 +99,52 @@ public:
 	const std::vector<metrics_v2>& get_metrics() const;
 
 	/*!
-	\brief Method to convert a metric to the text-based Prometheus format.
+	\brief Method to convert a metric to the text-based Prometheus exposition format.
+	 * 	
 	 * Reference: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
 	 * Note: The design idea is to expose Prometheus metrics by piping text-based formats to new line-delimited fields
-	 * exposed at /metrics in Falco's existing HTTP webserver, eliminating the need for implementing a complete Prometheus client.
+	 * exposed at /metrics in Falco's existing HTTP webserver (w/ optional mTLS support), eliminating the need for implementing 
+	 * a complete Prometheus client.
 	 * 
 	 * We exclusively support counter and gauge Prometheus metric types, covering metrics from kernel driver tracepoints
 	 * to linsinsp and client metrics. Introducing a registry seems excessive, especially given the dynamic nature of the final
 	 * metric string names, such as variations in tracepoints across architectures.
-	 * There are no plans to include # HELP or # TYPE lines. Instead, we incorporate the Prometheus type as a label and direct
-	 * users to our documentation at:
-	 * https://falco.org/docs/metrics/falco-metrics/
+	 * Considering the simplistic use case, adding another dependency to the project does not seem justified. Furthermore, for C++ 
+	 * (compared to Go for example), there appear to be fewer formal client library projects available. Plus, we need to think 
+	 * about stability and long-term support before adding any new dependency.
 	 * 
-	 * Example
-	 * test.memory_used_host{raw_name="memory_used_host",unit="MEMORY_MEGABYTES",type="gauge",host="testbox",kernel="6.6.7-200.fc39.x86_64"} 15096.000000 1706490801547502000
+	 * The final fully qualified Prometheus metric name partially follows https://prometheus.io/docs/practices/naming/
+	 * Prepend namespace and subsystem with "_" delimiter to create a fully qualified metric name according to 
+	 * https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#Opts + append unit with "_" delimiter
+	 * We do not follow the concept of base_units, but guarantee no units are mixed per unique `prom_metric_name_fully_qualified`
+	 * 
+	 * Example:
+	 * 
+	 * # HELP testns_falco_n_threads_total https://falco.org/docs/metrics/
+	 * # TYPE testns_falco_n_threads_total gauge
+	 * testns_falco_n_threads_total{raw_name="n_threads",example_key1="example1",example_key2="example2"} 12 1707281978248705000
+	 * # HELP testns_falco_memory_rss_megabytes https://falco.org/docs/metrics/
+	 * # TYPE testns_falco_memory_rss_megabytes gauge
+	 * testns_falco_memory_rss_megabytes{raw_name="memory_rss",example_key1="example1",example_key2="example2"} 350.000000 1707281978248635000
 	 * 
 	 * This method is a work in progress.
 	*/
-	std::string convert_metric_to_prometheus_text(std::string_view metric_name, metrics_v2 metric, std::map<std::string, std::string> custom_labels = {});
+	std::string convert_metric_to_prom_text(metrics_v2 metric, std::string_view prom_namespace = "", std::string_view prom_subsystem = "", std::map<std::string,std::string> const_labels = {});
+
+	/*!
+	\brief Method to convert a software version like metric to the text-based Prometheus exposition format.
+	 * 
+	 * Note: Instead of using const_labels, which is a rare use case according to https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels, 
+	 * exposing an overload to support metrics similar to https://www.robustperception.io/exposing-the-software-version-to-prometheus/.
+	 * This approach is applicable to https://falco.org/docs/metrics/, such as Falco's "Base Fields" like falco.kernel_release and falco.version.
+	 *
+	 * Example:
+	 * 
+	 * # HELP testns_falco_kernel_release_info https://falco.org/docs/metrics/
+	 * # TYPE testns_falco_kernel_release_info untyped
+	 * testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1 1707286535681433000
+	 */
+	std::string convert_metric_to_prom_text(std::string_view metric_name, std::string_view prom_namespace = "", std::string_view prom_subsystem = "", std::map<std::string,std::string> const_labels = {});
 
 	/*!
 	\brief Method to convert memory units; tied to metrics_v2 definitions
@@ -155,16 +183,9 @@ public:
 		return 0;
 	}
 
-private:
-	sinsp* m_inspector;
-	uint32_t m_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS;
-	bool m_convert_memory_to_mb = true;
-	std::vector<metrics_v2> m_metrics;
-
-	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host);
-	void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, double &cpu_usage_perc_total_host, uint32_t &procs_running_host);
-	uint64_t get_container_memory_usage() const;
-
+	/*!
+	\brief Method to create a new metrics_v2
+	*/
 	template <typename T>
 	const metrics_v2 new_metric(const char* name, uint32_t flags, metrics_v2_value_type type, metrics_v2_value_unit unit, metrics_v2_metric_type metric_type, T val)
 	{
@@ -177,6 +198,16 @@ private:
 		set_new_metric(metric, type, val);
 		return metric;
 	}
+
+private:
+	sinsp* m_inspector;
+	uint32_t m_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS;
+	bool m_convert_memory_to_mb = true;
+	std::vector<metrics_v2> m_metrics;
+
+	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host);
+	void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, double &cpu_usage_perc_total_host, uint32_t &procs_running_host);
+	uint64_t get_container_memory_usage() const;
 
 	template <typename T>
 	static void set_new_metric(metrics_v2& metric, metrics_v2_value_type type, T val)

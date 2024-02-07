@@ -1833,13 +1833,13 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 				case RUN_TIME_NS:
 					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[offset].name));
 					stats[offset].value.u64 = info.run_time_ns;
-					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
+					stats[offset].unit = METRIC_VALUE_UNIT_DURATION_NS;
 					stats[offset].metric_type = METRIC_VALUE_MONOTONIC;
 					break;
 				case AVG_TIME_NS:
 					strlcat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name));
 					stats[offset].value.u64 = 0;
-					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
+					stats[offset].unit = METRIC_VALUE_UNIT_DURATION_NS;
 					stats[offset].metric_type = METRIC_VALUE_NON_MONOTONIC_CURRENT;
 					if (info.run_cnt > 0)
 					{
