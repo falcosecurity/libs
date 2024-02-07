@@ -263,8 +263,11 @@ cmake \
 -DCREATE_TEST_TARGETS=ON \
 -DENABLE_LIBSCAP_TESTS=ON \
 -DENABLE_DRIVERS_TESTS=ON \
+-DENABLE_LIBSINSP_E2E_TESTS=ON \
 -DENABLE_VM_TESTS=ON ../;
 ```
+
+> __NOTE:__ The `ENABLE_LIBSINSP_E2E_TESTS` flag enables the new e2e tests for libsinsp. Please keep in mind these tests are currently in heavy development and need some extra steps (see in the section below) to run correctly.
 
 > __TIP:__ Installing and using the package `ccache` can optimize repeated testing, but we don't offer official support or testing for it.
 
@@ -306,6 +309,16 @@ The tests mentioned below expand beyond the scope of "unit tests". In this conte
 - [test/vm](test/vm) - our CI includes comparable tests, but it employs a distinct framework. For current status reports on Falco drivers kernel testing, please visit this [page](https://falcosecurity.github.io/libs/).
 
 As mentioned earlier, The Falco Project's `libs` repository includes numerous CI-powered checks. For the most current information, please refer to the CI definitions under the [workflows](.github/workflows/) directory.
+
+### [EXPERIMENTAL] Run libsinsp e2e tests
+
+To correctly run the new libsinsp e2e tests on x86_64 `gcc-multilib` and `g++-multilib` are needed. To run the tests, use the following commands:
+
+```bash
+make -j$(($nproc-1)) libsinsp_e2e_tests;
+# Run each drivers test via changing flags
+sudo ./test/libsinsp_e2e/libsinsp_e2e_tests -m;
+```
 
 </details>
 
