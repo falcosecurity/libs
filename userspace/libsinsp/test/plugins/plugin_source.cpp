@@ -145,7 +145,7 @@ static ss_plugin_rc plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t
 
     int32_t encode_res = scap_event_encode_params(scap_sized_buffer{istate->evt, sizeof(istate->evt_buf)},
         nullptr, error, PPME_PLUGINEVENT_E, 2,
-        plugin_get_id(), s_evt_data);
+        plugin_get_id(), scap_sized_buffer{(void*) s_evt_data, strlen(s_evt_data) + 1});
 
     if (encode_res == SCAP_FAILURE)
     {
