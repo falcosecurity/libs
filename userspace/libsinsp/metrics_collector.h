@@ -99,7 +99,7 @@ public:
 	const std::vector<metrics_v2>& get_metrics() const;
 
 	/*!
-	\brief Method to convert a metric to the text-based Prometheus exposition format.
+	\brief Method to convert a metrics_v2 metric to the text-based Prometheus exposition format.
 	 * 	
 	 * Reference: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
 	 * Note: The design idea is to expose Prometheus metrics by piping text-based formats to new line-delimited fields
@@ -116,35 +116,56 @@ public:
 	 * The final fully qualified Prometheus metric name partially follows https://prometheus.io/docs/practices/naming/
 	 * Prepend namespace and subsystem with "_" delimiter to create a fully qualified metric name according to 
 	 * https://pkg.go.dev/github.com/prometheus/client_golang/prometheus#Opts + append unit with "_" delimiter
-	 * We do not follow the concept of base_units, but guarantee no units are mixed per unique `prom_metric_name_fully_qualified`
+	 * We do not strictly follow and enforce the concept of base_units, but guarantee no units are mixed per unique 
+	 * `prometheus_metric_name_fully_qualified`
+	 * 
+	 * We are monitoring updates wrt https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md
 	 * 
 	 * Example:
 	 * 
 	 * # HELP testns_falco_n_threads_total https://falco.org/docs/metrics/
 	 * # TYPE testns_falco_n_threads_total gauge
-	 * testns_falco_n_threads_total{raw_name="n_threads",example_key1="example1",example_key2="example2"} 12 1707281978248705000
+	 * testns_falco_n_threads_total{raw_name="n_threads",example_key1="example1",example_key2="example2"} 12
 	 * # HELP testns_falco_memory_rss_megabytes https://falco.org/docs/metrics/
 	 * # TYPE testns_falco_memory_rss_megabytes gauge
-	 * testns_falco_memory_rss_megabytes{raw_name="memory_rss",example_key1="example1",example_key2="example2"} 350.000000 1707281978248635000
+	 * testns_falco_memory_rss_megabytes{raw_name="memory_rss",example_key1="example1",example_key2="example2"} 350.000000
 	 * 
 	 * This method is a work in progress.
+	 * 
+	 * @param metric metrics_v2 metric
+	 * @param prometheus_namespace first component of `prometheus_metric_name_fully_qualified` (optional)
+	 * @param prometheus_subsystem second component of `prometheus_metric_name_fully_qualified` (optional)
+	 * @param const_labels map of additional labels (rarely used for a metrics_v2 metric)
+	 * @return Complete new line delimited text-based Prometheus exposition format metric string 
+	 * w/ a `prometheus_metric_name_fully_qualified` - optional components prepended to and unit appended to. 
+	 * 3-lines including # HELP and # TYPE lines followed by the metric line, raw metric name always present as label.
 	*/
-	std::string convert_metric_to_prom_text(metrics_v2 metric, std::string_view prom_namespace = "", std::string_view prom_subsystem = "", std::map<std::string,std::string> const_labels = {});
+	std::string convert_metric_to_prometheus_text(metrics_v2 metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", std::map<std::string,std::string> const_labels = {});
 
 	/*!
-	\brief Method to convert a software version like metric to the text-based Prometheus exposition format.
+	\brief Method to convert a software version like metric_name to the text-based Prometheus exposition format.
 	 * 
-	 * Note: Instead of using const_labels, which is a rare use case according to https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels, 
+	 * Note: Instead of using const_labels, which is a rare use case according to 
+	 * https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels, 
 	 * exposing an overload to support metrics similar to https://www.robustperception.io/exposing-the-software-version-to-prometheus/.
-	 * This approach is applicable to https://falco.org/docs/metrics/, such as Falco's "Base Fields" like falco.kernel_release and falco.version.
+	 * This approach is applicable to https://falco.org/docs/metrics/, such as Falco's "Base Fields" like 
+	 * falco.kernel_release and falco.version.
 	 *
 	 * Example:
 	 * 
 	 * # HELP testns_falco_kernel_release_info https://falco.org/docs/metrics/
-	 * # TYPE testns_falco_kernel_release_info untyped
-	 * testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1 1707286535681433000
+	 * # TYPE testns_falco_kernel_release_info gauge
+	 * testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1
+	 * 
+	 * @param metric_name raw metric name
+	 * @param prometheus_namespace first component of `prometheus_metric_name_fully_qualified` (optional)
+	 * @param prometheus_subsystem second component of `prometheus_metric_name_fully_qualified` (optional)
+	 * @param const_labels map of additional labels (typically used in software version like metrics)
+	 * @return Complete new line delimited text-based Prometheus exposition format metric string 
+	 * w/ a `prometheus_metric_name_fully_qualified` - optional components prepended to and unit appended to. 
+	 * 3-lines including # HELP and # TYPE lines followed by the metric line, raw metric name always present as label.
 	 */
-	std::string convert_metric_to_prom_text(std::string_view metric_name, std::string_view prom_namespace = "", std::string_view prom_subsystem = "", std::map<std::string,std::string> const_labels = {});
+	std::string convert_metric_to_prometheus_text(std::string_view metric_name, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", std::map<std::string,std::string> const_labels = {});
 
 	/*!
 	\brief Method to convert memory units; tied to metrics_v2 definitions
@@ -158,7 +179,7 @@ public:
 		case METRIC_VALUE_UNIT_MEMORY_BYTES:
 			factor = 1;
 			break;
-		case METRIC_VALUE_UNIT_MEMORY_KILOBYTES:
+		case METRIC_VALUE_UNIT_MEMORY_KIBIBYTES:
 			factor = 1024.;
 			break;
 		case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
@@ -173,7 +194,7 @@ public:
 		{
 		case METRIC_VALUE_UNIT_MEMORY_BYTES:
 			return bytes_val;
-		case METRIC_VALUE_UNIT_MEMORY_KILOBYTES:
+		case METRIC_VALUE_UNIT_MEMORY_KIBIBYTES:
 			return std::round((bytes_val / 1024.) * 10.) / 10.; // round to 1 decimal
 		case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
 			return std::round((bytes_val / 1024. / 1024.) * 10.) / 10.; // round to 1 decimal

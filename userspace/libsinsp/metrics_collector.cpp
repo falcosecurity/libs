@@ -57,18 +57,19 @@ static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_value_unit
 // https://prometheus.io/docs/practices/naming/
-static const char *const metrics_unit_name_mappings_prom[] = {
+static const char *const metrics_unit_name_mappings_prometheus[] = {
 	[METRIC_VALUE_UNIT_COUNT] = "total",
 	[METRIC_VALUE_UNIT_PERC] = "percentage",
 	[METRIC_VALUE_UNIT_MEMORY_BYTES] = "bytes",
-	[METRIC_VALUE_UNIT_MEMORY_KILOBYTES] = "kilobytes",
+	[METRIC_VALUE_UNIT_MEMORY_KIBIBYTES] = "kibibytes",
 	[METRIC_VALUE_UNIT_MEMORY_MEGABYTES] = "megabytes",
 	[METRIC_VALUE_UNIT_DURATION_NS] = "duration_nanoseconds",
+	[METRIC_VALUE_UNIT_DURATION_S] = "duration_seconds",
 };
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_metric_type
 // https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-static const char *const metrics_metric_type_name_mappings_prom[] = {
+static const char *const metrics_metric_type_name_mappings_prometheus[] = {
 	[METRIC_VALUE_MONOTONIC] = "counter",
 	[METRIC_VALUE_NON_MONOTONIC_CURRENT] = "gauge",
 };
@@ -346,8 +347,8 @@ void metrics_collector::snapshot()
 		uint64_t memory_used_host{0}, open_fds_host{0};
 		double cpu_usage_perc{0.0}, cpu_usage_perc_total_host{0.0};
 		uint64_t container_memory_usage = get_container_memory_usage();
-		metrics_v2_value_unit rss_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES}, vsz_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES},
-		pss_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES}, memory_used_host_unit{METRIC_VALUE_UNIT_MEMORY_KILOBYTES}, container_memory_usage_unit{METRIC_VALUE_UNIT_MEMORY_BYTES};
+		metrics_v2_value_unit rss_unit{METRIC_VALUE_UNIT_MEMORY_KIBIBYTES}, vsz_unit{METRIC_VALUE_UNIT_MEMORY_KIBIBYTES},
+		pss_unit{METRIC_VALUE_UNIT_MEMORY_KIBIBYTES}, memory_used_host_unit{METRIC_VALUE_UNIT_MEMORY_KIBIBYTES}, container_memory_usage_unit{METRIC_VALUE_UNIT_MEMORY_BYTES};
 		metrics_v2_value_type rss_type{METRIC_VALUE_TYPE_U32}, vsz_type{METRIC_VALUE_TYPE_U32},
 		pss_type{METRIC_VALUE_TYPE_U32}, memory_used_host_type{METRIC_VALUE_TYPE_U32}, container_memory_usage_type{METRIC_VALUE_TYPE_U64};
 		get_cpu_usage_and_total_procs(agent_info->start_time, cpu_usage_perc, cpu_usage_perc_total_host, procs_running_host);
@@ -458,91 +459,87 @@ void metrics_collector::snapshot()
 	}
 }
 
-std::string metrics_collector::convert_metric_to_prom_text(metrics_v2 metric, std::string_view prom_namespace, std::string_view prom_subsystem, std::map<std::string, std::string> const_labels)
+std::string metrics_collector::convert_metric_to_prometheus_text(metrics_v2 metric, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, std::map<std::string, std::string> const_labels)
 {
-	// Create `prom_metric_name_fully_qualified`
-	std::string prom_metric_name_fully_qualified;
-	if (!prom_namespace.empty())
+	// Create `prometheus_metric_name_fully_qualified`
+	std::string prometheus_metric_name_fully_qualified;
+	if (!prometheus_namespace.empty())
 	{
-		prom_metric_name_fully_qualified += std::string(prom_namespace) + "_";
+		prometheus_metric_name_fully_qualified += std::string(prometheus_namespace) + "_";
 	}
-	if (!prom_subsystem.empty())
+	if (!prometheus_subsystem.empty())
 	{
-		prom_metric_name_fully_qualified += std::string(prom_subsystem) + "_";
+		prometheus_metric_name_fully_qualified += std::string(prometheus_subsystem) + "_";
 	}
-	prom_metric_name_fully_qualified += std::string(metric.name) + "_";
-	prom_metric_name_fully_qualified += std::string(metrics_unit_name_mappings_prom[metric.unit]);
+	prometheus_metric_name_fully_qualified += std::string(metric.name) + "_";
+	prometheus_metric_name_fully_qualified += std::string(metrics_unit_name_mappings_prometheus[metric.unit]);
 
 	// Create the complete 3-lines text-based Prometheus exposition format https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-	std::string prom_text = "# HELP " + prom_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
-	prom_text += "# TYPE " + prom_metric_name_fully_qualified + " " + std::string(metrics_metric_type_name_mappings_prom[metric.metric_type]) + "\n";
-	prom_text += prom_metric_name_fully_qualified;
-	prom_text += "{raw_name=\"" + std::string(metric.name) + "\"" ;
+	std::string prometheus_text = "# HELP " + prometheus_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
+	prometheus_text += "# TYPE " + prometheus_metric_name_fully_qualified + " " + std::string(metrics_metric_type_name_mappings_prometheus[metric.metric_type]) + "\n";
+	prometheus_text += prometheus_metric_name_fully_qualified;
+	prometheus_text += "{raw_name=\"" + std::string(metric.name) + "\"" ;
 	for (const auto& [key, value] : const_labels)
 	{
-		prom_text += "," + key + "=\"" + value + "\"" ;
+		prometheus_text += "," + key + "=\"" + value + "\"" ;
 	}
-	prom_text += "} "; // white space at the end important!
+	prometheus_text += "} "; // white space at the end important!
 	switch (metric.type)
 	{
 	case METRIC_VALUE_TYPE_U32:
-		prom_text += std::to_string(metric.value.u32);
+		prometheus_text += std::to_string(metric.value.u32);
 		break;
 	case METRIC_VALUE_TYPE_S32:
-		prom_text += std::to_string(metric.value.s32);
+		prometheus_text += std::to_string(metric.value.s32);
 		break;
 	case METRIC_VALUE_TYPE_U64:
-		prom_text += std::to_string(metric.value.u64);
+		prometheus_text += std::to_string(metric.value.u64);
 		break;
 	case METRIC_VALUE_TYPE_S64:
-		prom_text += std::to_string(metric.value.s64);
+		prometheus_text += std::to_string(metric.value.s64);
 		break;
 	case METRIC_VALUE_TYPE_D:
-		prom_text += std::to_string(metric.value.d);
+		prometheus_text += std::to_string(metric.value.d);
 		break;
 	case METRIC_VALUE_TYPE_F:
-		prom_text += std::to_string(metric.value.f);
+		prometheus_text += std::to_string(metric.value.f);
 		break;
 	case METRIC_VALUE_TYPE_I:
-		prom_text += std::to_string(metric.value.i);
+		prometheus_text += std::to_string(metric.value.i);
 		break;
 	default:
 		break;
 	}
 
-	prom_text += " ";
-	prom_text += std::to_string(sinsp_utils::get_current_time_ns());
-	prom_text += "\n";
-	return prom_text;
+	prometheus_text += "\n";
+	return prometheus_text;
 }
 
-std::string metrics_collector::convert_metric_to_prom_text(std::string_view metric_name, std::string_view prom_namespace, std::string_view prom_subsystem, std::map<std::string, std::string> const_labels)
+std::string metrics_collector::convert_metric_to_prometheus_text(std::string_view metric_name, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, std::map<std::string, std::string> const_labels)
 {
-	// Create `prom_metric_name_fully_qualified`
-	std::string prom_metric_name_fully_qualified;
-	if (!prom_namespace.empty())
+	// Create `prometheus_metric_name_fully_qualified`
+	std::string prometheus_metric_name_fully_qualified;
+	if (!prometheus_namespace.empty())
 	{
-		prom_metric_name_fully_qualified += std::string(prom_namespace) + "_";
+		prometheus_metric_name_fully_qualified += std::string(prometheus_namespace) + "_";
 	}
-	if (!prom_subsystem.empty())
+	if (!prometheus_subsystem.empty())
 	{
-		prom_metric_name_fully_qualified += std::string(prom_subsystem) + "_";
+		prometheus_metric_name_fully_qualified += std::string(prometheus_subsystem) + "_";
 	}
-	prom_metric_name_fully_qualified += std::string(metric_name) + "_info";
+	prometheus_metric_name_fully_qualified += std::string(metric_name) + "_info";
 
 	// Create the complete 3-lines text-based Prometheus exposition format https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-	std::string prom_text = "# HELP " + prom_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
-	prom_text += "# TYPE " + prom_metric_name_fully_qualified + " untyped\n";
-	prom_text += prom_metric_name_fully_qualified;
-	prom_text += "{raw_name=\"" + std::string(metric_name) + "\"" ;
+	std::string prometheus_text = "# HELP " + prometheus_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
+	prometheus_text += "# TYPE " + prometheus_metric_name_fully_qualified + " gauge\n";
+	prometheus_text += prometheus_metric_name_fully_qualified;
+	prometheus_text += "{raw_name=\"" + std::string(metric_name) + "\"" ;
 	for (const auto& [key, value] : const_labels)
 	{
-		prom_text += "," + key + "=\"" + value + "\"" ;
+		prometheus_text += "," + key + "=\"" + value + "\"" ;
 	}
-	prom_text += "} 1 "; // white space at the end important!
-	prom_text += std::to_string(sinsp_utils::get_current_time_ns());
-	prom_text += "\n";
-	return prom_text;
+	prometheus_text += "} 1\n";
+	return prometheus_text;
 }
 
 const std::vector<metrics_v2>& metrics_collector::get_metrics() const
