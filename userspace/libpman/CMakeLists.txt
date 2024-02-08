@@ -31,9 +31,8 @@ PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-    $<BUILD_INTERFACE:${LIBS_DIR}/driver>            # ppm_enum and tables
-    $<BUILD_INTERFACE:${LIBS_DIR}/userspace/libscap> # scap-stats struct
-    $<BUILD_INTERFACE:${LIBS_DIR}/driver/modern_bpf> # bpf-shared structs
+    $<BUILD_INTERFACE:${LIBS_DIR}>           # ppm_enum and tables
+    $<BUILD_INTERFACE:${LIBS_DIR}/userspace> # scap-stats struct
     ${ZLIB_INCLUDE}
     ${LIBBPF_INCLUDE}
     ${MODERN_BPF_SKEL_DIR}
