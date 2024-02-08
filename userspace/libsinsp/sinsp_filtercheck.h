@@ -268,7 +268,7 @@ protected:
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline std::vector<uint8_t>* filter_value(uint16_t i = 0) { return &m_val_storages[i]; }
 
-	char m_getpropertystr_storage[1024];
+	std::vector<char> m_getpropertystr_storage;
 	std::vector<std::vector<uint8_t>> m_val_storages;
 
 	std::vector<filter_value_t> m_vals;
