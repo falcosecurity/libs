@@ -56,6 +56,15 @@ jobs:
           make -j6
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
+        if: matrix.arch == 'amd64'
         run: |
           cd build/test/libsinsp_e2e/
           sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }}
+
+        # the actuated arm64 workers doesn't have the CONFIG_QFMT_V2 flag
+        # which is needed for the quotactl_ok test (cmd=QQUOTA_ON + id=QFMT_VFS_V0).
+      - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
+        if: matrix.arch == 'arm64'
+        run: |
+          cd build/test/libsinsp_e2e/
+          sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }} --gtest_filter=-sys_call_test.quotactl_ok
