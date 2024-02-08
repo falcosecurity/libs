@@ -23,6 +23,8 @@ limitations under the License.
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/value_parser.h>
 
+#define STR_STORAGE_SIZE	1024
+
 #ifndef _GNU_SOURCE
 //
 // Fallback implementation of memmem
@@ -861,10 +863,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				return NULL;
 			}
 
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(int8_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_INT16:
 			if(print_format == PF_OCT)
 			{
@@ -885,10 +888,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				return NULL;
 			}
 
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(int16_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_INT32:
 			if(print_format == PF_OCT)
 			{
@@ -909,10 +913,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				return NULL;
 			}
 
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(int32_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_INT64:
 		case PT_PID:
 		case PT_ERRNO:
@@ -939,10 +944,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				prfmt = (char*)"%" PRId64;
 			}
 
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(int64_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
 			if(print_format == PF_OCT)
@@ -964,10 +970,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				return NULL;
 			}
 
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(uint8_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_PORT: // This can be resolved in the future
 		case PT_UINT16:
 			if(print_format == PF_OCT)
@@ -989,10 +996,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				return NULL;
 			}
 
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(uint16_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_UINT32:
 			if(print_format == PF_OCT)
 			{
@@ -1013,10 +1021,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				return NULL;
 			}
 
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(uint32_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_UINT64:
 		case PT_RELTIME:
 		case PT_ABSTIME:
@@ -1042,11 +1051,12 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				ASSERT(false);
 				return NULL;
 			}
-
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 prfmt, *(uint64_t *)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_CHARBUF:
 		case PT_FSPATH:
 		case PT_FSRELPATH:
@@ -1060,10 +1070,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			}
 			else
 			{
-				auto copy_len = std::min(len, (uint32_t) sizeof(m_getpropertystr_storage));
-				memcpy(m_getpropertystr_storage, rawval, copy_len);
-				m_getpropertystr_storage[copy_len] = 0;
-				return m_getpropertystr_storage;
+				auto copy_len = std::min(len, (uint32_t) STR_STORAGE_SIZE);
+				m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+				memcpy(m_getpropertystr_storage.data(), rawval, copy_len);
+				m_getpropertystr_storage.data()[copy_len] = 0;
+				return m_getpropertystr_storage.data();
 			}
 		case PT_SOCKADDR:
 			ASSERT(false);
@@ -1081,14 +1092,15 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				return (char*)"false";
 			}
 		case PT_IPV4ADDR:
-			snprintf(m_getpropertystr_storage,
-						sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+						STR_STORAGE_SIZE,
 						"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
 						rawval[0],
 						rawval[1],
 						rawval[2],
 						rawval[3]);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_IPV6ADDR:
 		{
 			char address[INET6_ADDRSTRLEN];
@@ -1098,9 +1110,10 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				strlcpy(address, "<NA>", INET6_ADDRSTRLEN);
 			}
 
-			strlcpy(m_getpropertystr_storage, address, sizeof(m_getpropertystr_storage));
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			strlcpy(m_getpropertystr_storage.data(), address, STR_STORAGE_SIZE);
 
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		}
 	        case PT_IPADDR:
 			if(len == sizeof(struct in_addr))
@@ -1117,15 +1130,17 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			}
 
 		case PT_DOUBLE:
-			snprintf(m_getpropertystr_storage,
-					 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+					 STR_STORAGE_SIZE,
 					 "%.1lf", *(double*)rawval);
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		case PT_IPNET:
-			snprintf(m_getpropertystr_storage,
-				 sizeof(m_getpropertystr_storage),
+			m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+			snprintf(m_getpropertystr_storage.data(),
+				 STR_STORAGE_SIZE,
 				 "<IPNET>");
-			return m_getpropertystr_storage;
+			return m_getpropertystr_storage.data();
 		default:
 			ASSERT(false);
 			throw sinsp_exception("wrong param type " + std::to_string((long long) ptype));
@@ -1152,8 +1167,9 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 			res += rawval_to_string(val.ptr, m_field->m_type, m_field->m_print_format, val.len);
 		}
 		res += ")";
-		strlcpy(m_getpropertystr_storage, res.c_str(), sizeof(m_getpropertystr_storage));
-		return m_getpropertystr_storage;
+		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		strlcpy(m_getpropertystr_storage.data(), res.c_str(), STR_STORAGE_SIZE);
+		return m_getpropertystr_storage.data();
 	}
 	return rawval_to_string(m_extracted_values[0].ptr, m_field->m_type, m_field->m_print_format, m_extracted_values[0].len);
 }
