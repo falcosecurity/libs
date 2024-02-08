@@ -20,7 +20,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 
-#define STR_STORAGE_SIZE	1024
+#define STRPROPERTY_STORAGE_SIZE	1024
 
 using namespace std;
 
@@ -72,44 +72,44 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, b
 
 	if(val > (1024LL * 1024 * 1024 * 1024 * 1024))
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					pr_fmt, str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024 * 1024), 'P');
 	}
 	else if(val > (1024LL * 1024 * 1024 * 1024))
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					pr_fmt, str_len - 1, (val) / (1024LL * 1024 * 1024 * 1024), 'T');
 	}
 	else if(val > (1024LL * 1024 * 1024))
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					pr_fmt, str_len - 1, (val) / (1024LL * 1024 * 1024), 'G');
 	}
 	else if(val > (1024 * 1024))
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					pr_fmt, str_len - 1, (val) / (1024 * 1024), 'M');
 	}
 	else if(val > 1024)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					pr_fmt, str_len - 1, (val) / (1024), 'K');
 	}
 	else
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					pr_fmt, str_len, val, 0);
 	}
 
@@ -117,7 +117,7 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, b
 
 	if(len > str_len)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		memmove(m_getpropertystr_storage.data(),
 			m_getpropertystr_storage.data() + len - str_len,
 			str_len + 1); // include trailing \0
@@ -137,60 +137,60 @@ char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 {
 	if(val >= 3600 * ONE_SECOND_IN_NS)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%.2u:%.2u:%.2u", (unsigned int)(val / (3600 * ONE_SECOND_IN_NS)),
 					(unsigned int)((val / (60 * ONE_SECOND_IN_NS)) % 60 ),
 					(unsigned int)((val / ONE_SECOND_IN_NS) % 60));
 	}
 	else if(val >= 60 * ONE_SECOND_IN_NS)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%u:%u", (unsigned int)(val / (60 * ONE_SECOND_IN_NS)), (unsigned int)((val / ONE_SECOND_IN_NS) % 60));
 	}
 	else if(val >= ONE_SECOND_IN_NS)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%u.%02us", (unsigned int)(val / ONE_SECOND_IN_NS), (unsigned int)((val % ONE_SECOND_IN_NS) / 10000000));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%u.%02ums", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000)), (unsigned int)((val % ONE_MILLISECOND_IN_NS) / 10000));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 100000)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)));
 	}
 	else if(val >= ONE_SECOND_IN_NS / 1000000)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%u.%02uus", (unsigned int)(val / (ONE_SECOND_IN_NS / 1000000)), (unsigned int)((val % ONE_MICROSECOND_IN_NS) / 10));
 	}
 	else
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%uns", (unsigned int)val);
 	}
 
@@ -199,7 +199,7 @@ char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 	{
 		uint32_t padding_size = str_len - reslen;
 
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		memmove(m_getpropertystr_storage.data() + padding_size,
 			m_getpropertystr_storage.data(),
 			str_len + 1);
@@ -256,9 +256,9 @@ char* sinsp_filter_check_reference::print_double(uint8_t* rawval, uint32_t str_l
 
 	if(m_print_format == PF_ID)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%*lf", str_len, val);
 		return m_getpropertystr_storage.data();
 	}
@@ -312,9 +312,9 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 
 	if(m_print_format == PF_ID)
 	{
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%*" PRId64, str_len, val);
 		return m_getpropertystr_storage.data();
 	}
@@ -375,9 +375,9 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 			dval /= m_cnt;
 		}
 
-		m_getpropertystr_storage.resize(STR_STORAGE_SIZE);
+		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		snprintf(m_getpropertystr_storage.data(),
-					STR_STORAGE_SIZE,
+					STRPROPERTY_STORAGE_SIZE,
 					"%*.2lf", str_len, dval);
 		return m_getpropertystr_storage.data();
 	}
