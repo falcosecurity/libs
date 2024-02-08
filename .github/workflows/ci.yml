@@ -263,7 +263,7 @@ jobs:
           - name: system_deps_w_chisels
             cmake_opts: -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
           - name: asan
-            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address
+            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS="-fsanitize=address -fsanitize=undefined" -DCMAKE_CXX_FLAGS="-fsanitize=address -fsanitize=undefined"
     runs-on: ubuntu-22.04
     steps:
       - name: Install deps ⛓️
