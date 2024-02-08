@@ -141,12 +141,12 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 	/* Test public convert_memory method */
 	double converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_BYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)52428800);
 	ASSERT_EQ(converted_memory, 50);
-	converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_KILOBYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)51200);
+	converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_KIBIBYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)51200);
 	ASSERT_EQ(converted_memory, 50);
 	converted_memory = metrics_collector->convert_memory(METRIC_VALUE_UNIT_MEMORY_MEGABYTES, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, (uint64_t)50);
 	ASSERT_EQ(converted_memory, 50);
 
-	/* Test public convert_metric_to_prom_text */
+	/* Test public convert_metric_to_prometheus_text */
 
 	for (const auto& metric: metrics_snapshot)
 	{
@@ -155,57 +155,62 @@ TEST_F(sinsp_with_test_input, sinsp_metrics_collector)
 			// This resembles the Falco client use case
 
 			// Falco output_rule metrics prepends either `falco.` or `scap.` to a single metric, see https://falco.org/docs/metrics/
-			// Use same strings for `prom_subsystem`, but instead of `.` we use `_` delimiter to conform with Prometheus naming conventions + append the unit
-			std::string prometheus_text = metrics_collector->convert_metric_to_prom_text(metric, "testns", "falco", {{"example_key1", "example1"},{"example_key2", "example2"}});
+			// Use same strings for `prometheus_subsystem`, but instead of `.` we use `_` delimiter to conform with Prometheus naming conventions + append the unit
+			std::string prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric, "testns", "falco", {{"example_key1", "example1"},{"example_key2", "example2"}});
 			std::string prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
-testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1",example_key2="example2"} 0)";
+testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1",example_key2="example2"} 0
+)";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 			ASSERT_GT(prometheus_text.length(), 8);
 			// Test only one const_labels
-			prometheus_text = metrics_collector->convert_metric_to_prom_text(metric, "testns", "falco", {{"example_key1", "example1"}});
+			prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric, "testns", "falco", {{"example_key1", "example1"}});
 			prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
-testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1"} 0)";
+testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1"} 0
+)";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 			ASSERT_GT(prometheus_text.length(), 8);
 			// Test no const_labels
-			prometheus_text = metrics_collector->convert_metric_to_prom_text(metric, "testns", "falco");
+			prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric, "testns", "falco");
 			prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
-testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0)";
+testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
+)";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 			ASSERT_GT(prometheus_text.length(), 8);
-			// Test no prom_subsytem
-			prometheus_text = metrics_collector->convert_metric_to_prom_text(metric, "testns");
+			// Test no prometheus_subsytem
+			prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric, "testns");
 			prometheus_text_substring = R"(# HELP testns_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_n_missing_container_images_total gauge
-testns_n_missing_container_images_total{raw_name="n_missing_container_images"} 0)";
+testns_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
+)";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 			ASSERT_GT(prometheus_text.length(), 8);
-			// Test no prom_namespace
-			prometheus_text = metrics_collector->convert_metric_to_prom_text(metric);
+			// Test no prometheus_namespace
+			prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric);
 			prometheus_text_substring = R"(# HELP n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE n_missing_container_images_total gauge
-n_missing_container_images_total{raw_name="n_missing_container_images"} 0)";
+n_missing_container_images_total{raw_name="n_missing_container_images"} 0
+)";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 			ASSERT_GT(prometheus_text.length(), 8);
-			//  Test no prom_namespace, but prom_subsytem
-			prometheus_text = metrics_collector->convert_metric_to_prom_text(metric, "", "falco");
+			//  Test no prometheus_namespace, but prometheus_subsytem
+			prometheus_text = metrics_collector->convert_metric_to_prometheus_text(metric, "", "falco");
 			prometheus_text_substring = R"(# HELP falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE falco_n_missing_container_images_total gauge
-falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0)";
+falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
+)";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 			ASSERT_GT(prometheus_text.length(), 8);
-			
 		}
 	}
 
-	std::string prometheus_text = metrics_collector->convert_metric_to_prom_text("kernel_release", "testns", "falco", {{"kernel_release", "6.6.7-200.fc39.x86_64"}});
+	std::string prometheus_text = metrics_collector->convert_metric_to_prometheus_text("kernel_release", "testns", "falco", {{"kernel_release", "6.6.7-200.fc39.x86_64"}});
 	std::string prometheus_text_substring = R"(# HELP testns_falco_kernel_release_info https://falco.org/docs/metrics/
-# TYPE testns_falco_kernel_release_info untyped
-testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1)";
-	printf("%s", prometheus_text.c_str());
+# TYPE testns_falco_kernel_release_info gauge
+testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1
+)";
 	ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
 	ASSERT_GT(prometheus_text.length(), 8);
 }
