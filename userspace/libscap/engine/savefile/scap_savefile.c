@@ -811,8 +811,8 @@ static int32_t scap_read_iflist(scap_reader_t* r, uint32_t block_length, uint32_
 
 		if(block_type != IL_BLOCK_TYPE_V2)
 		{
-			iftype = *(uint16_t *)pif;
-			ifnamlen = *(uint16_t *)(pif + 2);
+			memcpy(&iftype, pif, sizeof(iftype));
+			memcpy(&ifnamlen, pif + 2, sizeof(ifnamlen));
 
 			if(iftype == SCAP_II_IPV4)
 			{
@@ -833,16 +833,16 @@ static int32_t scap_read_iflist(scap_reader_t* r, uint32_t block_length, uint32_
 			else
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
-				ASSERT(false);
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
 		}
 		else
 		{
-			entrysize = *(uint32_t *)pif + sizeof(uint32_t);
-			iftype = *(uint16_t *)(pif + 4);
-			ifnamlen = *(uint16_t *)(pif + 4 + 2);
+			memcpy(&entrysize, pif, sizeof(entrysize));
+			entrysize += sizeof(uint32_t);
+			memcpy(&iftype, pif + 4, sizeof(iftype));
+			memcpy(&ifnamlen, pif + 4 + 2, sizeof(ifnamlen));
 		}
 
 		if(toread < entrysize)
@@ -865,7 +865,6 @@ static int32_t scap_read_iflist(scap_reader_t* r, uint32_t block_length, uint32_
 		}
 		else
 		{
-			ASSERT(false);
 			snprintf(error, SCAP_LASTERR_SIZE, "unknown interface type %d", (int)iftype);
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
@@ -942,13 +941,13 @@ static int32_t scap_read_iflist(scap_reader_t* r, uint32_t block_length, uint32_
 
 		if(block_type == IL_BLOCK_TYPE_V2)
 		{
-			entrysize = *(uint32_t *)pif;
+			memcpy(&entrysize, pif, sizeof(entrysize));
 			totreadsize += sizeof(uint32_t);
 			pif += sizeof(uint32_t);
 		}
 
-		iftype = *(uint16_t *)pif;
-		ifnamlen = *(uint16_t *)(pif + 2);
+		memcpy(&iftype, pif, sizeof(iftype));
+		memcpy(&ifnamlen, pif + 2, sizeof(ifnamlen));
 
 		if(ifnamlen >= SCAP_MAX_PATH_SIZE)
 		{
@@ -1956,7 +1955,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 
 		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2 || bh.block_type == EVF_BLOCK_TYPE_V2_LARGE)
 		{
-			*pflags = *(uint32_t *)(handle->m_reader_evt_buf + sizeof(uint16_t));
+			memcpy(pflags, handle->m_reader_evt_buf + sizeof(uint16_t), sizeof(uint32_t));
 			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
 		}
 		else
