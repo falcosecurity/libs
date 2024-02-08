@@ -71,38 +71,12 @@ public:
 		TYPE_FDTYPES = 43,
 	};
 
-	enum fd_type
-	{
-		FDT_NONE,
-		FDT_FILE,
-		FDT_SOCK,
-		FDT_IPV4_SOCK,
-		FDT_IPV6_SOCK,
-		FDT_UNIX_SOCK,
-		FDT_PIPE,
-		FDT_EVENT,
-		FDT_SIGNALFD,
-		FDT_EVENTPOLL,
-		FDT_INOTIFY,
-		FDT_TIMERFD
-	};
-
 	sinsp_filter_check_fd();
+	virtual ~sinsp_filter_check_fd() = default;
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 	bool extract(sinsp_evt*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
-
-	sinsp_threadinfo* m_tinfo;
-	sinsp_fdinfo* m_fdinfo;
-	fd_type m_fd_type;
-	std::string m_tstr;
-	uint8_t m_tcstr[2];
-	uint32_t m_tbool;
-	int64_t m_argid;
-
-	/* Used in extract helper to save uint64_t data */
-	uint64_t m_conv_uint64;
 
 protected:
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
@@ -118,4 +92,14 @@ private:
 	bool compare_net(sinsp_evt *evt);
 	bool compare_port(sinsp_evt *evt);
 	bool compare_domain(sinsp_evt *evt);
+
+	sinsp_threadinfo* m_tinfo;
+	sinsp_fdinfo* m_fdinfo;
+	std::string m_tstr;
+	uint8_t m_tcstr[2];
+	uint32_t m_tbool;
+	int64_t m_argid;
+
+	/* Used in extract helper to save uint64_t data */
+	uint64_t m_conv_uint64;
 };

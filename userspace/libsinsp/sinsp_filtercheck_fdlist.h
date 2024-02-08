@@ -34,8 +34,11 @@ public:
 	};
 
 	sinsp_filter_check_fdlist();
+	virtual ~sinsp_filter_check_fdlist() = default;
 
 	sinsp_filter_check* allocate_new() override;
+
+protected:
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:

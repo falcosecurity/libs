@@ -30,6 +30,7 @@ public:
 	};
 
 	sinsp_filter_check_reference();
+	virtual ~sinsp_filter_check_reference() = default;
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;

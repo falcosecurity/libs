@@ -34,8 +34,11 @@ public:
 	};
 
 	sinsp_filter_check_fspath();
+	virtual ~sinsp_filter_check_fspath() = default;
 
 	sinsp_filter_check* allocate_new() override;
+
+protected:
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
@@ -56,7 +59,6 @@ private:
 			    OUT std::vector<extract_value_t>& values,
 			    std::shared_ptr<filtercheck_map_t> map);
 	std::string m_tstr;
-	sinsp_evt m_tmp_evt;
 
 	std::shared_ptr<filtercheck_map_t> m_success_checks;
 	std::shared_ptr<filtercheck_map_t> m_path_checks;

@@ -1550,7 +1550,6 @@ bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t
 
 bool sinsp_filter_check::compare(sinsp_evt* evt)
 {
-	m_hits++;
 	if(m_cache_metrics != NULL)
 	{
 		m_cache_metrics->m_num_eval++;
@@ -1575,23 +1574,11 @@ bool sinsp_filter_check::compare(sinsp_evt* evt)
 			}
 		}
 
-		if (m_eval_cache_entry->m_res)
-		{
-			m_matched_true++;
-		}
-		m_cached++;
-
 		return m_eval_cache_entry->m_res;
 	}
 	else
 	{
-		auto res = compare_nocache(evt);
-		if (res)
-		{
-			m_matched_true++;
-		}
-
-		return res;
+		return compare_nocache(evt);
 	}
 }
 

@@ -137,7 +137,6 @@ sinsp_filter_check_thread::sinsp_filter_check_thread()
 	m_info.m_flags = filter_check_info::FL_NONE;
 
 	m_u64val = 0;
-	m_cursec_ts = 0;
 }
 
 sinsp_filter_check* sinsp_filter_check_thread::allocate_new()

@@ -94,6 +94,19 @@ public:
 	size_t parse_filter_value(const char* str, uint32_t len, uint8_t* storage, uint32_t storage_len) override;
 	const filtercheck_field_info* get_field_info() const override;
 
+protected:
+	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
+	virtual uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	virtual bool compare_nocache(sinsp_evt*) override;
+
+private:
+	void validate_filter_value(const char* str, uint32_t len);
+	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
+	int32_t extract_type(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
+	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
+	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
+	inline uint8_t* extract_buflen(sinsp_evt *evt, OUT uint32_t* len);
+
 	uint64_t m_u64val;
 	int64_t m_s64val;
 	uint64_t m_tsdelta;
@@ -111,23 +124,6 @@ public:
 	// TYPE_RESARG, that need to do on the fly type customization
 	//
 	filtercheck_field_info m_customfield;
-
-protected:
-	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
-	virtual uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
-	virtual bool compare_nocache(sinsp_evt*) override;
-
-private:
-	void validate_filter_value(const char* str, uint32_t len);
-	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
-	int32_t extract_type(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
-	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
-	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
-	inline uint8_t* extract_buflen(sinsp_evt *evt, OUT uint32_t* len);
-
 	bool m_is_compare;
-	char* m_storage;
-	uint32_t m_storage_size;
-	const char* m_cargname;
 	sinsp_filter_check_reference* m_converter;
 };

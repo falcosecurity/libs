@@ -58,9 +58,12 @@ public:
 	};
 
 	sinsp_filter_check_k8s();
+	virtual ~sinsp_filter_check_k8s() = default;
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+
+protected:
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:

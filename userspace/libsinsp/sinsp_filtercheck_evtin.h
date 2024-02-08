@@ -19,7 +19,6 @@ limitations under the License.
 #pragma once
 
 #include <libsinsp/sinsp_filtercheck.h>
-#include <libsinsp/sinsp_filtercheck_reference.h>
 
 class sinsp_filter_check_evtin : public sinsp_filter_check
 {
@@ -61,11 +60,13 @@ public:
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
-	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
-	std::string m_argname;
-	int32_t m_argid;
+protected:
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
 	int32_t extract_arg(std::string fldname, std::string val);
+
+	std::string m_argname;
+	int32_t m_argid;
 };
