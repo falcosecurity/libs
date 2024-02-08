@@ -24,6 +24,7 @@ class rawstring_check : public sinsp_filter_check
 {
 public:
 	rawstring_check(std::string text);
+	virtual ~rawstring_check() = default;
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;

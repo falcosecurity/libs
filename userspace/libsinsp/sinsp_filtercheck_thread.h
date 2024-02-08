@@ -109,6 +109,7 @@ public:
 	};
 
 	sinsp_filter_check_thread();
+	virtual ~sinsp_filter_check_thread() = default;
 
 	sinsp_filter_check* allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
@@ -138,6 +139,5 @@ private:
 	int64_t m_s64val;
 	double m_dval;
 	std::vector<uint64_t> m_last_proc_switch_times;
-	uint64_t m_cursec_ts;
 	std::unique_ptr<libsinsp::state::dynamic_struct::field_accessor<uint64_t>> m_thread_dyn_field_accessor;
 };

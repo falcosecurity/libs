@@ -133,24 +133,10 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
 	m_converter = new sinsp_filter_check_reference();
-
-	m_storage_size = UESTORAGE_INITIAL_BUFSIZE;
-	m_storage = (char*)malloc(m_storage_size);
-	if(m_storage == NULL)
-	{
-		throw sinsp_exception("memory allocation error in sinsp_filter_check_appevt::sinsp_filter_check_event");
-	}
-
-	m_cargname = NULL;
 }
 
 sinsp_filter_check_event::~sinsp_filter_check_event()
 {
-	if(m_storage != NULL)
-	{
-		free(m_storage);
-	}
-
 	if(m_converter != NULL)
 	{
 		delete m_converter;

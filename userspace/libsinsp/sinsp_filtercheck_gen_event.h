@@ -49,9 +49,9 @@ public:
 	virtual ~sinsp_filter_check_gen_event() = default;
 
 	sinsp_filter_check* allocate_new() override;
-	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 protected:
+	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
 
 private:

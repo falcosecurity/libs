@@ -233,9 +233,6 @@ public:
 	check_cache_metrics *m_cache_metrics = nullptr;
 	boolop m_boolop = BO_NONE;
 	cmpop m_cmpop = CO_NONE;
-	size_t m_hits = 0;
-	size_t m_cached = 0;
-	size_t m_matched_true = 0;
 
 	char* rawval_to_string(uint8_t* rawval,
 			       ppm_param_type ptype,
@@ -267,7 +264,6 @@ protected:
 	bool compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values);
 
 	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
-	void string_to_rawval(const char* str, uint32_t len, ppm_param_type ptype);
 
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline std::vector<uint8_t>* filter_value(uint16_t i = 0) { return &m_val_storages[i]; }

@@ -64,7 +64,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	bool res = true;
 
 	sinsp_filter_check* chk = nullptr;
-	++m_hits;
 
 	auto size = m_checks.size();
 	for(size_t j = 0; j < size; j++)
@@ -126,10 +125,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 		}
 	}
  done:
-	if (res)
-	{
-		m_matched_true++;
-	}
 	return res;
 }
 
@@ -266,16 +261,9 @@ sinsp_filter* sinsp_filter_compiler::compile()
 
 	// create new filter using factory
 	auto new_filter = m_factory->new_filter();
-	auto new_sinsp_filter = dynamic_cast<sinsp_filter*>(new_filter);
-	if (new_sinsp_filter == nullptr)
-	{
-		ASSERT(false);
-		delete new_filter;
-		throw sinsp_exception("filter error: factory did not create a sinsp_filter");
-	}
 
 	// setup compiler state and start compilation
-	m_filter = new_sinsp_filter;
+	m_filter = new_filter;
 	m_last_boolop = BO_NONE;
 	m_expect_values = false;
 	try
@@ -284,14 +272,14 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	}
 	catch (const sinsp_exception& e)
 	{
-		delete new_sinsp_filter;
+		delete new_filter;
 		m_filter = NULL;
 		throw e;
 	}
 
 	// return compiled filter
 	m_filter = NULL;
-	return new_sinsp_filter;
+	return new_filter;
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::and_expr* e)
