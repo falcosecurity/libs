@@ -109,9 +109,9 @@ sinsp_filter_check_fd::sinsp_filter_check_fd()
 	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
-sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fd::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_fd();
+	return std::make_unique<sinsp_filter_check_fd>();
 }
 
 int32_t sinsp_filter_check_fd::extract_arg(string fldname, string val)

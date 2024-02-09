@@ -143,9 +143,9 @@ sinsp_filter_check_event::~sinsp_filter_check_event()
 	}
 }
 
-sinsp_filter_check* sinsp_filter_check_event::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_event::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_event();
+	return std::make_unique<sinsp_filter_check_event>();
 }
 
 int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT const ppm_param_info** parinfo)

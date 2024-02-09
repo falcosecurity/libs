@@ -128,9 +128,9 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 	return res;
 }
 
-sinsp_filter_check* sinsp_filter_check_plugin::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_plugin::allocate_new()
 {
-	return new sinsp_filter_check_plugin(*this);
+	return std::make_unique<sinsp_filter_check_plugin>(*this);
 }
 
 bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)

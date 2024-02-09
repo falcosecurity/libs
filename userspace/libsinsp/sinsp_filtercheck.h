@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <string>
 #include <unordered_set>
+#include <memory>
 #include <json/json.h>
 #include <libscap/scap.h>
 #include <libsinsp/tuples.h>
@@ -163,7 +164,7 @@ public:
 	// Allocate a new check of the same type.
 	// Every filtercheck plugin must implement this.
 	//
-	virtual sinsp_filter_check* allocate_new()
+	virtual std::unique_ptr<sinsp_filter_check> allocate_new()
 	{
 		throw sinsp_exception("can't clone abstract sinsp_filter_check");
 	}

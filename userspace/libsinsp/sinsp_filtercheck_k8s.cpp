@@ -76,9 +76,9 @@ sinsp_filter_check_k8s::sinsp_filter_check_k8s()
 	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
-sinsp_filter_check* sinsp_filter_check_k8s::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_k8s::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_k8s();
+	return std::make_unique<sinsp_filter_check_k8s>();
 }
 
 int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)

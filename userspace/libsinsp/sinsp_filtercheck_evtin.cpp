@@ -189,9 +189,9 @@ int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_s
 	return res;
 }
 
-sinsp_filter_check* sinsp_filter_check_evtin::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_evtin::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_evtin();
+	return std::make_unique<sinsp_filter_check_evtin>();
 }
 
 uint8_t* sinsp_filter_check_evtin::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)

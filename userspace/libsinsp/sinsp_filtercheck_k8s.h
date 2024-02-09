@@ -60,7 +60,7 @@ public:
 	sinsp_filter_check_k8s();
 	virtual ~sinsp_filter_check_k8s() = default;
 
-	sinsp_filter_check* allocate_new() override;
+	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 
 protected:

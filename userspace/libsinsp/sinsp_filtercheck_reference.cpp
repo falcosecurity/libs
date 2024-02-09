@@ -35,10 +35,10 @@ sinsp_filter_check_reference::sinsp_filter_check_reference()
 	m_field = &m_finfo;
 }
 
-sinsp_filter_check* sinsp_filter_check_reference::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_reference::allocate_new()
 {
 	ASSERT(false);
-	return NULL;
+	return nullptr;
 }
 
 int32_t sinsp_filter_check_reference::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)

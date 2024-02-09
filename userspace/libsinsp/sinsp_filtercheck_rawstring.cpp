@@ -34,10 +34,10 @@ rawstring_check::rawstring_check(string text)
 	set_text(text);
 }
 
-sinsp_filter_check* rawstring_check::allocate_new()
+std::unique_ptr<sinsp_filter_check> rawstring_check::allocate_new()
 {
 	ASSERT(false);
-	return NULL;
+	return nullptr;
 }
 
 void rawstring_check::set_text(string text)

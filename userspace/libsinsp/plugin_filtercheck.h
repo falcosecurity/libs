@@ -41,7 +41,7 @@ public:
 
 	virtual ~sinsp_filter_check_plugin() = default;
 
-	sinsp_filter_check* allocate_new() override;
+	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 
 	int32_t parse_field_name(
 		const char* str,

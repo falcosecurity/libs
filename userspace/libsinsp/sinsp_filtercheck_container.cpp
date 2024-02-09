@@ -69,9 +69,9 @@ sinsp_filter_check_container::sinsp_filter_check_container()
 	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
-sinsp_filter_check* sinsp_filter_check_container::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_container::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_container();
+	return std::make_unique<sinsp_filter_check_container>();
 }
 
 int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t basepos)
