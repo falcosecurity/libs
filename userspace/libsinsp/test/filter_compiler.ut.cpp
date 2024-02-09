@@ -57,14 +57,14 @@ class mock_compiler_filter_factory: public sinsp_filter_factory
 public:
 	mock_compiler_filter_factory(sinsp *inspector): sinsp_filter_factory(inspector, m_filterlist) {}
 
-	inline sinsp_filter *new_filter() override
+	inline std::unique_ptr<sinsp_filter> new_filter() const override
 	{
-		return new sinsp_filter(m_inspector);
+		return std::make_unique<sinsp_filter>(m_inspector);
 	}
 
-	inline sinsp_filter_check *new_filtercheck(const char *fldname) override
+	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(const char *fldname) const override
 	{
-		return new mock_compiler_filter_check();
+		return std::make_unique<mock_compiler_filter_check>();
 	}
 
 	inline list<sinsp_filter_factory::filter_fieldclass_info> get_fields() const override
@@ -92,7 +92,6 @@ void test_filter_run(bool result, string filter_str)
 		{
 			FAIL() << filter_str << " -> unexpected '" << (result ? "false" : "true") << "' result";
 		}
-		delete filter;
 	}
 	catch(const sinsp_exception& e)
 	{
@@ -109,7 +108,6 @@ void test_filter_compile(
 	try
 	{
 		auto filter = compiler.compile();
-		delete filter;
 		if (expect_fail)
 		{
 			FAIL() << filter_str << " -> expected failure but compilation was successful";

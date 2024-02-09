@@ -785,11 +785,7 @@ void sinsp::close()
 
 	deinit_state();
 
-	if(m_filter != NULL)
-	{
-		delete m_filter;
-		m_filter = NULL;
-	}
+	m_filter.reset();
 
 	// unset the meta-event callback to all plugins that support it
 	if (!is_capture() && m_mode != SINSP_MODE_NONE)
@@ -1706,7 +1702,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 }
 #endif // _WIN32
 
-void sinsp::set_filter(sinsp_filter* filter)
+void sinsp::set_filter(std::unique_ptr<sinsp_filter> filter)
 {
 	if(m_filter != NULL)
 	{
@@ -1714,7 +1710,7 @@ void sinsp::set_filter(sinsp_filter* filter)
 		throw sinsp_exception("filter can only be set once");
 	}
 
-	m_filter = filter;
+	m_filter = std::move(filter);
 }
 
 void sinsp::set_filter(const std::string& filter)

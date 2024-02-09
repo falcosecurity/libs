@@ -300,7 +300,7 @@ public:
 
 	  \param filter the runtime filter object
 	*/
-	void set_filter(sinsp_filter* filter);
+	void set_filter(std::unique_ptr<sinsp_filter> filter);
 
 	/*!
 	  \brief Return the filter set for this capture.
@@ -1173,7 +1173,7 @@ public:
 	bool m_print_container_data;
 
 	uint64_t m_firstevent_ts;
-	sinsp_filter* m_filter;
+	std::unique_ptr<sinsp_filter> m_filter;
 	std::string m_filterstring;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 

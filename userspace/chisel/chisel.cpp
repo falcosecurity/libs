@@ -211,7 +211,7 @@ void chiselinfo::set_filter(string filterstr)
 
 	if(filterstr != "")
 	{
-		m_filter = compiler.compile();
+		m_filter = compiler.compile().release();
 	}
 }
 

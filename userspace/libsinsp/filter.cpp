@@ -39,24 +39,9 @@ limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_expression implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter_expression::sinsp_filter_expression()
+void sinsp_filter_expression::add_check(std::unique_ptr<sinsp_filter_check> chk)
 {
-	m_parent = NULL;
-}
-
-sinsp_filter_expression::~sinsp_filter_expression()
-{
-	uint32_t j;
-
-	for(j = 0; j < m_checks.size(); j++)
-	{
-		delete m_checks[j];
-	}
-}
-
-void sinsp_filter_expression::add_check(sinsp_filter_check* chk)
-{
-	m_checks.push_back(chk);
+	m_checks.push_back(std::move(chk));
 }
 
 bool sinsp_filter_expression::compare(sinsp_evt *evt)
@@ -68,7 +53,7 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	auto size = m_checks.size();
 	for(size_t j = 0; j < size; j++)
 	{
-		chk = m_checks[j];
+		chk = m_checks[j].get();
 		ASSERT(chk != NULL);
 
 		if(j == 0)
@@ -165,16 +150,8 @@ int32_t sinsp_filter_expression::get_expr_boolop() const
 sinsp_filter::sinsp_filter(sinsp *inspector)
 {
 	m_inspector = inspector;
-	m_filter = new sinsp_filter_expression();
-	m_curexpr = m_filter;
-}
-
-sinsp_filter::~sinsp_filter()
-{
-	if(m_filter)
-	{
-		delete m_filter;
-	}
+	m_filter = std::make_unique<sinsp_filter_expression>();
+	m_curexpr = m_filter.get();
 }
 
 void sinsp_filter::push_expression(boolop op)
@@ -183,7 +160,7 @@ void sinsp_filter::push_expression(boolop op)
 	newexpr->m_boolop = op;
 	newexpr->m_parent = m_curexpr;
 
-	add_check((sinsp_filter_check*)newexpr);
+	add_check(std::unique_ptr<sinsp_filter_check>(newexpr));
 	m_curexpr = newexpr;
 }
 
@@ -204,9 +181,9 @@ bool sinsp_filter::run(sinsp_evt *evt)
 	return m_filter->compare(evt);
 }
 
-void sinsp_filter::add_check(sinsp_filter_check* chk)
+void sinsp_filter::add_check(std::unique_ptr<sinsp_filter_check> chk)
 {
-	m_curexpr->add_check(chk);
+	m_curexpr->add_check(std::move(chk));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -241,7 +218,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 	m_flt_ast = fltast;
 }
 
-sinsp_filter* sinsp_filter_compiler::compile()
+std::unique_ptr<sinsp_filter> sinsp_filter_compiler::compile()
 {
 	// parse filter string on-the-fly if not pre-parsed AST is provided
 	if (m_flt_ast == NULL)
@@ -259,11 +236,9 @@ sinsp_filter* sinsp_filter_compiler::compile()
 		}
 	}
 
-	// create new filter using factory
-	auto new_filter = m_factory->new_filter();
-
+	// create new filter using factory,
 	// setup compiler state and start compilation
-	m_filter = new_filter;
+	m_filter = m_factory->new_filter();
 	m_last_boolop = BO_NONE;
 	m_expect_values = false;
 	try
@@ -272,14 +247,12 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	}
 	catch (const sinsp_exception& e)
 	{
-		delete new_filter;
-		m_filter = NULL;
+		m_filter = nullptr;
 		throw e;
 	}
 
 	// return compiled filter
-	m_filter = NULL;
-	return new_filter;
+	return std::move(m_filter);
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::and_expr* e)
@@ -336,11 +309,11 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 {
 	m_pos = e->get_pos();
 	std::string field = create_filtercheck_name(e->field, e->arg);
-	sinsp_filter_check *check = create_filtercheck(field);
-	m_filter->add_check(check);
+	auto check = create_filtercheck(field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
+	m_filter->add_check(std::move(check));
 }
 
 static void add_filtercheck_value(sinsp_filter_check *chk, size_t idx, const std::string& value)
@@ -366,8 +339,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 {
 	m_pos = e->get_pos();
 	std::string field = create_filtercheck_name(e->field, e->arg);
-	sinsp_filter_check *check = create_filtercheck(field);
-	m_filter->add_check(check);
+	auto check = create_filtercheck(field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
@@ -382,8 +354,9 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	m_expect_values = false;
 	for (size_t i = 0; i < m_field_values.size(); i++)
 	{
-		add_filtercheck_value(check, i, m_field_values[i]);
+		add_filtercheck_value(check.get(), i, m_field_values[i]);
 	}
+	m_filter->add_check(std::move(check));
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::value_expr* e)
@@ -425,9 +398,9 @@ std::string sinsp_filter_compiler::create_filtercheck_name(const std::string& na
 	return fld;
 }
 
-sinsp_filter_check* sinsp_filter_compiler::create_filtercheck(std::string& field)
+std::unique_ptr<sinsp_filter_check> sinsp_filter_compiler::create_filtercheck(std::string& field)
 {
-	sinsp_filter_check *chk = m_factory->new_filtercheck(field.c_str());
+	auto chk = m_factory->new_filtercheck(field.c_str());
 	if(chk == NULL)
 	{
 		throw sinsp_exception("filter_check called with nonexistent field " + field);
@@ -521,17 +494,16 @@ sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
 {
 }
 
-sinsp_filter *sinsp_filter_factory::new_filter()
+std::unique_ptr<sinsp_filter> sinsp_filter_factory::new_filter() const
 {
-	return new sinsp_filter(m_inspector);
+	return std::make_unique<sinsp_filter>(m_inspector);
 }
 
-
-sinsp_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldname)
+std::unique_ptr<sinsp_filter_check> sinsp_filter_factory::new_filtercheck(const char *fldname) const
 {
 	return m_available_checks.new_filter_check_from_fldname(fldname,
 								m_inspector,
-								true).release();
+								true);
 }
 
 std::list<sinsp_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields() const
