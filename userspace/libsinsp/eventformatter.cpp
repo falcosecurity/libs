@@ -164,7 +164,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 
 	if(last_nontoken_str_start != j)
 	{
-		sinsp_filter_check * chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+		auto chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 		m_tokens.emplace_back(std::make_pair("", chk));
 		m_chks_to_free.emplace_back(chk);
 		m_tokenlens.push_back(0);

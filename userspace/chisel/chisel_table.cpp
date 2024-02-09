@@ -157,7 +157,7 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 	if(filter != "")
 	{
 		sinsp_filter_compiler compiler(m_inspector, filter);
-		m_filter = compiler.compile();
+		m_filter = compiler.compile().release();
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////

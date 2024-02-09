@@ -710,8 +710,8 @@ int lua_cbacks::get_machine_info(lua_State *ls)
 int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool barebone)
 {
 	uint32_t j;
-	sinsp_filter_compiler* compiler = NULL;
-	sinsp_filter* filter = NULL;
+	std::unique_ptr<sinsp_filter_compiler> compiler;
+	std::unique_ptr<sinsp_filter> filter;
 	sinsp_evt tevt;
 	scap_evt tscapevt;
 
@@ -739,7 +739,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		{
 			try
 			{
-				compiler = new sinsp_filter_compiler(ch->m_inspector, filterstr);
+				compiler = std::make_unique<sinsp_filter_compiler>(ch->m_inspector, filterstr);
 				filter = compiler->compile();
 			}
 			catch(const sinsp_exception& e)
@@ -1078,11 +1078,6 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		lua_rawseti(ls,-2, (uint32_t)tinfo.m_tid);
 		return true;
 	});
-
-	if(filter)
-	{
-		delete filter;
-	}
 
 	return 1;
 }

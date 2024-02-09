@@ -32,12 +32,11 @@ static void filter_compile(sinsp_filter **out, std::string filter)
 		auto f = compiler.compile();
 		if (!out)
 		{
-			delete f;
 			FAIL() << "Unexpected successful compilation for: " << filter;
 		}
 		else
 		{
-			*out = f;
+			*out = f.release();
 		}
 	}
 	catch(const sinsp_exception& e)

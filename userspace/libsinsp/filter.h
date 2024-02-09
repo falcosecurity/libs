@@ -39,8 +39,8 @@ limitations under the License.
 class sinsp_filter_expression : public sinsp_filter_check
 {
 public:
-	sinsp_filter_expression();
-	virtual ~sinsp_filter_expression();
+	sinsp_filter_expression() = default;
+	virtual ~sinsp_filter_expression() = default;
 
 	//
 	// The following methods are part of the filter check interface but are irrelevant
@@ -59,7 +59,7 @@ public:
 	bool compare(sinsp_evt*) override;
 	bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
 
-	void add_check(sinsp_filter_check* chk);
+	void add_check(std::unique_ptr<sinsp_filter_check> chk);
 
 	//
 	// An expression is consistent if all its checks are of the same type (or/and).
@@ -69,8 +69,8 @@ public:
 	//
 	int32_t get_expr_boolop() const;
 
-	sinsp_filter_expression* m_parent;
-	std::vector<sinsp_filter_check*> m_checks;
+	sinsp_filter_expression* m_parent = nullptr;
+	std::vector<std::unique_ptr<sinsp_filter_check>> m_checks;
 };
 
 
@@ -81,15 +81,15 @@ class SINSP_PUBLIC sinsp_filter
 {
 public:
 	sinsp_filter(sinsp* inspector);
-	virtual ~sinsp_filter();
+	virtual ~sinsp_filter() = default;
 
 	bool run(sinsp_evt *evt);
 
 	void push_expression(boolop op);
 	void pop_expression();
-	void add_check(sinsp_filter_check* chk);
+	void add_check(std::unique_ptr<sinsp_filter_check> chk);
 
-	sinsp_filter_expression* m_filter;
+	std::unique_ptr<sinsp_filter_expression> m_filter;
 
 private:
 	sinsp_filter_expression* m_curexpr;
@@ -162,9 +162,9 @@ public:
 
 	virtual ~sinsp_filter_factory() = default;
 
-	virtual sinsp_filter* new_filter();
+	virtual std::unique_ptr<sinsp_filter> new_filter() const;
 	
-	virtual sinsp_filter_check* new_filtercheck(const char* fldname);
+	virtual std::unique_ptr<sinsp_filter_check> new_filtercheck(const char* fldname) const;
 
 	virtual std::list<filter_fieldclass_info> get_fields() const;
 
@@ -230,7 +230,9 @@ public:
 		by it. The pointer is automatically deleted in case of exception.
 		\note Throws a sinsp_exception if the filter syntax is not valid
 	*/
-	sinsp_filter* compile();
+	std::unique_ptr<sinsp_filter> compile();
+
+	std::shared_ptr<const libsinsp::filter::ast::expr> get_filter_ast() const { return m_internal_flt_ast; }
 
 	std::shared_ptr<libsinsp::filter::ast::expr> get_filter_ast() { return m_internal_flt_ast; }
 
@@ -246,13 +248,13 @@ private:
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
 	cmpop str_to_cmpop(const std::string& str);
 	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
-	sinsp_filter_check* create_filtercheck(std::string& field);
+	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string& field);
 
 	libsinsp::filter::ast::pos_info m_pos;
 	bool m_expect_values;
 	boolop m_last_boolop;
 	std::string m_flt_str;
-	sinsp_filter* m_filter;
+	std::unique_ptr<sinsp_filter> m_filter;
 	std::vector<std::string> m_field_values;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 	const libsinsp::filter::ast::expr* m_flt_ast;
