@@ -33,13 +33,14 @@ class filter_check_list
 {
 public:
 	filter_check_list() = default;
-	virtual ~filter_check_list();
-	void add_filter_check(sinsp_filter_check* filter_check);
+	virtual ~filter_check_list() = default;
+
+	void add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check);
 	void get_all_fields(std::vector<const filter_check_info*>&) const;
-	sinsp_filter_check* new_filter_check_from_fldname(const std::string& name, sinsp* inspector, bool do_exact_check);
+	std::unique_ptr<sinsp_filter_check> new_filter_check_from_fldname(const std::string& name, sinsp* inspector, bool do_exact_check) const;
 
 protected:
-	std::vector<sinsp_filter_check*> m_check_list;
+	std::vector<std::unique_ptr<sinsp_filter_check>> m_check_list;
 };
 
 //

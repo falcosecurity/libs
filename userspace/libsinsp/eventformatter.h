@@ -55,7 +55,7 @@ public:
 
 	sinsp_evt_formatter(sinsp* inspector, const std::string& fmt, filter_check_list &available_checks);
 
-	virtual ~sinsp_evt_formatter();
+	virtual ~sinsp_evt_formatter() = default;
 
 	/*!
 	  \brief Resolve all the formatted tokens and return them in a key/value
@@ -119,7 +119,7 @@ private:
 	sinsp* m_inspector;
 	filter_check_list &m_available_checks;
 	bool m_require_all_values;
-	std::vector<sinsp_filter_check*> m_chks_to_free;
+	std::vector<std::unique_ptr<sinsp_filter_check>> m_chks_to_free;
 
 	Json::Value m_root;
 	Json::FastWriter m_writer;

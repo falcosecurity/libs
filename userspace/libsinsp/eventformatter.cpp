@@ -53,16 +53,6 @@ sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
 	set_format(of, fmt);
 }
 
-sinsp_evt_formatter::~sinsp_evt_formatter()
-{
-	uint32_t j;
-
-	for(j = 0; j < m_chks_to_free.size(); j++)
-	{
-		delete m_chks_to_free[j];
-	}
-}
-
 void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 {
 	uint32_t j;
@@ -109,7 +99,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 				rawstring_check* newtkn = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 				m_tokens.emplace_back(std::make_pair("", newtkn));
 				m_tokenlens.push_back(0);
-				m_chks_to_free.push_back(newtkn);
+				m_chks_to_free.push_back(std::unique_ptr<sinsp_filter_check>(newtkn));
 			}
 
 			if(j == lfmtlen - 1)
@@ -148,16 +138,14 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 				}
 			}
 
-			sinsp_filter_check* chk = m_available_checks.new_filter_check_from_fldname(std::string(cfmt + j + 1),
+			auto chk = m_available_checks.new_filter_check_from_fldname(std::string(cfmt + j + 1),
 				m_inspector,
 				false);
 
-			if(chk == NULL)
+			if(chk == nullptr)
 			{
 				throw sinsp_exception("invalid formatting token " + std::string(cfmt + j + 1));
 			}
-
-			m_chks_to_free.push_back(chk);
 
 			const char * fstart = cfmt + j + 1;
 			uint32_t fsize = chk->parse_field_name(fstart, true, false);
@@ -165,8 +153,10 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 			j += fsize;
 			ASSERT(j <= lfmt.length());
 
-			m_tokens.emplace_back(std::make_pair(std::string(fstart, fsize), chk));
+			m_tokens.emplace_back(std::make_pair(std::string(fstart, fsize), chk.get()));
 			m_tokenlens.push_back(toklen);
+
+			m_chks_to_free.push_back(std::move(chk));
 
 			last_nontoken_str_start = j + 1;
 		}
@@ -176,7 +166,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 	{
 		sinsp_filter_check * chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 		m_tokens.emplace_back(std::make_pair("", chk));
-		m_chks_to_free.push_back(chk);
+		m_chks_to_free.emplace_back(chk);
 		m_tokenlens.push_back(0);
 	}
 }

@@ -531,7 +531,7 @@ sinsp_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldname)
 {
 	return m_available_checks.new_filter_check_from_fldname(fldname,
 								m_inspector,
-								true);
+								true).release();
 }
 
 std::list<sinsp_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields() const

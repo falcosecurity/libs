@@ -431,7 +431,6 @@ bool sinsp_with_test_input::field_exists(sinsp_evt* evt, const std::string& fiel
 	if(new_fl != nullptr)
 	{
 		// if we can create a filter check it means that the field exists
-		delete new_fl;
 		return true;
 	}
 	else

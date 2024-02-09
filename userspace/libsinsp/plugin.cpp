@@ -872,9 +872,9 @@ std::vector<sinsp_plugin::open_param> sinsp_plugin::list_open_params() const
 
 /** Field Extraction CAP **/
 
-sinsp_filter_check* sinsp_plugin::new_filtercheck(std::shared_ptr<sinsp_plugin> plugin)
+std::unique_ptr<sinsp_filter_check> sinsp_plugin::new_filtercheck(std::shared_ptr<sinsp_plugin> plugin)
 {
-	return new sinsp_filter_check_plugin(plugin);
+	return std::make_unique<sinsp_filter_check_plugin>(plugin);
 }
 
 bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields) const
