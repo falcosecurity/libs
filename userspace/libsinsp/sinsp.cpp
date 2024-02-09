@@ -84,8 +84,8 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_h = NULL;
 	m_parser = NULL;
 	m_is_dumping = false;
-	m_parser = new sinsp_parser(this);
-	m_thread_manager = new sinsp_thread_manager(this);
+	m_parser = std::make_unique<sinsp_parser>(this);
+	m_thread_manager = std::make_unique<sinsp_thread_manager>(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_containers_purging_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -130,24 +130,12 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 	// create state tables registry
 	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
-	m_table_registry->add_table(m_thread_manager);
+	m_table_registry->add_table(m_thread_manager.get());
 }
 
 sinsp::~sinsp()
 {
 	close();
-
-	if(m_parser)
-	{
-		delete m_parser;
-		m_parser = NULL;
-	}
-
-	if(m_thread_manager)
-	{
-		delete m_thread_manager;
-		m_thread_manager = NULL;
-	}
 
 	m_container_manager.cleanup();
 
@@ -1929,11 +1917,6 @@ void sinsp::set_hostname_and_port_resolution_mode(bool enable)
 void sinsp::set_max_evt_output_len(uint32_t len)
 {
 	m_max_evt_output_len = len;
-}
-
-sinsp_parser* sinsp::get_parser()
-{
-	return m_parser;
 }
 
 double sinsp::get_read_progress_file() const

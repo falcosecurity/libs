@@ -132,15 +132,7 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
-	m_converter = new sinsp_filter_check_reference();
-}
-
-sinsp_filter_check_event::~sinsp_filter_check_event()
-{
-	if(m_converter != NULL)
-	{
-		delete m_converter;
-	}
+	m_converter = std::make_unique<sinsp_filter_check_reference>();
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_event::allocate_new()

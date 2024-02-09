@@ -857,11 +857,14 @@ public:
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
 	}
 
-	sinsp_parser* get_parser();
+	sinsp_parser* get_parser()
+	{
+		return m_parser.get();
+	}
 
 	inline const sinsp_parser* get_parser() const
 	{
-		return m_parser;
+		return m_parser.get();
 	}
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
@@ -1140,7 +1143,7 @@ private:
 	std::vector<int64_t> m_fds_to_remove;
 	uint64_t m_lastevent_ts;
 	// the parsing engine
-	sinsp_parser* m_parser;
+	std::unique_ptr<sinsp_parser> m_parser;
 	// the statistics analysis engine
 	std::unique_ptr<sinsp_dumper> m_dumper;
 	bool m_is_dumping;
@@ -1160,7 +1163,7 @@ private:
 	int32_t m_quantization_interval = -1;
 
 public:
-	sinsp_thread_manager* m_thread_manager;
+	std::unique_ptr<sinsp_thread_manager> m_thread_manager;
 
 	sinsp_container_manager m_container_manager;
 

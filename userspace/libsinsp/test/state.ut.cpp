@@ -305,7 +305,7 @@ TEST(thread_manager, table_access)
     static const int s_threadinfo_static_fields_count = 20;
 
     sinsp inspector;
-    auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager);
+    auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
     
     // empty table state and info
     ASSERT_EQ(table->name(), "threads");
