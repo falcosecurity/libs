@@ -222,14 +222,6 @@ public:
 		return engine_lookup == container_lookups->second.end();
 	}
 
-	/**
-	* \brief get the list of container engines in the inspector
-	*
-	* @return a pointer to the list of container engines
-	*/
-	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>>* get_container_engines() {
-		return &m_container_engines;
-	}
 	uint64_t m_last_flush_time_ns;
 	std::string container_to_json(const sinsp_container_info& container_info);
 
