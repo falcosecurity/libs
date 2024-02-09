@@ -52,7 +52,7 @@ public:
 	 * If this is overridden by the event processor, the processor MUST be registered
 	 * before the sinsp object is init-ed
 	 */
-	virtual sinsp_threadinfo* build_threadinfo(sinsp* inspector);
+	virtual std::unique_ptr<sinsp_threadinfo> build_threadinfo(sinsp* inspector);
 
 	/**
 	 * Some event processors allocate different fd info types with extra data.

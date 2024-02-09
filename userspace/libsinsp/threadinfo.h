@@ -785,7 +785,7 @@ public:
 
 	std::unique_ptr<sinsp_fdinfo> new_fdinfo() const;
 
-	bool add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable);
+	threadinfo_map_t::ptr_t add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable);
 	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
 	// Returns true if the table is actually scanned
@@ -887,8 +887,7 @@ public:
 		}
 		entry.release();
 		tinfo->m_tid = key;
-		add_thread(tinfo, false);
-		return get_entry(key);
+		return add_thread(std::unique_ptr<sinsp_threadinfo>(tinfo), false);
 	}
 
 	bool erase_entry(const int64_t& key) override

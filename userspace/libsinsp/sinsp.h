@@ -526,10 +526,10 @@ public:
 
 	libsinsp::event_processor* m_external_event_processor;
 
-	inline sinsp_threadinfo* build_threadinfo()
+	inline std::unique_ptr<sinsp_threadinfo> build_threadinfo()
     {
         return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
-                                          : m_thread_manager->new_threadinfo().release();
+                                          : m_thread_manager->new_threadinfo();
     }
 
 	inline std::unique_ptr<sinsp_fdinfo> build_fdinfo()
@@ -998,7 +998,7 @@ public:
 
 	bool remove_inactive_threads();
 
-	bool add_thread(const sinsp_threadinfo *ptinfo);
+	std::shared_ptr<sinsp_threadinfo> add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo);
 
 	void set_mode(sinsp_mode_t value)
 	{

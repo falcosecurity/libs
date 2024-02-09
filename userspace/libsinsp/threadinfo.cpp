@@ -1482,7 +1482,7 @@ std::unique_ptr<sinsp_fdinfo> sinsp_thread_manager::new_fdinfo() const
  * 2. We are doing a proc scan with a callback or without. (`from_scap_proctable==true`)
  * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
  */
-bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
+std::shared_ptr<sinsp_threadinfo> sinsp_thread_manager::add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable)
 {
 
 	/* We have no more space */
@@ -1500,10 +1500,10 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 			}
 			m_inspector->get_sinsp_stats_v2()->m_n_drops_full_threadtable++;
 		}
-		return false;
+		return nullptr;
 	}
 
-	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(threadinfo);
+	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(std::move(threadinfo));
 
 	if(!from_scap_proctable)
 	{
@@ -1520,14 +1520,14 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 	}
 
 	tinfo_shared_ptr->compute_program_hash();
-	m_threadtable.put(std::move(tinfo_shared_ptr));
+	m_threadtable.put(tinfo_shared_ptr);
 
 	if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 	{
 		m_inspector->get_sinsp_stats_v2()->m_n_added_threads++;
 	}
 
-	return true;
+	return tinfo_shared_ptr;
 }
 
 /* Taken from `find_new_reaper` kernel function:
@@ -2055,7 +2055,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         scap_proc.ptid = -1;
 
 		// unfortunately, sinsp owns the threade factory
-        sinsp_threadinfo* newti = m_inspector->build_threadinfo();
+        auto newti = m_inspector->build_threadinfo();
 
         m_n_proc_lookups++;
 
@@ -2118,8 +2118,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         //
         // Done. Add the new thread to the list.
         //
-        add_thread(newti, false);
-        sinsp_proc = find_thread(tid, lookup_only);
+        add_thread(std::move(newti), false);
+		sinsp_proc = find_thread(tid, lookup_only);
     }
 
     return sinsp_proc;
