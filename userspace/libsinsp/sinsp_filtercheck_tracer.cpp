@@ -66,9 +66,9 @@ sinsp_filter_check_tracer::sinsp_filter_check_tracer()
 	m_info.m_nfields = sizeof(sinsp_filter_check_tracer_fields) / sizeof(sinsp_filter_check_tracer_fields[0]);
 }
 
-sinsp_filter_check* sinsp_filter_check_tracer::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_tracer::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_tracer();
+	return std::make_unique<sinsp_filter_check_tracer>();
 }
 
 int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT const ppm_param_info** parinfo)

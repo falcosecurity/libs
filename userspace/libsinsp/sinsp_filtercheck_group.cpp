@@ -50,9 +50,9 @@ sinsp_filter_check_group::sinsp_filter_check_group()
 	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
-sinsp_filter_check* sinsp_filter_check_group::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_group::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_group();
+	return std::make_unique<sinsp_filter_check_group>();
 }
 
 uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)

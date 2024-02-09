@@ -46,9 +46,9 @@ sinsp_filter_check_fdlist::sinsp_filter_check_fdlist()
 	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
-sinsp_filter_check* sinsp_filter_check_fdlist::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fdlist::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_fdlist();
+	return std::make_unique<sinsp_filter_check_fdlist>();
 }
 
 uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)

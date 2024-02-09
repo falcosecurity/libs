@@ -26,7 +26,7 @@ public:
 	rawstring_check(std::string text);
 	virtual ~rawstring_check() = default;
 
-	sinsp_filter_check* allocate_new() override;
+	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 

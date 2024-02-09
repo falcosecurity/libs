@@ -36,7 +36,7 @@ public:
 	sinsp_filter_check_fspath();
 	virtual ~sinsp_filter_check_fspath() = default;
 
-	sinsp_filter_check* allocate_new() override;
+	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 
 protected:
 	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;

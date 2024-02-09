@@ -59,9 +59,9 @@ sinsp_filter_check_user::sinsp_filter_check_user()
 	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
-sinsp_filter_check* sinsp_filter_check_user::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_user::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_user();
+	return std::make_unique<sinsp_filter_check_user>();
 }
 
 uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)

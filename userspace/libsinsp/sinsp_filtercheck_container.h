@@ -55,7 +55,7 @@ public:
 	sinsp_filter_check_container();
 	virtual ~sinsp_filter_check_container() = default;
 
-	sinsp_filter_check* allocate_new() override;
+	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 
 	const std::string& get_argstr() const;

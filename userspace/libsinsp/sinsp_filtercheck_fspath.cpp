@@ -219,7 +219,7 @@ void sinsp_filter_check_fspath::set_fspath_checks(std::shared_ptr<filtercheck_ma
 	m_target_checks = target_checks;
 }
 
-sinsp_filter_check* sinsp_filter_check_fspath::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fspath::allocate_new()
 {
 	// If not yet populated, do so now. The maps will be empty
 	// *only* for the initial filtercheck created in
@@ -229,7 +229,7 @@ sinsp_filter_check* sinsp_filter_check_fspath::allocate_new()
 		create_fspath_checks();
 	}
 
-	sinsp_filter_check_fspath* ret = new sinsp_filter_check_fspath();
+	auto ret = std::make_unique<sinsp_filter_check_fspath>();
 
 	ret->set_fspath_checks(m_success_checks, m_path_checks, m_source_checks, m_target_checks);
 

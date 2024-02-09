@@ -139,9 +139,9 @@ sinsp_filter_check_thread::sinsp_filter_check_thread()
 	m_u64val = 0;
 }
 
-sinsp_filter_check* sinsp_filter_check_thread::allocate_new()
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_thread::allocate_new()
 {
-	return (sinsp_filter_check*) new sinsp_filter_check_thread();
+	return std::make_unique<sinsp_filter_check_thread>();
 }
 
 int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string val, OUT const ppm_param_info** parinfo)
