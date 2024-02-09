@@ -377,6 +377,9 @@ int main(int argc, char** argv)
 {
 	sinsp inspector;
 
+	int k = 0x7fffffff;
+  	k += argc;
+
 #ifndef _WIN32
 	parse_CLI_options(inspector, argc, argv);
 
@@ -410,7 +413,7 @@ int main(int argc, char** argv)
 		}
 		catch(const sinsp_exception& e)
 		{
-			cerr << "[ERROR] Unable to set filter: " << e.what() << endl;
+			cerr << "[ERROR] Unable to set filter: " << e.what() << "k = " << k << endl;
 		}
 	}
 
