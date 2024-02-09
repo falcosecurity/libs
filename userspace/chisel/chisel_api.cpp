@@ -319,9 +319,9 @@ int lua_cbacks::request_field(lua_State *ls)
 		throw sinsp_exception("chisel error");
 	}
 
-	sinsp_filter_check* chk = s_filterlist.new_filter_check_from_fldname(fld,
+	auto chk = s_filterlist.new_filter_check_from_fldname(fld,
 		inspector,
-		false);
+		false).release();
 
 	if(chk == NULL)
 	{

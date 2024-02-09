@@ -1784,9 +1784,9 @@ std::shared_ptr<const sinsp_stats_v2> sinsp::get_sinsp_stats_v2() const
 	return m_sinsp_stats_v2;
 }
 
-sinsp_filter_check* sinsp::new_generic_filtercheck()
+std::unique_ptr<sinsp_filter_check> sinsp::new_generic_filtercheck()
 {
-	return new sinsp_filter_check_gen_event();
+	return std::make_unique<sinsp_filter_check_gen_event>();
 }
 
 void sinsp::get_capture_stats(scap_stats* stats) const

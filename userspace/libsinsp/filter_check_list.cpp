@@ -31,48 +31,39 @@ using namespace std;
 // sinsp_filter_check_list implementation
 ///////////////////////////////////////////////////////////////////////////////
 
-filter_check_list::~filter_check_list()
-{
-	for(auto *chk : m_check_list)
-	{
-		delete chk;
-	}
-}
-
-void filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
+void filter_check_list::add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check)
 {
 	// If a filtercheck already exists with this name and
 	// shortdesc, don't add it--this can occur when plugins are
 	// loaded and set up sinsp_filter_checks to handle plugin
 	// events.
 
-	for(auto *chk : m_check_list)
+	for(const auto& chk : m_check_list)
 	{
 		if(chk->get_fields()->m_name == filter_check->get_fields()->m_name &&
 		   chk->get_fields()->m_shortdesc == filter_check->get_fields()->m_shortdesc)
 		{
-			delete filter_check;
 			return;
 		}
 	}
 
-	m_check_list.push_back(filter_check);
+	m_check_list.push_back(std::move(filter_check));
 }
 
 void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& list) const
 {
-	for(auto *chk : m_check_list)
+	for(const auto& chk : m_check_list)
 	{
 		list.push_back(chk->get_fields());
 	}
 }
 
 /* Craft a new filter check from the field name */
-sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const std::string& name,
+std::unique_ptr<sinsp_filter_check> filter_check_list::new_filter_check_from_fldname(const std::string& name,
 								     sinsp* inspector,
-								     bool do_exact_check)
+								     bool do_exact_check) const
 {
-	for(auto *chk : m_check_list)
+	for(const auto& chk : m_check_list)
 	{
 		chk->m_inspector = inspector;
 
@@ -88,7 +79,7 @@ sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const std::
 				}
 			}
 
-			sinsp_filter_check* newchk = chk->allocate_new();
+			auto newchk = chk->allocate_new();
 			newchk->set_inspector(inspector);
 			return newchk;
 		}
@@ -99,7 +90,7 @@ sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const std::
 	// it's very likely that you've forgotten to add your filter to the list in
 	// the constructor
 	//
-	return NULL;
+	return nullptr;
 }
 
 sinsp_filter_check_list::sinsp_filter_check_list()
@@ -107,19 +98,19 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW FILTER CHECK CLASSES HERE
 	//////////////////////////////////////////////////////////////////////////////
-	add_filter_check(new sinsp_filter_check_gen_event());
-	add_filter_check(new sinsp_filter_check_event());
-	add_filter_check(new sinsp_filter_check_thread());
-	add_filter_check(new sinsp_filter_check_user());
-	add_filter_check(new sinsp_filter_check_group());
-	add_filter_check(new sinsp_filter_check_container());
-	add_filter_check(new sinsp_filter_check_fd());
-	add_filter_check(new sinsp_filter_check_fspath());
-	add_filter_check(new sinsp_filter_check_syslog());
-	add_filter_check(new sinsp_filter_check_utils());
-	add_filter_check(new sinsp_filter_check_fdlist());
-	add_filter_check(new sinsp_filter_check_k8s());
-	add_filter_check(new sinsp_filter_check_mesos());
-	add_filter_check(new sinsp_filter_check_tracer());
-	add_filter_check(new sinsp_filter_check_evtin());
+	add_filter_check(std::make_unique<sinsp_filter_check_gen_event>());
+	add_filter_check(std::make_unique<sinsp_filter_check_event>());
+	add_filter_check(std::make_unique<sinsp_filter_check_thread>());
+	add_filter_check(std::make_unique<sinsp_filter_check_user>());
+	add_filter_check(std::make_unique<sinsp_filter_check_group>());
+	add_filter_check(std::make_unique<sinsp_filter_check_container>());
+	add_filter_check(std::make_unique<sinsp_filter_check_fd>());
+	add_filter_check(std::make_unique<sinsp_filter_check_fspath>());
+	add_filter_check(std::make_unique<sinsp_filter_check_syslog>());
+	add_filter_check(std::make_unique<sinsp_filter_check_utils>());
+	add_filter_check(std::make_unique<sinsp_filter_check_fdlist>());
+	add_filter_check(std::make_unique<sinsp_filter_check_k8s>());
+	add_filter_check(std::make_unique<sinsp_filter_check_mesos>());
+	add_filter_check(std::make_unique<sinsp_filter_check_tracer>());
+	add_filter_check(std::make_unique<sinsp_filter_check_evtin>());
 }

@@ -167,9 +167,9 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 
 	for(auto vit : *entries)
 	{
-		sinsp_filter_check* chk = s_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth),
+		auto chk = s_filterlist.new_filter_check_from_fldname(vit.get_field(m_view_depth),
 			m_inspector,
-			false);
+			false).release();
 
 		if(chk == NULL)
 		{
@@ -209,9 +209,9 @@ void chisel_table::configure(vector<chisel_view_column_info>* entries, const str
 	}
 	else
 	{
-		sinsp_filter_check* chk = s_filterlist.new_filter_check_from_fldname("util.cnt",
+		auto chk = s_filterlist.new_filter_check_from_fldname("util.cnt",
 			m_inspector,
-			false);
+			false).release();
 
 		if(chk == NULL)
 		{

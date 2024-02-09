@@ -441,7 +441,7 @@ public:
 	  \brief Returns a new instance of a filtercheck supporting fields for
 	  a generic event source (e.g. evt.num, evt.time, evt.pluginname...)
 	*/
-	static sinsp_filter_check* new_generic_filtercheck();
+	static std::unique_ptr<sinsp_filter_check> new_generic_filtercheck();
 
 	/*!
 	  \brief Return information about the machine generating the events.
