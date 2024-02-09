@@ -1097,15 +1097,15 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
 	/* See if the child is already there, if yes and it is valid we return immediately */
-	sinsp_threadinfo* child_tinfo = m_inspector->get_thread_ref(child_tid, false, true).get();
-	if(child_tinfo != nullptr)
+	sinsp_threadinfo* existing_child_tinfo = m_inspector->get_thread_ref(child_tid, false, true).get();
+	if(existing_child_tinfo != nullptr)
 	{
 		/* If this was an inverted clone, all is fine, we've already taken care
 		 * of adding the thread table entry in the child.
 		 * Otherwise, we assume that the entry is there because we missed the proc exit event
 		 * for a previous thread and we replace the tinfo.
 		 */
-		if(child_tinfo->m_flags & PPM_CL_CLONE_INVERTED)
+		if(existing_child_tinfo->m_flags & PPM_CL_CLONE_INVERTED)
 		{
 			return;
 		}
@@ -1125,7 +1125,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	/* Allocate the new thread info and initialize it.
 	 * We avoid `malloc` here and get the item from a preallocated list.
 	 */
-	child_tinfo = m_inspector->build_threadinfo();
+	auto child_tinfo = m_inspector->build_threadinfo();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
@@ -1157,7 +1157,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 			if(fd_table_ptr != NULL)
 			{
 				child_tinfo->get_fdtable().clear();
-				fd_table_ptr->const_loop([child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
+				fd_table_ptr->const_loop([&child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
 					/* Track down that those are cloned fds */
 					auto newinfo = info.clone();
 					newinfo->set_is_cloned();
@@ -1355,7 +1355,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		case PPME_SYSCALL_CLONE3_X:
 			parinfo = evt->get_param(14);
 			child_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
-			m_inspector->m_container_manager.resolve_container(child_tinfo, m_inspector->is_live() || m_inspector->is_syscall_plugin());
+			m_inspector->m_container_manager.resolve_container(child_tinfo.get(), m_inspector->is_live() || m_inspector->is_syscall_plugin());
 			break;
 	}
 
@@ -1419,20 +1419,25 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 
 	/* Until we use the shared pointer we need it here, after we can move it at the end */
-	bool thread_added = m_inspector->add_thread(child_tinfo);
+	auto new_child = m_inspector->add_thread(std::move(child_tinfo));
+	if (!new_child)
+	{
+		// note: we expect the thread manager to log a warning already
+		return;
+	}
 
 	/* Refresh user / loginuser / group */
-	if(child_tinfo->m_container_id.empty() == false)
+	if(new_child->m_container_id.empty() == false)
 	{
-		child_tinfo->set_user(child_tinfo->m_user.uid);
-		child_tinfo->set_loginuser(child_tinfo->m_loginuser.uid);
-		child_tinfo->set_group(child_tinfo->m_group.gid);
+		new_child->set_user(new_child->m_user.uid);
+		new_child->set_loginuser(new_child->m_loginuser.uid);
+		new_child->set_group(new_child->m_group.gid);
 	}
 
 	/* If there's a listener, invoke it */
 	if(m_inspector->get_observer())
 	{
-		m_inspector->get_observer()->on_clone(evt, child_tinfo, tid_collision);
+		m_inspector->get_observer()->on_clone(evt, new_child.get(), tid_collision);
 	}
 
 	/* If we had to erase a previous entry for this tid and rebalance the table,
@@ -1444,14 +1449,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		reset(evt);
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
-		               child_tinfo->m_comm.c_str());
+		               new_child->m_comm.c_str());
 	}
-
-	if(!thread_added)
-	{
-		delete child_tinfo;
-	}
-
 	/*=============================== ADD THREAD TO THE TABLE ===========================*/
 
 	return;
@@ -1510,7 +1509,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	/* Allocate the new thread info and initialize it.
 	 * We must avoid `malloc` here and get the item from a preallocated list.
 	 */
-	sinsp_threadinfo *child_tinfo = m_inspector->build_threadinfo();
+	auto child_tinfo = m_inspector->build_threadinfo();
 
 	/* Initialise last exec time to zero (can be overridden in the case of a
 	 * thread clone)
@@ -1626,7 +1625,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	{
 		/* Invalidate the thread_info associated with this event */
 		evt->set_tinfo(nullptr);
-		delete child_tinfo;
 		return;
 	}
 
@@ -1751,7 +1749,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 			if(fd_table_ptr != NULL)
 			{
 				child_tinfo->get_fdtable().clear();
-				fd_table_ptr->loop([child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
+				fd_table_ptr->loop([&child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
 					/* Track down that those are cloned fds.
 					* This flag `FLAGS_IS_CLONED` seems to be never used...
 					*/
@@ -1906,7 +1904,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	case PPME_SYSCALL_CLONE3_X:
 		parinfo = evt->get_param(14);
 		child_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
-		m_inspector->m_container_manager.resolve_container(child_tinfo, m_inspector->is_live());
+		m_inspector->m_container_manager.resolve_container(child_tinfo.get(), m_inspector->is_live());
 		break;
 	}
 
@@ -1933,20 +1931,26 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
 
 	/* Add the new thread to the table */
-	bool thread_added = m_inspector->add_thread(child_tinfo);
+	auto new_child = m_inspector->add_thread(std::move(child_tinfo));
+	if (!new_child)
+	{
+		// note: we expect the thread manager to log a warning already
+		evt->set_tinfo(nullptr);
+		return;
+	}
 
 	/* Update the evt->get_tinfo() of the child.
 	 * We update it here, in this way the `on_clone`
 	 * callback will use updated info.
 	 */
-	evt->set_tinfo(child_tinfo);
+	evt->set_tinfo(new_child.get());
 
 	/* Refresh user / loginuser / group */
-	if(child_tinfo->m_container_id.empty() == false)
+	if(new_child->m_container_id.empty() == false)
 	{
-		child_tinfo->set_user(child_tinfo->m_user.uid);
-		child_tinfo->set_loginuser(child_tinfo->m_loginuser.uid);
-		child_tinfo->set_group(child_tinfo->m_group.gid);
+		new_child->set_user(new_child->m_user.uid);
+		new_child->set_loginuser(new_child->m_loginuser.uid);
+		new_child->set_group(new_child->m_group.gid);
 	}
 
 	//
@@ -1954,7 +1958,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	//
 	if(m_inspector->get_observer())
 	{
-		m_inspector->get_observer()->on_clone(evt, child_tinfo, tid_collision);
+		m_inspector->get_observer()->on_clone(evt, new_child.get(), tid_collision);
 	}
 
 	/* If we had to erase a previous entry for this tid and rebalance the table,
@@ -1966,17 +1970,10 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	{
 		reset(evt);
 		/* Right now we have collisions only on the clone() caller */
-		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)", tid_collision, child_tinfo->m_comm.c_str());
-	}
-
-	if(!thread_added)
-	{
-		evt->set_tinfo(nullptr);
-		delete child_tinfo;
+		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)", tid_collision, new_child->m_comm.c_str());
 	}
 
 	/*=============================== CREATE NEW THREAD-INFO ===========================*/
-
 	return;
 }
 

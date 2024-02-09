@@ -846,29 +846,23 @@ void sinsp::on_new_entry_from_proc(void* context,
 	{
 		ASSERT(tinfo != NULL);
 
-		bool thread_added = false;
-		sinsp_threadinfo* newti = build_threadinfo();
+		threadinfo_map_t::ptr_t sinsp_tinfo;
+		auto newti = build_threadinfo();
 		newti->init(tinfo);
 		if(is_nodriver())
 		{
-			auto sinsp_tinfo = find_thread(tid, true);
-			if(sinsp_tinfo == nullptr || newti->m_clone_ts > sinsp_tinfo->m_clone_ts)
+			auto existing_tinfo = find_thread(tid, true);
+			if(existing_tinfo == nullptr || newti->m_clone_ts > existing_tinfo->m_clone_ts)
 			{
-				thread_added = m_thread_manager->add_thread(newti, true);
+				sinsp_tinfo = m_thread_manager->add_thread(std::move(newti), true);
 			}
 		}
 		else
 		{
-			thread_added = m_thread_manager->add_thread(newti, true);
+			sinsp_tinfo = m_thread_manager->add_thread(std::move(newti), true);
 		}
-		if (!thread_added)
+		if (sinsp_tinfo)
 		{
-			delete newti;
-		}
-		else
-		{
-			auto sinsp_tinfo = find_thread(tid, true);
-
 			// in case the inspector is configured with an internal filter,
 			// we filter out thread infos in case we determine them not passing
 			// the given filter. Filtered out thread infos will not be dumped
@@ -932,17 +926,11 @@ void sinsp::on_new_entry_from_proc(void* context,
 		{
 			ASSERT(tinfo != NULL);
 
-			sinsp_threadinfo* newti = build_threadinfo();
+			auto newti = build_threadinfo();
 			newti->init(tinfo);
 
-			if (!m_thread_manager->add_thread(newti, true)) {
-				ASSERT(false);
-				delete newti;
-				return;
-			}
-
-			sinsp_tinfo = find_thread(tid, true);
-			if (!sinsp_tinfo) {
+			sinsp_tinfo = m_thread_manager->add_thread(std::move(newti), true);
+			if (sinsp_tinfo == nullptr) {
 				ASSERT(false);
 				return;
 			}
@@ -1409,9 +1397,9 @@ threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_
 	return m_thread_manager->get_thread_ref(tid, query_os_if_not_found, lookup_only, main_thread);
 }
 
-bool sinsp::add_thread(const sinsp_threadinfo *ptinfo)
+std::shared_ptr<sinsp_threadinfo> sinsp::add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo)
 {
-	return m_thread_manager->add_thread((sinsp_threadinfo*)ptinfo, false);
+	return m_thread_manager->add_thread(std::move(ptinfo), false);
 }
 
 void sinsp::remove_thread(int64_t tid)
@@ -2103,10 +2091,10 @@ bool sinsp_thread_manager::remove_inactive_threads()
 	return false;
 }
 
-sinsp_threadinfo*
+std::unique_ptr<sinsp_threadinfo>
 libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 {
-	return new sinsp_threadinfo(inspector);
+	return std::make_unique<sinsp_threadinfo>(inspector);
 }
 
 std::unique_ptr<sinsp_fdinfo>
