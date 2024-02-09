@@ -123,7 +123,7 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 	, m_inspector(inspector)
 	, m_host_root(m_inspector->get_host_root())
 #if defined(__linux__) && (defined(HAVE_PWD_H) || defined(HAVE_GRP_H))
-	, m_ns_helper(new libsinsp::procfs_utils::ns_helper(m_host_root))
+	, m_ns_helper(std::make_unique<libsinsp::procfs_utils::ns_helper>(m_host_root))
 #else
 	, m_ns_helper(nullptr)
 #endif
@@ -132,13 +132,6 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 	strlcpy(m_fallback_user.homedir, "<NA>", sizeof(m_fallback_user.homedir));
 	strlcpy(m_fallback_user.shell, "<NA>", sizeof(m_fallback_user.shell));
 	strlcpy(m_fallback_grp.name, "<NA>", sizeof(m_fallback_grp.name));
-}
-
-sinsp_usergroup_manager::~sinsp_usergroup_manager()
-{
-#if defined(__linux__) && (defined(HAVE_PWD_H) || defined(HAVE_GRP_H))
-	delete m_ns_helper;
-#endif
 }
 // clang-format on
 

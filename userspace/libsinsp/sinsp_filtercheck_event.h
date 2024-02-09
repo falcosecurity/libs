@@ -87,7 +87,7 @@ public:
 	};
 
 	sinsp_filter_check_event();
-	virtual ~sinsp_filter_check_event();
+	virtual ~sinsp_filter_check_event() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
@@ -125,5 +125,5 @@ private:
 	//
 	filtercheck_field_info m_customfield;
 	bool m_is_compare;
-	sinsp_filter_check_reference* m_converter;
+	std::unique_ptr<sinsp_filter_check_reference> m_converter;
 };

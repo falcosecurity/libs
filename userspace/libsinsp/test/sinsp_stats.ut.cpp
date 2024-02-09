@@ -38,7 +38,7 @@ TEST_F(sinsp_with_test_input, sinsp_stats_v2_resource_utilization)
 	const scap_stats_v2* sinsp_stats_v2_snapshot;
 	auto buffer = m_inspector.get_sinsp_stats_v2_buffer();
     auto sinsp_stats_v2_counters = m_inspector.get_sinsp_stats_v2();
-    sinsp_thread_manager* thread_manager = m_inspector.m_thread_manager;
+    sinsp_thread_manager* thread_manager = m_inspector.m_thread_manager.get();
 	uint32_t flags = 0;
 	sinsp_stats_v2_snapshot = libsinsp::stats::get_sinsp_stats_v2(flags, agent_info, thread_manager, sinsp_stats_v2_counters, buffer, &nstats, &rc);
     ASSERT_EQ(nstats, 0);

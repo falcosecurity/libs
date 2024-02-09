@@ -64,7 +64,7 @@ class sinsp_usergroup_manager
 {
 public:
 	explicit sinsp_usergroup_manager(sinsp* inspector);
-	~sinsp_usergroup_manager();
+	~sinsp_usergroup_manager() = default;
 
 	// Do not call subscribe_container_mgr() in capture mode, because
 	// events shall not be sent as they will be loaded from capture file.
@@ -175,7 +175,7 @@ private:
 	scap_groupinfo m_fallback_grp;
 
 	const std::string &m_host_root;
-	libsinsp::procfs_utils::ns_helper *m_ns_helper;
+	std::unique_ptr<libsinsp::procfs_utils::ns_helper> m_ns_helper;
 };
 
 #endif // FALCOSECURITY_LIBS_USER_H
