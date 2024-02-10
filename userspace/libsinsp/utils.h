@@ -122,9 +122,6 @@ public:
 	static void bt(void);
 #endif // _WIN32
 
-	static bool find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys);
-	static bool find_env(std::string &out, const std::vector<std::string> &env, const std::string &key);
-
 	static void split_container_image(const std::string &image,
 					  std::string &hostname,
 					  std::string &port,
