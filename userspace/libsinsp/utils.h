@@ -136,8 +136,6 @@ public:
 	static void parse_suppressed_types(const std::vector<std::string>& supp_strs,
 					   std::vector<ppm_event_code>* supp_ids);
 
-	static const char* event_name_by_id(uint16_t id);
-
 	static void ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns);
 
 	static void ts_to_iso_8601(uint64_t ts, OUT std::string* res);
