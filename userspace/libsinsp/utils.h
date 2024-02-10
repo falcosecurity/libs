@@ -130,9 +130,6 @@ public:
 					  std::string &digest,
 					  bool split_repo = true);
 
-	static void parse_suppressed_types(const std::vector<std::string>& supp_strs,
-					   std::vector<ppm_event_code>* supp_ids);
-
 	static void ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns);
 
 	static void ts_to_iso_8601(uint64_t ts, OUT std::string* res);

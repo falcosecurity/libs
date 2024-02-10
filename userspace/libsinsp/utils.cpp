@@ -925,20 +925,6 @@ void sinsp_utils::split_container_image(const std::string &image,
 	}
 }
 
-void sinsp_utils::parse_suppressed_types(const std::vector<std::string>& supp_strs,
-					 std::vector<ppm_event_code>* supp_ids)
-{
-	for (auto ii = 0; ii < PPM_EVENT_MAX; ii++)
-	{
-		auto iter = std::find(supp_strs.begin(), supp_strs.end(),
-				      event_name_by_id(ii));
-		if (iter != supp_strs.end())
-		{
-			supp_ids->push_back(static_cast<ppm_event_code>(ii));
-		}
-	}
-}
-
 static int32_t gmt2local(time_t t)
 {
 	int dt, dir;
