@@ -861,28 +861,6 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string, const bool
 #endif
 }
 
-bool sinsp_utils::find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys)
-{
-	for (const auto& key : keys)
-	{
-		for(const auto& env_var : env)
-		{
-			if((env_var.size() > key.size()) && !env_var.compare(0, key.size(), key) && (env_var[key.size()] == '='))
-			{
-				out = env_var.substr(key.size()+1);
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-bool sinsp_utils::find_env(std::string &out, const std::vector<std::string> &env, const std::string &key)
-{
-	const std::vector<std::string> keys = { key };
-	return find_first_env(out, env, keys);
-}
-
 void sinsp_utils::split_container_image(const std::string &image,
 					std::string &hostname,
 					std::string &port,
