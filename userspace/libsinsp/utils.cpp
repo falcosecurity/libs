@@ -861,32 +861,6 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string, const bool
 #endif
 }
 
-#ifndef _WIN32
-#ifdef __GLIBC__
-void sinsp_utils::bt(void)
-{
-	static const char start[] = "BACKTRACE ------------";
-	static const char end[] = "----------------------";
-
-	void *bt[1024];
-	int bt_size;
-	char **bt_syms;
-	int i;
-
-	bt_size = backtrace(bt, 1024);
-	bt_syms = backtrace_symbols(bt, bt_size);
-	libsinsp_logger()->format("%s", start);
-	for (i = 1; i < bt_size; i++)
-	{
-		libsinsp_logger()->format("%s", bt_syms[i]);
-	}
-	libsinsp_logger()->format("%s", end);
-
-	free(bt_syms);
-}
-#endif // __GLIBC__
-#endif // _WIN32
-
 bool sinsp_utils::find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys)
 {
 	for (const auto& key : keys)
