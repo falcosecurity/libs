@@ -961,16 +961,6 @@ void sinsp_utils::parse_suppressed_types(const std::vector<std::string>& supp_st
 	}
 }
 
-const char* sinsp_utils::event_name_by_id(uint16_t id)
-{
-	if (id >= PPM_EVENT_MAX)
-	{
-		ASSERT(false);
-		return "NA";
-	}
-	return g_infotables.m_event_info[id].name;
-}
-
 static int32_t gmt2local(time_t t)
 {
 	int dt, dir;
