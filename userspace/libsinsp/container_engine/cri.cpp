@@ -193,7 +193,6 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 				"cri (%s): Performing lookup",
 				container_id.c_str());
 
-		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		libsinsp::cgroup_limits::cgroup_limits_key key(
 			container.m_id,
 			tinfo->get_cgroup("cpu"),
@@ -244,24 +243,29 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri_async (%s): Starting synchronous lookup",
 					container_id.c_str());
-			// lookup_sync function directly invokes the container engine specific parser `parse`
+			// `lookup_sync` function directly invokes the container engine specific parser `parse`
 			done = m_async_source->lookup_sync(key, result);
-			// explicitly check for the most crucial retrieved value to be present
-			if(!result.m_image.empty())
+			if(!result.m_image.empty() || result.is_pod_sandbox())
 			{
 				/*
 				* Only for synchronous lookup option (e.g. Falco's default is async not sync)
 				*
-				* Fast-track addition of enriched containers (fields successfully retrieved from the container runtime socket)
-				* to the container cache, bypassing the round-trip process:
+				* Explicitly check for the most crucial retrieved value (`m_image`) to be present before enabling the 
+				* fast-track container add option. At this point, the container with only the cgroup (container id) was 
+				* already added to the cache. Therefore, we can proceed to call `replace_container`.
+				* 
+				* Bypassing the round-trip process:
 				* `source_callback` -> `notify_new_container` ->
 				* `container_to_sinsp_event(container_to_json(container_info), ...)` ->
 				* `parse_container_json_evt` -> `m_inspector->m_container_manager.add_container()`
 				*
-				* Although we still re-add the container in `parse_container_json_evt` to also support native 'container' events, it
-				* introduces an avoidable delay in the incoming syscall event stream. Syscall events do not explicitly require container
-				* events and instead directly retrieve container details from the container cache. This behavior could potentially
-				* contribute to the issues noted by adopters, such as the absence of container images in syscall events.
+				* In `parse_container_json_evt`, we still re-add the container to support native 'container' events
+				* and new container callbacks that may expect the container as JSON in the artificial sinsp evt.
+				* However, we can avoid delays by storing the container struct in the container cache now. 
+				* This is beneficial because syscall events do not explicitly require container events, instead, 
+				* they directly retrieve container details from the container cache. This new feature can mitigate 
+				* issues noted by adopters, such as the absence of container images in syscall events even when 
+				* disabling async lookups.
 				*/
 				cache->replace_container(std::make_shared<sinsp_container_info>(result));
 			}

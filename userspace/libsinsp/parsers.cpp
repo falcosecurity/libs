@@ -5078,22 +5078,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		const Json::Value& lookup_state = container["lookup_state"];
 		if(check_json_val_is_convertible(lookup_state, Json::uintValue, "lookup_state"))
 		{
-			container_info->set_lookup_status(static_cast<sinsp_container_lookup::state>(lookup_state.asUInt()));
-			switch(container_info->get_lookup_status())
-			{
-			case sinsp_container_lookup::state::STARTED:
-			case sinsp_container_lookup::state::SUCCESSFUL:
-			case sinsp_container_lookup::state::FAILED:
-				break;
-			default:
-				container_info->set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
-			}
-
 			// state == STARTED doesn't make sense in a scap file
 			// as there's no actual lookup that would ever finish
 			if(!evt->get_tinfo_ref() && container_info->get_lookup_status() == sinsp_container_lookup::state::STARTED)
 			{
-				SINSP_DEBUG("Rewriting lookup_state = STARTED from scap file to FAILED for container %s",
+				SINSP_DEBUG("Rewriting lookup_state == STARTED from scap file to FAILED for container %s",
 					container_info->m_id.c_str());
 				container_info->set_lookup_status(sinsp_container_lookup::state::FAILED);
 			}
@@ -5239,6 +5228,28 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		}
 		evt->set_tinfo_ref(container_info->get_tinfo(m_inspector));
 		evt->set_tinfo(evt->get_tinfo_ref().get());
+		container_info->set_lookup_status(static_cast<sinsp_container_lookup::state>(lookup_state.asUInt()));
+		switch(container_info->get_lookup_status())
+		{
+		// Preserve case where lookup_state == STARTED from scap file was set to FAILED
+		// or otherwise set to false.
+		case sinsp_container_lookup::state::FAILED:
+			break;
+		default:
+			{
+				if (!container_info->m_image.empty() || container_info->is_pod_sandbox())
+				{
+					// Marked as SUCCESSFUL if and only if the container image field present or 
+					// if it's a pod sandbox container
+					container_info->set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
+				} else
+				{
+					container_info->set_lookup_status(sinsp_container_lookup::state::FAILED);
+				}
+			}
+		}
+		// `add_container` also triggers the callbacks, therefore always continue even if the
+		// lookup_status was set to FAILED
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
 		/*
 		SINSP_STR_DEBUG("Container\n-------\nID:" + container_info.m_id +

@@ -58,7 +58,6 @@ bool container_async_source<key_type>::lookup(const key_type& key,
 template<typename key_type>
 bool container_async_source<key_type>::lookup_sync(const key_type& key, sinsp_container_info& value)
 {
-	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	value.m_type = container_type(key);
 	value.m_id = container_id(key);
 
