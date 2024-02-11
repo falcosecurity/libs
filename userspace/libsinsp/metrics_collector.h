@@ -53,10 +53,10 @@ enum sinsp_stats_v2_resource_utilization
 	SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ, ///< Current VSZ (Virtual Memory Size), calculated based on /proc/self/status info, unit: kb.
 	SINSP_RESOURCE_UTILIZATION_MEMORY_PSS, ///< Current PSS (Proportional Set Size), calculated based on /proc/self/smaps_rollup info, unit: kb.
 	SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY, ///< Cgroup current memory used, default Kubernetes /sys/fs/cgroup/memory/memory.usage_in_bytes, unit: bytes.
-	SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST, ///< Current total host CPU usage (all CPUs), calculated based on ${HOST_ROOT}/proc/stat info, unit: percentage.
-	SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST, ///< Current total memory used out of available host memory, calculated based on ${HOST_ROOT}/proc/meminfo info, unit: kb.
-	SINSP_RESOURCE_UTILIZATION_PROCS_HOST, ///< Number of processes currently running on CPUs on the host, retrieved from ${HOST_ROOT}/proc/stat line `procs_running`, unit: count.
-	SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST, ///< Number of allocated fds on the host, retrieved from ${HOST_ROOT}/proc/sys/fs/file-nr, unit: count.
+	SINSP_RESOURCE_UTILIZATION_HOST_CPU_PERC, ///< Current total host CPU usage (all CPUs), calculated based on ${HOST_ROOT}/proc/stat info, unit: percentage.
+	SINSP_RESOURCE_UTILIZATION_HOST_MEMORY, ///< Current total memory used out of available host memory, calculated based on ${HOST_ROOT}/proc/meminfo info, unit: kb.
+	SINSP_RESOURCE_UTILIZATION_HOST_PROCS, ///< Number of processes currently running on CPUs on the host, retrieved from ${HOST_ROOT}/proc/stat line `procs_running`, unit: count.
+	SINSP_RESOURCE_UTILIZATION_HOST_FDS, ///< Number of allocated fds on the host, retrieved from ${HOST_ROOT}/proc/sys/fs/file-nr, unit: count.
 	SINSP_STATS_V2_N_THREADS, ///< Total number of threads currently stored in the sinsp state thread table, unit: count.
 	SINSP_STATS_V2_N_FDS, ///< Total number of fds currently stored across all threadtables associated with each active thread in the sinsp state thread table, unit: count.
 	SINSP_STATS_V2_NONCACHED_FD_LOOKUPS, ///< fdtable state related counters, unit: count.
@@ -81,22 +81,58 @@ enum sinsp_stats_v2_resource_utilization
 
 #ifdef __linux__
 
-namespace libsinsp::metrics {
+namespace libs::metrics
+{
 
-class metrics_collector
+template <typename T>
+static double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
+{
+	double factor = 1;
+	switch(source_unit)
+	{
+	case METRIC_VALUE_UNIT_MEMORY_BYTES:
+		factor = 1;
+		break;
+	case METRIC_VALUE_UNIT_MEMORY_KIBIBYTES:
+		factor = 1024.;
+		break;
+	case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
+		factor = 1024. * 1024.;
+		break;
+	default:
+		return 0;
+	}
+
+	double bytes_val = val * factor;
+	switch(dest_unit)
+	{
+	case METRIC_VALUE_UNIT_MEMORY_BYTES:
+		return bytes_val;
+	case METRIC_VALUE_UNIT_MEMORY_KIBIBYTES:
+		return std::round((bytes_val / 1024.) * 10.) / 10.; // round to 1 decimal
+	case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
+		return std::round((bytes_val / 1024. / 1024.) * 10.) / 10.; // round to 1 decimal
+	default:
+		return 0;
+	}
+	return 0;
+}
+
+class metrics_converter
 {
 public:
-	metrics_collector(sinsp* inspector, uint32_t flags, bool convert_memory_to_mb);
+	metrics_converter() = default;
 
-	/*!
-	\brief Method to fill up m_metrics_buffer with metrics; refreshes m_metrics with up-to-date metrics on each call
-	*/
-	void snapshot();
+	virtual std::string convert_metric_to_text(metrics_v2 metric);
 
-	/*!
-	\brief Method to get a const reference to m_metrics vector
-	*/
-	const std::vector<metrics_v2>& get_metrics() const;
+	virtual void convert_metric_to_unit_convention(metrics_v2& metric) = 0;
+};
+
+// Subclass for Prometheus-specific metric conversion
+class prometheus_metrics_converter : public metrics_converter
+{
+public:
+	prometheus_metrics_converter() = default;
 
 	/*!
 	\brief Method to convert a metrics_v2 metric to the text-based Prometheus exposition format.
@@ -140,7 +176,7 @@ public:
 	 * w/ a `prometheus_metric_name_fully_qualified` - optional components prepended to and unit appended to. 
 	 * 3-lines including # HELP and # TYPE lines followed by the metric line, raw metric name always present as label.
 	*/
-	std::string convert_metric_to_prometheus_text(metrics_v2 metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", std::map<std::string,std::string> const_labels = {});
+	std::string convert_metric_to_text(metrics_v2 metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", std::map<std::string,std::string> const_labels = {});
 
 	/*!
 	\brief Method to convert a software version like metric_name to the text-based Prometheus exposition format.
@@ -165,44 +201,53 @@ public:
 	 * w/ a `prometheus_metric_name_fully_qualified` - optional components prepended to and unit appended to. 
 	 * 3-lines including # HELP and # TYPE lines followed by the metric line, raw metric name always present as label.
 	 */
-	std::string convert_metric_to_prometheus_text(std::string_view metric_name, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", std::map<std::string,std::string> const_labels = {});
+	std::string convert_metric_to_text(std::string_view metric_name, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", std::map<std::string,std::string> const_labels = {});
 
 	/*!
-	\brief Method to convert memory units; tied to metrics_v2 definitions
+	\brief Method to convert metric units to Prometheus base units. todo, not yet implemented.
+	 *
+	 * \note metrics names w/ unit suffix shall be changed within this method, conforming to libs native metrics names, 
+	 * not Prometheus, `convert_metric_to_text` takes care of final metric name convertion to Prometheus text format.
+	 * As a consequence `metric.unit` always matches the metric name unit suffix if applicable.
 	*/
-	template <typename T>
-	static double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
-	{
-		double factor = 1;
-		switch(source_unit)
-		{
-		case METRIC_VALUE_UNIT_MEMORY_BYTES:
-			factor = 1;
-			break;
-		case METRIC_VALUE_UNIT_MEMORY_KIBIBYTES:
-			factor = 1024.;
-			break;
-		case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
-			factor = 1024. * 1024.;
-			break;
-		default:
-			return 0;
-		}
+	void convert_metric_to_unit_convention(metrics_v2& metric) override;
+};
 
-		double bytes_val = val * factor;
-		switch(dest_unit)
-		{
-		case METRIC_VALUE_UNIT_MEMORY_BYTES:
-			return bytes_val;
-		case METRIC_VALUE_UNIT_MEMORY_KIBIBYTES:
-			return std::round((bytes_val / 1024.) * 10.) / 10.; // round to 1 decimal
-		case METRIC_VALUE_UNIT_MEMORY_MEGABYTES:
-			return std::round((bytes_val / 1024. / 1024.) * 10.) / 10.; // round to 1 decimal
-		default:
-			return 0;
-		}
-		return 0;
-	}
+// Subclass for output_rule-specific metric conversion
+class output_rule_metrics_converter : public metrics_converter
+{
+public:
+	output_rule_metrics_converter() = default;
+
+	/*!
+	\brief Method to convert metric units of memory-related metrics to mb
+	 *
+	 * \note metrics names w/ unit suffix shall be changed within this method, conforming to libs native metrics names.
+	 * As a consequence `metric.unit` always matches the metric name unit suffix if applicable.
+	 * 
+	*/
+	void convert_metric_to_unit_convention(metrics_v2& metric) override;
+};
+
+class libs_metrics_collector
+{
+public:
+	libs_metrics_collector(sinsp* inspector, uint32_t flags);
+
+	/*!
+	\brief Method to fill up m_metrics_buffer with metrics; refreshes m_metrics with up-to-date metrics on each call
+	*/
+	void snapshot();
+
+	/*!
+	\brief Method to get a const reference to m_metrics vector
+	*/
+	const std::vector<metrics_v2>& get_metrics() const;
+
+	/*!
+	\brief Method to get a non-const reference to m_metrics vector
+	*/
+	std::vector<metrics_v2>& get_metrics();
 
 	/*!
 	\brief Method to create a new metrics_v2
@@ -216,22 +261,21 @@ public:
 		metric.type = type;
 		metric.unit = unit;
 		metric.metric_type = metric_type;
-		set_new_metric(metric, type, val);
+		set_metric_value(metric, type, val);
 		return metric;
 	}
 
 private:
 	sinsp* m_inspector;
 	uint32_t m_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS;
-	bool m_convert_memory_to_mb = true;
 	std::vector<metrics_v2> m_metrics;
 
-	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host);
-	void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, double &cpu_usage_perc_total_host, uint32_t &procs_running_host);
-	uint64_t get_container_memory_usage() const;
+	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &host_memory_used, uint64_t &host_open_fds);
+	void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, double &host_cpu_usage_perc, uint32_t &host_procs_running);
+	uint64_t get_container_memory_used() const;
 
 	template <typename T>
-	static void set_new_metric(metrics_v2& metric, metrics_v2_value_type type, T val)
+	static void set_metric_value(metrics_v2& metric, metrics_v2_value_type type, T val)
 	{
 		switch (type)
 		{
@@ -262,6 +306,6 @@ private:
 	}
 };
 
-} // namespace libsinsp::metrics
+} // namespace libs::metrics
 
 #endif
