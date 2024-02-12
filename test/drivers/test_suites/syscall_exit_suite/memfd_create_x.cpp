@@ -13,7 +13,7 @@ TEST(SyscallExit, memfd_createX_success)
     /*=============================== TRIGGER SYSCALL ===========================*/
 
     const char* fileName = "test";
-    int flags = MFD_ALLOW_SEALING | MFD_CLOEXEC | MFD_HUGETLB;
+    int flags = MFD_ALLOW_SEALING | MFD_CLOEXEC;
     int fd = syscall(__NR_memfd_create, fileName, flags);
     assert_syscall_state(SYSCALL_SUCCESS, "memfd_create", fd, NOT_EQUAL, -1);
     close(fd);
@@ -42,7 +42,7 @@ TEST(SyscallExit, memfd_createX_success)
     evt_test->assert_charbuf_param(2, fileName);
 
     /* Parameter 3: flags (type: PT_FLAGS32) */
-    evt_test->assert_numeric_param(3, (uint32_t)PPM_MFD_ALLOW_SEALING | PPM_MFD_CLOEXEC | PPM_MFD_HUGETLB);
+    evt_test->assert_numeric_param(3, (uint32_t)PPM_MFD_ALLOW_SEALING | PPM_MFD_CLOEXEC);
 
     /*=============================== ASSERT PARAMETERS  ===========================*/    
 
