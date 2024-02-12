@@ -31,14 +31,19 @@ jobs:
         with:
           name: matrix_X64
       
+      - name: Move X64 matrix under docs
+        run: mv matrix.md docs/matrix_X64.md
+      
       - name: Download matrix ARM64
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: matrix_ARM64
+          
+      - name: Move ARM64 matrix under docs
+        run: mv matrix.md docs/matrix_ARM64.md    
       
       - name: Disable Table Of Content for matrixes pages
         run: |
-          mv matrix_*.md docs/
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_X64.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_ARM64.md
 
