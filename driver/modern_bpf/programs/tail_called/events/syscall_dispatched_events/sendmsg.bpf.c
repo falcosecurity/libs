@@ -45,7 +45,7 @@ int BPF_PROG(sendmsg_e,
 	 */
 	if(socket_fd >= 0)
 	{
-		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND);
+		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, NULL);
 	}
 	else
 	{

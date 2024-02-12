@@ -25,8 +25,8 @@ int BPF_PROG(sendto_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3];
-	extract__network_args(args, 3, regs);
+	unsigned long args[5];
+	extract__network_args(args, 5, regs);
 
 	/* Parameter 1: fd (type: PT_FD) */
 	int32_t socket_fd = (int32_t)args[0];
@@ -45,7 +45,8 @@ int BPF_PROG(sendto_e,
 	 */
 	if(socket_fd >= 0)
 	{
-		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND);
+		struct sockaddr *usrsockaddr = (struct sockaddr *)args[4];
+		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, usrsockaddr);
 	}
 	else
 	{

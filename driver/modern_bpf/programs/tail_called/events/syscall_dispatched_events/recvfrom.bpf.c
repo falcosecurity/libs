@@ -93,7 +93,7 @@ int BPF_PROG(recvfrom_x,
 
 		/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 		uint32_t socket_fd = (uint32_t)args[0];
-		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
+		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND, NULL);
 	}
 	else
 	{
