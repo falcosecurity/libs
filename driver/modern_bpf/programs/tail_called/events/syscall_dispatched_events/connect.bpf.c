@@ -77,7 +77,7 @@ int BPF_PROG(connect_x,
 	/* We need a valid sockfd to extract source data.*/
 	if(ret == 0 || ret == -EINPROGRESS)
 	{
-		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND);
+		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, NULL);
 	}
 	else
 	{

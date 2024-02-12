@@ -74,7 +74,7 @@ int BPF_PROG(accept_x,
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	if(ret >= 0)
 	{
-		auxmap__store_socktuple_param(auxmap, (int32_t)ret, INBOUND);
+		auxmap__store_socktuple_param(auxmap, (int32_t)ret, INBOUND, NULL);
 
 		/* Collect parameters at the beginning to  manage socketcalls */
 		unsigned long args[1];

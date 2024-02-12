@@ -93,7 +93,7 @@ int BPF_PROG(recvmsg_x,
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 		uint32_t socket_fd = (uint32_t)args[0];
-		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
+		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND, NULL);
 
 		/* Parameter 5: msg_control (type: PT_BYTEBUF) */
 		if (msghhdr.msg_control != NULL)
