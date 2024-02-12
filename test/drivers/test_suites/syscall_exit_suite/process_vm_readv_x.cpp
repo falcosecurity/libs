@@ -76,6 +76,13 @@ TEST(SyscallExit, process_vm_readvX_success)
 		ssize_t read = write(pipe_fd[1], &target, sizeof(void*));
 		ASSERT_GT(read, 0);
 
+		/*
+		 * The following write call makes sure that the process_vm_readv
+		 * has been called.
+		 */
+		read = write(pipe_fd[1], buf, 2);
+		ASSERT_GT(read, 0);
+
 		close(pipe_fd[1]);
 
 		exit(EXIT_SUCCESS);
