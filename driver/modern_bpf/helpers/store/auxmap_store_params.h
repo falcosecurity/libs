@@ -595,7 +595,8 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		BPF_CORE_READ_INTO(&ipv4_remote, sk, __sk_common.skc_daddr);
 		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
 
-		/* Fallback to userspace struct if address info from kernel is NULL*/
+		/* Kernel doesn't always fill sk->__sk_common in sendto and sendmsg syscalls (as in the case of an UDP connection).
+		 * We fallback to the address from userspace when the kernel-provided address is NULL */ 
 		if (port_remote == 0 && usrsockaddr != NULL)
 		{
 			struct sockaddr_in usrsockaddr_in = {};
@@ -646,7 +647,8 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		BPF_CORE_READ_INTO(&ipv6_remote, sk, __sk_common.skc_v6_daddr);
 		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
 
-		/* Fallback to userspace struct if address info from kernel is NULL*/
+		/* Kernel doesn't always fill sk->__sk_common in sendto and sendmsg syscalls (as in the case of an UDP connection).
+		 * We fallback to the address from userspace when the kernel-provided address is NULL */ 
 		if (port_remote == 0 && usrsockaddr != NULL)
 		{
 			struct sockaddr_in6 usrsockaddr_in6 = {};
