@@ -45,7 +45,10 @@ int BPF_PROG(sendmsg_e,
 	 */
 	if(socket_fd >= 0)
 	{
-		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, NULL);
+		struct sockaddr *usrsockaddr;
+		struct msghdr *msg = (struct msghdr*)msghdr_pointer;
+		BPF_CORE_READ_USER_INTO(&usrsockaddr, msg, msg_name);
+		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, usrsockaddr);
 	}
 	else
 	{
