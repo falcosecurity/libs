@@ -1090,9 +1090,10 @@ void sinsp_chisel::get_chisel_list(vector<chisel_desc>* chisel_descs)
 			continue;
 		}
 
-		for (auto const& dir_entry : filesystem::directory_iterator(dir_info.m_dir))
+		std::error_code ec;
+		for (auto const& dir_entry : filesystem::directory_iterator(dir_info.m_dir, ec))
 		{
-			if(dir_entry.path().extension() == ".lua")
+			if(!ec && dir_entry.path().extension() == ".lua")
 			{
 				auto res = find_if(chisel_descs->begin(), chisel_descs->end(),
 					[&dir_entry](auto& desc) { return dir_entry.path().filename() == desc.m_name; });
