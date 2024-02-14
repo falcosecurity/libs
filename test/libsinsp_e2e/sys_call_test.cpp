@@ -21,6 +21,7 @@ limitations under the License.
 #include "event_capture.h"
 #include "subprocess.h"
 
+#include <cstdint>
 #include <libscap/scap-int.h>
 #include <libscap/scap_platform.h>
 
@@ -505,7 +506,8 @@ TEST_F(sys_call_test, brk)
 
 		if (type == PPME_SYSCALL_BRK_4_E)
 		{
-			uint64_t addr = *((uint64_t*)e->get_param_by_name("addr")->m_val);
+			uint64_t addr;
+			memcpy(&addr,e->get_param_by_name("addr")->m_val, sizeof(uint64_t));
 			if (addr == 0)
 			{
 				ignore_this_call = true;
@@ -522,8 +524,10 @@ TEST_F(sys_call_test, brk)
 				return;
 			}
 
-			uint32_t vmsize = *((uint32_t*)e->get_param_by_name("vm_size")->m_val);
-			uint32_t vmrss = *((uint32_t*)e->get_param_by_name("vm_rss")->m_val);
+			uint32_t vmsize;
+			memcpy(&vmsize, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
+			uint32_t vmrss;
+			memcpy(&vmrss, e->get_param_by_name("vm_rss")->m_val, sizeof(uint32_t));
 
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, vmrss);
@@ -600,7 +604,8 @@ TEST_F(sys_call_test, mmap)
 				break;
 			case 7:
 			{
-				uint64_t addr = *((uint64_t*)e->get_param_by_name("addr")->m_val);
+				uint64_t addr;
+				memcpy(&addr, e->get_param_by_name("addr")->m_val, sizeof(uint64_t));
 #ifdef __LP64__
 				EXPECT_EQ((uint64_t)p, addr);
 #else
@@ -617,8 +622,8 @@ TEST_F(sys_call_test, mmap)
 		{
 			callnum++;
 
-			exit_vmsize = *((uint32_t*)e->get_param_by_name("vm_size")->m_val);
-			exit_vmrss = *((uint32_t*)e->get_param_by_name("vm_rss")->m_val);
+			memcpy(&exit_vmsize, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
+			memcpy(&exit_vmrss, e->get_param_by_name("vm_rss")->m_val, sizeof(uint32_t));
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
 
@@ -696,8 +701,8 @@ TEST_F(sys_call_test, mmap)
 		{
 			callnum++;
 
-			exit_vmsize = *((uint32_t*)e->get_param_by_name("vm_size")->m_val);
-			exit_vmrss = *((uint32_t*)e->get_param_by_name("vm_rss")->m_val);
+			memcpy(&exit_vmsize, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
+			memcpy(&exit_vmrss, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
 
@@ -705,13 +710,15 @@ TEST_F(sys_call_test, mmap)
 			{
 			case 4:
 			{
-				uint64_t res = *((uint64_t*)e->get_param_by_name("res")->m_val);
+				uint64_t res;
+				memcpy(&res, e->get_param_by_name("res")->m_val, sizeof(uint64_t));
 				EXPECT_EQ(-errno2, (int64_t)res);
 				break;
 			}
 			case 6:
 			{
-				uint64_t res = *((uint64_t*)e->get_param_by_name("res")->m_val);
+				uint64_t res;
+				memcpy(&res, e->get_param_by_name("res")->m_val, sizeof(uint64_t));
 				EXPECT_EQ((uint64_t)p, res);
 				EXPECT_GT(exit_vmsize, enter_vmsize + 500);
 				EXPECT_GE(exit_vmrss, enter_vmrss);
