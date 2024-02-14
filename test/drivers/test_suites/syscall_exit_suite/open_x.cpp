@@ -8,6 +8,9 @@ TEST(SyscallExit, openX_success)
 {
 	auto evt_test = get_syscall_event_test(__NR_open, EXIT_EVENT);
 
+	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
+	bool notmpfile = (errno == EOPNOTSUPP);
+
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -15,8 +18,8 @@ TEST(SyscallExit, openX_success)
 	/* Syscall special notes:
 	 * With `O_TMPFILE` flag the pathname must be a directory.
 	 */
-	const char* pathname = ".";
-	int flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
+	const char* pathname = notmpfile? ".tmpfile" : ".";
+	int flags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
 	mode_t mode = 0;
 	int fd = syscall(__NR_open, pathname, flags, mode);
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
@@ -27,6 +30,11 @@ TEST(SyscallExit, openX_success)
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	close(fd);
+
+	if(notmpfile)
+	{
+		unlink(pathname);
+	}
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -52,7 +60,8 @@ TEST(SyscallExit, openX_success)
 	evt_test->assert_charbuf_param(2, pathname);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(3, (uint32_t)PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
+	uint32_t oflags = notmpfile ? (PPM_O_RDWR | PPM_O_CREAT) : (PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
+	evt_test->assert_numeric_param(3, oflags);
 
 	/* Parameter 4: mode (type: PT_UINT32) */
 	/* mode is 0 so it must remain 0. */

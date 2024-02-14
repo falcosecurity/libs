@@ -56,12 +56,17 @@ TEST(SyscallExit, pwritevX_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_pwritev, EXIT_EVENT);
 
+	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
+	bool notmpfile = (errno == EOPNOTSUPP);
+
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Open a generic file for writing */
-	int fd = syscall(__NR_open, ".", O_WRONLY | O_TMPFILE);
+	const char* pathname = notmpfile? ".tmpfile" : ".";
+	int flags = notmpfile? (O_WRONLY | O_CREAT) : (O_WRONLY | O_TMPFILE);
+	int fd = syscall(__NR_open, pathname, flags);
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 
 	struct iovec iov[2];
@@ -78,6 +83,11 @@ TEST(SyscallExit, pwritevX_snaplen)
 
 	/* Close the generic file */
 	syscall(__NR_close, fd);
+
+	if(notmpfile)
+	{
+		unlink(pathname);
+	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
