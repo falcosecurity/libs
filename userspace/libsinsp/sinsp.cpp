@@ -1111,20 +1111,18 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 			continue;
 		}
 
-		// create scap event
 		uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
 		auto piscapevt_buf = std::unique_ptr<uint8_t, std::default_delete<uint8_t[]>>(new uint8_t[evlen]);
-		uint16_t* evt_lens = (uint16_t*) (piscapevt_buf.get() + sizeof(ppm_evt_hdr));
 		auto piscapevt = (scap_evt*) piscapevt_buf.get();
-		piscapevt->len = evlen;
-		piscapevt->type = PPME_PROCINFO_E;
-		piscapevt->nparams = 2;
 		piscapevt->tid = pi->pid;
 		piscapevt->ts = ts;
-		evt_lens[0] = 8; // cpu_usr (len)
-		evt_lens[1] = 8; // cpu_sys (len)
-		((uint64_t*)(evt_lens + 2))[0] = pi->utime; // cpu_usr (val)
-		((uint64_t*)(evt_lens + 2))[1] = pi->stime; // cpu_sys (val)
+		int32_t encode_res = scap_event_encode_params(scap_sized_buffer{piscapevt_buf.get(), evlen}, nullptr, error,
+			PPME_PROCINFO_E, 2, pi->utime, pi->stime);
+
+		if (encode_res != SCAP_SUCCESS)
+		{
+			throw sinsp_exception(std::string("could not encode PPME_PROCINFO_E event: ") + error);
+		}
 
 		// push event into async event queue
 		handle_async_event(sinsp_evt::from_scap_evt(std::move(piscapevt_buf)));
