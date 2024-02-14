@@ -5,11 +5,16 @@ TEST(SyscallExit, dup2X)
 {
 	auto evt_test = get_syscall_event_test(__NR_dup2, EXIT_EVENT);
 
+	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
+	bool notmpfile = (errno == EOPNOTSUPP);
+
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	int32_t old_fd = syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE);
+	const char* pathname = notmpfile? ".tmpfile" : ".";
+	int flags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE);
+	int32_t old_fd = syscall(__NR_openat, AT_FDCWD, pathname, flags);
 	assert_syscall_state(SYSCALL_SUCCESS, "openat", old_fd, NOT_EQUAL, -1);
 
 	int32_t new_fd = old_fd;
@@ -19,6 +24,11 @@ TEST(SyscallExit, dup2X)
 	syscall(__NR_close, old_fd);
 	syscall(__NR_close, new_fd);
 	syscall(__NR_close, res);
+
+	if(notmpfile)
+	{
+		unlink(pathname);
+	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
