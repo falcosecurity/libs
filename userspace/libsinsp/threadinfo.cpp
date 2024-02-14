@@ -145,6 +145,9 @@ void sinsp_threadinfo::init()
 	m_exe_ino_ctime_duration_clone_ts = 0;
 	m_exe_ino_ctime_duration_pidns_start = 0;
 	m_filtered_out = false;
+	m_exe_writable = false;
+	m_exe_upper_layer = false;
+	m_exe_from_memfd = false;
 
 	memset(&m_user, 0, sizeof(scap_userinfo));
 	memset(&m_group, 0, sizeof(scap_groupinfo));
