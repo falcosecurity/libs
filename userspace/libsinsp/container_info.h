@@ -256,6 +256,7 @@ public:
 	};
 
 	sinsp_container_info(sinsp_container_lookup &&lookup = sinsp_container_lookup()):
+		m_type(CT_UNKNOWN),
 		m_container_ip(0),
 		m_privileged(false),
 		m_memory_limit(0),

@@ -32,4 +32,7 @@ enum sinsp_container_type
 	CT_BPM = 9,
 	CT_STATIC = 10,
 	CT_PODMAN = 11,
+
+	// Default value, may be changed if necessary
+	CT_UNKNOWN = 0xffff
 };
