@@ -362,8 +362,8 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update)
 	 */
 
 	int64_t p2_t1_tid = 26;
-	UNUSED int64_t p2_t1_pid = 26;
-	UNUSED int64_t p2_t1_ptid = p1_t1_tid;
+	[[maybe_unused]] int64_t p2_t1_pid = 26;
+	[[maybe_unused]] int64_t p2_t1_ptid = p1_t1_tid;
 
 	ASSERT_THREAD_INFO_COMM(p1_t1_tid, "old-name");
 	generate_clone_x_event(p2_t1_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, DEFAULT_VALUE, DEFAULT_VALUE, DEFAULT_VALUE,
@@ -440,7 +440,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision)
 
 	/* Create a mock child with a clone exit parent event */
 	int64_t p1_t1_tid = 24;
-	UNUSED int64_t p1_t1_pid = 24;
+	[[maybe_unused]] int64_t p1_t1_pid = 24;
 	int64_t p1_t1_ptid = INIT_PID;
 
 	/* Parent clone exit event */
@@ -609,8 +609,8 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_missing_both_clone_events_create_secon
 
 	/* Init creates a new process p1 but we miss both clone events so we know nothing about it */
 	int64_t p1_t1_tid = 24;
-	UNUSED int64_t p1_t1_pid = 24;
-	UNUSED int64_t p1_t1_ptid = INIT_TID;
+	[[maybe_unused]] int64_t p1_t1_pid = 24;
+	[[maybe_unused]] int64_t p1_t1_ptid = INIT_TID;
 
 	/* The process p1 creates a second thread p1_t2 */
 	int64_t p1_t2_tid = 30;

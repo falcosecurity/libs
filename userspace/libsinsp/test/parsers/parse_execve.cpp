@@ -59,8 +59,8 @@ TEST_F(sinsp_with_test_input, EXECVE_from_a_not_leader_thread_with_a_child)
 
 	/* Create a child for `p2_t3` */
 	int64_t p7_t1_tid = 100;
-	UNUSED int64_t p7_t1_pid = 100;
-	UNUSED int64_t p7_t1_ptid = p2_t3_tid;
+	[[maybe_unused]] int64_t p7_t1_pid = 100;
+	[[maybe_unused]] int64_t p7_t1_ptid = p2_t3_tid;
 
 	generate_clone_x_event(p7_t1_tid, p2_t3_tid, p2_t3_pid, p2_t3_ptid);
 	ASSERT_THREAD_CHILDREN(p2_t3_tid, 1, 1, p7_t1_tid);
@@ -178,7 +178,7 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath)
 	int64_t retval = 0;
 	int64_t old_tid = p6_t1_tid;
 	int64_t new_tid = p6_t1_tid;
-	int64_t pid = p6_t1_pid; 
+	int64_t pid = p6_t1_pid;
 	int64_t ppid = p6_t1_ptid;
 	std::string pathname = "/bin/test-exe";
 	std::string comm = "test-exe";
