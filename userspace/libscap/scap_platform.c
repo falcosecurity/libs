@@ -50,6 +50,12 @@ static int32_t scap_generic_close_platform(struct scap_platform* platform)
 		platform->m_proclist.m_proclist = NULL;
 	}
 
+	if(platform->m_driver_procinfo != NULL)
+	{
+		scap_free_proclist_info(platform->m_driver_procinfo);
+		platform->m_driver_procinfo = NULL;
+	}
+
 	return SCAP_SUCCESS;
 }
 

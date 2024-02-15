@@ -211,3 +211,8 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 
 	return true;
 }
+
+void scap_free_proclist_info(struct ppm_proclist_info *proclist)
+{
+	free(proclist);
+}
