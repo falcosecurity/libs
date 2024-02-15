@@ -76,6 +76,7 @@ void scap_free_userlist(scap_userlist* uhandle);
 int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo, const char* procdirname);
 
 bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_entries, char* error);
+void scap_free_proclist_info(struct ppm_proclist_info *proclist);
 
 void scap_free_device_table(scap_mountinfo* dev_list);
 
