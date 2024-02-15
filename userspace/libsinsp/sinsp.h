@@ -71,6 +71,7 @@ limitations under the License.
 #include <libsinsp/sinsp_suppress.h>
 #include <libsinsp/state/table_registry.h>
 #include <libsinsp/stats.h>
+#include <libsinsp/stats_v2_resource_utilization.h>
 #include <libsinsp/threadinfo.h>
 #include <libsinsp/tuples.h>
 #include <libsinsp/user.h>
@@ -1151,7 +1152,6 @@ private:
 	uint32_t m_num_cpus;
 	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
-	scap_test_input_data *m_test_input_data = nullptr;
 
 	sinsp_network_interfaces m_network_interfaces {};
 

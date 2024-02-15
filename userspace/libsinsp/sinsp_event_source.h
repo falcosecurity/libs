@@ -23,14 +23,14 @@ limitations under the License.
 /**
  * @brief The dummy event source index for unknown event sources.
  */
-constexpr size_t sinsp_no_event_source_idx = -1;
+inline constexpr size_t sinsp_no_event_source_idx = -1;
 
 /**
  * @brief The dummy event source name for unknown event sources.
  */
-constexpr const char* sinsp_no_event_source_name = NULL;
+inline constexpr const char* sinsp_no_event_source_name = NULL;
 
 /**
  * @brief The name of the event source implemented by libsinsp itself.
  */
-constexpr const char* sinsp_syscall_event_source_name = "syscall";
+inline constexpr const char* sinsp_syscall_event_source_name = "syscall";
