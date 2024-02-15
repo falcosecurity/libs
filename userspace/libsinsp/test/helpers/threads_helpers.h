@@ -166,9 +166,9 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p1_t1 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p1_t1_tid = 2;                                                                                  \
-	UNUSED int64_t p1_t1_pid = p1_t1_tid;                                                                          \
-	UNUSED int64_t p1_t1_ptid = INIT_TID;                                                                          \
+	[[maybe_unused]] int64_t p1_t1_tid = 2;                                                                        \
+	[[maybe_unused]] int64_t p1_t1_pid = p1_t1_tid;                                                                \
+	[[maybe_unused]] int64_t p1_t1_ptid = INIT_TID;                                                                \
                                                                                                                        \
 	/* Parent exit event */                                                                                        \
 	generate_clone_x_event(p1_t1_tid, INIT_TID, INIT_PID, INIT_PTID);                                              \
@@ -179,9 +179,9 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p1_t2 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p1_t2_tid = 6;                                                                                  \
-	UNUSED int64_t p1_t2_pid = p1_t1_pid;                                                                          \
-	UNUSED int64_t p1_t2_ptid = INIT_TID;                                                                          \
+	[[maybe_unused]] int64_t p1_t2_tid = 6;                                                                        \
+	[[maybe_unused]] int64_t p1_t2_pid = p1_t1_pid;                                                                \
+	[[maybe_unused]] int64_t p1_t2_ptid = INIT_TID;                                                                \
                                                                                                                        \
 	/* Parent exit event */                                                                                        \
 	generate_clone_x_event(p1_t2_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CLONE_THREAD);                      \
@@ -192,9 +192,9 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p2_t1 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p2_t1_tid = 25;                                                                                 \
-	UNUSED int64_t p2_t1_pid = 25;                                                                                 \
-	UNUSED int64_t p2_t1_ptid = INIT_TID;                                                                          \
+	[[maybe_unused]] int64_t p2_t1_tid = 25;                                                                       \
+	[[maybe_unused]] int64_t p2_t1_pid = 25;                                                                       \
+	[[maybe_unused]] int64_t p2_t1_ptid = INIT_TID;                                                                \
                                                                                                                        \
 	/* Parent exit event */                                                                                        \
 	generate_clone_x_event(p2_t1_tid, p1_t2_tid, p1_t2_pid, p1_t2_ptid, PPM_CL_CLONE_PARENT);                      \
@@ -209,9 +209,9 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p2_t2 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p2_t2_tid = 23;                                                                                 \
-	UNUSED int64_t p2_t2_pid = p2_t1_pid;                                                                          \
-	UNUSED int64_t p2_t2_ptid = INIT_TID; /* p2_t2 will have the same parent of p2_t1 */                           \
+	[[maybe_unused]] int64_t p2_t2_tid = 23;                                                                       \
+	[[maybe_unused]] int64_t p2_t2_pid = p2_t1_pid;                                                                \
+	[[maybe_unused]] int64_t p2_t2_ptid = INIT_TID; /* p2_t2 will have the same parent of p2_t1 */                 \
                                                                                                                        \
 	/* Parent exit event */                                                                                        \
 	generate_clone_x_event(p2_t2_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid, PPM_CL_CLONE_THREAD);                      \
@@ -222,9 +222,9 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p2_t3 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p2_t3_tid = 24;                                                                                 \
-	UNUSED int64_t p2_t3_pid = p2_t1_pid;                                                                          \
-	UNUSED int64_t p2_t3_ptid = INIT_TID;                                                                          \
+	[[maybe_unused]] int64_t p2_t3_tid = 24;                                                                       \
+	[[maybe_unused]] int64_t p2_t3_pid = p2_t1_pid;                                                                \
+	[[maybe_unused]] int64_t p2_t3_ptid = INIT_TID;                                                                \
                                                                                                                        \
 	/* Parent exit event */                                                                                        \
 	generate_clone_x_event(p2_t3_tid, p2_t2_tid, p2_t2_pid, p2_t2_ptid, PPM_CL_CLONE_THREAD);                      \
@@ -235,9 +235,9 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p3_t1 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p3_t1_tid = 72;                                                                                 \
-	UNUSED int64_t p3_t1_pid = p3_t1_tid;                                                                          \
-	UNUSED int64_t p3_t1_ptid = p2_t1_tid;                                                                         \
+	[[maybe_unused]] int64_t p3_t1_tid = 72;                                                                       \
+	[[maybe_unused]] int64_t p3_t1_pid = p3_t1_tid;                                                                \
+	[[maybe_unused]] int64_t p3_t1_ptid = p2_t1_tid;                                                               \
                                                                                                                        \
 	/* Parent exit event */                                                                                        \
 	generate_clone_x_event(p3_t1_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);                                           \
@@ -248,11 +248,11 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p4_t1 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p4_t1_tid = 76;                                                                                 \
-	UNUSED int64_t p4_t1_pid = p4_t1_tid;                                                                          \
-	UNUSED int64_t p4_t1_ptid = p3_t1_tid;                                                                         \
-	UNUSED int64_t p4_t1_vtid = 1; /* This process will be the `init` one in the new namespace */                  \
-	UNUSED int64_t p4_t1_vpid = p4_t1_vtid;                                                                        \
+	[[maybe_unused]] int64_t p4_t1_tid = 76;                                                                       \
+	[[maybe_unused]] int64_t p4_t1_pid = p4_t1_tid;                                                                \
+	[[maybe_unused]] int64_t p4_t1_ptid = p3_t1_tid;                                                               \
+	[[maybe_unused]] int64_t p4_t1_vtid = 1; /* This process will be the `init` one in the new namespace */        \
+	[[maybe_unused]] int64_t p4_t1_vpid = p4_t1_vtid;                                                              \
                                                                                                                        \
 	generate_clone_x_event(p4_t1_tid, p3_t1_tid, p3_t1_pid, p3_t1_ptid, PPM_CL_CLONE_NEWPID);                      \
                                                                                                                        \
@@ -270,11 +270,11 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p4_t2 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p4_t2_tid = 79;                                                                                 \
-	UNUSED int64_t p4_t2_pid = p4_t1_pid;                                                                          \
-	UNUSED int64_t p4_t2_ptid = p3_t1_tid;                                                                         \
-	UNUSED int64_t p4_t2_vtid = 2;                                                                                 \
-	UNUSED int64_t p4_t2_vpid = p4_t1_vpid;                                                                        \
+	[[maybe_unused]] int64_t p4_t2_tid = 79;                                                                       \
+	[[maybe_unused]] int64_t p4_t2_pid = p4_t1_pid;                                                                \
+	[[maybe_unused]] int64_t p4_t2_ptid = p3_t1_tid;                                                               \
+	[[maybe_unused]] int64_t p4_t2_vtid = 2;                                                                       \
+	[[maybe_unused]] int64_t p4_t2_vpid = p4_t1_vpid;                                                              \
                                                                                                                        \
 	generate_clone_x_event(0, p4_t2_tid, p4_t2_pid, p4_t2_ptid, PPM_CL_CLONE_THREAD | PPM_CL_CHILD_IN_PIDNS,       \
 			       p4_t2_vtid, p4_t2_vpid);                                                                \
@@ -283,11 +283,11 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p5_t1 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p5_t1_tid = 82;                                                                                 \
-	UNUSED int64_t p5_t1_pid = p5_t1_tid;                                                                          \
-	UNUSED int64_t p5_t1_ptid = p4_t2_tid;                                                                         \
-	UNUSED int64_t p5_t1_vtid = 10;                                                                                \
-	UNUSED int64_t p5_t1_vpid = p5_t1_vtid;                                                                        \
+	[[maybe_unused]] int64_t p5_t1_tid = 82;                                                                       \
+	[[maybe_unused]] int64_t p5_t1_pid = p5_t1_tid;                                                                \
+	[[maybe_unused]] int64_t p5_t1_ptid = p4_t2_tid;                                                               \
+	[[maybe_unused]] int64_t p5_t1_vtid = 10;                                                                      \
+	[[maybe_unused]] int64_t p5_t1_vpid = p5_t1_vtid;                                                              \
                                                                                                                        \
 	generate_clone_x_event(0, p5_t1_tid, p5_t1_pid, p5_t1_ptid, PPM_CL_CHILD_IN_PIDNS, p5_t1_vtid, p5_t1_vpid);    \
                                                                                                                        \
@@ -295,11 +295,11 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p5_t2 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p5_t2_tid = 84;                                                                                 \
-	UNUSED int64_t p5_t2_pid = p5_t1_pid;                                                                          \
-	UNUSED int64_t p5_t2_ptid = p4_t2_tid;                                                                         \
-	UNUSED int64_t p5_t2_vtid = 12;                                                                                \
-	UNUSED int64_t p5_t2_vpid = p5_t1_vpid;                                                                        \
+	[[maybe_unused]] int64_t p5_t2_tid = 84;                                                                       \
+	[[maybe_unused]] int64_t p5_t2_pid = p5_t1_pid;                                                                \
+	[[maybe_unused]] int64_t p5_t2_ptid = p4_t2_tid;                                                               \
+	[[maybe_unused]] int64_t p5_t2_vtid = 12;                                                                      \
+	[[maybe_unused]] int64_t p5_t2_vpid = p5_t1_vpid;                                                              \
                                                                                                                        \
 	generate_clone_x_event(0, p5_t2_tid, p5_t2_pid, p5_t2_ptid, PPM_CL_CHILD_IN_PIDNS, p5_t2_vtid, p5_t2_vpid);    \
                                                                                                                        \
@@ -307,11 +307,11 @@ limitations under the License.
                                                                                                                        \
 	/*=============================== p6_t1 ===========================*/                                          \
                                                                                                                        \
-	UNUSED int64_t p6_t1_tid = 87;                                                                                 \
-	UNUSED int64_t p6_t1_pid = p6_t1_tid;                                                                          \
-	UNUSED int64_t p6_t1_ptid = p5_t2_tid;                                                                         \
-	UNUSED int64_t p6_t1_vtid = 17;                                                                                \
-	UNUSED int64_t p6_t1_vpid = p6_t1_vtid;                                                                        \
+	[[maybe_unused]] int64_t p6_t1_tid = 87;                                                                       \
+	[[maybe_unused]] int64_t p6_t1_pid = p6_t1_tid;                                                                \
+	[[maybe_unused]] int64_t p6_t1_ptid = p5_t2_tid;                                                               \
+	[[maybe_unused]] int64_t p6_t1_vtid = 17;                                                                      \
+	[[maybe_unused]] int64_t p6_t1_vpid = p6_t1_vtid;                                                              \
                                                                                                                        \
 	generate_clone_x_event(0, p6_t1_tid, p6_t1_pid, p6_t1_ptid, PPM_CL_CHILD_IN_PIDNS, p6_t1_vtid, p6_t1_vpid);    \
                                                                                                                        \
