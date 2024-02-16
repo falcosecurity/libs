@@ -1006,7 +1006,9 @@ TEST_F(sys_call_test32, execve_ia32_emulation)
 
 	run_callback_t test = [&](sinsp* inspector)
 	{
-		auto ret = system("./resources/execve32 ./resources/execve ./resources/execve32");
+		auto ret = system(LIBSINSP_TEST_RESOURCES_PATH "execve32 "
+						  LIBSINSP_TEST_RESOURCES_PATH "execve "
+						  LIBSINSP_TEST_RESOURCES_PATH "execve32");
 		EXPECT_EQ(0, ret);
 	};
 
@@ -1074,7 +1076,7 @@ TEST_F(sys_call_test32, quotactl_ko)
 
 	run_callback_t test = [&](sinsp* inspector)
 	{
-		subprocess handle("./test_helper_32", {"quotactl_ko"});
+		subprocess handle(LIBSINSP_TEST_PATH "/test_helper_32", {"quotactl_ko"});
 		handle.wait();
 	};
 
