@@ -24,6 +24,7 @@ limitations under the License.
 #include <vector>
 #include <string>
 #include <cstring>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -62,7 +63,7 @@ subprocess::subprocess(const std::string& command, const std::vector<std::string
         args.push_back(nullptr);
 
         execvp(command.c_str(), args.data());
-        std::cerr << "Failed to execute the process." << std::endl;
+        std::cerr << "Failed to execute " << command << ": " << std::strerror(errno) << std::endl;
         exit(EXIT_FAILURE);
     }
     else // Parent process
