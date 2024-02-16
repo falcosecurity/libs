@@ -21,7 +21,7 @@ jobs:
       - name: Bump syscalls
         uses: falcosecurity/syscalls-bumper@main
         with:
-          repo-root: libs
+          repo-root: ${{ github.workspace }}/libs
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
