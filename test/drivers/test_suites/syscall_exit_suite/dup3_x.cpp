@@ -1,21 +1,17 @@
 #include "../../event_class/event_class.h"
+#include "../../helpers/file_opener.h"
 
 #if defined(__NR_dup3) && defined(__NR_openat) && defined(__NR_close)
 TEST(SyscallExit, dup3X)
 {
 	auto evt_test = get_syscall_event_test(__NR_dup3, EXIT_EVENT);
 
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int oflags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE);
-	int32_t old_fd = syscall(__NR_openat, AT_FDCWD, pathname, oflags, 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "openat", old_fd, NOT_EQUAL, -1);
+	auto fo = file_opener(".", (O_RDWR | O_TMPFILE));
+	int32_t old_fd = fo.get_fd();
 
 	/* If `oldfd` equals `newfd`, then dup3() fails with the error `EINVAL`. */
 	int32_t new_fd = old_fd;
@@ -24,14 +20,8 @@ TEST(SyscallExit, dup3X)
 	assert_syscall_state(SYSCALL_FAILURE, "dup3", res);
 	int64_t errno_value = -errno;
 
-	syscall(__NR_close, old_fd);
 	syscall(__NR_close, new_fd);
 	syscall(__NR_close, res);
-
-	if(notmpfile)
-	{
-		unlink(pathname);
-	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

@@ -1,4 +1,6 @@
 #include "../../event_class/event_class.h"
+#include "../../helpers/file_opener.h"
+#include <fcntl.h>
 
 #if defined(__NR_openat) && defined(__NR_fstat)
 
@@ -8,8 +10,9 @@ TEST(SyscallExit, openatX_success)
 {
 	auto evt_test = get_syscall_event_test(__NR_openat, EXIT_EVENT);
 
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
+	auto fo = file_opener(".", (O_RDWR | O_TMPFILE | O_DIRECTORY));
+	bool notmpfile = fo.is_tmpfile_supported();
+	fo.close();
 
 	evt_test->enable_capture();
 
@@ -20,7 +23,7 @@ TEST(SyscallExit, openatX_success)
 	 */
 	int dirfd = AT_FDCWD;
 	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int flags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
+	int flags = notmpfile? (O_RDWR | O_CREAT | O_DIRECTORY) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
 	mode_t mode = 0;
 	int fd = syscall(__NR_openat, dirfd, pathname, flags, mode);
 	assert_syscall_state(SYSCALL_SUCCESS, "openat", fd, NOT_EQUAL, -1);
@@ -64,7 +67,7 @@ TEST(SyscallExit, openatX_success)
 	evt_test->assert_charbuf_param(3, pathname);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	flags = notmpfile? (PPM_O_RDWR | PPM_O_CREAT) : (PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
+	flags = notmpfile? (PPM_O_RDWR | PPM_O_CREAT | PPM_O_DIRECTORY) : (PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
 	evt_test->assert_numeric_param(4, (uint32_t)flags);
 
 	/* Parameter 5: mode (type: PT_UINT32) */

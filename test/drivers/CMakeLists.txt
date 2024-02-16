@@ -25,6 +25,7 @@ set(DRIVERS_TEST_SOURCES
   ./event_class/event_class.cpp
   ./flags/capabilities.cpp
   ./helpers/proc_parsing.cpp
+  ./helpers/file_opener.cpp
   "${SYSCALL_EXIT_TEST_SUITE}"
   "${SYSCALL_ENTER_TEST_SUITE}"
   "${GENERIC_TRACEPOINTS_TEST_SUITE}"

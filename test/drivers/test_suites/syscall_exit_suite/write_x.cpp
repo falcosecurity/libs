@@ -1,39 +1,27 @@
 #include "../../event_class/event_class.h"
+#include "../../helpers/file_opener.h"
 
 #ifdef __NR_write
 
-#if defined(__NR_close) && defined(__NR_open) && defined(__NR_close)
+#if defined(__NR_close) && defined(__NR_openat) && defined(__NR_close)
 
 TEST(SyscallExit, writeX_no_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
-
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Open a generic file for writing */
-	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int flags = notmpfile? (O_WRONLY | O_CREAT) : (O_WRONLY | O_TMPFILE);
-	int fd = syscall(__NR_open, pathname, flags);
-	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
+	auto fo = file_opener(".", (O_WRONLY | O_TMPFILE));
+	int fd = fo.get_fd();
 
 	/* Write data to the generic file */
 	const unsigned data_len = DEFAULT_SNAPLEN / 2;
 	char buf[data_len] = "hello\0";
 	ssize_t write_bytes = syscall(__NR_write, fd, (void *)buf, data_len);
 	assert_syscall_state(SYSCALL_SUCCESS, "write", write_bytes, NOT_EQUAL, -1);
-
-	/* Close the generic file */
-	syscall(__NR_close, fd);
-
-	if(notmpfile)
-	{
-		unlink(pathname);
-	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -67,32 +55,19 @@ TEST(SyscallExit, writeX_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Open a generic file for writing */
-	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int flags = notmpfile? (O_WRONLY | O_CREAT) : (O_WRONLY | O_TMPFILE);
-	int fd = syscall(__NR_open, pathname, flags);
-	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
+	auto fo = file_opener(".", (O_WRONLY | O_TMPFILE));
+	int fd = fo.get_fd();
 
 	/* Write data to the generic file */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "hello\0";
 	ssize_t write_bytes = syscall(__NR_write, fd, (void *)buf, data_len);
 	assert_syscall_state(SYSCALL_SUCCESS, "write", write_bytes, NOT_EQUAL, -1);
-
-	/* Close the generic file */
-	syscall(__NR_close, fd);
-
-	if(notmpfile)
-	{
-		unlink(pathname);
-	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

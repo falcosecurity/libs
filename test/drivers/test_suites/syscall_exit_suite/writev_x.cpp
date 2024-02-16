@@ -1,8 +1,9 @@
 #include "../../event_class/event_class.h"
+#include "../../helpers/file_opener.h"
 
 #ifdef __NR_writev
 
-#if defined(__NR_close) && defined(__NR_open) && defined(__NR_close)
+#if defined(__NR_close) && defined(__NR_openat) && defined(__NR_close)
 
 TEST(SyscallExit, writevX_no_snaplen)
 {
@@ -56,18 +57,13 @@ TEST(SyscallExit, writevX_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_writev, EXIT_EVENT);
 
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Open a generic file for writing */
-	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int flags = notmpfile? (O_WRONLY | O_CREAT) : (O_WRONLY | O_TMPFILE);
-	int fd = syscall(__NR_open, pathname, flags);
-	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
+	auto fo = file_opener(".", (O_WRONLY | O_TMPFILE));
+	int fd = fo.get_fd();
 
 	struct iovec iov[2];
 	memset(iov, 0, sizeof(iov));
@@ -79,14 +75,6 @@ TEST(SyscallExit, writevX_snaplen)
 	iov[1].iov_len = sizeof(sent_data_2);
 	int32_t iovcnt = 2;
 	assert_syscall_state(SYSCALL_SUCCESS, "writev", syscall(__NR_writev, fd, iov, iovcnt), NOT_EQUAL, -1);
-
-	/* Close the generic file */
-	syscall(__NR_close, fd);
-
-	if(notmpfile)
-	{
-		unlink(pathname);
-	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
