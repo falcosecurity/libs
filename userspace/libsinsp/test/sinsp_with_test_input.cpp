@@ -313,9 +313,10 @@ scap_threadinfo sinsp_with_test_input::create_threadinfo(
 	uint64_t cap_permitted, uint64_t cap_inheritable, uint64_t cap_effective,
 	uint32_t vmsize_kb, uint32_t vmrss_kb, uint32_t vmswap_kb, uint64_t pfmajor, uint64_t pfminor,
 	const std::vector<std::string>& cgroups, const std::string& root,
-	int filtered_out, uint32_t tty, uint32_t loginuid)
+	int filtered_out, uint32_t tty, uint32_t loginuid, bool exe_upper_layer, bool exe_from_memfd)
 {
-	scap_threadinfo tinfo;
+	scap_threadinfo tinfo = {};
+
 	tinfo.tid = tid;
 	tinfo.pid = pid;
 	tinfo.ptid = ptid;
@@ -340,6 +341,8 @@ scap_threadinfo sinsp_with_test_input::create_threadinfo(
 	tinfo.clone_ts = clone_ts;
 	tinfo.tty = tty;
 	tinfo.loginuid = loginuid;
+	tinfo.exe_upper_layer = exe_upper_layer;
+	tinfo.exe_from_memfd = exe_from_memfd;
 
 	std::string argsv;
 	if (!args.empty())
