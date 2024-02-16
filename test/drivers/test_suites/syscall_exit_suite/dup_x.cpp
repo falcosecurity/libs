@@ -1,32 +1,22 @@
 #include "../../event_class/event_class.h"
+#include "../../helpers/file_opener.h"
 
 #if defined(__NR_dup) && defined(__NR_openat) && defined(__NR_close)
 TEST(SyscallExit, dupX)
 {
 	auto evt_test = get_syscall_event_test(__NR_dup, EXIT_EVENT);
 
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int oflags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE);
-	int32_t old_fd = syscall(__NR_openat, AT_FDCWD, pathname, oflags);
-	assert_syscall_state(SYSCALL_SUCCESS, "openat", old_fd, NOT_EQUAL, -1);
+	auto fo = file_opener(".", (O_RDWR | O_TMPFILE));
+	int32_t old_fd = fo.get_fd();
 
 	int32_t new_fd = syscall(__NR_dup, old_fd);
 	assert_syscall_state(SYSCALL_SUCCESS, "dup", new_fd, NOT_EQUAL, -1);
 
-	syscall(__NR_close, old_fd);
 	syscall(__NR_close, new_fd);
-
-	if(notmpfile)
-	{
-		unlink(pathname);
-	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -42,11 +32,6 @@ TEST(SyscallExit, dupX)
 	evt_test->parse_event();
 
 	evt_test->assert_header();
-
-	if(notmpfile)
-	{
-		unlink(pathname);
-	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

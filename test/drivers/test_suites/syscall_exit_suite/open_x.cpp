@@ -1,4 +1,5 @@
 #include "../../event_class/event_class.h"
+#include <fcntl.h>
 
 #if defined(__NR_open) && defined(__NR_fstat)
 
@@ -19,7 +20,7 @@ TEST(SyscallExit, openX_success)
 	 * With `O_TMPFILE` flag the pathname must be a directory.
 	 */
 	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int flags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
+	int flags = notmpfile? (O_RDWR | O_CREAT | O_DIRECTORY) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
 	mode_t mode = 0;
 	int fd = syscall(__NR_open, pathname, flags, mode);
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
@@ -60,7 +61,7 @@ TEST(SyscallExit, openX_success)
 	evt_test->assert_charbuf_param(2, pathname);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
-	uint32_t oflags = notmpfile ? (PPM_O_RDWR | PPM_O_CREAT) : (PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
+	uint32_t oflags = notmpfile ? (PPM_O_RDWR | PPM_O_CREAT | PPM_O_DIRECTORY) : (PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
 	evt_test->assert_numeric_param(3, oflags);
 
 	/* Parameter 4: mode (type: PT_UINT32) */

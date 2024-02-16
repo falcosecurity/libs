@@ -1,12 +1,14 @@
+#include <fcntl.h>
 #include <libscap/strl.h>
 #include "../../event_class/event_class.h"
+#include "../../helpers/file_opener.h"
 #include <sys/mount.h>
 
 #if defined(__NR_open_by_handle_at) && defined(__NR_name_to_handle_at) && defined(__NR_openat)
 
 #define MAX_FSPATH_LEN	4096
 
-void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *fspath, int use_mountpoint, bool notmpfile)
+void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *fspath, int use_mountpoint)
 {
 	/*
 	 * 0. Create (temporary) mount point (if use_mountpoint).
@@ -35,11 +37,8 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	/*
 	 * 1. Open a temp file.
 	 */
-	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int flags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
-	mode_t mode = 0;
-	int fd = syscall(__NR_openat, *dirfd, pathname, flags, mode);
-	assert_syscall_state(SYSCALL_SUCCESS, "openat", fd, NOT_EQUAL, -1);
+
+	auto fo = file_opener(".", (O_RDWR | O_TMPFILE), *dirfd);
 
 	/* Allocate file_handle structure. */
 	struct file_handle *fhp;
@@ -55,9 +54,9 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	 * in this case, the call fails with the error EOVERFLOW and handle->handle_bytes is set to indicate the required size;
 	 */
 	int mount_id;
-	flags = 0;
+	int flags = 0;
 	fhp->handle_bytes = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "name_to_handle_at", syscall(__NR_name_to_handle_at, *dirfd, pathname, fhp, &mount_id, flags));
+	assert_syscall_state(SYSCALL_FAILURE, "name_to_handle_at", syscall(__NR_name_to_handle_at, *dirfd, fo.get_pathname(), fhp, &mount_id, flags));
 
 	/*
 	 * 2. Reallocate file_handle structure with the correct size.
@@ -74,7 +73,7 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	/*
 	 * 3. Get file handle.
 	 */
-	assert_syscall_state(SYSCALL_SUCCESS, "name_to_handle_at", syscall(__NR_name_to_handle_at, *dirfd, pathname, fhp, &mount_id, flags), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "name_to_handle_at", syscall(__NR_name_to_handle_at, *dirfd, fo.get_pathname(), fhp, &mount_id, flags), NOT_EQUAL, -1);
 
 	/*
 	 * 4. Call `open_by_handle_at`.
@@ -104,7 +103,6 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	 * 6. Cleaning phase.
 	 */
 	close(*open_by_handle_fd);
-	close(fd);
 	free(fhp);
 
 	if(use_mountpoint)
@@ -120,13 +118,9 @@ TEST(SyscallExit, open_by_handle_atX_success)
 {
 	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, EXIT_EVENT);
 
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
+	auto fo = file_opener(".", (O_RDWR | O_TMPFILE | O_DIRECTORY));
 
-	const char* pathname = notmpfile? ".tmpfile" : ".";
-	int flags = notmpfile? (O_RDWR | O_CREAT) : (O_RDWR | O_TMPFILE | O_DIRECTORY);
-	int fd = syscall(__NR_openat, AT_FDCWD, pathname, flags, 0);
-	if(!fd)
+	if(!fo.get_fd())
 	{
 		FAIL() << "Error opening current directory" << std::endl;
 	}
@@ -138,7 +132,7 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	}
 	int mount_id;
 	fhp->handle_bytes = 0;
-	if(syscall(__NR_name_to_handle_at, AT_FDCWD, pathname, fhp, &mount_id, 0) != 0)
+	if(syscall(__NR_name_to_handle_at, AT_FDCWD, fo.get_pathname(), fhp, &mount_id, 0) != 0)
 	{
 		/*
 		 * Run the test only if the filesystem supports name_to_handle_at.
@@ -153,7 +147,7 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	int open_by_handle_fd;
 	int dirfd;
 	char fspath[MAX_FSPATH_LEN];
-	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 0, notmpfile);
+	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 0);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -167,14 +161,7 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	}
 
 	evt_test->parse_event();
-
 	evt_test->assert_header();
-
-	if(notmpfile)
-	{
-		unlink(".tmpfile");
-	}
-
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -200,9 +187,6 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 {
 	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, EXIT_EVENT);
 
-	syscall(__NR_openat, AT_FDCWD, ".", O_RDWR | O_TMPFILE, 0);
-	bool notmpfile = (errno == EOPNOTSUPP);
-
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -210,7 +194,7 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 	int open_by_handle_fd;
 	int dirfd;
 	char fspath[MAX_FSPATH_LEN];
-	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 1, notmpfile);
+	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -226,11 +210,6 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 	evt_test->parse_event();
 
 	evt_test->assert_header();
-
-	if(notmpfile)
-	{
-		unlink(".tmpfile");
-	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
