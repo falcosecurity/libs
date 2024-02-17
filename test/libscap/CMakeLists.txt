@@ -30,7 +30,6 @@ configure_file (
 
 set(LIBSCAP_TESTS_INCLUDE
   PRIVATE
-  "${GTEST_INCLUDE}"
   "${CMAKE_CURRENT_SOURCE_DIR}" # for test helpers <helpers/...>
   "${LIBS_DIR}"
   "${LIBS_DIR}/userspace"
@@ -38,18 +37,13 @@ set(LIBSCAP_TESTS_INCLUDE
   "${CMAKE_CURRENT_BINARY_DIR}" # used to include `libscap_test_var.h`
 )
 
-# Needed by gtest
-find_package(Threads)
-
 set(LIBSCAP_TESTS_LIBRARIES
-	"${GTEST_LIB}"
-	"${GTEST_MAIN_LIB}"
-	"${CMAKE_THREAD_LIBS_INIT}"
 	scap
+	GTest::gtest
+	GTest::gtest_main
 )
 
 set(LIBSCAP_TESTS_DEPENDENCIES
-	gtest
 	scap
 )
 

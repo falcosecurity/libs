@@ -188,8 +188,8 @@ target_include_directories(unit-test-libsinsp
 
 target_link_libraries(unit-test-libsinsp
 	sinsp
-	"${GTEST_LIB}"
-	"${GTEST_MAIN_LIB}"
+	GTest::gtest
+	GTest::gtest_main
 	"${TBB_LIB}"
 	"${JSONCPP_LIB}"
 )
