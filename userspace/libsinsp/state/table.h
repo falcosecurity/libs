@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <functional>
 #include <type_traits>
+#include <memory>
 
 namespace libsinsp {
 namespace state {

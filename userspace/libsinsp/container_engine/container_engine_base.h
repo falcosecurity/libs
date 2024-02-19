@@ -18,6 +18,8 @@ limitations under the License.
 
 #pragma once
 
+#include <memory>
+
 #include <libsinsp/container_engine/container_cache_interface.h>
 
 class sinsp_threadinfo;

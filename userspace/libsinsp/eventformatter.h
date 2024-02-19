@@ -20,6 +20,7 @@ limitations under the License.
 #include <map>
 #include <utility>
 #include <string>
+#include <memory>
 #include <json/json.h>
 
 #include <libsinsp/filter_check_list.h>

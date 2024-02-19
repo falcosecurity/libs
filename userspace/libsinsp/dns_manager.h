@@ -28,6 +28,7 @@ limitations under the License.
 #include <chrono>
 #include <future>
 #include <mutex>
+#include <memory>
 #if !defined(__EMSCRIPTEN__)
 #include "tbb/concurrent_unordered_map.h"
 #endif
