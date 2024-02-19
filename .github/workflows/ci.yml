@@ -35,7 +35,7 @@ jobs:
             cmake_opts: -DCMAKE_C_FLAGS="-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=undefined" -DCMAKE_CXX_FLAGS="-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=undefined" -DUSE_BUNDLED_DEPS=False
             ldflags: -lpthread
     container:
-      image: debian:buster
+      image: debian:bookworm
     steps:
       - name: Install deps ⛓️
         run: |
