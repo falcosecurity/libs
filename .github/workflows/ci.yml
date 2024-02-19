@@ -32,7 +32,7 @@ jobs:
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
     container:
-      image: debian:buster
+      image: debian:bookworm
     steps:
       - name: Install deps ⛓️
         run: |
