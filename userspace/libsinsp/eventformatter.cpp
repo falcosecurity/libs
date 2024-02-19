@@ -96,10 +96,10 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 
 			if(last_nontoken_str_start != j)
 			{
-				rawstring_check* newtkn = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
-				m_tokens.emplace_back(std::make_pair("", newtkn));
+				auto newtkn = std::make_unique<rawstring_check>(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+				m_tokens.emplace_back(std::make_pair("", newtkn.get()));
 				m_tokenlens.push_back(0);
-				m_chks_to_free.push_back(std::unique_ptr<sinsp_filter_check>(newtkn));
+				m_chks_to_free.push_back(std::move(newtkn));
 			}
 
 			if(j == lfmtlen - 1)
@@ -164,9 +164,9 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 
 	if(last_nontoken_str_start != j)
 	{
-		auto chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
-		m_tokens.emplace_back(std::make_pair("", chk));
-		m_chks_to_free.emplace_back(chk);
+		auto chk = std::make_unique<rawstring_check>(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+		m_tokens.emplace_back(std::make_pair("", chk.get()));
+		m_chks_to_free.emplace_back(std::move(chk));
 		m_tokenlens.push_back(0);
 	}
 }

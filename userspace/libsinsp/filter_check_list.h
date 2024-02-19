@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <string>
 #include <vector>
+#include <memory>
 
 class sinsp_filter_check;
 class filter_check_info;

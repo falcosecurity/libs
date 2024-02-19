@@ -25,6 +25,7 @@ limitations under the License.
 #include <set>
 #include <string>
 #include <vector>
+#include <memory>
 
 /** @defgroup filter Filtering events
  * Filtering infrastructure.
