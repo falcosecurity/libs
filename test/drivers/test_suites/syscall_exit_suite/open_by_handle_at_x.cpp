@@ -1,3 +1,4 @@
+#include <asm-generic/errno.h>
 #include <fcntl.h>
 #include <libscap/strl.h>
 #include "../../event_class/event_class.h"
@@ -132,7 +133,7 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	}
 	int mount_id;
 	fhp->handle_bytes = 0;
-	if(syscall(__NR_name_to_handle_at, AT_FDCWD, fo.get_pathname(), fhp, &mount_id, 0) != 0)
+	if(syscall(__NR_name_to_handle_at, AT_FDCWD, fo.get_pathname(), fhp, &mount_id, 0) != 0 && errno == EOPNOTSUPP)
 	{
 		/*
 		 * Run the test only if the filesystem supports name_to_handle_at.
