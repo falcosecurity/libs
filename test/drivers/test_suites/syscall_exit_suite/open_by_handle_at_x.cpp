@@ -1,4 +1,3 @@
-#include <asm-generic/errno.h>
 #include <fcntl.h>
 #include <libscap/strl.h>
 #include "../../event_class/event_class.h"
