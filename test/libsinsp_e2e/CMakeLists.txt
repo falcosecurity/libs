@@ -54,10 +54,11 @@ target_include_directories(libsinsp_e2e_tests
 )
 
 add_executable(test_helper test_helper.cpp)
-
 target_link_libraries(test_helper pthread)
+add_dependencies(libsinsp_e2e_tests test_helper)
 
 add_executable(vtidcollision vtidcollision.c)
+add_dependencies(libsinsp_e2e_tests vtidcollision)
 
 execute_process(
     COMMAND "uname" "-m"
@@ -70,46 +71,11 @@ if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
     if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64")
         add_executable(test_helper_32 test_helper.cpp)
         set_target_properties(test_helper_32 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-        install(
-            TARGETS test_helper_32
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/test
-            COMPONENT libsinsp_e2e_tests
-        )
         target_link_libraries(test_helper_32 pthread)
+        add_dependencies(libsinsp_e2e_tests test_helper_32)
     endif()
 endif("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
 
-install(
-    DIRECTORY
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test/captures
-    COMPONENT libsinsp_e2e_tests
-)
-
-install(
-    DIRECTORY
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test/resources/run
-    COMPONENT libsinsp_e2e_tests
-)
-
-install(
-    TARGETS test_helper vtidcollision
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test/
-    COMPONENT libsinsp_e2e_tests
-)
-
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/test_helper.sh ${CMAKE_CURRENT_BINARY_DIR}/test_helper.sh COPYONLY
-)
-
-install(
-    FILES test_helper.sh
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test/
-    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
-    COMPONENT libsinsp_e2e_tests
-)
-
-install(
-    TARGETS libsinsp_e2e_tests
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/test/
-    COMPONENT libsinsp_e2e_tests
 )
