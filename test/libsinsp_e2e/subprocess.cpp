@@ -30,60 +30,15 @@ limitations under the License.
 #include <sys/wait.h>
 #include <ext/stdio_filebuf.h>
 
-subprocess::subprocess(const std::string& command, const std::vector<std::string>& arguments)
+subprocess::subprocess(std::string command, std::vector<std::string> arguments, bool start_now)
     : m_pid(-1)
 {
-    if (pipe(m_in_pipe)  == -1 || pipe(m_out_pipe) == -1)
+    m_command = command;
+    m_args = arguments;
+    if(start_now)
     {
-        throw std::system_error(errno, std::system_category());
+        start();
     }
-
-    pid_t child_pid = fork();
-
-    if (child_pid == -1)
-    {
-        std::cerr << "Failed to fork." << std::endl;
-    }
-    else if (child_pid == 0)
-    {
-        // child process
-        dup2(m_in_pipe[0],  STDIN_FILENO);
-        dup2(m_out_pipe[1], STDOUT_FILENO);
-
-        close(m_in_pipe[0]);
-        close(m_out_pipe[1]);
-        if(m_out_pipe[0] != -1)
-            close(m_out_pipe[0]);
-
-        std::vector<char*> args;
-        args.push_back(const_cast<char*>(command.c_str()));
-        for (const auto& arg : arguments) {
-            args.push_back(const_cast<char*>(arg.c_str()));
-        }
-        args.push_back(nullptr);
-
-        execvp(command.c_str(), args.data());
-        std::cerr << "Failed to execute " << command << ": " << std::strerror(errno) << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    else // Parent process
-    {
-        close(m_in_pipe[0]);
-        close(m_out_pipe[1]);
-
-        m_pid = child_pid;
-
-        m_in_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_in_pipe[1], std::ios_base::out, 1);
-        m_in_stream  = new std::ostream(m_in_filebuf);
-
-        if (m_out_pipe[0] != -1)
-        {
-            m_out_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_out_pipe[0], std::ios_base::in, 1);
-            m_out_stream  = new std::istream(m_out_filebuf);
-        }
-
-    }
-
 }
 
 subprocess::~subprocess()
@@ -145,4 +100,58 @@ int subprocess::wait()
     int status;
     waitpid(get_pid(), &status, 0);
     return status;
+}
+
+void subprocess::start()
+{
+    if (pipe(m_in_pipe)  == -1 || pipe(m_out_pipe) == -1)
+    {
+        throw std::system_error(errno, std::system_category());
+    }
+
+    pid_t child_pid = fork();
+
+    if (child_pid == -1)
+    {
+        std::cerr << "Failed to fork." << std::endl;
+    }
+    else if (child_pid == 0)
+    {
+        // child process
+        dup2(m_in_pipe[0],  STDIN_FILENO);
+        dup2(m_out_pipe[1], STDOUT_FILENO);
+
+        close(m_in_pipe[0]);
+        close(m_out_pipe[1]);
+        if(m_out_pipe[0] != -1)
+            close(m_out_pipe[0]);
+
+        std::vector<char*> args;
+        args.push_back(const_cast<char*>(m_command.c_str()));
+        for (const auto& arg : m_args) {
+            args.push_back(const_cast<char*>(arg.c_str()));
+        }
+        args.push_back(nullptr);
+
+        execvp(m_command.c_str(), args.data());
+        std::cerr << "Failed to execute the process." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    else // Parent process
+    {
+        close(m_in_pipe[0]);
+        close(m_out_pipe[1]);
+
+        m_pid = child_pid;
+
+        m_in_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_in_pipe[1], std::ios_base::out, 1);
+        m_in_stream  = new std::ostream(m_in_filebuf);
+
+        if (m_out_pipe[0] != -1)
+        {
+            m_out_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_out_pipe[0], std::ios_base::in, 1);
+            m_out_stream  = new std::istream(m_out_filebuf);
+        }
+
+    }
 }

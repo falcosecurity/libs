@@ -30,6 +30,29 @@ limitations under the License.
 #include <list>
 #include <tuple>
 
+uint32_t get_server_address();
+
+class proc_started_filter
+{
+	public:
+		bool operator()(sinsp_evt* evt)
+		{
+			if (!m_child_ready && evt->get_type() == PPME_SYSCALL_WRITE_X)
+			{
+				auto buffer = evt->get_param_value_str("data", false);
+				if(buffer.find("SERVER UP") != std::string::npos ||
+				   buffer.find("STARTED") != std::string::npos)
+				{
+					m_child_ready = true;
+				}
+			}
+			return m_child_ready;
+		}
+
+	private:
+		bool m_child_ready{false};
+};
+
 class sys_call_test : public testing::Test
 {
 public:
