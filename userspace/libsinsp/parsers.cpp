@@ -4151,8 +4151,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 				parinfo = evt->get_param(4);
 				if(parinfo->m_len > sizeof(cmsghdr))
 				{
-					cmsghdr *cmsg = (cmsghdr *)parinfo->m_val;
-					if(cmsg->cmsg_type == SCM_RIGHTS)
+					cmsghdr cmsg;
+					memcpy(&cmsg, parinfo->m_val, sizeof(cmsghdr));
+					if(cmsg.cmsg_type == SCM_RIGHTS)
 					{
 						char error[SCAP_LASTERR_SIZE];
 						scap_threadinfo scap_tinfo {};
