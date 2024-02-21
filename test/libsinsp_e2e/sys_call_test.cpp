@@ -999,7 +999,7 @@ TEST_F(sys_call_test32, execve_ia32_emulation)
 	{
 		sinsp_filter_compiler compiler(inspector,
 		                               "evt.type=execve and proc.apid=" + std::to_string(getpid()));
-		is_subprocess_execve.reset(compiler.compile());
+		is_subprocess_execve = compiler.compile();
 	};
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return is_subprocess_execve->run(evt); };
