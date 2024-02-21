@@ -857,7 +857,7 @@ public:
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
 	}
 
-	sinsp_parser* get_parser()
+	inline sinsp_parser* get_parser()
 	{
 		return m_parser.get();
 	}
