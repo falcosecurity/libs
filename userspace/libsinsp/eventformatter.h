@@ -120,7 +120,7 @@ private:
 	sinsp* m_inspector;
 	filter_check_list &m_available_checks;
 	bool m_require_all_values;
-	std::vector<std::unique_ptr<sinsp_filter_check>> m_chks_to_free;
+	std::vector<std::unique_ptr<sinsp_filter_check>> m_checks;
 
 	Json::Value m_root;
 	Json::FastWriter m_writer;

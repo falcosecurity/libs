@@ -99,7 +99,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 				auto newtkn = std::make_unique<rawstring_check>(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 				m_tokens.emplace_back(std::make_pair("", newtkn.get()));
 				m_tokenlens.push_back(0);
-				m_chks_to_free.push_back(std::move(newtkn));
+				m_checks.push_back(std::move(newtkn));
 			}
 
 			if(j == lfmtlen - 1)
@@ -156,7 +156,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 			m_tokens.emplace_back(std::make_pair(std::string(fstart, fsize), chk.get()));
 			m_tokenlens.push_back(toklen);
 
-			m_chks_to_free.push_back(std::move(chk));
+			m_checks.push_back(std::move(chk));
 
 			last_nontoken_str_start = j + 1;
 		}
@@ -166,7 +166,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 	{
 		auto chk = std::make_unique<rawstring_check>(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 		m_tokens.emplace_back(std::make_pair("", chk.get()));
-		m_chks_to_free.emplace_back(std::move(chk));
+		m_checks.emplace_back(std::move(chk));
 		m_tokenlens.push_back(0);
 	}
 }
