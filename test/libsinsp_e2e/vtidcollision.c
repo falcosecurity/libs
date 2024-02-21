@@ -16,6 +16,7 @@ limitations under the License.
 
 */
 
+#define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
 #include <sched.h>
@@ -26,7 +27,6 @@ limitations under the License.
 
 #include <sys/eventfd.h>
 #include <sys/wait.h>
-#define _GNU_SOURCE
 #include <linux/sched.h>
 
 /**
