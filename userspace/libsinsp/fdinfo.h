@@ -269,8 +269,8 @@ public:
 
 	inline void set_unix_info(uint8_t* packed_data)
 	{
-		m_sockinfo.m_unixinfo.m_fields.m_source = *(uint64_t *)(packed_data + 1);
-		m_sockinfo.m_unixinfo.m_fields.m_dest = *(uint64_t *)(packed_data + 9);
+		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_source, packed_data + 1, sizeof(uint64_t));
+		memcpy(&m_sockinfo.m_unixinfo.m_fields.m_dest, packed_data + 9, sizeof(uint64_t));
 	}
 
 	/*!

@@ -634,9 +634,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 
 	if(pi != NULL)
 	{
-		ASSERT(pi->m_len == sizeof(uint64_t));
-
-		int64_t res = *(int64_t*)pi->m_val;
+		int64_t res = pi->as<int64_t>();
 		if(res < 0)
 		{
 			m_u32val = 1;
@@ -654,9 +652,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 
 		if(pi != NULL)
 		{
-			ASSERT(pi->m_len == sizeof(uint64_t));
-
-			int64_t res = *(int64_t*)pi->m_val;
+			int64_t res = pi->as<int64_t>();
 			if(res < 0)
 			{
 				m_u32val = 1;
@@ -1202,9 +1198,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(pi != NULL)
 			{
-				ASSERT(pi->m_len == sizeof(int64_t));
-
-				int64_t res = *(int64_t*)pi->m_val;
+				int64_t res = pi->as<int64_t>();
 
 				if(res >= 0)
 				{
@@ -1232,7 +1226,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					pi = evt->get_param_by_name("fd");
 					if (pi)
 					{
-						int64_t res = *(int64_t*)pi->m_val;
+						int64_t res = pi->as<int64_t>();
 
 						if(res >= 0)
 						{
