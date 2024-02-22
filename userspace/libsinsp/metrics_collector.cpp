@@ -80,7 +80,7 @@ static const char *const metrics_metric_type_name_mappings_prometheus[] = {
 
 namespace libs::metrics {
 
-std::string metrics_converter::convert_metric_to_text(metrics_v2 metric)
+std::string metrics_converter::convert_metric_to_text(metrics_v2 metric) const
 {
 	std::string metric_text = std::string(metric.name) + " ";
 	switch (metric.type)
@@ -113,12 +113,12 @@ std::string metrics_converter::convert_metric_to_text(metrics_v2 metric)
 	return metric_text;
 }
 
-void metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric)
+void metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
 {
 	return;
 }
 
-void output_rule_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric)
+void output_rule_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
 {
 	switch (metric.unit)
 	{
@@ -155,7 +155,7 @@ void output_rule_metrics_converter::convert_metric_to_unit_convention(metrics_v2
 	}
 }
 
-std::string prometheus_metrics_converter::convert_metric_to_text(metrics_v2 metric, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, std::map<std::string, std::string> const_labels)
+std::string prometheus_metrics_converter::convert_metric_to_text(metrics_v2 metric, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
 {
 	// Create `prometheus_metric_name_fully_qualified`
 	std::string prometheus_metric_name_fully_qualified;
@@ -213,7 +213,7 @@ std::string prometheus_metrics_converter::convert_metric_to_text(metrics_v2 metr
 	return prometheus_text;
 }
 
-std::string prometheus_metrics_converter::convert_metric_to_text(std::string_view metric_name, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, std::map<std::string, std::string> const_labels)
+std::string prometheus_metrics_converter::convert_metric_to_text(std::string_view metric_name, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
 {
 	// Create `prometheus_metric_name_fully_qualified`
 	std::string prometheus_metric_name_fully_qualified;
@@ -240,7 +240,7 @@ std::string prometheus_metrics_converter::convert_metric_to_text(std::string_vie
 	return prometheus_text;
 }
 
-void prometheus_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric)
+void prometheus_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
 {
 	// todo
 	return;
