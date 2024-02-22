@@ -600,10 +600,11 @@ void libs_metrics_collector::snapshot()
 		{
 			uint64_t n_fds = 0;
 			uint64_t n_threads = 0;
-			if (m_inspector->m_thread_manager)
+			auto thread_manager = m_inspector->m_thread_manager.get();
+			if (thread_manager)
 			{
-				n_threads = m_inspector->m_thread_manager->get_thread_count();
-				threadinfo_map_t* threadtable = m_inspector->m_thread_manager->get_threads();
+				n_threads = thread_manager->get_thread_count();
+				threadinfo_map_t* threadtable = thread_manager->get_threads();
 				if (threadtable)
 				{
 					threadtable->loop([&n_fds] (sinsp_threadinfo& tinfo) 
