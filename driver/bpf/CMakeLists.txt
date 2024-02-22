@@ -10,22 +10,34 @@ configure_file(../driver_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/../driver_confi
 
 option(BUILD_BPF "Build the BPF driver on Linux" OFF)
 
-if(BUILD_BPF)
-	# Check minimum kernel version
-	set(bpf_min_kver_map_x86_64 4.14)
-	set(bpf_min_kver_map_aarch64 4.17)
-	set(bpf_min_kver_map_s390x 5.5)
-	set(bpf_min_kver_map_ppc64le 4.18)
-	if (LINUX_KERNEL_VERSION VERSION_LESS ${bpf_min_kver_map_${TARGET_ARCH}})
-		message(WARNING "[BPF] To run this driver you need a Linux kernel version >= ${bpf_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
-	endif()
-
-	add_custom_target(bpf ALL
-		COMMAND make
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different probe.o "${CMAKE_CURRENT_BINARY_DIR}"
-		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-		VERBATIM)
+if(NOT BUILD_BPF)
+	return()
 endif()
+
+# Check minimum kernel version
+set(bpf_min_kver_map_x86_64 4.14)
+set(bpf_min_kver_map_aarch64 4.17)
+set(bpf_min_kver_map_s390x 5.5)
+set(bpf_min_kver_map_ppc64le 4.18)
+if (LINUX_KERNEL_VERSION VERSION_LESS ${bpf_min_kver_map_${TARGET_ARCH}})
+	message(WARNING "[BPF] To run this driver you need a Linux kernel version >= ${bpf_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
+endif()
+
+add_custom_target(bpf ALL
+	COMMAND make
+	COMMAND "${CMAKE_COMMAND}" -E copy_if_different probe.o "${CMAKE_CURRENT_BINARY_DIR}"
+	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+	VERBATIM)
+
+if(NOT DEFINED DRIVER_BPF_COMPONENT_NAME)
+	set(DRIVER_BPF_COMPONENT_NAME ${DRIVER_COMPONENT_NAME})
+endif()
+
+install(DIRECTORY
+	${CMAKE_CURRENT_BINARY_DIR}/../src/
+	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}"
+	COMPONENT ${DRIVER_BPF_COMPONENT_NAME}
+	FILES_MATCHING PATTERN "*.h")
 
 install(FILES
 	bpf_helpers.h
@@ -41,4 +53,4 @@ install(FILES
 	missing_definitions.h
 	types.h
 	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/bpf"
-	COMPONENT ${DRIVER_COMPONENT_NAME})
+	COMPONENT ${DRIVER_BPF_COMPONENT_NAME})
