@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test-e2e:
-    name: test-e2e-${{ matrix.arch }} 😇 (bundled_deps)
+    name: test-e2e-${{ matrix.arch }} 😇 (system_deps)
     runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
     strategy:
       matrix:
@@ -30,11 +30,37 @@ jobs:
 
       - name: Install deps ⛓️
         run: |
-          sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang-14 llvm-14 libtool quota
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+            ca-certificates \
+            cmake \
+            build-essential \
+            clang-14 llvm-14 \
+            git \
+            clang \
+            llvm \
+            pkg-config \
+            autoconf \
+            automake \
+            libtool \
+            libelf-dev \
+            wget \
+            libc-ares-dev \
+            libbpf-dev \
+            libcap-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libtbb-dev \
+            libjq-dev \
+            libjsoncpp-dev \
+            libgrpc++-dev \
+            protobuf-compiler-grpc \
+            libgtest-dev \
+            libprotobuf-dev \
+            liblua5.2-dev
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
           sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
           sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
+          sudo .github/install-deps.sh
           git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
           cd bpftool
           git submodule update --init
@@ -52,7 +78,16 @@ jobs:
       - name: Build e2e tests 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_LIBSINSP_E2E_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+          cd build && \
+            cmake \
+                -DBUILD_BPF=ON \
+                -DUSE_BUNDLED_DEPS=OFF \
+                -DENABLE_LIBSINSP_E2E_TESTS=ON \
+                -DBUILD_LIBSCAP_MODERN_BPF=ON \
+                -DBUILD_LIBSCAP_GVISOR=OFF \
+                -DUSE_BUNDLED_LIBBPF=ON \
+                -DUSE_BUNDLED_GTEST=ON \
+                ..
           make -j6
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
