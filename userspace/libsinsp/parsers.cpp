@@ -5223,11 +5223,6 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			}
 		}
 
-		if(!container_info->is_successful())
-		{
-			SINSP_DEBUG("Filtering container event for failed lookup of %s (but calling callbacks anyway)", container_info->m_id.c_str());
-			evt->set_filtered_out(true);
-		}
 		evt->set_tinfo_ref(container_info->get_tinfo(m_inspector));
 		evt->set_tinfo(evt->get_tinfo_ref().get());
 		container_info->set_lookup_status(static_cast<sinsp_container_lookup::state>(lookup_state.asUInt()));
@@ -5239,6 +5234,9 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			break;
 		default:
 			{
+				// note: The container image is the most crucial field from a security incident response perspective. 
+				// We aim to raise the bar for successful container lookups. Conversely, pod sandboxes do not include  
+				// a container image in the API response.
 				if (!container_info->m_image.empty() || container_info->is_pod_sandbox())
 				{
 					// Marked as SUCCESSFUL if and only if the container image field present or 
@@ -5250,6 +5248,14 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 				}
 			}
 		}
+
+		// note: Important, only set event filtering flag after all final state updates are done
+		if(!container_info->is_successful())
+		{
+			SINSP_DEBUG("Filtering container event for failed lookup of %s (but calling callbacks anyway)", container_info->m_id.c_str());
+			evt->set_filtered_out(true);
+		}
+
 		// `add_container` also triggers the callbacks, therefore always continue even if the
 		// lookup_status was set to FAILED
 		m_inspector->m_container_manager.add_container(container_info, evt->get_thread_info(true));
