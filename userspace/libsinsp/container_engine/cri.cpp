@@ -245,6 +245,9 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 					container_id.c_str());
 			// `lookup_sync` function directly invokes the container engine specific parser `parse`
 			done = m_async_source->lookup_sync(key, result);
+			// note: The container image is the most crucial field from a security incident response perspective. 
+			// We aim to raise the bar for successful container lookups. Conversely, pod sandboxes do not include  
+			// a container image in the API response.
 			if(!result.m_image.empty() || result.is_pod_sandbox())
 			{
 				/*
@@ -267,6 +270,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 				* issues noted by adopters, such as the absence of container images in syscall events even when 
 				* disabling async lookups.
 				*/
+				result.set_lookup_status(sinsp_container_lookup::state::STARTED);
 				cache->replace_container(std::make_shared<sinsp_container_info>(result));
 			}
 		}
