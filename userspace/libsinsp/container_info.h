@@ -55,7 +55,7 @@ public:
 	sinsp_container_lookup(short max_retry = 3, short max_delay_ms = 500):
 		m_max_retry(max_retry),
 		m_max_delay_ms(max_delay_ms),
-		m_state(state::SUCCESSFUL),
+		m_state(state::FAILED),
 		m_retry(0)
 	{
 		assert(max_retry >= 0);
@@ -132,7 +132,7 @@ public:
 private:
 	short m_max_retry;
 	short m_max_delay_ms;
-	state m_state = state::SUCCESSFUL;
+	state m_state = state::FAILED;
 	short m_retry;
 };
 
