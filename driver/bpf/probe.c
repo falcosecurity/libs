@@ -16,8 +16,8 @@ or GPL2.txt for full copies of the license.
 #endif
 #include <linux/sched.h>
 
-#include "../driver_config.h"
-#include "../ppm_events_public.h"
+#include "driver_config.h"
+#include "ppm_events_public.h"
 #include "bpf_helpers.h"
 #include "types.h"
 #include "maps.h"
