@@ -10,9 +10,9 @@ or GPL2.txt for full copies of the license.
 #ifndef __FILLERS_H
 #define __FILLERS_H
 
-#include "../systype_compat.h"
-#include "../ppm_flag_helpers.h"
-#include "../ppm_version.h"
+#include "systype_compat.h"
+#include "ppm_flag_helpers.h"
+#include "ppm_version.h"
 #include "bpf_helpers.h"
 
 #include <linux/tty.h>

@@ -16,7 +16,7 @@ or GPL2.txt for full copies of the license.
 
 #include "types.h"
 #include "builtins.h"
-#include "../socketcall_to_syscall.h"
+#include "socketcall_to_syscall.h"
 
 #define _READ(P) ({ typeof(P) _val;					\
 		    bpf_probe_read_kernel(&_val, sizeof(_val), &P);	\

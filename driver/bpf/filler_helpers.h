@@ -19,7 +19,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/fdtable.h>
 #include <linux/net.h>
 
-#include "../ppm_flag_helpers.h"
+#include "ppm_flag_helpers.h"
 #include "builtins.h"
 #include "missing_definitions.h"
 
