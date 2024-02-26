@@ -65,3 +65,4 @@ struct internal_state
 extern struct internal_state g_state;
 
 extern void pman_print_error(const char* error_message);
+extern void pman_print_msg(enum falcosecurity_log_severity level, const char* error_message);

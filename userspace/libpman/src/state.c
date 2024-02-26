@@ -25,7 +25,7 @@ limitations under the License.
 
 struct internal_state g_state = {};
 
-static void log_error(const char* fmt, ...)
+static void log_msg(enum falcosecurity_log_severity level, const char* fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
@@ -34,7 +34,7 @@ static void log_error(const char* fmt, ...)
 	{
 		char buf[MAX_ERROR_MESSAGE_LEN];
 		vsnprintf(buf, sizeof(buf), fmt, args);
-		g_state.log_fn("libpman", buf, FALCOSECURITY_LOG_SEV_ERROR);
+		g_state.log_fn("libpman", buf, level);
 	}
 	else
 	{
@@ -47,6 +47,11 @@ static void log_error(const char* fmt, ...)
 }
 
 void pman_print_error(const char* error_message)
+{
+	pman_print_msg(FALCOSECURITY_LOG_SEV_ERROR, error_message);
+}
+
+void pman_print_msg(enum falcosecurity_log_severity level, const char* error_message)
 {
 	if(!error_message)
 	{
@@ -63,10 +68,10 @@ void pman_print_error(const char* error_message)
 		 * for this error code.
 		 */
 		const char* err_str = (errno == ESRCH) ? "Object not found" : strerror(errno);
-		log_error("%s (errno: %d | message: %s)", error_message, errno, err_str);
+		log_msg(level, "%s (errno: %d | message: %s)", error_message, errno, err_str);
 	}
 	else
 	{
-		log_error("%s", error_message);
+		log_msg(level, "%s", error_message);
 	}
 }
