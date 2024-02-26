@@ -271,7 +271,11 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 				* disabling async lookups.
 				*/
 				result.set_lookup_status(sinsp_container_lookup::state::STARTED);
+				// note: The cache should not have SUCCESSFUL as lookup status at this point, else `parse_container_json_evt` would wrongly exit early.
 				cache->replace_container(std::make_shared<sinsp_container_info>(result));
+				// note: On the other hand `parse_container_json_evt` expects SUCCESSFUL as lookup state for the incoming container event /
+				// the not yet cached container, exactly how it was done within `lookup_sync`.
+				result.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 			}
 		}
 
