@@ -24,6 +24,8 @@ include(ExternalProject)
 include(zlib)
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
+add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
+add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -126,7 +128,6 @@ target_link_libraries(scap PUBLIC scap_event_schema)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 	include(FindMakedev)
-
 
 	add_subdirectory(linux)
 	target_link_libraries(scap PUBLIC scap_platform)

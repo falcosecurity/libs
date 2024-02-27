@@ -62,6 +62,9 @@ option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
 option(ENABLE_LIBSINSP_E2E_TESTS "Enable libsinsp e2e tests" OFF)
 option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
 option(ENABLE_VM_TESTS "Enable driver sanity tests" OFF)
+option(USE_ASAN "Build with AddressSanitizer" OFF)
+option(USE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
+option(UBSAN_HALT_ON_ERROR "Halt on error when building with UBSan" ON)
 
 if(${CMAKE_VERSION} VERSION_LESS "3.1.0" AND BUILD_SHARED_LIBS)
 	# scap_engine_savefile uses target_sources

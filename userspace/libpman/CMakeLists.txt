@@ -15,6 +15,9 @@
 # limitations under the License.
 #
 
+add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
+add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
+
 add_library(pman
     src/stats.c
     src/maps.c

@@ -60,6 +60,8 @@ if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64" AND ENABLE_IA32_TESTS)
     )
 endif()
 
+add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
+add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 add_executable(drivers_test ${DRIVERS_TEST_SOURCES})
 target_include_directories(drivers_test ${DRIVERS_TEST_INCLUDE})
 target_link_libraries(drivers_test ${DRIVERS_TEST_LINK_LIBRARIES})

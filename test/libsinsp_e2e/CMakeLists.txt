@@ -21,6 +21,9 @@ if(NOT DEFINED DRIVER_NAME)
     set(DRIVER_NAME "scap")
 endif()
 
+add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
+add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
+
 # Create a libsinsp_test_var.h file with some variables used by our tests
 # for example the kmod path or the bpf path.
 configure_file (
