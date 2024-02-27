@@ -1157,6 +1157,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 			if(fd_table_ptr != NULL)
 			{
 				child_tinfo->get_fdtable().clear();
+				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
 				fd_table_ptr->const_loop([&child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
 					/* Track down that those are cloned fds */
 					auto newinfo = info.clone();
@@ -1749,7 +1750,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 			if(fd_table_ptr != NULL)
 			{
 				child_tinfo->get_fdtable().clear();
-				fd_table_ptr->loop([&child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
+				child_tinfo->get_fdtable().set_tid(child_tinfo->m_tid);
+				fd_table_ptr->const_loop([&child_tinfo](int64_t fd, const sinsp_fdinfo& info) {
 					/* Track down that those are cloned fds.
 					* This flag `FLAGS_IS_CLONED` seems to be never used...
 					*/
