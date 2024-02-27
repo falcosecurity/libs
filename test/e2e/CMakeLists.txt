@@ -17,6 +17,9 @@ else()
     set(E2E_REPORT ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
+add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
+add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
+
 add_custom_target(e2e-install-deps
 	COMMAND pip3 install -r ${CMAKE_CURRENT_SOURCE_DIR}/tests/requirements.txt
 	COMMAND pip3 install ${CMAKE_CURRENT_SOURCE_DIR}/tests/commons/
