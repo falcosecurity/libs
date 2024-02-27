@@ -235,6 +235,7 @@ scap_l4_proto sinsp_fdinfo::get_l4proto() const
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
 {
+	m_tid = 0;
 	m_inspector = inspector;
 	reset_cache();
 }
@@ -414,7 +415,7 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo* fdi, uint64_t fd)
 		return;
 	}
 
-	if(fdi->is_file() && fdi->m_dev == 0 && fdi->m_mount_id != 0)
+	if(m_tid != 0 && m_tid != (uint64_t)-1 && fdi->is_file() && fdi->m_dev == 0 && fdi->m_mount_id != 0)
 	{
 		char procdir[SCAP_MAX_PATH_SIZE];
 		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
