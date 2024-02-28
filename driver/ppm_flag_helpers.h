@@ -25,6 +25,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/capability.h>
 #include <linux/eventpoll.h>
 #include <linux/prctl.h>
+#include <linux/splice.h>
 #ifdef __NR_finit_module
 #include <uapi/linux/module.h>
 #endif
