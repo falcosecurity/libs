@@ -30,8 +30,8 @@ else()
 
 	ExternalProject_Add(valijson
 		PREFIX "${PROJECT_BINARY_DIR}/valijson-prefix"
-		URL "https://github.com/tristanpenman/valijson/archive/refs/tags/v0.6.tar.gz"
-		URL_HASH "SHA256=e06bf78fc1d26d4956fabc182408ebbbc47e3a6699778cda4aa439c2a6110b09"
+		URL "https://github.com/tristanpenman/valijson/archive/refs/tags/v1.0.2.tar.gz"
+		URL_HASH "SHA256=35d86e54fc727f1265226434dc996e33000a570f833537a25c8b702b0b824431"
 		CONFIGURE_COMMAND ""
 		BUILD_COMMAND ""
 		INSTALL_COMMAND "")	
