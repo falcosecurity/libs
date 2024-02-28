@@ -14,7 +14,7 @@ TEST(SyscallExit, process_vm_readvX_failure)
 	iovec iov[] = {{buf, 16}};
 	int32_t iovcnt = 7;
 
-	size_t res = syscall(__NR_process_vm_readv, getpid(), iov, iovcnt, iov, iovcnt, 0);
+	size_t res = syscall(__NR_process_vm_readv, getpid(), iov, iovcnt, iov, iovcnt, 1);
 	assert_syscall_state(SYSCALL_FAILURE, "process_vm_readv", res, EQUAL, -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
