@@ -63,17 +63,7 @@ TEST(SyscallExit, pollX_success)
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: fds (type: PT_FDLIST) */
-	if(evt_test->is_kmod_engine())
-	{
-		/* The logic in the kmod is slightly different: we collect data only if `revents != 0`
-		 * https://github.com/falcosecurity/libs/blob/master/driver/ppm_fillers.c#L3322-L3326
-		 */
-		evt_test->assert_fd_list(2, NULL, 0);
-	}
-	else
-	{
-		evt_test->assert_fd_list(2, (struct fd_poll *)&expected, 2);
-	}
+	evt_test->assert_fd_list(2, (struct fd_poll *)&expected, 2);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
