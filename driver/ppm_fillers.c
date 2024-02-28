@@ -3294,7 +3294,6 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	char *targetbuf;
 	unsigned long val;
 	unsigned long nfds;
-	unsigned long fds_count;
 	uint32_t j;
 	uint32_t pos;
 	uint16_t flags;
@@ -3336,30 +3335,21 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 
 	pos = 2;
 	targetbuf = args->str_storage + nfds * sizeof(struct pollfd);
-	fds_count = 0;
 
 	/* Copy each fd into the temporary buffer */
 	for (j = 0; j < nfds; j++) {
 		if (enter_event) {
 			flags = poll_events_to_scap(fds[j].events);
 		} else {
-			/*
-			 * If it's an exit event, we copy only the fds that
-			 * returned something
-			 */
-			if (!fds[j].revents)
-				continue;
-
 			flags = poll_events_to_scap(fds[j].revents);
 		}
 
 		*(int64_t *)(targetbuf + pos) = (int64_t)fds[j].fd;
 		*(int16_t *)(targetbuf + pos + 8) = flags;
 		pos += 10;
-		++fds_count;
 	}
 
-	*(uint16_t *)(targetbuf) = (uint16_t)fds_count;
+	*(uint16_t *)(targetbuf) = (uint16_t)nfds;
 
 	return val_to_ring(args, (uint64_t)(unsigned long)targetbuf, pos, false, 0);
 }
