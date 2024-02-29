@@ -431,6 +431,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_process_vm_writev
 	[__NR_process_vm_writev - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_PROCESS_VM_WRITEV_E, PPME_SYSCALL_PROCESS_VM_WRITEV_X, PPM_SC_PROCESS_VM_WRITEV},
 #endif
+#ifdef __NR_delete_module
+	[__NR_delete_module - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_DELETE_MODULE_E, PPME_SYSCALL_DELETE_MODULE_X, PPM_SC_DELETE_MODULE},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -473,7 +476,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_fsync - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_FSYNC},
 	[__NR_setdomainname - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_SETDOMAINNAME},
 	[__NR_adjtimex - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_ADJTIMEX},
-	[__NR_delete_module - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_DELETE_MODULE},
 	[__NR_getpgid - SYSCALL_TABLE_ID0] = {.ppm_sc= PPM_SC_GETPGID},
 #ifdef __NR_sysfs
 	[__NR_sysfs - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SYSFS},

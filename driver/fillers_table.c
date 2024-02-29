@@ -360,6 +360,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PROCESS_VM_READV_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_PROCESS_VM_READV_X] = {FILLER_REF(sys_process_vm_readv_x)},
 	[PPME_SYSCALL_PROCESS_VM_WRITEV_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {FILLER_REF(sys_process_vm_writev_x)}
+	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {FILLER_REF(sys_process_vm_writev_x)},
+	[PPME_SYSCALL_DELETE_MODULE_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_DELETE_MODULE_X] = {FILLER_REF(sys_delete_module_x)},
 };
 #pragma GCC diagnostic pop

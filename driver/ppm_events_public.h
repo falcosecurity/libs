@@ -806,6 +806,12 @@ or GPL2.txt for full copies of the license.
 #define PPM_MODULE_INIT_COMPRESSED_FILE     4
 
 /*
+ * delete_module flags
+*/
+#define PPM_DELETE_MODULE_O_TRUNC		(1 << 0)
+#define PPM_DELETE_MODULE_O_NONBLOCK	(1 << 1)
+
+/*
  * bpf_commands 
 */
 #define PPM_BPF_MAP_CREATE			0
@@ -1467,7 +1473,9 @@ typedef enum {
 	PPME_SYSCALL_PROCESS_VM_READV_X = 421,
 	PPME_SYSCALL_PROCESS_VM_WRITEV_E = 422,
 	PPME_SYSCALL_PROCESS_VM_WRITEV_X = 423,
-	PPM_EVENT_MAX = 424
+	PPME_SYSCALL_DELETE_MODULE_E = 424,
+	PPME_SYSCALL_DELETE_MODULE_X = 425,
+	PPM_EVENT_MAX = 426
 } ppm_event_code;
 /*@}*/
 
@@ -2216,6 +2224,7 @@ extern const struct ppm_name_value bpf_commands[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
+extern const struct ppm_name_value delete_module_flags[];
 /*!
   \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
 */
