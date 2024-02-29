@@ -476,6 +476,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_PROCESS_VM_READV_X] = {"process_vm_readv", EC_SYSCALL | EC_IPC, EF_NONE, 3, {{"res", PT_INT64, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"data", PT_BYTEBUF, PF_NA}}},
 	[PPME_SYSCALL_PROCESS_VM_WRITEV_E] = {"process_vm_writev", EC_SYSCALL | EC_IPC, EF_NONE, 0},
 	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {"process_vm_writev", EC_SYSCALL | EC_IPC, EF_NONE, 3, {{"res", PT_INT64, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"data", PT_BYTEBUF, PF_NA}}},
+	[PPME_SYSCALL_DELETE_MODULE_E] = {"delete_module", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
+	[PPME_SYSCALL_DELETE_MODULE_X] = {"delete_module", EC_OTHER | EC_SYSCALL, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, delete_module_flags}}},
 };
 #pragma GCC diagnostic pop
 

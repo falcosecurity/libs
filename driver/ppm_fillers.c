@@ -8212,3 +8212,29 @@ int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+int f_sys_delete_module_x(struct event_filler_arguments *args)
+{
+	int64_t retval = 0;
+	int64_t res = 0;
+	uint32_t flags = 0;
+	unsigned long val = 0;
+	
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t) syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, (int64_t)retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: name (type: PT_CHARBUF) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	flags = delete_module_flags_to_scap(val);
+	res = val_to_ring(args, flags, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}

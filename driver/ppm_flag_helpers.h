@@ -2234,4 +2234,19 @@ static __always_inline uint32_t bpf_cmd_to_scap (unsigned long cmd){
 
 	return cmd;
 }
+
+static __always_inline uint32_t delete_module_flags_to_scap(unsigned long flags)
+{
+	uint32_t res = 0;
+#ifdef O_NONBLOCK
+	if (flags & O_NONBLOCK)
+		res |= PPM_DELETE_MODULE_O_NONBLOCK;
+#endif
+#ifdef O_TRUNC
+	if (flags & O_TRUNC)
+		res |= PPM_DELETE_MODULE_O_TRUNC;
+#endif
+	return res;
+}
+
 #endif /* PPM_FLAG_HELPERS_H_ */
