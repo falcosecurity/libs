@@ -25,36 +25,7 @@ limitations under the License.
 #include <libsinsp/stats.h>
 #include <libscap/strl.h>
 
-static const char *const sinsp_stats_v2_resource_utilization_names[] = {
-	[SINSP_RESOURCE_UTILIZATION_CPU_PERC] = "cpu_usage_perc",
-	[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS] = "memory_rss",
-	[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ] = "memory_vsz",
-	[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS] = "memory_pss",
-	[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY] = "container_memory_used",
-	[SINSP_RESOURCE_UTILIZATION_CPU_PERC_TOTAL_HOST] = "cpu_usage_perc_total_host",
-	[SINSP_RESOURCE_UTILIZATION_MEMORY_TOTAL_HOST] = "memory_used_host",
-	[SINSP_RESOURCE_UTILIZATION_PROCS_HOST] = "procs_running_host",
-	[SINSP_RESOURCE_UTILIZATION_FDS_TOTAL_HOST] = "open_fds_host",
-	[SINSP_STATS_V2_N_THREADS] = "n_threads",
-	[SINSP_STATS_V2_N_FDS] = "n_fds",
-	[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS] = "n_noncached_fd_lookups",
-	[SINSP_STATS_V2_CACHED_FD_LOOKUPS] = "n_cached_fd_lookups",
-	[SINSP_STATS_V2_FAILED_FD_LOOKUPS] = "n_failed_fd_lookups",
-	[SINSP_STATS_V2_ADDED_FDS] = "n_added_fds",
-	[SINSP_STATS_V2_REMOVED_FDS] = "n_removed_fds",
-	[SINSP_STATS_V2_STORED_EVTS] = "n_stored_evts",
-	[SINSP_STATS_V2_STORE_EVTS_DROPS] = "n_store_evts_drops",
-	[SINSP_STATS_V2_RETRIEVED_EVTS] = "n_retrieved_evts",
-	[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS] = "n_retrieve_evts_drops",
-	[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS] = "n_noncached_thread_lookups",
-	[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS] = "n_cached_thread_lookups",
-	[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS] = "n_failed_thread_lookups",
-	[SINSP_STATS_V2_ADDED_THREADS] = "n_added_threads",
-	[SINSP_STATS_V2_REMOVED_THREADS] = "n_removed_threads",
-	[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE] = "n_drops_full_threadtable",
-	[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES] = "n_missing_container_images",
-	[SINSP_STATS_V2_N_CONTAINERS] = "n_containers",
-};
+extern const char* const sinsp_stats_v2_resource_utilization_names[];
 
 void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &memory_used_host, uint64_t &open_fds_host)
 {

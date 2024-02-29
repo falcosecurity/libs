@@ -16,6 +16,7 @@
 #
 
 add_library(pman
+    src/events_prog_names.c
     src/stats.c
     src/maps.c
     src/lifecycle.c

@@ -92,6 +92,7 @@ add_library(sinsp
 	sinsp_filtercheck_tracer.cpp
 	sinsp_filtercheck_user.cpp
 	sinsp_filtercheck_utils.cpp
+	stats_v2_resource_utilization_names.c
 	filter_check_list.cpp
 	ifinfo.cpp
 	memmem.cpp
