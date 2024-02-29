@@ -566,7 +566,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
-	const auto root = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
+	const auto root_container = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
 	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
@@ -586,7 +586,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_image(resp_container, root, container);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container, root_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad", container.m_full_id);
 	ASSERT_EQ("quay.io/crio/redis:alpine", container.m_image);
@@ -598,25 +598,25 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	status->set_image_ref("sha256:49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad");
 	status->mutable_image()->set_image("");
 	const auto &resp_container_simulate_image_recovery = container_status_resp.status();
-	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, root, container);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, root_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("quay.io/crio/redis:alpine", container.m_image);
 	ASSERT_EQ("quay.io/crio/redis", container.m_imagerepo);
 	ASSERT_EQ("alpine", container.m_imagetag);
 
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id(root, container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_container(root_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_env(root, container);
+	res = cri_api_v1alpha2->parse_cri_env(root_container, container);
 	ASSERT_FALSE(res); // seems broken or not supported for cri-o
-	res = cri_api_v1alpha2->parse_cri_json_imageid_containerd(root, container);
-	ASSERT_FALSE(res); // parse_cri_json_imageid_containerd only supported for containerd
-	res = cri_api_v1alpha2->parse_cri_user_info(root, container);
+	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
+	ASSERT_FALSE(res); // parse_cri_json_imageid only supported for containerd
+	res = cri_api_v1alpha2->parse_cri_user_info(root_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_ext_container_info(root, container);
+	res = cri_api_v1alpha2->parse_cri_ext_container_info(root_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ(209715200, container.m_memory_limit);
 	ASSERT_EQ(20000, container.m_cpu_quota);
@@ -708,6 +708,8 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio_sandbox_container)
 	container.m_id = "1f04600dc694"; // truncated id extracted from cgroups for the sandbox container
 	container.m_is_pod_sandbox = true;
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_podsandbox(container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);

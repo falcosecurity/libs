@@ -574,7 +574,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
-	const auto root = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
+	const auto root_container = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
 	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
@@ -594,7 +594,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_image(resp_container, root, container);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container, root_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("docker.io/library/busybox:latest", container.m_image);
 	ASSERT_EQ("docker.io/library/busybox", container.m_imagerepo);
@@ -605,29 +605,29 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	status->set_image_ref("sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
 	status->mutable_image()->set_image("");
 	const auto &resp_container_simulate_image_recovery = container_status_resp.status();
-	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, root, container);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, root_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("docker.io/library/busybox:latest", container.m_image);
 	ASSERT_EQ("docker.io/library/busybox", container.m_imagerepo);
 	ASSERT_EQ("latest", container.m_imagetag);
 
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id(root, container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_container(root_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_env(root, container);
+	res = cri_api_v1alpha2->parse_cri_env(root_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_json_imageid_containerd(root, container);
+	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_user_info(root, container);
+	res = cri_api_v1alpha2->parse_cri_user_info(root_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_ext_container_info(root, container);
+	res = cri_api_v1alpha2->parse_cri_ext_container_info(root_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ(1073741824, container.m_memory_limit);
 	ASSERT_EQ(50000, container.m_cpu_quota);
-	res = cri_api_v1alpha2->parse_cri_json_imageid_containerd(root, container);
+	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
 	ASSERT_TRUE(res);
 
 	// 
@@ -692,7 +692,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 
 
 	//
-	// Simulate unsuccessful simultaneous PodSandboxStatusResponse lookup and subsequent k8s filterchecks fallbacks
+	// Simulate unsuccessful simultaneous PodSandboxStatusResponse lookup when processing a real container; check k8s filterchecks fallbacks
 	//
 
 	container.m_pod_sandbox_cniresult.clear();
@@ -746,6 +746,8 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 	container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups for the sandbox container
 	container.m_is_pod_sandbox = true;
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_podsandbox(container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
