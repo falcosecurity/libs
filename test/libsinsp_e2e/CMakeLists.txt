@@ -32,10 +32,15 @@ configure_file (
 )
 
 add_executable(libsinsp_e2e_tests
+    container.cpp
+    container_cgroup.cpp
+    container_image_splitting.cpp
+    docker_utils.cpp
     event_capture.cpp
     main.cpp
     subprocess.cpp
     sys_call_test.cpp
+    thread_state.cpp
 )
 
 if(BUILD_BPF)
@@ -81,4 +86,10 @@ endif("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/test_helper.sh ${CMAKE_CURRENT_BINARY_DIR}/test_helper.sh COPYONLY
+)
+
+file(COPY
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/
+    DESTINATION
+    ${CMAKE_CURRENT_BINARY_DIR}/resources/
 )
