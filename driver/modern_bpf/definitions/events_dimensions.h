@@ -249,6 +249,7 @@
 #define NEWFSTATAT_E_SIZE HEADER_LEN
 #define PROCESS_VM_READV_E_SIZE HEADER_LEN
 #define PROCESS_VM_WRITEV_E_SIZE HEADER_LEN
+#define DELETE_MODULE_E_SIZE HEADER_LEN
 
 /* Generic tracepoints events. */
 #define SCHED_SWITCH_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + sizeof(uint32_t) * 3 + PARAM_LEN * 6
