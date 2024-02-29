@@ -85,6 +85,10 @@ inline sinsp_container_type cri_interface<api>::get_cri_runtime_type() const
 	return m_cri_runtime_type;
 }
 
+//////////////////////////
+// CRI API calls helpers
+//////////////////////////
+
 template<typename api>
 inline grpc::Status cri_interface<api>::get_container_status_resp(const std::string &container_id,
 						      typename api::ContainerStatusResponse &resp)
@@ -99,7 +103,7 @@ inline grpc::Status cri_interface<api>::get_container_status_resp(const std::str
 }
 
 template<typename api>
-inline grpc::Status cri_interface<api>::get_container_stats(const std::string &container_id,
+inline grpc::Status cri_interface<api>::get_container_stats_resp(const std::string &container_id,
 						     typename api::ContainerStatsResponse &resp)
 {
 	typename api::ContainerStatsRequest req;
@@ -111,12 +115,59 @@ inline grpc::Status cri_interface<api>::get_container_stats(const std::string &c
 }
 
 template<typename api>
+grpc::Status cri_interface<api>::get_pod_sandbox_status_resp(const std::string &pod_sandbox_id,
+					      typename api::PodSandboxStatusResponse &resp)
+{
+	typename api::PodSandboxStatusRequest req;
+	req.set_pod_sandbox_id(pod_sandbox_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_settings::get_cri_timeout());
+	context.set_deadline(deadline);
+	return m_cri->PodSandboxStatus(&context, req, &resp);
+}
+
+template<typename api> 
+inline std::string cri_interface<api>::get_container_image_id(const std::string &image_ref)
+{
+	typename api::ListImagesRequest req;
+	typename api::ListImagesResponse resp;
+	auto filter = req.mutable_filter();
+	auto spec = filter->mutable_image();
+	spec->set_image(image_ref);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_settings::get_cri_timeout());
+	context.set_deadline(deadline);
+	grpc::Status status = m_cri_image->ListImages(&context, req, &resp);
+
+	switch(resp.images_size())
+	{
+	case 0:
+		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
+		ASSERT(false);
+		break;
+	case 1:
+	{
+		const auto &image = resp.images(0);
+		return image.id();
+	}
+	default:
+		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI",
+				image_ref.c_str());
+		ASSERT(false);
+		break;
+	}
+
+	return "";
+}
+
+template<typename api>
 inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::string &container_id)
 {
 	// Synchronously get the stats response and update the container table.
 	// Note that this needs to use the full id.
 	typename api::ContainerStatsResponse resp;
-	grpc::Status status = get_container_stats(container_id, resp);
+	grpc::Status status = get_container_stats_resp(container_id, resp);
 
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStats: (%s)", container_id.c_str(),
 			status.error_message().empty() ? "SUCCESS" : status.error_message().c_str());
@@ -155,6 +206,60 @@ inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const 
 	return resp_stats.writable_layer().used_bytes().value();
 }
 
+/////////////////////////////
+// Generic parsers helpers
+/////////////////////////////
+
+inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key)
+{
+	if(root.isMember(key))
+	{
+		*out = &root[key];
+		return true;
+	}
+	return false;
+}
+
+template<typename... Args>
+inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key, Args... args)
+{
+	if(root.isMember(key))
+	{
+		return walk_down_json(root[key], out, args...);
+	}
+	return false;
+}
+
+inline bool set_numeric_32(const Json::Value &dict, const std::string &key, int32_t &val)
+{
+	if(!dict.isMember(key))
+	{
+		return false;
+	}
+	const auto &json_val = dict[key];
+	if(!json_val.isNumeric())
+	{
+		return false;
+	}
+	val = json_val.asInt();
+	return true;
+}
+
+inline bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &val)
+{
+	if(!dict.isMember(key))
+	{
+		return false;
+	}
+	const auto &json_val = dict[key];
+	if(!json_val.isNumeric())
+	{
+		return false;
+	}
+	val = json_val.asInt64();
+	return true;
+}
+
 template<typename api>
 inline Json::Value cri_interface<api>::get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info)
 {
@@ -170,6 +275,11 @@ inline Json::Value cri_interface<api>::get_info_jvalue(const google::protobuf::M
 	return root;
 }
 
+///////////////////////////////////////////////////////////
+// CRI response (ContainerStatusResponse) parsers helpers
+///////////////////////////////////////////////////////////
+
+
 template<typename api>
 inline bool cri_interface<api>::parse_cri_base(const typename api::ContainerStatus &status, sinsp_container_info &container)
 {
@@ -177,21 +287,6 @@ inline bool cri_interface<api>::parse_cri_base(const typename api::ContainerStat
 	container.m_name = status.metadata().name();
 	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
 	container.m_created_time = static_cast<int64_t>(status.created_at() / ONE_SECOND_IN_NS);
-
-	return true;
-}
-
-// overloaded w/ PodSandboxStatus
-template<typename api>
-inline bool cri_interface<api>::parse_cri_base(const typename api::PodSandboxStatus &status, sinsp_container_info &container)
-{
-	container.m_full_id = status.id();
-	container.m_name = status.metadata().name();
-	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
-	container.m_created_time = static_cast<int64_t>(status.created_at() / ONE_SECOND_IN_NS);
-	container.m_pod_sandbox_id = container.m_full_id;
-	// Add the pod sandbox id as label to the container for backward compatibility
-	container.m_labels["io.kubernetes.sandbox.id"] = container.m_full_id;
 
 	return true;
 }
@@ -298,6 +393,26 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 }
 
 template<typename api>
+inline bool cri_interface<api>::parse_cri_pod_sandbox_id_for_container(const Json::Value &root,
+			     sinsp_container_info &container)
+{
+	if(root.isNull())
+	{
+		return false;
+	}
+
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	{
+		std::string pod_sandbox_id = root["sandboxID"].asString();
+		container.m_pod_sandbox_id = pod_sandbox_id;
+		// Add the pod sandbox id as label to the container for backward compatibility
+		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
+	}
+
+	return true;
+}
+
+template<typename api>
 inline bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerStatus &status, sinsp_container_info &container)
 {
 	for(const auto &mount : status.mounts())
@@ -321,56 +436,6 @@ inline bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerSt
 		container.m_mounts.emplace_back(mount.host_path(), mount.container_path(), "", !mount.readonly(),
 						propagation);
 	}
-	return true;
-}
-
-inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key)
-{
-	if(root.isMember(key))
-	{
-		*out = &root[key];
-		return true;
-	}
-	return false;
-}
-
-template<typename... Args>
-inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key, Args... args)
-{
-	if(root.isMember(key))
-	{
-		return walk_down_json(root[key], out, args...);
-	}
-	return false;
-}
-
-inline bool set_numeric_32(const Json::Value &dict, const std::string &key, int32_t &val)
-{
-	if(!dict.isMember(key))
-	{
-		return false;
-	}
-	const auto &json_val = dict[key];
-	if(!json_val.isNumeric())
-	{
-		return false;
-	}
-	val = json_val.asInt();
-	return true;
-}
-
-inline bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &val)
-{
-	if(!dict.isMember(key))
-	{
-		return false;
-	}
-	const auto &json_val = dict[key];
-	if(!json_val.isNumeric())
-	{
-		return false;
-	}
-	val = json_val.asInt64();
 	return true;
 }
 
@@ -405,7 +470,7 @@ inline bool cri_interface<api>::parse_cri_env(const Json::Value &root, sinsp_con
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_json_imageid_containerd(const Json::Value &root, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_json_imageid(const Json::Value &root, sinsp_container_info &container)
 {
 	if(root.isNull())
 	{
@@ -520,6 +585,32 @@ inline bool cri_interface<api>::parse_cri_labels(const typename api::ContainerSt
 	return true;
 }
 
+///////////////////////////////////////////////////////////
+// CRI response (PodSandboxStatus) parsers helpers
+///////////////////////////////////////////////////////////
+
+// overloaded w/ PodSandboxStatus
+template<typename api>
+inline bool cri_interface<api>::parse_cri_base(const typename api::PodSandboxStatus &status, sinsp_container_info &container)
+{
+	container.m_full_id = status.id();
+	container.m_name = status.metadata().name();
+	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
+	container.m_created_time = static_cast<int64_t>(status.created_at() / ONE_SECOND_IN_NS);
+
+	return true;
+}
+
+template<typename api>
+inline bool cri_interface<api>::parse_cri_pod_sandbox_id_for_podsandbox(sinsp_container_info &container)
+{
+	container.m_pod_sandbox_id = container.m_full_id;
+	// Add the pod sandbox id as label to the container for backward compatibility
+	container.m_labels["io.kubernetes.sandbox.id"] = container.m_full_id;
+
+	return true;
+}
+
 // overloaded w/ PodSandboxStatus
 template<typename api>
 inline bool cri_interface<api>::parse_cri_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container)
@@ -534,26 +625,6 @@ inline bool cri_interface<api>::parse_cri_labels(const typename api::PodSandboxS
 	container.m_labels["io.kubernetes.pod.uid"] = status.metadata().uid();
 	container.m_labels["io.kubernetes.pod.name"] = status.metadata().name();
 	container.m_labels["io.kubernetes.pod.namespace"] = status.metadata().namespace_();
-
-	return true;
-}
-
-template<typename api>
-inline bool cri_interface<api>::parse_cri_pod_sandbox_id(const Json::Value &root,
-			     sinsp_container_info &container)
-{
-	if(root.isNull())
-	{
-		return false;
-	}
-
-	if(root.isMember("sandboxID") && root["sandboxID"].isString())
-	{
-		std::string pod_sandbox_id = root["sandboxID"].asString();
-		container.m_pod_sandbox_id = pod_sandbox_id;
-		// Add the pod sandbox id as label to the container for backward compatibility
-		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
-	}
 
 	return true;
 }
@@ -655,52 +726,9 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api
 	return true;
 }
 
-template<typename api>
-grpc::Status cri_interface<api>::get_pod_sandbox_status_resp(const std::string &pod_sandbox_id,
-					      typename api::PodSandboxStatusResponse &resp)
-{
-	typename api::PodSandboxStatusRequest req;
-	req.set_pod_sandbox_id(pod_sandbox_id);
-	req.set_verbose(true);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_settings::get_cri_timeout());
-	context.set_deadline(deadline);
-	return m_cri->PodSandboxStatus(&context, req, &resp);
-}
-
-template<typename api> 
-inline std::string cri_interface<api>::get_container_image_id(const std::string &image_ref)
-{
-	typename api::ListImagesRequest req;
-	typename api::ListImagesResponse resp;
-	auto filter = req.mutable_filter();
-	auto spec = filter->mutable_image();
-	spec->set_image(image_ref);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(cri_settings::get_cri_timeout());
-	context.set_deadline(deadline);
-	grpc::Status status = m_cri_image->ListImages(&context, req, &resp);
-
-	switch(resp.images_size())
-	{
-	case 0:
-		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
-		ASSERT(false);
-		break;
-	case 1:
-	{
-		const auto &image = resp.images(0);
-		return image.id();
-	}
-	default:
-		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI",
-				image_ref.c_str());
-		ASSERT(false);
-		break;
-	}
-
-	return "";
-}
+///////////////////////////////////////////////////////////////////
+// Main CRI parse entrypoint (make API calls and parse responses)
+///////////////////////////////////////////////////////////////////
 
 template<typename api>
 inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container)
@@ -725,12 +753,15 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 			* Most notably, the container's m_full_id and m_pod_sandbox_id will be the same, and the
 			* absence of container images can be attributed to the fact that they are not available for
 			* pod sandbox container processes.
+			* Another notable fact is that for pod sandbox containers container.m_lables and 
+			* container.m_pod_sandbox_labels are also the same.
 			*/
 			container.m_is_pod_sandbox = true;
 			const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 			const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
 			const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
 			parse_cri_base(resp_pod_sandbox_container, container);
+			parse_cri_pod_sandbox_id_for_podsandbox(container);
 			parse_cri_labels(resp_pod_sandbox_container, container);
 			parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
 			parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
@@ -754,17 +785,17 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
-	const auto root = get_info_jvalue(resp_container_info);
+	const auto root_container = get_info_jvalue(resp_container_info);
 	parse_cri_base(resp_container, container);
 	parse_cri_labels(resp_container, container);
-	parse_cri_image(resp_container, root, container);
+	parse_cri_image(resp_container, root_container, container);
 	parse_cri_mounts(resp_container, container);
-	parse_cri_pod_sandbox_id(root, container);
-	parse_cri_env(root, container);
-	parse_cri_json_imageid_containerd(root, container);
+	parse_cri_pod_sandbox_id_for_container(root_container, container);
+	parse_cri_env(root_container, container);
+	parse_cri_json_imageid(root_container, container);
 	// In some cases (e.g. openshift), the cri-o response may not have an info property, which is used to set the container user. In those cases, the container name stays at its default "<NA>" value.
-	parse_cri_user_info(root, container);
-	bool ret = parse_cri_ext_container_info(root, container);
+	parse_cri_user_info(root_container, container);
+	bool ret = parse_cri_ext_container_info(root_container, container);
 	if(!ret)
 	{
 		libsinsp::cgroup_limits::cgroup_limits_value limits;
@@ -786,6 +817,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 	{
 		if(container.m_imageid.empty())
 		{
+			// get_container_image_id makes new / extra API calls
 			container.m_imageid = get_container_image_id(resp_container.image_ref());
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri (%s): after get_container_image_id: repo=%s tag=%s image=%s digest=%s",
