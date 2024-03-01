@@ -82,6 +82,8 @@ jobs:
             cmake \
                 -DBUILD_BPF=ON \
                 -DUSE_BUNDLED_DEPS=OFF \
+                -DUSE_ASAN=ON \
+                -DUSE_UBSAN=ON \
                 -DENABLE_LIBSINSP_E2E_TESTS=ON \
                 -DBUILD_LIBSCAP_MODERN_BPF=ON \
                 -DBUILD_LIBSCAP_GVISOR=OFF \
@@ -92,14 +94,18 @@ jobs:
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         if: matrix.arch == 'amd64'
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1
         run: |
           cd build/test/libsinsp_e2e/
-          sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }}
+          sudo -E ./libsinsp_e2e_tests ${{ matrix.driver.option }}
 
         # the actuated arm64 workers doesn't have the CONFIG_QFMT_V2 flag
         # which is needed for the quotactl_ok test (cmd=QQUOTA_ON + id=QFMT_VFS_V0).
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         if: matrix.arch == 'arm64'
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1
         run: |
           cd build/test/libsinsp_e2e/
-          sudo ./libsinsp_e2e_tests ${{ matrix.driver.option }} --gtest_filter=-sys_call_test.quotactl_ok
+          sudo -E ./libsinsp_e2e_tests ${{ matrix.driver.option }} --gtest_filter=-sys_call_test.quotactl_ok
