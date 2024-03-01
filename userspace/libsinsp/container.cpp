@@ -261,7 +261,7 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo)
+bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo, char *scap_err)
 {
 	size_t totlen = sizeof(scap_evt) + sizeof(uint32_t) + json.length() + 1;
 
@@ -274,17 +274,12 @@ bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, 
 	evt->set_inspector(m_inspector);
 
 	scap_evt* scapevt = evt->get_scap_evt();
-	scapevt->ts = (uint64_t) - 1;
+	scapevt->ts = UINT64_MAX;
 	scapevt->tid = -1;
-	scapevt->len = (uint32_t)totlen;
-	scapevt->type = PPME_CONTAINER_JSON_2_E;
-	scapevt->nparams = 1;
-
-	uint32_t* lens = (uint32_t*)((char *)scapevt + sizeof(ppm_evt_hdr));
-	char* valptr = (char*)lens + sizeof(uint32_t);
-
-	*lens = (uint32_t)json.length() + 1;
-	memcpy(valptr, json.c_str(), *lens);
+	if (scap_event_encode_params(scap_sized_buffer{scapevt, totlen}, nullptr, scap_err, PPME_CONTAINER_JSON_2_E, 1, json.c_str()) != SCAP_SUCCESS)
+	{
+		return false;
+	}
 
 	evt->init();
 	evt->set_tinfo_ref(tinfo);
@@ -364,7 +359,9 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 
 	std::unique_ptr<sinsp_evt> evt(new sinsp_evt());
 
-	if(container_to_sinsp_event(container_to_json(container_info), evt.get(), container_info.get_tinfo(m_inspector)))
+	char scap_err[SCAP_LASTERR_SIZE];
+
+	if(container_to_sinsp_event(container_to_json(container_info), evt.get(), container_info.get_tinfo(m_inspector), scap_err))
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"notify_new_container (%s): created CONTAINER_JSON event, queuing to inspector",
@@ -376,8 +373,9 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 	else
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
-				"notify_new_container (%s): could not create CONTAINER_JSON event, dropping",
-				container_info.m_id.c_str());
+				"notify_new_container (%s): could not create CONTAINER_JSON event: %s, dropping",
+				container_info.m_id.c_str(),
+				scap_err);
 	}
 }
 
@@ -389,13 +387,21 @@ bool sinsp_container_manager::async_allowed() const
 
 void sinsp_container_manager::dump_containers(sinsp_dumper& dumper)
 {
+	char scap_err[SCAP_LASTERR_SIZE];
 	for(const auto& it : (*m_containers.lock()))
 	{
 		sinsp_evt evt;
-		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
+		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector), scap_err))
 		{
 			evt.get_scap_evt()->ts = m_inspector->get_new_ts();
 			dumper.dump(&evt);
+		}
+		else
+		{
+			libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
+					"dump_containers (%s): could not create CONTAINER_JSON event: %s, dropping",
+					scap_err,
+					it.second->m_id.c_str());
 		}
 	}
 }
