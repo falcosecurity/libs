@@ -582,9 +582,9 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	container.m_id = "49ecc2820215"; // truncated id extracted from cgroups
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_labels(resp_container, container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_container(root_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
+	res = cri_api_v1alpha2->parse_cri_labels(resp_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_image(resp_container, root_container, container);
 	ASSERT_TRUE(res);
@@ -603,23 +603,25 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_EQ("quay.io/crio/redis:alpine", container.m_image);
 	ASSERT_EQ("quay.io/crio/redis", container.m_imagerepo);
 	ASSERT_EQ("alpine", container.m_imagetag);
+	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
+	ASSERT_FALSE(res); // parse_cri_json_imageid only supported for containerd
 
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_container(root_container, container);
-	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
-	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
+	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_env(root_container, container);
 	ASSERT_FALSE(res); // seems broken or not supported for cri-o
-	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
-	ASSERT_FALSE(res); // parse_cri_json_imageid only supported for containerd
 	res = cri_api_v1alpha2->parse_cri_user_info(root_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_ext_container_info(root_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ(209715200, container.m_memory_limit);
 	ASSERT_EQ(20000, container.m_cpu_quota);
+
+	// Below retrieved from PodSandboxStatusResponse
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(res);
 
 	// 
 	// Test sinsp filterchecks, similar to spawn_process_container test
@@ -687,6 +689,10 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 
 TEST_F(sinsp_with_test_input, container_parser_cri_crio_sandbox_container)
 {
+	//
+	// On ther other hand this test is solely for sandbox container processes
+	//
+
 	std::string cri_path = "/run/crio/crio_mock.sock";
 	auto cri_api_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
 	ASSERT_FALSE(cri_api_v1alpha2->is_ok()); // we are not querying a container runtime socket in this mock test
