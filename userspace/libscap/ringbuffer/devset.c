@@ -29,7 +29,7 @@ int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *laste
 {
 	devset->m_ndevs = num_devs;
 
-	devset->m_devs = (scap_device*) calloc(sizeof(scap_device), devset->m_ndevs);
+	devset->m_devs = (scap_device*) calloc(devset->m_ndevs, sizeof(scap_device));
 	if(!devset->m_devs)
 	{
 		strlcpy(lasterr, "error allocating the device handles", SCAP_LASTERR_SIZE);

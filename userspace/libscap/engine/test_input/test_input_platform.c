@@ -85,7 +85,7 @@ static const struct scap_platform_vtable scap_test_input_platform = {
 
 struct scap_platform* scap_test_input_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
 {
-	struct scap_test_input_platform* platform = calloc(sizeof(*platform), 1);
+	struct scap_test_input_platform* platform = calloc(1, sizeof(*platform));
 
 	if(platform == NULL)
 	{
