@@ -590,9 +590,9 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	container.m_id = "3ad7b26ded6d"; // truncated id extracted from cgroups
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_labels(resp_container, container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_container(root_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
+	res = cri_api_v1alpha2->parse_cri_labels(resp_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_image(resp_container, root_container, container);
 	ASSERT_TRUE(res);
@@ -610,16 +610,12 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ("docker.io/library/busybox:latest", container.m_image);
 	ASSERT_EQ("docker.io/library/busybox", container.m_imagerepo);
 	ASSERT_EQ("latest", container.m_imagetag);
+	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
+	ASSERT_TRUE(res);
 
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_container(root_container, container);
-	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
-	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
+	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_env(root_container, container);
-	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_user_info(root_container, container);
 	ASSERT_TRUE(res);
@@ -627,7 +623,11 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_TRUE(res);
 	ASSERT_EQ(1073741824, container.m_memory_limit);
 	ASSERT_EQ(50000, container.m_cpu_quota);
-	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
+
+	// Below retrieved from PodSandboxStatusResponse
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
 
 	// 
@@ -703,12 +703,16 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	std::shared_ptr<sinsp_container_info> sandbox_container_ptr = std::make_shared<sinsp_container_info>();
 	sinsp_container_info &sandbox_container = *sandbox_container_ptr;
 
+    // Checking fallbacks means the k8s.pod.* fields in the filterchecks are retrieved from the cached sandbox container
+    // and not from the actual container, we deleted the fields in question from the container above
 	sandbox_container.m_type = CT_CONTAINERD;
 	sandbox_container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups for the sandbox container
 	sandbox_container.m_is_pod_sandbox = true;
 	res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, sandbox_container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, sandbox_container);
+    res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_podsandbox(sandbox_container);  // not used in the assertions below, but keep for completeness
+	ASSERT_TRUE(res);
+	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, sandbox_container); // not used in the assertions below, but keep for completeness
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, sandbox_container);
 	ASSERT_TRUE(res);
@@ -725,6 +729,10 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 
 TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 {
+	//
+	// On ther other hand this test is solely for sandbox container processes
+	//
+
 	std::string cri_path = "/run/containerd/containerd_mock.sock";
 	auto cri_api_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
 	ASSERT_FALSE(cri_api_v1alpha2->is_ok()); // we are not querying a container runtime socket in this mock test

@@ -292,6 +292,39 @@ inline bool cri_interface<api>::parse_cri_base(const typename api::ContainerStat
 }
 
 template<typename api>
+inline bool cri_interface<api>::parse_cri_pod_sandbox_id_for_container(const Json::Value &root,
+			     sinsp_container_info &container)
+{
+	if(root.isNull())
+	{
+		return false;
+	}
+
+	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	{
+		std::string pod_sandbox_id = root["sandboxID"].asString();
+		container.m_pod_sandbox_id = pod_sandbox_id;
+		// Add the pod sandbox id as label to the container for backward compatibility
+		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
+	}
+
+	return true;
+}
+
+template<typename api>
+inline bool cri_interface<api>::parse_cri_labels(const typename api::ContainerStatus &status, sinsp_container_info &container)
+{
+	for(const auto &pair : status.labels())
+	{
+		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
+		{
+			container.m_labels[pair.first] = pair.second;
+		}
+	}
+	return true;
+}
+
+template<typename api>
 inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &status,
 					 const Json::Value &root,
 					 sinsp_container_info &container)
@@ -393,20 +426,28 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_pod_sandbox_id_for_container(const Json::Value &root,
-			     sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_json_imageid(const Json::Value &root, sinsp_container_info &container)
 {
 	if(root.isNull())
 	{
 		return false;
 	}
 
-	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	const Json::Value *image = nullptr;
+	if(!walk_down_json(root, &image, "config", "image", "image") || !image->isString())
 	{
-		std::string pod_sandbox_id = root["sandboxID"].asString();
-		container.m_pod_sandbox_id = pod_sandbox_id;
-		// Add the pod sandbox id as label to the container for backward compatibility
-		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
+		return false;
+	}
+
+	auto image_str = image->asString();
+	auto pos = image_str.find(':');
+	if(pos == std::string::npos)
+	{
+		container.m_imageid = std::move(image_str);
+	}
+	else
+	{
+		container.m_imageid = image_str.substr(pos + 1);
 	}
 
 	return true;
@@ -466,34 +507,6 @@ inline bool cri_interface<api>::parse_cri_env(const Json::Value &root, sinsp_con
 			container.m_env.emplace_back(var);
 		}
 	}
-	return true;
-}
-
-template<typename api>
-inline bool cri_interface<api>::parse_cri_json_imageid(const Json::Value &root, sinsp_container_info &container)
-{
-	if(root.isNull())
-	{
-		return false;
-	}
-
-	const Json::Value *image = nullptr;
-	if(!walk_down_json(root, &image, "config", "image", "image") || !image->isString())
-	{
-		return false;
-	}
-
-	auto image_str = image->asString();
-	auto pos = image_str.find(':');
-	if(pos == std::string::npos)
-	{
-		container.m_imageid = std::move(image_str);
-	}
-	else
-	{
-		container.m_imageid = image_str.substr(pos + 1);
-	}
-
 	return true;
 }
 
@@ -569,19 +582,6 @@ inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &root, sin
 	}
 
 	container.m_container_user = std::to_string(uid->asInt());
-	return true;
-}
-
-template<typename api>
-inline bool cri_interface<api>::parse_cri_labels(const typename api::ContainerStatus &status, sinsp_container_info &container)
-{
-	for(const auto &pair : status.labels())
-	{
-		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
-		{
-			container.m_labels[pair.first] = pair.second;
-		}
-	}
 	return true;
 }
 
@@ -762,6 +762,9 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 			const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
 			parse_cri_base(resp_pod_sandbox_container, container);
 			parse_cri_pod_sandbox_id_for_podsandbox(container);
+			// `parse_cri_labels`: The pod sandbox container does not contain the namespace etc as labels.
+			// To be consistent in the k8s filterchecks we retrieve the namespace from elsewhere in the response and
+			// add them as labels
 			parse_cri_labels(resp_pod_sandbox_container, container);
 			parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
 			parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
@@ -787,12 +790,12 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 	const auto &resp_container_info = container_status_resp.info();
 	const auto root_container = get_info_jvalue(resp_container_info);
 	parse_cri_base(resp_container, container);
+	parse_cri_pod_sandbox_id_for_container(root_container, container);
 	parse_cri_labels(resp_container, container);
 	parse_cri_image(resp_container, root_container, container);
-	parse_cri_mounts(resp_container, container);
-	parse_cri_pod_sandbox_id_for_container(root_container, container);
-	parse_cri_env(root_container, container);
 	parse_cri_json_imageid(root_container, container);
+	parse_cri_mounts(resp_container, container);
+	parse_cri_env(root_container, container);
 	// In some cases (e.g. openshift), the cri-o response may not have an info property, which is used to set the container user. In those cases, the container name stays at its default "<NA>" value.
 	parse_cri_user_info(root_container, container);
 	bool ret = parse_cri_ext_container_info(root_container, container);
@@ -817,7 +820,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 	{
 		if(container.m_imageid.empty())
 		{
-			// get_container_image_id makes new / extra API calls
+			// `get_container_image_id`: Makes new / extra API calls
 			container.m_imageid = get_container_image_id(resp_container.image_ref());
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"cri (%s): after get_container_image_id: repo=%s tag=%s image=%s digest=%s",
