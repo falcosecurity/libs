@@ -414,12 +414,12 @@ static __always_inline uint64_t extract__capability(struct task_struct *task, en
 
 	// Kernel 6.3 changed the kernel_cap_struct type from uint32_t[2] to uint64_t.
 	// Luckily enough, it also changed field name from cap to val.
-	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
-	{
-		return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
-	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
+#else
 	kernel_cap_t___v6_3 *new_cap = (kernel_cap_t___v6_3 *)&cap_struct;
 	return capabilities_to_scap(((unsigned long)new_cap->val));
+#endif
 }
 
 /////////////////////////
@@ -621,19 +621,16 @@ static __always_inline unsigned long extract__vm_rss(struct mm_struct *mm)
 	/* In recent kernel versions (https://github.com/torvalds/linux/commit/f1a7941243c102a44e8847e3b94ff4ff3ec56f25)
 	 * `struct mm_rss_stat` doesn't exist anymore.
 	 */
-	if(bpf_core_type_exists(struct mm_rss_stat))
-	{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
 		BPF_CORE_READ_INTO(&file_pages, mm, rss_stat.count[MM_FILEPAGES].counter);
 		BPF_CORE_READ_INTO(&anon_pages, mm, rss_stat.count[MM_ANONPAGES].counter);
 		BPF_CORE_READ_INTO(&shmem_pages, mm, rss_stat.count[MM_SHMEMPAGES].counter);
-	}
-	else
-	{
+#else
 		struct mm_struct___v6_2 *mm_v6_2 = (void *)mm;
 		BPF_CORE_READ_INTO(&file_pages, mm_v6_2, rss_stat[MM_FILEPAGES].count);
 		BPF_CORE_READ_INTO(&anon_pages, mm_v6_2, rss_stat[MM_ANONPAGES].count);
 		BPF_CORE_READ_INTO(&shmem_pages, mm_v6_2, rss_stat[MM_SHMEMPAGES].count);
-	}
+#endif
 	return DO_PAGE_SHIFT(file_pages + anon_pages + shmem_pages);
 }
 
@@ -646,15 +643,12 @@ static __always_inline unsigned long extract__vm_rss(struct mm_struct *mm)
 static __always_inline unsigned long extract__vm_swap(struct mm_struct *mm)
 {
 	int64_t swap_entries = 0;
-	if(bpf_core_type_exists(struct mm_rss_stat))
-	{
-		BPF_CORE_READ_INTO(&swap_entries, mm, rss_stat.count[MM_SWAPENTS].counter);
-	}
-	else
-	{
-		struct mm_struct___v6_2 *mm_v6_2 = (void *)mm;
-		BPF_CORE_READ_INTO(&swap_entries, mm_v6_2, rss_stat[MM_SWAPENTS].count);
-	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+	BPF_CORE_READ_INTO(&swap_entries, mm, rss_stat.count[MM_SWAPENTS].counter);
+#else
+	struct mm_struct___v6_2 *mm_v6_2 = (void *)mm;
+	BPF_CORE_READ_INTO(&swap_entries, mm_v6_2, rss_stat[MM_SWAPENTS].count);
+#endif
 	return DO_PAGE_SHIFT(swap_entries);
 }
 
@@ -1084,33 +1078,30 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 	READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
 	// Kernel 6.3 changed the kernel_cap_struct type from uint32_t[2] to uint64_t.
 	// Luckily enough, it also changed field name from cap to val.
-	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	if(cap_raised(cap_struct, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
 	{
-		if(cap_raised(cap_struct, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
-		{
-			return true;
-		}
-
-		/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
-		if(cap_raised(cap_struct, CAP_FOWNER) && kuid_mapped)
-		{
-			return true;
-		}
+		return true;
 	}
-	else
+
+	/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
+	if(cap_raised(cap_struct, CAP_FOWNER) && kuid_mapped)
 	{
-		kernel_cap_t___v6_3 *new_cap = (kernel_cap_t___v6_3 *)&cap_struct;
-		if(cap_raised___v6_3(*new_cap, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
-		{
-			return true;
-		}
-
-		/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
-		if(cap_raised___v6_3(*new_cap, CAP_FOWNER) && kuid_mapped)
-		{
-			return true;
-		}
+		return true;
 	}
+#else
+	kernel_cap_t___v6_3 *new_cap = (kernel_cap_t___v6_3 *)&cap_struct;
+	if(cap_raised___v6_3(*new_cap, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
+	{
+		return true;
+	}
+
+	/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
+	if(cap_raised___v6_3(*new_cap, CAP_FOWNER) && kuid_mapped)
+	{
+		return true;
+	}
+#endif
 
 	return false;
 }

@@ -294,27 +294,22 @@ int BPF_PROG(t1_execveat_x,
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	struct timespec64 time = { 0, 0 };
-	if(bpf_core_field_exists(exe_inode->i_ctime))
-	{
-		BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
-	}
-	else
-	{
-		struct inode___v6_6 *exe_inode_v6_6 = (void *)exe_inode;
-		BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
-	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+	BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
+
+#else
+	struct inode___v6_6 *exe_inode_v6_6 = (void *)exe_inode;
+	BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
+#endif
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	if(bpf_core_field_exists(exe_inode->i_mtime))
-	{
-		BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
-	}
-	else
-	{
-		struct inode___v6_7 *exe_inode_v6_7 = (void *)exe_inode;
-		BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
-	}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+	BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
+#else
+	struct inode___v6_7 *exe_inode_v6_7 = (void *)exe_inode;
+	BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
+#endif
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 27: euid (type: PT_UID) */
