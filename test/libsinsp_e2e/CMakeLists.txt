@@ -37,6 +37,7 @@ add_executable(libsinsp_e2e_tests
     container/docker_utils.cpp
     event_capture.cpp
     main.cpp
+	paths.cpp
     subprocess.cpp
     sys_call_test.cpp
     thread_state.cpp
