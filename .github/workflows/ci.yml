@@ -32,8 +32,7 @@ jobs:
           - name: system_deps_minimal
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
           - name: sanitizers
-            cmake_opts: -DCMAKE_C_FLAGS="-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=undefined" -DCMAKE_CXX_FLAGS="-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=undefined" -DUSE_BUNDLED_DEPS=False
-            ldflags: -lpthread
+            cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
     container:
       image: debian:buster
     steps:
@@ -59,7 +58,7 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
           mkdir -p build
-          cd build && LDFLAGS="${{ matrix.ldflags }}" cmake ${{ matrix.cmake_opts }} ../
+          cd build && cmake ${{ matrix.cmake_opts }} ../
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
           make run-unit-tests
 
