@@ -15,7 +15,7 @@ TEST(SyscallExit, delete_moduleX_failure)
 	/*
 	 * Call the `delete_module` syscall
 	 */
-	assert_syscall_state(SYSCALL_FAILURE, "delete_module", syscall(__NR_delete_module, module_name, 0));
+	assert_syscall_state(SYSCALL_FAILURE, "delete_module", syscall(__NR_delete_module, module_name, O_TRUNC | O_NONBLOCK));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -42,7 +42,7 @@ TEST(SyscallExit, delete_moduleX_failure)
 	evt_test->assert_charbuf_param(2, module_name);
 
 	/* Parameter 3: flags (type: PT_INT32) */
-	evt_test->assert_numeric_param(3, 0);
+	evt_test->assert_numeric_param(3, PPM_DELETE_MODULE_O_TRUNC | PPM_DELETE_MODULE_O_NONBLOCK);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
