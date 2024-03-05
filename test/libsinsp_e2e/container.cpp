@@ -47,7 +47,8 @@ TEST_F(sys_call_test, container_cgroups)
 			if (ctid == 0)
 			{
 				sleep(1);
-				exit(0);
+				// _exit prevents asan from complaining for a false positive memory leak.
+				_exit(0);
 			}
 			else
 			{
@@ -286,11 +287,8 @@ static void run_container_docker_test(bool fork_after_container_start)
 			ASSERT_TRUE(child_pid >= 0) << "Could not fork" << strerror(errno);
 			if (child_pid == 0)
 			{
-				// Note: intentionally not doing _exit to
-				// ensure container resolvers don't rely on
-				// globals. Of course, it depends on all other
-				// globals being able to be deleted twice.
-				exit(0);
+				// _exit prevents asan from complaining for a false positive memory leak.
+				_exit(0);
 			}
 			else
 			{
