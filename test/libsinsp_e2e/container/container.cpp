@@ -372,6 +372,11 @@ TEST_F(sys_call_test, container_docker_bad_socket)
 		return;
 	}
 
+	before_open_t setup = [&](sinsp* inspector)
+	{
+		inspector->set_docker_socket_path("/invalid/path");
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
 		if (evt->get_type() == PPME_CONTAINER_JSON_E || evt->get_type() == PPME_CONTAINER_JSON_2_E)
@@ -424,11 +429,6 @@ TEST_F(sys_call_test, container_docker_bad_socket)
 			EXPECT_EQ(sinsp_container_lookup::state::FAILED, container_info->get_lookup_status());
 			done = true;
 		}
-	};
-
-	before_open_t setup = [&](sinsp* inspector)
-	{
-		inspector->set_docker_socket_path("/invalid/path");
 	};
 
 	before_close_t cleanup = [&](sinsp* inspector)
@@ -666,6 +666,9 @@ static void healthcheck_helper(
 
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
+	before_open_t setup = [&](sinsp* inspector)
+	{};
+
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
@@ -702,9 +705,6 @@ static void healthcheck_helper(
 			dutils_kill_container("cont_health_ut");
 		}
 	};
-
-	before_open_t setup = [&](sinsp* inspector)
-	{};
 
 	before_close_t cleanup = [&](sinsp* inspector)
 	{ capture_stats_str = capture_stats(inspector); };
