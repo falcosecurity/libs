@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#include "sys_call_test.h"
+#include "../sys_call_test.h"
 
 #include <gtest/gtest.h>
 

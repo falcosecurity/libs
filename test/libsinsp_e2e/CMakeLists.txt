@@ -32,10 +32,10 @@ configure_file (
 )
 
 add_executable(libsinsp_e2e_tests
-    container.cpp
-    container_cgroup.cpp
-    container_image_splitting.cpp
-    docker_utils.cpp
+    container/container.cpp
+    container/container_cgroup.cpp
+    container/container_image_splitting.cpp
+    container/docker_utils.cpp
     event_capture.cpp
     main.cpp
     subprocess.cpp
