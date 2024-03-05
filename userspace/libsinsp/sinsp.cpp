@@ -924,7 +924,11 @@ void sinsp::on_new_entry_from_proc(void* context,
 
 		if(!sinsp_tinfo)
 		{
-			ASSERT(tinfo != NULL);
+			if (tinfo == NULL)
+			{
+				// we have an fd but no associated tinfo, skip it
+				return;
+			}
 
 			auto newti = build_threadinfo();
 			newti->init(tinfo);
