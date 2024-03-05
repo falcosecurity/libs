@@ -271,7 +271,8 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 
 bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo, char *scap_err)
 {
-	size_t totlen = sizeof(scap_evt) + sizeof(uint32_t) + json.length() + 1;
+	uint32_t json_len = json.length() + 1;
+	size_t totlen = sizeof(scap_evt) + sizeof(uint32_t) + json_len;
 
 	ASSERT(evt->get_scap_evt_storage() == nullptr);
 	evt->set_scap_evt_storage(new char[totlen]);
