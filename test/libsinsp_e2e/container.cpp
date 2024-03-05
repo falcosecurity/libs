@@ -167,6 +167,7 @@ TEST_F(sys_call_test, container_clone_nspid)
 		}
 
 		wait(NULL);
+		free(stack);
 	};
 
 	//
@@ -240,6 +241,7 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl)
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 	ASSERT_TRUE(done);
+	free(stack);
 }
 
 static void run_container_docker_test(bool fork_after_container_start)
