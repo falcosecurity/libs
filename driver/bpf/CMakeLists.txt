@@ -55,6 +55,25 @@ foreach(SOURCE IN LISTS BPF_SOURCES)
 	list(APPEND INSTALL_SET ${CMAKE_CURRENT_BINARY_DIR}/src/${FILENAME})
 endforeach()
 
+#
+# Copy all the "configure" modules
+#
+file(GLOB configure_modules "${CMAKE_CURRENT_SOURCE_DIR}/configure/*")
+foreach(subdir ${configure_modules})
+	if(IS_DIRECTORY "${subdir}")
+		file(RELATIVE_PATH CONFIGURE_MODULE "${CMAKE_CURRENT_SOURCE_DIR}/configure" "${subdir}")
+		configure_file(configure/${CONFIGURE_MODULE}/test.c src/configure/${CONFIGURE_MODULE}/test.c COPYONLY)
+		configure_file(configure/Makefile src/configure/${CONFIGURE_MODULE}/Makefile COPYONLY)
+		configure_file(configure/build.sh src/configure/${CONFIGURE_MODULE}/build.sh COPYONLY)
+		configure_file(configure/Makefile.inc.in src/configure/${CONFIGURE_MODULE}/Makefile.inc)
+		list(APPEND INSTALL_SET
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/build.sh"
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/test.c"
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile"
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile.inc")
+	endif()
+endforeach()
+
 if(NOT DEFINED DRIVER_BPF_COMPONENT_NAME)
 	set(DRIVER_BPF_COMPONENT_NAME ${DRIVER_COMPONENT_NAME})
 endif()
