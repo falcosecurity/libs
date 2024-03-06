@@ -40,7 +40,7 @@ ifeq ($(FIRST_MAKEFILE_DIRNAME)/$(FIRST_MAKEFILE_FILENAME), scripts/Makefile.bui
 # Build phase
 MODULE_MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 MAKEFILE_INC_FILES := $(shell find $(MODULE_MAKEFILE_DIR)/configure -type f -name Makefile.inc)
-$(info [configure] Including $(MAKEFILE_INC_FILES))
+$(info [configure-kmod] Including $(MAKEFILE_INC_FILES))
 include $(MAKEFILE_INC_FILES)
 endif
 endif # $(strip $(MAKEFILE_LIST)),Makefile

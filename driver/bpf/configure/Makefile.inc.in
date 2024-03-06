@@ -1,0 +1,13 @@
+MODULE_MAKEFILE_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+
+# Run the module build.sh (wrapper for make) script with an empty environment, but PATH
+HAS_@CONFIGURE_MODULE@ := $(shell env -i PATH="$(PATH)" KERNELDIR="$(KERNELDIR)" sh $(MODULE_MAKEFILE_DIR)/build.sh ; echo $$?)
+
+ifeq ($(HAS_@CONFIGURE_MODULE@),0)
+$(info [configure-bpf] Setting HAS_@CONFIGURE_MODULE@ flag)
+KBUILD_CPPFLAGS += -DHAS_@CONFIGURE_MODULE@
+else
+HAS_@CONFIGURE_MODULE@_OUT := $(shell cat $(MODULE_MAKEFILE_DIR)/build.log)
+$(info [configure-bpf] Build output for HAS_@CONFIGURE_MODULE@:)
+$(info [configure-bpf] $(HAS_@CONFIGURE_MODULE@_OUT))
+endif

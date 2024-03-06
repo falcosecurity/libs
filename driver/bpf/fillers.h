@@ -854,11 +854,10 @@ static __always_inline unsigned long bpf_get_mm_counter(struct mm_struct *mm,
 {
 	long val;
 
-	// See 6.2 kernel commit: https://github.com/torvalds/linux/commit/f1a7941243c102a44e8847e3b94ff4ff3ec56f25
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
-	bpf_probe_read_kernel(&val, sizeof(val), &mm->rss_stat.count[member]);
-#else
+#ifdef HAS_RSS_STAT_ARRAY
 	bpf_probe_read_kernel(&val, sizeof(val), &mm->rss_stat[member].count);
+#else
+	bpf_probe_read_kernel(&val, sizeof(val), &mm->rss_stat.count[member]);
 #endif
 	if (val < 0)
 		val = 0;
