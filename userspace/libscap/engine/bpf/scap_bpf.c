@@ -460,7 +460,7 @@ static int32_t load_maps(struct bpf_engine *handle, struct bpf_map_data *maps, i
 }
 
 static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_Data *symbols,
-				 GElf_Shdr *shdr, struct bpf_insn *insn,
+				 GElf_Shdr *shdr, struct bpf_insn *insns,
 				 struct bpf_map_data *maps, int nr_maps)
 {
 	int nrels;
@@ -480,14 +480,18 @@ static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_
 
 		insn_idx = rel.r_offset / sizeof(struct bpf_insn);
 
+		struct bpf_insn insn;
+
 		gelf_getsym(symbols, GELF_R_SYM(rel.r_info), &sym);
 
-		if(insn[insn_idx].code != (BPF_LD | BPF_IMM | BPF_DW))
+		memcpy(&insn, &insns[insn_idx], sizeof(insn));
+
+		if(insn.code != (BPF_LD | BPF_IMM | BPF_DW))
 		{
-			return scap_errprintf(handle->m_lasterr, 0, "invalid relocation for insn[%d].code 0x%x", insn_idx, insn[insn_idx].code);
+			return scap_errprintf(handle->m_lasterr, 0, "invalid relocation for insn[%d].code 0x%x", insn_idx, insn.code);
 		}
 
-		insn[insn_idx].src_reg = BPF_PSEUDO_MAP_FD;
+		insn.src_reg = BPF_PSEUDO_MAP_FD;
 
 		for(map_idx = 0; map_idx < nr_maps; map_idx++)
 		{
@@ -500,7 +504,8 @@ static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_
 
 		if(match)
 		{
-			insn[insn_idx].imm = maps[map_idx].fd;
+			insn.imm = maps[map_idx].fd;
+			memcpy(&insns[insn_idx], &insn, sizeof(insn));
 		}
 		else
 		{
