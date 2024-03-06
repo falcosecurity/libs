@@ -116,7 +116,7 @@ foreach(subdir ${configure_modules})
 				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile"
 				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile.inc"
 				DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/configure/${CONFIGURE_MODULE}"
-				COMPONENT ${DRIVER_COMPONENT_NAME})
+				COMPONENT ${DRIVER_KMOD_COMPONENT_NAME})
 		endif()
 	endif()
 endforeach()
