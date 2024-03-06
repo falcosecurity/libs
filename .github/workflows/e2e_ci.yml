@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test-e2e:
-    name: test-e2e-${{ matrix.arch }} 😇 (system_deps)
+    name: test-e2e-${{ matrix.arch }} 😇 (bundled_deps)
     runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
     strategy:
       matrix:
@@ -81,7 +81,7 @@ jobs:
           cd build && \
             cmake \
                 -DBUILD_BPF=ON \
-                -DUSE_BUNDLED_DEPS=OFF \
+                -DUSE_BUNDLED_DEPS=ON \
                 -DUSE_ASAN=ON \
                 -DUSE_UBSAN=ON \
                 -DENABLE_LIBSINSP_E2E_TESTS=ON \
