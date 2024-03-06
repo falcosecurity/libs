@@ -219,6 +219,8 @@ TEST(async_key_value_source_test, get_complete_results_incomplete)
 
 	EXPECT_EQ(1, completed.size());
 	EXPECT_EQ(metadata, completed[key1]);
+
+	source.stop();
 }
 
 /**
