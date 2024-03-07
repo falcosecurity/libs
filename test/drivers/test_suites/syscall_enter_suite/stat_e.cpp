@@ -11,7 +11,7 @@ TEST(SyscallEnter, statE)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	char pathname[] = "//**null-file-path**//";
-	struct stat statbuf = { 0 };
+	struct stat statbuf = {};
 	assert_syscall_state(SYSCALL_FAILURE, "stat", syscall(__NR_stat, pathname, &statbuf));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/

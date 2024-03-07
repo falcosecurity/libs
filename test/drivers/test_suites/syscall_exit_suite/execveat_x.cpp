@@ -15,7 +15,7 @@ TEST(SyscallExit, execveatX_failure)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Get all the info from proc. */
-	struct proc_info info = {0};
+	struct proc_info info = {};
 	pid_t pid = ::getpid();
 	if(!get_proc_info(pid, &info))
 	{
@@ -27,7 +27,7 @@ TEST(SyscallExit, execveatX_failure)
 	 */
 
 	/* On kernels >= 5.8 the suggested version should be `_LINUX_CAPABILITY_VERSION_3` */
-	struct __user_cap_header_struct header = {0};
+	struct __user_cap_header_struct header = {};
 	struct __user_cap_data_struct data[_LINUX_CAPABILITY_U32S_3];
 	cap_user_header_t hdrp = &header;
 	cap_user_data_t datap = data;
@@ -185,7 +185,7 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -311,7 +311,7 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -462,7 +462,7 @@ TEST(SyscallExit, execveatX_success_memfd)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 

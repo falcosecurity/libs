@@ -68,7 +68,7 @@ TEST(SyscallEnter, ppollE_valid_pointers)
 	 * tested it with `poll` syscall.
 	 */
 	struct pollfd* fds = NULL;
-	struct timespec timestamp = {0};
+	struct timespec timestamp = {};
 	timestamp.tv_sec = 2;
 	timestamp.tv_nsec = 250;
 	sigset_t sigmask;

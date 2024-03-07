@@ -14,8 +14,8 @@ TEST(SyscallExit, recvmsgX_tcp_connection_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -115,8 +115,8 @@ TEST(SyscallExit, recvmsgX_tcp_connection_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -213,8 +213,8 @@ TEST(SyscallExit, recvmsgX_tcp_connection_NULL_sockaddr)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -311,8 +311,8 @@ TEST(SyscallExit, recvmsgX_udp_connection_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -405,8 +405,8 @@ TEST(SyscallExit, recvmsgX_udp_connection_NULL_sockaddr)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -549,11 +549,10 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_un client_addr = {0};
-	struct sockaddr_un server_addr = {0};
+	struct sockaddr_un client_addr = {};
+	struct sockaddr_un server_addr = {};
 	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 	int64_t received_bytes, sent_bytes, msg_controllen;
-	struct msghdr msg;
 	struct cmsghdr *cmsg;
 	char cmsg_buf[CMSG_SPACE(sizeof(int))];
 	struct iovec iov = {
@@ -571,12 +570,11 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 	{
 		/* Create a socket. It is used to pass it to the child process, just for test purposes */
 		int sock = socket(AF_UNIX, SOCK_STREAM, 0);
-		msg = {
-			.msg_iov = &iov,
-			.msg_iovlen = 1,
-			.msg_control = cmsg_buf,
-			.msg_controllen = sizeof(cmsg_buf)
-		};
+		msghdr msg = {};
+		msg.msg_iov = &iov;
+		msg.msg_iovlen = 1;
+		msg.msg_control = cmsg_buf;
+		msg.msg_controllen = sizeof(cmsg_buf);
 		msg_controllen = msg.msg_controllen;
 
 		cmsg = CMSG_FIRSTHDR(&msg);
@@ -597,20 +595,17 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 	} else
 	{
 		char buf[FULL_MESSAGE_LEN];
-		struct iovec iov = {
+		iov = {
 			iov.iov_base = (void *)buf,
 			iov.iov_len = sizeof(buf)
 		};
 
-		struct msghdr msg = {
-			.msg_iov = &iov,
-			.msg_iovlen = 1,
-			.msg_control = cmsg_buf,
-			.msg_controllen = sizeof(cmsg_buf)
-		};
-
+		msghdr msg = {};
 		msg.msg_iov = &iov;
 		msg.msg_iovlen = 1;
+		msg.msg_control = cmsg_buf;
+		msg.msg_controllen = sizeof(cmsg_buf);
+
 		iov.iov_base = (void *)buf;
 		iov.iov_len = sizeof(buf);
 

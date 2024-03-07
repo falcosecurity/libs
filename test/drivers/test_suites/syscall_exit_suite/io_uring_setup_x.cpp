@@ -18,7 +18,7 @@ TEST(SyscallExit, io_uring_setupX)
 	uint32_t expected_features = 0;
 	uint32_t expected_flags = (uint32_t)-1;
 	uint32_t entries = 4;
-	struct io_uring_params params = {0};
+	struct io_uring_params params = {};
 	params.sq_entries = 5;
 	params.cq_entries = 6;
 	params.flags = (uint32_t)-1;

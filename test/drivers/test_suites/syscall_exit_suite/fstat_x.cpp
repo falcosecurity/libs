@@ -10,7 +10,7 @@ TEST(SyscallExit, fstatX)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int f_desc = -1;
-	struct stat statbuf = { 0 };
+	struct stat statbuf = {};
 	assert_syscall_state(SYSCALL_FAILURE, "fstat", syscall(__NR_fstat, f_desc, &statbuf));
 	int64_t errno_value = -errno;
 

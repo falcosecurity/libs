@@ -16,7 +16,7 @@ TEST(GenericTracepoints, sched_switch)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 

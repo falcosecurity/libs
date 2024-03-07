@@ -21,7 +21,7 @@ TEST(SyscallExit, bpfX_invalid_cmd)
 	/* Here we need to call the `bpf` from a child because the main process throws lots of
 	 * `bpf` syscalls to manage the bpf drivers.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -97,7 +97,7 @@ TEST(SyscallExit, bpfX_MAP_CREATE)
 	/* Here we need to call the `bpf` from a child because the main process throws lots of
 	 * `bpf` syscalls to manage the bpf drivers.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 

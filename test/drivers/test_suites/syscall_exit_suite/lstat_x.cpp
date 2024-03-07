@@ -10,7 +10,7 @@ TEST(SyscallExit, lstatX)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	char pathname[] = "//**null-file-path**//";
-	struct stat statbuf = { 0 };
+	struct stat statbuf = {};
 	assert_syscall_state(SYSCALL_FAILURE, "lstat", syscall(__NR_lstat, pathname, &statbuf));
 	int64_t errno_value = -errno;
 

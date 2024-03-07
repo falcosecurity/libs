@@ -21,7 +21,7 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "HTTP/\0";
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -103,7 +103,7 @@ TEST(Actions, dynamic_snaplen_no_socket)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "HTTP/\0";
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -180,8 +180,8 @@ TEST(Actions, dynamic_snaplen_HTTP)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -189,7 +189,7 @@ TEST(Actions, dynamic_snaplen_HTTP)
 	char buf[data_len] = "HTTP/\0";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -265,8 +265,8 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -275,7 +275,7 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 	char buf[data_len] = "OP\0";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -351,8 +351,8 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -360,7 +360,7 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 	char buf[data_len] = "TRACE\0";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -436,8 +436,8 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_MYSQL);
 
 	/* Send a message to the server */
@@ -447,7 +447,7 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 	buf[3] = 3;
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -523,8 +523,8 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_MYSQL);
 
 	/* Send a message to the server */
@@ -532,7 +532,7 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 	char buf[data_len] = "1111\0";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -608,8 +608,8 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_POSTGRES);
 
 	/* Send a message to the server */
@@ -619,7 +619,7 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 	buf[1] = 0;
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -695,8 +695,8 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_POSTGRES);
 
 	/* Send a message to the server */
@@ -704,7 +704,7 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 	char buf[data_len] = "00\0";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -780,8 +780,8 @@ TEST(Actions, dynamic_snaplen_MONGO)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -790,7 +790,7 @@ TEST(Actions, dynamic_snaplen_MONGO)
 	*(int32_t *)(&buf[12]) = 0x01; // this 1 and it's ok
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -866,8 +866,8 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -876,7 +876,7 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 	*(int32_t *)(&buf[12]) = 0x07;
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -955,8 +955,8 @@ TEST(Actions, dynamic_snaplen_fullcapture_port_range)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -964,7 +964,7 @@ TEST(Actions, dynamic_snaplen_fullcapture_port_range)
 	char buf[data_len] = "simple message";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -1048,8 +1048,8 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -1057,7 +1057,7 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	char buf[data_len] = "simple message";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -1141,8 +1141,8 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -1150,7 +1150,7 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 	char buf[data_len] = "simple message";
 	uint32_t sendto_flags = 0;
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 

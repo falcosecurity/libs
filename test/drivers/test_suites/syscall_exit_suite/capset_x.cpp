@@ -19,7 +19,7 @@ TEST(SyscallExit, capsetX)
 	 */
 
 	/* On kernels >= 5.8 the suggested version should be `_LINUX_CAPABILITY_VERSION_3` */
-	struct __user_cap_header_struct header = {0};
+	struct __user_cap_header_struct header = {};
 	struct __user_cap_data_struct data[_LINUX_CAPABILITY_U32S_3];
 	cap_user_header_t hdrp = &header;
 	cap_user_data_t datap = data;

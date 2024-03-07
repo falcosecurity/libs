@@ -85,7 +85,7 @@ TEST(SyscallExit, getsockoptX_SO_RCVTIMEO)
 	int32_t mock_fd = -1;
 	int32_t level = SOL_SOCKET;
 	int32_t option_name = SO_RCVTIMEO;
-	struct timeval option_value = {0};
+	struct timeval option_value = {};
 	option_value.tv_sec = 5;
 	option_value.tv_usec = 10;
 	socklen_t option_len = sizeof(struct timeval);

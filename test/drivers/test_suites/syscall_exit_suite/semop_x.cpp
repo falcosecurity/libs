@@ -82,7 +82,7 @@ TEST(SyscallExit, semopX_wrong_nops)
 	int semid = syscall(__NR_semget, key, 1, 0666 | IPC_CREAT);
 	assert_syscall_state(SYSCALL_SUCCESS, "semget", semid, NOT_EQUAL, -1);
 
-	struct sembuf sops = {0};
+	struct sembuf sops = {};
 	sops.sem_num = 0;
 	sops.sem_op = 3;
 	sops.sem_flg = SEM_UNDO;
@@ -155,7 +155,7 @@ TEST(SyscallExit, semopX_1_operation)
 	int semid = syscall(__NR_semget, key, 1, 0666 | IPC_CREAT);
 	assert_syscall_state(SYSCALL_SUCCESS, "semget", semid, NOT_EQUAL, -1);
 
-	struct sembuf sops = {0};
+	struct sembuf sops = {};
 	sops.sem_num = 0;
 	sops.sem_op = 3;
 	sops.sem_flg = SEM_UNDO;
@@ -226,7 +226,7 @@ TEST(SyscallExit, semopX_2_operation)
 	int semid = syscall(__NR_semget, key, 2, 0666 | IPC_CREAT);
 	assert_syscall_state(SYSCALL_SUCCESS, "semget", semid, NOT_EQUAL, -1);
 
-	struct sembuf sops[2] = {0};
+	struct sembuf sops[2] = {};
 	sops[0].sem_num = 0;
 	sops[0].sem_op = 3;
 	sops[0].sem_flg = SEM_UNDO;

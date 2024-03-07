@@ -14,7 +14,7 @@ TEST(SyscallExit, forkX_father)
 	/* We scan proc before the BPF event is caught so we have
 	 * to use `GREATER_EQUAL` in the assertions.
 	 */
-	struct proc_info info = {0};
+	struct proc_info info = {};
 	pid_t pid = ::getpid();
 	if(!get_proc_info(pid, &info))
 	{
@@ -139,7 +139,7 @@ TEST(SyscallExit, forkX_child)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Here we scan the parent just to obtain some info for the child */
-	struct proc_info info = {0};
+	struct proc_info info = {};
 	pid_t pid = ::getpid();
 	if(!get_proc_info(pid, &info))
 	{

@@ -14,7 +14,7 @@ TEST(SyscallExit, cloneX_father)
 	/* We scan proc before the BPF event is caught so we have
 	 * to use `GREATER_EQUAL` in the assertions.
 	 */
-	struct proc_info info = {0};
+	struct proc_info info = {};
 	pid_t pid = ::getpid();
 	if(!get_proc_info(pid, &info))
 	{
@@ -24,7 +24,7 @@ TEST(SyscallExit, cloneX_father)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
 	 */
-	unsigned long clone_flags = CLONE_FILES | SIGCHLD;
+	unsigned long test_clone_flags = CLONE_FILES | SIGCHLD;
 	unsigned long newsp = 0;
 	int parent_tid = 0;
 	int child_tid = 0;
@@ -59,11 +59,11 @@ TEST(SyscallExit, cloneX_father)
 	 *
 	 */
 #ifdef __s390x__
-	ret_pid = syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls);
+	ret_pid = syscall(__NR_clone, newsp, test_clone_flags, &parent_tid, &child_tid, tls);
 #elif defined(__aarch64__) || defined(__riscv)
-	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid);
+	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, tls, &child_tid);
 #else
-	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls);
+	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, &child_tid, tls);
 #endif
 
 	if(ret_pid == 0)
@@ -178,7 +178,7 @@ TEST(SyscallExit, cloneX_child)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Here we scan the parent just to obtain some info for the child */
-	struct proc_info info = {0};
+	struct proc_info info = {};
 	pid_t pid = ::getpid();
 	if(!get_proc_info(pid, &info))
 	{
@@ -188,7 +188,7 @@ TEST(SyscallExit, cloneX_child)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
 	 */
-	unsigned long clone_flags = CLONE_FILES | SIGCHLD;
+	unsigned long test_clone_flags = CLONE_FILES | SIGCHLD;
 	int parent_tid = 0;
 	unsigned long newsp = 0;
 	int child_tid = 0;
@@ -196,11 +196,11 @@ TEST(SyscallExit, cloneX_child)
 	pid_t ret_pid = 0;
 
 #ifdef __s390x__
-	ret_pid = syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls);
+	ret_pid = syscall(__NR_clone, newsp, test_clone_flags, &parent_tid, &child_tid, tls);
 #elif defined(__aarch64__) || defined(__riscv)
-	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid);
+	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, tls, &child_tid);
 #else
-	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls);
+	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, &child_tid, tls);
 #endif
 
 	if(ret_pid == 0)

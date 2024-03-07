@@ -12,8 +12,8 @@ TEST(SyscallExit, acceptX_INET)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
@@ -78,8 +78,8 @@ TEST(SyscallExit, acceptX_INET6)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in6 client_addr = {0};
-	sockaddr_in6 server_addr = {0};
+	sockaddr_in6 client_addr = {};
+	sockaddr_in6 server_addr = {};
 	evt_test->connect_ipv6_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
@@ -145,8 +145,8 @@ TEST(SyscallExit, acceptX_UNIX)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_un client_addr = {0};
-	struct sockaddr_un server_addr = {0};
+	struct sockaddr_un client_addr = {};
+	struct sockaddr_un server_addr = {};
 	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
