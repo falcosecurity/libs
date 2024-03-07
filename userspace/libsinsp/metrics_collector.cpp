@@ -149,7 +149,7 @@ void output_rule_metrics_converter::convert_metric_to_unit_convention(metrics_v2
 	}
 }
 
-std::string prometheus_metrics_converter::convert_metric_to_text(const metrics_v2& metric, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
+std::string prometheus_metrics_converter::convert_metric_to_text_prometheus(const metrics_v2& metric, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
 {
 	// Create `prometheus_metric_name_fully_qualified`
 	std::string prometheus_metric_name_fully_qualified;
@@ -208,7 +208,7 @@ std::string prometheus_metrics_converter::convert_metric_to_text(const metrics_v
 	return prometheus_text;
 }
 
-std::string prometheus_metrics_converter::convert_metric_to_text(std::string_view metric_name, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
+std::string prometheus_metrics_converter::convert_metric_to_text_prometheus(std::string_view metric_name, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
 {
 	// Create `prometheus_metric_name_fully_qualified`
 	std::string prometheus_metric_name_fully_qualified;
