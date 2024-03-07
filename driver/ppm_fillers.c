@@ -7918,7 +7918,7 @@ int f_sys_pidfd_getfd_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, (int64_t)fd, 0, true, 0);
 	CHECK_RES(res);
 	
-	/* Parameter 4: flags (type: PT_FLAGS32) */
+	/* Parameter 4: flags (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
