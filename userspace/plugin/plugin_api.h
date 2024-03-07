@@ -31,7 +31,7 @@ extern "C" {
 // todo(jasondellaluce): when/if major changes to v4, check and solve all todos
 #define PLUGIN_API_VERSION_MAJOR 3
 #define PLUGIN_API_VERSION_MINOR 4
-#define PLUGIN_API_VERSION_PATCH 0
+#define PLUGIN_API_VERSION_PATCH 1
 
 //
 // Just some not so smart defines to retrieve plugin api version as string
@@ -51,7 +51,7 @@ extern "C" {
 // give this name to the associated *_ext struct.
 typedef struct
 {
-	ss_plugin_table_fieldinfo* (*list_table_fields)(ss_plugin_table_t* t, uint32_t* nfields);
+	const ss_plugin_table_fieldinfo* (*list_table_fields)(ss_plugin_table_t* t, uint32_t* nfields);
 	ss_plugin_table_field_t* (*get_table_field)(ss_plugin_table_t* t, const char* name, ss_plugin_state_type data_type);
 	ss_plugin_table_field_t* (*add_table_field)(ss_plugin_table_t* t, const char* name, ss_plugin_state_type data_type);
 } ss_plugin_table_fields_vtable;
@@ -66,7 +66,7 @@ typedef struct
 	// available in the entries of the table. nfields will be filled with the number
 	// of elements of the returned array. The array's memory is owned by the
 	// tables's owner. Returns NULL in case of error.
-	ss_plugin_table_fieldinfo* (*list_table_fields)(ss_plugin_table_t* t, uint32_t* nfields);
+	const ss_plugin_table_fieldinfo* (*list_table_fields)(ss_plugin_table_t* t, uint32_t* nfields);
 	//
 	// Returns an opaque pointer representing an accessor to a data field
 	// present in all entries of the table, given its name and type.

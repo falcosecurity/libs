@@ -74,7 +74,7 @@ public:
         return t->entries.size();
     }
 
-    static ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t, uint32_t* nfields)
+    static const ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t, uint32_t* nfields)
     {
         auto t = static_cast<sample_table*>(_t);
         *nfields = (uint32_t) t->fields.size();
