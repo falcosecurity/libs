@@ -66,7 +66,7 @@ int BPF_PROG(pidfd_getfd_x,
     int32_t targetfd = (int32_t)extract__syscall_argument(regs, 1);
     ringbuf__store_s64(&ringbuf, (int64_t)targetfd);
 
-    /* Parameter 4: flags (type: PT_FLAGS32)*/
+    /* Parameter 4: flags (type: PT_UINT32)*/
     uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
     ringbuf__store_u32(&ringbuf, flags);
 

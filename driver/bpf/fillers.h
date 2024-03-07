@@ -7164,7 +7164,7 @@ FILLER(sys_pidfd_getfd_x, true)
 	res = bpf_push_s64_to_ring(data, (int64_t)targetfd);
 	CHECK_RES(res);
 	
-	/* Parameter 4: flags (type: PT_FLAGS32) */
+	/* Parameter 4: flags (type: PT_UINT32) */
 	uint32_t flags = bpf_syscall_get_argument(data,2);
 	 /*
      The flags argument is reserved for future use.  Currently, it must be specified as 0.
