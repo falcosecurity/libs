@@ -1828,7 +1828,7 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 	/*
 	 * If the call was successful, copy the FDs
 	 */
-	if (likely(retval >= 0)) {
+	if (likely(retval == 0)) {
 		/*
 		 * fds
 		 */
