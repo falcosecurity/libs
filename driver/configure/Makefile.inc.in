@@ -1,7 +1,7 @@
 MODULE_MAKEFILE_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
 # Run the module build.sh (wrapper for make) script with an empty environment, but PATH
-HAS_@CONFIGURE_MODULE@ := $(shell env -i PATH="$(PATH)" KERNELDIR="$(KERNELDIR)" sh $(MODULE_MAKEFILE_DIR)/build.sh ; echo $$?)
+HAS_@CONFIGURE_MODULE@ := $(shell env -i KBUILD_MODPOST_WARN=$(KBUILD_MODPOST_WARN) PATH="$(PATH)" KERNELDIR="$(KERNELDIR)" sh $(MODULE_MAKEFILE_DIR)/build.sh ; echo $$?)
 
 ifeq ($(HAS_@CONFIGURE_MODULE@),0)
 $(info [configure] Setting HAS_@CONFIGURE_MODULE@ flag)
