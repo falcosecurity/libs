@@ -102,10 +102,10 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::s
 
 void sinsp_threadinfo::init()
 {
-	m_pid = (uint64_t) - 1LL;
-	m_sid = (uint64_t) - 1LL;
-	m_ptid = (uint64_t) - 1LL;
-	m_vpgid = (uint64_t) - 1LL;
+	m_pid = - 1;
+	m_sid = - 1;
+	m_ptid = - 1;
+	m_vpgid = - 1;
 	set_lastevent_data_validity(false);
 	m_reaper_tid = - 1;
 	m_not_expired_children = 0;
@@ -593,6 +593,65 @@ std::string sinsp_threadinfo::get_exe() const
 std::string sinsp_threadinfo::get_exepath() const
 {
 	return m_exepath;
+}
+
+std::string sinsp_threadinfo::concat_attribute_thread_lineage(const std::function<std::string (sinsp_threadinfo*)>& get_attribute_func, int32_t max_level)
+{
+	auto mt = get_main_thread();
+	if(mt == NULL)
+	{
+		return "";
+	}
+
+	std::string result = get_attribute_func(mt);
+	for (int32_t j = 0; j < max_level; j++)
+	{
+		mt = mt->get_parent_thread();
+		if(mt == NULL)
+		{
+			return result;
+		}
+		result = get_attribute_func(mt) + "->" + result;
+	}
+
+	return result;
+}
+
+sinsp_threadinfo* sinsp_threadinfo::get_oldest_matching_ancestor(const std::function<int64_t (sinsp_threadinfo *)>& get_thread_id, bool query_os_if_not_found)
+{
+	int64_t id = get_thread_id(this);
+	if(id == - 1)
+	{
+		// the id is not set
+		return nullptr;
+	}
+
+	// If in the init namespace we can use the id for the thread table access
+	// try this first since it is faster!
+	sinsp_threadinfo* leader = nullptr;
+	if(!is_in_pid_namespace())
+	{
+		leader = m_inspector->get_thread_ref(id, query_os_if_not_found).get();
+		if(leader!=nullptr)
+		{
+			return leader;
+		}
+	}
+
+	// If we are in a pid_namespace we cannot use directly m_sid to access the table
+	// since it could be related to a pid namespace.
+	sinsp_threadinfo::visitor_func_t visitor = [id, &leader, get_thread_id](sinsp_threadinfo* pt)
+	{
+		if(get_thread_id(pt) != id)
+		{
+			return false;
+		}
+		leader = pt;
+		return true;
+	};
+
+	traverse_parent_state(visitor);
+	return leader;
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len)

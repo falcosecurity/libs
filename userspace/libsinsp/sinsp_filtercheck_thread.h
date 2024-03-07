@@ -18,7 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#include <functional>
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/state/dynamic_struct.h>
 
@@ -128,68 +127,12 @@ private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
 	uint8_t* extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
-	sinsp_threadinfo* get_main_thread(sinsp_threadinfo* tinfo);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 	bool compare_full_aexe(sinsp_evt *evt);
 	bool compare_full_aexepath(sinsp_evt *evt);
 	bool compare_full_acmdline(sinsp_evt *evt);
 	bool compare_full_aenv(sinsp_evt *evt);
-
-	template<typename T>
-	std::string concat_attribute_thread_hierarchy(sinsp_threadinfo* mt, int32_t m_argid, const std::function<T(sinsp_threadinfo*)>& get_attribute_func)
-	{
-		// nullptr check of mt is done within each filtercheck prior to calling this function
-		static_assert(std::is_convertible<T, std::string>::value, "T must be convertible to std::string");
-		std::string result = get_attribute_func(mt);
-
-		for (int32_t j = 0; j < m_argid; j++)
-		{
-			mt = mt->get_parent_thread();
-			if(mt == NULL)
-			{
-				return result;
-			}
-			result = get_attribute_func(mt) + "->" + result;
-		}
-
-		return result;
-	}
-
-	template<typename T>
-	std::string extract_leader_attribute_thread_hierarchy(sinsp_threadinfo* tinfo, const std::function<int64_t(sinsp_threadinfo*)>& get_thread_attribute_func, const std::function<T(sinsp_threadinfo*)>& get_attribute_func)
-	{
-		// nullptr check of tinfo is done prior to calling this function
-		static_assert(std::is_convertible<T, std::string>::value, "T must be convertible to std::string");
-		int64_t thread_attribute = get_thread_attribute_func(tinfo);
-
-		if (!tinfo->is_in_pid_namespace())
-		{
-			// `threadinfo` lookup only applies when the process is running on the host and not in a PID namespace.
-			sinsp_threadinfo* attribute_info = m_inspector->get_thread_ref(thread_attribute, false, true).get();
-			if (attribute_info != NULL)
-			{
-				return get_attribute_func(attribute_info);
-			}
-		}
-
-		// However, if the leader process has exited or if the process is running in a PID namespace, we instead 
-		// traverse the process lineage until we find a match.
-		// Find the highest ancestor process that has the same id and declare it to be the leader.
-		sinsp_threadinfo* leader = tinfo;
-		sinsp_threadinfo::visitor_func_t visitor = [thread_attribute, &leader, get_thread_attribute_func](sinsp_threadinfo* pt)
-		{
-			if (get_thread_attribute_func(pt) != thread_attribute)
-			{
-				return false;
-			}
-			leader = pt;
-			return true;
-		};
-
-		tinfo->traverse_parent_state(visitor);
-		return get_attribute_func(leader);
-	}
 
 	int32_t m_argid;
 	std::string m_argname;

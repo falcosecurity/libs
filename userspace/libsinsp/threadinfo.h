@@ -245,6 +245,23 @@ public:
 		return possible_main;
 	}
 
+	std::string concat_attribute_thread_lineage(const std::function<std::string (sinsp_threadinfo*)>& get_attribute_func, int32_t max_level);
+
+	/*!
+	  \brief Return the "oldest ancestor" of this thread that matches a condition.
+	  The "oldest ancestor" is the oldest thread in the lineage that matches the following condition:
+	  `get_thread_id(this) = get_thread_id(ancestor)`
+
+	  \param get_thread_id custom function to select the ancestor we want to extract.
+	  If we want to obtain the oldest session leader ancestor we can pass:
+	  `[](sinsp_threadinfo* t) { return t->m_sid; }`
+
+	  \param query_os_if_not_found if this is a live a capture and this flag is
+	   set to true, scan the /proc file system to find process information in
+	   case the thread is not in the table.
+	*/
+	sinsp_threadinfo* get_oldest_matching_ancestor(const std::function<int64_t (sinsp_threadinfo *)>& get_thread_id, bool query_os_if_not_found = false);
+
 	inline const sinsp_threadinfo* get_main_thread() const
 	{
 		return const_cast<sinsp_threadinfo*>(this)->get_main_thread();
@@ -418,7 +435,7 @@ public:
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
 	int64_t m_reaper_tid; ///< The id of the reaper for this thread
-	int64_t m_sid; ///< The session id of the process containing this thread.
+	int64_t m_sid; ///< The session id of the process containing this thread. Please note that this is referred to the pid_namespace in which the process is running, is not always referred to the init_pid_namespace, so it cannot be used as a key in our thread table.
 	std::string m_comm; ///< Command name (e.g. "top")
 	std::string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	std::string m_exepath; ///< full executable path
