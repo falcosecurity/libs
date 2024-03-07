@@ -734,7 +734,7 @@ struct sinsp_table_wrapper
 	const sinsp_plugin* m_table_plugin_owner;
 	ss_plugin_table_input* m_table_plugin_input;
 
-	static ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t, uint32_t* nfields)
+	static const ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t, uint32_t* nfields)
 	{
 		auto t = static_cast<sinsp_table_wrapper*>(_t);
 	
@@ -1231,7 +1231,7 @@ ss_plugin_rc sinsp_table_wrapper::write_entry_field(ss_plugin_table_t* _t, ss_pl
 // For sinsp-defined tables, the ss_plugin_table_input is a wrapper around
 // the libsinsp::state::table interface. For plugin-defined tables, the
 // ss_plugin_table_input is provided by the table-owner plugin itself.
-static ss_plugin_table_fieldinfo* dispatch_list_fields(ss_plugin_table_t *_t, uint32_t *nfields)
+static const ss_plugin_table_fieldinfo* dispatch_list_fields(ss_plugin_table_t *_t, uint32_t *nfields)
 {
 	auto t = static_cast<ss_plugin_table_input*>(_t);
 	return t->fields_ext->list_table_fields(t->table, nfields);
