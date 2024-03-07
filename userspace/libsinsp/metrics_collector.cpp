@@ -25,7 +25,10 @@ limitations under the License.
 #include <sys/stat.h>
 #include <re2/re2.h>
 
-static re2::RE2 s_libs_units_suffix("(_kb|_bytes|_perc|_ns)", re2::RE2::POSIX);
+static re2::RE2 s_libs_metrics_units_suffix_pre_prometheus_text_conversion("(_kb|_bytes|_mb|_perc|_percentage|_ratio|_ns|_ts|_sec|_total)", re2::RE2::POSIX);
+static re2::RE2 s_libs_metrics_units_memory_suffix("(_kb|_bytes)", re2::RE2::POSIX);
+static re2::RE2 s_libs_metrics_units_perc_suffix("(_perc)", re2::RE2::POSIX);
+static re2::RE2 s_libs_metrics_banned_prometheus_naming_characters("(\\.)", re2::RE2::POSIX);
 
 static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 	[SINSP_RESOURCE_UTILIZATION_CPU_PERC] = "cpu_usage_perc",
@@ -59,16 +62,19 @@ static const char *const sinsp_stats_v2_resource_utilization_names[] = {
 };
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_value_unit
-// https://prometheus.io/docs/practices/naming/
+// https://prometheus.io/docs/practices/naming/ or https://prometheus.io/docs/practices/naming/#base-units.
 static const char *const metrics_unit_name_mappings_prometheus[] = {
 	[METRIC_VALUE_UNIT_COUNT] = "total",
-	[METRIC_VALUE_UNIT_PERC] = "percentage",
 	[METRIC_VALUE_UNIT_RATIO] = "ratio",
+	[METRIC_VALUE_UNIT_PERC] = "percentage",
 	[METRIC_VALUE_UNIT_MEMORY_BYTES] = "bytes",
 	[METRIC_VALUE_UNIT_MEMORY_KIBIBYTES] = "kibibytes",
 	[METRIC_VALUE_UNIT_MEMORY_MEGABYTES] = "megabytes",
-	[METRIC_VALUE_UNIT_DURATION_NS] = "duration_nanoseconds",
-	[METRIC_VALUE_UNIT_DURATION_S] = "duration_seconds",
+	[METRIC_VALUE_UNIT_TIME_NS] = "nanoseconds",
+	[METRIC_VALUE_UNIT_TIME_S] = "seconds",
+	[METRIC_VALUE_UNIT_TIME_NS_COUNT] = "nanoseconds_total",
+	[METRIC_VALUE_UNIT_TIME_S_COUNT] = "seconds_total",
+	[METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS] = "timestamp_nanoseconds",
 };
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_metric_type
@@ -120,38 +126,26 @@ void metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) co
 
 void output_rule_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
 {
-	switch (metric.unit)
+	if(metric.unit == METRIC_VALUE_UNIT_MEMORY_BYTES || metric.unit == METRIC_VALUE_UNIT_MEMORY_KIBIBYTES)
 	{
-	case METRIC_VALUE_UNIT_MEMORY_BYTES:
-	case METRIC_VALUE_UNIT_MEMORY_KIBIBYTES:
-		switch (metric.type)
-		{
-		case METRIC_VALUE_TYPE_U32:
+		if(metric.type == METRIC_VALUE_TYPE_U32)
 		{
 			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, metric.value.u32);
 			std::string metric_name_str(metric.name);
-			RE2::GlobalReplace(&metric_name_str, s_libs_units_suffix, "_mb");
+			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_mb");
 			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
 			metric.type = METRIC_VALUE_TYPE_D;
 			metric.unit = METRIC_VALUE_UNIT_MEMORY_MEGABYTES;
-			break;
 		}
-		case METRIC_VALUE_TYPE_U64:
+		else if(metric.type == METRIC_VALUE_TYPE_U64)
 		{
 			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, metric.value.u64);
 			std::string metric_name_str(metric.name);
-			RE2::GlobalReplace(&metric_name_str, s_libs_units_suffix, "_mb");
+			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_mb");
 			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
 			metric.type = METRIC_VALUE_TYPE_D;
 			metric.unit = METRIC_VALUE_UNIT_MEMORY_MEGABYTES;
-			break;
 		}
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
 	}
 }
 
@@ -169,7 +163,8 @@ std::string prometheus_metrics_converter::convert_metric_to_text(metrics_v2 metr
 	}
 	prometheus_metric_name_fully_qualified += std::string(metric.name) + "_";
 	// Remove native libs unit suffixes if applicable.
-	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_units_suffix, "");
+	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_units_suffix_pre_prometheus_text_conversion, "");
+	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_banned_prometheus_naming_characters, "_");
 	prometheus_metric_name_fully_qualified += std::string(metrics_unit_name_mappings_prometheus[metric.unit]);
 
 	// Create the complete 3-lines text-based Prometheus exposition format https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
@@ -242,8 +237,36 @@ std::string prometheus_metrics_converter::convert_metric_to_text(std::string_vie
 
 void prometheus_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
 {
-	// todo
-	return;
+	if(metric.unit == METRIC_VALUE_UNIT_MEMORY_BYTES || metric.unit == METRIC_VALUE_UNIT_MEMORY_KIBIBYTES)
+	{
+		if(metric.type == METRIC_VALUE_TYPE_U32)
+		{
+			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_BYTES, metric.value.u32);
+			std::string metric_name_str(metric.name);
+			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_bytes");
+			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
+			metric.type = METRIC_VALUE_TYPE_D;
+			metric.unit = METRIC_VALUE_UNIT_MEMORY_BYTES;
+		}
+		else if(metric.type == METRIC_VALUE_TYPE_U64)
+		{
+			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_BYTES, metric.value.u64);
+			std::string metric_name_str(metric.name);
+			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_bytes");
+			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
+			metric.type = METRIC_VALUE_TYPE_D;
+			metric.unit = METRIC_VALUE_UNIT_MEMORY_BYTES;
+		}
+	}
+	else if(metric.unit == METRIC_VALUE_UNIT_PERC && metric.type == METRIC_VALUE_TYPE_D)
+	{
+		metric.value.d = metric.value.d / 100.0;
+		std::string metric_name_str(metric.name);
+		RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_perc_suffix, "_ratio");
+		strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
+		metric.type = METRIC_VALUE_TYPE_D;
+		metric.unit = METRIC_VALUE_UNIT_RATIO;
+	}
 }
 
 void libs_metrics_collector::get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &host_memory_used, uint64_t &host_open_fds)

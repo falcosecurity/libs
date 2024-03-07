@@ -178,7 +178,7 @@ public:
 	std::string convert_metric_to_text(metrics_v2 metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
 
 	/*!
-	\brief Method to convert a software version like metric_name to the text-based Prometheus exposition format.
+	\brief Overloaded method to convert a pseudo-metric / software version like metric_name to the text-based Prometheus exposition format.
 	 * 
 	 * Note: Instead of using const_labels, which is a rare use case according to 
 	 * https://prometheus.io/docs/instrumenting/writing_exporters/#target-labels-not-static-scraped-labels, 
@@ -203,11 +203,18 @@ public:
 	std::string convert_metric_to_text(std::string_view metric_name, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
 
 	/*!
-	\brief Method to convert metric units to Prometheus base units. todo, not yet implemented.
-	 *
-	 * \note metrics names w/ unit suffix shall be changed within this method, conforming to libs native metrics names, 
-	 * not Prometheus, `convert_metric_to_text` takes care of final metric name convertion to Prometheus text format.
-	 * As a consequence `metric.unit` always matches the metric name unit suffix if applicable.
+	* \brief Method to convert metric units to Prometheus base units.
+	*
+	* \note Metric names shall be updated within this method, and the respective Prometheus-compliant
+	* unit suffix shall be added. Prometheus compliance means every metric name has a unit suffix, see
+	* https://prometheus.io/docs/practices/naming/ or https://prometheus.io/docs/practices/naming/#base-units.
+	* We conform to the best practices except for keeping libbpf stats metrics and timestamps in nanoseconds
+	* to avoid precision loss when converting them to seconds.
+	* Please note that, for example, even cAdvisor sometimes deviates from the standards, e.g., 
+	* `container_memory_rss` instead of `container_memory_rss_bytes`.
+	* `metric.unit` is also modified and always matches the metric name unit suffix.
+	*
+	* In summary, effectively for Falco/libs, it just means converting all memory to bytes and CPU usage to a ratio.
 	*/
 	void convert_metric_to_unit_convention(metrics_v2& metric) const override;
 };
@@ -221,8 +228,8 @@ public:
 	/*!
 	\brief Method to convert metric units of memory-related metrics to mb
 	 *
-	 * \note metrics names w/ unit suffix shall be changed within this method, conforming to libs native metrics names.
-	 * As a consequence `metric.unit` always matches the metric name unit suffix if applicable.
+	 * \note metrics names w/ unit suffix shall be updated within this method.
+	 * `metric.unit` is also modified and always matches the metric name unit suffix if applicable.
 	 * 
 	*/
 	void convert_metric_to_unit_convention(metrics_v2& metric) const override;
