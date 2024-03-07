@@ -135,7 +135,6 @@ sinsp_filter_check_thread::sinsp_filter_check_thread()
 	m_info.m_fields = sinsp_filter_check_thread_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_thread_fields) / sizeof(sinsp_filter_check_thread_fields[0]);
 	m_info.m_flags = filter_check_info::FL_NONE;
-
 	m_u64val = 0;
 }
 

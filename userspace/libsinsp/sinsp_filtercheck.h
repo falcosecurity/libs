@@ -141,7 +141,7 @@ public:
 	std::string m_desc; ///< Field class description.
 	int32_t m_nfields = 0; ///< Number of fields in this field group.
 	const filtercheck_field_info* m_fields = nullptr; ///< Array containing m_nfields field descriptions.
-	uint32_t m_flags = FL_HIDDEN;
+	uint32_t m_flags = FL_NONE;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

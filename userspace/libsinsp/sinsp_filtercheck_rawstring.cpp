@@ -30,6 +30,7 @@ static const filtercheck_field_info rawstring_check_fields[] =
 rawstring_check::rawstring_check(string text)
 {
 	m_field = rawstring_check_fields;
+	m_info.m_flags = filter_check_info::FL_HIDDEN;
 	m_field_id = 0;
 	set_text(text);
 }

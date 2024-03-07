@@ -69,6 +69,7 @@ sinsp_filter_check_evtin::sinsp_filter_check_evtin()
 	m_info.m_desc = "Fields used if information about distributed tracing is available.";
 	m_info.m_fields = sinsp_filter_check_evtin_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_evtin_fields) / sizeof(sinsp_filter_check_evtin_fields[0]);
+	m_info.m_flags = filter_check_info::FL_HIDDEN;
 }
 
 int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)

@@ -60,6 +60,7 @@ static const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 
 sinsp_filter_check_tracer::sinsp_filter_check_tracer()
 {
+	m_info.m_flags = filter_check_info::FL_HIDDEN;
 	m_info.m_name = "span";
 	m_info.m_desc = "Fields used if information about distributed tracing is available.";
 	m_info.m_fields = sinsp_filter_check_tracer_fields;
