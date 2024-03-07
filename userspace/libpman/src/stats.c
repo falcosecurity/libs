@@ -263,13 +263,13 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 					break;
 				case RUN_TIME_NS:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(g_state.stats[offset].name));
-					g_state.stats[stat].unit = METRIC_VALUE_UNIT_DURATION_NS;
+					g_state.stats[stat].unit = METRIC_VALUE_UNIT_TIME_NS_COUNT;
 					g_state.stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
 					g_state.stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(g_state.stats[offset].name));
-					g_state.stats[stat].unit = METRIC_VALUE_UNIT_DURATION_NS;
+					g_state.stats[stat].unit = METRIC_VALUE_UNIT_TIME_NS;
 					g_state.stats[stat].metric_type = METRIC_VALUE_NON_MONOTONIC_CURRENT;
 					g_state.stats[offset].value.u64 = 0;
 					if(info.run_cnt > 0)
