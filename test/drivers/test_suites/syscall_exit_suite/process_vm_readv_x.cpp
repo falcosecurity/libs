@@ -2,6 +2,11 @@
 
 #ifdef __NR_process_vm_readv
 
+void signal_handler(int signum) {
+    // Do nothing
+}
+
+
 TEST(SyscallExit, process_vm_readvX_failure)
 {
 	auto evt_test = get_syscall_event_test(__NR_process_vm_readv, EXIT_EVENT);
@@ -71,19 +76,20 @@ TEST(SyscallExit, process_vm_readvX_success)
 		remote[0].iov_len = sizeof(buf);
 		void* target = &remote;
 
+		signal(SIGUSR2, signal_handler);
+
 		close(pipe_fd[0]);
 
 		ssize_t read = write(pipe_fd[1], &target, sizeof(void*));
 		ASSERT_GT(read, 0);
 
+		close(pipe_fd[1]);
+
 		/*
-		 * The following write call makes sure that the process_vm_readv
+		 * The following pause call makes sure that the process_vm_readv
 		 * has been called.
 		 */
-		read = write(pipe_fd[1], buf, 2);
-		ASSERT_GT(read, 0);
-
-		close(pipe_fd[1]);
+		pause();
 
 		exit(EXIT_SUCCESS);
 	}
@@ -105,6 +111,8 @@ TEST(SyscallExit, process_vm_readvX_success)
 		assert_syscall_state(SYSCALL_SUCCESS, "process_vm_readv", read, NOT_EQUAL, 0);
 
 		close(pipe_fd[0]);
+
+		kill(child_pid, SIGUSR2);
 
 		int wstatus;
 		waitpid(child_pid, &wstatus, 0);
