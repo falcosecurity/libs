@@ -762,3 +762,10 @@ const struct ppm_name_value delete_module_flags[] = {
 	{"O_TRUNC", PPM_DELETE_MODULE_O_TRUNC},
 	{0, 0},
 };
+
+const struct ppm_name_value finit_module_flags[] = {
+	{"MODULE_INIT_IGNORE_MODVERSIONS", PPM_MODULE_INIT_IGNORE_MODVERSIONS},
+	{"MODULE_INIT_IGNORE_VERMAGIC", PPM_MODULE_INIT_IGNORE_VERMAGIC},
+	{"MODULE_INIT_COMPRESSED_FILE", PPM_MODULE_INIT_COMPRESSED_FILE},
+	{0, 0},
+};
