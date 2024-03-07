@@ -3675,6 +3675,15 @@ void sinsp_parser::parse_socketpair_exit(sinsp_evt *evt)
 
 	fd2 = evt->get_param(2)->as<int64_t>();
 
+	/*
+	** In the case of 2 equal fds we ignore them (e.g. both equal to -1).
+	*/
+	if(fd1 == fd2)
+	{
+		evt->set_fd_info(NULL);
+		return;
+	}
+
 	source_address = evt->get_param(3)->as<uint64_t>();
 
 	peer_address = evt->get_param(4)->as<uint64_t>();
