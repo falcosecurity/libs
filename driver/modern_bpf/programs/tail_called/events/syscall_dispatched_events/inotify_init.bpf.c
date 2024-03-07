@@ -25,7 +25,7 @@ int BPF_PROG(inotify_init_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: flags (type: PT_FLAGS8) */
+	/* Parameter 1: flags (type: PT_UINT8) */
 	/* We have nothing to extract from the kernel here so we send `0`.
 	 * This is done to preserve the `PPME_SYSCALL_INOTIFY_INIT_E` event with 1 param.
 	 */

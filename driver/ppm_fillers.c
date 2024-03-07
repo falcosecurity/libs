@@ -5306,7 +5306,7 @@ int f_sys_io_uring_register_x (struct event_filler_arguments *args)
 
 int f_sys_inotify_init_e(struct event_filler_arguments *args)
 {
-	/* Parameter 1: flags (type: PT_FLAGS8) */
+	/* Parameter 1: flags (type: PT_UINT8) */
 	/* We have nothing to extract from the kernel here so we send `0`.
 	 * This is done to preserve the `PPME_SYSCALL_INOTIFY_INIT_E` event with 1 param.
 	 */
