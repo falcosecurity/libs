@@ -42,7 +42,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus)
 	/* Test prometheus_metrics_converter->convert_metric_to_text */
 	std::string prometheus_text;
 	std::string prometheus_text_substring;
-	std::string metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion = "";
+	std::string metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion;
 
 	for (auto& metric: metrics_snapshot)
 	{
@@ -56,7 +56,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus)
 		prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco");
 		printf("%s", prometheus_text.c_str());
 
-		if (strncmp(metric.name, "n_missing_container_images", 17) == 0)
+		if (strncmp(metric.name, "n_missing_container_images", strlen(metric.name)) == 0)
 		{
 			// This resembles the Falco client use case
 
@@ -67,43 +67,43 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus)
 # TYPE testns_falco_n_missing_container_images_total gauge
 testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1",example_key2="example2"} 0
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test only one const_labels
 			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco", {{"example_key1", "example1"}});
 			prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
 testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1"} 0
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test no const_labels
 			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco");
 			prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
 testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test no prometheus_subsytem
 			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns");
 			prometheus_text_substring = R"(# HELP testns_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_n_missing_container_images_total gauge
 testns_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test no prometheus_namespace
 			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric);
 			prometheus_text_substring = R"(# HELP n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE n_missing_container_images_total gauge
 n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			//  Test no prometheus_namespace, but prometheus_subsytem
 			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "", "falco");
 			prometheus_text_substring = R"(# HELP falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE falco_n_missing_container_images_total gauge
 falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
-		} else if (strncmp(metric.name, "memory_rss_bytes", 17) == 0)
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
+		} else if (strncmp(metric.name, "memory_rss_bytes", strlen(metric.name)) == 0)
 		{
 			// Test that libs native metric unit suffix was removed and replaced by the Prometheus specific unit suffix naming convention
 			// todo adjust once base units are implemented
@@ -111,7 +111,7 @@ falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 			prometheus_text_substring = R"(# HELP testns_falco_memory_rss_bytes https://falco.org/docs/metrics/
 # TYPE testns_falco_memory_rss_bytes gauge
 testns_falco_memory_rss_bytes{raw_name="memory_rss_bytes"} )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 		}
 	}
 
@@ -125,7 +125,7 @@ testns_falco_memory_rss_bytes{raw_name="memory_rss_bytes"} )";
 testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1
 )";
 	printf("%s", prometheus_text.c_str());
-	ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+	ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 
 	// Another round of fake metric tests since we do not fetch real scap metrics, for example.
 	std::vector<metrics_v2> fake_metrics_snapshot;
@@ -193,55 +193,55 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 		prometheus_metrics_converter->convert_metric_to_unit_convention(metric);
 		prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco");
 		printf("%s", prometheus_text.c_str());
-		if (strncmp(metric.name, "sys_enter.run_cnt", 18) == 0)
+		if (strncmp(metric.name, "sys_enter.run_cnt", strlen(metric.name)) == 0)
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_sys_enter_run_cnt_total https://falco.org/docs/metrics/
 # TYPE testns_falco_sys_enter_run_cnt_total counter
 testns_falco_sys_enter_run_cnt_total{raw_name="sys_enter.run_cnt"} 76435525241
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
-		} else if (strncmp(metric.name, "sys_enter.run_time_ns", 22) == 0)
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
+		} else if (strncmp(metric.name, "sys_enter.run_time_ns", strlen(metric.name)) == 0)
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_sys_enter_run_time_nanoseconds_total https://falco.org/docs/metrics/
 # TYPE testns_falco_sys_enter_run_time_nanoseconds_total counter
 testns_falco_sys_enter_run_time_nanoseconds_total{raw_name="sys_enter.run_time_ns"} 16269369826392
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
-		} else if (strncmp(metric.name, "sys_enter.avg_time_ns", 22) == 0)
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
+		} else if (strncmp(metric.name, "sys_enter.avg_time_ns", strlen(metric.name)) == 0)
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_sys_enter_avg_time_nanoseconds https://falco.org/docs/metrics/
 # TYPE testns_falco_sys_enter_avg_time_nanoseconds gauge
 testns_falco_sys_enter_avg_time_nanoseconds{raw_name="sys_enter.avg_time_ns"} 203
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
-		} else if (strncmp(metric.name, "n_drops_buffer_total", 21) == 0)
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
+		} else if (strncmp(metric.name, "n_drops_buffer_total", strlen(metric.name)) == 0 && strlen(metric.name) == 21) // avoid clash with "n_drops" metric name
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_n_drops_buffer_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_drops_buffer_total counter
 testns_falco_n_drops_buffer_total{raw_name="n_drops_buffer_total"} 5000
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
-		} else if (strncmp(metric.name, "duration_sec", 13) == 0)
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
+		} else if (strncmp(metric.name, "duration_sec", strlen(metric.name)) == 0)
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_duration_seconds_total https://falco.org/docs/metrics/
 # TYPE testns_falco_duration_seconds_total counter
 testns_falco_duration_seconds_total{raw_name="duration_sec"} 144
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
-		} else if (strncmp(metric.name, "evt_rate_sec", 13) == 0)
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
+		} else if (strncmp(metric.name, "evt_rate_sec", strlen(metric.name)) == 0)
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_evt_rate_seconds https://falco.org/docs/metrics/
 # TYPE testns_falco_evt_rate_seconds gauge
 testns_falco_evt_rate_seconds{raw_name="evt_rate_sec"} 126065.400000
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
-		} else if (strncmp(metric.name, "host_boot_ts", 13) == 0)
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
+		} else if (strncmp(metric.name, "host_boot_ts", strlen(metric.name)) == 0)
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_host_boot_timestamp_nanoseconds https://falco.org/docs/metrics/
 # TYPE testns_falco_host_boot_timestamp_nanoseconds gauge
 testns_falco_host_boot_timestamp_nanoseconds{raw_name="host_boot_ts"} 1708753667000000000
 )";
-			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text";
+			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 		}
 	}
 
@@ -275,10 +275,10 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 
 	for(const auto& metric_name : minimal_metrics_names)
 	{
-		uint32_t i = 0;
+		int i = 0;
 		for (const auto& metric: metrics_snapshot) 
 		{
-			if(metric_name.compare(metric.name) == 0)
+			if(metric_name == metric.name)
 			{
 				break;
 			}
@@ -293,8 +293,8 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 	/* Assert successful memory unit changes and sanity check some values to be greater than 0 */
 	const std::vector<std::string> metrics_names_memory = {"memory_rss_mb", "memory_vsz_mb", "memory_pss_mb", "container_memory_used_mb", "host_memory_used_mb"};
 	const std::vector<std::string> metrics_names_values_gt = {"n_threads", "n_fds", "n_added_threads"};
-	uint32_t success_memory_cnt = 0;
-	uint32_t success_values_cnt = 0;
+	int success_memory_cnt = 0;
+	int success_values_cnt = 0;
 	for (auto& metric: metrics_snapshot)
 	{
 		// This resembles the Falco client use case and would be called if `convert_memory_to_mb` is set to true
@@ -303,7 +303,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 		{
 			ASSERT_EQ(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES);
 			ASSERT_EQ(metric.type, METRIC_VALUE_TYPE_D);
-			if (strncmp(metric.name, "host_memory_used_mb", 20) == 0 || strncmp(metric.name, "memory_rss_mb", 14) == 0 )
+			if (strncmp(metric.name, "host_memory_used_mb", strlen(metric.name)) == 0 || strncmp(metric.name, "memory_rss_mb", strlen(metric.name)) == 0)
 			{
 				ASSERT_GT(metric.value.d, 0);
 				// Just making sure we don't get a high value due to an unitialized variables
