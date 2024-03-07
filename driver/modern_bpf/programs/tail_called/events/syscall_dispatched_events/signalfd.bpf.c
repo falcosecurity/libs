@@ -33,7 +33,7 @@ int BPF_PROG(signalfd_e,
 	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
 	ringbuf__store_u32(&ringbuf, 0);
 
-	/* Parameter 3: flags (type: PT_FLAGS8) */
+	/* Parameter 3: flags (type: PT_UINT8) */
 	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */
