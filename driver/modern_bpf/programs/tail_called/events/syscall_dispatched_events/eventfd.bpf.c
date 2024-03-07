@@ -29,7 +29,7 @@ int BPF_PROG(eventfd_e,
 	uint32_t initval = (uint32_t)extract__syscall_argument(regs, 0);
 	ringbuf__store_u64(&ringbuf, (uint64_t)initval);
 
-	/* Parameter 2: flags (type: PT_FLAGS32) */
+	/* Parameter 2: flags (type: PT_UINT32) */
 	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */
