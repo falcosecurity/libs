@@ -3127,7 +3127,7 @@ int f_sys_eventfd_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 2: flags (type: PT_FLAGS32) */
+	/* Parameter 2: flags (type: PT_UINT32) */
 	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */

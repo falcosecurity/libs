@@ -4643,7 +4643,7 @@ FILLER(sys_eventfd_e, true)
 	int res = bpf_push_s64_to_ring(data, val);
 	CHECK_RES(res);
 
-	/* Parameter 2: flags (type: PT_FLAGS32) */
+	/* Parameter 2: flags (type: PT_UINT32) */
 	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */
