@@ -13,7 +13,7 @@ TEST(SyscallExit, getrlimitX_success)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int resource = RLIMIT_NPROC;
-	struct rlimit rlim = {0};
+	struct rlimit rlim = {};
 	assert_syscall_state(SYSCALL_SUCCESS, "getrlimit", syscall(__NR_getrlimit, resource, &rlim), NOT_EQUAL, -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -56,7 +56,7 @@ TEST(SyscallExit, getrlimitX_wrong_resource)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int resource = -1;
-	struct rlimit rlim = {0};
+	struct rlimit rlim = {};
 	assert_syscall_state(SYSCALL_FAILURE, "getrlimit", syscall(__NR_getrlimit, resource, &rlim));
 	int64_t errno_value = -errno;
 

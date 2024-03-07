@@ -19,7 +19,7 @@ TEST(GenericTracepoints, sched_proc_exit_no_children)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
@@ -108,7 +108,7 @@ TEST(GenericTracepoints, sched_proc_exit_prctl_subreaper)
 	pid_t p2_t1 = 61030;
 	pid_t p3_t1 = 61050;
 
-	clone_args cl_args_parent = {0};
+	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
 	cl_args_parent.set_tid_size = 1;
 	cl_args_parent.exit_signal = SIGCHLD;
@@ -122,14 +122,13 @@ TEST(GenericTracepoints, sched_proc_exit_prctl_subreaper)
 			exit(EXIT_FAILURE);
 		}
 
-		clone_args cl_args_child = {0};
+		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p2_t1;
 		cl_args_child.set_tid_size = 1;
 		cl_args_child.exit_signal = SIGCHLD;
 		pid_t p2_t1_pid = syscall(__NR_clone3, &cl_args_child, sizeof(cl_args_child));
 		if(p2_t1_pid == 0)
 		{
-			clone_args cl_args_child = {0};
 			cl_args_child.set_tid = (uint64_t)&p3_t1;
 			cl_args_child.set_tid_size = 1;
 			cl_args_child.exit_signal = SIGCHLD;
@@ -225,7 +224,7 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper)
 	pid_t p3_t1[2] = {3, 59026};
 
 	/* p1_t1 is in the new namespace */
-	clone_args cl_args_parent = {0};
+	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
 	cl_args_parent.set_tid_size = 2;
 	cl_args_parent.flags = CLONE_NEWPID;
@@ -234,14 +233,13 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper)
 
 	if(p1_t1_pid == 0)
 	{
-		clone_args cl_args_child = {0};
+		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p2_t1;
 		cl_args_child.set_tid_size = 2;
 		cl_args_child.exit_signal = SIGCHLD;
 		pid_t p2_t1_pid = syscall(__NR_clone3, &cl_args_child, sizeof(cl_args_child));
 		if(p2_t1_pid == 0)
 		{
-			clone_args cl_args_child = {0};
 			cl_args_child.set_tid = (uint64_t)&p3_t1;
 			cl_args_child.set_tid_size = 2;
 			cl_args_child.exit_signal = SIGCHLD;
@@ -337,7 +335,7 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper_die)
 	pid_t p2_t1[2] = {2, 59025};
 
 	/* p1_t1 is in the new namespace */
-	clone_args cl_args_parent = {0};
+	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
 	cl_args_parent.set_tid_size = 2;
 	cl_args_parent.flags = CLONE_NEWPID;
@@ -346,7 +344,7 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper_die)
 
 	if(p1_t1_pid == 0)
 	{
-		clone_args cl_args_child = {0};
+		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p2_t1;
 		cl_args_child.set_tid_size = 2;
 		cl_args_parent.exit_signal = SIGCHLD;
@@ -407,7 +405,7 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper_die)
 static int child_func(void* arg)
 {
 	pid_t p2_t1 = 57006;
-	clone_args cl_args_child = {0};
+	clone_args cl_args_child = {};
 	cl_args_child.set_tid = (uint64_t)&p2_t1;
 	cl_args_child.set_tid_size = 1;
 	pid_t p2_t1_pid = syscall(__NR_clone3, &cl_args_child, sizeof(cl_args_child));

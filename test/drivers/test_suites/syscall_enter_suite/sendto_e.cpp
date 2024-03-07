@@ -12,8 +12,8 @@ TEST(SyscallEnter, sendtoE)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -69,8 +69,8 @@ TEST(SyscallEnter, sendtoE_udp)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */

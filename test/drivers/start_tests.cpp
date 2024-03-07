@@ -143,9 +143,9 @@ int open_engine(int argc, char** argv)
 		{0, 0, 0, 0}};
 
 	// They should live until we call 'scap_open'
-	scap_modern_bpf_engine_params modern_bpf_params = {0};
-	scap_bpf_engine_params bpf_params = {0};
-	scap_kmod_engine_params kmod_params = {0};
+	scap_modern_bpf_engine_params modern_bpf_params = {};
+	scap_bpf_engine_params bpf_params = {};
+	scap_kmod_engine_params kmod_params = {};
 	int ret = 0;
 	const scap_vtable* vtable = nullptr;
 	scap_open_args oargs = {};

@@ -16,9 +16,9 @@ public:
     ~file_opener();
 
     void close();
-    const bool is_tmpfile_supported() const;
-    const int get_fd() const;
-    const int get_flags() const;
+    bool is_tmpfile_supported() const;
+    int get_fd() const;
+    int get_flags() const;
     const char* get_pathname() const;
 
 private:

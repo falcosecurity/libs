@@ -16,7 +16,7 @@ TEST(SyscallExit, clone3X_father)
 	/* We scan proc before the BPF event is caught so we have
 	 * to use `GREATER_EQUAL` in the assertions.
 	 */
-	struct proc_info info = {0};
+	struct proc_info info = {};
 	pid_t pid = ::getpid();
 	if(!get_proc_info(pid, &info))
 	{
@@ -26,7 +26,7 @@ TEST(SyscallExit, clone3X_father)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
@@ -143,7 +143,7 @@ TEST(SyscallExit, clone3X_child)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Here we scan the parent just to obtain some info for the child */
-	struct proc_info info = {0};
+	struct proc_info info = {};
 	pid_t pid = ::getpid();
 	if(!get_proc_info(pid, &info))
 	{
@@ -153,7 +153,7 @@ TEST(SyscallExit, clone3X_child)
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
@@ -265,7 +265,7 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 	pid_t p1_t1 = 61001;
 	pid_t p1_t2 = 61004;
 
-	clone_args cl_args_parent = {0};
+	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
 	cl_args_parent.set_tid_size = 1;
 	cl_args_parent.exit_signal = SIGCHLD;
@@ -275,7 +275,7 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 	if(ret_pid == 0)
 	{
 		/* Spawn a new thread */
-		clone_args cl_args_child = {0};
+		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p1_t2;
 		cl_args_child.set_tid_size = 1;
 		/* CLONE_PARENT has no additional effects if we are spawning a thread
@@ -370,7 +370,7 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 	pid_t p1_t1 = 61024;
 	pid_t p2_t1 = 60128;
 
-	clone_args cl_args_parent = {0};
+	clone_args cl_args_parent = {};
 	cl_args_parent.set_tid = (uint64_t)&p1_t1;
 	cl_args_parent.set_tid_size = 1;
 	cl_args_parent.exit_signal = SIGCHLD;
@@ -378,7 +378,7 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 
 	if(ret_pid == 0)
 	{
-		clone_args cl_args_child = {0};
+		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p2_t1;
 		cl_args_child.set_tid_size = 1;
 		cl_args_child.flags = CLONE_PARENT;
@@ -477,7 +477,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child)
 	/* Here we create a child process in a new namespace. */
 	pid_t p1_t1[2] = {1, 61032};
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.set_tid = (uint64_t)&p1_t1;
 	cl_args.set_tid_size = 2;
 	cl_args.flags = CLONE_NEWPID;
@@ -560,7 +560,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_caller)
 	/* Here we create a child process in a new namespace. */
 	pid_t p1_t1[2] = {1, 61032};
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.set_tid = (uint64_t)&p1_t1;
 	cl_args.set_tid_size = 2;
 	cl_args.flags = CLONE_NEWPID;
@@ -642,7 +642,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_create_thread)
 	/* Please note that a process can have the same pid number in different namespaces */
 	pid_t p1_t2[2] = {61036, 61036};
 
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.set_tid = (uint64_t)&p1_t1;
 	cl_args.set_tid_size = 2;
 	cl_args.flags = CLONE_NEWPID;
@@ -652,7 +652,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_create_thread)
 	if(ret_pid == 0)
 	{
 		/* Spawn a new thread */
-		clone_args cl_args_child = {0};
+		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p1_t2;
 		cl_args_child.set_tid_size = 2;
 		cl_args_child.flags = CLONE_THREAD | CLONE_SIGHAND | CLONE_VM | CLONE_VFORK;

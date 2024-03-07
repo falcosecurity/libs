@@ -17,8 +17,8 @@ TEST(SyscallExit, sendmsgX_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -86,8 +86,8 @@ TEST(SyscallExit, sendmsgX_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -157,8 +157,8 @@ TEST(SyscallExit, sendmsgX_fail)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct msghdr send_msg = {0};
-	struct iovec iov[1] = {0};
+	struct msghdr send_msg = {};
+	struct iovec iov[1] = {};
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
 	char sent_data_1[DEFAULT_SNAPLEN / 2] = "some-data";
@@ -225,7 +225,7 @@ TEST(SyscallExit, sendmsgX_null_iovec)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct msghdr send_msg = {0};
+	struct msghdr send_msg = {};
 	memset(&send_msg, 0, sizeof(send_msg));
 	send_msg.msg_iov = NULL;
 	/* here we pass a wrong `iovlen` to check the behavior */

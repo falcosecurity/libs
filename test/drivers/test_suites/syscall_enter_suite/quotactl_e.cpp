@@ -15,7 +15,7 @@ TEST(SyscallEnter, quotactlE)
 	int cmd = QCMD(Q_SYNC, USRQUOTA);
 	const char* special = "/dev//*null";
 	int id = 1;
-	struct if_dqblk addr = {0};
+	struct if_dqblk addr = {};
 	assert_syscall_state(SYSCALL_FAILURE, "quotactl", syscall(__NR_quotactl, cmd, special, id, &addr));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/

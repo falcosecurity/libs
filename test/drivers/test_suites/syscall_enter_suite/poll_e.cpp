@@ -174,12 +174,12 @@ TEST(SyscallEnter, pollE_truncated)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* We push more than MAX_FDS structs. We should obtain only `MAX_FDS` structs */
-	struct pollfd fds[MAX_FDS + 1] = {0};
+	struct pollfd fds[MAX_FDS + 1] = {};
 	nfds_t nfds = MAX_FDS + 1;
 	int timeout = 0;
 
 	/* We expect only `MAX_FDS` structs */
-	struct fd_poll expected[MAX_FDS] = {0};
+	struct fd_poll expected[MAX_FDS] = {};
 
 	assert_syscall_state(SYSCALL_SUCCESS, "poll", syscall(__NR_poll, fds, nfds, timeout), NOT_EQUAL, -1);
 

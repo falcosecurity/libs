@@ -38,17 +38,17 @@ void file_opener::close()
     }
 }
 
-const bool file_opener::is_tmpfile_supported() const
+ bool file_opener::is_tmpfile_supported() const
 {
     return m_tmpfile_supported;
 }
 
-const int file_opener::get_fd() const
+ int file_opener::get_fd() const
 {
     return m_fd;
 }
 
-const int file_opener::get_flags() const
+ int file_opener::get_flags() const
 {
     return m_flags;
 }

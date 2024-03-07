@@ -14,8 +14,8 @@ TEST(SyscallExit, recvfromX_tcp_connection_no_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -31,7 +31,7 @@ TEST(SyscallExit, recvfromX_tcp_connection_no_snaplen)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	sockaddr_in src_addr = {0};
+	sockaddr_in src_addr = {};
 	socklen_t addrlen = sizeof(src_addr);
 
 	int64_t received_bytes = syscall(__NR_recvfrom, connected_socket_fd, received_data, received_data_len, recvfrom_flags, (sockaddr*)&src_addr, &addrlen);
@@ -87,8 +87,8 @@ TEST(SyscallExit, recvfromX_tcp_connection_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -104,7 +104,7 @@ TEST(SyscallExit, recvfromX_tcp_connection_snaplen)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	sockaddr_in src_addr = {0};
+	sockaddr_in src_addr = {};
 	socklen_t addrlen = sizeof(src_addr);
 
 	int64_t received_bytes = syscall(__NR_recvfrom, connected_socket_fd, received_data, received_data_len, recvfrom_flags, (sockaddr*)&src_addr, &addrlen);
@@ -160,8 +160,8 @@ TEST(SyscallExit, recvfromX_tcp_connection_NULL_sockaddr)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -242,8 +242,8 @@ TEST(SyscallExit, recvfromX_udp_connection_snaplen)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */
@@ -256,7 +256,7 @@ TEST(SyscallExit, recvfromX_udp_connection_snaplen)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	sockaddr_in src_addr = {0};
+	sockaddr_in src_addr = {};
 	socklen_t addrlen = sizeof(src_addr);
 
 	int64_t received_bytes = syscall(__NR_recvfrom, server_socket_fd, received_data, received_data_len,
@@ -323,8 +323,8 @@ TEST(SyscallExit, recvfromX_udp_connection_NULL_sockaddr)
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* Send a message to the server */

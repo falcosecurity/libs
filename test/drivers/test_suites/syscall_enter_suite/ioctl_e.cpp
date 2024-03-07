@@ -23,7 +23,7 @@ TEST(SyscallEnter, ioctlE)
 	/* Here we need to call the `ioctl` from a child because the main process throws lots of
 	 * `ioctl` to manage the kmod.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));

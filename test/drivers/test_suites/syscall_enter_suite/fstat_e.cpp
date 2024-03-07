@@ -11,7 +11,7 @@ TEST(SyscallEnter, fstatE)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int f_desc = -1;
-	struct stat statbuf = { 0 };
+	struct stat statbuf = {};
 	assert_syscall_state(SYSCALL_FAILURE, "fstat", syscall(__NR_fstat, f_desc, &statbuf));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
