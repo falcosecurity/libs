@@ -42,6 +42,10 @@ set(BPF_SOURCES
 	types.h
 )
 
+if(NOT DEFINED DRIVER_BPF_COMPONENT_NAME)
+	set(DRIVER_BPF_COMPONENT_NAME ${DRIVER_COMPONENT_NAME})
+endif()
+
 # Append driver headers too since they are used by bpf headers
 file(GLOB DRIVER_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../*.h)
 list(APPEND BPF_SOURCES ${DRIVER_HEADERS})
@@ -55,6 +59,12 @@ foreach(SOURCE IN LISTS BPF_SOURCES)
 	list(APPEND INSTALL_SET ${CMAKE_CURRENT_BINARY_DIR}/src/${FILENAME})
 endforeach()
 
+install(FILES
+	${INSTALL_SET}
+	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/bpf"
+	COMPONENT ${DRIVER_BPF_COMPONENT_NAME}
+)
+
 #
 # Copy all the "configure" modules
 #
@@ -66,20 +76,12 @@ foreach(subdir ${configure_modules})
 		configure_file(configure/Makefile src/configure/${CONFIGURE_MODULE}/Makefile COPYONLY)
 		configure_file(configure/build.sh src/configure/${CONFIGURE_MODULE}/build.sh COPYONLY)
 		configure_file(configure/Makefile.inc.in src/configure/${CONFIGURE_MODULE}/Makefile.inc)
-		list(APPEND INSTALL_SET
+		install(FILES
 				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/build.sh"
 				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/test.c"
 				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile"
-				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile.inc")
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile.inc"
+				DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/bpf/configure/${CONFIGURE_MODULE}"
+				COMPONENT ${DRIVER_BPF_COMPONENT_NAME})
 	endif()
 endforeach()
-
-if(NOT DEFINED DRIVER_BPF_COMPONENT_NAME)
-	set(DRIVER_BPF_COMPONENT_NAME ${DRIVER_COMPONENT_NAME})
-endif()
-
-install(FILES
-	${INSTALL_SET}
-	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/bpf"
-	COMPONENT ${DRIVER_BPF_COMPONENT_NAME}
-)
