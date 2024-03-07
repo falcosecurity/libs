@@ -85,7 +85,7 @@ namespace libs::metrics
 {
 
 template <typename T>
-static double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
+double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit dest_unit, T val)
 {
 	double factor = 1;
 	switch(source_unit)
@@ -120,9 +120,8 @@ static double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value
 class metrics_converter
 {
 public:
-	metrics_converter() = default;
 
-	virtual std::string convert_metric_to_text(metrics_v2 metric) const;
+	virtual std::string convert_metric_to_text(const metrics_v2& metric) const;
 
 	virtual void convert_metric_to_unit_convention(metrics_v2& metric) const = 0;
 };
@@ -131,7 +130,6 @@ public:
 class prometheus_metrics_converter : public metrics_converter
 {
 public:
-	prometheus_metrics_converter() = default;
 
 	/*!
 	\brief Method to convert a metrics_v2 metric to the text-based Prometheus exposition format.
@@ -175,7 +173,7 @@ public:
 	 * w/ a `prometheus_metric_name_fully_qualified` - optional components prepended to and unit appended to. 
 	 * 3-lines including # HELP and # TYPE lines followed by the metric line, raw metric name always present as label.
 	*/
-	std::string convert_metric_to_text(metrics_v2 metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
+	std::string convert_metric_to_text(const metrics_v2& metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
 
 	/*!
 	\brief Overloaded method to convert a pseudo-metric / software version like metric_name to the text-based Prometheus exposition format.
@@ -223,7 +221,6 @@ public:
 class output_rule_metrics_converter : public metrics_converter
 {
 public:
-	output_rule_metrics_converter() = default;
 
 	/*!
 	\brief Method to convert metric units of memory-related metrics to mb
@@ -259,7 +256,7 @@ public:
 	\brief Method to create a new metrics_v2
 	*/
 	template <typename T>
-	const metrics_v2 new_metric(const char* name, uint32_t flags, metrics_v2_value_type type, metrics_v2_value_unit unit, metrics_v2_metric_type metric_type, T val)
+	metrics_v2 new_metric(const char* name, uint32_t flags, metrics_v2_value_type type, metrics_v2_value_unit unit, metrics_v2_metric_type metric_type, T val)
 	{
 		metrics_v2 metric;
 		strlcpy(metric.name, name, METRIC_NAME_MAX);
