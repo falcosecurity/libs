@@ -5575,7 +5575,7 @@ int f_sys_signalfd_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, 0, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 3: flags (type: PT_FLAGS8) */
+	/* Parameter 3: flags (type: PT_UINT8) */
 	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */

@@ -3758,7 +3758,7 @@ FILLER(sys_signalfd_e, true)
 	res = bpf_push_u32_to_ring(data, 0);
 	CHECK_RES(res);
 
-	/* Parameter 3: flags (type: PT_FLAGS8) */
+	/* Parameter 3: flags (type: PT_UINT8) */
 	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */
