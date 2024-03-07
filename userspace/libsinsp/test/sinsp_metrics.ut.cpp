@@ -32,28 +32,28 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus)
 
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
 	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	auto libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(&m_inspector, test_metrics_flags);
-	auto prometheus_metrics_converter = std::make_unique<libs::metrics::prometheus_metrics_converter>();
+	libs::metrics::libs_metrics_collector libs_metrics_collector(&m_inspector, test_metrics_flags);
+	libs::metrics::prometheus_metrics_converter prometheus_metrics_converter;
 
-	libs_metrics_collector->snapshot();
-	auto metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs_metrics_collector.snapshot();
+	auto metrics_snapshot = libs_metrics_collector.get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 28);
 
-	/* Test prometheus_metrics_converter->convert_metric_to_text */
+	/* Test prometheus_metrics_converter.convert_metric_to_text_prometheus */
 	std::string prometheus_text;
 	std::string prometheus_text_substring;
 	std::string metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion;
 
 	for (auto& metric: metrics_snapshot)
 	{
-		prometheus_metrics_converter->convert_metric_to_unit_convention(metric);
+		prometheus_metrics_converter.convert_metric_to_unit_convention(metric);
 		if (!metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion.empty())
 		{
 			metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion += " ";
 		}
 		metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion += metric.name;
 		// Since unit testing is very limited here just also print it for manual inspection if needed
-		prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco");
+		prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco");
 		printf("%s", prometheus_text.c_str());
 
 		if (strncmp(metric.name, "n_missing_container_images", strlen(metric.name)) == 0)
@@ -62,42 +62,42 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus)
 
 			// Falco output_rule metrics prepends either `falco.` or `scap.` to a single metric, see https://falco.org/docs/metrics/
 			// Use same strings for `prometheus_subsystem`, but instead of `.` we use `_` delimiter to conform with Prometheus naming conventions + append the unit
-			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco", {{"example_key1", "example1"},{"example_key2", "example2"}});
+			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco", {{"example_key1", "example1"},{"example_key2", "example2"}});
 			prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
 testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1",example_key2="example2"} 0
 )";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test only one const_labels
-			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco", {{"example_key1", "example1"}});
+			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco", {{"example_key1", "example1"}});
 			prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
 testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images",example_key1="example1"} 0
 )";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test no const_labels
-			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco");
+			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco");
 			prometheus_text_substring = R"(# HELP testns_falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_missing_container_images_total gauge
 testns_falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 )";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test no prometheus_subsytem
-			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns");
+			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns");
 			prometheus_text_substring = R"(# HELP testns_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE testns_n_missing_container_images_total gauge
 testns_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 )";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			// Test no prometheus_namespace
-			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric);
+			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric);
 			prometheus_text_substring = R"(# HELP n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE n_missing_container_images_total gauge
 n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 )";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 			//  Test no prometheus_namespace, but prometheus_subsytem
-			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "", "falco");
+			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "", "falco");
 			prometheus_text_substring = R"(# HELP falco_n_missing_container_images_total https://falco.org/docs/metrics/
 # TYPE falco_n_missing_container_images_total gauge
 falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
@@ -107,7 +107,7 @@ falco_n_missing_container_images_total{raw_name="n_missing_container_images"} 0
 		{
 			// Test that libs native metric unit suffix was removed and replaced by the Prometheus specific unit suffix naming convention
 			// todo adjust once base units are implemented
-			prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco");
+			prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco");
 			prometheus_text_substring = R"(# HELP testns_falco_memory_rss_bytes https://falco.org/docs/metrics/
 # TYPE testns_falco_memory_rss_bytes gauge
 testns_falco_memory_rss_bytes{raw_name="memory_rss_bytes"} )";
@@ -119,7 +119,7 @@ testns_falco_memory_rss_bytes{raw_name="memory_rss_bytes"} )";
 	"cpu_usage_ratio memory_rss_bytes memory_vsz_bytes memory_pss_bytes container_memory_used_bytes host_cpu_usage_ratio host_procs_running host_memory_used_bytes host_open_fds n_threads n_fds n_noncached_fd_lookups n_cached_fd_lookups n_failed_fd_lookups n_added_fds n_removed_fds n_stored_evts n_store_evts_drops n_retrieved_evts n_retrieve_evts_drops n_noncached_thread_lookups n_cached_thread_lookups n_failed_thread_lookups n_added_threads n_removed_threads n_drops_full_threadtable n_missing_container_images n_containers");
 
 	// Test global wrapper base metrics (pseudo metrics)
-	prometheus_text = prometheus_metrics_converter->convert_metric_to_text("kernel_release", "testns", "falco", {{"kernel_release", "6.6.7-200.fc39.x86_64"}});
+	prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus("kernel_release", "testns", "falco", {{"kernel_release", "6.6.7-200.fc39.x86_64"}});
 	prometheus_text_substring = R"(# HELP testns_falco_kernel_release_info https://falco.org/docs/metrics/
 # TYPE testns_falco_kernel_release_info gauge
 testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1
@@ -129,35 +129,35 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 
 	// Another round of fake metric tests since we do not fetch real scap metrics, for example.
 	std::vector<metrics_v2> fake_metrics_snapshot;
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("sys_enter.run_cnt",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.run_cnt",
 											METRICS_V2_LIBBPF_STATS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_COUNT, 
 											METRIC_VALUE_MONOTONIC, 
 											76435525241UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("sys_enter.run_time_ns",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.run_time_ns",
 											METRICS_V2_LIBBPF_STATS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_NS_COUNT, 
 											METRIC_VALUE_MONOTONIC, 
 											16269369826392UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("sys_enter.avg_time_ns",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.avg_time_ns",
 											METRICS_V2_LIBBPF_STATS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_NS, 
 											METRIC_VALUE_NON_MONOTONIC_CURRENT, 
 											203UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("n_drops",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("n_drops",
 											METRICS_V2_KERNEL_COUNTERS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_COUNT, 
 											METRIC_VALUE_MONOTONIC, 
 											674200UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("n_drops_buffer_total",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("n_drops_buffer_total",
 											METRICS_V2_KERNEL_COUNTERS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_COUNT, 
@@ -165,14 +165,14 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 											5000UL));
 
 	// Simulate some derived metrics; critical for example for Falco consumer use cases
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("duration_sec",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("duration_sec",
 											METRICS_V2_MISC,
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_S_COUNT, 
 											METRIC_VALUE_MONOTONIC, 
 											144UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("evt_rate_sec",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("evt_rate_sec",
 											METRICS_V2_MISC,
 											METRIC_VALUE_TYPE_D,
 											METRIC_VALUE_UNIT_TIME_S, 
@@ -181,7 +181,7 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 
 	// Timestamps while they always go up should still be regarded as gauge from a Prometheus perspective
 	// https://www.robustperception.io/are-increasing-timestamps-counters-or-gauges/
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector->new_metric("host_boot_ts",
+	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("host_boot_ts",
 											METRICS_V2_MISC, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS, 
@@ -190,8 +190,8 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 
 	for (auto& metric: fake_metrics_snapshot)
 	{
-		prometheus_metrics_converter->convert_metric_to_unit_convention(metric);
-		prometheus_text = prometheus_metrics_converter->convert_metric_to_text(metric, "testns", "falco");
+		prometheus_metrics_converter.convert_metric_to_unit_convention(metric);
+		prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco");
 		printf("%s", prometheus_text.c_str());
 		if (strncmp(metric.name, "sys_enter.run_cnt", strlen(metric.name)) == 0)
 		{
@@ -258,15 +258,15 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 
 	/* Snapshot current metrics and get the updated metrics_snapshot buffer */
 	uint32_t test_metrics_flags = (METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	auto libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(&m_inspector, test_metrics_flags);
-	auto output_rule_metrics_converter = std::make_unique<libs::metrics::output_rule_metrics_converter>();
+	libs::metrics::libs_metrics_collector libs_metrics_collector(&m_inspector, test_metrics_flags);
+	libs::metrics::output_rule_metrics_converter output_rule_metrics_converter;
 
 	/* Multiple calls */
-	libs_metrics_collector->snapshot();
-	auto metrics_snapshot = libs_metrics_collector->get_metrics();
-	libs_metrics_collector->snapshot();
-	libs_metrics_collector->snapshot();
-	metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs_metrics_collector.snapshot();
+	auto metrics_snapshot = libs_metrics_collector.get_metrics();
+	libs_metrics_collector.snapshot();
+	libs_metrics_collector.snapshot();
+	metrics_snapshot = libs_metrics_collector.get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 28);
 
 	/* These names should always be available, note that we currently can't check for the merged scap stats metrics here */
@@ -275,7 +275,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 
 	for(const auto& metric_name : minimal_metrics_names)
 	{
-		int i = 0;
+		size_t i = 0;
 		for (const auto& metric: metrics_snapshot) 
 		{
 			if(metric_name == metric.name)
@@ -298,7 +298,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 	for (auto& metric: metrics_snapshot)
 	{
 		// This resembles the Falco client use case and would be called if `convert_memory_to_mb` is set to true
-		output_rule_metrics_converter->convert_metric_to_unit_convention(metric);
+		output_rule_metrics_converter.convert_metric_to_unit_convention(metric);
 		if (std::find(metrics_names_memory.begin(), metrics_names_memory.end(), metric.name) != metrics_names_memory.end())
 		{
 			ASSERT_EQ(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES);
@@ -326,45 +326,45 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 	ASSERT_EQ(success_values_cnt, metrics_names_values_gt.size());
 
 	/* Empty call */
-	libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(&m_inspector, 0);
-	libs_metrics_collector->snapshot();
-	metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs::metrics::libs_metrics_collector libs_metrics_collector2(&m_inspector, 0);
+	libs_metrics_collector2.snapshot();
+	metrics_snapshot = libs_metrics_collector2.get_metrics();
 	ASSERT_TRUE(metrics_snapshot.empty());
 
 	/* Sanity check empty inspector */
 	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(nullptr, test_metrics_flags);
-	libs_metrics_collector->snapshot();
-	metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs::metrics::libs_metrics_collector libs_metrics_collector3(nullptr, test_metrics_flags);
+	libs_metrics_collector3.snapshot();
+	metrics_snapshot = libs_metrics_collector3.get_metrics();
 	ASSERT_TRUE(metrics_snapshot.empty());
 
 	/* Some sanity checks for selective flags */
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_KERNEL_COUNTERS; // 20, but can't test it here it's 0
 	test_metrics_flags |= METRICS_V2_LIBBPF_STATS; // 21 (x86_64 machine), but can't test it here it's 0
-	libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(&m_inspector, test_metrics_flags);
-	libs_metrics_collector->snapshot();
-	metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs::metrics::libs_metrics_collector libs_metrics_collector4(&m_inspector, test_metrics_flags);
+	libs_metrics_collector4.snapshot();
+	metrics_snapshot = libs_metrics_collector4.get_metrics();
 	ASSERT_TRUE(metrics_snapshot.empty());
 
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_RESOURCE_UTILIZATION;
-	libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(&m_inspector, test_metrics_flags);
-	libs_metrics_collector->snapshot();
-	metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs::metrics::libs_metrics_collector libs_metrics_collector5(&m_inspector, test_metrics_flags);
+	libs_metrics_collector5.snapshot();
+	metrics_snapshot = libs_metrics_collector5.get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 9);
 
 	test_metrics_flags = 0;
 	test_metrics_flags |= METRICS_V2_STATE_COUNTERS;
-	libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(&m_inspector, test_metrics_flags);
-	libs_metrics_collector->snapshot();
-	metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs::metrics::libs_metrics_collector libs_metrics_collector6(&m_inspector, test_metrics_flags);
+	libs_metrics_collector6.snapshot();
+	metrics_snapshot = libs_metrics_collector6.get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 19);
 
 	test_metrics_flags = (METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS);
-	libs_metrics_collector = std::make_unique<libs::metrics::libs_metrics_collector>(&m_inspector, test_metrics_flags);
-	libs_metrics_collector->snapshot();
-	metrics_snapshot = libs_metrics_collector->get_metrics();
+	libs::metrics::libs_metrics_collector libs_metrics_collector7(&m_inspector, test_metrics_flags);
+	libs_metrics_collector7.snapshot();
+	metrics_snapshot = libs_metrics_collector7.get_metrics();
 	ASSERT_EQ(metrics_snapshot.size(), 28);
 }
 

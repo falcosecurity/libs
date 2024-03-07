@@ -120,6 +120,7 @@ double convert_memory(metrics_v2_value_unit source_unit, metrics_v2_value_unit d
 class metrics_converter
 {
 public:
+	virtual ~metrics_converter() = default;
 
 	virtual std::string convert_metric_to_text(const metrics_v2& metric) const;
 
@@ -173,7 +174,7 @@ public:
 	 * w/ a `prometheus_metric_name_fully_qualified` - optional components prepended to and unit appended to. 
 	 * 3-lines including # HELP and # TYPE lines followed by the metric line, raw metric name always present as label.
 	*/
-	std::string convert_metric_to_text(const metrics_v2& metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
+	std::string convert_metric_to_text_prometheus(const metrics_v2& metric, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
 
 	/*!
 	\brief Overloaded method to convert a pseudo-metric / software version like metric_name to the text-based Prometheus exposition format.
@@ -198,7 +199,7 @@ public:
 	 * w/ a `prometheus_metric_name_fully_qualified` - optional components prepended to and unit appended to. 
 	 * 3-lines including # HELP and # TYPE lines followed by the metric line, raw metric name always present as label.
 	 */
-	std::string convert_metric_to_text(std::string_view metric_name, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
+	std::string convert_metric_to_text_prometheus(std::string_view metric_name, std::string_view prometheus_namespace = "", std::string_view prometheus_subsystem = "", const std::map<std::string,std::string>& const_labels = {}) const;
 
 	/*!
 	* \brief Method to convert metric units to Prometheus base units.
