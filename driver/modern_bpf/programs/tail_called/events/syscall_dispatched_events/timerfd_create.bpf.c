@@ -29,7 +29,7 @@ int BPF_PROG(timerfd_create_e,
 	/* Like in the old probe we send `0` */
 	ringbuf__store_u8(&ringbuf, 0);
 
-	/* Parameter 2: flags (type: PT_FLAGS8) */
+	/* Parameter 2: flags (type: PT_UINT8) */
 	/* Like in the old probe we send `0` */
 	ringbuf__store_u8(&ringbuf, 0);
 
