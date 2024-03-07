@@ -71,6 +71,7 @@ sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
 	m_info.m_shortdesc = "All event types";
 	m_info.m_desc = "These fields can be used for all event types";
 	m_info.m_fields = sinsp_filter_check_gen_event_fields;
+	m_info.m_flags = filter_check_info::FL_NONE;
 	m_info.m_nfields = sizeof(sinsp_filter_check_gen_event_fields) / sizeof(sinsp_filter_check_gen_event_fields[0]);
 	m_u64val = 0;
 }

@@ -53,6 +53,7 @@ sinsp_filter_check_syslog::sinsp_filter_check_syslog()
 {
 	m_info.m_name = "syslog";
 	m_info.m_desc = "Content of Syslog messages.";
+	m_info.m_flags = filter_check_info::FL_NONE;
 	m_info.m_fields = sinsp_filter_check_syslog_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]);
 }

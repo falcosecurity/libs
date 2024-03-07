@@ -30,7 +30,7 @@ sinsp_filter_check_reference::sinsp_filter_check_reference()
 	m_info.m_desc = "";
 	m_info.m_fields = &m_finfo;
 	m_info.m_nfields = 1;
-	m_info.m_flags = 0;
+	m_info.m_flags = filter_check_info::FL_HIDDEN;
 	m_finfo.m_print_format = PF_DEC;
 	m_field = &m_finfo;
 }

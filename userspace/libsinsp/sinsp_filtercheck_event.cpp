@@ -131,6 +131,7 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 	m_info.m_desc = "Event fields applicable to syscall events. Note that for most events you can access the individual arguments/parameters of each syscall via evt.arg, e.g. evt.arg.filename.";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
+	m_info.m_flags = filter_check_info::FL_NONE;
 	m_u64val = 0;
 	m_converter = std::make_unique<sinsp_filter_check_reference>();
 }
