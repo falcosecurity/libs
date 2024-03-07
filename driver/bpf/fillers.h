@@ -1224,7 +1224,7 @@ FILLER(sys_socketpair_x, true)
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	if (retval >= 0) {
+	if (retval == 0) {
 		val = bpf_syscall_get_argument(data, 3);
 		if (bpf_probe_read_user(fds, 2 * sizeof(int), (void *)val))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
