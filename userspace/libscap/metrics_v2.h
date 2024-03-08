@@ -48,7 +48,7 @@ typedef union metrics_v2_value {
 	double d;
 	float f;
 	int i;
-}metrics_v2_value;
+} metrics_v2_value;
 
 typedef enum metrics_v2_value_type{
 	METRIC_VALUE_TYPE_U32,
@@ -58,7 +58,7 @@ typedef enum metrics_v2_value_type{
 	METRIC_VALUE_TYPE_D,
 	METRIC_VALUE_TYPE_F,
 	METRIC_VALUE_TYPE_I,
-}metrics_v2_value_type;
+} metrics_v2_value_type;
 
 typedef enum metrics_v2_value_unit{
 	METRIC_VALUE_UNIT_COUNT,
@@ -72,12 +72,12 @@ typedef enum metrics_v2_value_unit{
 	METRIC_VALUE_UNIT_TIME_NS_COUNT,
 	METRIC_VALUE_UNIT_TIME_S_COUNT,
 	METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS,
-}metrics_v2_value_unit;
+} metrics_v2_value_unit;
 
 typedef enum metrics_v2_metric_type{
 	METRIC_VALUE_MONOTONIC,
 	METRIC_VALUE_NON_MONOTONIC_CURRENT,
-}metrics_v2_metric_type;
+} metrics_v2_metric_type;
 
 /*!
   \brief Metrics schema, used for libscap and libsinsp metrics about an in progress capture.
@@ -92,7 +92,7 @@ typedef struct metrics_v2
 	metrics_v2_value value;
 	metrics_v2_value_type type;
 	metrics_v2_value_unit unit;
-}metrics_v2;
+} metrics_v2;
 
 #ifdef __cplusplus
 }

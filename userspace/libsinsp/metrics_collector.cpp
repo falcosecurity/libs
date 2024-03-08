@@ -86,177 +86,140 @@ static const char *const metrics_metric_type_name_mappings_prometheus[] = {
 
 namespace libs::metrics {
 
-std::string metrics_converter::convert_metric_to_text(const metrics_v2& metric) const
+std::string metric_value_to_text(const metrics_v2& metric)
 {
-	std::string metric_text = std::string(metric.name) + " ";
+	std::string value_text;
 	switch (metric.type)
 	{
 	case METRIC_VALUE_TYPE_U32:
-		metric_text += std::to_string(metric.value.u32);
+		value_text = std::to_string(metric.value.u32);
 		break;
 	case METRIC_VALUE_TYPE_S32:
-		metric_text += std::to_string(metric.value.s32);
+		value_text = std::to_string(metric.value.s32);
 		break;
 	case METRIC_VALUE_TYPE_U64:
-		metric_text += std::to_string(metric.value.u64);
+		value_text = std::to_string(metric.value.u64);
 		break;
 	case METRIC_VALUE_TYPE_S64:
-		metric_text += std::to_string(metric.value.s64);
+		value_text = std::to_string(metric.value.s64);
 		break;
 	case METRIC_VALUE_TYPE_D:
-		metric_text += std::to_string(metric.value.d);
+		value_text = std::to_string(metric.value.d);
 		break;
 	case METRIC_VALUE_TYPE_F:
-		metric_text += std::to_string(metric.value.f);
+		value_text = std::to_string(metric.value.f);
 		break;
 	case METRIC_VALUE_TYPE_I:
-		metric_text += std::to_string(metric.value.i);
-		break;
-	default:
+		value_text = std::to_string(metric.value.i);
 		break;
 	}
-	metric_text += "\n";
-	return metric_text;
+	return value_text;
 }
 
-void metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
+std::string prometheus_qualifier(std::string_view prometheus_namespace, std::string_view prometheus_subsystem)
 {
-	return;
-}
-
-void output_rule_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
-{
-	if(metric.unit == METRIC_VALUE_UNIT_MEMORY_BYTES || metric.unit == METRIC_VALUE_UNIT_MEMORY_KIBIBYTES)
-	{
-		if(metric.type == METRIC_VALUE_TYPE_U32)
-		{
-			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, metric.value.u32);
-			std::string metric_name_str(metric.name);
-			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_mb");
-			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
-			metric.type = METRIC_VALUE_TYPE_D;
-			metric.unit = METRIC_VALUE_UNIT_MEMORY_MEGABYTES;
-		}
-		else if(metric.type == METRIC_VALUE_TYPE_U64)
-		{
-			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, metric.value.u64);
-			std::string metric_name_str(metric.name);
-			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_mb");
-			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
-			metric.type = METRIC_VALUE_TYPE_D;
-			metric.unit = METRIC_VALUE_UNIT_MEMORY_MEGABYTES;
-		}
-	}
-}
-
-std::string prometheus_metrics_converter::convert_metric_to_text_prometheus(const metrics_v2& metric, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
-{
-	// Create `prometheus_metric_name_fully_qualified`
-	std::string prometheus_metric_name_fully_qualified;
+	std::string qualifier;
 	if (!prometheus_namespace.empty())
 	{
-		prometheus_metric_name_fully_qualified += std::string(prometheus_namespace) + "_";
+		qualifier += std::string(prometheus_namespace) + "_";
 	}
 	if (!prometheus_subsystem.empty())
 	{
-		prometheus_metric_name_fully_qualified += std::string(prometheus_subsystem) + "_";
+		qualifier += std::string(prometheus_subsystem) + "_";
 	}
-	prometheus_metric_name_fully_qualified += std::string(metric.name) + "_";
-	// Remove native libs unit suffixes if applicable.
-	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_units_suffix_pre_prometheus_text_conversion, "");
-	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_banned_prometheus_naming_characters, "_");
-	prometheus_metric_name_fully_qualified += std::string(metrics_unit_name_mappings_prometheus[metric.unit]);
-
-	// Create the complete 3-lines text-based Prometheus exposition format https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-	std::string prometheus_text = "# HELP " + prometheus_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
-	prometheus_text += "# TYPE " + prometheus_metric_name_fully_qualified + " " + std::string(metrics_metric_type_name_mappings_prometheus[metric.metric_type]) + "\n";
-	prometheus_text += prometheus_metric_name_fully_qualified;
-	prometheus_text += "{raw_name=\"" + std::string(metric.name) + "\"" ;
-	for (const auto& [key, value] : const_labels)
-	{
-		prometheus_text += "," + key + "=\"" + value + "\"" ;
-	}
-	prometheus_text += "} "; // white space at the end important!
-	switch (metric.type)
-	{
-	case METRIC_VALUE_TYPE_U32:
-		prometheus_text += std::to_string(metric.value.u32);
-		break;
-	case METRIC_VALUE_TYPE_S32:
-		prometheus_text += std::to_string(metric.value.s32);
-		break;
-	case METRIC_VALUE_TYPE_U64:
-		prometheus_text += std::to_string(metric.value.u64);
-		break;
-	case METRIC_VALUE_TYPE_S64:
-		prometheus_text += std::to_string(metric.value.s64);
-		break;
-	case METRIC_VALUE_TYPE_D:
-		prometheus_text += std::to_string(metric.value.d);
-		break;
-	case METRIC_VALUE_TYPE_F:
-		prometheus_text += std::to_string(metric.value.f);
-		break;
-	case METRIC_VALUE_TYPE_I:
-		prometheus_text += std::to_string(metric.value.i);
-		break;
-	default:
-		break;
-	}
-
-	prometheus_text += "\n";
-	return prometheus_text;
+	return qualifier;
 }
 
-std::string prometheus_metrics_converter::convert_metric_to_text_prometheus(std::string_view metric_name, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
-{
-	// Create `prometheus_metric_name_fully_qualified`
-	std::string prometheus_metric_name_fully_qualified;
-	if (!prometheus_namespace.empty())
-	{
-		prometheus_metric_name_fully_qualified += std::string(prometheus_namespace) + "_";
-	}
-	if (!prometheus_subsystem.empty())
-	{
-		prometheus_metric_name_fully_qualified += std::string(prometheus_subsystem) + "_";
-	}
-	prometheus_metric_name_fully_qualified += std::string(metric_name) + "_info";
 
-	// Create the complete 3-lines text-based Prometheus exposition format https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-	std::string prometheus_text = "# HELP " + prometheus_metric_name_fully_qualified + " https://falco.org/docs/metrics/\n";
-	prometheus_text += "# TYPE " + prometheus_metric_name_fully_qualified + " gauge\n";
-	prometheus_text += prometheus_metric_name_fully_qualified;
+std::string prometheus_exposition_text(std::string_view metric_qualified_name, std::string_view metric_name, std::string_view metric_type_name, std::string_view metric_value, const std::map<std::string, std::string>& const_labels)
+{
+	std::string fqn(metric_qualified_name);
+	std::string prometheus_text = "# HELP " + fqn + " https://falco.org/docs/metrics/\n";
+	prometheus_text += "# TYPE " + fqn + " " + std::string(metric_type_name) + "\n";
+	prometheus_text += fqn;
 	prometheus_text += "{raw_name=\"" + std::string(metric_name) + "\"" ;
 	for (const auto& [key, value] : const_labels)
 	{
 		prometheus_text += "," + key + "=\"" + value + "\"" ;
 	}
-	prometheus_text += "} 1\n";
+	prometheus_text += "} "; // white space at the end important!
+	prometheus_text += std::string(metric_value);
+	prometheus_text += "\n";
 	return prometheus_text;
+}
+
+std::string metrics_converter::convert_metric_to_text(const metrics_v2& metric) const
+{
+	return std::string(metric.name) + " " + metric_value_to_text(metric) + "\n";
+}
+
+void metrics_converter::convert_metric_to_unit_convention(metrics_v2& /*metric*/) const
+{
+	// Default does nothing
+}
+
+void output_rule_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
+{
+	if((metric.unit == METRIC_VALUE_UNIT_MEMORY_BYTES || metric.unit == METRIC_VALUE_UNIT_MEMORY_KIBIBYTES) &&
+		(metric.type == METRIC_VALUE_TYPE_U32 || metric.type == METRIC_VALUE_TYPE_U64))
+	{
+		if(metric.type == METRIC_VALUE_TYPE_U32)
+		{
+			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, metric.value.u32);
+		}
+		else if(metric.type == METRIC_VALUE_TYPE_U64)
+		{
+			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_MEGABYTES, metric.value.u64);
+		}
+		std::string metric_name_str(metric.name);
+		RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_mb");
+		strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
+		metric.type = METRIC_VALUE_TYPE_D;
+		metric.unit = METRIC_VALUE_UNIT_MEMORY_MEGABYTES;
+	}
+}
+
+std::string prometheus_metrics_converter::convert_metric_to_text_prometheus(const metrics_v2& metric, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
+{
+	std::string prometheus_metric_name_fully_qualified = prometheus_qualifier(prometheus_namespace, prometheus_subsystem) + std::string(metric.name) + "_";
+	// Remove native libs unit suffixes if applicable.
+	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_units_suffix_pre_prometheus_text_conversion, "");
+	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_banned_prometheus_naming_characters, "_");
+	prometheus_metric_name_fully_qualified += std::string(metrics_unit_name_mappings_prometheus[metric.unit]);
+	return prometheus_exposition_text(prometheus_metric_name_fully_qualified,
+										metric.name,
+										metrics_metric_type_name_mappings_prometheus[metric.metric_type],
+										metric_value_to_text(metric),
+										const_labels);
+}
+
+std::string prometheus_metrics_converter::convert_metric_to_text_prometheus(std::string_view metric_name, std::string_view prometheus_namespace, std::string_view prometheus_subsystem, const std::map<std::string, std::string>& const_labels) const
+{
+	return prometheus_exposition_text(prometheus_qualifier(prometheus_namespace, prometheus_subsystem) + std::string(metric_name) + "_info",
+										metric_name,
+										"gauge",
+										"1",
+										const_labels);
 }
 
 void prometheus_metrics_converter::convert_metric_to_unit_convention(metrics_v2& metric) const
 {
-	if(metric.unit == METRIC_VALUE_UNIT_MEMORY_BYTES || metric.unit == METRIC_VALUE_UNIT_MEMORY_KIBIBYTES)
+	if((metric.unit == METRIC_VALUE_UNIT_MEMORY_BYTES || metric.unit == METRIC_VALUE_UNIT_MEMORY_KIBIBYTES) &&
+		(metric.type == METRIC_VALUE_TYPE_U32 || metric.type == METRIC_VALUE_TYPE_U64))
 	{
 		if(metric.type == METRIC_VALUE_TYPE_U32)
 		{
 			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_BYTES, metric.value.u32);
-			std::string metric_name_str(metric.name);
-			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_bytes");
-			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
-			metric.type = METRIC_VALUE_TYPE_D;
-			metric.unit = METRIC_VALUE_UNIT_MEMORY_BYTES;
 		}
 		else if(metric.type == METRIC_VALUE_TYPE_U64)
 		{
 			metric.value.d = libs::metrics::convert_memory(metric.unit, METRIC_VALUE_UNIT_MEMORY_BYTES, metric.value.u64);
-			std::string metric_name_str(metric.name);
-			RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_bytes");
-			strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
-			metric.type = METRIC_VALUE_TYPE_D;
-			metric.unit = METRIC_VALUE_UNIT_MEMORY_BYTES;
 		}
+		std::string metric_name_str(metric.name);
+		RE2::GlobalReplace(&metric_name_str, s_libs_metrics_units_memory_suffix, "_bytes");
+		strlcpy(metric.name, metric_name_str.c_str(), METRIC_NAME_MAX);
+		metric.type = METRIC_VALUE_TYPE_D;
+		metric.unit = METRIC_VALUE_UNIT_MEMORY_BYTES;
 	}
 	else if(metric.unit == METRIC_VALUE_UNIT_PERC && metric.type == METRIC_VALUE_TYPE_D)
 	{
