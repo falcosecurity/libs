@@ -69,6 +69,19 @@ enum direction
  */
 #define TEST_EXECUTABLE_NAME "drivers_test"
 
+/*
+ * Macro that wraps internal _assert_syscall_state,
+ * dealing with ENOSYS syscalls, ie: syscalls that are defined but unimplemented,
+ * skipping the test.
+ */
+#define assert_syscall_state(syscall_state, syscall_name, ...) \
+        do { \
+		errno = 0; \
+		_assert_syscall_state(syscall_state, syscall_name, __VA_ARGS__); \
+                if(errno == ENOSYS) \
+			GTEST_SKIP() << "Syscall " << syscall_name << " not implemented" << std::endl; \
+	} while(0)
+
 /////////////////////////////////
 // SYSCALL RESULT ASSERTIONS
 /////////////////////////////////
@@ -80,13 +93,16 @@ enum direction
  *
  * When you use this method you must check what is the syscall return value!
  *
+ * PLEASE use the assert_syscall_state macro instead, that automatically
+ * deals with unimplemented syscalls errors.
+ *
  * @param syscall_state it could be `SYSCALL_FAILURE` or `SYSCALL_SUCCESS`
  * @param syscall_name the name of the syscall to assert.
  * @param syscall_rc the return code of the syscall to assert.
  * @param op the operation we want to perform in the assertion.
  * @param expected_rc the return code we expect.
  */
-void assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, enum assertion_operators op = EQUAL, long expected_rc = -1);
+void _assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, enum assertion_operators op = EQUAL, long expected_rc = -1);
 
 class event_test
 {

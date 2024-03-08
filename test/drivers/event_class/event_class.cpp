@@ -47,13 +47,13 @@ std::unique_ptr<event_test> get_syscall_event_test()
 // SYSCALL RESULT ASSERTIONS
 /////////////////////////////////
 
-void assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, assertion_operators op, long expected_rc)
+void _assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, assertion_operators op, long expected_rc)
 {
 	bool match = false;
 
 	if (errno == ENOSYS)
 	{
-		GTEST_SKIP() << "Syscall " << syscall_name << " not implemented"  << std::endl;
+		// it is managed upward by assert_syscall_state macro.
 		return;
 	}
 
