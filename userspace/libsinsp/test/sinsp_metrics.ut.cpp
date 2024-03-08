@@ -54,7 +54,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus)
 		metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion += metric.name;
 		// Since unit testing is very limited here just also print it for manual inspection if needed
 		prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco");
-		printf("%s", prometheus_text.c_str());
+		std::cerr << prometheus_text;
 
 		if (strncmp(metric.name, "n_missing_container_images", strlen(metric.name)) == 0)
 		{
@@ -124,7 +124,7 @@ testns_falco_memory_rss_bytes{raw_name="memory_rss_bytes"} )";
 # TYPE testns_falco_kernel_release_info gauge
 testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7-200.fc39.x86_64"} 1
 )";
-	printf("%s", prometheus_text.c_str());
+	std::cerr << prometheus_text;
 	ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 
 	// Another round of fake metric tests since we do not fetch real scap metrics, for example.
@@ -192,7 +192,7 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 	{
 		prometheus_metrics_converter.convert_metric_to_unit_convention(metric);
 		prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus(metric, "testns", "falco");
-		printf("%s", prometheus_text.c_str());
+		std::cerr << prometheus_text;
 		if (strncmp(metric.name, "sys_enter.run_cnt", strlen(metric.name)) == 0)
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_sys_enter_run_cnt_total https://falco.org/docs/metrics/
@@ -214,7 +214,7 @@ testns_falco_sys_enter_run_time_nanoseconds_total{raw_name="sys_enter.run_time_n
 testns_falco_sys_enter_avg_time_nanoseconds{raw_name="sys_enter.avg_time_ns"} 203
 )";
 			ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
-		} else if (strncmp(metric.name, "n_drops_buffer_total", strlen(metric.name)) == 0 && strlen(metric.name) == 21) // avoid clash with "n_drops" metric name
+		} else if (strncmp(metric.name, "n_drops_buffer_total", strlen(metric.name)) == 0 && strlen(metric.name) == 20) // avoid clash with "n_drops" metric name
 		{
 			prometheus_text_substring = R"(# HELP testns_falco_n_drops_buffer_total https://falco.org/docs/metrics/
 # TYPE testns_falco_n_drops_buffer_total counter
