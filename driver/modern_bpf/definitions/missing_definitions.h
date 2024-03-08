@@ -403,19 +403,28 @@
 #define SO_LINGER 13
 #define SO_BSDCOMPAT 14
 #define SO_REUSEPORT 15
+/* Powerpc64 has different values for these ones. See /usr/include/asm/socket.h */
+#if defined(__TARGET_ARCH_powerpc)
+#define SO_RCVLOWAT     16
+#define SO_SNDLOWAT     17
+#define SO_RCVTIMEO_OLD 18
+#define SO_SNDTIMEO_OLD 19
+#define SO_PASSCRED     20
+#define SO_PEERCRED     21
+#else
 #define SO_PASSCRED 16
 #define SO_PEERCRED 17
 #define SO_RCVLOWAT 18
 #define SO_SNDLOWAT 19
-
 /* Define all flavours just to be sure to catch at least one of them
  * https://github.com/torvalds/linux/commit/a9beb86ae6e55bd92f38453c8623de60b8e5a308
  */
 #define SO_RCVTIMEO 20
 #define SO_RCVTIMEO_OLD 20
-#define SO_RCVTIMEO_NEW 66
 #define SO_SNDTIMEO 21
 #define SO_SNDTIMEO_OLD 21
+#endif
+#define SO_RCVTIMEO_NEW 66
 #define SO_SNDTIMEO_NEW 67
 
 /* Security levels - as per NRL IPv6 - don't actually do anything */
@@ -711,16 +720,6 @@
 #define SEM_UNDO 0x1000 /* undo the operation on exit. */
 
 //////////////////////////
-// mlockall flags
-//////////////////////////
-
-/* `/include/uapi/asm-generic/mman.h` from kernel source tree. */
-
-#define MCL_CURRENT 1 /* lock all current mappings */
-#define MCL_FUTURE 2  /* lock all future mappings */
-#define MCL_ONFAULT 4 /* lock all pages that are faulted in */
-
-//////////////////////////
 // chmod modes
 //////////////////////////
 
@@ -770,12 +769,17 @@
 //////////////////////////
 // mlockall flags
 //////////////////////////
-
+/* arch/powerpc/include/uapi/asm/mman.h from kernel source tree. */
+#if defined(__TARGET_ARCH_powerpc)
+#define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
+#define MCL_FUTURE      0x4000          /* lock all additions to address space */
+#define MCL_ONFAULT     0x8000          /* lock all pages that are faulted in */
+#else
 /* `/include/uapi/asm-generic/mman.h` from kernel source tree. */
-
 #define MCL_CURRENT 1 /* lock all current mappings */
 #define MCL_FUTURE 2  /* lock all future mappings */
 #define MCL_ONFAULT 4 /* lock all pages that are faulted in */
+#endif
 
 //////////////////////////
 // memfd_create flags
@@ -1333,7 +1337,6 @@
 
 #define MINORBITS 20
 #define MINORMASK ((1U << MINORBITS) - 1)
-
 #define MAJOR(dev) ((unsigned int)((dev) >> MINORBITS))
 #define MINOR(dev) ((unsigned int)((dev)&MINORMASK))
 #define MKDEV(ma, mi) (((ma) << MINORBITS) | (mi))
