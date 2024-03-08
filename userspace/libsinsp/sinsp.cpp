@@ -1204,6 +1204,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			{
 				m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
 			}
+			*puevt = evt;
 		}
 		else if(res == SCAP_UNEXPECTED_BLOCK)
 		{
