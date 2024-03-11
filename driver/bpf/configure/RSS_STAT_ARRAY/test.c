@@ -14,26 +14,11 @@ or GPL2.txt for full copies of the license.
  */
 
 #include "../../quirks.h"
-
-#include <uapi/linux/bpf.h>
-
 #include "../../ppm_events_public.h"
-#include "../../bpf_helpers.h"
 #include "../../types.h"
-#include "../../maps.h"
 
 // struct mm_struct declaration
 #include <linux/mm_types.h>
-
-#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME #event)				\
-int bpf_##event(struct type *ctx)
-#else
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME prefix #event)			\
-int bpf_##event(struct type *ctx)
-#endif
 
 BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 {

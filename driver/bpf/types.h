@@ -25,6 +25,16 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+#define BPF_PROBE(prefix, event, type)			\
+__bpf_section(TP_NAME #event)				\
+int bpf_##event(struct type *ctx)
+#else
+#define BPF_PROBE(prefix, event, type)			\
+__bpf_section(TP_NAME prefix #event)			\
+int bpf_##event(struct type *ctx)
+#endif
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 struct sys_enter_args {
 	unsigned long regs;
 	unsigned long id;
