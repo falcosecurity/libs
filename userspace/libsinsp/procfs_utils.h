@@ -1,6 +1,7 @@
 #pragma once
 
 #include <istream>
+#include <cstdint>
 #include <string>
 
 namespace libsinsp {
