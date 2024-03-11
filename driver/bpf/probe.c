@@ -27,16 +27,6 @@ or GPL2.txt for full copies of the license.
 #include "fillers.h"
 #include "builtins.h"
 
-#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME #event)				\
-int bpf_##event(struct type *ctx)
-#else
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME prefix #event)			\
-int bpf_##event(struct type *ctx)
-#endif
-
 #define __NR_ia32_socketcall 102
 
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
