@@ -17,8 +17,8 @@ TEST(SyscallExit, dup3X)
 	int32_t new_fd = old_fd;
 	uint32_t flags = O_CLOEXEC;
 	int32_t res = syscall(__NR_dup3, old_fd, new_fd, flags);
-	assert_syscall_state(SYSCALL_FAILURE, "dup3", res);
 	int64_t errno_value = -errno;
+	assert_syscall_state(SYSCALL_FAILURE, "dup3", res);
 
 	syscall(__NR_close, new_fd);
 	syscall(__NR_close, res);
