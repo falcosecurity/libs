@@ -65,8 +65,8 @@ TEST(SyscallExit, newfstatatX_failure)
 	int flags = AT_NO_AUTOMOUNT | AT_SYMLINK_NOFOLLOW;
 
 	int32_t res = syscall(__NR_newfstatat, dirfd, pathname, &buffer, flags);
-	assert_syscall_state(SYSCALL_FAILURE, "newfstatat", res);
 	int64_t errno_value = -errno;
+	assert_syscall_state(SYSCALL_FAILURE, "newfstatat", res);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
