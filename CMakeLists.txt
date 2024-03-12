@@ -110,6 +110,10 @@ option(WITH_CHISEL "Include chisel implementation" OFF)
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
+if(WITH_CHISEL)
+	message(WARNING "chisels have been deprecated!")
+endif()
+
 if(CREATE_TEST_TARGETS)
 	include(gtest)
 endif()

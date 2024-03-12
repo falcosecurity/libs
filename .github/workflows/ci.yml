@@ -27,8 +27,6 @@ jobs:
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
           - name: bundled_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
-          - name: system_deps_w_chisels
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
           - name: system_deps_minimal
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
           - name: sanitizers
@@ -38,7 +36,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.2-dev linux-headers-${{ matrix.arch }}
+          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -103,7 +101,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.2-dev linux-headers-$(uname -r)
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
           sudo .github/install-deps.sh
 
       - name: Build and test 🏗️🧪
@@ -149,7 +147,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON -DWITH_CHISEL=ON ..
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON ..
           cmake --build . --config Release && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
   build-shared-libs-macos-amd64:
@@ -238,8 +236,6 @@ jobs:
             cmake_opts: -DUSE_BUNDLED_DEPS=False
           - name: bundled_deps
             cmake_opts: -DUSE_BUNDLED_DEPS=True
-          - name: system_deps_w_chisels
-            cmake_opts: -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
           - name: asan
             cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address
     runs-on: ubuntu-22.04
@@ -272,7 +268,6 @@ jobs:
             protobuf-compiler-grpc \
             libgtest-dev \
             libprotobuf-dev \
-            liblua5.2-dev \
             "linux-headers-$(uname -r)"
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
           sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90

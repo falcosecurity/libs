@@ -34,7 +34,6 @@ rules:
       - pattern-regex: ^#include "[^"]+"
       - pattern-not-regex: ^#include <(?!libsinsp/|libscap/|driver/).*
       - pattern-not-regex: ^#include "pkg/sentry.*
-      - pattern-not-regex: ^#include "lua.*
       - pattern-not-regex: ^#include "stdint.h"
       - pattern-not-regex: ^#include "json/json.h"
       - pattern-not-regex: ^#include "uthash.h"
