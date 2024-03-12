@@ -21,8 +21,6 @@ endif()
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
-option(WITH_CHISEL "Include chisel implementation" OFF)
-
 if(DEFINED LIBSINSP_USER_AGENT)
 	add_definitions(-DLIBSINSP_USER_AGENT="${LIBSINSP_USER_AGENT}")
 endif()
@@ -90,11 +88,6 @@ install(DIRECTORY "${LIBS_DIR}/userspace/libsinsp" DESTINATION "${CMAKE_INSTALL_
 install(DIRECTORY "${LIBS_DIR}/userspace/async" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
 			COMPONENT "sinsp"
 			FILES_MATCHING PATTERN "*.h")
-if(WITH_CHISEL)
-	install(DIRECTORY "${LIBS_DIR}/userspace/chisel" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
-			COMPONENT "sinsp"
-			FILES_MATCHING PATTERN "*.h")
-endif()
 install(FILES ${PROJECT_BINARY_DIR}/libsinsp/libsinsp.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 endif()

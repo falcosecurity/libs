@@ -33,9 +33,6 @@ plus chisels related code and common utilities.
   libscap and enriches them with machine state: moreover, it performs
   events filtering with rule evaluation through its internal rule engine.
   Finally, it manages outputs. 
-  * **chisels** are just little Lua scripts to analyze an event stream
-  and perform useful actions. In this subfolder, the backend code for
-  chisels support can be found.  
 * [_proposals/_](./proposals) unexpectedly contains the list of proposals.
 * [_cmake/modules/_](./cmake/modules) contains modules to build
 external dependencies, plus the libscap and libsinsp ones; consumers

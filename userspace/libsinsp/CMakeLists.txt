@@ -28,18 +28,9 @@ if(NOT MSVC)
 	add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 endif()
 
-if(NOT DEFINED CHISEL_TOOL_LIBRARY_NAME)
-	set(CHISEL_TOOL_LIBRARY_NAME "sinsp")
-endif()
-add_definitions(-DCHISEL_TOOL_LIBRARY_NAME="${CHISEL_TOOL_LIBRARY_NAME}")
-
 include(ExternalProject)
 
 include(jsoncpp)
-if(WITH_CHISEL)
-	include(luajit)
-endif()
-
 include(zlib)
 
 if(NOT MINIMAL_BUILD)
@@ -122,18 +113,6 @@ add_library(sinsp
 
 if(NOT WIN32 AND NOT APPLE)
 	target_sources(sinsp PRIVATE procfs_utils.cpp sinsp_cgroup.cpp)
-endif()
-
-if(WITH_CHISEL)
-	target_sources(sinsp
-	PRIVATE
-		${LIBS_DIR}/userspace/chisel/chisel_api.cpp
-		${LIBS_DIR}/userspace/chisel/chisel_fields_info.cpp
-		${LIBS_DIR}/userspace/chisel/chisel_utils.cpp
-		${LIBS_DIR}/userspace/chisel/chisel.cpp
-		${LIBS_DIR}/userspace/chisel/chisel_viewinfo.cpp
-		${LIBS_DIR}/userspace/chisel/chisel_table.cpp
-	)
 endif()
 
 if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
@@ -219,10 +198,6 @@ if(USE_BUNDLED_JSONCPP)
 	add_dependencies(sinsp jsoncpp)
 endif()
 
-if(WITH_CHISEL)
-	add_dependencies(sinsp luajit)
-endif()
-
 function(prepare_cri_grpc api_version)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cri-${api_version}.proto ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto COPYONLY)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc
@@ -295,11 +270,6 @@ if(NOT WIN32)
 	target_link_libraries(sinsp INTERFACE "${OPENSSL_LIBRARIES}")
 	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${OPENSSL_LIBRARIES}")
 
-	if(WITH_CHISEL)
-		target_link_libraries(sinsp INTERFACE "${LUAJIT_LIB}")
-		list(APPEND SINSP_PKGCONFIG_LIBRARIES "${LUAJIT_LIB}")
-	endif()
-
 	target_link_libraries(sinsp INTERFACE dl pthread)
 	list(APPEND SINSP_PKGCONFIG_LIBRARIES dl pthread)
 
@@ -308,11 +278,6 @@ if(NOT WIN32)
 			target_link_libraries(sinsp INTERFACE stdc++fs)
 			list(APPEND SINSP_PKGCONFIG_LIBRARIES stdc++fs)
 		endif()
-	endif()
-else()
-	if(WITH_CHISEL)
-		target_link_libraries(sinsp INTERFACE "${LUAJIT_LIB}")
-		list(APPEND SINSP_PKGCONFIG_LIBRARIES "${LUAJIT_LIB}")
 	endif()
 endif() # NOT WIN32
 
