@@ -61,6 +61,7 @@ bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	if(container_cache().should_lookup(container_info.m_id, CT_BPM))
 	{
 		container_info.m_name = container_info.m_id;
+		container_info.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		container_cache().add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
 		container_cache().notify_new_container(container_info, tinfo);
 	}

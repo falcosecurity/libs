@@ -188,6 +188,7 @@ bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 
 	if (have_rkt)
 	{
+		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		cache->add_container(std::make_shared<sinsp_container_info>(container), tinfo);
 		cache->notify_new_container(container, tinfo);
 		return true;
