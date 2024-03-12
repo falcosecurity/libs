@@ -82,3 +82,37 @@ void dutils_kill_image(const char* image)
 
 	EXPECT_EQ(system(rmi_cmd.c_str()), 0);
 }
+
+docker_helper::docker_helper(const std::string& dockerfile_path, const std::string& tagname,
+							 const std::vector<std::string>& labels, const std::string& build_extra_args,
+							 const std::string& run_extra_args, const bool& verbose):
+	m_dockerfile_path(dockerfile_path),
+	m_tagname(tagname),
+	m_labels(labels),
+	m_build_extra_args(build_extra_args),
+	m_run_extra_args(run_extra_args),
+	m_verbose(verbose) {}
+
+int docker_helper::build_image() {
+    std::string label_options;
+    for (const auto& label : m_labels) {
+        label_options += " --label " + label;
+    }
+    std::string command = "docker build " + m_build_extra_args + label_options + " -t " + m_tagname + " -f " + m_dockerfile_path + " .";
+	if(!m_verbose)
+	{
+		command += "  > /dev/null 2>&1";
+
+	}
+    return system(command.c_str());
+}
+
+int docker_helper::run_container(const std::string& container_name, const std::string& cmd, const std::string& additional_options) {
+    std::string command = "docker run " + additional_options + " " + m_run_extra_args + " --name " + container_name + " " + m_tagname + " " + cmd;
+	if(!m_verbose)
+	{
+		command += "  > /dev/null 2>&1";
+
+	}
+    return system(command.c_str());
+}

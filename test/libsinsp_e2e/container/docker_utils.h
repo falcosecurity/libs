@@ -18,8 +18,29 @@ limitations under the License.
 
 #pragma once
 
+#include <string>
+#include <vector>
+
 bool dutils_check_docker();
 void dutils_create_tag(const char* tag, const char* image);
 void dutils_kill_container(const char* name);
 void dutils_kill_container_if_exists(const char* name);
 void dutils_kill_image(const char* image);
+
+class docker_helper {
+    public:
+        docker_helper(const std::string& dockerfile_path, const std::string& tagname,
+                                     const std::vector<std::string>& labels, const std::string& build_extra_args,
+                                     const std::string& run_extra_args, const bool& verbose = false);
+        int build_image();
+        int run_container(const std::string& containerName, const std::string& cmd, const std::string& additional_options = "--rm --network=none");
+
+    private:
+        std::string m_dockerfile_path;
+        std::string m_tagname;
+        std::vector<std::string> m_labels;
+        std::string m_build_extra_args;
+        std::string m_run_extra_args;
+        bool m_verbose;
+
+};
