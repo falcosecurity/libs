@@ -22,6 +22,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include <libsinsp/sinsp_cgroup.h>
+#include <string>
 
 using namespace std;
 
@@ -637,6 +638,9 @@ static void update_container_state(sinsp* inspector,
 static void healthcheck_helper(
     const char* dockerfile,
     bool expect_healthcheck,
+	const char* build_extra_args,
+	const char* run_extra_args,
+	std::vector<std::string>& labels,
     sinsp_threadinfo::command_category expected_cat = sinsp_threadinfo::CAT_HEALTHCHECK)
 {
 	container_state cstate;
@@ -650,13 +654,10 @@ static void healthcheck_helper(
 
 	dutils_kill_container("cont_health_ut");
 	dutils_kill_image("cont_health_ut_img");
+	std::string docker_res(LIBSINSP_TEST_RESOURCES_PATH "/docker/");
+	docker_helper dhelper(docker_res + dockerfile, "cont_health_ut_img", labels, build_extra_args, run_extra_args);
 
-	std::string build_cmdline = string("cd "
-									   LIBSINSP_TEST_RESOURCES_PATH
-									   "/docker/health_dockerfiles && docker build -t cont_health_ut_img -f ") +
-	    dockerfile + " . > /dev/null 2>&1";
-
-	ASSERT_TRUE(system(build_cmdline.c_str()) == 0);
+	ASSERT_TRUE(dhelper.build_image() == 0);
 
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
@@ -676,10 +677,7 @@ static void healthcheck_helper(
 			inspector_handle->start_dropping_mode(1);
 		}
 
-		// --network=none speeds up the container setup a bit.
-		int rc = system(
-		    "docker run --rm --network=none --name cont_health_ut cont_health_ut_img /bin/sh -c "
-		    "'/bin/sleep 10' > /dev/null 2>&1");
+		int rc = dhelper.run_container("cont_health_ut", "/bin/sh -c '/bin/sleep 10'");
 
 		ASSERT_TRUE(exited_early || (rc == 0));
 	};
@@ -717,14 +715,16 @@ static void healthcheck_helper(
 //  or a second process spawned after as a health check process.
 TEST_F(sys_call_test, docker_container_no_healthcheck)
 {
-	healthcheck_helper("Dockerfile.no_healthcheck", false);
+	std::vector<std::string> labels{};
+	healthcheck_helper("Dockerfile.no_healthcheck", false, "", "", labels);
 }
 
 // A container with HEALTHCHECK=none should behave identically to one
 // without any container at all.
 TEST_F(sys_call_test, docker_container_none_healthcheck)
 {
-	healthcheck_helper("Dockerfile.none_healthcheck", false);
+	std::vector<std::string> labels{};
+	healthcheck_helper("Dockerfile.none_healthcheck", false, "", "", labels);
 }
 
 //  Run container w/ health check. Should find health check for
@@ -733,7 +733,8 @@ TEST_F(sys_call_test, docker_container_none_healthcheck)
 //  check executed for container.
 TEST_F(sys_call_test, docker_container_healthcheck)
 {
-	healthcheck_helper("Dockerfile.healthcheck", true);
+	std::vector<std::string> labels{};
+	healthcheck_helper("Dockerfile", true, "", "", labels);
 }
 
 //  Run container w/ health check and entrypoint having identical
@@ -741,28 +742,40 @@ TEST_F(sys_call_test, docker_container_healthcheck)
 //  health check process.
 TEST_F(sys_call_test, docker_container_healthcheck_cmd_overlap)
 {
-	healthcheck_helper("Dockerfile.healthcheck_cmd_overlap", true);
+	std::vector<std::string> labels{};
+	healthcheck_helper("Dockerfile", true, "", "", labels);
 }
 
 // A health check using shell exec instead of direct exec.
 TEST_F(sys_call_test, docker_container_healthcheck_shell)
 {
-	healthcheck_helper("Dockerfile.healthcheck_shell", true);
+	std::vector<std::string> labels{};
+	healthcheck_helper("Dockerfile", true, "", "--health-cmd 'sh -c \"/bin/ut-health-check\"' --health-interval 0.5s", labels);
 }
 
 // A health check where the container has docker labels that make it
 // look like it was started in k8s.
 TEST_F(sys_call_test, docker_container_liveness_probe)
 {
-	healthcheck_helper("Dockerfile.healthcheck_liveness",
+	const char* label= R""""(annotation.kubectl.kubernetes.io/last-applied-configuration="{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"name\":\"mysql-app\",\"namespace\":\"default\"},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"MYSQL_ROOT_PASSWORD\",\"value\":\"no\"}],\"image\":\"user/mysql:healthcheck\",\"livenessProbe\":{\"exec\":{\"command\":[\"/bin/ut-health-check\"]},\"initialDelaySeconds\":5,\"periodSeconds\":5},\"name\":\"mysql\"}]}}\n")"""";
+	std::vector<std::string> labels{std::string(label)};
+	healthcheck_helper("Dockerfile",
 	                   true,
+					   "",
+					   "",
+					   labels,
 	                   sinsp_threadinfo::CAT_LIVENESS_PROBE);
 }
 
 TEST_F(sys_call_test, docker_container_readiness_probe)
 {
-	healthcheck_helper("Dockerfile.healthcheck_readiness",
+	const char* label = R""""(annotation.kubectl.kubernetes.io/last-applied-configuration="{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"name\":\"mysql-app\",\"namespace\":\"default\"},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"MYSQL_ROOT_PASSWORD\",\"value\":\"no\"}],\"image\":\"user/mysql:healthcheck\",\"readinessProbe\":{\"exec\":{\"command\":[\"/bin/ut-health-check\"]},\"initialDelaySeconds\":5,\"periodSeconds\":5},\"name\":\"mysql\"}]}}\n")"""";
+	std::vector<std::string> labels{std::string(label)};
+	healthcheck_helper("Dockerfile",
 	                   true,
+					   "",
+					   "",
+					   labels,
 	                   sinsp_threadinfo::CAT_READINESS_PROBE);
 }
 
@@ -775,13 +788,22 @@ TEST_F(sys_call_test, docker_container_large_json)
 		return;
 	}
 
+	std::string repeated_string = std::string(4096,'a');
+
+	std::vector<std::string> labels;
+	labels.emplace_back("url2=" + repeated_string);
+	labels.emplace_back("summary2=" + repeated_string);
+	labels.emplace_back("vcs-type2=" + repeated_string);
+	labels.emplace_back("vcs-ref2=" + repeated_string);
+	labels.emplace_back("description2=" + repeated_string);
+	labels.emplace_back("io.k8s.description2=" + repeated_string);
+
 	dutils_kill_container("large_container_ut");
 	dutils_kill_image("large_container_ut_img");
+	std::string docker_res(LIBSINSP_TEST_RESOURCES_PATH "/docker/");
+	docker_helper dhelper(docker_res + "Dockerfile", "large_container_ut_img", labels, "", "");
 
-	ASSERT_TRUE(system("cd "
-					   LIBSINSP_TEST_RESOURCES_PATH
-					   "/docker/large_container_dockerfiles && docker build -t "
-	                   "large_container_ut_img -f Dockerfile.long_labels . > /dev/null") == 0);
+	ASSERT_TRUE(dhelper.build_image() == 0);
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return evt->get_type() == PPME_CONTAINER_JSON_E ||
@@ -795,10 +817,7 @@ TEST_F(sys_call_test, docker_container_large_json)
 			std::scoped_lock inspector_handle_lock(inspector_handle);
 			inspector_handle->set_container_labels_max_len(60000);
 		}
-		// --network=none speeds up the container setup a bit.
-		int rc = system(
-		    "docker run --rm --network=none --name large_container_ut large_container_ut_img "
-		    "/bin/sh -c '/bin/sleep 3' > /dev/null 2>&1");
+		int rc = dhelper.run_container("large_container_ut", "/bin/sh -c '/bin/sleep 3'");
 
 		ASSERT_TRUE(rc == 0);
 	};
