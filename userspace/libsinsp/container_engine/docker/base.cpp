@@ -33,6 +33,7 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 			auto container = sinsp_container_info();
 			container.m_type = request.container_type;
 			container.m_id = request.container_id;
+			container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 			cache->notify_new_container(container, tinfo);
 			return true;
 		}
