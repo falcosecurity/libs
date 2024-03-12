@@ -34,7 +34,7 @@ else()
 	if(NOT WIN32)
 		set(LUAJIT_LIB "${LUAJIT_SRC}/libluajit.a")
 	else()
-		set(LUAJIT_LIB "${LUAJIT_SRC}/lua52.lib")
+		set(LUAJIT_LIB "${LUAJIT_SRC}/lua51.lib")
 	endif()
 
 	if(NOT TARGET luajit)
