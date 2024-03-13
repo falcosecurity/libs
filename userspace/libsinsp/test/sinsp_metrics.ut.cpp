@@ -133,35 +133,35 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 											METRICS_V2_LIBBPF_STATS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_COUNT, 
-											METRIC_VALUE_MONOTONIC, 
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
 											76435525241UL));
 
 	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.run_time_ns",
 											METRICS_V2_LIBBPF_STATS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_NS_COUNT, 
-											METRIC_VALUE_MONOTONIC, 
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
 											16269369826392UL));
 
 	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.avg_time_ns",
 											METRICS_V2_LIBBPF_STATS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_NS, 
-											METRIC_VALUE_NON_MONOTONIC_CURRENT, 
+											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT, 
 											203UL));
 
 	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("n_drops",
 											METRICS_V2_KERNEL_COUNTERS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_COUNT, 
-											METRIC_VALUE_MONOTONIC, 
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
 											674200UL));
 
 	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("n_drops_buffer_total",
 											METRICS_V2_KERNEL_COUNTERS, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_COUNT, 
-											METRIC_VALUE_MONOTONIC, 
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
 											5000UL));
 
 	// Simulate some derived metrics; critical for example for Falco consumer use cases
@@ -169,14 +169,14 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 											METRICS_V2_MISC,
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_S_COUNT, 
-											METRIC_VALUE_MONOTONIC, 
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
 											144UL));
 
 	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("evt_rate_sec",
 											METRICS_V2_MISC,
 											METRIC_VALUE_TYPE_D,
 											METRIC_VALUE_UNIT_TIME_S, 
-											METRIC_VALUE_NON_MONOTONIC_CURRENT, 
+											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT, 
 											126065.4));
 
 	// Timestamps while they always go up should still be regarded as gauge from a Prometheus perspective
@@ -185,7 +185,7 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 											METRICS_V2_MISC, 
 											METRIC_VALUE_TYPE_U64,
 											METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS, 
-											METRIC_VALUE_NON_MONOTONIC_CURRENT, 
+											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT, 
 											1708753667000000000UL));
 
 	for (auto& metric: fake_metrics_snapshot)

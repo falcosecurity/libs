@@ -434,7 +434,7 @@ const metrics_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t
 	{
 		stats[stat].type = METRIC_VALUE_TYPE_U64;
 		stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
-		stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
+		stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 		stats[stat].value.u64 = 0;
 		strlcpy(stats[stat].name, gvisor_counters_stats_names[stat], METRIC_NAME_MAX);
 	}
