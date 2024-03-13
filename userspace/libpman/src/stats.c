@@ -175,7 +175,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			g_state.stats[stat].type = METRIC_VALUE_TYPE_U64;
 			g_state.stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
 			g_state.stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
-			g_state.stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
+			g_state.stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 			g_state.stats[stat].value.u64 = 0;
 			strlcpy(g_state.stats[stat].name, modern_bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
@@ -258,19 +258,19 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_CNT], sizeof(g_state.stats[offset].name));
 					g_state.stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
 					g_state.stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
-					g_state.stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
+					g_state.stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 					g_state.stats[offset].value.u64 = info.run_cnt;
 					break;
 				case RUN_TIME_NS:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(g_state.stats[offset].name));
 					g_state.stats[stat].unit = METRIC_VALUE_UNIT_TIME_NS_COUNT;
-					g_state.stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
+					g_state.stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 					g_state.stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(g_state.stats[offset].name));
 					g_state.stats[stat].unit = METRIC_VALUE_UNIT_TIME_NS;
-					g_state.stats[stat].metric_type = METRIC_VALUE_NON_MONOTONIC_CURRENT;
+					g_state.stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
 					g_state.stats[offset].value.u64 = 0;
 					if(info.run_cnt > 0)
 					{
@@ -278,6 +278,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 					}
 					break;
 				default:
+					ASSERT(false);
 					break;
 				}
 				offset++;

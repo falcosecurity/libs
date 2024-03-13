@@ -58,6 +58,7 @@ typedef enum metrics_v2_value_type{
 	METRIC_VALUE_TYPE_D,
 	METRIC_VALUE_TYPE_F,
 	METRIC_VALUE_TYPE_I,
+	METRIC_VALUE_TYPE_MAX,
 } metrics_v2_value_type;
 
 typedef enum metrics_v2_value_unit{
@@ -72,11 +73,13 @@ typedef enum metrics_v2_value_unit{
 	METRIC_VALUE_UNIT_TIME_NS_COUNT,
 	METRIC_VALUE_UNIT_TIME_S_COUNT,
 	METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS,
+	METRIC_VALUE_UNIT_MAX,
 } metrics_v2_value_unit;
 
 typedef enum metrics_v2_metric_type{
-	METRIC_VALUE_MONOTONIC,
-	METRIC_VALUE_NON_MONOTONIC_CURRENT,
+	METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+	METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
+	METRIC_VALUE_METRIC_TYPE_MAX,
 } metrics_v2_metric_type;
 
 /*!

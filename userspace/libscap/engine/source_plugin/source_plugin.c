@@ -292,7 +292,7 @@ const struct metrics_v2* get_source_plugin_stats_v2(struct scap_engine_handle en
 		stats[stat].type = METRIC_VALUE_TYPE_U64;
 		stats[stat].value.u64 = 0;
 		stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
-		stats[stat].metric_type = METRIC_VALUE_MONOTONIC;
+		stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], METRIC_NAME_MAX);
 	}
 	stats[N_EVTS].value.u64 = handle->m_nevts;
