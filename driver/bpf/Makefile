@@ -13,29 +13,11 @@ always = $(always-y)
 LLC ?= llc
 CLANG ?= clang
 
+# DEBUG = -DBPF_DEBUG
+
 ifeq ($(strip $(MAKEFILE_LIST)),Makefile)
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-
-# DEBUG = -DBPF_DEBUG
-
-#
-# https://chromium.googlesource.com/chromiumos/third_party/kernel/+/096925a44076ba5c52faa84d255a847130ff341e%5E%21/#F2
-# This commit diverged the ChromiumOS kernel from stock in the area of audit information, which this probe accesses.
-# 
-# This enables the workaround for this divergence.
-#
-NEEDS_COS_73_WORKAROUND = $(shell expr `grep -sc "^\s*struct\s\+audit_task_info\s\+\*audit;\s*$$" $(KERNELDIR)/include/linux/sched.h` = 1)
-ifeq ($(NEEDS_COS_73_WORKAROUND), 1)
-	KBUILD_CPPFLAGS += -DCOS_73_WORKAROUND
-endif
-
-# -fmacro-prefix-map is not supported on version of clang older than 10
-# so remove it if necessary.
-IS_CLANG_OLDER_THAN_10 := $(shell expr `$(CLANG) -dumpversion | cut -f1 -d.` \<= 10)
-ifeq ($(IS_CLANG_OLDER_THAN_10), 1)
-	KBUILD_CPPFLAGS := $(filter-out -fmacro-prefix-map=%,$(KBUILD_CPPFLAGS))
-endif
 
 all:
 	$(MAKE) -C $(KERNELDIR) M=$$PWD
@@ -59,6 +41,24 @@ MODULE_MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 MAKEFILE_INC_FILES := $(shell find $(MODULE_MAKEFILE_DIR)/configure -type f -name Makefile.inc)
 $(info [configure-bpf] Including $(MAKEFILE_INC_FILES))
 include $(MAKEFILE_INC_FILES)
+endif
+
+#
+# https://chromium.googlesource.com/chromiumos/third_party/kernel/+/096925a44076ba5c52faa84d255a847130ff341e%5E%21/#F2
+# This commit diverged the ChromiumOS kernel from stock in the area of audit information, which this probe accesses.
+#
+# This enables the workaround for this divergence.
+#
+NEEDS_COS_73_WORKAROUND = $(shell expr `grep -sc "^\s*struct\s\+audit_task_info\s\+\*audit;\s*$$" $(KERNELDIR)/include/linux/sched.h` = 1)
+ifeq ($(NEEDS_COS_73_WORKAROUND), 1)
+	KBUILD_CPPFLAGS += -DCOS_73_WORKAROUND
+endif
+
+# -fmacro-prefix-map is not supported on version of clang older than 10
+# so remove it if necessary.
+IS_CLANG_OLDER_THAN_10 := $(shell expr `$(CLANG) -dumpversion | cut -f1 -d.` \<= 10)
+ifeq ($(IS_CLANG_OLDER_THAN_10), 1)
+	KBUILD_CPPFLAGS := $(filter-out -fmacro-prefix-map=%,$(KBUILD_CPPFLAGS))
 endif
 
 $(obj)/probe.o: $(src)/probe.c \
