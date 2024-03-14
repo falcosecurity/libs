@@ -1185,7 +1185,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// it from userspace and update the result status
 	if (res == SCAP_SUCCESS)
 	{
-		res = m_suppress.process_event(evt->get_scap_evt(), evt->get_cpuid());
+		res = m_suppress.process_event(evt->get_scap_evt());
 	}
 
 	// in case we don't succeed, handle each scenario and return
@@ -1426,7 +1426,7 @@ bool sinsp::suppress_events_tid(int64_t tid)
 
 bool sinsp::check_suppressed(int64_t tid) const
 {
-	return m_suppress.is_suppressed_tid(tid, UINT16_MAX);
+	return m_suppress.is_suppressed_tid(tid);
 }
 
 void sinsp::set_docker_socket_path(std::string socket_path)
