@@ -43,7 +43,7 @@ bool libsinsp::sinsp_suppress::check_suppressed_comm(uint64_t tid, const std::st
 	return false;
 }
 
-int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e, uint16_t devid)
+int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e)
 {
 	if(m_suppressed_tids.empty() && m_suppressed_comms.empty())
 	{
@@ -100,7 +100,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e, uint16_t devid)
 
 		comm = valptr;
 
-		if(is_suppressed_tid(*ptid, devid))
+		if(is_suppressed_tid(*ptid))
 		{
 			m_suppressed_tids.insert(e->tid);
 			m_num_suppressed_events++;
@@ -119,7 +119,6 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e, uint16_t devid)
 		auto it = m_suppressed_tids.find(e->tid);
 		if (it != m_suppressed_tids.end())
 		{
-			cache_slot(devid) = 0;
 			m_suppressed_tids.erase(it);
 			m_num_suppressed_events++;
 			return SCAP_FILTERED_EVENT;
@@ -131,7 +130,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e, uint16_t devid)
 	}
 
 	default:
-		if (is_suppressed_tid(e->tid, devid))
+		if (is_suppressed_tid(e->tid))
 		{
 			m_num_suppressed_events++;
 			return SCAP_FILTERED_EVENT;
@@ -143,25 +142,11 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e, uint16_t devid)
 	}
 }
 
-bool libsinsp::sinsp_suppress::is_suppressed_tid(uint64_t tid, uint16_t devid) const
+bool libsinsp::sinsp_suppress::is_suppressed_tid(uint64_t tid) const
 {
 	if (tid == 0)
 	{
 		return false;
 	}
-	if(devid != UINT16_MAX && cache_slot(devid) == tid)
-	{
-		return true;
-	}
 	return m_suppressed_tids.find(tid) != m_suppressed_tids.end();
-}
-
-uint64_t& libsinsp::sinsp_suppress::cache_slot(uint16_t devid)
-{
-	return m_cache[devid % CACHE_SIZE];
-}
-
-uint64_t libsinsp::sinsp_suppress::cache_slot(uint16_t devid) const
-{
-	return m_cache[devid % CACHE_SIZE];
 }

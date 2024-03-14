@@ -38,25 +38,19 @@ public:
 
 	bool check_suppressed_comm(uint64_t tid, const std::string& comm);
 
-	int32_t process_event(scap_evt* e, uint16_t devid);
+	int32_t process_event(scap_evt* e);
 
-	bool is_suppressed_tid(uint64_t tid, uint16_t devid) const;
+	bool is_suppressed_tid(uint64_t tid) const;
 
 	uint64_t get_num_suppressed_events() const { return m_num_suppressed_events; }
 
 	uint64_t get_num_suppressed_tids() const { return m_suppressed_tids.size(); }
 
 protected:
-	inline uint64_t& cache_slot(uint16_t devid);
-	inline uint64_t cache_slot(uint16_t devid) const;
-
 	std::unordered_set<std::string> m_suppressed_comms;
 	std::unordered_set<uint64_t> m_suppressed_tids;
 
 	uint64_t m_num_suppressed_events = 0;
-
-	static constexpr size_t CACHE_SIZE = 1024;
-	uint64_t m_cache[CACHE_SIZE] {};
 };
 
 }
