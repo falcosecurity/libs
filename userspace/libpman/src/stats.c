@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include "state.h"
+#include <libscap/scap_assert.h>
 #include <libscap/scap.h>
 #include <libscap/strl.h>
 
