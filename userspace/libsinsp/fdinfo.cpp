@@ -283,6 +283,8 @@ sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
 
 sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
 {
+	fdinfo->m_fd = fd;
+
 	//
 	// Look for the FD in the table
 	//

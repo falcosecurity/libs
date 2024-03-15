@@ -432,6 +432,7 @@ public:
 	uint32_t m_mount_id = 0;
 	uint64_t m_ino = 0;
 	int64_t m_pid = 0; // only if fd is a pidfd
+	int64_t m_fd = -1;
 };
 
 /*@}*/
