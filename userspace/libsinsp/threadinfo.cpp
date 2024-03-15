@@ -262,6 +262,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 	newfdi->m_type = fdi->type;
 	newfdi->m_flags = sinsp_fdinfo::FLAGS_FROM_PROC;
 	newfdi->m_ino = fdi->ino;
+	newfdi->m_fd = fdi->fd;
 
 	switch(newfdi->m_type)
 	{
@@ -1316,6 +1317,7 @@ static void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo* src)
 {
 	dst->type = src->m_type;
 	dst->ino = src->m_ino;
+	dst->fd = src->m_fd;
 
 	switch(dst->type)
 	{
@@ -1992,7 +1994,6 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				//
 				// Populate the fd info
 				//
-				scfdinfo->fd = fd;
 				fd_to_scap(scfdinfo, &info);
 
 				//

@@ -4172,12 +4172,25 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 
 						m_inspector->m_thread_manager->thread_to_scap(*evt->get_tinfo(), &scap_tinfo);
 
+						// Store current fd; it might get changed by scap_get_fdlist below.
+						int64_t fd = -1;
+						if (evt->get_fd_info())
+						{
+							fd = evt->get_fd_info()->m_fd;
+						}
+
 						// Get the new fds. The callbacks we have registered populate the fd table
 						// with the new file descriptors.
 						if (scap_get_fdlist(m_inspector->get_scap_platform(), &scap_tinfo, error) != SCAP_SUCCESS)
 						{
 							libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "scap_get_fdlist failed: %s, proc table will not be updated with new fds.",
 									error);
+						}
+
+						// Force refresh event fdinfo
+						if (fd != -1)
+						{
+							evt->set_fd_info(evt->get_tinfo()->get_fd(fd));
 						}
 					}
 				}
