@@ -167,9 +167,16 @@ TEST_F(sys_call_test, container_clone_nspid)
 		{
 			FAIL();
 		}
-
-		wait(NULL);
-		free(stack);
+		else if (ctid == 0)
+		{
+			free(stack);
+			_exit(0);
+		}
+		else
+		{
+			free(stack);
+			waitpid(ctid, NULL, 0);
+		}
 	};
 
 	//
