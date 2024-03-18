@@ -8,7 +8,7 @@
 
 #define MAX_FSPATH_LEN	4096
 
-void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *fspath, int use_mountpoint)
+void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *fspath, uint32_t *dev, uint64_t *inode, int use_mountpoint)
 {
 	/*
 	 * 0. Create (temporary) mount point (if use_mountpoint).
@@ -100,7 +100,15 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	}
 
 	/*
-	 * 6. Cleaning phase.
+	 * 6. Get dev and ino.
+	 */
+	struct stat file_stat;
+	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, *open_by_handle_fd, &file_stat), NOT_EQUAL, -1);
+	*dev = (uint32_t)file_stat.st_dev;
+	*inode = file_stat.st_ino;
+
+	/*
+	 * 7. Cleaning phase.
 	 */
 	close(*open_by_handle_fd);
 	free(fhp);
@@ -147,8 +155,10 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	int open_by_handle_fd;
 	int dirfd;
 	char fspath[MAX_FSPATH_LEN];
-	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 0);
-
+	uint32_t dev;
+	uint64_t inode;
+	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, &dev, &inode, 0);
+	
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->disable_capture();
@@ -177,9 +187,15 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(4, fspath);
 
+	/* Parameter 5: dev (type: PT_UINT32) */
+	evt_test->assert_numeric_param(5, dev);
+
+	/* Parameter 6: ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(6, inode);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(6);
 
 }
 
@@ -194,7 +210,9 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 	int open_by_handle_fd;
 	int dirfd;
 	char fspath[MAX_FSPATH_LEN];
-	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 1);
+	uint32_t dev;
+	uint64_t inode;
+	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, &dev, &inode, 1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -225,9 +243,15 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(4, fspath);
 
+	/* Parameter 5: dev (type: PT_UINT32) */
+	evt_test->assert_numeric_param(5, dev);
+
+	/* Parameter 6: ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(6, inode);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(6);
 }
 
 TEST(SyscallExit, open_by_handle_atX_failure)
@@ -281,8 +305,14 @@ TEST(SyscallExit, open_by_handle_atX_failure)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	evt_test->assert_empty_param(4);
 
+	/* Parameter 5: dev (type: PT_UINT32) */
+	evt_test->assert_numeric_param(5, (uint32_t)0);
+
+	/* Parameter 6: ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(6, (uint64_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(6);
 }
 #endif
