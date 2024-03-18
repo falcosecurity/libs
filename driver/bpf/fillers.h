@@ -3264,6 +3264,8 @@ FILLER(sys_openat2_x, true)
 	uint32_t flags;
 	unsigned long val;
 	uint32_t mode;
+	unsigned long dev = 0;
+	unsigned long ino = 0;
 	long retval;
 	int32_t fd;
 	int res;
@@ -3329,7 +3331,21 @@ FILLER(sys_openat2_x, true)
 	 * resolve (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	return bpf_push_u32_to_ring(data, resolve);
+	res = bpf_push_u32_to_ring(data, resolve);
+	CHECK_RES(res);
+
+	bpf_get_fd_dev_ino(retval, &dev, &ino);
+
+	/*
+	 * dev
+	 */
+	res = bpf_push_u32_to_ring(data, dev);
+	CHECK_RES(res);
+
+	/*
+	 * ino
+	 */
+	return bpf_push_u64_to_ring(data, ino);
 }
 
 FILLER(sys_open_by_handle_at_x, true)

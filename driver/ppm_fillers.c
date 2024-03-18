@@ -4960,6 +4960,8 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
 	int res;
 	int32_t fd;
 	int64_t retval;
@@ -5028,6 +5030,20 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	res = val_to_ring(args, resolve, 0, true, 0);
+	CHECK_RES(res);
+
+	get_fd_dev_ino(retval, &dev, &ino);
+
+	/*
+	 *  dev
+	 */
+	res = val_to_ring(args, dev, 0, false, 0);
+	CHECK_RES(res);
+
+	/*
+	 *  ino
+	 */
+	res = val_to_ring(args, ino, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
