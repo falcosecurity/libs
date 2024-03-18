@@ -3383,7 +3383,15 @@ FILLER(sys_open_by_handle_at_x, true)
 	}
 
 	/* Parameter 4: path (type: PT_FSPATH) */
-	return bpf_push_empty_param(data);
+	res = bpf_push_empty_param(data);
+	CHECK_RES(res);
+
+	/* Parameter 5: dev (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: ino (type: PT_UINT64) */
+	return bpf_push_u64_to_ring(data, 0);
 }
 
 FILLER(open_by_handle_at_x_extra_tail_1, true)
@@ -3404,7 +3412,19 @@ FILLER(open_by_handle_at_x_extra_tail_1, true)
 	
 	/* Parameter 4: path (type: PT_FSPATH) */
 	char* filepath = bpf_d_path_approx(data, &(f->f_path));
-	return bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
+	int res = bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
+
+	unsigned long dev = 0;
+	unsigned long ino = 0;
+
+	bpf_get_fd_dev_ino(retval, &dev, &ino);
+
+	/* Parameter 5: dev (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, dev);
+	CHECK_RES(res);
+
+	/* Parameter 6: ino (type: PT_UINT64) */
+	return bpf_push_u64_to_ring(data, ino);
 }
 
 FILLER(sys_io_uring_setup_x, true)

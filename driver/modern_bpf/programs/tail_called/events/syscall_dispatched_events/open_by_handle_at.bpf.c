@@ -82,6 +82,9 @@ int BPF_PROG(open_by_handle_at_x,
 SEC("tp_btf/sys_exit")
 int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 {
+	dev_t dev = 0;
+	uint64_t ino = 0;
+
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
 	{
@@ -90,10 +93,10 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 4: path (type: PT_FSPATH) */
-	/* We collect the file path from the file descriptor only if it is valid */
+	/* We collect the file path, dev and ino from the file descriptor only if it is valid */
 	if(ret > 0)
 	{
+		/* Parameter 4: path (type: PT_FSPATH) */
 		struct file *f = extract__file_struct_from_fd(ret);
 		if(f != NULL)
 		{
@@ -103,11 +106,19 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 		{
 			auxmap__store_empty_param(auxmap);
 		}
+
+		extract__dev_and_ino_from_fd(ret, &dev, &ino);
 	}
 	else
 	{
 		auxmap__store_empty_param(auxmap);
 	}
+
+	/* Parameter 5: dev (type: PT_UINT32) */
+	auxmap__store_u32_param(auxmap, dev);
+
+	/* Parameter 6: ino (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, ino);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
