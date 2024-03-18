@@ -23,6 +23,12 @@ TEST(SyscallExit, openat2X_success)
 	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
+	
+	/* Call `fstat` to retrieve the `dev` and `ino`. */
+	struct stat file_stat;
+	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
+	uint32_t dev = (uint32_t)file_stat.st_dev;
+	uint64_t inode = file_stat.st_ino;
 	close(fd);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -60,9 +66,15 @@ TEST(SyscallExit, openat2X_success)
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
 
+	/* Parameter 7: dev (type: PT_UINT32) */
+	evt_test->assert_numeric_param(7, dev);
+
+	/* Parameter 8: ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(8, inode);
+	
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(6);
+	evt_test->assert_num_params_pushed(8);
 }
 
 TEST(SyscallExit, openat2X_failure)
@@ -122,9 +134,17 @@ TEST(SyscallExit, openat2X_failure)
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
 
+	/* Syscall fails so dev=0 && ino=0. */
+
+	/* Parameter 7: dev (type: PT_UINT32) */
+	evt_test->assert_numeric_param(7, (uint32_t)0);
+
+	/* Parameter 8: ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(8, (uint64_t)0);
+	
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(6);
+	evt_test->assert_num_params_pushed(8);
 }
 
 TEST(SyscallExit, openat2X_create_success)
@@ -144,6 +164,12 @@ TEST(SyscallExit, openat2X_create_success)
 	syscall(__NR_unlinkat, AT_FDCWD, pathname, 0); /* remove file before creating it */
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
+	
+	/* Call `fstat` to retrieve the `dev` and `ino`. */
+	struct stat file_stat;
+	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
+	uint32_t dev = (uint32_t)file_stat.st_dev;
+	uint64_t inode = file_stat.st_ino;
 	close(fd);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -181,8 +207,14 @@ TEST(SyscallExit, openat2X_create_success)
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
 
+	/* Parameter 7: dev (type: PT_UINT32) */
+	evt_test->assert_numeric_param(7, dev);
+
+	/* Parameter 8: ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(8, inode);
+	
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(6);
+	evt_test->assert_num_params_pushed(8);
 }
 #endif

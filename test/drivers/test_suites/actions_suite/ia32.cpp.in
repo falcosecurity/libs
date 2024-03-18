@@ -215,7 +215,7 @@ TEST(Actions, ia32_openat2_x)
 
  	/*=============================== ASSERT PARAMETERS  ===========================*/
 
- 	evt_test->assert_num_params_pushed(6);
+ 	evt_test->assert_num_params_pushed(8);
 }
 #endif
 
