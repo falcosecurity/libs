@@ -31,7 +31,7 @@ unsigned long event_capture::m_buffer_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 
 concurrent_object_handle<sinsp> event_capture::get_inspector_handle()
 {
-	return {m_inspector, m_inspector_mutex};
+	return {m_inspector.get(), m_inspector_mutex};
 }
 
 void event_capture::capture()
@@ -40,7 +40,7 @@ void event_capture::capture()
 	{  // Begin init synchronized section
 		std::scoped_lock init_lock(m_inspector_mutex, m_object_state_mutex);
 
-		m_inspector = new sinsp();
+		m_inspector = std::make_unique<sinsp>();
 
 		m_inspector->m_thread_manager->set_max_thread_table_size(m_max_thread_table_size);
 		m_inspector->m_thread_timeout_ns = m_thread_timeout_ns;
@@ -49,9 +49,9 @@ void event_capture::capture()
 
 		m_inspector->set_get_procs_cpu_from_driver(true);
 
-		m_param.m_inspector = m_inspector;
+		m_param.m_inspector = m_inspector.get();
 
-		m_before_open(m_inspector);
+		m_before_open(m_inspector.get());
 
 		ASSERT_FALSE(m_inspector->is_capture());
 		ASSERT_FALSE(m_inspector->is_live());
@@ -79,7 +79,6 @@ void event_capture::capture()
 				m_capture_started = true;
 				m_condition_started.notify_one();
 			}
-			delete m_inspector;
 			return;
 		}
 
@@ -95,7 +94,7 @@ void event_capture::capture()
 		{
 			m_dump_filename = std::string(LIBSINSP_TEST_CAPTURES_PATH) + test_info->test_case_name() + "_" +
 				test_info->name() + ".scap";
-			dumper = std::make_unique<sinsp_cycledumper>(m_inspector, m_dump_filename.c_str(),
+			dumper = std::make_unique<sinsp_cycledumper>(m_inspector.get(), m_dump_filename.c_str(),
 														 0, 0, 0, 0, true);
 		}
 	}  // End init synchronized section
@@ -165,11 +164,7 @@ void event_capture::capture()
 
 	{  // Begin teardown synchronized section
 		std::scoped_lock teardown_lock(m_inspector_mutex, m_object_state_mutex);
-		m_before_close(m_inspector);
-
-		m_inspector->stop_capture();
-
-		delete m_inspector;
+		m_before_close(m_inspector.get());
 
 		m_capture_stopped = true;
 		m_condition_stopped.notify_one();
@@ -180,10 +175,6 @@ void event_capture::capture()
 
 void event_capture::stop_capture()
 {
-	if (m_inspector)
-	{
-		m_inspector->stop_capture();
-	}
 	{
 		std::scoped_lock init_lock(m_inspector_mutex, m_object_state_mutex);
 		m_capture_stopped = true;

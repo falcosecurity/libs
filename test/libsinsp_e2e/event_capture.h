@@ -223,7 +223,7 @@ private:
 	std::string m_start_failure_message;
 	std::string m_dump_filename;
 	callback_param m_param;
-	sinsp* m_inspector;
+	std::unique_ptr<sinsp> m_inspector;
 	sinsp_mode_t m_mode;
 	uint64_t m_max_timeouts;
 };
