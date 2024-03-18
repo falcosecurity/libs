@@ -5112,6 +5112,8 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	unsigned long val = 0;
 	unsigned long flags = 0;
 	int res = 0;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
 	long retval = 0;
 	char *pathname = NULL;
 	int32_t mountfd = 0;
@@ -5160,6 +5162,16 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	}
 
 	res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
+	CHECK_RES(res);
+
+	get_fd_dev_ino(retval, &dev, &ino);
+
+	/* Parameter 5: dev (type: PT_UINT32) */
+	res = val_to_ring(args, dev, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: ino (type: PT_UINT64) */
+	res = val_to_ring(args, ino, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
