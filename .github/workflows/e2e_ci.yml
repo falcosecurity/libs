@@ -96,7 +96,7 @@ jobs:
                 -DUSE_BUNDLED_LIBBPF=ON \
                 -DUSE_BUNDLED_GTEST=ON \
                 ..
-          make -j6
+          make -j6 libsinsp_e2e_tests
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         if: matrix.arch == 'amd64'
