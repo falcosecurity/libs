@@ -1311,3 +1311,97 @@ TEST_F(sys_call_test, unshare_)
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 	EXPECT_EQ(2, callnum);
 }
+
+TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS)
+{
+	int callnum = 0;
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		auto tinfo = evt->get_thread_info(true);
+		return tinfo->get_comm() == "libsinsp_e2e_te" && evt->get_type() == PPME_SOCKET_RECVMSG_X;
+	};
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
+	{
+		int server_sd, worker_sd, pair_sd[2];
+		int rc = socketpair(AF_UNIX, SOCK_DGRAM, 0, pair_sd);
+		ASSERT_GE(rc, 0);
+		server_sd = pair_sd[0];
+		worker_sd = pair_sd[1];
+
+		auto child = fork();
+		if (child == 0)
+		{
+			struct msghdr child_msg = {};
+			struct cmsghdr *cmsghdr;
+			struct iovec iov[1];
+			char buf[CMSG_SPACE(sizeof(int))], c;
+
+			iov[0].iov_base = &c;
+			iov[0].iov_len = sizeof(c);
+			memset(buf, 0x0d, sizeof(buf));
+			cmsghdr = (struct cmsghdr *)buf;
+			cmsghdr->cmsg_len = CMSG_LEN(sizeof(int));
+			cmsghdr->cmsg_level = SOL_SOCKET;
+			cmsghdr->cmsg_type = SCM_RIGHTS;
+			child_msg.msg_iov = iov;
+			child_msg.msg_iovlen = sizeof(iov) / sizeof(iov[0]);
+			child_msg.msg_control = cmsghdr;
+			child_msg.msg_controllen = CMSG_LEN(sizeof(int));
+			rc = recvmsg(worker_sd, &child_msg, 0);
+			ASSERT_GE(rc, 0);
+			// _exit prevents asan from complaining for a false positive memory leak.
+			_exit(0);
+		}
+		else
+		{
+			struct msghdr parent_msg = {};
+			struct cmsghdr *cmsghdr;
+			struct iovec iov[1];
+			int *p;
+			char buf[CMSG_SPACE(sizeof(int))], c;
+
+			FILE *f = tmpfile();
+			ASSERT_NE(nullptr, f);
+			int fd = fileno(f);
+
+			c = '*';
+			iov[0].iov_base = &c;
+			iov[0].iov_len = sizeof(c);
+			memset(buf, 0x0b, sizeof(buf));
+			cmsghdr = (struct cmsghdr *)buf;
+			cmsghdr->cmsg_len = CMSG_LEN(sizeof(int));
+			cmsghdr->cmsg_level = SOL_SOCKET;
+			cmsghdr->cmsg_type = SCM_RIGHTS;
+			parent_msg.msg_iov = iov;
+			parent_msg.msg_iovlen = sizeof(iov) / sizeof(iov[0]);
+			parent_msg.msg_control = cmsghdr;
+			parent_msg.msg_controllen = CMSG_LEN(sizeof(int));
+			p = (int *)CMSG_DATA(cmsghdr);
+			*p = fd;
+
+			rc = sendmsg(server_sd, &parent_msg, 0);
+			ASSERT_GE(rc, 0);
+			waitpid(child, NULL, 0);
+			fclose(f);
+		}
+	};
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		if (e->get_num_params() >= 5)
+		{
+			auto parinfo = e->get_param(4);
+			if(parinfo->m_len > sizeof(cmsghdr))
+			{
+				cmsghdr cmsg = {};
+				memcpy(&cmsg, parinfo->m_val, sizeof(cmsghdr));
+				if(cmsg.cmsg_type == SCM_RIGHTS)
+				{
+					++callnum;
+				}
+			}
+		}
+	};
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(1, callnum);
+}
