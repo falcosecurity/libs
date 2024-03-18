@@ -5,7 +5,6 @@ on:
     branches:
       - master
       - 'release/**'
-      - 'maintainers/**'
   workflow_dispatch:
 
 # Checks if any concurrent jobs under the same pull request or branch are being executed
@@ -14,25 +13,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-e2e:
-    name: test-e2e-${{ matrix.arch }}-${{ matrix.driver.name }} 😇 (bundled_deps)
+  build-test-e2e:
+    name: build-test-e2e-${{ matrix.arch }} 😇 (bundled_deps)
     runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
     strategy:
       matrix:
         arch: [amd64, arm64]
-        driver: [ {name: kmod, option: -k}, {name: bpf, option: -b}, {name: modern-bpf, option: -m} ]
       fail-fast: false
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
-          
-      - name: Fix kernel mmap rnd bits
-        # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
-        # high-entropy ASLR in much newer kernels that GitHub runners are
-        # using leading to random crashes: https://reviews.llvm.org/D148280
-        run: sudo sysctl vm.mmap_rnd_bits=28    
 
       - name: Install deps ⛓️
         run: |
@@ -97,6 +89,44 @@ jobs:
                 -DUSE_BUNDLED_GTEST=ON \
                 ..
           make -j6 libsinsp_e2e_tests
+          cd ..
+
+      - name: Cache build
+        uses: actions/cache/save@v3
+        if: always()
+        id: cache
+        with:
+          path: build
+          key: build-${{ matrix.arch }}-${{ github.run_id }}
+
+  test-e2e:
+    name: test-e2e-${{ matrix.arch }}-${{ matrix.driver.name }} 😇 (bundled_deps)
+    needs: [build-test-e2e]
+    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        driver: [ {name: kmod, option: -k}, {name: bpf, option: -b}, {name: modern-bpf, option: -m} ]
+      fail-fast: false
+    steps:
+      - name: Restore build
+        id: cache
+        uses: actions/cache/restore@v3
+        with:
+          path: build
+          key: build-${{ matrix.arch }}-${{ github.run_id }}
+          restore-keys: build-
+          
+      - name: Fix kernel mmap rnd bits
+        # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
+        # high-entropy ASLR in much newer kernels that GitHub runners are
+        # using leading to random crashes: https://reviews.llvm.org/D148280
+        run: sudo sysctl vm.mmap_rnd_bits=28    
+
+      - name: Install multilib
+        if: matrix.arch == 'amd64'
+        run: |
+          sudo apt install -y --no-install-recommends gcc-multilib g++-multilib
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         if: matrix.arch == 'amd64'
