@@ -112,6 +112,20 @@ int BPF_PROG(openat2_x,
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
 	auxmap__store_u32_param(auxmap, openat2_resolve_to_scap(how.resolve));
 
+	dev_t dev = 0;
+	uint64_t ino = 0;
+
+	if(ret > 0)
+	{
+		extract__dev_and_ino_from_fd(ret, &dev, &ino);
+	}
+
+	/* Parameter 7: dev (type: PT_UINT32) */
+	auxmap__store_u32_param(auxmap, dev);
+
+	/* Parameter 8: ino (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, ino);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
