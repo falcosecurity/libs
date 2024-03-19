@@ -121,6 +121,7 @@ typedef std::function<void(concurrent_object_handle<sinsp> inspector)> run_callb
 class event_capture
 {
 public:
+	void init_inspector();
 	void capture();
 	void stop_capture();
 	void wait_for_capture_start();
@@ -223,7 +224,7 @@ private:
 	std::string m_start_failure_message;
 	std::string m_dump_filename;
 	callback_param m_param;
-	std::unique_ptr<sinsp> m_inspector;
+	static std::unique_ptr<sinsp> s_inspector;
 	sinsp_mode_t m_mode;
 	uint64_t m_max_timeouts;
 };

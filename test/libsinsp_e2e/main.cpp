@@ -222,7 +222,8 @@ int main(int argc, char** argv)
 
 	if(!std::filesystem::exists(captures_dir))
 	{
-		if (!std::filesystem::create_directory(captures_dir)) {
+		if(!std::filesystem::create_directory(captures_dir))
+		{
 			std::cerr << "Failed to create captures directory." << std::endl;;
 			return EXIT_FAILURE;
 		}
