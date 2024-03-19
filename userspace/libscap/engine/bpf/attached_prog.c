@@ -84,6 +84,7 @@ static int __attach_tp(struct bpf_attached_prog* prog, char* last_err)
 	attr.sample_period = 1;
 	attr.wakeup_events = 1;
 	attr.config = id;
+	attr.size = sizeof(struct perf_event_attr);
 
 	efd = syscall(__NR_perf_event_open, &attr, -1, 0, -1, 0);
 	if(efd < 0)

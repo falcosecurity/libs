@@ -1556,6 +1556,7 @@ int32_t scap_bpf_load(
 			.sample_type = PERF_SAMPLE_RAW,
 			.type = PERF_TYPE_SOFTWARE,
 			.config = PERF_COUNT_SW_BPF_OUTPUT,
+			.size =  sizeof(struct perf_event_attr),
 		};
 		int pmu_fd = 0;
 		int ret = 0;
