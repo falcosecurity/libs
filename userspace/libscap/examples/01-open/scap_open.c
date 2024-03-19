@@ -890,7 +890,9 @@ void print_stats()
 
 static void signal_callback(int signal)
 {
+	scap_stop_capture(g_h);
 	print_stats();
+	scap_close(g_h);
 	exit(EXIT_SUCCESS);
 }
 
@@ -987,8 +989,5 @@ int main(int argc, char** argv)
 		g_nevts++;
 	}
 
-	scap_stop_capture(g_h);
-	print_stats();
-	scap_close(g_h);
-	return EXIT_SUCCESS;
+	signal_callback(-1);
 }
