@@ -3054,7 +3054,8 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	else if (family == PPM_AF_INET6)
 	{
 		uint8_t* ip = packed_data + 1;
-		uint16_t port = *(uint16_t *)(packed_data + 17);
+		uint16_t port;
+		memcpy(&port, packed_data + 17, sizeof(uint16_t));
 		if(port > 0)
 		{
 			if(sinsp_utils::is_ipv4_mapped_ipv6(ip))
@@ -3062,7 +3063,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 				evt->get_fd_info()->m_type = SCAP_FD_IPV4_SERVSOCK;
 				evt->get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_l4proto =
 					evt->get_fd_info()->m_sockinfo.m_ipv6info.m_fields.m_l4proto;
-				evt->get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_ip = *(uint32_t *)(packed_data + 13);
+				memcpy(&evt->get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_ip, packed_data + 13, sizeof(uint32_t));
 				evt->get_fd_info()->m_sockinfo.m_ipv4serverinfo.m_port = port;
 			}
 			else
