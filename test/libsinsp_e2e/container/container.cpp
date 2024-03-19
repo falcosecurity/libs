@@ -707,7 +707,10 @@ static void healthcheck_helper(
 	};
 
 	before_close_t cleanup = [&](sinsp* inspector)
-	{ capture_stats_str = capture_stats(inspector); };
+	{
+		capture_stats_str = capture_stats(inspector);
+		inspector->stop_dropping_mode();
+	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
 
