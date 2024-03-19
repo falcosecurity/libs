@@ -174,6 +174,7 @@ void event_capture::capture()
 		std::scoped_lock teardown_lock(m_inspector_mutex, m_object_state_mutex);
 		m_before_close(s_inspector.get());
 
+		s_inspector->start_capture();
 		m_capture_stopped = true;
 		m_condition_stopped.notify_one();
 	}  // End teardown synchronized section
@@ -242,9 +243,8 @@ handle_event(sinsp_evt* event)
 			m_param.m_evt = event;
 			m_captured_event_callback(m_param);
 		}
-		catch(const std::exception& e)
+		catch(...)
 		{
-			std::cerr << "failure: " << e.what() << std::endl;
 			res = false;
 		}
 	}
