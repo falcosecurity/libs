@@ -131,6 +131,12 @@ public:
 
 	static bool always_continue() { return true; }
 
+	sinsp* get_inspector()
+	{
+			static sinsp inspector = sinsp();
+			return &inspector;
+	}
+
 	static void run(run_callback_t run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
@@ -224,7 +230,7 @@ private:
 	std::string m_start_failure_message;
 	std::string m_dump_filename;
 	callback_param m_param;
-	static std::unique_ptr<sinsp> s_inspector;
+	static bool inspector_ok;
 	sinsp_mode_t m_mode;
 	uint64_t m_max_timeouts;
 };
