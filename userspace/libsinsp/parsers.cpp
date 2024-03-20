@@ -2678,6 +2678,14 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(6)->as<uint64_t>();
 			}
 		}
+		else if(etype == PPME_SYSCALL_OPENAT2_X && evt->get_num_params() > 6)
+		{
+			dev = evt->get_param(6)->as<uint32_t>();
+			if (evt->get_num_params() > 7)
+			{
+				ino = evt->get_param(7)->as<uint64_t>();
+			}
+		}
 
 		//
 		// Compare with enter event parameters
@@ -2706,15 +2714,18 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	}
 	else if (etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
 	{
-		/*
-		 * Flags
-		 */
 		flags = evt->get_param(2)->as<uint32_t>();
 
-		/*
-		 * Path
-		 */
 		name = evt->get_param(3)->as<std::string_view>();
+
+		if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X && evt->get_num_params() > 4)
+		{
+			dev = evt->get_param(4)->as<uint32_t>();
+			if (evt->get_num_params() > 5)
+			{
+				ino = evt->get_param(5)->as<uint64_t>();
+			}
+		}
 
 		// since open_by_handle_at returns an absolute path we will always start at /
 		sdir = "";
