@@ -149,6 +149,11 @@ TEST_F(sys_call_test, open_close_dropping)
 {
 	int callnum = 0;
 
+	before_open_t setup = [&](sinsp* inspector)
+	{
+		inspector->start_dropping_mode(1);
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
 		return (0 == strcmp(evt->get_name(), "open") || 0 == strcmp(evt->get_name(), "openat") ||
@@ -158,16 +163,8 @@ TEST_F(sys_call_test, open_close_dropping)
 
 	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle)
 	{
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->start_dropping_mode(1);
-		}
 		int fd = open("/tmp", O_RDONLY);
 		close(fd);
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->stop_dropping_mode();
-		}
 	};
 
 	captured_event_callback_t callback = [&](const callback_param& param)
@@ -181,7 +178,12 @@ TEST_F(sys_call_test, open_close_dropping)
 		callnum++;
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	before_close_t cleanup = [&](sinsp* inspector)
+	{
+		inspector->stop_dropping_mode();
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
 	EXPECT_EQ(4, callnum);
 }
 
@@ -206,6 +208,11 @@ TEST_F(sys_call_test, fcntl_getfd_dropping)
 {
 	int callnum = 0;
 
+	before_open_t setup = [&](sinsp* inspector)
+	{
+		inspector->start_dropping_mode(1);
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
 		return 0 == strcmp(evt->get_name(), "fcntl") && m_tid_filter(evt);
@@ -213,20 +220,17 @@ TEST_F(sys_call_test, fcntl_getfd_dropping)
 
 	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle)
 	{
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->start_dropping_mode(1);
-		}
 		fcntl(0, F_GETFL);
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->stop_dropping_mode();
-		}
 	};
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	before_close_t cleanup = [&](sinsp* inspector)
+	{
+		inspector->stop_dropping_mode();
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
 	EXPECT_EQ(0, callnum);
 }
 
@@ -250,6 +254,11 @@ TEST_F(sys_call_test, bind_error_dropping)
 {
 	int callnum = 0;
 
+	before_open_t setup = [&](sinsp* inspector)
+	{
+		inspector->start_dropping_mode(1);
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
 		return 0 == strcmp(evt->get_name(), "bind") && m_tid_filter(evt);
@@ -257,20 +266,17 @@ TEST_F(sys_call_test, bind_error_dropping)
 
 	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle)
 	{
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->start_dropping_mode(1);
-		}
 		bind(0, NULL, 0);
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->stop_dropping_mode();
-		}
 	};
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	before_close_t cleanup = [&](sinsp* inspector)
+	{
+		inspector->stop_dropping_mode();
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
 	EXPECT_EQ(1, callnum);
 }
 
@@ -298,6 +304,11 @@ TEST_F(sys_call_test, close_badfd_dropping)
 {
 	int callnum = 0;
 
+	before_open_t setup = [&](sinsp* inspector)
+	{
+		inspector->start_dropping_mode(1);
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt)
 	{
 		return 0 == strcmp(evt->get_name(), "close") && m_tid_filter(evt);
@@ -305,21 +316,18 @@ TEST_F(sys_call_test, close_badfd_dropping)
 
 	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle)
 	{
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->start_dropping_mode(1);
-		}
 		close(-1);
 		close(INT_MAX);
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->stop_dropping_mode();
-		}
 	};
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	before_close_t cleanup = [&](sinsp* inspector)
+	{
+		inspector->stop_dropping_mode();
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
 	EXPECT_EQ(0, callnum);
 }
 
