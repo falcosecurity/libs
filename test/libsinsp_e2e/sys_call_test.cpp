@@ -132,17 +132,15 @@ TEST_F(sys_call_test, open_close)
 
 	captured_event_callback_t callback = [&](const callback_param& param)
 	{
-		if ((0 == strcmp(param.m_evt->get_name(), "open") ||
-		     0 == strcmp(param.m_evt->get_name(), "openat")) &&
-		    param.m_evt->get_direction() == SCAP_ED_OUT)
+		if((0 == strcmp(param.m_evt->get_name(), "open") || 0 == strcmp(param.m_evt->get_name(), "openat") ||
+		   0 == strcmp(param.m_evt->get_name(), "close")) && "<f>/tmp" == param.m_evt->get_param_value_str("fd"))
 		{
-			EXPECT_EQ("<f>/tmp", param.m_evt->get_param_value_str("fd"));
+			callnum++;
 		}
-		callnum++;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, open_close_dropping)
@@ -169,13 +167,11 @@ TEST_F(sys_call_test, open_close_dropping)
 
 	captured_event_callback_t callback = [&](const callback_param& param)
 	{
-		if ((0 == strcmp(param.m_evt->get_name(), "open") ||
-		     0 == strcmp(param.m_evt->get_name(), "openat")) &&
-		    param.m_evt->get_direction() == SCAP_ED_OUT)
+		if((0 == strcmp(param.m_evt->get_name(), "open") || 0 == strcmp(param.m_evt->get_name(), "openat") ||
+		   0 == strcmp(param.m_evt->get_name(), "close")) && "<f>/tmp" == param.m_evt->get_param_value_str("fd"))
 		{
-			EXPECT_EQ("<f>/tmp", param.m_evt->get_param_value_str("fd"));
+			callnum++;
 		}
-		callnum++;
 	};
 
 	before_close_t cleanup = [&](sinsp* inspector)
@@ -184,7 +180,7 @@ TEST_F(sys_call_test, open_close_dropping)
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
-	EXPECT_EQ(4, callnum);
+	EXPECT_EQ(2, callnum);
 }
 
 TEST_F(sys_call_test, fcntl_getfd)
@@ -294,7 +290,19 @@ TEST_F(sys_call_test, close_badfd)
 		close(INT_MAX);
 	};
 
-	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		int fd = param.m_evt->get_param(0)->as<int64_t>();
+		if(param.m_evt->get_direction() == SCAP_ED_IN &&
+		   (fd == -1 || fd == INT_MAX))
+		{
+			callnum++;
+		}
+		else if(param.m_evt->get_direction() == SCAP_ED_OUT && fd == -EBADF)
+		{
+			callnum++;
+		}
+	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 	EXPECT_EQ(4, callnum);
@@ -320,7 +328,19 @@ TEST_F(sys_call_test, close_badfd_dropping)
 		close(INT_MAX);
 	};
 
-	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		int fd = param.m_evt->get_param(0)->as<int64_t>();
+		if(param.m_evt->get_direction() == SCAP_ED_IN &&
+		   (fd == -1 || fd == INT_MAX))
+		{
+			callnum++;
+		}
+		else if(param.m_evt->get_direction() == SCAP_ED_OUT && fd == -EBADF)
+		{
+			callnum++;
+		}
+	};
 
 	before_close_t cleanup = [&](sinsp* inspector)
 	{
@@ -680,7 +700,7 @@ TEST_F(sys_call_test, mmap)
 				break;
 			}
 			default:
-				EXPECT_TRUE(false);
+				callnum--;
 			}
 		}
 		else if (type == PPME_SYSCALL_MUNMAP_X)
@@ -704,7 +724,7 @@ TEST_F(sys_call_test, mmap)
 				EXPECT_GE(enter_vmrss, enter_vmrss);
 				break;
 			default:
-				EXPECT_TRUE(false);
+				callnum--;
 			}
 		}
 		else if (type == PPME_SYSCALL_MMAP_E || type == PPME_SYSCALL_MMAP2_E)
@@ -759,7 +779,7 @@ TEST_F(sys_call_test, mmap)
 				}
 				break;
 			default:
-				EXPECT_TRUE(false);
+				callnum--;
 			}
 		}
 		else if (type == PPME_SYSCALL_MMAP_X || type == PPME_SYSCALL_MMAP2_X)
@@ -788,7 +808,7 @@ TEST_F(sys_call_test, mmap)
 				break;
 			}
 			default:
-				EXPECT_TRUE(false);
+				callnum--;
 			}
 		}
 	};
