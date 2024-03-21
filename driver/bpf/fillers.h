@@ -1941,6 +1941,14 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 		}
 
 		len = bpf_probe_read_user_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
+
+		// set trailing \0 if the arg is empty
+		if(len == 0)
+		{
+			data->buf[off & SCRATCH_SIZE_HALF] = 0;
+			len = 1;
+		}
+		
 		if (len == -EFAULT)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
@@ -2346,6 +2354,7 @@ FILLER(proc_startupdate, true)
 		}
 	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
 	           data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X ) {
+
 		unsigned long val;
 		char **argv;
 
