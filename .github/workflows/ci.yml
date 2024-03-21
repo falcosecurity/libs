@@ -59,8 +59,16 @@ jobs:
         run: |
           mkdir -p build
           cd build && cmake ${{ matrix.cmake_opts }} ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-          make run-unit-tests
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make unit-test-libsinsp sinsp-example -j4
+          cd ..
+
+      - name: Cache build
+        uses: actions/cache/save@v3
+        if: always()
+        id: cache
+        with:
+          path: build
+          key: build-${{ matrix.name }}-${{ matrix.arch }}-${{ github.run_id }}
 
   build-libs-linux-amd64-static:
     name: build-libs-linux-amd64-static 🎃
@@ -229,6 +237,7 @@ jobs:
 
   run-e2e-tests-amd64:
     name: run-e2e-tests-amd64
+    needs: [build-libs-linux]
     strategy:
       fail-fast: false
       matrix:
@@ -240,8 +249,8 @@ jobs:
             cmake_opts: -DUSE_BUNDLED_DEPS=True
           - name: system_deps_w_chisels
             cmake_opts: -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
-          - name: asan
-            cmake_opts: -DUSE_BUNDLED_DEPS=True -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address
+          - name: sanitizers
+            cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
     runs-on: ubuntu-22.04
     steps:
       - name: Install deps ⛓️
@@ -297,16 +306,17 @@ jobs:
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - name: Build and test 🏗️🧪
+      - name: Restore build
+        id: cache
+        uses: actions/cache/restore@v3
+        with:
+          path: build
+          key: build-${{ matrix.name }}-${{ matrix.arch }}-${{ github.run_id }}
+          restore-keys: build-
+
+      - name: Test 🏗️🧪
         run: |
-          mkdir -p build && cd build
-          cmake -DBUILD_BPF=ON \
-                -DBUILD_LIBSCAP_MODERN_BPF=ON \
-                -DBUILD_LIBSCAP_GVISOR=OFF \
-                ${{ matrix.cmake_opts }} \
-                -DUSE_BUNDLED_LIBBPF=ON \
-                ..
-          make -j$(nproc) sinsp-example driver bpf
+          cd build
           sudo make e2e-install-deps
           sudo ../test/e2e/scripts/run_tests.sh
 
