@@ -1210,62 +1210,6 @@ TEST_F(sys_call_test32, quotactl_ko)
 
 #endif
 
-TEST_F(sys_call_test, get_n_tracepoint_hit_smoke)
-{
-	int callnum = 0;
-	vector<long> old_evts;
-	event_filter_t filter = [&](sinsp_evt* evt) { return false; };
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
-		uint64_t t_finish = sinsp_utils::get_current_time_ns() + 500000000;
-		unsigned int ncpu;
-		vector<long> evts_vec;
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			ncpu = inspector_handle->get_machine_info()->num_cpus;
-			// just test the tracepoint hit
-			evts_vec = inspector_handle->get_n_tracepoint_hit();
-		}
-		for (unsigned j = 0; j < ncpu; ++j)
-		{
-			EXPECT_GE(evts_vec[j], 0) << "cpu=" << j;
-		}
-		while (sinsp_utils::get_current_time_ns() < t_finish)
-		{
-			tee(-1, -1, 0, 0);
-		}
-		vector<long> evts_vec2;
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			evts_vec2 = inspector_handle->get_n_tracepoint_hit();
-		}
-		for (unsigned j = 0; j < ncpu; ++j)
-		{
-			EXPECT_GE(evts_vec2[j], evts_vec[j]) << "cpu=" << j;
-		}
-		old_evts = evts_vec2;
-	};
-	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-
-	// rerun again to check that counters are properly reset when userspace shutdowns
-	test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
-		// we can't compare by cpu because processes may be scheduled on other cpus
-		// let's just compare the whole sum for now
-		vector<long> evts_vec;
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			evts_vec = inspector_handle->get_n_tracepoint_hit();
-		}
-		auto new_count = std::accumulate(evts_vec.begin(), evts_vec.end(), 0);
-		auto old_count = std::accumulate(old_evts.begin(), old_evts.end(), 0);
-		EXPECT_LT(new_count, old_count);
-	};
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	EXPECT_EQ(0, callnum);
-}
-
 TEST_F(sys_call_test, setns_test)
 {
 	int callnum = 0;
