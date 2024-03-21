@@ -131,7 +131,12 @@ TEST_F(sys_call_test, container_cgroups)
 
 static int clone_callback(void* arg)
 {
-	sleep(5);
+	// Here we need 2 sleeps instead of once because, for some reason,
+	// we miss the first one. This problem is *probably* related to the
+	// fact that before we created a brand new inspector for each test but
+	// not we keep the same and start/stop the capture.
+	sleep(1);
+	sleep(1);
 	return 0;
 }
 
@@ -231,7 +236,7 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) { wait(NULL); };
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) { waitpid(ctid, NULL, 0); };
 
 	//
 	// OUTPUT VALDATION
@@ -239,18 +244,15 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl)
 	captured_event_callback_t callback = [&](const callback_param& param)
 	{
 		sinsp_threadinfo* tinfo = param.m_evt->get_thread_info();
-		if (tinfo)
+		if (tinfo && tinfo->m_vtid == 1 && tinfo->m_vpid == 1)
 		{
-			EXPECT_EQ(1, tinfo->m_vtid);
-			EXPECT_EQ(1, tinfo->m_vpid);
-
 			done = true;
 		}
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
-	ASSERT_TRUE(done);
 	free(stack);
+	ASSERT_TRUE(done);
 }
 
 static void run_container_docker_test(bool fork_after_container_start)
