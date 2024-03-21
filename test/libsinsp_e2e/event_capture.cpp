@@ -171,7 +171,7 @@ void event_capture::capture()
 		std::scoped_lock teardown_lock(m_inspector_mutex, m_object_state_mutex);
 		m_before_close(get_inspector());
 
-		get_inspector()->start_capture();
+		get_inspector()->stop_capture();
 		m_capture_stopped = true;
 		m_condition_stopped.notify_one();
 	}  // End teardown synchronized section
