@@ -111,18 +111,23 @@ void event_capture::capture()
 	int32_t next_result = SCAP_SUCCESS;
 	while (!m_capture_stopped && result && !::testing::Test::HasFatalFailure())
 	{
-		if (SCAP_SUCCESS == (next_result = get_inspector()->next(&event)))
+		{
+			std::scoped_lock inspector_next_lock(m_inspector_mutex);
+			next_result = get_inspector()->next(&event);
+		}
+		if (SCAP_SUCCESS == next_result)
 		{
 			result = handle_event(event);
+			if (m_mode != SINSP_MODE_NODRIVER)
+			{
+				dumper->dump(event);
+			}
 		}
 		if (!signaled_start)
 		{
 			signaled_start = true;
-			{
-				std::unique_lock<std::mutex> lock(m_object_state_mutex);
-				m_capture_started = true;
-				m_condition_started.notify_one();
-			}
+			m_capture_started = true;
+			m_condition_started.notify_one();
 		}
 	}
 
@@ -131,7 +136,10 @@ void event_capture::capture()
 		uint32_t n_timeouts = 0;
 		while (result && !::testing::Test::HasFatalFailure())
 		{
-			next_result = get_inspector()->next(&event);
+			{
+				std::scoped_lock inspector_next_lock(m_inspector_mutex);
+				next_result = get_inspector()->next(&event);
+			}
 			if (next_result == SCAP_TIMEOUT)
 			{
 				n_timeouts++;
@@ -172,6 +180,11 @@ void event_capture::capture()
 		m_before_close(get_inspector());
 
 		get_inspector()->stop_capture();
+		if (m_mode != SINSP_MODE_NODRIVER)
+		{
+			dumper->close();
+		}
+
 		m_capture_stopped = true;
 		m_condition_stopped.notify_one();
 	}  // End teardown synchronized section

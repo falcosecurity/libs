@@ -36,10 +36,13 @@ add_executable(libsinsp_e2e_tests
     container/container_cgroup.cpp
     container/docker_utils.cpp
     event_capture.cpp
+    fs.cpp
     main.cpp
-	paths.cpp
+    paths.cpp
+    process.cpp
     subprocess.cpp
     sys_call_test.cpp
+    threadinfo.cpp
     thread_state.cpp
 )
 
