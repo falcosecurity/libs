@@ -5710,12 +5710,13 @@ int f_sys_dup_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+	int32_t fd = 0;
 
 	/*
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	int32_t fd = (int32_t) val;
+	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5726,6 +5727,7 @@ int f_sys_dup_x(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+	int32_t fd = 0;
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -5735,7 +5737,7 @@ int f_sys_dup_x(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	int32_t fd = (int32_t) val;
+	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5746,12 +5748,13 @@ int f_sys_dup2_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+	int32_t fd = 0;
 
 	/*
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	int32_t fd = (int32_t) val;
+	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5762,6 +5765,7 @@ int f_sys_dup2_x(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+	int32_t fd = 0;
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -5771,7 +5775,7 @@ int f_sys_dup2_x(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	int32_t fd = (int32_t) val;
+	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 	
@@ -5790,12 +5794,13 @@ int f_sys_dup3_e(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+	int32_t fd = 0;
 
 	/*
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	int32_t fd = (int32_t) val;
+	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5806,6 +5811,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
+	int32_t fd = 0;
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -5815,7 +5821,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	int32_t fd = (int32_t) val;
+	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 	
