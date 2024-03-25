@@ -200,6 +200,7 @@ const struct ppm_name_value lseek_whence[] = {
 };
 
 const struct ppm_name_value shutdown_how[] = {
+	{"SHUT_UNKNOWN", PPM_SHUT_UNKNOWN},
 	{"SHUT_RDWR", PPM_SHUT_RDWR},
 	{"SHUT_WR", PPM_SHUT_WR},
 	{"SHUT_RD", PPM_SHUT_RD},
