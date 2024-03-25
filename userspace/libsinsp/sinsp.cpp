@@ -99,6 +99,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_isfatfile_enabled = false;
 	m_isinternal_events_enabled = false;
 	m_hostname_and_port_resolution_enabled = false;
+	m_user_details_enabled = true;
 	m_output_time_flag = 'h';
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
@@ -1895,6 +1896,11 @@ void sinsp::set_internal_events_mode(bool enable_internal_events)
 void sinsp::set_hostname_and_port_resolution_mode(bool enable)
 {
 	m_hostname_and_port_resolution_enabled = enable;
+}
+
+void sinsp::set_user_details(bool enable)
+{
+	m_user_details_enabled = enable;
 }
 
 void sinsp::set_max_evt_output_len(uint32_t len)
