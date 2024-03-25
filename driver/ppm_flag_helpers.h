@@ -1342,9 +1342,9 @@ static __always_inline uint16_t shutdown_how_to_scap(unsigned long how)
 	if (how == SHUT_RD)
 		return PPM_SHUT_RD;
 	else if (how == SHUT_WR)
-		return SHUT_WR;
+		return PPM_SHUT_WR;
 	else if (how == SHUT_RDWR)
-		return SHUT_RDWR;
+		return PPM_SHUT_RDWR;
 
 	ASSERT(false);
 #endif
