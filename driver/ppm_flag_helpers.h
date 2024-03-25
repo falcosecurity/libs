@@ -890,7 +890,6 @@ static __always_inline uint8_t fcntl_cmd_to_scap(unsigned long cmd)
 		return PPM_FCNTL_F_OFD_SETLKW;
 #endif
 	default:
-		ASSERT(false);
 		return PPM_FCNTL_UNKNOWN;
 	}
 }
