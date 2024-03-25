@@ -1344,9 +1344,7 @@ static __always_inline uint16_t shutdown_how_to_scap(unsigned long how)
 		return PPM_SHUT_WR;
 	else if (how == SHUT_RDWR)
 		return PPM_SHUT_RDWR;
-
-	ASSERT(false);
-	return (uint16_t)how;
+	return PPM_SHUT_UNKNOWN;
 }
 
 static __always_inline uint64_t lseek_whence_to_scap(unsigned long whence)

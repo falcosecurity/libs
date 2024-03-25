@@ -273,6 +273,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_SHUT_RD 0
 #define PPM_SHUT_WR 1
 #define PPM_SHUT_RDWR 2
+#define PPM_SHUT_UNKNOWN 0xffff
 
 /*
  * fs *at() flags
