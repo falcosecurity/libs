@@ -192,12 +192,6 @@ target_link_libraries(unit-test-libsinsp
 	"${JSONCPP_LIB}"
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
-	target_link_libraries(unit-test-libsinsp
-		gcov
-	)
-endif()
-
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`
 # `ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS` is a list of include paths `;` separated
 if(ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS)

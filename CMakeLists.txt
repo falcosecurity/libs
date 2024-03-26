@@ -64,6 +64,7 @@ option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
 option(ENABLE_VM_TESTS "Enable driver sanity tests" OFF)
 option(USE_ASAN "Build with AddressSanitizer" OFF)
 option(USE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
+option(ENABLE_COVERAGE "Build with code coverage" OFF)
 option(UBSAN_HALT_ON_ERROR "Halt on error when building with UBSan" ON)
 
 if(${CMAKE_VERSION} VERSION_LESS "3.1.0" AND BUILD_SHARED_LIBS)

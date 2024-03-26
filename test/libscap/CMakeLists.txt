@@ -48,11 +48,6 @@ set(LIBSCAP_TESTS_LIBRARIES
 	scap
 )
 
-# Add `gcov` to needed libraries
-if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
-	list(APPEND LIBSCAP_TESTS_LIBRARIES gcov)
-endif()
-
 set(LIBSCAP_TESTS_DEPENDENCIES
 	gtest
 	scap
