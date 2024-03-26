@@ -1429,3 +1429,107 @@ TEST_F(sys_call_test, ppoll_timeout)
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 	EXPECT_EQ(2, callnum);
 }
+
+TEST_F(sys_call_test, getsetresuid_and_gid)
+{
+	static const uint32_t test_uid = 5454;
+	static const uint32_t test_gid = 6565;
+	int callnum = 0;
+	uint32_t uids[3];
+	uint32_t gids[3];
+
+	// Clean environment
+	int ret = system("userdel testsetresuid");
+	ret = system("groupdel testsetresgid");
+	usleep(200);
+
+	char command[] = "useradd -u 5454 testsetresuid &&\n"
+		"groupadd -g 6565 testsetresgid";
+	ret = system(command);
+	ASSERT_EQ(0, ret);
+
+	//
+	// FILTER
+	//
+	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+
+	//
+	// TEST CODE
+	//
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
+	{
+		auto res = setresuid(test_uid, -1, -1);
+		EXPECT_EQ(0, res);
+		res = setresgid(test_gid, -1, -1);
+		EXPECT_EQ(0, res);
+		getresuid(uids, uids + 1, uids + 2);
+		getresgid(gids, gids + 1, gids + 2);
+	};
+
+	//
+	// OUTPUT VALIDATION
+	//
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+		if (type == PPME_SYSCALL_SETRESUID_E)
+		{
+			++callnum;
+			EXPECT_EQ("5454", e->get_param_value_str("ruid", false));
+			EXPECT_EQ("testsetresuid", e->get_param_value_str("ruid"));
+			EXPECT_EQ("-1", e->get_param_value_str("euid", false));
+			EXPECT_EQ("<NONE>", e->get_param_value_str("euid"));
+			EXPECT_EQ("-1", e->get_param_value_str("suid", false));
+			EXPECT_EQ("<NONE>", e->get_param_value_str("suid"));
+		}
+		else if (type == PPME_SYSCALL_SETRESUID_X)
+		{
+			++callnum;
+			EXPECT_EQ("0", e->get_param_value_str("res", false));
+		}
+		else if (type == PPME_SYSCALL_SETRESGID_E)
+		{
+			++callnum;
+			EXPECT_EQ("6565", e->get_param_value_str("rgid", false));
+			EXPECT_EQ("testsetresgid", e->get_param_value_str("rgid"));
+			EXPECT_EQ("-1", e->get_param_value_str("egid", false));
+			EXPECT_EQ("<NONE>", e->get_param_value_str("egid"));
+			EXPECT_EQ("-1", e->get_param_value_str("sgid", false));
+			EXPECT_EQ("<NONE>", e->get_param_value_str("sgid"));
+		}
+		else if (type == PPME_SYSCALL_SETRESGID_X)
+		{
+			++callnum;
+			EXPECT_EQ("0", e->get_param_value_str("res", false));
+		}
+		else if (type == PPME_SYSCALL_GETRESUID_E || type == PPME_SYSCALL_GETRESGID_E)
+		{
+			++callnum;
+		}
+		else if (type == PPME_SYSCALL_GETRESUID_X)
+		{
+			++callnum;
+			EXPECT_EQ("0", e->get_param_value_str("res", false));
+			EXPECT_EQ("5454", e->get_param_value_str("ruid", false));
+			EXPECT_EQ("testsetresuid", e->get_param_value_str("ruid"));
+			EXPECT_EQ("0", e->get_param_value_str("euid", false));
+			EXPECT_EQ("root", e->get_param_value_str("euid"));
+			EXPECT_EQ("0", e->get_param_value_str("suid", false));
+			EXPECT_EQ("root", e->get_param_value_str("suid"));
+		}
+		else if (type == PPME_SYSCALL_GETRESGID_X)
+		{
+			++callnum;
+			EXPECT_EQ("0", e->get_param_value_str("res", false));
+			EXPECT_EQ("6565", e->get_param_value_str("rgid", false));
+			EXPECT_EQ("testsetresgid", e->get_param_value_str("rgid"));
+			EXPECT_EQ("0", e->get_param_value_str("egid", false));
+			EXPECT_EQ("root", e->get_param_value_str("egid"));
+			EXPECT_EQ("0", e->get_param_value_str("sgid", false));
+			EXPECT_EQ("root", e->get_param_value_str("sgid"));
+		}
+	};
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(8, callnum);
+}
