@@ -1338,7 +1338,6 @@ static __always_inline u8 rlimit_resource_to_scap(uint32_t resource)
 
 static __always_inline uint16_t shutdown_how_to_scap(unsigned long how)
 {
-#ifdef SHUT_RD
 	if (how == SHUT_RD)
 		return PPM_SHUT_RD;
 	else if (how == SHUT_WR)
@@ -1347,7 +1346,6 @@ static __always_inline uint16_t shutdown_how_to_scap(unsigned long how)
 		return PPM_SHUT_RDWR;
 
 	ASSERT(false);
-#endif
 	return (uint16_t)how;
 }
 
