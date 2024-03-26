@@ -1533,3 +1533,167 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 	EXPECT_EQ(8, callnum);
 }
+
+TEST_F(sys_call_test, failing_execve)
+{
+	int callnum = 0;
+
+	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+
+	const char* eargv[] = {"/non/existent", "arg0", "arg1", "", "arg3", NULL};
+
+	const char* eenvp[] = {"env0", "env1", "", "env3", NULL};
+
+	//
+	// Touch the memory so it won't generate a PF in the driver
+	//
+	printf("%s %s %s %s %s\n", eargv[0], eargv[1], eargv[2], eargv[3], eargv[4]);
+	printf("%s %s %s %s\n", eenvp[0], eenvp[1], eenvp[2], eenvp[3]);
+
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
+	{
+		int ret = execve(eargv[0], (char* const*)eargv, (char* const*)eenvp);
+		ASSERT_TRUE(ret < 0);
+	};
+
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+
+		if (type == PPME_SYSCALL_EXECVE_19_E || type == PPME_SYSCALL_EXECVE_18_E)
+		{
+			++callnum;
+
+			string filename = e->get_param_value_str("filename");
+			EXPECT_EQ(filename, eargv[0]);
+		}
+		else if (type == PPME_SYSCALL_EXECVE_19_X || type == PPME_SYSCALL_EXECVE_18_X)
+		{
+			++callnum;
+
+			string res = e->get_param_value_str("res");
+			EXPECT_EQ(res, "ENOENT");
+
+			string exe = e->get_param_value_str("exe");
+			EXPECT_EQ(exe, eargv[0]);
+
+			string args = e->get_param_value_str("args");
+			EXPECT_EQ(args, "arg0.arg1..arg3.");
+
+			string env = e->get_param_value_str("env");
+			EXPECT_EQ(env, "env0.env1..env3.");
+		}
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(2, callnum);
+}
+
+#ifdef __x86_64__
+
+TEST_F(sys_call_test32, failing_execve)
+{
+	int callnum = 0;
+
+	// INIT FILTER
+	std::unique_ptr<sinsp_filter> is_subprocess_execve;
+	before_open_t before_open = [&](sinsp* inspector)
+	{
+		sinsp_filter_compiler compiler(inspector,
+		                               "evt.type=execve and proc.apid=" + std::to_string(getpid()));
+		is_subprocess_execve.reset(compiler.compile().release());
+	};
+
+	//
+	// FILTER
+	//
+	event_filter_t filter = [&](sinsp_evt* evt) { return is_subprocess_execve->run(evt); };
+
+	//
+	// TEST CODE
+	//
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
+	{
+		auto ret = system(LIBSINSP_TEST_RESOURCES_PATH "execve32_fail");
+		ASSERT_TRUE(ret > 0);
+		ret = system(LIBSINSP_TEST_RESOURCES_PATH "execve32 ./fail");
+		ASSERT_TRUE(ret > 0);
+	};
+
+	//
+	// OUTPUT VALIDATION
+	//
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+		auto tinfo = e->get_thread_info(true);
+		if (type == PPME_SYSCALL_EXECVE_19_E || type == PPME_SYSCALL_EXECVE_18_E ||
+		    type == PPME_SYSCALL_EXECVE_17_E)
+		{
+			++callnum;
+			switch (callnum)
+			{
+			case 1:
+				EXPECT_EQ(tinfo->m_comm, "libsinsp_e2e_te");
+				break;
+			case 3:
+				EXPECT_EQ(tinfo->m_comm, "sh");
+				break;
+			case 5:
+				EXPECT_EQ(tinfo->m_comm, "libsinsp_e2e_te");
+				break;
+			case 7:
+				EXPECT_EQ(tinfo->m_comm, "sh");
+				break;
+			case 9:
+				EXPECT_EQ(tinfo->m_comm, "execve32");
+				break;
+			default:
+				FAIL() << "Wrong execve entry callnum (" << callnum << ")";
+			}
+		}
+		else if (type == PPME_SYSCALL_EXECVE_19_X || type == PPME_SYSCALL_EXECVE_18_X ||
+		         type == PPME_SYSCALL_EXECVE_17_X)
+		{
+			++callnum;
+
+			auto res = e->get_param_value_str("res", false);
+			auto comm = e->get_param_value_str("comm", false);
+			auto exe = e->get_param_value_str("exe", false);
+			switch (callnum)
+			{
+			case 2:
+				EXPECT_EQ("0", res);
+				EXPECT_EQ(comm, "sh");
+				break;
+			case 4:
+				EXPECT_EQ("-2", res);
+				EXPECT_EQ(comm, "sh");
+				EXPECT_EQ(exe, LIBSINSP_TEST_RESOURCES_PATH "execve32_fail");
+				break;
+			case 6:
+				EXPECT_EQ("0", res);
+				EXPECT_EQ(comm, "sh");
+				break;
+			case 8:
+				EXPECT_EQ("0", res);
+				EXPECT_EQ(comm, "execve32");
+				EXPECT_EQ(exe, LIBSINSP_TEST_RESOURCES_PATH "execve32");
+				break;
+			case 10:
+				EXPECT_EQ("-2", res);
+				EXPECT_EQ(comm, "execve32");
+				EXPECT_EQ(exe, "./fail");
+				break;
+			default:
+				FAIL() << "Wrong execve exit callnum (" << callnum << ")";
+			}
+		}
+	};
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before_open); });
+	EXPECT_EQ(10, callnum);
+}
+
+#endif
