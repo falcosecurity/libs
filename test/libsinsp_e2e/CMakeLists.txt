@@ -43,6 +43,7 @@ add_executable(libsinsp_e2e_tests
     paths.cpp
     process.cpp
     subprocess.cpp
+    suppress_events.cpp
     sys_call_test.cpp
     tcp_client_server.cpp
     tcp_client_server_ipv4_mapped.cpp
@@ -93,7 +94,8 @@ if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
 endif("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
 
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_helper.sh ${CMAKE_CURRENT_BINARY_DIR}/test_helper.sh COPYONLY
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_helper.sh.in
+    ${CMAKE_CURRENT_BINARY_DIR}/test_helper.sh
 )
 
 file(COPY
