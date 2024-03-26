@@ -15,6 +15,19 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+add_executable(forking_main_thread_exit forking_main_thread_exit.c)
+target_link_libraries(forking_main_thread_exit pthread)
+add_dependencies(libsinsp_e2e_tests forking_main_thread_exit)
+
+add_executable(forking_nested forking_nested.c)
+target_link_libraries(forking_nested pthread)
+add_dependencies(libsinsp_e2e_tests forking_nested)
+
+add_executable(chname chname.cpp)
+target_link_libraries(chname pthread)
+add_dependencies(libsinsp_e2e_tests chname)
+
+
 if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
     add_executable(execve execve.c)
     add_dependencies(libsinsp_e2e_tests execve)
