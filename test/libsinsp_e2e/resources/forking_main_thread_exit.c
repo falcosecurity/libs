@@ -16,19 +16,42 @@ limitations under the License.
 
 */
 
-#pragma once
+#include <fcntl.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
 
-// Absolute path to the kernel module file
-#define LIBSINSP_TEST_KERNEL_MODULE_PATH "${CMAKE_BINARY_DIR}/driver/scap.ko"
+#include <sys/stat.h>
+#include <sys/types.h>
 
-// Kernel module name
-#define LIBSINSP_TEST_KERNEL_MODULE_NAME "${DRIVER_NAME}"
+static int fd;
 
-// Absolute path to the bpf probe .o file
-#define LIBSINSP_TEST_BPF_PROBE_PATH "${CMAKE_BINARY_DIR}/driver/bpf/probe.o"
+void* callback(void* arg)
+{
+	char buf[1024];
+	sleep(1);
+	if (read(fd, buf, sizeof(buf)) < 0)
+	{
+		perror("read");
+	}
+	sleep(10);
+	return NULL;
+}
 
-#define LIBSINSP_TEST_CAPTURES_PATH "${CMAKE_BINARY_DIR}/test/libsinsp_e2e/resources/captures/"
+//
+// This is outside the test files because gtest doesn't like
+// pthread_exit() since it triggers an exception to unwind the stack
+//
+int main()
+{
+	pthread_t thread;
 
-#define LIBSINSP_TEST_RESOURCES_PATH "${CMAKE_BINARY_DIR}/test/libsinsp_e2e/resources/"
+	fd = open("/etc/passwd", O_RDONLY);
+	if (fd == -1)
+	{
+		perror("open");
+	}
 
-#define LIBSINSP_TEST_PATH "${CMAKE_BINARY_DIR}/test/libsinsp_e2e/"
+	pthread_create(&thread, NULL, callback, NULL);
+	pthread_exit(NULL);
+}
