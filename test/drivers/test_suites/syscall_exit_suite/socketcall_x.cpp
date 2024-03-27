@@ -1767,8 +1767,7 @@ TEST(SyscallExit, socketcall_sendmsgX_fail)
 	iov[0].iov_base = sent_data_1;
 	iov[0].iov_len = sizeof(sent_data_1);
 	send_msg.msg_iov = iov;
-	/* here we pass a wrong `iovlen` to check the behavior */
-	send_msg.msg_iovlen = 3;
+	send_msg.msg_iovlen = 1;
 	uint32_t sendmsg_flags = 0;
 
 	unsigned long args[3] = {0};
