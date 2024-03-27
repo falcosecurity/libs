@@ -16,6 +16,8 @@ limitations under the License.
 
 */
 
+#if defined(__linux__)
+
 #include "scoped_file_descriptor.h"
 
 #include <unistd.h>
@@ -48,3 +50,4 @@ void scoped_file_descriptor::close()
 	}
 	m_closed = true;
 }
+#endif

@@ -16,8 +16,10 @@ limitations under the License.
 
 */
 
+#if defined(__linux__)
 #include <libsinsp/test/helpers/scoped_file_descriptor.h>
 #include <libsinsp/test/helpers/scoped_pipe.h>
+#endif
 
 #include <gtest/gtest.h>
 #include <libsinsp/sinsp.h>
@@ -48,6 +50,7 @@ public:
 	void TearDown() {}
 
 protected:
+#if defined(__linux__)
 	/**
 	 * Counts the number of non-overlapping times the given substr appears
 	 * in the given target string.
@@ -176,6 +179,7 @@ protected:
 			}
 		}
 	}
+#endif
 
 	/**
 	 * This is used by some tests as the callback logging function.
@@ -196,6 +200,7 @@ protected:
 	static const std::string& get_callback_output() { return s_cb_output; }
 
 private:
+#if defined(__linux__)
 	/**
 	 * Put the given file descriptor in non-blocking mode.
 	 *
@@ -211,6 +216,7 @@ private:
 
 		ASSERT_TRUE(fcntl(fd, F_SETFL, flags) >= 0);
 	}
+#endif
 
 	static std::string s_cb_output;
 };
@@ -218,11 +224,6 @@ private:
 std::string sinsp_logger_test::s_cb_output;
 
 }  // end namespace
-
-//static void log_callback_fn(std::string&& str, const sinsp_logger::severity sev)
-//{
-//	return;
-//}
 
 TEST_F(sinsp_logger_test, constructor)
 {
@@ -271,6 +272,7 @@ TEST_F(sinsp_logger_test, initial_state)
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_INFO);
 }
 
+#if defined(__linux__)
 /**
  * With no enabled log sinks, calls to the logging API should produce no
  * output.
@@ -513,3 +515,4 @@ TEST_F(sinsp_logger_test, log_stderr_multithreaded)
 	ASSERT_TRUE(dup2(original_stderr, STDERR_FILENO) >= 0);
 	close(original_stderr);
 }
+#endif
