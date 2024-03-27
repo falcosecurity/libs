@@ -204,10 +204,6 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 
 		sin->sin_family = AF_INET;
 		if (peer) {
-			if (!inet->inet_dport ||
-			    ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT))) {
-				return -ENOTCONN;
-			}
 			sin->sin_port = inet->inet_dport;
 			sin->sin_addr.s_addr = inet->inet_daddr;
 		} else {
@@ -228,10 +224,6 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 
 		sin->sin6_family = AF_INET6;
 		if (peer) {
-			if ((!inet->inet_dport) ||
-			    ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT))) {
-				return -ENOTCONN;
-			}
 			sin->sin6_port = inet->inet_dport;
 			sin->sin6_addr = sk->sk_v6_daddr;
 		} else {
