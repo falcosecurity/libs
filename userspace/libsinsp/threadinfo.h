@@ -65,6 +65,21 @@ struct erase_fd_params
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry
 {
 public:
+	typedef struct sinsp_userinfo
+	{
+		uint32_t uid; ///< User ID
+		uint32_t gid; ///< Group ID
+		std::string name; ///< Username
+		std::string homedir; ///< Home directory
+		std::string shell; ///< Shell program
+	} sinsp_userinfo;
+
+	typedef struct sinsp_groupinfo
+	{
+		uint32_t gid; ///< Group ID
+		std::string name; ///< Group name
+	} sinsp_groupinfo;
+
 	sinsp_threadinfo(
 		sinsp *inspector = nullptr,
 		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
@@ -431,9 +446,9 @@ public:
 	std::string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
-	scap_userinfo m_user; ///< user infos
-	scap_userinfo m_loginuser; ///< loginuser infos (auid)
-	scap_groupinfo m_group; ///< group infos
+	std::shared_ptr<sinsp_userinfo> m_user; ///< user infos
+	std::shared_ptr<sinsp_userinfo> m_loginuser; ///< loginuser infos (auid)
+	std::shared_ptr<sinsp_groupinfo> m_group; ///< group infos
 	uint64_t m_cap_permitted; ///< permitted capabilities
 	uint64_t m_cap_effective; ///< effective capabilities
 	uint64_t m_cap_inheritable; ///< inheritable capabilities

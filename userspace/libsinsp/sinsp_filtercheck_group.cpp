@@ -27,12 +27,9 @@ using namespace std;
         return (uint8_t*) &(x);     \
 } while(0)
 
-#define RETURN_EXTRACT_CSTR(x) do {             \
-        if((x))                                 \
-        {                                       \
-                *len = strlen((char *) ((x)));  \
-        }                                       \
-        return (uint8_t*) ((x));                \
+#define RETURN_EXTRACT_STRING(x) do {  \
+        *len = (x).size();             \
+        return (uint8_t*) (x).c_str(); \
 } while(0)
 
 static const filtercheck_field_info sinsp_filter_check_group_fields[] =
@@ -68,9 +65,9 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	switch(m_field_id)
 	{
 	case TYPE_GID:
-		RETURN_EXTRACT_VAR(tinfo->m_group.gid);
+		RETURN_EXTRACT_VAR(tinfo->m_group->gid);
 	case TYPE_NAME:
-		RETURN_EXTRACT_CSTR(tinfo->m_group.name);
+		RETURN_EXTRACT_STRING(tinfo->m_group->name);
 	default:
 		ASSERT(false);
 		break;
