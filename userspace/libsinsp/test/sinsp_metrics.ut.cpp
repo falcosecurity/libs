@@ -116,7 +116,7 @@ testns_falco_memory_rss_bytes{raw_name="memory_rss_bytes"} )";
 	}
 
 	ASSERT_EQ(metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion, 
-	"cpu_usage_ratio memory_rss_bytes memory_vsz_bytes memory_pss_bytes container_memory_used_bytes host_cpu_usage_ratio host_procs_running host_memory_used_bytes host_open_fds n_threads n_fds n_noncached_fd_lookups n_cached_fd_lookups n_failed_fd_lookups n_added_fds n_removed_fds n_stored_evts n_store_evts_drops n_retrieved_evts n_retrieve_evts_drops n_noncached_thread_lookups n_cached_thread_lookups n_failed_thread_lookups n_added_threads n_removed_threads n_drops_full_threadtable n_missing_container_images n_containers");
+	"cpu_usage_ratio memory_rss_bytes memory_vsz_bytes memory_pss_bytes container_memory_used_bytes host_cpu_usage_ratio host_memory_used_bytes host_procs_running host_open_fds n_threads n_fds n_noncached_fd_lookups n_cached_fd_lookups n_failed_fd_lookups n_added_fds n_removed_fds n_stored_evts n_store_evts_drops n_retrieved_evts n_retrieve_evts_drops n_noncached_thread_lookups n_cached_thread_lookups n_failed_thread_lookups n_added_threads n_removed_threads n_drops_full_threadtable n_missing_container_images n_containers");
 
 	// Test global wrapper base metrics (pseudo metrics)
 	prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus("kernel_release", "testns", "falco", {{"kernel_release", "6.6.7-200.fc39.x86_64"}});
