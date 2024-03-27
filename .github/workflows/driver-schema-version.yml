@@ -6,6 +6,8 @@ name: Driver SCHEMA_VERSION checks
 on:
   pull_request_target:
     paths:
+      - 'driver/ppm_fillers.c'
+      - 'driver/bpf/fillers.h'
       - 'driver/event_table.c'
       - 'driver/ppm_events_public.h'
       - 'driver/event_stats.h'
