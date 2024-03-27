@@ -4176,6 +4176,11 @@ FILLER(sys_recvfrom_x, true)
 
 	if (retval >= 0) {
 		/*
+		 * Get the fd
+		 */
+		fd = bpf_syscall_get_argument(data, 0);
+
+		/*
 		 * Get the address
 		 */
 		usrsockaddr = (struct sockaddr *)bpf_syscall_get_argument(data, 4);
@@ -4196,8 +4201,6 @@ FILLER(sys_recvfrom_x, true)
 			err = bpf_addr_to_kernel(usrsockaddr, addrlen,
 						 (struct sockaddr *)data->tmp_scratch);
 			if (err >= 0) {
-				fd = bpf_syscall_get_argument(data, 0);
-
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
@@ -4209,6 +4212,17 @@ FILLER(sys_recvfrom_x, true)
 							   true,
 							   data->tmp_scratch + sizeof(struct sockaddr_storage));
 			}
+		} else {
+			/*
+			* Get socket endpoint information from fd if the user-provided *sockaddr is NULL
+			*/
+			size = bpf_fd_to_socktuple(data,
+				fd,
+				NULL,
+				0,
+				false,
+				true,
+				data->tmp_scratch + sizeof(struct sockaddr_storage));
 		}
 	}
 
