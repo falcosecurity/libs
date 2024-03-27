@@ -39,7 +39,11 @@ class sinsp_logger_test : public testing::Test
 public:
 	sinsp_logger_test() {}
 
-	void SetUp() { s_cb_output.clear(); }
+	void SetUp()
+	{
+		libsinsp_logger()->reset();
+		s_cb_output.clear();
+	}
 
 	void TearDown() {}
 
@@ -222,7 +226,6 @@ std::string sinsp_logger_test::s_cb_output;
 
 TEST_F(sinsp_logger_test, constructor)
 {
-	libsinsp_logger()->reset();
 	ASSERT_FALSE(libsinsp_logger()->has_output());
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_INFO);
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_NONE);
@@ -230,7 +233,6 @@ TEST_F(sinsp_logger_test, constructor)
 
 TEST_F(sinsp_logger_test, output_type)
 {
-	libsinsp_logger()->reset();
 	ASSERT_FALSE(libsinsp_logger()->has_output());
 	libsinsp_logger()->add_stdout_log();
 	libsinsp_logger()->add_stderr_log();
@@ -253,7 +255,6 @@ TEST_F(sinsp_logger_test, output_type)
 
 TEST_F(sinsp_logger_test, get_set_severity)
 {
-	libsinsp_logger()->reset();
 	libsinsp_logger()->set_severity(sinsp_logger::SEV_FATAL);
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_FATAL);
 	ASSERT_TRUE(libsinsp_logger()->is_enabled(sinsp_logger::SEV_FATAL));
@@ -266,7 +267,6 @@ TEST_F(sinsp_logger_test, get_set_severity)
 
 TEST_F(sinsp_logger_test, initial_state)
 {
-	libsinsp_logger()->reset();
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_NONE);
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_INFO);
 }
@@ -281,7 +281,6 @@ TEST_F(sinsp_logger_test, log_no_output)
 	std::string err;
 	std::string file;
 
-	libsinsp_logger()->reset();
 
 	generate_log(DEFAULT_MESSAGE, out, err, file, sinsp_logger::SEV_FATAL);
 
@@ -300,7 +299,6 @@ TEST_F(sinsp_logger_test, low_severity_not_logged)
 	std::string err;
 	std::string file;
 
-	libsinsp_logger()->reset();
 	libsinsp_logger()->set_severity(sinsp_logger::SEV_ERROR);
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_ERROR);
 
@@ -324,7 +322,6 @@ TEST_F(sinsp_logger_test, log_standard_output)
 	std::string err;
 	std::string file;
 
-	libsinsp_logger()->reset();
 	libsinsp_logger()->add_stdout_log();
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_STDOUT);
 
@@ -346,7 +343,6 @@ TEST_F(sinsp_logger_test, log_standard_output_severity)
 	std::string err;
 	std::string file;
 
-	libsinsp_logger()->reset();
 	libsinsp_logger()->add_stdout_log();
 	libsinsp_logger()->add_encoded_severity();
 
@@ -376,7 +372,6 @@ TEST_F(sinsp_logger_test, log_standard_output_nots)
 	std::string err;
 	std::string file;
 
-	libsinsp_logger()->reset();
 	libsinsp_logger()->add_stdout_log();
 	libsinsp_logger()->disable_timestamps();
 
@@ -403,7 +398,6 @@ TEST_F(sinsp_logger_test, log_standard_error)
 	std::string err;
 	std::string file;
 
-	libsinsp_logger()->reset();
 	libsinsp_logger()->add_stderr_log();
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_STDERR);
 
@@ -425,7 +419,6 @@ TEST_F(sinsp_logger_test, log_file)
 	std::string err;
 	std::string file;
 
-	libsinsp_logger()->reset();
 	libsinsp_logger()->add_file_log(filename);
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_FILE);
 
@@ -442,7 +435,6 @@ TEST_F(sinsp_logger_test, log_file)
  */
 TEST_F(sinsp_logger_test, log_callback)
 {
-	libsinsp_logger()->reset();
 	libsinsp_logger()->add_callback_log(log_callback_fn);
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_CALLBACK);
 
@@ -463,7 +455,6 @@ TEST_F(sinsp_logger_test, log_stderr_multithreaded)
 	// = 4000 characters, which should be less than BUFFER_SIZE
 	ASSERT_TRUE((NUM_SUBSTRINGS * (message.size() + 1)) < (BUFFER_SIZE - 1));
 
-	libsinsp_logger()->reset();
 	libsinsp_logger()->add_stderr_log();
 	libsinsp_logger()->disable_timestamps();
 
