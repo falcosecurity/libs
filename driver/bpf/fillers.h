@@ -4019,7 +4019,8 @@ FILLER(sys_getresuid_and_gid_x, true)
 	 * ruid
 	 */
 	idp = (uint32_t *)bpf_syscall_get_argument(data, 0);
-	id = _READ(*idp);
+	if (bpf_probe_read_user(&id, sizeof(idp), (void *)idp))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = bpf_push_u32_to_ring(data, id);
 	CHECK_RES(res);
@@ -4028,7 +4029,8 @@ FILLER(sys_getresuid_and_gid_x, true)
 	 * euid
 	 */
 	idp = (uint32_t *)bpf_syscall_get_argument(data, 1);
-	id = _READ(*idp);
+	if (bpf_probe_read_user(&id, sizeof(idp), (void *)idp))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = bpf_push_u32_to_ring(data, id);
 	CHECK_RES(res);
@@ -4037,7 +4039,8 @@ FILLER(sys_getresuid_and_gid_x, true)
 	 * suid
 	 */
 	idp = (uint32_t *)bpf_syscall_get_argument(data, 2);
-	id = _READ(*idp);
+	if (bpf_probe_read_user(&id, sizeof(idp), (void *)idp))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	return bpf_push_u32_to_ring(data, id);
 }
