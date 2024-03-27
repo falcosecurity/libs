@@ -6,8 +6,13 @@ name: Driver API_VERSION checks
 on:
   pull_request_target:
     paths:
-      - 'driver/ppm_fillers.c'
-      - 'driver/bpf/fillers.h'
+      - 'userspace/libscap/engine/bpf/**'
+      - 'userspace/libscap/engine/modern_bpf/**'
+      - 'userspace/libscap/engine/kmod/**'
+      - 'driver/ppm_events_public.h'
+      - 'driver/bpf/maps.h'
+      - 'driver/modern_bpf/maps/maps.h'
+      
 
 jobs:
   paths-filter:
