@@ -647,6 +647,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 		"blkio=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
 		"memory=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e"};
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
+	container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
@@ -782,6 +783,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 		"blkio=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
 		"memory=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a"};
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
+	container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
