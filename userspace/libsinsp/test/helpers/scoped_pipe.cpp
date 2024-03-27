@@ -16,6 +16,8 @@ limitations under the License.
 
 */
 
+#if defined(__linux__)
+
 #include "scoped_pipe.h"
 
 #include "scoped_file_descriptor.h"
@@ -60,3 +62,4 @@ void scoped_pipe::close()
 	m_read_end->close();
 	m_write_end->close();
 }
+#endif
