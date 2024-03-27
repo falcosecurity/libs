@@ -36,14 +36,19 @@ add_executable(libsinsp_e2e_tests
     container/container_cgroup.cpp
     container/docker_utils.cpp
     event_capture.cpp
+    forking.cpp
     fs.cpp
+    ipv6.cpp
     main.cpp
     paths.cpp
     process.cpp
     subprocess.cpp
     sys_call_test.cpp
+    tcp_client_server.cpp
+    tcp_client_server_ipv4_mapped.cpp
     threadinfo.cpp
     thread_state.cpp
+    udp_client_server.cpp
 )
 
 if(BUILD_BPF)
