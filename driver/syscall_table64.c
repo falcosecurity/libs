@@ -28,6 +28,8 @@ or GPL2.txt for full copies of the license.
 #include "syscall_compat_ppc64le.h"
 #elif defined(__riscv)
 #include "syscall_compat_riscv64.h"
+#elif defined(__loongarch__)
+#include "syscall_compat_loongarch64.h"
 #endif /* __x86_64__ */
 #elif defined(_MSC_VER) || defined(__EMSCRIPTEN__)
 // these are Linux syscall numbers and obviously meaningless for Windows/macOS

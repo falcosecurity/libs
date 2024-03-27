@@ -14,7 +14,8 @@ if((NOT TARGET_ARCH STREQUAL "x86_64") AND
    (NOT TARGET_ARCH STREQUAL "aarch64") AND
    (NOT TARGET_ARCH STREQUAL "s390x") AND
    (NOT TARGET_ARCH STREQUAL "riscv64") AND
-   (NOT TARGET_ARCH STREQUAL "ppc64le"))
+   (NOT TARGET_ARCH STREQUAL "ppc64le") AND
+   (NOT TARGET_ARCH STREQUAL "loongarch64"))
 	message(WARNING "Target architecture not officially supported by our drivers!")
 else()
 	# Load current kernel version
@@ -28,6 +29,8 @@ else()
 	set(kmod_min_kver_map_s390x 2.6)
 	set(kmod_min_kver_map_riscv64 5.0)
 	set(kmod_min_kver_map_ppc64le 2.6)
+	set(kmod_min_kver_map_loongarch64 5.19)
+
 	if (LINUX_KERNEL_VERSION VERSION_LESS ${kmod_min_kver_map_${TARGET_ARCH}})
 		message(WARNING "[KMOD] To run this driver you need a Linux kernel version >= ${kmod_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
 	endif()

@@ -575,7 +575,6 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 		msg.msg_iovlen = 1;
 		msg.msg_control = cmsg_buf;
 		msg.msg_controllen = sizeof(cmsg_buf);
-		msg_controllen = msg.msg_controllen;
 
 		cmsg = CMSG_FIRSTHDR(&msg);
 		cmsg->cmsg_level = SOL_SOCKET;
