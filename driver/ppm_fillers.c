@@ -2544,6 +2544,17 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 					targetbuf,
 					STR_STORAGE_SIZE);
 			}
+		} else {
+			/*
+			* Get socket endpoint information from fd if the user-provided *sockaddr is NULL
+			*/
+			size = fd_to_socktuple(fd,
+				NULL,
+				0,
+				false,
+				true,
+				targetbuf,
+				STR_STORAGE_SIZE);
 		}
 	}
 

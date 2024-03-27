@@ -84,8 +84,8 @@ int BPF_PROG(recvfrom_x,
 		}
 
 		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[2];
-		extract__network_args(args, 2, regs);
+		unsigned long args[5];
+		extract__network_args(args, 5, regs);
 
 		/* Parameter 2: data (type: PT_BYTEBUF) */
 		unsigned long received_data_pointer = args[1];
@@ -93,7 +93,8 @@ int BPF_PROG(recvfrom_x,
 
 		/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 		uint32_t socket_fd = (uint32_t)args[0];
-		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND, NULL);
+		struct sockaddr *usrsockaddr = (struct sockaddr *)args[4];
+		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND, usrsockaddr);
 	}
 	else
 	{

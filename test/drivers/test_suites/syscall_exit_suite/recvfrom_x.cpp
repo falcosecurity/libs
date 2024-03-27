@@ -215,17 +215,8 @@ TEST(SyscallExit, recvfromX_tcp_connection_NULL_sockaddr)
 	evt_test->assert_bytebuf_param(2, FULL_MESSAGE, DEFAULT_SNAPLEN);
 
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-	if(evt_test->is_modern_bpf_engine())
-	{
-		/* The server performs a 'recvmsg` so the server is the final destination of the packet while the client is the src. */
-		evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
-	}
-	else
-	{
-		evt_test->assert_empty_param(3);
-		evt_test->assert_num_params_pushed(3);
-		GTEST_SKIP() << "[RECVFROM_X]: we send an empty tuple, but we can fix this case" << std::endl;
-	}
+	/* The server performs a 'recvmsg` so the server is the final destination of the packet while the client is the src. */
+	evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -293,20 +284,9 @@ TEST(SyscallExit, recvfromX_udp_connection_snaplen)
 	evt_test->assert_bytebuf_param(2, FULL_MESSAGE, DEFAULT_SNAPLEN);
 
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-	if(!evt_test->is_modern_bpf_engine())
-	{
-		/* The server performs a 'recvmsg` so the server is the final destination of the packet while the client is the src. */
-		evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
-	}
-	else
-	{
-		/* In UDP connections we cannot extract the tuple from kernel structs we always need to use the userspace struct
-		 * Right now the modern probe doesn't support this behavior we need to fix it
-		 */
-		evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_EMPTY, IPV4_SERVER, IPV4_PORT_EMPTY_STRING, IPV4_PORT_SERVER_STRING);
-		evt_test->assert_num_params_pushed(3);
-		GTEST_SKIP() << "[RECVFROM_X]: we send a tuple without the source, but we can fix this case" << std::endl;
-	}
+	/* The server performs a 'recvmsg` so the server is the final destination of the packet while the client is the src. */
+	evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
+
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -372,19 +352,11 @@ TEST(SyscallExit, recvfromX_udp_connection_NULL_sockaddr)
 	evt_test->assert_bytebuf_param(2, FULL_MESSAGE, DEFAULT_SNAPLEN);
 
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-	if(!evt_test->is_modern_bpf_engine())
-	{
-		evt_test->assert_empty_param(3);
-		GTEST_SKIP() << "[RECVFROM_X]: we send an empty tuple, but we can at least send the dest ip and source" << std::endl;
-	}
-	else
-	{
-		/* This is the correct behavior because if the userspace struct is empty
-		 * we cannot extract the source ip and port, unless we directly read the packet
-		 * headers!
-		 */
-		evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_EMPTY, IPV4_SERVER, IPV4_PORT_EMPTY_STRING, IPV4_PORT_SERVER_STRING);
-	}
+	/* If the userspace struct is empty
+	* we cannot extract the source ip and port, unless we directly read the packet
+	* headers!
+	*/
+	evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_EMPTY, IPV4_SERVER, IPV4_PORT_EMPTY_STRING, IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
