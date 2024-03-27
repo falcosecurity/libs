@@ -49,12 +49,15 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exe", "First Argument", "The first command line argument argv[0] (truncated after 4096 bytes) which is usually the executable name but it could be also a custom string, it depends on what the user specifies. This field is collected from the syscalls args or, as a fallback, extracted from /proc/PID/cmdline."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pexe", "Parent First Argument", "The proc.exe (first command line argument argv[0]) of the parent process."},
 	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.aexe", "Ancestor First Argument", "The proc.exe (first command line argument argv[0]) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aexe[1] retrieves the proc.exe of the parent process, proc.aexe[2] retrieves the proc.exe of the grandparent process, and so on. The current process's proc.exe line can be obtained using proc.aexe[0]. When used without any arguments, proc.aexe is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aexe endswith java` to match any process ancestor whose proc.exe ends with the term `java`."},
+	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.concat_aexe", "Ancestor First Argument Concatenated", "The proc.exe lineage is traced back to a specific process ancestor, up to the specified level of ancestors. The result is a string representing the concatenated lineage, with '->' as the delimiter, starting with the furthest ancestor and including the current process. For example, proc.concat_aexe[3] returns the string `/bin/java->/bin/bash->/bin/python->/bin/bash`, assuming a java process launched a bash process that ultimately launched python and finally bash."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exepath", "Process Executable Path", "The full executable path of the process (it could be truncated after 1024 bytes if read from '/proc'). This field is collected directly from the kernel or, as a fallback, extracted resolving the path of /proc/PID/exe, so symlinks are resolved. If you are using eBPF drivers this path could be truncated due to verifier complexity limits. (legacy eBPF kernel version < 5.2) truncated after 24 path components. (legacy eBPF kernel version >= 5.2) truncated after 48 path components. (modern eBPF kernel) truncated after 96 path components."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pexepath", "Parent Process Executable Path", "The proc.exepath (full executable path) of the parent process."},
 	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.aexepath", "Ancestor Executable Path", "The proc.exepath (full executable path) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aexepath[1] retrieves the proc.exepath of the parent process, proc.aexepath[2] retrieves the proc.exepath of the grandparent process, and so on. The current process's proc.exepath line can be obtained using proc.aexepath[0]. When used without any arguments, proc.aexepath is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aexepath endswith java` to match any process ancestor whose path ends with the term `java`."},
+	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.concat_aexepath", "Ancestor Executable Path Concatenated", "The proc.exepath lineage is traced back to a specific process ancestor, up to the specified level of ancestors. The result is a string representing the concatenated lineage, with '->' as the delimiter, starting with the furthest ancestor and including the current process. For example, proc.concat_aexepath[3] returns the string `/bin/java->/bin/bash->/bin/python->/bin/bash`, assuming a java process launched a bash process that ultimately launched python and finally bash."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.name", "Name", "The process name (truncated after 16 characters) generating the event (task->comm). Truncation is determined by kernel settings and not by Falco. This field is collected from the syscalls args or, as a fallback, extracted from /proc/PID/status. The name of the process and the name of the executable file on disk (if applicable) can be different if a process is given a custom name which is often the case for example for java applications."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pname", "Parent Name", "The proc.name truncated after 16 characters) of the process generating the event."},
 	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.aname", "Ancestor Name", "The proc.name (truncated after 16 characters) for a specific process ancestor. You can access different levels of ancestors by using indices. For example, proc.aname[1] retrieves the proc.name of the parent process, proc.aname[2] retrieves the proc.name of the grandparent process, and so on. The current process's proc.name line can be obtained using proc.aname[0]. When used without any arguments, proc.aname is applicable only in filters and matches any of the process ancestors. For instance, you can use `proc.aname=bash` to match any process ancestor whose name is `bash`."},
+	{PT_CHARBUF, EPF_ARG_ALLOWED, PF_NA, "proc.concat_aname", "Ancestor Name Concatenated", "The proc.name (truncated after 16 characters) lineage is traced back to a specific process ancestor, up to the specified level of ancestors. The result is a string representing the concatenated lineage, with '->' as the delimiter, starting with the furthest ancestor and including the current process. For example, proc.concat_aname[3] returns the string `java->bash->python->bash`, assuming a java process launched a bash process that ultimately launched python and finally bash."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "Arguments", "The arguments passed on the command line when starting the process generating the event excluding argv[0] (truncated after 4096 bytes). This field is collected from the syscalls args or, as a fallback, extracted from /proc/PID/cmdline."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cmdline", "Command Line", "The concatenation of `proc.name + proc.args` (truncated after 4096 bytes) when starting the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pcmdline", "Parent Command Line", "The proc.cmdline (full command line (proc.name + proc.args)) of the parent of the process generating the event."},
@@ -154,7 +157,10 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string 
 		m_field_id == TYPE_ANAME ||
 		m_field_id == TYPE_AEXE ||
 		m_field_id == TYPE_AEXEPATH ||
-		m_field_id == TYPE_ACMDLINE)
+		m_field_id == TYPE_ACMDLINE ||
+		m_field_id == TYPE_CONCAT_ANAME ||
+		m_field_id == TYPE_CONCAT_AEXE ||
+		m_field_id == TYPE_CONCAT_AEXEPATH)
 	{
 		if(val[fldname.size()] == '[')
 		{
@@ -278,6 +284,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 
 		return res;
 	}
+	else if(STR_MATCH("proc.concat_aname"))
+	{
+		m_field_id = TYPE_CONCAT_ANAME;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.concat_aname", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.concat_aname")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
 	else if(STR_MATCH("proc.aexepath"))
 	{
 		m_field_id = TYPE_AEXEPATH;
@@ -292,6 +320,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		catch(...)
 		{
 			if(val == "proc.aexepath")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
+	else if(STR_MATCH("proc.concat_aexepath"))
+	{
+		m_field_id = TYPE_CONCAT_AEXEPATH;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.concat_aexepath", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.concat_aexepath")
 			{
 				m_argid = -1;
 				res = (int32_t)val.size();
@@ -315,6 +365,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		catch(...)
 		{
 			if(val == "proc.aexe")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
+	else if(STR_MATCH("proc.concat_aexe"))
+	{
+		m_field_id = TYPE_CONCAT_AEXEPATH;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.concat_aexe", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.concat_aexe")
 			{
 				m_argid = -1;
 				res = (int32_t)val.size();
@@ -553,254 +625,63 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(tinfo->m_vpgid);
 	case TYPE_SNAME:
 		{
-			int64_t sid = tinfo->m_sid;
-
-			if(!tinfo->is_in_pid_namespace())
+			auto session_leader = tinfo->get_oldest_matching_ancestor([](sinsp_threadinfo* t) {return t->m_sid;});
+			if(session_leader)
 			{
-				// Relying on the convention that a session id is the process id of the session leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* sinfo = m_inspector->get_thread_ref(sid, false, true).get();
-				if(sinfo != NULL)
-				{
-					m_tstr = sinfo->get_comm();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				m_tstr = session_leader->get_comm();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
-
-			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same session id and
-			// declare it to be the session leader.
-			sinsp_threadinfo* session_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_sid != sid)
-				{
-					return false;
-				}
-				session_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// session_leader has been updated to the highest process that has the same session id.
-			// session_leader's comm is considered the session leader.
-			m_tstr = session_leader->get_comm();
-			RETURN_EXTRACT_STRING(m_tstr);
+			return nullptr;
 		}
 	case TYPE_SID_EXE:
 		{
-			int64_t sid = tinfo->m_sid;
-
-			if(!tinfo->is_in_pid_namespace())
+			auto session_leader = tinfo->get_oldest_matching_ancestor([](sinsp_threadinfo* t) {return t->m_sid;});
+			if(session_leader)
 			{
-				// Relying on the convention that a session id is the process id of the session leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* sinfo = m_inspector->get_thread_ref(sid, false, true).get();
-				if(sinfo != NULL)
-				{
-					m_tstr = sinfo->get_exe();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				m_tstr = session_leader->get_exe();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
-
-			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same session id and
-			// declare it to be the session leader.
-			sinsp_threadinfo* session_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_sid != sid)
-				{
-					return false;
-				}
-				session_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// session_leader has been updated to the highest process that has the same session id.
-			// session_leader's exe is considered the session leader.
-			m_tstr = session_leader->get_exe();
-			RETURN_EXTRACT_STRING(m_tstr);
+			return nullptr;
 		}
 	case TYPE_SID_EXEPATH:
 		{
-			int64_t sid = tinfo->m_sid;
-
-			if(!tinfo->is_in_pid_namespace())
+			auto session_leader = tinfo->get_oldest_matching_ancestor([](sinsp_threadinfo* t) {return t->m_sid;});
+			if(session_leader)
 			{
-				// Relying on the convention that a session id is the process id of the session leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* sinfo = m_inspector->get_thread_ref(sid, false, true).get();
-				if(sinfo != NULL)
-				{
-					m_tstr = sinfo->get_exepath();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				m_tstr = session_leader->get_exepath();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
-
-			// This can occur when the session leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual session id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same session id and
-			// declare it to be the session leader.
-			sinsp_threadinfo* session_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_sid != sid)
-				{
-					return false;
-				}
-				session_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// session_leader has been updated to the highest process that has the same session id.
-			// session_leader's exepath is considered the session leader.
-			m_tstr = session_leader->get_exepath();
-			RETURN_EXTRACT_STRING(m_tstr);
+			return nullptr;
 		}
 	case TYPE_VPGID_NAME:
 		{
-			int64_t vpgid = tinfo->m_vpgid;
-
-			if(!tinfo->is_in_pid_namespace())
+			auto group_leader = tinfo->get_oldest_matching_ancestor([](sinsp_threadinfo* t) {return t->m_vpgid;});
+			if(group_leader)
 			{
-				// Relying on the convention that a process group id is the process id of the process group leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* vpgidinfo = m_inspector->get_thread_ref(vpgid, false, true).get();
-				if(vpgidinfo != NULL)
-				{
-					m_tstr = vpgidinfo->get_comm();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				m_tstr = group_leader->get_comm();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
-			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same process group id and
-			// declare it to be the process group leader.
-			sinsp_threadinfo* group_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_vpgid != vpgid)
-				{
-					return false;
-				}
-				group_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// group_leader has been updated to the highest process that has the same process group id.
-			// group_leader's comm is considered the process group leader.
-			m_tstr = group_leader->get_comm();
-			RETURN_EXTRACT_STRING(m_tstr);
+			return nullptr;
 		}
 	case TYPE_VPGID_EXE:
 		{
-			int64_t vpgid = tinfo->m_vpgid;
-
-			if(!tinfo->is_in_pid_namespace())
+			auto group_leader = tinfo->get_oldest_matching_ancestor([](sinsp_threadinfo* t) {return t->m_vpgid;});
+			if(group_leader)
 			{
-				// Relying on the convention that a process group id is the process id of the process group leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* vpgidinfo = m_inspector->get_thread_ref(vpgid, false, true).get();
-				if(vpgidinfo != NULL)
-				{
-					m_tstr = vpgidinfo->get_exe();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				m_tstr = group_leader->get_exe();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
-			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same process group id and
-			// declare it to be the process group leader.
-			sinsp_threadinfo* group_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_vpgid != vpgid)
-				{
-					return false;
-				}
-				group_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// group_leader has been updated to the highest process that has the same process group id.
-			// group_leader's exe is considered the process group leader.
-			m_tstr = group_leader->get_exe();
-			RETURN_EXTRACT_STRING(m_tstr);
-
+			return nullptr;
 		}
 	case TYPE_VPGID_EXEPATH:
 		{
-			int64_t vpgid = tinfo->m_vpgid;
-
-			if(!tinfo->is_in_pid_namespace())
+			auto group_leader = tinfo->get_oldest_matching_ancestor([](sinsp_threadinfo* t) {return t->m_vpgid;});
+			if(group_leader)
 			{
-				// Relying on the convention that a process group id is the process id of the process group leader.
-				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
-				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
-				// lineage until we find a match.
-				sinsp_threadinfo* vpgidinfo = m_inspector->get_thread_ref(vpgid, false, true).get();
-				if(vpgidinfo != NULL)
-				{
-					m_tstr = vpgidinfo->get_exepath();
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				m_tstr = group_leader->get_exepath();
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
-
-			// This can occur when the process group leader process has exited or if the process
-			// is running in a pid namespace and we only have the virtual process group id, as
-			// seen from its pid namespace.
-			// Find the highest ancestor process that has the same process group id and
-			// declare it to be the process group leader.
-			sinsp_threadinfo* group_leader = tinfo;
-
-			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
-			{
-				if(pt->m_vpgid != vpgid)
-				{
-					return false;
-				}
-				group_leader = pt;
-				return true;
-			};
-
-			tinfo->traverse_parent_state(visitor);
-
-			// group_leader has been updated to the highest process that has the same process group id.
-			// group_leader's exepath is considered the process group leader.
-			m_tstr = group_leader->get_exepath();
-			RETURN_EXTRACT_STRING(m_tstr);
+			return nullptr;
 		}
 	case TYPE_TTY:
 		RETURN_EXTRACT_VAR(tinfo->m_tty);
@@ -859,18 +740,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			// get current tinfo / init for subsequent parent lineage traversal
-			sinsp_threadinfo* mt = NULL;
-			if(tinfo->is_main_thread())
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
+			if(mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-				if(mt == NULL)
-				{
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
 
 			if(!m_argname.empty()) // extract a specific ENV_NAME value
@@ -1048,20 +921,12 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 		case TYPE_ACMDLINE:
 		{
-			sinsp_threadinfo* mt = NULL;
 
-			if(tinfo->is_main_thread())
-			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+			if(mt == NULL)
+			{
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1078,20 +943,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_APID:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			//
@@ -1115,20 +971,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_ANAME:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1142,6 +989,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			m_tstr = mt->get_comm();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+	case TYPE_CONCAT_ANAME:
+		{
+			m_tstr = tinfo->concat_attribute_thread_lineage([](sinsp_threadinfo* t) {return t->get_comm();}, m_argid);
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_PEXE:
@@ -1161,20 +1013,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_AEXE:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1188,6 +1031,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			}
 
 			m_tstr = mt->get_exe();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+	case TYPE_CONCAT_AEXE:
+		{
+			m_tstr = tinfo->concat_attribute_thread_lineage([](sinsp_threadinfo* t) {return t->get_exe();}, m_argid);
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_PEXEPATH:
@@ -1207,20 +1055,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_AEXEPATH:
 		{
-			sinsp_threadinfo* mt = NULL;
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			for(int32_t j = 0; j < m_argid; j++)
@@ -1236,23 +1075,19 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_tstr = mt->get_exepath();
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+	case TYPE_CONCAT_AEXEPATH:
+		{
+			m_tstr = tinfo->concat_attribute_thread_lineage([](sinsp_threadinfo* t) {return t->get_exepath();}, m_argid);
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 	case TYPE_LOGINSHELLID:
 		{
-			sinsp_threadinfo* mt = NULL;
 			int64_t* res = NULL;
+			sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-			if(tinfo->is_main_thread())
+			if (mt == NULL)
 			{
-				mt = tinfo;
-			}
-			else
-			{
-				mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
-				{
-					return NULL;
-				}
+				return NULL;
 			}
 
 			sinsp_threadinfo::visitor_func_t check_thread_for_shell = [&res] (sinsp_threadinfo *pt)
@@ -1623,20 +1458,11 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1676,20 +1502,11 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1729,20 +1546,11 @@ bool sinsp_filter_check_thread::compare_full_aexe(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1782,20 +1590,11 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1835,20 +1634,11 @@ bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
@@ -1890,20 +1680,11 @@ bool sinsp_filter_check_thread::compare_full_aenv(sinsp_evt *evt)
 		return false;
 	}
 
-	sinsp_threadinfo* mt = NULL;
+	sinsp_threadinfo* mt = tinfo->get_main_thread();
 
-	if(tinfo->is_main_thread())
+	if (mt == NULL)
 	{
-		mt = tinfo;
-	}
-	else
-	{
-		mt = tinfo->get_main_thread();
-
-		if(mt == NULL)
-		{
-			return false;
-		}
+		return false;
 	}
 
 	//
