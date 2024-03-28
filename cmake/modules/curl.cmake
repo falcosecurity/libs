@@ -54,8 +54,8 @@ else()
 			curl
 			PREFIX "${PROJECT_BINARY_DIR}/curl-prefix"
 			DEPENDS openssl zlib
-			URL "https://github.com/curl/curl/releases/download/curl-8_4_0/curl-8.4.0.tar.bz2"
-			URL_HASH "SHA256=e5250581a9c032b1b6ed3cf2f9c114c811fc41881069e9892d115cc73f9e88c6"
+			URL "https://github.com/curl/curl/releases/download/curl-8_7_1/curl-8.7.1.tar.bz2"
+			URL_HASH "SHA256=05bbd2b698e9cfbab477c33aa5e99b4975501835a41b7ca6ca71de03d8849e76"
 			CONFIGURE_COMMAND
 			./configure
 			${CURL_SSL_OPTION}
