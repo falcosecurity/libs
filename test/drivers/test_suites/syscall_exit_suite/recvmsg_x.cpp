@@ -373,19 +373,7 @@ TEST(SyscallExit, recvmsgX_udp_connection_snaplen)
 	evt_test->assert_bytebuf_param(3, FULL_MESSAGE, DEFAULT_SNAPLEN);
 
 	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-	if(evt_test->is_modern_bpf_engine())
-	{
-		/* we are not able to get the sorce ip + port because right now
-		 * we don't use the userspace struct.
-		 */
-		evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_EMPTY, IPV4_SERVER, IPV4_PORT_EMPTY_STRING, IPV4_PORT_SERVER_STRING);
-		evt_test->assert_num_params_pushed(5);
-		GTEST_SKIP() << "[RECVMSG_X]: we are not able to get the sorce ip + port because right now we don't use the userspace struct." << std::endl;
-	}
-	else
-	{
-		evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
-	}
+	evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
 
 	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(5);
