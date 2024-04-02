@@ -912,6 +912,10 @@ public:
 
 	bool suppress_events_tid(int64_t tid);
 
+	void clear_suppress_events_comm();
+
+	void clear_suppress_events_tid();
+
 	bool check_suppressed(int64_t tid) const;
 
 	void set_docker_socket_path(std::string socket_path);
