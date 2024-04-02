@@ -1007,6 +1007,11 @@ TEST_F(sys_call_test, getsetuid_and_gid)
 	static const uint32_t test_gid = 6566;
 	int callnum = 0;
 
+	uint32_t orig_uid  = getuid();
+	uint32_t orig_euid = geteuid();
+	uint32_t orig_gid  = getgid();
+	uint32_t orig_egid = getegid();
+
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
 	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
@@ -1073,7 +1078,22 @@ TEST_F(sys_call_test, getsetuid_and_gid)
 			break;
 		}
 	};
+
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+
+	// This has to be done without a callback otherwise the test will not
+	// work.
+	int result = 0;
+	result += setuid(orig_uid);
+	result += seteuid(orig_euid);
+	result += setgid(orig_gid);
+	result += setegid(orig_egid);
+
+	if(result != 0)
+	{
+		FAIL() << "Cannot restore initial id state.";
+	}
+
 	EXPECT_EQ(12, callnum);
 }
 
@@ -1381,19 +1401,18 @@ TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS)
 TEST_F(sys_call_test, ppoll_timeout)
 {
 	int callnum = 0;
-	int hlp_pid = -1;
-	event_filter_t filter = [&hlp_pid](sinsp_evt* evt)
+	event_filter_t filter = [&](sinsp_evt* evt)
 	{
+		auto ti = evt->get_thread_info(false);
 		return (evt->get_type() == PPME_SYSCALL_PPOLL_E ||
 		        evt->get_type() == PPME_SYSCALL_PPOLL_X) &&
-			evt->get_tid() == hlp_pid;
+			ti->m_comm == "test_helper";
 	};
 
-	run_callback_t test = [&hlp_pid](concurrent_object_handle<sinsp> inspector)
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
 	{
 		subprocess handle(LIBSINSP_TEST_PATH "/test_helper", {"ppoll_timeout"});
 		handle.wait();
-		hlp_pid = handle.get_pid();
 	};
 
 	captured_event_callback_t callback = [&](const callback_param& param)
@@ -1438,26 +1457,56 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 	uint32_t uids[3];
 	uint32_t gids[3];
 
+	uint32_t orig_uids[3];
+	uint32_t orig_gids[3];
+
+	bool setresuid_e_ok = false;
+	bool setresgid_e_ok = false;
+
+	bool getresuid_e_ok = false;
+	bool getresgid_e_ok = false;
+
+	bool getresuid_ok = false;
+	bool getresgid_ok = false;
+
+	bool setresuid_ok = false;
+	bool setresgid_ok = false;
+
+	getresuid(&orig_uids[0], &orig_uids[1], &orig_uids[2]);
+	getresgid(&orig_gids[0], &orig_gids[1], &orig_gids[2]);
+
 	// Clean environment
 	int ret = system("userdel testsetresuid");
 	ret = system("groupdel testsetresgid");
 	usleep(200);
 
-	char command[] = "useradd -u 5454 testsetresuid &&\n"
-		"groupadd -g 6565 testsetresgid";
-	ret = system(command);
-	ASSERT_EQ(0, ret);
-
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		auto type = evt->get_type();
+		auto tinfo = evt->get_thread_info(true);
+		return tinfo->m_comm != "sudo" &&
+			(type == PPME_USER_ADDED_E || type == PPME_USER_ADDED_X ||
+			type == PPME_GROUP_ADDED_E || type == PPME_GROUP_ADDED_X ||
+			type == PPME_SYSCALL_GETRESUID_E || type == PPME_SYSCALL_GETRESUID_X ||
+			type == PPME_SYSCALL_GETRESGID_E || type == PPME_SYSCALL_GETRESGID_X ||
+			type == PPME_SYSCALL_SETRESUID_E || type == PPME_SYSCALL_SETRESUID_X ||
+			type == PPME_SYSCALL_SETRESGID_E || type == PPME_SYSCALL_SETRESGID_X); };
 
 	//
 	// TEST CODE
 	//
 	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
 	{
+		char command[] = "useradd -u 5454 testsetresuid && "
+			"groupadd -g 6565 testsetresgid && "
+			"sudo -u testsetresuid echo -n && "
+			"sudo -g testsetresgid echo -n";
+		ret = system(command);
+		ASSERT_EQ(0, ret);
+
 		auto res = setresuid(test_uid, -1, -1);
 		EXPECT_EQ(0, res);
 		res = setresgid(test_gid, -1, -1);
@@ -1473,7 +1522,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 	{
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
-		if (type == PPME_SYSCALL_SETRESUID_E)
+		if (type == PPME_SYSCALL_SETRESUID_E && e->get_param_value_str("ruid", false) != "-1" && !setresuid_e_ok)
 		{
 			++callnum;
 			EXPECT_EQ("5454", e->get_param_value_str("ruid", false));
@@ -1482,13 +1531,15 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 			EXPECT_EQ("<NONE>", e->get_param_value_str("euid"));
 			EXPECT_EQ("-1", e->get_param_value_str("suid", false));
 			EXPECT_EQ("<NONE>", e->get_param_value_str("suid"));
+			setresuid_e_ok = true;
 		}
-		else if (type == PPME_SYSCALL_SETRESUID_X)
+		else if (type == PPME_SYSCALL_SETRESUID_X && !setresuid_ok)
 		{
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
+			setresuid_ok = true;
 		}
-		else if (type == PPME_SYSCALL_SETRESGID_E)
+		else if (type == PPME_SYSCALL_SETRESGID_E && e->get_param_value_str("rgid", false) != "-1" && !setresgid_e_ok)
 		{
 			++callnum;
 			EXPECT_EQ("6565", e->get_param_value_str("rgid", false));
@@ -1497,17 +1548,25 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 			EXPECT_EQ("<NONE>", e->get_param_value_str("egid"));
 			EXPECT_EQ("-1", e->get_param_value_str("sgid", false));
 			EXPECT_EQ("<NONE>", e->get_param_value_str("sgid"));
+			setresgid_e_ok = true;
 		}
-		else if (type == PPME_SYSCALL_SETRESGID_X)
+		else if (type == PPME_SYSCALL_SETRESGID_X && !setresgid_ok)
 		{
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
+			setresgid_ok = true;
 		}
-		else if (type == PPME_SYSCALL_GETRESUID_E || type == PPME_SYSCALL_GETRESGID_E)
+		else if (type == PPME_SYSCALL_GETRESUID_E && !getresuid_e_ok)
 		{
 			++callnum;
+			getresuid_e_ok = true;
 		}
-		else if (type == PPME_SYSCALL_GETRESUID_X)
+		else if (type == PPME_SYSCALL_GETRESGID_E && !getresgid_e_ok)
+		{
+			++callnum;
+			getresgid_e_ok = true;
+		}
+		else if (type == PPME_SYSCALL_GETRESUID_X && !getresuid_ok)
 		{
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
@@ -1517,8 +1576,9 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 			EXPECT_EQ("root", e->get_param_value_str("euid"));
 			EXPECT_EQ("0", e->get_param_value_str("suid", false));
 			EXPECT_EQ("root", e->get_param_value_str("suid"));
+			getresuid_ok = true;
 		}
-		else if (type == PPME_SYSCALL_GETRESGID_X)
+		else if (type == PPME_SYSCALL_GETRESGID_X && !getresgid_ok)
 		{
 			++callnum;
 			EXPECT_EQ("0", e->get_param_value_str("res", false));
@@ -1528,9 +1588,24 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 			EXPECT_EQ("root", e->get_param_value_str("egid"));
 			EXPECT_EQ("0", e->get_param_value_str("sgid", false));
 			EXPECT_EQ("root", e->get_param_value_str("sgid"));
+			getresgid_ok = true;
 		}
 	};
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+
+	before_close_t cleanup = [&](sinsp* inspector)
+	{
+		int result = 0;
+
+		result += setresuid(orig_uids[0], orig_uids[1], orig_uids[2]);
+		result += setresgid(orig_gids[0], orig_gids[1], orig_gids[2]);
+
+		if(result != 0)
+		{
+			FAIL() << "Cannot restore initial id state.";
+		}
+	};
+	
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
 	EXPECT_EQ(8, callnum);
 }
 

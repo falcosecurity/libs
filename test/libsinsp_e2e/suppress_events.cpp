@@ -43,6 +43,9 @@ static void test_helper_quotactl(test_helper_args& hargs)
 
 	before_open_t before_open = [&](sinsp* inspector)
 	{
+		inspector->clear_suppress_events_comm();
+		inspector->clear_suppress_events_tid();
+
 		if (hargs.suppress_before)
 		{
 			inspector->suppress_events_comm(
@@ -129,6 +132,9 @@ static void test_helper_quotactl(test_helper_args& hargs)
 
 		ASSERT_GT(st.n_suppressed, 0u);
 		ASSERT_EQ(0u, st.n_tids_suppressed);
+
+		inspector->clear_suppress_events_comm();
+		inspector->clear_suppress_events_tid();
 	};
 
 	ASSERT_NO_FATAL_FAILURE({
