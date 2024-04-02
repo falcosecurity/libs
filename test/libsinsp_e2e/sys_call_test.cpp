@@ -1502,8 +1502,8 @@ TEST_F(sys_call_test, getsetresuid_and_gid)
 	{
 		char command[] = "useradd -u 5454 testsetresuid && "
 			"groupadd -g 6565 testsetresgid && "
-			"sudo -u testsetresuid echo -n && "
-			"sudo -g testsetresgid echo -n";
+			"sudo -u testsetresuid echo && "
+			"sudo -g testsetresgid echo";
 		ret = system(command);
 		ASSERT_EQ(0, ret);
 
