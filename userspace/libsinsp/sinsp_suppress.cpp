@@ -15,8 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include <libsinsp/sinsp_suppress.h>
 
+#include <cstring>
+
+#include <libsinsp/sinsp_suppress.h>
 #include <libsinsp/sinsp_exception.h>
 #include <driver/ppm_events_public.h>
 #include <libscap/scap_const.h>
@@ -65,6 +67,9 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e)
 	// we need to check the comm, which might also update the set
 	// of suppressed tids.
 
+	uint64_t tid;
+	memcpy(&tid, &e->tid, sizeof(uint64_t));
+
 	switch(e->type)
 	{
 	case PPME_SYSCALL_CLONE_20_X:
@@ -76,10 +81,11 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e)
 	{
 		uint32_t j;
 		const char *comm = nullptr;
-		uint64_t *ptid = nullptr;
+		uint64_t *ptid_ptr = nullptr;
 
 		auto *lens = (uint16_t *)((char *)e + sizeof(ppm_evt_hdr));
 		char *valptr = (char *)lens + e->nparams * sizeof(uint16_t);
+		uint16_t scratch = 0;
 
 		ASSERT(e->nparams >= 14);
 		if(e->nparams < 14)
@@ -95,14 +101,15 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e)
 		{
 			if(j == 5)
 			{
-				ptid = (uint64_t *)valptr;
+				ptid_ptr = (uint64_t *)valptr;
 			}
 
-			valptr += lens[j];
+			memcpy(&scratch, &lens[j], sizeof(uint16_t));
+			valptr += scratch;
 		}
 
-		ASSERT(ptid != nullptr);
-		if(ptid == nullptr)
+		ASSERT(ptid_ptr != nullptr);
+		if(ptid_ptr == nullptr)
 		{
 			// SCAP_SUCCESS means "do not suppress this event"
 			return SCAP_SUCCESS;
@@ -110,14 +117,16 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e)
 
 		comm = valptr;
 
-		if(is_suppressed_tid(*ptid))
+		uint64_t ptid;
+		memcpy(&ptid, ptid_ptr, sizeof(uint64_t));
+		if(is_suppressed_tid(ptid))
 		{
-			m_suppressed_tids.insert(e->tid);
+			m_suppressed_tids.insert(tid);
 			m_num_suppressed_events++;
 			return SCAP_FILTERED_EVENT;
 		}
 
-		if(check_suppressed_comm(e->tid, comm))
+		if(check_suppressed_comm(tid, comm))
 		{
 			return SCAP_FILTERED_EVENT;
 		}
@@ -126,7 +135,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e)
 	}
 	case PPME_PROCEXIT_1_E:
 	{
-		auto it = m_suppressed_tids.find(e->tid);
+		auto it = m_suppressed_tids.find(tid);
 		if (it != m_suppressed_tids.end())
 		{
 			m_suppressed_tids.erase(it);
@@ -140,7 +149,7 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e)
 	}
 
 	default:
-		if (is_suppressed_tid(e->tid))
+		if (is_suppressed_tid(tid))
 		{
 			m_num_suppressed_events++;
 			return SCAP_FILTERED_EVENT;
