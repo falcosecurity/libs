@@ -36,6 +36,10 @@ public:
 
 	void suppress_tid(uint64_t tid);
 
+	void clear_suppress_comm();
+
+	void clear_suppress_tid();
+
 	bool check_suppressed_comm(uint64_t tid, const std::string& comm);
 
 	int32_t process_event(scap_evt* e);

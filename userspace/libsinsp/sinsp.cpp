@@ -1424,6 +1424,16 @@ bool sinsp::suppress_events_tid(int64_t tid)
 	return true;
 }
 
+void sinsp::clear_suppress_events_comm()
+{
+	m_suppress.clear_suppress_comm();
+}
+
+void sinsp::clear_suppress_events_tid()
+{
+	m_suppress.clear_suppress_tid();
+}
+
 bool sinsp::check_suppressed(int64_t tid) const
 {
 	return m_suppress.is_suppressed_tid(tid);

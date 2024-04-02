@@ -32,6 +32,16 @@ void libsinsp::sinsp_suppress::suppress_tid(uint64_t tid)
 	m_suppressed_tids.emplace(tid);
 }
 
+void libsinsp::sinsp_suppress::clear_suppress_comm()
+{
+	m_suppressed_comms.clear();
+}
+
+void libsinsp::sinsp_suppress::clear_suppress_tid()
+{
+	m_suppressed_tids.clear();
+}
+
 bool libsinsp::sinsp_suppress::check_suppressed_comm(uint64_t tid, const std::string &comm)
 {
 	if(m_suppressed_comms.find(comm) != m_suppressed_comms.end())
