@@ -115,7 +115,9 @@ static parse_result parse_container_start(uint32_t id, scap_const_sized_buffer p
 	}
 
 	std::string args;
-	for(int j = 0; j < gvisor_evt.args_size(); j++) {
+
+	// skip argv[0]
+	for(int j = 1; j < gvisor_evt.args_size(); j++) {
 		args += gvisor_evt.args(j);
 		args.push_back('\0');
 	}
@@ -291,7 +293,9 @@ static parse_result parse_execve(uint32_t id, scap_const_sized_buffer proto, sca
 	if(gvisor_evt.has_exit())
 	{
 		std::string args;
-		for(int j = 0; j < gvisor_evt.argv_size(); j++) {
+
+		// skip argv[0]
+		for(int j = 1; j < gvisor_evt.argv_size(); j++) {
 			args += gvisor_evt.argv(j);
 			args.push_back('\0');
 		}
