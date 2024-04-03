@@ -66,7 +66,6 @@ void event_capture::init_inspector()
 				"couldn't open inspector (maybe driver hasn't been loaded yet?) err=" +
 				get_inspector()->getlasterr() + " exception=" + e.what();
 			{
-				//std::unique_lock<std::mutex> lock(m_mutex);
 				m_capture_started = true;
 				m_condition_started.notify_one();
 			}
@@ -88,7 +87,15 @@ void event_capture::capture()
 		if(!inspector_ok)
 		{
 			init_inspector();
-			inspector_ok = true;
+			if(!m_start_failed)
+			{
+				inspector_ok = true;
+			}
+			else
+			{
+				std::cerr << m_start_failure_message << std::endl;
+				return;
+			}
 		}
 
 		m_param.m_inspector = get_inspector();
