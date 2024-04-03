@@ -1298,7 +1298,7 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint16_t) + (num_pairs * (sizeof(int64_t) + sizeof(int16_t))));
 }
 
-static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t *snaplen, bool only_port_range)
+static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t *snaplen, bool only_port_range, enum syscall_nr syscall_number)
 {
 	if(!maps__get_do_dynamic_snaplen())
 	{
@@ -1339,42 +1339,120 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	 *  - recvmsg
 	 *  - sendmsg
 	 */
-	unsigned long args[3];
-	extract__network_args(args, 3, regs);
 
-	/* All the syscalls involved in this logic have the `fd` as first syscall argument */
-	int32_t socket_fd = (int32_t)args[0];
-	if(socket_fd < 0)
-	{
-		return;
-	}
-
-	struct file *file = extract__file_struct_from_fd(socket_fd);
-	struct socket *socket = BPF_CORE_READ(file, private_data);
-	struct sock *sk = BPF_CORE_READ(socket, sk);
-	if(!sk)
-	{
-		return;
-	}
-
+	int32_t socket_fd = 0;
 	uint16_t port_local = 0;
 	uint16_t port_remote = 0;
+	uint16_t socket_family = 0;
+	unsigned long args[6];
+	bool extracted = true;
+	struct sockaddr *sockaddr;
 
-	/* We perform some checks regarding ports only for these 2 families */
-	uint16_t socket_family = BPF_CORE_READ(sk, __sk_common.skc_family);
-	/* We return if `fd` is not a socket */
-	if(socket_family == 0)
+	switch(syscall_number)
 	{
-		return;
+		case SCN_SENDTO:
+		{
+			extract__network_args(args, 6, regs);
+
+			socket_fd = (int32_t)args[0];
+			if(socket_fd < 0)
+			{
+				return;
+			}
+
+			if((void*)args[4] != NULL)
+			{
+				sockaddr = (struct sockaddr*)args[4];
+				BPF_CORE_READ_USER_INTO(&socket_family, (struct sockaddr*)sockaddr, sa_family);
+			}
+			break;
+		}
+		case SCN_SENDMSG:
+		{
+			extract__network_args(args, 3, regs);
+
+			socket_fd = (int32_t)args[0];
+			if(socket_fd < 0)
+			{
+				return;
+			}
+
+			BPF_CORE_READ_USER_INTO(&sockaddr, (struct msghdr*)args[1], msg_name);
+			BPF_CORE_READ_USER_INTO(&socket_family, sockaddr, sa_family);
+			break;
+		}
+		default:
+		{
+			extracted = false;
+			break;
+		}
 	}
 
-	if(socket_family == AF_INET || socket_family == AF_INET6)
+	// If socket_family is 0 we skip this part.
+	switch(socket_family)
 	{
-		struct inet_sock *inet = (struct inet_sock *)sk;
-		BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
-		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
-		port_local = ntohs(port_local);
-		port_remote = ntohs(port_remote);
+		case AF_INET:
+		{
+			struct sockaddr_in sockaddr_in = {};
+			bpf_probe_read_user(&sockaddr_in, bpf_core_type_size(struct sockaddr_in), sockaddr);
+			port_remote = ntohs(sockaddr_in.sin_port);
+			break;
+		}
+		case AF_INET6:
+		{
+			struct sockaddr_in6 sockaddr_in6 = {};
+			bpf_probe_read_user(&sockaddr_in6, bpf_core_type_size(struct sockaddr_in6), sockaddr);
+			port_remote = ntohs(sockaddr_in6.sin6_port);
+			break;
+		}
+		default:
+			break;
+	}
+
+	if(port_local == 0 || port_remote == 0)
+	{
+		// Extract args only if they are not already been extracted.
+		if(!extracted)
+		{
+			extract__network_args(args, 3, regs);
+			/* All the syscalls involved in this logic have the `fd` as first syscall argument */
+			socket_fd = (int32_t)args[0];
+			if(socket_fd < 0)
+			{
+				return;
+			}
+		}
+
+		struct file *file = extract__file_struct_from_fd(socket_fd);
+		struct socket *socket = BPF_CORE_READ(file, private_data);
+		struct sock *sk = BPF_CORE_READ(socket, sk);
+		if(!sk)
+		{
+			return;
+		}
+
+		/* We perform some checks regarding ports only for these 2 families */
+		socket_family = BPF_CORE_READ(sk, __sk_common.skc_family);
+		/* We return if `fd` is not a socket */
+		if(socket_family == 0)
+		{
+			return;
+		}
+
+		if(socket_family == AF_INET || socket_family == AF_INET6)
+		{
+			struct inet_sock *inet = (struct inet_sock *)sk;
+			if(port_local == 0)
+			{
+				BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
+				port_local = ntohs(port_local);
+			}
+			if(port_remote == 0)
+			{
+				BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
+				port_remote = ntohs(port_remote);
+			}
+		}
 	}
 
 	/* Port range specified by the user */
