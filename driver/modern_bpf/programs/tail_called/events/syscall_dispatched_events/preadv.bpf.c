@@ -72,7 +72,7 @@ int BPF_PROG(preadv_x,
 		 * have in the buffer.
 		 */
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, true);
+		apply_dynamic_snaplen(regs, &snaplen, true, SCN_NOT_SET);
 		if(snaplen > ret)
 		{
 			snaplen = ret;
