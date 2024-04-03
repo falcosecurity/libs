@@ -117,6 +117,11 @@ jobs:
         driver: [ {name: kmod, option: -k}, {name: bpf, option: -b}, {name: modern-bpf, option: -m} ]
       fail-fast: false
     steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
       - name: Restore build
         id: cache
         uses: actions/cache/restore@v3
@@ -129,12 +134,33 @@ jobs:
         # Asan in llvm 14 provided in ubuntu 22.04 is incompatible with
         # high-entropy ASLR in much newer kernels that GitHub runners are
         # using leading to random crashes: https://reviews.llvm.org/D148280
-        run: sudo sysctl vm.mmap_rnd_bits=28    
+        run: sudo sysctl vm.mmap_rnd_bits=28
 
       - name: Install multilib
         if: matrix.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends gcc-multilib g++-multilib
+
+      - name: Install deps
+        run: |
+          sudo apt install -y --no-install-recommends clang gcc llvm build-essential cmake
+
+      - name: Install kernel headers (actuated)
+        uses: self-actuated/get-kernel-sources@master
+        if: matrix.arch == 'arm64'
+
+      - name: Install kernel headers and gcc
+        if: matrix.arch == 'amd64'
+        run: |
+          sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
+
+        # We have no guarantees that the kernel version is the same for the
+        # different workers, so we rebuild the drivers.
+      - name: Rebuild drivers
+        run: |
+          cd build
+          make -B driver bpf
+          cd ..
 
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         if: matrix.arch == 'amd64'
