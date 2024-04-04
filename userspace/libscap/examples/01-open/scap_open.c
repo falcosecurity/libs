@@ -154,6 +154,7 @@ static int simple_set[] = {
 static scap_open_args oargs = {};						    /* scap oargs used in `scap_open`. */
 static const struct scap_vtable* vtable = NULL;
 static uint64_t g_nevts = 0;							    /* total number of events captured. */
+static uint64_t g_total_number_of_bytes = 0;			/* total dimension of events in bytes. */
 static scap_t* g_h = NULL;							    /* global scap handler. */
 static uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
 static char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
@@ -847,6 +848,10 @@ void print_stats()
 
 	printf("\n[SCAP-OPEN]: General statistics\n");
 	printf("\nEvents correctly captured (SCAP_SUCCESS): %" PRIu64 "\n", g_nevts);
+	if(g_nevts!=0)
+	{
+		printf("Average dimension of events: %" PRIu64 " bytes\n", g_total_number_of_bytes/g_nevts);
+	}
 	printf("Seen by driver (kernel side events): %" PRIu64 "\n", n_evts);
 	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
 	if(tval_result.tv_sec != 0)
@@ -986,6 +991,7 @@ int main(int argc, char** argv)
 		{
 			print_event(ev);
 		}
+		g_total_number_of_bytes += ev->len;
 		g_nevts++;
 	}
 
