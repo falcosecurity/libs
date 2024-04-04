@@ -2381,44 +2381,45 @@ FILLER(proc_startupdate, true)
 		args_len = 0;
 	}
 
-	if (args_len > 0) {
-		int exe_len;
+	int exe_len;
 
-		exe_len = bpf_probe_read_kernel_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						    SCRATCH_SIZE_HALF,
-						    &data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
+	exe_len = bpf_probe_read_kernel_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+										SCRATCH_SIZE_HALF,
+										&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
-		if (exe_len < 0)
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+	if (exe_len < 0)
+	{
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
 
-		/*
-		 * exe
-		 */
+	/*
+	 * exe
+	 */
+	if (exe_len == 0)
+	{
+		res = bpf_push_empty_param(data);
+	}
+	else
+	{
 		data->curarg_already_on_frame = true;
 		res = __bpf_val_to_ring(data, 0, exe_len, PT_CHARBUF, -1, false, KERNEL);
+	}
+	CHECK_RES(res);
+
+	args_len -= exe_len;
+
+	/*
+	 * Args
+	 */
+	if(args_len <= 0)
+	{
+		res = bpf_push_empty_param(data);
 		CHECK_RES(res);
-
-		args_len -= exe_len;
-		if (args_len < 0)
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		/*
-		 * Args
-		 */
+	}
+	else
+	{
 		data->curarg_already_on_frame = true;
 		res = __bpf_val_to_ring(data, 0, args_len, PT_BYTEBUF, -1, false, KERNEL);
-		CHECK_RES(res);
-	} else {
-		/*
-		 * exe
-		 */
-		res = bpf_push_empty_param(data);
-		CHECK_RES(res);
-
-		/*
-		 * Args
-		 */
-		res = bpf_push_empty_param(data);
 		CHECK_RES(res);
 	}
 
