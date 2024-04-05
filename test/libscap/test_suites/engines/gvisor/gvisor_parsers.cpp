@@ -171,11 +171,10 @@ TEST(gvisor_parsers, parse_execve_x)
     message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
     gvisor_evt2.set_sysno(__NR_execve);
     gvisor_evt2.set_pathname("/usr/bin/ls");
-    auto *context_data = gvisor_evt2.mutable_context_data();
+    context_data = gvisor_evt2.mutable_context_data();
     context_data->set_container_id("1234");
     context_data->set_cwd("/root");
-    gvisor::syscall::Exit *exit = gvisor_evt2.mutable_exit();
-    exit->set_result(0);
+    gvisor_evt2.mutable_exit()->set_result(0);
 
     total_size = prepare_message(message, 1024, message_type, gvisor_evt2);
 
@@ -188,7 +187,6 @@ TEST(gvisor_parsers, parse_execve_x)
 
     EXPECT_EQ(res.scap_events.size(), 1);
 
-    decoded_params[PPM_MAX_EVENT_PARAMS];
     n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 27);
     EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "/usr/bin/ls"); // exe
@@ -352,14 +350,19 @@ TEST(gvisor_parsers, parse_socketpair_e)
     uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
     EXPECT_EQ(n, 3);
 
+    int32_t i32_val;
+
     EXPECT_EQ(decoded_params[0].size, 4);
-    EXPECT_EQ(*(static_cast<int32_t*>(decoded_params[0].buf)), 995);  // domain
+    memcpy(&i32_val, decoded_params[0].buf, sizeof(i32_val));
+    EXPECT_EQ(i32_val, 995);  // domain
 
     EXPECT_EQ(decoded_params[1].size, 4);
-    EXPECT_EQ(*(static_cast<int32_t*>(decoded_params[1].buf)), 996);  // type
+    memcpy(&i32_val, decoded_params[1].buf, sizeof(i32_val));
+    EXPECT_EQ(i32_val, 996);  // type
 
     EXPECT_EQ(decoded_params[2].size, 4);
-    EXPECT_EQ(*(static_cast<int32_t*>(decoded_params[2].buf)), 997);  // protocol
+    memcpy(&i32_val, decoded_params[2].buf, sizeof(i32_val));
+    EXPECT_EQ(i32_val, 997);  // protocol
 }
 
 TEST(gvisor_parsers, parse_socketpair_x)
@@ -399,10 +402,13 @@ TEST(gvisor_parsers, parse_socketpair_x)
     EXPECT_EQ(n, 5);
 
     EXPECT_EQ(decoded_params[1].size, 8);
-    EXPECT_EQ(*(static_cast<int64_t*>(decoded_params[1].buf)), 998);  // fd1
+    uint64_t u64_val;
+    memcpy(&u64_val, decoded_params[1].buf, sizeof(uint64_t));
+    EXPECT_EQ(u64_val, 998);  // fd1
 
     EXPECT_EQ(decoded_params[2].size, 8);
-    EXPECT_EQ(*(static_cast<int64_t*>(decoded_params[2].buf)), 999);  // fd2
+    memcpy(&u64_val, decoded_params[2].buf, sizeof(uint64_t));
+    EXPECT_EQ(u64_val, 999);  // fd2
 }
 
 TEST(gvisor_parsers, parse_container_start)
@@ -425,10 +431,15 @@ TEST(gvisor_parsers, parse_container_start)
     scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
 
     EXPECT_EQ(res.scap_events.size(), 4);
-    EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_CLONE_20_E);
-    EXPECT_EQ(res.scap_events[1]->type, PPME_SYSCALL_CLONE_20_X);
-    EXPECT_EQ(res.scap_events[2]->type, PPME_SYSCALL_EXECVE_19_E);
-    EXPECT_EQ(res.scap_events[3]->type, PPME_SYSCALL_EXECVE_19_X);
+    uint16_t type;
+    memcpy(&type, &res.scap_events[0]->type, sizeof(type));
+    EXPECT_EQ(type, PPME_SYSCALL_CLONE_20_E);
+    memcpy(&type, &res.scap_events[1]->type, sizeof(type));
+    EXPECT_EQ(type, PPME_SYSCALL_CLONE_20_X);
+    memcpy(&type, &res.scap_events[2]->type, sizeof(type));
+    EXPECT_EQ(type, PPME_SYSCALL_EXECVE_19_E);
+    memcpy(&type, &res.scap_events[3]->type, sizeof(type));
+    EXPECT_EQ(type, PPME_SYSCALL_EXECVE_19_X);
 }
 
 TEST(gvisor_parsers, unhandled_syscall)
