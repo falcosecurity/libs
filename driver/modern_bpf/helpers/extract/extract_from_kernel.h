@@ -31,7 +31,7 @@ enum capability_type
 
 enum syscall_nr
 {
-	SCN_NOT_SET = 0,
+	SCN_UNSET = 0,
 	SCN_SENDTO  = 1,
 	SCN_SENDMSG = 2,
 };
