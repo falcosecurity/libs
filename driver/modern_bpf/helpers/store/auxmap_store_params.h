@@ -1377,8 +1377,11 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 				return;
 			}
 
-			BPF_CORE_READ_USER_INTO(&sockaddr, (struct msghdr*)args[1], msg_name);
-			BPF_CORE_READ_USER_INTO(&socket_family, sockaddr, sa_family);
+			if((void*)args[1] != NULL)
+			{
+				BPF_CORE_READ_USER_INTO(&sockaddr, (struct msghdr*)args[1], msg_name);
+				BPF_CORE_READ_USER_INTO(&socket_family, sockaddr, sa_family);
+			}
 			break;
 		}
 		default:
