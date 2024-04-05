@@ -346,14 +346,16 @@ TEST_F(sys_call_test, forking_clone_fs)
 	char bcwd[1024];
 	int prfd;
 	int ptid;  // parent tid
-	int flags = CLONE_FILES | CLONE_FS | CLONE_VM;
-	int drflags = PPM_CL_CLONE_FILES | PPM_CL_CLONE_FS | PPM_CL_CLONE_VM;
+	int child_tid;
+	int parent_res;
+	int flags = CLONE_FILES | CLONE_FS | CLONE_VM | CLONE_PARENT_SETTID;
+	int drflags = PPM_CL_CLONE_FILES | PPM_CL_CLONE_FS | PPM_CL_CLONE_VM | PPM_CL_CLONE_PARENT_SETTID;
 
 	//
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt)
-	{ return evt->get_tid() == ptid || evt->get_tid() == ctid; };
+	{ return evt->get_tid() == ptid || evt->get_tid() == child_tid; };
 
 	//
 	// TEST CODE
@@ -392,19 +394,21 @@ TEST_F(sys_call_test, forking_clone_fs)
 
 		/* Create child; child commences execution in childFunc() */
 
-		if (clone(clone_callback_1, stackTop, flags, &cp) == -1)
+		pid_t clone_tid = clone(clone_callback_1, stackTop, flags, &cp,
+								&child_tid);
+		if (clone_tid == -1)
 			FAIL();
 
 		/* Parent falls through to here. Wait for child; __WCLONE option is
 		   required for child notifying with signal other than SIGCHLD. */
 
-		pid = waitpid(-1, &status, __WCLONE);
+		pid = waitpid(clone_tid, &status, __WCLONE);
 		if (pid == -1)
 			FAIL();
 
 		close(cp.fd);
+		parent_res = -errno;
 
-		sleep(1);
 		free(stack);
 	};
 
@@ -426,7 +430,7 @@ TEST_F(sys_call_test, forking_clone_fs)
 
 			if (res == 0)
 			{
-				EXPECT_EQ(ctid, ti->m_tid);
+				EXPECT_EQ(child_tid, ti->m_tid);
 			}
 			else
 			{
@@ -447,7 +451,7 @@ TEST_F(sys_call_test, forking_clone_fs)
 		{
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (ti->m_tid == ptid || ti->m_tid == ctid)
+			if (ti->m_tid == ptid || ti->m_tid == child_tid)
 			{
 				int64_t clfd = std::stoll(e->get_param_value_str("fd", false));
 
@@ -470,9 +474,13 @@ TEST_F(sys_call_test, forking_clone_fs)
 
 			if (ti->m_tid == ptid)
 			{
-				EXPECT_GT(0, res);
+				sinsp_fdinfo* fdi = ti->get_fd(prfd);
+				if(fdi && fdi->tostring_clean().find(FILENAME) != std::string::npos)
+				{
+					EXPECT_EQ(parent_res, res);
+				}
 			}
-			else if (ti->m_tid == ctid)
+			else if (ti->m_tid == child_tid)
 			{
 				EXPECT_EQ(0, res);
 			}
