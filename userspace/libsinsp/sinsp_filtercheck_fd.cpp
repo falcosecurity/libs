@@ -149,7 +149,7 @@ int32_t sinsp_filter_check_fd::parse_field_name(const char* str, bool alloc_stat
 		if(res == 0)
 		{
 			m_argid = -1;
-			res = (int32_t)val.size();
+			res = (int32_t)(sizeof("fd.types") - 1);
 		}
 
 		return res;
