@@ -22,8 +22,7 @@ An image is worth a thousand words, they say:
 
 * [_driver/_](./driver) contains kernel module and eBPF probe source code,
 so-called **drivers**.       
-* [_userspace/_](./userspace) contains libscap and libsinsp libraries code,
-plus chisels related code and common utilities.
+* [_userspace/_](./userspace) contains libscap and libsinsp libraries code.
   * **libscap** (aka lib for *System CAPture*) is the userspace library
   that directly communicates with the drivers, reading syscall events from
   the ring buffer (where drivers place them), and forwarding them
