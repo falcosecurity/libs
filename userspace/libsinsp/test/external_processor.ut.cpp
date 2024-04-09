@@ -25,7 +25,6 @@ class sinsp_external_processor_dummy : public event_processor
 {
 	void on_capture_start() override {}
 	void process_event(sinsp_evt* evt, event_return rc) override {}
-	void add_chisel_metric(chisel_metric* metric) override {}
 };
 
 TEST(sinsp, external_event_processor_initialization)
