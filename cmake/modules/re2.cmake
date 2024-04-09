@@ -41,17 +41,37 @@ else()
 	if(NOT WIN32)
 		set(RE2_LIB "${RE2_SRC}/lib/libre2${RE2_LIB_SUFFIX}")
 		set(RE2_LIB_PATTERN "libre2*")
-		ExternalProject_Add(re2
-			PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
-			URL "${RE2_URL}"
-			URL_HASH "${RE2_URL_HASH}"
-			BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
-			BUILD_BYPRODUCTS ${RE2_LIB}
-			CMAKE_ARGS
-				-DCMAKE_INSTALL_LIBDIR=lib
-				-DRE2_BUILD_TESTING=OFF
-				-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-				-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+		if(CMAKE_VERSION VERSION_LESS 3.29.1)
+			ExternalProject_Add(re2
+				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
+				URL "${RE2_URL}"
+				URL_HASH "${RE2_URL_HASH}"
+				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
+				BUILD_BYPRODUCTS ${RE2_LIB}
+				CMAKE_ARGS
+					-DCMAKE_INSTALL_LIBDIR=lib
+					-DRE2_BUILD_TESTING=OFF
+					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+		else()
+			# CMake 3.29.1 removed the support for the `PACKAGE_PREFIX_DIR`
+			# variable. The patch command just applies the same patch applied
+			# by re2 to solve the issue:
+			# https://github.com/google/re2/commit/9ebe4a22cad8a025b68a9594bdff3c047a111333
+			ExternalProject_Add(re2
+				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
+				URL "${RE2_URL}"
+				URL_HASH "${RE2_URL_HASH}"
+				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
+				BUILD_BYPRODUCTS ${RE2_LIB}
+				PATCH_COMMAND
+					COMMAND sed -i "/set_and_check/d" re2Config.cmake.in
+				CMAKE_ARGS
+					-DCMAKE_INSTALL_LIBDIR=lib
+					-DRE2_BUILD_TESTING=OFF
+					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+		endif()
 	else()
 		set(RE2_LIB "${RE2_SRC}/lib/re2.lib")
 		set(RE2_LIB_PATTERN "re2.lib")
