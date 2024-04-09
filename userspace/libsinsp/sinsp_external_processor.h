@@ -8,7 +8,6 @@
  * sinsp in order to start receiving appropriate callbacks.
  */
 
-class chisel_metric;
 class sinsp;
 class threadinfo;
 
@@ -39,11 +38,6 @@ public:
 	 * Called on every event after sinsp has performed its processing.
 	 */
 	virtual void process_event(sinsp_evt* evt, event_return rc) = 0;
-
-	/**
-	 * Handles a metric pushed by a chisel
-	 */
-	virtual void add_chisel_metric(chisel_metric* metric) = 0;
 
 	/**
 	 * Some event processors allocate different thread types with extra data.

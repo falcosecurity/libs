@@ -535,9 +535,8 @@ std::list<sinsp_filter_factory::filter_fieldclass_info> sinsp_filter_factory::ch
 		{
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
-			// If a field is only used for stuff like
-			// chisels to organize events, we don't want
-			// to print it and don't return it here.
+			// If a field is only used to organize events,
+			// we don't want to print it and don't return it here.
 			if(fld->m_flags & EPF_PRINT_ONLY)
 			{
 				continue;
