@@ -27,6 +27,21 @@ limitations under the License.
 #endif //_WIN32
 #include <driver/event_stats.h>
 
+#define DEFAULT_IPV4_CLIENT_STRING "172.40.111.222"
+#define DEFAULT_IPV6_CLIENT_STRING "::1"
+#define DEFAULT_CLIENT_PORT_STRING "54321"
+#define DEFAULT_CLIENT_PORT 54321
+
+#define DEFAULT_IPV4_SERVER_STRING "142.251.111.147"
+#define DEFAULT_IPV6_SERVER_STRING "2001:4860:4860::8888"
+#define DEFAULT_SERVER_PORT_STRING "443"
+#define DEFAULT_SERVER_PORT 443
+
+#define DEFAULT_IPV4_FDNAME "172.40.111.222:54321->142.251.111.147:443"
+#define DEFAULT_IPV6_FDNAME "::1:54321->2001:4860:4860::8888:443"
+
+#define DEFAULT_IP_STRING_SIZE 100
+
 #define ASSERT_NAMES_EQ(a, b)                                                                                \
 	{                                                                                                        \
 		auto a1 = a;                                                                                         \

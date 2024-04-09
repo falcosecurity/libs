@@ -255,8 +255,16 @@ sinsp_evt* sinsp_with_test_input::generate_proc_exit_event(int64_t tid_to_remove
 
 sinsp_evt* sinsp_with_test_input::generate_random_event(int64_t tid_caller)
 {
-	// Generate a random event on init to trigger the removal after proc exit
+	// Generate a random failed event. Useful when we want to trigger some actions on an event
+	// and we don't care about the event chosen.
 	return add_event_advance_ts(increasing_ts(), tid_caller, PPME_SYSCALL_GETCWD_E, 0);
+}
+
+sinsp_evt* sinsp_with_test_input::generate_getcwd_exit_event(int64_t tid_caller)
+{
+	int64_t err = -1;
+	std::string path = "/test/dir";
+	return add_event_advance_ts(increasing_ts(), tid_caller, PPME_SYSCALL_GETCWD_X, 2, err, path.c_str());
 }
 
 //=============================== PROCESS GENERATION ===========================

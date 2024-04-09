@@ -2,6 +2,7 @@
 #include <libsinsp/filter.h>
 #include <gtest/gtest.h>
 #include <list>
+#include <sinsp_with_test_input.h>
 
 using namespace std;
 
@@ -93,9 +94,13 @@ void test_filter_run(bool result, string filter_str)
 			FAIL() << filter_str << " -> unexpected '" << (result ? "false" : "true") << "' result";
 		}
 	}
-	catch(const sinsp_exception& e)
+	catch(const std::exception& e)
 	{
 		FAIL() << filter_str << " -> " << e.what();
+	}
+	catch(...)
+	{
+		FAIL() << filter_str << " -> " << "UNKNOWN ERROR";
 	}
 }
 
@@ -113,11 +118,18 @@ void test_filter_compile(
 			FAIL() << filter_str << " -> expected failure but compilation was successful";
 		}
 	}
-	catch(const sinsp_exception& e)
+	catch(const std::exception& e)
 	{
 		if (!expect_fail)
 		{
 			FAIL() << filter_str << " -> " << e.what();
+		}
+	}
+	catch(...)
+	{
+		if (!expect_fail)
+		{
+			FAIL() << filter_str << " -> " << "UNKNOWN ERROR";
 		}
 	}
 }
@@ -246,4 +258,24 @@ TEST(sinsp_filter_compiler, complex_filter)
 		")";
 
 	test_filter_compile(factory, filter_str);
+}
+
+//////////////////////////////
+// Test filter strings against real events.
+//////////////////////////////
+
+static bool evaluate_filter_str(sinsp* inspector, std::string filter_str, sinsp_evt* evt)
+{
+	sinsp_filter_check_list filter_list;
+	sinsp_filter_compiler compiler(std::make_shared<sinsp_filter_factory>(inspector, filter_list), filter_str);
+	auto filter = compiler.compile();
+	return filter->run(evt);
+}
+
+TEST_F(sinsp_with_test_input, filter_simple_evaluation)
+{
+	// Basic case just to assert that the basic setup works
+	add_default_init_thread();
+	open_inspector();
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(evt.type = getcwd)", generate_getcwd_exit_event()));
 }
