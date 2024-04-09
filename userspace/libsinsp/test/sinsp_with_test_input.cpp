@@ -260,7 +260,7 @@ sinsp_evt* sinsp_with_test_input::generate_random_event(int64_t tid_caller)
 	return add_event_advance_ts(increasing_ts(), tid_caller, PPME_SYSCALL_GETCWD_E, 0);
 }
 
-sinsp_evt* sinsp_with_test_input::generate_getcwd_exit_event(int64_t tid_caller)
+sinsp_evt* sinsp_with_test_input::generate_getcwd_failed_entry_event(int64_t tid_caller)
 {
 	int64_t err = -1;
 	std::string path = "/test/dir";

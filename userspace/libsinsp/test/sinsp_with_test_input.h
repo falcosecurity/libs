@@ -67,7 +67,7 @@ protected:
 	void remove_thread(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_proc_exit_event(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_random_event(int64_t tid_caller = INIT_TID);
-	sinsp_evt* generate_getcwd_exit_event(int64_t tid_caller = INIT_TID);
+	sinsp_evt* generate_getcwd_failed_entry_event(int64_t tid_caller = INIT_TID);
 
 	//=============================== PROCESS GENERATION ===========================
 
