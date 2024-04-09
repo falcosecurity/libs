@@ -277,5 +277,5 @@ TEST_F(sinsp_with_test_input, filter_simple_evaluation)
 	// Basic case just to assert that the basic setup works
 	add_default_init_thread();
 	open_inspector();
-	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(evt.type = getcwd)", generate_getcwd_exit_event()));
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(evt.type = getcwd)", generate_getcwd_failed_entry_event()));
 }

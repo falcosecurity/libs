@@ -49,26 +49,18 @@ public:
 		open_inspector();
 	}
 
-	void TearDown() override
-	{
-		m_last_res = false;
-		m_last_output.clear();
-		m_last_field_names.clear();
-		m_last_field_values.clear();
-	}
-
 	void format(const std::string& fmt,
 				sinsp_evt_formatter::output_format of = sinsp_evt_formatter::output_format::OF_NORMAL)
 	{
 		sinsp_evt_formatter f(&m_inspector, fmt, m_filter_list);
-		auto evt = generate_getcwd_exit_event();
+		auto evt = generate_getcwd_failed_entry_event();
 		f.get_field_names(m_last_field_names);
 		auto r1 = f.resolve_tokens(evt, m_last_field_values);
 		auto r2 = f.tostring_withformat(evt, m_last_output, of);
 		m_last_res = r1 && r2;
 	}
 
-	bool m_last_res;
+	bool m_last_res = false;
 	std::string m_last_output;
 	std::vector<std::string> m_last_field_names;
 	std::map<std::string,std::string> m_last_field_values;
