@@ -53,7 +53,7 @@ static void filter_run(sinsp_evt* evt, bool result, std::string filter_str)
 	sinsp_filter *filter = NULL;
 	filter_compile(&filter, filter_str);
 	auto f = std::unique_ptr<sinsp_filter>(filter);
-	if (f->run(evt) != result)
+	if (f && f->run(evt) != result)
 	{
 		FAIL() << filter_str
 			<< " -> unexpected '"
