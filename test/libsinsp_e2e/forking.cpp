@@ -336,6 +336,7 @@ static int clone_callback_1(void* arg)
 	// using a weird clone() here something goes wrong with
 	// recent version of glibc
 	ctid = syscall(SYS_getpid);
+	fsync(cp->fd);
 	close(cp->fd);
 	return 0;
 }
