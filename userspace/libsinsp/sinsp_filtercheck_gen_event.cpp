@@ -98,7 +98,7 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, OUT uint
 	case TYPE_RELTS:
 	case TYPE_RELTS_S:
 	case TYPE_RELTS_NS:
-		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
+		return (Json::Value::Int64)*(uint64_t*)extract_single(evt, len);
 	default:
 		return Json::nullValue;
 	}
@@ -106,7 +106,7 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, OUT uint
 	return Json::nullValue;
 }
 
-uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 
 	std::shared_ptr<sinsp_plugin> plugin;

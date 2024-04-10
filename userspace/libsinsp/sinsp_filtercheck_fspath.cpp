@@ -236,7 +236,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fspath::allocate_new()
 	return ret;
 }
 
-uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	ASSERT(evt);

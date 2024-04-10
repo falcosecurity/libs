@@ -259,7 +259,7 @@ protected:
 	// multiple values. By default, this returns NULL.
 	// Subclasses are meant to either override this, or the multi-valued extract method.
 	bool extract_nocache(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
-	virtual uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true);
+	virtual uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true);
 
 	bool compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0);
 	bool compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values);

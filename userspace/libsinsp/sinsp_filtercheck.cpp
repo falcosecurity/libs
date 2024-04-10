@@ -1524,7 +1524,7 @@ bool sinsp_filter_check::extract_nocache(sinsp_evt *evt, OUT std::vector<extract
 {
 	values.clear();
 	extract_value_t val;
-	val.ptr = extract(evt, &val.len, sanitize_strings);
+	val.ptr = extract_single(evt, &val.len, sanitize_strings);
 	if (val.ptr != NULL)
 	{
 		values.push_back(val);
@@ -1533,7 +1533,7 @@ bool sinsp_filter_check::extract_nocache(sinsp_evt *evt, OUT std::vector<extract
 	return false;
 }
 
-uint8_t* sinsp_filter_check::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	return NULL;
 }

@@ -169,7 +169,7 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 }
 
 
-uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
