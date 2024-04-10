@@ -562,6 +562,16 @@ std::list<sinsp_filter_factory::filter_fieldclass_info> sinsp_filter_factory::ch
 				info.tags.insert("EPF_DEPRECATED");
 			}
 
+			if(fld->m_flags & EPF_NO_RHS)
+			{
+				info.tags.insert("EPF_NO_RHS");
+			}
+
+			if(fld->m_flags & EPF_NO_TRANSFORMER)
+			{
+				info.tags.insert("EPF_NO_TRANSFORMER");
+			}
+
 			if(fld->m_flags & EPF_ARG_REQUIRED)
 			{
 				info.tags.insert("ARG_REQUIRED");
