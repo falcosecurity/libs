@@ -346,6 +346,7 @@ TEST_F(sys_call_test, forking_clone_fs)
 	char bcwd[1024];
 	int prfd;
 	int ptid;  // parent tid
+	pid_t clone_tid;
 	int child_tid;
 	int parent_res;
 	int flags = CLONE_FILES | CLONE_FS | CLONE_VM | CLONE_PARENT_SETTID;
@@ -394,7 +395,7 @@ TEST_F(sys_call_test, forking_clone_fs)
 
 		/* Create child; child commences execution in childFunc() */
 
-		pid_t clone_tid = clone(clone_callback_1, stackTop, flags, &cp,
+		clone_tid = clone(clone_callback_1, stackTop, flags, &cp,
 								&child_tid);
 		if (clone_tid == -1)
 			FAIL();
@@ -477,7 +478,12 @@ TEST_F(sys_call_test, forking_clone_fs)
 				sinsp_fdinfo* fdi = ti->get_fd(prfd);
 				if(fdi && fdi->tostring_clean().find(FILENAME) != std::string::npos)
 				{
-					EXPECT_EQ(parent_res, res);
+					EXPECT_EQ(parent_res, res) << "filename: "
+											   << fdi->tostring_clean() << std::endl
+											   << "res: " << res << std::endl
+											   << "parent tid: " << ptid << std::endl
+											   << "child  tid: " << child_tid << std::endl
+											   << "clone  tid: " << clone_tid << std::endl;
 				}
 			}
 			else if (ti->m_tid == child_tid)
