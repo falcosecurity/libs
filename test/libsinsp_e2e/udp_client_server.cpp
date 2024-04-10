@@ -1035,7 +1035,6 @@ TEST_F(sys_call_test, statsd_client_snaplen)
 	captured_event_callback_t callback = [&](const callback_param& param)
 	{
 		sinsp_evt* e = param.m_evt;
-		std::cout << e->get_name() << std::endl;
 		EXPECT_EQ(payload, e->get_param_value_str("data"))
 		    << "Failure on " << e->get_name() << " n=" << n;
 		n++;
