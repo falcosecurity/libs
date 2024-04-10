@@ -65,7 +65,7 @@ else()
 				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 				BUILD_BYPRODUCTS ${RE2_LIB}
 				PATCH_COMMAND
-					COMMAND sed -i "/set_and_check/d" re2Config.cmake.in
+					COMMAND sed -i".bak" "/set_and_check/d" re2Config.cmake.in
 				CMAKE_ARGS
 					-DCMAKE_INSTALL_LIBDIR=lib
 					-DRE2_BUILD_TESTING=OFF
