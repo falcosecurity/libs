@@ -463,7 +463,7 @@ bool sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT std::vector<extract_valu
 	return sinsp_filter_check::extract(evt, values, sanitize_strings);
 }
 
-uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	ASSERT(evt);
@@ -1840,7 +1840,7 @@ bool sinsp_filter_check_fd::compare_nocache(sinsp_evt *evt)
 	bool sanitize_strings = false;
 	// note: this uses the single-value extract because this filtercheck
 	// class does not support multi-valued extraction
-	uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
+	uint8_t* extracted_val = extract_single(evt, &len, sanitize_strings);
 
 	if(extracted_val == NULL)
 	{

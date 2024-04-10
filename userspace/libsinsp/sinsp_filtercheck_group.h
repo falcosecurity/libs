@@ -35,5 +35,5 @@ public:
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 
 protected:
-	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 };

@@ -115,7 +115,7 @@ int32_t sinsp_filter_check_mesos::extract_arg(const string& fldname, const strin
 	return parsed_len;
 }
 
-uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_mesos::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	// note: all mesos fields are deprecated since removing them from the codebase
 	*len = 0;

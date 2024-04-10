@@ -79,7 +79,7 @@ public:
 	bool extract(sinsp_evt*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
 
 protected:
-	uint8_t* extract(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 	bool compare_nocache(sinsp_evt*) override;
 
 private:

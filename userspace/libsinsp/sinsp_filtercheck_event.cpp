@@ -609,7 +609,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
-		return (Json::Value::Int64)*(uint64_t*)extract(evt, len);
+		return (Json::Value::Int64)*(uint64_t*)extract_single(evt, len);
 	case TYPE_COUNT:
 		m_u32val = 1;
 		return m_u32val;
@@ -657,7 +657,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
-uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	switch(m_field_id)
@@ -1798,7 +1798,7 @@ bool sinsp_filter_check_event::compare_nocache(sinsp_evt *evt)
 		bool sanitize_strings = false;
 		// note: this uses the single-value extract because this filtercheck
 		// class does not support multi-valued extraction
-		uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
+		uint8_t* extracted_val = extract_single(evt, &len, sanitize_strings);
 
 		if(extracted_val == NULL)
 		{
