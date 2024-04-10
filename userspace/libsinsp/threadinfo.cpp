@@ -691,7 +691,6 @@ const std::vector<std::string>& sinsp_threadinfo::get_env()
 		{
 			// it should never happen but provide a safe fallback just in case
 			// except during sinsp::scap_open() (see sinsp::get_thread()).
-			ASSERT(false);
 			return m_env;
 		}
 	}
@@ -936,7 +935,6 @@ void sinsp_threadinfo::update_cwd(std::string_view cwd)
 
 	if (tinfo == nullptr)
 	{
-		ASSERT(false);
 		return;
 	}
 
