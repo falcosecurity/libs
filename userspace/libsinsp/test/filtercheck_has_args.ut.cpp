@@ -80,7 +80,7 @@ TEST(filtercheck_has_args, has_args)
 
 			filtercheck->parse_field_name(field_str.c_str(), alloc_state, needed_for_filtering);
 
-			EXPECT_EQ(expected, filtercheck->can_have_argument()) << "Field " + field_str + " did not return expected value " + std::to_string(expected) + " for can_have_argument()";
+			EXPECT_EQ(expected, filtercheck->get_field_info()->is_arg_supported()) << "Field " + field_str + " did not return expected value " + std::to_string(expected) + " for is_arg_supported()";
 		}
 	}
 }

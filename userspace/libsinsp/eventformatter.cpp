@@ -203,7 +203,7 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, std::map<std::string,st
 		}
 
 		fi = m_tokens[j].second->get_field_info();
-		if(fi)
+		if(fi && strncmp(fi->m_name, "NA", sizeof("NA") + 1) != 0)
 		{
 			values[m_tokens[j].first] = std::string(str);
 		}
@@ -263,8 +263,7 @@ bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt, std::string &outpu
 			}
 
 			fi = m_tokens[j].second->get_field_info();
-
-			if(fi)
+			if(fi && strncmp(fi->m_name, "NA", sizeof("NA") + 1) != 0)
 			{
 				m_root[m_tokens[j].first] = m_tokens[j].second->tojson(evt);
 			}

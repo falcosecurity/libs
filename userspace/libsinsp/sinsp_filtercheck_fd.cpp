@@ -1738,7 +1738,7 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt)
 
 		if(m_cmpop == CO_IN)
 		{
-			for (uint16_t i=0; i < m_val_storages.size(); i++)
+			for (uint16_t i=0; i < m_vals.size(); i++)
 			{
 				if(sinsp_dns_manager::get().match((const char *)filter_value_p(i), (evt_type == SCAP_FD_IPV6_SOCK)? AF_INET6 : AF_INET, addr, ts))
 				{
@@ -1823,43 +1823,19 @@ bool sinsp_filter_check_fd::compare_nocache(sinsp_evt *evt)
 	{
 		return compare_net(evt);
 	}
-	else if(m_field_id == TYPE_FDTYPES)
+	else if(m_field_id == TYPE_CLIENTIP_NAME ||
+		m_field_id == TYPE_SERVERIP_NAME ||
+		m_field_id == TYPE_LIP_NAME ||
+		m_field_id == TYPE_RIP_NAME)
 	{
 		m_extracted_values.clear();
 		if(!extract(evt, m_extracted_values, false))
 		{
-			return false;
-		}
-		return compare_rhs(m_cmpop, m_info.m_fields[m_field_id].m_type, m_extracted_values);
-	}
-
-	//
-	// Standard extract-based fields
-	//
-	uint32_t len = 0;
-	bool sanitize_strings = false;
-	// note: this uses the single-value extract because this filtercheck
-	// class does not support multi-valued extraction
-	uint8_t* extracted_val = extract_single(evt, &len, sanitize_strings);
-
-	if(extracted_val == NULL)
-	{
-		// optimization for *_NAME fields
-		// the first time we will call compare_domain, the next ones
-		// we will the able to extract and use flt_compare
-		if(m_field_id == TYPE_CLIENTIP_NAME ||
-		   m_field_id == TYPE_SERVERIP_NAME ||
-		   m_field_id == TYPE_LIP_NAME ||
-		   m_field_id == TYPE_RIP_NAME)
-		{
 			return compare_domain(evt);
 		}
-
-		return false;
+		auto ftype = sinsp_filter_check::get_transformed_field_info()->m_type;
+		return compare_rhs(m_cmpop, ftype, m_extracted_values);
 	}
 
-	return compare_rhs(m_cmpop,
-			   m_info.m_fields[m_field_id].m_type,
-			   extracted_val,
-			   len);
+	return sinsp_filter_check::compare_nocache(evt);		   
 }

@@ -92,7 +92,6 @@ public:
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
 	size_t parse_filter_value(const char* str, uint32_t len, uint8_t* storage, uint32_t storage_len) override;
-	const filtercheck_field_info* get_field_info() const override;
 
 protected:
 	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;

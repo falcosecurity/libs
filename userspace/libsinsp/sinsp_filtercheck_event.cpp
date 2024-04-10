@@ -320,7 +320,7 @@ size_t sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t le
 	if(m_field_id == sinsp_filter_check_event::TYPE_ARGRAW)
 	{
 		ASSERT(m_arginfo != NULL);
-		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, filter_value_p(), filter_value()->size(), m_arginfo->type);
+		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, m_arginfo->type);
 	}
 	else
 	{
@@ -386,18 +386,6 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 		m_tsdelta = sinsp_numparser::parseu64(str) * 1000000;
 
 		return;
-	}
-}
-
-const filtercheck_field_info* sinsp_filter_check_event::get_field_info() const
-{
-	if(m_field_id == TYPE_ARGRAW)
-	{
-		return &m_customfield;
-	}
-	else
-	{
-		return &m_info.m_fields[m_field_id];
 	}
 }
 
