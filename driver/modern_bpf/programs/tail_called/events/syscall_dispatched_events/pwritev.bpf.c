@@ -75,7 +75,7 @@ int BPF_PROG(pwritev_x,
 	 * the return value if the syscall is successful.
 	 */
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, true, SCN_UNSET);
+	apply_dynamic_snaplen(regs, &snaplen, true, NULL);
 	if(ret > 0 && snaplen > ret)
 	{
 		snaplen = ret;

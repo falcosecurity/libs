@@ -29,13 +29,6 @@ enum capability_type
 	CAP_EFFECTIVE = 2,
 };
 
-enum syscall_nr
-{
-	SCN_UNSET = 0,
-	SCN_SENDTO  = 1,
-	SCN_SENDMSG = 2,
-};
-
 /* All the functions that are called in bpf to extract parameters
  * start with the `extract` prefix.
  */

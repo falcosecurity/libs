@@ -68,7 +68,7 @@ int BPF_PROG(process_vm_readv_x,
 		 * have in the buffer.
 		 */
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, true, SCN_UNSET);
+		apply_dynamic_snaplen(regs, &snaplen, true, NULL);
 		if(snaplen > ret)
 		{
 			snaplen = ret;

@@ -96,7 +96,9 @@ int BPF_PROG(sendmsg_x,
 	 * the return value if the syscall is successful.
 	 */
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, true, SCN_SENDMSG);
+	struct sockaddr *sockaddr;
+	BPF_CORE_READ_USER_INTO(&sockaddr, (struct msghdr*)args[1], msg_name);
+	apply_dynamic_snaplen(regs, &snaplen, true, sockaddr);
 	if(ret > 0 && snaplen > ret)
 	{
 		snaplen = ret;
