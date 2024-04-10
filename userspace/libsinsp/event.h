@@ -55,6 +55,8 @@ enum filtercheck_field_flags
 	EPF_ARG_INDEX         = 1 << 8, ///< this field accepts numeric arguments.
 	EPF_ARG_KEY           = 1 << 9, ///< this field accepts string arguments.
 	EPF_DEPRECATED        = 1 << 10,///< this field is deprecated.
+	EPF_NO_TRANSFORMER    = 1 << 11,///< this field cannot have a field transformer.
+	EPF_NO_RHS            = 1 << 12,///< this field cannot have a right-hand side filter check, and cannot be used as a right-hand side filter check.
 };
 
 /** @defgroup event Event manipulation
