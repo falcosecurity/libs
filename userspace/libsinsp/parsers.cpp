@@ -4780,7 +4780,6 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				 */
 				if(ptinfo == nullptr || ptinfo->is_invalid())
 				{
-					ASSERT(false);
 					return;
 				}
 

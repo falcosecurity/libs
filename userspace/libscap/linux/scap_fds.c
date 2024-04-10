@@ -582,7 +582,6 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(const char* filename, scap_fdi
 	f = fopen(filename, "r");
 	if(NULL == f)
 	{
-		ASSERT(false);
 		return scap_errprintf(error, errno, "Could not open netlink sockets file %s", filename);
 	}
 	while(NULL != fgets(line, sizeof(line), f))
@@ -736,7 +735,6 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(const char *dir, int l4proto, sca
 	f = fopen(dir, "r");
 	if(NULL == f)
 	{
-		ASSERT(false);
 		free(scan_buf);
 		return scap_errprintf(error, errno, "Could not open ipv4 sockets dir %s", dir);
 	}
@@ -921,7 +919,6 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(char *dir, int l4proto, scap_fdin
 
 	if(NULL == f)
 	{
-		ASSERT(false);
 		free(scan_buf);
 		return scap_errprintf(error, errno, "Could not open ipv6 sockets dir %s", dir);
 	}
