@@ -118,6 +118,55 @@ struct filtercheck_field_info
 	char m_name[64];  ///< Field name.
 	char m_display[64];  ///< Field display name (short description). May be empty.
 	char m_description[1024];  ///< Field description.
+
+	//
+	// Return true if this field must have an argument
+	//
+	inline bool is_arg_required() const
+	{
+		return m_flags & EPF_ARG_REQUIRED;
+	}
+
+	//
+	// Return true if this field can optionally have an argument
+	//
+	inline bool is_arg_allowed() const
+	{
+		return m_flags & EPF_ARG_REQUIRED;
+	}
+
+	//
+	// Returns true if this field can have an argument, either
+	// optionally or mandatorily
+	//
+	inline bool is_arg_supported() const
+	{
+		return (m_flags & EPF_ARG_REQUIRED) ||(m_flags & EPF_ARG_ALLOWED);
+	}
+
+	//
+	// Returns true if this field is a list of values
+	//
+	inline bool is_list() const
+	{
+		return m_flags & EPF_IS_LIST;
+	}
+
+	//
+	// Returns true if this filter check can support a rhs filter check instead of a const value.
+	//
+	inline bool is_rhs_field_supported() const
+	{
+		return !(m_flags & EPF_NO_RHS);
+	}
+
+	//
+	// Returns true if this filter check can support an extraction transformer on it.
+	//
+	inline bool is_transformer_supported() const
+	{
+		return !(m_flags & EPF_NO_TRANSFORMER);
+	}
 };
 
 /*!
@@ -174,6 +223,15 @@ public:
 	}
 
 	//
+	// Return the info about the field that this instance contains
+	// This must be used only after `parse_field_name`
+	//
+	virtual const filtercheck_field_info* get_field_info() const
+	{
+		return m_field;
+	}
+
+	//
 	// Parse the name of the field.
 	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
@@ -187,16 +245,51 @@ public:
 	virtual void add_filter_value(const char* str, uint32_t len, uint32_t i = 0);
 
 	//
-	// Return the info about the field that this instance contains
+	// If this check is used by a filter, extract the rhs filter check to compare it to.
 	//
-	virtual const filtercheck_field_info* get_field_info() const;
+	virtual void add_filter_value(std::unique_ptr<sinsp_filter_check> chk);
 
 	//
-	// Return true if this filtercheck can have an argument,
-	// either due to being required (flag EPF_ARG_REQUIRED) or
-	// allowed (flag EPF_ARG_ALLOWED).
+	// Return the right-hand side constant values used for comparison
 	//
-	bool can_have_argument() const;
+	virtual const std::vector<filter_value_t>& get_filter_values() const
+	{
+		return m_vals;
+	}
+
+	//
+	// Return true if the filter check is compared against another filter check
+	//
+	virtual bool has_filtercheck_value() const
+	{
+		return m_rhs_filter_check.get() != nullptr;
+	}
+
+	//
+	// Add extract transformers to the filter check
+	//
+	virtual void add_transformer(filter_transformer_type trtype);
+
+	//
+	// Return true if the filter check contains field transformers
+	//
+	virtual bool has_transformers() const
+	{
+		return !m_transformers.empty();
+	}
+
+	//
+	// Return the type of the current field after applying
+	// all the configured transformers
+	//
+	virtual const filtercheck_field_info* get_transformed_field_info() const
+	{
+		if (m_transformed_field != nullptr)
+		{
+			return m_transformed_field.get();
+		}
+		return get_field_info();
+	}
 
 	//
 	// Extract the field from the event. In sanitize_strings is true, any
@@ -236,10 +329,6 @@ public:
 			       ppm_print_format print_format,
 			       uint32_t len);
 
-	inline const std::vector<filter_value_t>& get_filter_values() const
-	{
-		return m_vals;
-	}
 
 protected:
 	virtual bool compare_nocache(sinsp_evt*);
@@ -248,6 +337,12 @@ protected:
 	{
 		return Json::nullValue;
 	}
+
+	//
+	// If present, apply all the transformers on the current filter check
+	// changing extracted values and the filter check type.
+	//
+	bool apply_transformers(std::vector<extract_value_t>& values);
 
 	virtual size_t parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len);
 
@@ -262,8 +357,8 @@ protected:
 
 	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
 
-	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
-	inline std::vector<uint8_t>* filter_value(uint16_t i = 0) { return &m_val_storages[i]; }
+	inline uint8_t* filter_value_p(uint16_t i = 0) { return m_vals[i].first; }
+	inline uint32_t filter_value_len(uint16_t i = 0) { return m_vals[i].second; }
 
 	std::vector<char> m_getpropertystr_storage;
 	std::vector<std::vector<uint8_t>> m_val_storages;
@@ -275,9 +370,17 @@ protected:
 	uint32_t m_field_id = (uint32_t) -1;
 
 private:
+	//
+	// Instead of populating the filter check values with const values extracted at
+	// filter compile time, it populates the filter check values with values extracted
+	// from a right-hand side filter check at runtime.
+	//
+	inline void populate_filter_values_with_rhs_extracted_values(const std::vector<extract_value_t>& values);
+	inline void check_rhs_field_type_consistency() const;
 
-	// used for comparing right-hand single value
-	uint32_t m_val_storage_len;
+	std::list<sinsp_filter_transformer> m_transformers;	
+	std::unique_ptr<sinsp_filter_check> m_rhs_filter_check;
+	std::unique_ptr<filtercheck_field_info> m_transformed_field = nullptr;
 
 	// used for comparing right-hand lists of values
 	std::unordered_set<filter_value_t,

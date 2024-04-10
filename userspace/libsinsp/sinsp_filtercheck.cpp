@@ -654,7 +654,6 @@ sinsp_filter_check::sinsp_filter_check()
 	m_field = NULL;
 	m_info.m_fields = NULL;
 	m_info.m_nfields = -1;
-	m_val_storage_len = 0;
 	m_val_storages = std::vector<std::vector<uint8_t>> (1, std::vector<uint8_t>(256));
 	m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
 	m_val_storages_max_size = (std::numeric_limits<uint32_t>::min)();
@@ -1166,6 +1165,7 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 		return NULL;
 	}
 
+	auto ftype = get_transformed_field_info()->m_type;
 	if (m_field->m_flags & EPF_IS_LIST)
 	{
 		std::string res = "(";
@@ -1175,14 +1175,14 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 			{
 				res += ",";
 			}
-			res += rawval_to_string(val.ptr, m_field->m_type, m_field->m_print_format, val.len);
+			res += rawval_to_string(val.ptr, ftype, m_field->m_print_format, val.len);
 		}
 		res += ")";
 		m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 		strlcpy(m_getpropertystr_storage.data(), res.c_str(), STRPROPERTY_STORAGE_SIZE);
 		return m_getpropertystr_storage.data();
 	}
-	return rawval_to_string(m_extracted_values[0].ptr, m_field->m_type, m_field->m_print_format, m_extracted_values[0].len);
+	return rawval_to_string(m_extracted_values[0].ptr, ftype, m_field->m_print_format, m_extracted_values[0].len);
 }
 
 Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
@@ -1198,15 +1198,16 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 			return Json::nullValue;
 		}
 
+		auto ftype = get_transformed_field_info()->m_type;
 		if (m_field->m_flags & EPF_IS_LIST)
 		{
 			for (auto &val : m_extracted_values)
 			{
-				jsonval.append(rawval_to_json(val.ptr, m_field->m_type, m_field->m_print_format, val.len));
+				jsonval.append(rawval_to_json(val.ptr, ftype, m_field->m_print_format, val.len));
 			}
 			return jsonval;
 		}
-		return rawval_to_json(m_extracted_values[0].ptr, m_field->m_type, m_field->m_print_format, m_extracted_values[0].len);
+		return rawval_to_json(m_extracted_values[0].ptr, ftype, m_field->m_print_format, m_extracted_values[0].len);
 	}
 
 	return jsonval;
@@ -1257,6 +1258,15 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 
 void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_t i)
 {
+	if(has_filtercheck_value())
+	{
+		throw sinsp_exception("can't add const field value: field '"
+			+ std::string(get_field_info()->m_name)
+			+ "' already has another field '"
+			+ m_rhs_filter_check->get_field_info()->m_name
+			+ "' as right-hand side value");
+	}
+
 	size_t parsed_len;
 
 	if (i >= m_val_storages.size())
@@ -1264,11 +1274,11 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		m_val_storages.push_back(std::vector<uint8_t>(256));
 	}
 
-	parsed_len = parse_filter_value(str, len, filter_value_p(i), filter_value(i)->size());
+	parsed_len = parse_filter_value(str, len, &(m_val_storages[i][0]), (&m_val_storages[i])->size());
 
 	// XXX/mstemm this doesn't work if someone called
 	// add_filter_value more than once for a given index.
-	filter_value_t item(filter_value_p(i), parsed_len);
+	filter_value_t item(&(m_val_storages[i][0]), parsed_len);
 	m_vals.push_back(item);
 	m_val_storages_members.insert(item);
 
@@ -1289,45 +1299,134 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	}
 }
 
+void sinsp_filter_check::add_filter_value(std::unique_ptr<sinsp_filter_check> rhs_chk)
+{
+	if(!get_filter_values().empty())
+	{
+		throw sinsp_exception("can't add '"
+			+ std::string(rhs_chk->get_field_info()->m_name)
+			+ "' as field value: field '"
+			+ std::string(get_field_info()->m_name)
+			+ "' is already compared with other const values");
+	}
+
+	if(has_filtercheck_value())
+	{
+		throw sinsp_exception("can't add '"
+			+ std::string(rhs_chk->get_field_info()->m_name)
+			+ "' as field value: field '"
+			+ std::string(get_field_info()->m_name)
+			+ "' is already compared with right-hand side field '"
+			+ std::string(m_rhs_filter_check->get_field_info()->m_name) + "'");
+	}
+
+	if(m_cmpop == CO_PMATCH)
+	{
+		throw sinsp_exception("operator `CO_PMATCH` doesn't support right-hand side fields");
+	}
+
+	// For each filter check we need to answer 2 questions:
+	// 1. Which filter checks cannot have a rhs filter check?
+	// 2. Which filter checks cannot be used as a rhs filter check?
+	//
+	// There are the involved filter checks:
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. It cannot be used as a rhs filter check because doesn't provide the extraction phase.
+	// "fd.ip"
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. It cannot be used as a rhs filter check because doesn't provide the extraction phase.
+	// "fd.net"
+	//
+	// 1. It requires a netmask as a rhs value, we don't have filter checks that return a netmask in the extraction phase
+	// 2. It cannot be used as a rhs value filter check for other `PT_IPNET` filter checks, becuase they expect a netmask while it returns an address
+	// "fd.cnet"
+	// "fd.snet"
+	// "fd.lnet"
+	// "fd.rnet"
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. It is a PT_DYN we don't know which is the effective type value.
+	// "evt.rawarg"
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. It has no real sense to be used as a rhs (we can do if want, let's see)
+	// "evt.around"
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. It cannot be used as a rhs filter check because doesn't provide the extraction phase.
+	// "fd.port"
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. It cannot be used as a rhs filter check because doesn't provide the extraction phase.
+	// "fd.proto"
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. OK! (but not supported for simplicity)
+	// "proc.apid"
+	// "proc.aname"
+	// "proc.aexe"
+	// "proc.aexepath"
+	// "proc.acmdline"
+	// "proc.aenv"
+	//
+	// 1. It has a custom comparison logic (no base `compare_nocache`) so we cannot use a rhs filter check with this.
+	// 2. OK! (but not supported for simplicity)
+	// "fd.cip.name"
+	// "fd.sip.name"
+	// "fd.lip.name"
+	// "fd.rip.name"
+
+	if(!get_field_info()->is_rhs_field_supported())
+	{
+		throw sinsp_exception("field '"
+			+ std::string(get_field_info()->m_name)
+			+ "' doesn't support right-hand side fields");
+	}
+
+	if(!rhs_chk->get_field_info()->is_rhs_field_supported())
+	{
+		throw sinsp_exception("field '"
+			+ std::string(get_field_info()->m_name)
+			+ "' can't be used as a right-hand side field");
+	}
+
+	m_rhs_filter_check = std::move(rhs_chk);
+
+	check_rhs_field_type_consistency();
+}
+
 size_t sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
 {
 	size_t parsed_len;
 
 	// byte buffer, no parsing needed
-	if (m_field->m_type == PT_BYTEBUF)
+	if (get_field_info()->m_type == PT_BYTEBUF)
 	{
 		if(len >= storage_len)
 		{
 			throw sinsp_exception("filter parameter too long:" + std::string(str));
 		}
 		memcpy(storage, str, len);
-		m_val_storage_len = len;
 		return len;
 	}
 	else
 	{
-		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, m_field->m_type);
+		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, get_field_info()->m_type);
 	}
 
 	return parsed_len;
 }
 
-const filtercheck_field_info* sinsp_filter_check::get_field_info() const
-{
-	return &m_info.m_fields[m_field_id];
-}
-
-bool sinsp_filter_check::can_have_argument() const
-{
-	const filtercheck_field_info *info = get_field_info();
-
-	return ((info->m_flags & EPF_ARG_REQUIRED) ||
-		(info->m_flags & EPF_ARG_ALLOWED));
-}
-
 bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values)
 {
-	if (m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST)
+	if(op == CO_EXISTS)
+	{
+		return true;
+	}
+
+	if(get_field_info()->is_list())
 	{
 		// NOTE: using m_val_storages_members.find(item) relies on memcmp to
 		// compare filter_value_t values, and not the base-level flt_compare.
@@ -1369,7 +1468,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 					if (type == PT_IPNET)
 					{
 						bool found = false;
-						for (const auto& m : m_val_storages_members)
+						for (const auto& m : m_vals)
 						{
 							if (::flt_compare(CO_EQ, type, item.first, m.first, item.second, m.second))
 							{
@@ -1402,7 +1501,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 					// todo(jasondellaluce): refactor filter_value_t to actually use flt_compare instead of memcmp.
 					if (type == PT_IPNET)
 					{
-						for (const auto& m : m_val_storages_members)
+						for (const auto& m : m_vals)
 						{
 							if (::flt_compare(CO_EQ, type, item.first, m.first, item.second, m.second))
 							{
@@ -1437,13 +1536,18 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 	}
 
 	return compare_rhs(m_cmpop,
-		m_info.m_fields[m_field_id].m_type,
+		type,
 		values[0].ptr,
 		values[0].len);
 }
 
 bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len)
 {
+	if(op == CO_EXISTS)
+	{
+		return true;
+	}
+
 	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
 	{
 		// Certain filterchecks can't be done as a set
@@ -1460,14 +1564,14 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 		case PT_FSPATH:
 		case PT_SIGSET:
 		case PT_FSRELPATH:
-			for (uint16_t i=0; i < m_val_storages.size(); i++)
+			for (uint16_t i=0; i < m_vals.size(); i++)
 			{
 				if (::flt_compare(CO_EQ,
 						  type,
 						  operand1,
 						  filter_value_p(i),
 						  op1_len,
-						  filter_value(i)->size()))
+						  filter_value_len(i)))
 				{
 					return true;
 				}
@@ -1515,7 +1619,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 				      operand1,
 				      filter_value_p(),
 				      op1_len,
-				      m_val_storage_len)
+				      filter_value_len())
 			);
 	}
 }
@@ -1546,15 +1650,20 @@ bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t
 	}
 
 	// Never cache extractions for fields that contain arguments.
-	if(m_extraction_cache_entry != NULL &&
-	   !can_have_argument())
+	if(m_extraction_cache_entry != NULL && !get_field_info()->is_arg_supported())
 	{
 		uint64_t en = ((sinsp_evt *)evt)->get_num();
 
 		if(en != m_extraction_cache_entry->m_evtnum)
 		{
 			m_extraction_cache_entry->m_evtnum = en;
-			extract_nocache(evt, m_extraction_cache_entry->m_res, sanitize_strings);
+			auto ok = extract_nocache(evt, m_extraction_cache_entry->m_res, sanitize_strings);
+			ok = ok && apply_transformers(m_extraction_cache_entry->m_res);
+			if (!ok)
+			{
+				// clear results in case something fails
+				m_extraction_cache_entry->m_res.clear();
+			}
 		}
 		else
 		{
@@ -1571,7 +1680,8 @@ bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t
 	}
 	else
 	{
-		return extract_nocache(evt, values, sanitize_strings);
+		// extract values and apply transformers on top of them
+		return extract_nocache(evt, values, sanitize_strings) && apply_transformers(values);
 	}
 }
 
@@ -1583,8 +1693,9 @@ bool sinsp_filter_check::compare(sinsp_evt* evt)
 	}
 
 	// Never cache extractions for fields that contain arguments.
-	if(m_eval_cache_entry != NULL &&
-	   !can_have_argument())
+	if (m_eval_cache_entry != NULL
+		&& !get_field_info()->is_arg_supported()
+		&& !(has_filtercheck_value() && m_rhs_filter_check->get_field_info()->is_arg_supported()))
 	{
 		uint64_t en = evt->get_num();
 
@@ -1617,7 +1728,143 @@ bool sinsp_filter_check::compare_nocache(sinsp_evt* evt)
 		return false;
 	}
 
-	return compare_rhs(m_cmpop,
-		m_info.m_fields[m_field_id].m_type,
-		m_extracted_values);
+	auto lhs_type = get_transformed_field_info()->m_type;
+	if(has_filtercheck_value())
+	{
+		check_rhs_field_type_consistency();
+
+		m_rhs_filter_check->m_extracted_values.clear();
+		if(!m_rhs_filter_check->extract(evt, m_rhs_filter_check->m_extracted_values, false))
+		{
+			return false;
+		}
+
+		populate_filter_values_with_rhs_extracted_values(m_rhs_filter_check->m_extracted_values);
+	}
+
+	return compare_rhs(m_cmpop, lhs_type, m_extracted_values);
+}
+
+void sinsp_filter_check::add_transformer(filter_transformer_type trtype)
+{
+	auto original_type = get_field_info();
+	if (!original_type)
+	{
+		throw sinsp_exception("transformer added to non-initialized field info");
+	}
+
+	if(!original_type->is_transformer_supported())
+	{
+		throw sinsp_exception("field '"
+			+ std::string(get_field_info()->m_name)
+			+ "' does not support transformers");
+	}
+
+	// lazily allocate copy of the field's info to add transformations on top of
+	if (!m_transformed_field)
+	{
+		// note: we (legitimately) assume that the original type will
+		// never change after filtercheck creation, so we create a copy
+		// only once and on-demand
+		m_transformed_field = std::make_unique<filtercheck_field_info>(*original_type);
+	}
+
+	// apply type transformation, both as a feasibility check and
+	// as an information to be returned later on
+	sinsp_filter_transformer tr(trtype);
+	if (!tr.transform_type(m_transformed_field->m_type))
+	{
+		throw sinsp_exception("can't add field transformer: type '"
+			+ std::string(param_type_to_string(m_transformed_field->m_type))
+			+ "' is not supported by '"
+			+ filter_transformer_type_str(trtype)
+			+ "' transformer applied on field '"
+			+ std::string(get_field_info()->m_name) + "'");
+	}
+
+	// add transformer to the back of the list, they will be applied at
+	// runtime from least-recently-added to most-recently-added. This is also
+	// the same order by which type trasformations are applied in the block above
+	m_transformers.push_back(std::move(tr));
+
+	check_rhs_field_type_consistency();
+}
+
+bool sinsp_filter_check::apply_transformers(std::vector<extract_value_t>& values)
+{
+	auto type = get_field_info()->m_type;
+	for(auto& tr : m_transformers)
+	{
+		if (!tr.transform_values(values, type))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void sinsp_filter_check::populate_filter_values_with_rhs_extracted_values(const std::vector<extract_value_t>& values)
+{
+	// The storage of the extracted values from the rhs filter check should
+	// be handled by the filter check itself during the extraction.
+	
+	// Clean the previous comparison.
+	m_vals.clear();
+
+	// These are needed for In/Intersects
+	if (m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS)
+	{
+		m_val_storages_members.clear();
+		m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
+		m_val_storages_max_size = (std::numeric_limits<uint32_t>::min)();
+	}
+
+	for(const auto& v : values)
+	{
+		filter_value_t item(v.ptr, v.len);
+		m_vals.push_back(item);
+		
+		if (m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS)
+		{
+			m_val_storages_members.insert(std::move(item));
+			if(v.len < m_val_storages_min_size)
+			{
+				m_val_storages_min_size = v.len;
+			}
+
+			if(v.len > m_val_storages_max_size)
+			{
+				m_val_storages_max_size = v.len;
+			}
+		}
+	}
+}
+
+void sinsp_filter_check::check_rhs_field_type_consistency() const
+{
+	if (!has_filtercheck_value())
+	{
+		return;
+	}
+
+	auto lhs_type = get_transformed_field_info()->m_type;
+	auto lhs_list = get_transformed_field_info()->is_list();
+
+	auto rhs_list = m_rhs_filter_check->get_transformed_field_info()->is_list();
+	auto rhs_type = m_rhs_filter_check->get_transformed_field_info()->m_type;
+
+	if(!(lhs_type == rhs_type && lhs_list == rhs_list))
+	{
+		throw sinsp_exception("field '"
+			+ std::string(get_field_info()->m_name)
+			+ "' has type '"
+			+ std::string(param_type_to_string(lhs_type))
+			+ (lhs_list ? " (list)" : "")
+			+ "' while the right-hand side field '"
+			+ std::string(m_rhs_filter_check->get_field_info()->m_name)
+			+ "' has incompatible type '"
+			+ std::string(param_type_to_string(rhs_type))
+			+ (rhs_list ? " (list)" : "")
+			+ "'");
+	}
 }

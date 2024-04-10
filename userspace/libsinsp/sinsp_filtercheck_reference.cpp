@@ -217,7 +217,7 @@ char* sinsp_filter_check_reference::print_double(uint8_t* rawval, uint32_t str_l
 {
 	double val;
 
-	switch(m_field->m_type)
+	switch(get_field_info()->m_type)
 	{
 	case PT_INT8:
 		val = (double)*(int8_t*)rawval;
@@ -273,7 +273,7 @@ char* sinsp_filter_check_reference::print_int(uint8_t* rawval, uint32_t str_len)
 {
 	int64_t val;
 
-	switch(m_field->m_type)
+	switch(get_field_info()->m_type)
 	{
 	case PT_INT8:
 		val = (int64_t)*(int8_t*)rawval;
@@ -344,7 +344,8 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 		m_cnt = (double)time_delta / ONE_SECOND_IN_NS;
 	}
 
-	if(m_field->m_type >= PT_INT8 && m_field->m_type <= PT_UINT64)
+	auto type = get_field_info()->m_type;
+	if(type >= PT_INT8 && type <= PT_UINT64)
 	{
 		if(m_print_format == PF_ID || m_cnt == 1 || m_cnt == 0)
 		{
@@ -355,7 +356,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 			return print_double(rawval, str_len);
 		}
 	}
-	else if(m_field->m_type == PT_RELTIME)
+	else if(type == PT_RELTIME)
 	{
 		double val = (double)*(uint64_t*)rawval;
 
@@ -366,7 +367,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 
 		return format_time((int64_t)val, str_len);
 	}
-	else if(m_field->m_type == PT_DOUBLE)
+	else if(type == PT_DOUBLE)
 	{
 		double dval = (double)*(double*)rawval;
 
@@ -383,7 +384,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	}
 	else
 	{
-		return rawval_to_string(rawval, m_field->m_type, m_field->m_print_format, len);
+		return rawval_to_string(rawval, type, m_field->m_print_format, len);
 	}
 }
 
@@ -406,7 +407,8 @@ Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 		m_cnt = (double)time_delta / ONE_SECOND_IN_NS;
 	}
 
-	if(m_field->m_type == PT_RELTIME)
+	auto type = get_field_info()->m_type;
+	if(type == PT_RELTIME)
 	{
 		double val = (double)*(uint64_t*)rawval;
 
@@ -417,7 +419,7 @@ Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 
 		return format_time((int64_t)val, str_len);
 	}
-	else if(m_field->m_type == PT_DOUBLE)
+	else if(type == PT_DOUBLE)
 	{
 		double dval = (double)*(double*)rawval;
 
@@ -430,6 +432,6 @@ Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 	}
 	else
 	{
-		return rawval_to_json(rawval, m_field->m_type, m_field->m_print_format, len);
+		return rawval_to_json(rawval, type, m_field->m_print_format, len);
 	}
 }

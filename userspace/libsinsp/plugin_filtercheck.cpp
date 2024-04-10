@@ -133,7 +133,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_plugin::allocate_new()
 	return std::make_unique<sinsp_filter_check_plugin>(*this);
 }
 
-bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	// reject the event if it comes from an unknown event source
 	if (evt->get_source_idx() == sinsp_no_event_source_idx)
@@ -164,7 +164,8 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 		return false;
 	}
 
-	auto type = m_info.m_fields[m_field_id].m_type;
+	// note: use non-transformed type, we'll apply transformations later on
+	auto type = sinsp_filter_check::get_field_info()->m_type;
 
 	// here we want to extract just one field
 	uint32_t num_fields = 1;
@@ -224,7 +225,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 		values.push_back(res);
 	}
 
-	return true;
+	return apply_transformers(values);
 }
 
 void sinsp_filter_check_plugin::extract_arg_index(const char* full_field_name)
