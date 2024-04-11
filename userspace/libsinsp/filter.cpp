@@ -35,6 +35,7 @@ limitations under the License.
 #include <libsinsp/filter.h>
 #include <libsinsp/filter/parser.h>
 #include <libsinsp/sinsp_filtercheck.h>
+#include <libsinsp/plugin_filtercheck.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_expression implementation
@@ -215,6 +216,8 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 
 std::unique_ptr<sinsp_filter> sinsp_filter_compiler::compile()
 {
+	m_warnings.clear();
+
 	// parse filter string on-the-fly if not pre-parsed AST is provided
 	if (m_flt_ast == NULL)
 	{
@@ -235,7 +238,8 @@ std::unique_ptr<sinsp_filter> sinsp_filter_compiler::compile()
 	// setup compiler state and start compilation
 	m_filter = m_factory->new_filter();
 	m_last_boolop = BO_NONE;
-	m_expect_values = false;
+	m_last_node_field = nullptr;
+	m_last_node_field_is_plugin = false;
 	try
 	{
 		m_flt_ast->accept(this);
@@ -303,11 +307,16 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::not_expr* e)
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr* e)
 {
 	m_pos = e->get_pos();
-	std::string field = create_filtercheck_name(e->field, e->arg);
-	auto check = create_filtercheck(field);
+	m_last_node_field = nullptr;
+	m_last_node_field_is_plugin = false;
+	e->left->accept(this);
+	if (!m_last_node_field)
+	{
+		throw sinsp_exception("filter error: missing field in left-hand of unary check");
+	}
+	auto check = std::move(m_last_node_field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
-	check->parse_field_name(field, true, true);
 	m_filter->add_check(std::move(check));
 }
 
@@ -333,36 +342,115 @@ static void add_filtercheck_value(sinsp_filter_check* chk, size_t idx, std::stri
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr* e)
 {
 	m_pos = e->get_pos();
-	std::string field = create_filtercheck_name(e->field, e->arg);
-	auto check = create_filtercheck(field);
+	m_last_node_field = nullptr;
+	m_last_node_field_is_plugin = false;
+	e->left->accept(this);
+	if (!m_last_node_field)
+	{
+		throw sinsp_exception("filter error: missing field in left-hand of binary check");
+	}
+	
+	auto left_from_plugin = m_last_node_field_is_plugin;
+	auto check = std::move(m_last_node_field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
-	check->parse_field_name(field, true, true);
 
-	// Read the the the right-hand values of the filtercheck.
-	// For list-related operators ('in', 'intersects', 'pmatch'), the vector
-	// can be filled with more than 1 value, whereas in all other cases we
-	// expect the vector to only have 1 value. We don't check this here, as
-	// the parser is trusted to apply proper grammar checks on this constraint.
-	m_expect_values = true;
-	e->value->accept(this);
-	m_expect_values = false;
-	for (size_t i = 0; i < m_field_values.size(); i++)
+	// Read the right-hand values of the filtercheck.
+	m_last_node_field_is_plugin = false;
+	e->right->accept(this);
+
+	if (m_last_node_field)
 	{
-		add_filtercheck_value(check.get(), i, m_field_values[i]);
+		// When the lhs is a plugin filter check and the rhs side is again a plugin filter check
+		// we have an issue. Even if the 2 filter checks are different the memory for extracted values is provided by the plugin.
+		// So when we call the second extraction on the rhs filter check the previously extracted value 
+		// for the lhs filter check will be overridden.
+		//
+		// As a workaround we add a custom internal transformer `FTR_STORAGE` to the lhs filter check.
+		// The only goal of this transformer is to copy the memory storage of the extracted values from the plugin to the transformer.
+		// In this way when we have 2 extractions on a plugin filter check, the plugin will hold only the memory of the rhs filter check,
+		// while the storage of the lhs will be kept by the `FTR_STORAGE` transformer.
+		//
+		// The steps are the following:
+		// * check if both the filter checks (lhs and rhs) are plugin filter checks.
+		// * if yes, check if they are associated with the same plugin instance, otherwise, this is not an issue. We use the plugin name
+		//   to understand if the plugin is the same.
+		// * if yes, add the `FTR_STORAGE` transformer to the lhs filter check.
+		auto right_from_plugin = m_last_node_field_is_plugin;
+		if (left_from_plugin && right_from_plugin)
+		{
+			check->add_transformer(filter_transformer_type::FTR_STORAGE);
+		}
+
+		// We found another field as right-hand side of the comparison
+		check->add_filter_value(std::move(m_last_node_field));
+	}
+	else
+	{
+		// We found no field as right-hand side of the comparison, so we
+		// assume to find some constant values.
+		// For list-related operators ('in', 'intersects', 'pmatch'), the vector
+		// can be filled with more than 1 value, whereas in all other cases we
+		// expect the vector to only have 1 value. We don't check this here, as
+		// the parser is trusted to apply proper grammar checks on this constraint.
+		for (size_t i = 0; i < m_field_values.size(); i++)
+		{
+			check_value_and_add_warnings(e->right->get_pos(), m_field_values[i]);
+			add_filtercheck_value(check.get(), i, m_field_values[i]);
+		}
 	}
 	m_filter->add_check(std::move(check));
+}
+
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::identifier_expr* e)
+{
+	m_pos = e->get_pos();
+	throw sinsp_exception("filter error: unexpected identifier '" + e->identifier + "'");
+}
+
+void sinsp_filter_compiler::check_value_and_add_warnings(
+		const libsinsp::filter::ast::pos_info& pos, const std::string& v)
+{
+	try
+	{
+		// remove all spaces to catch most common errors
+		auto s = v;
+		s.erase(std::remove_if(s.begin(), s.end(), isspace), s.end());
+
+		// check if the string is a valid field
+		if (m_factory->new_filtercheck(s.c_str()) != nullptr)
+		{
+			auto msg = "string '" + v
+				+ "' may be a valid field wrongly interpreted as a string value";
+			m_warnings.push_back({msg, pos});
+		}
+
+		// check if the string may be a valid transformer
+		auto transformers = libsinsp::filter::parser::supported_field_transformers(true);
+		for (const auto& t : transformers)
+		{
+			if (s.size() >= t.size() + 2
+					&& s.compare(0, t.size(), t) == 0
+					&& s[t.size()] == '('
+					&& s.back() == ')')
+			{
+				auto msg = "string '" + v
+					+ "' may be a valid field transformer wrongly interpreted as a string value";
+				m_warnings.push_back({msg, pos});
+			}
+		}
+	}
+	catch (...)
+	{
+		// parsing invalid strings as fields may cause unexpected errors.
+		// we're not interested in any of those, we just want to catch
+		// success cases in order to emit a warning
+	}
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::value_expr* e)
 {
 	m_pos = e->get_pos();
-	if (!m_expect_values)
-	{
-		// this ensures that identifiers, such as Falco macros, are not left
-		// unresolved at filter compilation time
-		throw sinsp_exception("filter error: unexpected identifier '" + e->value + "'");
-	}
 	m_field_values.clear();
 	m_field_values.push_back(e->value);
 }
@@ -370,14 +458,37 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::value_expr* e)
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::list_expr* e)
 {
 	m_pos = e->get_pos();
-	if (!m_expect_values)
-	{
-		ASSERT(false);
-		// this is not expected, as it should not be allowed by the parser
-		throw sinsp_exception("filter error: unexpected value list");
-	}
-	m_field_values.clear();
 	m_field_values = e->values;
+}
+
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_expr* e)
+{
+	m_pos = e->get_pos();
+	auto field_name = create_filtercheck_name(e->field, e->arg);
+	m_last_node_field = create_filtercheck(field_name);
+	m_last_node_field_is_plugin = dynamic_cast<sinsp_filter_check_plugin*>(m_last_node_field.get()) != nullptr;
+	if (m_last_node_field->parse_field_name(field_name, true, true) == -1)
+	{
+		throw sinsp_exception("filter error: can't parse field expression '" + field_name + "'");
+	}
+}
+
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_transformer_expr* e)
+{
+	m_pos = e->get_pos();
+	m_last_node_field = nullptr;
+	m_last_node_field_is_plugin = false;
+	e->value->accept(this);
+	if (!m_last_node_field)
+	{
+		throw sinsp_exception("filter error: found null child node on '" + e->transformer + "' transformer");
+	}
+
+	// apply transformer, ignoring the "identity one"
+	if (e->transformer != "val")
+	{
+		m_last_node_field->add_transformer(filter_transformer_from_str(e->transformer));
+	}
 }
 
 std::string sinsp_filter_compiler::create_filtercheck_name(const std::string& name, const std::string& arg)
