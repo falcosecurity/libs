@@ -288,3 +288,44 @@ TEST_CODES(filter_ppm_codes, check_properties)
     ASSERT_FILTER_EQ(t, "not (proc.name=cat or fd.type=file)", "not (fd.type=file or proc.name=cat)");
     ASSERT_FILTER_EQ(t, "not proc.name=cat or not fd.type=file", "not fd.type=file or not proc.name=cat");
 }
+
+TEST_CODES(filter_ppm_codes, field_transformers)
+{
+    auto parse = [](const std::string& f) {
+        libsinsp::filter::ast::ppm_event_codes(libsinsp::filter::parser(f).parse().get());
+    };
+    
+    ASSERT_NO_THROW(parse("evt.type = close"));
+    ASSERT_NO_THROW(parse("b64(proc.name) = cat"));
+    ASSERT_NO_THROW(parse("proc.name = b64(fd.name)"));
+    ASSERT_NO_THROW(parse("b64(proc.name) = b64(fd.name)"));
+    ASSERT_NO_THROW(parse("evt.type != close"));
+    ASSERT_NO_THROW(parse("b64(proc.name) != cat"));
+    ASSERT_NO_THROW(parse("proc.name != b64(fd.name)"));
+    ASSERT_NO_THROW(parse("b64(proc.name) != b64(fd.name)"));
+    ASSERT_NO_THROW(parse("not evt.type = close"));
+    ASSERT_NO_THROW(parse("not b64(proc.name) = cat"));
+    ASSERT_NO_THROW(parse("not proc.name = b64(fd.name)"));
+    ASSERT_NO_THROW(parse("not b64(proc.name) = b64(fd.name)"));
+    ASSERT_NO_THROW(parse("not evt.type != close"));
+    ASSERT_NO_THROW(parse("not b64(proc.name) != cat"));
+    ASSERT_NO_THROW(parse("not proc.name != b64(fd.name)"));
+    ASSERT_NO_THROW(parse("not b64(proc.name) != b64(fd.name)"));
+
+    ASSERT_ANY_THROW(parse("b64(evt.type) = close"));
+    ASSERT_ANY_THROW(parse("evt.type = b64(proc.name)"));
+    ASSERT_ANY_THROW(parse("evt.type = val(proc.name)"));
+    ASSERT_ANY_THROW(parse("b64(evt.type) = val(proc.name)"));
+    ASSERT_ANY_THROW(parse("b64(evt.type) != close"));
+    ASSERT_ANY_THROW(parse("evt.type != b64(proc.name)"));
+    ASSERT_ANY_THROW(parse("evt.type != val(proc.name)"));
+    ASSERT_ANY_THROW(parse("b64(evt.type) != val(proc.name)"));
+    ASSERT_ANY_THROW(parse("not b64(evt.type) = close"));
+    ASSERT_ANY_THROW(parse("not evt.type = b64(proc.name)"));
+    ASSERT_ANY_THROW(parse("not evt.type = val(proc.name)"));
+    ASSERT_ANY_THROW(parse("not b64(evt.type) = val(proc.name)"));
+    ASSERT_ANY_THROW(parse("not b64(evt.type) != close"));
+    ASSERT_ANY_THROW(parse("not evt.type != b64(proc.name)"));
+    ASSERT_ANY_THROW(parse("not evt.type != val(proc.name)"));
+    ASSERT_ANY_THROW(parse("not b64(evt.type) != val(proc.name)"));
+}

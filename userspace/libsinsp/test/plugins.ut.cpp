@@ -148,6 +148,13 @@ TEST(plugins, broken_async_capability)
 	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 }
 
+static bool evaluate_filter_str(sinsp* inspector, std::string filter_str, sinsp_evt* evt, filter_check_list& list)
+{
+	sinsp_filter_compiler compiler(std::make_shared<sinsp_filter_factory>(inspector, list), filter_str);
+	auto filter = compiler.compile();
+	return filter->run(evt);
+}
+
 // scenario: a plugin with field extraction capability compatible with the
 // "syscall" event source should be able to extract filter values from
 // regular syscall events produced by any scap engine.
@@ -182,6 +189,29 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_has_value(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_has_value(evt, "sample.evt_count", pl_flist));
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
+
+	// Check rhs filter checks support on plugins
+	
+	// Check on strings
+	ASSERT_EQ(get_field_as_string(evt, "sample.proc_name", pl_flist), "init");
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(sample.proc_name = init)", evt, pl_flist));
+	ASSERT_FALSE(evaluate_filter_str(&m_inspector, "(sample.proc_name = sample.proc_name)", evt, pl_flist));
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(sample.proc_name = val(sample.proc_name))", evt, pl_flist));
+	ASSERT_FALSE(evaluate_filter_str(&m_inspector, "(sample.proc_name = val(sample.tick))", evt, pl_flist));
+	ASSERT_FALSE(evaluate_filter_str(&m_inspector, "(sample.proc_name = val(evt.pluginname))", evt, pl_flist));
+	ASSERT_FALSE(evaluate_filter_str(&m_inspector, "(evt.pluginname = val(sample.proc_name))", evt, pl_flist));
+
+	// Check on uin64_t
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(sample.is_open = 1)", evt, pl_flist));
+	ASSERT_THROW(evaluate_filter_str(&m_inspector, "(sample.is_open = sample.is_open)", evt, pl_flist), sinsp_exception);
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(sample.is_open = val(sample.is_open))", evt, pl_flist));
+
+	// Check transformers on plugins filter checks
+	ASSERT_FALSE(evaluate_filter_str(&m_inspector, "(toupper(sample.proc_name) = init)", evt, pl_flist));
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(toupper(sample.proc_name) = INIT)", evt, pl_flist));
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(tolower(toupper(sample.proc_name)) = init)", evt, pl_flist));
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(tolower(toupper(sample.proc_name)) = tolower(toupper(sample.proc_name)))", evt, pl_flist));
+	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(toupper(sample.proc_name) = toupper(sample.proc_name))", evt, pl_flist));
 
 	// Here `sample.is_open` should be false
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
