@@ -67,22 +67,20 @@ template<typename code_set_t,
          code_set_t names_to_codes(const name_set_t&)>
 struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
 {
-    ppm_code_visitor():
-		m_expect_value(false),
-		m_inside_negation(false),
-		m_last_node_has_codes(false),
-		m_last_node_codes({}) { };
+    ppm_code_visitor() = default;
+    virtual ~ppm_code_visitor() = default;
     ppm_code_visitor(ppm_code_visitor&&) = default;
     ppm_code_visitor& operator = (ppm_code_visitor&&) = default;
     ppm_code_visitor(const ppm_code_visitor&) = default;
     ppm_code_visitor& operator = (const ppm_code_visitor&) = default;
 
-    bool m_expect_value;
-    bool m_inside_negation;
-    bool m_last_node_has_codes;
-    code_set_t m_last_node_codes;
+    bool m_last_node_is_evttype_field = false;
+    bool m_last_node_is_field_or_transformer = true;
+    bool m_inside_negation = false;
+    bool m_last_node_has_codes = false;
+    code_set_t m_last_node_codes{};
 
-    void inversion(code_set_t& types)
+    inline void inversion(code_set_t& types)
     {
         // we don't invert "neutral" checks
         if (m_last_node_has_codes)
@@ -91,7 +89,7 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         }
     }
     
-	void try_inversion(code_set_t& types)
+    inline void try_inversion(code_set_t& types)
     {
         if (m_inside_negation)
         {
@@ -99,28 +97,28 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         }
     }
 
-    void conjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>& children)
+    inline void conjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>& children)
     {
         code_set_t types = all_codes_set();
-        m_last_node_codes.clear();
         for (auto &c : children)
         {
             c->accept(this);
             types = types.intersect(m_last_node_codes);
         }
         m_last_node_codes = types;
+        m_last_node_is_evttype_field = false;
     }
 
-    void disjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>& children)
+    inline void disjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>& children)
     {
         code_set_t types;
-        m_last_node_codes.clear();
         for (auto &c : children)
         {
             c->accept(this);
             types = types.merge(m_last_node_codes);
         }
         m_last_node_codes = types;
+        m_last_node_is_evttype_field = false;
     }
 
     void visit(const libsinsp::filter::ast::and_expr* e) override
@@ -154,78 +152,101 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         m_inside_negation = !m_inside_negation;
         e->child->accept(this);
         m_inside_negation = inside_negation;
+        m_last_node_is_evttype_field = false;
     }
 
     void visit(const libsinsp::filter::ast::binary_check_expr* e) override
     {
-        m_last_node_codes.clear();
         m_last_node_has_codes = false;
-        if (e->field == "evt.type" && is_evttype_operator(e->op))
+        if (is_evttype_operator(e->op))
         {
-            // note: we expect m_inside_negation and m_last_node_has_codes
-            // to be handled and altered by the child node
-            m_expect_value = true;
-            e->value->accept(this);
-            m_expect_value = false;
-            if (e->op == "!=")
+            e->left->accept(this);
+            if (m_last_node_is_evttype_field)
             {
-                // note: since we push the "negation" down to the tree leaves
-                // (following de morgan's laws logic), the child node may have
-                // already inverted the set of matched event type. As such,
-                // inverting here again is safe for supporting both the
-                // single-negation and double-negation cases.
-                inversion(m_last_node_codes);
+                // note: we expect m_inside_negation and m_last_node_has_codes
+                // to be handled and altered by the child node
+                m_last_node_is_field_or_transformer = false;
+                e->right->accept(this);
+                if (m_last_node_is_field_or_transformer)
+                {
+                    throw sinsp_exception("right-hand field comparisons on `evt.type` checks are not supported by event code search");
+                }
+                if (e->op == "!=")
+                {
+                    // note: since we push the "negation" down to the tree leaves
+                    // (following de morgan's laws logic), the child node may have
+                    // already inverted the set of matched event type. As such,
+                    // inverting here again is safe for supporting both the
+                    // single-negation and double-negation cases.
+                    inversion(m_last_node_codes);
+                }
+                m_last_node_is_evttype_field = false;
+                return;
             }
-            return;
         }
         m_last_node_codes = all_codes_set();
+        m_last_node_is_evttype_field = false;
         try_inversion(m_last_node_codes);
     }
 
-	void visit(const libsinsp::filter::ast::unary_check_expr* e) override
+    void visit(const libsinsp::filter::ast::unary_check_expr* e) override
     {
-        m_last_node_codes.clear();
-        m_last_node_has_codes = e->field == "evt.type" && e->op == "exists";
+        e->left->accept(this);
+        m_last_node_has_codes = m_last_node_is_evttype_field && e->op == "exists";
         m_last_node_codes = all_codes_set();
+        m_last_node_is_evttype_field = false;
+        try_inversion(m_last_node_codes);
+    }
+
+    void visit(const libsinsp::filter::ast::identifier_expr* e) override
+    {
+        // this case only happens if a macro has not yet been substituted
+        // with an actual condition. Should not happen, but we handle it
+        // for consistency.
+        m_last_node_has_codes = false;
+        m_last_node_codes = all_codes_set();
+        m_last_node_is_evttype_field = false;
         try_inversion(m_last_node_codes);
     }
 
     void visit(const libsinsp::filter::ast::value_expr* e) override
     {
-        m_last_node_codes.clear();
-        m_last_node_has_codes = m_expect_value;
-        if (m_expect_value)
-        {
-            m_last_node_codes = names_to_codes({e->value});
-        }
-        else
-        {
-            // this case only happens if a macro has not yet been substituted
-            // with an actual condition. Should not happen, but we handle it
-            // for consistency.
-            m_last_node_codes = all_codes_set();
-        }
+        m_last_node_has_codes = true;
+        m_last_node_codes = names_to_codes({e->value});
+        m_last_node_is_evttype_field = false;
         try_inversion(m_last_node_codes);
     }
 
     void visit(const libsinsp::filter::ast::list_expr* e) override
     {
-        m_last_node_codes.clear();
-        m_last_node_has_codes = false;
-        if (m_expect_value)
+        m_last_node_has_codes = true;
+        name_set_t names;
+        for (const auto& n : e->values)
         {
-            m_last_node_has_codes = true;
-            name_set_t names;
-            for (const auto& n : e->values)
-            {
-                names.insert(n);
-            }
-            m_last_node_codes = names_to_codes(names);
-            try_inversion(m_last_node_codes);
-            return;
+            names.insert(n);
         }
+        m_last_node_codes = names_to_codes(names);
+        m_last_node_is_evttype_field = false;
+        try_inversion(m_last_node_codes);
+    }
+
+    void visit(const libsinsp::filter::ast::field_expr* e) override
+    {
+        m_last_node_has_codes = false;
+        m_last_node_is_field_or_transformer = true;
+        m_last_node_is_evttype_field = e->field == "evt.type" && e->arg.empty();
         m_last_node_codes = all_codes_set();
         try_inversion(m_last_node_codes);
+    }
+
+    void visit(const libsinsp::filter::ast::field_transformer_expr* e) override
+    {
+        e->value->accept(this);
+        if (m_last_node_is_evttype_field)
+        {
+            throw sinsp_exception("event code search does not support `evt.type` checks with transformers");
+        }
+        m_last_node_is_field_or_transformer = true;
     }
 };
 

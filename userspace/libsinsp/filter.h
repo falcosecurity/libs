@@ -188,6 +188,12 @@ class SINSP_PUBLIC sinsp_filter_compiler:
 	private libsinsp::filter::ast::const_expr_visitor
 {
 public:
+	struct message
+	{
+		std::string msg;
+		libsinsp::filter::ast::pos_info pos;
+	};
+	
 	/*!
 		\brief Constructs the compiler
 
@@ -239,27 +245,35 @@ public:
 
 	const libsinsp::filter::ast::pos_info& get_pos() const { return m_pos; }
 
+	const std::vector<message>& get_warnings() const { return m_warnings; }
+
 private:
 	void visit(const libsinsp::filter::ast::and_expr*) override;
 	void visit(const libsinsp::filter::ast::or_expr*) override;
 	void visit(const libsinsp::filter::ast::not_expr*) override;
+	void visit(const libsinsp::filter::ast::identifier_expr*) override;
 	void visit(const libsinsp::filter::ast::value_expr*) override;
 	void visit(const libsinsp::filter::ast::list_expr*) override;
 	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
+	void visit(const libsinsp::filter::ast::field_expr*) override;
+	void visit(const libsinsp::filter::ast::field_transformer_expr*) override;
 	cmpop str_to_cmpop(std::string_view);
 	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
 	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string_view field);
+	void check_value_and_add_warnings(const libsinsp::filter::ast::pos_info& pos, const std::string& v);
 
 	libsinsp::filter::ast::pos_info m_pos;
-	bool m_expect_values;
 	boolop m_last_boolop;
+	std::unique_ptr<sinsp_filter_check> m_last_node_field;
+	bool m_last_node_field_is_plugin;
 	std::string m_flt_str;
 	std::unique_ptr<sinsp_filter> m_filter;
 	std::vector<std::string> m_field_values;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 	const libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<sinsp_filter_factory> m_factory;
+	std::vector<message> m_warnings;
 	sinsp_filter_check_list m_default_filterlist;
 };
 
