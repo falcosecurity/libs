@@ -37,16 +37,23 @@ namespace re2 { class RE2; };
 //     NotExpr             ::= ('not ')* NotExprTail
 //     NotExprTail         ::= 'not(' Expr ')'
 //                             | Check
-//     Check               ::= CheckField CheckCondition
+//     Check               ::= Field Condition
+//                             | FieldTransformer Condition 
 //                             | Identifier
 //                             | '(' Expr ')'
-//     CheckCondition      ::= UnaryOperator
-//                             | NumOperator NumValue
-//                             | StrOperator StrValue
-//                             | ListOperator ListValue
+//     FieldTransformer       ::= FieldTransformerType FieldTransformerTail
+//     FieldTransformerTail   ::= FieldTransformerArg ')'
+//     FieldTransformerArg    ::= FieldTransformer
+//                             | Field
+//     FieldTransformerOrVal  ::= FieldTransformer
+//                             | FieldTransformerVal Field ')'
+//     Condition           ::= UnaryOperator
+//                             | NumOperator (NumValue | FieldTransformerOrVal)
+//                             | StrOperator (StrValue | FieldTransformerOrVal)
+//                             | ListOperator (ListValue | FieldTransformerOrVal)
 //     ListValue           ::= '(' (StrValue (',' StrValue)*)* ')'
 //                             | Identifier
-//     CheckField          ::= FieldName('[' FieldArg ']')?
+//     Field               ::= FieldName('[' FieldArg ']')?
 //     FieldArg            ::= QuotedStr | FieldArgBareStr 
 //     NumValue            ::= HexNumber | Number
 //     StrValue            ::= QuotedStr | BareStr
@@ -54,9 +61,13 @@ namespace re2 { class RE2; };
 // Supported Check Operators (EBNF Syntax):
 //     UnaryOperator       ::= 'exists'
 //     NumOperator         ::= '<=' | '<' | '>=' | '>' 
-//     StrOperator         ::= '==' | '=' | '!=' | 'glob ' | 'contains '
-//                             | 'icontains ' | 'startswith ' | 'endswith '
+//     StrOperator         ::= '==' | '=' | '!='
+//                             | 'glob ' | 'iglob '
+//                             | 'contains ' | 'icontains ' | 'bcontains '
+//                             | 'startswith ' | 'bstartswith ' | 'endswith '
 //     ListOperator        ::= 'intersects' | 'in' | 'pmatch' 
+//     FieldTransformerVal    ::= 'val('
+//     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64('
 // 
 // Tokens (Regular Expressions):
 //     Identifier          ::= [a-zA-Z]+[a-zA-Z0-9_]*
@@ -82,6 +93,11 @@ public:
 		\brief Returns the set of filtering operators supported by libsinsp
 	*/
 	static std::vector<std::string> supported_operators(bool list_only=false);
+
+	/*!
+		\brief Returns the set of field transformers supported by libsinsp
+	*/
+	static std::vector<std::string> supported_field_transformers(bool include_val=false);
 
 	/*!
 		\brief Constructs the parser with a given filter string input
@@ -132,32 +148,39 @@ private:
 	std::unique_ptr<ast::expr> parse_not();
 	std::unique_ptr<ast::expr> parse_embedded_remainder();
 	std::unique_ptr<ast::expr> parse_check();
-	std::unique_ptr<ast::expr> parse_check_field(libsinsp::filter::ast::pos_info& pos);
-	void parse_check_field_arg(std::string& field_arg);
-	std::unique_ptr<ast::expr> parse_check_condition(const std::string& field, const std::string& field_arg,
-							 libsinsp::filter::ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_list_value();
-	std::unique_ptr<ast::value_expr> parse_num_value();
-	std::unique_ptr<ast::value_expr> parse_str_value();
-	bool lex_blank();
-	bool lex_identifier();
-	bool lex_field_name();
-	bool lex_field_arg_bare_str();
-	bool lex_hex_num();
-	bool lex_num();
-	bool lex_quoted_str();
-	bool lex_bare_str();
-	bool lex_unary_op();
-	bool lex_num_op();
-	bool lex_str_op();
-	bool lex_list_op();
-	bool lex_helper_rgx(const re2::RE2& rgx);
-	bool lex_helper_str(const std::string& str);
-	bool lex_helper_str_list(const std::vector<std::string>& list);
-	void depth_push();
-	void depth_pop();
-	const char* cursor();
-	std::string trim_str(std::string str);
+	std::unique_ptr<ast::expr> parse_field_remainder(
+								std::string fieldname,
+								const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_field_or_transformer_remainder(
+								std::string transformer,
+								const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_condition(
+								std::unique_ptr<ast::expr> left,
+								const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_list_value_or_transformer();
+	std::unique_ptr<ast::expr> parse_num_value_or_transformer();
+	std::unique_ptr<ast::expr> parse_str_value_or_transformer(bool no_transformer);
+	std::unique_ptr<ast::expr> try_parse_transformer_or_val();
+	inline bool lex_blank();
+	inline bool lex_identifier();
+	inline bool lex_field_name();
+	inline bool lex_field_arg_bare_str();
+	inline bool lex_hex_num();
+	inline bool lex_num();
+	inline bool lex_quoted_str();
+	inline bool lex_bare_str();
+	inline bool lex_unary_op();
+	inline bool lex_num_op();
+	inline bool lex_str_op();
+	inline bool lex_list_op();
+	inline bool lex_field_transformer_val();
+	inline bool lex_field_transformer_type();
+	inline bool lex_helper_rgx(const re2::RE2& rgx);
+	inline bool lex_helper_str(const std::string& str);
+	inline bool lex_helper_str_list(const std::vector<std::string>& list);
+	inline const char* cursor();
+	inline std::string trim_str(std::string str);
 
 	bool m_parse_partial;
 	uint32_t m_depth;
