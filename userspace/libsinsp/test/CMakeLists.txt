@@ -108,6 +108,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_op_bcontains.ut.cpp
 	filter_op_pmatch.ut.cpp
 	filter_compiler.ut.cpp
+	filter_transformer.ut.cpp
 	user.ut.cpp
 	sinsp_utils.ut.cpp
 	state.ut.cpp
