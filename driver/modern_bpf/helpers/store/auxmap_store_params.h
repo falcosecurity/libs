@@ -1378,27 +1378,18 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 
 		if(port_remote == 0 && sockaddr != NULL)
 		{
-			BPF_CORE_READ_USER_INTO(&socket_family, (struct sockaddr*)sockaddr, sa_family);
-
 			// If socket_family is 0 we skip this part.
-			switch(socket_family)
+			if(socket_family == AF_INET)
 			{
-				case AF_INET:
-				{
-					struct sockaddr_in sockaddr_in = {};
-					bpf_probe_read_user(&sockaddr_in, bpf_core_type_size(struct sockaddr_in), sockaddr);
-					port_remote = ntohs(sockaddr_in.sin_port);
-					break;
-				}
-				case AF_INET6:
-				{
-					struct sockaddr_in6 sockaddr_in6 = {};
-					bpf_probe_read_user(&sockaddr_in6, bpf_core_type_size(struct sockaddr_in6), sockaddr);
-					port_remote = ntohs(sockaddr_in6.sin6_port);
-					break;
-				}
-				default:
-					break;
+				struct sockaddr_in sockaddr_in = {};
+				bpf_probe_read_user(&sockaddr_in, bpf_core_type_size(struct sockaddr_in), sockaddr);
+				port_remote = ntohs(sockaddr_in.sin_port);
+			}
+			else
+			{
+				struct sockaddr_in6 sockaddr_in6 = {};
+				bpf_probe_read_user(&sockaddr_in6, bpf_core_type_size(struct sockaddr_in6), sockaddr);
+				port_remote = ntohs(sockaddr_in6.sin6_port);
 			}
 		}
 	}
