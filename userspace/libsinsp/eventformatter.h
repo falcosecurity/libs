@@ -63,10 +63,9 @@ public:
 	  map.
 
 	  \param evt Pointer to the event to be converted into string.
-	  \param res Reference to the map that will be filled with the result.
+	  \param values Reference to the map that will be filled with the result.
 
-	  \return true if all the tokens can be retrieved successfully, false
-	  otherwise.
+	  \return true if all the tokens can be retrieved successfully, false otherwise.
 	*/
 	bool resolve_tokens(sinsp_evt *evt, std::map<std::string,std::string>& values);
 
@@ -101,26 +100,47 @@ public:
 
 	virtual bool tostring_withformat(sinsp_evt* evt, std::string &output, output_format of);
 
-	/*!
-	  \brief Fills res with end of capture string rendering of the event.
-	  \param res Pointer to the string that will be filled with the result.
-
-	  \return true if there is a string to show (based on the format),
-	   false otherwise.
+	/**
+	 * \brief If true, when resolving tokens in key -> value mappings (e.g.
+	 * with `resolve_tokens` or `tostring` with JSON output format), the result
+	 * will include fields with their applied transformers. The version of fields
+	 * with no transformers will be included in results in any case regardless
+	 * of this property.
 	*/
-	bool on_capture_end(OUT std::string* res);
+	inline bool get_resolve_transformed_fields() const
+	{
+		return m_resolve_transformed_fields;
+	}
+
+	inline void set_resolve_transformed_fields(bool v)
+	{
+		m_resolve_transformed_fields = v;
+	}
 
 private:
+	using token_t = std::shared_ptr<sinsp_filter_check>;
+
+	struct resolution_token
+	{
+		std::string name;
+		token_t token;
+		bool has_transformers = false;
+
+		resolution_token(const std::string& n, token_t t, bool h)
+			: name(n), token(t), has_transformers(h) { }
+	};
+
 	output_format m_output_format;
 
 	// vector of (full string of the token, filtercheck) pairs
 	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
-	std::vector<std::pair<std::string, sinsp_filter_check*>> m_tokens;
-	std::vector<uint32_t> m_tokenlens;
-	sinsp* m_inspector;
+	std::vector<token_t> m_output_tokens;
+	std::vector<uint32_t> m_output_tokenlens;
+	std::vector<resolution_token> m_resolution_tokens;
+	sinsp* m_inspector = nullptr;
 	filter_check_list &m_available_checks;
-	bool m_require_all_values;
-	std::vector<std::unique_ptr<sinsp_filter_check>> m_checks;
+	bool m_require_all_values = false;
+	bool m_resolve_transformed_fields = false;
 
 	Json::Value m_root;
 	Json::FastWriter m_writer;
