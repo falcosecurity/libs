@@ -55,7 +55,7 @@ def test_read_sensitive_file(sinsp, run_containers: dict, expected_process: str)
 
     expected_events = [
         {
-            "evt.args": SinspField.regex_field(r'fd=3\(<f>/etc/shadow\) dirfd=-100\(AT_FDCWD\) name=/etc/shadow flags=4097\(O_RDONLY|O_CLOEXEC\) mode=0 dev=\W+ ino=\d+ '),
+            "evt.args": SinspField.regex_field(r'fd=3\(<f>/etc/shadow\) dirfd=-100\(AT_FDCWD\) name=/etc/shadow flags=4097\(O_RDONLY|O_CLOEXEC\) mode=0 dev=\W+ ino=\d+'),
             "evt.cpu": SinspField.numeric_field(),
             "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),

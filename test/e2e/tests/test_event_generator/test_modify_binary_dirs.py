@@ -35,7 +35,7 @@ def test_modify_binary_dirs(sinsp, run_containers: dict):
             "thread.tid": SinspField.numeric_field()
         },
         {
-            "evt.args": "res=0 olddirfd=-100(AT_FDCWD) oldpath=/bin/true newdirfd=-100(AT_FDCWD) newpath=/bin/true.event-generator ",
+            "evt.args": "res=0 olddirfd=-100(AT_FDCWD) oldpath=/bin/true newdirfd=-100(AT_FDCWD) newpath=/bin/true.event-generator",
             "evt.cpu": SinspField.numeric_field(),
             "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),
@@ -55,7 +55,7 @@ def test_modify_binary_dirs(sinsp, run_containers: dict):
             "thread.tid": SinspField.numeric_field()
         },
         {
-            "evt.args": "res=0 olddirfd=-100(AT_FDCWD) oldpath=/bin/true.event-generator newdirfd=-100(AT_FDCWD) newpath=/bin/true ",
+            "evt.args": "res=0 olddirfd=-100(AT_FDCWD) oldpath=/bin/true.event-generator newdirfd=-100(AT_FDCWD) newpath=/bin/true",
             "evt.cpu": SinspField.numeric_field(),
             "evt.dir": "<",
             "evt.num": SinspField.numeric_field(),

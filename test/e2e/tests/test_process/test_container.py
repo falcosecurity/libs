@@ -38,7 +38,7 @@ def test_exec_in_container(sinsp, run_containers: dict):
     expected_events = [
         {
             'container.id': container_id,
-            'evt.args': 'filename=/http-echo ',
+            'evt.args': 'filename=/http-echo',
             'evt.category': 'process',
             'evt.type': 'execve',
             'proc.exe': 'runc',

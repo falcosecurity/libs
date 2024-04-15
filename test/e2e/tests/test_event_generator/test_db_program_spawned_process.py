@@ -41,7 +41,7 @@ def test_db_program_spawned_process(sinsp, run_containers: dict):
         },
         {
             "container.id": generator_id,
-            "evt.args": "filename=/bin/ls ",
+            "evt.args": "filename=/bin/ls",
             "evt.category": "process",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),

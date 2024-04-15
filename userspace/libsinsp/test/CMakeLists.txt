@@ -142,6 +142,7 @@ if(WIN32)
 elseif(APPLE OR EMSCRIPTEN)
 	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES
 		events_net.ut.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/parsers/parse_connect.cpp
 	)
 endif()
 

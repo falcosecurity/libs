@@ -30,7 +30,7 @@ def test_network_activity(sinsp, run_containers: dict):
     expected_events = [
         {
             "container.id": generator_id,
-            "evt.args": "fd=3(<4>) addr=10.2.3.4:8192 ",
+            "evt.args": "fd=3(<4>) addr=10.2.3.4:8192",
             "evt.category": "net",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
@@ -43,7 +43,7 @@ def test_network_activity(sinsp, run_containers: dict):
         },
         {
             "container.id": generator_id,
-            "evt.args": SinspField.regex_field(fr'^res=0 tuple={ipv4_regex}->10\.2\.3\.4:8192 fd=3\(<4u>{ipv4_regex}->10\.2\.3\.4:8192\) $'),
+            "evt.args": SinspField.regex_field(fr'^res=0 tuple={ipv4_regex}->10\.2\.3\.4:8192 fd=3\(<4u>{ipv4_regex}->10\.2\.3\.4:8192\)$'),
             "evt.category": "net",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),

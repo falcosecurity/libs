@@ -32,7 +32,7 @@ def expected_events(origin: dict, destination: dict) -> list:
     return [
         {
             "container.id": origin['id'],
-            "evt.args": "domain=2(AF_INET) type=1 proto=0 ",
+            "evt.args": "domain=2(AF_INET) type=1 proto=0",
             "evt.category": "net",
             "evt.type": "socket",
             "fd.name": None,
@@ -40,7 +40,7 @@ def expected_events(origin: dict, destination: dict) -> list:
             "proc.exe": "curl",
         }, {
             "container.id": origin['id'],
-            "evt.args": "fd=3(<4>) ",
+            "evt.args": "fd=3(<4>)",
             "evt.category": "net",
             "evt.type": "socket",
             "fd.name": "",
@@ -48,7 +48,7 @@ def expected_events(origin: dict, destination: dict) -> list:
             "proc.exe": "curl",
         }, {
             "container.id": origin['id'],
-            "evt.args": f"fd=3(<4t>0.0.0.0:{origin['local_port']}) addr={destination['ip']} ",
+            "evt.args": f"fd=3(<4t>0.0.0.0:{origin['local_port']}) addr={destination['ip']}",
             "evt.category": "net",
             "evt.type": "connect",
             "fd.name": f"0.0.0.0:{origin['local_port']}",
@@ -56,7 +56,7 @@ def expected_events(origin: dict, destination: dict) -> list:
             "proc.exe": "curl",
         }, {
             "container.id": destination['id'],
-            "evt.args": "flags=0 ",
+            "evt.args": "flags=0",
             "evt.category": "net",
             "evt.type": "accept4",
             "fd.name": None,
@@ -64,29 +64,29 @@ def expected_events(origin: dict, destination: dict) -> list:
             "proc.exe": "nginx: master proces",
         }, {
             "container.id": destination['id'],
-            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) tuple={origin['ip']}->{destination['ip']} queuepct=0 queuelen=0 queuemax=511 ",
+            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) tuple={origin['ip']}->{destination['ip']} queuepct=0 queuelen=0 queuemax=511",
             "evt.category": "net",
             "evt.type": "accept4",
             "fd.name": f"{origin['ip']}->{destination['ip']}",
             "proc.cmdline": "nginx",
             "proc.exe": "nginx: master proces",
         }, {
-            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) ",
+            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']})",
             "evt.dir": ">",
             "evt.type": "close",
             "proc.name": "curl",
         }, {
-            "evt.args": "res=0 ",
+            "evt.args": "res=0",
             "evt.dir": "<",
             "evt.type": "close",
             "proc.name": "curl",
         }, {
-            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']}) ",
+            "evt.args": f"fd=3(<4t>{origin['ip']}->{destination['ip']})",
             "evt.dir": ">",
             "evt.type": "close",
             "proc.name": "nginx",
         }, {
-            "evt.args": "res=0 ",
+            "evt.args": "res=0",
             "evt.dir": "<",
             "evt.type": "close",
             "proc.name": "nginx",
