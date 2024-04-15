@@ -25,25 +25,25 @@ def test_non_sudo_setuid(sinsp, run_containers):
 
     expected_events = [
         {
-            "evt.args": "uid=2(<NA>) ",
+            "evt.args": "uid=2(<NA>)",
             "evt.dir": ">",
             "evt.type": "setuid",
             "proc.name": "child",
         },
         {
-            "evt.args": "res=0 ",
+            "evt.args": "res=0",
             "evt.dir": "<",
             "evt.type": "setuid",
             "proc.name": "child",
         },
         {
-            "evt.args": "uid=0(<NA>) ",
+            "evt.args": "uid=0(<NA>)",
             "evt.dir": ">",
             "evt.type": "setuid",
             "proc.name": "child",
         },
         {
-            "evt.args": "res=-1(EPERM) ",
+            "evt.args": "res=-1(EPERM)",
             "evt.dir": "<",
             "evt.type": "setuid",
             "proc.name": "child",

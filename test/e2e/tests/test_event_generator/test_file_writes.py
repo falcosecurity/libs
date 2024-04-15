@@ -5,7 +5,7 @@ from sinspqa.sinsp import assert_events, SinspField
 
 
 def create_expected_arg(directory: str) -> str:
-    return fr'^fd=3\(<f>{re.escape(directory)}\/created-by-event-generator\) dirfd=-100\(AT_FDCWD\) name={re.escape(directory)}\/created-by-event-generator flags=20742\(O_TRUNC\|O_CREAT\|O_WRONLY\|O_CLOEXEC\|O_F_CREATED\) mode=0755 dev=.* ino=\d+ $'
+    return fr'^fd=3\(<f>{re.escape(directory)}\/created-by-event-generator\) dirfd=-100\(AT_FDCWD\) name={re.escape(directory)}\/created-by-event-generator flags=20742\(O_TRUNC\|O_CREAT\|O_WRONLY\|O_CLOEXEC\|O_F_CREATED\) mode=0755 dev=.* ino=\d+$'
 
 
 def generate_ids(parameters: list) -> list:
