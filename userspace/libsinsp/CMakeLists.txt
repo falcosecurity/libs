@@ -68,6 +68,7 @@ add_library(sinsp
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
+	sinsp_filter_transformer.cpp
 	sinsp_filtercheck.cpp
 	sinsp_filtercheck_container.cpp
 	sinsp_filtercheck_event.cpp
