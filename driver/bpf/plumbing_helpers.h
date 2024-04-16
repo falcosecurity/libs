@@ -106,10 +106,9 @@ static __always_inline bool bpf_in_ia32_syscall()
 	// already enforce that CONFIG_THREAD_INFO_IN_TASK is defined,
 	// therefore we already show a warning to the user
 	// when building against an unsupported kernel release.
+#warning "bpf_in_ia32_syscall() support disabled since CONFIG_THREAD_INFO_IN_TASK is undefined."
 	return false;
-#endif
-
-#ifdef CONFIG_X86_64
+#elif CONFIG_X86_64
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18)
 	status = _READ(task->thread.status);
