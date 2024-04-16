@@ -27,6 +27,7 @@ limitations under the License.
 #include <libsinsp/filter_value.h>
 #include <libsinsp/prefix_search.h>
 #include <libsinsp/event.h>
+#include <libsinsp/sinsp_filter_transformer.h>
 
 /*
  * Operators to compare events
@@ -75,11 +76,6 @@ namespace std
 std::string to_string(cmpop);
 std::string to_string(boolop);
 }
-
-struct extract_value_t {
-	uint8_t* ptr = nullptr;
-	uint32_t len = 0;
-};
 
 class check_extraction_cache_entry
 {
