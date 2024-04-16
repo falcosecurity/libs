@@ -41,13 +41,13 @@ external dependencies, plus the libscap and libsinsp ones; consumers
 
 Our drivers officially support the following architectures:
 
-|             | Kernel module                                                                                | eBPF probe | Modern eBPF probe | Status |
-| ----------- |----------------------------------------------------------------------------------------------| ---------- | ----------------- | ------ |
-| **x86_64**  | >= 2.6                                                                                       | >= 4.14    | >= 5.8            | _STABLE_ |
-| **aarch64** | >= [3.16](https://github.com/torvalds/linux/commit/055b1212d141f1f398fca548f8147787c0b6253f) | >= 4.17    | >= 5.8            | _STABLE_ |
-| **s390x**   | >= 2.6                                                                                       | >= [5.5](https://github.com/torvalds/linux/commit/6ae08ae3dea) | >= 5.8            | _EXPERIMENTAL_ |
-| **riscv64** | >= [5.0](https://github.com/torvalds/linux/commit/5aeb1b36cedd3a1dfdbfe368629fed52dee34103)  | N/A                                                            | N/A               | _EXPERIMENTAL_ |
-| **ppc64le** | >=2.6  | >=4.18         | >= 5.8               | _EXPERIMENTAL_ |
+|             | Kernel module                                                                                | eBPF probe                                                                                  | Modern eBPF probe | Status |
+| ----------- |----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------| ----------------- | ------ |
+| **x86_64**  | >= 2.6                                                                                       | >= 4.14                                                                                     | >= 5.8            | _STABLE_ |
+| **aarch64** | >= [3.16](https://github.com/torvalds/linux/commit/055b1212d141f1f398fca548f8147787c0b6253f) | >= 4.17                                                                                     | >= 5.8            | _STABLE_ |
+| **s390x**   | >= 2.6                                                                                       | >= [5.5](https://github.com/torvalds/linux/commit/6ae08ae3dea)                              | >= 5.8            | _EXPERIMENTAL_ |
+| **riscv64** | >= [5.0](https://github.com/torvalds/linux/commit/5aeb1b36cedd3a1dfdbfe368629fed52dee34103)  | N/A                                                                                         | N/A               | _EXPERIMENTAL_ |
+| **ppc64le** | >= 2.6                                                                                       | >= [5.1](https://github.com/torvalds/linux/commit/ed1cd6deb013a11959d17a94e35ce159197632da) | >= 5.8               | _EXPERIMENTAL_ |
 
 
 To access up-to-date status reports on Falco drivers kernel testing, please visit this [page](https://falcosecurity.github.io/libs/). It provides a list of supported syscalls as well as the [report](https://falcosecurity.github.io/libs/report/).
