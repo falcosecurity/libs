@@ -913,7 +913,7 @@ TEST(SyscallExit, execveX_failure_empty_arg)
 	/*
 	 * Call the `execve`
 	 */
-	char pathname[] = "//**null-file-path**//";
+	char pathname[] = "";
 	const char *newargv[] = {pathname, "first_argv", "second_argv", "", "fourth_argv", NULL};
 	const char *newenviron[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", "", "0_ARGUMENT=no", NULL};
 	assert_syscall_state(SYSCALL_FAILURE, "execve", syscall(__NR_execve, pathname, newargv, newenviron));
