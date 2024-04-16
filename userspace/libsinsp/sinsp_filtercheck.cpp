@@ -213,7 +213,7 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 	case CO_BSTARTSWITH:
 		throw sinsp_exception("'bstartswith' not supported for string filters");
 	case CO_ENDSWITH:
-		return (sinsp_utils::endswith(operand1, operand2));
+		return (sinsp_utils::endswith(operand1, operand2, strlen(operand1), strlen(operand2)));
 	case CO_GLOB:
 		return sinsp_utils::glob_match(operand2, operand1);
 	case CO_IGLOB:
