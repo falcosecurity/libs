@@ -26,6 +26,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <list>
 #include <locale>
 #include <set>
@@ -80,8 +81,23 @@ public:
 	//
 	// Check if string ends with another
 	//
-	static bool endswith(const std::string& str, const std::string& ending);
-	static bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
+	static inline bool endswith(const std::string& str, const std::string& ending)
+	{
+		if (ending.size() <= str.size())
+		{
+			return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+		}
+		return false;
+	}
+
+	static inline bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend)
+	{
+		if (lstr >= lend)
+		{
+			return (0 == memcmp(ending, str + (lstr - lend), lend));
+		}
+		return 0;
+	}
 
 	//
 	// Check if string starts with another
