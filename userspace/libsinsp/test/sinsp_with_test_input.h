@@ -192,12 +192,12 @@ protected:
 	void add_default_init_thread();
 	void add_simple_thread(int64_t tid, int64_t pid, int64_t ptid, const std::string& comm = "random");
 	uint64_t increasing_ts();
-	bool field_exists(sinsp_evt*, const std::string& field_name);
-	bool field_exists(sinsp_evt*, const std::string& field_name, filter_check_list&);
-	bool field_has_value(sinsp_evt*, const std::string& field_name);
-	bool field_has_value(sinsp_evt*, const std::string& field_name, filter_check_list&);
-	std::string get_field_as_string(sinsp_evt*, const std::string& field_name);
-	std::string get_field_as_string(sinsp_evt*, const std::string& field_name, filter_check_list&);
+	bool field_exists(sinsp_evt*, std::string_view field_name);
+	bool field_exists(sinsp_evt*, std::string_view field_name, filter_check_list&);
+	bool field_has_value(sinsp_evt*, std::string_view field_name);
+	bool field_has_value(sinsp_evt*, std::string_view field_name, filter_check_list&);
+	std::string get_field_as_string(sinsp_evt*, std::string_view field_name);
+	std::string get_field_as_string(sinsp_evt*, std::string_view field_name, filter_check_list&);
 	sinsp_evt* next_event();
 
 	scap_test_input_data m_test_data;

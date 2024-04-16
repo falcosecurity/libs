@@ -1162,7 +1162,6 @@ private:
 	uint32_t m_num_cpus;
 	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
-	scap_test_input_data *m_test_input_data = nullptr;
 
 	sinsp_network_interfaces m_network_interfaces {};
 

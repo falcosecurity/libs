@@ -312,25 +312,25 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 	auto check = create_filtercheck(field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
-	check->parse_field_name(field.c_str(), true, true);
+	check->parse_field_name(field, true, true);
 	m_filter->add_check(std::move(check));
 }
 
-static void add_filtercheck_value(sinsp_filter_check *chk, size_t idx, const std::string& value)
+static void add_filtercheck_value(sinsp_filter_check* chk, size_t idx, std::string_view value)
 {
 	std::vector<char> hex_bytes;
 	switch(chk->m_cmpop)
 	{
 		case CO_BCONTAINS:
 		case CO_BSTARTSWITH:
-			if(!sinsp_utils::unhex(std::vector<char>(value.c_str(), value.c_str() + value.size()), hex_bytes))
+			if(!sinsp_utils::unhex(value, hex_bytes))
 			{
 				throw sinsp_exception("filter error: bcontains and bstartswith operator support hex strings only");
 			}
 			chk->add_filter_value(&hex_bytes[0], hex_bytes.size(), idx);
 			break;
 		default:
-			chk->add_filter_value(value.c_str(), value.size(), idx);
+			chk->add_filter_value(value.data(), value.size(), idx);
 			break;
 	}
 }
@@ -342,7 +342,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	auto check = create_filtercheck(field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
-	check->parse_field_name(field.c_str(), true, true);
+	check->parse_field_name(field, true, true);
 
 	// Read the the the right-hand values of the filtercheck.
 	// For list-related operators ('in', 'intersects', 'pmatch'), the vector
@@ -398,17 +398,17 @@ std::string sinsp_filter_compiler::create_filtercheck_name(const std::string& na
 	return fld;
 }
 
-std::unique_ptr<sinsp_filter_check> sinsp_filter_compiler::create_filtercheck(std::string& field)
+std::unique_ptr<sinsp_filter_check> sinsp_filter_compiler::create_filtercheck(std::string_view field)
 {
-	auto chk = m_factory->new_filtercheck(field.c_str());
+	auto chk = m_factory->new_filtercheck(field);
 	if(chk == NULL)
 	{
-		throw sinsp_exception("filter_check called with nonexistent field " + field);
+		throw sinsp_exception("filter_check called with nonexistent field " + std::string(field));
 	}
 	return chk;
 }
 
-cmpop sinsp_filter_compiler::str_to_cmpop(const std::string& str)
+cmpop sinsp_filter_compiler::str_to_cmpop(std::string_view str)
 {
 	if(str == "=" || str == "==")
 	{
@@ -499,7 +499,7 @@ std::unique_ptr<sinsp_filter> sinsp_filter_factory::new_filter() const
 	return std::make_unique<sinsp_filter>(m_inspector);
 }
 
-std::unique_ptr<sinsp_filter_check> sinsp_filter_factory::new_filtercheck(const char *fldname) const
+std::unique_ptr<sinsp_filter_check> sinsp_filter_factory::new_filtercheck(std::string_view fldname) const
 {
 	return m_available_checks.new_filter_check_from_fldname(fldname,
 								m_inspector,

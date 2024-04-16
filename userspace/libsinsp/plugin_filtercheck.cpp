@@ -51,9 +51,9 @@ sinsp_filter_check_plugin::sinsp_filter_check_plugin(const sinsp_filter_check_pl
 	m_compatible_plugin_sources_bitmap = p.m_compatible_plugin_sources_bitmap;
 }
 
-int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
-	int32_t res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+	int32_t res = sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 
 	m_arg_present = false;
 	m_arg_key = NULL;
@@ -63,13 +63,12 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 	// the field is parsed successfully
 	if(res != -1)
 	{
-		string val(str);
 		size_t val_end = val.find_first_of(' ', 0);
 		if(val_end != string::npos)
 		{
 			val = val.substr(0, val_end);
 		}
-		trim(val);
+		val = trim_sv(val);
 
 		// search for the field's argument
 		size_t arg_len = 0;
@@ -86,13 +85,13 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 			size_t argstart = arg_pos + 1;
 			if(argstart >= val.size())
 			{
-				throw sinsp_exception(string("filter '") + str + string("': ") + m_field->m_name + string(" terminates with incomplete argument brackets"));
+				throw sinsp_exception("filter '" + string(val) + "': " + m_field->m_name + " terminates with incomplete argument brackets");
 			}
 			m_argstr = val.substr(argstart);
 			arg_len = m_argstr.find_first_of(']', 0);
 			if(arg_len == string::npos)
 			{
-				throw sinsp_exception(string("filter '") + str + string("': ") + m_field->m_name + string(" has unbalanced argument brackets"));
+				throw sinsp_exception("filter '" + string(val) + "': " + m_field->m_name + " has unbalanced argument brackets");
 			}
 			m_argstr = m_argstr.substr(0, arg_len);
 			m_arg_present = true;
@@ -101,14 +100,14 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 			if (!(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED
 					|| m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
 			{
-				throw sinsp_exception(string("filter '") + string(str) + string("': ")
-					+ m_field->m_name + string(" does not allow nor require an argument but one is provided: " + m_argstr));
+				throw sinsp_exception("filter '" + string(val) + "': "
+					+ m_field->m_name + " does not allow nor require an argument but one is provided: " + m_argstr);
 			}
 
 			// parse the argument content, which can either be an index or a key
 			if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
 			{
-				extract_arg_index(str);
+				extract_arg_index(val);
 			}
 			if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
 			{
@@ -121,7 +120,7 @@ int32_t sinsp_filter_check_plugin::parse_field_name(const char* str, bool alloc_
 
 		if (!m_arg_present && (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
 		{
-			throw sinsp_exception(string("filter '") + string(str) + string("': ") + m_field->m_name + string(" requires an argument but none provided"));
+			throw sinsp_exception(string("filter '") + string(val) + string("': ") + m_field->m_name + string(" requires an argument but none provided"));
 		}
 	}
 
@@ -228,7 +227,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT std::vector<extract_
 	return apply_transformers(values);
 }
 
-void sinsp_filter_check_plugin::extract_arg_index(const char* full_field_name)
+void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_name)
 {
 	int length = m_argstr.length();
 	bool is_valid = true;

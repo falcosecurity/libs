@@ -477,7 +477,7 @@ TEST_F(sinsp_logger_test, log_stderr_multithreaded)
 	for (size_t i = 0; i < NUM_THREADS; ++i)
 	{
 		threads[i] = std::thread(
-		    [this, message]()
+		    [message]()
 		    {
 			    for (size_t i = 0; i < NUM_LOGS; ++i)
 			    {

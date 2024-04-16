@@ -236,7 +236,7 @@ public:
 	// Returns the length of the parsed field if successful, an exception in
 	// case of error.
 	//
-	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	virtual int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering);
 
 	//
 	// If this check is used by a filter, extract the constant to compare it to

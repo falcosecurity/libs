@@ -1824,7 +1824,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	return &m_paramstr_storage[0];
 }
 
-std::string sinsp_evt::get_param_value_str(const std::string &name, bool resolved)
+std::string sinsp_evt::get_param_value_str(std::string_view name, bool resolved)
 {
 	for(uint32_t i = 0; i < get_num_params(); i++)
 	{
@@ -1834,14 +1834,7 @@ std::string sinsp_evt::get_param_value_str(const std::string &name, bool resolve
 		}
 	}
 
-	return std::string("");
-}
-
-std::string sinsp_evt::get_param_value_str(const char *name, bool resolved)
-{
-	// TODO fix this !!
-	std::string s_name = std::string(name);
-	return get_param_value_str(s_name, resolved);
+	return std::string();
 }
 
 std::string sinsp_evt::get_param_value_str(uint32_t i, bool resolved)
@@ -1860,11 +1853,11 @@ std::string sinsp_evt::get_param_value_str(uint32_t i, bool resolved)
 	}
 }
 
-const char* sinsp_evt::get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt)
+const char* sinsp_evt::get_param_value_str(std::string_view name, OUT const char** resolved_str, param_fmt fmt)
 {
 	for(uint32_t i = 0; i < get_num_params(); i++)
 	{
-		if(strcmp(name, get_param_name(i)) == 0)
+		if(name == get_param_name(i))
 		{
 			return get_param_as_str(i, resolved_str, fmt);
 		}

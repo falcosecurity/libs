@@ -44,7 +44,7 @@ public:
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 
 	int32_t parse_field_name(
-		const char* str,
+		std::string_view,
 		bool alloc_state,
 		bool needed_for_filtering) override;
 
@@ -64,13 +64,13 @@ private:
 	std::vector<bool> m_compatible_plugin_sources_bitmap;
 	std::shared_ptr<sinsp_plugin> m_eplugin;
 
-	// extract_arg_index() extracts a valid index from the argument if 
+	// extract_arg_index() extracts a valid index from the argument if
 	// format is valid, otherwise it throws an exception.
 	// `full_field_name` has the format "field[argument]" and it is necessary
 	// to throw an exception.
-	void extract_arg_index(const char* full_field_name);
+	void extract_arg_index(std::string_view full_field_name);
 
 	// extract_arg_key() extracts a valid string from the argument. If we pass
-	// a numeric argument, it will be converted to string. 
+	// a numeric argument, it will be converted to string.
 	void extract_arg_key();
 };

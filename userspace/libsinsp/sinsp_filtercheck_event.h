@@ -90,7 +90,7 @@ public:
 	virtual ~sinsp_filter_check_event() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
 	size_t parse_filter_value(const char* str, uint32_t len, uint8_t* storage, uint32_t storage_len) override;
 
 protected:
@@ -100,8 +100,8 @@ protected:
 
 private:
 	void validate_filter_value(const char* str, uint32_t len);
-	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
-	int32_t extract_type(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
+	int32_t extract_arg(std::string_view fldname, std::string_view val, OUT const ppm_param_info**);
+	int32_t extract_type(std::string_view fldname, std::string_view val, OUT const ppm_param_info**);
 	uint8_t* extract_error_count(sinsp_evt *evt, OUT uint32_t* len);
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt, OUT uint32_t* len);

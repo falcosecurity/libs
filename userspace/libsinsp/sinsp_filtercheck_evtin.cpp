@@ -24,7 +24,7 @@ limitations under the License.
 
 using namespace std;
 
-static inline bool str_match_start(const std::string& val, size_t len, const char* m)
+static inline bool str_match_start(std::string_view val, size_t len, const char* m)
 {
 	return val.compare(0, len, m) == 0;
 }
@@ -72,7 +72,7 @@ sinsp_filter_check_evtin::sinsp_filter_check_evtin()
 	m_info.m_flags = filter_check_info::FL_HIDDEN;
 }
 
-int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
+int32_t sinsp_filter_check_evtin::extract_arg(string_view fldname, string_view val)
 {
 	uint32_t parsed_len = 0;
 
@@ -82,7 +82,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 	if(val[fldname.size()] == '[')
 	{
 		parsed_len = (uint32_t)val.find(']');
-		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+		string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
 
 		m_argid = sinsp_numparser::parsed32(numstr);
 
@@ -95,7 +95,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 
 		if(pi == NULL)
 		{
-			throw sinsp_exception("unknown event argument " + val.substr(fldname.size() + 1));
+			throw sinsp_exception("unknown event argument " + string(val.substr(fldname.size() + 1)));
 		}
 
 		m_argname = pi->name;
@@ -104,16 +104,15 @@ int32_t sinsp_filter_check_evtin::extract_arg(string fldname, string val)
 	}
 	else
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
 	int32_t res;
-	string val(str);
 
 	//
 	// A couple of fields are handled in a custom way
@@ -184,7 +183,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_s
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		res = sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 
 	return res;

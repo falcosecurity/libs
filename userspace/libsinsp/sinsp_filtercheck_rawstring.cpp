@@ -48,7 +48,7 @@ void rawstring_check::set_text(string text)
 	m_text = text;
 }
 
-int32_t rawstring_check::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t rawstring_check::parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering)
 {
 	ASSERT(false);
 	return -1;

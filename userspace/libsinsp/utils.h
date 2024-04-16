@@ -82,7 +82,7 @@ public:
 	//
 	// Check if string ends with another
 	//
-	static inline bool endswith(const std::string& str, const std::string& ending)
+	static inline bool endswith(std::string_view str, std::string_view ending)
 	{
 		if (ending.size() <= str.size())
 		{
@@ -103,12 +103,12 @@ public:
 	//
 	// Check if string starts with another
 	//
-	static bool startswith(const std::string& s, const std::string& prefix);
+	static bool startswith(std::string_view, std::string_view prefix);
 
 	//
 	// Transform a hex string into bytes
 	//
-	static bool unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes);
+	static bool unhex(std::string_view hex_chars, std::vector<char>& hex_bytes);
 
 	//
 	// Concatenate posix-style path1 and path2 up to max_len in size, normalizing the result.
@@ -126,7 +126,7 @@ public:
 	//
 	// Given a string, scan the event list and find the longest argument that the input string contains
 	//
-	static const struct ppm_param_info* find_longest_matching_evt_param(std::string name);
+	static const ppm_param_info* find_longest_matching_evt_param(std::string_view name);
 
 	static uint64_t get_current_time_ns();
 
@@ -280,6 +280,11 @@ std::string sinsp_join(It begin, It end, char delim)
 std::string& ltrim(std::string& s);
 std::string& rtrim(std::string& s);
 std::string& trim(std::string& s);
+
+[[nodiscard]] std::string_view ltrim_sv(std::string_view);
+[[nodiscard]] std::string_view rtrim_sv(std::string_view);
+[[nodiscard]] std::string_view trim_sv(std::string_view);
+
 std::string& replace_in_place(std::string& s, const std::string& search, const std::string& replacement);
 std::string replace(const std::string& str, const std::string& search, const std::string& replacement);
 

@@ -27,7 +27,7 @@ using namespace std;
         return (uint8_t*) (x).c_str(); \
 } while(0)
 
-static inline bool str_match_start(const std::string& val, size_t len, const char* m)
+static inline bool str_match_start(std::string_view val, size_t len, const char* m)
 {
 	return val.compare(0, len, m) == 0;
 }
@@ -81,10 +81,8 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_k8s::allocate_new()
 	return std::make_unique<sinsp_filter_check_k8s>();
 }
 
-int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_k8s::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
-	string val(str);
-
 	if(STR_MATCH("k8s.pod.label") &&
 		!STR_MATCH("k8s.pod.labels"))
 	{
@@ -135,11 +133,11 @@ int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_sta
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 }
 
-int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string& val)
+int32_t sinsp_filter_check_k8s::extract_arg(string_view fldname, string_view val)
 {
 	int32_t parsed_len = 0;
 
@@ -168,14 +166,14 @@ int32_t sinsp_filter_check_k8s::extract_arg(const string& fldname, const string&
 
 		if ((uint32_t) parsed_len == (uint32_t) std::string::npos)
 		{
-			throw sinsp_exception("the field '" + fldname + "' requires an argument but ']' is not found");
+			throw sinsp_exception("the field '" + string(fldname) + "' requires an argument but ']' is not found");
 		}
 		m_argname = val.substr(startpos + 1, parsed_len - startpos - 1);
 		parsed_len++;
 	}
 	else
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	return parsed_len;

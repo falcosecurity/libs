@@ -112,7 +112,7 @@ public:
 	virtual ~sinsp_filter_check_thread() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
 
 	int32_t get_argid() const;
 
@@ -122,7 +122,7 @@ protected:
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
-	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
+	int32_t extract_arg(std::string_view fldname, std::string_view val, OUT const ppm_param_info**);
 	uint8_t* extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);

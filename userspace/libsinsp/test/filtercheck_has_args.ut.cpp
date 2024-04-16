@@ -78,7 +78,7 @@ TEST(filtercheck_has_args, has_args)
 			std::unique_ptr<sinsp_filter_check> filtercheck(
 				sinsp_filter_checks.new_filter_check_from_fldname(field_str, &inspector, false));
 
-			filtercheck->parse_field_name(field_str.c_str(), alloc_state, needed_for_filtering);
+			filtercheck->parse_field_name(field_str, alloc_state, needed_for_filtering);
 
 			EXPECT_EQ(expected, filtercheck->get_field_info()->is_arg_supported()) << "Field " + field_str + " did not return expected value " + std::to_string(expected) + " for is_arg_supported()";
 		}

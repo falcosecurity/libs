@@ -138,7 +138,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 				}
 			}
 
-			auto chk = m_available_checks.new_filter_check_from_fldname(std::string(cfmt + j + 1),
+			auto chk = m_available_checks.new_filter_check_from_fldname(std::string_view(cfmt + j + 1),
 				m_inspector,
 				false);
 
@@ -342,9 +342,7 @@ std::shared_ptr<sinsp_evt_formatter> sinsp_evt_formatter_factory::create_formatt
 		return it->second;
 	}
 
-	std::shared_ptr<sinsp_evt_formatter> ret;
-
-	ret.reset(new sinsp_evt_formatter(m_inspector, m_available_checks));
+	auto ret = std::make_shared<sinsp_evt_formatter>(m_inspector, m_available_checks);
 
 	ret->set_format(m_output_format, format);
 	m_formatters[format] = ret;

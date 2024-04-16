@@ -37,7 +37,7 @@ using namespace std;
         return (uint8_t*) (x).c_str(); \
 } while(0)
 
-static inline bool str_match_start(const std::string& val, size_t len, const char* m)
+static inline bool str_match_start(std::string_view val, size_t len, const char* m)
 {
 	return val.compare(0, len, m) == 0;
 }
@@ -143,7 +143,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_thread::allocate_new()
 	return std::make_unique<sinsp_filter_check_thread>();
 }
 
-int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname, std::string_view val, OUT const ppm_param_info** parinfo)
 {
 	std::string::size_type parsed_len = 0;
 
@@ -161,15 +161,15 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string 
 			parsed_len = val.find(']');
 			if(parsed_len == std::string::npos)
 			{
-				throw sinsp_exception("the field '" + fldname + "' requires an argument but ']' is not found");
+				throw sinsp_exception("the field '" + string(fldname) + "' requires an argument but ']' is not found");
 			}
-			string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+			string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
 			m_argid = sinsp_numparser::parsed32(numstr);
 			parsed_len++;
 		}
 		else
 		{
-			throw sinsp_exception("filter syntax error: " + val);
+			throw sinsp_exception("filter syntax error: " + string(val));
 		}
 	}
 	else if(m_field_id == TYPE_ENV ||
@@ -182,7 +182,7 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string 
 
 			if(parsed_len == std::string::npos)
 			{
-				throw sinsp_exception("the field '" + fldname + "' requires an argument but ']' is not found");
+				throw sinsp_exception("the field '" + string(fldname) + "' requires an argument but ']' is not found");
 			}
 			m_argname = val.substr(startpos + 1, parsed_len - startpos - 1);
 			if(!m_argname.empty() && std::all_of(m_argname.begin(), m_argname.end(), [](unsigned char c) { return std::isdigit(c); }))
@@ -194,7 +194,7 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string 
 		}
 		else
 		{
-			throw sinsp_exception("filter syntax error: " + val);
+			throw sinsp_exception("filter syntax error: " + string(val));
 		}
 	}
 	else if(m_field_id == TYPE_CGROUP)
@@ -216,17 +216,15 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string fldname, std::string 
 		}
 		else
 		{
-			throw sinsp_exception("filter syntax error: " + val);
+			throw sinsp_exception("filter syntax error: " + string(val));
 		}
 	}
 
 	return (int32_t)parsed_len;
 }
 
-int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
-	string val(str);
-
 	if(STR_MATCH("arg"))
 	{
 		//
@@ -401,7 +399,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 			m_thread_dyn_field_accessor.reset(new libsinsp::state::dynamic_struct::field_accessor<uint64_t>(acc.new_accessor<uint64_t>()));
 		}
 
-		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 	else if(STR_MATCH("thread.cgroup") &&
 			!STR_MATCH("thread.cgroups"))
@@ -419,11 +417,11 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 			m_thread_dyn_field_accessor.reset(new libsinsp::state::dynamic_struct::field_accessor<uint64_t>(acc.new_accessor<uint64_t>()));
 		}
 
-		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 }
 
