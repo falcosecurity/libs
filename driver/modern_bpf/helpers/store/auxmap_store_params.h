@@ -396,25 +396,18 @@ static __always_inline void auxmap__store_execve_args(struct auxiliary_map *auxm
 		}
 
 		arg_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_ARG_ENV, USER);
-		
-		// push trailing \0 if the arg is empty
-		if(arg_len == 0)
-		{
-			push__u8(auxmap->data, &auxmap->payload_pos, 0);
-			arg_len = 1;
-		}
 		total_len += arg_len;
+
+		/* the sum of all env variables lengths should be `<= MAX_PROC_ARG_ENV` */
+		if(total_len >= MAX_PROC_ARG_ENV)
+		{
+			total_len = MAX_PROC_ARG_ENV;
+			break;
+		}
 	}
-	/* the sum of all env variables lengths should be `<= MAX_PROC_ARG_ENV` */
-	if(total_len >= MAX_PROC_ARG_ENV)
-	{
-		total_len = MAX_PROC_ARG_ENV;
-	}
-	else
-	{
-		total_len = total_len & (MAX_PROC_ARG_ENV - 1);
-	}
+
 	auxmap->payload_pos = initial_payload_pos + total_len;
+	push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_len);
 }
 

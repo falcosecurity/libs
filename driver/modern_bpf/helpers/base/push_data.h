@@ -214,7 +214,8 @@ static __always_inline void push__previous_character(uint8_t *data, uint64_t *pa
  * @param charbuf_pointer pointer to the charbuf.
  * @param limit maximum number of bytes that we read in case we don't find a `\0`
  * @param mem tell where it must read: user-space or kernel-space.
- * @return (uint16_t) the number of bytes written in the buffer. Could be '0' if the passed pointer is not valid.
+ * @return (uint16_t) the number of bytes written in the buffer. Returns '0' if the passed pointer is not valid.
+ *         Returns `1` if the provided pointer points to an empty string "".
  */
 static __always_inline uint16_t push__charbuf(uint8_t *data, uint64_t *payload_pos, unsigned long charbuf_pointer, uint16_t limit, enum read_memory mem)
 {
@@ -233,9 +234,17 @@ static __always_inline uint16_t push__charbuf(uint8_t *data, uint64_t *payload_p
 							(char *)charbuf_pointer);
 	}
 
-	if(written_bytes <= 0)
+	if(written_bytes < 0)
 	{
+		/* This is probably a page fault */
 		return 0;
+	}
+
+	/* Since `bpf_probe_read_user_str` return `0` in case of empty string we push a `\0` and we return 1. */
+	if(written_bytes==0)
+	{
+		*((char *)&data[SAFE_ACCESS(*payload_pos)]) = '\0';
+		written_bytes = 1;
 	}
 
 	*payload_pos += written_bytes;
