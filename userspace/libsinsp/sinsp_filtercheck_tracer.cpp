@@ -27,7 +27,7 @@ using namespace std;
 
 #define TEXT_ARG_ID -1000000
 
-static inline bool str_match_start(const std::string& val, size_t len, const char* m)
+static inline bool str_match_start(std::string_view val, size_t len, const char* m)
 {
 	return val.compare(0, len, m) == 0;
 }
@@ -72,7 +72,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_tracer::allocate_new()
 	return std::make_unique<sinsp_filter_check_tracer>();
 }
 
-int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_tracer::extract_arg(string_view fldname, string_view val, OUT const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -87,7 +87,7 @@ int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT c
 		}
 
 		parsed_len = (uint32_t)val.find(']');
-		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+		string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
 		m_argid = sinsp_numparser::parsed32(numstr);
 		parsed_len++;
 	}
@@ -108,16 +108,15 @@ int32_t sinsp_filter_check_tracer::extract_arg(string fldname, string val, OUT c
 	}
 	else
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_tracer::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
 	int32_t res;
-	string val(str);
 
 	//
 	// A couple of fields are handled in a custom way
@@ -176,7 +175,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		res = sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 
 	return res;

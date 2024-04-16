@@ -25,7 +25,7 @@ limitations under the License.
 static void filter_compile(sinsp_filter **out, std::string filter)
 {
 	sinsp_filter_check_list flist;
-	std::shared_ptr<sinsp_filter_factory> factory(new sinsp_filter_factory(NULL, flist));
+	auto factory = std::make_shared<sinsp_filter_factory>(nullptr, flist);
 	sinsp_filter_compiler compiler(factory, filter);
 	try
 	{
@@ -60,4 +60,3 @@ static void filter_run(sinsp_evt* evt, bool result, std::string filter_str)
 			<< (result ? "false" : "true") << "' result";
 	}
 }
-

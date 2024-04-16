@@ -471,7 +471,7 @@ public:
 	   before returning it. For example, and FD number will be converted into
 	   the correspondent file, TCP tuple, etc.
 	*/
-	std::string get_param_value_str(const std::string& name, bool resolved = true);
+	std::string get_param_value_str(std::string_view name, bool resolved = true);
 
 	/*!
 	  \brief Return the event's category, based on the event type and the FD on
@@ -524,7 +524,7 @@ public:
 
 	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
-	const char* get_param_value_str(const char* name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+	const char* get_param_value_str(std::string_view name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
 	inline void init_keep_threadinfo()
 	{
@@ -670,8 +670,8 @@ public:
 			m_params.emplace_back(this, j, static_cast<const char*>(params[j].buf), params[j].size);
 		}
 	}
+
 	std::string get_param_value_str(uint32_t id, bool resolved);
-	std::string get_param_value_str(const char* name, bool resolved = true);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	inline uint32_t get_dump_flags() const { return m_dump_flags; }
@@ -699,7 +699,7 @@ public:
 	{
 		m_pevt = v;
 	}
-	
+
 	inline const char* get_scap_evt_storage() const
 	{
 		return m_pevt_storage;
@@ -714,7 +714,7 @@ public:
 	{
 		m_pevt_storage = v;
 	}
-	
+
 	inline uint32_t get_flags() const
 	{
 		return m_flags;
@@ -729,12 +729,12 @@ public:
 	{
 		return m_rawbuf_str_len;
 	}
-	
+
 	inline void set_rawbuf_str_len(int32_t v)
 	{
 		m_rawbuf_str_len = v;
 	}
-	
+
 	inline void set_filtered_out(bool v)
 	{
 		m_filtered_out = v;
@@ -784,7 +784,7 @@ public:
 	{
 		m_fdinfo_ref = v;
 	}
-	
+
 	inline const std::vector<char>& get_paramstr_storage() const
 	{
 		return m_paramstr_storage;

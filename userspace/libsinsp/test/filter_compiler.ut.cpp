@@ -11,9 +11,9 @@ using namespace std;
 class mock_compiler_filter_check : public sinsp_filter_check
 {
 public:
-	inline int32_t parse_field_name(const char* str, bool a, bool n) override
+	int32_t parse_field_name(std::string_view str, bool alloc_state, bool needed_for_filtering) override
 	{
-		m_name = string(str);
+		m_name = str;
 		return 0;
 	}
 
@@ -63,7 +63,7 @@ public:
 		return std::make_unique<sinsp_filter>(m_inspector);
 	}
 
-	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(const char *fldname) const override
+	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const override
 	{
 		return std::make_unique<mock_compiler_filter_check>();
 	}

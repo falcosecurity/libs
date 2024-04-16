@@ -60,7 +60,7 @@ std::shared_ptr<sinsp_filter_check> sinsp_filter_check_fspath::create_event_chec
 										  cmpop cop,
 										  const char *value)
 {
-	std::shared_ptr<sinsp_filter_check> chk(new sinsp_filter_check_event());
+	auto chk = std::make_shared<sinsp_filter_check_event>();
 
 	chk->m_inspector = m_inspector;
 	chk->m_cmpop = cop;
@@ -77,7 +77,7 @@ std::shared_ptr<sinsp_filter_check> sinsp_filter_check_fspath::create_event_chec
 
 std::shared_ptr<sinsp_filter_check> sinsp_filter_check_fspath::create_fd_check(const char *name)
 {
-	std::shared_ptr<sinsp_filter_check> chk(new sinsp_filter_check_fd());
+	auto chk = std::make_shared<sinsp_filter_check_fd>();
 
 	chk->m_inspector = m_inspector;
 	chk->m_cmpop = CO_NONE;

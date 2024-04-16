@@ -41,7 +41,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_reference::allocate_new()
 	return nullptr;
 }
 
-int32_t sinsp_filter_check_reference::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_reference::parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering)
 {
 	ASSERT(false);
 	return -1;

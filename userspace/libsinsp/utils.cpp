@@ -811,7 +811,7 @@ bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
 	}
 }
 
-const ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string name)
+const ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string_view name)
 {
 	uint32_t maxlen = 0;
 	const ppm_param_info* res = nullptr;
@@ -1436,6 +1436,23 @@ std::string& trim(std::string &s)
 	return ltrim(rtrim(s));
 }
 
+std::string_view ltrim_sv(std::string_view s)
+{
+	return s.substr(
+	    std::find_if(s.begin(), s.end(), [](int c) { return !std::isspace(c); }) - s.begin());
+}
+
+std::string_view rtrim_sv(std::string_view s)
+{
+	return s.substr(0,
+	    std::find_if(s.rbegin(), s.rend(), [](int c) { return !std::isspace(c); }).base() - s.begin());
+}
+
+std::string_view trim_sv(std::string_view s)
+{
+	return ltrim_sv(rtrim_sv(s));
+}
+
 std::string& replace_in_place(std::string& str, const std::string& search, const std::string& replacement)
 {
 	std::string::size_type ssz = search.length();
@@ -1457,7 +1474,7 @@ std::string replace(const std::string& str, const std::string& search, const std
 	return s;
 }
 
-bool sinsp_utils::startswith(const std::string& s, const std::string& prefix)
+bool sinsp_utils::startswith(std::string_view s, std::string_view prefix)
 {
 	if(prefix.empty())
 	{
@@ -1470,10 +1487,10 @@ bool sinsp_utils::startswith(const std::string& s, const std::string& prefix)
 		return false;
 	}
 
-	return strncmp(s.c_str(), prefix.c_str(), prefix_len) == 0;
+	return s.compare(0, prefix_len, prefix) == 0;
 }
 
-bool sinsp_utils::unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes)
+bool sinsp_utils::unhex(std::string_view hex_chars, std::vector<char>& hex_bytes)
 {
 	if(hex_chars.size() % 2 != 0 ||
 		!std::all_of(hex_chars.begin(), hex_chars.end(), [](unsigned char c){ return std::isxdigit(c); }))

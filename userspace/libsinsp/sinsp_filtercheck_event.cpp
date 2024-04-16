@@ -54,7 +54,7 @@ extern sinsp_evttables g_infotables;
         return (uint8_t*) ((x));                \
 } while(0)
 
-static inline bool str_match_start(const std::string& val, size_t len, const char* m)
+static inline bool str_match_start(std::string_view val, size_t len, const char* m)
 {
 	return val.compare(0, len, m) == 0;
 }
@@ -141,7 +141,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_event::allocate_new()
 	return std::make_unique<sinsp_filter_check_event>();
 }
 
-int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_event::extract_arg(string_view fldname, string_view val, OUT const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -156,7 +156,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 		}
 
 		parsed_len = (uint32_t)val.find(']');
-		string numstr = val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1);
+		string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
 
 		if(m_field_id == TYPE_AROUND)
 		{
@@ -181,7 +181,7 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 
 		if(pi == NULL)
 		{
-			throw sinsp_exception("unknown event argument " + val.substr(fldname.size() + 1));
+			throw sinsp_exception("unknown event argument " + string(val.substr(fldname.size() + 1)));
 		}
 
 		m_argname = pi->name;
@@ -195,19 +195,19 @@ int32_t sinsp_filter_check_event::extract_arg(string fldname, string val, OUT co
 	}
 	else
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_event::extract_type(string_view fldname, string_view val, OUT const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
 	if(val[fldname.size()] == '.')
 	{
-		string itype = val.substr(fldname.size() + 1);
+		string itype(val.substr(fldname.size() + 1));
 
 		if(sinsp_numparser::tryparseu32(itype, &m_evtid))
 		{
@@ -231,15 +231,14 @@ int32_t sinsp_filter_check_event::extract_type(string fldname, string val, OUT c
 	}
 	else
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_event::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
-	string val(str);
 	int32_t res = 0;
 
 	//
@@ -276,7 +275,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		STR_MATCH("evt.latency.quantized") ||
 		STR_MATCH("evt.latency.human"))
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		res = sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 	else if(STR_MATCH("evt.abspath"))
 	{
@@ -308,7 +307,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		res = sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 
 	return res;
@@ -1060,7 +1059,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 			}
 			else
 			{
-				argstr = evt->get_param_value_str(m_argname.c_str(), &resolved_argstr, m_inspector->get_buffer_format());
+				argstr = evt->get_param_value_str(m_argname, &resolved_argstr, m_inspector->get_buffer_format());
 			}
 
 			if(resolved_argstr != NULL && resolved_argstr[0] != 0)

@@ -22,7 +22,7 @@ limitations under the License.
 
 using namespace std;
 
-static inline bool str_match_start(const std::string& val, size_t len, const char* m)
+static inline bool str_match_start(std::string_view val, size_t len, const char* m)
 {
 	return val.compare(0, len, m) == 0;
 }
@@ -59,10 +59,8 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_mesos::allocate_new()
 	return std::make_unique<sinsp_filter_check_mesos>();
 }
 
-int32_t sinsp_filter_check_mesos::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_mesos::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
-	string val(str);
-
 	if(STR_MATCH("mesos.task.label") &&
 		!STR_MATCH("mesos.task.labels"))
 	{
@@ -81,11 +79,11 @@ int32_t sinsp_filter_check_mesos::parse_field_name(const char* str, bool alloc_s
 	}
 	else
 	{
-		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 }
 
-int32_t sinsp_filter_check_mesos::extract_arg(const string& fldname, const string& val)
+int32_t sinsp_filter_check_mesos::extract_arg(string_view fldname, string_view val)
 {
 	int32_t parsed_len = 0;
 
@@ -109,7 +107,7 @@ int32_t sinsp_filter_check_mesos::extract_arg(const string& fldname, const strin
 	}
 	else
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	return parsed_len;
@@ -121,4 +119,3 @@ uint8_t* sinsp_filter_check_mesos::extract_single(sinsp_evt *evt, OUT uint32_t* 
 	*len = 0;
 	return NULL;
 }
-

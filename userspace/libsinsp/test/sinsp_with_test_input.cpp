@@ -424,12 +424,12 @@ uint64_t sinsp_with_test_input::increasing_ts()
 
 // Return true if `field_name` exists in the filtercheck list.
 // The field value could also be NULL, but in this method, we are not interested in the value.
-bool sinsp_with_test_input::field_exists(sinsp_evt* evt, const std::string& field_name)
+bool sinsp_with_test_input::field_exists(sinsp_evt* evt, std::string_view field_name)
 {
 	return field_exists(evt, field_name, m_default_filterlist);
 }
 
-bool sinsp_with_test_input::field_exists(sinsp_evt* evt, const std::string& field_name, filter_check_list& flist)
+bool sinsp_with_test_input::field_exists(sinsp_evt* evt, std::string_view field_name, filter_check_list& flist)
 {
 	if (evt == nullptr) {
 		throw sinsp_exception("The event class is NULL");
@@ -448,12 +448,12 @@ bool sinsp_with_test_input::field_exists(sinsp_evt* evt, const std::string& fiel
 }
 
 // Return true if `field_name` value is not NULL for this event.
-bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, const std::string& field_name)
+bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, std::string_view field_name)
 {
 	return field_has_value(evt, field_name, m_default_filterlist);
 }
 
-bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, const std::string& field_name, filter_check_list& flist)
+bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, std::string_view field_name, filter_check_list& flist)
 {
 	if (evt == nullptr) {
 		throw sinsp_exception("The event class is NULL");
@@ -462,20 +462,20 @@ bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, const std::string& f
 	std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
 	if(chk == nullptr)
 	{
-		throw sinsp_exception("The field " + field_name + " is not a valid field.");
+		throw sinsp_exception("The field " + std::string(field_name) + " is not a valid field.");
 	}
 	// we created a filter check starting from the field name so if we arrive here we will find it for sure
-	chk->parse_field_name(field_name.c_str(), true, false);
+	chk->parse_field_name(field_name, true, false);
 	std::vector<extract_value_t> values;
 	return chk->extract(evt, values);
 }
 
-std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, const std::string& field_name)
+std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, std::string_view field_name)
 {
 	return get_field_as_string(evt, field_name, m_default_filterlist);
 }
 
-std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, const std::string& field_name, filter_check_list& flist)
+std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, std::string_view field_name, filter_check_list& flist)
 {
 	if (evt == nullptr) {
 		throw sinsp_exception("The event class is NULL");
@@ -484,14 +484,14 @@ std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, const std
 	std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
 	if(chk == nullptr)
 	{
-		throw sinsp_exception("The field " + field_name + " is not a valid field.");
+		throw sinsp_exception("The field " + std::string(field_name) + " is not a valid field.");
 	}
 	// we created a filter check starting from the field name so if we arrive here we will find it for sure
-	chk->parse_field_name(field_name.c_str(), true, false);
+	chk->parse_field_name(field_name, true, false);
 
 	const char* result = chk->tostring(evt);
 	if (result == nullptr) {
-		throw sinsp_exception("The field " + field_name + " is NULL");
+		throw sinsp_exception("The field " + std::string(field_name) + " is NULL");
 	}
 
 	return result;

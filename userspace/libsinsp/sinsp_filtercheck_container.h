@@ -56,7 +56,7 @@ public:
 	virtual ~sinsp_filter_check_container() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
 
 	const std::string& get_argstr() const;
 
@@ -64,7 +64,7 @@ protected:
 	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
-	int32_t extract_arg(const std::string& val, size_t basename);
+	int32_t extract_arg(std::string_view val, size_t basename);
 
 	std::string m_tstr;
 	uint32_t m_u32val;

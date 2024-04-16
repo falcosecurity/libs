@@ -59,7 +59,8 @@ void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& li
 }
 
 /* Craft a new filter check from the field name */
-std::unique_ptr<sinsp_filter_check> filter_check_list::new_filter_check_from_fldname(const std::string& name,
+std::unique_ptr<sinsp_filter_check> filter_check_list::new_filter_check_from_fldname(
+								     std::string_view name,
 								     sinsp* inspector,
 								     bool do_exact_check) const
 {
@@ -67,7 +68,7 @@ std::unique_ptr<sinsp_filter_check> filter_check_list::new_filter_check_from_fld
 	{
 		chk->m_inspector = inspector;
 
-		int32_t fldnamelen = chk->parse_field_name(name.c_str(), false, true);
+		int32_t fldnamelen = chk->parse_field_name(name, false, true);
 
 		if(fldnamelen != -1)
 		{

@@ -31,7 +31,7 @@ std::vector<std::string> sinsp_container_info::container_health_probe::probe_typ
 };
 
 // Initialize container max label length to default 100 value
-uint32_t sinsp_container_info::m_container_label_max_length = 100; 
+uint32_t sinsp_container_info::m_container_label_max_length = 100;
 
 sinsp_container_info::container_health_probe::container_health_probe()
 {
@@ -120,7 +120,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return &(m_mounts[idx]);
 }
 
-const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(std::string &source) const
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(const std::string& source) const
 {
 	// note: linear search
 	for (auto &mntinfo :m_mounts)
@@ -134,7 +134,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(std::string &dest) const
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(const std::string& dest) const
 {
 	// note: linear search
 	for (auto &mntinfo :m_mounts)

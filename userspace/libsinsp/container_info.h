@@ -282,8 +282,8 @@ public:
 	const std::vector<std::string>& get_env() const { return m_env; }
 
 	const container_mount_info *mount_by_idx(uint32_t idx) const;
-	const container_mount_info *mount_by_source(std::string &source) const;
-	const container_mount_info *mount_by_dest(std::string &dest) const;
+	const container_mount_info *mount_by_source(const std::string&) const;
+	const container_mount_info *mount_by_dest(const std::string&) const;
 
 	bool is_pod_sandbox() const {
 		return m_is_pod_sandbox;

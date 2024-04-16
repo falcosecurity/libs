@@ -47,7 +47,7 @@ public:
 	// The following methods are part of the filter check interface but are irrelevant
 	// for this class, because they are used only for the leaves of the filtering tree.
 	//
-	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) override
+	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override
 	{
 		return 0;
 	}
@@ -164,8 +164,8 @@ public:
 	virtual ~sinsp_filter_factory() = default;
 
 	virtual std::unique_ptr<sinsp_filter> new_filter() const;
-	
-	virtual std::unique_ptr<sinsp_filter_check> new_filtercheck(const char* fldname) const;
+
+	virtual std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const;
 
 	virtual std::list<filter_fieldclass_info> get_fields() const;
 
@@ -247,9 +247,9 @@ private:
 	void visit(const libsinsp::filter::ast::list_expr*) override;
 	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
-	cmpop str_to_cmpop(const std::string& str);
+	cmpop str_to_cmpop(std::string_view);
 	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
-	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string& field);
+	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string_view field);
 
 	libsinsp::filter::ast::pos_info m_pos;
 	bool m_expect_values;

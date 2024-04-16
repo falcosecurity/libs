@@ -74,21 +74,21 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_container::allocate_new()
 	return std::make_unique<sinsp_filter_check_container>();
 }
 
-int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t basepos)
+int32_t sinsp_filter_check_container::extract_arg(string_view val, size_t basepos)
 {
 	size_t start = val.find_first_of('[', basepos);
 	if(start == string::npos)
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	size_t end = val.find_first_of(']', start);
 	if(end == string::npos)
 	{
-		throw sinsp_exception("filter syntax error: " + val);
+		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
-	string numstr = val.substr(start + 1, end-start-1);
+	string numstr(val.substr(start + 1, end-start - 1));
 	try
 	{
 		m_argid = sinsp_numparser::parsed32(numstr);
@@ -112,9 +112,8 @@ const std::string &sinsp_filter_check_container::get_argstr() const
 	return m_argstr;
 }
 
-int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
+int32_t sinsp_filter_check_container::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
 {
-	string val(str);
 	int32_t res = 0;
 
 	size_t basepos = sizeof("container.mount");
@@ -146,7 +145,7 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 		}
 		else
 		{
-			throw sinsp_exception("filter syntax error: " + val);
+			throw sinsp_exception("filter syntax error: " + string(val));
 		}
 		m_field = &m_info.m_fields[m_field_id];
 
@@ -162,7 +161,7 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 	}
 	else
 	{
-		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
+		res = sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 
 	return res;
@@ -183,7 +182,7 @@ uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, OUT uint32
 
 	if(!tinfo->m_container_id.empty())
 	{
-		container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);	
+		container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 	}
 
 	switch(m_field_id)

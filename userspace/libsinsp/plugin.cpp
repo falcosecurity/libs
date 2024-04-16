@@ -100,7 +100,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		return nullptr;
 	}
 
-	std::shared_ptr<sinsp_plugin> plugin(new sinsp_plugin(handle, treg));
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
 		// plugin and handle get deleted here by shared_ptr
@@ -123,7 +123,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		return nullptr;
 	}
 
-	std::shared_ptr<sinsp_plugin> plugin(new sinsp_plugin(handle, treg));
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
 		// plugin and handle get deleted here by shared_ptr
