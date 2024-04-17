@@ -43,7 +43,7 @@ void sinsp_with_test_input::open_inspector(sinsp_mode_t mode) {
 	m_inspector.open_test_input(&m_test_data, mode);
 }
 
-scap_evt* sinsp_with_test_input::add_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
+scap_evt* sinsp_with_test_input::_add_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
 {
 	va_list args;
 	va_start(args, n);
@@ -65,7 +65,7 @@ sinsp_evt* sinsp_with_test_input::advance_ts_get_event(uint64_t ts)
 }
 
 // adds an event and advances the inspector to the new timestamp
-sinsp_evt* sinsp_with_test_input::add_event_advance_ts(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
+sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
 {
 	va_list args;
 	va_start(args, n);
