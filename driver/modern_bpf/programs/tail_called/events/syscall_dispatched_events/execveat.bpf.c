@@ -104,36 +104,21 @@ int BPF_PROG(execveat_x,
 		READ_TASK_FIELD_INTO(&arg_start_pointer, task, mm, arg_start);
 		READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
 
-		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		/* We need to extract the len of `exe` arg so we can undestand
-		 * the overall length of the remaining args.
-		 */
 		uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		/* Here we read the whole array starting from the pointer to the first
-		 * element. We could also read the array element per element but
-		 * since we know the total len we read it as a `bytebuf`.
-		 * The `\0` after every argument are preserved.
-		 */
-		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
+		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
+		auxmap__store_charbufarray_as_bytebuf(auxmap, arg_start_pointer + exe_arg_len,
+						      total_args_len - exe_arg_len, MAX_PROC_ARG_ENV - exe_arg_len);
 	}
 	else
 	{
-		/* This is a charbuf pointer array.
-		 * Every element of `argv` array is a pointer to a charbuf.
-		 * Here the first pointer points to `exe` param while all
-		 * the others point to the different args.
-		 */
 		unsigned long argv = extract__syscall_argument(regs, 2);
 
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		auxmap__store_execve_exe(auxmap, (char **)argv);
-
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		auxmap__store_execve_args(auxmap, (char **)argv, 1);
+		auxmap__store_exe_args_failure(auxmap, (char **)argv);
 	}
 
 	/* Parameter 4: tid (type: PT_PID) */
@@ -226,21 +211,15 @@ int BPF_PROG(t1_execveat_x,
 		READ_TASK_FIELD_INTO(&env_start_pointer, task, mm, env_start);
 		READ_TASK_FIELD_INTO(&env_end_pointer, task, mm, env_end);
 
-		unsigned long total_env_len = env_end_pointer - env_start_pointer;
-
 		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
-		/* Here we read all the array starting from the pointer to the first
-		 * element. We could also read the array element per element but
-		 * since we know the total len we read it as a `bytebuf`.
-		 * The `\0` after every argument are preserved.
-		 */
-		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len & (MAX_PROC_ARG_ENV - 1), USER);
+		auxmap__store_charbufarray_as_bytebuf(auxmap, env_start_pointer, env_end_pointer - env_start_pointer,
+						      MAX_PROC_ARG_ENV);
 	}
 	else
 	{
 		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 		unsigned long envp = extract__syscall_argument(regs, 3);
-		auxmap__store_execve_args(auxmap, (char **)envp, 0);
+		auxmap__store_env_failure(auxmap, (char **)envp);
 	}
 
 	/* Parameter 17: tty (type: PT_UID) */

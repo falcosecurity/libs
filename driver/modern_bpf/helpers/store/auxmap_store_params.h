@@ -339,30 +339,100 @@ static __always_inline uint16_t auxmap__store_bytebuf_param(struct auxiliary_map
 }
 
 /**
- * @brief Use `auxmap__store_execve_exe` when you have to store the
- * `exe` name from an execve-family syscall.
- * By convention, `exe` is `argv[0]`, this is the reason why here we pass the `argv` array.
+ * @brief This helper stores a char buffer array as a byte buffer into the auxmap.
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
- * @param array charbuf pointer array, obtained directly from the syscall (`argv`).
+ * @param start_pointer pointer where we start to read.
+ * @param len_to_read len that we can ideally read.
+ * @param max_len max len that we can read.
  */
-static __always_inline void auxmap__store_execve_exe(struct auxiliary_map *auxmap, char **array)
+static __always_inline void auxmap__store_charbufarray_as_bytebuf(struct auxiliary_map *auxmap, unsigned long start_pointer, uint16_t len_to_read, uint16_t max_len)
+{
+	/* Here we read an array of charbufs starting from a pointer. 
+	 * We could also read the array element per element but
+	 * since we know the total len we read it as a `bytebuf`.
+	 * Since this is an array of charbufs the `\0` after every argument are preserved.
+	 * We just need to add a final `\0` in case we args are too long and we have a partial
+	 * read. 
+	 */
+	if(len_to_read >= max_len)
+	{
+		len_to_read = max_len;
+	}
+
+	/* if `auxmap__store_bytebuf_param` returns 0 we will send an empty param.
+	 * we don't need the final `\0`.
+	 */
+	if(auxmap__store_bytebuf_param(auxmap, start_pointer, len_to_read, USER) > 0)
+	{
+		// maybe we read only part of the last argument so we need to put a `\0` at the end.
+		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
+	}
+}
+
+/**
+ * @brief This helper stores the exe + args in just one helper
+ * This is the unique helper that stores 2 different params (`exe` and `args`)
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param charbuf pointer array, obtained directly from the syscall (`argv`).
+ */
+static __always_inline void auxmap__store_exe_args_failure(struct auxiliary_map *auxmap, char **array)
 {
 	unsigned long charbuf_pointer = 0;
 	uint16_t exe_len = 0;
 
+	/* Here we read the pointer to `exe` and we store it */
 	if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[0]))
 	{
+		/* we cannot read the pointer so `exe` will be `0` */
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+	}
+	else
+	{
+		/* we push the `exe` as a separate arg. */
+		exe_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_EXE, USER);
 		push__param_len(auxmap->data, &auxmap->lengths_pos, exe_len);
-		return;
+	}
+	
+	/* Here we read the pointers to `args` and we store it.
+	 * `payload_pos` points after `exe`
+	 */
+	uint64_t initial_payload_pos = auxmap->payload_pos;
+	uint16_t args_len = 0;
+	/* Index 1 because we skip the `exe` */
+	for(uint8_t index = 1; index < MAX_CHARBUF_POINTERS; ++index)
+	{
+		if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[index]))
+		{
+			break;
+		}
+
+		if(!charbuf_pointer)
+		{
+			break;
+		}
+
+		args_len += push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_ARG_ENV, USER);
+
+		/* the sum of `exe` + `args` should be `<= MAX_PROC_ARG_ENV` */
+		if(args_len + exe_len >= MAX_PROC_ARG_ENV)
+		{
+			args_len = MAX_PROC_ARG_ENV - exe_len;
+			break;
+		}
 	}
 
-	exe_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_EXE, USER);
-	push__param_len(auxmap->data, &auxmap->lengths_pos, exe_len);
+	if(args_len > 0)
+	{
+		auxmap->payload_pos = initial_payload_pos + args_len;
+		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
+	}
+	push__param_len(auxmap->data, &auxmap->lengths_pos, args_len);
 }
 
 /**
- * @brief Use `auxmap__store_execve_args` when you have to store
+ * @brief Use `auxmap__store_env_failure` when you have to store
  * `argv` or `envp` params from an execve-family syscall.
  * You have to provide an index that states where to start
  * the charbuf collection. This is becuase with `argv` we want to avoid
@@ -374,16 +444,15 @@ static __always_inline void auxmap__store_execve_exe(struct auxiliary_map *auxma
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param array charbuf pointer array, obtained directly from the syscall (`argv` or `envp`).
- * @param index position at which we start to collect our charbufs.
  */
-static __always_inline void auxmap__store_execve_args(struct auxiliary_map *auxmap, char **array, uint16_t index)
+static __always_inline void auxmap__store_env_failure(struct auxiliary_map *auxmap, char **array)
 {
 	unsigned long charbuf_pointer = 0;
 	uint16_t arg_len = 0;
 	uint16_t total_len = 0;
 	uint64_t initial_payload_pos = auxmap->payload_pos;
 
-	for(; index < MAX_CHARBUF_POINTERS; ++index)
+	for(uint8_t index = 0; index < MAX_CHARBUF_POINTERS; ++index)
 	{
 		if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[index]))
 		{

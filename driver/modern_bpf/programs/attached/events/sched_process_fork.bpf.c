@@ -64,8 +64,6 @@ int BPF_PROG(sched_p_fork,
 	READ_TASK_FIELD_INTO(&arg_start_pointer, child, mm, arg_start);
 	READ_TASK_FIELD_INTO(&arg_end_pointer, child, mm, arg_end);
 
-	unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-
 	/* Parameter 2: exe (type: PT_CHARBUF) */
 	/* We need to extract the len of `exe` arg so we can understand
 	 * the overall length of the remaining args.
@@ -73,12 +71,9 @@ int BPF_PROG(sched_p_fork,
 	uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-	/* Here we read the whole array starting from the pointer to the first
-	 * element. We could also read the array element per element but
-	 * since we know the total len we read it as a `bytebuf`.
-	 * The `\0` after every argument is preserved.
-	 */
-	auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
+	unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
+	auxmap__store_charbufarray_as_bytebuf(auxmap, arg_start_pointer + exe_arg_len,
+						      total_args_len - exe_arg_len, MAX_PROC_ARG_ENV - exe_arg_len);
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
