@@ -723,106 +723,102 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
 #endif
 
 /* Takes in a NULL-terminated array of pointers to strings in userspace, and
- * concatenates them to a single \0-separated string. Return the length of this
- * string, or <0 on error */
-int accumulate_argv_or_env(const char __user * __user *argv,
-				  char *str_storage,
-				  int available)
+ * concatenates them to a single \0-separated string. Return the length of these
+ * strings with the final '\0' included.
+ */
+int accumulate_argv_or_env(const void __user * argv,
+				  char *str_storage)
 {
 	int len = 0;
-	int n_bytes_copied;
-
-	if (argv == NULL)
-		return len;
+	int ret = 0;
+	const char __user *p;
 
 	for (;;) {
-		const char __user *p;
+
+		if (argv == NULL)
+			break;
 
 		if (unlikely(ppm_get_user(p, argv)))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+		{
+			/* We return what we read until now */
+			break;
+		}
 
 		if (p == NULL)
 			break;
 
-		/* need at least enough space for a \0 */
-		if (available < 1)
-			return PPM_FAILURE_BUFFER_FULL;
+		/* ppm_strncpy_from_user includes the trailing \0 */
+		ret = ppm_strncpy_from_user(&str_storage[len], p,
+						       STR_STORAGE_SIZE-len);
+		if(ret < 0)
+		{
+			/* We ignore the failed read. We will try to read from the same position in
+			 * the next iteration.
+			 */
+			ret = 0;
+		}
 
-		n_bytes_copied = ppm_strncpy_from_user(&str_storage[len], p,
-						       available);
+		len += ret;
+		if(len >= STR_STORAGE_SIZE)
+		{
+			len = STR_STORAGE_SIZE;
+			break;
+		}
 
-		/* ppm_strncpy_from_user includes the trailing \0 in its return
-		 * count. I want to pretend it was strncpy_from_user() so I
-		 * subtract off the 1 */
-		n_bytes_copied--;
-
-		if (n_bytes_copied < 0)
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		if (n_bytes_copied >= available)
-			return PPM_FAILURE_BUFFER_FULL;
-
-		/* update buffer. I want to keep the trailing \0, so I +1 */
-		available   -= n_bytes_copied+1;
-		len         += n_bytes_copied+1;
-
-		argv++;
+		argv += sizeof(argv);
 	}
 
+	str_storage[len-1] = '\0';
 	return len;
 }
 
 #ifdef CONFIG_COMPAT
 /* compat version that deals correctly with 32bits pointers of argv */
-static int compat_accumulate_argv_or_env(compat_uptr_t argv,
-				  char *str_storage,
-				  int available)
+int compat_accumulate_argv_or_env(compat_uptr_t argv,
+				  char *str_storage)
 {
 	int len = 0;
-	int n_bytes_copied;
-
-	if (compat_ptr(argv) == NULL)
-		return len;
-
+	int ret = 0;
+	const char __user *p;
 	for (;;) {
-		compat_uptr_t compat_p;
-		const char __user *p;
+		compat_uptr_t compat_p = 0;
+
+		if (compat_ptr(argv) == NULL)
+			break;
 
 		if (unlikely(ppm_get_user(compat_p, compat_ptr(argv))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+		{
+			/* We return what we read until now */
+			break;
+		}
 		p = compat_ptr(compat_p);
-
 		if (p == NULL)
 			break;
 
-		/* need at least enough space for a \0 */
-		if (available < 1)
-			return PPM_FAILURE_BUFFER_FULL;
-
-		n_bytes_copied = ppm_strncpy_from_user(&str_storage[len], p,
-						       available);
-
-		/* ppm_strncpy_from_user includes the trailing \0 in its return
-		 * count. I want to pretend it was strncpy_from_user() so I
-		 * subtract off the 1 */
-		n_bytes_copied--;
-
-		if (n_bytes_copied < 0) {
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+		/* ppm_strncpy_from_user includes the trailing \0 */
+		ret = ppm_strncpy_from_user(&str_storage[len], p,
+						       STR_STORAGE_SIZE-len);
+		if(ret < 0)
+		{
+			/* We ignore the failed read. We will try to read from the same position in
+			 * the next iteration.
+			 */
+			ret = 0;
 		}
-		if (n_bytes_copied >= available)
-			return PPM_FAILURE_BUFFER_FULL;
 
-		/* update buffer. I want to keep the trailing \0, so I +1 */
-		available   -= n_bytes_copied+1;
-		len         += n_bytes_copied+1;
+		len += ret;
+		if(len >= STR_STORAGE_SIZE)
+		{
+			len = STR_STORAGE_SIZE;
+			break;
+		}
 
-		argv += sizeof(compat_uptr_t);
+		argv += sizeof(argv);
 	}
 
+	str_storage[len-1] = '\0';
 	return len;
 }
-
 #endif
 
 static uint32_t ppm_get_tty(void)
@@ -991,8 +987,8 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 			args_len = mm->arg_end - mm->arg_start;
 
 			if (args_len) {
-				if (args_len > PAGE_SIZE)
-					args_len = PAGE_SIZE;
+				if (args_len > STR_STORAGE_SIZE)
+					args_len = STR_STORAGE_SIZE;
 
 				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
 					args_len = 0;
@@ -1002,7 +998,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 		} else {
 
 			/*
-			 * The execve or execveat call failed. I get exe, args from the
+			 * The execve or execveat call failed. We get exe, args from the
 			 * input args; put one \0-separated exe-args string into
 			 * str_storage
 			 */
@@ -1025,20 +1021,18 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 #ifdef CONFIG_COMPAT
 			if (unlikely(args->compat))
 				args_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
-							   args->str_storage, available);
+							   args->str_storage);
 			else
 #endif
-				args_len = accumulate_argv_or_env((const char __user * __user *)val,
-							   args->str_storage, available);
-
-			if (unlikely(args_len < 0))
-				args_len = 0;
+				args_len = accumulate_argv_or_env((const char __user *)val,
+							   args->str_storage);
 		}
 
 		if (args_len == 0)
 			*args->str_storage = 0;
 
 		exe_len = strnlen(args->str_storage, args_len);
+		// we add the `\0` terminator
 		if (exe_len < args_len)
 			++exe_len;
 
@@ -1301,8 +1295,8 @@ cgroups_error:
 			env_len = mm->env_end - mm->env_start;
 
 			if (env_len) {
-				if (env_len > PAGE_SIZE)
-					env_len = PAGE_SIZE;
+				if (env_len > STR_STORAGE_SIZE)
+					env_len = STR_STORAGE_SIZE;
 
 				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, env_len)))
 					env_len = 0;
@@ -1326,18 +1320,15 @@ cgroups_error:
 			default:
 				val = 0;
 				break;
-			} 
+			}
 #ifdef CONFIG_COMPAT
 			if (unlikely(args->compat))
 				env_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
-							  args->str_storage, available);
+							  args->str_storage);
 			else
 #endif
-				env_len = accumulate_argv_or_env((const char __user * __user *)val,
-							  args->str_storage, available);
-
-			if (unlikely(env_len < 0))
-				env_len = 0;
+				env_len = accumulate_argv_or_env((const char __user *)val,
+							  args->str_storage);
 		}
 
 		if (env_len == 0)
@@ -7315,9 +7306,9 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	/* the combined length of the arguments string + executable string. */
 	args_len = mm->arg_end - mm->arg_start;
 
-	if(args_len > PAGE_SIZE)
+	if(args_len > STR_STORAGE_SIZE)
 	{
-		args_len = PAGE_SIZE;
+		args_len = STR_STORAGE_SIZE;
 	}
 
 	correctly_read = ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len);
@@ -7418,9 +7409,9 @@ cgroups_error:
 	CHECK_RES(res);
 
 	env_len = mm->env_end - mm->env_start;
-	if(env_len > PAGE_SIZE)
+	if(env_len > STR_STORAGE_SIZE)
 	{
-		env_len = PAGE_SIZE;
+		env_len = STR_STORAGE_SIZE;
 	}
 
 	correctly_read = ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, env_len);
@@ -7669,9 +7660,9 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	/* the combined length of the arguments string + executable string. */
 	args_len = mm->arg_end - mm->arg_start;
 
-	if(args_len > PAGE_SIZE)
+	if(args_len > STR_STORAGE_SIZE)
 	{
-		args_len = PAGE_SIZE;
+		args_len = STR_STORAGE_SIZE;
 	}
 
 	correctly_read = ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len);
@@ -7687,6 +7678,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	}
 
 	exe_len = strnlen(args->str_storage, args_len);
+	// we add the `\0` terminator
 	if(exe_len < args_len)
 	{
 		++exe_len;
