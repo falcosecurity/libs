@@ -43,9 +43,111 @@ protected:
 	sinsp m_inspector;
 
 	void open_inspector(sinsp_mode_t mode = SINSP_MODE_TEST);
-	scap_evt* add_event(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, ...);
+
+	template <class ... Ts>
+	void _check_event_params(const char *filename, int lineno, ppm_event_code event_type, uint32_t n, Ts && ... inputs)
+	{
+		uint32_t i = 0;
+		std::string prefix = std::string(filename) + ":" + std::to_string(lineno) + " | ";
+		// This check is mostly needed to avoid the unused warning when n is 0
+		// and therefore the lambda below would never run, leaving us with event_type unused.
+		if (event_type < 0 || event_type > PPM_EVENT_MAX)
+		{
+			throw std::runtime_error(prefix+"wrong event type: " + std::to_string(event_type));
+		}
+		([&]
+		 {
+			 const struct ppm_event_info *event_info = &scap_get_event_info_table()[event_type];
+			 const struct ppm_param_info *pi = &event_info->params[i];
+			 switch(pi->type)
+			 {
+			 case PT_INT8:
+			 case PT_UINT8:
+			 case PT_FLAGS8:
+			 case PT_SIGTYPE:
+			 case PT_L4PROTO:
+			 case PT_SOCKFAMILY:
+			 case PT_ENUMFLAGS8:
+				 if (sizeof(inputs) != 1)
+				 {
+					 throw std::runtime_error(prefix+"wrong sized argument " +
+								  std::to_string(i) + " passed; expected: 1B, received: " +
+								  std::to_string(sizeof(inputs)) + "B");
+				 }
+				 break;
+
+			 case PT_INT16:
+			 case PT_UINT16:
+			 case PT_SYSCALLID:
+			 case PT_PORT:
+			 case PT_FLAGS16:
+			 case PT_ENUMFLAGS16:
+				 if (sizeof(inputs) != 2)
+				 {
+					 throw std::runtime_error(prefix+"wrong sized argument " +
+									std::to_string(i) + " passed; expected: 2B, received: " +
+								  	std::to_string(sizeof(inputs)) + "B");
+				 }
+				 break;
+
+			 case PT_INT32:
+			 case PT_UINT32:
+			 case PT_BOOL:
+			 case PT_IPV4ADDR:
+			 case PT_UID:
+			 case PT_GID:
+			 case PT_FLAGS32:
+			 case PT_SIGSET:
+			 case PT_MODE:
+			 case PT_ENUMFLAGS32:
+				 if (sizeof(inputs) != 4)
+				 {
+					 throw std::runtime_error(prefix+"wrong sized argument " +
+								  std::to_string(i) + " passed; expected: 4B, received: " +
+								  std::to_string(sizeof(inputs)) + "B");
+				 }
+				 break;
+
+			 case PT_INT64:
+			 case PT_UINT64:
+			 case PT_ERRNO:
+			 case PT_FD:
+			 case PT_PID:
+			 case PT_RELTIME:
+			 case PT_ABSTIME:
+			 case PT_DOUBLE:
+				 if (sizeof(inputs) != 8)
+				 {
+					 throw std::runtime_error(prefix+"wrong sized argument " +
+								  std::to_string(i) + " passed; expected: 8B, received: " +
+								  std::to_string(sizeof(inputs)) + "B");
+				 }
+				 break;
+			 default:
+				 // we only assert integer-like arguments that are the most common failures.
+				 break;
+			 }
+			 i++;
+		 } (), ...);
+		if (i != n)
+		{
+			throw std::runtime_error(prefix+"wrong number of arguments: specified " +
+						 std::to_string(n) + " but passed: " + std::to_string(i));
+		}
+	}
+
+#define add_event(ts, tid, code, n, ...) \
+        			_add_event(ts, tid, code, n, ##__VA_ARGS__); \
+ 				_check_event_params(__FILE__, __LINE__, code, n, ##__VA_ARGS__)
+
+	scap_evt* _add_event(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, ...);
 	sinsp_evt* advance_ts_get_event(uint64_t ts);
-	sinsp_evt* add_event_advance_ts(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, ...);
+
+#define add_event_advance_ts(ts, tid, code, n, ...) \
+                        	_add_event_advance_ts(ts, tid, code, n, ##__VA_ARGS__); \
+				_check_event_params(__FILE__, __LINE__, code, n, ##__VA_ARGS__)
+
+	sinsp_evt* _add_event_advance_ts(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, ...);
 	sinsp_evt* add_event_advance_ts_v(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, va_list args);
 	scap_evt* create_event_v(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, va_list args);
 	scap_evt* add_event_v(uint64_t ts, uint64_t tid, ppm_event_code, uint32_t n, va_list args);
