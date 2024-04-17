@@ -731,7 +731,7 @@ int accumulate_argv_or_env(const void __user * argv,
 {
 	int len = 0;
 	int ret = 0;
-	const char __user *p;
+	const char __user * p = NULL;
 
 	for (;;) {
 
@@ -768,7 +768,14 @@ int accumulate_argv_or_env(const void __user * argv,
 		argv += sizeof(argv);
 	}
 
-	str_storage[len-1] = '\0';
+	if(len>0)
+	{
+		str_storage[len-1] = '\0';
+	}
+	else
+	{
+		str_storage[0] = '\0';
+	}
 	return len;
 }
 
@@ -779,7 +786,7 @@ int compat_accumulate_argv_or_env(compat_uptr_t argv,
 {
 	int len = 0;
 	int ret = 0;
-	const char __user *p;
+	const char __user *p = NULL;
 	for (;;) {
 		compat_uptr_t compat_p = 0;
 
@@ -816,7 +823,14 @@ int compat_accumulate_argv_or_env(compat_uptr_t argv,
 		argv += sizeof(argv);
 	}
 
-	str_storage[len-1] = '\0';
+	if(len>0)
+	{
+		str_storage[len-1] = '\0';
+	}
+	else
+	{
+		str_storage[0] = '\0';
+	}
 	return len;
 }
 #endif

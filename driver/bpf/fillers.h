@@ -1929,6 +1929,13 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 	*args_len = 0;
 	off = data->state->tail_ctx.curoff;
 
+	if(argv == NULL)
+	{
+		// we need to put a `\0` otherwise we could read junk data
+		data->buf[off & SCRATCH_SIZE_HALF] = '\0';
+		return PPM_SUCCESS;
+	}
+
 	#pragma unroll
 	for (j = 0; j < FAILED_ARGS_ENV_ITEMS_MAX; ++j) {
 		arg = _READ_USER(argv[j]);
