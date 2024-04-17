@@ -119,6 +119,7 @@ using namespace std;
 // clang-format off
 sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 	: m_import_users(true)
+	, m_user_details_enabled(true)
 	, m_last_flush_time_ns(0)
 	, m_inspector(inspector)
 	, m_host_root(m_inspector->get_host_root())

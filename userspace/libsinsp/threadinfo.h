@@ -65,6 +65,78 @@ struct erase_fd_params
 class SINSP_PUBLIC sinsp_threadinfo : public libsinsp::state::table_entry
 {
 public:
+	class sinsp_userinfo
+	{
+	public:
+		sinsp_userinfo() {
+			m_uid = 0xffffffff;
+			m_gid = 0xffffffff;
+		}
+		uint32_t uid() const { return m_uid; }
+		uint32_t gid() const { return m_gid; }
+		std::string name() const {
+			if (m_name.empty())
+			{
+				return (m_uid == 0) ? "root" : "<NA>";
+			}
+			else
+			{
+				return m_name;
+			}
+		};
+		std::string homedir() const {
+			if (m_homedir.empty())
+			{
+				return (m_uid == 0) ? "/root" : "<NA>";
+			}
+			else
+			{
+				return m_homedir;
+			}
+		};
+		std::string shell() const { return m_shell.empty() ? "<NA>" : m_shell; };
+
+		void set_uid(uint32_t uid) { m_uid = uid; };
+		void set_gid(uint32_t gid) { m_gid = gid; };
+		void set_name(char *name, size_t length) { m_name.assign(name, length); };
+		void set_homedir(char *homedir, size_t length) { m_homedir.assign(homedir, length); };
+		void set_shell(char *shell, size_t length) { m_shell.assign(shell, length); };
+
+	private:
+		uint32_t m_uid; ///< User ID
+		uint32_t m_gid; ///< Group ID
+		std::string m_name; ///< Username
+		std::string m_homedir; ///< Home directory
+		std::string m_shell; ///< Shell program
+	};
+
+
+	class sinsp_groupinfo
+	{
+	public:
+		sinsp_groupinfo() {
+			m_gid = 0xffffffff;
+		}
+		uint32_t gid() const { return m_gid; };
+		std::string name() const {
+			if (m_name.empty())
+			{
+				return (m_gid == 0) ? "root" : "<NA>";
+			}
+			else
+			{
+				return m_name;
+			}
+		};
+
+		void set_gid(uint32_t gid) { m_gid = gid; };
+		void set_name(char *name, size_t length) { m_name.assign(name, length); };
+	private:
+		uint32_t m_gid; ///< Group ID
+		std::string m_name; ///< Group name
+	};
+
+
 	sinsp_threadinfo(
 		sinsp *inspector = nullptr,
 		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
@@ -431,9 +503,9 @@ public:
 	std::string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
-	scap_userinfo m_user; ///< user infos
-	scap_userinfo m_loginuser; ///< loginuser infos (auid)
-	scap_groupinfo m_group; ///< group infos
+	sinsp_userinfo m_user; ///< user infos
+	sinsp_userinfo m_loginuser; ///< loginuser infos (auid)
+	sinsp_groupinfo m_group; ///< group infos
 	uint64_t m_cap_permitted; ///< permitted capabilities
 	uint64_t m_cap_effective; ///< effective capabilities
 	uint64_t m_cap_inheritable; ///< inheritable capabilities

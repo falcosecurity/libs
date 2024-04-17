@@ -43,4 +43,6 @@ protected:
 
 private:
 	int64_t m_s64val;
+	uint32_t m_uid;
+	std::string m_strval;
 };
