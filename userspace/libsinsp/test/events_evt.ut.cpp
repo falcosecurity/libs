@@ -41,7 +41,7 @@ TEST_F(sinsp_with_test_input, event_category)
 	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "2");
 
 	/* Check that `EC_TRACEPOINT` category is not considered */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PROCEXIT_1_E, 4, test_errno, test_errno, 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PROCEXIT_1_E, 4, test_errno, test_errno, (uint8_t)0, (uint8_t)0);
 	ASSERT_EQ(evt->get_category(), EC_PROCESS);
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "process");
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);

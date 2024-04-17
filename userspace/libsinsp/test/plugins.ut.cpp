@@ -168,7 +168,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 
 	// should extract legit values for non-ignored event codes
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
-	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, (uint64_t)6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
@@ -191,7 +191,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 
 	// should extract NULL for ignored event codes
 	// `PPME_SYSCALL_OPEN_BY_HANDLE_AT_X` is an ignored event, see plugin_get_extract_event_types
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, (uint64_t)4, (uint64_t)5, PPM_O_RDWR, "/tmp/the_file.txt");
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_BY_HANDLE_AT_X);
@@ -204,7 +204,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	// should extract NULL for unknown event sources
 	const char data[2048] = "hello world";
 	/* There are no added plugins with id `1` */
-	uint64_t unknwon_plugin_id = 1;
+	uint32_t unknwon_plugin_id = 1;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, unknwon_plugin_id, scap_const_sized_buffer{&data, strlen(data) + 1});
 	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
 	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
@@ -217,7 +217,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 
 	// should extract NULL for non-compatible event sources
 	/* This source plugin generate events with a source that we cannot extract with our plugin */
-	uint64_t source_plugin_id = 999;
+	uint32_t source_plugin_id = 999;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, source_plugin_id, scap_const_sized_buffer{&data, strlen(data) + 1});
 	ASSERT_EQ(evt->get_source_idx(), 1);
 	ASSERT_EQ(std::string(evt->get_source_name()), std::string("sample"));
@@ -412,7 +412,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_parse)
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	// should extract NULL for ignored event codes, but should still parse it (because the parsing plugin does not ignore it)
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, (uint64_t)4, (uint64_t)5, PPM_O_RDWR, "/tmp/the_file.txt");
 	ASSERT_FALSE(field_has_value(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_has_value(evt, "sample.evt_count", pl_flist));
 	ASSERT_FALSE(field_has_value(evt, "sample.tick", pl_flist));
