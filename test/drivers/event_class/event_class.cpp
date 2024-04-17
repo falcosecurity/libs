@@ -20,6 +20,7 @@ static_assert(sizeof(cgroup_prefix_array) / sizeof(*cgroup_prefix_array) == CGRO
 
 /* Messages. */
 #define VALUE_NOT_CORRECT ">>>>> value of the param is not correct. Param id = "
+#define LEN_NOT_CORRECT ">>>>> len of the param is not correct. Param id = "
 #define VALUE_NOT_ZERO ">>>>> value of the param must not be zero. Param id = "
 
 extern const syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
@@ -592,6 +593,7 @@ void event_test::assert_charbuf_array_param(int param_num, const char** param)
 			break;
 		}
 		/* We can use `STREQ` because every `charbuf` is `\0` terminated. */
+		ASSERT_EQ(strlen(m_event_params[m_current_param].valptr + total_len), strlen(param[index]))  << LEN_NOT_CORRECT << m_current_param << std::endl;
 		ASSERT_STREQ(m_event_params[m_current_param].valptr + total_len, param[index]) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 		total_len += strlen(param[index]) + 1;
 	}
