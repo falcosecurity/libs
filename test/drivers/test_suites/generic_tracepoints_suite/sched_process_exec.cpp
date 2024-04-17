@@ -14,10 +14,18 @@ TEST(GenericTracepoints, sched_proc_exec)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Prepare the execve args */
-	const char *pathname = "/usr/bin/echo";
-	const char *comm = "echo";
-	const char *argv[] = {pathname, "[OUTPUT] GenericTracepoints.sched_proc_exec test", NULL};
-	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
+	const char *pathname = "/usr/bin/true";
+	const char *comm = "true";
+
+	std::string too_long_arg (4096, 'x');
+	const char *newargv[] = {pathname, "", "first_argv", "", too_long_arg.c_str(), "second_argv", NULL};
+	std::string truncated_too_long_arg (4096 - (strlen(pathname)+1) - (strlen("first_argv")+1) - 2*(strlen("")+1) - 1, 'x');
+	const char *expected_newargv[] = {pathname, "", "first_argv", "", truncated_too_long_arg.c_str(), NULL};
+
+	const char *newenviron[] = {"IN_TEST=yes", "3_ARGUMENT=yes", too_long_arg.c_str(), "2_ARGUMENT=no", NULL};
+	std::string truncated_too_long_env (4096 - (strlen("IN_TEST=yes")+1) - (strlen("3_ARGUMENT=yes")+1) - 1, 'x');
+	const char *expected_newenviron[] = {"IN_TEST=yes", "3_ARGUMENT=yes", truncated_too_long_env.c_str(), NULL};
+
 
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
@@ -28,7 +36,7 @@ TEST(GenericTracepoints, sched_proc_exec)
 
 	if(ret_pid == 0)
 	{
-		syscall(__NR_execve, pathname, argv, envp);
+		syscall(__NR_execve, pathname, newargv, newenviron);
 		exit(EXIT_FAILURE);
 	}
 
@@ -72,7 +80,7 @@ TEST(GenericTracepoints, sched_proc_exec)
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	/* Starting from `1` because the first is `exe`. */
-	evt_test->assert_charbuf_array_param(3, &argv[1]);
+	evt_test->assert_charbuf_array_param(3, &expected_newargv[1]);
 
 	/* Parameter 4: tid (type: PT_PID) */
 	evt_test->assert_numeric_param(4, (int64_t)ret_pid);
@@ -92,7 +100,7 @@ TEST(GenericTracepoints, sched_proc_exec)
 	evt_test->assert_charbuf_param(14, comm);
 
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
-	evt_test->assert_charbuf_array_param(16, &envp[0]);
+	evt_test->assert_charbuf_array_param(16, &expected_newenviron[0]);
 
 	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
 	 * file that is used to spawn it or is its owner or otherwise capable.
