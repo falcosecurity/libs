@@ -261,7 +261,7 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	{
 		std::string test_context = std::string("creat with filename ") + test_utils::describe_string(enter_filename);
 
-		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 3, NULL, 0);
+		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 2, NULL, 0);
 		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_X, 5, new_fd, expected_string, 0, 0, (uint64_t) 0);
 
 		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;

@@ -170,7 +170,7 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	sinsp_evt* evt = NULL;
 
 	int64_t fd = 5;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, (uint64_t)-1, NULL, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, (uint64_t)-1, 0, (uint8_t)0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
@@ -184,14 +184,14 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "2");
 
 	fd = 6;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_E, 2, 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_E, 2, (uint8_t)0, (uint8_t)0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "timerfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "t");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "6");
 
 	fd = 7;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, (uint8_t)0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
@@ -251,7 +251,7 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, (uint64_t)0, (uint16_t)45);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, (uint64_t)0, (uint32_t)45);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 1, (int64_t)34);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "event");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "e");
@@ -460,7 +460,7 @@ TEST_F(sinsp_with_test_input, eventfd)
 	open_inspector();
 	sinsp_evt* evt = NULL;
 	int64_t res = 21;
-	uint16_t flags = 6;
+	uint32_t flags = 6;
 	uint64_t initval = 0;
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, initval, flags);
