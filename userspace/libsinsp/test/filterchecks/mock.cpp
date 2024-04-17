@@ -360,6 +360,7 @@ TEST(mock_filtercheck_compare, rhs_filter_EPF_NO_RHS_flag)
 	}
 }
 
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 TEST_F(sinsp_with_test_input, check_some_fd_fields)
 {
 	add_default_init_thread();
@@ -422,6 +423,7 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields)
 		ASSERT_ANY_THROW(chk->add_filter_value(create_filtercheck_from_field(&m_inspector, "fd.types")));
 	}
 }
+#endif // !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 
 /////////////////////
 // TRANSFORMERS
