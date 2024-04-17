@@ -169,6 +169,101 @@ TEST(SyscallExit, execveX_failure)
 	evt_test->assert_num_params_pushed(28);
 }
 
+TEST(SyscallExit, execveX_failure_args_env_NULL)
+{
+	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	char pathname[] = "//args_env_NULL//";
+	assert_syscall_state(SYSCALL_FAILURE, "execve", syscall(__NR_execve, pathname, NULL, NULL));
+	int64_t errno_value = -errno;
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO)*/
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	/* exe is taken from the args and not from the pathname. */
+	evt_test->assert_charbuf_param(2, "");
+
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+	evt_test->assert_empty_param(3);
+
+	/* Parameter 16: env (type: PT_CHARBUFARRAY) */	
+	evt_test->assert_empty_param(16);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(28);
+}
+
+TEST(SyscallExit, execveX_failure_path_NULL_but_not_args)
+{
+	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	char pathname[] = "//path_NULL_but_not_args//";
+	const char *newargv[] = {"", NULL};
+	const char *newenviron[] = {"", NULL};
+	assert_syscall_state(SYSCALL_FAILURE, "execve", syscall(__NR_execve, pathname, newargv, newenviron));
+	int64_t errno_value = -errno;
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO)*/
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(2, "");
+
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+	evt_test->assert_empty_param(3);
+
+	/* Parameter 16: env (type: PT_CHARBUFARRAY) */	
+	evt_test->assert_charbuf_array_param(16, &newenviron[0]);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(28);
+}
+
 TEST(SyscallExit, execveX_success)
 {
 	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);

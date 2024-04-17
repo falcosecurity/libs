@@ -382,6 +382,18 @@ static __always_inline void auxmap__store_exe_args_failure(struct auxiliary_map 
 	unsigned long charbuf_pointer = 0;
 	uint16_t exe_len = 0;
 
+	if(array == NULL)
+	{
+		/* We need to store both the exe and the args.
+		 * To be compliant with other drivers we send an empty string as exe not a param with len==0.
+		 */
+		push__new_character(auxmap->data, &auxmap->payload_pos, '\0');
+		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(char));
+
+		auxmap__store_empty_param(auxmap);
+		return;
+	}
+
 	/* Here we read the pointer to `exe` and we store it */
 	if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[0]))
 	{
@@ -451,6 +463,12 @@ static __always_inline void auxmap__store_env_failure(struct auxiliary_map *auxm
 	uint16_t arg_len = 0;
 	uint16_t total_len = 0;
 	uint64_t initial_payload_pos = auxmap->payload_pos;
+
+	if(array == NULL)
+	{
+		auxmap__store_empty_param(auxmap);
+		return;
+	}
 
 	for(uint8_t index = 0; index < MAX_CHARBUF_POINTERS; ++index)
 	{
