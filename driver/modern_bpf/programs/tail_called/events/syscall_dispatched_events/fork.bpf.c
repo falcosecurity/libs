@@ -88,21 +88,13 @@ int BPF_PROG(fork_x,
 		READ_TASK_FIELD_INTO(&arg_start_pointer, task, mm, arg_start);
 		READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
 
-		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		/* We need to extract the len of `exe` arg so we can undestand
-		 * the overall length of the remaining args.
-		 */
 		uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		/* Here we read all the array starting from the pointer to the first
-		 * element. We could also read the array element per element but
-		 * since we know the total len we read it as a `bytebuf`.
-		 * The `\0` after every argument are preserved.
-		 */
-		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
+		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
+		auxmap__store_charbufarray_as_bytebuf(auxmap, arg_start_pointer + exe_arg_len,
+						      total_args_len - exe_arg_len, MAX_PROC_ARG_ENV - exe_arg_len);
 	}
 	else
 	{
