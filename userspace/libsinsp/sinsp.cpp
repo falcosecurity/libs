@@ -302,9 +302,10 @@ void sinsp::init()
 	m_inited = true;
 }
 
-void sinsp::set_import_users(bool import_users)
+void sinsp::set_import_users(bool import_users, bool user_details)
 {
 	m_usergroup_manager.m_import_users = import_users;
+	m_usergroup_manager.m_user_details_enabled = user_details;
 }
 
 /*=============================== OPEN METHODS ===============================*/

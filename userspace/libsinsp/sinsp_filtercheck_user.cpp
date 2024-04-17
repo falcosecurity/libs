@@ -32,14 +32,6 @@ using namespace std;
         return (uint8_t*) (x).c_str(); \
 } while(0)
 
-#define RETURN_EXTRACT_CSTR(x) do {             \
-        if((x))                                 \
-        {                                       \
-                *len = strlen((char *) ((x)));  \
-        }                                       \
-        return (uint8_t*) ((x));                \
-} while(0)
-
 static const filtercheck_field_info sinsp_filter_check_user_fields[] =
 {
 	{PT_UINT32, EPF_NONE, PF_ID, "user.uid", "User ID", "user ID."},
@@ -92,22 +84,27 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt *evt, OUT uint32_t* l
 	switch(m_field_id)
 	{
 	case TYPE_UID:
-		RETURN_EXTRACT_VAR(tinfo->m_user.uid);
+		m_uid = tinfo->m_user.uid();
+		RETURN_EXTRACT_VAR(m_uid);
 	case TYPE_NAME:
-		RETURN_EXTRACT_CSTR(tinfo->m_user.name);
+		m_strval = tinfo->m_user.name();
+		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_HOMEDIR:
-		RETURN_EXTRACT_CSTR(tinfo->m_user.homedir);
+		m_strval = tinfo->m_user.homedir();
+		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_SHELL:
-		RETURN_EXTRACT_CSTR(tinfo->m_user.shell);
+		m_strval = tinfo->m_user.shell();
+		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_LOGINUID:
 		m_s64val = (int64_t)-1;
-		if(tinfo->m_loginuser.uid < UINT32_MAX)
+		if(tinfo->m_loginuser.uid() < UINT32_MAX)
 		{
-			m_s64val = (int64_t)tinfo->m_loginuser.uid;
+			m_s64val = (int64_t)tinfo->m_loginuser.uid();
 		}
 		RETURN_EXTRACT_VAR(m_s64val);
 	case TYPE_LOGINNAME:
-		RETURN_EXTRACT_CSTR(tinfo->m_loginuser.name);
+		m_strval = tinfo->m_loginuser.name();
+		RETURN_EXTRACT_STRING(m_strval);
 	default:
 		ASSERT(false);
 		break;
