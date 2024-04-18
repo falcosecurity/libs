@@ -61,7 +61,7 @@ or GPL2.txt for full copies of the license.
  * been introduced in the following kernel release:
  * https://github.com/torvalds/linux/commit/0a16b6075843325dc402edf80c1662838b929aff
  */
-#if defined(CONFIG_ARM64) || defined(CONFIG_S390) || defined(CONFIG_RISCV)
+#if defined(CONFIG_ARM64) || defined(CONFIG_S390) || defined(CONFIG_RISCV) || defined(CONFIG_LOONGARCH)
 	#define CAPTURE_SCHED_PROC_FORK 
 #endif
 
@@ -156,7 +156,7 @@ or GPL2.txt for full copies of the license.
 // CAPTURE_SCHED_PROC_FORK 
 ///////////////////////////////
 
-#if defined(__TARGET_ARCH_arm64) || defined(__TARGET_ARCH_s390) || defined(__TARGET_ARCH_riscv)
+#if defined(__TARGET_ARCH_arm64) || defined(__TARGET_ARCH_s390) || defined(__TARGET_ARCH_riscv) || defined(__TARGET_ARCH_loongarch64)
 	#define CAPTURE_SCHED_PROC_FORK 
 #endif
 
@@ -178,7 +178,7 @@ or GPL2.txt for full copies of the license.
 // CAPTURE_64BIT_ARGS_SINGLE_REGISTER 
 ///////////////////////////////
 
-#if defined(__x86_64__) || defined(__aarch64__)
+#if defined(__x86_64__) || defined(__aarch64__) || defined(__loongarch64)
 	#define CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #endif 
 
@@ -206,7 +206,7 @@ or GPL2.txt for full copies of the license.
 // CAPTURE_SCHED_PROC_FORK 
 ///////////////////////////////
 
-#if defined(__aarch64__) || defined(__s390x__) || defined(__riscv)
+#if defined(__aarch64__) || defined(__s390x__) || defined(__riscv) || defined(__loongarch64)
 	#define CAPTURE_SCHED_PROC_FORK 
 #endif
 

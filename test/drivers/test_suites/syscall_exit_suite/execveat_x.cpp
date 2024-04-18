@@ -211,7 +211,7 @@ TEST(SyscallExit, execveatX_correct_exit)
 
 	evt_test->disable_capture();
 
-#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__)
+#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__) || defined(__loongarch64)
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
 
@@ -338,7 +338,7 @@ TEST(SyscallExit, execveatX_execve_exit)
 	evt_test->disable_capture();
 
 /* `s390x` returns an `EXECVEAT_X` event while other architectures retun an `EXECVE_X` */
-#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__)
+#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__) || defined(__loongarch64)
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
 #else
@@ -494,7 +494,7 @@ TEST(SyscallExit, execveatX_success_memfd)
 
 	evt_test->disable_capture();
 
-#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__)
+#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__) || defined(__loongarch64)
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
 

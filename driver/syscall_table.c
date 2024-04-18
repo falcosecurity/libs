@@ -59,7 +59,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_lstat
 	[__NR_lstat - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LSTAT_E, PPME_SYSCALL_LSTAT_X, PPM_SC_LSTAT},
 #endif
+#ifdef __NR_fstat
 	[__NR_fstat - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FSTAT_E, PPME_SYSCALL_FSTAT_X, PPM_SC_FSTAT},
+#endif
 #ifdef __NR_epoll_wait
 	[__NR_epoll_wait - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_EPOLLWAIT_E, PPME_SYSCALL_EPOLLWAIT_X, PPM_SC_EPOLL_WAIT},
 #endif
@@ -126,7 +128,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_getrlimit
 	[__NR_getrlimit - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_GETRLIMIT_E, PPME_SYSCALL_GETRLIMIT_X, PPM_SC_GETRLIMIT},
 #endif
+#ifdef __NR_setrlimit
 	[__NR_setrlimit - SYSCALL_TABLE_ID0] =                  {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SETRLIMIT_E, PPME_SYSCALL_SETRLIMIT_X, PPM_SC_SETRLIMIT},
+#endif
 #ifdef __NR_prlimit64
 	[__NR_prlimit64 - SYSCALL_TABLE_ID0] =                  {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PRLIMIT_E, PPME_SYSCALL_PRLIMIT_X, PPM_SC_PRLIMIT64},
 #endif
