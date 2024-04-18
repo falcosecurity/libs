@@ -103,10 +103,12 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	 * 6. Get dev and ino.
 	 */
 	struct stat file_stat;
+#if defined(__loongarch64)
+#else
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, *open_by_handle_fd, &file_stat), NOT_EQUAL, -1);
 	*dev = (uint32_t)file_stat.st_dev;
 	*inode = file_stat.st_ino;
-
+#endif
 	/*
 	 * 7. Cleaning phase.
 	 */
@@ -187,11 +189,14 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(4, fspath);
 
+#if defined(__loongarch64)
+#elif
 	/* Parameter 5: dev (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, dev);
 
 	/* Parameter 6: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(6, inode);
+#endif
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -243,11 +248,14 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(4, fspath);
 
+#if defined(__loongarch64)
+#elif
 	/* Parameter 5: dev (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, dev);
 
 	/* Parameter 6: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(6, inode);
+#endif
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

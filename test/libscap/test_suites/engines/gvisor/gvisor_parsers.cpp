@@ -31,6 +31,8 @@ limitations under the License.
 #include "../../driver/syscall_compat_aarch64.h"
 #elif __s390x__
 #include "../../driver/syscall_compat_s390x.h"
+#elif __loongarch64
+#include "../../driver/syscall_compat_loongarch64.h"
 #endif /* __x86_64__ */
 
 template<class T>

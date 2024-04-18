@@ -60,7 +60,7 @@ TEST(SyscallExit, cloneX_father)
 	 */
 #ifdef __s390x__
 	ret_pid = syscall(__NR_clone, newsp, test_clone_flags, &parent_tid, &child_tid, tls);
-#elif defined(__aarch64__) || defined(__riscv)
+#elif defined(__aarch64__) || defined(__riscv) || defined(__loongarch64)
 	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, tls, &child_tid);
 #else
 	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, &child_tid, tls);
@@ -197,7 +197,7 @@ TEST(SyscallExit, cloneX_child)
 
 #ifdef __s390x__
 	ret_pid = syscall(__NR_clone, newsp, test_clone_flags, &parent_tid, &child_tid, tls);
-#elif defined(__aarch64__) || defined(__riscv)
+#elif defined(__aarch64__) || defined(__riscv) || defined(__loongarch64)
 	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, tls, &child_tid);
 #else
 	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, &child_tid, tls);
