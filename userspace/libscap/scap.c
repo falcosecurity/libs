@@ -52,6 +52,11 @@ int32_t scap_init_engine(scap_t* handle, scap_open_args* oargs, const struct sca
 {
 	int32_t rc;
 
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	//
 	// Preliminary initializations
 	//
@@ -89,6 +94,11 @@ scap_t* scap_alloc(void)
 int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
 	int32_t rc;
+
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
 
 	ASSERT(vtable != NULL);
 
@@ -131,6 +141,11 @@ scap_t* scap_open(scap_open_args* oargs, const struct scap_vtable* vtable, char*
 
 uint32_t scap_restart_capture(scap_t* handle)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable->savefile_ops)
 	{
 		return handle->m_vtable->savefile_ops->restart_capture(handle);
@@ -169,6 +184,11 @@ void scap_free(scap_t* handle)
 
 void scap_close(scap_t* handle)
 {
+	if(!handle)
+	{
+		return;
+	}
+
 	scap_deinit(handle);
 	scap_free(handle);
 }
@@ -184,7 +204,7 @@ uint64_t scap_get_engine_flags(scap_t* handle)
 
 uint32_t scap_get_ndevs(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle && handle->m_vtable)
 	{
 		return handle->m_vtable->get_n_devs(handle->m_engine);
 	}
@@ -200,7 +220,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 
 uint64_t scap_max_buf_used(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle && handle->m_vtable)
 	{
 		return handle->m_vtable->get_max_buf_used(handle->m_engine);
 	}
@@ -214,13 +234,12 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid, O
 	// DEV0 DEV1 DEV2 DEV3 <- CPU1  online
 	// DEV0 XXXX DEV1 DEV2 <- CPU1 offline
 	int32_t res = SCAP_FAILURE;
-	if(handle->m_vtable)
+	if(handle && handle->m_vtable)
 	{
 		res = handle->m_vtable->next(handle->m_engine, pevent, pdevid, pflags);
 	}
 	else
 	{
-		ASSERT(false);
 		res = SCAP_FAILURE;
 	}
 
@@ -237,7 +256,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid, O
 //
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 {
-	if(stats == NULL)
+	if(!handle || stats == NULL)
 	{
 		return SCAP_FAILURE;
 	}
@@ -280,7 +299,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
-	if(handle->m_vtable)
+	if(handle && handle->m_vtable)
 	{
 		return handle->m_vtable->get_stats_v2(handle->m_engine, flags, nstats, rc);
 	}
@@ -295,6 +314,11 @@ const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT u
 //
 int32_t scap_stop_capture(scap_t* handle)
 {
+	if(handle == NULL)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->stop_capture(handle->m_engine);
@@ -310,6 +334,11 @@ int32_t scap_stop_capture(scap_t* handle)
 //
 int32_t scap_start_capture(scap_t* handle)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->start_capture(handle->m_engine);
@@ -322,6 +351,11 @@ int32_t scap_start_capture(scap_t* handle)
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, 1, 0);
@@ -334,6 +368,11 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	switch(sampling_ratio)
 	{
 		case 1:
@@ -361,6 +400,11 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SNAPLEN, snaplen, 0);
@@ -372,6 +416,11 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 
 int64_t scap_get_readfile_offset(scap_t* handle)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable->savefile_ops)
 	{
 		return handle->m_vtable->savefile_ops->get_readfile_offset(handle->m_engine);
@@ -389,6 +438,7 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled)
 	{
 		return SCAP_FAILURE;
 	}
+
 	if (ppm_sc >= PPM_SC_MAX)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
@@ -408,6 +458,11 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled)
 }
 
 int32_t scap_set_dropfailed(scap_t* handle, bool enabled) {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle && handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DROP_FAILED, enabled, 0);
@@ -419,6 +474,11 @@ int32_t scap_set_dropfailed(scap_t* handle, bool enabled) {
 
 int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 1, 0);
@@ -430,6 +490,11 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 
 int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 0, 0);
@@ -454,7 +519,7 @@ const char* scap_get_host_root()
 
 uint64_t scap_ftell(scap_t *handle)
 {
-	if(handle->m_vtable->savefile_ops)
+	if(handle && handle->m_vtable->savefile_ops)
 	{
 		return handle->m_vtable->savefile_ops->ftell_capture(handle->m_engine);
 	}
@@ -466,7 +531,7 @@ uint64_t scap_ftell(scap_t *handle)
 
 void scap_fseek(scap_t *handle, uint64_t off)
 {
-	if(handle->m_vtable->savefile_ops)
+	if(handle && handle->m_vtable->savefile_ops)
 	{
 		handle->m_vtable->savefile_ops->fseek_capture(handle->m_engine, off);
 	}
@@ -474,6 +539,11 @@ void scap_fseek(scap_t *handle, uint64_t off)
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->get_n_tracepoint_hit(handle->m_engine, ret);
@@ -494,6 +564,11 @@ bool scap_check_current_engine(scap_t *handle, const char* engine_name)
 
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_FULLCAPTURE_PORT_RANGE, range_start, range_end);
@@ -505,6 +580,11 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 
 int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 {
+	if(!handle)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_STATSD_PORT, port, 0);
@@ -516,7 +596,7 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 
 uint64_t scap_get_driver_api_version(scap_t* handle)
 {
-	if(handle->m_vtable && handle->m_vtable->get_api_version)
+	if(handle && handle->m_vtable && handle->m_vtable->get_api_version)
 	{
 		return handle->m_vtable->get_api_version(handle->m_engine);
 	}
@@ -526,7 +606,7 @@ uint64_t scap_get_driver_api_version(scap_t* handle)
 
 uint64_t scap_get_driver_schema_version(scap_t* handle)
 {
-	if(handle->m_vtable && handle->m_vtable->get_schema_version)
+	if(handle && handle->m_vtable && handle->m_vtable->get_schema_version)
 	{
 		return handle->m_vtable->get_schema_version(handle->m_engine);
 	}
