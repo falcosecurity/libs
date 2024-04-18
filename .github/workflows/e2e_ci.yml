@@ -167,7 +167,7 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
           cd build/test/libsinsp_e2e/
-          sudo -E ./libsinsp_e2e_tests ${{ matrix.driver.option }} --gtest_filter=-sys_call_test.forking_clone_fs
+          sudo -E ./libsinsp_e2e_tests ${{ matrix.driver.option }}
 
         # the actuated arm64 workers doesn't have the CONFIG_QFMT_V2 flag
         # which is needed for the quotactl_ok test (cmd=QQUOTA_ON + id=QFMT_VFS_V0).
@@ -177,4 +177,4 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
           cd build/test/libsinsp_e2e/
-          sudo -E ./libsinsp_e2e_tests ${{ matrix.driver.option }} --gtest_filter=-sys_call_test.quotactl_ok:sys_call_test.forking_clone_fs
+          sudo -E ./libsinsp_e2e_tests ${{ matrix.driver.option }} --gtest_filter=-sys_call_test.quotactl_ok
