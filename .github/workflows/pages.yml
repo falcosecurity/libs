@@ -1,0 +1,63 @@
+name: Deploy Github Pages
+on:
+  push:
+    branches: [master]
+      
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  kernel-tests-master:
+    uses: ./.github/workflows/reusable_kernel_tests.yaml
+    secrets: inherit
+
+  deploy-pages:
+    needs: [kernel-tests-master]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      
+      - name: Download matrix X64
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_X64
+      
+      - name: Move X64 matrix under docs
+        run: mv matrix.md docs/matrix_X64.md
+      
+      - name: Download matrix ARM64
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_ARM64
+          
+      - name: Move ARM64 matrix under docs
+        run: mv matrix.md docs/matrix_ARM64.md    
+      
+      - name: Disable Table Of Content for matrixes pages
+        run: |
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_X64.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_ARM64.md
+
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+        with:
+          python-version: 3.x
+          
+      - run: pip install mkdocs mkdocs-material
+      
+      - run: mkdocs build
+      
+      - uses: actions/upload-pages-artifact@a753861a5debcf57bf8b404356158c8e1e33150c # v2.0.0
+        with:
+          path: 'site'
+
+      - id: deployment
+        uses: actions/deploy-pages@9dbe3824824f8a1377b8e298bafde1a50ede43e5 # v2.0.4

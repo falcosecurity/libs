@@ -1,0 +1,4 @@
+#pragma once
+
+// Absolute path to the scap files dir
+#define LIBSINSP_TEST_SCAP_FILES_DIR "${CMAKE_BINARY_DIR}/scap_files/"
