@@ -341,7 +341,18 @@ static int clone_callback_1(void* arg)
 	return 0;
 }
 
-TEST_F(sys_call_test, forking_clone_fs)
+/*
+ * The `sys_call_test.forking_clone_fs` e2e test makes the assuption
+ * that, if a children closes a file descriptor, the parent trying
+ * to close the same file descriptor will get an error. This seems
+ * not to be always the case. As the man says `It is probably unwise
+ * to close file descriptors while they may be in use by system calls
+ * in other threads in the same process.  Since a file descriptor may
+ * be reused, there are some obscure race conditions that may cause
+ * unintended side effects.` Given that we'll disable it upon further
+ * investigation.
+ */
+TEST_F(sys_call_test, DISABLED_forking_clone_fs)
 {
 	int callnum = 0;
 	char bcwd[1024];
