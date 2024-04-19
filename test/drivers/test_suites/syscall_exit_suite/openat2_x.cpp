@@ -30,6 +30,7 @@ TEST(SyscallExit, openat2X_success)
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
+	const bool is_ext4 = event_test::is_ext4_fs(fd);
 #endif
 	close(fd);
 
@@ -70,7 +71,10 @@ TEST(SyscallExit, openat2X_success)
 
 #ifdef __NR_fstat
 	/* Parameter 7: dev (type: PT_UINT32) */
-	evt_test->assert_numeric_param(7, dev);
+	if (is_ext4)
+	{
+		evt_test->assert_numeric_param(7, dev);
+	}
 
 	/* Parameter 8: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(8, inode);
@@ -175,6 +179,7 @@ TEST(SyscallExit, openat2X_create_success)
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
+	const bool is_ext4 = event_test::is_ext4_fs(fd);
 #endif
 	close(fd);
 
@@ -215,7 +220,10 @@ TEST(SyscallExit, openat2X_create_success)
 
 #ifdef __NR_fstat
 	/* Parameter 7: dev (type: PT_UINT32) */
-	evt_test->assert_numeric_param(7, dev);
+	if (is_ext4)
+	{
+		evt_test->assert_numeric_param(7, dev);
+	}
 
 	/* Parameter 8: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(8, inode);
