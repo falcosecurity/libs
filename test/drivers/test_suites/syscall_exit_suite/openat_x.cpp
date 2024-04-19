@@ -33,6 +33,7 @@ TEST(SyscallExit, openatX_success)
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
+	const bool is_ext4 = event_test::is_ext4_fs(fd);
 	close(fd);
 
 	if(notmpfile)
@@ -74,7 +75,10 @@ TEST(SyscallExit, openatX_success)
 	evt_test->assert_numeric_param(5, (uint32_t)mode);
 
 	/* Parameter 6: dev (type: PT_UINT32) */
-	evt_test->assert_numeric_param(6, (uint32_t)dev);
+	if (is_ext4)
+	{
+		evt_test->assert_numeric_param(6, (uint32_t)dev);
+	}
 
 	/* Parameter 7: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(7, inode);
@@ -170,6 +174,7 @@ TEST(SyscallExit, openatX_create_success)
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
+	const bool is_ext4 = event_test::is_ext4_fs(fd);
 	close(fd);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -205,7 +210,10 @@ TEST(SyscallExit, openatX_create_success)
 	evt_test->assert_numeric_param(5, (uint32_t)mode);
 
 	/* Parameter 6: dev (type: PT_UINT32) */
-	evt_test->assert_numeric_param(6, (uint32_t)dev);
+	if (is_ext4)
+	{
+		evt_test->assert_numeric_param(6, (uint32_t)dev);
+	}
 
 	/* Parameter 7: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(7, inode);

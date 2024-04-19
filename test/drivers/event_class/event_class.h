@@ -634,6 +634,13 @@ public:
 	 */
 	void assert_fd_list(int param_num, struct fd_poll* expected_fds, int32_t nfds);
 
+	/**
+	 * @brief We only support correct `dev` param for
+	 * open family of syscalls on ext4.
+	 * See https://github.com/falcosecurity/libs/issues/1805.
+	 */
+	static bool is_ext4_fs(int fd);
+
 private:
 	ppm_event_code m_event_type;		  /* type of the event we want to assert in this test. */
 	std::vector<struct param> m_event_params; /* all the params of the event (len+value). */

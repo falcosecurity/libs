@@ -1,6 +1,8 @@
 #include <libscap/strl.h>
 #include "event_class.h"
 #include <time.h>
+#include <sys/vfs.h>    /* or <sys/statfs.h> */
+#include <linux/magic.h>
 
 #define MAX_CHARBUF_NUM 16
 #define CGROUP_NUMBER 5
@@ -984,4 +986,18 @@ void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_searc
 			}
 		}
 	}
+}
+
+bool event_test::is_ext4_fs(int fd)
+{
+#ifdef __NR_fstatfs
+	struct statfs buf;
+	if (fstatfs(fd, &buf) != 0) {
+		return false;
+	}
+	if (buf.f_type == EXT4_SUPER_MAGIC) {
+		return true;
+	}
+#endif
+	return false;
 }
