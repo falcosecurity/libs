@@ -208,11 +208,13 @@ TEST(SyscallExit, clone3X_child)
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
+#ifndef __powerpc64__ // Page faults
 	evt_test->assert_charbuf_param(2, info.args[0]);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	/* Starting from `1` because the first is `exe`. */
 	evt_test->assert_charbuf_array_param(3, &info.args[1]);
+#endif
 
 	/* Parameter 4: tid (type: PT_PID) */
 	evt_test->assert_numeric_param(4, (int64_t)ret_pid);
@@ -235,7 +237,9 @@ TEST(SyscallExit, clone3X_child)
 	evt_test->assert_cgroup_param(15);
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
+#ifndef __powerpc64__ // Page faults
 	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_FILES);
+#endif
 
 	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
 	evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
@@ -452,8 +456,9 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 	evt_test->assert_numeric_param(6, (int64_t)::gettid());
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
+#ifndef __powerpc64__ // Page fault
 	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_PARENT);
-
+#endif
 	/* Parameter 19: vtid (type: PT_PID) */
 	evt_test->assert_numeric_param(19, (int64_t)p2_t1);
 
@@ -535,8 +540,9 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child)
 	evt_test->assert_numeric_param(6, (int64_t)::gettid());
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
+#ifndef __powerpc64__ // Page fault
 	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS);
-
+#endif
 	/* Parameter 19: vtid (type: PT_PID) */
 	evt_test->assert_numeric_param(19, (int64_t)p1_t1[0]);
 

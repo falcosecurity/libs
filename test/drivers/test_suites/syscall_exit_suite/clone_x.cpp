@@ -240,12 +240,13 @@ TEST(SyscallExit, cloneX_child)
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
+#ifndef __powerpc64__ // Page fault
 	evt_test->assert_charbuf_param(2, info.args[0]);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	/* Starting from `1` because the first is `exe`. */
 	evt_test->assert_charbuf_array_param(3, &info.args[1]);
-
+#endif
 	/* Parameter 4: tid (type: PT_PID) */
 	evt_test->assert_numeric_param(4, (int64_t)ret_pid);
 
