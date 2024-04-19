@@ -63,6 +63,19 @@ static __always_inline bool bpf_in_ia32_syscall()
 	uint32_t status = 0;
 	struct task_struct *task = get_current_task();
 
+	// If task_struct has no embedded thread_info,
+	// we cannot deduce anything. Just return.
+	// NOTE: this means that emulated 32bit syscalls will
+	// be parsed as 64bits syscalls.
+	// However, our minimum supported kernel releases
+	// already enforce that CONFIG_THREAD_INFO_IN_TASK is defined,
+	// therefore we already show a warning to the user
+	// when building against an unsupported kernel release.
+	if(!bpf_core_field_exists(((struct task_struct*)0)->thread_info))
+	{
+		return false;
+	}
+
 #if defined(__TARGET_ARCH_x86)
 	READ_TASK_FIELD_INTO(&status, task, thread_info.status);
 	return status & TS_COMPAT;
