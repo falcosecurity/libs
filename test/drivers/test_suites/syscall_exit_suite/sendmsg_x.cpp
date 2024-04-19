@@ -175,23 +175,7 @@ TEST(SyscallExit, sendmsgX_fail)
 
 	evt_test->disable_capture();
 
-#ifdef __s390x__
-	/* For some reason this test is successful also with old bpf probe on s390x */
-	if(evt_test->is_modern_bpf_engine()	|| evt_test->is_bpf_engine())
-#else
-	if(evt_test->is_modern_bpf_engine())
-#endif
-	{
-		evt_test->assert_event_presence();
-	}
-	else
-	{
-		/* we need to rewrite the logic in old drivers to support this partial collection
-		 * right now we drop the entire event.
-		 */
-		evt_test->assert_event_absence();
-		GTEST_SKIP() << "[SENDMSG_X]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
-	}
+	evt_test->assert_event_presence();
 
 	if(HasFatalFailure())
 	{
