@@ -99,12 +99,11 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 		}
 	}
 
+#ifdef __NR_fstat
 	/*
 	 * 6. Get dev and ino.
 	 */
 	struct stat file_stat;
-#if defined(__loongarch64)
-#else
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, *open_by_handle_fd, &file_stat), NOT_EQUAL, -1);
 	*dev = (uint32_t)file_stat.st_dev;
 	*inode = file_stat.st_ino;
@@ -189,8 +188,7 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(4, fspath);
 
-#if defined(__loongarch64)
-#elif
+#ifdef __NR_fstat
 	/* Parameter 5: dev (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, dev);
 
@@ -248,8 +246,7 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(4, fspath);
 
-#if defined(__loongarch64)
-#elif
+#ifdef __NR_fstat
 	/* Parameter 5: dev (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, dev);
 
