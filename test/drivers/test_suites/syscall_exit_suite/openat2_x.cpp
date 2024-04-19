@@ -24,8 +24,7 @@ TEST(SyscallExit, openat2X_success)
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
 
-#if defined(__loongarch64)
-#elif
+#ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
@@ -69,8 +68,7 @@ TEST(SyscallExit, openat2X_success)
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
 
-#if defined(__loongarch64)
-#elif
+#ifdef __NR_fstat
 	/* Parameter 7: dev (type: PT_UINT32) */
 	evt_test->assert_numeric_param(7, dev);
 
@@ -171,8 +169,7 @@ TEST(SyscallExit, openat2X_create_success)
 	int32_t fd = syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how));
 	assert_syscall_state(SYSCALL_SUCCESS, "openat2", fd, NOT_EQUAL, -1);
 
-#if defined(__loongarch64)
-#elif
+#ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
 	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
@@ -216,8 +213,7 @@ TEST(SyscallExit, openat2X_create_success)
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
 
-#if defined(__loongarch64)
-#elif
+#ifdef __NR_fstat
 	/* Parameter 7: dev (type: PT_UINT32) */
 	evt_test->assert_numeric_param(7, dev);
 
