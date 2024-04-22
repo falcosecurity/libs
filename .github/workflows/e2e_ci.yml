@@ -135,6 +135,10 @@ jobs:
         # using leading to random crashes: https://reviews.llvm.org/D148280
         run: sudo sysctl vm.mmap_rnd_bits=28
 
+      - name: Update apt index
+        run: |
+          sudo apt update
+
       - name: Install multilib
         if: matrix.arch == 'amd64'
         run: |
