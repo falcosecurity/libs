@@ -38,7 +38,7 @@ limitations under the License.
 #elif __riscv
 #include <driver/syscall_compat_riscv64.h>
 #elif __loongarch64
-#include "../../driver/syscall_compat_loongarch64.h"
+#include <driver/syscall_compat_loongarch64.h>
 #endif /* __x86_64__ */
 
 #include <functional>
