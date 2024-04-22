@@ -379,7 +379,7 @@ private:
 	inline void check_rhs_field_type_consistency() const;
 
 	std::list<sinsp_filter_transformer> m_transformers;	
-	std::unique_ptr<sinsp_filter_check> m_rhs_filter_check;
+	std::unique_ptr<sinsp_filter_check> m_rhs_filter_check = nullptr;
 	std::unique_ptr<filtercheck_field_info> m_transformed_field = nullptr;
 
 	// used for comparing right-hand lists of values
