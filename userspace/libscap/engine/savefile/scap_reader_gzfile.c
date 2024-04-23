@@ -26,7 +26,22 @@ typedef struct reader_handle
 static int gzfile_read(scap_reader_t *r, void* buf, uint32_t len)
 {
     ASSERT(r != NULL);
-    return gzread(((reader_handle_t*)r->handle)->m_file, buf, len);
+    int readsize = gzread(((reader_handle_t*)r->handle)->m_file, buf, len);
+
+    if (readsize < (int)len && readsize != -1)
+    {
+        int errnum;
+        gzerror(((reader_handle_t*)r->handle)->m_file, &errnum);
+        if (errnum == Z_OK || errnum == Z_BUF_ERROR)
+        {
+            // We've reached the end of input. This isn't necessarily an
+            // error, e.g. if we're tailing a file that's being written by
+            // another process, so allow for retries.
+            gzclearerr(((reader_handle_t*)r->handle)->m_file);
+        }
+    }
+
+    return readsize;
 }
 
 static int64_t gzfile_offset(scap_reader_t *r)
