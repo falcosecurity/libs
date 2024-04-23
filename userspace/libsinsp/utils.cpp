@@ -1385,6 +1385,24 @@ std::vector<std::string> sinsp_split(const std::string &s, char delim)
 	return res;
 }
 
+std::vector<std::string> sinsp_split(const char *buf, size_t len, char delim)
+{
+	if(len == 0)
+	{
+		return {};
+	}
+
+	if(buf[len - 1] != '\0')
+	{
+		throw sinsp_exception("expected a NUL-terminated buffer of size " +	
+							  std::to_string(len) + ", which instead ends with " +
+							  std::to_string(buf[len - 1]));
+	}
+
+	std::string s {buf, len - 1};
+	return sinsp_split(s, delim);
+}
+
 //
 // trim from start
 //

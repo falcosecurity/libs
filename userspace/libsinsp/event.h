@@ -32,6 +32,7 @@ limitations under the License.
 #include <libsinsp/settings.h>
 #include <libsinsp/sinsp_exception.h>
 #include <libsinsp/fdinfo.h>
+#include <libsinsp/utils.h>
 
 class sinsp;
 class sinsp_threadinfo;
@@ -148,6 +149,12 @@ inline std::string_view get_event_param_as<std::string_view>(const sinsp_evt_par
 	}
 
 	return {param.m_val, string_len};
+}
+
+template<>
+inline std::vector<std::string> get_event_param_as<std::vector<std::string>>(const sinsp_evt_param& param)
+{
+	return sinsp_split(param.m_val, static_cast<size_t>(param.m_len), '\0');
 }
 
 /*!

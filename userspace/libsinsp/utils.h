@@ -26,6 +26,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <cstring>
 #include <list>
 #include <locale>
@@ -257,6 +258,7 @@ const char* print_format_to_string(ppm_print_format fmt);
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////
 std::vector<std::string> sinsp_split(const std::string& s, char delim);
+std::vector<std::string> sinsp_split(const char *buf, size_t len, char delim);
 
 template<typename It>
 std::string sinsp_join(It begin, It end, char delim)

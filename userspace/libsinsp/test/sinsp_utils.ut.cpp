@@ -197,3 +197,14 @@ TEST(sinsp_utils_test, concatenate_paths)
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("/root/c:/hello/world", res); */
 }
+
+TEST(sinsp_utils_test, sinsp_split_buf)
+{
+	const char *in = "hello\0world\0";
+	size_t len = 12;
+	auto split = sinsp_split(in, len, '\0');
+
+	EXPECT_EQ(split.size(), 2);
+	EXPECT_EQ(split[0], "hello");
+	EXPECT_EQ(split[1], "world");
+}
