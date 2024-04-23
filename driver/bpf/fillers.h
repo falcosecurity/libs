@@ -4174,7 +4174,6 @@ FILLER(sys_recvfrom_x, true)
 	int err = 0;
 	int res;
 	int fd;
-	bool use_user_memory;
 
 	/*
 	 * Push the common params to the ring
@@ -4183,12 +4182,12 @@ FILLER(sys_recvfrom_x, true)
 	res = f_sys_recv_x_common(data, retval);
 	CHECK_RES(res);
 
-	/*
-  	 * Get socket endpoint information from fd if the user-provided *sockaddr is NULL
-	 */
-	use_user_memory = false;
-	addrlen = 0;
 	if (retval >= 0) {
+		/*
+  	 	 * Get socket endpoint information from fd if the user-provided *sockaddr is NULL
+		 */
+		addrlen = 0;
+
 		/*
 		 * Get the fd
 		 */
@@ -4218,7 +4217,6 @@ FILLER(sys_recvfrom_x, true)
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
-				use_user_memory = true;
 				usrsockaddr = (struct sockaddr *)data->tmp_scratch;
 			} else {
 				usrsockaddr = NULL;
@@ -4233,7 +4231,7 @@ FILLER(sys_recvfrom_x, true)
 					   fd,
 					   usrsockaddr,
 					   addrlen,
-					   use_user_memory,
+					   usrsockaddr != NULL,
 					   true,
 					   data->tmp_scratch + sizeof(struct sockaddr_storage));
 	}
