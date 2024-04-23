@@ -616,14 +616,12 @@ std::string sinsp_threadinfo::get_exepath() const
 
 void sinsp_threadinfo::set_args(const char* args, size_t len)
 {
-	m_args.clear();
+	set_args(sinsp_split(args, len, '\0'));
+}
 
-	size_t offset = 0;
-	while(offset < len)
-	{
-		m_args.push_back(args + offset);
-		offset += m_args.back().length() + 1;
-	}
+void sinsp_threadinfo::set_args(std::vector<std::string> args)
+{
+	m_args = args;
 }
 
 void sinsp_threadinfo::set_env(const char* env, size_t len)
@@ -641,32 +639,7 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 		}
 	}
 
-	m_env.clear();
-	size_t offset = 0;
-	while(offset < len)
-	{
-		const char* left = env + offset;
-		// environment string may actually be shorter than indicated by len
-		// if the rest is empty, we bail out early
-		if(!strlen(left))
-		{
-			size_t sz = len - offset;
-			void* zero = calloc(sz, sizeof(char));
-			if(zero == NULL)
-			{
-				throw sinsp_exception("memory allocation error in sinsp_threadinfo::set_env");
-			}
-			if(!memcmp(left, zero, sz))
-			{
-				free(zero);
-				return;
-			}
-			free(zero);
-		}
-		m_env.push_back(left);
-
-		offset += m_env.back().length() + 1;
-	}
+	m_env = sinsp_split(env, len, '\0');
 }
 
 bool sinsp_threadinfo::set_env_from_proc() {
@@ -757,23 +730,24 @@ std::string sinsp_threadinfo::concatenate_all_env()
 
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 {
+	set_cgroups(sinsp_split(cgroups, len, '\0'));
+}
+
+void sinsp_threadinfo::set_cgroups(std::vector<std::string> cgroups)
+{
 	decltype(m_cgroups) tmp_cgroups(new cgroups_t);
 
-	size_t offset = 0;
-	while(offset < len)
+	for( auto &def : cgroups)
 	{
-		const char* str = cgroups + offset;
-		const char* sep = strrchr(str, '=');
-		if(sep == NULL)
+		std::string::size_type eq_pos = def.find("=");
+		if (eq_pos == std::string::npos)
 		{
-			ASSERT(false);
 			return;
 		}
 
-		std::string subsys(str, sep - str);
-		std::string cgroup(sep + 1);
+		std::string subsys = def.substr(0, eq_pos);
+		std::string cgroup = def.substr(eq_pos + 1);
 
-		size_t subsys_length = subsys.length();
 		size_t pos = subsys.find("_cgroup");
 		if(pos != std::string::npos)
 		{
@@ -797,7 +771,6 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 		}
 
 		tmp_cgroups->push_back(std::make_pair(subsys, cgroup));
-		offset += subsys_length + 1 + cgroup.length() + 1;
 	}
 
 	m_cgroups.swap(tmp_cgroups);

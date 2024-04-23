@@ -940,7 +940,6 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 
 void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 {
-	const sinsp_evt_param* parinfo = nullptr;
 	uint16_t etype = evt->get_type();
 	int64_t caller_tid = evt->get_tid();
 
@@ -1229,8 +1228,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	child_tinfo->m_exe = evt->get_param(1)->as<std::string_view>();
 
 	/* args */
-	parinfo = evt->get_param(2);
-	child_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+	child_tinfo->set_args(evt->get_param(2)->as<std::vector<std::string>>());
 
 	/* comm */
 	switch(etype)
@@ -1354,8 +1352,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		case PPME_SYSCALL_VFORK_20_X:
 		case PPME_SYSCALL_CLONE_20_X:
 		case PPME_SYSCALL_CLONE3_X:
-			parinfo = evt->get_param(14);
-			child_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
+			child_tinfo->set_cgroups(evt->get_param(14)->as<std::vector<std::string>>());
 			m_inspector->m_container_manager.resolve_container(child_tinfo.get(), m_inspector->is_live() || m_inspector->is_syscall_plugin());
 			break;
 	}
@@ -1411,8 +1408,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		caller_tinfo->m_comm = child_tinfo->m_comm;
 
 		/* args */
-		parinfo = evt->get_param(2);
-		caller_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+		caller_tinfo->set_args(evt->get_param(2)->as<std::vector<std::string>>());
 	}
 
 	/*=============================== CREATE CHILD ===========================*/
@@ -1459,7 +1455,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 
 void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 {
-	const sinsp_evt_param *parinfo = nullptr;
 	uint16_t etype = evt->get_type();
 	int64_t child_tid = evt->get_tid();
 
@@ -1688,8 +1683,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	}
 
 	/* args */
-	parinfo = evt->get_param(2);
-	child_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+	child_tinfo->set_args(evt->get_param(2)->as<std::vector<std::string>>());
 
 	if(valid_lookup_thread)
 	{
@@ -1799,8 +1793,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 			lookup_tinfo->m_comm = child_tinfo->m_comm;
 
 			/* args */
-			parinfo = evt->get_param(2);
-			lookup_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+			lookup_tinfo->set_args(evt->get_param(2)->as<std::vector<std::string>>());
 		}
 	}
 
@@ -1904,8 +1897,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_CLONE3_X:
-		parinfo = evt->get_param(14);
-		child_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
+		child_tinfo->set_cgroups(evt->get_param(14)->as<std::vector<std::string>>());
 		m_inspector->m_container_manager.resolve_container(child_tinfo.get(), m_inspector->is_live());
 		break;
 	}
@@ -2080,8 +2072,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	}
 
 	// Get the command arguments
-	parinfo = evt->get_param(2);
-	evt->get_tinfo()->set_args(parinfo->m_val, parinfo->m_len);
+	evt->get_tinfo()->set_args(evt->get_param(2)->as<std::vector<std::string>>());
 
 	// Get the pid
 	evt->get_tinfo()->m_pid = evt->get_param(4)->as<uint64_t>();
@@ -2168,8 +2159,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		//
 		// Set cgroups and heuristically detect container id
 		//
-		parinfo = evt->get_param(14);
-		evt->get_tinfo()->set_cgroups(parinfo->m_val, parinfo->m_len);
+		evt->get_tinfo()->set_cgroups(evt->get_param(14)->as<std::vector<std::string>>());
 
 		//
 		// Resync container status after an execve, we need to do it

@@ -638,8 +638,10 @@ public:
 	void remove_fd(int64_t fd);
 	void update_cwd(std::string_view cwd);
 	void set_args(const char* args, size_t len);
+	void set_args(std::vector<std::string> args);
 	void set_env(const char* env, size_t len);
 	void set_cgroups(const char* cgroups, size_t len);
+	void set_cgroups(std::vector<std::string> cgroups);
 	bool is_lastevent_data_valid() const;
 	inline void set_lastevent_data_validity(bool isvalid)
 	{
