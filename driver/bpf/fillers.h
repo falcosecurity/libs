@@ -4187,6 +4187,7 @@ FILLER(sys_recvfrom_x, true)
   	 * Get socket endpoint information from fd if the user-provided *sockaddr is NULL
 	 */
 	use_user_memory = false;
+	addrlen = 0;
 	if (retval >= 0) {
 		/*
 		 * Get the fd
@@ -4219,12 +4220,19 @@ FILLER(sys_recvfrom_x, true)
 				 */
 				use_user_memory = true;
 				usrsockaddr = (struct sockaddr *)data->tmp_scratch;
+			} else {
+				usrsockaddr = NULL;
+				addrlen = 0;
 			}
+		}
+		else
+		{
+			usrsockaddr = NULL;
 		}
 		size = bpf_fd_to_socktuple(data,
 					   fd,
-					   use_user_memory ? usrsockaddr : NULL,
-					   use_user_memory ? addrlen : 0,
+					   usrsockaddr,
+					   addrlen,
 					   use_user_memory,
 					   true,
 					   data->tmp_scratch + sizeof(struct sockaddr_storage));
