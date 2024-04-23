@@ -4174,6 +4174,7 @@ FILLER(sys_recvfrom_x, true)
 	int err = 0;
 	int res;
 	int fd;
+	bool use_user_memory;
 
 	/*
 	 * Push the common params to the ring
@@ -4183,6 +4184,12 @@ FILLER(sys_recvfrom_x, true)
 	CHECK_RES(res);
 
 	if (retval >= 0) {
+		/*
+ 		 * Get socket endpoint information from fd if the user-provided *sockaddr is NULL
+		 */
+		use_user_memory = false;
+		addrlen = 0;
+
 		/*
 		 * Get the fd
 		 */
@@ -4200,7 +4207,7 @@ FILLER(sys_recvfrom_x, true)
 
 		if (usrsockaddr && val != 0) {
 			if (bpf_probe_read_user(&addrlen, sizeof(addrlen),
-					   (void *)val))
+					       (void *)val))
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 
 			/*
@@ -4212,26 +4219,21 @@ FILLER(sys_recvfrom_x, true)
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
-				size = bpf_fd_to_socktuple(data,
-							   fd,
-							   (struct sockaddr *)data->tmp_scratch,
-							   addrlen,
-							   true,
-							   true,
-							   data->tmp_scratch + sizeof(struct sockaddr_storage));
+				use_user_memory = true;
+				usrsockaddr = (struct sockaddr *)data->tmp_scratch;
 			}
-		} else {
-			/*
-			* Get socket endpoint information from fd if the user-provided *sockaddr is NULL
-			*/
-			size = bpf_fd_to_socktuple(data,
-				fd,
-				NULL,
-				0,
-				false,
-				true,
-				data->tmp_scratch + sizeof(struct sockaddr_storage));
 		}
+		else
+		{
+			usrsockaddr = NULL;
+		}
+		size = bpf_fd_to_socktuple(data,
+					   fd,
+					   usrsockaddr,
+					   addrlen,
+					   use_user_memory,
+					   true,
+					   data->tmp_scratch + sizeof(struct sockaddr_storage));
 	}
 
 	/*
