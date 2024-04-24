@@ -337,8 +337,12 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		readsize = r->read(r, tinfo.args, stlen);
 		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
-		// the string is not null-terminated on file
-		tinfo.args[stlen] = 0;
+		// the string is sometimes not null-terminated on file
+		if(stlen > 0 && tinfo.args[stlen - 1] != '\0')
+		{
+			tinfo.args[stlen] = '\0';
+			stlen++;
+		}
 		tinfo.args_len = stlen;
 
 		subreadsize += readsize;
@@ -478,8 +482,12 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 				readsize = r->read(r, tinfo.env, stlen);
 				CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
-				// the string is not null-terminated on file
-				tinfo.env[stlen] = 0;
+				// the string is sometimes not null-terminated on file
+				if(stlen > 0 && tinfo.env[stlen - 1] != '\0')
+				{
+					tinfo.env[stlen] = '\0';
+					stlen++;
+				}
 				tinfo.env_len = stlen;
 
 				subreadsize += readsize;
