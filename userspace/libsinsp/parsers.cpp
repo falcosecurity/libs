@@ -5125,6 +5125,11 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 				container_info->set_lookup_status(sinsp_container_lookup::state::FAILED);
 			}
 		}
+		else
+		{
+			// Fallback at successful state
+			container_info->set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
+		}
 
 		const Json::Value& created_time = container["created_time"];
 		if(check_int64_json_is_convertible(created_time, "created_time"))
