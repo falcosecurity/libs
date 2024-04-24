@@ -523,9 +523,9 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 
 		if (m_inspector->is_user_details_enabled())
 		{
-			m_user.set_name(user->name, strlen(user->name));
-			m_user.set_homedir(user->homedir, strlen(user->homedir));
-			m_user.set_shell(user->shell, strlen(user->shell));
+			m_user.set_name(user->name, strnlen(user->name, MAX_CREDENTIALS_STR_LEN));
+			m_user.set_homedir(user->homedir, strnlen(user->homedir, MAX_CREDENTIALS_STR_LEN));
+			m_user.set_shell(user->shell, strnlen(user->shell, MAX_CREDENTIALS_STR_LEN));
 		}
 	}
 	else
@@ -551,7 +551,7 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 
 		if (m_inspector->is_user_details_enabled())
 		{
-			m_group.set_name(group->name, strlen(group->name));
+			m_group.set_name(group->name, strnlen(group->name, MAX_CREDENTIALS_STR_LEN));
 		}
 	}
 	else
@@ -574,9 +574,9 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 
 		if (m_inspector->is_user_details_enabled())
 		{
-			m_loginuser.set_name(login_user->name, strlen(login_user->name));
-			m_loginuser.set_homedir(login_user->homedir, strlen(login_user->homedir));
-			m_loginuser.set_shell(login_user->shell, strlen(login_user->shell));
+			m_loginuser.set_name(login_user->name, strnlen(login_user->name, MAX_CREDENTIALS_STR_LEN));
+			m_loginuser.set_homedir(login_user->homedir, strnlen(login_user->homedir, MAX_CREDENTIALS_STR_LEN));
+			m_loginuser.set_shell(login_user->shell, strnlen(login_user->shell, MAX_CREDENTIALS_STR_LEN));
 		}
 	}
 	else
