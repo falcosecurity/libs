@@ -40,6 +40,8 @@ public:
 
 	static sinsp_cgroup &instance();
 
+	bool in_cgroupns() const;
+
 protected:
 	std::string m_root;
 	struct scap_cgroup_interface m_scap_cgroup;

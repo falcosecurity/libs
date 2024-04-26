@@ -634,7 +634,6 @@ static bool scap_in_cgroupns(const char* host_root)
 int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, const char* host_root, char* error, bool with_self_cg)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
-	bool in_cgroupns = false;
 	char pid_str[40];
 
 	cgi->m_use_cache = true;
@@ -645,15 +644,16 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, const char
 	cgi->m_mount_v2[0] = 0;
 	cgi->m_self_v1.len = 0;
 	cgi->m_self_v2[0] = 0;
+	cgi->m_in_cgroupns = false;
 
 	// if we don't need our cgroup name (will just use the mountpoints, with the full cgroup names coming
 	// from elsewhere), we can simply assume we're not in a cgroup namespace (the result is the same)
 	if(with_self_cg)
 	{
-		in_cgroupns = scap_in_cgroupns(host_root);
+		cgi->m_in_cgroupns = scap_in_cgroupns(host_root);
 	}
 
-	if(in_cgroupns)
+	if(cgi->m_in_cgroupns)
 	{
 		snprintf(pid_str, sizeof(pid_str), "%d\n", getpid());
 	}
@@ -673,7 +673,7 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, const char
 		if(strcmp(de->mnt_type, "cgroup") == 0)
 		{
 			scap_get_cgroup_mount_v1(de, &cgi->m_mounts_v1, &cgi->m_subsystems_v1, host_root, error);
-			if(in_cgroupns)
+			if(cgi->m_in_cgroupns)
 			{
 				scap_get_cgroup_self_v1_cgroupns(de, &cgi->m_self_v1, &cgi->m_subsystems_v1, host_root, pid_str, error);
 			}
@@ -682,7 +682,7 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, const char
 		{
 			scap_get_cgroup_mount_v2(de, cgi->m_mount_v2, host_root);
 			get_cgroup_subsystems_v2(cgi, &cgi->m_subsystems_v2, cgi->m_mount_v2);
-			if(in_cgroupns)
+			if(cgi->m_in_cgroupns)
 			{
 				scap_get_cgroup_self_v2_cgroupns(de, cgi->m_self_v2, host_root, pid_str);
 			}
