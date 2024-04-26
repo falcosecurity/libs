@@ -1215,7 +1215,6 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 
 int32_t sinsp_filter_check::parse_field_name(std::string_view str, bool alloc_state, bool needed_for_filtering)
 {
-	int32_t j;
 	int32_t max_fldlen = -1;
 	uint32_t max_flags = 0;
 
@@ -1224,24 +1223,25 @@ int32_t sinsp_filter_check::parse_field_name(std::string_view str, bool alloc_st
 
 	m_field_id = 0xffffffff;
 
-	for(j = 0; j < m_info.m_nfields; j++)
+	for(int32_t j = 0; j != m_info.m_nfields; ++j)
 	{
-		int32_t fldlen = (int32_t)strlen(m_info.m_fields[j].m_name);
+		auto& fld = m_info.m_fields[j];
+		int32_t fldlen = (int32_t)strlen(fld.m_name);
 		if(fldlen <= max_fldlen)
 		{
 			continue;
 		}
 
 		/* Here we are searching for the longest match */
-		if(str.compare(0, fldlen, m_info.m_fields[j].m_name) == 0)
+		if(str.compare(0, fldlen, fld.m_name) == 0)
 		{
 			/* we found some info about the required field, we save it in this way
 			 * we don't have to loop again through the fields.
 			 */
 			m_field_id = j;
-			m_field = &m_info.m_fields[j];
+			m_field = &fld;
 			max_fldlen = fldlen;
-			max_flags = (m_info.m_fields[j]).m_flags;
+			max_flags = fld.m_flags;
 		}
 	}
 

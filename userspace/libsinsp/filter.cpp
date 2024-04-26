@@ -531,10 +531,8 @@ std::list<sinsp_filter_factory::filter_fieldclass_info> sinsp_filter_factory::ch
 		cinfo.desc = fci->m_desc;
 		cinfo.shortdesc = fci->m_shortdesc;
 
-		for(int32_t k = 0; k < fci->m_nfields; k++)
+		for(auto fld = fci->m_fields; fld != fci->m_fields + fci->m_nfields; ++fld)
 		{
-			const filtercheck_field_info* fld = &fci->m_fields[k];
-
 			// If a field is only used to organize events,
 			// we don't want to print it and don't return it here.
 			if(fld->m_flags & EPF_PRINT_ONLY)
