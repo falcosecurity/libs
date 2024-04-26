@@ -89,3 +89,8 @@ sinsp_cgroup::~sinsp_cgroup()
 	scap_cgroup_clear_cache(&m_scap_cgroup);
 #endif // __linux__
 }
+
+bool sinsp_cgroup::in_cgroupns() const
+{
+	return m_scap_cgroup.m_in_cgroupns;
+}
