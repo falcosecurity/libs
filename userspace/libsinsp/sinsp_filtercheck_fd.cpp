@@ -94,6 +94,7 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_INT64, EPF_NONE, PF_DEC, "fd.ino", "FD Inode Number", "inode number of the referenced file"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.nameraw", "FD Name Raw", "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is kept raw with limited sanitization and without deriving the absolute path."},
 	{PT_CHARBUF, EPF_IS_LIST|EPF_ARG_ALLOWED, PF_DEC, "fd.types", "FD Type", "List of FD types in used. Can be passed an fd number e.g. fd.types[0] to get the type of stdout as a single item list."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "fd.containerpidname", "FD Container Pid Name", "chaining of the container ID, the pid and the FD name."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -303,6 +304,18 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return NULL;
 		}
 	}
+	case TYPE_CONTAINERPIDNAME:
+	{
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
+		{
+			m_tstr = m_tinfo->m_container_id + ':' + to_string(m_tinfo->m_pid) + ':' + m_tstr;
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		else
+		{
+			return NULL;
+		}
+	}
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY:
 	{
@@ -485,6 +498,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 	{
 	case TYPE_FDNAME:
 	case TYPE_CONTAINERNAME:
+	case TYPE_CONTAINERPIDNAME:
 		if(m_fdinfo == NULL)
 		{
 			return extract_from_null_fd(evt, len, sanitize_strings);
@@ -504,6 +518,11 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		{
 			ASSERT(m_tinfo != NULL);
 			m_tstr = m_tinfo->m_container_id + ':' + m_fdinfo->m_name;
+		}
+		else if(m_field_id == TYPE_CONTAINERPIDNAME)
+		{
+			ASSERT(m_tinfo != NULL);
+			m_tstr = m_tinfo->m_container_id + ':' + to_string(m_tinfo->m_pid) + ':' + m_fdinfo->m_name;
 		}
 		else
 		{
