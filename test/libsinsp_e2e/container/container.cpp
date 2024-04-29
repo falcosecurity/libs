@@ -446,7 +446,7 @@ TEST_F(sys_call_test, container_libvirt)
 
 	if (system("virsh --help > /dev/null 2>&1") != 0)
 	{
-		printf("libvirt not installed, skipping test\n");
+		GTEST_SKIP() << "libvirt not installed, skipping test";
 		return;
 	}
 
@@ -722,6 +722,83 @@ static void healthcheck_helper(
 	ASSERT_EQ(cstate.healthcheck_seen, expect_healthcheck) << capture_stats_str;
 }
 
+static void healthcheck_tracefile_helper(
+	const std::string& dockerfile,
+    bool expect_healthcheck,
+    sinsp_threadinfo::command_category expected_cat = sinsp_threadinfo::CAT_HEALTHCHECK)
+{
+	container_state cstate;
+
+	std::string build_cmdline("cd " LIBSINSP_TEST_RESOURCES_PATH "/docker/health_dockerfiles && docker build -t cont_health_ut_img -f "
+							  + dockerfile + " . > /dev/null 2>&1");
+	ASSERT_TRUE(system(build_cmdline.c_str()) == 0);
+
+	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle)
+	{
+		// --network=none speeds up the container setup a bit.
+		ASSERT_TRUE((system("docker run --rm --network=none --name cont_health_ut cont_health_ut_img "
+							"/bin/sh -c '/bin/sleep 10' > /dev/null 2>&1")) == 0);
+	};
+
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		std::string evt_name(evt->get_name());
+		return evt_name.find("execve") != std::string::npos &&
+			evt->get_direction() == SCAP_ED_OUT;
+	};
+
+	captured_event_callback_t callback = [&](const callback_param& param) {return;};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+
+	// Now reread the file we just wrote and pass it through
+	// update_container_state.
+
+	const ::testing::TestInfo* const test_info =
+		::testing::UnitTest::GetInstance()->current_test_info();
+	auto dumpfile = std::string(LIBSINSP_TEST_CAPTURES_PATH) + test_info->test_case_name() + "_" +
+		test_info->name() + ".scap";
+
+	sinsp inspector;
+	inspector.set_hostname_and_port_resolution_mode(false);
+	inspector.set_filter("evt.type=execve and evt.dir=<");
+	inspector.open_savefile(dumpfile);
+	inspector.start_capture();
+
+	while (1)
+	{
+		sinsp_evt* ev;
+		int32_t res = inspector.next(&ev);
+
+		if (res == SCAP_TIMEOUT)
+		{
+			continue;
+		}
+		if (res == SCAP_FILTERED_EVENT)
+		{
+			continue;
+		}
+		else if (res == SCAP_EOF)
+		{
+			break;
+		}
+		ASSERT_TRUE(res == SCAP_SUCCESS);
+
+		update_container_state(&inspector, ev, cstate, expected_cat);
+	}
+
+	std::string capture_stats_str = capture_stats(&inspector);
+
+	inspector.stop_capture();
+	inspector.close();
+
+	ASSERT_TRUE(cstate.root_cmd_seen) << capture_stats_str;
+	ASSERT_TRUE(cstate.second_cmd_seen) << capture_stats_str;
+	ASSERT_EQ(cstate.container_w_health_probe, expect_healthcheck) << capture_stats_str;
+	ASSERT_EQ(cstate.healthcheck_seen, expect_healthcheck) << capture_stats_str;
+}
+
+
 //  Run container w/o health check, should not find any health check
 //  for the container. Should not identify either the entrypoint
 //  or a second process spawned after as a health check process.
@@ -790,6 +867,33 @@ TEST_F(sys_call_test, docker_container_readiness_probe)
 					   labels,
 	                   sinsp_threadinfo::CAT_READINESS_PROBE);
 }
+
+// Identical to above tests, but read events from a trace file instead
+// of live. Only doing selected cases.
+TEST_F(sys_call_test, docker_container_healthcheck_trace)
+{
+	healthcheck_tracefile_helper("Dockerfile.healthcheck", true);
+}
+
+TEST_F(sys_call_test, docker_container_healthcheck_cmd_overlap_trace)
+{
+	healthcheck_tracefile_helper("Dockerfile.healthcheck_cmd_overlap", true);
+}
+
+TEST_F(sys_call_test, docker_container_liveness_probe_trace)
+{
+	healthcheck_tracefile_helper("Dockerfile.healthcheck_liveness",
+	                             true,
+	                             sinsp_threadinfo::CAT_LIVENESS_PROBE);
+}
+
+TEST_F(sys_call_test, docker_container_readiness_probe_trace)
+{
+	healthcheck_tracefile_helper("Dockerfile.healthcheck_readiness",
+	                             true,
+	                             sinsp_threadinfo::CAT_READINESS_PROBE);
+}
+
 
 TEST_F(sys_call_test, docker_container_large_json)
 {

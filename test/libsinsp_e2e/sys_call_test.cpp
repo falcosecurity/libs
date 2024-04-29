@@ -23,6 +23,7 @@ limitations under the License.
 
 #include <cstdint>
 #include <libscap/scap-int.h>
+#include <libscap/scap_engines.h>
 #include <libscap/scap_platform.h>
 
 #include <gtest/gtest.h>
@@ -350,6 +351,92 @@ TEST_F(sys_call_test, close_badfd_dropping)
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
 	EXPECT_EQ(0, callnum);
 }
+
+// The poll syscall is not defined on arm64.
+#if !defined(__aarch64__)
+TEST_F(sys_call_test, poll_timeout)
+{
+	int callnum = 0;
+
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		uint16_t type = evt->get_type();
+		auto ti = evt->get_thread_info(false);
+		return (type == PPME_SYSCALL_POLL_E ||
+				type == PPME_SYSCALL_POLL_X) &&
+				ti->m_comm == "test_helper";
+	};
+
+	std::string my_pipe[2];
+
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
+	{
+		subprocess handle(LIBSINSP_TEST_PATH "/test_helper", {"poll_timeout"});
+		std::stringstream ss;
+		ss << handle.out();
+		my_pipe[0] = ss.str();
+		ss.clear();
+		ss.str(" ");
+		ss << handle.out();
+		my_pipe[1] = ss.str();
+		ss.clear();
+		ss.str(" ");
+		handle.wait();
+	};
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+
+		if (type == PPME_SYSCALL_POLL_E)
+		{
+			//
+			// stdin and stdout can be a file or a fifo depending
+			// on how the tests are invoked
+			//
+			std::string fds = e->get_param_value_str("fds");
+			std::string expected_fds = my_pipe[0] + ":p1 " +
+										my_pipe[1] + ":p4";
+			EXPECT_EQ(expected_fds, fds)
+				<< "Value of fds is not one of expected values: " << fds;
+			EXPECT_EQ("20", e->get_param_value_str("timeout"));
+			callnum++;
+		}
+		else if (type == PPME_SYSCALL_POLL_X)
+		{
+			std::string fds = e->get_param_value_str("fds");
+			std::string expected_fds = my_pipe[0] + ":p0 " +
+										my_pipe[1] + ":p4";
+			int64_t res = std::stol(e->get_param_value_str("res"));
+
+			EXPECT_GT(res, 0);
+			EXPECT_LE(res, 2);
+
+			switch (res)
+			{
+				case 1:
+					EXPECT_EQ(expected_fds, fds)
+						<< "Value of fds is not one of expected values: " << fds;
+						;
+					break;
+				case 2:
+					//
+					// On EC2 called from jenkins stdin returns POLLHUP
+					//
+					EXPECT_EQ(expected_fds, fds)
+						<< "Value of fds is not one of expected values: " << fds;
+					break;
+				default:
+					FAIL();
+			}
+
+			callnum++;
+		}
+	};
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(2, callnum);
+}
+#endif
 
 TEST(inspector, invalid_file_name)
 {
@@ -1665,6 +1752,123 @@ TEST_F(sys_call_test, failing_execve)
 	EXPECT_EQ(2, callnum);
 }
 
+TEST_F(sys_call_test, large_execve)
+{
+	const int buf_size = 100 * 1024;
+	const int driver_truncation_size = getpagesize();
+	const string non_existing_binary = "/non/existent";
+	const string existing_binary = "/bin/true";
+
+	int ctid;
+	int callnum = 0;
+
+	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == ctid; };
+
+	srandom(42);
+
+	string buf;
+	while (buf.length() < buf_size)
+	{
+		buf.append(std::to_string(random()));
+	}
+
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
+	{
+		ctid = fork();
+
+		if (ctid < 0)
+		{
+			FAIL();
+		}
+
+		if (ctid == 0)
+		{
+			{
+				const char* eargv[] = {non_existing_binary.c_str(), buf.c_str(), NULL};
+
+				const char* eenvp[] = {buf.c_str(), NULL};
+
+				int ret = execve(eargv[0], (char* const*)eargv, (char* const*)eenvp);
+				ASSERT_TRUE(ret < 0);
+			}
+
+			{
+				const char* eargv[] = {existing_binary.c_str(), buf.c_str(), NULL};
+
+				const char* eenvp[] = {buf.c_str(), NULL};
+
+				int ret = execve(eargv[0], (char* const*)eargv, (char* const*)eenvp);
+				ASSERT_TRUE(ret == 0);
+			}
+		}
+		else
+		{
+			wait(NULL);
+			sleep(1);
+		}
+	};
+
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+
+		if (type == PPME_SYSCALL_EXECVE_19_E || type == PPME_SYSCALL_EXECVE_18_E)
+		{
+			++callnum;
+
+			string filename = e->get_param_value_str("filename");
+
+			if (callnum == 1)
+			{
+				EXPECT_EQ(filename, non_existing_binary);
+			}
+			else if (callnum == 3)
+			{
+				EXPECT_EQ(filename, existing_binary);
+			}
+			else
+			{
+				FAIL();
+			}
+		}
+		else if (type == PPME_SYSCALL_EXECVE_19_X || type == PPME_SYSCALL_EXECVE_18_X)
+		{
+			++callnum;
+
+			string exe = e->get_param_value_str("exe");
+			string args = e->get_param_value_str("args");
+
+			if (callnum == 2)
+			{
+				// This is the failed execve. exe and
+				// args will be available, but env
+				// will not.
+				EXPECT_EQ(exe, non_existing_binary.c_str());
+				EXPECT_EQ(args,
+				          buf.substr(0, driver_truncation_size - non_existing_binary.length() - 2) + ".");
+			}
+			else if (callnum == 4)
+			{
+				string env = e->get_param_value_str("env");
+
+				EXPECT_EQ(exe, existing_binary);
+				EXPECT_EQ(
+				    args,
+				    buf.substr(0, driver_truncation_size - existing_binary.length() - 2) + ".");
+				EXPECT_EQ(env, buf.substr(0, driver_truncation_size - 1) + ".");
+			}
+			else
+			{
+				FAIL();
+			}
+		}
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(4, callnum);
+}
+
 #ifdef __x86_64__
 
 TEST_F(sys_call_test32, failing_execve)
@@ -1771,4 +1975,537 @@ TEST_F(sys_call_test32, failing_execve)
 	EXPECT_EQ(10, callnum);
 }
 
+TEST_F(sys_call_test32, mmap)
+{
+	int callnum = 0;
+	int errno2;
+
+	proc_started_filter ps_filter;
+
+	//
+	// FILTER
+	//
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		auto tinfo = evt->get_thread_info(false);
+		return tinfo && tinfo->m_comm == "test_helper_32"
+			&& ps_filter(evt);
+	};
+
+	uint64_t p = 0;
+
+	//
+	// TEST CODE
+	//
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
+	{
+		subprocess handle(LIBSINSP_TEST_PATH "/test_helper_32",
+		               {"mmap_test",});
+		std::stringstream tmp;
+		handle.out();
+		tmp << handle.out();
+		errno2 = std::stoi(tmp.str());
+		tmp.clear();
+		tmp.str("");
+		tmp << handle.out();
+		p = (uint64_t)std::stoul(tmp.str());
+		tmp.clear();
+		tmp.str("");
+		handle.wait();
+	};
+
+	uint32_t enter_vmsize;
+	uint32_t enter_vmrss;
+	uint32_t exit_vmsize;
+	uint32_t exit_vmrss;
+
+	//
+	// OUTPUT VALDATION
+	//
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+
+		if (type == PPME_SYSCALL_MUNMAP_E)
+		{
+			callnum++;
+
+			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
+			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
+
+			switch (callnum)
+			{
+			case 1:
+				EXPECT_EQ("50", e->get_param_value_str("addr"));
+				EXPECT_EQ("300", e->get_param_value_str("length"));
+				break;
+			case 7:
+			{
+				uint64_t addr = 0;
+				memcpy(&addr, e->get_param_by_name("addr")->m_val, sizeof(uint64_t));
+#ifdef __LP64__
+				EXPECT_EQ((uint64_t)p, addr);
+#else
+				EXPECT_EQ(((uint32_t)p), addr);
 #endif
+				EXPECT_EQ("1003520", e->get_param_value_str("length"));
+				break;
+			}
+			default:
+				callnum--;
+			}
+		}
+		else if (type == PPME_SYSCALL_MUNMAP_X)
+		{
+			callnum++;
+
+			memcpy(&exit_vmsize, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
+			memcpy(&exit_vmrss, e->get_param_by_name("vm_rss")->m_val, sizeof(uint32_t));
+			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
+			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
+
+			switch (callnum)
+			{
+			case 2:
+				EXPECT_EQ("EINVAL", e->get_param_value_str("res"));
+				EXPECT_EQ("-22", e->get_param_value_str("res", false));
+				break;
+			case 8:
+				EXPECT_EQ("0", e->get_param_value_str("res"));
+				EXPECT_GT(enter_vmsize, exit_vmsize + 500);
+				EXPECT_GE(enter_vmrss, enter_vmrss);
+				break;
+			default:
+				callnum--;
+			}
+		}
+		else if (type == PPME_SYSCALL_MMAP_E || type == PPME_SYSCALL_MMAP2_E)
+		{
+			callnum++;
+
+			enter_vmsize = e->get_thread_info(false)->m_vmsize_kb;
+			enter_vmrss = e->get_thread_info(false)->m_vmrss_kb;
+
+			switch (callnum)
+			{
+			case 3:
+				EXPECT_EQ("0", e->get_param_value_str("addr"));
+				EXPECT_EQ("0", e->get_param_value_str("length"));
+				EXPECT_EQ("PROT_READ|PROT_WRITE|PROT_EXEC", e->get_param_value_str("prot"));
+				EXPECT_EQ("MAP_SHARED|MAP_PRIVATE|MAP_ANONYMOUS|MAP_DENYWRITE",
+						e->get_param_value_str("flags"));
+				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
+
+				if (type == PPME_SYSCALL_MMAP_E)
+				{
+					EXPECT_EQ("0", e->get_param_value_str("offset"));
+				}
+				else
+				{
+					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
+				}
+				break;
+			case 5:
+				EXPECT_EQ("0", e->get_param_value_str("addr"));
+				EXPECT_EQ("1003520", e->get_param_value_str("length"));
+				EXPECT_EQ("PROT_READ|PROT_WRITE", e->get_param_value_str("prot"));
+				EXPECT_EQ("MAP_PRIVATE|MAP_ANONYMOUS", e->get_param_value_str("flags"));
+				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
+
+				if (type == PPME_SYSCALL_MMAP_E)
+				{
+					EXPECT_EQ("0", e->get_param_value_str("offset"));
+				}
+				else
+				{
+					EXPECT_EQ("0", e->get_param_value_str("pgoffset"));
+				}
+				break;
+			default:
+				callnum--;
+			}
+		}
+		else if (type == PPME_SYSCALL_MMAP_X || type == PPME_SYSCALL_MMAP2_X)
+		{
+			callnum++;
+
+			memcpy(&exit_vmsize, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
+			memcpy(&exit_vmrss, e->get_param_by_name("vm_rss")->m_val, sizeof(uint32_t));
+			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
+			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
+
+			switch (callnum)
+			{
+			case 4:
+			{
+				uint64_t res = 0;
+				memcpy(&res, e->get_param_by_name("res")->m_val, sizeof(uint64_t));
+				EXPECT_EQ(-errno2, (int64_t)res);
+				break;
+			}
+			case 6:
+			{
+				uint64_t res = 0;
+				memcpy(&res, e->get_param_by_name("res")->m_val, sizeof(uint64_t));
+				EXPECT_EQ((uint64_t)p, res);
+				EXPECT_GT(exit_vmsize, enter_vmsize + 500);
+				EXPECT_GE(exit_vmrss, enter_vmrss);
+				break;
+			}
+			default:
+				callnum--;
+			}
+		}
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(8, callnum);
+}
+
+TEST_F(sys_call_test32, ppoll_timeout)
+{
+	int callnum = 0;
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		auto tinfo = evt->get_thread_info(false);
+		return (evt->get_type() == PPME_SYSCALL_PPOLL_E ||
+		        evt->get_type() == PPME_SYSCALL_PPOLL_X) &&
+		       tinfo != nullptr && tinfo->m_comm == "test_helper_32";
+	};
+
+	std::string my_pipe[2];
+
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
+	{
+		subprocess handle(LIBSINSP_TEST_PATH "/test_helper_32",
+		               {"ppoll_timeout",});
+		std::stringstream ss;
+		ss << handle.out();
+		my_pipe[0] = ss.str();
+		ss.clear();
+		ss.str(" ");
+		ss << handle.out();
+		my_pipe[1] = ss.str();
+		ss.clear();
+		ss.str(" ");
+		handle.wait();
+	};
+
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+
+		if (type == PPME_SYSCALL_PPOLL_E)
+		{
+			//
+			// stdin and stdout can be a file or a fifo depending
+			// on how the tests are invoked
+			//
+			std::string fds = e->get_param_value_str("fds");
+			std::string expected_fds = my_pipe[0] + ":p1 " +
+										my_pipe[1] + ":p4";
+
+			EXPECT_EQ(expected_fds, fds);
+			EXPECT_EQ("1000000", e->get_param_value_str("timeout", false));
+			EXPECT_EQ("SIGHUP SIGCHLD", e->get_param_value_str("sigmask", false));
+			callnum++;
+		}
+		else if (type == PPME_SYSCALL_PPOLL_X)
+		{
+			int64_t res = std::stol(e->get_param_value_str("res"));
+
+			EXPECT_GT(res, 0);
+			EXPECT_LE(res, 2);
+
+			string fds = e->get_param_value_str("fds");
+			std::string expected_fds = my_pipe[0] + ":p0 " +
+										my_pipe[1] + ":p4";
+
+			switch (res)
+			{
+			case 1:
+				EXPECT_EQ(expected_fds, fds);
+				break;
+			case 2:
+				//
+				// On EC2 called from jenkins stdin returns POLLHUP
+				//
+				EXPECT_EQ(expected_fds, fds);
+				break;
+			default:
+				FAIL();
+			}
+
+			callnum++;
+		}
+	};
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(2, callnum);
+}
+
+TEST_F(sys_call_test32, fs_preadv)
+{
+	int callnum = 0;
+	int fd = 0;
+	int fd1 = 0;
+	bool pwritev64_succeeded;
+	bool pwritev64_succeeded2;
+	proc_started_filter test_started_filter;
+
+	//
+	// FILTER
+	//
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		auto tinfo = evt->get_thread_info(false);
+		if (tinfo && tinfo->m_comm == "test_helper_32")
+		{
+			auto type = evt->get_type();
+			return (type == PPME_SYSCALL_PREADV_E
+					|| type == PPME_SYSCALL_PREADV_X
+					|| type == PPME_SYSCALL_PWRITEV_E
+					|| type == PPME_SYSCALL_PWRITEV_X);
+		}
+		return false;
+	};
+
+	//
+	// TEST CODE
+	//
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
+	{
+		subprocess test_proc(LIBSINSP_TEST_PATH "/test_helper_32", {"preadv_pwritev"});
+		fd = std::stoi(test_proc.out());
+		int bool_n = std::stoi(test_proc.out());
+		pwritev64_succeeded = (bool_n == 1);
+		bool_n = std::stoi(test_proc.out());
+		pwritev64_succeeded2 = (bool_n == 1);
+		fd1 = std::stoi(test_proc.out());
+		test_proc.wait();
+	};
+
+	int pwrite1_res = 0;
+	int pwrite2_res = 0;
+	//
+	// OUTPUT VALDATION
+	//
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		sinsp_evt* e = param.m_evt;
+		uint16_t type = e->get_type();
+
+		if (type == PPME_SYSCALL_PWRITEV_E)
+		{
+			if (callnum == 0)
+			{
+				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
+				EXPECT_EQ(987654321, std::stoll(e->get_param_value_str("pos")));
+				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
+				callnum++;
+			}
+			else
+			{
+				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
+				EXPECT_EQ(10, std::stoll(e->get_param_value_str("pos")));
+				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
+				callnum++;
+			}
+		}
+		else if (type == PPME_SYSCALL_PWRITEV_X)
+		{
+			if (callnum == 1)
+			{
+				pwrite1_res = std::stoi(e->get_param_value_str("res", false));
+				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
+				callnum++;
+			}
+			else
+			{
+				pwrite2_res = std::stoi(e->get_param_value_str("res", false));
+				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
+				callnum++;
+			}
+		}
+		else if (type == PPME_SYSCALL_PREADV_E)
+		{
+			if (callnum == 4)
+			{
+				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
+				EXPECT_EQ(987654321, std::stoll(e->get_param_value_str("pos")));
+				callnum++;
+			}
+			else
+			{
+				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
+				EXPECT_EQ(10, std::stoll(e->get_param_value_str("pos")));
+				callnum++;
+			}
+		}
+		else if (type == PPME_SYSCALL_PREADV_X)
+		{
+			if (callnum == 3)
+			{
+				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
+				EXPECT_EQ("aaaaabbbbb", e->get_param_value_str("data"));
+				EXPECT_EQ(30, std::stoll(e->get_param_value_str("size")));
+				callnum++;
+			}
+		}
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(6, callnum);
+	if (pwritev64_succeeded)
+	{
+		EXPECT_EQ(15, pwrite1_res);
+	}
+	else
+	{
+		EXPECT_GT(0, pwrite1_res);
+	}
+	if (pwritev64_succeeded2)
+	{
+		EXPECT_EQ(15, pwrite2_res);
+	}
+	else
+	{
+		EXPECT_EQ(-22, pwrite2_res);
+	}
+}
+#endif
+
+extern "C"
+{
+	int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform,
+								  char* procdirname,
+								  uint64_t tid,
+								  struct scap_threadinfo* tinfo,
+								  char* error,
+								  bool scan_sockets);
+}
+
+TEST_F(sys_call_test, thread_lookup_static)
+{
+	char err_buf[SCAP_LASTERR_SIZE];
+ 	scap_threadinfo scap_tinfo;
+    char proc[] = LIBSINSP_TEST_RESOURCES_PATH "/_proc";
+    struct stat s = {};
+    if (stat(proc, &s) != 0)
+    {
+        fprintf(stderr, "%s not found, skipping test\n", proc);
+        FAIL();
+    }
+
+ 	event_filter_t filter = [&](sinsp_evt* evt)
+ 	{ return evt->get_type() != PPME_PROCEXIT_1_E && evt->get_tid() > 0; };
+ 	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {return;};
+ 	captured_event_callback_t callback = [&](const callback_param& param) {return;};
+	scap_linux_platform *platform;
+
+ 	before_close_t before_close = [&](sinsp* inspector)
+ 	{
+ 		platform = (scap_linux_platform*)inspector->get_scap_platform();
+ 	};
+
+ 	ASSERT_NO_FATAL_FAILURE(
+ 	    { event_capture::run(test, callback, filter, event_capture::do_nothing, before_close); });
+
+ 	ASSERT_EQ(SCAP_SUCCESS,
+ 	          scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
+
+ 	EXPECT_EQ(1, scap_tinfo.tid);
+ 	EXPECT_EQ(1, scap_tinfo.pid);
+ 	EXPECT_EQ(1, scap_tinfo.vtid);
+ 	EXPECT_EQ(0, scap_tinfo.ptid);
+
+ 	ASSERT_EQ(SCAP_SUCCESS,
+ 	          scap_proc_read_thread(platform, proc, 62725, &scap_tinfo, err_buf, false));
+ 	EXPECT_EQ(62725, scap_tinfo.tid);
+ 	EXPECT_EQ(62725, scap_tinfo.pid);
+ 	EXPECT_EQ(62725, scap_tinfo.vtid);
+ 	EXPECT_EQ(1, scap_tinfo.ptid);
+
+ 	ASSERT_EQ(SCAP_SUCCESS,
+ 	          scap_proc_read_thread(platform, proc, 62727, &scap_tinfo, err_buf, false));
+ 	EXPECT_EQ(62727, scap_tinfo.tid);
+ 	EXPECT_EQ(62725, scap_tinfo.pid);
+ 	EXPECT_EQ(62727, scap_tinfo.vtid);
+ 	EXPECT_EQ(1, scap_tinfo.ptid);
+
+}
+
+TEST_F(sys_call_test, thread_lookup_live)
+{
+	char err_buf[SCAP_LASTERR_SIZE];
+ 	scap_threadinfo scap_tinfo;
+ 	char proc[] = "/proc";
+
+ 	std::unordered_set<int64_t> seen_tids;
+
+ 	event_filter_t filter = [&](sinsp_evt* evt)
+ 	{ return evt->get_type() != PPME_PROCEXIT_1_E && evt->get_tid() > 0; };
+ 	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
+ 	{
+ 		// a very short sleep to gather some events,
+ 		// we'll take much longer than this to process them all
+ 		usleep(1000);
+ 	};
+ 	captured_event_callback_t callback = [&](const callback_param& param)
+ 	{
+ 		sinsp_evt* e = param.m_evt;
+ 		auto tid = e->get_tid();
+ 		if (!seen_tids.insert(tid).second)
+ 		{
+ 			return;
+ 		}
+ 		fprintf(stderr, "looking up tid %ld in /proc\n", tid);
+ 		// In some cases scap_proc_read_thread can return SCAP_SUCCESS without
+ 		// filling in scap_tinfo
+ 		if (scap_proc_read_thread((scap_linux_platform*)param.m_inspector->get_scap_platform(),
+								  proc, tid, &scap_tinfo, err_buf, false) == SCAP_SUCCESS)
+ 		{
+ 			auto tinfo = e->get_thread_info(false);
+ 			if (!tinfo)
+ 			{
+ 				return;
+ 			}
+ 			EXPECT_NE(0, scap_tinfo.tid);
+ 			EXPECT_NE(0, scap_tinfo.pid);
+ 			EXPECT_NE(0, scap_tinfo.vtid);
+ 			EXPECT_EQ(tinfo->m_tid, scap_tinfo.tid);
+ 			EXPECT_EQ(tinfo->m_pid, scap_tinfo.pid);
+ 			EXPECT_EQ(tinfo->m_vtid, scap_tinfo.vtid);
+ 			// Not testing scap_tinfo.ptid because it can change in between event and lookup
+ 		}
+ 	};
+
+	scap_linux_platform *platform;
+
+ 	before_close_t before_close = [&](sinsp* inspector)
+ 	{
+ 		// close scap to maintain the num_consumers at exit == 0 assertion
+ 		//close_capture(scap, platform);
+ 		platform = (scap_linux_platform*)inspector->get_scap_platform();
+ 	};
+ 	ASSERT_NO_FATAL_FAILURE(
+ 	    { event_capture::run(test, callback, filter, event_capture::do_nothing, before_close); });
+
+ 	ASSERT_EQ(SCAP_SUCCESS,
+ 	          scap_proc_read_thread(platform, proc, getpid(),
+									&scap_tinfo, err_buf, false));
+ 	EXPECT_EQ(getpid(), scap_tinfo.tid);
+ 	EXPECT_EQ(getpid(), scap_tinfo.pid);
+ 	EXPECT_EQ(getpid(), scap_tinfo.vtid);
+ 	EXPECT_EQ(getppid(), scap_tinfo.ptid);
+
+ 	ASSERT_EQ(SCAP_SUCCESS,
+ 	          scap_proc_read_thread(platform, proc, 1,
+									&scap_tinfo, err_buf, false));
+ 	EXPECT_EQ(1, scap_tinfo.tid);
+ 	EXPECT_EQ(1, scap_tinfo.pid);
+ 	EXPECT_EQ(1, scap_tinfo.vtid);
+ 	EXPECT_EQ(0, scap_tinfo.ptid);
+
+}
