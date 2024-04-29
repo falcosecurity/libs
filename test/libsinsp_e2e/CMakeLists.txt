@@ -32,6 +32,7 @@ configure_file (
 )
 
 add_executable(libsinsp_e2e_tests
+    capture_to_file_test.cpp
     container/container.cpp
     container/container_cgroup.cpp
     container/docker_utils.cpp
@@ -50,6 +51,8 @@ add_executable(libsinsp_e2e_tests
     threadinfo.cpp
     thread_state.cpp
     udp_client_server.cpp
+    unix_client_server.cpp
+    unix_udp_client_server.cpp
 )
 
 if(BUILD_BPF)
@@ -103,3 +106,8 @@ file(COPY
     DESTINATION
     ${CMAKE_CURRENT_BINARY_DIR}/resources/
 )
+
+execute_process(
+     COMMAND tar xzf ${CMAKE_CURRENT_BINARY_DIR}/resources/fake-proc.tar.gz
+     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources/
+ )
