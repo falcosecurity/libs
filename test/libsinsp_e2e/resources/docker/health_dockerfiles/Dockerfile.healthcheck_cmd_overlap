@@ -1,0 +1,2 @@
+FROM busybox
+HEALTHCHECK --interval=0.5s CMD ["/bin/sh", "-c", "/bin/sleep 10"]

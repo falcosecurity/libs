@@ -43,6 +43,7 @@ limitations under the License.
 
 #include <poll.h>
 #include <signal.h>
+#include <stdarg.h>
 
 #include <sys/quota.h>
 #include <sys/wait.h>
@@ -68,6 +69,10 @@ void mmap_test(const vector<string>& args)
 {
 	int errno2;
 	void* p;
+
+	printf("STARTED\n");
+	fflush(stdout);
+
 	munmap((void*)0x50, 300);
 	p = mmap(0,
 	         0,
@@ -78,7 +83,10 @@ void mmap_test(const vector<string>& args)
 	errno2 = errno;
 	p = mmap(NULL, 1003520, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	munmap(p, 1003520);
-	cout << errno2 << " " << p << endl;
+	printf("%d\n", errno2);
+	fflush(stdout);
+	printf("%u\n", p);
+	fflush(stdout);
 }
 
 bool str_to_bool(const string& s)
@@ -182,6 +190,8 @@ void preadv_pwritev(const vector<string>& args)
 	//
 	bool pwritev64_succeeded = bytes_sent > 0;
 
+	cout << fd << endl;
+
 	cout << (pwritev64_succeeded ? 1 : 0) << endl;
 
 	bytes_sent = pwritev(fd, wv, wv_count, 10);
@@ -191,6 +201,8 @@ void preadv_pwritev(const vector<string>& args)
 	close(fd);
 
 	auto fd1 = open(FILENAME, O_CREAT | O_RDONLY, S_IRWXU);
+
+	cout << fd1 << endl;
 
 	wv[0].iov_len = sizeof(msg1);
 	wv[1].iov_len = sizeof(msg2);
@@ -223,11 +235,12 @@ void quotactl_ok(const vector<string>& args)
 {
 	struct dqblk mydqblk;
 	struct dqinfo mydqinfo;
+	std::string caddr = args[0] + "/aquota.user";
 	quotactl(QCMD(Q_QUOTAON, USRQUOTA),
-	         "/dev/loop0",
+	         args[1].c_str(),
 	         2,
-	         (caddr_t) "/tmp/testquotamnt/aquota.user");                       // 2 => QFMT_VFS_V0
-	quotactl(QCMD(Q_GETQUOTA, USRQUOTA), "/dev/loop0", 0, (caddr_t)&mydqblk);  // 0 => root user
+	         (caddr_t)caddr.c_str());                       // 2 => QFMT_VFS_V0
+	quotactl(QCMD(Q_GETQUOTA, USRQUOTA), args[1].c_str(), 0, (caddr_t)&mydqblk);  // 0 => root user
 	fwrite(&mydqblk.dqb_bhardlimit, 1, sizeof(uint64_t), stdout);
 	fwrite(&mydqblk.dqb_bsoftlimit, 1, sizeof(uint64_t), stdout);
 	fwrite(&mydqblk.dqb_curspace, 1, sizeof(uint64_t), stdout);
@@ -235,10 +248,33 @@ void quotactl_ok(const vector<string>& args)
 	fwrite(&mydqblk.dqb_isoftlimit, 1, sizeof(uint64_t), stdout);
 	fwrite(&mydqblk.dqb_btime, 1, sizeof(uint64_t), stdout);
 	fwrite(&mydqblk.dqb_itime, 1, sizeof(uint64_t), stdout);
-	quotactl(QCMD(Q_GETINFO, USRQUOTA), "/dev/loop0", 0, (caddr_t)&mydqinfo);
+	quotactl(QCMD(Q_GETINFO, USRQUOTA), args[1].c_str(), 0, (caddr_t)&mydqinfo);
 	fwrite(&mydqinfo.dqi_bgrace, 1, sizeof(uint64_t), stdout);
 	fwrite(&mydqinfo.dqi_igrace, 1, sizeof(uint64_t), stdout);
-	quotactl(QCMD(Q_QUOTAOFF, USRQUOTA), "/dev/loop0", 0, NULL);
+	quotactl(QCMD(Q_QUOTAOFF, USRQUOTA), args[1].c_str(), 0, NULL);
+}
+
+void poll_timeout(const vector<string>& args)
+{
+	int my_pipe[2];
+	auto ret = pipe(my_pipe);
+	if (ret != 0)
+	{
+		return;
+	}
+
+	struct pollfd ufds[2];
+	ufds[0].fd = my_pipe[0];
+	ufds[0].events = POLLIN;
+	ufds[1].fd = my_pipe[1];
+	ufds[1].events = POLLOUT;
+
+	poll(ufds, 2, 20);
+
+	printf("%d\n", my_pipe[0]);
+	fflush(stdout);
+	printf("%d\n", my_pipe[1]);
+	fflush(stdout);
 }
 
 void ppoll_timeout(const vector<string>& args)
@@ -265,6 +301,11 @@ void ppoll_timeout(const vector<string>& args)
 	sigaddset(&sigs, SIGHUP);
 	sigaddset(&sigs, SIGCHLD);
 	ppoll(ufds, 2, &timeout, &sigs);
+
+	printf("%d\n", my_pipe[0]);
+	fflush(stdout);
+	printf("%d\n", my_pipe[1]);
+	fflush(stdout);
 }
 
 void pgid_test(const vector<string>& args)
@@ -710,6 +751,7 @@ const unordered_map<string, function<void(const vector<string>&)>> func_map = {
     {"preadv_pwritev", preadv_pwritev},
     {"quotactl_ko", quotactl_ko},
     {"quotactl_ok", quotactl_ok},
+    {"poll_timeout", poll_timeout},
     {"ppoll_timeout", ppoll_timeout},
     {"pgid_test", pgid_test},
     {"custom_container", custom_container},
