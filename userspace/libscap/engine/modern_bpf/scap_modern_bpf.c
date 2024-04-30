@@ -49,8 +49,8 @@ static void scap_modern_bpf__free_engine(struct scap_engine_handle engine)
 /* The third parameter is not the CPU number from which we extract the event but the ring buffer number.
  * For the old BPF probe and the kernel module the number of CPUs is equal to the number of buffers since we always use a per-CPU approach.
  */
-static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* buffer_id,
-				     OUT uint32_t* pflags)
+static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* buffer_id,
+				     uint32_t* pflags)
 {
 	pman_consume_first_event((void**)pevent, (int16_t*)buffer_id);
 
@@ -250,7 +250,7 @@ static uint32_t scap_modern_bpf__get_n_devs(struct scap_engine_handle engine)
 	return pman_get_required_buffers();
 }
 
-int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
+int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, scap_stats* stats)
 {
 	if(pman_get_scap_stats(stats))
 	{
@@ -259,7 +259,7 @@ int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_st
 	return SCAP_SUCCESS;
 }
 
-const struct metrics_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
 	if (!(handle->m_flags & ENGINE_FLAG_BPF_STATS_ENABLED))
@@ -270,7 +270,7 @@ const struct metrics_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle
 	return pman_get_metrics_v2(flags, nstats, rc);
 }
 
-int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, OUT long* ret)
+int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
 {
 	if(pman_get_n_tracepoint_hit(ret))
 	{
