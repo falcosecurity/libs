@@ -147,7 +147,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_thread::allocate_new()
 	return std::make_unique<sinsp_filter_check_thread>();
 }
 
-int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname, std::string_view val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname, std::string_view val, const ppm_param_info** parinfo)
 {
 	std::string::size_type parsed_len = 0;
 
@@ -469,7 +469,7 @@ uint64_t sinsp_filter_check_thread::extract_exectime(sinsp_evt *evt)
 	return res;
 }
 
-uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system)
+uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system)
 {
 	uint16_t etype = evt->get_type();
 
@@ -523,7 +523,7 @@ inline bool should_extract_xid(int64_t xid)
 	return xid >= -1 && xid <= UINT32_MAX;
 }
 
-uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();

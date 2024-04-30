@@ -50,7 +50,7 @@ public:
 
 	bool extract(
 		sinsp_evt *evt,
-		OUT std::vector<extract_value_t>& values,
+		std::vector<extract_value_t>& values,
 		bool sanitize_strings = true) override;
 
 private:

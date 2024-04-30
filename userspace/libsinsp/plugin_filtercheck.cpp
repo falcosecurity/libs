@@ -126,7 +126,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_plugin::allocate_new()
 	return std::make_unique<sinsp_filter_check_plugin>(*this);
 }
 
-bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	// reject the event if it comes from an unknown event source
 	if (evt->get_source_idx() == sinsp_no_event_source_idx)

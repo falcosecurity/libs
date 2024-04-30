@@ -84,7 +84,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_gen_event::allocate_new()
 	return std::make_unique<sinsp_filter_check_gen_event>();
 }
 
-Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, uint32_t* len)
 {
 	switch(m_field_id)
 	{
@@ -109,7 +109,7 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, OUT uint
 	return Json::nullValue;
 }
 
-uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 
 	std::shared_ptr<sinsp_plugin> plugin;

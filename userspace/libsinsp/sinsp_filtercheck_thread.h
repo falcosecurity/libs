@@ -117,13 +117,13 @@ public:
 	int32_t get_argid() const;
 
 protected:
-	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 	bool compare_nocache(sinsp_evt*) override;
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
-	int32_t extract_arg(std::string_view fldname, std::string_view val, OUT const ppm_param_info**);
-	uint8_t* extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
+	int32_t extract_arg(std::string_view fldname, std::string_view val, const ppm_param_info**);
+	uint8_t* extract_thread_cpu(sinsp_evt *evt, uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 	bool compare_full_aexe(sinsp_evt *evt);

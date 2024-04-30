@@ -962,7 +962,7 @@ static int32_t gmt2local(time_t t)
 	return dt;
 }
 
-void sinsp_utils::ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns)
+void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns)
 {
 	struct tm *tm;
 	time_t Time;
@@ -1003,7 +1003,7 @@ void sinsp_utils::ts_to_string(uint64_t ts, OUT std::string* res, bool date, boo
 }
 
 #define TS_STR_FMT "YYYY-MM-DDTHH:MM:SS-0000"
-void sinsp_utils::ts_to_iso_8601(uint64_t ts, OUT std::string* res)
+void sinsp_utils::ts_to_iso_8601(uint64_t ts, std::string* res)
 {
 	static const char *fmt = TS_STR_FMT;
 	char buf[sizeof(TS_STR_FMT)];

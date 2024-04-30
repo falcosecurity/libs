@@ -1657,7 +1657,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 	}
 }
 
-bool sinsp_filter_check::extract_nocache(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check::extract_nocache(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	values.clear();
 	extract_value_t val;
@@ -1670,12 +1670,12 @@ bool sinsp_filter_check::extract_nocache(sinsp_evt *evt, OUT std::vector<extract
 	return false;
 }
 
-uint8_t* sinsp_filter_check::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	return NULL;
 }
 
-bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check::extract(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	if(m_cache_metrics != NULL)
 	{

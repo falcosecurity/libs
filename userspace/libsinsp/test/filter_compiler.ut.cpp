@@ -48,7 +48,7 @@ public:
 		throw sinsp_exception("unexpected right-hand side filter comparison");
 	}
 
-	inline bool extract(sinsp_evt *e, OUT vector<extract_value_t>& v, bool) override
+	inline bool extract(sinsp_evt *e, vector<extract_value_t>& v, bool) override
 	{
 		return false;
 	}

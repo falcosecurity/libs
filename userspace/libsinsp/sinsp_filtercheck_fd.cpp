@@ -161,7 +161,7 @@ int32_t sinsp_filter_check_fd::parse_field_name(std::string_view val, bool alloc
 	return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 }
 
-bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings, bool fd_nameraw)
+bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, uint32_t* len, bool sanitize_strings, bool fd_nameraw)
 {
 	const char* resolved_argstr;
 	uint16_t etype = evt->get_type();
@@ -273,7 +273,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	}
 }
 
-uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	//
@@ -418,7 +418,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 }
 
-bool sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check_fd::extract(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	values.clear();
 
@@ -466,7 +466,7 @@ bool sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT std::vector<extract_valu
 	return sinsp_filter_check::extract(evt, values, sanitize_strings);
 }
 
-uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	ASSERT(evt);

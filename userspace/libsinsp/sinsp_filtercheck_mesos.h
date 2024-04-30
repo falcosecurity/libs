@@ -46,7 +46,7 @@ public:
 	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
 
 protected:
-	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 
 private:
 	int32_t extract_arg(std::string_view fldname, std::string_view val);

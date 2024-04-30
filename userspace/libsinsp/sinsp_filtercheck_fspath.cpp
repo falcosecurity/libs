@@ -240,7 +240,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fspath::allocate_new()
 	return ret;
 }
 
-uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	ASSERT(evt);
@@ -367,7 +367,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, OUT uint32_t*
 }
 
 bool sinsp_filter_check_fspath::extract_fspath(sinsp_evt* evt,
-					       OUT std::vector<extract_value_t>& values,
+					       std::vector<extract_value_t>& values,
 					       std::shared_ptr<filtercheck_map_t> checks)
 {
 	sinsp_evt* extract_evt = evt;

@@ -196,7 +196,7 @@ public:
 	/*!
 	  \brief Get the next event from the open capture source
 
-	  \param evt a \ref sinsp_evt pointer that will be initialized to point to
+	  \param evt [out] a \ref sinsp_evt pointer that will be initialized to point to
 	  the next available event.
 
 	  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain
@@ -208,7 +208,7 @@ public:
 	  \note: the returned event can be considered valid only until the next
 	   call to \ref)
 	*/
-	virtual int32_t next(OUT sinsp_evt **evt);
+	virtual int32_t next(sinsp_evt **evt);
 
 	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
@@ -842,8 +842,10 @@ public:
 	  \brief When reading events from a trace file or a plugin, this function
 	   returns the read progress as a number and as a string, giving the plugins
 	   flexibility on the format.
+
+	  \param progress_str [out] a string representation of progress for plugins
 	*/
-	double get_read_progress_with_str(OUT std::string* progress_str) const;
+	double get_read_progress_with_str(std::string* progress_str) const;
 
 	/*!
 	  \brief Make the amount of data gathered for a syscall to be
@@ -1140,7 +1142,7 @@ private:
 	}
 
 	double get_read_progress_file() const;
-	void get_read_progress_plugin(OUT double* nres, std::string* sres) const;
+	void get_read_progress_plugin(double* nres, std::string* sres) const;
 
 	void get_procs_cpu_from_driver(uint64_t ts);
 

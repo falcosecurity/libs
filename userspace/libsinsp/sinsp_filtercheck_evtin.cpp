@@ -198,7 +198,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_evtin::allocate_new()
 	return std::make_unique<sinsp_filter_check_evtin>();
 }
 
-uint8_t* sinsp_filter_check_evtin::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_evtin::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	// do nothing: support to tracers has been dropped
 	*len = 0;

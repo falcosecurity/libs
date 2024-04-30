@@ -1661,7 +1661,7 @@ int32_t scap_bpf_load(
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
+int32_t scap_bpf_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int j;
@@ -1703,7 +1703,7 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 	return SCAP_SUCCESS;
 }
 
-const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int ret;
@@ -1879,7 +1879,7 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine, OUT scap_evt **pevent, OUT uint16_t *pdevid, OUT uint32_t *pflags)
+static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags)
 {
 	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pdevid, pflags);
 }

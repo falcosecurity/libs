@@ -156,7 +156,7 @@ static int close_engine(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pdevid, OUT uint32_t* pflags)
+static int32_t next(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	char *lasterr = engine.m_handle->m_lasterr;
@@ -267,14 +267,14 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	return SCAP_SUCCESS;
 }
 
-static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
+static int32_t get_stats(struct scap_engine_handle engine, scap_stats* stats)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	stats->n_evts = handle->m_nevts;
 	return SCAP_SUCCESS;
 }
 
-const struct metrics_v2* get_source_plugin_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* get_source_plugin_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	*nstats = MAX_SOURCE_PLUGIN_COUNTERS_STATS;

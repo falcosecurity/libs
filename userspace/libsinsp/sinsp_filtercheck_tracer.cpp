@@ -76,7 +76,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_tracer::allocate_new()
 	return std::make_unique<sinsp_filter_check_tracer>();
 }
 
-int32_t sinsp_filter_check_tracer::extract_arg(string_view fldname, string_view val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_tracer::extract_arg(string_view fldname, string_view val, const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -185,7 +185,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(std::string_view val, bool a
 	return res;
 }
 
-uint8_t* sinsp_filter_check_tracer::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_tracer::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	// do nothing: support to tracers has been dropped
 	*len = 0;
