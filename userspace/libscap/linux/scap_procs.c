@@ -658,26 +658,35 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	{
 		ASSERT(sizeof(line) >= SCAP_MAX_ARGS_SIZE);
 
-		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE - 1, f);
+		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE, f);
 		if(filesize > 0)
 		{
-			line[filesize] = 0;
+			// In case `args` is greater than `SCAP_MAX_ARGS_SIZE` it could be
+			// truncated so we put a `/0` at the end manually.
+			line[filesize-1] = 0;
 
-			exe_len = strlen(line);
-			if(exe_len < filesize)
-			{
-				++exe_len;
-			}
+			// We always count also the terminator so `+1`
+			// Please note that this could be exactly `SCAP_MAX_ARGS_SIZE`
+			exe_len = strlen(line) + 1;
 
 			snprintf(tinfo.exe, SCAP_MAX_PATH_SIZE, "%s", line);
 
+			// Please note if `exe_len` is `SCAP_MAX_ARGS_SIZE` we will return an empty `args`.
 			tinfo.args_len = filesize - exe_len;
-
-			memcpy(tinfo.args, line + exe_len, tinfo.args_len);
-			tinfo.args[SCAP_MAX_ARGS_SIZE - 1] = 0;
+			if(tinfo.args_len > 0)
+			{
+				memcpy(tinfo.args, line + exe_len, tinfo.args_len);
+				tinfo.args[tinfo.args_len - 1] = 0;
+			}
+			else
+			{
+				tinfo.args_len = 0;
+				tinfo.args[0] = 0;
+			}
 		}
 		else
 		{
+			tinfo.args_len = 0;
 			tinfo.args[0] = 0;
 			tinfo.exe[0] = 0;
 		}
@@ -713,6 +722,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		else
 		{
 			tinfo.env[0] = 0;
+			tinfo.env_len = 0;
 		}
 
 		fclose(f);

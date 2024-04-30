@@ -208,3 +208,15 @@ TEST(sinsp_utils_test, sinsp_split_buf)
 	EXPECT_EQ(split[0], "hello");
 	EXPECT_EQ(split[1], "world");
 }
+
+TEST(sinsp_utils_test, sinsp_split_check_terminator)
+{
+	// check that the null terminator is enforced
+	const char *in = "hello\0worlddd";
+	size_t len = 13;
+	auto split = sinsp_split(in, len, '\0');
+
+	EXPECT_EQ(split.size(), 2);
+	EXPECT_EQ(split[0], "hello");
+	EXPECT_EQ(split[1], "worldd");
+}
