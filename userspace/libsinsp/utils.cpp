@@ -1392,14 +1392,21 @@ std::vector<std::string> sinsp_split(const char *buf, size_t len, char delim)
 		return {};
 	}
 
+	std::string s {buf, len - 1};
+
 	if(buf[len - 1] != '\0')
 	{
+#ifdef _DEBUG
 		throw sinsp_exception("expected a NUL-terminated buffer of size " +	
 							  std::to_string(len) + ", which instead ends with " +
 							  std::to_string(buf[len - 1]));
+#else
+		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "expected a NUL-terminated buffer of size '%ld' which instead ends with '%c'", len, buf[len - 1]);
+		// enforce the null terminator
+		s.replace(len-1, 1, "\0");
+#endif
 	}
 
-	std::string s {buf, len - 1};
 	return sinsp_split(s, delim);
 }
 
