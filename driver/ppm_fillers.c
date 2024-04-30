@@ -112,7 +112,7 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
  **/
 static inline uint32_t get_exe_from_memfd(const struct file *exe_file)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
+#if defined(CONFIG_MEMFD_CREATE) && CONFIG_MEMFD_CREATE == 1
 	const char expected_prefix[] = "memfd:";
 	if(!(exe_file &&
 		 exe_file->f_path.dentry &&
