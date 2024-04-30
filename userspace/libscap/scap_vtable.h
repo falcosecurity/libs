@@ -208,7 +208,7 @@ struct scap_vtable {
 	/**
 	 * @brief get engine statistics
 	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param stats the stats struct to be filled
+	 * @param stats [out] the stats struct to be filled
 	 * @return SCAP_SUCCESS or a failure code
 	 */
 	int32_t (*get_stats)(struct scap_engine_handle engine, struct scap_stats *stats);
@@ -216,8 +216,8 @@ struct scap_vtable {
 	/**
 	 * @brief get engine statistics (including counters and `bpftool prog show` like stats)
 	 * @param flags holding statistics category flags
-	 * @param nstats Pointer reflecting number of statistics in returned buffer
-	 * @param rc Pointer to return code
+	 * @param nstats [out] Pointer reflecting number of statistics in returned buffer
+	 * @param rc [out] Pointer to return code
 	 * @return Pointer to a \ref metrics_v2 structure filled with the statistics
 	 */
 	const struct metrics_v2* (*get_stats_v2)(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc);

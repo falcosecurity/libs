@@ -86,7 +86,11 @@ static inline void ringbuffer_advance_tail(struct scap_device* dev)
 
 #ifndef READBUF
 #define READBUF ringbuffer_readbuf
-static inline int32_t ringbuffer_readbuf(struct scap_device *dev, OUT char** buf, OUT uint32_t* len)
+/**
+ * \param buf [out] buffer holding the returned data
+ * \param len [out] number of bytes read into buf
+ */
+static inline int32_t ringbuffer_readbuf(struct scap_device *dev, char** buf, uint32_t* len)
 {
 	uint64_t thead;
 	uint64_t ttail;
@@ -197,22 +201,30 @@ static inline void ringbuffer_advance_to_evt(scap_device* dev, scap_evt *event)
 }
 #endif
 
-/* The flow here is:
+/**
+ * \brief Get next event in the ringbuffer
+ *
+ * The flow here is:
  * - For every buffer, read how many data are available and save the pointer + its length. (this is what we call a block)
  * - Consume from all these blocks the event with the lowest timestamp. (repeat until all the blocks are empty!)
  *   When we have read all the data from a buffer block, update the consumer position for that buffer, and wait
  *   for all the other buffer blocks to be read.
  * - When we have consumed all the blocks we are ready to read again a new block for every buffer
- * 
+ *
  * Possible pain points:
  * - if the buffers are not full enough we sleep and this could be dangerous in this situation!
  * - we increase the consumer position only when we have consumed the entire block, but if the block
  *   is huge we could cause several drops.
  * - before refilling a buffer we have to consume all the others!
  * - we perform a lot of cycles but we have to be super fast here!
+ *
+ * \param pevent [out] where the pointer to the next event gets stored
+ * \param pdevid [out] where the device on which the event was received
+ *               gets stored
+ * \param pflags [out] where the flags for the event get stored
  */
-static inline int32_t ringbuffer_next(struct scap_device_set* devset, OUT scap_evt** pevent, OUT uint16_t* pdevid,
-				      OUT uint32_t* pflags)
+static inline int32_t ringbuffer_next(struct scap_device_set* devset, scap_evt** pevent, uint16_t* pdevid,
+				      uint32_t* pflags)
 {
 	uint32_t j;
 	uint64_t min_ts = 0xffffffffffffffffLL;

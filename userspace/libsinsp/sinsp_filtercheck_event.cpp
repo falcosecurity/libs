@@ -144,7 +144,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_event::allocate_new()
 	return std::make_unique<sinsp_filter_check_event>();
 }
 
-int32_t sinsp_filter_check_event::extract_arg(string_view fldname, string_view val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_event::extract_arg(string_view fldname, string_view val, const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -204,7 +204,7 @@ int32_t sinsp_filter_check_event::extract_arg(string_view fldname, string_view v
 	return parsed_len;
 }
 
-int32_t sinsp_filter_check_event::extract_type(string_view fldname, string_view val, OUT const ppm_param_info** parinfo)
+int32_t sinsp_filter_check_event::extract_type(string_view fldname, string_view val, const ppm_param_info** parinfo)
 {
 	uint32_t parsed_len = 0;
 
@@ -391,7 +391,7 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 	}
 }
 
-uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
+uint8_t* extract_argraw(sinsp_evt *evt, uint32_t* len, const char *argname)
 {
 	const sinsp_evt_param* pi = evt->get_param_by_name(argname);
 
@@ -406,7 +406,7 @@ uint8_t* extract_argraw(sinsp_evt *evt, OUT uint32_t* len, const char *argname)
 	}
 }
 
-uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t *len)
+uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, uint32_t *len)
 {
 	std::string spath;
 
@@ -568,7 +568,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	RETURN_EXTRACT_STRING(m_strstorage);
 }
 
-inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uint32_t* len)
+inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, uint32_t* len)
 {
 	if(evt->get_direction() == SCAP_ED_OUT)
 	{
@@ -586,7 +586,7 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uin
 	return NULL;
 }
 
-Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t* len)
+Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, uint32_t* len)
 {
 	switch(m_field_id)
 	{
@@ -611,7 +611,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	return Json::nullValue;
 }
 
-uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint32_t* len)
+uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, uint32_t* len)
 {
 	const sinsp_evt_param* pi = evt->get_param_by_name("res");
 
@@ -647,7 +647,7 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
-uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	switch(m_field_id)

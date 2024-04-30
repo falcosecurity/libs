@@ -211,7 +211,7 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	return 1;
 }
 
-int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
+int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, char** buf, uint32_t* len)
 {
 	// engines do not even necessarily have a concept of a buffer
 	// that you read events from
@@ -227,7 +227,7 @@ uint64_t scap_max_buf_used(scap_t* handle)
 	return 0;
 }
 
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid, OUT uint32_t* pflags)
+int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
 	// Note: devid is like cpuid but not 1:1, e.g. consider CPU1 offline:
 	// CPU0 CPU1 CPU2 CPU3
@@ -254,7 +254,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid, O
 //
 // Return the number of dropped events for the given handle.
 //
-int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
+int32_t scap_get_stats(scap_t* handle, scap_stats* stats)
 {
 	if(!handle || stats == NULL)
 	{
@@ -297,7 +297,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 // Return engine statistics (including counters and `bpftool prog show` like stats)
 //
-const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	if(handle && handle->m_vtable)
 	{

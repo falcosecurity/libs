@@ -67,7 +67,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_syslog::allocate_new()
 	return std::make_unique<sinsp_filter_check_syslog>();
 }
 
-uint8_t* sinsp_filter_check_syslog::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_syslog::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 	auto& decoder = m_inspector->get_parser()->get_syslog_decoder();

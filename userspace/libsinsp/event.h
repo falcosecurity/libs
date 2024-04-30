@@ -476,14 +476,20 @@ public:
 	/*!
 	  \brief Return the event's category, based on the event type and the FD on
 	   which the event operates.
+
+	  \param cat [out] the category for the event
 	*/
-	void get_category(OUT sinsp_evt::category* cat) const;
+	void get_category(sinsp_evt::category* cat) const;
 
 	/*!
 	  \brief Return true if the event has been rejected by the filtering system.
 	*/
 	bool is_filtered_out() const;
-	scap_dump_flags get_dump_flags(OUT bool* should_drop) const;
+
+	/*!
+	  \param should_drop [out] flag indicating if the event should be dropped
+	*/
+	scap_dump_flags get_dump_flags(bool* should_drop) const;
 
 	/*!
 	  \brief Returns true if this event represents a system call error,
@@ -522,9 +528,15 @@ public:
 
 	std::string get_base_dir(uint32_t id, sinsp_threadinfo*);
 
-	const char* get_param_as_str(uint32_t id, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+	/*!
+	  \param resolved_str [out] the string representation of the parameter
+	*/
+	const char* get_param_as_str(uint32_t id, const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
-	const char* get_param_value_str(std::string_view name, OUT const char** resolved_str, param_fmt fmt = PF_NORMAL);
+	/*!
+	  \param resolved_str [out] the string representation of the parameter
+	*/
+	const char* get_param_value_str(std::string_view name, const char** resolved_str, param_fmt fmt = PF_NORMAL);
 
 	inline void init_keep_threadinfo()
 	{

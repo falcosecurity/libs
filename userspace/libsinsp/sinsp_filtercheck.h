@@ -292,13 +292,15 @@ public:
 	}
 
 	//
-	// Extract the field from the event. In sanitize_strings is true, any
+	// Extract the field from the event. If sanitize_strings is true, any
 	// string values are sanitized to remove nonprintable characters.
 	// By default, this fills the vector with only one value, retireved by calling the single-result
 	// extract method.
 	// If a NULL value is returned by extract, the vector is emptied.
 	// Subclasses are meant to either override this, or the single-valued extract method.
-	virtual bool extract(sinsp_evt*, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	//
+	// \param values [out] the values extracted from the filter check
+	virtual bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
 	// Compare the field with the constant value obtained from parse_filter_value()
@@ -333,7 +335,7 @@ public:
 protected:
 	virtual bool compare_nocache(sinsp_evt*);
 
-	virtual Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len)
+	virtual Json::Value extract_as_js(sinsp_evt*, uint32_t* len)
 	{
 		return Json::nullValue;
 	}
@@ -349,8 +351,11 @@ protected:
 	// This is a single-value version of extract for subclasses non supporting extracting
 	// multiple values. By default, this returns NULL.
 	// Subclasses are meant to either override this, or the multi-valued extract method.
-	bool extract_nocache(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
-	virtual uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true);
+	//
+	// \param values [out] the values extracted from the filter check
+	bool extract_nocache(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	// \param len [out] length in bytes for the returned value
+	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true);
 
 	bool compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0);
 	bool compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values);

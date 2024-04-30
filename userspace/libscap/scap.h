@@ -460,13 +460,6 @@ typedef struct scap_const_sized_buffer scap_const_sized_buffer;
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
-// Structs and defines used internally
-///////////////////////////////////////////////////////////////////////////////
-
-#define IN
-#define OUT
-
-///////////////////////////////////////////////////////////////////////////////
 // API functions
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -566,17 +559,17 @@ uint64_t scap_max_buf_used(scap_t* handle);
   \brief Get the next event from the from the given capture instance
 
   \param handle Handle to the capture instance.
-  \param pevent User-provided event pointer that will be initialized with address of the event.
-  \param pdevid User-provided event pointer that will be initialized with the ID of the device
+  \param pevent [out] User-provided event pointer that will be initialized with address of the event.
+  \param pdevid [out] User-provided event pointer that will be initialized with the ID of the device
     where the event was captured.
-  \param pflags User-provided event pointer that will be initialized with the flags of the event.
+  \param pflags [out] User-provided event pointer that will be initialized with the flags of the event.
 
   \return SCAP_SUCCESS if the call is successful and pevent, pcpuid and pflags contain valid data.
    SCAP_TIMEOUT in case the read timeout expired and no event is available.
    SCAP_EOF when the end of an offline capture is reached.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error.
 */
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid, OUT uint32_t* pflags);
+int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pcpuid, uint32_t* pflags);
 
 /*!
   \brief Get the length of an event
@@ -636,41 +629,49 @@ int64_t scap_get_readfile_offset(scap_t* handle);
   \brief Return the capture statistics for the given capture handle.
 
   \param handle Handle to the capture instance.
-  \param stats Pointer to a \ref scap_stats structure that will be filled with the
+  \param stats [out] Pointer to a \ref scap_stats structure that will be filled with the
   statistics.
 
   \return SCAP_SECCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
-int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
+int32_t scap_get_stats(scap_t* handle, scap_stats* stats);
 
 /*!
   \brief Get engine statistics (including counters and `bpftool prog show` like stats)
 
   \param handle Handle to the capture instance.
   \param flags holding statistics category flags.
-  \param nstats Pointer reflecting number of statistics in returned buffer.
-  \param rc Pointer to return code.
+  \param nstats [out] Pointer reflecting number of statistics in returned buffer.
+  \param rc [out] Pointer to return code.
 
   \return Pointer to a \ref metrics_v2 structure filled with the statistics.
 */
-const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc);
+const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
+
+  \param ppm_sc_array [out] the array of ppm_sc that had their state modified
 */
-int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX]);
+int scap_get_modifies_state_ppm_sc(uint8_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
   \brief Take an array of `ppm_sc` as input and provide the associated array of events as output.
+
+  \param ppm_sc_array [in] the `ppm_sc` to look for
+  \param events_array [out] the array of events associated to the provided `ppm_sc`s
 */
-int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT uint8_t events_array[PPM_EVENT_MAX]);
+int scap_get_events_from_ppm_sc(const uint8_t ppm_sc_array[PPM_SC_MAX], uint8_t events_array[PPM_EVENT_MAX]);
 
 /*!
   \brief Take an array of `ppm_event_code` as input and provide the associated array of ppm_sc as output.
+
+  \param events_array [in] the array of events to look for
+  \param ppm_sc_array [out] the array of `ppm_sc`s associated to the provided events
 */
-int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OUT uint8_t ppm_sc_array[PPM_SC_MAX]);
+int scap_get_ppm_sc_from_events(const uint8_t events_array[PPM_EVENT_MAX], uint8_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
   \brief Given a name, returns associated ppm_sc.
@@ -856,8 +857,13 @@ uint64_t scap_get_engine_flags(scap_t* handle);
 //
 uint32_t scap_get_ndevs(scap_t* handle);
 
-// Retrieve a buffer of events from one of the cpus
-extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len);
+/*
+ * \brief Retrieve a buffer of events from one of the cpus
+ *
+ * \param buf [out] buffer holding the returned events
+ * \param len [out] number of bytes read into buf
+ */
+extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, char** buf, uint32_t* len);
 
 #ifdef PPM_ENABLE_SENTINEL
 // Get the sentinel at the beginning of the event

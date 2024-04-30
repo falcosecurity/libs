@@ -204,7 +204,7 @@ void sinsp_filter_check_k8s::concatenate_container_labels(const map<std::string,
 	}
 }
 
-uint8_t* sinsp_filter_check_k8s::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* sinsp_filter_check_k8s::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
 

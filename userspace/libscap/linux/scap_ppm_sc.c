@@ -462,7 +462,7 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
 _Static_assert(sizeof(g_events_to_sc_map) / sizeof(*g_events_to_sc_map) == PPM_EVENT_MAX, "Missing entries in g_events_to_sc_map table.");
 #endif
 
-int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
+int scap_get_modifies_state_ppm_sc(uint8_t ppm_sc_array[PPM_SC_MAX])
 {
 	if(ppm_sc_array == NULL)
 	{
@@ -500,7 +500,7 @@ int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 	return SCAP_SUCCESS;
 }
 
-int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT uint8_t events_array[PPM_EVENT_MAX])
+int scap_get_events_from_ppm_sc(const uint8_t ppm_sc_array[PPM_SC_MAX], uint8_t events_array[PPM_EVENT_MAX])
 {
 	if(ppm_sc_array == NULL || events_array == NULL)
 	{
@@ -531,7 +531,7 @@ int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT u
 	return SCAP_SUCCESS;
 }
 
-int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OUT uint8_t ppm_sc_array[PPM_SC_MAX])
+int scap_get_ppm_sc_from_events(const uint8_t events_array[PPM_EVENT_MAX], uint8_t ppm_sc_array[PPM_SC_MAX])
 {
 	if (events_array == NULL || ppm_sc_array == NULL)
 	{

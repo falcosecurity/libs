@@ -46,7 +46,7 @@ size_t g_get_event_size(ppm_event_code event_type, uint16_t* lens)
 #endif
 }
 
-int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, OUT uint32_t* nevents)
+int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, uint32_t* nevents)
 {
 	uint32_t offset = 0;
 	*nevents = 0;

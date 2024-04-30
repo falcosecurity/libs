@@ -55,7 +55,7 @@ int32_t rawstring_check::parse_field_name(std::string_view, bool alloc_state, bo
 	return -1;
 }
 
-uint8_t* rawstring_check::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+uint8_t* rawstring_check::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = m_text.size();
 	return (uint8_t*)m_text.c_str();

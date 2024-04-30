@@ -825,7 +825,7 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
 	return rel_path_base;
 }
 
-const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
+const char* sinsp_evt::get_param_as_str(uint32_t id, const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	char* prfmt = NULL;
 	const ppm_param_info* param_info = NULL;
@@ -1852,7 +1852,7 @@ std::string sinsp_evt::get_param_value_str(uint32_t i, bool resolved)
 	}
 }
 
-const char* sinsp_evt::get_param_value_str(std::string_view name, OUT const char** resolved_str, param_fmt fmt)
+const char* sinsp_evt::get_param_value_str(std::string_view name, const char** resolved_str, param_fmt fmt)
 {
 	for(uint32_t i = 0; i < get_num_params(); i++)
 	{
@@ -1866,7 +1866,7 @@ const char* sinsp_evt::get_param_value_str(std::string_view name, OUT const char
 	return NULL;
 }
 
-void sinsp_evt::get_category(OUT sinsp_evt::category* cat) const
+void sinsp_evt::get_category(sinsp_evt::category* cat) const
 {
 	/* We always search the category inside the event table */
 	cat->m_category = get_category();
@@ -1940,7 +1940,7 @@ bool sinsp_evt::is_filtered_out() const
 	return m_filtered_out;
 }
 
-scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop) const
+scap_dump_flags sinsp_evt::get_dump_flags(bool* should_drop) const
 {
 	uint32_t dflags = SCAP_DF_NONE;
 	*should_drop = false;

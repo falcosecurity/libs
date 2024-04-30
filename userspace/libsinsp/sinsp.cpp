@@ -1155,7 +1155,7 @@ int32_t sinsp::fetch_next_event(sinsp_evt*& evt)
 	return res;
 }
 
-int32_t sinsp::next(OUT sinsp_evt **puevt)
+int32_t sinsp::next(sinsp_evt **puevt)
 {
 	*puevt = NULL;
 	sinsp_evt* evt = &m_evt;
@@ -1895,7 +1895,7 @@ double sinsp::get_read_progress_file() const
 	return (double)fpos * 100 / m_filesize;
 }
 
-void sinsp::get_read_progress_plugin(OUT double* nres, std::string* sres) const
+void sinsp::get_read_progress_plugin(double* nres, std::string* sres) const
 {
 	ASSERT(nres != NULL);
 	ASSERT(sres != NULL);
@@ -1932,7 +1932,7 @@ double sinsp::get_read_progress() const
 	}
 }
 
-double sinsp::get_read_progress_with_str(OUT std::string* progress_str) const
+double sinsp::get_read_progress_with_str(std::string* progress_str) const
 {
 	if(is_plugin())
 	{

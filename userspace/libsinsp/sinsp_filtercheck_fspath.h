@@ -39,7 +39,7 @@ public:
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 
 protected:
-	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 
 private:
 	typedef std::map<uint16_t, std::shared_ptr<sinsp_filter_check>> filtercheck_map_t;
@@ -56,7 +56,7 @@ private:
 			       std::shared_ptr<filtercheck_map_t> source_checks,
 			       std::shared_ptr<filtercheck_map_t> target_checks);
 	bool extract_fspath(sinsp_evt* evt,
-			    OUT std::vector<extract_value_t>& values,
+			    std::vector<extract_value_t>& values,
 			    std::shared_ptr<filtercheck_map_t> map);
 	std::string m_tstr;
 

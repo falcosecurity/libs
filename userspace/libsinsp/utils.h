@@ -147,9 +147,15 @@ public:
 					  std::string &digest,
 					  bool split_repo = true);
 
-	static void ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns);
+	/*
+	* \param res [out] the generated string representation of the provided timestamp
+	*/
+	static void ts_to_string(uint64_t ts, std::string* res, bool date, bool ns);
 
-	static void ts_to_iso_8601(uint64_t ts, OUT std::string* res);
+	/*
+	* \param res [out] the generated string representation of the provided timestamp
+	*/
+	static void ts_to_iso_8601(uint64_t ts, std::string* res);
 
 	//
 	// Convert caps from their numeric representation to a space-separated string list

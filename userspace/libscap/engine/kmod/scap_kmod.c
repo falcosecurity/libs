@@ -526,8 +526,8 @@ int32_t scap_kmod_close(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_next(struct scap_engine_handle engine, OUT scap_evt **pevent, OUT uint16_t *pdevid,
-		       OUT uint32_t *pflags)
+int32_t scap_kmod_next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pdevid,
+		       uint32_t *pflags)
 {
 	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pdevid, pflags);
 }
@@ -578,7 +578,7 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	struct kmod_engine *handle = engine.m_handle;
 	struct scap_device_set *devset = &handle->m_dev_set;

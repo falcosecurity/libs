@@ -83,12 +83,12 @@ public:
 	  \brief Fills res with the string rendering of the event.
 
 	  \param evt Pointer to the event to be converted into string.
-	  \param res Pointer to the string that will be filled with the result.
+	  \param res [out] Pointer to the string that will be filled with the result.
 
 	  \return true if the string should be shown (based on the initial *),
 	   false otherwise.
 	*/
-	inline bool tostring(sinsp_evt* evt, OUT std::string* res)
+	inline bool tostring(sinsp_evt* evt, std::string* res)
 	{
 		if (!res)
 		{

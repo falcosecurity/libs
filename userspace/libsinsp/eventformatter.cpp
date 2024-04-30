@@ -187,7 +187,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 
 				// apply all transformers and pop back their ')' enclosing token
 				// note: we apply transformers in reserve order to preserve their semantics
-				for (auto rit = transformers.rbegin(); rit != transformers.rend(); ++rit) 
+				for (auto rit = transformers.rbegin(); rit != transformers.rend(); ++rit)
 				{
 					chk->add_transformer(*rit);
 
@@ -199,7 +199,7 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 					j++;
 					msize++; // count ')'
 				}
-				
+
 				// when requested to do so, we'll resolve the field with transformers
 				// in addition to the non-transformed version
 				m_resolution_tokens.emplace_back(std::string(tstart, fsize + msize), chk, true);
