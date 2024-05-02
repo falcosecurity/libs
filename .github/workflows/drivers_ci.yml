@@ -175,17 +175,44 @@ jobs:
         run: |
           cd build
           sudo ./test/drivers/drivers_test -k
-
-  build-drivers-s390x-ppc64le:
-    name: build-drivers-${{ matrix.arch }} 😁 (system_deps)
+          
+  test-drivers-ppc64le:
+    name: test-drivers-ppc64le 😁 (system_deps,custom node)
     runs-on: ubuntu-22.04
     needs: paths-filter
-    strategy:
-      matrix:
-        arch: [s390x, ppc64le]
-      fail-fast: false
-    env:
-      PLATFORM: ${{ matrix.arch == 'ppc64le' && 'powerpc64le' || 's390x' }}
+    steps:
+      - name: Extract branch name
+        run: echo "GIT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
+
+      - name: Build and test drivers on ppc64le node via ssh
+        if: needs.paths-filter.outputs.driver_needs_rebuild
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PPC64LE_HOST }}
+          username: ${{ secrets.PPC64LE_USERNAME }}
+          key: ${{ secrets.PPC64LE_KEY }}
+          port: ${{ secrets.PPC64LE_PORT }}
+          envs: GIT_BRANCH,GITHUB_REPOSITORY,GITHUB_SERVER_URL
+          script_stop: true
+          script: |
+            sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
+            temp_fld=$(mktemp -d)
+            pushd $temp_fld
+            git clone -b $GIT_BRANCH $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git libs
+            cd libs
+            mkdir -p build
+            cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+            make drivers_test driver bpf -j6
+            sudo ./test/drivers/drivers_test -m
+            sudo ./test/drivers/drivers_test -b
+            sudo ./test/drivers/drivers_test -k
+            popd
+            rm -rf $temp_fld
+        
+  build-drivers-s390x:
+    name: build-drivers-s390x 😁 (system_deps)
+    runs-on: ubuntu-22.04
+    needs: paths-filter
     steps:
       - name: Checkout Libs ⤵️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
@@ -194,10 +221,10 @@ jobs:
           fetch-depth: 0
 
       - uses: uraimo/run-on-arch-action@4ed76f16f09d12e83abd8a49e1ac1e5bf08784d4 # v2.5.1
-        name: Run ${{ matrix.arch }} build 🏗️
+        name: Run s390x build 🏗️
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         with:
-          arch: ${{ matrix.arch }}
+          arch: s390x
           distro: ubuntu22.04
           githubToken: ${{ github.token }}
 
@@ -210,15 +237,15 @@ jobs:
             cd ../../
             git clone https://github.com/libbpf/libbpf.git --branch v1.3.0 --single-branch
             cd libbpf/src && BUILD_STATIC_ONLY=y DESTDIR=/ make install
-            ln -s /usr/lib64/libbpf.a /usr/lib/${{env.PLATFORM}}-linux-gnu/
+            ln -s /usr/lib64/libbpf.a /usr/lib/s390x-linux-gnu/
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
             git config --global --add safe.directory $GITHUB_WORKSPACE
             .github/install-deps.sh
             mkdir -p build
-            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/${{env.PLATFORM}}-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DENABLE_DRIVERS_TESTS=On -DCREATE_TEST_TARGETS=On -DBUILD_LIBSCAP_GVISOR=OFF ../
+            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/s390x-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DENABLE_DRIVERS_TESTS=On -DCREATE_TEST_TARGETS=On -DBUILD_LIBSCAP_GVISOR=OFF ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make driver bpf drivers_test -j6
-
+  
   build-modern-bpf-skeleton:
     needs: paths-filter
     # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
