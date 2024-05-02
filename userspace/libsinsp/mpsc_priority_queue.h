@@ -155,6 +155,26 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Sets the maximum capacity of the queue. Returns false
+	 * if the the specified capacity cannot be set (when the current queue's
+	 * size is bigger than the specified capacity).
+	 * This setter doesn't actually set the capacity of 'm_queue',
+	 * it sets 'm_capacity' which is the valued to used to bound the queue's
+	 * size when pushing.
+	 */
+	inline bool set_capacity(size_t capacity)
+	{
+		std::scoped_lock<Mtx> lk(m_mtx);
+		if(m_queue.size() <= capacity)
+		{
+			m_capacity = capacity;
+			return true;
+		}
+
+		return false;
+	}
+
 private:
 	using elm_ptr = typename Elm::element_type*;
 
@@ -185,7 +205,7 @@ private:
 		uint64_t num;
 	};
 
-	const size_t m_capacity;
+	size_t m_capacity;
 	std::priority_queue<queue_elm> m_queue{};
 	std::atomic<elm_ptr> m_queue_top{nullptr};
 	std::atomic<uint64_t> m_elem_counter{0};
