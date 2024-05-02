@@ -196,8 +196,6 @@ jobs:
           command_timeout: 60m
           script: |
             sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
-            temp_fld=$(mktemp -d)
-            pushd $temp_fld
             git clone -b $GIT_BRANCH $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git libs
             cd libs
             mkdir -p build
@@ -209,8 +207,6 @@ jobs:
             rc_bpf=$?
             sudo ./test/drivers/drivers_test -k
             rc_kmod=$?
-            popd
-            rm -rf $temp_fld
             exit $(($rc_modern + $rc_bpf +$rc_kmod))
         
   build-drivers-s390x:
