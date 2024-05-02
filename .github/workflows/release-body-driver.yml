@@ -82,10 +82,16 @@ jobs:
         with:
           name: matrix_X64
       
+      - name: Move X64 matrix under docs
+        run: mv matrix.md matrix_X64.md
+      
       - name: Download matrix ARM64
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: matrix_ARM64
+          
+      - name: Move ARM64 matrix under docs
+        run: mv matrix.md matrix_ARM64.md
 
       # Steps:
       # Remove everything after the table (ie: since the first line that starts with "# ",
