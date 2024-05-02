@@ -571,6 +571,113 @@ FILLER(sys_poll_x, true)
 
 #define MAX_IOVCNT 32
 
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+static __always_inline int bpf_parse_readv_writev_bufs_ia32(struct filler_data *data,
+						       const struct compat_iovec __user *iovsrc,
+						       unsigned long iovcnt,
+						       long retval,
+						       int flags)
+{
+	const struct compat_iovec *iov;
+	int res = PPM_SUCCESS;
+	unsigned int copylen;
+	long size = 0;
+	int j;
+
+	copylen = iovcnt * sizeof(struct compat_iovec);
+	iov = (const struct compat_iovec *)data->tmp_scratch;
+
+	if (copylen > SCRATCH_SIZE_MAX)
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+	if (copylen)
+		if (bpf_probe_read_user((void *)iov,
+					((copylen - 1) & SCRATCH_SIZE_MAX) + 1,
+					(void *)iovsrc))
+#else
+	if (bpf_probe_read_user((void *)iov,
+				copylen & SCRATCH_SIZE_MAX,
+				(void *)iovsrc))
+#endif
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+
+	#pragma unroll
+	for (j = 0; j < MAX_IOVCNT; ++j) {
+		if (j == iovcnt)
+			break;
+		// BPF seems to require a hard limit to avoid overflows
+		if (size == LONG_MAX)
+			break;
+
+		size += iov[j].iov_len;
+	}
+
+	if ((flags & PRB_FLAG_IS_WRITE) == 0)
+		if (size > retval)
+			size = retval;
+
+	if (flags & PRB_FLAG_PUSH_SIZE) {
+		res = bpf_push_u32_to_ring(data, (uint32_t)size);
+		CHECK_RES(res);
+	}
+
+	if (flags & PRB_FLAG_PUSH_DATA) {
+		if (size > 0) {
+			unsigned long off = _READ(data->state->tail_ctx.curoff);
+			unsigned long remaining = size;
+			int j;
+
+			#pragma unroll
+			for (j = 0; j < MAX_IOVCNT; ++j) {
+				volatile unsigned int to_read;
+
+				if (j == iovcnt)
+					break;
+
+				unsigned long off_bounded = off & SCRATCH_SIZE_HALF;
+				if (off > SCRATCH_SIZE_HALF)
+					break;
+
+				if (iov[j].iov_len <= remaining)
+					to_read = iov[j].iov_len;
+				else
+					to_read = remaining;
+
+				if (to_read > SCRATCH_SIZE_HALF)
+					to_read = SCRATCH_SIZE_HALF;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+				if (to_read)
+					if (bpf_probe_read_user(&data->buf[off_bounded],
+								((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
+								iov[j].iov_base))
+#else
+				if (bpf_probe_read_user(&data->buf[off_bounded],
+							to_read & SCRATCH_SIZE_HALF,
+							iov[j].iov_base))
+#endif
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+				remaining -= to_read;
+				off += to_read;
+			}
+		} else {
+			size = 0;
+		}
+
+		data->fd = bpf_syscall_get_argument(data, 0);
+		data->curarg_already_on_frame = true;
+		return __bpf_val_to_ring(data, 0, size, PT_BYTEBUF, -1, true, KERNEL);
+	}
+
+	return res;
+}
+#endif
+
 static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 						       const struct iovec __user *iovsrc,
 						       unsigned long iovcnt,
@@ -789,11 +896,26 @@ FILLER(sys_writev_pwritev_x, true)
 	 */
 	val = bpf_syscall_get_argument(data, 1);
 	iovcnt = bpf_syscall_get_argument(data, 2);
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	if (!bpf_in_ia32_syscall())
+#endif
+	{
 	res = bpf_parse_readv_writev_bufs(data,
 					  (const struct iovec __user *)val,
 					  iovcnt,
 					  0,
 					  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+	}
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	else
+	{
+		res = bpf_parse_readv_writev_bufs_ia32(data,
+					  (const struct compat_iovec __user *)val,
+					  iovcnt,
+					  0,
+					  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+	}
+#endif
 
 	/* if there was an error we send an empty param.
 	 * we can improve this in the future but at least we don't lose the whole event.
@@ -4005,11 +4127,26 @@ FILLER(sys_pwritev_e, true)
 	unsigned long iov_cnt = bpf_syscall_get_argument(data, 2);
 
 	/* Parameter 2: size (type: PT_UINT32) */
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	if (!bpf_in_ia32_syscall())
+#endif
+	{
 	res = bpf_parse_readv_writev_bufs(data,
 					  (const struct iovec __user *)iov_pointer,
 					  iov_cnt,
 					  0,
 					  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	}
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	else
+	{
+		res = bpf_parse_readv_writev_bufs_ia32(data,
+					  (const struct compat_iovec __user *)iov_pointer,
+					  iov_cnt,
+					  0,
+					  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	}
+#endif
 
 	/* if there was an error we send a size equal to `0`.
 	 * we can improve this in the future but at least we don't lose the whole event.
