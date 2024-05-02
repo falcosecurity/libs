@@ -193,6 +193,7 @@ jobs:
           key: ${{ secrets.PPC64LE_KEY }}
           port: ${{ secrets.PPC64LE_PORT }}
           envs: GIT_BRANCH,GITHUB_REPOSITORY,GITHUB_SERVER_URL
+          command_timeout: 60m
           script: |
             sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
             temp_fld=$(mktemp -d)
