@@ -319,7 +319,16 @@ static __always_inline void ringbuf__store_iovec_size_param(struct ringbuf_struc
 		return;
 	}
 
-	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+	uint32_t total_iovec_size = 0;
+	if(!bpf_in_ia32_syscall())
+	{
+		total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+	}
+	else
+	{
+		total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
+	}
+
 	if(bpf_probe_read_user((void *)&auxmap->data[0],
 			       SAFE_ACCESS(total_iovec_size),
 			       (void *)iov_pointer))
@@ -331,14 +340,29 @@ static __always_inline void ringbuf__store_iovec_size_param(struct ringbuf_struc
 	uint32_t total_size_to_read = 0;
 
 	/* Pointer to iovec structs */
-	const struct iovec *iovec = (const struct iovec *)&auxmap->data[0];
-	for(int j = 0; j < MAX_IOVCNT; j++)
+	if(!bpf_in_ia32_syscall())
 	{
-		if(j == iov_cnt)
+		const struct iovec *iovec = (const struct iovec *)&auxmap->data[0];
+		for(int j = 0; j < MAX_IOVCNT; j++)
 		{
-			break;
+			if(j == iov_cnt)
+			{
+				break;
+			}
+			total_size_to_read += iovec[j].iov_len;
 		}
-		total_size_to_read += iovec[j].iov_len;
+	}
+	else
+	{
+		const struct compat_iovec *iovec = (const struct compat_iovec *)&auxmap->data[0];
+		for(int j = 0; j < MAX_IOVCNT; j++)
+		{
+			if(j == iov_cnt)
+			{
+				break;
+			}
+			total_size_to_read += iovec[j].iov_len;
+		}
 	}
 	ringbuf__store_u32(ringbuf, total_size_to_read);
 }
