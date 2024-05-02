@@ -82,7 +82,7 @@ jobs:
         with:
           name: matrix_X64
       
-      - name: Move X64 matrix under docs
+      - name: Rename X64 matrix
         run: mv matrix.md matrix_X64.md
       
       - name: Download matrix ARM64
@@ -90,7 +90,7 @@ jobs:
         with:
           name: matrix_ARM64
           
-      - name: Move ARM64 matrix under docs
+      - name: Rename ARM64 matrix
         run: mv matrix.md matrix_ARM64.md
 
       # Steps:
