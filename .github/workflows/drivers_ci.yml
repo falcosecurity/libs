@@ -204,10 +204,14 @@ jobs:
             cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
             make drivers_test driver bpf -j6
             sudo ./test/drivers/drivers_test -m
+            rc_modern=$?
             sudo ./test/drivers/drivers_test -b
+            rc_bpf=$?
             sudo ./test/drivers/drivers_test -k
+            rc_kmod=$?
             popd
             rm -rf $temp_fld
+            exit $(($rc_modern + $rc_bpf +$rc_kmod))
         
   build-drivers-s390x:
     name: build-drivers-s390x 😁 (system_deps)
