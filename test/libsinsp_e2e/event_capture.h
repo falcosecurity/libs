@@ -147,7 +147,8 @@ public:
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                sinsp_mode_t mode = SINSP_MODE_LIVE,
-	                uint64_t max_timeouts = 3)
+	                uint64_t max_timeouts = 3,
+	                bool dump = true)
 	{
 		event_capture capturing;
 		{  // Synchronized section
@@ -162,6 +163,7 @@ public:
 			capturing.m_thread_timeout_ns = thread_timeout_ns;
 			capturing.m_inactive_thread_scan_time_ns = inactive_thread_scan_time_ns;
 			capturing.m_max_timeouts = max_timeouts;
+			capturing.m_dump = dump;
 		}
 
 
@@ -233,4 +235,5 @@ private:
 	static bool inspector_ok;
 	sinsp_mode_t m_mode;
 	uint64_t m_max_timeouts;
+	bool m_dump;
 };
