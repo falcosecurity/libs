@@ -310,7 +310,6 @@ size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
 void sinsp_logger::reset()
 {
 	m_callback = nullptr;
-	m_flags = OT_NONE;
 	m_sev = SEV_INFO;
 	if(m_file)
 	{
@@ -318,6 +317,7 @@ void sinsp_logger::reset()
 		fclose(m_file);
 		m_file = nullptr;
 	}
+	m_flags = OT_NONE;
 }
 
 sinsp_logger* libsinsp_logger()

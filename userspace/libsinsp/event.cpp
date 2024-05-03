@@ -802,7 +802,6 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
 	// Ensure the index points to an actual FD
 	if (dir_param_info->type != PT_FD)
 	{
-		ASSERT(dir_param_info->type == PT_FD);
 		return cwd;
 	}
 

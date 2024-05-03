@@ -1520,7 +1520,6 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 				}
 				return false;
 			default:
-				ASSERT(false);
 				throw sinsp_exception("list filter '"
 					+ std::string(m_info.m_fields[m_field_id].m_name)
 					+ "' only supports operators 'exists', 'in' and 'intersects'");
