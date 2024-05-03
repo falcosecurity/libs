@@ -197,6 +197,16 @@ typedef struct ss_plugin_extract_field
 	ss_plugin_bool flist;
 } ss_plugin_extract_field;
 
+// Opaque a pointer to a state table. The falcosecurity libs define stateful
+// components in the form of tables.
+typedef void ss_plugin_table_t;
+
+// Opaque a pointer to an entry of a state table.
+typedef void ss_plugin_table_entry_t;
+
+// Opaque accessor to a data field available in the entries of a state table.
+typedef void ss_plugin_table_field_t;
+
 // Types supported by entry fields of state tables.
 // The noncontinguous numbers are to maintain equality with underlying
 // falcosecurity libs types.
@@ -212,6 +222,7 @@ typedef enum ss_plugin_state_type
 	SS_PLUGIN_ST_UINT32 = 7,
 	SS_PLUGIN_ST_UINT64 = 8,
 	SS_PLUGIN_ST_STRING = 9,
+	SS_PLUGIN_ST_TABLE = 10,
 	SS_PLUGIN_ST_BOOL = 25
 } ss_plugin_state_type;
 
@@ -229,6 +240,7 @@ typedef union ss_plugin_state_data
 	uint64_t u64;
 	const char* str;
 	ss_plugin_bool b;
+	ss_plugin_table_t* table;
 } ss_plugin_state_data;
 
 // Info about a state table.
@@ -245,16 +257,6 @@ typedef struct ss_plugin_table_fieldinfo
 	ss_plugin_state_type field_type;
 	ss_plugin_bool read_only;
 } ss_plugin_table_fieldinfo;
-
-// Opaque a pointer to a state table. The falcosecurity libs define stateful
-// components in the form of tables.
-typedef void ss_plugin_table_t;
-
-// Opaque a pointer to an entry of a state table.
-typedef void ss_plugin_table_entry_t;
-
-// Opaque accessor to a data field available in the entries of a state table.
-typedef void ss_plugin_table_field_t;
 
 // Opaque pointer to the owner of a plugin. It can be used to invert the
 // control and invoke functions of the plugin's owner from within the plugin.

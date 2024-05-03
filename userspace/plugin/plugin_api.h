@@ -30,8 +30,8 @@ extern "C" {
 //
 // todo(jasondellaluce): when/if major changes to v4, check and solve all todos
 #define PLUGIN_API_VERSION_MAJOR 3
-#define PLUGIN_API_VERSION_MINOR 4
-#define PLUGIN_API_VERSION_PATCH 1
+#define PLUGIN_API_VERSION_MINOR 5
+#define PLUGIN_API_VERSION_PATCH 0
 
 //
 // Just some not so smart defines to retrieve plugin api version as string
@@ -263,8 +263,16 @@ typedef struct
 	ss_plugin_table_fields_vtable fields;
 	//
 	// Vtable for controlling operations related to fields on the state tables
-	// registeted in the plugin's owner.
+	// registered in the plugin's owner.
 	ss_plugin_table_fields_vtable_ext* fields_ext;
+	//
+	// Vtable for controlling read operations on the state tables registered
+	// in the plugin's owner.
+	ss_plugin_table_reader_vtable_ext* reader_ext;
+	//
+	// Vtable for controlling write operations on the state tables registered
+	// in the plugin's owner.
+	ss_plugin_table_writer_vtable_ext* writer_ext;
 } ss_plugin_init_tables_input;
 
 // Function used by plugin for sending messages to the framework-provided logger
