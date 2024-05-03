@@ -152,7 +152,7 @@ void sinsp_usergroup_manager::subscribe_container_mgr()
 void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper& dumper) {
 	for (const auto &it: m_userlist) {
 		std::string container_id = it.first;
-		auto usrlist = m_userlist[container_id];
+		const auto& usrlist = m_userlist[container_id];
 		for (const auto &user: usrlist) {
 			sinsp_evt evt;
 			if (user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E)) {
@@ -164,7 +164,7 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper& dumper) {
 
 	for (const auto &it: m_grouplist) {
 		std::string container_id = it.first;
-		auto grplist = m_grouplist[container_id];
+		const auto& grplist = m_grouplist[container_id];
 		for (const auto &group: grplist) {
 			sinsp_evt evt;
 			if (group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E)) {
