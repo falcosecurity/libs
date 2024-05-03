@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: libpman
+Description: Utility library for BPF probes
+Version: @FALCOSECURITY_LIBS_VERSION@
+
+Requires: libbpf zlib
+Libs: -L${libdir} -lpman -lscap_event_schema -lscap_platform
+Cflags: -I${includedir}

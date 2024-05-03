@@ -54,3 +54,8 @@ install(
 			COMPONENT "scap"
 			OPTIONAL
 )
+
+install(FILES include/libpman.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libpman.pc.in ${PROJECT_BINARY_DIR}/libpman.pc @ONLY)
+
+install(FILES ${PROJECT_BINARY_DIR}/libpman.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
