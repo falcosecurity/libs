@@ -39,6 +39,7 @@ extern "C" {
 #define METRICS_V2_STATE_COUNTERS (1 << 3)
 #define METRICS_V2_RULE_COUNTERS (1 << 4)
 #define METRICS_V2_MISC (1 << 5)
+#define METRICS_V2_PLUGINS (1 << 6)
 
 typedef union metrics_v2_value {
 	uint32_t u32;

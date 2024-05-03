@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/metrics_collector.h>
+#include <libsinsp/plugin_manager.h>
 #include <cmath>
 #include <sys/times.h>
 #include <sys/stat.h>
@@ -454,6 +455,19 @@ void libs_metrics_collector::snapshot()
 	if (!m_inspector)
 	{
 		return;
+	}
+
+	/*
+	* plugins metrics
+	*/
+
+	if(m_metrics_flags & METRICS_V2_PLUGINS)
+	{
+		for (auto& p : m_inspector->get_plugin_manager()->plugins())
+		{
+			std::vector<metrics_v2> plugin_metrics = p->get_metrics();
+			m_metrics.insert(m_metrics.end(), plugin_metrics.begin(), plugin_metrics.end());
+		}
 	}
 
 	/* 
