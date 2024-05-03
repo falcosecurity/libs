@@ -620,6 +620,7 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
 		{
 			/* This is an abstract socket address, we need to skip the initial `\0`. */
 			start_reading_point = (unsigned long)sockaddr_un->sun_path + 1;
+			addrlen -= 1;
 		}
 		else
 		{
@@ -631,7 +632,7 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
 		 * - socket_unix_path (sun_path).
 		 */
 		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
-		uint16_t written_bytes = push__charbuf(auxmap->data, &auxmap->payload_pos, start_reading_point, MAX_UNIX_SOCKET_PATH, KERNEL);
+		uint16_t written_bytes = push__charbuf(auxmap->data, &auxmap->payload_pos, start_reading_point, addrlen, KERNEL);
 		final_param_len = FAMILY_SIZE + written_bytes;
 		break;
 	}
@@ -810,8 +811,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		}
 
 		unsigned long start_reading_point;
-		char first_path_byte = *(char *)path;
-		if(first_path_byte == '\0')
+		if(path[0] == '\0' && path[1] != '\0')
 		{
 			/* Please note exceptions in the `sun_path`:
 			 * Taken from: https://man7.org/linux/man-pages/man7/unix.7.html
@@ -823,6 +823,13 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 			 * So in this case, we need to skip the initial `\0`.
 			 */
 			start_reading_point = (unsigned long)path + 1;
+		}
+		else if(path[0] == '\0' && path[1] == '\0')
+		{
+			// If no path is retrived from kernel, try to read from userspace.
+			bpf_probe_read_user_str(path, UNIX_PATH_MAX,
+									((struct sockaddr_un *)usrsockaddr)->sun_path);
+			start_reading_point = (unsigned long)path;
 		}
 		else
 		{
