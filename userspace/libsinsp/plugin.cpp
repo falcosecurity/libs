@@ -886,6 +886,77 @@ std::vector<sinsp_plugin::open_param> sinsp_plugin::list_open_params() const
 	return list;
 }
 
+static void set_plugin_metric_value(metrics_v2& metric, metrics_v2_value_type type, ss_plugin_metric_value val)
+{
+	switch (type)
+	{
+	case METRIC_VALUE_TYPE_U32:
+		metric.value.u32 = val.u32;
+		break;
+	case METRIC_VALUE_TYPE_S32:
+		metric.value.s32 = val.s32;
+		break;
+	case METRIC_VALUE_TYPE_U64:
+		metric.value.u64 = val.u64;
+		break;
+	case METRIC_VALUE_TYPE_S64:
+		metric.value.s64 = val.s64;
+		break;
+	case METRIC_VALUE_TYPE_D:
+		metric.value.d = val.d;
+		break;
+	case METRIC_VALUE_TYPE_F:
+		metric.value.f = val.f;
+		break;
+	case METRIC_VALUE_TYPE_I:
+		metric.value.i = val.i;
+		break;
+	default:
+		break;
+	}
+}
+
+std::vector<metrics_v2> sinsp_plugin::get_metrics() const
+{
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	std::vector<metrics_v2> metrics;
+	uint32_t num_metrics = 0;
+
+	if(!m_handle->api.get_metrics)
+	{
+		return metrics;
+	}
+
+	ss_plugin_metric *plugin_metrics = m_handle->api.get_metrics(m_state, &num_metrics);
+	for (uint32_t i = 0; i < num_metrics; i++)
+	{
+		ss_plugin_metric *plugin_metric = plugin_metrics + i;
+
+		metrics_v2 metric;
+		
+		//copy plugin name
+		int s = strlcpy(metric.name, m_name.c_str(), METRIC_NAME_MAX);
+		//copy dot
+		strlcpy(metric.name + s, ".", METRIC_NAME_MAX);
+		//copy metric name
+		strlcpy(metric.name + s + 1, plugin_metric->name, METRIC_NAME_MAX);
+
+		metric.flags = METRICS_V2_PLUGINS;
+		metric.unit = METRIC_VALUE_UNIT_COUNT;
+		metric.type = static_cast<metrics_v2_value_type>(plugin_metric->value_type);
+		metric.metric_type = static_cast<metrics_v2_metric_type>(plugin_metric->type);
+		set_plugin_metric_value(metric, metric.type, plugin_metric->value);
+
+		metrics.emplace_back(metric);
+	}
+
+	return metrics;
+}
+
 /** End of Event Source CAP **/
 
 /** Field Extraction CAP **/
