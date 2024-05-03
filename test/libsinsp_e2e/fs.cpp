@@ -1465,7 +1465,11 @@ TEST_F(sys_call_test, large_read_write)
 		inspector->set_snaplen(DEFAULT_SNAPLEN);
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
+	// We don't dump events to scap files, otherwise we could stuck with modern bpf.
+	ASSERT_NO_FATAL_FAILURE({event_capture::run(test, callback, filter, setup,
+							cleanup, event_capture::always_continue, 131072,
+							(uint64_t)60 * 1000 * 1000 * 1000, (uint64_t)60 * 1000 * 1000 * 1000,
+							SINSP_MODE_LIVE, 3, false); });
 
 	EXPECT_EQ(4, callnum);
 }
@@ -1603,7 +1607,11 @@ TEST_F(sys_call_test, large_readv_writev)
 		inspector->set_snaplen(DEFAULT_SNAPLEN);
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
+	// We don't dump events to scap files, otherwise we could stuck with modern bpf.
+	ASSERT_NO_FATAL_FAILURE({event_capture::run(test, callback, filter, setup,
+							cleanup, event_capture::always_continue, 131072,
+							(uint64_t)60 * 1000 * 1000 * 1000, (uint64_t)60 * 1000 * 1000 * 1000,
+							SINSP_MODE_LIVE, 3, false); });
 
 	EXPECT_EQ(4, callnum);
 }
