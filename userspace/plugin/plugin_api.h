@@ -966,6 +966,17 @@ typedef struct
 	// or SS_PLUGIN_FAILURE if the config is rejected.
 	// If rejected the plugin should provide context in the string returned by get_last_error().
 	ss_plugin_rc (*set_config)(ss_plugin_t* s, const ss_plugin_set_config_input* i);
+
+	//
+	// Return an updated set of metrics provided by this plugin.
+	// Required: no
+	// - s: the plugin state, returned by init(). Can be NULL.
+	// - num_metrics: lenght of the returned metrics array.
+	//
+	// Return value: Pointer to the first element of the metrics array.
+	// 'num_metrics' must be set to the lenght of the array before returning
+	// and it can be set to 0 if no metrics are provided.
+	ss_plugin_metric* (*get_metrics)(ss_plugin_t* s, uint32_t* num_metrics);
 } plugin_api;
 
 #ifdef __cplusplus
