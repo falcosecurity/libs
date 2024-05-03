@@ -58,3 +58,6 @@ endif()
 if(USE_BUNDLED_LIBBPF)
     add_dependencies(pman libbpf)
 endif()
+
+install(TARGETS pman LIBRARY ARCHIVE FRAMEWORK)
+install(FILES include/libpman.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
