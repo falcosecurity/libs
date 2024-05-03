@@ -100,6 +100,7 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	// m_clone_ts
 	// m_lastexec_ts
 	// m_latency
+	define_static_field(ret, this, m_fdtable.table_ptr(), "file_descriptors", true);
 	define_static_field(ret, this, m_cwd, "cwd", true);
 	// m_parent_loop_detected
 	return ret;
@@ -1379,7 +1380,8 @@ static const auto s_threadinfo_static_fields = sinsp_threadinfo().static_fields(
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
 	: table(s_thread_table_name, &s_threadinfo_static_fields),
-	  m_max_thread_table_size(m_thread_table_default_size)
+	  m_max_thread_table_size(m_thread_table_default_size),
+	  m_fdtable_dyn_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>())
 {
 	m_inspector = inspector;
 	clear();
@@ -1507,13 +1509,14 @@ std::shared_ptr<sinsp_threadinfo> sinsp_thread_manager::add_thread(std::unique_p
 		create_thread_dependencies(tinfo_shared_ptr);
 	}
 
-	if (tinfo_shared_ptr->dynamic_fields() == nullptr)
-	{
-		tinfo_shared_ptr->set_dynamic_fields(dynamic_fields());
-	}
 	if (tinfo_shared_ptr->dynamic_fields() != dynamic_fields())
 	{
 		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
+	}
+
+	if (tinfo_shared_ptr->get_fdtable().dynamic_fields() != m_fdtable_dyn_fields)
+	{
+		throw sinsp_exception("adding entry with incompatible dynamic defs to of file descriptor sub-table");
 	}
 
 	tinfo_shared_ptr->compute_program_hash();
@@ -2181,5 +2184,22 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value)
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const
 {
-	return std::unique_ptr<libsinsp::state::table_entry>(m_inspector->build_threadinfo());
+	return m_inspector->build_threadinfo();
+}
+
+void sinsp_thread_manager::set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const
+{
+	if (tinfo.dynamic_fields() == nullptr)
+	{
+		tinfo.set_dynamic_fields(dynamic_fields());
+	}
+	tinfo.get_fdtable().set_dynamic_fields(m_fdtable_dyn_fields);
+}
+
+void sinsp_thread_manager::set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const
+{
+	if (fdinfo.dynamic_fields() == nullptr)
+	{
+		fdinfo.set_dynamic_fields(m_fdtable_dyn_fields);
+	}
 }

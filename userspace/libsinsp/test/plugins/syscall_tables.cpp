@@ -527,7 +527,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 	return SS_PLUGIN_SUCCESS;
 }
 
-void get_plugin_api_sample_tables(plugin_api& out)
+void get_plugin_api_sample_syscall_tables(plugin_api& out)
 {
 	memset(&out, 0, sizeof(plugin_api));
 	out.get_required_api_version = plugin_get_required_api_version;
