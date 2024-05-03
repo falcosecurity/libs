@@ -474,8 +474,15 @@ public:
 	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd state tables.
 
 	*/
-	std::shared_ptr<sinsp_stats_v2> get_sinsp_stats_v2();
-	std::shared_ptr<const sinsp_stats_v2> get_sinsp_stats_v2() const;
+	inline std::shared_ptr<sinsp_stats_v2> get_sinsp_stats_v2()
+	{
+		return m_sinsp_stats_v2;
+	}
+
+	inline std::shared_ptr<const sinsp_stats_v2> get_sinsp_stats_v2() const
+	{
+		return m_sinsp_stats_v2;
+	}
 
 	/*!
 	  \brief Look up a thread given its tid and return its information,
@@ -496,7 +503,10 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false);
+	inline threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false)
+	{
+		return m_thread_manager->get_thread_ref(tid, query_os_if_not_found, lookup_only, main_thread);
+	}
 
 	/*!
 	  \brief Fill the given structure with statistics about the currently
@@ -1003,18 +1013,32 @@ public:
 	 * \return The current time in nanoseconds if the last event timestamp is 0,
 	 * otherwise, the last event timestamp.
 	 */
-	uint64_t get_new_ts() const;
+	inline uint64_t get_new_ts() const
+	{
+		// m_lastevent_ts = 0 at startup when containers are
+		// being created as a part of the initial process
+		// scan.
+		return (m_lastevent_ts == 0)
+				? sinsp_utils::get_current_time_ns()
+				: m_lastevent_ts;
+	}
 
 	bool remove_inactive_threads();
 
-	std::shared_ptr<sinsp_threadinfo> add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo);
+	inline std::shared_ptr<sinsp_threadinfo> add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo)
+	{
+		return m_thread_manager->add_thread(std::move(ptinfo), false);
+	}
 
 	void set_mode(sinsp_mode_t value)
 	{
 		m_mode = value;
 	}
 
-	void remove_thread(int64_t tid);
+	inline void remove_thread(int64_t tid)
+	{
+		m_thread_manager->remove_thread(tid);
+	}
 
 	inline const struct scap_platform* get_scap_platform() const
 	{
