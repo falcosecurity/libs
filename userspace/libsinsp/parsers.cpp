@@ -694,10 +694,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		{
 			//
 			// Get the fd.
-			// The fd is always the first parameter of the enter event.
+			// An fd will usually be the first parameter of the enter event,
+			// but there are exceptions, as is the case with mmap, mmap2
 			//
-			ASSERT(evt->get_param_info(0)->type == PT_FD);
-			evt->get_tinfo()->m_lastevent_fd = evt->get_param(0)->as<int64_t>();
+			int fd_location = get_fd_location(etype);
+			ASSERT(evt->get_param_info(fd_location)->type == PT_FD);
+			evt->get_tinfo()->m_lastevent_fd = evt->get_param(fd_location)->as<int64_t>();
 			evt->set_fd_info(evt->get_tinfo()->get_fd(evt->get_tinfo()->m_lastevent_fd));
 		}
 
@@ -5757,4 +5759,20 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
 		return;
 	}
 	evt->get_tinfo()->add_fd(fd, targetfd_fdinfo->clone());
+}
+
+int sinsp_parser::get_fd_location(uint16_t etype)
+{
+	int location;
+	switch (etype)
+	{
+	case PPME_SYSCALL_MMAP_E:
+	case PPME_SYSCALL_MMAP2_E:
+		location = 4;
+		break;
+	default:
+		location = 0;
+		break;
+	}
+	return location;
 }

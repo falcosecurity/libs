@@ -28,8 +28,8 @@ or GPL2.txt for full copies of the license.
  *
  * - Events marked with `EC_UNKNOWN` must have a name equal to `NA`.
  *
- * - All events that have the "EF_USES_FD" flag should return as first parameter a file descriptor.
- *	 "libsinsp" will try to access the first parameter and use it as a file descriptor. If the event has
+ * - All events that have the "EF_USES_FD" flag should return as one of the parameters a file descriptor.
+ *	 "libsinsp" will try to access the parameter and use it as a file descriptor. If the event has
  *	 0 parameters but has the "EF_USES_FD" flag then a runtime error will occur shutting down the process.
  *   Furthermore if an exit event has the "EF_USES_FD" then also the related enter event must have
  *   it (following the logic described above). Otherwise the exit event will not trigger "libsinsp" code
@@ -212,9 +212,9 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_CLONE_16_X] = {"clone", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE | EF_OLD_VERSION, 16, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
 	[PPME_SYSCALL_BRK_4_E] = {"brk", EC_MEMORY | EC_SYSCALL, EF_NONE, 1, {{"addr", PT_UINT64, PF_HEX} } },
 	[PPME_SYSCALL_BRK_4_X] = {"brk", EC_MEMORY | EC_SYSCALL, EF_NONE, 4, {{"res", PT_UINT64, PF_HEX}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
-	[PPME_SYSCALL_MMAP_E] = {"mmap", EC_MEMORY | EC_SYSCALL, EF_NONE, 6, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC}, {"prot", PT_FLAGS32, PF_HEX, prot_flags}, {"flags", PT_FLAGS32, PF_HEX, mmap_flags}, {"fd", PT_FD, PF_DEC}, {"offset", PT_UINT64, PF_DEC} } },
+	[PPME_SYSCALL_MMAP_E] = {"mmap", EC_MEMORY | EC_SYSCALL, EF_USES_FD, 6, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC}, {"prot", PT_FLAGS32, PF_HEX, prot_flags}, {"flags", PT_FLAGS32, PF_HEX, mmap_flags}, {"fd", PT_FD, PF_DEC}, {"offset", PT_UINT64, PF_DEC} } },
 	[PPME_SYSCALL_MMAP_X] = {"mmap", EC_MEMORY | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_HEX}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
-	[PPME_SYSCALL_MMAP2_E] = {"mmap2", EC_MEMORY | EC_SYSCALL, EF_NONE, 6, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC}, {"prot", PT_FLAGS32, PF_HEX, prot_flags}, {"flags", PT_FLAGS32, PF_HEX, mmap_flags}, {"fd", PT_FD, PF_DEC}, {"pgoffset", PT_UINT64, PF_DEC} } },
+	[PPME_SYSCALL_MMAP2_E] = {"mmap2", EC_MEMORY | EC_SYSCALL, EF_USES_FD, 6, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC}, {"prot", PT_FLAGS32, PF_HEX, prot_flags}, {"flags", PT_FLAGS32, PF_HEX, mmap_flags}, {"fd", PT_FD, PF_DEC}, {"pgoffset", PT_UINT64, PF_DEC} } },
 	[PPME_SYSCALL_MMAP2_X] = {"mmap2", EC_MEMORY | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_HEX}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
 	[PPME_SYSCALL_MUNMAP_E] = {"munmap", EC_MEMORY | EC_SYSCALL, EF_NONE, 2, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC} } },
 	[PPME_SYSCALL_MUNMAP_X] = {"munmap", EC_MEMORY | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
