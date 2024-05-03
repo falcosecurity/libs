@@ -39,10 +39,22 @@ class typeinfo
 public:
     /**
      * @brief Numeric identifier of a supported type.
-     * This reuses the same type enumerative provided by libscap for event
-     * params to avoid duplicating definitions.
      */
-    using index_t = ppm_param_type;
+    enum index_t: uint8_t
+    {
+        TI_INT8 = 1,
+        TI_INT16 = 2,
+        TI_INT32 = 3,
+        TI_INT64 = 4,
+        TI_UINT8 = 5,
+        TI_UINT16 = 6,
+        TI_UINT32 = 7,
+        TI_UINT64 = 8,
+        TI_STRING = 9,
+        TI_TABLE = 10,
+        // note(jasondellaluce): weird value due to plugin API backward compatibility
+        TI_BOOL = 25,
+    };
 
     /**
      * @brief Returns a type info for the type T.
@@ -139,18 +151,21 @@ private:
     void (*m_destroy)(void*);
 };
 
-// below is the manually-controlled list of all the supported types
+class base_table;
 
-template<> inline typeinfo typeinfo::of<bool>() { return _build<bool>("bool", PT_BOOL); }
-template<> inline typeinfo typeinfo::of<int8_t>() { return _build<int8_t>("int8", PT_INT8); }
-template<> inline typeinfo typeinfo::of<int16_t>() { return _build<int16_t>("int16", PT_INT16); }
-template<> inline typeinfo typeinfo::of<int32_t>() { return _build<int32_t>("int32", PT_INT32); }
-template<> inline typeinfo typeinfo::of<int64_t>() { return _build<int64_t>("int64", PT_INT64); }
-template<> inline typeinfo typeinfo::of<uint8_t>() { return _build<uint8_t>("uint8", PT_UINT8); }
-template<> inline typeinfo typeinfo::of<uint16_t>() { return _build<uint16_t>("uint16", PT_UINT16); }
-template<> inline typeinfo typeinfo::of<uint32_t>() { return _build<uint32_t>("uint32", PT_UINT32); }
-template<> inline typeinfo typeinfo::of<uint64_t>() { return _build<uint64_t>("uint64", PT_UINT64); }
-template<> inline typeinfo typeinfo::of<std::string>() { return _build<std::string>("string", PT_CHARBUF); }
+// below is the manually-controlled list of all the supported types
+template<> inline typeinfo typeinfo::of<bool>() { return _build<bool>("bool", TI_BOOL); }
+template<> inline typeinfo typeinfo::of<int8_t>() { return _build<int8_t>("int8", TI_INT8); }
+template<> inline typeinfo typeinfo::of<int16_t>() { return _build<int16_t>("int16", TI_INT16); }
+template<> inline typeinfo typeinfo::of<int32_t>() { return _build<int32_t>("int32", TI_INT32); }
+template<> inline typeinfo typeinfo::of<int64_t>() { return _build<int64_t>("int64", TI_INT64); }
+template<> inline typeinfo typeinfo::of<uint8_t>() { return _build<uint8_t>("uint8", TI_UINT8); }
+template<> inline typeinfo typeinfo::of<uint16_t>() { return _build<uint16_t>("uint16", TI_UINT16); }
+template<> inline typeinfo typeinfo::of<uint32_t>() { return _build<uint32_t>("uint32", TI_UINT32); }
+template<> inline typeinfo typeinfo::of<uint64_t>() { return _build<uint64_t>("uint64", TI_UINT64); }
+template<> inline typeinfo typeinfo::of<std::string>() { return _build<std::string>("string", TI_STRING); }
+template<> inline typeinfo typeinfo::of<libsinsp::state::base_table*>() { return _build<libsinsp::state::base_table*>("table", TI_TABLE); }
+template<> inline typeinfo typeinfo::of<const libsinsp::state::base_table*>() { return _build<const libsinsp::state::base_table*>("table", TI_TABLE); }
 
 }; // state
 }; // libsinsp
