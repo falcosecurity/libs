@@ -125,7 +125,7 @@ void event_capture::capture()
 		if (SCAP_SUCCESS == next_result)
 		{
 			result = handle_event(event);
-			if (m_mode != SINSP_MODE_NODRIVER)
+			if (m_mode != SINSP_MODE_NODRIVER && m_dump)
 			{
 				dumper->dump(event);
 			}
@@ -169,7 +169,10 @@ void event_capture::capture()
 			{
 				break;
 			}
-			dumper->dump(event);
+			if(m_dump)
+			{
+				dumper->dump(event);
+			}
 			result = handle_event(event);
 		}
 		{
@@ -177,7 +180,6 @@ void event_capture::capture()
 			while (SCAP_SUCCESS == get_inspector()->next(&event))
 			{
 				// just consume the remaining events
-				dumper->dump(event);
 			}
 		}
 	}
