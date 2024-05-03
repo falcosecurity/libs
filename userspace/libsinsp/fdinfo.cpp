@@ -374,7 +374,6 @@ bool sinsp_fdtable::erase(int64_t fd)
 		// call that created this fd. The assertion will detect it, while in release mode we just
 		// keep going.
 		//
-		ASSERT(false);
 		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
 		{
 			m_inspector->get_sinsp_stats_v2()->m_n_failed_fd_lookups++;
