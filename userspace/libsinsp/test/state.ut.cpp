@@ -308,7 +308,7 @@ TEST(thread_manager, table_access)
 {
     // note: used for regression checks, keep this updated as we make
     // new fields available
-    static const int s_threadinfo_static_fields_count = 25;
+    static const int s_threadinfo_static_fields_count = 27;
 
     sinsp inspector;
     auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
@@ -542,4 +542,125 @@ TEST(thread_manager, fdtable_access)
 	// clear all
 	ASSERT_NO_THROW(subtable->clear_entries());
 	ASSERT_EQ(subtable->entries_count(), 0);
+}
+
+TEST(thread_manager, env_vars_access)
+{
+    sinsp inspector;
+	auto& reg = inspector.get_table_registry();
+
+	ASSERT_EQ(reg->tables().size(), 1);
+	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
+
+	auto table = reg->get_table<int64_t>("threads");
+	EXPECT_EQ(table->name(), "threads");
+	EXPECT_EQ(table->entries_count(), 0);
+	EXPECT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	EXPECT_EQ(table->dynamic_fields()->fields().size(), 0);
+
+	auto field = table->static_fields()->find("env_vars");
+	ASSERT_NE(field, table->static_fields()->end());
+	EXPECT_EQ(field->second.readonly(), true);
+	EXPECT_EQ(field->second.valid(), true);
+	EXPECT_EQ(field->second.name(), "env_vars");
+	EXPECT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+
+	ASSERT_EQ(table->entries_count(), 0);
+
+	//add two new entries to the thread table
+	ASSERT_NE(table->add_entry(1, table->new_entry()), nullptr);
+	auto entry = table->get_entry(1);
+	ASSERT_NE(entry, nullptr);
+	ASSERT_EQ(table->entries_count(), 1);
+
+	//getting the fd tables from the newly created threads
+	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(entry->get_static_field(subtable_acc));
+	ASSERT_NE(subtable, nullptr);
+	EXPECT_EQ(subtable->name(), "env_vars");
+	EXPECT_EQ(subtable->entries_count(), 0);
+	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
+	EXPECT_EQ(subtable->static_fields()->size(), 0);
+	EXPECT_EQ(subtable->dynamic_fields()->fields().size(), 1);
+
+	//getting an existing field
+	auto sfield = subtable->dynamic_fields()->fields().find("value");
+	ASSERT_NE(sfield, subtable->dynamic_fields()->fields().end());
+	EXPECT_EQ(sfield->second.readonly(), false);
+	EXPECT_EQ(sfield->second.valid(), true);
+	EXPECT_EQ(sfield->second.name(), "value");
+	EXPECT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<std::string>());
+
+	auto fieldacc = sfield->second.new_accessor<std::string>();
+
+	// adding new entries to the subtable
+	uint64_t max_iterations = 10;
+	for (uint64_t i = 0; i < max_iterations; i++)
+	{
+		ASSERT_EQ(subtable->entries_count(), i);
+
+		// get non-existing entry
+		ASSERT_EQ(subtable->get_entry(i), nullptr);
+
+		// creating and adding a fd to the table
+		auto t = subtable->add_entry(i, subtable->new_entry());
+		ASSERT_NE(t, nullptr);
+		ASSERT_NE(subtable->get_entry(i), nullptr);
+		ASSERT_EQ(subtable->entries_count(), i + 1);
+
+		// read and write from newly-created entry
+		std::string tmpstr = "test";
+		t->get_dynamic_field(fieldacc, tmpstr);
+		ASSERT_EQ(tmpstr, "");
+		tmpstr = "hello";
+		t->set_dynamic_field(fieldacc, tmpstr);
+		tmpstr = "";
+		t->get_dynamic_field(fieldacc, tmpstr);
+		ASSERT_EQ(tmpstr, "hello");
+	}
+
+	// full iteration
+	auto it = [&](libsinsp::state::table_entry& e) -> bool
+	{
+		std::string tmpstr = "test";
+		e.get_dynamic_field(fieldacc, tmpstr);
+		EXPECT_EQ(tmpstr, "hello");
+		return true;
+	};
+	ASSERT_TRUE(subtable->foreach_entry(it));
+
+	// iteration with break-out
+	ASSERT_FALSE(subtable->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
+	{
+		return false;
+	}));
+
+	// iteration with error
+	ASSERT_ANY_THROW(subtable->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
+	{
+		throw sinsp_exception("some error");
+	}));
+
+	// erasing an unknown fd
+	ASSERT_EQ(subtable->erase_entry(max_iterations), false);
+	ASSERT_EQ(subtable->entries_count(), max_iterations);
+
+	// erase one of the newly-created fd
+	ASSERT_EQ(subtable->erase_entry(0), true);
+	ASSERT_EQ(subtable->entries_count(), max_iterations - 1);
+
+    // check that changes are reflected in thread's table
+    auto tinfo = inspector.m_thread_manager->get_thread_ref(1);
+    ASSERT_NE(tinfo, nullptr);
+
+    ASSERT_EQ(tinfo->m_env.size(), max_iterations - 1);
+    for (const auto & v : tinfo->m_env)
+    {
+        EXPECT_EQ(v, "hello");
+    }
+
+	// clear all
+	ASSERT_NO_THROW(subtable->clear_entries());
+	EXPECT_EQ(subtable->entries_count(), 0);
+    EXPECT_EQ(tinfo->m_env.size(), 0);
 }

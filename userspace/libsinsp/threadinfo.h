@@ -33,8 +33,9 @@ struct iovec {
 #include <memory>
 #include <set>
 #include <libsinsp/fdinfo.h>
-#include <libsinsp/state/table.h>
 #include <libsinsp/thread_group_info.h>
+#include <libsinsp/state/table.h>
+#include <libsinsp/state/table_adapters.h>
 
 struct erase_fd_params
 {
@@ -738,6 +739,8 @@ private:
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
 	bool m_parent_loop_detected;
+	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;
+	libsinsp::state::stl_container_table_adapter<decltype(m_env)> m_env_table_adapter;
 };
 
 /*@}*/
