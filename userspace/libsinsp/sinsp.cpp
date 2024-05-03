@@ -1398,21 +1398,6 @@ uint64_t sinsp::get_num_events() const
 	}
 }
 
-threadinfo_map_t::ptr_t sinsp::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
-{
-	return m_thread_manager->get_thread_ref(tid, query_os_if_not_found, lookup_only, main_thread);
-}
-
-std::shared_ptr<sinsp_threadinfo> sinsp::add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo)
-{
-	return m_thread_manager->add_thread(std::move(ptinfo), false);
-}
-
-void sinsp::remove_thread(int64_t tid)
-{
-	m_thread_manager->remove_thread(tid);
-}
-
 bool sinsp::suppress_events_comm(const std::string &comm)
 {
 	m_suppress.suppress_comm(comm);
@@ -1750,16 +1735,6 @@ const scap_machine_info* sinsp::get_machine_info() const
 const scap_agent_info* sinsp::get_agent_info() const
 {
 	return m_agent_info;
-}
-
-std::shared_ptr<sinsp_stats_v2> sinsp::get_sinsp_stats_v2()
-{
-	return m_sinsp_stats_v2;
-}
-
-std::shared_ptr<const sinsp_stats_v2> sinsp::get_sinsp_stats_v2() const
-{
-	return m_sinsp_stats_v2;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp::new_generic_filtercheck()
@@ -2207,15 +2182,5 @@ bool sinsp::get_track_connection_status() const
 void sinsp::set_track_connection_status(bool enabled)
 {
 	m_parser->set_track_connection_status(enabled);
-}
-
-uint64_t sinsp::get_new_ts() const
-{
-	// m_lastevent_ts = 0 at startup when containers are
-	// being created as a part of the initial process
-	// scan.
-	return (m_lastevent_ts == 0)
-			? sinsp_utils::get_current_time_ns()
-			: m_lastevent_ts;
 }
 
