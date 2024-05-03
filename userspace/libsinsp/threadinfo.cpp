@@ -50,54 +50,59 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::s
 	m_inspector(inspector),
 	m_fdtable(inspector)
 {
-	// todo(jasondellaluce): support fields of complex type (structs, vectors...)
-	// todo(jasondellaluce): support currently-hidden fields, and decide
-	// whether they should stay private or not (some are not data, but part
-	// of the business logic around threads).
-	define_static_field(this, m_tid, "tid");
-	define_static_field(this, m_pid, "pid");
-	define_static_field(this, m_ptid, "ptid");
-	define_static_field(this, m_sid, "sid");
-	define_static_field(this, m_comm, "comm");
-	define_static_field(this, m_exe, "exe");
-	define_static_field(this, m_exepath, "exe_path");
-	define_static_field(this, m_exe_writable, "exe_writable");
-	define_static_field(this, m_exe_upper_layer, "exe_upper_layer");
-	// m_args
-	// m_env
+	init();
+}
+
+libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() const
+{
+	libsinsp::state::static_struct::field_infos ret;
+	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
+	define_static_field(ret, this, m_tid, "tid");
+	define_static_field(ret, this, m_pid, "pid");
+	define_static_field(ret, this, m_ptid, "ptid");
+	define_static_field(ret, this, m_reaper_tid, "reaper_tid");
+	define_static_field(ret, this, m_sid, "sid");
+	define_static_field(ret, this, m_comm, "comm");
+	define_static_field(ret, this, m_exe, "exe");
+	define_static_field(ret, this, m_exepath, "exe_path");
+	define_static_field(ret, this, m_exe_writable, "exe_writable");
+	define_static_field(ret, this, m_exe_upper_layer, "exe_upper_layer");
+	define_static_field(ret, this, m_exe_from_memfd, "exe_from_memfd");
 	// m_cgroups
+	define_static_field(ret, this, m_container_id, "container_id");
+	define_static_field(ret, this, m_flags, "flags");
+	define_static_field(ret, this, m_fdlimit, "fd_limit");
 	// m_user
 	// m_loginuser
 	// m_group
-	define_static_field(this, m_container_id, "container_id");
-	// m_flags
-	define_static_field(this, m_fdlimit, "fd_limit");
 	// m_cap_permitted
 	// m_cap_effective
 	// m_cap_inheritable
-	define_static_field(this, m_exe_ino, "exe_ino");
-	define_static_field(this, m_exe_ino_ctime, "exe_ino_ctime");
-	define_static_field(this, m_exe_ino_mtime, "exe_ino_mtime");
+	define_static_field(ret, this, m_exe_ino, "exe_ino");
+	define_static_field(ret, this, m_exe_ino_ctime, "exe_ino_ctime");
+	define_static_field(ret, this, m_exe_ino_mtime, "exe_ino_mtime");
 	// m_exe_ino_ctime_duration_clone_ts
 	// m_exe_ino_ctime_duration_pidns_start
-	// m_nchilds
 	// m_vmsize_kb
 	// m_vmrss_kb
 	// m_vmswap_kb
 	// m_pfmajor
 	// m_pfminor
-	define_static_field(this, m_vtid, "vtid");
-	define_static_field(this, m_vpid, "vpid");
-	define_static_field(this, m_vpgid, "vpgid");
-	// m_pidns_init_start_ts
-	define_static_field(this, m_root, "root");
+	define_static_field(ret, this, m_vtid, "vtid");
+	define_static_field(ret, this, m_vpid, "vpid");
+	define_static_field(ret, this, m_vpgid, "vpgid");
+	define_static_field(ret, this, m_pidns_init_start_ts, "pidns_init_start_ts");
+	define_static_field(ret, this, m_root, "root");
 	// m_program_hash
-	define_static_field(this, m_tty, "tty");
-	define_static_field(this, m_cwd, "cwd", true);
 	// m_program_hash_scripts
+	define_static_field(ret, this, m_tty, "tty");
 	// m_category
-
-	init();
+	// m_clone_ts
+	// m_lastexec_ts
+	// m_latency
+	define_static_field(ret, this, m_cwd, "cwd", true);
+	// m_parent_loop_detected
+	return ret;
 }
 
 void sinsp_threadinfo::init()
@@ -1368,11 +1373,13 @@ static void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo* src)
 	}
 }
 
+static const auto s_threadinfo_static_fields = sinsp_threadinfo().static_fields();
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
-	: table(s_thread_table_name, sinsp_threadinfo().static_fields()),
+	: table(s_thread_table_name, &s_threadinfo_static_fields),
 	  m_max_thread_table_size(m_thread_table_default_size)
 {
 	m_inspector = inspector;

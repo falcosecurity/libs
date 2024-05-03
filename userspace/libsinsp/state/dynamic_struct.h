@@ -43,35 +43,35 @@ public:
     {
     public:
         template<typename T>
-        static field_info build(const std::string& name, size_t index, void* defsptr, bool readonly=false)
+        static inline field_info build(const std::string& name, size_t index, uintptr_t defsptr, bool readonly=false)
         {
             return field_info(name, index, libsinsp::state::typeinfo::of<T>(), defsptr, readonly);
         }
 
-        field_info(const std::string& n, size_t in, const typeinfo& i, void* defsptr, bool r)
+        inline field_info(const std::string& n, size_t in, const typeinfo& i, uintptr_t defsptr, bool r)
             : m_readonly(r),
               m_index(in),
               m_name(n),
               m_info(i),
-              m_defsptr(defsptr) {}
-        field_info():
+              m_defs_id(defsptr) {}
+        inline field_info():
             m_readonly(true),
             m_index((size_t) -1),
             m_name(""),
             m_info(typeinfo::of<uint8_t>()),
-            m_defsptr(NULL) {}
-        ~field_info() = default;
-        field_info(field_info&&) = default;
-        field_info& operator = (field_info&&) = default;
-        field_info(const field_info& s) = default;
-        field_info& operator = (const field_info& s) = default;
+            m_defs_id((uintptr_t) NULL) {}
+        inline ~field_info() = default;
+        inline field_info(field_info&&) = default;
+        inline field_info& operator = (field_info&&) = default;
+        inline field_info(const field_info& s) = default;
+        inline field_info& operator = (const field_info& s) = default;
 
         friend inline bool operator==(const field_info& a, const field_info& b)
         {
             return a.info() == b.info()
                 && a.name() == b.name()
                 && a.m_index == b.m_index
-                && a.m_defsptr == b.m_defsptr;
+                && a.m_defs_id == b.m_defs_id;
         };
 
         friend inline bool operator!=(const field_info& a, const field_info& b)
@@ -80,9 +80,17 @@ public:
         };
 
         /**
+         * @brief Returns the id of the shared definitions this info belongs to.
+         */
+        inline uintptr_t defs_id() const
+        {
+            return m_defs_id;
+        }
+
+        /**
          * @brief Returns true if the field is read only.
          */
-        bool readonly() const
+        inline bool readonly() const
         {
             return m_readonly;
         }
@@ -98,7 +106,7 @@ public:
         /**
          * @brief Returns the name of the field.
          */
-        const std::string& name() const
+        inline const std::string& name() const
         {
             return m_name;
         }
@@ -106,7 +114,7 @@ public:
         /**
          * @brief Returns the index of the field.
          */
-        size_t index() const
+        inline size_t index() const
         {
             return m_index;
         }
@@ -114,7 +122,7 @@ public:
         /**
          * @brief Returns the type info of the field.
          */
-        const libsinsp::state::typeinfo& info() const
+        inline const libsinsp::state::typeinfo& info() const
         {
             return m_info;
         }
@@ -125,7 +133,7 @@ public:
          * all instances of structs where it is defined.
          */
         template <typename T>
-        field_accessor<T> new_accessor() const
+        inline field_accessor<T> new_accessor() const
         {
             if (!valid())
             {
@@ -146,7 +154,7 @@ public:
         size_t m_index;
         std::string m_name;
         libsinsp::state::typeinfo m_info;
-        void* m_defsptr;
+        uintptr_t m_defs_id;
 
         friend class dynamic_struct;
     };
@@ -159,23 +167,23 @@ public:
     class field_accessor
     {
     public:
-        field_accessor() = default;
-        ~field_accessor() = default;
-        field_accessor(field_accessor&&) = default;
-        field_accessor& operator = (field_accessor&&) = default;
-        field_accessor(const field_accessor& s) = default;
-        field_accessor& operator = (const field_accessor& s) = default;
+        inline field_accessor() = default;
+        inline ~field_accessor() = default;
+        inline field_accessor(field_accessor&&) = default;
+        inline field_accessor& operator = (field_accessor&&) = default;
+        inline field_accessor(const field_accessor& s) = default;
+        inline field_accessor& operator = (const field_accessor& s) = default;
 
         /**
          * @brief Returns the info about the field to which this accessor is tied.
          */
-        const field_info& info() const
+        inline const field_info& info() const
         {
             return m_info;
         }
 
     private:
-        field_accessor(const field_info& info): m_info(info) { };
+        inline explicit field_accessor(const field_info& info): m_info(info) { };
 
         field_info m_info;
 
@@ -192,12 +200,18 @@ public:
     class field_infos
     {
     public:
-        field_infos() = default;
+        inline field_infos(): m_defs_id((uintptr_t) this) { };
+        inline explicit field_infos(uintptr_t defs_id): m_defs_id(defs_id) { };
         virtual ~field_infos() = default;
-        field_infos(field_infos&&) = default;
-        field_infos& operator = (field_infos&&) = default;
-        field_infos(const field_infos& s) = delete;
-        field_infos& operator = (const field_infos& s) = delete;
+        inline field_infos(field_infos&&) = default;
+        inline field_infos& operator = (field_infos&&) = default;
+        inline field_infos(const field_infos& s) = delete;
+        inline field_infos& operator = (const field_infos& s) = delete;
+
+        inline uintptr_t id() const
+        {
+            return m_defs_id;
+        }
 
         /**
          * @brief Adds metadata for a new field to the list. An exception is
@@ -210,8 +224,8 @@ public:
         template<typename T>
         inline const field_info& add_field(const std::string& name)
         {
-            auto field = field_info::build<T>(name, m_definitions.size(), this);
-            return add_field(field);
+            auto field = field_info::build<T>(name, m_definitions.size(), id());
+            return add_field_info(field);
         }
 
         virtual const std::unordered_map<std::string, field_info>& fields()
@@ -220,7 +234,7 @@ public:
         }
 
 protected:
-        virtual const field_info& add_field(const field_info& field)
+        virtual const field_info& add_field_info(const field_info& field)
         {
             const auto &it = m_definitions.find(field.name());
             if (it != m_definitions.end())
@@ -239,17 +253,18 @@ protected:
             return def;
         }
 
+        uintptr_t m_defs_id;
         std::unordered_map<std::string, field_info> m_definitions;
         std::vector<const field_info*> m_definitions_ordered;
         friend class dynamic_struct;
     };
 
-    dynamic_struct(const std::shared_ptr<field_infos>& dynamic_fields)
+    inline explicit dynamic_struct(const std::shared_ptr<field_infos>& dynamic_fields)
         : m_fields_len(0), m_fields(), m_dynamic_fields(dynamic_fields) { }
-    dynamic_struct(dynamic_struct&&) = default;
-    dynamic_struct& operator = (dynamic_struct&&) = default;
-    dynamic_struct(const dynamic_struct& s) = default;
-    dynamic_struct& operator = (const dynamic_struct& s) = default;
+    inline dynamic_struct(dynamic_struct&&) = default;
+    inline dynamic_struct& operator = (dynamic_struct&&) = default;
+    inline dynamic_struct(const dynamic_struct& s) = default;
+    inline dynamic_struct& operator = (const dynamic_struct& s) = default;
     virtual ~dynamic_struct()
     {
         if (m_dynamic_fields)
@@ -301,7 +316,7 @@ protected:
      */
     virtual void set_dynamic_fields(const std::shared_ptr<field_infos>& defs)
     {
-        if (m_dynamic_fields)
+        if (m_dynamic_fields && m_dynamic_fields.use_count() > 1)
         {
             throw sinsp_exception("dynamic struct defintions set twice");
         }
@@ -358,7 +373,7 @@ private:
         {
             throw sinsp_exception("can't set invalid field in dynamic struct");
         }
-        if (m_dynamic_fields.get() != i.m_defsptr)
+        if (m_dynamic_fields->id() != i.m_defs_id)
         {
             throw sinsp_exception("using dynamic field accessor on struct it was not created from");
         }

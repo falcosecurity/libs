@@ -142,6 +142,8 @@ public:
 		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
 
+	libsinsp::state::static_struct::field_infos static_fields() const override;
+
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
 	*/

@@ -227,6 +227,8 @@ static inline std::string table_input_error_prefix(const sinsp_plugin* o, ss_plu
 	return "error in state table '" + std::string(i->name) + "' defined by plugin '" + o->name() + "': ";
 }
 
+static const libsinsp::state::static_struct::field_infos s_empty_static_infos;
+
 // wraps instances of ss_plugin_table_input and makes them comply
 // to the libsinsp::state::table state tables definition.
 template <typename KeyType>
@@ -275,11 +277,11 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 					ds::field_info f;
 					#define _X(_type, _dtype) \
 					{ \
-						f = ds::field_info::build<_type>(res[i].name, i, this, res[i].read_only); \
+						f = ds::field_info::build<_type>(res[i].name, i, (uintptr_t) this, res[i].read_only); \
 					}
 					__PLUGIN_STATETYPE_SWITCH(res[i].field_type);
 					#undef _X
-					ds::field_infos::add_field(f);
+					ds::field_infos::add_field_info(f);
 				}
 			}
 
@@ -310,7 +312,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 			return ret;
 		}
 
-		virtual const ds::field_info& add_field(const ds::field_info& field) override
+		virtual const ds::field_info& add_field_info(const ds::field_info& field) override
 		{
 			auto ret = m_input->fields_ext->add_table_field(m_input->table, field.name().c_str(), typeinfo_to_state_type(field.info()));
 			if (ret == NULL)
@@ -327,7 +329,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 			// lastly, we leverage the base-class implementation to obtain
 			// a reference from our local field definitions copy.
-			return ds::field_infos::add_field(field);
+			return ds::field_infos::add_field_info(field);
 		}
 	};
 
@@ -456,10 +458,9 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	};
 
 	plugin_table_wrapper(sinsp_plugin* o, const ss_plugin_table_input* i)
-		: libsinsp::state::table<KeyType>(i->name, ss::field_infos()),
+		: libsinsp::state::table<KeyType>(i->name, &s_empty_static_infos),
 		  m_owner(o),
 		  m_input(copy_and_check_table_input(o, i)),
-		  m_static_fields(),
 		  m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input))
 	{
 		auto t = libsinsp::state::typeinfo::of<KeyType>();
@@ -477,14 +478,13 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 
 	sinsp_plugin* m_owner;
 	owned_table_input_t m_input;
-	libsinsp::state::static_struct::field_infos m_static_fields;
 	std::shared_ptr<plugin_field_infos> m_dyn_fields;
 
-	const libsinsp::state::static_struct::field_infos& static_fields() const override
+	const libsinsp::state::static_struct::field_infos* static_fields() const override
 	{
 		// note: always empty, plugin-defined table have no "static" fields,
 		// all of them are dynamically-discovered at runtime
-		return m_static_fields;
+		return &s_empty_static_infos;
 	}
 
 	std::shared_ptr<ds::field_infos> dynamic_fields() const override
@@ -751,7 +751,7 @@ struct sinsp_table_wrapper
 
 		__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
 			t->m_field_list.clear();
-			for (auto& info : t->m_table->static_fields())
+			for (auto& info : *t->m_table->static_fields())
 			{
 				ss_plugin_table_fieldinfo i;
 				i.name = info.second.name().c_str();
@@ -797,9 +797,9 @@ struct sinsp_table_wrapper
 				return static_cast<ss_plugin_table_field_t*>(&it->second);
 			}
 
-			fixed_it = t->m_table->static_fields().find(name);
+			fixed_it = t->m_table->static_fields()->find(name);
 			dyn_it = t->m_table->dynamic_fields()->fields().find(name);
-			if (fixed_it != t->m_table->static_fields().end()
+			if (fixed_it != t->m_table->static_fields()->end()
 					&& dyn_it != t->m_table->dynamic_fields()->fields().end())
 			{
 				// todo(jasondellaluce): plugins are not aware of the difference
@@ -820,7 +820,7 @@ struct sinsp_table_wrapper
 			return &t->m_field_accessors[name]; \
 		}
 		__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-			if (fixed_it != t->m_table->static_fields().end())
+			if (fixed_it != t->m_table->static_fields()->end())
 			{
 				if (data_type != typeinfo_to_state_type(fixed_it->second.info()))
 				{
@@ -872,7 +872,7 @@ struct sinsp_table_wrapper
 			return ret;
 		}
 
-		if (t->m_table->static_fields().find(name) != t->m_table->static_fields().end())
+		if (t->m_table->static_fields()->find(name) != t->m_table->static_fields()->end())
 		{
 			t->m_owner_plugin->m_last_owner_err = "can't add dynamic field already defined as static: " + std::string(name);
 			return NULL;

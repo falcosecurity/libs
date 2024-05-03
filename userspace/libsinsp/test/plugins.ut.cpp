@@ -527,7 +527,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	ASSERT_EQ(table->name(), "plugin_sample");
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
-	ASSERT_EQ(table->static_fields().size(), 0);
+	ASSERT_EQ(table->static_fields()->size(), 0);
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
 
 	// get an already existing field form the plugin table

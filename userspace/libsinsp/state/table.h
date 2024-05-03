@@ -46,18 +46,30 @@ struct table_entry: public static_struct, dynamic_struct
 class base_table
 {
 public:
-    base_table(const std::string& name, const typeinfo& key_info,
-        const static_struct::field_infos& static_fields)
-            : m_name(name),
+    inline base_table(
+        const std::string& name,
+        const typeinfo& key_info,
+        const static_struct::field_infos* static_fields)
+            : m_this_ptr(this),
+              m_name(name),
               m_key_info(key_info), 
               m_static_fields(static_fields),
               m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) { }
 
     virtual ~base_table() = default;
-    base_table(base_table&&) = default;
-    base_table& operator = (base_table&&) = default;
-    base_table(const base_table& s) = delete;
-    base_table& operator = (const base_table& s) = delete;
+    inline base_table(base_table&&) = default;
+    inline base_table& operator = (base_table&&) = default;
+    inline base_table(const base_table& s) = delete;
+    inline base_table& operator = (const base_table& s) = delete;
+
+    /**
+     * @brief Returns a pointer to the area of memory in which this table
+     * object is allocated. Here for convenience as required in other code parts.
+     */
+    inline const base_table* const& table_ptr() const
+    {
+        return m_this_ptr;
+    }
 
     /**
      * @brief Returns the name of the table.
@@ -80,7 +92,7 @@ public:
      * for the value data type of this table. This fields will be accessible
      * for all the entries of this table.
      */
-    virtual const static_struct::field_infos& static_fields() const
+    virtual const static_struct::field_infos* static_fields() const
     {
         return m_static_fields;
     }
@@ -96,6 +108,19 @@ public:
     virtual std::shared_ptr<dynamic_struct::field_infos> dynamic_fields() const
     {
         return m_dynamic_fields;
+    }
+
+    virtual void set_dynamic_fields(std::shared_ptr<dynamic_struct::field_infos> dynf)
+    {
+        if (!dynf)
+        {
+            throw sinsp_exception("null definitions passed to set_dynamic_fields");
+        }
+        if (m_dynamic_fields && m_dynamic_fields.use_count() > 1)
+        {
+            throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
+        }
+        m_dynamic_fields = dynf;
     }
 
     /**
@@ -130,9 +155,10 @@ public:
     virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
 
 private:
+    const base_table* m_this_ptr;
     std::string m_name;
     typeinfo m_key_info;
-    static_struct::field_infos m_static_fields;
+    const static_struct::field_infos* m_static_fields;
     std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
 };
 
@@ -146,14 +172,14 @@ class table: public base_table
         "table key types must have a default constructor");
 
 public:
-    table(const std::string& name, const static_struct::field_infos& static_fields)
+    inline table(const std::string& name, const static_struct::field_infos* static_fields)
             : base_table(name, typeinfo::of<KeyType>(), static_fields) {}
-    table(const std::string& name): table(name, static_struct::field_infos()) {}
+    inline table(const std::string& name): table(name, _static_fields()) {}
     virtual ~table() = default;
-    table(table&&) = default;
-    table& operator = (table&&) = default;
-    table(const table& s) = delete;
-    table& operator = (const table& s) = delete;
+    inline table(table&&) = default;
+    inline table& operator = (table&&) = default;
+    inline table(const table& s) = delete;
+    inline table& operator = (const table& s) = delete;
 
     /**
      * @brief Returns a pointer to an entry present in the table at the given
@@ -187,6 +213,13 @@ public:
      * @return false If an entry was not present at the given key.
      */
     virtual bool erase_entry(const KeyType& key) = 0;
+
+private:
+    static inline const static_struct::field_infos* _static_fields()
+	{
+		static const static_struct::field_infos s_fields{};
+		return &s_fields;
+	}
 };
 
 }; // state

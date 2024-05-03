@@ -49,15 +49,15 @@ public:
      */
     template<typename T> static inline typeinfo of()
     {
-        throw sinsp_exception("state::typeinfo::of invoked for unsupported type");
+        throw sinsp_exception("state::typeinfo::of invoked for unsupported type: " + std::string(typeid(T).name()));
     }
 
-    typeinfo() = delete;
-    ~typeinfo() = default;
-    typeinfo(typeinfo&&) = default;
-    typeinfo& operator = (typeinfo&&) = default;
-    typeinfo(const typeinfo& s) = default;
-    typeinfo& operator = (const typeinfo& s) = default;
+    inline typeinfo() = delete;
+    inline ~typeinfo() = default;
+    inline typeinfo(typeinfo&&) = default;
+    inline typeinfo& operator = (typeinfo&&) = default;
+    inline typeinfo(const typeinfo& s) = default;
+    inline typeinfo& operator = (const typeinfo& s) = default;
 
     friend inline bool operator==(const typeinfo& a, const typeinfo& b)
     {
