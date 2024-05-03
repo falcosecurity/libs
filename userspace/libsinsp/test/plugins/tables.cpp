@@ -282,6 +282,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 	// get non-existing thread
 	step++;
 	{
+		in->table_reader_ext->release_table_entry(ps->thread_table, thread);
 		tmp.s64 = s_new_thread_tid;
 		thread = in->table_reader_ext->get_table_entry(ps->thread_table, &tmp);
 		if (thread)
@@ -325,8 +326,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 			fprintf(stderr, "table_reader.get_table_size (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
 			exit(1);
 		}
-		tmp.s64 = s_new_thread_tid;
-		in->table_reader_ext->release_table_entry(ps->thread_table, &tmp);
+		in->table_reader_ext->release_table_entry(ps->thread_table, thread);
 	}
 
 	// get newly-created thread
@@ -402,8 +402,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 			exit(1);
 		}
 
-		tmp.s64 = s_new_thread_tid;
-		in->table_reader_ext->release_table_entry(ps->thread_table, &tmp);
+		in->table_reader_ext->release_table_entry(ps->thread_table, thread);
 	}
 
 	// erasing an unknown thread
@@ -521,8 +520,8 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 			fprintf(stderr, "table_reader.write_entry_field (%d) failure: %s\n", step, in->get_owner_last_error(in->owner));
 			exit(1);
 		}
-		tmp.s64 = 1;
-		in->table_reader_ext->release_table_entry(ps->thread_table, &tmp);
+
+		in->table_reader_ext->release_table_entry(ps->thread_table, thread);
 	}
 
 	return SS_PLUGIN_SUCCESS;

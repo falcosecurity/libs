@@ -179,11 +179,19 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 
 	ss_plugin_init_tables_input tables_in = {};
 	ss_plugin_table_fields_vtable_ext table_fields_ext = {};
+	ss_plugin_table_reader_vtable reader_deprecated = {}; // unused
+	ss_plugin_table_reader_vtable_ext table_reader_ext = {};
+	ss_plugin_table_writer_vtable writer_deprecated = {}; // unused
+	ss_plugin_table_writer_vtable_ext table_writer_ext = {};
 
 	if (m_caps & (CAP_PARSING | CAP_EXTRACTION))
 	{
 		tables_in.fields_ext = &table_fields_ext;
+		tables_in.reader_ext = &table_reader_ext;
+		tables_in.writer_ext = &table_writer_ext;
 		sinsp_plugin::table_field_api(tables_in.fields, table_fields_ext);
+		sinsp_plugin::table_read_api(reader_deprecated, table_reader_ext);
+		sinsp_plugin::table_write_api(writer_deprecated, table_writer_ext);
 		tables_in.list_tables = sinsp_plugin::table_api_list_tables;
 		tables_in.get_table = sinsp_plugin::table_api_get_table;
 		tables_in.add_table = sinsp_plugin::table_api_add_table;
@@ -218,6 +226,10 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 		resolve_dylib_compatible_codes(m_handle->api.get_parse_event_types,
 			m_parse_event_sources, m_parse_event_codes);
 	}
+
+	// do some defensive garbage collection
+	clear_ephemeral_tables();
+	clear_accessed_entries();
 
 	return true;
 }
@@ -877,7 +889,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_plugin::new_filtercheck(std::shared_pt
 	return std::make_unique<sinsp_filter_check_plugin>(plugin);
 }
 
-bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields) const
+bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields)
 {
 	if (!m_inited)
 	{
@@ -897,14 +909,20 @@ bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin
 	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.table_reader_ext = &table_reader_ext;
 	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
-	return m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+	auto res = m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+
+	// do some defensive garbage collection
+	clear_ephemeral_tables();
+	clear_accessed_entries();
+
+	return res;
 }
 
 /** End of Field Extraction CAP **/
 
 /** Event Parsing CAP **/
 
-bool sinsp_plugin::parse_event(sinsp_evt* evt) const
+bool sinsp_plugin::parse_event(sinsp_evt* evt)
 {
 	if (!m_inited)
 	{
@@ -925,9 +943,13 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) const
 	in.table_writer_ext = &table_writer_ext;
 	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
 	sinsp_plugin::table_write_api(in.table_writer, table_writer_ext);
+	auto res = m_handle->api.parse_event(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
 
-	auto res = m_handle->api.parse_event(m_state, &ev, &in);
-	return res == SS_PLUGIN_SUCCESS;
+	// do some defensive garbage collection
+	clear_ephemeral_tables();
+	clear_accessed_entries();
+
+	return res;
 }
 
 /** End of Event Parsing CAP **/

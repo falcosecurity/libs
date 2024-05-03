@@ -100,7 +100,9 @@ public:
          */
         inline bool valid() const
         {
-            return m_index != (size_t) -1;
+            // note(jasondellaluce): for now dynamic fields of type table are
+            // not supported, so we consider them to be invalid
+            return m_index != (size_t) -1 && m_index != typeinfo::index_t::TI_TABLE;
         }
 
         /**
@@ -236,6 +238,11 @@ public:
 protected:
         virtual const field_info& add_field_info(const field_info& field)
         {
+            if (field.info().index() == typeinfo::index_t::TI_TABLE)
+            {
+                throw sinsp_exception("dynamic fields of type table are not supported");
+            }
+
             const auto &it = m_definitions.find(field.name());
             if (it != m_definitions.end())
             {
@@ -337,7 +344,7 @@ protected:
     virtual void get_dynamic_field(const field_info& i, void* out)
     {
         const auto* buf = _access_dynamic_field(i.m_index);
-        if (i.info().index() == PT_CHARBUF)
+        if (i.info().index() == typeinfo::index_t::TI_STRING)
         {
             *((const char**) out) = ((const std::string*) buf)->c_str();
         }
@@ -356,7 +363,7 @@ protected:
     virtual void set_dynamic_field(const field_info& i, const void* in)
     {
         auto* buf = _access_dynamic_field(i.m_index);
-        if (i.info().index() == PT_CHARBUF)
+        if (i.info().index() == typeinfo::index_t::TI_STRING)
         {
             *((std::string*) buf) = *((const char**) in);
         }

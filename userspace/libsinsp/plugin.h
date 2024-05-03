@@ -112,13 +112,18 @@ public:
 		m_extract_event_codes(),
 		m_parse_event_sources(),
 		m_parse_event_codes(),
+		m_async_event_sources(),
+		m_async_event_names(),
+		m_async_evt_handler(nullptr),
 		m_table_registry(treg),
 		m_table_infos(),
 		m_owned_tables(),
 		m_accessed_tables(),
-		m_async_event_sources(),
-		m_async_event_names(),
-		m_async_evt_handler(nullptr) { }
+		m_accessed_entries(),
+		m_accessed_table_fields(),
+		m_ephemeral_tables(),
+		m_ephemeral_tables_clear(false),
+		m_accessed_entries_clear(false) { }
 	virtual ~sinsp_plugin();
 	sinsp_plugin(const sinsp_plugin& s) = delete;
 	sinsp_plugin& operator = (const sinsp_plugin& s) = delete;
@@ -189,7 +194,7 @@ public:
 		return m_fields;
 	}
 
-	bool extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields) const;
+	bool extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 
 	/** Event Parsing **/
 	inline const std::unordered_set<std::string>& parse_event_sources() const
@@ -199,7 +204,7 @@ public:
 
 	const libsinsp::events::set<ppm_event_code>& parse_event_codes() const;
 
-	bool parse_event(sinsp_evt* evt) const;
+	bool parse_event(sinsp_evt* evt);
 
 	/** Async Events **/
 	inline const std::unordered_set<std::string>& async_event_sources() const
@@ -247,21 +252,14 @@ private:
 	libsinsp::events::set<ppm_event_code> m_extract_event_codes;
 
 	/** Event Parsing **/
-	struct accessed_table_input_deleter { void operator()(ss_plugin_table_input* r); };
-	using owned_table_t = std::unique_ptr<libsinsp::state::base_table>;
-	using accessed_table_t = std::unique_ptr<ss_plugin_table_input, accessed_table_input_deleter>;
 	std::unordered_set<std::string> m_parse_event_sources;
 	libsinsp::events::set<ppm_event_code> m_parse_event_codes;
-	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
-	std::vector<ss_plugin_table_info> m_table_infos;
-	std::unordered_map<std::string, owned_table_t> m_owned_tables;
-	/* contains tables that the plugin accessed at least once */
-	std::unordered_map<std::string, accessed_table_t> m_accessed_tables;
 
-	/** Async Events **/
+	/** Async Events state and helpers **/
 	std::unordered_set<std::string> m_async_event_sources;
 	std::unordered_set<std::string> m_async_event_names;
 	std::atomic<async_event_handler_t*> m_async_evt_handler; // note: we don't have thread-safe smart pointers
+	static ss_plugin_rc handle_plugin_async_event(ss_plugin_owner_t *o, const ss_plugin_event* evt, char* err);
 
 	/** Generic helpers **/
 	void validate_config(std::string& config);
@@ -278,16 +276,168 @@ private:
 	void validate_config_json_schema(std::string& config, std::string& schema);
 	static const char* get_owner_last_error(ss_plugin_owner_t* o);
 
-	/** Event parsing helpers **/
+	/** Table API state and helpers **/
+
+	// wraps instances of libsinsp::state::XXX_struct::field_accessor and 
+	// help making them comply to the plugin API state tables definitions
+	struct sinsp_field_accessor_wrapper
+	{
+		// depending on the value of `dynamic`, one of:
+		// - libsinsp::state::static_struct::field_accessor
+		// - libsinsp::state::dynamic_struct::field_accessor
+		void* accessor = nullptr;
+		bool dynamic = false;
+		ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
+		ss_plugin_state_type subtable_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
+
+		inline sinsp_field_accessor_wrapper() = default;
+		~sinsp_field_accessor_wrapper();
+		inline sinsp_field_accessor_wrapper(const sinsp_field_accessor_wrapper& s) = delete;
+		inline sinsp_field_accessor_wrapper& operator = (const sinsp_field_accessor_wrapper& s) = delete;
+		inline sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
+		inline sinsp_field_accessor_wrapper& operator = (sinsp_field_accessor_wrapper&& s);
+	};
+
+	// wraps instances of libsinsp::state::table and help making them comply
+	// to the plugin API state tables definitions
+	struct sinsp_table_wrapper
+	{
+		ss_plugin_state_type m_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
+		sinsp_plugin* m_owner_plugin = nullptr;
+		libsinsp::state::base_table* m_table = nullptr;
+		std::vector<ss_plugin_table_fieldinfo> m_field_list;
+		std::unordered_map<std::string, sinsp_plugin::sinsp_field_accessor_wrapper*> m_field_accessors;
+
+		// used to optimize cases where this wraps a plugin-defined table directly
+		const sinsp_plugin* m_table_plugin_owner = nullptr;
+		ss_plugin_table_input* m_table_plugin_input = nullptr;
+
+		inline sinsp_table_wrapper() = default;
+		virtual ~sinsp_table_wrapper() = default;
+		inline sinsp_table_wrapper(const sinsp_table_wrapper& s) = delete;
+		inline sinsp_table_wrapper& operator = (const sinsp_table_wrapper& s) = delete;
+
+		void unset();
+		bool is_set() const;
+		template <typename T> void set(sinsp_plugin* p, libsinsp::state::table<T>* t);
+
+		// static functions, will be used to populate vtable functions where
+		// ss_plugin_table_t* will be represented by a sinsp_table_wrapper*
+		static inline const ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t, uint32_t* nfields);
+		static inline ss_plugin_table_field_t* get_field(ss_plugin_table_t* _t, const char* name, ss_plugin_state_type data_type);
+		static inline ss_plugin_table_field_t* add_field(ss_plugin_table_t* _t, const char* name, ss_plugin_state_type data_type);
+		static inline const char* get_name(ss_plugin_table_t* _t);
+		static inline uint64_t get_size(ss_plugin_table_t* _t);
+		static inline ss_plugin_table_entry_t* get_entry(ss_plugin_table_t* _t, const ss_plugin_state_data* key);
+		static inline ss_plugin_rc read_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e, const ss_plugin_table_field_t* f, ss_plugin_state_data* out);;
+		static inline void release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e);
+		static inline ss_plugin_bool iterate_entries(ss_plugin_table_t* _t, ss_plugin_table_iterator_func_t it, ss_plugin_table_iterator_state_t* s);
+		static inline ss_plugin_rc clear(ss_plugin_table_t* _t);
+		static inline ss_plugin_rc erase_entry(ss_plugin_table_t* _t, const ss_plugin_state_data* key);
+		static inline ss_plugin_table_entry_t* create_table_entry(ss_plugin_table_t* _t);
+		static inline void destroy_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e);
+		static inline ss_plugin_table_entry_t* add_entry(ss_plugin_table_t* _t, const ss_plugin_state_data* key, ss_plugin_table_entry_t* _e);
+		static inline ss_plugin_rc write_entry_field(ss_plugin_table_t* _t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_state_data* in);;
+	};
+
+	// a wrapper around sinsp_table_wrapper (yes...) that makes it comply to the
+	// ss_plugin_table_input facade, thus being accessible through plugin API
+	struct sinsp_table_input
+	{
+		ss_plugin_table_input input;
+		ss_plugin_table_fields_vtable_ext fields_vtable;
+		ss_plugin_table_reader_vtable_ext reader_vtable;
+		ss_plugin_table_writer_vtable_ext writer_vtable;
+		sinsp_table_wrapper wrapper;
+
+		sinsp_table_input();
+		inline ~sinsp_table_input() = default;
+		inline sinsp_table_input(const sinsp_table_input& s) = delete;
+		inline sinsp_table_input& operator=(const sinsp_table_input& s) = delete;
+
+		void update();
+	};
+
+	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
+	std::vector<ss_plugin_table_info> m_table_infos;
+	std::unordered_map<std::string, std::unique_ptr<libsinsp::state::base_table>> m_owned_tables;
+	/* contains tables that the plugin accessed at least once */
+	std::unordered_map<std::string, sinsp_table_input> m_accessed_tables;
+	std::list<std::shared_ptr<libsinsp::state::table_entry>> m_accessed_entries; // using lists for ptr stability
+	std::list<sinsp_field_accessor_wrapper> m_accessed_table_fields; // note: lists have pointer stability
+	std::list<sinsp_table_input> m_ephemeral_tables; // note: lists have pointer stability
+	bool m_ephemeral_tables_clear;
+	bool m_accessed_entries_clear;
+
+	inline void clear_ephemeral_tables()
+	{
+		if (m_ephemeral_tables_clear)
+		{
+			// quick break-out that prevents us from looping over the
+			// whole list in the critical path, in case of no accessed table
+			return;
+		}
+		for (auto& et : m_ephemeral_tables)
+		{
+			et.wrapper.unset();
+			et.update();
+		}
+		m_ephemeral_tables_clear = true;
+	}
+
+	inline sinsp_table_input& find_unset_ephemeral_table()
+	{
+		m_ephemeral_tables_clear = false;
+		for (auto& et : m_ephemeral_tables)
+		{
+			if (!et.wrapper.is_set())
+			{
+				return et;
+			}
+		}
+		return m_ephemeral_tables.emplace_back();
+	}
+
+	inline void clear_accessed_entries()
+	{
+		if (m_accessed_entries_clear)
+		{
+			// quick break-out that prevents us from looping over the
+			// whole list in the critical path
+			return;
+		}
+		for (auto& et : m_accessed_entries)
+		{
+			if (et != nullptr)
+			{
+				// if we get here, it means that the plugin did not
+				// release some of the entries it acquired
+				ASSERT(false);
+				et.reset();
+			};
+		}
+		m_accessed_entries_clear = true;
+	}
+
+	inline std::shared_ptr<libsinsp::state::table_entry>* find_unset_accessed_table_entry()
+	{
+		m_accessed_entries_clear = false;
+		for (auto& et : m_accessed_entries)
+		{
+			if (et == nullptr)
+			{
+				return &et;
+			}
+		}
+		return &m_accessed_entries.emplace_back();
+	}
+
 	static void table_field_api(ss_plugin_table_fields_vtable& out, ss_plugin_table_fields_vtable_ext& extout);
 	static void table_read_api(ss_plugin_table_reader_vtable& out, ss_plugin_table_reader_vtable_ext& extout);
 	static void table_write_api(ss_plugin_table_writer_vtable& out, ss_plugin_table_writer_vtable_ext& extout);
 	static ss_plugin_table_info* table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables);
 	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_state_type key_type);
 	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t *o, const ss_plugin_table_input* in);
-
-	/** Async events helpers **/
-	static ss_plugin_rc handle_plugin_async_event(ss_plugin_owner_t *o, const ss_plugin_event* evt, char* err);
 
 	friend struct sinsp_table_wrapper;
 };
