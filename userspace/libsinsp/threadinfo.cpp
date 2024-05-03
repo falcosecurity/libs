@@ -711,7 +711,7 @@ std::string sinsp_threadinfo::get_env(const std::string& name)
 
 std::string sinsp_threadinfo::concatenate_all_env()
 {
-	auto all_env = get_env();
+	const auto& all_env = get_env();
 	if(all_env.size() == 0)
 	{
 		return "";
@@ -1899,7 +1899,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		int argscnt, envscnt, cgroupscnt;
 		std::string argsrem, envsrem, cgroupsrem;
 		uint32_t entrylen = 0;
-		auto cg = tinfo.cgroups();
+		const auto& cg = tinfo.cgroups();
 
 		memset(&sctinfo, 0, sizeof(scap_threadinfo));
 
