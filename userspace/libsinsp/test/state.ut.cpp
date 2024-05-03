@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2024 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,22 +34,26 @@ TEST(static_struct, defs_and_access)
 {
     struct err_multidef_struct: public libsinsp::state::static_struct
     {
-        err_multidef_struct(): m_num(0)
+        libsinsp::state::static_struct::field_infos static_fields() const override
         {
-            define_static_field(this, m_num, "num");
-            define_static_field(this, m_num, "num");
+            libsinsp::state::static_struct::field_infos ret;
+            define_static_field(ret, this, m_num, "num");
+            define_static_field(ret, this, m_num, "num");
+            return ret;
         }
 
-        uint32_t m_num;
+        uint32_t m_num{0};
     };
 
     class sample_struct: public libsinsp::state::static_struct
     {
     public:
-        sample_struct(): m_num(0), m_str()
+        libsinsp::state::static_struct::field_infos static_fields() const override
         {
-            define_static_field(this, m_num, "num");
-            define_static_field(this, m_str, "str", true);
+            libsinsp::state::static_struct::field_infos ret;
+            define_static_field(ret, this, m_num, "num");
+            define_static_field(ret, this, m_str, "str", true);
+            return ret;
         }
 
         uint32_t get_num() const { return m_num; }
@@ -58,23 +62,25 @@ TEST(static_struct, defs_and_access)
         void set_str(const std::string& v) { m_str = v; }
 
     private:
-        uint32_t m_num;
+        uint32_t m_num{0};
         std::string m_str;
     };
 
     struct sample_struct2: public libsinsp::state::static_struct
     {
     public:
-        sample_struct2(): m_num(0)
+        libsinsp::state::static_struct::field_infos static_fields() const override
         {
-            define_static_field(this, m_num, "num");
+            libsinsp::state::static_struct::field_infos ret;
+            define_static_field(ret, this, m_num, "num");
+            return ret;
         }
 
-        uint32_t m_num;
+        uint32_t m_num{0};
     };
 
-    // test construction errors
-    ASSERT_ANY_THROW(err_multidef_struct());
+    // test errors
+    ASSERT_ANY_THROW(err_multidef_struct().static_fields());
 
     sample_struct s;
     const auto& fields = s.static_fields();
@@ -302,7 +308,7 @@ TEST(thread_manager, table_access)
 {
     // note: used for regression checks, keep this updated as we make
     // new fields available
-    static const int s_threadinfo_static_fields_count = 20;
+    static const int s_threadinfo_static_fields_count = 24;
 
     sinsp inspector;
     auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
@@ -310,7 +316,7 @@ TEST(thread_manager, table_access)
     // empty table state and info
     ASSERT_EQ(table->name(), "threads");
     ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
-    ASSERT_EQ(table->static_fields(), sinsp_threadinfo().static_fields());
+    ASSERT_EQ(*table->static_fields(), sinsp_threadinfo().static_fields());
     ASSERT_NE(table->dynamic_fields(), nullptr);
     ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
     ASSERT_EQ(table->entries_count(), 0);
@@ -324,7 +330,7 @@ TEST(thread_manager, table_access)
     auto comm_acc = newt->static_fields().at("comm").new_accessor<std::string>();
     ASSERT_NE(newtinfo, nullptr);
     ASSERT_EQ(newt->dynamic_fields(), table->dynamic_fields());
-    ASSERT_EQ(newt->static_fields(), table->static_fields());
+    ASSERT_EQ(newt->static_fields(), *table->static_fields());
     ASSERT_EQ(newt->static_fields().size(), s_threadinfo_static_fields_count);
     newtinfo->m_tid = 999;
     newtinfo->m_comm = "test";

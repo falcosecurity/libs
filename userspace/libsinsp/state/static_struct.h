@@ -43,16 +43,16 @@ public:
     class field_info
     {
     public:
-        field_info():
+        inline field_info():
             m_readonly(true),
             m_offset((size_t) -1),
             m_name(""),
             m_info(typeinfo::of<uint8_t>()) {}
-        ~field_info() = default;
-        field_info(field_info&&) = default;
-        field_info& operator = (field_info&&) = default;
-        field_info(const field_info& s) = default;
-        field_info& operator = (const field_info& s) = default;
+        inline ~field_info() = default;
+        inline field_info(field_info&&) = default;
+        inline field_info& operator = (field_info&&) = default;
+        inline field_info(const field_info& s) = default;
+        inline field_info& operator = (const field_info& s) = default;
 
         friend inline bool operator==(const field_info& a, const field_info& b)
         {
@@ -78,7 +78,7 @@ public:
         /**
          * @brief Returns true if the field is read only.
          */
-        bool readonly() const
+        inline bool readonly() const
         {
             return m_readonly;
         }
@@ -86,7 +86,7 @@ public:
         /**
          * @brief Returns the name of the field.
          */
-        const std::string& name() const
+        inline const std::string& name() const
         {
             return m_name;
         }
@@ -94,7 +94,7 @@ public:
         /**
          * @brief Returns the type info of the field.
          */
-        const libsinsp::state::typeinfo& info() const
+        inline const libsinsp::state::typeinfo& info() const
         {
             return m_info;
         }
@@ -105,7 +105,7 @@ public:
          * all instances of structs where it is defined.
          */
         template <typename T>
-        field_accessor<T> new_accessor() const
+        inline field_accessor<T> new_accessor() const
         {
             if (!valid())
             {
@@ -122,14 +122,14 @@ public:
         }
 
     private:
-        field_info(const std::string& n, size_t o, const typeinfo& i, bool r)
+        inline field_info(const std::string& n, size_t o, const typeinfo& i, bool r)
             : m_readonly(r),
               m_offset(o),
               m_name(n),
               m_info(i) { }
         
         template<typename T>
-        static field_info _build(const std::string& name, size_t offset, bool readonly=false)
+        static inline field_info _build(const std::string& name, size_t offset, bool readonly=false)
         {
             return field_info(name, offset, libsinsp::state::typeinfo::of<T>(), readonly);
         }
@@ -150,17 +150,17 @@ public:
     class field_accessor
     {
     public:
-        field_accessor() = default;
-        ~field_accessor() = default;
-        field_accessor(field_accessor&&) = default;
-        field_accessor& operator = (field_accessor&&) = default;
-        field_accessor(const field_accessor& s) = default;
-        field_accessor& operator = (const field_accessor& s) = default;
+        inline field_accessor() = default;
+        inline ~field_accessor() = default;
+        inline field_accessor(field_accessor&&) = default;
+        inline field_accessor& operator = (field_accessor&&) = default;
+        inline field_accessor(const field_accessor& s) = default;
+        inline field_accessor& operator = (const field_accessor& s) = default;
 
         /**
          * @brief Returns the info about the field to which this accessor is tied.
          */
-        const field_info& info() const
+        inline const field_info& info() const
         {
             return m_info;
         }
@@ -180,12 +180,12 @@ public:
      */
     using field_infos = std::unordered_map<std::string, field_info>;
 
-    static_struct() = default;
-    virtual ~static_struct() = default;
-    static_struct(static_struct&&) = default;
-    static_struct& operator = (static_struct&&) = default;
-    static_struct(const static_struct& s) = default;
-    static_struct& operator = (const static_struct& s) = default;
+    inline static_struct() = default;
+    inline virtual ~static_struct() = default;
+    inline static_struct(static_struct&&) = default;
+    inline static_struct& operator = (static_struct&&) = default;
+    inline static_struct(const static_struct& s) = default;
+    inline static_struct& operator = (const static_struct& s) = default;
 
     /**
      * @brief Accesses a field with the given accessor and reads its value.
@@ -230,15 +230,14 @@ public:
     /**
      * @brief Returns information about all the static fields accessible in a struct.
      */
-    inline const field_infos& static_fields() const
+    virtual field_infos static_fields() const
     {
-        return m_static_fields;
+        return {};
     }
 
 protected:
     /**
-     * @brief To be used in the constructor of child classes.
-     * Defines the information about a field defined in the class or struct.
+     * @brief Defines the information about a field defined in the class or struct.
      * An exception is thrown if two fields are defined with the same name.
      * 
      * @tparam T Type of the field.
@@ -249,22 +248,19 @@ protected:
      * @param name Display name of the field.
      */
     template<typename T>
-    const field_info& define_static_field(const void* thisptr, const T& v, const std::string& name, bool readonly=false)
+    inline const field_info& define_static_field(field_infos& fields, const void* thisptr, const T& v, const std::string& name, bool readonly=false) const
     {
-        const auto &it = m_static_fields.find(name);
-        if (it != m_static_fields.end())
+        const auto &it = fields.find(name);
+        if (it != fields.end())
         {
             throw sinsp_exception("multiple definitions of static field in struct: " + name);
         }
 
         // todo(jasondellaluce): add extra safety boundary checks here
         size_t offset = (size_t) (((uintptr_t) &v) - (uintptr_t) thisptr);
-        m_static_fields.insert({ name, field_info::_build<T>(name, offset, readonly) });
-        return m_static_fields.at(name);
+        fields.insert({ name, field_info::_build<T>(name, offset, readonly) });
+        return fields.at(name);
     }
-
-private:
-    field_infos m_static_fields;
 };
 
 
