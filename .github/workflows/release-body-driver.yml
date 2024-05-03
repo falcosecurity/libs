@@ -1,18 +1,19 @@
-name: Generate release body for driver
+name: Generate release body for published releases
 on:
   release:
     types: [published]
 
-# Checks if any concurrent jobs is running for driver release CI and eventually cancel it.
+# Checks if any concurrent jobs is running for driver release CI and eventually wait for it.
 concurrency:
-  group: driver-release
-  cancel-in-progress: true
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release-settings:
     runs-on: ubuntu-latest
     outputs:
-      is_latest: ${{ steps.get_settings.outputs.is_latest }} 
+      is_latest: ${{ steps.get_settings.outputs.is_latest }}
+      is_driver: ${{ steps.get_settings.outputs.is_driver }}
     steps:
       - name: Get latest release
         uses: rez0n/actions-github-release@27a57820ee808f8fd940c8a9d1f7188f854aa2b5 # v2.0
@@ -42,13 +43,70 @@ jobs:
 
           # Safeguard: you need to both set "latest" in GH and not have suffixes to overwrite latest
           is_latest = '${{ steps.latest_release.outputs.release }}' == tag_name and not is_prerelease
+          
+          is_driver = "+driver" in tag_name
 
           with open(os.environ['GITHUB_OUTPUT'], 'a') as ofp:
             print(f'is_latest={is_latest}'.lower(), file=ofp)
+            print(f'is_driver={is_driver}'.lower(), file=ofp)
+            
+  release-body-libs:
+    needs: [release-settings]
+    if: ${{ needs.release-settings.outputs.is_latest == 'true' && needs.release-settings.outputs.is_driver == 'false' }} # only for latest releases and not driver ones
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        
+      - name: Create release body file
+        run: |
+          touch release-body.md
+          
+      - name: Extract MIN_API version
+        run: |
+          MIN_API_VER=$(grep SCAP_MINIMUM_DRIVER_API_VERSION userspace/libscap/scap.h)
+          prefix="#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION"
+          MIN_API_VER=${MIN_API_VER/#$prefix}
+          MIN_API_VER=$(echo $MIN_API_VER | tr -d "(" | tr -d ")")
+          MIN_API_VER=$(echo $MIN_API_VER | sed -r 's/, /./g')
+          echo '!'"[MIN_DRIVER_API](https://img.shields.io/badge/MIN_DRIVER_API-${MIN_API_VER}-yellow)" >> release-body.md
+          
+      - name: Extract MIN_SCHEMA version
+        run: |
+          MIN_SCHEMA_VER=$(grep SCAP_MINIMUM_DRIVER_SCHEMA_VERSION userspace/libscap/scap.h)
+          prefix="#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION"
+          MIN_SCHEMA_VER=${MIN_SCHEMA_VER/#$prefix}
+          MIN_SCHEMA_VER=$(echo $MIN_SCHEMA_VER | tr -d "(" | tr -d ")")
+          MIN_SCHEMA_VER=$(echo $MIN_SCHEMA_VER | sed -r 's/, /./g')
+          echo '!'"[MIN_DRIVER_SCHEMA](https://img.shields.io/badge/MIN_DRIVER_SCHEMA-${MIN_SCHEMA_VER}-yellow)" >> release-body.md
+          echo "" >> release-body.md
+          
+      - name: Generate release notes
+        uses: leodido/rn2md@9c351d81278644c0e17b1ca68edbdba305276c73
+        with:
+          milestone: ${{ github.event.release.tag_name }}
+          output: ./notes.md
+        
+      - name: Merge release notes to pre existent body
+        run: cat notes.md >> release-body.md
+        
+      - name: Attach release creator to release body
+        run: |
+          echo "" >> release-body.md
+          echo "#### Release Manager @${{ github.event.release.author.login }}" >> release-body.md
+        
+      - name: Release
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
+        with:
+          body_path: ./release-body.md
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}          
 
   kernel-tests-release:
     needs: [release-settings]
-    if: ${{ needs.release-settings.outputs.is_latest == 'true' }} # only for latest releases 
+    if: ${{ needs.release-settings.outputs.is_latest == 'true' && needs.release-settings.outputs.is_driver == 'true' }} # only for latest driver releases 
     uses: ./.github/workflows/reusable_kernel_tests.yaml
     with:
       libsversion: ${{ github.event.release.tag_name }}
@@ -56,7 +114,7 @@ jobs:
             
   release-body-driver:
     needs: [release-settings, kernel-tests-release]
-    if: ${{ needs.release-settings.outputs.is_latest == 'true' }} # only for latest releases
+    if: ${{ needs.release-settings.outputs.is_latest == 'true' && needs.release-settings.outputs.is_driver == 'true' }} # only for latest driver releases
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -82,7 +140,7 @@ jobs:
         with:
           name: matrix_X64
       
-      - name: Move X64 matrix under docs
+      - name: Rename X64 matrix
         run: mv matrix.md matrix_X64.md
       
       - name: Download matrix ARM64
@@ -90,7 +148,7 @@ jobs:
         with:
           name: matrix_ARM64
           
-      - name: Move ARM64 matrix under docs
+      - name: Rename ARM64 matrix
         run: mv matrix.md matrix_ARM64.md
 
       # Steps:
