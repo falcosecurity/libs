@@ -123,6 +123,48 @@ const char* sinsp_fdinfo::get_typestring() const
 	}
 }
 
+sinsp_fdinfo::sinsp_fdinfo(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields)
+	: table_entry(dyn_fields) 
+{
+}
+
+libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const
+{
+	libsinsp::state::static_struct::field_infos ret;
+	define_static_field(ret, this, (uint32_t) m_openflags, "type");
+	define_static_field(ret, this, m_openflags, "open_flags");
+	define_static_field(ret, this, m_name, "name");
+	define_static_field(ret, this, m_name_raw, "name_raw");
+	define_static_field(ret, this, m_oldname, "old_name");
+	define_static_field(ret, this, m_flags, "flags");
+	define_static_field(ret, this, m_dev, "dev");
+	define_static_field(ret, this, m_mount_id, "mount_id");
+	define_static_field(ret, this, m_ino, "ino");
+	define_static_field(ret, this, m_pid, "pid");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sip, "socket_ipv4_src_ip");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_dip, "socket_ipv4_dest_dip");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sport, "socket_ipv4_src_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_dport, "socket_ipv4_dst_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_l4proto, "socket_ipv4_l4_proto");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_sip)[0], "socket_ipv6_src_ip_low");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_sip)[1], "socket_ipv6_src_ip_high");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_dip)[0], "socket_ipv6_dest_ip_low");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_dip)[1], "socket_ipv6_dest_ip_high");
+	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_sport, "socket_ipv6_src_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_dport, "socket_ipv6_dst_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_l4proto, "socket_ipv6_l4_proto");
+	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_ip, "socket_ipv4_server_ip");
+	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_port, "socket_ipv4_server_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_l4proto, "socket_ipv4_server_l4_proto");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6serverinfo.m_ip)[0], "socket_ipv6_server_ip_low");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6serverinfo.m_ip)[1], "socket_ipv6_server_ip_high");
+	define_static_field(ret, this, m_sockinfo.m_ipv6serverinfo.m_port, "socket_ipv6_server_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv6serverinfo.m_l4proto, "socket_ipv6_server_l4_proto");
+	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_source, "socket_unix_src");
+	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_dest, "socket_unix_dest");
+	return ret;
+}
+
 std::string sinsp_fdinfo::tostring_clean() const
 {
 	std::string tstr = m_name;
@@ -230,17 +272,20 @@ scap_l4_proto sinsp_fdinfo::get_l4proto() const
 	}
 }
 
+static const auto s_fdtable_static_fields = sinsp_fdinfo().static_fields();
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdtable implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
+	: table("file_descriptors", &s_fdtable_static_fields)
 {
 	m_tid = 0;
 	m_inspector = inspector;
 	reset_cache();
 }
 
-sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
+inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd)
 {
 	//
 	// Try looking up in our simple cache
@@ -275,14 +320,19 @@ sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
 		}
 
 		m_last_accessed_fd = fd;
-		m_last_accessed_fdinfo = fdit->second.get();
-		lookup_device(m_last_accessed_fdinfo, fd);
+		m_last_accessed_fdinfo = fdit->second;
+		lookup_device(m_last_accessed_fdinfo.get(), fd);
 		return m_last_accessed_fdinfo;
 	}
 }
 
-sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
+inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
 {
+	if (fdinfo->dynamic_fields() != dynamic_fields())
+	{
+		throw sinsp_exception("adding entry with incompatible dynamic defs to fd table");
+	}
+
 	fdinfo->m_fd = fd;
 
 	//
@@ -308,7 +358,7 @@ sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinf
 				m_inspector->get_sinsp_stats_v2()->m_n_added_fds++;
 			}
 
-			return m_table.emplace(fd, std::move(fdinfo)).first->second.get();
+			return m_table.emplace(fd, std::move(fdinfo)).first->second;
 		}
 		else
 		{
@@ -353,7 +403,7 @@ sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinf
 		//
 		m_last_accessed_fd = -1;
 		it->second = std::move(fdinfo);
-		return it->second.get();
+		return it->second;
 	}
 }
 
@@ -424,4 +474,24 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo* fdi, uint64_t fd)
 		fdi->m_mount_id = 0; // don't try again
 	}
 #endif // _WIN32
+}
+
+sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
+{
+	return find_ref(fd).get();
+}
+
+sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
+{
+	return add_ref(fd, std::move(fdinfo)).get();
+}
+
+std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const
+{
+	return m_inspector->build_fdinfo();
+};
+
+std::shared_ptr<libsinsp::state::table_entry> sinsp_fdtable::get_entry(const int64_t& key)
+{
+	return find_ref(key);
 }

@@ -843,6 +843,9 @@ public:
 
 	std::unique_ptr<sinsp_fdinfo> new_fdinfo() const;
 
+	void set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const;
+	void set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const;
+
 	threadinfo_map_t::ptr_t add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable);
 	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
@@ -1024,4 +1027,6 @@ private:
 	int32_t m_n_main_thread_lookups = 0;
 	int32_t m_max_n_proc_lookups = -1;
 	int32_t m_max_n_proc_socket_lookups = -1;
+
+	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
 };

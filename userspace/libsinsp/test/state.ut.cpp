@@ -308,7 +308,7 @@ TEST(thread_manager, table_access)
 {
     // note: used for regression checks, keep this updated as we make
     // new fields available
-    static const int s_threadinfo_static_fields_count = 24;
+    static const int s_threadinfo_static_fields_count = 25;
 
     sinsp inspector;
     auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
@@ -328,6 +328,7 @@ TEST(thread_manager, table_access)
     auto newtinfo = dynamic_cast<sinsp_threadinfo*>(newt.get());
     auto tid_acc = newt->static_fields().at("tid").new_accessor<int64_t>();
     auto comm_acc = newt->static_fields().at("comm").new_accessor<std::string>();
+    auto fdtable_acc = newt->static_fields().at("file_descriptors").new_accessor<libsinsp::state::base_table*>();
     ASSERT_NE(newtinfo, nullptr);
     ASSERT_EQ(newt->dynamic_fields(), table->dynamic_fields());
     ASSERT_EQ(newt->static_fields(), *table->static_fields());
@@ -336,12 +337,16 @@ TEST(thread_manager, table_access)
     newtinfo->m_comm = "test";
     ASSERT_EQ(newt->get_static_field(tid_acc), (int64_t) 999);
     ASSERT_EQ(newt->get_static_field(comm_acc), "test");
+    ASSERT_NE(newt->get_static_field(fdtable_acc), nullptr);
+    ASSERT_EQ(newt->get_static_field(fdtable_acc)->name(), "file_descriptors");
     ASSERT_NO_THROW(table->add_entry(999, std::move(newt)));
     ASSERT_EQ(table->entries_count(), 1);
     auto addedt = table->get_entry(999);
     ASSERT_NE(addedt, nullptr);
     ASSERT_EQ(addedt->get_static_field(tid_acc), (int64_t) 999);
     ASSERT_EQ(addedt->get_static_field(comm_acc), "test");
+    ASSERT_NE(addedt->get_static_field(fdtable_acc), nullptr);
+    ASSERT_EQ(addedt->get_static_field(fdtable_acc)->name(), "file_descriptors");
 
     // add a dynamic field to table
     std::string tmpstr;
@@ -384,4 +389,157 @@ TEST(thread_manager, table_access)
     ASSERT_EQ(table->entries_count(), 1);
     table->clear_entries();
     ASSERT_EQ(table->entries_count(), 0);
+}
+
+TEST(thread_manager, fdtable_access)
+{
+    // note: used for regression checks, keep this updated as we make new fields available
+    static const int s_fdinfo_static_fields_count = 31;
+
+    sinsp inspector;
+	auto& reg = inspector.get_table_registry();
+
+	ASSERT_EQ(reg->tables().size(), 1);
+	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
+
+	auto table = reg->get_table<int64_t>("threads");
+	ASSERT_EQ(table->name(), "threads");
+	ASSERT_EQ(table->entries_count(), 0);
+	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
+
+	auto field = table->static_fields()->find("file_descriptors");
+	ASSERT_NE(field, table->static_fields()->end());
+	ASSERT_EQ(field->second.readonly(), true);
+	ASSERT_EQ(field->second.valid(), true);
+	ASSERT_EQ(field->second.name(), "file_descriptors");
+	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+
+	ASSERT_EQ(table->entries_count(), 0);
+
+	//add two new entries to the thread table
+	ASSERT_NE(table->add_entry(0, table->new_entry()), nullptr);
+	auto entry = table->get_entry(0);
+	ASSERT_NE(entry, nullptr);
+	ASSERT_EQ(table->entries_count(), 1);
+
+	ASSERT_NE(table->add_entry(1, table->new_entry()), nullptr);
+	auto entry2 = table->get_entry(1);
+	ASSERT_NE(entry2, nullptr);
+	ASSERT_EQ(table->entries_count(), 2);
+
+	//getting the fd tables from the newly created threads
+	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->get_static_field(subtable_acc));
+	auto subtable2 = dynamic_cast<sinsp_fdtable*>(entry2->get_static_field(subtable_acc));
+
+	ASSERT_NE(subtable, nullptr);
+	ASSERT_NE(subtable2, nullptr);
+
+	ASSERT_EQ(subtable->name(), "file_descriptors");
+	ASSERT_EQ(subtable->entries_count(), 0);
+	ASSERT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(subtable->static_fields()->size(), s_fdinfo_static_fields_count);
+	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 0);
+
+	//getting an existing field
+	auto sfield = subtable->static_fields()->find("pid");
+	ASSERT_NE(sfield, subtable->static_fields()->end());
+	ASSERT_EQ(sfield->second.readonly(), false);
+	ASSERT_EQ(sfield->second.valid(), true);
+	ASSERT_EQ(sfield->second.name(), "pid");
+	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<int64_t>());
+
+	//adding a new dynamic field
+	const auto& dfield = subtable->dynamic_fields()->add_field<std::string>("str_val");
+	ASSERT_EQ(dfield, subtable->dynamic_fields()->fields().find("str_val")->second);
+	ASSERT_EQ(dfield.readonly(), false);
+	ASSERT_EQ(dfield.valid(), true);
+	ASSERT_EQ(dfield.index(), 0);
+	ASSERT_EQ(dfield.name(), "str_val");
+	ASSERT_EQ(dfield.info(), libsinsp::state::typeinfo::of<std::string>());
+
+	//checking if the new field has been added
+	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
+	ASSERT_NE(subtable->dynamic_fields()->fields().find("str_val"), table->dynamic_fields()->fields().end());
+
+	//checking if the new field has been added to the other subtable
+	ASSERT_EQ(subtable2->dynamic_fields()->fields().size(), 1);
+	ASSERT_NE(subtable2->dynamic_fields()->fields().find("str_val"), table->dynamic_fields()->fields().end());
+
+	auto sfieldacc = sfield->second.new_accessor<int64_t>();
+	auto dfieldacc = dfield.new_accessor<std::string>();
+
+	// adding new entries to the subtable
+	uint64_t max_iterations = 4096; // note: configured max entries in fd tables
+	for (uint64_t i = 0; i < max_iterations; i++)
+	{
+		ASSERT_EQ(subtable->entries_count(), i);
+
+		// get non-existing entry
+		ASSERT_EQ(subtable->get_entry(i), nullptr);
+
+		// creating and adding a fd to the table
+		auto t = subtable->add_entry(i, subtable->new_entry());
+		ASSERT_NE(t, nullptr);
+		ASSERT_NE(subtable->get_entry(i), nullptr);
+		ASSERT_EQ(subtable->entries_count(), i + 1);
+
+		// read and write from newly-created fd (existing field)
+		int64_t tmp = -1;
+		t->get_static_field(sfieldacc, tmp);
+		ASSERT_EQ(tmp, 0);
+		tmp = 5;
+		t->set_static_field(sfieldacc, tmp);
+		tmp = 0;
+		t->get_static_field(sfieldacc, tmp);
+		ASSERT_EQ(tmp, 5);
+
+		// read and write from newly-created fd (added field)
+		std::string tmpstr = "test";
+		t->get_dynamic_field(dfieldacc, tmpstr);
+		ASSERT_EQ(tmpstr, "");
+		tmpstr = "hello";
+		t->set_dynamic_field(dfieldacc, tmpstr);
+		tmpstr = "";
+		t->get_dynamic_field(dfieldacc, tmpstr);
+		ASSERT_EQ(tmpstr, "hello");
+	}
+
+	// full iteration
+	auto it = [&](libsinsp::state::table_entry& e) -> bool
+	{
+		int64_t tmp;
+		std::string tmpstr;
+		e.get_static_field(sfieldacc, tmp);
+		EXPECT_EQ(tmp, 5);
+		e.get_dynamic_field(dfieldacc, tmpstr);
+		EXPECT_EQ(tmpstr, "hello");
+		return true;
+	};
+	ASSERT_TRUE(subtable->foreach_entry(it));
+
+	// iteration with break-out
+	ASSERT_FALSE(subtable->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
+	{
+		return false;
+	}));
+
+	// iteration with error
+	ASSERT_ANY_THROW(subtable->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
+	{
+		throw sinsp_exception("some error");
+	}));
+
+	// erasing an unknown fd
+	ASSERT_EQ(subtable->erase_entry(max_iterations), false);
+	ASSERT_EQ(subtable->entries_count(), max_iterations);
+
+	// erase one of the newly-created fd
+	ASSERT_EQ(subtable->erase_entry(0), true);
+	ASSERT_EQ(subtable->entries_count(), max_iterations - 1);
+
+	// clear all
+	ASSERT_NO_THROW(subtable->clear_entries());
+	ASSERT_EQ(subtable->entries_count(), 0);
 }

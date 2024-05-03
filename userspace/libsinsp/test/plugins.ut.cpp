@@ -551,7 +551,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	// make sure we see a new table when we register the plugin
 	ASSERT_EQ(reg->tables().find("plugin_sample"), reg->tables().end());
 	ASSERT_EQ(reg->get_table<uint64_t>("plugin_sample"), nullptr);
-	register_plugin(&m_inspector, get_plugin_api_sample_tables);
+	register_plugin(&m_inspector, get_plugin_api_sample_syscall_tables);
 	ASSERT_EQ(reg->tables().size(), 2);
 	ASSERT_NE(reg->tables().find("plugin_sample"), reg->tables().end());
 	ASSERT_ANY_THROW(reg->get_table<char>("plugin_sample")); // wrong key type
@@ -674,6 +674,88 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	// clear all
 	ASSERT_NO_THROW(table->clear_entries());
 	ASSERT_EQ(table->entries_count(), 0);
+}
+
+TEST_F(sinsp_with_test_input, plugin_subtables)
+{
+	const constexpr auto num_entries_from_plugin = 1024;
+
+	auto& reg = m_inspector.get_table_registry();
+
+	register_plugin(&m_inspector, get_plugin_api_sample_syscall_subtables);
+
+	auto table = reg->get_table<int64_t>("threads");
+	ASSERT_NE(table, nullptr);
+	ASSERT_EQ(table->name(), "threads");
+	ASSERT_EQ(table->entries_count(), 0);
+	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
+
+	auto field = table->static_fields()->find("file_descriptors");
+	ASSERT_NE(field, table->static_fields()->end());
+	ASSERT_EQ(field->second.readonly(), true);
+	ASSERT_EQ(field->second.valid(), true);
+	ASSERT_EQ(field->second.name(), "file_descriptors");
+	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
+
+	ASSERT_EQ(table->entries_count(), 0);
+
+	// add a new entry to the thread table
+	ASSERT_NE(table->add_entry(5, table->new_entry()), nullptr);
+	auto entry = table->get_entry(5);
+	ASSERT_NE(entry, nullptr);
+	ASSERT_EQ(table->entries_count(), 1);
+
+	// obtain a pointer to the subtable (check typing too)
+	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
+	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->get_static_field(subtable_acc));
+	ASSERT_NE(subtable, nullptr);
+	ASSERT_EQ(subtable->name(), "file_descriptors");
+	ASSERT_EQ(subtable->entries_count(), 0);
+
+	// get an accessor to one of the static fields
+	auto sfield = subtable->static_fields()->find("pid");
+	ASSERT_NE(sfield, subtable->static_fields()->end());
+	ASSERT_EQ(sfield->second.readonly(), false);
+	ASSERT_EQ(sfield->second.valid(), true);
+	ASSERT_EQ(sfield->second.name(), "pid");
+	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<int64_t>());
+	auto sfieldacc = sfield->second.new_accessor<int64_t>();
+
+	// get an accessor to a dynamic field declared by the plugin
+	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
+	const auto& dfield = subtable->dynamic_fields()->fields().find("custom");
+	ASSERT_NE(dfield, table->dynamic_fields()->fields().end());
+	auto dfieldacc = dfield->second.new_accessor<std::string>();
+
+	// start the event capture
+	// we coordinate with the plugin by sending open events: for each one received,
+	// the plugin will take a subsequent action on which we then assert the status
+	open_inspector();
+
+	// step #0: the plugin should populate the fdtable
+	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin);
+
+	auto itt = [&](libsinsp::state::table_entry& e) -> bool
+	{
+		int64_t tmp;
+		std::string tmpstr;
+		e.get_static_field(sfieldacc, tmp);
+		EXPECT_EQ(tmp, 123);
+		e.get_dynamic_field(dfieldacc, tmpstr);
+		EXPECT_EQ(tmpstr, "world");
+		return true;
+	};
+	ASSERT_TRUE(subtable->foreach_entry(itt));
+
+	// step #1: the plugin should remove one entry from the fdtable
+	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin - 1);
+
+	// step #2: the plugin should cleae the fdtable
+	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	ASSERT_EQ(subtable->entries_count(), 0);
 }
 
 // Scenario: we load a plugin expecting it to log

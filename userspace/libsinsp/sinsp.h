@@ -535,14 +535,18 @@ public:
 
 	inline std::unique_ptr<sinsp_threadinfo> build_threadinfo()
     {
-        return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
-                                          : m_thread_manager->new_threadinfo();
+        auto ret =  m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
+                                               : m_thread_manager->new_threadinfo();
+		m_thread_manager->set_tinfo_shared_dynamic_fields(*ret);
+		return ret;
     }
 
 	inline std::unique_ptr<sinsp_fdinfo> build_fdinfo()
     {
-        return m_external_event_processor ? m_external_event_processor->build_fdinfo(this)
-                                          : m_thread_manager->new_fdinfo();
+        auto ret = m_external_event_processor ? m_external_event_processor->build_fdinfo(this)
+                                              : m_thread_manager->new_fdinfo();
+		m_thread_manager->set_fdinfo_shared_dynamic_fields(*ret);
+		return ret;
     }
 
 	/*!
