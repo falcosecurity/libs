@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include <libsinsp/plugin.h>
+#include <libsinsp/test/helpers/threads_helpers.h>
 
 #include <sinsp_with_test_input.h>
 #include "test_utils.h"
@@ -890,3 +891,39 @@ TEST(sinsp_plugin, plugin_set_config)
 
 	libsinsp_logger()->remove_callback_log();
 }
+
+#ifdef __linux__
+
+TEST_F(sinsp_with_test_input, plugin_metrics)
+{	
+	uint32_t test_metrics_flags = (METRICS_V2_PLUGINS);
+	libs::metrics::libs_metrics_collector libs_metrics_collector(&m_inspector, test_metrics_flags);
+
+	libs_metrics_collector.snapshot();
+	auto metrics_snapshot = libs_metrics_collector.get_metrics();
+	ASSERT_EQ(metrics_snapshot.size(), 0);
+
+	register_plugin(&m_inspector, get_plugin_api_sample_metrics);
+	open_inspector();
+
+	libs_metrics_collector.snapshot();
+	metrics_snapshot = libs_metrics_collector.get_metrics();
+	ASSERT_EQ(metrics_snapshot.size(), 2);
+
+	int events = 256;
+	for (int i = 0; i < events; i++)
+	{
+		add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	}
+
+	libs_metrics_collector.snapshot();
+	metrics_snapshot = libs_metrics_collector.get_metrics();
+	ASSERT_EQ(metrics_snapshot.size(), 2);
+
+	ASSERT_EQ(std::string(metrics_snapshot.at(0).name), "sample_metrics.dummy_metric");
+	ASSERT_EQ(std::string(metrics_snapshot.at(1).name), "sample_metrics.evt_count");
+
+	ASSERT_EQ(metrics_snapshot.back().value.u64, events);
+}
+
+#endif

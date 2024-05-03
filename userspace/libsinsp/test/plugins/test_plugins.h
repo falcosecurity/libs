@@ -28,3 +28,4 @@ void get_plugin_api_sample_plugin_extract(plugin_api& out);
 void get_plugin_api_sample_syscall_tables(plugin_api& out);
 void get_plugin_api_sample_syscall_subtables(plugin_api& out);
 void get_plugin_api_sample_syscall_subtables_array(plugin_api& out);
+void get_plugin_api_sample_metrics(plugin_api& out);
