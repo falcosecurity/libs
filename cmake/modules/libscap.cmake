@@ -95,7 +95,7 @@ foreach(libscap_install_lib ${LIBSCAP_INSTALL_LIBS})
 	list(APPEND libscap_link_libraries ${libscap_install_lib})
 	get_target_property(install_lib_link_libraries ${libscap_install_lib} LINK_LIBRARIES)
 	foreach (install_lib_link_library ${install_lib_link_libraries})
-		if (NOT ${install_lib_link_library} IN_LIST libscap_subdir_targets)
+		if (${install_lib_link_library} AND (NOT ${install_lib_link_library} IN_LIST libscap_subdir_targets))
 			if(${install_lib_link_library} MATCHES "/")
 				# We have a path. Convert it to -L<dir> + -l<lib>.
 				get_filename_component(scap_lib_dir ${install_lib_link_library} DIRECTORY)
