@@ -30,11 +30,13 @@ limitations under the License.
 #include <sys/wait.h>
 #include <ext/stdio_filebuf.h>
 
-subprocess::subprocess(std::string command, std::vector<std::string> arguments, bool start_now)
-    : m_pid(-1)
+subprocess::subprocess(std::string command, std::vector<std::string> arguments,
+                       bool start_now, int retry_attempts):
+    m_pid(-1),
+    m_retry_attemps(retry_attempts),
+    m_command(command),
+    m_args(arguments)
 {
-    m_command = command;
-    m_args = arguments;
     if(start_now)
     {
         start();
@@ -60,20 +62,26 @@ void subprocess::wait_for_start()
     timeout.tv_usec = 0;
 
     int result = select(m_out_pipe[0] + 1, &read_set, nullptr, nullptr, &timeout);
+    int attempt = 0;
 
-    switch(result)
+    while(attempt < m_retry_attemps)
     {
-        case -1:
-            perror("select");
-            break;
-        case 0:
-            std::cerr << "Timeout waiting for process to start." << std::endl;
-            break;
-        default:
-            if (!FD_ISSET(m_out_pipe[0], &read_set)) {
-                std::cerr << "Unexpected error during select." << std::endl;
-            }
-            break;
+        switch(result)
+        {
+            case -1:
+                perror("select");
+                break;
+            case 0:
+                std::cerr << "Timeout waiting for process to start. Retry n."
+                    << (attempt + 1) << "/" << m_retry_attemps << std::endl;
+                break;
+            default:
+                if (!FD_ISSET(m_out_pipe[0], &read_set)) {
+                    std::cerr << "Unexpected error during select." << std::endl;
+                }
+                break;
+        }
+        attempt++;
     }
 
 }

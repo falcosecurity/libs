@@ -31,8 +31,8 @@ limitations under the License.
 
 class subprocess {
     public:
-
-        subprocess(std::string command, std::vector<std::string> arguments, bool start_now=true);
+        subprocess(std::string command, std::vector<std::string> arguments,
+                bool start_now=true, int retry_attempts=3);
         ~subprocess();
 
         void wait_for_start();
@@ -51,6 +51,7 @@ class subprocess {
         pid_t m_pid;
         int m_in_pipe[2];
         int m_out_pipe[2];
+        int m_retry_attemps;
 
         std::ostream* m_in_stream;
         std::istream* m_out_stream;
