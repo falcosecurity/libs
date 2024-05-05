@@ -76,6 +76,14 @@ if (BUILD_SHARED_LIBS)
     add_dependencies(scap_engine_gvisor_o uthash)
     add_dependencies(scap scap_engine_gvisor_o)
     target_sources(scap PRIVATE $<TARGET_OBJECTS:scap_engine_gvisor_o>)
+
+    target_include_directories(scap_engine_gvisor_o
+        PRIVATE
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/userspace
+    )
 else()
     add_library(scap_engine_gvisor
         ${scap_engine_gvisor_sources}
