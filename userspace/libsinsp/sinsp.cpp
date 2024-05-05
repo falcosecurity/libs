@@ -1089,7 +1089,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 		}
 
 		uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
-		auto piscapevt_buf = std::unique_ptr<uint8_t, std::default_delete<uint8_t[]>>(new uint8_t[evlen]);
+		auto piscapevt_buf = std::unique_ptr<uint8_t[]>(new uint8_t[evlen]);
 		auto piscapevt = (scap_evt*) piscapevt_buf.get();
 		piscapevt->tid = pi->pid;
 		piscapevt->ts = ts;
