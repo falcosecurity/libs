@@ -191,7 +191,13 @@ target_include_directories(
 )
 
 target_link_libraries(
-	unit-test-libsinsp sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${TBB_LIB}" "${JSONCPP_LIB}"
+	unit-test-libsinsp
+	sinsp
+	"${GRPCPP_LIB}"
+	"${GTEST_LIB}"
+	"${GTEST_MAIN_LIB}"
+	"${TBB_LIB}"
+	"${JSONCPP_LIB}"
 )
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`
