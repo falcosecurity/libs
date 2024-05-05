@@ -293,6 +293,10 @@ jobs:
           git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Build and test 🏗️🧪
+        env:
+          # This avoids random failures on CI.
+          # (https://github.com/google/sanitizers/issues/1322#issuecomment-699946942)
+          ASAN_OPTIONS: intercept_tls_get_addr=0
         run: |
           mkdir -p build && cd build
           cmake -DBUILD_BPF=ON \
@@ -302,8 +306,8 @@ jobs:
                 -DUSE_BUNDLED_LIBBPF=ON \
                 ..
           make -j$(nproc) sinsp-example driver bpf
-          sudo make e2e-install-deps
-          sudo ../test/e2e/scripts/run_tests.sh
+          sudo -E make e2e-install-deps
+          sudo -E ../test/e2e/scripts/run_tests.sh
 
       - name: Archive test reports
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
