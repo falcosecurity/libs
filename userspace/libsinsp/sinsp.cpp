@@ -16,18 +16,6 @@ limitations under the License.
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#ifndef _WIN32
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/time.h>
-#endif // _WIN32
-
 #include <libscap/scap_config.h>
 #include <libscap/scap_engines.h>
 #include <libsinsp/scap_open_exception.h>
@@ -46,6 +34,17 @@ limitations under the License.
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
 #endif
+
+#ifndef _WIN32
+#include <unistd.h>
+#include <poll.h>
+#include <sys/time.h>
+#endif // _WIN32
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
 
 /**
  * This is the maximum size assigned to the concurrent asynchronous event
@@ -677,32 +676,14 @@ std::string sinsp::generate_gvisor_config(std::string socket_path)
 
 int64_t sinsp::get_file_size(const std::string& fname, char *error)
 {
-	static std::string err_str = "Could not determine capture file size: ";
-	std::string errdesc;
-#ifdef _WIN32
-	LARGE_INTEGER li = { 0 };
-	HANDLE fh = CreateFile(fname.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
-		OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
-	if (fh != INVALID_HANDLE_VALUE)
+	std::error_code ec;
+	auto sz = std::filesystem::file_size(fname, ec);
+	if(ec)
 	{
-		if (0 != GetFileSizeEx(fh, &li))
-		{
-			CloseHandle(fh);
-			return li.QuadPart;
-		}
-		errdesc = get_error_desc(err_str);
-		CloseHandle(fh);
+		strlcpy(error, ec.message().c_str(), SCAP_LASTERR_SIZE);
+		return -1;
 	}
-#else
-	struct stat st;
-	if (0 == stat(fname.c_str(), &st))
-	{
-		return st.st_size;
-	}
-#endif
-	if(errdesc.empty()) errdesc = get_error_desc(err_str);
-	strlcpy(error, errdesc.c_str(), SCAP_LASTERR_SIZE);
-	return -1;
+	return sz;
 }
 
 unsigned sinsp::m_num_possible_cpus = 0;
