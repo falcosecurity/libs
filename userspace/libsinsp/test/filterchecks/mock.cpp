@@ -131,17 +131,16 @@ private:
 };
 
 // Note the we create a filter check without values on purpose.
-static std::unique_ptr<sinsp_filter_check> create_filtercheck_from_field(sinsp* inspector, std::string field,
+static std::unique_ptr<sinsp_filter_check> create_filtercheck_from_field(sinsp* inspector, std::string_view field,
 									 enum cmpop op = CO_EQ)
 {
 	sinsp_filter_check_list filter_list;
 	filter_list.add_filter_check(std::make_unique<sinsp_filter_check_mock>());
-	std::unique_ptr<sinsp_filter_factory> factory;
-	factory.reset(new sinsp_filter_factory(inspector, filter_list));
-	auto check = factory->new_filtercheck(field.c_str());
+	sinsp_filter_factory factory(inspector, filter_list);
+	auto check = factory.new_filtercheck(field);
 	check->m_cmpop = op;
 	check->m_boolop = BO_NONE;
-	check->parse_field_name(field.c_str(), true, true);
+	check->parse_field_name(field, true, true);
 	return check;
 }
 

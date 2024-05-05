@@ -111,7 +111,7 @@ public:
 			// we just checked.
 			elm_ptr top = m_queue_top.load();
 			auto should_pop = pred(*top);
-			
+
 			// we must not pop the element
 			if (!should_pop)
 			{
@@ -166,8 +166,8 @@ private:
 			// gives the same result when inverting the operands, then we can
 			// assume them being equal.
 			Cmp c{};
-			auto res = c(*elm.get(), *r.elm.get());
-			if (res == c(*r.elm.get(), *elm.get()))
+			auto res = c(*elm, *r.elm);
+			if (res == c(*r.elm, *elm))
 			{
 				// if elements have the same priority, order them by
 				// temporal order of arrival in the queue by using an atomic

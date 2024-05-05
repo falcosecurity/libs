@@ -83,8 +83,7 @@ public:
 void test_filter_run(bool result, string filter_str)
 {
 	sinsp inspector;
-	std::shared_ptr<sinsp_filter_factory> factory;
-	factory.reset(new mock_compiler_filter_factory(&inspector));
+	auto factory = std::make_shared<mock_compiler_filter_factory>(&inspector);
 	sinsp_filter_compiler compiler(factory, filter_str);
 	try
 	{

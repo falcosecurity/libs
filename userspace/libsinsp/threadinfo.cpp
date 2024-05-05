@@ -272,7 +272,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 		{
 			newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 		}
-		m_inspector->get_ifaddr_list().update_fd(*(newfdi.get()));
+		m_inspector->get_ifaddr_list().update_fd(*newfdi);
 		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
@@ -306,7 +306,7 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 			{
 				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			m_inspector->get_ifaddr_list().update_fd((*(newfdi.get())));
+			m_inspector->get_ifaddr_list().update_fd(*newfdi);
 			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 		else

@@ -191,12 +191,12 @@ bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, api_sock;
 
-	if(m_api_sock_can_exist == nullptr)
+	if(!m_api_sock_can_exist.has_value())
 	{
-		m_api_sock_can_exist.reset(new bool(can_api_sock_exist()));
+		m_api_sock_can_exist = can_api_sock_exist();
 	}
 
-	if(! (*(m_api_sock_can_exist.get())))
+	if(!m_api_sock_can_exist.value())
 	{
 		return false;
 	}

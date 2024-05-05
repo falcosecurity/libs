@@ -64,83 +64,88 @@ static void add_plugin_filterchecks(
 TEST(plugins, broken_source_capability)
 {
 	plugin_api api;
-	auto inspector = std::unique_ptr<sinsp>(new sinsp());
-	get_plugin_api_sample_plugin_source(api);
 
-	// The example plugin has id 999 so `!= 0`. For this reason,
-	// the event source name should be different from "syscall"
-	api.get_id = [](){ return (uint32_t)999; };
-	api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	{
+		get_plugin_api_sample_plugin_source(api);
+		sinsp inspector;
 
-	// `get_event_source` is implemented so also `get_id` should be implemented
-	api.get_id = NULL;
-	api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+		// The example plugin has id 999 so `!= 0`. For this reason,
+		// the event source name should be different from "syscall"
+		api.get_id = [](){ return (uint32_t)999; };
+		api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
+		ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 
-	// Now both methods are NULL so we are ok!
-	api.get_id = NULL;
-	api.get_event_source = NULL;
-	ASSERT_NO_THROW(register_plugin_api(inspector.get(), api));
+		// `get_event_source` is implemented so also `get_id` should be implemented
+		api.get_id = NULL;
+		api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
+		ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
+
+		// Now both methods are NULL so we are ok!
+		api.get_id = NULL;
+		api.get_event_source = NULL;
+		ASSERT_NO_THROW(register_plugin_api(&inspector, api));
+	}
 
 	// restore inspector and source API
-	inspector.reset(new sinsp());
-	get_plugin_api_sample_plugin_source(api);
+	{
+		get_plugin_api_sample_plugin_source(api);
+		sinsp inspector;
 
-	// `open`, `close`, `next_batch` must be all defined to provide source capability
-	api.open = NULL;
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
-	api.close = NULL;
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
-	api.next_batch = NULL;
+		// `open`, `close`, `next_batch` must be all defined to provide source capability
+		api.open = NULL;
+		ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
+		api.close = NULL;
+		ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
+		api.next_batch = NULL;
 
-	// Now that all the 3 methods are NULL the plugin has no more capabilities
-	// so we should throw an exception because every plugin should implement at least one
-	// capability
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+		// Now that all the 3 methods are NULL the plugin has no more capabilities
+		// so we should throw an exception because every plugin should implement at least one
+		// capability
+		ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
+	}
 }
 
 TEST(plugins, broken_extract_capability)
 {
 	plugin_api api;
-	auto inspector = std::unique_ptr<sinsp>(new sinsp());
 	get_plugin_api_sample_plugin_extract(api);
+	sinsp inspector;
 
 	// `extract_fields` is defined but `get_fields` no
 	api.get_fields = NULL;
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 
 	// Both NULL, the plugin has no capabilities
 	api.get_fields = NULL;
 	api.extract_fields = NULL;
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 }
 
 TEST(plugins, broken_parsing_capability)
 {
 	plugin_api api;
-	auto inspector = std::unique_ptr<sinsp>(new sinsp());
 	get_plugin_api_sample_syscall_parse(api);
+	sinsp inspector;
 
 	// The plugin has no capabilities
 	api.parse_event = NULL;
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 }
 
 TEST(plugins, broken_async_capability)
 {
 	plugin_api api;
-	auto inspector = std::unique_ptr<sinsp>(new sinsp());
 	get_plugin_api_sample_syscall_async(api);
+	sinsp inspector;
 
 	/* `set_async_event_handler` is defined but `get_async_events` is not */
 	api.get_async_events = NULL;
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 
 	// Both NULL, the plugin has no capabilities
 	api.get_async_events = NULL;
 	api.set_async_event_handler = NULL;
-	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 }
 
 // scenario: a plugin with field extraction capability compatible with the
@@ -658,7 +663,7 @@ TEST(sinsp_plugin, plugin_logging)
 		api.get_name = [](){ return "plugin_name"; };
 
 		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
-			std::string expected = "plugin_name: initializing plugin..."; 
+			std::string expected = "plugin_name: initializing plugin...";
 			ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
 		});
 
@@ -667,7 +672,7 @@ TEST(sinsp_plugin, plugin_logging)
 
 		libsinsp_logger()->remove_callback_log();
 		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
-			std::string expected = "plugin_name: destroying plugin..."; 
+			std::string expected = "plugin_name: destroying plugin...";
 			ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
 		});
 	}
@@ -690,7 +695,7 @@ TEST(sinsp_plugin, plugin_set_config)
 	p->init("", tmp);
 
 	libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
-		std::string expected = "plugin_name: new config!"; 
+		std::string expected = "plugin_name: new config!";
 		ASSERT_TRUE(std::equal(expected.rbegin(), expected.rend(), str.rbegin()));
 	});
 
