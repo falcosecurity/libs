@@ -13,7 +13,7 @@
 # the License.
 #
 add_library(
-	scap_platform STATIC
+	scap_platform
 	scap_linux_platform.c
 	scap_linux_hostinfo_platform.c
 	scap_procs.c
