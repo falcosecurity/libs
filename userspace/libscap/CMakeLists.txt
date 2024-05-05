@@ -93,7 +93,7 @@ set(SCAP_PKGCONFIG_REQUIRES "")
 set(SCAP_PKGCONFIG_REQUIRES_PRIVATE zlib)
 
 add_library(
-	scap_event_schema STATIC
+	scap_event_schema
 	scap_event.c
 	ppm_sc_names.c
 	scap_print_event.c
