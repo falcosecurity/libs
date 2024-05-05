@@ -120,9 +120,7 @@ public:
 
 	virtual std::unique_ptr<sinsp_fdinfo> clone() const
 	{
-		auto ret = std::make_unique<sinsp_fdinfo>();
-		*(ret.get()) = *this;
-		return ret;
+		return std::make_unique<sinsp_fdinfo>(*this);
 	}
 
 	/*!
@@ -462,7 +460,7 @@ public:
 	{
 		for(auto it = m_table.begin(); it != m_table.end(); ++it)
 		{
-			if (!callback(it->first, *(it->second.get())))
+			if (!callback(it->first, *it->second))
 			{
 				return false;
 			}
@@ -474,7 +472,7 @@ public:
 	{
 		for(auto it = m_table.begin(); it != m_table.end(); ++it)
 		{
-			if (!callback(it->first, *(it->second.get())))
+			if (!callback(it->first, *it->second))
 			{
 				return false;
 			}

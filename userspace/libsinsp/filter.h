@@ -258,7 +258,7 @@ private:
 	std::unique_ptr<sinsp_filter> m_filter;
 	std::vector<std::string> m_field_values;
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
-	const libsinsp::filter::ast::expr* m_flt_ast;
+	const libsinsp::filter::ast::expr* m_flt_ast = nullptr;
 	std::shared_ptr<sinsp_filter_factory> m_factory;
 	sinsp_filter_check_list m_default_filterlist;
 };

@@ -132,9 +132,9 @@ TEST(SyscallExit, forkX_father)
 
 TEST(SyscallExit, forkX_child)
 {
-	auto evt_test = new event_test(__NR_fork, EXIT_EVENT);
+	event_test evt_test(__NR_fork, EXIT_EVENT);
 
-	evt_test->enable_capture();
+	evt_test.enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -166,7 +166,7 @@ TEST(SyscallExit, forkX_child)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->disable_capture();
+	evt_test.disable_capture();
 
 	/* In some architectures we are not able to catch the `clone exit child
 	 * event` from the `sys_exit` tracepoint. This is because there is no
@@ -174,61 +174,61 @@ TEST(SyscallExit, forkX_child)
 	 * info in `driver/feature_gates.h`.
 	 */
 #ifdef CAPTURE_SCHED_PROC_FORK
-	evt_test->assert_event_absence(ret_pid);
+	evt_test.assert_event_absence(ret_pid);
 #else
-	evt_test->assert_event_presence(ret_pid);
+	evt_test.assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
 		return;
 	}
 
-	evt_test->parse_event();
+	evt_test.parse_event();
 
-	evt_test->assert_header();
+	evt_test.assert_header();
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_PID)*/
-	evt_test->assert_numeric_param(1, (int64_t)0);
+	evt_test.assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
 #ifndef __powerpc64__ // Page fault
-	evt_test->assert_charbuf_param(2, info.args[0]);
+	evt_test.assert_charbuf_param(2, info.args[0]);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	/* Starting from `1` because the first is `exe`. */
-	evt_test->assert_charbuf_array_param(3, &info.args[1]);
+	evt_test.assert_charbuf_array_param(3, &info.args[1]);
 #endif
 	/* Parameter 4: tid (type: PT_PID) */
-	evt_test->assert_numeric_param(4, (int64_t)ret_pid);
+	evt_test.assert_numeric_param(4, (int64_t)ret_pid);
 
 	/* Parameter 5: pid (type: PT_PID) */
 	/* We are the main thread of the process so it's equal to `tid`. */
-	evt_test->assert_numeric_param(5, (int64_t)ret_pid);
+	evt_test.assert_numeric_param(5, (int64_t)ret_pid);
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	evt_test->assert_numeric_param(6, (int64_t)::getpid());
+	evt_test.assert_numeric_param(6, (int64_t)::getpid());
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
 	/* leave the current working directory empty like in the old probe. */
-	evt_test->assert_empty_param(7);
+	evt_test.assert_empty_param(7);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
+	evt_test.assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
 
 	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
-	evt_test->assert_cgroup_param(15);
+	evt_test.assert_cgroup_param(15);
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(16, (uint32_t)0);
+	evt_test.assert_numeric_param(16, (uint32_t)0);
 
 	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-	evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
+	evt_test.assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(21);
+	evt_test.assert_num_params_pushed(21);
 
 #endif
 }

@@ -206,7 +206,7 @@ TEST(dynamic_struct, defs_and_access)
     s.set_dynamic_field(acc_str, std::string("hello"));
     s.get_dynamic_field(acc_str, tmpstr);
     ASSERT_EQ(tmpstr, std::string("hello"));
-    
+
     s.set_dynamic_field(acc_str, std::string(""));
     const char* ctmpstr = "sample";
     s.get_dynamic_field(acc_str, ctmpstr);
@@ -251,7 +251,7 @@ TEST(table_registry, defs_and_access)
         {
             for (const auto& e : m_entries)
             {
-                if (!pred(*e.second.get()))
+                if (!pred(*e.second))
                 {
                     return false;
                 }
@@ -306,7 +306,7 @@ TEST(thread_manager, table_access)
 
     sinsp inspector;
     auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
-    
+
     // empty table state and info
     ASSERT_EQ(table->name(), "threads");
     ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());

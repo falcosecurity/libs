@@ -685,7 +685,7 @@ public:
 	{
 		return m_lastevent_type;
 	}
-	
+
 	inline void set_lastevent_type(uint16_t v)
 	{
 		m_lastevent_type = v;
@@ -695,7 +695,7 @@ public:
 	{
 		return m_lastevent_cpuid;
 	}
-	
+
 	inline void set_lastevent_cpuid(uint16_t v)
 	{
 		m_lastevent_cpuid = v;
@@ -817,7 +817,7 @@ public:
 	{
 		for (const auto& it : m_threads)
 		{
-			if (!callback(*it.second.get()))
+			if (!callback(*it.second))
 			{
 				return false;
 			}
@@ -829,7 +829,7 @@ public:
 	{
 		for (auto& it : m_threads)
 		{
-			if (!callback(*it.second.get()))
+			if (!callback(*it.second))
 			{
 				return false;
 			}

@@ -36,7 +36,7 @@ TEST(mpsc_priority_queue, order_consistency)
             return std::greater_equal<int>{}(l.v, r.v);
         }
     };
-    
+
     using val_t = std::unique_ptr<val>;
 
     mpsc_priority_queue<val_t, val_less> q;
@@ -98,14 +98,14 @@ TEST(mpsc_priority_queue, single_concurrent_producer)
         {
             continue;
         }
-        
+
         if (!q.try_pop(v))
         {
             failed++;
             continue;
         }
 
-        failed += (*v.get() != i) ? 1 : 0;
+        failed += (*v != i) ? 1 : 0;
         i++;
     }
 
@@ -167,7 +167,7 @@ TEST(mpsc_priority_queue, multi_concurrent_producers)
             failed++;
         }
 
-        last_val = *v.get();
+        last_val = *v;
         i++;
     }
 

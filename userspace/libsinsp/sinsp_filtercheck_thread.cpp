@@ -396,7 +396,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val, bool a
 		if(alloc_state)
 		{
 			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>("_tmp_sinsp_filter_thread_totexectime");
-			m_thread_dyn_field_accessor.reset(new libsinsp::state::dynamic_struct::field_accessor<uint64_t>(acc.new_accessor<uint64_t>()));
+			m_thread_dyn_field_accessor =
+				std::make_unique<libsinsp::state::dynamic_struct::field_accessor<uint64_t>>(acc.new_accessor<uint64_t>());
 		}
 
 		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
@@ -414,7 +415,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(std::string_view val, bool a
 		if(alloc_state)
 		{
 			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>("_tmp_sinsp_filter_thread_cpu");
-			m_thread_dyn_field_accessor.reset(new libsinsp::state::dynamic_struct::field_accessor<uint64_t>(acc.new_accessor<uint64_t>()));
+			m_thread_dyn_field_accessor =
+				std::make_unique<libsinsp::state::dynamic_struct::field_accessor<uint64_t>>(acc.new_accessor<uint64_t>());
 		}
 
 		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
@@ -486,7 +488,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 		tcpu = user + system;
 
 		uint64_t last_t_tot_cpu = 0;
-		tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get(), last_t_tot_cpu);
+		tinfo->get_dynamic_field(*m_thread_dyn_field_accessor, last_t_tot_cpu);
 		if(last_t_tot_cpu != 0)
 		{
 			uint64_t deltaval = tcpu - last_t_tot_cpu;
@@ -501,7 +503,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 			m_dval = 0;
 		}
 
-		tinfo->set_dynamic_field(*m_thread_dyn_field_accessor.get(), tcpu);
+		tinfo->set_dynamic_field(*m_thread_dyn_field_accessor, tcpu);
 
 		RETURN_EXTRACT_VAR(m_dval);
 	}
@@ -978,9 +980,9 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, OUT uint32_t*
 			if(tinfo != NULL)
 			{
 				uint64_t ptot = 0;
-				tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get(), ptot);
+				tinfo->get_dynamic_field(*m_thread_dyn_field_accessor, ptot);
 				m_u64val += ptot;
-				tinfo->set_dynamic_field(*m_thread_dyn_field_accessor.get(), m_u64val);
+				tinfo->set_dynamic_field(*m_thread_dyn_field_accessor, m_u64val);
 				RETURN_EXTRACT_VAR(m_u64val);
 			}
 			else

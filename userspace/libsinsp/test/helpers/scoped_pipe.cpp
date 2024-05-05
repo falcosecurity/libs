@@ -30,7 +30,7 @@ limitations under the License.
 
 using namespace test_helpers;
 
-scoped_pipe::scoped_pipe() : m_read_end(), m_write_end()
+scoped_pipe::scoped_pipe()
 {
 	int fds[2] = {};
 
@@ -43,18 +43,18 @@ scoped_pipe::scoped_pipe() : m_read_end(), m_write_end()
 		throw std::runtime_error(out.str());
 	}
 
-	m_read_end.reset(new scoped_file_descriptor(fds[0]));
-	m_write_end.reset(new scoped_file_descriptor(fds[1]));
+	m_read_end = std::make_unique<scoped_file_descriptor>(fds[0]);
+	m_write_end = std::make_unique<scoped_file_descriptor>(fds[1]);
 }
 
 scoped_file_descriptor& scoped_pipe::read_end()
 {
-	return *m_read_end.get();
+	return *m_read_end;
 }
 
 scoped_file_descriptor& scoped_pipe::write_end()
 {
-	return *m_write_end.get();
+	return *m_write_end;
 }
 
 void scoped_pipe::close()
