@@ -760,11 +760,11 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 				if (to_read)
 					if (bpf_probe_read_user(&data->buf[off_bounded],
 								((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
-								iov[j].iov_base))
+								(void*)iov[j].iov_base))
 #else
 				if (bpf_probe_read_user(&data->buf[off_bounded],
 							to_read & SCRATCH_SIZE_HALF,
-							iov[j].iov_base))
+							(void*)iov[j].iov_base))
 #endif
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 
