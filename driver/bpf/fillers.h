@@ -571,7 +571,6 @@ FILLER(sys_poll_x, true)
 
 #define MAX_IOVCNT 32
 
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 static __always_inline int bpf_parse_readv_writev_bufs_ia32(struct filler_data *data,
 						       const struct compat_iovec __user *iovsrc,
 						       unsigned long iovcnt,
@@ -676,7 +675,6 @@ static __always_inline int bpf_parse_readv_writev_bufs_ia32(struct filler_data *
 
 	return res;
 }
-#endif
 
 static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 						       const struct iovec __user *iovsrc,
@@ -896,17 +894,14 @@ FILLER(sys_writev_pwritev_x, true)
 	 */
 	val = bpf_syscall_get_argument(data, 1);
 	iovcnt = bpf_syscall_get_argument(data, 2);
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	if (!bpf_in_ia32_syscall())
-#endif
 	{
-	res = bpf_parse_readv_writev_bufs(data,
-					  (const struct iovec __user *)val,
-					  iovcnt,
-					  0,
-					  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+		res = bpf_parse_readv_writev_bufs(data,
+						(const struct iovec __user *)val,
+						iovcnt,
+						0,
+						PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	}
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	else
 	{
 		res = bpf_parse_readv_writev_bufs_ia32(data,
@@ -915,7 +910,6 @@ FILLER(sys_writev_pwritev_x, true)
 					  0,
 					  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	}
-#endif
 
 	/* if there was an error we send an empty param.
 	 * we can improve this in the future but at least we don't lose the whole event.
@@ -931,9 +925,7 @@ FILLER(sys_writev_pwritev_x, true)
 static __always_inline int timespec_parse(struct filler_data *data,
                                           unsigned long val)
 {
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	if (!bpf_in_ia32_syscall())
-#endif
 	{
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
 		struct __kernel_timespec ts = {};
@@ -943,14 +935,12 @@ static __always_inline int timespec_parse(struct filler_data *data,
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
 		return bpf_push_u64_to_ring(data, ((uint64_t)ts.tv_sec) * 1000000000 + ts.tv_nsec);
 	}
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	else
 	{
 		struct timespec ts = {};
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
 		return bpf_push_u64_to_ring(data, ((uint32_t)ts.tv_sec) * 1000000000 + ts.tv_nsec);
 	}
-#endif
 }
 
 FILLER(sys_nanosleep_e, true)
@@ -3206,12 +3196,10 @@ FILLER(sys_generic, true)
 	// if we are in ia32 syscall sys_{enter,exit} already
 	// validated the converted 32bit->64bit syscall ID for us,
 	// otherwise the event would've been discarded.
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	if (bpf_in_ia32_syscall())
 	{
 		native_id = convert_ia32_to_64(native_id);
 	}
-#endif
 
 	sc_evt = get_syscall_info(native_id);
 	if (!sc_evt) {
@@ -4127,17 +4115,14 @@ FILLER(sys_pwritev_e, true)
 	unsigned long iov_cnt = bpf_syscall_get_argument(data, 2);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	if (!bpf_in_ia32_syscall())
-#endif
 	{
-	res = bpf_parse_readv_writev_bufs(data,
-					  (const struct iovec __user *)iov_pointer,
-					  iov_cnt,
-					  0,
-					  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+		res = bpf_parse_readv_writev_bufs(data,
+						(const struct iovec __user *)iov_pointer,
+						iov_cnt,
+						0,
+						PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	}
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	else
 	{
 		res = bpf_parse_readv_writev_bufs_ia32(data,
@@ -4146,7 +4131,6 @@ FILLER(sys_pwritev_e, true)
 					  0,
 					  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	}
-#endif
 
 	/* if there was an error we send a size equal to `0`.
 	 * we can improve this in the future but at least we don't lose the whole event.
