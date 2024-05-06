@@ -827,7 +827,6 @@ static inline bool engine_uses_bpf()
 	return false;
 }
 
-
 void print_syscalls_stats()
 {
 	// ppm_sc_count will become out of order so we save the code
@@ -842,7 +841,7 @@ void print_syscalls_stats()
 	{
 		for(int j = i + 1; j < PPM_SC_MAX*2; ++j)
 		{
-			/* swapping strings if they are not in the lexicographical order */
+			
 			if(ppm_sc_count[i].counter < ppm_sc_count[j].counter)
 			{
 				tmp = ppm_sc_count[i];
@@ -888,37 +887,33 @@ void print_stats()
 
 	printf("\n----------------------------- STATS ------------------------------\n");
 
-	printf("\n[SCAP-OPEN]: General statistics\n");
-	printf("\nEvents correctly captured (SCAP_SUCCESS): %" PRIu64 "\n", g_nevts);
-	printf("Number of bytes received: %" PRIu64 " bytes\n", g_total_number_of_bytes);
-	if(g_nevts!=0)
-	{
-		printf("Average dimension of events: %" PRIu64 " bytes\n", g_total_number_of_bytes/g_nevts);
-	}
+	/////////////////////
+	// Kernel stats
+	/////////////////////
+
+	printf("\n------------> Kernel stats\n");
 	printf("Seen by driver (kernel side events): %" PRIu64 "\n", n_evts);
-	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
 	if(tval_result.tv_sec != 0)
 	{
-		printf("Rate of userspace events (events/second): %ld\n", g_nevts / tval_result.tv_sec);
 		printf("Rate of kernel side events (events/second): %ld\n", n_evts / tval_result.tv_sec);
 	}
-	printf("Number of timeouts: %ld\n", number_of_timeouts);
-	printf("Number of 'next' calls: %ld\n", number_of_scap_next);
 
-	printf("\n[SCAP-OPEN]: Stats v2.\n");
-	printf("\n[SCAP-OPEN]: %u metrics in total\n", nstats);
+	printf("Stats v2: %u metrics in total\n", nstats);
 	if(engine_uses_bpf())
 	{
-		printf("[SCAP-OPEN]: [1] kernel-side counters\n");
-		printf("[SCAP-OPEN]: [2] libbpf stats (compare to `bpftool prog show` CLI)\n\n");
+		printf("[1] kernel-side counters\n");
 		if (!(engine_flags & ENGINE_FLAG_BPF_STATS_ENABLED))
 		{
-			printf("\n[Notice]: `/proc/sys/kernel/bpf_stats_enabled` not enabled, no `libbpf` stats retrieved.\n\n");
+			printf("[Notice]: `/proc/sys/kernel/bpf_stats_enabled` not enabled, no `libbpf` stats retrieved.\n");
+		}
+		else
+		{
+			printf("[2] libbpf stats (compare to `bpftool prog show` CLI)\n");
 		}
 	}
 	else
 	{
-		printf("[SCAP-OPEN]: [1] kernel-side counters.\n\n");
+		printf("[1] kernel-side counters.\n\n");
 	}
 	if (stats_v2 && nstats > 0)
 	{
@@ -931,10 +926,26 @@ void print_stats()
 		}
 	}
 
-	// Print syscall stats userspace side:
-	printf("\n[SCAP-OPEN]: Syscall stats userspace side.\n\n");
+	/////////////////////
+	// Userspace stats
+	/////////////////////
+
+	printf("\n------------> Userspace stats\n");
+	printf("Number of `SCAP_SUCCESS` (events correctly captured): %" PRIu64 "\n", g_nevts);
+	printf("Number of `SCAP_TIMEOUTS`: %ld\n", number_of_timeouts);
+	printf("Number of `scap_next` calls: %ld\n", number_of_scap_next);
+	printf("Number of bytes received: %" PRIu64 " bytes\n", g_total_number_of_bytes);
+	if(g_nevts!=0)
+	{
+		printf("Average dimension of events: %" PRIu64 " bytes\n", g_total_number_of_bytes/g_nevts);
+	}
+	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
+	if(tval_result.tv_sec != 0)
+	{
+		printf("Rate of userspace events (events/second): %ld\n", g_nevts / tval_result.tv_sec);
+	}
+	printf("Syscall stats (userspace-side):\n");
 	print_syscalls_stats();
-	
 	printf("\n\n------------------------------------------------------------------\n\n");
 	printf("\n[SCAP-OPEN]: Bye!\n");
 }
