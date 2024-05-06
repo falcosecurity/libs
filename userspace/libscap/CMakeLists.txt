@@ -89,6 +89,8 @@ target_include_directories(
 )
 
 target_link_libraries(scap PRIVATE scap_error "${ZLIB_LIB}")
+set(SCAP_PKGCONFIG_REQUIRES "")
+set(SCAP_PKGCONFIG_REQUIRES_PRIVATE zlib)
 
 add_library(
 	scap_event_schema STATIC
@@ -174,17 +176,20 @@ if(HAS_ENGINE_BPF)
 	add_subdirectory(engine/bpf)
 	target_link_libraries(scap PUBLIC scap_engine_bpf)
 	target_include_directories(scap_engine_bpf PRIVATE ${PROJECT_BINARY_DIR}/driver/src)
+	list(APPEND SCAP_PKGCONFIG_REQUIRES libelf)
 endif()
 
 if(HAS_ENGINE_MODERN_BPF)
 	add_subdirectory(engine/modern_bpf)
 	target_link_libraries(scap PUBLIC scap_engine_modern_bpf)
 	target_include_directories(scap_engine_modern_bpf PRIVATE ${PROJECT_BINARY_DIR}/driver/src)
+	list(APPEND SCAP_PKGCONFIG_REQUIRES libpman)
 endif()
 
 if(HAS_ENGINE_GVISOR)
 	add_subdirectory(engine/gvisor)
 	target_link_libraries(scap PUBLIC scap_engine_gvisor)
+	list(APPEND SCAP_PKGCONFIG_REQUIRES protobuf jsoncpp)
 endif()
 
 # ##################################################################################################
@@ -193,3 +198,22 @@ if(BUILD_LIBSCAP_EXAMPLES)
 	add_subdirectory(examples/01-open)
 	add_subdirectory(examples/02-validatebuffer)
 endif()
+
+set(libscap_link_flags)
+set(libscap_link_libdirs "")
+add_pkgconfig_dependency(
+	libscap_link_libdirs
+	libscap_link_flags
+	scap
+	# Avoid using these in libscap.pc Libs field, as they are already listed in Requires.  lbpf is
+	# transitively required via libpman.pc.
+	"${SCAP_PKGCONFIG_REQUIRES};${SCAP_PKGCONFIG_REQUIRES_PRIVATE}"
+)
+
+string(REPLACE ";" " " LIBSCAP_REQUIRES "${SCAP_PKGCONFIG_REQUIRES}")
+string(REPLACE ";" " " LIBSCAP_REQUIRES_PRIVATE "${SCAP_PKGCONFIG_REQUIRES_PRIVATE}")
+string(REPLACE ";" " " LIBSCAP_LINK_LIBRARIES_FLAGS "${libscap_link_flags}")
+string(REPLACE ";" " " LIBSCAP_LINK_LIBDIRS_FLAGS "${libscap_link_libdirs}")
+configure_file(
+	${LIBS_DIR}/userspace/libscap/libscap.pc.in ${PROJECT_BINARY_DIR}/libscap/libscap.pc @ONLY
+)

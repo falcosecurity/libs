@@ -178,12 +178,17 @@ target_link_libraries(
 	PRIVATE "${CURL_LIBRARIES}" "${JSONCPP_LIB}" "${RE2_LIB}"
 )
 
+set(SINSP_PKGCONFIG_REQUIRES jsoncpp)
+set(SINSP_PKGCONFIG_REQUIRES_PRIVATE libcurl re2)
+
 if(NOT EMSCRIPTEN)
 	target_link_libraries(
 		sinsp
 		INTERFACE "${CARES_LIB}"
 		PRIVATE "${TBB_LIB}"
 	)
+	list(APPEND SINSP_PKGCONFIG_REQUIRES libcares)
+	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
 endif()
 
 if(USE_BUNDLED_VALIJSON)
@@ -276,6 +281,15 @@ if(NOT WIN32)
 			)
 
 			target_link_libraries(sinsp PUBLIC cri_v1alpha2 cri_v1 containerd_interface)
+			list(
+				APPEND
+				SINSP_PKGCONFIG_REQUIRES
+				gpr
+				grpc
+				grpc++
+				protobuf
+				libcares
+			)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
@@ -290,6 +304,8 @@ if(NOT WIN32)
 			target_link_libraries(sinsp INTERFACE rt)
 		endif() # NOT MINIMAL_BUILD
 	endif() # NOT APPLE
+
+	list(APPEND SINSP_PKGCONFIG_REQUIRES libcrypto libssl)
 
 	target_link_libraries(sinsp INTERFACE dl pthread)
 
@@ -330,7 +346,10 @@ add_definitions(-DSINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR="${SINSP_AGENT_CGROUP_MEM_
 # https://github.com/curl/curl/blob/curl-7_84_0/CMakeLists.txt#L1539
 set(SINSP_PKG_CONFIG_LIBS)
 set(SINSP_PKG_CONFIG_LIBDIRS "")
-add_pkgconfig_dependency(SINSP_PKG_CONFIG_LIBDIRS SINSP_PKG_CONFIG_LIBS sinsp scap)
+add_pkgconfig_dependency(
+	SINSP_PKG_CONFIG_LIBDIRS SINSP_PKG_CONFIG_LIBS sinsp
+	"scap;${SINSP_PKGCONFIG_REQUIRES};${SINSP_PKGCONFIG_REQUIRES_PRIVATE}"
+)
 
 # Build our pkg-config "Cflags:" flags.
 set(SINSP_PKG_CONFIG_INCLUDES "")
@@ -338,6 +357,8 @@ foreach(sinsp_include_directory ${LIBSINSP_INCLUDE_DIRS})
 	list(APPEND SINSP_PKG_CONFIG_INCLUDES -I${sinsp_include_directory})
 endforeach()
 
+string(REPLACE ";" " " LIBSINSP_REQUIRES "${SINSP_PKGCONFIG_REQUIRES}")
+string(REPLACE ";" " " LIBSINSP_REQUIRES_PRIVATE "${SINSP_PKGCONFIG_REQUIRES_PRIVATE}")
 string(REPLACE ";" " " SINSP_PKG_CONFIG_LIBS "${SINSP_PKG_CONFIG_LIBS}")
 list(REMOVE_DUPLICATES SINSP_PKG_CONFIG_LIBDIRS)
 string(REPLACE ";" " " SINSP_PKG_CONFIG_LIBDIRS "${SINSP_PKG_CONFIG_LIBDIRS}")
