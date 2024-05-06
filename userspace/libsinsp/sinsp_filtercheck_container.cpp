@@ -62,11 +62,16 @@ static const filtercheck_field_info sinsp_filter_check_container_fields[] =
 
 sinsp_filter_check_container::sinsp_filter_check_container()
 {
-	m_info.m_name = "container";
-	m_info.m_desc = "Container information. If the event is not happening inside a container, both id and name will be set to 'host'.";
-	m_info.m_fields = sinsp_filter_check_container_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_container_fields) / sizeof(sinsp_filter_check_container_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_field_infos = {
+		"container",
+		"",
+		"Container information. If the event is not happening inside a container, both id and name will be set to 'host'.",
+		sizeof(sinsp_filter_check_container_fields) / sizeof(sinsp_filter_check_container_fields[0]),
+		sinsp_filter_check_container_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
+	memset(&m_val, 0, sizeof(m_val));
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_container::allocate_new()
@@ -147,7 +152,7 @@ int32_t sinsp_filter_check_container::parse_field_name(std::string_view val, boo
 		{
 			throw sinsp_exception("filter syntax error: " + string(val));
 		}
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg(val, basepos);
 	}
@@ -155,7 +160,7 @@ int32_t sinsp_filter_check_container::parse_field_name(std::string_view val, boo
 		 val[basepos-1] != 's')
 	{
 		m_field_id = TYPE_CONTAINER_MOUNT;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg(val, basepos-1);
 	}
@@ -369,10 +374,10 @@ uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, OUT uint32
 				return NULL;
 			}
 
-			m_u32val = (container_info->m_privileged ? 1 : 0);
+			m_val.u32 = (container_info->m_privileged ? 1 : 0);
 		}
 
-		RETURN_EXTRACT_VAR(m_u32val);
+		RETURN_EXTRACT_VAR(m_val.u32);
 		break;
 	case TYPE_CONTAINER_MOUNTS:
 		if(is_host)
@@ -557,9 +562,9 @@ uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, OUT uint32
 		{
 			return NULL;
 		}
-		m_s64val = evt->get_ts() - tinfo->m_pidns_init_start_ts;
-		ASSERT(m_s64val > 0);
-		RETURN_EXTRACT_VAR(m_s64val);
+		m_val.s64 = evt->get_ts() - tinfo->m_pidns_init_start_ts;
+		ASSERT(m_val.s64 > 0);
+		RETURN_EXTRACT_VAR(m_val.s64);
 		break;
 	case TYPE_CONTAINER_IP_ADDR:
 		if(is_host)
@@ -572,9 +577,9 @@ uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, OUT uint32
 			{
 				return NULL;
 			}
-			m_u32val = htonl(container_info->m_container_ip);
+			m_val.u32 = htonl(container_info->m_container_ip);
 			char addrbuff[100];
-			inet_ntop(AF_INET, &m_u32val, addrbuff, sizeof(addrbuff));
+			inet_ntop(AF_INET, &m_val.u32, addrbuff, sizeof(addrbuff));
 			m_tstr = addrbuff;
 			RETURN_EXTRACT_STRING(m_tstr);
 		}

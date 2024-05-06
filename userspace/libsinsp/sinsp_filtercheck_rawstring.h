@@ -23,19 +23,13 @@ limitations under the License.
 class rawstring_check : public sinsp_filter_check
 {
 public:
-	rawstring_check(std::string text);
+	rawstring_check(const std::string& text);
 	virtual ~rawstring_check() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
 	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
-	void set_text(std::string text);
-
-	// XXX this is overkill and wasted for most of the fields.
-	// It could be optimized by dynamically allocating the right amount
-	// of memory, but we don't care for the moment since we expect filters
-	// to be pretty small.
+private:
 	std::string m_text;
-	uint32_t m_text_len;
 };

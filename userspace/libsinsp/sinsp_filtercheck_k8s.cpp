@@ -69,11 +69,16 @@ static const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 
 sinsp_filter_check_k8s::sinsp_filter_check_k8s()
 {
-	m_info.m_name = "k8s";
-	m_info.m_desc = "Kubernetes context about pods and namespace name. These fields are populated with data gathered from the container runtime.";
-	m_info.m_fields = sinsp_filter_check_k8s_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_field_infos = {
+		"k8s",
+		"",
+		"Kubernetes context about pods and namespace name. These fields are populated with data gathered from the container runtime.",
+		sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]),
+		sinsp_filter_check_k8s_fields,
+		filter_check_info::FL_NONE,
+	};
+
+	m_info = &s_field_infos;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_k8s::allocate_new()
@@ -87,7 +92,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(std::string_view val, bool allo
 		!STR_MATCH("k8s.pod.labels"))
 	{
 		m_field_id = TYPE_K8S_POD_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("k8s.pod.label", val);
 	}
@@ -95,7 +100,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(std::string_view val, bool allo
 		!STR_MATCH("k8s.rc.labels"))
 	{
 		m_field_id = TYPE_K8S_RC_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("k8s.rc.label", val);
 	}
@@ -103,7 +108,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(std::string_view val, bool allo
 		!STR_MATCH("k8s.rs.labels"))
 	{
 		m_field_id = TYPE_K8S_RS_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("k8s.rs.label", val);
 	}
@@ -111,7 +116,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(std::string_view val, bool allo
 		!STR_MATCH("k8s.svc.labels"))
 	{
 		m_field_id = TYPE_K8S_SVC_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("k8s.svc.label", val);
 	}
@@ -119,7 +124,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(std::string_view val, bool allo
 		!STR_MATCH("k8s.ns.labels"))
 	{
 		m_field_id = TYPE_K8S_NS_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("k8s.ns.label", val);
 	}
@@ -127,7 +132,7 @@ int32_t sinsp_filter_check_k8s::parse_field_name(std::string_view val, bool allo
 		!STR_MATCH("k8s.deployment.labels"))
 	{
 		m_field_id = TYPE_K8S_DEPLOYMENT_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("k8s.deployment.label", val);
 	}

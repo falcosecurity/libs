@@ -98,15 +98,20 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
 {
+	static const filter_check_info s_field_infos = {
+		"fd",
+		"",
+		"Every syscall that has a file descriptor in its arguments has these fields set with information related to the file.",
+		sizeof(sinsp_filter_check_fd_fields) / sizeof(sinsp_filter_check_fd_fields[0]),
+		sinsp_filter_check_fd_fields,
+		filter_check_info::FL_NONE,
+	};
+
 	m_tinfo = NULL;
 	m_fdinfo = NULL;
 	m_argid = -1;
-
-	m_info.m_name = "fd";
-	m_info.m_desc = "Every syscall that has a file descriptor in its arguments has these fields set with information related to the file.";
-	m_info.m_fields = sinsp_filter_check_fd_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_fd_fields) / sizeof(sinsp_filter_check_fd_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	m_info = &s_field_infos;
+	memset(&m_val, 0, sizeof(m_val));
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fd::allocate_new()
@@ -139,7 +144,7 @@ int32_t sinsp_filter_check_fd::parse_field_name(std::string_view val, bool alloc
 	if(STR_MATCH("fd.types"))
 	{
 		m_field_id = TYPE_FDTYPES;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 		int32_t res = 0;
 
 		res = extract_arg("fd.types", val);
@@ -1245,24 +1250,24 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len
 
 			if(m_fdinfo->m_type == SCAP_FD_IPV4_SERVSOCK || m_fdinfo->m_type == SCAP_FD_IPV6_SERVSOCK)
 			{
-				m_tbool = true;
+				m_val.u32 = true;
 			}
 			else if(m_fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 			{
-				m_tbool =
+				m_val.u32 =
 					m_inspector->get_ifaddr_list().is_ipv4addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, m_tinfo);
 			}
 			else if(m_fdinfo->m_type == SCAP_FD_IPV6_SOCK)
 			{
-				m_tbool =
+				m_val.u32 =
 					m_inspector->get_ifaddr_list().is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, m_tinfo);
 			}
 			else
 			{
-				m_tbool = false;
+				m_val.u32 = false;
 			}
 
-			RETURN_EXTRACT_VAR(m_tbool);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_SOCKFAMILY:
@@ -1307,9 +1312,9 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len
 				return NULL;
 			}
 
-			m_tbool = m_fdinfo->is_socket_connected();
+			m_val.u32 = m_fdinfo->is_socket_connected();
 
-			RETURN_EXTRACT_VAR(m_tbool);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_NAME_CHANGED:
@@ -1319,9 +1324,9 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len
 				return NULL;
 			}
 
-			m_tbool = evt->fdinfo_name_changed();
+			m_val.u32 = evt->fdinfo_name_changed();
 
-			RETURN_EXTRACT_VAR(m_tbool);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_DEV:
@@ -1331,9 +1336,9 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len
 				return NULL;
 			}
 
-			m_tbool = m_fdinfo->get_device();
+			m_val.u32 = m_fdinfo->get_device();
 
-			RETURN_EXTRACT_VAR(m_tbool);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_DEV_MAJOR:
@@ -1343,9 +1348,9 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len
 				return NULL;
 			}
 
-			m_tbool = m_fdinfo->get_device_major();
+			m_val.u32 = m_fdinfo->get_device_major();
 
-			RETURN_EXTRACT_VAR(m_tbool);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_DEV_MINOR:
@@ -1355,9 +1360,9 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len
 				return NULL;
 			}
 
-			m_tbool = m_fdinfo->get_device_minor();
+			m_val.u32 = m_fdinfo->get_device_minor();
 
-			RETURN_EXTRACT_VAR(m_tbool);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_INO:
@@ -1367,9 +1372,8 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, OUT uint32_t* len
 				return NULL;
 			}
 
-			m_conv_uint64 = m_fdinfo->get_ino();
-
-			RETURN_EXTRACT_VAR(m_conv_uint64);
+			m_val.u64 = m_fdinfo->get_ino();
+			RETURN_EXTRACT_VAR(m_val.u64);
 		}
 		break;
 	case TYPE_FDNAMERAW:

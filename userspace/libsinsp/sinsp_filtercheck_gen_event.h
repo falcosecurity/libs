@@ -55,7 +55,9 @@ protected:
 	Json::Value extract_as_js(sinsp_evt*, OUT uint32_t* len) override;
 
 private:
-	uint64_t m_u64val;
-	uint32_t m_u32val;
+	union {
+		uint64_t u64;
+		uint32_t u32;
+	} m_val;
 	std::string m_strstorage;
 };

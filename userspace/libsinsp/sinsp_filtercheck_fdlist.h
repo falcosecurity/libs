@@ -43,5 +43,4 @@ protected:
 
 private:
 	std::string m_strval;
-	char m_addrbuff[100];
 };

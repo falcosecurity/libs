@@ -44,16 +44,20 @@ sinsp_filter_check_fspath::sinsp_filter_check_fspath()
 	// These will either be populated when calling
 	// create_fspath_checks or copied from another filtercheck
 	// when calling set_fspath_checks().
-	: m_success_checks(new filtercheck_map_t()),
-	  m_path_checks(new filtercheck_map_t()),
-	  m_source_checks(new filtercheck_map_t()),
-	  m_target_checks(new filtercheck_map_t())
+	: m_success_checks(std::make_shared<filtercheck_map_t>()),
+	  m_path_checks(std::make_shared<filtercheck_map_t>()),
+	  m_source_checks(std::make_shared<filtercheck_map_t>()),
+	  m_target_checks(std::make_shared<filtercheck_map_t>())
 {
-	m_info.m_name = "fs.path";
-	m_info.m_desc = "Every syscall that has a filesystem path in its arguments has these fields set with information related to the path arguments. This differs from the fd.* fields as it includes syscalls like unlink, rename, etc. that act directly on filesystem paths as compared to opened file descriptors.";
-	m_info.m_fields = sinsp_filter_check_fspath_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_fspath_fields) / sizeof(sinsp_filter_check_fspath_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_field_infos = {
+		"fs.path",
+		"",
+		"Every syscall that has a filesystem path in its arguments has these fields set with information related to the path arguments. This differs from the fd.* fields as it includes syscalls like unlink, rename, etc. that act directly on filesystem paths as compared to opened file descriptors.",
+		sizeof(sinsp_filter_check_fspath_fields) / sizeof(sinsp_filter_check_fspath_fields[0]),
+		sinsp_filter_check_fspath_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
 };
 
 std::shared_ptr<sinsp_filter_check> sinsp_filter_check_fspath::create_event_check(const char *name,

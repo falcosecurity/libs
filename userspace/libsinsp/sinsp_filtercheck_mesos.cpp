@@ -47,11 +47,15 @@ static const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
 
 sinsp_filter_check_mesos::sinsp_filter_check_mesos()
 {
-	m_info.m_name = "mesos";
-	m_info.m_desc = "Mesos related context.";
-	m_info.m_fields = sinsp_filter_check_mesos_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_mesos_fields) / sizeof(sinsp_filter_check_mesos_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_field_infos = {
+		"mesos",
+		"",
+		"Mesos related context.",
+		sizeof(sinsp_filter_check_mesos_fields) / sizeof(sinsp_filter_check_mesos_fields[0]),
+		sinsp_filter_check_mesos_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_mesos::allocate_new()
@@ -65,7 +69,7 @@ int32_t sinsp_filter_check_mesos::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("mesos.task.labels"))
 	{
 		m_field_id = TYPE_MESOS_TASK_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("mesos.task.label", val);
 	}
@@ -73,7 +77,7 @@ int32_t sinsp_filter_check_mesos::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("marathon.app.labels"))
 	{
 		m_field_id = TYPE_MARATHON_APP_LABEL;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("marathon.app.label", val);
 	}

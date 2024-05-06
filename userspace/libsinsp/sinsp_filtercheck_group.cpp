@@ -40,11 +40,15 @@ static const filtercheck_field_info sinsp_filter_check_group_fields[] =
 
 sinsp_filter_check_group::sinsp_filter_check_group()
 {
-	m_info.m_name = "group";
-	m_info.m_desc = "Information about the user group.";
-	m_info.m_fields = sinsp_filter_check_group_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_group_fields) / sizeof(sinsp_filter_check_group_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_field_infos = {
+		"group",
+		"",
+		"Information about the user group.",
+		sizeof(sinsp_filter_check_group_fields) / sizeof(sinsp_filter_check_group_fields[0]),
+		sinsp_filter_check_group_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_group::allocate_new()

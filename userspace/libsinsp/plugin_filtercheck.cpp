@@ -20,13 +20,10 @@ limitations under the License.
 #include <libsinsp/plugin_manager.h>
 
 using namespace std;
-
 sinsp_filter_check_plugin::sinsp_filter_check_plugin()
 {
-	m_info.m_name = "plugin";
-	m_info.m_fields = NULL;
-	m_info.m_nfields = 0;
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_no_plugin_fields_info = {"plugin", "", "", 0, nullptr};
+	m_info = &s_no_plugin_fields_info;
 	m_eplugin = nullptr;
 }
 
@@ -37,11 +34,8 @@ sinsp_filter_check_plugin::sinsp_filter_check_plugin(std::shared_ptr<sinsp_plugi
 		throw sinsp_exception("Creating a sinsp_filter_check_plugin with a non extraction-capable plugin.");
 	}
 
+	m_info = plugin->fields_info();
 	m_eplugin = plugin;
-	m_info.m_name = plugin->name() + string(" (plugin)");
-	m_info.m_fields = &m_eplugin->fields()[0]; // we use a vector so this should be safe
-	m_info.m_nfields = m_eplugin->fields().size();
-	m_info.m_flags = filter_check_info::FL_NONE;
 }
 
 sinsp_filter_check_plugin::sinsp_filter_check_plugin(const sinsp_filter_check_plugin &p)
@@ -97,19 +91,19 @@ int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val, bool a
 			m_arg_present = true;
 
 			// we have an argument, check if the field is supposed not to have one
-			if (!(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED
-					|| m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
+			if (!(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED
+					|| m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
 			{
 				throw sinsp_exception("filter '" + string(val) + "': "
 					+ m_field->m_name + " does not allow nor require an argument but one is provided: " + m_argstr);
 			}
 
 			// parse the argument content, which can either be an index or a key
-			if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
+			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
 			{
 				extract_arg_index(val);
 			}
-			if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
+			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
 			{
 				extract_arg_key();
 			}
@@ -118,7 +112,7 @@ int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val, bool a
 			res = arg_pos + arg_len + 2;
 		}
 
-		if (!m_arg_present && (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
+		if (!m_arg_present && (m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
 		{
 			throw sinsp_exception(string("filter '") + string(val) + string("': ") + m_field->m_name + string(" requires an argument but none provided"));
 		}
@@ -172,12 +166,12 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT std::vector<extract_
 	// populate the field to extract for the plugin
 	ss_plugin_extract_field efield;
 	efield.field_id = m_field_id;
-	efield.field = m_info.m_fields[m_field_id].m_name;
+	efield.field = m_info->m_fields[m_field_id].m_name;
 	efield.arg_key = m_arg_key;
 	efield.arg_index = m_arg_index;
 	efield.arg_present = m_arg_present;
 	efield.ftype = type;
-	efield.flist = m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST;
+	efield.flist = m_info->m_fields[m_field_id].m_flags & EPF_IS_LIST;
 	if (!m_eplugin->extract_fields(evt, num_fields, &efield) || efield.res_len == 0)
 	{
 		return false;

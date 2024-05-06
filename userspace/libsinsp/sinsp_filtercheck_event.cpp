@@ -125,14 +125,17 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 
 sinsp_filter_check_event::sinsp_filter_check_event()
 {
+	static const filter_check_info s_field_infos = {
+		"evt",
+		"Syscall events only",
+		"Event fields applicable to syscall events. Note that for most events you can access the individual arguments/parameters of each syscall via evt.arg, e.g. evt.arg.filename.",
+		sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]),
+		sinsp_filter_check_event_fields,
+		filter_check_info::FL_NONE,
+	};
 	m_is_compare = false;
-	m_info.m_name = "evt";
-	m_info.m_shortdesc = "Syscall events only";
-	m_info.m_desc = "Event fields applicable to syscall events. Note that for most events you can access the individual arguments/parameters of each syscall via evt.arg, e.g. evt.arg.filename.";
-	m_info.m_fields = sinsp_filter_check_event_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
-	m_u64val = 0;
+	m_info = &s_field_infos;
+	memset(&m_val, 0, sizeof(m_val));
 	m_converter = std::make_unique<sinsp_filter_check_reference>();
 }
 
@@ -160,7 +163,7 @@ int32_t sinsp_filter_check_event::extract_arg(string_view fldname, string_view v
 
 		if(m_field_id == TYPE_AROUND)
 		{
-			m_u64val = sinsp_numparser::parseu64(numstr);
+			m_val.u64 = sinsp_numparser::parseu64(numstr);
 		}
 		else
 		{
@@ -247,14 +250,14 @@ int32_t sinsp_filter_check_event::parse_field_name(std::string_view val, bool al
 	if(STR_MATCH("evt.arg")  && !STR_MATCH("evt.args"))
 	{
 		m_field_id = TYPE_ARGSTR;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evt.arg", val, NULL);
 	}
 	else if(STR_MATCH("evt.rawarg"))
 	{
 		m_field_id = TYPE_ARGRAW;
-		m_customfield = m_info.m_fields[m_field_id];
+		m_customfield = m_info->m_fields[m_field_id];
 		m_field = &m_customfield;
 
 		res = extract_arg("evt.rawarg", val, &m_arginfo);
@@ -265,7 +268,7 @@ int32_t sinsp_filter_check_event::parse_field_name(std::string_view val, bool al
 	else if(STR_MATCH("evt.around"))
 	{
 		m_field_id = TYPE_AROUND;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evt.around", val, NULL);
 	}
@@ -280,7 +283,7 @@ int32_t sinsp_filter_check_event::parse_field_name(std::string_view val, bool al
 	else if(STR_MATCH("evt.abspath"))
 	{
 		m_field_id = TYPE_ABSPATH;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		if(STR_MATCH("evt.abspath.src"))
 		{
@@ -301,7 +304,7 @@ int32_t sinsp_filter_check_event::parse_field_name(std::string_view val, bool al
 	else if(STR_MATCH("evt.type.is"))
 	{
 		m_field_id = TYPE_TYPE_IS;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_type("evt.type.is", val, NULL);
 	}
@@ -572,11 +575,11 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, OUT uin
 		//
 		// Extract the return value
 		//
-		m_s64val = evt->get_param(0)->as<int64_t>();
+		m_val.s64 = evt->get_param(0)->as<int64_t>();
 
-		if(m_s64val >= 0)
+		if(m_val.s64 >= 0)
 		{
-			RETURN_EXTRACT_VAR(m_s64val);
+			RETURN_EXTRACT_VAR(m_val.s64);
 		}
 	}
 
@@ -598,8 +601,8 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_DELTA_NS:
 		return (Json::Value::Int64)*(uint64_t*)extract_single(evt, len);
 	case TYPE_COUNT:
-		m_u32val = 1;
-		return m_u32val;
+		m_val.u32 = 1;
+		return m_val.u32;
 
 	default:
 		return Json::nullValue;
@@ -617,8 +620,8 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 		int64_t res = pi->as<int64_t>();
 		if(res < 0)
 		{
-			m_u32val = 1;
-			RETURN_EXTRACT_VAR(m_u32val);
+			m_val.u32 = 1;
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		else
 		{
@@ -635,8 +638,8 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 			int64_t res = pi->as<int64_t>();
 			if(res < 0)
 			{
-				m_u32val = 1;
-				RETURN_EXTRACT_VAR(m_u32val);
+				m_val.u32 = 1;
+				RETURN_EXTRACT_VAR(m_val.u32);
 			}
 		}
 	}
@@ -651,7 +654,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 	{
 	case TYPE_LATENCY:
 		{
-			m_u64val = 0;
+			m_val.u64 = 0;
 
 			if(evt->get_tinfo() != NULL)
 			{
@@ -661,14 +664,14 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 					return NULL;
 				}
 
-				m_u64val = evt->get_tinfo()->m_latency;
+				m_val.u64 = evt->get_tinfo()->m_latency;
 			}
 
-			RETURN_EXTRACT_VAR(m_u64val);
+			RETURN_EXTRACT_VAR(m_val.u64);
 		}
 	case TYPE_LATENCY_HUMAN:
 		{
-			m_u64val = 0;
+			m_val.u64 = 0;
 
 			if(evt->get_tinfo() != NULL)
 			{
@@ -693,7 +696,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 	case TYPE_LATENCY_S:
 	case TYPE_LATENCY_NS:
 		{
-			m_u64val = 0;
+			m_val.u64 = 0;
 
 			if(evt->get_tinfo() != NULL)
 			{
@@ -707,15 +710,15 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 				if(m_field_id == TYPE_LATENCY_S)
 				{
-					m_u64val = lat / 1000000000;
+					m_val.u64 = lat / 1000000000;
 				}
 				else
 				{
-					m_u64val = lat % 1000000000;
+					m_val.u64 = lat % 1000000000;
 				}
 			}
 
-			RETURN_EXTRACT_VAR(m_u64val);
+			RETURN_EXTRACT_VAR(m_val.u64);
 		}
 	case TYPE_LATENCY_QUANTIZED:
 		{
@@ -737,9 +740,9 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 						llatency = 11;
 					}
 
-					m_u64val = (uint64_t)(llatency * m_inspector->get_quantization_interval() / 11) + 1;
+					m_val.u64 = (uint64_t)(llatency * m_inspector->get_quantization_interval() / 11) + 1;
 
-					RETURN_EXTRACT_VAR(m_u64val);
+					RETURN_EXTRACT_VAR(m_val.u64);
 				}
 			}
 
@@ -749,9 +752,9 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
 		{
-			if(m_u64val == 0)
+			if(m_val.u64 == 0)
 			{
-				m_u64val = evt->get_ts();
+				m_val.u64 = evt->get_ts();
 				m_tsdelta = 0;
 			}
 			else
@@ -760,18 +763,18 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 				if(m_field_id == TYPE_DELTA)
 				{
-					m_tsdelta = tts - m_u64val;
+					m_tsdelta = tts - m_val.u64;
 				}
 				else if(m_field_id == TYPE_DELTA_S)
 				{
-					m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+					m_tsdelta = (tts - m_val.u64) / ONE_SECOND_IN_NS;
 				}
 				else if(m_field_id == TYPE_DELTA_NS)
 				{
-					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+					m_tsdelta = (tts - m_val.u64) % ONE_SECOND_IN_NS;
 				}
 
-				m_u64val = tts;
+				m_val.u64 = tts;
 			}
 
 			RETURN_EXTRACT_VAR(m_tsdelta);
@@ -819,21 +822,21 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 				}
 
 				case 'D':
-					if(m_u64val == 0)
+					if(m_val.u64 == 0)
 					{
-						m_u64val = evt->get_ts();
+						m_val.u64 = evt->get_ts();
 						m_tsdelta = 0;
 					}
 					uint64_t tts = evt->get_ts();
 
-					m_strstorage += to_string((tts - m_u64val) / ONE_SECOND_IN_NS);
-					m_tsdelta = (tts - m_u64val) / ONE_SECOND_IN_NS;
+					m_strstorage += to_string((tts - m_val.u64) / ONE_SECOND_IN_NS);
+					m_tsdelta = (tts - m_val.u64) / ONE_SECOND_IN_NS;
 					m_strstorage += ".";
-					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (tts - m_u64val) % ONE_SECOND_IN_NS);
+					snprintf(timebuffer, sizeof(timebuffer), "%09llu", (tts - m_val.u64) % ONE_SECOND_IN_NS);
 					m_strstorage += string(timebuffer);
-					m_tsdelta = (tts - m_u64val) % ONE_SECOND_IN_NS;
+					m_tsdelta = (tts - m_val.u64) % ONE_SECOND_IN_NS;
 
-					m_u64val = tts;
+					m_val.u64 = tts;
 					RETURN_EXTRACT_STRING(m_strstorage);
 			}
 		}
@@ -892,14 +895,14 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 			if(etype == m_evtid || etype == m_evtid1)
 			{
-				m_u32val = 1;
+				m_val.u32 = 1;
 			}
 			else
 			{
-				m_u32val = 0;
+				m_val.u32 = 0;
 			}
 
-			RETURN_EXTRACT_VAR(m_u32val);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_SYSCALL_TYPE:
@@ -1036,8 +1039,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_CPU:
-		m_u16val = evt->get_cpuid();
-		RETURN_EXTRACT_VAR(m_u16val);
+		m_val.u16 = evt->get_cpuid();
+		RETURN_EXTRACT_VAR(m_val.u16);
 	case TYPE_ARGRAW:
 		return extract_argraw(evt, len, m_arginfo->name);
 		break;
@@ -1239,7 +1242,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 		break;
 	case TYPE_FAILED:
 		{
-			m_u32val = 0;
+			m_val.u32 = 0;
 			const sinsp_evt_param* pi = evt->get_param_by_name("res");
 
 			if(pi != NULL)
@@ -1247,7 +1250,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 				ASSERT(pi->m_len == sizeof(int64_t));
 				if(*(int64_t*)pi->m_val < 0)
 				{
-					m_u32val = 1;
+					m_val.u32 = 1;
 				}
 			}
 			else if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
@@ -1259,12 +1262,12 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 					ASSERT(pi->m_len == sizeof(int64_t));
 					if(*(int64_t*)pi->m_val < 0)
 					{
-						m_u32val = 1;
+						m_val.u32 = 1;
 					}
 				}
 			}
 
-			RETURN_EXTRACT_VAR(m_u32val);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	case TYPE_ISIO:
@@ -1272,42 +1275,42 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_READS_FROM_FD | EF_WRITES_TO_FD))
 			{
-				m_u32val = 1;
+				m_val.u32 = 1;
 			}
 			else
 			{
-				m_u32val = 0;
+				m_val.u32 = 0;
 			}
 		}
 
-		RETURN_EXTRACT_VAR(m_u32val);
+		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_ISIO_READ:
 		{
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_READS_FROM_FD)
 			{
-				m_u32val = 1;
+				m_val.u32 = 1;
 			}
 			else
 			{
-				m_u32val = 0;
+				m_val.u32 = 0;
 			}
 
-			RETURN_EXTRACT_VAR(m_u32val);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 	case TYPE_ISIO_WRITE:
 		{
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
 			{
-				m_u32val = 1;
+				m_val.u32 = 1;
 			}
 			else
 			{
-				m_u32val = 0;
+				m_val.u32 = 0;
 			}
 
-			RETURN_EXTRACT_VAR(m_u32val);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 	case TYPE_IODIR:
 		{
@@ -1332,15 +1335,15 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & (EF_WAITS))
 			{
-				m_u32val = 1;
+				m_val.u32 = 1;
 			}
 			else
 			{
-				m_u32val = 0;
+				m_val.u32 = 0;
 			}
 		}
 
-		RETURN_EXTRACT_VAR(m_u32val);
+		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_WAIT_LATENCY:
 		{
 			ppm_event_flags eflags = evt->get_info_flags();
@@ -1350,14 +1353,14 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 			{
 				if(evt->get_tinfo() != NULL)
 				{
-					m_u64val = evt->get_tinfo()->m_latency;
+					m_val.u64 = evt->get_tinfo()->m_latency;
 				}
 				else
 				{
-					m_u64val = 0;
+					m_val.u64 = 0;
 				}
 
-				RETURN_EXTRACT_VAR(m_u64val);
+				RETURN_EXTRACT_VAR(m_val.u64);
 			}
 			else
 			{
@@ -1366,7 +1369,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 		}
 	case TYPE_ISSYSLOG:
 		{
-			m_u32val = 0;
+			m_val.u32 = 0;
 
 			ppm_event_flags eflags = evt->get_info_flags();
 			if(eflags & EF_WRITES_TO_FD)
@@ -1375,15 +1378,15 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 				if(fdinfo != NULL && fdinfo->is_syslog())
 				{
-					m_u32val = 1;
+					m_val.u32 = 1;
 				}
 			}
 
-			RETURN_EXTRACT_VAR(m_u32val);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 	case TYPE_COUNT:
-		m_u32val = 1;
-		RETURN_EXTRACT_VAR(m_u32val);
+		m_val.u32 = 1;
+		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_COUNT_ERROR:
 		return extract_error_count(evt, len);
 	case TYPE_COUNT_ERROR_FILE:
@@ -1504,8 +1507,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 	case TYPE_COUNT_EXIT:
 		if(PPME_IS_EXIT(evt->get_type()))
 		{
-			m_u32val = 1;
-			RETURN_EXTRACT_VAR(m_u32val);
+			m_val.u32 = 1;
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		else
 		{
@@ -1521,8 +1524,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 				if(tinfo != NULL && tinfo->is_main_thread())
 				{
-					m_u32val = 1;
-					RETURN_EXTRACT_VAR(m_u32val);
+					m_val.u32 = 1;
+					RETURN_EXTRACT_VAR(m_val.u32);
 				}
 			}
 		}
@@ -1534,8 +1537,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 			if(etype == PPME_PROCINFO_E)
 			{
-				m_u32val = 1;
-				RETURN_EXTRACT_VAR(m_u32val);
+				m_val.u32 = 1;
+				RETURN_EXTRACT_VAR(m_val.u32);
 			}
 		}
 
@@ -1629,7 +1632,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 		{
 			uint16_t etype = evt->get_type();
 
-			m_u32val = 0;
+			m_val.u32 = 0;
 			// If any of the exec bits is on, we consider this an open+exec
 			uint32_t is_exec_mask = (PPM_S_IXUSR | PPM_S_IXGRP | PPM_S_IXOTH);
 
@@ -1650,13 +1653,13 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 				if(m_field_id == TYPE_ISOPEN_READ &&
 				   flags & PPM_O_RDONLY)
 				{
-					m_u32val = 1;
+					m_val.u32 = 1;
 				}
 
 				if(m_field_id == TYPE_ISOPEN_WRITE &&
 				   flags & PPM_O_WRONLY)
 				{
-					m_u32val = 1;
+					m_val.u32 = 1;
 				}
 
 				if(m_field_id == TYPE_ISOPEN_CREATE)
@@ -1664,7 +1667,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 					// If PPM_O_F_CREATED is set the file is created
 					if(flags & PPM_O_F_CREATED)
 					{
-						m_u32val = 1;
+						m_val.u32 = 1;
 					}
 
 					// If PPM_O_TMPFILE is set and syscall is successful the file is created
@@ -1674,7 +1677,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 
 						if(retval >= 0)
 						{
-							m_u32val = 1;
+							m_val.u32 = 1;
 						}
 					}
 				}
@@ -1683,16 +1686,16 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, OUT uint32_t* 
 				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT) && etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X))
 				{
 					uint32_t mode_bits = evt->get_param(is_new_version ? 4 : 3)->as<uint32_t>();
-					m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
+					m_val.u32 = (mode_bits & is_exec_mask)? 1 : 0;
 				}
 			}
 			else if ((m_field_id == TYPE_ISOPEN_EXEC) && (etype == PPME_SYSCALL_CREAT_X))
 			{
 				uint32_t mode_bits = evt->get_param(2)->as<uint32_t>();
-				m_u32val = (mode_bits & is_exec_mask)? 1 : 0;
+				m_val.u32 = (mode_bits & is_exec_mask)? 1 : 0;
 			}
 
-			RETURN_EXTRACT_VAR(m_u32val);
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 
 		break;
@@ -1810,12 +1813,12 @@ bool sinsp_filter_check_event::compare_nocache(sinsp_evt *evt)
 
 		bool res1 = ::flt_compare(CO_GE,
 			PT_UINT64,
-			&m_u64val,
+			&m_val.u64,
 			&t1);
 
 		bool res2 = ::flt_compare(CO_LE,
 			PT_UINT64,
-			&m_u64val,
+			&m_val.u64,
 			&t2);
 
 		return res1 && res2;

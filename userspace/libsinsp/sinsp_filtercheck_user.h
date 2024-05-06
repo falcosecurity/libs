@@ -42,7 +42,9 @@ protected:
 	uint8_t* extract_single(sinsp_evt*, OUT uint32_t* len, bool sanitize_strings = true) override;
 
 private:
-	int64_t m_s64val;
-	uint32_t m_uid;
+	union {
+		uint32_t u32;
+		int64_t s64;
+	} m_val;
 	std::string m_strval;
 };

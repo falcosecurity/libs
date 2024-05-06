@@ -59,6 +59,7 @@ private:
 	char* print_int(uint8_t* rawval, uint32_t str_len);
 
 	filtercheck_field_info m_finfo;
+	filter_check_info m_cinfo;
 	uint8_t* m_val;
 	uint32_t m_len;
 	double m_cnt;		// For averages, this stores the entry count

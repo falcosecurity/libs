@@ -34,11 +34,15 @@ static const filtercheck_field_info sinsp_filter_check_utils_fields[] =
 
 sinsp_filter_check_utils::sinsp_filter_check_utils()
 {
-	m_info.m_name = "util";
-	m_info.m_desc = "";
-	m_info.m_fields = sinsp_filter_check_utils_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_utils_fields) / sizeof(sinsp_filter_check_utils_fields[0]);
-	m_info.m_flags = filter_check_info::FL_HIDDEN;
+	static const filter_check_info s_field_infos = {
+		"util",
+		"",
+		"",
+		sizeof(sinsp_filter_check_utils_fields) / sizeof(sinsp_filter_check_utils_fields[0]),
+		sinsp_filter_check_utils_fields,
+		filter_check_info::FL_HIDDEN,
+	};
+	m_info = &s_field_infos;
 	m_cnt = 0;
 }
 

@@ -39,11 +39,15 @@ static const filtercheck_field_info sinsp_filter_check_fdlist_fields[] =
 
 sinsp_filter_check_fdlist::sinsp_filter_check_fdlist()
 {
-	m_info.m_name = "fdlist";
-	m_info.m_desc = "Poll event related fields.";
-	m_info.m_fields = sinsp_filter_check_fdlist_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_fdlist_fields) / sizeof(sinsp_filter_check_fdlist_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_field_infos = {
+		"fdlist",
+		"",
+		"Poll event related fields.",
+		sizeof(sinsp_filter_check_fdlist_fields) / sizeof(sinsp_filter_check_fdlist_fields[0]),
+		sinsp_filter_check_fdlist_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fdlist::allocate_new()
@@ -121,6 +125,7 @@ uint8_t* sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt, OUT uint32_t*
 		{
 			if(fdinfo != NULL)
 			{
+				char m_addrbuff[100];
 				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 				{
 					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, m_addrbuff, sizeof(m_addrbuff));
@@ -142,6 +147,7 @@ uint8_t* sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt, OUT uint32_t*
 		{
 			if(fdinfo != NULL)
 			{
+				char m_addrbuff[100];
 				if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 				{
 					inet_ntop(AF_INET, &fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, m_addrbuff, sizeof(m_addrbuff));

@@ -586,6 +586,12 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			m_fields.push_back(tf);
 		}
 
+		// populate fields info
+		m_fields_info.m_name = name() + string(" (plugin)");
+		m_fields_info.m_fields = &m_fields[0]; // we use a vector so this should be safe
+		m_fields_info.m_nfields = m_fields.size();
+		m_fields_info.m_flags = filter_check_info::FL_NONE;
+
 		// This API is not compulsory for the extraction capability
 		resolve_dylib_compatible_sources("get_extract_event_sources",
 			m_handle->api.get_extract_event_sources, m_extract_event_sources);
