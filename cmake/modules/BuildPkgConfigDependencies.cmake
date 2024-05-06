@@ -3,6 +3,7 @@
 # libsinsp.pc (which requires libscap.pc and pulls them in that way)
 function(add_pkgconfig_library LIBDIRS_VAR LIBS_VAR lib ignored)
 
+	message(DEBUG "[add_pkgconfig_library] processing lib \"${lib}\"")
 	# if it's not a target, it doesn't have dependencies we know or care about
 	if(NOT TARGET ${lib})
 		return()
@@ -14,14 +15,26 @@ function(add_pkgconfig_library LIBDIRS_VAR LIBS_VAR lib ignored)
 		return()
 	endif()
 
+	message(DEBUG "[add_pkgconfig_library] LINK_LIBRARIES property: \"${PKGCONFIG_LIBRARIES}\"")
+
 	get_property(
 		target_type
 		TARGET ${lib}
 		PROPERTY TYPE
 	)
+	message(DEBUG "[add_pkgconfig_library] ignored list: \"${ignored}\"")
 	foreach(dep ${PKGCONFIG_LIBRARIES})
-		# ignore dependencies in the list ${ignored}
-		if(${dep} IN_LIST "${ignored}")
+		# XXX: We use a (very) loose match as we are potentially comparing absolute library file
+		# names (dep) to pkg-config library names to be ignored.  The only alternative I can think
+		# of would be to maintain a map associating pkg-config names to their library file name.
+		get_filename_component(dep_base ${dep} NAME_WE)
+		string(REGEX REPLACE "^lib" "" dep_name ${dep_base})
+		# For CMake imported targets, keep only the suffix, e.g. gRPC::grpc -> grpc.
+		string(REGEX REPLACE "[^:]*::" "" dep_name ${dep_base})
+		message(DEBUG "[add_pkgconfig_library] processing dep ${dep}")
+		string(FIND "${ignored}" "${dep_name}" find_result)
+		if(NOT ${find_result} EQUAL -1)
+			message(DEBUG "[add_pkgconfig_library] \"${dep}\" ignored")
 			continue()
 		endif()
 

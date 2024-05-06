@@ -91,16 +91,6 @@ if(NOT HAVE_LIBSCAP)
 		endif()
 	endforeach()
 
-	set(libscap_link_flags)
-	set(libscap_link_libdirs "")
-	add_pkgconfig_dependency(libscap_link_libdirs libscap_link_flags scap "")
-
-	string(REPLACE ";" " " LIBSCAP_LINK_LIBRARIES_FLAGS "${libscap_link_flags}")
-	string(REPLACE ";" " " LIBSCAP_LINK_LIBDIRS_FLAGS "${libscap_link_libdirs}")
-	configure_file(
-		${LIBS_DIR}/userspace/libscap/libscap.pc.in ${PROJECT_BINARY_DIR}/libscap/libscap.pc @ONLY
-	)
-
 	install(
 		TARGETS ${LIBSCAP_INSTALL_LIBS}
 		ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
