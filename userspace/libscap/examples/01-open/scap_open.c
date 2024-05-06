@@ -150,6 +150,11 @@ static int simple_set[] = {
 	-1
 };
 
+struct pair_counter{
+	uint64_t counter;
+	ppm_sc_code code; /* we need the code also here because at the end we will sort */
+} typedef pair_counter;
+
 /* Generic global variables. */
 static scap_open_args oargs = {};						    /* scap oargs used in `scap_open`. */
 static const struct scap_vtable* vtable = NULL;
@@ -161,6 +166,7 @@ static char* valptr = NULL; /* pointer used to print the value of event params. 
 static struct timeval tval_start, tval_end, tval_result;
 static unsigned long number_of_timeouts; /* Times in which there were no events in the buffer. */
 static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
+static pair_counter ppm_sc_count[PPM_SC_MAX*2] = {0}; /* Number of times a syscall is called. We want the `*2` because we store the enter and the exit count separately */
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -821,6 +827,42 @@ static inline bool engine_uses_bpf()
 	return false;
 }
 
+
+void print_syscalls_stats()
+{
+	// ppm_sc_count will become out of order so we save the code
+	for(int i = 0; i < PPM_SC_MAX*2; ++i)
+	{
+		ppm_sc_count[i].code = i;
+	}
+
+	// sort them 
+	pair_counter tmp;
+	for(int i = 0; i < PPM_SC_MAX*2; ++i)
+	{
+		for(int j = i + 1; j < PPM_SC_MAX*2; ++j)
+		{
+			/* swapping strings if they are not in the lexicographical order */
+			if(ppm_sc_count[i].counter < ppm_sc_count[j].counter)
+			{
+				tmp = ppm_sc_count[i];
+				ppm_sc_count[i] = ppm_sc_count[j];
+				ppm_sc_count[j] = tmp;
+			}
+		}
+	}
+
+	// print them
+	for(int i = 0; i < PPM_SC_MAX*2; i++)
+	{
+		// if `0` we don't print anything
+		if(ppm_sc_count[i].counter)
+		{
+			printf("- [%s__%s]: %lu\n", scap_get_ppm_sc_name(ppm_sc_count[i].code % PPM_SC_MAX), ppm_sc_count[i].code >=PPM_SC_MAX ? "exit": "enter", ppm_sc_count[i].counter);
+		}
+	}
+}
+
 void print_stats()
 {
 	gettimeofday(&tval_end, NULL);
@@ -848,6 +890,7 @@ void print_stats()
 
 	printf("\n[SCAP-OPEN]: General statistics\n");
 	printf("\nEvents correctly captured (SCAP_SUCCESS): %" PRIu64 "\n", g_nevts);
+	printf("Number of bytes received: %" PRIu64 " bytes\n", g_total_number_of_bytes);
 	if(g_nevts!=0)
 	{
 		printf("Average dimension of events: %" PRIu64 " bytes\n", g_total_number_of_bytes/g_nevts);
@@ -887,6 +930,11 @@ void print_stats()
 			}
 		}
 	}
+
+	// Print syscall stats userspace side:
+	printf("\n[SCAP-OPEN]: Syscall stats userspace side.\n\n");
+	print_syscalls_stats();
+	
 	printf("\n\n------------------------------------------------------------------\n\n");
 	printf("\n[SCAP-OPEN]: Bye!\n");
 }
@@ -913,6 +961,58 @@ void scap_open_log_fn(const char* component, const char* msg, const enum falcose
 		{
 			// libbpf logs have no components
 			printf("%s", msg);
+		}
+	}
+}
+
+void count_syscalls(scap_evt* ev)
+{
+	uint16_t type = ev->type;
+	// If the event is generic, we need to read the ppm_sc inside the event
+	if(type == PPME_GENERIC_E || type == PPME_GENERIC_X)
+	{
+		uint16_t ppm_sc_code = *(uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr) + ev->nparams * sizeof(uint16_t));		
+
+		if(PPME_IS_ENTER(type))
+		{
+			ppm_sc_count[ppm_sc_code].counter++;
+		}
+		else
+		{
+			ppm_sc_count[ppm_sc_code + PPM_SC_MAX].counter++;
+		}
+		return;
+	}
+
+	// Specific event
+	uint8_t ppm_sc_array[PPM_SC_MAX] = {0};
+	uint8_t events_array[PPM_EVENT_MAX] = {0};
+
+	events_array[type] = 1;
+
+	// This will always return `SCAP_SUCCESS`
+	if(scap_get_ppm_sc_from_events(events_array, ppm_sc_array) != SCAP_SUCCESS)
+	{
+		exit(EXIT_FAILURE);
+	}
+	
+	// In our case even if we have more than one PPM_SC associated with our event we just want the first one
+	// because we don't want to count the syscall twice.
+	// For example in the case of `PPME_SYSCALL_FCNTL_X` (`[PPME_SYSCALL_FCNTL_X] = (ppm_sc_code[]){PPM_SC_FCNTL, PPM_SC_FCNTL64, -1}`)
+	// we just want `PPM_SC_FCNTL` and not also `PPM_SC_FCNTL64`
+	for(int i = 0; i < PPM_SC_MAX; i++)
+	{
+		if(ppm_sc_array[i])
+		{
+			if(PPME_IS_ENTER(type))
+			{
+				ppm_sc_count[i].counter++;
+			}
+			else
+			{
+				ppm_sc_count[i + PPM_SC_MAX].counter++;
+			}
+			return;
 		}
 	}
 }
@@ -991,6 +1091,7 @@ int main(int argc, char** argv)
 		{
 			print_event(ev);
 		}
+		count_syscalls(ev);
 		g_total_number_of_bytes += ev->len;
 		g_nevts++;
 	}
