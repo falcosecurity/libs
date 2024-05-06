@@ -216,6 +216,12 @@ function(prepare_cri_grpc api_version)
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	)
 	add_dependencies(cri_${api_version} grpc)
+	target_link_libraries(cri_${api_version}
+	PRIVATE
+		${GPR_LIB}
+		${GRPC_LIB}
+		${GRPCPP_LIB}
+	)
 endfunction()
 
 if (NOT EMSCRIPTEN)
