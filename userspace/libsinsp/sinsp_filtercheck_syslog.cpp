@@ -51,11 +51,15 @@ static const filtercheck_field_info sinsp_filter_check_syslog_fields[] =
 
 sinsp_filter_check_syslog::sinsp_filter_check_syslog()
 {
-	m_info.m_name = "syslog";
-	m_info.m_desc = "Content of Syslog messages.";
-	m_info.m_flags = filter_check_info::FL_NONE;
-	m_info.m_fields = sinsp_filter_check_syslog_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]);
+	static const filter_check_info s_field_infos = {
+		"syslog",
+		"",
+		"Content of Syslog messages.",
+		sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]),
+		sinsp_filter_check_syslog_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_syslog::allocate_new()

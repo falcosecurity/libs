@@ -107,6 +107,7 @@ public:
 		m_handle(handle),
 		m_last_owner_err(),
 		m_scap_source_plugin(),
+		m_fields_info(),
 		m_fields(),
 		m_extract_event_sources(),
 		m_extract_event_codes(),
@@ -184,6 +185,11 @@ public:
 
 	const libsinsp::events::set<ppm_event_code>& extract_event_codes() const;
 
+	inline const filter_check_info* fields_info() const
+	{
+		return &m_fields_info;
+	}
+
 	inline const std::vector<filtercheck_field_info>& fields() const
 	{
 		return m_fields;
@@ -242,6 +248,7 @@ private:
 	scap_source_plugin m_scap_source_plugin;
 
 	/** Field Extraction **/
+	filter_check_info m_fields_info;
 	std::vector<filtercheck_field_info> m_fields;
 	std::unordered_set<std::string> m_extract_event_sources;
 	libsinsp::events::set<ppm_event_code> m_extract_event_codes;

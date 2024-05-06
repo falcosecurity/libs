@@ -60,11 +60,15 @@ static const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 
 sinsp_filter_check_tracer::sinsp_filter_check_tracer()
 {
-	m_info.m_flags = filter_check_info::FL_HIDDEN;
-	m_info.m_name = "span";
-	m_info.m_desc = "Fields used if information about distributed tracing is available.";
-	m_info.m_fields = sinsp_filter_check_tracer_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_tracer_fields) / sizeof(sinsp_filter_check_tracer_fields[0]);
+	static const filter_check_info s_field_infos = {
+		"span",
+		"",
+		"Fields used if information about distributed tracing is available.",
+		sizeof(sinsp_filter_check_tracer_fields) / sizeof(sinsp_filter_check_tracer_fields[0]),
+		sinsp_filter_check_tracer_fields,
+		filter_check_info::FL_HIDDEN,
+	};
+	m_info = &s_field_infos;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_tracer::allocate_new()
@@ -125,7 +129,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(std::string_view val, bool a
 		!STR_MATCH("span.tags"))
 	{
 		m_field_id = TYPE_TAG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("span.tag", val, NULL);
 	}
@@ -133,7 +137,7 @@ int32_t sinsp_filter_check_tracer::parse_field_name(std::string_view val, bool a
 		!STR_MATCH("span.args"))
 	{
 		m_field_id = TYPE_ARG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("span.arg", val, NULL);
 	}
@@ -141,35 +145,35 @@ int32_t sinsp_filter_check_tracer::parse_field_name(std::string_view val, bool a
 		!STR_MATCH("span.enterargs"))
 	{
 		m_field_id = TYPE_ENTERARG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("span.enterarg", val, NULL);
 	}
 	else if(STR_MATCH("span.duration.fortag"))
 	{
 		m_field_id = TYPE_TAGDURATION;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("span.duration.fortag", val, NULL);
 	}
 	else if(STR_MATCH("span.count.fortag"))
 	{
 		m_field_id = TYPE_TAGCOUNT;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("span.count.fortag", val, NULL);
 	}
 	else if(STR_MATCH("span.childcount.fortag"))
 	{
 		m_field_id = TYPE_TAGCHILDSCOUNT;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("span.childcount.fortag", val, NULL);
 	}
 	else if(STR_MATCH("span.idtag"))
 	{
 		m_field_id = TYPE_IDTAG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("span.idtag", val, NULL);
 	}

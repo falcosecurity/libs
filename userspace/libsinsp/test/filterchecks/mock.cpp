@@ -62,10 +62,11 @@ public:
 
 	sinsp_filter_check_mock()
 	{
-		m_info.m_name = "test";
-		m_info.m_desc = "";
-		m_info.m_fields = sinsp_filter_check_mock_fields;
-		m_info.m_nfields = sizeof(sinsp_filter_check_mock_fields) / sizeof(sinsp_filter_check_mock_fields[0]);
+		m_finfo.m_name = "test";
+		m_finfo.m_desc = "";
+		m_finfo.m_fields = sinsp_filter_check_mock_fields;
+		m_finfo.m_nfields = sizeof(sinsp_filter_check_mock_fields) / sizeof(sinsp_filter_check_mock_fields[0]);
+		m_info = &m_finfo;
 	}
 	virtual ~sinsp_filter_check_mock() = default;
 
@@ -126,6 +127,7 @@ protected:
 	}
 
 private:
+	filter_check_info m_finfo;
 	std::string m_str_val;
 	uint64_t m_u64_val;
 };

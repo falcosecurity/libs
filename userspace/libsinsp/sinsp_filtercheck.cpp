@@ -652,9 +652,6 @@ sinsp_filter_check::sinsp_filter_check()
 	m_cmpop = CO_NONE;
 	m_inspector = NULL;
 	m_field = NULL;
-	m_info.m_fields = NULL;
-	m_info.m_nfields = -1;
-	m_val_storages = std::vector<std::vector<uint8_t>> (1, std::vector<uint8_t>(256));
 	m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
 	m_val_storages_max_size = (std::numeric_limits<uint32_t>::min)();
 }
@@ -1218,14 +1215,15 @@ int32_t sinsp_filter_check::parse_field_name(std::string_view str, bool alloc_st
 	int32_t max_fldlen = -1;
 	uint32_t max_flags = 0;
 
-	ASSERT(m_info.m_fields != NULL);
-	ASSERT(m_info.m_nfields != -1);
+	ASSERT(m_info != nullptr);
+	ASSERT(m_info->m_fields != NULL);
+	ASSERT(m_info->m_nfields != -1);
 
 	m_field_id = 0xffffffff;
 
-	for(int32_t j = 0; j != m_info.m_nfields; ++j)
+	for(int32_t j = 0; j != m_info->m_nfields; ++j)
 	{
-		auto& fld = m_info.m_fields[j];
+		auto& fld = m_info->m_fields[j];
 		int32_t fldlen = (int32_t)strlen(fld.m_name);
 		if(fldlen <= max_fldlen)
 		{
@@ -1267,35 +1265,68 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 			+ "' as right-hand side value");
 	}
 
-	size_t parsed_len;
-
-	if (i >= m_val_storages.size())
+	// create storage for the value at the given index, if not present
+	while (i >= m_val_storages.size())
 	{
-		m_val_storages.push_back(std::vector<uint8_t>(256));
+		m_val_storages.push_back(std::vector<uint8_t>(s_min_filter_value_buf_size));
 	}
 
-	parsed_len = parse_filter_value(str, len, &(m_val_storages[i][0]), (&m_val_storages[i])->size());
+	// attempt parsing the value -- in case errors are found, it may be
+	// that they are due to the underlying storage buffer for the value being
+	// too short in size, so we retry by resizing it up until a certain max
+	// size beyond which we just give up and propagate the errors thrown
+	size_t parsed_len = 0;
+	while (true)
+	{
+		try
+		{
+			parsed_len = parse_filter_value(str, len, &(m_val_storages[i][0]), m_val_storages[i].size());
+		}
+		catch (sinsp_exception& e)
+		{
+			if (m_val_storages[i].size() >= s_max_filter_value_buf_size)
+			{
+				throw e;
+			}
+			m_val_storages[i].resize(m_val_storages[i].size() * 2);
+			continue;
+		}
+		break;
+	}
 
-	// XXX/mstemm this doesn't work if someone called
-	// add_filter_value more than once for a given index.
+	// store the new value in the state
 	filter_value_t item(&(m_val_storages[i][0]), parsed_len);
-	m_vals.push_back(item);
-	m_val_storages_members.insert(item);
-
-	if(parsed_len < m_val_storages_min_size)
+	m_vals.resize(i + 1);
+	m_vals[i] = item;
+	
+	// populate operator-specific optimizations
+	if (m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS)
 	{
-		m_val_storages_min_size = parsed_len;
+		// If the operator is IN or INTERSECTS, populate the map search
+		if (!m_val_storages_members)
+		{
+			m_val_storages_members = std::make_unique<decltype(m_val_storages_members)::element_type>();
+		}
+		m_val_storages_members->insert(item);
+
+		if(parsed_len < m_val_storages_min_size)
+		{
+			m_val_storages_min_size = parsed_len;
+		}
+
+		if(parsed_len > m_val_storages_max_size)
+		{
+			m_val_storages_max_size = parsed_len;
+		}
 	}
-
-	if(parsed_len > m_val_storages_max_size)
+	else if (m_cmpop == CO_PMATCH)
 	{
-		m_val_storages_max_size = parsed_len;
-	}
-
-	// If the operator is CO_PMATCH, also add the value to the paths set.
-	if (m_cmpop == CO_PMATCH)
-	{
-		m_val_storages_paths.add_search_path(item);
+		// If the operator is CO_PMATCH, also add the value to the paths set.
+		if (!m_val_storages_paths)
+		{
+			m_val_storages_paths = std::make_unique<path_prefix_search>();
+		}
+		m_val_storages_paths->add_search_path(item);
 	}
 }
 
@@ -1483,8 +1514,9 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 					}
 					else
 					{
+						ASSERT(m_val_storages_members != nullptr);
 						if(it.len < m_val_storages_min_size || it.len > m_val_storages_max_size
-							 || m_val_storages_members.find(item) == m_val_storages_members.end())
+							 || m_val_storages_members->find(item) == m_val_storages_members->end())
 						{
 							return false;
 						}
@@ -1511,8 +1543,9 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 					}
 					else
 					{
+						ASSERT(m_val_storages_members != nullptr);
 						if(it.len >= m_val_storages_min_size && it.len <= m_val_storages_max_size
-							&& m_val_storages_members.find(item) != m_val_storages_members.end())
+							&& m_val_storages_members->find(item) != m_val_storages_members->end())
 						{
 							return true;
 						}
@@ -1521,7 +1554,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 				return false;
 			default:
 				throw sinsp_exception("list filter '"
-					+ std::string(m_info.m_fields[m_field_id].m_name)
+					+ std::string(m_info->m_fields[m_field_id].m_name)
 					+ "' only supports operators 'exists', 'in' and 'intersects'");
 		}
 	}
@@ -1529,7 +1562,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 	{
 		ASSERT(false);
 		throw sinsp_exception("non-list filter '"
-			+ std::string(m_info.m_fields[m_field_id].m_name)
+			+ std::string(m_info->m_fields[m_field_id].m_name)
 			+ "' expected to extract a single value, but "
 			+ std::to_string(values.size()) + " were found");
 	}
@@ -1591,17 +1624,18 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 				// multiple values, and you're comparing the set of extracted values
 				// against the set of rhs values. sinsp_filter_checks only extract a
 				// single value, so CO_INTERSECTS is really the same as CO_IN.
-
+				ASSERT(m_val_storages_members != nullptr);
 				if(op1_len >= m_val_storages_min_size &&
 				   op1_len <= m_val_storages_max_size &&
-				   m_val_storages_members.find(item) != m_val_storages_members.end())
+				   m_val_storages_members->find(item) != m_val_storages_members->end())
 				{
 					return true;
 				}
 			}
 			else
 			{
-				if (m_val_storages_paths.match(item))
+				ASSERT(m_val_storages_paths != nullptr);
+				if (m_val_storages_paths->match(item))
 				{
 					return true;
 				}
@@ -1813,7 +1847,11 @@ void sinsp_filter_check::populate_filter_values_with_rhs_extracted_values(const 
 	// These are needed for In/Intersects
 	if (m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS)
 	{
-		m_val_storages_members.clear();
+		if (!m_val_storages_members)
+		{
+			m_val_storages_members = std::make_unique<decltype(m_val_storages_members)::element_type>();
+		}
+		m_val_storages_members->clear();
 		m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
 		m_val_storages_max_size = (std::numeric_limits<uint32_t>::min)();
 	}
@@ -1825,7 +1863,7 @@ void sinsp_filter_check::populate_filter_values_with_rhs_extracted_values(const 
 		
 		if (m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS)
 		{
-			m_val_storages_members.insert(std::move(item));
+			m_val_storages_members->insert(std::move(item));
 			if(v.len < m_val_storages_min_size)
 			{
 				m_val_storages_min_size = v.len;

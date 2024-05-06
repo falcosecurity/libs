@@ -65,11 +65,15 @@ static const filtercheck_field_info sinsp_filter_check_evtin_fields[] =
 
 sinsp_filter_check_evtin::sinsp_filter_check_evtin()
 {
-	m_info.m_name = "evtin";
-	m_info.m_desc = "Fields used if information about distributed tracing is available.";
-	m_info.m_fields = sinsp_filter_check_evtin_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_evtin_fields) / sizeof(sinsp_filter_check_evtin_fields[0]);
-	m_info.m_flags = filter_check_info::FL_HIDDEN;
+	static const filter_check_info s_field_infos = {
+		"evtin",
+		"",
+		"Fields used if information about distributed tracing is available.",
+		sizeof(sinsp_filter_check_evtin_fields) / sizeof(sinsp_filter_check_evtin_fields[0]),
+		sinsp_filter_check_evtin_fields,
+		filter_check_info::FL_HIDDEN,
+	};
+	m_info = &s_field_infos;
 }
 
 int32_t sinsp_filter_check_evtin::extract_arg(string_view fldname, string_view val)
@@ -121,7 +125,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.tags"))
 	{
 		m_field_id = TYPE_TAG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.tag", val);
 	}
@@ -129,7 +133,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.args"))
 	{
 		m_field_id = TYPE_ARG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.arg", val);
 	}
@@ -137,7 +141,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.p.tags"))
 	{
 		m_field_id = TYPE_P_TAG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.p.tag", val);
 	}
@@ -145,7 +149,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.p.args"))
 	{
 		m_field_id = TYPE_P_ARG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.p.arg", val);
 	}
@@ -153,7 +157,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.s.tags"))
 	{
 		m_field_id = TYPE_S_TAG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.s.tag", val);
 	}
@@ -161,7 +165,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.s.args"))
 	{
 		m_field_id = TYPE_S_ARG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.s.arg", val);
 	}
@@ -169,7 +173,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.m.tags"))
 	{
 		m_field_id = TYPE_M_TAG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.m.tag", val);
 	}
@@ -177,7 +181,7 @@ int32_t sinsp_filter_check_evtin::parse_field_name(std::string_view val, bool al
 		!STR_MATCH("evtin.span.m.args"))
 	{
 		m_field_id = TYPE_M_ARG;
-		m_field = &m_info.m_fields[m_field_id];
+		m_field = &m_info->m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.m.arg", val);
 	}

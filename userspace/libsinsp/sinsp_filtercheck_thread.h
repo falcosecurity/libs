@@ -133,11 +133,13 @@ private:
 
 	int32_t m_argid;
 	std::string m_argname;
-	uint32_t m_tbool;
 	std::string m_tstr;
-	uint64_t m_u64val;
-	int64_t m_s64val;
-	double m_dval;
+	union {
+		uint32_t u32;
+		uint64_t u64;
+		int64_t s64;
+		double d;
+	} m_val;
 	std::vector<uint64_t> m_last_proc_switch_times;
 	std::unique_ptr<libsinsp::state::dynamic_struct::field_accessor<uint64_t>> m_thread_dyn_field_accessor;
 };

@@ -97,9 +97,10 @@ private:
 	sinsp_fdinfo* m_fdinfo;
 	std::string m_tstr;
 	uint8_t m_tcstr[2];
-	uint32_t m_tbool;
 	int64_t m_argid;
 
-	/* Used in extract helper to save uint64_t data */
-	uint64_t m_conv_uint64;
+	union {
+		uint32_t u32;
+		uint64_t u64;
+	} m_val;
 };

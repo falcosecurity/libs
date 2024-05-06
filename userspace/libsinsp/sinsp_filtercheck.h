@@ -32,7 +32,7 @@ limitations under the License.
 /*
  * Operators to compare events
  */
-enum cmpop {
+enum cmpop: uint8_t {
 	CO_NONE = 0,
 	CO_EQ = 1,
 	CO_NE = 2,
@@ -54,7 +54,7 @@ enum cmpop {
 	CO_IGLOB = 18,
 };
 
-enum boolop
+enum boolop: uint8_t
 {
 	BO_NONE = 0,
 	BO_NOT = 1,
@@ -175,7 +175,7 @@ struct filtercheck_field_info
 class filter_check_info
 {
 public:
-	enum flags
+	enum flags: uint8_t
 	{
 		FL_NONE = 0,
 		FL_HIDDEN = (1 << 0),	///< This filter check class won't be shown by fields/filter listings.
@@ -219,7 +219,7 @@ public:
 	//
 	virtual const filter_check_info* get_fields() const
 	{
-		return &m_info;
+		return m_info;
 	}
 
 	//
@@ -357,8 +357,17 @@ protected:
 
 	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
 
-	inline uint8_t* filter_value_p(uint16_t i = 0) { return m_vals[i].first; }
-	inline uint32_t filter_value_len(uint16_t i = 0) { return m_vals[i].second; }
+	inline uint8_t* filter_value_p(uint16_t i = 0)
+	{
+		ASSERT(i < m_vals.size());
+		return m_vals[i].first;
+	}
+
+	inline uint32_t filter_value_len(uint16_t i = 0)
+	{
+		ASSERT(i < m_vals.size());
+		return m_vals[i].second;
+	}
 
 	std::vector<char> m_getpropertystr_storage;
 	std::vector<std::vector<uint8_t>> m_val_storages;
@@ -366,7 +375,7 @@ protected:
 	std::vector<filter_value_t> m_vals;
 
 	const filtercheck_field_info* m_field = nullptr;
-	filter_check_info m_info;
+	const filter_check_info* m_info = nullptr;
 	uint32_t m_field_id = (uint32_t) -1;
 
 private:
@@ -383,10 +392,14 @@ private:
 	std::unique_ptr<filtercheck_field_info> m_transformed_field = nullptr;
 
 	// used for comparing right-hand lists of values
-	std::unordered_set<filter_value_t,
-		g_hash_membuf,
-		g_equal_to_membuf> m_val_storages_members;
-	path_prefix_search m_val_storages_paths;
+	std::unique_ptr<
+		std::unordered_set<filter_value_t,
+			g_hash_membuf,
+			g_equal_to_membuf>> m_val_storages_members;
+	std::unique_ptr<path_prefix_search> m_val_storages_paths;
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
+
+	static constexpr const size_t s_min_filter_value_buf_size = 16;
+	static constexpr const size_t s_max_filter_value_buf_size = 256;
 };

@@ -106,11 +106,13 @@ private:
 	uint8_t *extract_abspath(sinsp_evt *evt, OUT uint32_t *len);
 	inline uint8_t* extract_buflen(sinsp_evt *evt, OUT uint32_t* len);
 
-	uint64_t m_u64val;
-	int64_t m_s64val;
+	union {
+		uint16_t u16;
+		uint32_t u32;
+		int64_t s64;
+		uint64_t u64;
+	} m_val;
 	uint64_t m_tsdelta;
-	uint16_t m_u16val;
-	uint32_t m_u32val;
 	std::string m_strstorage;
 	std::string m_argname;
 	int32_t m_argid;

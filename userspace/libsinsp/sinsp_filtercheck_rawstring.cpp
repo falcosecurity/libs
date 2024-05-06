@@ -27,25 +27,26 @@ static const filtercheck_field_info rawstring_check_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "NA", "NA", "INTERNAL."},
 };
 
-rawstring_check::rawstring_check(string text)
+rawstring_check::rawstring_check(const string& text)
 {
+	static const filter_check_info s_field_infos = {
+		"",
+		"",
+		"",
+		sizeof(rawstring_check_fields) / sizeof(rawstring_check_fields[0]),
+		rawstring_check_fields,
+		filter_check_info::FL_HIDDEN,
+	};
 	m_field = rawstring_check_fields;
-	m_info.m_flags = filter_check_info::FL_HIDDEN;
-	m_info.m_fields = rawstring_check_fields;
+	m_info = &s_field_infos;
 	m_field_id = 0;
-	set_text(text);
+	m_text = text;
 }
 
 std::unique_ptr<sinsp_filter_check> rawstring_check::allocate_new()
 {
 	ASSERT(false);
 	return nullptr;
-}
-
-void rawstring_check::set_text(string text)
-{
-	m_text_len = (uint32_t)text.size();
-	m_text = text;
 }
 
 int32_t rawstring_check::parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering)
@@ -56,6 +57,6 @@ int32_t rawstring_check::parse_field_name(std::string_view, bool alloc_state, bo
 
 uint8_t* rawstring_check::extract_single(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
-	*len = m_text_len;
+	*len = m_text.size();
 	return (uint8_t*)m_text.c_str();
 }

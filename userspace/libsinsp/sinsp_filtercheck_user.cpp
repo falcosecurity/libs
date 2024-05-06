@@ -44,11 +44,16 @@ static const filtercheck_field_info sinsp_filter_check_user_fields[] =
 
 sinsp_filter_check_user::sinsp_filter_check_user()
 {
-	m_info.m_name = "user";
-	m_info.m_desc = "Information about the user executing the specific event.";
-	m_info.m_fields = sinsp_filter_check_user_fields;
-	m_info.m_nfields = sizeof(sinsp_filter_check_user_fields) / sizeof(sinsp_filter_check_user_fields[0]);
-	m_info.m_flags = filter_check_info::FL_NONE;
+	static const filter_check_info s_field_infos = {
+		"user",
+		"",
+		"Information about the user executing the specific event.",
+		sizeof(sinsp_filter_check_user_fields) / sizeof(sinsp_filter_check_user_fields[0]),
+		sinsp_filter_check_user_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
+	memset(&m_val, 0, sizeof(m_val));
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_user::allocate_new()
@@ -84,8 +89,8 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt *evt, OUT uint32_t* l
 	switch(m_field_id)
 	{
 	case TYPE_UID:
-		m_uid = tinfo->m_user.uid();
-		RETURN_EXTRACT_VAR(m_uid);
+		m_val.u32 = tinfo->m_user.uid();
+		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_NAME:
 		m_strval = tinfo->m_user.name();
 		RETURN_EXTRACT_STRING(m_strval);
@@ -96,12 +101,12 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt *evt, OUT uint32_t* l
 		m_strval = tinfo->m_user.shell();
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_LOGINUID:
-		m_s64val = (int64_t)-1;
+		m_val.s64 = (int64_t)-1;
 		if(tinfo->m_loginuser.uid() < UINT32_MAX)
 		{
-			m_s64val = (int64_t)tinfo->m_loginuser.uid();
+			m_val.s64 = (int64_t)tinfo->m_loginuser.uid();
 		}
-		RETURN_EXTRACT_VAR(m_s64val);
+		RETURN_EXTRACT_VAR(m_val.s64);
 	case TYPE_LOGINNAME:
 		m_strval = tinfo->m_loginuser.name();
 		RETURN_EXTRACT_STRING(m_strval);

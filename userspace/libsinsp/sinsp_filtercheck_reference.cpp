@@ -26,13 +26,14 @@ using namespace std;
 
 sinsp_filter_check_reference::sinsp_filter_check_reference()
 {
-	m_info.m_name = "<NA>";
-	m_info.m_desc = "";
-	m_info.m_fields = &m_finfo;
-	m_info.m_nfields = 1;
-	m_info.m_flags = filter_check_info::FL_HIDDEN;
+	m_cinfo.m_name = "<NA>";
+	m_cinfo.m_desc = "";
+	m_cinfo.m_fields = &m_finfo;
+	m_cinfo.m_nfields = 1;
+	m_cinfo.m_flags = filter_check_info::FL_HIDDEN;
 	m_finfo.m_print_format = PF_DEC;
 	m_field = &m_finfo;
+	m_info = &m_cinfo;
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_reference::allocate_new()

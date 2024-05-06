@@ -67,8 +67,10 @@ private:
 	int32_t extract_arg(std::string_view val, size_t basename);
 
 	std::string m_tstr;
-	uint32_t m_u32val;
 	int32_t m_argid;
 	std::string m_argstr;
-	int64_t m_s64val;
+	union {
+		uint32_t u32;
+		int64_t s64;
+	} m_val;
 };

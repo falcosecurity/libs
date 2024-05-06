@@ -67,13 +67,16 @@ static const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
 {
-	m_info.m_name = "evt";
-	m_info.m_shortdesc = "All event types";
-	m_info.m_desc = "These fields can be used for all event types";
-	m_info.m_fields = sinsp_filter_check_gen_event_fields;
-	m_info.m_flags = filter_check_info::FL_NONE;
-	m_info.m_nfields = sizeof(sinsp_filter_check_gen_event_fields) / sizeof(sinsp_filter_check_gen_event_fields[0]);
-	m_u64val = 0;
+	static const filter_check_info s_field_infos = {
+		"evt",
+		"All event types",
+		"These fields can be used for all event types",
+		sizeof(sinsp_filter_check_gen_event_fields) / sizeof(sinsp_filter_check_gen_event_fields[0]),
+		sinsp_filter_check_gen_event_fields,
+		filter_check_info::FL_NONE,
+	};
+	m_info = &s_field_infos;
+	memset(&m_val, 0, sizeof(m_val));
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_check_gen_event::allocate_new()
@@ -138,26 +141,26 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, OUT uint32
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, false);
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_RAWTS:
-		m_u64val = evt->get_ts();
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_val.u64 = evt->get_ts();
+		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_RAWTS_S:
-		m_u64val = evt->get_ts() / ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_val.u64 = evt->get_ts() / ONE_SECOND_IN_NS;
+		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_RAWTS_NS:
-		m_u64val = evt->get_ts() % ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_val.u64 = evt->get_ts() % ONE_SECOND_IN_NS;
+		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_RELTS:
-		m_u64val = evt->get_ts() - m_inspector->m_firstevent_ts;
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_val.u64 = evt->get_ts() - m_inspector->m_firstevent_ts;
+		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_RELTS_S:
-		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_val.u64 = (evt->get_ts() - m_inspector->m_firstevent_ts) / ONE_SECOND_IN_NS;
+		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_RELTS_NS:
-		m_u64val = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_val.u64 = (evt->get_ts() - m_inspector->m_firstevent_ts) % ONE_SECOND_IN_NS;
+		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_NUMBER:
-		m_u64val = evt->get_num();
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_val.u64 = evt->get_num();
+		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_PLUGINNAME:
 	case TYPE_PLUGININFO:
 		plugin = m_inspector->get_plugin_manager()->plugin_by_evt(evt);
@@ -186,13 +189,13 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, OUT uint32
 	case TYPE_ISASYNC:
 		if (libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
 		{
-			m_u32val = 1;
+			m_val.u32 = 1;
 		}
 		else
 		{
-			m_u32val = 0;
+			m_val.u32 = 0;
 		}
-		RETURN_EXTRACT_VAR(m_u32val);
+		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_ASYNCTYPE:
 		if (!libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
 		{
