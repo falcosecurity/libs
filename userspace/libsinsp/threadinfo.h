@@ -36,8 +36,6 @@ struct iovec {
 #include <libsinsp/state/table.h>
 #include <libsinsp/thread_group_info.h>
 
-class blprogram;
-
 struct erase_fd_params
 {
 	bool m_remove_from_table;
@@ -703,21 +701,6 @@ public:
 		m_lastevent_cpuid = v;
 	}
 
-	inline blprogram* get_blprogram()
-	{
-		return m_blprogram;
-	}
-
-	inline const blprogram* get_blprogram() const
-	{
-		return m_blprogram;
-	}
-
-	inline void set_blprogram(blprogram* v)
-	{
-		m_blprogram = v;
-	}
-
 	inline const sinsp_evt::category& get_lastevent_category() const
 	{
 		return m_lastevent_category;
@@ -755,7 +738,6 @@ private:
 	uint16_t m_lastevent_cpuid;
 	sinsp_evt::category m_lastevent_category;
 	bool m_parent_loop_detected;
-	blprogram* m_blprogram;
 };
 
 /*@}*/
