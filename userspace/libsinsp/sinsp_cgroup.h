@@ -28,9 +28,9 @@ class sinsp_threadinfo;
 
 class sinsp_cgroup {
 public:
-	sinsp_cgroup();
+	sinsp_cgroup(bool with_self_cg = false);
 
-	explicit sinsp_cgroup(std::string &&root);
+	explicit sinsp_cgroup(std::string &&root, bool with_self_cg = false);
 
 	virtual ~sinsp_cgroup();
 
