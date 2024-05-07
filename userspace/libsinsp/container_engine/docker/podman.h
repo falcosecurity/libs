@@ -21,7 +21,7 @@ private:
 	std::optional<bool> m_api_sock_can_exist;
 
 	// Return true if any possible api socket pattern exists.
-	bool can_api_sock_exist();
+	static bool can_api_sock_exist(sinsp *inspector);
 
 	// Return whether or not any possible api socket exists. (The actual socket is
 	// implement container_engine_base

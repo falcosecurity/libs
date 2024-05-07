@@ -163,8 +163,14 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string &container_id)
 }
 }
 
-bool podman::can_api_sock_exist()
+bool podman::can_api_sock_exist(sinsp *inspector)
 {
+	// Short-circuit: always enable podman when running from a capture file.
+	if (inspector->is_capture())
+	{
+		return true;
+	}
+
 	glob_t gl;
 	int rc;
 	int glob_flags = 0;
@@ -193,7 +199,7 @@ bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 	if(!m_api_sock_can_exist.has_value())
 	{
-		m_api_sock_can_exist = can_api_sock_exist();
+		m_api_sock_can_exist = can_api_sock_exist(tinfo->m_inspector);
 	}
 
 	if(!m_api_sock_can_exist.value())
