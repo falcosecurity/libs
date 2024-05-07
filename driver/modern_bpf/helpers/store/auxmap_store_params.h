@@ -627,6 +627,11 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
 			start_reading_point = (unsigned long)sockaddr_un->sun_path;
 		}
 
+		// The addrlen is used has hard limit. So we should use add 1 for the `\0`
+		addrlen -= (FAMILY_SIZE + 1);
+		if(sockaddr_un->sun_path[addrlen-1] != '\0')
+			addrlen += 1;
+
 		/* Pack the sockaddr info:
 		 * - socket family.
 		 * - socket_unix_path (sun_path).
