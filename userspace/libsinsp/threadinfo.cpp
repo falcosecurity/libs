@@ -140,7 +140,6 @@ void sinsp_threadinfo::init()
 	m_parent_loop_detected = false;
 	m_tty = 0;
 	m_category = CAT_NONE;
-	m_blprogram = NULL;
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
 	m_cap_effective = 0;
