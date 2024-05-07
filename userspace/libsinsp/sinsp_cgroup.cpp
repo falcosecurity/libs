@@ -94,3 +94,12 @@ bool sinsp_cgroup::in_cgroupns() const
 {
 	return m_scap_cgroup.m_in_cgroupns;
 }
+
+std::string sinsp_cgroup::self_v2() const
+{
+	if(!m_scap_cgroup.m_self_v2[0])
+	{
+		return {};
+	}
+	return m_scap_cgroup.m_self_v2;
+}

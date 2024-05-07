@@ -42,6 +42,8 @@ public:
 
 	bool in_cgroupns() const;
 
+	std::string self_v2() const;
+
 protected:
 	std::string m_root;
 	struct scap_cgroup_interface m_scap_cgroup;
