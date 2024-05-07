@@ -343,6 +343,9 @@ uint8_t* sinsp_filter_check_container::extract_single(sinsp_evt *evt, OUT uint32
 			case sinsp_container_type::CT_BPM:
 				m_tstr = "bpm";
 				break;
+			case sinsp_container_type::CT_PODMAN:
+				m_tstr = "podman";
+				break;
 			default:
 				ASSERT(false);
 				break;
