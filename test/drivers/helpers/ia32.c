@@ -18,26 +18,10 @@
 #include <linux/openat2.h> /* Definition of RESOLVE_* constants */
 #endif
 
-#define TRY_1_ARGS_CALL(x, a1)                                                                                         \
+#define TRY_SYSCALL(x, ...)                                                                                            \
 	if(strncmp(#x, argv[1], sizeof(#x)) == 0)                                                                      \
 	{                                                                                                              \
-		syscall(x, a1);                                                                                        \
-		printf("--> Test_ia32 called '%s'\n", #x);                                                             \
-		return 0;                                                                                              \
-	}
-
-#define TRY_2_ARGS_CALL(x, a1, a2)                                                                                     \
-	if(strncmp(#x, argv[1], sizeof(#x)) == 0)                                                                      \
-	{                                                                                                              \
-		syscall(x, a1, a2);                                                                                    \
-		printf("--> Test_ia32 called '%s'\n", #x);                                                             \
-		return 0;                                                                                              \
-	}
-
-#define TRY_3_ARGS_CALL(x, a1, a2, a3)                                                                                 \
-	if(strncmp(#x, argv[1], sizeof(#x)) == 0)                                                                      \
-	{                                                                                                              \
-		syscall(x, a1, a2, a3);                                                                                \
+		syscall(x, ##__VA_ARGS__);                                                                             \
 		printf("--> Test_ia32 called '%s'\n", #x);                                                             \
 		return 0;                                                                                              \
 	}
@@ -87,23 +71,23 @@ int main(int argc, char** argv)
 	}
 
 #ifdef __NR_write
-	TRY_3_ARGS_CALL(__NR_write, 17, NULL, 1013)
+	TRY_SYSCALL(__NR_write, 17, NULL, 1013)
 #endif
 
 #ifdef __NR_clock_gettime
-	TRY_2_ARGS_CALL(__NR_clock_gettime, 0, NULL)
+	TRY_SYSCALL(__NR_clock_gettime, 0, NULL)
 #endif
 
 #ifdef __NR_getcpu
-	TRY_3_ARGS_CALL(__NR_getcpu, NULL, NULL, NULL)
+	TRY_SYSCALL(__NR_getcpu, NULL, NULL, NULL)
 #endif
 
 #ifdef __NR_gettimeofday
-	TRY_2_ARGS_CALL(__NR_gettimeofday, NULL, NULL)
+	TRY_SYSCALL(__NR_gettimeofday, NULL, NULL)
 #endif
 
 #ifdef __NR_time
-	TRY_1_ARGS_CALL(__NR_time, NULL)
+	TRY_SYSCALL(__NR_time, NULL)
 #endif
 
 	fprintf(stderr, "not managed syscall: '%s'\n", argv[1]);
