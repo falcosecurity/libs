@@ -255,7 +255,6 @@ static inline void *ringbuf__get_first_ring_event(struct ring *r, int pos)
 {
 	int *len_ptr = NULL;
 	int len = 0;
-	void *sample = NULL;
 
 	/* If the consumer reaches the producer update the producer position to
 	 * get the newly collected events.
@@ -275,16 +274,20 @@ static inline void *ringbuf__get_first_ring_event(struct ring *r, int pos)
 		return NULL;
 	}
 
-	/* Save the size of the event if we need to increment the consumer */
-	g_state.last_event_size = roundup_len(len);
-
 	/* the sample is not discarded kernel side. */
 	if((len & BPF_RINGBUF_DISCARD_BIT) == 0)
 	{
-		sample = (void *)len_ptr + BPF_RINGBUF_HDR_SZ;
+		/* Save the size of the event if we need to increment the consumer */
+		g_state.last_event_size = roundup_len(len);
+		return (void *)len_ptr + BPF_RINGBUF_HDR_SZ;
 	}
-
-	return sample;
+	else
+	{
+		/* Discard the event kernel side and update the consumer position */
+		g_state.cons_pos[pos] += roundup_len(len);
+		smp_store_release(r->consumer_pos, g_state.cons_pos[pos]);
+		return NULL;
+	}
 }
 
 static void ringbuf__consume_first_event(struct ring_buffer *rb, struct ppm_evt_hdr **event_ptr, int16_t *buffer_id)
