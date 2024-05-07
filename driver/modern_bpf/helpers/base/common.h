@@ -16,31 +16,6 @@
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>
 
-/*=============================== LIBBPF MISSING TRACING DEFINITION ===========================*/
-
-/* Look at bpf/bpf_tracing.h, this definition is similar
- * to the others `PT_REGS_PARAM...`
- */
-
-#ifndef PT_REGS_PARM6_CORE_SYSCALL
-
-#if defined(bpf_target_x86)
-#define __PT_PARM6_REG r9
-#elif defined(bpf_target_arm64)
-#define __PT_PARM6_REG regs[5]
-#elif defined(bpf_target_s390)
-#define __PT_PARM6_REG gprs[7]
-#elif defined(bpf_target_powerpc)
-#define __PT_PARM6_REG gpr[8]
-#endif
-
-#define PT_REGS_PARM6_CORE(x) BPF_CORE_READ(__PT_REGS_CAST(x), __PT_PARM6_REG)
-#define PT_REGS_PARM6_CORE_SYSCALL(x) PT_REGS_PARM6_CORE(x)
-
-#endif
-
-/*=============================== LIBBPF MISSING TRACING DEFINITION ===========================*/
-
 /*=============================== DEBUG MACRO ===========================*/
 
 /* For more info about this macro look at https://nakryiko.com/posts/bpf-tips-printk/
