@@ -87,16 +87,16 @@ int32_t sinsp_filter_check_mesos::extract_arg(string_view fldname, string_view v
 {
 	int32_t parsed_len = 0;
 
-	if(val[fldname.size()] == '.')
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
 	{
 		size_t endpos;
 		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
 		{
-			if(!isalnum(val[endpos])
-				&& val[endpos] != '/'
-				&& val[endpos] != '_'
-				&& val[endpos] != '-'
-				&& val[endpos] != '.')
+			if(!isalnum(val.at(endpos))
+				&& val.at(endpos) != '/'
+				&& val.at(endpos) != '_'
+				&& val.at(endpos) != '-'
+				&& val.at(endpos) != '.')
 			{
 				break;
 			}

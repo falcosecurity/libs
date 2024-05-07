@@ -148,7 +148,7 @@ int32_t sinsp_filter_check_event::extract_arg(string_view fldname, string_view v
 	//
 	// 'arg' and 'resarg' are handled in a custom way
 	//
-	if(val[fldname.size()] == '[')
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '[')
 	{
 		if(parinfo != NULL)
 		{
@@ -169,7 +169,7 @@ int32_t sinsp_filter_check_event::extract_arg(string_view fldname, string_view v
 
 		parsed_len++;
 	}
-	else if(val[fldname.size()] == '.')
+	else if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
 	{
 		if(m_field_id == TYPE_AROUND)
 		{
@@ -205,7 +205,7 @@ int32_t sinsp_filter_check_event::extract_type(string_view fldname, string_view 
 {
 	uint32_t parsed_len = 0;
 
-	if(val[fldname.size()] == '.')
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
 	{
 		string itype(val.substr(fldname.size() + 1));
 

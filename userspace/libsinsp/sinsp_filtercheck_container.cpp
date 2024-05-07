@@ -152,7 +152,7 @@ int32_t sinsp_filter_check_container::parse_field_name(std::string_view val, boo
 		res = extract_arg(val, basepos);
 	}
 	else if (val.find("container.mount") == 0 &&
-		 val[basepos-1] != 's')
+		 val.size() > basepos-1 && val.at(basepos-1) != 's')
 	{
 		m_field_id = TYPE_CONTAINER_MOUNT;
 		m_field = &m_info.m_fields[m_field_id];
