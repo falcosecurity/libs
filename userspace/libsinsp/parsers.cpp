@@ -2498,7 +2498,7 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int
 	/* This should never happen but just to be sure. */
 	if(name.data() != nullptr)
 	{
-		is_absolute = (name.size() > 0 && name[0] == '/');
+		is_absolute = (!name.empty() && name[0] == '/');
 	}
 
 	std::string tdirstr;
