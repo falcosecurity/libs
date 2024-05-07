@@ -126,7 +126,7 @@ int32_t sinsp_filter_check_fd::extract_arg(string_view fldname, string_view val)
 	//
 	// 'arg' and 'resarg' are handled in a custom way
 	//
-	if(val[fldname.size()] == '[')
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '[')
 	{
 		parsed_len = (uint32_t)val.find(']');
 		string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));

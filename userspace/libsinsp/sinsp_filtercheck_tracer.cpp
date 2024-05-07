@@ -83,7 +83,7 @@ int32_t sinsp_filter_check_tracer::extract_arg(string_view fldname, string_view 
 	//
 	// 'arg' and 'resarg' are handled in a custom way
 	//
-	if(val[fldname.size()] == '[')
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '[')
 	{
 		if(parinfo != NULL)
 		{
@@ -95,7 +95,7 @@ int32_t sinsp_filter_check_tracer::extract_arg(string_view fldname, string_view 
 		m_argid = sinsp_numparser::parsed32(numstr);
 		parsed_len++;
 	}
-	else if(val[fldname.size()] == '.')
+	else if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
 	{
 		if(fldname == "span.tag")
 		{

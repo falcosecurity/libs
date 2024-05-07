@@ -83,7 +83,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string_view fldname, string_view v
 	//
 	// 'arg' and 'resarg' are handled in a custom way
 	//
-	if(val[fldname.size()] == '[')
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '[')
 	{
 		parsed_len = (uint32_t)val.find(']');
 		string numstr(val.substr(fldname.size() + 1, parsed_len - fldname.size() - 1));
@@ -92,7 +92,7 @@ int32_t sinsp_filter_check_evtin::extract_arg(string_view fldname, string_view v
 
 		parsed_len++;
 	}
-	else if(val[fldname.size()] == '.')
+	else if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
 	{
 		const ppm_param_info* pi =
 			sinsp_utils::find_longest_matching_evt_param(val.substr(fldname.size() + 1));

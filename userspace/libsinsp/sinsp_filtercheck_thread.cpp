@@ -160,7 +160,7 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname, std::st
 		m_field_id == TYPE_AEXEPATH ||
 		m_field_id == TYPE_ACMDLINE)
 	{
-		if(val[fldname.size()] == '[')
+		if(val.size() > fldname.size() && val.at(fldname.size()) == '[')
 		{
 			parsed_len = val.find(']');
 			if(parsed_len == std::string::npos)
@@ -179,7 +179,7 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname, std::st
 	else if(m_field_id == TYPE_ENV ||
 			m_field_id == TYPE_AENV	)
 	{
-		if(val[fldname.size()] == '[')
+		if(val.size() > fldname.size() && val.at(fldname.size()) == '[')
 		{
 			std::string::size_type startpos = fldname.size();
 			parsed_len = val.find(']', startpos);
@@ -203,13 +203,13 @@ int32_t sinsp_filter_check_thread::extract_arg(std::string_view fldname, std::st
 	}
 	else if(m_field_id == TYPE_CGROUP)
 	{
-		if(val[fldname.size()] == '.')
+		if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
 		{
 			std::string::size_type endpos;
 			for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
 			{
-				if(!isalpha(val[endpos])
-					&& val[endpos] != '_')
+				if(!isalpha(val.at(endpos))
+					&& val.at(endpos) != '_')
 				{
 					break;
 				}

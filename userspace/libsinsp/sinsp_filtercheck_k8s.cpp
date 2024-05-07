@@ -146,16 +146,16 @@ int32_t sinsp_filter_check_k8s::extract_arg(string_view fldname, string_view val
 {
 	int32_t parsed_len = 0;
 
-	if(val[fldname.size()] == '.')
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
 	{
 		size_t endpos;
 		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
 		{
-			if(!isalnum(val[endpos])
-				&& val[endpos] != '/'
-				&& val[endpos] != '_'
-				&& val[endpos] != '-'
-				&& val[endpos] != '.')
+			if(!isalnum(val.at(endpos))
+				&& val.at(endpos) != '/'
+				&& val.at(endpos) != '_'
+				&& val.at(endpos) != '-'
+				&& val.at(endpos) != '.')
 			{
 				break;
 			}
@@ -164,7 +164,7 @@ int32_t sinsp_filter_check_k8s::extract_arg(string_view fldname, string_view val
 		parsed_len = (uint32_t)endpos;
 		m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
 	}
-	else if(val[fldname.size()] == '[')
+	else if(val.size() > fldname.size() && val.at(fldname.size()) == '[')
 	{
 		size_t startpos = fldname.size();
 		parsed_len = (uint32_t)val.find(']', startpos);
