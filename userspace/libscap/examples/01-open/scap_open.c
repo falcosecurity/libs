@@ -150,10 +150,10 @@ static int simple_set[] = {
 	-1
 };
 
-struct pair_counter{
+typedef struct ppm_sc_counter{
 	uint64_t counter;
 	ppm_sc_code code; /* we need the code also here because at the end we will sort */
-} typedef pair_counter;
+} ppm_sc_counter;
 
 /* Generic global variables. */
 static scap_open_args oargs = {};						    /* scap oargs used in `scap_open`. */
@@ -166,7 +166,7 @@ static char* valptr = NULL; /* pointer used to print the value of event params. 
 static struct timeval tval_start, tval_end, tval_result;
 static unsigned long number_of_timeouts; /* Times in which there were no events in the buffer. */
 static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
-static pair_counter ppm_sc_count[PPM_SC_MAX*2] = {0}; /* Number of times a syscall is called. We want the `*2` because we store the enter and the exit count separately */
+static ppm_sc_counter ppm_sc_count[PPM_SC_MAX*2] = {0}; /* Number of times a syscall is called. We want the `*2` because we store the enter and the exit count separately */
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -836,7 +836,7 @@ void print_syscalls_stats()
 	}
 
 	// sort them 
-	pair_counter tmp;
+	ppm_sc_counter tmp;
 	for(int i = 0; i < PPM_SC_MAX*2; ++i)
 	{
 		for(int j = i + 1; j < PPM_SC_MAX*2; ++j)
