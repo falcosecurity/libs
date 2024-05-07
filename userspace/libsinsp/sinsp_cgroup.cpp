@@ -21,17 +21,17 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <libsinsp/sinsp.h>
 
-sinsp_cgroup::sinsp_cgroup() :
-	sinsp_cgroup(scap_get_host_root())
+sinsp_cgroup::sinsp_cgroup(bool with_self_cg) :
+	sinsp_cgroup(scap_get_host_root(), with_self_cg)
 {
 }
 
-sinsp_cgroup::sinsp_cgroup(std::string &&root) :
+sinsp_cgroup::sinsp_cgroup(std::string &&root, bool with_self_cg) :
 	m_root(std::move(root)),
 	m_scap_cgroup({})
 {
 	char error[SCAP_LASTERR_SIZE];
-	scap_cgroup_interface_init(&m_scap_cgroup, m_root.c_str(), error, false);
+	scap_cgroup_interface_init(&m_scap_cgroup, m_root.c_str(), error, with_self_cg);
 }
 
 std::shared_ptr<std::string> sinsp_cgroup::lookup_cgroup_dir(const std::string &subsys, int &version)
