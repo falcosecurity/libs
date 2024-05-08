@@ -480,20 +480,44 @@ bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void
 	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
+		if (op2_len != sizeof(struct in_addr))
+		{
+			return false;
+		}
 		return flt_compare_uint64(op, flt_cast<uint32_t, uint64_t>(operand1), flt_cast<uint32_t, uint64_t>(operand2));
 	case PT_IPV4NET:
+		if (op2_len != sizeof(ipv4net))
+		{
+			return false;
+		}
 		return flt_compare_ipv4net(op, (uint64_t)*(uint32_t*)operand1, (ipv4net*)operand2);
 	case PT_IPV6ADDR:
+		if (op2_len != sizeof(ipv6addr))
+		{
+			return false;
+		}
 		return flt_compare_ipv6addr(op, (ipv6addr *)operand1, (ipv6addr *)operand2);
 	case PT_IPV6NET:
+		if (op2_len != sizeof(ipv6net))
+		{
+			return false;
+		}
 		return flt_compare_ipv6net(op, (ipv6addr *)operand1, (ipv6net*)operand2);
 	case PT_IPADDR:
 		if(op1_len == sizeof(struct in_addr))
 		{
+			if (op2_len != sizeof(struct in_addr))
+			{
+				return false;
+			}
 			return flt_compare(op, PT_IPV4ADDR, operand1, operand2, op1_len, op2_len);
 		}
 		else if(op1_len == sizeof(struct in6_addr))
 		{
+			if (op2_len != sizeof(ipv6addr))
+			{
+				return false;
+			}
 			return flt_compare(op, PT_IPV6ADDR, operand1, operand2, op1_len, op2_len);
 		}
 		else
@@ -503,10 +527,18 @@ bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void
 	case PT_IPNET:
 		if(op1_len == sizeof(struct in_addr))
 		{
+			if (op2_len != sizeof(ipv4net))
+			{
+				return false;
+			}
 			return flt_compare(op, PT_IPV4NET, operand1, operand2, op1_len, op2_len);
 		}
 		else if(op1_len == sizeof(struct in6_addr))
 		{
+			if (op2_len != sizeof(ipv6net))
+			{
+				return false;
+			}
 			return flt_compare(op, PT_IPV6NET, operand1, operand2, op1_len, op2_len);
 		}
 		else
@@ -640,6 +672,15 @@ bool flt_compare_avg(cmpop op,
 	default:
 		ASSERT(false);
 		return false;
+	}
+}
+
+template <typename Ptr, typename... Params>
+static inline void ensure_unique_ptr_allocated(Ptr& p, Params... args)
+{
+	if (!p)
+	{
+		p = std::make_unique<typename Ptr::element_type>(args...);
 	}
 }
 
@@ -1259,9 +1300,9 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	if(has_filtercheck_value())
 	{
 		throw sinsp_exception("can't add const field value: field '"
-			+ std::string(get_field_info()->m_name)
+			+ std::string(get_transformed_field_info()->m_name)
 			+ "' already has another field '"
-			+ m_rhs_filter_check->get_field_info()->m_name
+			+ m_rhs_filter_check->get_transformed_field_info()->m_name
 			+ "' as right-hand side value");
 	}
 
@@ -1303,10 +1344,7 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	if (m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS)
 	{
 		// If the operator is IN or INTERSECTS, populate the map search
-		if (!m_val_storages_members)
-		{
-			m_val_storages_members = std::make_unique<decltype(m_val_storages_members)::element_type>();
-		}
+		ensure_unique_ptr_allocated(m_val_storages_members);
 		m_val_storages_members->insert(item);
 
 		if(parsed_len < m_val_storages_min_size)
@@ -1322,10 +1360,7 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	else if (m_cmpop == CO_PMATCH)
 	{
 		// If the operator is CO_PMATCH, also add the value to the paths set.
-		if (!m_val_storages_paths)
-		{
-			m_val_storages_paths = std::make_unique<path_prefix_search>();
-		}
+		ensure_unique_ptr_allocated(m_val_storages_paths);
 		m_val_storages_paths->add_search_path(item);
 	}
 }
@@ -1335,25 +1370,32 @@ void sinsp_filter_check::add_filter_value(std::unique_ptr<sinsp_filter_check> rh
 	if(!get_filter_values().empty())
 	{
 		throw sinsp_exception("can't add '"
-			+ std::string(rhs_chk->get_field_info()->m_name)
+			+ std::string(rhs_chk->get_transformed_field_info()->m_name)
 			+ "' as field value: field '"
-			+ std::string(get_field_info()->m_name)
+			+ std::string(get_transformed_field_info()->m_name)
 			+ "' is already compared with other const values");
 	}
 
 	if(has_filtercheck_value())
 	{
 		throw sinsp_exception("can't add '"
-			+ std::string(rhs_chk->get_field_info()->m_name)
+			+ std::string(rhs_chk->get_transformed_field_info()->m_name)
 			+ "' as field value: field '"
-			+ std::string(get_field_info()->m_name)
+			+ std::string(get_transformed_field_info()->m_name)
 			+ "' is already compared with right-hand side field '"
-			+ std::string(m_rhs_filter_check->get_field_info()->m_name) + "'");
+			+ std::string(m_rhs_filter_check->get_transformed_field_info()->m_name) + "'");
 	}
 
 	if(m_cmpop == CO_PMATCH)
 	{
 		throw sinsp_exception("operator `CO_PMATCH` doesn't support right-hand side fields");
+	}
+
+	if (get_transformed_field_info()->m_type == PT_IPNET
+		|| get_transformed_field_info()->m_type == PT_IPV4NET
+		|| get_transformed_field_info()->m_type == PT_IPV6NET)
+	{
+		throw sinsp_exception("field type `IPNET` doesn't support right-hand side fields");
 	}
 
 	// For each filter check we need to answer 2 questions:
@@ -1409,17 +1451,17 @@ void sinsp_filter_check::add_filter_value(std::unique_ptr<sinsp_filter_check> rh
 	// "fd.lip.name"
 	// "fd.rip.name"
 
-	if(!get_field_info()->is_rhs_field_supported())
+	if(!get_transformed_field_info()->is_rhs_field_supported())
 	{
 		throw sinsp_exception("field '"
-			+ std::string(get_field_info()->m_name)
+			+ std::string(get_transformed_field_info()->m_name)
 			+ "' doesn't support right-hand side fields");
 	}
 
-	if(!rhs_chk->get_field_info()->is_rhs_field_supported())
+	if(!rhs_chk->get_transformed_field_info()->is_rhs_field_supported())
 	{
 		throw sinsp_exception("field '"
-			+ std::string(get_field_info()->m_name)
+			+ std::string(get_transformed_field_info()->m_name)
 			+ "' can't be used as a right-hand side field");
 	}
 
@@ -1433,18 +1475,18 @@ size_t sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uin
 	size_t parsed_len;
 
 	// byte buffer, no parsing needed
-	if (get_field_info()->m_type == PT_BYTEBUF)
+	if (get_transformed_field_info()->m_type == PT_BYTEBUF)
 	{
 		if(len >= storage_len)
 		{
-			throw sinsp_exception("filter parameter too long:" + std::string(str));
+			throw sinsp_exception("filter parameter too long (byte buf)");
 		}
 		memcpy(storage, str, len);
 		return len;
 	}
 	else
 	{
-		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, get_field_info()->m_type);
+		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, storage, storage_len, get_transformed_field_info()->m_type);
 	}
 
 	return parsed_len;
@@ -1457,7 +1499,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 		return true;
 	}
 
-	if(get_field_info()->is_list())
+	if(get_transformed_field_info()->is_list())
 	{
 		// NOTE: using m_val_storages_members.find(item) relies on memcmp to
 		// compare filter_value_t values, and not the base-level flt_compare.
@@ -1514,7 +1556,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 					}
 					else
 					{
-						ASSERT(m_val_storages_members != nullptr);
+						ensure_unique_ptr_allocated(m_val_storages_members);
 						if(it.len < m_val_storages_min_size || it.len > m_val_storages_max_size
 							 || m_val_storages_members->find(item) == m_val_storages_members->end())
 						{
@@ -1543,7 +1585,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 					}
 					else
 					{
-						ASSERT(m_val_storages_members != nullptr);
+						ensure_unique_ptr_allocated(m_val_storages_members);
 						if(it.len >= m_val_storages_min_size && it.len <= m_val_storages_max_size
 							&& m_val_storages_members->find(item) != m_val_storages_members->end())
 						{
@@ -1624,7 +1666,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 				// multiple values, and you're comparing the set of extracted values
 				// against the set of rhs values. sinsp_filter_checks only extract a
 				// single value, so CO_INTERSECTS is really the same as CO_IN.
-				ASSERT(m_val_storages_members != nullptr);
+				ensure_unique_ptr_allocated(m_val_storages_members);
 				if(op1_len >= m_val_storages_min_size &&
 				   op1_len <= m_val_storages_max_size &&
 				   m_val_storages_members->find(item) != m_val_storages_members->end())
@@ -1634,7 +1676,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 			}
 			else
 			{
-				ASSERT(m_val_storages_paths != nullptr);
+				ensure_unique_ptr_allocated(m_val_storages_paths);
 				if (m_val_storages_paths->match(item))
 				{
 					return true;
@@ -1683,7 +1725,7 @@ bool sinsp_filter_check::extract(sinsp_evt *evt, std::vector<extract_value_t>& v
 	}
 
 	// Never cache extractions for fields that contain arguments.
-	if(m_extraction_cache_entry != NULL && !get_field_info()->is_arg_supported())
+	if(m_extraction_cache_entry != NULL && !get_transformed_field_info()->is_arg_supported())
 	{
 		uint64_t en = ((sinsp_evt *)evt)->get_num();
 
@@ -1727,8 +1769,8 @@ bool sinsp_filter_check::compare(sinsp_evt* evt)
 
 	// Never cache extractions for fields that contain arguments.
 	if (m_eval_cache_entry != NULL
-		&& !get_field_info()->is_arg_supported()
-		&& !(has_filtercheck_value() && m_rhs_filter_check->get_field_info()->is_arg_supported()))
+		&& !get_transformed_field_info()->is_arg_supported()
+		&& !(has_filtercheck_value() && m_rhs_filter_check->get_transformed_field_info()->is_arg_supported()))
 	{
 		uint64_t en = evt->get_num();
 
@@ -1794,13 +1836,10 @@ void sinsp_filter_check::add_transformer(filter_transformer_type trtype)
 	}
 
 	// lazily allocate copy of the field's info to add transformations on top of
-	if (!m_transformed_field)
-	{
-		// note: we (legitimately) assume that the original type will
-		// never change after filtercheck creation, so we create a copy
-		// only once and on-demand
-		m_transformed_field = std::make_unique<filtercheck_field_info>(*original_type);
-	}
+	// note: we (legitimately) assume that the original type will
+	// never change after filtercheck creation, so we create a copy
+	// only once and on-demand
+	ensure_unique_ptr_allocated(m_transformed_field, *original_type);
 
 	// apply type transformation, both as a feasibility check and
 	// as an information to be returned later on
@@ -1847,10 +1886,7 @@ void sinsp_filter_check::populate_filter_values_with_rhs_extracted_values(const 
 	// These are needed for In/Intersects
 	if (m_cmpop == CO_IN || m_cmpop == CO_INTERSECTS)
 	{
-		if (!m_val_storages_members)
-		{
-			m_val_storages_members = std::make_unique<decltype(m_val_storages_members)::element_type>();
-		}
+		ensure_unique_ptr_allocated(m_val_storages_members);
 		m_val_storages_members->clear();
 		m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
 		m_val_storages_max_size = (std::numeric_limits<uint32_t>::min)();
@@ -1893,12 +1929,12 @@ void sinsp_filter_check::check_rhs_field_type_consistency() const
 	if(!(lhs_type == rhs_type && lhs_list == rhs_list))
 	{
 		throw sinsp_exception("field '"
-			+ std::string(get_field_info()->m_name)
+			+ std::string(get_transformed_field_info()->m_name)
 			+ "' has type '"
 			+ std::string(param_type_to_string(lhs_type))
 			+ (lhs_list ? " (list)" : "")
 			+ "' while the right-hand side field '"
-			+ std::string(m_rhs_filter_check->get_field_info()->m_name)
+			+ std::string(m_rhs_filter_check->get_transformed_field_info()->m_name)
 			+ "' has incompatible type '"
 			+ std::string(param_type_to_string(rhs_type))
 			+ (rhs_list ? " (list)" : "")
