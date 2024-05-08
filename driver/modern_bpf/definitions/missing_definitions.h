@@ -11,6 +11,14 @@
 
 /* This header should include different definitions according to different architectures.*/
 
+#ifndef likely
+# define likely(X)		__builtin_expect(!!(X), 1)
+#endif
+
+#ifndef unlikely
+# define unlikely(X)		__builtin_expect(!!(X), 0)
+#endif
+
 /*
  * Per process flags
  */
