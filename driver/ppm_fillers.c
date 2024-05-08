@@ -1207,9 +1207,12 @@ cgroups_error:
 			res = ppm_copy_from_user(&cl_args, (void *)val, sizeof(struct clone_args));
 			if (unlikely(res != 0))
 			{
-				return PPM_FAILURE_INVALID_USER_MEMORY;
+				val = 0;
 			}
-			val = cl_args.flags;
+			else
+			{
+				val = cl_args.flags;
+			}
 #else
 			val = 0;
 #endif

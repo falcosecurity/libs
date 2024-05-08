@@ -2600,9 +2600,12 @@ FILLER(proc_startupdate_3, true)
 			flags = bpf_syscall_get_argument(data, 0);
 			if (bpf_probe_read_user(&cl_args, sizeof(struct clone_args), (void *)flags)) 
 			{
-				return PPM_FAILURE_INVALID_USER_MEMORY;
+				flags = 0;
 			}
-			flags = cl_args.flags;
+			else
+			{
+				flags = cl_args.flags;
+			}
 #else
 		flags = 0;
 #endif
