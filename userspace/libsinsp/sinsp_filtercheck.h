@@ -18,41 +18,17 @@ limitations under the License.
 
 #pragma once
 
-#include <string>
-#include <unordered_set>
-#include <memory>
-#include <json/json.h>
-#include <libscap/scap.h>
-#include <libsinsp/tuples.h>
 #include <libsinsp/filter_value.h>
 #include <libsinsp/prefix_search.h>
 #include <libsinsp/event.h>
+#include <libsinsp/filter_compare.h>
 #include <libsinsp/sinsp_filter_transformer.h>
 
-/*
- * Operators to compare events
- */
-enum cmpop: uint8_t {
-	CO_NONE = 0,
-	CO_EQ = 1,
-	CO_NE = 2,
-	CO_LT = 3,
-	CO_LE = 4,
-	CO_GT = 5,
-	CO_GE = 6,
-	CO_CONTAINS = 7,
-	CO_IN = 8,
-	CO_EXISTS = 9,
-	CO_ICONTAINS = 10,
-	CO_STARTSWITH = 11,
-	CO_GLOB = 12,
-	CO_PMATCH = 13,
-	CO_ENDSWITH = 14,
-	CO_INTERSECTS = 15,
-	CO_BCONTAINS = 16,
-	CO_BSTARTSWITH = 17,
-	CO_IGLOB = 18,
-};
+#include <json/json.h>
+
+#include <string>
+#include <unordered_set>
+#include <memory>
 
 enum boolop: uint8_t
 {
@@ -66,14 +42,8 @@ enum boolop: uint8_t
 	BO_ANDNOT = 5,
 };
 
-bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
-bool flt_compare_avg(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
-bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
-bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *operand2);
-
 namespace std
 {
-std::string to_string(cmpop);
 std::string to_string(boolop);
 }
 

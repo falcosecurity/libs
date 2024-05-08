@@ -1404,8 +1404,12 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 
 	if(m_fdinfo != NULL)
 	{
-		scap_fd_type evt_type = m_fdinfo->m_type;
+		if(m_cmpop == CO_EXISTS)
+		{
+			return true;
+		}
 
+		scap_fd_type evt_type = m_fdinfo->m_type;
 		if(evt_type == SCAP_FD_IPV4_SOCK)
 		{
 			if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
@@ -1486,6 +1490,11 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 		return false;
 	}
 
+	if(m_cmpop == CO_EXISTS)
+	{
+		return true;
+	}
+
 	bool sip_cmp = false;
 	bool dip_cmp = false;
 
@@ -1533,6 +1542,11 @@ bool sinsp_filter_check_fd::compare_port(sinsp_evt *evt)
 
 	if(m_fdinfo != NULL)
 	{
+		if(m_cmpop == CO_EXISTS)
+		{
+			return true;
+		}
+	
 		uint16_t* sport;
 		uint16_t* dport;
 		scap_fd_type evt_type = m_fdinfo->m_type;
@@ -1637,6 +1651,11 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt)
 
 	if(m_fdinfo != NULL)
 	{
+		if(m_cmpop == CO_EXISTS)
+		{
+			return true;
+		}
+		
 		scap_fd_type evt_type = m_fdinfo->m_type;
 		if(evt_type != SCAP_FD_IPV4_SOCK &&
 		   evt_type != SCAP_FD_IPV6_SOCK)

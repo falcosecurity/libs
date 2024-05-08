@@ -36,6 +36,7 @@ limitations under the License.
 #include <libsinsp/filter/parser.h>
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/plugin_filtercheck.h>
+#include <libsinsp/filter_compare.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_expression implementation
@@ -304,6 +305,16 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::not_expr* e)
 	m_filter->pop_expression();
 }
 
+static inline void check_op_type_compatibility(sinsp_filter_check& c)
+{
+	std::string err;
+	auto fi = c.get_transformed_field_info();
+	if (fi && !flt_is_comparable(c.m_cmpop, fi->m_type, err))
+	{
+		throw sinsp_exception("filter error: " + err);
+	}
+}
+
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr* e)
 {
 	m_pos = e->get_pos();
@@ -317,6 +328,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 	auto check = std::move(m_last_node_field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
+	check_op_type_compatibility(*check);
 	m_filter->add_check(std::move(check));
 }
 
@@ -354,6 +366,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	auto check = std::move(m_last_node_field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
+	check_op_type_compatibility(*check);
 
 	// Read the right-hand values of the filtercheck.
 	m_last_node_field_is_plugin = false;
@@ -514,86 +527,6 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_compiler::create_filtercheck(st
 	}
 	return chk;
 }
-
-cmpop sinsp_filter_compiler::str_to_cmpop(std::string_view str)
-{
-	if(str == "=" || str == "==")
-	{
-		return CO_EQ;
-	}
-	else if(str == "!=")
-	{
-		return CO_NE;
-	}
-	else if(str == "<=")
-	{
-		return CO_LE;
-	}
-	else if(str == "<")
-	{
-		return CO_LT;
-	}
-	else if(str == ">=")
-	{
-		return CO_GE;
-	}
-	else if(str == ">")
-	{
-		return CO_GT;
-	}
-	else if(str == "contains")
-	{
-		return CO_CONTAINS;
-	}
-	else if(str == "icontains")
-	{
-		return CO_ICONTAINS;
-	}
-	else if(str == "bcontains")
-	{
-		return CO_BCONTAINS;
-	}
-	else if(str == "startswith")
-	{
-		return CO_STARTSWITH;
-	}
-	else if(str == "bstartswith")
-	{
-		return CO_BSTARTSWITH;
-	}
-	else if(str == "endswith")
-	{
-		return CO_ENDSWITH;
-	}
-	else if(str == "in")
-	{
-		return CO_IN;
-	}
-	else if(str == "intersects")
-	{
-		return CO_INTERSECTS;
-	}
-	else if(str == "pmatch")
-	{
-		return CO_PMATCH;
-	}
-	else if(str == "exists")
-	{
-		return CO_EXISTS;
-	}
-	else if(str == "glob")
-	{
-		return CO_GLOB;
-	}
-	else if(str == "iglob")
-	{
-		return CO_IGLOB;
-	}
-	// we are not supposed to get here, as the parser pre-checks this
-	ASSERT(false);
-	throw sinsp_exception("filter error: unrecognized comparison operator '" + std::string(str) + "'");
-}
-
 
 sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
 					   filter_check_list &available_checks)
