@@ -809,13 +809,26 @@ FILLER(sys_writev_pwritev_x, true)
 static __always_inline int timespec_parse(struct filler_data *data,
                                           unsigned long val)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-	struct __kernel_timespec ts = {};
-#else	
-	struct timespec ts = {};
-#endif	
-	bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
-	return bpf_push_u64_to_ring(data, ((uint64_t)ts.tv_sec) * 1000000000 + ts.tv_nsec);
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	if (!bpf_in_ia32_syscall())
+#endif
+	{
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+		struct __kernel_timespec ts = {};
+	#else
+		struct timespec ts = {};
+	#endif
+		bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
+		return bpf_push_u64_to_ring(data, ((uint64_t)ts.tv_sec) * 1000000000 + ts.tv_nsec);
+	}
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+	else
+	{
+		struct timespec ts = {};
+		bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
+		return bpf_push_u64_to_ring(data, ((uint32_t)ts.tv_sec) * 1000000000 + ts.tv_nsec);
+	}
+#endif
 }
 
 FILLER(sys_nanosleep_e, true)
