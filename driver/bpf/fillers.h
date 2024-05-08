@@ -571,45 +571,26 @@ FILLER(sys_poll_x, true)
 
 #define MAX_IOVCNT 32
 
-static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
+static __always_inline int _bpf_parse_readv_writev_bufs(struct filler_data *data,
 						       const void __user *iovsrc,
 						       unsigned long iovcnt,
 						       long retval,
 						       int flags)
 {
 	const struct iovec *iov;
-#if defined(CONFIG_X86_64)
-	const struct compat_iovec *compat_iov;
-#endif
 	int res = PPM_SUCCESS;
 	unsigned long copylen;
 	long size = 0;
 	int j;
 
-#if defined(CONFIG_X86_64)
-	if (!bpf_in_ia32_syscall())
-#endif
-	{
-		copylen = iovcnt * sizeof(struct iovec);
-		iov = (const struct iovec *)data->tmp_scratch;
-	}
-#if defined(CONFIG_X86_64)
-	else
-	{
-		copylen = iovcnt * sizeof(struct compat_iovec);
-		compat_iov = (const struct compat_iovec *)data->tmp_scratch;
-	}
-#endif
+	copylen = iovcnt * sizeof(struct iovec);
+	iov = (const struct iovec *)data->tmp_scratch;
 
 	if (copylen > SCRATCH_SIZE_MAX)
 	{
 		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
 	}
 
-#if defined(CONFIG_X86_64)
-	if (!bpf_in_ia32_syscall())
-#endif
-	{
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 		if (copylen)
 			if (bpf_probe_read_user((void *)iov,
@@ -621,24 +602,6 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 					(void *)iovsrc))
 #endif
 			return PPM_FAILURE_INVALID_USER_MEMORY;
-	}
-#if defined(CONFIG_X86_64)
-	else
-	{
-#ifdef BPF_FORBIDS_ZERO_ACCESS
-		if (copylen)
-			if (bpf_probe_read_user((void *)compat_iov,
-						((copylen - 1) & SCRATCH_SIZE_MAX) + 1,
-						(void *)iovsrc))
-#else
-		if (bpf_probe_read_user((void *)compat_iov,
-					copylen & SCRATCH_SIZE_MAX,
-					(void *)iovsrc))
-#endif
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-	}
-#endif
-
 
 	#pragma unroll
 	for (j = 0; j < MAX_IOVCNT; ++j) {
@@ -648,18 +611,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 		if (size == LONG_MAX)
 			break;
 
-#if defined(CONFIG_X86_64)
-		if (!bpf_in_ia32_syscall())
-#endif
-		{
-			size += iov[j].iov_len;
-		}
-#if defined(CONFIG_X86_64)
-		else
-		{
-			size += compat_iov[j].iov_len;
-		}
-#endif
+		size += iov[j].iov_len;
 	}
 
 	if ((flags & PRB_FLAG_IS_WRITE) == 0)
@@ -688,32 +640,14 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 				if (off > SCRATCH_SIZE_HALF)
 					break;
 
-#if defined(CONFIG_X86_64)
-				if (!bpf_in_ia32_syscall())
-#endif
-				{
-					if (iov[j].iov_len <= remaining)
-						to_read = iov[j].iov_len;
-					else
-						to_read = remaining;
-				}
-#if defined(CONFIG_X86_64)
+				if (iov[j].iov_len <= remaining)
+					to_read = iov[j].iov_len;
 				else
-				{
-					if (compat_iov[j].iov_len <= remaining)
-						to_read = compat_iov[j].iov_len;
-					else
-						to_read = remaining;
-				}
-#endif
+					to_read = remaining;
 
 				if (to_read > SCRATCH_SIZE_HALF)
 					to_read = SCRATCH_SIZE_HALF;
 
-#if defined(CONFIG_X86_64)
-				if (!bpf_in_ia32_syscall())
-#endif
-				{
 	#ifdef BPF_FORBIDS_ZERO_ACCESS
 					if (to_read)
 						if (bpf_probe_read_user(&data->buf[off_bounded],
@@ -725,25 +659,6 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 								(void*)iov[j].iov_base))
 	#endif
 						return PPM_FAILURE_INVALID_USER_MEMORY;
-				}
-#if defined(CONFIG_X86_64)
-				else
-				{
-
-	#ifdef BPF_FORBIDS_ZERO_ACCESS
-					if (to_read)
-						if (bpf_probe_read_user(&data->buf[off_bounded],
-									((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
-									(void*)compat_iov[j].iov_base))
-	#else
-					if (bpf_probe_read_user(&data->buf[off_bounded],
-								to_read & SCRATCH_SIZE_HALF,
-								(void*)compat_iov[j].iov_base))
-	#endif
-						return PPM_FAILURE_INVALID_USER_MEMORY;
-
-				}
-#endif
 
 				remaining -= to_read;
 				off += to_read;
@@ -758,6 +673,132 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	}
 
 	return res;
+}
+
+#if defined(CONFIG_X86_64)
+static __always_inline int _bpf_parse_readv_writev_bufs_ia32(struct filler_data *data,
+						       const void __user *iovsrc,
+						       unsigned long iovcnt,
+						       long retval,
+						       int flags)
+{
+	const struct compat_iovec *compat_iov;
+	int res = PPM_SUCCESS;
+	unsigned int copylen;
+	long size = 0;
+	int j;
+
+	copylen = iovcnt * sizeof(struct compat_iovec);
+	compat_iov = (const struct compat_iovec *)data->tmp_scratch;
+
+	if (copylen > SCRATCH_SIZE_MAX)
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+		if (copylen)
+			if (bpf_probe_read_user((void *)compat_iov,
+						((copylen - 1) & SCRATCH_SIZE_MAX) + 1,
+						(void *)iovsrc))
+#else
+		if (bpf_probe_read_user((void *)compat_iov,
+					copylen & SCRATCH_SIZE_MAX,
+					(void *)iovsrc))
+#endif
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	#pragma unroll
+	for (j = 0; j < MAX_IOVCNT; ++j) {
+		if (j == iovcnt)
+			break;
+		// BPF seems to require a hard limit to avoid overflows
+		if (size == LONG_MAX)
+			break;
+
+		size += compat_iov[j].iov_len;
+	}
+
+	if ((flags & PRB_FLAG_IS_WRITE) == 0)
+		if (size > retval)
+			size = retval;
+
+	if (flags & PRB_FLAG_PUSH_SIZE) {
+		res = bpf_push_u32_to_ring(data, (uint32_t)size);
+		CHECK_RES(res);
+	}
+
+	if (flags & PRB_FLAG_PUSH_DATA) {
+		if (size > 0) {
+			unsigned long off = _READ(data->state->tail_ctx.curoff);
+			unsigned long remaining = size;
+			int j;
+
+			#pragma unroll
+			for (j = 0; j < MAX_IOVCNT; ++j) {
+				volatile unsigned int to_read;
+
+				if (j == iovcnt)
+					break;
+
+				unsigned long off_bounded = off & SCRATCH_SIZE_HALF;
+				if (off > SCRATCH_SIZE_HALF)
+					break;
+
+				if (compat_iov[j].iov_len <= remaining)
+					to_read = compat_iov[j].iov_len;
+				else
+					to_read = remaining;
+
+				if (to_read > SCRATCH_SIZE_HALF)
+					to_read = SCRATCH_SIZE_HALF;
+
+	#ifdef BPF_FORBIDS_ZERO_ACCESS
+					if (to_read)
+						if (bpf_probe_read_user(&data->buf[off_bounded],
+									((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
+									(void*)compat_iov[j].iov_base))
+	#else
+					if (bpf_probe_read_user(&data->buf[off_bounded],
+								to_read & SCRATCH_SIZE_HALF,
+								(void*)compat_iov[j].iov_base))
+	#endif
+						return PPM_FAILURE_INVALID_USER_MEMORY;
+
+				remaining -= to_read;
+				off += to_read;
+			}
+		} else {
+			size = 0;
+		}
+
+		data->fd = bpf_syscall_get_argument(data, 0);
+		data->curarg_already_on_frame = true;
+		return __bpf_val_to_ring(data, 0, size, PT_BYTEBUF, -1, true, KERNEL);
+	}
+
+	return res;
+}
+#endif
+
+static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
+						       const void __user *iovsrc,
+						       unsigned long iovcnt,
+						       long retval,
+						       int flags)
+{
+#if defined(CONFIG_X86_64)
+	if (!bpf_in_ia32_syscall())
+	{
+#endif
+		return _bpf_parse_readv_writev_bufs(data, iovsrc, iovcnt, retval, flags);
+#if defined(CONFIG_X86_64)
+	}
+	else
+	{
+		return _bpf_parse_readv_writev_bufs_ia32(data, iovsrc, iovcnt, retval, flags);
+	}
+#endif
 }
 
 FILLER(sys_readv_e, true)
