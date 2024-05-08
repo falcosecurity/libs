@@ -91,3 +91,19 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket)
 	ASSERT_EQ(fdinfo->m_name, "9c758d0f->9c758d0a /tmp/stream.sock");
 	ASSERT_EQ(fdinfo->m_name_raw, "");
 }
+
+TEST_F(sinsp_with_test_input, BIND_parse_unix_socket)
+{
+	add_default_init_thread();
+	open_inspector();
+
+	int64_t return_value = 0;
+	std::string unix_path = "/tmp/python_unix_udp_sockets_example";
+	sockaddr_un u_sockaddr = test_utils::fill_sockaddr_un(unix_path.c_str());
+	std::vector<uint8_t> server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&u_sockaddr));
+	auto evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_BIND_X, 2, return_value,
+					scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	
+	// we want to check that `get_param_value_str` returns the correct unix socket path
+	ASSERT_EQ(evt->get_param_value_str("addr"), unix_path);
+}
