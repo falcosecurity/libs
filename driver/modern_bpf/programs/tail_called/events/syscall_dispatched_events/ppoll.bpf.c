@@ -38,17 +38,26 @@ int BPF_PROG(ppoll_e,
 	/* Parameter 2: timeout (type: PT_RELTIME) */
 	uint64_t nanosec = 0;
 	unsigned long ts_pointer = extract__syscall_argument(regs, 2);
-	if(bpf_core_type_exists(struct __kernel_timespec))
+	if(!bpf_in_ia32_syscall())
 	{
-		struct __kernel_timespec ts = {0};
-		bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
-		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+		if(bpf_core_type_exists(struct __kernel_timespec))
+		{
+			struct __kernel_timespec ts = {0};
+			bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
+			nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+		}
+		else
+		{
+			struct modern_bpf__kernel_timespec ts = {0};
+			bpf_probe_read_user(&ts, sizeof(ts), (void *)ts_pointer);
+			nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+		}
 	}
 	else
 	{
-		struct modern_bpf__kernel_timespec ts = {0};
+		struct modern_bpf__kernel_timespec_ia32 ts = {0};
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)ts_pointer);
-		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
+		nanosec = ((uint32_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
 	}
 	auxmap__store_u64_param(auxmap, nanosec);
 
