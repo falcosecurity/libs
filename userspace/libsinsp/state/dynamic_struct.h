@@ -375,7 +375,7 @@ private:
         }
         if (m_dynamic_fields->id() != i.m_defs_id)
         {
-            throw sinsp_exception("using dynamic field accessor on struct it was not created from");
+            throw sinsp_exception("using dynamic field accessor on struct it was not created from: " + i.name());
         }
         if (write && i.readonly())
         {

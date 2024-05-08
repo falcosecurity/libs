@@ -357,6 +357,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 
 	// Read the right-hand values of the filtercheck.
 	m_last_node_field_is_plugin = false;
+	m_field_values.clear();
 	e->right->accept(this);
 
 	if (m_last_node_field)
