@@ -65,7 +65,7 @@ jobs:
           cd src && sudo make install
 
       - name: Install kernel headers (actuated)
-        uses: self-actuated/get-kernel-sources@master
+        uses: self-actuated/get-kernel-sources@e3e9a50f75a51efc7abb206def3b1e74d2924f39
         if: matrix.arch == 'arm64'
 
       - name: Install kernel headers and gcc
@@ -149,7 +149,7 @@ jobs:
           sudo apt install -y --no-install-recommends clang gcc llvm build-essential cmake
 
       - name: Install kernel headers (actuated)
-        uses: self-actuated/get-kernel-sources@master
+        uses: self-actuated/get-kernel-sources@e3e9a50f75a51efc7abb206def3b1e74d2924f39
         if: matrix.arch == 'arm64'
 
       - name: Install kernel headers and gcc
