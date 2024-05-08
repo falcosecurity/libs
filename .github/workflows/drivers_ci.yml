@@ -73,7 +73,7 @@ jobs:
           cd src && sudo make install
 
       - name: Install kernel headers (actuated)
-        uses: self-actuated/get-kernel-sources@e3e9a50f75a51efc7abb206def3b1e74d2924f39
+        uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59
         if: (needs.paths-filter.outputs.driver_needs_rebuild) && matrix.arch == 'arm64'
 
       - name: Install kernel headers
@@ -143,7 +143,7 @@ jobs:
           cd src && sudo make install
 
       - name: Install kernel headers (actuated)
-        uses: self-actuated/get-kernel-sources@e3e9a50f75a51efc7abb206def3b1e74d2924f39
+        uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59
         if: (needs.paths-filter.outputs.driver_needs_rebuild) && matrix.arch == 'arm64'
 
       - name: Install kernel headers and gcc
