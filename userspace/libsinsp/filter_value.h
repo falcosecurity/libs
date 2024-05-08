@@ -20,7 +20,9 @@ limitations under the License.
 
 #include <string.h>
 #include <cstdint>
+
 #include <utility>
+#include <unordered_set>
 
 // Used for CO_IN/CO_PMATCH filterchecks using PT_CHARBUFs to allow
 // for quick multi-value comparisons. Should also work for any
@@ -57,4 +59,3 @@ struct g_equal_to_membuf
 			memcmp(a.first, b.first, a.second) == 0);
 	}
 };
-

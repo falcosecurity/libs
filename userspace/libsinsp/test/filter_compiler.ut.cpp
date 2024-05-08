@@ -14,6 +14,10 @@ public:
 	int32_t parse_field_name(std::string_view str, bool alloc_state, bool needed_for_filtering) override
 	{
 		m_name = str;
+		if (str == "c.buffer")
+		{
+			m_field_info.m_type = PT_BYTEBUF;
+		}
 		return 0;
 	}
 
@@ -23,7 +27,7 @@ public:
 		{
 			return true;
 		}
-		if (m_name == "c.false")
+		if (m_name == "c.false" || m_name == "c.buffer")
 		{
 			return false;
 		}
@@ -36,6 +40,11 @@ public:
 			return m_value == "hello 'quoted'";
 		}
 		return false;
+	}
+
+	const filtercheck_field_info* get_field_info() const override
+	{
+		return &m_field_info;
 	}
 
 	inline void add_filter_value(const char* str, uint32_t l, uint32_t i) override
@@ -53,8 +62,9 @@ public:
 		return false;
 	}
 
-	string m_name;
-	string m_value;
+	std::string m_name;
+	std::string m_value;
+	filtercheck_field_info m_field_info{PT_CHARBUF, 0, PF_NA, "", "", ""};
 };
 
 // A factory that creates mock filterchecks
@@ -205,9 +215,7 @@ TEST(sinsp_filter_compiler, supported_operators)
 	test_filter_compile(factory, "c.true glob value");
 	test_filter_compile(factory, "c.true contains value");
 	test_filter_compile(factory, "c.true icontains value");
-	test_filter_compile(factory, "c.true bcontains 12ab001fc5");
 	test_filter_compile(factory, "c.true startswith value");
-	test_filter_compile(factory, "c.true bstartswith 48545450");
 	test_filter_compile(factory, "c.true endswith value");
 	test_filter_compile(factory, "c.true > 1");
 	test_filter_compile(factory, "c.true < 1");
@@ -217,14 +225,16 @@ TEST(sinsp_filter_compiler, supported_operators)
 	test_filter_compile(factory, "c.true intersects ()");
 	test_filter_compile(factory, "c.true pmatch ()");
 	test_filter_compile(factory, "c.true in()");
+	test_filter_compile(factory, "c.buffer bcontains 12ab001fc5");
+	test_filter_compile(factory, "c.buffer bstartswith 48545450");
 
 	// operators incompatibilites
-	test_filter_compile(factory, "c.true bstartswith g", true);
-	test_filter_compile(factory, "c.true bstartswith 123Z", true);
-	test_filter_compile(factory, "c.true bstartswith abc_1", true);
-	test_filter_compile(factory, "c.true bstartswith g", true);
-	test_filter_compile(factory, "c.true bstartswith 123Z", true);
-	test_filter_compile(factory, "c.true bstartswith abc_1", true);
+	test_filter_compile(factory, "c.buffer bstartswith g", true);
+	test_filter_compile(factory, "c.buffer bstartswith 123Z", true);
+	test_filter_compile(factory, "c.buffer bstartswith abc_1", true);
+	test_filter_compile(factory, "c.buffer bstartswith g", true);
+	test_filter_compile(factory, "c.buffer bstartswith 123Z", true);
+	test_filter_compile(factory, "c.buffer bstartswith abc_1", true);
 }
 
 TEST(sinsp_filter_compiler, complex_filter)

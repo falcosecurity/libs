@@ -258,7 +258,6 @@ private:
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::field_expr*) override;
 	void visit(const libsinsp::filter::ast::field_transformer_expr*) override;
-	cmpop str_to_cmpop(std::string_view);
 	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
 	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string_view field);
 	void check_value_and_add_warnings(const libsinsp::filter::ast::pos_info& pos, const std::string& v);
