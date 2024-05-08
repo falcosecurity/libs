@@ -20,7 +20,9 @@ jobs:
   paths-filter:
     runs-on: ubuntu-latest
     outputs:
-      driver_needs_rebuild: ${{ steps.filter.outputs.driver == 'true' }} || ${{ steps.filter.outputs.libscap == 'true' }} || ${{ steps.filter.outputs.libpman == 'true' }}
+      driver: ${{ steps.filter.outputs.driver }}
+      libscap: ${{ steps.filter.outputs.libscap }}
+      libpman: ${{ steps.filter.outputs.libpman }}
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
     - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
@@ -52,13 +54,13 @@ jobs:
       - name: Checkout Libs ⤵️
         # We need to skip each step because of https://github.com/orgs/community/discussions/9141.
         # This avoids having a skipped job whose name is not the resolved matrix name, like "test-scap-${{ matrix.arch }} 😆 (bundled_deps)"
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
       - name: Install deps ⛓️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
@@ -80,26 +82,26 @@ jobs:
           sudo apt install -y --no-install-recommends linux-headers-$(uname -r)
           
       - name: Build scap-open and drivers 🏗️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           mkdir -p build
           cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
           make scap-open driver bpf libscap_test -j6
 
       - name: Run scap-open with modern bpf 🏎️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 10
 
       - name: Run scap-open with bpf 🏎️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./libscap/examples/01-open/scap-open --bpf ./driver/bpf/probe.o --num_events 10
 
       - name: Run scap-open with kmod 🏎️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo insmod ./driver/scap.ko
@@ -107,7 +109,7 @@ jobs:
           sudo rmmod scap
 
       - name: Run libscap_test 🏎️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./test/libscap/libscap_test
@@ -122,13 +124,13 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout Libs ⤵️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
       - name: Install deps ⛓️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang-14 llvm-14 libtool
@@ -150,26 +152,26 @@ jobs:
           sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
 
       - name: Build drivers tests 🏗️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           mkdir -p build
           cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
           make drivers_test driver bpf -j6
 
       - name: Run drivers_test with modern bpf 🏎️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./test/drivers/drivers_test -m
 
       - name: Run drivers_test with bpf 🏎️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./test/drivers/drivers_test -b
 
       - name: Run drivers_test with kmod 🏎️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           cd build
           sudo ./test/drivers/drivers_test -k
@@ -186,14 +188,14 @@ jobs:
       PLATFORM: ${{ matrix.arch == 'ppc64le' && 'powerpc64le' || 's390x' }}
     steps:
       - name: Checkout Libs ⤵️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
 
       - uses: uraimo/run-on-arch-action@4ed76f16f09d12e83abd8a49e1ac1e5bf08784d4 # v2.5.1
         name: Run ${{ matrix.arch }} build 🏗️
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         with:
           arch: ${{ matrix.arch }}
           distro: ubuntu22.04
@@ -221,7 +223,7 @@ jobs:
     needs: paths-filter
     # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
     runs-on: ${{ (inputs.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-latest' }}
-    if: needs.paths-filter.outputs.driver_needs_rebuild
+    if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
     container: fedora:latest
     steps:
       # Always install deps before invoking checkout action, to properly perform a full clone.
@@ -249,7 +251,7 @@ jobs:
     needs: [paths-filter,build-modern-bpf-skeleton] 
     # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
     runs-on: ${{ (inputs.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-latest' }}
-    if: needs.paths-filter.outputs.driver_needs_rebuild
+    if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
     container: centos:7
     steps:
       # Always install deps before invoking checkout action, to properly perform a full clone.
