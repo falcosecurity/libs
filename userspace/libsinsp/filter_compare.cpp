@@ -24,6 +24,7 @@ limitations under the License.
 #define NOMINMAX
 #pragma comment(lib, "Ws2_32.lib")
 #include <WinSock2.h>
+#include <WS2tcpip.h>
 #else
 #include "arpa/inet.h"
 #include <netdb.h>
@@ -32,7 +33,7 @@ limitations under the License.
 //
 // Fallback implementation of memmem
 //
-#ifndef _GNU_SOURCE
+#if !defined(_GNU_SOURCE) && !defined(__APPLE__)
 #include <string.h>
 
 static inline void *memmem(const void *haystack, size_t haystacklen,
