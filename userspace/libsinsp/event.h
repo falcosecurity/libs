@@ -844,4 +844,6 @@ private:
 	const char* m_source_name;
 };
 
+uint32_t binary_buffer_to_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt);
+
 /*@}*/

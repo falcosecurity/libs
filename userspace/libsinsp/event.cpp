@@ -512,7 +512,7 @@ static uint32_t binary_buffer_to_json_string(char *dst, const char *src, uint32_
 	return k;
 }
 
-static uint32_t binary_buffer_to_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
+uint32_t binary_buffer_to_string(char *dst, const char *src, uint32_t dstlen, uint32_t srclen, sinsp_evt::param_fmt fmt)
 {
 	uint32_t k = 0;
 
