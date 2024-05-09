@@ -570,17 +570,18 @@ FILLER(sys_poll_x, true)
 }
 
 #define MAX_IOVCNT 32
+#define MAX_IOVCNT_COMPAT 8
 
 static __always_inline int _bpf_parse_readv_writev_bufs(struct filler_data *data,
 						       const void __user *iovsrc,
 						       unsigned long iovcnt,
 						       long retval,
-						       int flags)
+						       int flags,
+						       unsigned long *size)
 {
 	const struct iovec *iov;
 	int res = PPM_SUCCESS;
 	unsigned long copylen;
-	long size = 0;
 	int j;
 
 	copylen = iovcnt * sizeof(struct iovec);
@@ -608,25 +609,25 @@ static __always_inline int _bpf_parse_readv_writev_bufs(struct filler_data *data
 		if (j == iovcnt)
 			break;
 		// BPF seems to require a hard limit to avoid overflows
-		if (size == LONG_MAX)
+		if (*size == LONG_MAX)
 			break;
 
-		size += iov[j].iov_len;
+		*size += iov[j].iov_len;
 	}
 
 	if ((flags & PRB_FLAG_IS_WRITE) == 0)
-		if (size > retval)
-			size = retval;
+		if (*size > retval)
+			*size = retval;
 
-	if (flags & PRB_FLAG_PUSH_SIZE) {
-		res = bpf_push_u32_to_ring(data, (uint32_t)size);
+	if (flags & PRB_FLAG_PUSH_SIZE && res == PPM_SUCCESS) {
+		res = bpf_push_u32_to_ring(data, (uint32_t)*size);
 		CHECK_RES(res);
 	}
 
 	if (flags & PRB_FLAG_PUSH_DATA) {
-		if (size > 0) {
+		if (*size > 0) {
 			unsigned long off = _READ(data->state->tail_ctx.curoff);
-			unsigned long remaining = size;
+			unsigned long remaining = *size;
 			int j;
 
 			#pragma unroll
@@ -664,12 +665,9 @@ static __always_inline int _bpf_parse_readv_writev_bufs(struct filler_data *data
 				off += to_read;
 			}
 		} else {
-			size = 0;
+			*size = 0;
 		}
-
-		data->fd = bpf_syscall_get_argument(data, 0);
-		data->curarg_already_on_frame = true;
-		return __bpf_val_to_ring(data, 0, size, PT_BYTEBUF, -1, true, KERNEL);
+		return PPM_SUCCESS;
 	}
 
 	return res;
@@ -680,12 +678,12 @@ static __always_inline int _bpf_parse_readv_writev_bufs_ia32(struct filler_data 
 						       const void __user *iovsrc,
 						       unsigned long iovcnt,
 						       long retval,
-						       int flags)
+						       int flags,
+						       unsigned long *size)
 {
 	const struct compat_iovec *compat_iov;
 	int res = PPM_SUCCESS;
 	unsigned int copylen;
-	long size = 0;
 	int j;
 
 	copylen = iovcnt * sizeof(struct compat_iovec);
@@ -709,33 +707,35 @@ static __always_inline int _bpf_parse_readv_writev_bufs_ia32(struct filler_data 
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	#pragma unroll
-	for (j = 0; j < MAX_IOVCNT; ++j) {
+	for (j = 0; j < MAX_IOVCNT_COMPAT; ++j) {
 		if (j == iovcnt)
 			break;
 		// BPF seems to require a hard limit to avoid overflows
-		if (size == LONG_MAX)
+		if (*size == LONG_MAX)
 			break;
 
-		size += compat_iov[j].iov_len;
+		*size += compat_iov[j].iov_len;
 	}
 
 	if ((flags & PRB_FLAG_IS_WRITE) == 0)
-		if (size > retval)
-			size = retval;
+		if (*size > retval)
+			*size = retval;
 
-	if (flags & PRB_FLAG_PUSH_SIZE) {
-		res = bpf_push_u32_to_ring(data, (uint32_t)size);
+	if (flags & PRB_FLAG_PUSH_SIZE && res == PPM_SUCCESS) {
+		res = bpf_push_u32_to_ring(data, (uint32_t)*size);
 		CHECK_RES(res);
 	}
 
 	if (flags & PRB_FLAG_PUSH_DATA) {
-		if (size > 0) {
+		if (*size > 0) {
 			unsigned long off = _READ(data->state->tail_ctx.curoff);
-			unsigned long remaining = size;
+			unsigned long remaining = *size;
 			int j;
 
+			// The 14 iovec count limit is due to old kernels verifiers
+			// complaining.
 			#pragma unroll
-			for (j = 0; j < MAX_IOVCNT; ++j) {
+			for (j = 0; j < MAX_IOVCNT_COMPAT; ++j) {
 				volatile unsigned int to_read;
 
 				if (j == iovcnt)
@@ -769,14 +769,11 @@ static __always_inline int _bpf_parse_readv_writev_bufs_ia32(struct filler_data 
 				off += to_read;
 			}
 		} else {
-			size = 0;
+			*size = 0;
 		}
 
-		data->fd = bpf_syscall_get_argument(data, 0);
-		data->curarg_already_on_frame = true;
-		return __bpf_val_to_ring(data, 0, size, PT_BYTEBUF, -1, true, KERNEL);
+		return PPM_SUCCESS;
 	}
-
 	return res;
 }
 #endif
@@ -787,18 +784,28 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 						       long retval,
 						       int flags)
 {
+	unsigned long size = 0;
+	int res = PPM_SUCCESS;
 #if defined(CONFIG_X86_64)
 	if (!bpf_in_ia32_syscall())
 	{
 #endif
-		return _bpf_parse_readv_writev_bufs(data, iovsrc, iovcnt, retval, flags);
+		res = _bpf_parse_readv_writev_bufs(data, iovsrc, iovcnt, retval, flags, &size);
 #if defined(CONFIG_X86_64)
 	}
 	else
 	{
-		return _bpf_parse_readv_writev_bufs_ia32(data, iovsrc, iovcnt, retval, flags);
+		res = _bpf_parse_readv_writev_bufs_ia32(data, iovsrc, iovcnt, retval, flags, &size);
 	}
 #endif
+
+	if(flags & PRB_FLAG_PUSH_DATA && res == PPM_SUCCESS)
+	{
+		data->fd = bpf_syscall_get_argument(data, 0);
+		data->curarg_already_on_frame = true;
+		return __bpf_val_to_ring(data, 0, size, PT_BYTEBUF, -1, true, KERNEL);
+	}
+	return res;
 }
 
 FILLER(sys_readv_e, true)
