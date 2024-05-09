@@ -84,11 +84,12 @@ void scap_free_device_table(scap_mountinfo* dev_list);
 //
 // Useful stuff
 //
+#ifndef __cplusplus
 #ifndef MIN
 #define MIN(X,Y) ((X) < (Y)? (X):(Y))
 #define MAX(X,Y) ((X) > (Y)? (X):(Y))
 #endif
-
+#endif
 
 //
 // Driver proc info table sizes
