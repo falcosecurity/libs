@@ -1110,20 +1110,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		case PT_FSRELPATH:
 			return (char*)rawval;
 		case PT_BYTEBUF:
-			if(rawval[len] == 0)
-			{
-				// check if by any chance the byte buff is null-terminated,
-				// in which case we try to treat it as a regular string
-				return (char*)rawval;
-			}
-			else
-			{
-				auto copy_len = std::min(len, (uint32_t) STRPROPERTY_STORAGE_SIZE);
-				m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
-				memcpy(m_getpropertystr_storage.data(), rawval, copy_len);
-				m_getpropertystr_storage.data()[copy_len] = 0;
-				return m_getpropertystr_storage.data();
-			}
+			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
+			binary_buffer_to_string(m_getpropertystr_storage.data(), (const char*)rawval, (uint32_t) STRPROPERTY_STORAGE_SIZE - 1, len, sinsp_evt::PF_NORMAL);
+			return m_getpropertystr_storage.data();
 		case PT_SOCKADDR:
 			ASSERT(false);
 			return NULL;
