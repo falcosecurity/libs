@@ -74,10 +74,10 @@ jobs:
 
       - name: Install kernel headers (actuated)
         uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59
-        if: (needs.paths-filter.outputs.driver_needs_rebuild) && matrix.arch == 'arm64'
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'arm64'
 
       - name: Install kernel headers
-        if: (needs.paths-filter.outputs.driver_needs_rebuild) && matrix.arch == 'amd64'
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends linux-headers-$(uname -r)
           
@@ -144,10 +144,10 @@ jobs:
 
       - name: Install kernel headers (actuated)
         uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59
-        if: (needs.paths-filter.outputs.driver_needs_rebuild) && matrix.arch == 'arm64'
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'arm64'
 
       - name: Install kernel headers and gcc
-        if: (needs.paths-filter.outputs.driver_needs_rebuild) && matrix.arch == 'amd64'
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
 
