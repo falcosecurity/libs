@@ -59,7 +59,7 @@ namespace std
 std::string to_string(cmpop);
 }
 
-bool flt_is_comparable(cmpop op, ppm_param_type t, std::string& err);
+bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& err);
 bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
