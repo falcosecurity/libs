@@ -2,7 +2,7 @@ import pytest
 import docker
 import os
 from time import sleep
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 
 from sinspqa import LOGS_PATH, is_containerized
 from sinspqa.sinsp import SinspStreamerBuilder
@@ -212,7 +212,7 @@ def sinsp(request, docker_client: docker.client.DockerClient):
         additional_wait = process.get('init_wait', 0)
         for k, v in process['env'].items():
             env[k] = v
-        process = Popen(args, env=env, stdout=PIPE, universal_newlines=True)
+        process = Popen(args, env=env, stdout=PIPE, stderr=STDOUT, universal_newlines=True)
 
         if additional_wait:
             sleep(additional_wait)
