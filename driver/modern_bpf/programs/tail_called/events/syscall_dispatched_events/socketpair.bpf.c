@@ -91,10 +91,13 @@ int BPF_PROG(socketpair_x,
 
 		/* Get source and peer. */
 		struct file *file = extract__file_struct_from_fd((int32_t)fds[0]);
-		struct socket *socket = BPF_CORE_READ(file, private_data);
-		BPF_CORE_READ_INTO(&source, socket, sk);
-		struct unix_sock *us = (struct unix_sock *)source;
-		BPF_CORE_READ_INTO(&peer, us, peer);
+		struct socket *socket = get_sock_from_file(file);
+		if(socket != NULL)
+		{
+			BPF_CORE_READ_INTO(&source, socket, sk);
+			struct unix_sock *us = (struct unix_sock *)source;
+			BPF_CORE_READ_INTO(&peer, us, peer);
+		}
 	}
 
 	/* Parameter 2: fd1 (type: PT_FD) */

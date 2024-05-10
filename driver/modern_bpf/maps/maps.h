@@ -92,6 +92,11 @@ __weak struct capture_settings g_settings;
  */
 __weak bool is_dropping;
 
+/**
+ * @brief Pointer we use to understand if we are operating on a socket.
+ */
+__weak void *socket_file_ops = NULL;		   
+
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/

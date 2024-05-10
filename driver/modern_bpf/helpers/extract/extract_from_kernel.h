@@ -244,8 +244,24 @@ static __always_inline struct file *extract__file_struct_from_fd(int32_t file_de
 	if(file_descriptor >= 0)
 	{
 		struct file **fds = NULL;
+		struct fdtable *fdt = NULL;
+		int max_fds = 0;
+
 		struct task_struct *task = get_current_task();
-		BPF_CORE_READ_INTO(&fds, task, files, fdt, fd);
+		BPF_CORE_READ_INTO(&fdt, task, files, fdt);
+		if(unlikely(fdt == NULL))
+		{
+			return NULL;
+		}
+
+		// Try a bound check to avoid reading out of bounds.
+		BPF_CORE_READ_INTO(&max_fds, fdt, max_fds);
+		if(unlikely(file_descriptor >= max_fds))
+		{
+			return NULL;
+		}
+
+		BPF_CORE_READ_INTO(&fds, fdt, fd);
 		if(fds != NULL)
 		{
 			bpf_probe_read_kernel(&f, sizeof(struct file *), &fds[file_descriptor]);
@@ -1126,4 +1142,24 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 	}
 
 	return false;
+}
+
+/**
+ * @brief Return a socket pointer from a file pointer.
+ * @param file pointer to the file struct.
+ */
+static __always_inline struct socket* get_sock_from_file(struct file *file)
+{
+	if(file == NULL)
+	{
+		return NULL;
+	}
+
+	struct file_operations *fop = (struct file_operations *)BPF_CORE_READ(file, f_op);
+	if(fop != maps__get_socket_file_ops())
+	{
+		// We are not a socket.
+		return NULL;
+	}
+	return (struct socket*)BPF_CORE_READ(file, private_data);
 }

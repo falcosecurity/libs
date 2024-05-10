@@ -33,6 +33,7 @@ struct capture_settings
 	uint16_t fullcapture_port_range_start; /* first interesting port */
 	uint16_t fullcapture_port_range_end;   /* last interesting port */
 	uint16_t statsd_port;		       /* port for statsd metrics */
+	int32_t scap_pid;		       /* pid of the scap process */
 };
 
 /**
