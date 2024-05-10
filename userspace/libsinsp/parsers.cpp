@@ -3180,11 +3180,6 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
         // Add the friendly name to the fd info
         //
         evt->get_fd_info()->m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
-
-        //
-        // Update the FD with this tuple
-        //
-        evt->get_fd_info()->set_unix_info(packed_data);
 	}
 
     //
