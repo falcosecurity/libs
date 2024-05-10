@@ -90,15 +90,17 @@ int BPF_PROG(accept4_x,
 		 * new one.
 		 */
 		int32_t sockfd = (int32_t)args[0];
-		struct file *file = NULL;
-		file = extract__file_struct_from_fd(sockfd);
-		struct socket *socket = BPF_CORE_READ(file, private_data);
-		struct sock *sk = BPF_CORE_READ(socket, sk);
-		BPF_CORE_READ_INTO(&queuelen, sk, sk_ack_backlog);
-		BPF_CORE_READ_INTO(&queuemax, sk, sk_max_ack_backlog);
-		if(queuelen && queuemax)
+		struct file *file = extract__file_struct_from_fd(sockfd);
+		struct socket *socket = get_sock_from_file(file);
+		if(socket != NULL)
 		{
-			queuepct = (uint8_t)((uint64_t)queuelen * 100 / queuemax);
+			struct sock *sk = BPF_CORE_READ(socket, sk);
+			BPF_CORE_READ_INTO(&queuelen, sk, sk_ack_backlog);
+			BPF_CORE_READ_INTO(&queuemax, sk, sk_max_ack_backlog);
+			if(queuelen && queuemax)
+			{
+				queuepct = (uint8_t)((uint64_t)queuelen * 100 / queuemax);
+			}
 		}
 	}
 	else

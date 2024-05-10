@@ -664,7 +664,12 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 	/* Get the socket family directly from the socket */
 	uint16_t socket_family = 0;
 	struct file *file = extract__file_struct_from_fd(socket_fd);
-	struct socket *socket = BPF_CORE_READ(file, private_data);
+	struct socket *socket = get_sock_from_file(file);
+	if(socket == NULL)
+	{
+		auxmap__store_empty_param(auxmap);
+		return;
+	}
 	struct sock *sk = BPF_CORE_READ(socket, sk);
 	BPF_CORE_READ_INTO(&socket_family, sk, __sk_common.skc_family);
 
@@ -1437,12 +1442,12 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	}
 
 	struct file *file = extract__file_struct_from_fd(socket_fd);
-	struct socket *socket = BPF_CORE_READ(file, private_data);
-	struct sock *sk = BPF_CORE_READ(socket, sk);
-	if(!sk)
+	struct socket *socket = get_sock_from_file(file);
+	if(socket == NULL)
 	{
 		return;
 	}
+	struct sock *sk = BPF_CORE_READ(socket, sk);
 
 	uint16_t port_local = 0;
 	uint16_t port_remote = 0;

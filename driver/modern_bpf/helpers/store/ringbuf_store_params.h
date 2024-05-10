@@ -148,6 +148,17 @@ static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *r
 	ringbuf->lengths_pos = sizeof(struct ppm_evt_hdr);
 }
 
+static __always_inline void ringbuf__rewrite_header_for_calibration(struct ringbuf_struct *ringbuf, pid_t vtid)
+{
+	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)ringbuf->data;
+	/* we set this to 0 to recognize this calibration event */
+	hdr->nparams = 0;
+	/* we cannot send the tid seen by the init namespace we need to send the pid seen by the current pid namespace
+	 * to be compliant with what scap expects.
+	 */
+	hdr->tid = vtid;
+}
+
 /////////////////////////////////
 // SUBMIT EVENT IN THE RINGBUF
 ////////////////////////////////

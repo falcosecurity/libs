@@ -18,6 +18,7 @@ limitations under the License.
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/socket.h>
 
 #define SCAP_HANDLE_T struct modern_bpf_engine
 #include <libscap/engine/modern_bpf/scap_modern_bpf.h>
@@ -30,6 +31,7 @@ limitations under the License.
 #include <sys/utsname.h>
 #include <libscap/ringbuffer/ringbuffer.h>
 #include <libscap/scap_engine_util.h>
+#include <libscap/strerror.h>
 
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
 {
@@ -164,6 +166,74 @@ int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
 	return pman_enforce_sc_set(NULL);
 }
 
+static int32_t calibrate_socket_file_ops(struct scap_engine_handle engine)
+{
+	/* Set the scap_pid for the socket calibration.
+	 * If we are in a container this is the virtual pid.
+	 */
+	pid_t scap_pid = getpid();
+	pman_set_scap_pid(scap_pid);
+	
+	/* We just need to enable the socket syscall for the socket calibration */
+	engine.m_handle->curr_sc_set.ppm_sc[PPM_SC_SOCKET] = 1;
+	if(scap_modern_bpf__start_capture(engine) != SCAP_SUCCESS)
+	{
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to start the capture for the socket calibration");
+	}
+
+	int fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if(fd == -1)
+	{
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to create a socket for the calibration");
+	}
+	close(fd);
+
+	/* We need to stop the capture */
+	if(scap_modern_bpf__stop_capture(engine) != SCAP_SUCCESS)
+	{
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to stop the capture after the calibration");
+	}
+
+	/* We need to read the socket event from the buffer */
+	scap_evt* pevent = NULL;
+	uint16_t attempts = 0;
+	uint16_t buffer_id = 0;
+	uint32_t flags = 0;
+	int32_t res = 0;
+	bool found = false;
+
+	while(attempts <= 1)
+	{
+		res = scap_modern_bpf__next(engine, &pevent, &buffer_id, &flags);
+		if(res == SCAP_SUCCESS && pevent != NULL)
+		{
+			/* This is not a socket event or this is not our socket event */
+			if(pevent->type != PPME_SOCKET_SOCKET_X || pevent->tid != scap_pid)
+			{
+				continue;
+			}
+
+			/* BPF side we send this special event with nparams = 0 */
+			if(pevent->nparams == 0)
+			{
+				/* We don't want to stop here because we want to clean all the buffers. */
+				found = true;
+			}
+		}
+		else if(res == SCAP_TIMEOUT)
+		{
+			/* We need more than one attempt because the first time we just need to read the producers' positions. */
+			attempts++;
+		}
+	}
+
+	if(!found)
+	{
+		return scap_errprintf(engine.m_handle->m_lasterr, 0, "unable to find the socket event for the calibration in the ringbuffers");
+	}
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 {
 	int ret = 0;
@@ -211,9 +281,6 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return ret;
 	}
 
-	/* Store interesting sc codes */
-	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
-
 	/* Set the boot time */
 	uint64_t boot_time = 0;
 	if(scap_get_precise_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
@@ -221,6 +288,15 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 	pman_set_boot_time(boot_time);
+
+	/* Calibrate the socket at init time */
+	if(calibrate_socket_file_ops(engine) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	/* Store interesting sc codes */
+	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	engine.m_handle->m_api_version = pman_get_probe_api_ver();
 	engine.m_handle->m_schema_version = pman_get_probe_schema_ver();

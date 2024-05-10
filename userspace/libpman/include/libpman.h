@@ -374,6 +374,13 @@ extern "C"
 	void pman_set_statsd_port(uint16_t statsd_port);
 
 	/**
+	 * @brief Set scap pid for socket calibration logic.
+	 *
+	 * @param scap_pid port number.
+	 */
+	void pman_set_scap_pid(int32_t scap_pid);
+
+	/**
 	 * @brief Get API version to check it a runtime.
 	 *
 	 * @return API version

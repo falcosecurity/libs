@@ -62,6 +62,11 @@ static __always_inline uint16_t maps__get_statsd_port()
 	return g_settings.statsd_port;
 }
 
+static __always_inline int32_t maps__get_scap_pid()
+{
+	return g_settings.scap_pid;
+}
+
 /*=============================== SETTINGS ===========================*/
 
 /*=============================== KERNEL CONFIGS ===========================*/
@@ -74,6 +79,16 @@ static __always_inline bool maps__get_is_dropping()
 static __always_inline void maps__set_is_dropping(bool value)
 {
 	is_dropping = value;
+}
+
+static __always_inline void* maps__get_socket_file_ops()
+{
+	return socket_file_ops;
+}
+
+static __always_inline void maps__set_socket_file_ops(void* value)
+{
+	socket_file_ops = value;
 }
 
 /*=============================== KERNEL CONFIGS ===========================*/

@@ -105,6 +105,11 @@ void pman_set_statsd_port(uint16_t statsd_port)
 	g_state.skel->bss->g_settings.statsd_port = statsd_port;
 }
 
+void pman_set_scap_pid(int32_t scap_pid)
+{
+	g_state.skel->bss->g_settings.scap_pid = scap_pid;
+}
+
 void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 {
 	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
