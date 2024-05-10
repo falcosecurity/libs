@@ -203,7 +203,7 @@ std::string std::to_string(cmpop c)
 	}
 };
 
-static bool flt_is_comparable_numeric(cmpop op, std::string& err)
+static inline bool flt_is_comparable_numeric(cmpop op, std::string& err)
 {
 	switch(op)
 	{
@@ -226,7 +226,7 @@ static bool flt_is_comparable_numeric(cmpop op, std::string& err)
 	}
 }
 
-static bool flt_is_comparable_bool(cmpop op, std::string& err)
+static inline bool flt_is_comparable_bool(cmpop op, std::string& err)
 {
 	switch(op)
 	{
@@ -245,7 +245,7 @@ static bool flt_is_comparable_bool(cmpop op, std::string& err)
 	}
 }
 
-static bool flt_is_comparable_string(cmpop op, std::string& err)
+static inline bool flt_is_comparable_string(cmpop op, std::string& err)
 {
 	switch(op)
 	{
@@ -275,7 +275,7 @@ static bool flt_is_comparable_string(cmpop op, std::string& err)
 	}
 }
 
-static bool flt_is_comparable_buffer(cmpop op, std::string& err)
+static inline bool flt_is_comparable_buffer(cmpop op, std::string& err)
 {
 	switch(op)
 	{
@@ -299,7 +299,7 @@ static bool flt_is_comparable_buffer(cmpop op, std::string& err)
 	}
 }
 
-static bool flt_is_comparable_ip_or_net(cmpop op, std::string& err)
+static inline bool flt_is_comparable_ip_or_net(cmpop op, std::string& err)
 {
 	switch(op)
 	{
@@ -318,11 +318,46 @@ static bool flt_is_comparable_ip_or_net(cmpop op, std::string& err)
 	}
 }
 
-bool flt_is_comparable(cmpop op, ppm_param_type t, std::string& err)
+static inline bool flt_is_comparable_any_list(cmpop op, std::string& err)
+{
+	switch(op)
+	{
+	case CO_IN:
+	case CO_EXISTS:
+	case CO_INTERSECTS:
+		return true;
+	default:
+		ASSERT(false);
+		std::string opname;
+		cmpop_to_str(op, opname);
+		err = "'" + opname + "' operator not supported list filters";
+		return false;
+	}
+}
+
+bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& err)
 {
 	if(op == CO_EXISTS)
 	{
 		return true;
+	}
+
+	if (is_list)
+	{
+		switch (t)
+		{
+		case PT_CHARBUF:
+		case PT_UINT64:
+		case PT_RELTIME:
+		case PT_ABSTIME:
+		case PT_BOOL:
+		case PT_IPADDR:
+		case PT_IPNET:
+			return flt_is_comparable_any_list(op, err);
+		default:
+			err = "list filters are not supported for type '" + std::string(param_type_to_string(t)) + "'";
+			return false;
+		}
 	}
 
 	switch(t)
@@ -368,6 +403,10 @@ bool flt_is_comparable(cmpop op, ppm_param_type t, std::string& err)
 	case PT_BYTEBUF:
 		return flt_is_comparable_buffer(op, err);
 	default:
+		ASSERT(false);
+		std::string opname;
+		cmpop_to_str(op, opname);
+		err = "'" + opname + "' operator not supported for type '" + std::string(param_type_to_string(t)) + "'";
 		return false;
 	}
 }

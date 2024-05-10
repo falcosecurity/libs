@@ -309,7 +309,7 @@ static inline void check_op_type_compatibility(sinsp_filter_check& c)
 {
 	std::string err;
 	auto fi = c.get_transformed_field_info();
-	if (fi && !flt_is_comparable(c.m_cmpop, fi->m_type, err))
+	if (fi && !flt_is_comparable(c.m_cmpop, fi->m_type, fi->is_list(), err))
 	{
 		throw sinsp_exception("filter error: " + err);
 	}
