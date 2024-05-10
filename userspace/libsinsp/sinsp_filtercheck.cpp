@@ -1111,7 +1111,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			return (char*)rawval;
 		case PT_BYTEBUF:
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
-			binary_buffer_to_string(m_getpropertystr_storage.data(), (const char*)rawval, (uint32_t) STRPROPERTY_STORAGE_SIZE - 1, len, sinsp_evt::PF_NORMAL);
+			binary_buffer_to_string(m_getpropertystr_storage.data(),
+									(const char*)rawval, 
+									(uint32_t) STRPROPERTY_STORAGE_SIZE - 1, 
+									len, 
+									m_inspector->get_buffer_format());
 			return m_getpropertystr_storage.data();
 		case PT_SOCKADDR:
 			ASSERT(false);
