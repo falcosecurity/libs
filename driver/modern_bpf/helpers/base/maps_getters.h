@@ -62,9 +62,9 @@ static __always_inline uint16_t maps__get_statsd_port()
 	return g_settings.statsd_port;
 }
 
-static __always_inline int32_t maps__get_scap_pid()
+static __always_inline int32_t maps__get_scap_tid()
 {
-	return g_settings.scap_pid;
+	return g_settings.scap_tid;
 }
 
 /*=============================== SETTINGS ===========================*/

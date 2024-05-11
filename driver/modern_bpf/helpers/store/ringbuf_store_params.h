@@ -153,7 +153,7 @@ static __always_inline void ringbuf__rewrite_header_for_calibration(struct ringb
 	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)ringbuf->data;
 	/* we set this to 0 to recognize this calibration event */
 	hdr->nparams = 0;
-	/* we cannot send the tid seen by the init namespace we need to send the pid seen by the current pid namespace
+	/* we cannot send the tid seen by the init namespace we need to send the tid seen by the current pid namespace
 	 * to be compliant with what scap expects.
 	 */
 	hdr->tid = vtid;
