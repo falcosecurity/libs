@@ -18,19 +18,7 @@ or GPL2.txt for full copies of the license.
  * even if the driver won't be able to send all syscalls.
  */
 #if defined(__GNUC__)
-#if defined(__x86_64__) || defined(__EMSCRIPTEN__)
-#include "syscall_compat_x86_64.h"
-#elif defined(__aarch64__)
-#include "syscall_compat_aarch64.h"
-#elif defined(__s390x__)
-#include "syscall_compat_s390x.h"
-#elif defined(__powerpc__)
-#include "syscall_compat_ppc64le.h"
-#elif defined(__riscv)
-#include "syscall_compat_riscv64.h"
-#elif defined(__loongarch__)
-#include "syscall_compat_loongarch64.h"
-#endif /* __x86_64__ */
+#include "syscall_compat.h"
 #elif defined(_MSC_VER) || defined(__EMSCRIPTEN__)
 // these are Linux syscall numbers and obviously meaningless for Windows/macOS
 // but we need *some* definition so that we have a mapping for scap_ppm_sc.c

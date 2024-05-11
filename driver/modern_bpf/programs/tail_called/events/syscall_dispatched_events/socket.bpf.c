@@ -77,13 +77,13 @@ int BPF_PROG(socket_x,
 	if(ret >= 0 && maps__get_socket_file_ops() == NULL)
 	{
 		struct task_struct *task = get_current_task();
-		/* Please note that in `g_settings.scap_pid` scap will put its virtual pid
+		/* Please note that in `g_settings.scap_tid` scap will put its virtual tid
 		 * if it is running inside a container. If we want to extract the same information
-		 * in the kernel we need to extract the virtual pid of the task.
+		 * in the kernel we need to extract the virtual tid of the task.
 		 */
-		pid_t vpid = extract__task_xid_vnr(task, PIDTYPE_TGID);
+		pid_t vtid = extract__task_xid_vnr(task, PIDTYPE_PID);
 		/* it means that scap is performing the calibration */
-		if(vpid == maps__get_scap_pid())
+		if(vtid == maps__get_scap_tid())
 		{
 			struct file *f = extract__file_struct_from_fd(ret);
 			if(f)
@@ -91,7 +91,7 @@ int BPF_PROG(socket_x,
 				struct file_operations *f_op = (struct file_operations *)BPF_CORE_READ(f, f_op);
 				maps__set_socket_file_ops((void*)f_op);
 				/* we need to rewrite the event header */
-				ringbuf__rewrite_header_for_calibration(&ringbuf, vpid);
+				ringbuf__rewrite_header_for_calibration(&ringbuf, vtid);
 			}
 		}
 	}

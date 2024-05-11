@@ -32,6 +32,7 @@ limitations under the License.
 #include <libscap/ringbuffer/ringbuffer.h>
 #include <libscap/scap_engine_util.h>
 #include <libscap/strerror.h>
+#include <driver/syscall_compat.h>
 
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
 {
@@ -168,11 +169,11 @@ int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
 
 static int32_t calibrate_socket_file_ops(struct scap_engine_handle engine)
 {
-	/* Set the scap_pid for the socket calibration.
-	 * If we are in a container this is the virtual pid.
+	/* Set the scap_tid for the socket calibration.
+	 * If we are in a container this is the virtual tid.
 	 */
-	pid_t scap_pid = getpid();
-	pman_set_scap_pid(scap_pid);
+	pid_t scap_tid = syscall(__NR_gettid);
+	pman_set_scap_tid(scap_tid);
 	
 	/* We just need to enable the socket syscall for the socket calibration */
 	engine.m_handle->curr_sc_set.ppm_sc[PPM_SC_SOCKET] = 1;
@@ -208,7 +209,7 @@ static int32_t calibrate_socket_file_ops(struct scap_engine_handle engine)
 		if(res == SCAP_SUCCESS && pevent != NULL)
 		{
 			/* This is not a socket event or this is not our socket event */
-			if(pevent->type != PPME_SOCKET_SOCKET_X || pevent->tid != scap_pid)
+			if(pevent->type != PPME_SOCKET_SOCKET_X || pevent->tid != scap_tid)
 			{
 				continue;
 			}
