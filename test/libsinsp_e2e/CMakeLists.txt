@@ -52,7 +52,6 @@ add_executable(libsinsp_e2e_tests
     thread_state.cpp
     udp_client_server.cpp
     unix_client_server.cpp
-    unix_udp_client_server.cpp
 )
 
 if(BUILD_BPF)
