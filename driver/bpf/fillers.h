@@ -572,7 +572,7 @@ FILLER(sys_poll_x, true)
 #define MAX_IOVCNT 32
 #define MAX_IOVCNT_COMPAT 8
 
-static __always_inline int _bpf_parse_readv_writev_bufs(struct filler_data *data,
+static __always_inline int bpf_parse_readv_writev_bufs_64(struct filler_data *data,
 						       const void __user *iovsrc,
 						       unsigned long iovcnt,
 						       long retval,
@@ -674,7 +674,7 @@ static __always_inline int _bpf_parse_readv_writev_bufs(struct filler_data *data
 }
 
 #if defined(CONFIG_X86_64)
-static __always_inline int _bpf_parse_readv_writev_bufs_ia32(struct filler_data *data,
+static __always_inline int bpf_parse_readv_writev_bufs_32(struct filler_data *data,
 						       const void __user *iovsrc,
 						       unsigned long iovcnt,
 						       long retval,
@@ -790,12 +790,12 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	if (!bpf_in_ia32_syscall())
 	{
 #endif
-		res = _bpf_parse_readv_writev_bufs(data, iovsrc, iovcnt, retval, flags, &size);
+		res = bpf_parse_readv_writev_bufs_64(data, iovsrc, iovcnt, retval, flags, &size);
 #if defined(CONFIG_X86_64)
 	}
 	else
 	{
-		res = _bpf_parse_readv_writev_bufs_ia32(data, iovsrc, iovcnt, retval, flags, &size);
+		res = bpf_parse_readv_writev_bufs_32(data, iovsrc, iovcnt, retval, flags, &size);
 	}
 #endif
 
