@@ -953,7 +953,7 @@ static __always_inline int timespec_parse(struct filler_data *data,
 	}
 	else
 	{
-		struct timespec ts = {};
+		struct old_timespec32 ts = {};
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
 		return bpf_push_u64_to_ring(data, ((uint32_t)ts.tv_sec) * 1000000000 + ts.tv_nsec);
 	}

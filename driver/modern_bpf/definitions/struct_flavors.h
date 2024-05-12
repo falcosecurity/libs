@@ -72,12 +72,6 @@ struct modern_bpf__kernel_timespec
 	long int tv_nsec;
 };
 
-struct modern_bpf__kernel_timespec_ia32
-{
-	int tv_sec;
-	int tv_nsec;
-};
-
 /* We use this as a fallback for kernels where `struct __kernel_timex_timeval` is not defined. */
 struct modern_bpf__kernel_timex_timeval
 {
