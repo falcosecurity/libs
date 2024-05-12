@@ -1003,18 +1003,11 @@ static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map 
  * @param iov_cnt number of `iovec` structs to be read from userspace.
  * @param len_to_read imposed snaplen.
  */
-static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
+static __always_inline void auxmap__store_iovec_data_param_64(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
 {
 	/* We use the second part of our auxmap as a scratch space. */
-	uint32_t total_iovec_size = 0;
-	if(!bpf_in_ia32_syscall())
-	{
-		total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
-	}
-	else
-	{
-		total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
-	}
+	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
 			       SAFE_ACCESS(total_iovec_size),
 			       (void *)iov_pointer))
@@ -1027,16 +1020,7 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 	uint32_t total_size_to_read = 0;
 
 	/* Pointer to iovec structs */
-	const struct iovec *iovec;
-	const struct compat_iovec *compat_iovec;
-	if(!bpf_in_ia32_syscall())
-	{
-		iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
-	}
-	else
-	{
-		compat_iovec = (const struct compat_iovec *)&auxmap->data[MAX_PARAM_SIZE];
-	}
+	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
 	uint64_t initial_payload_pos = auxmap->payload_pos;
 	for(int j = 0; j < MAX_IOVCNT; j++)
 	{
@@ -1054,15 +1038,7 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 			break;
 		}
 
-		uint16_t bytes_read;
-		if(!bpf_in_ia32_syscall())
-		{
-			bytes_read = push__bytebuf(auxmap->data, &auxmap->payload_pos, (unsigned long)iovec[j].iov_base, iovec[j].iov_len, USER);
-		}
-		else
-		{
-			bytes_read = push__bytebuf(auxmap->data, &auxmap->payload_pos, (unsigned long)compat_iovec[j].iov_base, compat_iovec[j].iov_len, USER);
-		}
+		uint16_t bytes_read = push__bytebuf(auxmap->data, &auxmap->payload_pos, (unsigned long)iovec[j].iov_base, iovec[j].iov_len, USER);
 		if(!bytes_read)
 		{
 			push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
@@ -1073,6 +1049,66 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 	/* We need this enforcement to be sure that we don't overcome the max `len_to_read` */
 	auxmap->payload_pos = initial_payload_pos + total_size_to_read;
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
+}
+
+static __always_inline void auxmap__store_iovec_data_param_32(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
+{
+	/* We use the second part of our auxmap as a scratch space. */
+	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
+
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
+			       SAFE_ACCESS(total_iovec_size),
+			       (void *)iov_pointer))
+	{
+		/* in case of NULL iovec vector we return an empty param */
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
+
+	uint32_t total_size_to_read = 0;
+
+	/* Pointer to iovec structs */
+	const struct compat_iovec *compat_iovec = (const struct compat_iovec *)&auxmap->data[MAX_PARAM_SIZE];
+	uint64_t initial_payload_pos = auxmap->payload_pos;
+	for(int j = 0; j < MAX_IOVCNT; j++)
+	{
+		if(total_size_to_read > len_to_read)
+		{
+			/* If we break here it could be that `payload_pos` overcame the max `len_to_read` for this reason
+			 * we have an enforcement after the for loop.
+			 */
+			total_size_to_read = len_to_read;
+			break;
+		}
+
+		if(j == iov_cnt)
+		{
+			break;
+		}
+
+		uint16_t bytes_read = push__bytebuf(auxmap->data, &auxmap->payload_pos, (unsigned long)compat_iovec[j].iov_base, compat_iovec[j].iov_len, USER);
+		if(!bytes_read)
+		{
+			push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
+			return;
+		}
+		total_size_to_read += bytes_read;
+	}
+	/* We need this enforcement to be sure that we don't overcome the max `len_to_read` */
+	auxmap->payload_pos = initial_payload_pos + total_size_to_read;
+	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
+}
+
+static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
+{
+	if(!bpf_in_ia32_syscall())
+	{
+		auxmap__store_iovec_data_param_64(auxmap, iov_pointer, iov_cnt, len_to_read);
+	}
+	else
+	{
+		auxmap__store_iovec_data_param_32(auxmap, iov_pointer, iov_cnt, len_to_read);
+	}
 }
 
 /**
