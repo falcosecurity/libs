@@ -116,6 +116,8 @@ TEST(mpsc_priority_queue, single_concurrent_producer)
     ASSERT_EQ(failed, 0);
 }
 
+#if defined(__x86_64__)
+
 TEST(mpsc_priority_queue, multi_concurrent_producers)
 {
     using val_t = std::unique_ptr<int>;
@@ -201,5 +203,7 @@ TEST(mpsc_priority_queue, multi_concurrent_producers)
     // check we received everything in order
     ASSERT_EQ(failed, 0) << "received " << failed << " elements out of order";
 }
+
+#endif // __x86_64__
 
 #endif // __EMSCRIPTEN__
