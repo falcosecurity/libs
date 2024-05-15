@@ -773,11 +773,11 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array)
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
 
-	auto field = table->static_fields()->find("env_vars");
+	auto field = table->static_fields()->find("env");
 	ASSERT_NE(field, table->static_fields()->end());
 	ASSERT_EQ(field->second.readonly(), true);
 	ASSERT_EQ(field->second.valid(), true);
-	ASSERT_EQ(field->second.name(), "env_vars");
+	ASSERT_EQ(field->second.name(), "env");
 	ASSERT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
 
 	ASSERT_EQ(table->entries_count(), 0);
@@ -793,7 +793,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array)
 	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
 		entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
-	ASSERT_EQ(subtable->name(), "env_vars");
+	ASSERT_EQ(subtable->name(), "env");
 	ASSERT_EQ(subtable->entries_count(), 0);
 
 	// get an accessor to a dynamic field representing the array's values

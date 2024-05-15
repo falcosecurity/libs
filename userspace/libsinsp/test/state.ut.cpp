@@ -558,11 +558,11 @@ TEST(thread_manager, env_vars_access)
 	EXPECT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	EXPECT_EQ(table->dynamic_fields()->fields().size(), 0);
 
-	auto field = table->static_fields()->find("env_vars");
+	auto field = table->static_fields()->find("env");
 	ASSERT_NE(field, table->static_fields()->end());
 	EXPECT_EQ(field->second.readonly(), true);
 	EXPECT_EQ(field->second.valid(), true);
-	EXPECT_EQ(field->second.name(), "env_vars");
+	EXPECT_EQ(field->second.name(), "env");
 	EXPECT_EQ(field->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::base_table*>());
 
 	ASSERT_EQ(table->entries_count(), 0);
@@ -577,7 +577,7 @@ TEST(thread_manager, env_vars_access)
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
 	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
-	EXPECT_EQ(subtable->name(), "env_vars");
+	EXPECT_EQ(subtable->name(), "env");
 	EXPECT_EQ(subtable->entries_count(), 0);
 	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
 	EXPECT_EQ(subtable->static_fields()->size(), 0);

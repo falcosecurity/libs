@@ -50,7 +50,7 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::s
 	m_inspector(inspector),
 	m_fdtable(inspector),
 	m_args_table_adapter("args", m_args),
-	m_env_table_adapter("env_vars", m_env)
+	m_env_table_adapter("env", m_env)
 {
 	init();
 }
@@ -70,8 +70,8 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	define_static_field(ret, this, m_exe_writable, "exe_writable");
 	define_static_field(ret, this, m_exe_upper_layer, "exe_upper_layer");
 	define_static_field(ret, this, m_exe_from_memfd, "exe_from_memfd");
-	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "args", true);
-	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "env_vars", true);
+	define_static_field(ret, this, m_args_table_adapter.table_ptr(), "args", true);
+	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "env", true);
 	// m_cgroups
 	define_static_field(ret, this, m_container_id, "container_id");
 	define_static_field(ret, this, m_flags, "flags");
