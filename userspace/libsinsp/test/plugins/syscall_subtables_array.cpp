@@ -96,7 +96,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 	
 	// get an accessor to the file descriptor tables owned by each thread info
 	ret->table_field_envtable = in->tables->fields.get_table_field(
-		ret->thread_table, "env_vars", ss_plugin_state_type::SS_PLUGIN_ST_TABLE);
+		ret->thread_table, "env", ss_plugin_state_type::SS_PLUGIN_ST_TABLE);
 	if (!ret->table_field_envtable)
 	{
 		*rc = SS_PLUGIN_FAILURE;
