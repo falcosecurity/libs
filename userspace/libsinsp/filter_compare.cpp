@@ -140,7 +140,6 @@ cmpop str_to_cmpop(std::string_view str)
 		return CO_IGLOB;
 	}
 
-	ASSERT(false);
 	throw sinsp_exception("unrecognized filter comparison operator '" + std::string(str) + "'");
 }
 
@@ -218,7 +217,6 @@ static inline bool flt_is_comparable_numeric(cmpop op, std::string& err)
 	case CO_EXISTS:
 		return true;
 	default:
-		ASSERT(false);
 		std::string opname;
 		cmpop_to_str(op, opname);
 		err = "'" + opname + "' operator not supported for numeric filters";
@@ -237,7 +235,6 @@ static inline bool flt_is_comparable_bool(cmpop op, std::string& err)
 	case CO_EXISTS:
 		return true;
 	default:
-		ASSERT(false);
 		std::string opname;
 		cmpop_to_str(op, opname);
 		err = "'" + opname + "' operator not supported for numeric filters";
@@ -267,7 +264,6 @@ static inline bool flt_is_comparable_string(cmpop op, std::string& err)
 	case CO_IGLOB:
 		return true;
 	default:
-		ASSERT(false);
 		std::string opname;
 		cmpop_to_str(op, opname);
 		err = "'" + opname + "' operator not supported for string filters";
@@ -291,7 +287,6 @@ static inline bool flt_is_comparable_buffer(cmpop op, std::string& err)
 	case CO_BSTARTSWITH:
 		return true;
 	default:
-		ASSERT(false);
 		std::string opname;
 		cmpop_to_str(op, opname);
 		err = "'" + opname + "' operator not supported for buffer filters";
@@ -310,7 +305,6 @@ static inline bool flt_is_comparable_ip_or_net(cmpop op, std::string& err)
 	case CO_INTERSECTS:
 		return true;
 	default:
-		ASSERT(false);
 		std::string opname;
 		cmpop_to_str(op, opname);
 		err = "'" + opname + "' operator not supported for ip address and network filters";
@@ -327,7 +321,6 @@ static inline bool flt_is_comparable_any_list(cmpop op, std::string& err)
 	case CO_INTERSECTS:
 		return true;
 	default:
-		ASSERT(false);
 		std::string opname;
 		cmpop_to_str(op, opname);
 		err = "'" + opname + "' operator not supported list filters";
@@ -403,7 +396,6 @@ bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& er
 	case PT_BYTEBUF:
 		return flt_is_comparable_buffer(op, err);
 	default:
-		ASSERT(false);
 		std::string opname;
 		cmpop_to_str(op, opname);
 		err = "'" + opname + "' operator not supported for type '" + std::string(param_type_to_string(t)) + "'";
