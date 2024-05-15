@@ -16,15 +16,16 @@ limitations under the License.
 
 */
 
-#ifdef __linux__
-
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/metrics_collector.h>
 #include <libsinsp/plugin_manager.h>
 #include <cmath>
+#include <re2/re2.h>
+
+#ifdef __linux__
 #include <sys/times.h>
 #include <sys/stat.h>
-#include <re2/re2.h>
+#endif
 
 static re2::RE2 s_libs_metrics_units_suffix_pre_prometheus_text_conversion("(_kb|_bytes|_mb|_perc|_percentage|_ratio|_ns|_ts|_sec|_total)", re2::RE2::POSIX);
 static re2::RE2 s_libs_metrics_units_memory_suffix("(_kb|_bytes)", re2::RE2::POSIX);
@@ -34,17 +35,17 @@ static re2::RE2 s_libs_metrics_banned_prometheus_naming_characters("(\\.)", re2:
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_value_unit
 // https://prometheus.io/docs/practices/naming/ or https://prometheus.io/docs/practices/naming/#base-units.
 static const char *const metrics_unit_name_mappings_prometheus[] = {
-	[METRIC_VALUE_UNIT_COUNT] = "total",
-	[METRIC_VALUE_UNIT_RATIO] = "ratio",
-	[METRIC_VALUE_UNIT_PERC] = "percentage",
-	[METRIC_VALUE_UNIT_MEMORY_BYTES] = "bytes",
-	[METRIC_VALUE_UNIT_MEMORY_KIBIBYTES] = "kibibytes",
-	[METRIC_VALUE_UNIT_MEMORY_MEGABYTES] = "megabytes",
-	[METRIC_VALUE_UNIT_TIME_NS] = "nanoseconds",
-	[METRIC_VALUE_UNIT_TIME_S] = "seconds",
-	[METRIC_VALUE_UNIT_TIME_NS_COUNT] = "nanoseconds_total",
-	[METRIC_VALUE_UNIT_TIME_S_COUNT] = "seconds_total",
-	[METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS] = "timestamp_nanoseconds",
+	"total",
+	"ratio",
+	"percentage",
+	"bytes",
+	"kibibytes",
+	"megabytes",
+	"nanoseconds",
+	"seconds",
+	"nanoseconds_total",
+	"seconds_total",
+	"timestamp_nanoseconds",
 };
 
 static_assert(sizeof(metrics_unit_name_mappings_prometheus) / sizeof(metrics_unit_name_mappings_prometheus[0]) == METRIC_VALUE_UNIT_MAX, "metrics_unit_name_mappings_prometheus array size does not match expected size");
@@ -52,8 +53,8 @@ static_assert(sizeof(metrics_unit_name_mappings_prometheus) / sizeof(metrics_uni
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_metric_type
 // https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
 static const char *const metrics_metric_type_name_mappings_prometheus[] = {
-	[METRIC_VALUE_METRIC_TYPE_MONOTONIC] = "counter",
-	[METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT] = "gauge",
+	"counter",
+	"gauge",
 };
 
 namespace libs::metrics {
@@ -206,6 +207,8 @@ void prometheus_metrics_converter::convert_metric_to_unit_convention(metrics_v2&
 		metric.unit = METRIC_VALUE_UNIT_RATIO;
 	}
 }
+
+#ifdef __linux__
 
 void libs_metrics_collector::get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &host_memory_used, uint64_t &host_open_fds)
 {
@@ -449,6 +452,8 @@ uint64_t libs_metrics_collector::get_container_memory_used() const
 	return memory_used;
 }
 
+#endif /*__linux__*/
+
 void libs_metrics_collector::snapshot()
 {
 	m_metrics.clear();
@@ -470,6 +475,7 @@ void libs_metrics_collector::snapshot()
 		}
 	}
 
+#ifdef __linux__
 	/* 
 	 * libscap metrics 
 	 */
@@ -729,7 +735,6 @@ void libs_metrics_collector::snapshot()
 
 	static_assert(sizeof(sinsp_stats_v2_collectors) / sizeof(sinsp_stats_v2_collectors[0]) == SINSP_MAX_STATS_V2, "sinsp_stats_v2_resource_utilization_names array size does not match expected size");
 
-
 	/* 
 	 * libsinsp metrics 
 	 */
@@ -783,6 +788,7 @@ void libs_metrics_collector::snapshot()
 			}
 		}
 	}
+#endif /*__linux__*/
 }
 
 const std::vector<metrics_v2>& libs_metrics_collector::get_metrics() const
@@ -802,5 +808,3 @@ libs_metrics_collector::libs_metrics_collector(sinsp* inspector, uint32_t flags)
 }
 
 } // namespace libs::metrics
-
-#endif

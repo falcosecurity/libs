@@ -18,7 +18,6 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include <libsinsp/plugin.h>
-#include <libsinsp/test/helpers/threads_helpers.h>
 
 #include <sinsp_with_test_input.h>
 #include "test_utils.h"
@@ -892,8 +891,6 @@ TEST(sinsp_plugin, plugin_set_config)
 	libsinsp_logger()->remove_callback_log();
 }
 
-#ifdef __linux__
-
 TEST_F(sinsp_with_test_input, plugin_metrics)
 {	
 	uint32_t test_metrics_flags = (METRICS_V2_PLUGINS);
@@ -925,5 +922,3 @@ TEST_F(sinsp_with_test_input, plugin_metrics)
 
 	ASSERT_EQ(metrics_snapshot.back().value.u64, events);
 }
-
-#endif
