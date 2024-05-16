@@ -195,7 +195,7 @@ static __always_inline void extract__network_args(void *argv, int num, struct pt
 		unsigned long *dst = (unsigned long *)argv;
 		for (int i = 0; i < num; i++)
 		{
-			dst[i] = args_u32[i];
+			dst[i] = (unsigned long)args_u32[i];
 		}
 		return;
 	}

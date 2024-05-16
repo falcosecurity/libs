@@ -17,7 +17,7 @@ int BPF_PROG(bind_e,
 	     long id)
 {
 	/* Collect parameters at the beginning to easily manage socketcalls */
-	unsigned long args[1];
+	unsigned long args[1] = {0};
 	extract__network_args(args, 1, regs);
 
 	struct ringbuf_struct ringbuf;
@@ -65,7 +65,7 @@ int BPF_PROG(bind_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 	/* Collect parameters at the beginning to easily manage socketcalls */
-	unsigned long args[3];
+	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	/* Parameter 1: res (type: PT_ERRNO) */

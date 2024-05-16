@@ -25,7 +25,7 @@ int BPF_PROG(connect_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	unsigned long args[3];
+	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	/* Parameter 1: fd (type: PT_FD)*/
@@ -65,7 +65,7 @@ int BPF_PROG(connect_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	unsigned long args[1];
+	unsigned long args[1] = {0};
 	extract__network_args(args, 1, regs);
 
 	/* Parameter 1: res (type: PT_ERRNO) */

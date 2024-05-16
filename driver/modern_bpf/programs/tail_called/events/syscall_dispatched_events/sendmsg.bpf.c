@@ -25,7 +25,7 @@ int BPF_PROG(sendmsg_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[2];
+	unsigned long args[2] = {0};
 	extract__network_args(args, 2, regs);
 
 	/* Parameter 1: fd (type: PT_FD) */
@@ -87,7 +87,7 @@ int BPF_PROG(sendmsg_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[2];
+	unsigned long args[2] = {0};
 	extract__network_args(args, 2, regs);
 
 	/* In case of failure `bytes_to_read` could be also lower than `snaplen`

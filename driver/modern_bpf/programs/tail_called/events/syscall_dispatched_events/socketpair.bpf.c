@@ -16,7 +16,7 @@ int BPF_PROG(socketpair_e,
 	     long id)
 {
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3];
+	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
@@ -82,7 +82,7 @@ int BPF_PROG(socketpair_x,
 	if(ret == 0)
 	{
 		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[4];
+		unsigned long args[4] = {0};
 		extract__network_args(args, 4, regs);
 
 		/* Get new sockets. */
