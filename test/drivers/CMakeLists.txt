@@ -53,6 +53,7 @@ set(DRIVERS_TEST_DEPENDECIES
 ## IA32 tests are only available on x86_64
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "x86_64" AND ENABLE_IA32_TESTS)
     add_executable(ia32 ./helpers/ia32.c)
+	target_include_directories(ia32 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     set_target_properties(ia32 PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
     set(DRIVERS_TEST_DEPENDECIES
             ${DRIVERS_TEST_DEPENDECIES}
@@ -66,5 +67,3 @@ add_executable(drivers_test ${DRIVERS_TEST_SOURCES})
 target_include_directories(drivers_test ${DRIVERS_TEST_INCLUDE})
 target_link_libraries(drivers_test ${DRIVERS_TEST_LINK_LIBRARIES})
 add_dependencies(drivers_test ${DRIVERS_TEST_DEPENDECIES})
-
-
