@@ -16,7 +16,7 @@ int BPF_PROG(shutdown_e,
 	     long id)
 {
 	/* Collect parameters at the beginning to easily manage socketcalls */
-	unsigned long args[2];
+	unsigned long args[2] = {0};
 	extract__network_args(args, 2, regs);
 
 	struct ringbuf_struct ringbuf;

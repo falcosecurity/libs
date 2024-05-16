@@ -17,7 +17,7 @@ int BPF_PROG(send_e,
 	     long id)
 {
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3];
+	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
@@ -68,7 +68,7 @@ int BPF_PROG(send_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3];
+	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	int64_t bytes_to_read = ret > 0 ? ret : args[2];

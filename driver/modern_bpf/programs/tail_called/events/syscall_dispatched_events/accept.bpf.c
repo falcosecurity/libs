@@ -77,7 +77,7 @@ int BPF_PROG(accept_x,
 		auxmap__store_socktuple_param(auxmap, (int32_t)ret, INBOUND, NULL);
 
 		/* Collect parameters at the beginning to  manage socketcalls */
-		unsigned long args[1];
+		unsigned long args[1] = {0};
 		extract__network_args(args, 1, regs);
 
 		/* Perform some computations to get queue information. */
@@ -91,11 +91,14 @@ int BPF_PROG(accept_x,
 		if(socket != NULL)
 		{
 			struct sock *sk = BPF_CORE_READ(socket, sk);
-			BPF_CORE_READ_INTO(&queuelen, sk, sk_ack_backlog);
-			BPF_CORE_READ_INTO(&queuemax, sk, sk_max_ack_backlog);
-			if(queuelen && queuemax)
+			if(sk != NULL)
 			{
-				queuepct = (uint8_t)((uint64_t)queuelen * 100 / queuemax);
+				BPF_CORE_READ_INTO(&queuelen, sk, sk_ack_backlog);
+				BPF_CORE_READ_INTO(&queuemax, sk, sk_max_ack_backlog);
+				if(queuelen && queuemax)
+				{
+					queuepct = (uint8_t)((uint64_t)queuelen * 100 / queuemax);
+				}
 			}
 		}
 	}

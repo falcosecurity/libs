@@ -671,6 +671,11 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		return;
 	}
 	struct sock *sk = BPF_CORE_READ(socket, sk);
+	if(sk == NULL)
+	{
+		auxmap__store_empty_param(auxmap);
+		return;
+	}
 	BPF_CORE_READ_INTO(&socket_family, sk, __sk_common.skc_family);
 
 	switch(socket_family)
@@ -1431,7 +1436,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	 *  - recvmsg
 	 *  - sendmsg
 	 */
-	unsigned long args[3];
+	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	/* All the syscalls involved in this logic have the `fd` as first syscall argument */
@@ -1448,6 +1453,10 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 		return;
 	}
 	struct sock *sk = BPF_CORE_READ(socket, sk);
+	if(sk == NULL)
+	{
+		return;
+	}
 
 	uint16_t port_local = 0;
 	uint16_t port_remote = 0;

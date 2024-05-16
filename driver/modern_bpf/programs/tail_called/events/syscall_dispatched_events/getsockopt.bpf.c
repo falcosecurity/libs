@@ -55,7 +55,7 @@ int BPF_PROG(getsockopt_x,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[5];
+	unsigned long args[5] = {0};
 	extract__network_args(args, 5, regs);
 
 	/* Parameter 1: res (type: PT_ERRNO) */

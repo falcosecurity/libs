@@ -25,7 +25,7 @@ int BPF_PROG(sendto_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[5];
+	unsigned long args[5] = {0};
 	extract__network_args(args, 5, regs);
 
 	/* Parameter 1: fd (type: PT_FD) */
@@ -85,7 +85,7 @@ int BPF_PROG(sendto_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[5];
+	unsigned long args[5] = {0};
 	extract__network_args(args, 5, regs);
 
 	/* If the syscall doesn't fail we use the return value as `size`

@@ -17,7 +17,7 @@ int BPF_PROG(recv_e,
 	     long id)
 {
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[3];
+	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
@@ -70,7 +70,7 @@ int BPF_PROG(recv_x,
 	if(ret > 0)
 	{
 		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[2];
+		unsigned long args[2] = {0};
 		extract__network_args(args, 2, regs);
 
 		uint16_t snaplen = maps__get_snaplen();

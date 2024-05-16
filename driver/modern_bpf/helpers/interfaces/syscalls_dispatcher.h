@@ -146,7 +146,7 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 	 *
 	 * ----- x86 with CONFIG_IA32_EMULATION
 	 * - `SYS_ACCEPT` is defined but `__NR_accept` is not defined
-	 * -> In this case we return a `__NR_accept4`
+	 * -> In this case we return a `__NR_accept`
 	 * 
 	 * - `SYS_SEND` is defined but `__NR_send` is not defined
 	 * -> In this case we drop the event
