@@ -79,4 +79,15 @@ struct modern_bpf__kernel_timex_timeval
 	long long int tv_usec;
 };
 
+/*
+ *  This is equivalent to old_timespec32 or compat_timespec. Some old distros
+ *  don't define old_timespec32 (e.g. centos 8 with 4.18 kernel), so we define
+ *  it here.
+ */
+struct modern_bpf__kernel_timespec_ia32
+{
+	int tv_sec;
+	int tv_nsec;
+};
+
 #endif /* __STRUCT_FLAVORS_H__ */

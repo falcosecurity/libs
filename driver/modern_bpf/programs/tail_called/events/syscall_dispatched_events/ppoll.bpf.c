@@ -55,7 +55,7 @@ int BPF_PROG(ppoll_e,
 	}
 	else
 	{
-		struct old_timespec32 ts = {0};
+		struct modern_bpf__kernel_timespec_ia32 ts = {0};
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)ts_pointer);
 		nanosec = ((uint32_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
 	}
