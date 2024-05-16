@@ -81,16 +81,15 @@ int BPF_PROG(accept4_x,
 		auxmap__store_socktuple_param(auxmap, (int32_t)ret, INBOUND, NULL);
 
 		/* Collect parameters at the beginning to  manage socketcalls */
-		unsigned long args[1] = {0};
-		extract__network_args(args, 1, regs);
+		unsigned long socket_fd = 0;
+		extract__network_args(&socket_fd, 1, regs);
 
 		/* Perform some computations to get queue information. */
-		/* If the syscall is successful the `sockfd` will be >= 0. We want
+		/* If the syscall is successful the `socket_fd` will be >= 0. We want
 		 * to extract information from the listening socket, not from the
 		 * new one.
 		 */
-		int32_t sockfd = (int32_t)args[0];
-		struct file *file = extract__file_struct_from_fd(sockfd);
+		struct file *file = extract__file_struct_from_fd((int32_t)socket_fd);
 		struct socket *socket = get_sock_from_file(file);
 		if(socket != NULL)
 		{

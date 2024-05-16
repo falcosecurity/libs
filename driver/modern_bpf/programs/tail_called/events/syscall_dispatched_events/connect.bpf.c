@@ -65,19 +65,17 @@ int BPF_PROG(connect_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	unsigned long args[1] = {0};
-	extract__network_args(args, 1, regs);
+	unsigned long socket_fd = 0;
+	extract__network_args(&socket_fd, 1, regs);
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
-
-	int32_t socket_fd = (int32_t)args[0];
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* We need a valid sockfd to extract source data.*/
 	if(ret == 0 || ret == -EINPROGRESS)
 	{
-		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, NULL);
+		auxmap__store_socktuple_param(auxmap, (int32_t)socket_fd, OUTBOUND, NULL);
 	}
 	else
 	{
@@ -85,7 +83,10 @@ int BPF_PROG(connect_x,
 	}
 
 	/* Parameter 3: fd (type: PT_FD)*/
-	auxmap__store_s64_param(auxmap, (int64_t)socket_fd);
+	/* We need the double cast to extract the first 4 bytes and then
+	 * convert them to a signed integer on 64-bit
+	 */
+	auxmap__store_s64_param(auxmap, (int64_t)(int32_t)socket_fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
