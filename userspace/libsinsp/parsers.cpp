@@ -168,7 +168,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_SENDMSG_E:
 	case PPME_SYSCALL_SENDFILE_E:
 	case PPME_SYSCALL_SETRESUID_E:
+	case PPME_SYSCALL_SETREUID_E:
 	case PPME_SYSCALL_SETRESGID_E:
+	case PPME_SYSCALL_SETREGID_E:
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
 	case PPME_SYSCALL_SETPGID_E:
@@ -382,10 +384,16 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_brk_munmap_mmap_exit(evt);
 		break;
 	case PPME_SYSCALL_SETRESUID_X:
-		parse_setresuid_exit(evt);
+		parse_setresuid_setreuid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETREUID_X:
+		parse_setresuid_setreuid_exit(evt);
 		break;
 	case PPME_SYSCALL_SETRESGID_X:
-		parse_setresgid_exit(evt);
+		parse_setresgid_setregid_exit(evt);
+		break;
+	case PPME_SYSCALL_SETREGID_X:
+		parse_setresgid_setregid_exit(evt);
 		break;
 	case PPME_SYSCALL_SETUID_X:
 		parse_setuid_exit(evt);
@@ -4887,7 +4895,7 @@ void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt* evt)
 	evt->get_tinfo()->m_vmswap_kb = evt->get_param(3)->as<uint32_t>();
 }
 
-void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
+void sinsp_parser::parse_setresuid_setreuid_exit(sinsp_evt *evt)
 {
 	int64_t retval;
 	sinsp_evt *enter_evt = &m_tmp_evt;
@@ -4910,7 +4918,7 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
 	}
 }
 
-void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
+void sinsp_parser::parse_setresgid_setregid_exit(sinsp_evt *evt)
 {
 	int64_t retval;
 	sinsp_evt *enter_evt = &m_tmp_evt;
