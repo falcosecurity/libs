@@ -167,6 +167,17 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			}
 
 			break;
+		case PT_DOUBLE:
+		{
+			check_storage_size(str, max_len, sizeof(double));
+			// note(jasondellaluce): we historically never supported parsing
+			// floating point number values, so as a starter we just stick to
+			// integer numberd
+			// todo(jasondellaluce): support floating point (double) value parsing
+			*(double*)storage = (double)sinsp_numparser::parsed32(str);
+			parsed_len = sizeof(double);
+			break;
+		}
 		case PT_IPADDR:
 			if(memchr(str, '.', len) != NULL)
 			{
