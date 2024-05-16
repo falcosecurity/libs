@@ -673,7 +673,7 @@ static __always_inline int bpf_parse_readv_writev_bufs_64(struct filler_data *da
 	return res;
 }
 
-#if defined(CONFIG_X86_64)
+#ifdef CONFIG_COMPAT
 static __always_inline int bpf_parse_readv_writev_bufs_32(struct filler_data *data,
 						       const void __user *iovsrc,
 						       unsigned long iovcnt,
@@ -786,18 +786,16 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 {
 	unsigned long size = 0;
 	int res = PPM_SUCCESS;
-#if defined(CONFIG_X86_64)
 	if (!bpf_in_ia32_syscall())
 	{
-#endif
 		res = bpf_parse_readv_writev_bufs_64(data, iovsrc, iovcnt, retval, flags, &size);
-#if defined(CONFIG_X86_64)
 	}
 	else
 	{
+#ifdef CONFIG_COMPAT
 		res = bpf_parse_readv_writev_bufs_32(data, iovsrc, iovcnt, retval, flags, &size);
-	}
 #endif
+	}
 
 	if(flags & PRB_FLAG_PUSH_DATA && res == PPM_SUCCESS)
 	{
