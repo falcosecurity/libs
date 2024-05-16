@@ -138,6 +138,8 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_sc_set(libsi
 		PPM_SC_UNSHARE,
 		PPM_SC_USERFAULTFD,
 		PPM_SC_VFORK,
+		PPM_SC_SETREUID,
+		PPM_SC_SETREGID,
 	};
 	static auto sinsp_state_ppm_sc = sinsp_state_sc_set();
 	static auto final_set = simple_set.merge(sinsp_state_ppm_sc);
