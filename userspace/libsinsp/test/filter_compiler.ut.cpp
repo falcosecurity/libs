@@ -237,6 +237,295 @@ TEST(sinsp_filter_compiler, supported_operators)
 	test_filter_compile(factory, "c.buffer bstartswith abc_1", true);
 }
 
+TEST(sinsp_filter_compiler, operators_field_types_compatibility)
+{
+	sinsp inspector;
+	sinsp_filter_check_list filterlist;
+	auto factory = std::make_shared<sinsp_filter_factory>(&inspector, filterlist);
+
+	// PT_ABSTIME
+	test_filter_compile(factory, "evt.rawtime exists");
+	test_filter_compile(factory, "evt.rawtime = 1");
+	test_filter_compile(factory, "evt.rawtime != 1");
+	test_filter_compile(factory, "evt.rawtime < 1");
+	test_filter_compile(factory, "evt.rawtime <= 1");
+	test_filter_compile(factory, "evt.rawtime > 1");
+	test_filter_compile(factory, "evt.rawtime >= 1");
+	test_filter_compile(factory, "evt.rawtime contains 1", true);
+	test_filter_compile(factory, "evt.rawtime in (1)");
+	test_filter_compile(factory, "evt.rawtime intersects (1)");
+	test_filter_compile(factory, "evt.rawtime icontains 1", true);
+	test_filter_compile(factory, "evt.rawtime startswith 1", true);
+	test_filter_compile(factory, "evt.rawtime glob 1", true);
+	test_filter_compile(factory, "evt.rawtime pmatch (1)", true);
+	test_filter_compile(factory, "evt.rawtime endswith 1", true);
+	test_filter_compile(factory, "evt.rawtime bcontains 303000", true);
+	test_filter_compile(factory, "evt.rawtime bstartswith 303000", true);
+	test_filter_compile(factory, "evt.rawtime iglob 1", true);
+	
+	// PT_BOOL
+	test_filter_compile(factory, "evt.is_io exists");
+	test_filter_compile(factory, "evt.is_io = true");
+	test_filter_compile(factory, "evt.is_io != true");
+	test_filter_compile(factory, "evt.is_io < true", true);
+	test_filter_compile(factory, "evt.is_io <= true", true);
+	test_filter_compile(factory, "evt.is_io > true", true);
+	test_filter_compile(factory, "evt.is_io >= true", true);
+	test_filter_compile(factory, "evt.is_io contains true", true);
+	test_filter_compile(factory, "evt.is_io in (true)");
+	test_filter_compile(factory, "evt.is_io intersects (true)");
+	test_filter_compile(factory, "evt.is_io icontains true", true);
+	test_filter_compile(factory, "evt.is_io startswith true", true);
+	test_filter_compile(factory, "evt.is_io glob true", true);
+	test_filter_compile(factory, "evt.is_io pmatch (true)", true);
+	test_filter_compile(factory, "evt.is_io endswith true", true);
+	test_filter_compile(factory, "evt.is_io bcontains 7472756500", true);
+	test_filter_compile(factory, "evt.is_io bstartswith 7472756500", true);
+	test_filter_compile(factory, "evt.is_io iglob true", true);
+
+	// PT_BYTEBUF
+	test_filter_compile(factory, "evt.buffer exists");
+	test_filter_compile(factory, "evt.buffer = test");
+	test_filter_compile(factory, "evt.buffer != test");
+	test_filter_compile(factory, "evt.buffer < 1", true);
+	test_filter_compile(factory, "evt.buffer <= 2", true);
+	test_filter_compile(factory, "evt.buffer > 3", true);
+	test_filter_compile(factory, "evt.buffer >= 4", true);
+	test_filter_compile(factory, "evt.buffer contains test");
+	test_filter_compile(factory, "evt.buffer in (test)");
+	test_filter_compile(factory, "evt.buffer intersects (test)");
+	test_filter_compile(factory, "evt.buffer icontains test", true);
+	test_filter_compile(factory, "evt.buffer startswith test");
+	test_filter_compile(factory, "evt.buffer glob test", true);
+	test_filter_compile(factory, "evt.buffer pmatch (test)", true);
+	test_filter_compile(factory, "evt.buffer endswith test");
+	test_filter_compile(factory, "evt.buffer bcontains 303000");
+	test_filter_compile(factory, "evt.buffer bstartswith 303000");
+	test_filter_compile(factory, "evt.buffer iglob test", true);
+
+	// PT_CHARBUF
+	test_filter_compile(factory, "fd.name exists");
+	test_filter_compile(factory, "fd.name = true");
+	test_filter_compile(factory, "fd.name != true");
+	test_filter_compile(factory, "fd.name < 1");
+	test_filter_compile(factory, "fd.name <= 1");
+	test_filter_compile(factory, "fd.name > 1");
+	test_filter_compile(factory, "fd.name >= 1");
+	test_filter_compile(factory, "fd.name contains true");
+	test_filter_compile(factory, "fd.name in (true)");
+	test_filter_compile(factory, "fd.name intersects (true)");
+	test_filter_compile(factory, "fd.name icontains true");
+	test_filter_compile(factory, "fd.name startswith true");
+	test_filter_compile(factory, "fd.name glob true");
+	test_filter_compile(factory, "fd.name pmatch (true)");
+	test_filter_compile(factory, "fd.name endswith true");
+	test_filter_compile(factory, "fd.name bcontains 303000", true);
+	test_filter_compile(factory, "fd.name bstartswith 303000", true);
+	test_filter_compile(factory, "fd.name iglob true");
+
+	// PT_DOUBLE
+	test_filter_compile(factory, "thread.cpu exists");
+	test_filter_compile(factory, "thread.cpu = 1");
+	// note: floating point values still not supported
+	test_filter_compile(factory, "thread.cpu = 1.0", true);
+	test_filter_compile(factory, "thread.cpu != 1");
+	test_filter_compile(factory, "thread.cpu < 1");
+	test_filter_compile(factory, "thread.cpu <= 1");
+	test_filter_compile(factory, "thread.cpu > 1");
+	test_filter_compile(factory, "thread.cpu >= 1");
+	test_filter_compile(factory, "thread.cpu contains 1", true);
+	test_filter_compile(factory, "thread.cpu in (1)");
+	test_filter_compile(factory, "thread.cpu intersects (1)");
+	test_filter_compile(factory, "thread.cpu icontains 1", true);
+	test_filter_compile(factory, "thread.cpu startswith 1", true);
+	test_filter_compile(factory, "thread.cpu glob 1", true);
+	test_filter_compile(factory, "thread.cpu pmatch (1)", true);
+	test_filter_compile(factory, "thread.cpu endswith 1", true);
+	test_filter_compile(factory, "thread.cpu bcontains 303000", true);
+	test_filter_compile(factory, "thread.cpu bstartswith 303000", true);
+	test_filter_compile(factory, "thread.cpu iglob 1", true);
+
+	// PT_INT16
+	test_filter_compile(factory, "evt.cpu exists");
+	test_filter_compile(factory, "evt.cpu = 1");
+	test_filter_compile(factory, "evt.cpu != 1");
+	test_filter_compile(factory, "evt.cpu < 1");
+	test_filter_compile(factory, "evt.cpu <= 1");
+	test_filter_compile(factory, "evt.cpu > 1");
+	test_filter_compile(factory, "evt.cpu >= 1");
+	test_filter_compile(factory, "evt.cpu contains 1", true);
+	test_filter_compile(factory, "evt.cpu in (1)");
+	test_filter_compile(factory, "evt.cpu intersects (1)");
+	test_filter_compile(factory, "evt.cpu icontains 1", true);
+	test_filter_compile(factory, "evt.cpu startswith 1", true);
+	test_filter_compile(factory, "evt.cpu glob 1", true);
+	test_filter_compile(factory, "evt.cpu pmatch (1)", true);
+	test_filter_compile(factory, "evt.cpu endswith 1", true);
+	test_filter_compile(factory, "evt.cpu bcontains 303000", true);
+	test_filter_compile(factory, "evt.cpu bstartswith 303000", true);
+	test_filter_compile(factory, "evt.cpu iglob 1", true);
+
+	// PT_INT32
+	test_filter_compile(factory, "fd.dev exists");
+	test_filter_compile(factory, "fd.dev = 1");
+	test_filter_compile(factory, "fd.dev != 1");
+	test_filter_compile(factory, "fd.dev < 1");
+	test_filter_compile(factory, "fd.dev <= 1");
+	test_filter_compile(factory, "fd.dev > 1");
+	test_filter_compile(factory, "fd.dev >= 1");
+	test_filter_compile(factory, "fd.dev contains 1", true);
+	test_filter_compile(factory, "fd.dev in (1)");
+	test_filter_compile(factory, "fd.dev intersects (1)");
+	test_filter_compile(factory, "fd.dev icontains 1", true);
+	test_filter_compile(factory, "fd.dev startswith 1", true);
+	test_filter_compile(factory, "fd.dev glob 1", true);
+	test_filter_compile(factory, "fd.dev pmatch (1)", true);
+	test_filter_compile(factory, "fd.dev endswith 1", true);
+	test_filter_compile(factory, "fd.dev bcontains 303000", true);
+	test_filter_compile(factory, "fd.dev bstartswith 303000", true);
+	test_filter_compile(factory, "fd.dev iglob 1", true);
+
+	// PT_INT64
+	test_filter_compile(factory, "proc.pid exists");
+	test_filter_compile(factory, "proc.pid = 1");
+	test_filter_compile(factory, "proc.pid != 1");
+	test_filter_compile(factory, "proc.pid < 1");
+	test_filter_compile(factory, "proc.pid <= 1");
+	test_filter_compile(factory, "proc.pid > 1");
+	test_filter_compile(factory, "proc.pid >= 1");
+	test_filter_compile(factory, "proc.pid contains 1", true);
+	test_filter_compile(factory, "proc.pid in (1)");
+	test_filter_compile(factory, "proc.pid intersects (1)");
+	test_filter_compile(factory, "proc.pid icontains 1", true);
+	test_filter_compile(factory, "proc.pid startswith 1", true);
+	test_filter_compile(factory, "proc.pid glob 1", true);
+	test_filter_compile(factory, "proc.pid pmatch (1)", true);
+	test_filter_compile(factory, "proc.pid endswith 1", true);
+	test_filter_compile(factory, "proc.pid bcontains 303000", true);
+	test_filter_compile(factory, "proc.pid bstartswith 303000", true);
+	test_filter_compile(factory, "proc.pid iglob 1", true);
+
+	// PT_IPADDR
+	test_filter_compile(factory, "fd.ip exists");
+	test_filter_compile(factory, "fd.ip = 127.0.0.1");
+	test_filter_compile(factory, "fd.ip != 127.0.0.1");
+	test_filter_compile(factory, "fd.ip < 127", true);
+	test_filter_compile(factory, "fd.ip <= 127", true);
+	test_filter_compile(factory, "fd.ip > 127", true);
+	test_filter_compile(factory, "fd.ip >= 127", true);
+	test_filter_compile(factory, "fd.ip contains 127.0.0.1", true);
+	test_filter_compile(factory, "fd.ip in (127.0.0.1)");
+	test_filter_compile(factory, "fd.ip intersects (127.0.0.1)");
+	test_filter_compile(factory, "fd.ip icontains 127.0.0.1", true);
+	test_filter_compile(factory, "fd.ip startswith 127.0.0.1", true);
+	test_filter_compile(factory, "fd.ip glob 127.0.0.1", true);
+	test_filter_compile(factory, "fd.ip pmatch (127.0.0.1)", true);
+	test_filter_compile(factory, "fd.ip endswith 127.0.0.1", true);
+	test_filter_compile(factory, "fd.ip bcontains 3132372e302e302e3100", true);
+	test_filter_compile(factory, "fd.ip bstartswith 3132372e302e302e3100", true);
+	test_filter_compile(factory, "fd.ip iglob 127.0.0.1", true);
+
+	// PT_IPNET
+	test_filter_compile(factory, "fd.net exists");
+	test_filter_compile(factory, "fd.net = 127.0.0.1/32");
+	test_filter_compile(factory, "fd.net != 127.0.0.1/32");
+	test_filter_compile(factory, "fd.net < 127", true);
+	test_filter_compile(factory, "fd.net <= 127", true);
+	test_filter_compile(factory, "fd.net > 127", true);
+	test_filter_compile(factory, "fd.net >= 127", true);
+	test_filter_compile(factory, "fd.net contains 127.0.0.1/32", true);
+	test_filter_compile(factory, "fd.net in (127.0.0.1/32)");
+	test_filter_compile(factory, "fd.net intersects (127.0.0.1/32)");
+	test_filter_compile(factory, "fd.net icontains 127.0.0.1/32", true);
+	test_filter_compile(factory, "fd.net startswith 127.0.0.1/32", true);
+	test_filter_compile(factory, "fd.net glob 127.0.0.1/32", true);
+	test_filter_compile(factory, "fd.net pmatch (127.0.0.1/32)", true);
+	test_filter_compile(factory, "fd.net endswith 127.0.0.1/32", true);
+	test_filter_compile(factory, "fd.net bcontains 3132372e302e302e312f333200", true);
+	test_filter_compile(factory, "fd.net bstartswith 3132372e302e302e312f333200", true);
+	test_filter_compile(factory, "fd.net iglob 127.0.0.1/32", true);
+
+	// PT_PORT
+	test_filter_compile(factory, "fd.port exists");
+	test_filter_compile(factory, "fd.port = 1");
+	test_filter_compile(factory, "fd.port != 1");
+	test_filter_compile(factory, "fd.port < 1");
+	test_filter_compile(factory, "fd.port <= 1");
+	test_filter_compile(factory, "fd.port > 1");
+	test_filter_compile(factory, "fd.port >= 1");
+	test_filter_compile(factory, "fd.port contains 1", true);
+	test_filter_compile(factory, "fd.port in (1)");
+	test_filter_compile(factory, "fd.port intersects (1)");
+	test_filter_compile(factory, "fd.port icontains 1", true);
+	test_filter_compile(factory, "fd.port startswith 1", true);
+	test_filter_compile(factory, "fd.port glob 1", true);
+	test_filter_compile(factory, "fd.port pmatch (1)", true);
+	test_filter_compile(factory, "fd.port endswith 1", true);
+	test_filter_compile(factory, "fd.port bcontains 303000", true);
+	test_filter_compile(factory, "fd.port bstartswith 303000", true);
+	test_filter_compile(factory, "fd.port iglob 1", true);
+
+	// PT_RELTIME
+	test_filter_compile(factory, "proc.pid.ts exists");
+	test_filter_compile(factory, "proc.pid.ts = 1");
+	test_filter_compile(factory, "proc.pid.ts != 1");
+	test_filter_compile(factory, "proc.pid.ts < 1");
+	test_filter_compile(factory, "proc.pid.ts <= 1");
+	test_filter_compile(factory, "proc.pid.ts > 1");
+	test_filter_compile(factory, "proc.pid.ts >= 1");
+	test_filter_compile(factory, "proc.pid.ts contains 1", true);
+	test_filter_compile(factory, "proc.pid.ts in (1)");
+	test_filter_compile(factory, "proc.pid.ts intersects (1)");
+	test_filter_compile(factory, "proc.pid.ts icontains 1", true);
+	test_filter_compile(factory, "proc.pid.ts startswith 1", true);
+	test_filter_compile(factory, "proc.pid.ts glob 1", true);
+	test_filter_compile(factory, "proc.pid.ts pmatch (1)", true);
+	test_filter_compile(factory, "proc.pid.ts endswith 1", true);
+	test_filter_compile(factory, "proc.pid.ts bcontains 303000", true);
+	test_filter_compile(factory, "proc.pid.ts bstartswith 303000", true);
+	test_filter_compile(factory, "proc.pid.ts iglob 1", true);
+
+	// PT_UINT32
+	test_filter_compile(factory, "evt.count exists");
+	test_filter_compile(factory, "evt.count = 1");
+	test_filter_compile(factory, "evt.count != 1");
+	test_filter_compile(factory, "evt.count < 1");
+	test_filter_compile(factory, "evt.count <= 1");
+	test_filter_compile(factory, "evt.count > 1");
+	test_filter_compile(factory, "evt.count >= 1");
+	test_filter_compile(factory, "evt.count contains 1", true);
+	test_filter_compile(factory, "evt.count in (1)");
+	test_filter_compile(factory, "evt.count intersects (1)");
+	test_filter_compile(factory, "evt.count icontains 1", true);
+	test_filter_compile(factory, "evt.count startswith 1", true);
+	test_filter_compile(factory, "evt.count glob 1", true);
+	test_filter_compile(factory, "evt.count pmatch (1)", true);
+	test_filter_compile(factory, "evt.count endswith 1", true);
+	test_filter_compile(factory, "evt.count bcontains 303000", true);
+	test_filter_compile(factory, "evt.count bstartswith 303000", true);
+	test_filter_compile(factory, "evt.count iglob 1", true);
+
+	// PT_UINT64
+	test_filter_compile(factory, "evt.num exists");
+	test_filter_compile(factory, "evt.num = 1");
+	test_filter_compile(factory, "evt.num != 1");
+	test_filter_compile(factory, "evt.num < 1");
+	test_filter_compile(factory, "evt.num <= 1");
+	test_filter_compile(factory, "evt.num > 1");
+	test_filter_compile(factory, "evt.num >= 1");
+	test_filter_compile(factory, "evt.num contains 1", true);
+	test_filter_compile(factory, "evt.num in (1)");
+	test_filter_compile(factory, "evt.num intersects (1)");
+	test_filter_compile(factory, "evt.num icontains 1", true);
+	test_filter_compile(factory, "evt.num startswith 1", true);
+	test_filter_compile(factory, "evt.num glob 1", true);
+	test_filter_compile(factory, "evt.num pmatch (1)", true);
+	test_filter_compile(factory, "evt.num endswith 1", true);
+	test_filter_compile(factory, "evt.num bcontains 303000", true);
+	test_filter_compile(factory, "evt.num bstartswith 303000", true);
+	test_filter_compile(factory, "evt.num iglob 1", true);
+}
+
 TEST(sinsp_filter_compiler, complex_filter)
 {
 	sinsp inspector;
