@@ -506,8 +506,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_rt_sigsuspend - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RT_SIGSUSPEND},
 	[__NR_capget - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_CAPGET},
 
-	[__NR_setreuid - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SETREUID},
-	[__NR_setregid - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SETREGID},
+#ifdef __NR_setreuid
+	[__NR_setreuid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETREUID_E, PPME_SYSCALL_SETREUID_X, PPM_SC_SETREUID},
+#endif
+#ifdef __NR_setregid
+	[__NR_setregid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETREGID_E, PPME_SYSCALL_SETREGID_X, PPM_SC_SETREGID},
+#endif
 	[__NR_getgroups - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_GETGROUPS},
 	[__NR_setgroups - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SETGROUPS},
 #ifdef __NR_fchown

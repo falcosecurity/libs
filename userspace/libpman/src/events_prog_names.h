@@ -335,6 +335,10 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = "process_vm_writev_x",
 	[PPME_SYSCALL_DELETE_MODULE_E] = "delete_module_e",
 	[PPME_SYSCALL_DELETE_MODULE_X] = "delete_module_x",
+	[PPME_SYSCALL_SETREUID_E] = "setreuid_e",
+	[PPME_SYSCALL_SETREUID_X] = "setreuid_x",
+	[PPME_SYSCALL_SETREGID_E] = "setregid_e",
+	[PPME_SYSCALL_SETREGID_X] = "setregid_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

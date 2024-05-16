@@ -478,6 +478,10 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {"process_vm_writev", EC_SYSCALL | EC_IPC, EF_NONE, 3, {{"res", PT_INT64, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"data", PT_BYTEBUF, PF_NA}}},
 	[PPME_SYSCALL_DELETE_MODULE_E] = {"delete_module", EC_OTHER | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_DELETE_MODULE_X] = {"delete_module", EC_OTHER | EC_SYSCALL, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, delete_module_flags}}},
+	[PPME_SYSCALL_SETREUID_E] = {"setreuid", EC_USER | EC_SYSCALL, EF_MODIFIES_STATE, 2, {{"ruid", PT_UID, PF_DEC}, {"euid", PT_UID, PF_DEC} } },
+	[PPME_SYSCALL_SETREUID_X] = {"setreuid", EC_USER | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}} },
+	[PPME_SYSCALL_SETREGID_E] = {"setregid", EC_USER | EC_SYSCALL, EF_MODIFIES_STATE, 2, {{"rgid", PT_UID, PF_DEC}, {"egid", PT_UID, PF_DEC} } },
+	[PPME_SYSCALL_SETREGID_X] = {"setregid", EC_USER | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC}} },
 };
 #pragma GCC diagnostic pop
 
