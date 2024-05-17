@@ -159,8 +159,7 @@ void runtest(iotype iot,
 			if (evt->get_fd_info()->m_type != SCAP_FD_IPV4_SOCK)
 			{
 				//
-				// Skip non-tcp sockets. Python opens unix sockets
-				// to god knows what.
+				// Skip non-tcp sockets. Python opens unix sockets.
 				//
 				return;
 			}
@@ -308,7 +307,10 @@ void runtest(iotype iot,
 	//
 	// OUTPUT VALDATION
 	//
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({event_capture::run(test, callback, filter, event_capture::do_nothing,
+							event_capture::do_nothing, event_capture::always_continue, 131072,
+							(uint64_t)60 * 1000 * 1000 * 1000, (uint64_t)60 * 1000 * 1000 * 1000,
+							SINSP_MODE_LIVE, 3, false); });
 	ASSERT_GT(callnum,0);
 }
 
