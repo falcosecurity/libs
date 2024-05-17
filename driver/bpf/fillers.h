@@ -33,12 +33,7 @@ or GPL2.txt for full copies of the license.
  * structures. But the syscalls (might) still use them.
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
-#include <linux/time64.h>
-struct compat_timespec {
-	int32_t tv_sec;
-	int32_t tv_nsec;
-};
-
+#include <linux/time32.h>
 struct timespec {
 	int32_t tv_sec;
 	int32_t tv_nsec;
@@ -49,7 +44,13 @@ struct timeval {
 	int32_t tv_usec;
 };
 #else
-#define timeval64 timeval
+	#if __has_include(<linux/time32.h>)
+		#include <linux/time32.h>
+	#else
+		#include <linux/compat.h>
+	#endif
+	#define timeval64 timeval
+	#define old_timespec32 compat_timespec
 #endif
 
 #define FILLER_RAW(x)							\
