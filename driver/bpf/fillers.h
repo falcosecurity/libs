@@ -469,7 +469,7 @@ FILLER(sys_write_x, true)
 static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 					      bool enter_event)
 {
-	unsigned int read_size;
+	unsigned long read_size;
 	unsigned int fds_count;
 	int res = PPM_SUCCESS;
 	unsigned long nfds;
@@ -579,7 +579,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 {
 	const struct iovec *iov;
 	int res = PPM_SUCCESS;
-	unsigned int copylen;
+	unsigned long copylen;
 	long size = 0;
 	int j;
 
