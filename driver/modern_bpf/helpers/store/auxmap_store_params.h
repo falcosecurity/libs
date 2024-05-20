@@ -1006,7 +1006,7 @@ static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map 
 static __always_inline void auxmap__store_iovec_data_param_64(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
 {
 	/* We use the second part of our auxmap as a scratch space. */
-	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+	unsigned long total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
 
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
 			       SAFE_ACCESS(total_iovec_size),
@@ -1017,7 +1017,7 @@ static __always_inline void auxmap__store_iovec_data_param_64(struct auxiliary_m
 		return;
 	}
 
-	uint32_t total_size_to_read = 0;
+	unsigned long total_size_to_read = 0;
 
 	/* Pointer to iovec structs */
 	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
@@ -1054,7 +1054,7 @@ static __always_inline void auxmap__store_iovec_data_param_64(struct auxiliary_m
 static __always_inline void auxmap__store_iovec_data_param_32(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
 {
 	/* We use the second part of our auxmap as a scratch space. */
-	uint32_t total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
+	unsigned long total_iovec_size = iov_cnt * bpf_core_type_size(struct compat_iovec);
 
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
 			       SAFE_ACCESS(total_iovec_size),
@@ -1065,7 +1065,7 @@ static __always_inline void auxmap__store_iovec_data_param_32(struct auxiliary_m
 		return;
 	}
 
-	uint32_t total_size_to_read = 0;
+	unsigned long total_size_to_read = 0;
 
 	/* Pointer to iovec structs */
 	const struct compat_iovec *compat_iovec = (const struct compat_iovec *)&auxmap->data[MAX_PARAM_SIZE];
