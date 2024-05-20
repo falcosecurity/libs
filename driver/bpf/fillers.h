@@ -34,15 +34,16 @@ or GPL2.txt for full copies of the license.
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 #include <linux/time32.h>
-struct timespec {
-	int32_t tv_sec;
-	int32_t tv_nsec;
-};
+	struct timespec {
+		int32_t tv_sec;
+		int32_t tv_nsec;
+	};
 
-struct timeval {
-	int32_t tv_sec;
-	int32_t tv_usec;
-};
+	struct timeval {
+		int32_t tv_sec;
+		int32_t tv_usec;
+	};
+	typedef struct old_timespec32 old_timespec32;
 #else
 	#if __has_include(<linux/time32.h>)
 		#include <linux/time32.h>
@@ -50,7 +51,7 @@ struct timeval {
 		#include <linux/compat.h>
 	#endif
 	#define timeval64 timeval
-	#define old_timespec32 compat_timespec
+	typedef struct compat_timespec old_timespec32;
 #endif
 
 #define FILLER_RAW(x)							\
@@ -684,7 +685,7 @@ static __always_inline int bpf_parse_readv_writev_bufs_32(struct filler_data *da
 {
 	const struct compat_iovec *compat_iov;
 	int res = PPM_SUCCESS;
-	unsigned int copylen;
+	unsigned long copylen;
 	int j;
 
 	copylen = iovcnt * sizeof(struct compat_iovec);
@@ -952,7 +953,7 @@ static __always_inline int timespec_parse(struct filler_data *data,
 	}
 	else
 	{
-		struct old_timespec32 ts = {};
+		old_timespec32 ts = {};
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
 		return bpf_push_u64_to_ring(data, ((uint32_t)ts.tv_sec) * 1000000000 + ts.tv_nsec);
 	}
