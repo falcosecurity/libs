@@ -670,7 +670,10 @@ void runtest_ipv4m(iotype iot,
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({event_capture::run(test, callback, filter, event_capture::do_nothing,
+							event_capture::do_nothing, event_capture::always_continue, 131072,
+							(uint64_t)60 * 1000 * 1000 * 1000, (uint64_t)60 * 1000 * 1000 * 1000,
+							SINSP_MODE_LIVE, 3, false); });
 }
 
 TEST_F(sys_call_test, tcp_client_server_ipv4m)
