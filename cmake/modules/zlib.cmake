@@ -82,7 +82,7 @@ else()
 				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
 				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
 				CONFIGURE_COMMAND ""
-				BUILD_COMMAND nmake -f win32/Makefile.msc LOC="-DZLIB_WINAPI ${ZLIB_CFLAGS}"
+				BUILD_COMMAND nmake -f win32/Makefile.msc LOC="\"${ZLIB_CFLAGS} -DZLIB_WINAPI\""
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
 				INSTALL_COMMAND "")
