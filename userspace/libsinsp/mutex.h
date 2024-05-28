@@ -19,7 +19,9 @@ limitations under the License.
 #pragma once
 
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
+#include <libsinsp/utils.h>
 
 namespace libsinsp {
 template<typename T>
@@ -92,7 +94,7 @@ public:
 
 	// a writable guard can be demoted to a read-only one, but *not* the other way around
 	ConstMutexGuard(MutexGuard<T> &&rhs) noexcept : m_lock(std::move(rhs.m_lock)),
-	                                                m_inner(rhs.m_inner) // NOLINT(google-explicit-constructor)
+						        m_inner(rhs.m_inner) // NOLINT(google-explicit-constructor)
 	{}
 
 	const T *operator->() const
@@ -115,6 +117,83 @@ public:
 
 private:
 	std::unique_lock<std::mutex> m_lock;
+	const T *m_inner;
+};
+
+/**
+ * \brief A wrapper to allow synchronized write access to a value owned by a SharedMutex<T>,
+ * while allowing concurrent read access to the value.
+ *
+ * @tparam T type of the value protected by the mutex
+ *
+ * It works by simply holding a `std::unique_lock` object that keeps the shared_mutex
+ * exclusively locked while it exists, and unlocks it upon destruction
+ */
+template<typename T> class SharedMutexGuard
+{
+public:
+	SharedMutexGuard(std::unique_lock<std::shared_mutex> wlock, T *inner):
+		m_write_lock(std::move(wlock)), m_inner(inner)
+	{
+	}
+
+	// we cannot copy a SharedMutexGuard, only move
+	SharedMutexGuard(SharedMutexGuard &rhs) = delete;
+	SharedMutexGuard &operator=(SharedMutexGuard &rhs) = delete;
+	SharedMutexGuard(SharedMutexGuard &&rhs) noexcept:
+		m_write_lock(std::move(rhs.m_write_lock)), m_inner(rhs.m_inner)
+	{
+	}
+
+	T *operator->() { return m_inner; }
+
+	T &operator*() { return *m_inner; }
+
+	/**
+	 * Validate that the guarded object exists.
+	 */
+	bool valid() const { return m_inner != nullptr; }
+
+private:
+	std::unique_lock<std::shared_mutex> m_write_lock;
+	T *m_inner;
+};
+
+/**
+ * \brief A wrapper to allow synchronized const read access to a value owned by a SharedMutex<T>
+ *
+ * @tparam T type of the value protected by the mutex
+ *
+ * It works by simply holding a `std::shared_lock` object that keeps the shared_mutex
+ * read locked while it exists, and unlocks it upon destruction
+ */
+template<typename T> class ConstSharedMutexGuard
+{
+public:
+	ConstSharedMutexGuard(std::shared_lock<std::shared_mutex> rlock, const T *inner):
+		m_read_lock(std::move(rlock)), m_inner(inner)
+	{
+	}
+
+	// we cannot copy a ConstSharedMutexGuard, only move
+	ConstSharedMutexGuard(ConstSharedMutexGuard &rhs) = delete;
+	ConstSharedMutexGuard &operator=(ConstSharedMutexGuard &rhs) = delete;
+	ConstSharedMutexGuard(ConstSharedMutexGuard &&rhs) noexcept:
+		m_read_lock(std::move(rhs.m_read_lock)), m_inner(rhs.m_inner)
+	{
+	}
+
+	const T *operator->() const { return m_inner; }
+
+	const T &operator*() const { return *m_inner; }
+
+	/**
+	 * Validate that the guarded object exists.
+	 */
+	bool valid() const { return m_inner != nullptr; }
+
+private:
+	std::shared_lock<std::shared_mutex> m_read_lock = {};
 	const T *m_inner;
 };
 
@@ -178,4 +257,89 @@ private:
 	mutable std::mutex m_lock;
 	T m_inner;
 };
-}
+
+/**
+ * \brief Wrap a value of type T, enforcing synchronized access while allowing for simultaneous readers
+ *
+ * @tparam T type of the wrapped value
+ *
+ * The class owns a value of type T and a shared_mutex. The only way to access the T inside
+ * is via the read_lock() and write_lock() methods, which return guard objecta that unlock the mutex
+ * once they falls out of scope
+ *
+ * To protect an object with a shared_mutex, declare a variable of type `SharedMutex<T>`, e.g.
+ *
+ * SharedMutex<std::unordered_map<int>> m_locked_map;
+ *
+ * Then, to exclusively access the variable for writes, call .write_lock() on the SharedMutex object:
+ *
+ * SharedMutexGuard<std::unordered_map<int>> locked = m_locked_map.write_lock();
+ *
+ * Now you can call the inner object's methods directly on the guard object,
+ * which behaves like a smart pointer to the inner object:
+ *
+ * size_t num_elts = locked->size();
+ *
+ * For concurrent read access to the inner object, use .read_lock() call.
+ *
+ * ConstSharedMutexGuard<std::unordered_map<int>> locked = m_locked_map.read_lock();
+ *
+ */
+template<typename T> class SharedMutex
+{
+public:
+	using time_type = decltype(sinsp_utils::get_current_time_ns());
+	SharedMutex() = default;
+
+	SharedMutex(T inner): m_inner(std::move(inner)) {}
+
+	/**
+	 * \brief Lock the mutex, allowing read access to the stored object
+	 *
+	 * The returned guard object allows access to the protected data
+	 * via operator * or -> and ensures the lock is held as long as
+	 * the guard object exists
+	 *
+	 * `ConstSharedMutexGuard<T>` only allows read-only access to the protected object
+	 */
+	ConstSharedMutexGuard<T> read_lock() const
+	{
+		auto start_ns = sinsp_utils::get_current_time_ns();
+		auto mux_guard = ConstSharedMutexGuard<T>(std::shared_lock<std::shared_mutex>(m_shared_lock), &m_inner);
+		auto end_ns = sinsp_utils::get_current_time_ns();
+		m_read_lock_wait_time += (end_ns - start_ns);
+		m_read_lock_wait_count++;
+		return mux_guard;
+	}
+
+	/**
+	 * \brief Lock the mutex, allowing exclusive write access to the stored object
+	 *
+	 * The returned guard object allows access to the protected data
+	 * via operator * or -> and ensures the lock is held as long as
+	 * the guard object exists
+	 */
+	SharedMutexGuard<T> write_lock()
+	{
+		auto start_ns = sinsp_utils::get_current_time_ns();
+		auto mux_guard = SharedMutexGuard<T>(std::unique_lock<std::shared_mutex>(m_shared_lock), &m_inner);
+		auto end_ns = sinsp_utils::get_current_time_ns();
+		m_write_lock_wait_time += (end_ns - start_ns);
+		m_write_lock_wait_count++;
+		return mux_guard;
+	}
+
+	time_type get_avg_read_lock_wait_time() const { return (m_read_lock_wait_time / m_read_lock_wait_count); }
+
+	time_type get_avg_write_lock_wait_time() const { return (m_write_lock_wait_time / m_write_lock_wait_count); }
+
+private:
+	mutable std::shared_mutex m_shared_lock;
+	T m_inner;
+	mutable time_type m_read_lock_wait_time = 0;
+	mutable time_type m_write_lock_wait_time = 0;
+	mutable time_type m_read_lock_wait_count = 0;
+	mutable time_type m_write_lock_wait_count = 0;
+};
+
+} // namespace libsinsp
