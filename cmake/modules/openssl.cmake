@@ -35,13 +35,19 @@ else()
  	set(OPENSSL_LIBRARIES ${OPENSSL_LIBRARY_SSL} ${OPENSSL_LIBRARY_CRYPTO})
 
 	if(NOT TARGET openssl)
+		if(NOT ENABLE_PIC)
+			set(OPENSSL_PIC_OPTION )
+		else()
+			set(OPENSSL_PIC_OPTION "-fPIC")
+		endif()
+
 		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
 
 		ExternalProject_Add(openssl
 			PREFIX "${PROJECT_BINARY_DIR}/openssl-prefix"
 			URL "https://github.com/openssl/openssl/releases/download/openssl-3.1.4/openssl-3.1.4.tar.gz"
 			URL_HASH "SHA256=840af5366ab9b522bde525826be3ef0fb0af81c6a9ebd84caa600fea1731eee3"
-			CONFIGURE_COMMAND ./config ${OPENSSL_SHARED_OPTION} --prefix=${OPENSSL_INSTALL_DIR} --libdir=lib
+			CONFIGURE_COMMAND ./config ${OPENSSL_SHARED_OPTION} ${OPENSSL_PIC_OPTION} --prefix=${OPENSSL_INSTALL_DIR} --libdir=lib
 			BUILD_COMMAND make
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${OPENSSL_LIBRARY_SSL} ${OPENSSL_LIBRARY_CRYPTO}
