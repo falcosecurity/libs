@@ -49,6 +49,12 @@ else()
 	endif()
 	message(STATUS "Using bundled curl in '${CURL_BUNDLE_DIR}'")
 
+	if(NOT ENABLE_PIC)
+		set(CURL_PIC_OPTION )
+	else()
+		set(CURL_PIC_OPTION "--with-pic")
+	endif()
+
 	if(NOT TARGET curl)
 		ExternalProject_Add(
 			curl
@@ -61,6 +67,7 @@ else()
 			${CURL_SSL_OPTION}
 			${CURL_ZLIB_OPTION}
 			${CURL_STATIC_OPTION}
+			${CURL_PIC_OPTION}
 			--enable-optimize
 			--disable-curldebug
 			--disable-rt

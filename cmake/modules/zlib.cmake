@@ -42,6 +42,11 @@ else()
 		"${ZLIB_INCLUDE}/zutil.h"
 	)
 	if(NOT TARGET zlib)
+		set(ZLIB_CFLAGS )
+		if (ENABLE_PIC)
+			set(ZLIB_CFLAGS -fPIC)
+		endif()
+
 		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
 		if(NOT WIN32)
 			if(BUILD_SHARED_LIBS)
@@ -56,7 +61,7 @@ else()
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
 				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
 				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
-				CONFIGURE_COMMAND ./configure --prefix=${ZLIB_SRC} ${ZLIB_CONFIGURE_FLAGS}
+				CONFIGURE_COMMAND CFLAGS=${ZLIB_CFLAGS} ./configure --prefix=${ZLIB_SRC} ${ZLIB_CONFIGURE_FLAGS}
 				BUILD_COMMAND make
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
@@ -77,7 +82,7 @@ else()
 				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
 				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
 				CONFIGURE_COMMAND ""
-				BUILD_COMMAND nmake -f win32/Makefile.msc LOC=-DZLIB_WINAPI
+				BUILD_COMMAND nmake -f win32/Makefile.msc LOC="-DZLIB_WINAPI ${ZLIB_CFLAGS}"
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
 				INSTALL_COMMAND "")
