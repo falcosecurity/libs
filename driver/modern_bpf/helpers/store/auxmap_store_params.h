@@ -707,8 +707,8 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		/* Pack the tuple info:
 		 * - socket family
 		 * - src_ipv4
-		 * - dest_ipv4
 		 * - src_port
+		 * - dest_ipv4
 		 * - dest_port
 		 */
 		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
@@ -759,8 +759,8 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		/* Pack the tuple info:
 		 * - socket family
 		 * - src_ipv6
-		 * - dest_ipv6
 		 * - src_port
+		 * - dest_ipv6
 		 * - dest_port
 		 */
 		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
