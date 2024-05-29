@@ -747,8 +747,8 @@ void event_test::assert_tuple_unix_param(int param_num, uint8_t desired_family, 
 	assert_address_family(desired_family, 0);
 
 	/* Here we have the two pointers:
-	 * - source OS pointer.
 	 * - destination OS pointer.
+	 * - source OS pointer.
 	 * but we cannot make assertions on that.
 	 */
 
