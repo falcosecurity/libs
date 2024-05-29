@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <inttypes.h>
 #include <string.h>
+#include <memory>
 #include <vector>
 #include <set>
 #include <sstream>
@@ -939,11 +940,7 @@ std::vector<metrics_v2> sinsp_plugin::get_metrics() const
 		metrics_v2 metric;
 		
 		//copy plugin name
-		int s = strlcpy(metric.name, m_name.c_str(), METRIC_NAME_MAX);
-		//copy dot
-		strlcpy(metric.name + s, ".", METRIC_NAME_MAX);
-		//copy metric name
-		strlcpy(metric.name + s + 1, plugin_metric->name, METRIC_NAME_MAX);
+		snprintf(metric.name, METRIC_NAME_MAX, "%s.%s", m_name.c_str(), plugin_metric->name);
 
 		metric.flags = METRICS_V2_PLUGINS;
 		metric.unit = METRIC_VALUE_UNIT_COUNT;
@@ -1083,7 +1080,7 @@ ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const
 
 	try
 	{
-		auto evt = std::unique_ptr<sinsp_evt>(new sinsp_evt());
+		auto evt = std::make_unique<sinsp_evt>();
 		ASSERT(evt->get_scap_evt_storage() == nullptr);
 		evt->set_scap_evt_storage(new char[e->len]);
 		memcpy(evt->get_scap_evt_storage(), e, e->len);
