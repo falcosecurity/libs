@@ -21,6 +21,12 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
+constexpr const std::string_view LXC_CGROUP_LAYOUT[] = {
+	"/lxc/", // non-systemd
+	"/lxc.payload/", // systemd
+	"/lxc.payload.", // lxc4.0 layout: https://linuxcontainers.org/lxc/news/2020_03_25_13_03.html
+};
+
 bool lxc::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	auto container = sinsp_container_info();
@@ -28,29 +34,22 @@ bool lxc::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 	for(const auto& it : tinfo->cgroups())
 	{
-		//
-		// Non-systemd LXC
-		//
-		const auto& cgroup = it.second;
-		size_t pos = cgroup.find("/lxc/");
-		if(pos != std::string::npos)
+		const auto &cgroup = it.second;
+		for(const auto &cgroup_layout : LXC_CGROUP_LAYOUT)
 		{
-			auto id_start = pos + sizeof("/lxc/") - 1;
-			auto id_end = cgroup.find('/', id_start);
-			container.m_type = CT_LXC;
-			container.m_id = cgroup.substr(id_start, id_end - id_start);
-			matches = true;
-			break;
+			size_t pos = cgroup.find(cgroup_layout);
+			if(pos != std::string::npos)
+			{
+				auto id_start = pos + cgroup_layout.length();
+				auto id_end = cgroup.find('/', id_start);
+				container.m_type = CT_LXC;
+				container.m_id = cgroup.substr(id_start, id_end - id_start);
+				matches = true;
+				break;
+			}
 		}
-
-		pos = cgroup.find("/lxc.payload/");
-		if(pos != std::string::npos)
+		if (matches)
 		{
-			auto id_start = pos + sizeof("/lxc.payload/") - 1;
-			auto id_end = cgroup.find('/', id_start);
-			container.m_type = CT_LXC;
-			container.m_id = cgroup.substr(id_start, id_end - id_start);
-			matches = true;
 			break;
 		}
 	}
