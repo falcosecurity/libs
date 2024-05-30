@@ -457,19 +457,6 @@ void libs_metrics_collector::snapshot()
 		return;
 	}
 
-	/*
-	* plugins metrics
-	*/
-
-	if(m_metrics_flags & METRICS_V2_PLUGINS)
-	{
-		for (auto& p : m_inspector->get_plugin_manager()->plugins())
-		{
-			std::vector<metrics_v2> plugin_metrics = p->get_metrics();
-			m_metrics.insert(m_metrics.end(), plugin_metrics.begin(), plugin_metrics.end());
-		}
-	}
-
 	/* 
 	 * libscap metrics 
 	 */
@@ -781,6 +768,19 @@ void libs_metrics_collector::snapshot()
 			{
 				m_metrics.emplace_back(sinsp_stats_v2_collectors[i]());
 			}
+		}
+	}
+
+	/*
+	* plugins metrics
+	*/
+
+	if(m_metrics_flags & METRICS_V2_PLUGINS)
+	{
+		for (auto& p : m_inspector->get_plugin_manager()->plugins())
+		{
+			std::vector<metrics_v2> plugin_metrics = p->get_metrics();
+			m_metrics.insert(m_metrics.end(), plugin_metrics.begin(), plugin_metrics.end());
 		}
 	}
 }
