@@ -25,6 +25,8 @@ limitations under the License.
 
 #include "test_plugins.h"
 
+namespace {
+
 /**
  * Example of plugin implementing only the field extraction capability, which:
  * - Is compatible with the "sample" event source only
@@ -40,32 +42,32 @@ struct plugin_state
     ss_plugin_log_fn_t log;
 };
 
-static const char* plugin_get_required_api_version()
+const char* plugin_get_required_api_version()
 {
     return PLUGIN_API_VERSION_STR;
 }
 
-static const char* plugin_get_version()
+const char* plugin_get_version()
 {
     return "0.1.0";
 }
 
-static const char* plugin_get_name()
+const char* plugin_get_name()
 {
     return "sample_plugin_extract";
 }
 
-static const char* plugin_get_description()
+const char* plugin_get_description()
 {
     return "some desc";
 }
 
-static const char* plugin_get_contact()
+const char* plugin_get_contact()
 {
     return "some contact";
 }
 
-static const char* plugin_get_fields()
+const char* plugin_get_fields()
 {
     return
     "[" \
@@ -73,14 +75,14 @@ static const char* plugin_get_fields()
     "]";
 }
 
-static const char* plugin_get_extract_event_sources()
+const char* plugin_get_extract_event_sources()
 {
     return "[\"sample\"]";
 }
 
-static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t* s)
+uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     if (!ps->event_types.empty())
     {
         *num_types = (uint32_t) ps->event_types.size();
@@ -92,9 +94,9 @@ static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t
     return types;
 }
 
-static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
-    plugin_state *ret = new plugin_state();
+    auto ret = new plugin_state();
 
     //save logger and owner in the state
     ret->log = in->log_fn;
@@ -128,22 +130,22 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     return ret;
 }
 
-static void plugin_destroy(ss_plugin_t* s)
+void plugin_destroy(ss_plugin_t* s)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
-    delete ((plugin_state *) s);
+    delete ps;
 }
 
-static const char* plugin_get_last_error(ss_plugin_t* s)
+const char* plugin_get_last_error(ss_plugin_t* s)
 {
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_field_extract_input* in)
+ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_field_extract_input* in)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     for (uint32_t i = 0; i < in->num_fields; i++)
     {
         switch(in->fields[i].field_id)
@@ -162,13 +164,15 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
     return SS_PLUGIN_SUCCESS;
 }
 
-static ss_plugin_rc plugin_set_config(ss_plugin_t *s, const ss_plugin_set_config_input* i)
+ss_plugin_rc plugin_set_config(ss_plugin_t *s, const ss_plugin_set_config_input* i)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     ps->log(ps->owner, NULL, "new config!", SS_PLUGIN_LOG_SEV_INFO);
 
     return SS_PLUGIN_SUCCESS;
 }
+
+} // anonymous namespace
 
 void get_plugin_api_sample_plugin_extract(plugin_api& out)
 {

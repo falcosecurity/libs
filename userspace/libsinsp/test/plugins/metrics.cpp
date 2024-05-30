@@ -24,44 +24,46 @@ limitations under the License.
 #include <driver/ppm_events_public.h>
 #include "test_plugins.h"
 
+namespace {
+
 struct plugin_state
 {
     std::string lasterr;
-    struct ss_plugin_metric metrics[2];
+    ss_plugin_metric metrics[2];
     uint64_t count = 0;
 };
 
-static const char* plugin_get_required_api_version()
+const char* plugin_get_required_api_version()
 {
     return PLUGIN_API_VERSION_STR;
 }
 
-static const char* plugin_get_version()
+const char* plugin_get_version()
 {
     return "0.1.0";
 }
 
-static const char* plugin_get_name()
+const char* plugin_get_name()
 {
     return "sample_metrics";
 }
 
-static const char* plugin_get_description()
+const char* plugin_get_description()
 {
     return "some desc";
 }
 
-static const char* plugin_get_contact()
+const char* plugin_get_contact()
 {
     return "some contact";
 }
 
-static const char* plugin_get_parse_event_sources()
+const char* plugin_get_parse_event_sources()
 {
     return "[\"syscall\"]";
 }
 
-static uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
+uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
     static uint16_t types[] = {
         PPME_SYSCALL_OPEN_E,
@@ -71,10 +73,10 @@ static uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* 
     return &types[0];
 }
 
-static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
     *rc = SS_PLUGIN_SUCCESS;
-    plugin_state *ret = new plugin_state();
+    auto ret = new plugin_state();
 
     ret->metrics[0].type = SS_PLUGIN_METRIC_TYPE_NON_MONOTONIC;
     ret->metrics[0].value_type = SS_PLUGIN_METRIC_VALUE_TYPE_U64;
@@ -89,33 +91,35 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     return ret;
 }
 
-static void plugin_destroy(ss_plugin_t* s)
+void plugin_destroy(ss_plugin_t* s)
 {
-    delete ((plugin_state *) s);
+    delete reinterpret_cast<plugin_state*>(s);
 }
 
-static const char* plugin_get_last_error(ss_plugin_t* s)
+const char* plugin_get_last_error(ss_plugin_t* s)
 {
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_event_parse_input* in)
+ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_event_parse_input* in)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     ps->count++;
     ps->metrics[1].value.u64 = ps->count;
 
     return SS_PLUGIN_SUCCESS;
 }
 
-static ss_plugin_metric* plugin_get_metrics(ss_plugin_t *s, uint32_t *num_metrics)
+ss_plugin_metric* plugin_get_metrics(ss_plugin_t *s, uint32_t *num_metrics)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
 
     *num_metrics = sizeof(ps->metrics) / sizeof(ss_plugin_metric);
 
     return ps->metrics;
 }
+
+} // anonymous namespace
 
 void get_plugin_api_sample_metrics(plugin_api& out)
 {
