@@ -24,6 +24,8 @@ limitations under the License.
 #include "sample_table.h"
 #include "test_plugins.h"
 
+namespace {
+
 /**
  * Example of plugin that accesses the thread table and that exposes its own
  * sta table. The goal is to test all the methods of the table API.
@@ -39,47 +41,47 @@ struct plugin_state
 	ss_plugin_table_field_t* internal_dynamic_field;
 };
 
-static const char* plugin_get_required_api_version()
+const char* plugin_get_required_api_version()
 {
 	return PLUGIN_API_VERSION_STR;
 }
 
-static const char* plugin_get_version()
+const char* plugin_get_version()
 {
 	return "0.1.0";
 }
 
-static const char* plugin_get_name()
+const char* plugin_get_name()
 {
 	return "sample_tables";
 }
 
-static const char* plugin_get_description()
+const char* plugin_get_description()
 {
 	return "some desc";
 }
 
-static const char* plugin_get_contact()
+const char* plugin_get_contact()
 {
 	return "some contact";
 }
 
-static const char* plugin_get_parse_event_sources()
+const char* plugin_get_parse_event_sources()
 {
 	return "[\"syscall\"]";
 }
 
-static uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
+uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
 	static uint16_t *types = {};
 	*num_types = 0;
 	return types;
 }
 
-static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
 	*rc = SS_PLUGIN_SUCCESS;
-	plugin_state *ret = new plugin_state();
+	auto ret = new plugin_state();
 
 	if (!in || !in->tables)
 	{
@@ -155,24 +157,24 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 	return ret;
 }
 
-static void plugin_destroy(ss_plugin_t* s)
+void plugin_destroy(ss_plugin_t* s)
 {
-	delete ((plugin_state *) s);
+	delete reinterpret_cast<plugin_state*>(s);
 }
 
-static const char* plugin_get_last_error(ss_plugin_t* s)
+const char* plugin_get_last_error(ss_plugin_t* s)
 {
 	return ((plugin_state *) s)->lasterr.c_str();
 }
 
 // parses events and keeps a count for each thread about the syscalls of the open family
-static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_event_parse_input* in)
+ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_event_parse_input* in)
 {
 	static int64_t s_new_thread_tid = 999999;
 	int step = 0;
 	ss_plugin_state_data tmp;
 	ss_plugin_table_entry_t* thread;
-	plugin_state *ps = (plugin_state *) s;
+	auto ps = reinterpret_cast<plugin_state*>(s);
 
 	// get table name
 	step++;
@@ -526,6 +528,8 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 
 	return SS_PLUGIN_SUCCESS;
 }
+
+} // anonymous namespace
 
 void get_plugin_api_sample_syscall_tables(plugin_api& out)
 {
