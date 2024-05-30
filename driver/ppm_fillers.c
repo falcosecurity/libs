@@ -353,7 +353,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &flags);
-	scap_flags = open_flags_to_scap(flags);	
+	scap_flags = open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	get_fd_fmode_created(retval, &scap_flags);
 	res = val_to_ring(args, scap_flags, 0, false, 0);
@@ -506,7 +506,7 @@ int f_sys_write_x(struct event_filler_arguments *args)
 /*
  * get_mm_exe_file is only exported in some kernel versions
  */
-struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
+static struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
 {
 	struct file *exe_file;
 
@@ -547,7 +547,7 @@ struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
  * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
  * Hence the crap in these two functions
  */
-unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
+static unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
 {
 	long val = 0;
 
@@ -726,8 +726,7 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
  * concatenates them to a single \0-separated string. Return the length of these
  * strings with the final '\0' included.
  */
-int accumulate_argv_or_env(const void __user * argv,
-				  char *str_storage)
+static int accumulate_argv_or_env(const void __user * argv, char *str_storage)
 {
 	int len = 0;
 	int ret = 0;
@@ -781,7 +780,7 @@ int accumulate_argv_or_env(const void __user * argv,
 
 #ifdef CONFIG_COMPAT
 /* compat version that deals correctly with 32bits pointers of argv */
-int compat_accumulate_argv_or_env(compat_uptr_t argv,
+static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 				  char *str_storage)
 {
 	int len = 0;
@@ -881,7 +880,7 @@ static uint32_t ppm_get_tty(void)
 	return tty_nr;
 }
 
-bool ppm_is_upper_layer(struct file *exe_file){
+static bool ppm_is_upper_layer(struct file *exe_file){
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 	struct super_block *sb = NULL;
 	unsigned long sb_magic = 0;
@@ -1023,7 +1022,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 			case PPME_SYSCALL_EXECVE_19_X:
 				syscall_get_arguments_deprecated(args, 1, 1, &val);
 				break;
-			
+
 			case PPME_SYSCALL_EXECVEAT_X:
 				syscall_get_arguments_deprecated(args, 2, 1, &val);
 				break;
@@ -1168,7 +1167,7 @@ cgroups_error:
 	if (args->event_type == PPME_SYSCALL_CLONE_20_X ||
 		args->event_type == PPME_SYSCALL_FORK_20_X ||
 		args->event_type == PPME_SYSCALL_VFORK_20_X ||
-		args->event_type == PPME_SYSCALL_CLONE3_X) 
+		args->event_type == PPME_SYSCALL_CLONE3_X)
 		{
 		/*
 		 * clone-only parameters
@@ -1217,7 +1216,7 @@ cgroups_error:
 			val = 0;
 #endif
 			break;
-		
+
 		default:
 			val = 0;
 			break;
@@ -1283,7 +1282,7 @@ cgroups_error:
 #endif
 		CHECK_RES(res);
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X || 
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X ||
 			   args->event_type == PPME_SYSCALL_EXECVEAT_X) {
 		/*
 		 * execve family parameters.
@@ -1329,7 +1328,7 @@ cgroups_error:
 			case PPME_SYSCALL_EXECVE_19_X:
 				syscall_get_arguments_deprecated(args, 2, 1, &val);
 				break;
-			
+
 			case PPME_SYSCALL_EXECVEAT_X:
 				syscall_get_arguments_deprecated(args, 3, 1, &val);
 				break;
@@ -1426,7 +1425,7 @@ cgroups_error:
 				/* Support inode number */
 				i_ino = file_inode(exe_file)->i_ino;
 
-				/* Support exe_file ctime 
+				/* Support exe_file ctime
 				 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
 				 * but fields names should be always the same.
 				 */
@@ -1439,7 +1438,7 @@ cgroups_error:
 #else
 				ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
 #endif
-				/* Support exe_file mtime 
+				/* Support exe_file mtime
 				 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
 				 * but fields names should be always the same.
 				 */
@@ -1469,7 +1468,7 @@ cgroups_error:
 			int diff_len = strlen(trusted_exepath) - strlen(deleted_suffix);
 			if(diff_len > 0 &&
 				(strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0))
-			{					
+			{
 				trusted_exepath[diff_len] = '\0';
 			}
 		}
@@ -1516,7 +1515,7 @@ cgroups_error:
 		/* Parameter 23: cap_effective (type: PT_UINT64) */
 		res = val_to_ring(args, capabilities_to_scap(cap_effective), 0, false, 0);
 		CHECK_RES(res);
-		
+
 		/*
 		 * exe ino fields
 		 */
@@ -1610,9 +1609,9 @@ int f_sys_socket_bind_e(struct event_filler_arguments *args)
 	int res = 0;
 	int32_t fd = 0;
 	unsigned long val = 0;
-	
+
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	
+
 	/* Parameter 1: fd (type: PT_FD) */
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -1924,8 +1923,8 @@ static int parse_sockopt(struct event_filler_arguments *args, int level, int opt
 #endif
 #if (defined(SO_RCVTIMEO_OLD) && !defined(SO_RCVTIMEO)) || (defined(SO_RCVTIMEO_OLD) && (SO_RCVTIMEO_OLD != SO_RCVTIMEO))
 		case SO_RCVTIMEO_OLD:
-#endif			
-#if (defined(SO_RCVTIMEO_NEW) && !defined(SO_RCVTIMEO)) || (defined(SO_RCVTIMEO_NEW) && (SO_RCVTIMEO_NEW != SO_RCVTIMEO)) 
+#endif
+#if (defined(SO_RCVTIMEO_NEW) && !defined(SO_RCVTIMEO)) || (defined(SO_RCVTIMEO_NEW) && (SO_RCVTIMEO_NEW != SO_RCVTIMEO))
 		case SO_RCVTIMEO_NEW:
 #endif
 #ifdef SO_SNDTIMEO
@@ -2274,7 +2273,7 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
+static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 {
 	int res;
 	unsigned long size;
@@ -2410,7 +2409,7 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
+static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 {
 	int res;
 	unsigned long val;
@@ -2925,8 +2924,8 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 			    false,
 			    0);
 	CHECK_RES(res);
-	
-	/* 
+
+	/*
 		msg_control: ancillary data.
 	*/
 	if (mh.msg_control != NULL && mh.msg_controllen > 0)
@@ -2934,7 +2933,7 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		res = val_to_ring(args, (uint64_t)mh.msg_control, (uint32_t)mh.msg_controllen, true, 0);
 		CHECK_RES(res);
 	}
-	else 
+	else
 	{
 		/* pushing empty data */
 		res = push_empty_param(args);
@@ -3584,7 +3583,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &flags);
-	scap_flags = open_flags_to_scap(flags);	
+	scap_flags = open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	get_fd_fmode_created(retval, &scap_flags);
 	res = val_to_ring(args, scap_flags, 0, false, 0);
@@ -3745,7 +3744,7 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 
 	pos64 = merge_64(pos1, pos0);
 }
-#else 
+#else
 	syscall_get_arguments_deprecated(args, 3, 1, &pos64);
 #endif
 
@@ -3895,8 +3894,8 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 		}
 
 		CHECK_RES(res);
-	} 
-	else 
+	}
+	else
 	{
 		/* pushing a zero size */
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -4132,7 +4131,7 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	 * Copy the user structure and extract cur and max
 	 */
 	if(retval == 0)
-	{	
+	{
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
@@ -4208,7 +4207,7 @@ int f_sys_setrlimit_x(struct event_filler_arguments *args)
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
-		ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));    
+		ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));
 		cur = rl.rlim_cur;
 		max = rl.rlim_max;
 #ifdef CONFIG_COMPAT
@@ -4338,7 +4337,7 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	else
 	{
 		oldcur = -1;
-		oldmax = -1;	
+		oldmax = -1;
 	}
 
 	/* Parameter 4: oldcur (type: PT_INT64) */
@@ -4740,11 +4739,11 @@ int f_sys_mprotect_x(struct event_filler_arguments *args)
 {
 	int res;
 	int64_t retval;
-	
+
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
-	
+
 	return add_sentinel(args);
 }
 
@@ -4930,7 +4929,7 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	}
 	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
 	CHECK_RES(res);
-	
+
 
 #ifdef __NR_openat2
 	/*
@@ -5009,7 +5008,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
-	
+
 
 #ifdef __NR_openat2
 	/*
@@ -5031,7 +5030,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	/*
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
-	 */	
+	 */
 	/* update flags if file is created */
 	get_fd_fmode_created(retval, &flags);
 	res = val_to_ring(args, flags, 0, true, 0);
@@ -5095,7 +5094,7 @@ int f_sys_copy_file_range_e(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 4, 1, &len);
 	res = val_to_ring(args, len, 0, false, 0);
 	CHECK_RES(res);
-	
+
 	return add_sentinel(args);
 }
 
@@ -5163,7 +5162,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	/* Parameter 4: path (type: PT_FSPATH) */
 	if (retval > 0)
 	{
-		/* String storage size is exactly one page. 
+		/* String storage size is exactly one page.
 		 * PAGE_SIZE = 4096 byte like PATH_MAX in unix conventions.
 		 */
 		char* buf = (char*)args->str_storage;
@@ -5226,11 +5225,11 @@ int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
 	flags = io_uring_setup_flags_to_scap(params.flags);
 	sq_thread_cpu = params.sq_thread_cpu;
 	sq_thread_idle = params.sq_thread_idle;
-	
-	/* We need this ifdef because `features` field is defined into the 
+
+	/* We need this ifdef because `features` field is defined into the
 	 * `struct io_uring_params` only if the `IORING_FEAT_SINGLE_MMAP` is
 	 * defined.
-	 */	
+	 */
 #ifdef IORING_FEAT_SINGLE_MMAP
 	features = io_uring_setup_feats_to_scap(params.features);
 #endif
@@ -5240,7 +5239,7 @@ int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
 	retval = (long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
-	
+
 	/* Parameter 2: entries (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
@@ -5797,7 +5796,7 @@ int f_sys_dup2_x(struct event_filler_arguments *args)
 	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
-	
+
 	/*
 	 * newfd
 	 */
@@ -5843,7 +5842,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	fd = (int32_t) val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
-	
+
 	/*
 	 * newfd
 	 */
@@ -5876,7 +5875,7 @@ static pid_t find_alive_thread(struct task_struct *father)
 	while_each_thread(father, t) {
 #else /* Kernel 3.19.0 switched to `for_each_thread` macro */
 	for_each_thread(father, t) {
-#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) */		
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) */
 		/* We add an extra check here for `t != NULL` just to be sure */
 		if (t != NULL && (!(t->flags & PF_EXITING)))
 			return t->pid;
@@ -5908,7 +5907,7 @@ static pid_t find_new_reaper_pid(struct task_struct *father)
 		return reaper_pid;
 	}
 
-	/* There could be a strange case in which the actual thread is the init one 
+	/* There could be a strange case in which the actual thread is the init one
 	 * and we have no other threads in the same thread group, so the whole init group is dying.
 	 * The kernel will destroy all the processes in that namespace. We send a reaper equal to
 	 * `0` in userspace.
@@ -5936,7 +5935,7 @@ static pid_t find_new_reaper_pid(struct task_struct *father)
 		task_pid(possible_reaper)->level == father_ns_level;
 		possible_reaper = possible_reaper->real_parent)
 	{
-		/* Here we could also check for child_ns_reaper 
+		/* Here we could also check for child_ns_reaper
 		 * but the kernel checks against init_task, so we are fine.
 		 */
 		if(possible_reaper == &init_task)
@@ -6006,7 +6005,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	 * we don't need a reaper and we can save some precious cycles.
 	 * We send `reaper_pid==0` if the userspace still has some children
 	 * it will manage them with its userspace logic.
-	 */	
+	 */
 	if(!list_empty(&current->children))
 	{
 		/* We have at least one child, so we need a reaper for it */
@@ -7120,7 +7119,7 @@ int f_sys_capset_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 
-out: 
+out:
 	put_cred(cred);
 	return res;
 }
@@ -7237,7 +7236,7 @@ int f_sys_getcwd_x(struct event_filler_arguments *args)
 int f_sys_getdents_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t fd = 0; 
+	int32_t fd = 0;
 	int res;
 
 	/* Parameter 1: fd (type: PT_FD) */
@@ -7252,7 +7251,7 @@ int f_sys_getdents_e(struct event_filler_arguments *args)
 int f_sys_getdents64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
-	int32_t fd = 0; 
+	int32_t fd = 0;
 	int res;
 
 	/* Parameter 1: fd (type: PT_FD) */
@@ -7300,7 +7299,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	 * performed, so the return value will be always 0.
 	 */
 	res = val_to_ring(args, 0, 0, false, 0);
-	CHECK_RES(res); 
+	CHECK_RES(res);
 	/*
 	* The call always succeed so get `exe`, `args` from the current
 	* process; put one \0-separated exe-args string into
@@ -7500,7 +7499,7 @@ cgroups_error:
 			/* Support inode number */
 			i_ino = file_inode(exe_file)->i_ino;
 
-			/* Support exe_file ctime 
+			/* Support exe_file ctime
 			 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
 			 * but fields names should be always the same.
 			 */
@@ -7514,7 +7513,7 @@ cgroups_error:
 			ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
 #endif
 
-			/* Support exe_file mtime 
+			/* Support exe_file mtime
 			 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
 			 * but fields names should be always the same.
 			 */
@@ -7543,7 +7542,7 @@ cgroups_error:
 		int diff_len = strlen(trusted_exepath) - strlen(deleted_suffix);
 		if(diff_len > 0 &&
 			(strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0))
-		{					
+		{
 			trusted_exepath[diff_len] = '\0';
 		}
 	}
@@ -7577,7 +7576,7 @@ cgroups_error:
 	cap_inheritable = (uint64_t)cred->cap_inheritable.val;
 	cap_permitted = (uint64_t)cred->cap_permitted.val;
 	cap_effective = (uint64_t)cred->cap_effective.val;
-#endif	
+#endif
 	put_cred(cred);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
@@ -7783,7 +7782,7 @@ cgroups_error:
 	/* Since Linux 2.5.35, the flags mask must also include
 	 * CLONE_SIGHAND if CLONE_THREAD is specified (and note that,
 	 * since Linux 2.6.0, CLONE_SIGHAND also requires CLONE_VM to
-	 * be included). 
+	 * be included).
 	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
 	 */
 	if(child->pid != child->tgid)
@@ -7800,7 +7799,7 @@ cgroups_error:
 		flags |= PPM_CL_CLONE_FILES;
 	}
 
-	/* It's possible to have a process in a PID namespace that 
+	/* It's possible to have a process in a PID namespace that
 	 * nevertheless has tid == vtid,  so we need to generate this
 	 * custom flag `PPM_CL_CHILD_IN_PIDNS`.
 	 */
@@ -7965,7 +7964,7 @@ int f_sys_pidfd_getfd_x(struct event_filler_arguments *args)
 	retval = (int64_t) syscall_get_return_value(current,args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
-	
+
 	/* Parameter 2: pidfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
@@ -7977,12 +7976,12 @@ int f_sys_pidfd_getfd_x(struct event_filler_arguments *args)
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, true, 0);
 	CHECK_RES(res);
-	
+
 	/* Parameter 4: flags (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
-	
+
 	return add_sentinel(args);
 }
 
@@ -7997,13 +7996,13 @@ int f_sys_pidfd_open_x(struct event_filler_arguments *args)
 	retval = (int64_t) syscall_get_return_value(current,args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
-	
+
 	/* Parameter 2: pid (type: PT_PID) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, true, 0);
 	CHECK_RES(res);
-	
+
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, pidfd_open_flags_to_scap(val), 0, true, 0);
@@ -8066,7 +8065,7 @@ int f_sys_finit_module_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
-	
+
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, finit_module_flags_to_scap(val), 0, true, 0);
@@ -8279,7 +8278,7 @@ int f_sys_delete_module_x(struct event_filler_arguments *args)
 	int64_t res = 0;
 	uint32_t flags = 0;
 	unsigned long val = 0;
-	
+
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t) syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, (int64_t)retval, 0, false, 0);
