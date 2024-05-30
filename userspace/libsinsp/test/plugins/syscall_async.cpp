@@ -27,6 +27,8 @@ limitations under the License.
 
 #include "test_plugins.h"
 
+namespace {
+
 /**
  * Example of plugin implementing only the async events capability, which:
  * - Is compatible with the "syscall" event source only
@@ -46,27 +48,27 @@ struct plugin_state
     ss_plugin_log_fn_t log;
 };
 
-static const char* plugin_get_required_api_version()
+const char* plugin_get_required_api_version()
 {
     return PLUGIN_API_VERSION_STR;
 }
 
-static const char* plugin_get_version()
+const char* plugin_get_version()
 {
     return "0.1.0";
 }
 
-static const char* plugin_get_name()
+const char* plugin_get_name()
 {
     return "sample_syscall_async";
 }
 
-static const char* plugin_get_description()
+const char* plugin_get_description()
 {
     return "some desc";
 }
 
-static const char* plugin_get_contact()
+const char* plugin_get_contact()
 {
     return "some contact";
 }
@@ -81,17 +83,17 @@ const char* plugin_get_async_events()
     return "[\"sampleticker\"]";
 }
 
-static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
     *rc = SS_PLUGIN_SUCCESS;
-    plugin_state *ret = new plugin_state();
+    auto ret = new plugin_state();
 
     //save logger and owner in the state
     ret->log = in->log_fn;
     ret->owner = in->owner;
 
     ret->log(ret->owner, NULL, "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
-    
+
     ret->async_evt = (ss_plugin_event*) &ret->async_evt_buf;
     ret->async_thread_run = false;
     if (2 != sscanf(in->config, "%ld:%ld", &ret->async_maxevts, &ret->async_period))
@@ -102,9 +104,9 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     return ret;
 }
 
-static void plugin_destroy(ss_plugin_t* s)
+void plugin_destroy(ss_plugin_t* s)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
     // stop the async thread if it's running
@@ -120,14 +122,14 @@ static void plugin_destroy(ss_plugin_t* s)
     delete ps;
 }
 
-static const char* plugin_get_last_error(ss_plugin_t* s)
+const char* plugin_get_last_error(ss_plugin_t* s)
 {
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_owner_t* owner, const ss_plugin_async_event_handler_t handler)
+ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_owner_t* owner, const ss_plugin_async_event_handler_t handler)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
 
     // stop the async thread if it's running
     if (ps->async_thread_run)
@@ -192,6 +194,8 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
 
     return SS_PLUGIN_SUCCESS;
 }
+
+} // anonymous namespace
 
 void get_plugin_api_sample_syscall_async(plugin_api& out)
 {

@@ -24,6 +24,8 @@ limitations under the License.
 #include <driver/ppm_events_public.h>
 #include "test_plugins.h"
 
+namespace {
+
 struct plugin_state
 {
 	std::string lasterr;
@@ -38,47 +40,47 @@ struct plugin_state
 	uint8_t step = 0;
 };
 
-static const char* plugin_get_required_api_version()
+const char* plugin_get_required_api_version()
 {
 	return PLUGIN_API_VERSION_STR;
 }
 
-static const char* plugin_get_version()
+const char* plugin_get_version()
 {
 	return "0.1.0";
 }
 
-static const char* plugin_get_name()
+const char* plugin_get_name()
 {
 	return "sample_subtables";
 }
 
-static const char* plugin_get_description()
+const char* plugin_get_description()
 {
 	return "some desc";
 }
 
-static const char* plugin_get_contact()
+const char* plugin_get_contact()
 {
 	return "some contact";
 }
 
-static const char* plugin_get_parse_event_sources()
+const char* plugin_get_parse_event_sources()
 {
 	return "[\"syscall\"]";
 }
 
-static uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
+uint16_t* plugin_get_parse_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
     static uint16_t types[] = { PPME_SYSCALL_OPEN_E };
     *num_types = sizeof(types) / sizeof(uint16_t);
     return &types[0];
 }
 
-static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
 	*rc = SS_PLUGIN_SUCCESS;
-	plugin_state *ret = new plugin_state();
+	auto ret = new plugin_state();
 
 	if (!in || !in->tables)
 	{
@@ -96,7 +98,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 		ret->lasterr = "can't access thread table";
 		return ret;
 	}
-	
+
 	// get an accessor to the file descriptor tables owned by each thread info
 	ret->table_field_fdtable = in->tables->fields.get_table_field(
 		ret->thread_table, "file_descriptors", ss_plugin_state_type::SS_PLUGIN_ST_TABLE);
@@ -146,7 +148,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 		ret->lasterr = "can't get sub-table pid field";
 		return ret;
 	}
-	
+
 	// add a new fields to file descriptors table
 	ret->table_field_fdtable_custom = in->tables->fields_ext->add_table_field(
 		fdtable, "custom", ss_plugin_state_type::SS_PLUGIN_ST_STRING);
@@ -163,19 +165,19 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 	return ret;
 }
 
-static void plugin_destroy(ss_plugin_t* s)
+void plugin_destroy(ss_plugin_t* s)
 {
-	delete ((plugin_state *) s);
+	delete reinterpret_cast<plugin_state*>(s);
 }
 
-static const char* plugin_get_last_error(ss_plugin_t* s)
+const char* plugin_get_last_error(ss_plugin_t* s)
 {
 	return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_event_parse_input* in)
+ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_event_parse_input* in)
 {
-	plugin_state *ps = (plugin_state *) s;
+	auto ps = reinterpret_cast<plugin_state*>(s);
 	ss_plugin_state_data key;
 	ss_plugin_state_data out;
 	ss_plugin_state_data data;
@@ -201,7 +203,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 	fdtable = out.table;
 
 	//add entries to the fdtable
-	if(ps->step == 0) 
+	if(ps->step == 0)
 	{
 		int max_iterations = 1024;
 		for (int i = 0; i < max_iterations; i++)
@@ -245,7 +247,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 	}
 
 	//remove one entry from the fdtable
-	if(ps->step == 1) 
+	if(ps->step == 1)
 	{
 		key.s64 = 0;
 		auto res = in->table_writer_ext->erase_table_entry(fdtable, &key);
@@ -261,7 +263,7 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 	}
 
 	//clear the fdtable
-	if(ps->step == 2) 
+	if(ps->step == 2)
 	{
 		auto res = in->table_writer_ext->clear_table(fdtable);
 		if (res != SS_PLUGIN_SUCCESS)
@@ -278,6 +280,8 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 	in->table_reader_ext->release_table_entry(ps->thread_table, entry);
 	return SS_PLUGIN_SUCCESS;
 }
+
+} // anonymous namespace
 
 void get_plugin_api_sample_syscall_subtables(plugin_api& out)
 {

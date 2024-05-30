@@ -25,6 +25,8 @@ limitations under the License.
 #include "test_plugins.h"
 #include <scap.h>
 
+namespace {
+
 /**
  * Example of plugin implementing only the event sourcing capability, which:
  * - Does not implement a specific event source, thus can create any syscall event
@@ -44,39 +46,39 @@ struct instance_state
     ss_plugin_event* evt;
 };
 
-static const char* plugin_get_required_api_version()
+const char* plugin_get_required_api_version()
 {
     return PLUGIN_API_VERSION_STR;
 }
 
-static const char* plugin_get_version()
+const char* plugin_get_version()
 {
     return "0.1.0";
 }
 
-static const char* plugin_get_name()
+const char* plugin_get_name()
 {
     return "sample_syscall_source";
 }
 
-static const char* plugin_get_description()
+const char* plugin_get_description()
 {
     return "some desc";
 }
 
-static const char* plugin_get_contact()
+const char* plugin_get_contact()
 {
     return "some contact";
 }
 
-static const char* plugin_get_last_error(ss_plugin_t* s)
+const char* plugin_get_last_error(ss_plugin_t* s)
 {
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
-    plugin_state *ret = new plugin_state();
+    auto ret = new plugin_state();
 
     //save logger and owner in the state
     ret->log = in->log_fn;
@@ -88,17 +90,17 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     return ret;
 }
 
-static void plugin_destroy(ss_plugin_t* s)
+void plugin_destroy(ss_plugin_t* s)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
-    delete ((plugin_state *) s);
+    delete ps;
 }
 
-static ss_instance_t* plugin_open(ss_plugin_t* s, const char* params, ss_plugin_rc* rc)
+ss_instance_t* plugin_open(ss_plugin_t* s, const char* params, ss_plugin_rc* rc)
 {
-    instance_state *ret = new instance_state();
+    auto ret = new instance_state();
     ret->evt = (ss_plugin_event*) &ret->evt_buf;
     ret->count = 10000;
     auto count = atoi(params);
@@ -111,12 +113,12 @@ static ss_instance_t* plugin_open(ss_plugin_t* s, const char* params, ss_plugin_
     return ret;
 }
 
-static void plugin_close(ss_plugin_t* s, ss_instance_t* i)
+void plugin_close(ss_plugin_t* s, ss_instance_t* i)
 {
     delete ((instance_state *) i);
 }
 
-static ss_plugin_rc plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t *nevts, ss_plugin_event ***evts)
+ss_plugin_rc plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t *nevts, ss_plugin_event ***evts)
 {
     instance_state *istate = (instance_state *) i;
 
@@ -146,6 +148,8 @@ static ss_plugin_rc plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t
     istate->count--;
     return SS_PLUGIN_SUCCESS;
 }
+
+} // anonymous namespace
 
 void get_plugin_api_sample_syscall_source(plugin_api& out)
 {
