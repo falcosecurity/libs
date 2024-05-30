@@ -23,9 +23,6 @@ limitations under the License.
 
 TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_prometheus)
 {
-	m_inspector.set_sinsp_stats_v2_enabled();
-	// Extra call to verify that we don't fail
-	m_inspector.set_sinsp_stats_v2_enabled();
 	DEFAULT_TREE
 	auto evt = generate_random_event(p2_t1_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "3");
@@ -249,9 +246,6 @@ testns_falco_host_boot_timestamp_nanoseconds{raw_name="host_boot_ts"} 1708753667
 
 TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 {
-	m_inspector.set_sinsp_stats_v2_enabled();
-	// Extra call to verify that we don't fail
-	m_inspector.set_sinsp_stats_v2_enabled();
 	DEFAULT_TREE
 	auto evt = generate_random_event(p2_t1_tid);
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "3");
@@ -317,7 +311,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 		if (std::find(metrics_names_values_gt.begin(), metrics_names_values_gt.end(), metric.name) != metrics_names_values_gt.end())
 		{
 			ASSERT_GT(metric.value.u64, 0);
-			// Just making sure we don't get a high value due to an unitialized variables
+			// Just making sure we don't get a high value due to an uninitialized variables
 			ASSERT_LT(metric.value.u64, 106721347371);
 			success_values_cnt++;
 		}

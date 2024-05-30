@@ -485,7 +485,11 @@ void libs_metrics_collector::snapshot()
 	// METRICS_V2_STATE_COUNTERS related
 	uint64_t n_fds = 0;
 	uint64_t n_threads = 0;
-	std::shared_ptr<const sinsp_stats_v2> sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
+	if (!m_sinsp_stats_v2)
+	{
+		// Sinsp stats disabled.
+		return;
+	}
 
 	const std::function<metrics_v2()> sinsp_stats_v2_collectors[] = {
 		[SINSP_RESOURCE_UTILIZATION_CPU_PERC] = [this,&cpu_usage_perc]() {
@@ -576,146 +580,145 @@ void libs_metrics_collector::snapshot()
 					  METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
 					  n_fds);
 		},
-		[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS] = [this]() {
 			return new_metric("n_noncached_fd_lookups",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_noncached_fd_lookups);
+					  m_sinsp_stats_v2->m_n_noncached_fd_lookups);
 		},
-		[SINSP_STATS_V2_CACHED_FD_LOOKUPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_CACHED_FD_LOOKUPS] = [this]() {
 			return new_metric("n_cached_fd_lookups",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_cached_fd_lookups);
+					  m_sinsp_stats_v2->m_n_cached_fd_lookups);
 		},
-		[SINSP_STATS_V2_FAILED_FD_LOOKUPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_FAILED_FD_LOOKUPS] = [this]() {
 			return new_metric("n_failed_fd_lookups",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_failed_fd_lookups);
+					  m_sinsp_stats_v2->m_n_failed_fd_lookups);
 		},
-		[SINSP_STATS_V2_ADDED_FDS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_ADDED_FDS] = [this]() {
 			return new_metric("n_added_fds",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_added_fds);
+					  m_sinsp_stats_v2->m_n_added_fds);
 		},
-		[SINSP_STATS_V2_REMOVED_FDS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_REMOVED_FDS] = [this]() {
 			return new_metric("n_removed_fds",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_removed_fds);
+					  m_sinsp_stats_v2->m_n_removed_fds);
 		},
-		[SINSP_STATS_V2_STORED_EVTS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_STORED_EVTS] = [this]() {
 			return new_metric("n_stored_evts",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_stored_evts);
+					  m_sinsp_stats_v2->m_n_stored_evts);
 		},
-		[SINSP_STATS_V2_STORE_EVTS_DROPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_STORE_EVTS_DROPS] = [this]() {
 			return new_metric("n_store_evts_drops",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_store_evts_drops);
+					  m_sinsp_stats_v2->m_n_store_evts_drops);
 		},
-		[SINSP_STATS_V2_RETRIEVED_EVTS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_RETRIEVED_EVTS] = [this]() {
 			return new_metric("n_retrieved_evts",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_retrieved_evts);
+					  m_sinsp_stats_v2->m_n_retrieved_evts);
 		},
-		[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS] = [this]() {
 			return new_metric("n_retrieve_evts_drops",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_retrieve_evts_drops);
+					  m_sinsp_stats_v2->m_n_retrieve_evts_drops);
 		},
-		[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS] = [this]() {
 			return new_metric("n_noncached_thread_lookups",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_noncached_thread_lookups);
+					  m_sinsp_stats_v2->m_n_noncached_thread_lookups);
 		},
-		[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS] = [this]() {
 			return new_metric("n_cached_thread_lookups",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_cached_thread_lookups);
+					  m_sinsp_stats_v2->m_n_cached_thread_lookups);
 		},
-		[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS] = [this]() {
 			return new_metric("n_failed_thread_lookups",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_failed_thread_lookups);
+					  m_sinsp_stats_v2->m_n_failed_thread_lookups);
 		},
-		[SINSP_STATS_V2_ADDED_THREADS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_ADDED_THREADS] = [this]() {
 			return new_metric("n_added_threads",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_added_threads);
+					  m_sinsp_stats_v2->m_n_added_threads);
 		},
-		[SINSP_STATS_V2_REMOVED_THREADS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_REMOVED_THREADS] = [this]() {
 			return new_metric("n_removed_threads",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U64,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_removed_threads);
+					  m_sinsp_stats_v2->m_n_removed_threads);
 		},
-		[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE] = [this]() {
 			return new_metric("n_drops_full_threadtable",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U32,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  sinsp_stats_v2->m_n_drops_full_threadtable);
+					  m_sinsp_stats_v2->m_n_drops_full_threadtable);
 		},
-		[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES] = [this]() {
 			return new_metric("n_missing_container_images",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U32,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
-					  sinsp_stats_v2->m_n_missing_container_images);
+					  m_sinsp_stats_v2->m_n_missing_container_images);
 		},
-		[SINSP_STATS_V2_N_CONTAINERS] = [this,&sinsp_stats_v2]() {
+		[SINSP_STATS_V2_N_CONTAINERS] = [this]() {
 			return new_metric("n_containers",
 					  METRICS_V2_STATE_COUNTERS,
 					  METRIC_VALUE_TYPE_U32,
 					  METRIC_VALUE_UNIT_COUNT,
 					  METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
-					  sinsp_stats_v2->m_n_containers);
+					  m_sinsp_stats_v2->m_n_containers);
 		},
 	};
 
 	static_assert(sizeof(sinsp_stats_v2_collectors) / sizeof(sinsp_stats_v2_collectors[0]) == SINSP_MAX_STATS_V2, "sinsp_stats_v2_resource_utilization_names array size does not match expected size");
-
 
 	/* 
 	 * libsinsp metrics 
@@ -736,38 +739,29 @@ void libs_metrics_collector::snapshot()
 
 	if((m_metrics_flags & METRICS_V2_STATE_COUNTERS))
 	{
-		if (!sinsp_stats_v2)
+		auto thread_manager = m_inspector->m_thread_manager.get();
+		if (thread_manager)
 		{
-			m_inspector->set_sinsp_stats_v2_enabled();
-			sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
+			n_threads = thread_manager->get_thread_count();
+			threadinfo_map_t* threadtable = thread_manager->get_threads();
+			if (threadtable)
+			{
+				threadtable->loop([&n_fds] (sinsp_threadinfo& tinfo)
+				{
+					sinsp_fdtable* fdtable = tinfo.get_fd_table();
+					if (fdtable != nullptr)
+					{
+						n_fds += fdtable->size();
+					}
+					return true;
+				});
+			}
 		}
 
-		if (sinsp_stats_v2)
+		// Resource utilization of the agent itself
+		for (int i = SINSP_STATS_V2_N_THREADS; i < SINSP_MAX_STATS_V2; i++)
 		{
-			auto thread_manager = m_inspector->m_thread_manager.get();
-			if (thread_manager)
-			{
-				n_threads = thread_manager->get_thread_count();
-				threadinfo_map_t* threadtable = thread_manager->get_threads();
-				if (threadtable)
-				{
-					threadtable->loop([&n_fds] (sinsp_threadinfo& tinfo) 
-					{
-						sinsp_fdtable* fdtable = tinfo.get_fd_table();
-						if (fdtable != nullptr)
-						{
-							n_fds += fdtable->size();
-						}
-						return true;
-					});
-				}
-			}
-
-			// Resource utilization of the agent itself
-			for (int i = SINSP_STATS_V2_N_THREADS; i < SINSP_MAX_STATS_V2; i++)
-			{
-				m_metrics.emplace_back(sinsp_stats_v2_collectors[i]());
-			}
+			m_metrics.emplace_back(sinsp_stats_v2_collectors[i]());
 		}
 	}
 
@@ -799,6 +793,14 @@ libs_metrics_collector::libs_metrics_collector(sinsp* inspector, uint32_t flags)
 	m_inspector(inspector),
 	m_metrics_flags(flags)
 {
+	if (m_inspector != nullptr)
+	{
+		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
+	}
+	else
+	{
+		m_sinsp_stats_v2 = nullptr;
+	}
 }
 
 } // namespace libs::metrics

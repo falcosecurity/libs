@@ -161,7 +161,8 @@ public:
 	sinsp(bool static_container = false,
 		  const std::string &static_id = "",
 		  const std::string &static_name = "",
-		  const std::string &static_image = "");
+		  const std::string &static_image = "",
+	          bool with_metrics = false);
 
 	virtual ~sinsp() override;
 
@@ -439,11 +440,6 @@ public:
 	void set_proc_scan_log_interval_ms(uint64_t val);
 
 	/*!
-	 * \brief enabling sinsp state counters on the hot path via initializing the respective smart pointer.
-	 */
-	void set_sinsp_stats_v2_enabled();
-
-	/*!
 	  \brief Returns a new instance of a filtercheck supporting fields for
 	  a generic event source (e.g. evt.num, evt.time, evt.pluginname...)
 	*/
@@ -700,7 +696,7 @@ public:
 	/*!
 	  \brief Returns true if truncated environments should be loaded from /proc
 	*/
-	inline bool large_envs_enabled()
+	inline bool large_envs_enabled() const
 	{
 		return (is_live() || is_syscall_plugin()) && m_large_envs_enabled;
 	}
@@ -1158,6 +1154,7 @@ private:
 		return left == static_cast<uint64_t>(-1) || left <= right;
 	}
 
+	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_t* m_h;
 	struct scap_platform* m_platform {};
 	char m_platform_lasterr[SCAP_LASTERR_SIZE];
@@ -1188,9 +1185,7 @@ private:
 	bool m_is_dumping;
 	const scap_machine_info* m_machine_info;
 	const scap_agent_info* m_agent_info;
-	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	uint32_t m_num_cpus;
-	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
 
 	sinsp_network_interfaces m_network_interfaces {};

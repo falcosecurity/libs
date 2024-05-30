@@ -1016,6 +1016,8 @@ private:
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
+
 	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info */
 	std::unordered_map<int64_t, std::shared_ptr<thread_group_info>> m_thread_groups;
 	threadinfo_map_t m_threadtable;
