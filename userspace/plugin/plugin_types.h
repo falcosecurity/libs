@@ -298,13 +298,13 @@ typedef enum ss_plugin_log_severity
 // Types supported by the by the metric values
 typedef enum ss_plugin_metric_value_type
 {
-	SS_PLUGIN_METRIC_VALUE_TYPE_U32 = 1,
-	SS_PLUGIN_METRIC_VALUE_TYPE_S32 = 2,
-	SS_PLUGIN_METRIC_VALUE_TYPE_U64 = 3,
-	SS_PLUGIN_METRIC_VALUE_TYPE_S64 = 4,
-	SS_PLUGIN_METRIC_VALUE_TYPE_D = 5,
-	SS_PLUGIN_METRIC_VALUE_TYPE_F = 6,
-	SS_PLUGIN_METRIC_VALUE_TYPE_I = 7,
+	SS_PLUGIN_METRIC_VALUE_TYPE_U32 = 0,
+	SS_PLUGIN_METRIC_VALUE_TYPE_S32 = 1,
+	SS_PLUGIN_METRIC_VALUE_TYPE_U64 = 2,
+	SS_PLUGIN_METRIC_VALUE_TYPE_S64 = 3,
+	SS_PLUGIN_METRIC_VALUE_TYPE_D = 4,
+	SS_PLUGIN_METRIC_VALUE_TYPE_F = 5,
+	SS_PLUGIN_METRIC_VALUE_TYPE_I = 6,
 } ss_plugin_metric_value_type;
 
 // Data representation of metric values
@@ -322,8 +322,8 @@ typedef union ss_plugin_metric_value
 // Metric types
 typedef enum ss_plugin_metric_type
 {
-	SS_PLUGIN_METRIC_TYPE_MONOTONIC = 1,
-	SS_PLUGIN_METRIC_TYPE_NON_MONOTONIC = 2,
+	SS_PLUGIN_METRIC_TYPE_MONOTONIC = 0,
+	SS_PLUGIN_METRIC_TYPE_NON_MONOTONIC = 1,
 } ss_plugin_metric_type;
 
 //
