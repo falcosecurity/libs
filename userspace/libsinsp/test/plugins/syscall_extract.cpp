@@ -24,6 +24,8 @@ limitations under the License.
 
 #include "test_plugins.h"
 
+namespace {
+
 /**
  * Example of plugin implementing only the field extraction capability, which:
  * - Is compatible with the "syscall" event source only
@@ -47,7 +49,7 @@ struct plugin_state
     ss_plugin_log_fn_t log;
 };
 
-static inline bool evt_type_is_open(uint16_t type)
+inline bool evt_type_is_open(uint16_t type)
 {
     return type == PPME_SYSCALL_OPEN_E
         || type == PPME_SYSCALL_OPEN_X
@@ -62,37 +64,37 @@ static inline bool evt_type_is_open(uint16_t type)
     ;
 }
 
-static inline const char* get_async_event_name(const ss_plugin_event* e)
+inline const char* get_async_event_name(const ss_plugin_event* e)
 {
     return (const char*) ((uint8_t*) e + sizeof(ss_plugin_event) + 4+4+4+4);
 }
 
-static const char* plugin_get_required_api_version()
+const char* plugin_get_required_api_version()
 {
     return PLUGIN_API_VERSION_STR;
 }
 
-static const char* plugin_get_version()
+const char* plugin_get_version()
 {
     return "0.1.0";
 }
 
-static const char* plugin_get_name()
+const char* plugin_get_name()
 {
     return "sample_syscall_extract";
 }
 
-static const char* plugin_get_description()
+const char* plugin_get_description()
 {
     return "some desc";
 }
 
-static const char* plugin_get_contact()
+const char* plugin_get_contact()
 {
     return "some contact";
 }
 
-static const char* plugin_get_fields()
+const char* plugin_get_fields()
 {
 	return R"(
 [
@@ -124,12 +126,12 @@ static const char* plugin_get_fields()
 ])";
 }
 
-static const char* plugin_get_extract_event_sources()
+const char* plugin_get_extract_event_sources()
 {
     return "[\"syscall\"]";
 }
 
-static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t* s)
+uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t* s)
 {
     static uint16_t types[] = {
         PPME_SYSCALL_OPEN_E,
@@ -153,10 +155,10 @@ static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t
     return &types[0];
 }
 
-static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
     *rc = SS_PLUGIN_SUCCESS;
-    plugin_state *ret = new plugin_state();
+    auto ret = new plugin_state();
 
     //save logger and owner in the state
     ret->log = in->log_fn;
@@ -231,26 +233,26 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     return ret;
 }
 
-static void plugin_destroy(ss_plugin_t* s)
+void plugin_destroy(ss_plugin_t* s)
 {
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
-    delete ((plugin_state *) s);
+    delete ps;
 }
 
-static const char* plugin_get_last_error(ss_plugin_t* s)
+const char* plugin_get_last_error(ss_plugin_t* s)
 {
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_field_extract_input* in)
+ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_field_extract_input* in)
 {
     ss_plugin_rc rc;
     ss_plugin_state_data tmp;
     ss_plugin_table_entry_t* thread = NULL;
     ss_plugin_table_entry_t* evtcount = NULL;
-    plugin_state *ps = (plugin_state *) s;
+    auto ps = reinterpret_cast<plugin_state*>(s);
     for (uint32_t i = 0; i < in->num_fields; i++)
     {
         switch(in->fields[i].field_id)
@@ -380,6 +382,8 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
     }
     return SS_PLUGIN_SUCCESS;
 }
+
+} // anonymous namespace
 
 void get_plugin_api_sample_syscall_extract(plugin_api& out)
 {
