@@ -60,13 +60,13 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, scap_evt*
 	if((*pevent) == NULL)
 	{
 		/* The first time we sleep 500 us, if we have consecutive timeouts we can reach also 30 ms. */
-		usleep(engine.m_handle->m_retry_us);
-		engine.m_handle->m_retry_us = MIN(engine.m_handle->m_retry_us * 2, BUFFER_EMPTY_WAIT_TIME_US_MAX);
+		usleep(((SCAP_HANDLE_T*)engine.m_handle)->m_retry_us);
+		((SCAP_HANDLE_T*)engine.m_handle)->m_retry_us = MIN(((SCAP_HANDLE_T*)engine.m_handle)->m_retry_us * 2, BUFFER_EMPTY_WAIT_TIME_US_MAX);
 		return SCAP_TIMEOUT;
 	}
 	else
 	{
-		engine.m_handle->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
+		((SCAP_HANDLE_T*)engine.m_handle)->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 	}
 	*pflags = 0;
 	return SCAP_SUCCESS;
@@ -174,25 +174,25 @@ static int32_t calibrate_socket_file_ops(struct scap_engine_handle engine)
 	 */
 	pid_t scap_tid = syscall(__NR_gettid);
 	pman_set_scap_tid(scap_tid);
-	
+
 	/* We just need to enable the socket syscall for the socket calibration */
-	engine.m_handle->curr_sc_set.ppm_sc[PPM_SC_SOCKET] = 1;
+	((SCAP_HANDLE_T*)engine.m_handle)->curr_sc_set.ppm_sc[PPM_SC_SOCKET] = 1;
 	if(scap_modern_bpf__start_capture(engine) != SCAP_SUCCESS)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to start the capture for the socket calibration");
+		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "unable to start the capture for the socket calibration");
 	}
 
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(fd == -1)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to create a socket for the calibration");
+		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "unable to create a socket for the calibration");
 	}
 	close(fd);
 
 	/* We need to stop the capture */
 	if(scap_modern_bpf__stop_capture(engine) != SCAP_SUCCESS)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "unable to stop the capture after the calibration");
+		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "unable to stop the capture after the calibration");
 	}
 
 	/* We need to read the socket event from the buffer */
@@ -230,7 +230,7 @@ static int32_t calibrate_socket_file_ops(struct scap_engine_handle engine)
 
 	if(!found)
 	{
-		return scap_errprintf(engine.m_handle->m_lasterr, 0, "unable to find the socket event for the calibration in the ringbuffers");
+		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, 0, "unable to find the socket event for the calibration in the ringbuffers");
 	}
 	return SCAP_SUCCESS;
 }
@@ -268,7 +268,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	}
 
 	/* Set an initial sleep time in case of timeouts. */
-	engine.m_handle->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
+	((SCAP_HANDLE_T*)engine.m_handle)->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 
 	/* Load and attach */
 	ret = pman_open_probe();
@@ -297,15 +297,15 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	}
 
 	/* Store interesting sc codes */
-	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
+	memcpy(&((SCAP_HANDLE_T*)engine.m_handle)->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
-	engine.m_handle->m_api_version = pman_get_probe_api_ver();
-	engine.m_handle->m_schema_version = pman_get_probe_schema_ver();
+	((SCAP_HANDLE_T*)engine.m_handle)->m_api_version = pman_get_probe_api_ver();
+	((SCAP_HANDLE_T*)engine.m_handle)->m_schema_version = pman_get_probe_schema_ver();
 
-	engine.m_handle->m_flags = 0;
+	((SCAP_HANDLE_T*)engine.m_handle)->m_flags = 0;
 	if(scap_get_bpf_stats_enabled())
 	{
-		engine.m_handle->m_flags |= ENGINE_FLAG_BPF_STATS_ENABLED;
+		((SCAP_HANDLE_T*)engine.m_handle)->m_flags |= ENGINE_FLAG_BPF_STATS_ENABLED;
 	}
 
 	return SCAP_SUCCESS;
@@ -313,7 +313,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 
 static uint64_t scap_modern_bpf__get_flags(struct scap_engine_handle engine)
 {
-	return engine.m_handle->m_flags;
+	return ((SCAP_HANDLE_T*)engine.m_handle)->m_flags;
 }
 
 int32_t scap_modern_bpf__close(struct scap_engine_handle engine)
@@ -358,19 +358,19 @@ int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, 
 
 uint64_t scap_modern_bpf__get_api_version(struct scap_engine_handle engine)
 {
-	return engine.m_handle->m_api_version;
+	return ((SCAP_HANDLE_T*)engine.m_handle)->m_api_version;
 }
 
 uint64_t scap_modern_bpf__get_schema_version(struct scap_engine_handle engine)
 {
-	return engine.m_handle->m_schema_version;
+	return ((SCAP_HANDLE_T*)engine.m_handle)->m_schema_version;
 }
 
 struct scap_vtable scap_modern_bpf_engine = {
 	.name = MODERN_BPF_ENGINE,
 	.savefile_ops = NULL,
 
-	.alloc_handle = scap_modern_bpf__alloc_engine,
+	.alloc_handle = (void* (*)(scap_t*, char*))scap_modern_bpf__alloc_engine,
 	.init = scap_modern_bpf__init,
 	.get_flags = scap_modern_bpf__get_flags,
 	.free_handle = scap_modern_bpf__free_engine,

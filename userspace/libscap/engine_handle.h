@@ -18,10 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#ifndef SCAP_HANDLE_T
-#error "You need to define SCAP_HANDLE_T to a concrete type before including engine_handle.h"
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,7 +25,7 @@ extern "C" {
 // this is passed by value everywhere so keep it small
 // it only contains a pointer to a struct containing the engine-specific bits
 struct scap_engine_handle {
-	SCAP_HANDLE_T* m_handle;
+	void* m_handle;
 };
 
 #ifdef __cplusplus

@@ -149,34 +149,34 @@ SCAP_HANDLE_T* gvisor_alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 
 int32_t gvisor_init(scap_t* main_handle, scap_open_args* oargs)
 {
-	scap_gvisor::engine *gv = main_handle->m_engine.m_handle;
+	auto gv = (SCAP_HANDLE_T*)main_handle->m_engine.m_handle;
 	auto params = (scap_gvisor_engine_params*)oargs->engine_params;
 	return gv->init(params->gvisor_config_path, params->gvisor_root_path, params->no_events, params->gvisor_epoll_timeout, params->gvisor_platform);
 }
 
 void gvisor_free_handle(scap_engine_handle engine)
 {
-	delete engine.m_handle;
+	delete (SCAP_HANDLE_T*)engine.m_handle;
 }
 
 int32_t gvisor_start_capture(scap_engine_handle engine)
 {
-	return engine.m_handle->start_capture();
+	return ((SCAP_HANDLE_T*)engine.m_handle)->start_capture();
 }
 
 int32_t gvisor_close(scap_engine_handle engine)
 {
-	return engine.m_handle->close();
+	return ((SCAP_HANDLE_T*)engine.m_handle)->close();
 }
 
 int32_t gvisor_stop_capture(scap_engine_handle engine)
 {
-	return engine.m_handle->stop_capture();
+	return ((SCAP_HANDLE_T*)engine.m_handle)->stop_capture();
 }
 
 int32_t gvisor_next(scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
-	return engine.m_handle->next(pevent, pdevid, pflags);
+	return ((SCAP_HANDLE_T*)engine.m_handle)->next(pevent, pdevid, pflags);
 }
 
 int32_t gvisor_configure(scap_engine_handle engine, scap_setting setting, unsigned long arg1, unsigned long arg2)
@@ -186,12 +186,12 @@ int32_t gvisor_configure(scap_engine_handle engine, scap_setting setting, unsign
 
 int32_t gvisor_get_stats(scap_engine_handle engine, scap_stats* stats)
 {
-	return engine.m_handle->get_stats(stats);
+	return ((SCAP_HANDLE_T*)engine.m_handle)->get_stats(stats);
 }
 
 const metrics_v2* gvisor_get_stats_v2(scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
-	return engine.m_handle->get_stats_v2(flags, nstats, rc);
+	return ((SCAP_HANDLE_T*)engine.m_handle)->get_stats_v2(flags, nstats, rc);
 }
 
 int32_t gvisor_get_n_tracepoint_hit(scap_engine_handle engine, long* ret)
@@ -215,7 +215,7 @@ extern const scap_vtable scap_gvisor_engine = {
 	.name = GVISOR_ENGINE,
 	.savefile_ops = nullptr,
 
-	.alloc_handle = gvisor_alloc_handle,
+	.alloc_handle = (void* (*)(scap_t*, char*))gvisor_alloc_handle,
 	.init = gvisor_init,
 	.get_flags = nullptr,
 	.free_handle = gvisor_free_handle,

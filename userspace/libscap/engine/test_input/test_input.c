@@ -88,7 +88,7 @@ const struct scap_vtable scap_test_input_engine = {
 	.name = TEST_INPUT_ENGINE,
 	.savefile_ops = NULL,
 
-	.alloc_handle = alloc_handle,
+	.alloc_handle = (void* (*)(scap_t*, char*))alloc_handle,
 	.init = init,
 	.free_handle = noop_free_handle,
 	.close = noop_close_engine,

@@ -131,7 +131,7 @@ struct scap_vtable {
 	 *                    in the engine handle for easier access
 	 * @return pointer to the newly allocated handle or NULL
 	 */
-	SCAP_HANDLE_T* (*alloc_handle)(scap_t* main_handle, char *lasterr_ptr);
+	void* (*alloc_handle)(scap_t* main_handle, char* lasterr_ptr);
 
 	/**
 	 * @brief perform engine-specific initialization
