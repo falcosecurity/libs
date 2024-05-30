@@ -40,7 +40,7 @@ protected:
 	sinsp_with_test_input();
 	~sinsp_with_test_input();
 
-	sinsp m_inspector;
+	sinsp m_inspector = sinsp(false, "", "", "", true);
 
 	void open_inspector(sinsp_mode_t mode = SINSP_MODE_TEST);
 

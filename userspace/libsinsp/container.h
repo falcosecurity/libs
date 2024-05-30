@@ -242,6 +242,7 @@ private:
 	std::map<sinsp_container_type, std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engine_by_type;
 
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
 	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup::state>> m_lookups;
 	std::list<new_container_cb> m_new_callbacks;

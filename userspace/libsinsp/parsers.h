@@ -145,6 +145,8 @@ private:
 	//
 	sinsp* m_inspector;
 
+	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
+
 	//
 	// Temporary storage to avoid memory allocation
 	//

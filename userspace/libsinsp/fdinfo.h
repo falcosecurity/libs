@@ -438,6 +438,9 @@ public:
 
 /*@}*/
 
+// Forward declare sinsp_stats_v2 to avoid including metrics_collector.h here.
+struct sinsp_stats_v2;
+
 ///////////////////////////////////////////////////////////////////////////////
 // fd info table
 ///////////////////////////////////////////////////////////////////////////////
@@ -547,6 +550,7 @@ public:
 private:
 	sinsp* m_inspector;
 	std::unordered_map<int64_t, std::shared_ptr<sinsp_fdinfo>> m_table;
+	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 
 	//
 	// Simple fd cache
