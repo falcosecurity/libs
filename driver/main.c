@@ -1649,8 +1649,10 @@ static inline int drop_nostate_event(ppm_event_code event_type,
 		if (close_fd < 0 || close_fd >= fdt->max_fds ||
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
 		    !FD_ISSET(close_fd, fdt->open_fds)
-#else
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION(6, 10, 0))
 		    !fd_is_open(close_fd, fdt)
+#else
+		    !test_bit(close_fd, fdt->open_fds)
 #endif
 			) {
 			drop = true;
