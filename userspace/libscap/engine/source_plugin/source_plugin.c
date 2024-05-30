@@ -159,7 +159,7 @@ static int close_engine(struct scap_engine_handle engine)
 static int32_t next(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
-	char *lasterr = engine.m_handle->m_lasterr;
+	char *lasterr = ((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr;
 
 	/* we have to read a new batch */
 	if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
@@ -252,7 +252,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt** pevent, uint16_
 		// plugin events have no thread associated
 		evt->tid = (uint64_t) -1;
 	}
-	
+
 	// automatically set timestamp if none was specified
 	if(evt->ts == UINT64_MAX)
 	{
@@ -305,7 +305,7 @@ const struct scap_vtable scap_source_plugin_engine = {
 	.name = SOURCE_PLUGIN_ENGINE,
 	.savefile_ops = NULL,
 
-	.alloc_handle = alloc_handle,
+	.alloc_handle = (void* (*)(scap_t*, char*))alloc_handle,
 	.init = init,
 	.free_handle = noop_free_handle,
 	.close = close_engine,

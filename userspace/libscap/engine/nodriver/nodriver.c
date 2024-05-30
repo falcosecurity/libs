@@ -65,7 +65,7 @@ const struct scap_vtable scap_nodriver_engine = {
 	.name = NODRIVER_ENGINE,
 	.savefile_ops = NULL,
 
-	.alloc_handle = alloc_handle,
+	.alloc_handle = (void* (*)(scap_t*, char*))alloc_handle,
 	.init = init,
 	.free_handle = noop_free_handle,
 	.close = noop_close_engine,
