@@ -298,6 +298,14 @@ sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
 {
 	m_tid = 0;
 	m_inspector = inspector;
+	if (m_inspector != nullptr)
+	{
+		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
+	}
+	else
+	{
+		m_sinsp_stats_v2 = nullptr;
+	}
 	reset_cache();
 }
 
@@ -308,9 +316,9 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd)
 	//
 	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
 	{
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_cached_fd_lookups++;
+			m_sinsp_stats_v2->m_n_cached_fd_lookups++;
 		}
 		return m_last_accessed_fdinfo;
 	}
@@ -322,17 +330,17 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd)
 
 	if(fdit == m_table.end())
 	{
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_failed_fd_lookups++;
+			m_sinsp_stats_v2->m_n_failed_fd_lookups++;
 		}
-		return NULL;
+		return nullptr;
 	}
 	else
 	{
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_noncached_fd_lookups++;
+			m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
 		}
 
 		m_last_accessed_fd = fd;
@@ -369,9 +377,9 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(int64_t fd, std::uni
 			// No entry in the table, this is the normal case
 			//
 			m_last_accessed_fd = -1;
-			if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+			if (m_sinsp_stats_v2 != nullptr)
 			{
-				m_inspector->get_sinsp_stats_v2()->m_n_added_fds++;
+				m_sinsp_stats_v2->m_n_added_fds++;
 			}
 
 			return m_table.emplace(fd, std::move(fdinfo)).first->second;
@@ -440,19 +448,19 @@ bool sinsp_fdtable::erase(int64_t fd)
 		// call that created this fd. The assertion will detect it, while in release mode we just
 		// keep going.
 		//
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_failed_fd_lookups++;
+			m_sinsp_stats_v2->m_n_failed_fd_lookups++;
 		}
 		return false;
 	}
 	else
 	{
 		m_table.erase(fdit);
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_noncached_fd_lookups++;
-			m_inspector->get_sinsp_stats_v2()->m_n_removed_fds++;
+			m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
+			m_sinsp_stats_v2->m_n_removed_fds++;
 		}
 		return true;
 	}

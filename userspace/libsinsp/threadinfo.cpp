@@ -1388,6 +1388,14 @@ sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
 	  m_fdtable_dyn_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>())
 {
 	m_inspector = inspector;
+	if (m_inspector != nullptr)
+	{
+		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
+	}
+	else
+	{
+		m_sinsp_stats_v2 = nullptr;
+	}
 	clear();
 }
 
@@ -1493,15 +1501,15 @@ std::shared_ptr<sinsp_threadinfo> sinsp_thread_manager::add_thread(std::unique_p
 	   && threadinfo->m_pid != m_inspector->m_self_pid
 	)
 	{
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2 != nullptr)
 		{
 			// rate limit messages to avoid spamming the logs
-			if (m_inspector->get_sinsp_stats_v2()->m_n_drops_full_threadtable % m_max_thread_table_size == 0)
+			if (m_sinsp_stats_v2->m_n_drops_full_threadtable % m_max_thread_table_size == 0)
 			{
 				libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
 					threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
 			}
-			m_inspector->get_sinsp_stats_v2()->m_n_drops_full_threadtable++;
+			m_sinsp_stats_v2->m_n_drops_full_threadtable++;
 		}
 		return nullptr;
 	}
@@ -1526,9 +1534,9 @@ std::shared_ptr<sinsp_threadinfo> sinsp_thread_manager::add_thread(std::unique_p
 	tinfo_shared_ptr->compute_program_hash();
 	m_threadtable.put(tinfo_shared_ptr);
 
-	if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+	if (m_sinsp_stats_v2 != nullptr)
 	{
-		m_inspector->get_sinsp_stats_v2()->m_n_added_threads++;
+		m_sinsp_stats_v2->m_n_added_threads++;
 	}
 
 	return tinfo_shared_ptr;
@@ -1674,9 +1682,9 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	if(thread_to_remove == nullptr)
 	{
 		// Extra m_inspector nullptr check
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_failed_thread_lookups++;
+			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
 		return;
 	}
@@ -1796,9 +1804,9 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	 * the cache just to be sure.
 	 */
 	m_last_tid = -1;
-	if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+	if (m_sinsp_stats_v2 != nullptr)
 	{
-		m_inspector->get_sinsp_stats_v2()->m_n_removed_threads++;
+		m_sinsp_stats_v2->m_n_removed_threads++;
 	}
 }
 
@@ -2140,9 +2148,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		thr = m_last_tinfo.lock();
 		if (thr)
 		{
-			if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+			if (m_sinsp_stats_v2 != nullptr)
 			{
-				m_inspector->get_sinsp_stats_v2()->m_n_cached_thread_lookups++;
+				m_sinsp_stats_v2->m_n_cached_thread_lookups++;
 			}
 			// This allows us to avoid performing an actual timestamp lookup
 			// for something that may not need to be precise
@@ -2158,9 +2166,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 
 	if(thr)
 	{
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_noncached_thread_lookups++;
+			m_sinsp_stats_v2->m_n_noncached_thread_lookups++;
 		}
 		if(!lookup_only)
 		{
@@ -2173,9 +2181,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	}
 	else
 	{
-		if (m_inspector != nullptr && m_inspector->get_sinsp_stats_v2())
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			m_inspector->get_sinsp_stats_v2()->m_n_failed_thread_lookups++;
+			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
 		return NULL;
 	}

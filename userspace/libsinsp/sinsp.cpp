@@ -64,8 +64,9 @@ int32_t on_new_entry_from_proc(void* context, char* error, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 std::atomic<int> sinsp::instance_count{0};
 
-sinsp::sinsp(bool static_container, const std::string &static_id, const std::string &static_name, const std::string &static_image) :
+sinsp::sinsp(bool static_container, const std::string &static_id, const std::string &static_name, const std::string &static_image, bool with_metrics) :
 	m_external_event_processor(),
+	m_sinsp_stats_v2(with_metrics ? std::make_shared<sinsp_stats_v2>() : nullptr),
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_host_root(scap_get_host_root()),
@@ -80,6 +81,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	// used by container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
+
 	m_h = NULL;
 	m_parser = NULL;
 	m_is_dumping = false;
@@ -104,7 +106,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
-	m_flush_memory_dump = false;
 	m_next_stats_print_time_ns = 0;
 	m_large_envs_enabled = false;
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
@@ -1965,31 +1966,6 @@ void sinsp::set_proc_scan_timeout_ms(uint64_t val)
 void sinsp::set_proc_scan_log_interval_ms(uint64_t val)
 {
 	m_proc_scan_log_interval_ms = val;
-}
-
-void sinsp::set_sinsp_stats_v2_enabled()
-{
-	if (m_sinsp_stats_v2 == nullptr)
-	{
-		m_sinsp_stats_v2 = std::make_unique<sinsp_stats_v2>();
-		m_sinsp_stats_v2->m_n_noncached_fd_lookups = 0;
-		m_sinsp_stats_v2->m_n_cached_fd_lookups = 0;
-		m_sinsp_stats_v2->m_n_failed_fd_lookups = 0;
-		m_sinsp_stats_v2->m_n_added_fds = 0;
-		m_sinsp_stats_v2->m_n_removed_fds = 0;
-		m_sinsp_stats_v2->m_n_stored_evts = 0;
-		m_sinsp_stats_v2->m_n_store_evts_drops = 0;
-		m_sinsp_stats_v2->m_n_retrieved_evts = 0;
-		m_sinsp_stats_v2->m_n_retrieve_evts_drops = 0;
-		m_sinsp_stats_v2->m_n_noncached_thread_lookups = 0;
-		m_sinsp_stats_v2->m_n_cached_thread_lookups = 0;
-		m_sinsp_stats_v2->m_n_failed_thread_lookups = 0;
-		m_sinsp_stats_v2->m_n_added_threads = 0;
-		m_sinsp_stats_v2->m_n_removed_threads = 0;
-		m_sinsp_stats_v2->m_n_drops_full_threadtable = 0;
-		m_sinsp_stats_v2->m_n_missing_container_images = 0;
-		m_sinsp_stats_v2->m_n_containers= 0;
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
