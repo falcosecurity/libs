@@ -1960,7 +1960,8 @@ enum extra_event_prog_code
 	PPM_SC_X(STATMOUNT, 438) \
 	PPM_SC_X(LSM_GET_SELF_ATTR, 439) \
 	PPM_SC_X(LSM_SET_SELF_ATTR, 440) \
-	PPM_SC_X(LSM_LIST_MODULES, 441)
+	PPM_SC_X(LSM_LIST_MODULES, 441) \
+	PPM_SC_X(MSEAL, 442)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = (value),
