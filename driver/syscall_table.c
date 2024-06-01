@@ -1009,4 +1009,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_listmount
 	[__NR_listmount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LISTMOUNT},
 #endif
+#ifdef __NR_mseal
+	[__NR_mseal - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MSEAL},
+#endif
 };
