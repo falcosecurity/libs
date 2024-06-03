@@ -79,8 +79,6 @@ enum sinsp_stats_v2_resource_utilization
 	SINSP_MAX_STATS_V2
 };
 
-#ifdef __linux__
-
 namespace libs::metrics
 {
 
@@ -274,9 +272,11 @@ private:
 	uint32_t m_metrics_flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_RESOURCE_UTILIZATION | METRICS_V2_STATE_COUNTERS | METRICS_V2_PLUGINS;
 	std::vector<metrics_v2> m_metrics;
 
+#ifdef __linux__
 	void get_rss_vsz_pss_total_memory_and_open_fds(uint32_t &rss, uint32_t &vsz, uint32_t &pss, uint64_t &host_memory_used, uint64_t &host_open_fds);
 	void get_cpu_usage_and_total_procs(double start_time, double &cpu_usage_perc, double &host_cpu_usage_perc, uint32_t &host_procs_running);
 	uint64_t get_container_memory_used() const;
+#endif /*__linux__*/
 
 	template <typename T>
 	static void set_metric_value(metrics_v2& metric, metrics_v2_value_type type, T val)
@@ -311,5 +311,3 @@ private:
 };
 
 } // namespace libs::metrics
-
-#endif
