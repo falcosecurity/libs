@@ -457,7 +457,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, uint32_t *len
 			// Get the file path directly from the ring buffer.
 			// concatenate_paths takes care of resolving the path
 			//
-			m_strstorage = sinsp_utils::concatenate_paths("", evt->get_param(3)->as<std::string_view>());
+			m_strstorage = sinsp_utils::concatenate_paths("", evt->get_param(3)->as<std::string>());
 
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
@@ -1708,7 +1708,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, uint32_t* len,
 
 			if(etype == PPME_INFRASTRUCTURE_EVENT_E)
 			{
-				std::string descstr{evt->get_param(2)->as<std::string_view>()};
+				std::string descstr{evt->get_param(2)->as<std::string>()};
 				vector<string> elements = sinsp_split(descstr, ';');
 				for(string ute : elements)
 				{

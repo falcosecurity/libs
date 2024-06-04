@@ -43,7 +43,7 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param)
 
 	// this, and the following similar checks, verify that the internal state is set as we need right now.
 	// if the internal state changes we can remove or update this check
-	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "<NA>");
+	ASSERT_EQ(evt->get_param(1)->as<std::string>(), "<NA>");
 
 	/* `PPME_SYSCALL_CREAT_E` is a simple event that uses a `PT_FSPATH`
 	 * A `NULL` `PT_FSPATH` param is always converted to `<NA>`.
@@ -51,7 +51,7 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 2, NULL, 0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "<NA>");
 
-	ASSERT_STREQ(evt->get_param(0)->as<std::string_view>().data(), "<NA>");
+	ASSERT_EQ(evt->get_param(0)->as<std::string>(), "<NA>");
 
 	int64_t dirfd = 0;
 
@@ -61,7 +61,7 @@ TEST_F(sinsp_with_test_input, charbuf_empty_param)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, NULL, 0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.pathname"), "<NA>");
 
-	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "<NA>");
+	ASSERT_EQ(evt->get_param(1)->as<std::string>(), "<NA>");
 }
 
 /* Assert that a `PT_CHARBUF` with `len==1` (just the `\0`) is not changed. */
@@ -81,7 +81,7 @@ TEST_F(sinsp_with_test_input, param_charbuf_len_1)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, "");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "");
 
-	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "");
+	ASSERT_EQ(evt->get_param(1)->as<std::string>(), "");
 }
 
 /* Assert that a "(NULL)" `PT_CHARBUF` param is converted to `<NA>`
@@ -101,7 +101,7 @@ TEST_F(sinsp_with_test_input, charbuf_NULL_param)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, "(NULL)");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "<NA>");
 
-	ASSERT_STREQ(evt->get_param(1)->as<std::string_view>().data(), "<NA>");
+	ASSERT_EQ(evt->get_param(1)->as<std::string>(), "<NA>");
 }
 
 /* Assert that an empty `PT_BYTEBUF` param is NOT converted to `<NA>` */

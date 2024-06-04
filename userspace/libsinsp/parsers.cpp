@@ -1227,7 +1227,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	child_tinfo->m_vpid = child_tinfo->m_pid;
 
 	/* exe */
-	child_tinfo->m_exe = evt->get_param(1)->as<std::string_view>();
+	child_tinfo->m_exe = evt->get_param(1)->as<std::string>();
 
 	/* args */
 	child_tinfo->set_args(evt->get_param(2)->as<std::vector<std::string>>());
@@ -1248,7 +1248,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	case PPME_SYSCALL_VFORK_17_X:
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_CLONE3_X:
-		child_tinfo->m_comm = evt->get_param(13)->as<std::string_view>();
+		child_tinfo->m_comm = evt->get_param(13)->as<std::string>();
 		break;
 	default:
 		ASSERT(false);
@@ -1660,7 +1660,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	 */
 
 	/* exe */
-	child_tinfo->m_exe = evt->get_param(1)->as<std::string_view>();
+	child_tinfo->m_exe = evt->get_param(1)->as<std::string>();
 
 	/* comm */
 	switch(etype)
@@ -1678,7 +1678,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_17_X:
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_CLONE3_X:
-		child_tinfo->m_comm = evt->get_param(13)->as<std::string_view>();
+		child_tinfo->m_comm = evt->get_param(13)->as<std::string>();
 		break;
 	default:
 		ASSERT(false);
@@ -2067,7 +2067,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
-		evt->get_tinfo()->m_comm = evt->get_param(13)->as<std::string_view>();
+		evt->get_tinfo()->m_comm = evt->get_param(13)->as<std::string>();
 		break;
 	default:
 		ASSERT(false);
@@ -4446,7 +4446,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 			return;
 		}
 
-		std::string cwd = std::string(evt->get_param(1)->as<std::string_view>());
+		std::string cwd = evt->get_param(1)->as<std::string>();
 
 #ifdef _DEBUG
 		if(cwd != "/")
