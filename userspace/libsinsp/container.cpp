@@ -20,6 +20,7 @@ limitations under the License.
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <libsinsp/container_engine/cri.h>
+#include <libsinsp/cri.hpp>
 #ifndef _WIN32
 #include <libsinsp/container_engine/docker/docker_linux.h>
 #include <libsinsp/container_engine/docker/podman.h>
