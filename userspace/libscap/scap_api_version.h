@@ -21,10 +21,6 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifndef SCAP_HANDLE_T
-#define SCAP_HANDLE_T void
-#endif
-
 #include <libscap/engine_handle.h>
 
 struct scap_vtable;
@@ -41,4 +37,3 @@ bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uin
 			     uint32_t required_major, uint32_t required_minor, uint32_t required_patch);
 
 int32_t check_api_compatibility(const struct scap_vtable* vtable, struct scap_engine_handle engine, char *error);
-

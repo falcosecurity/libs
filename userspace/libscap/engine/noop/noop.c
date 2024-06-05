@@ -24,13 +24,13 @@ struct noop_engine
 	char *m_lasterr;
 };
 
-#define SCAP_HANDLE_T struct noop_engine
+#define HANDLE(engine) ((struct noop_engine*)(engine.m_handle))
 
 #include <libscap/engine/noop/noop.h>
 #include <libscap/scap.h>
 #include <libscap/strl.h>
 
-struct noop_engine* noop_alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+void* noop_alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct noop_engine *engine = calloc(1, sizeof(struct noop_engine));
 	if(engine)
@@ -79,7 +79,7 @@ int32_t noop_configure(struct scap_engine_handle engine, enum scap_setting setti
 	{
 		return SCAP_SUCCESS;
 	}
-	return unimplemented_op(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, SCAP_LASTERR_SIZE);
+	return unimplemented_op(HANDLE(engine)->m_lasterr, SCAP_LASTERR_SIZE);
 }
 
 int32_t noop_get_stats(struct scap_engine_handle engine, scap_stats* stats)
@@ -113,7 +113,7 @@ const struct scap_vtable scap_noop_engine = {
 	.name = "noop",
 	.savefile_ops = NULL,
 
-	.alloc_handle = (void* (*)(scap_t*, char*))noop_alloc_handle,
+	.alloc_handle = noop_alloc_handle,
 	.init = NULL,
 	.free_handle = noop_free_handle,
 	.close = noop_close_engine,

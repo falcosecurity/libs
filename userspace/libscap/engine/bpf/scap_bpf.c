@@ -33,7 +33,7 @@ limitations under the License.
 #include <dirent.h>
 #include <libscap/strl.h>
 
-#define SCAP_HANDLE_T struct bpf_engine
+#define HANDLE(engine) ((struct bpf_engine*)(engine.m_handle))
 
 #include <libscap/engine/bpf/bpf.h>
 #include <libscap/engine_handle.h>
@@ -114,7 +114,7 @@ struct bpf_map_data {
 	struct bpf_map_def def;
 };
 
-static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct bpf_engine *engine = calloc(1, sizeof(struct bpf_engine));
 	if(engine)
@@ -1163,23 +1163,23 @@ int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 static int32_t calibrate_socket_file_ops(struct scap_engine_handle engine)
 {
 	/* We just need to enable the socket syscall for the socket calibration */
-	((SCAP_HANDLE_T*)engine.m_handle)->curr_sc_set.ppm_sc[PPM_SC_SOCKET] = 1;
+	HANDLE(engine)->curr_sc_set.ppm_sc[PPM_SC_SOCKET] = 1;
 	if(scap_bpf_start_capture(engine) != SCAP_SUCCESS)
 	{
-		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "unable to set the socket syscall for the calibration");
+		return scap_errprintf(HANDLE(engine)->m_lasterr, errno, "unable to set the socket syscall for the calibration");
 	}
 
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(fd == -1)
 	{
-		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "unable to create a socket for the calibration");
+		return scap_errprintf(HANDLE(engine)->m_lasterr, errno, "unable to create a socket for the calibration");
 	}
 	close(fd);
 
 	/* We need to stop the capture */
 	if(scap_bpf_stop_capture(engine) != SCAP_SUCCESS)
 	{
-		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "unable to stop the capture after the calibration");
+		return scap_errprintf(HANDLE(engine)->m_lasterr, errno, "unable to stop the capture after the calibration");
 	}
 
 	return SCAP_SUCCESS;
@@ -1890,7 +1890,7 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 
 static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags)
 {
-	return ringbuffer_next(&((SCAP_HANDLE_T*)engine.m_handle)->m_dev_set, pevent, pdevid, pflags);
+	return ringbuffer_next(&HANDLE(engine)->m_dev_set, pevent, pdevid, pflags);
 }
 
 static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
@@ -1985,7 +1985,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	struct scap_bpf_engine_params *params = oargs->engine_params;
 	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
 
-	if(check_buffer_bytes_dim(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
+	if(check_buffer_bytes_dim(HANDLE(engine)->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1996,18 +1996,18 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	ssize_t num_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	if(num_cpus == -1)
 	{
-		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "cannot obtain the number of available CPUs from '_SC_NPROCESSORS_CONF'");
+		return scap_errprintf(HANDLE(engine)->m_lasterr, errno, "cannot obtain the number of available CPUs from '_SC_NPROCESSORS_CONF'");
 	}
 
-	((SCAP_HANDLE_T*)engine.m_handle)->m_ncpus = num_cpus;
+	HANDLE(engine)->m_ncpus = num_cpus;
 
 	ssize_t num_devs = sysconf(_SC_NPROCESSORS_ONLN);
 	if(num_devs == -1)
 	{
-		return scap_errprintf(((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr, errno, "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN'");
+		return scap_errprintf(HANDLE(engine)->m_lasterr, errno, "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN'");
 	}
 
-	rc = devset_init(&((SCAP_HANDLE_T*)engine.m_handle)->m_dev_set, num_devs, ((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr);
+	rc = devset_init(&HANDLE(engine)->m_dev_set, num_devs, HANDLE(engine)->m_lasterr);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
@@ -2028,12 +2028,12 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	}
 
 	/* Store interesting sc codes */
-	memcpy(&((SCAP_HANDLE_T*)engine.m_handle)->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
+	memcpy(&HANDLE(engine)->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
-	((SCAP_HANDLE_T*)engine.m_handle)->m_flags = 0;
+	HANDLE(engine)->m_flags = 0;
 	if(scap_get_bpf_stats_enabled())
 	{
-		((SCAP_HANDLE_T*)engine.m_handle)->m_flags |= ENGINE_FLAG_BPF_STATS_ENABLED;
+		HANDLE(engine)->m_flags |= ENGINE_FLAG_BPF_STATS_ENABLED;
 	}
 
 	return SCAP_SUCCESS;
@@ -2041,19 +2041,19 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 
 static uint64_t get_flags(struct scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->m_flags;
+	return HANDLE(engine)->m_flags;
 }
 
 static uint32_t get_n_devs(struct scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->m_dev_set.m_ndevs;
+	return HANDLE(engine)->m_dev_set.m_ndevs;
 }
 
 static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 {
 	uint64_t i;
 	uint64_t max = 0;
-	struct scap_device_set *devset = &((SCAP_HANDLE_T*)engine.m_handle)->m_dev_set;
+	struct scap_device_set *devset = &HANDLE(engine)->m_dev_set;
 
 	for(i = 0; i < devset->m_ndevs; i++)
 	{
@@ -2066,19 +2066,19 @@ static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 
 uint64_t scap_bpf_get_api_version(struct scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->m_api_version;
+	return HANDLE(engine)->m_api_version;
 }
 
 uint64_t scap_bpf_get_schema_version(struct scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->m_schema_version;
+	return HANDLE(engine)->m_schema_version;
 }
 
 const struct scap_vtable scap_bpf_engine = {
 	.name = BPF_ENGINE,
 	.savefile_ops = NULL,
 
-	.alloc_handle = (void* (*)(scap_t*, char*))alloc_handle,
+	.alloc_handle = alloc_handle,
 	.init = init,
 	.get_flags = get_flags,
 	.free_handle = free_handle,

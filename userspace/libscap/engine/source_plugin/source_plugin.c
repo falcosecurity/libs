@@ -16,7 +16,7 @@ limitations under the License.
 
 */
 
-#define SCAP_HANDLE_T struct source_plugin_engine
+#define HANDLE(engine) ((struct source_plugin_engine*)(engine.m_handle))
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -101,7 +101,7 @@ static int32_t plugin_rc_to_scap_rc(ss_plugin_rc plugin_rc)
 	return SCAP_FAILURE;
 }
 
-static struct source_plugin_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct source_plugin_engine *engine = calloc(1, sizeof(struct source_plugin_engine));
 	if(engine)
@@ -159,7 +159,7 @@ static int close_engine(struct scap_engine_handle engine)
 static int32_t next(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
-	char *lasterr = ((SCAP_HANDLE_T*)engine.m_handle)->m_lasterr;
+	char *lasterr = HANDLE(engine)->m_lasterr;
 
 	/* we have to read a new batch */
 	if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
@@ -305,7 +305,7 @@ const struct scap_vtable scap_source_plugin_engine = {
 	.name = SOURCE_PLUGIN_ENGINE,
 	.savefile_ops = NULL,
 
-	.alloc_handle = (void* (*)(scap_t*, char*))alloc_handle,
+	.alloc_handle = alloc_handle,
 	.init = init,
 	.free_handle = noop_free_handle,
 	.close = close_engine,
