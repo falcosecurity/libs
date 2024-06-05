@@ -15,12 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-
-namespace scap_gvisor {
-	class engine;
-}
-
-#define SCAP_HANDLE_T scap_gvisor::engine
+#define HANDLE(engine) ((scap_gvisor::engine*)(engine.m_handle))
 
 #include <libscap/engine/gvisor/gvisor.h>
 #include <libscap/engine/gvisor/gvisor_platform.h>
@@ -142,41 +137,41 @@ scap_platform* scap_gvisor_alloc_platform(proc_entry_callback proc_callback, voi
 	return &platform->m_generic;
 }
 
-SCAP_HANDLE_T* gvisor_alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+void* gvisor_alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	return new scap_gvisor::engine(lasterr_ptr);
 }
 
 int32_t gvisor_init(scap_t* main_handle, scap_open_args* oargs)
 {
-	auto gv = (SCAP_HANDLE_T*)main_handle->m_engine.m_handle;
+	auto gv = reinterpret_cast<scap_gvisor::engine*>(main_handle->m_engine.m_handle);
 	auto params = (scap_gvisor_engine_params*)oargs->engine_params;
 	return gv->init(params->gvisor_config_path, params->gvisor_root_path, params->no_events, params->gvisor_epoll_timeout, params->gvisor_platform);
 }
 
 void gvisor_free_handle(scap_engine_handle engine)
 {
-	delete (SCAP_HANDLE_T*)engine.m_handle;
+	delete reinterpret_cast<scap_gvisor::engine*>(engine.m_handle);
 }
 
 int32_t gvisor_start_capture(scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->start_capture();
+	return HANDLE(engine)->start_capture();
 }
 
 int32_t gvisor_close(scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->close();
+	return HANDLE(engine)->close();
 }
 
 int32_t gvisor_stop_capture(scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->stop_capture();
+	return HANDLE(engine)->stop_capture();
 }
 
 int32_t gvisor_next(scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->next(pevent, pdevid, pflags);
+	return HANDLE(engine)->next(pevent, pdevid, pflags);
 }
 
 int32_t gvisor_configure(scap_engine_handle engine, scap_setting setting, unsigned long arg1, unsigned long arg2)
@@ -186,12 +181,12 @@ int32_t gvisor_configure(scap_engine_handle engine, scap_setting setting, unsign
 
 int32_t gvisor_get_stats(scap_engine_handle engine, scap_stats* stats)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->get_stats(stats);
+	return HANDLE(engine)->get_stats(stats);
 }
 
 const metrics_v2* gvisor_get_stats_v2(scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->get_stats_v2(flags, nstats, rc);
+	return HANDLE(engine)->get_stats_v2(flags, nstats, rc);
 }
 
 int32_t gvisor_get_n_tracepoint_hit(scap_engine_handle engine, long* ret)
@@ -215,7 +210,7 @@ extern const scap_vtable scap_gvisor_engine = {
 	.name = GVISOR_ENGINE,
 	.savefile_ops = nullptr,
 
-	.alloc_handle = (void* (*)(scap_t*, char*))gvisor_alloc_handle,
+	.alloc_handle = gvisor_alloc_handle,
 	.init = gvisor_init,
 	.get_flags = nullptr,
 	.free_handle = gvisor_free_handle,

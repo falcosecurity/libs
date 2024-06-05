@@ -21,10 +21,6 @@ limitations under the License.
 #include <stdint.h>
 #include <stdbool.h>
 
-#ifndef SCAP_HANDLE_T
-#define SCAP_HANDLE_T void
-#endif
-
 #include <libscap/scap_limits.h>
 #include <libscap/scap_procs.h>
 #include <driver/ppm_events_public.h>

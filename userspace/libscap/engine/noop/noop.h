@@ -26,7 +26,7 @@ typedef struct ppm_evt_hdr scap_evt;
 typedef struct scap_stats scap_stats;
 typedef struct metrics_v2 metrics_v2;
 
-struct noop_engine* noop_alloc_handle(scap_t* main_handle, char* lasterr_ptr);
+void* noop_alloc_handle(scap_t* main_handle, char* lasterr_ptr);
 void noop_free_handle(struct scap_engine_handle engine);
 int noop_close_engine(struct scap_engine_handle engine);
 int32_t noop_next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags);

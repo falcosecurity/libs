@@ -30,7 +30,8 @@ struct iovec {
 };
 #endif
 
-#define SCAP_HANDLE_T struct savefile_engine
+#define HANDLE(engine) ((struct savefile_engine*)(engine.m_handle))
+
 #include <libscap/engine/savefile/savefile.h>
 #include <libscap/scap.h>
 #include <libscap/scap-int.h>
@@ -2059,13 +2060,13 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 
 uint64_t scap_savefile_ftell(struct scap_engine_handle engine)
 {
-	scap_reader_t* reader = ((SCAP_HANDLE_T*)engine.m_handle)->m_reader;
+	scap_reader_t* reader = HANDLE(engine)->m_reader;
 	return reader->tell(reader);
 }
 
 void scap_savefile_fseek(struct scap_engine_handle engine, uint64_t off)
 {
-	scap_reader_t* reader = ((SCAP_HANDLE_T*)engine.m_handle)->m_reader;
+	scap_reader_t* reader = HANDLE(engine)->m_reader;
 	reader->seek(reader, off, SEEK_SET);
 }
 
@@ -2115,7 +2116,7 @@ struct scap_platform *scap_savefile_alloc_platform(proc_entry_callback proc_call
 	return &platform->m_generic;
 }
 
-static struct savefile_engine* alloc_handle(struct scap* main_handle, char* lasterr_ptr)
+static void* alloc_handle(struct scap* main_handle, char* lasterr_ptr)
 {
 	struct savefile_engine *engine = calloc(1, sizeof(struct savefile_engine));
 	if(engine)
@@ -2276,7 +2277,7 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 
 static int64_t get_readfile_offset(struct scap_engine_handle engine)
 {
-	return ((SCAP_HANDLE_T*)engine.m_handle)->m_reader->offset(((SCAP_HANDLE_T*)engine.m_handle)->m_reader);
+	return HANDLE(engine)->m_reader->offset(HANDLE(engine)->m_reader);
 }
 
 static struct scap_savefile_vtable savefile_ops = {
@@ -2291,7 +2292,7 @@ struct scap_vtable scap_savefile_engine = {
 	.name = SAVEFILE_ENGINE,
 	.savefile_ops = &savefile_ops,
 
-	.alloc_handle = (void* (*)(scap_t*, char*))alloc_handle,
+	.alloc_handle = alloc_handle,
 	.init = init,
 	.free_handle = free_handle,
 	.close = scap_savefile_close,
