@@ -35,11 +35,12 @@ rm -rf ${BASE_DIR}/build/driver || true;
 rm -rf ${BASE_DIR}/build/driver_ok || true;
 
 # You have the option to customize the args to the Go launcher script
-# -compilerVersionsClang=15
-# -compilerVersionsClang=7,9,10,12,14,15,16
+# -compilerVersionsClang="15"
+# -compilerVersionsClang="7,8,9,10,11,12,13,14,15,16,17,18"
 # -compilerVersionsGcc=""
+# -compilerVersionsGcc="9,10,11,12,13"
 GO111MODULE=off BASE_DIR=${BASE_DIR} bash -c 'go get golang.org/x/sync/semaphore; \
-go run ${BASE_DIR}/scripts/main.go -compilerVersionsClang=7,12,14,16 -compilerVersionsGcc=5,9,11,13 \
+go run ${BASE_DIR}/scripts/main.go -compilerVersionsClang="7,12,14,16,18" -compilerVersionsGcc="9,12,13" \
 -dirExtractedKernelHeaders=${BASE_DIR}/build/headers_extracted/ -dir=${BASE_DIR}'
 
 printf "\n\n[STATUS] Build scap-open userspace binary using build/libs-src.tar.gz as libs source\n\n";

@@ -16,8 +16,8 @@ if [[ ! -f ${LIBS_TAR_GZ} ]]; then
   exit 1
 fi
 
-LLC="${1}"; # only needed for eBPF
-CLANG="${2}"; # only needed for eBPF
+export LLC="${1}"; # only needed for eBPF
+export CLANG="${2}"; # only needed for eBPF
 GCC="${3}"; # only needed for kmod
 KMOD="${4}";                    
 BPF="${5}";
@@ -70,9 +70,9 @@ for d in "${DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS}"/*; do
 
   if [[ "${BPF}" == *"ON"* ]]; then
     printf "\n\n[STATUS] IN PROGRESS bpf ${KERNEL_UNAME_R} w/ ${CLANG_VERSION}\n\n";
-    "${CLANG}" --version;
+    ${CLANG} --version;
     rm -f "${LIBS_DIR}/build/driver/bpf/probe.o";
-    make LLC="${LLC}" CLANG="${CLANG}" \
+    make LLC=${LLC} CLANG=${CLANG} \
     KERNELDIR=${SOURCES} -B -C "${LIBS_DIR}/build/driver/bpf" || true
 
     if [[ -f "${LIBS_DIR}/build/driver/bpf/probe.o" ]]; then

@@ -1,4 +1,4 @@
-FROM docker.io/library/ubuntu:23.10
+FROM docker.io/library/ubuntu:24.04
 
 LABEL maintainer="cncf-falco-dev@lists.cncf.io"
 
@@ -49,18 +49,20 @@ RUN apt --fix-broken -y install && apt-get install -y \
     gcc-10 \
     gcc-11 \
     gcc-12 \
-    llvm-13 \
-    clang-13 \
     gcc-13 \
     llvm-14 \
     clang-14 \
     llvm-15 \
     clang-15 \
     llvm-16 \
-    clang-16
+    clang-16 \
+    llvm-17 \
+    clang-17 \
+    llvm-18 \
+    clang-18
 
-RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 90
-RUN update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-15 90
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-16 90
+RUN update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-16 90
 RUN git clone https://github.com/libbpf/bpftool.git --branch v7.2.0 --single-branch && cd bpftool && git submodule update --init && cd src && make && make install
 
 ENTRYPOINT ["/bin/bash", "-c"]

@@ -18,7 +18,7 @@ var (
 	sem                   = semaphore.NewWeighted(int64(maxWorkers))
 	ubuntuContainer2004   = "vm-ubuntu2004:latest"
 	ubuntuContainer2204   = "vm-ubuntu2204:latest"
-	ubuntuContainer2310   = "vm-ubuntu2310:latest"
+	ubuntuContainer2404   = "vm-ubuntu2404:latest"
 	debianbusterContainer = "vm-debianbuster:latest"
 )
 
@@ -35,14 +35,14 @@ func dockerRunCompileDriver(ctx context.Context, ver [2]string, headers string, 
 		if verNumeric >= 11 {
 			dockerImage = ubuntuContainer2204
 		}
-		if verNumeric >= 15 {
-			dockerImage = ubuntuContainer2310
+		if verNumeric >= 14 {
+			dockerImage = ubuntuContainer2404
 		}
 		shArgs = []string{"-c", fmt.Sprintf("docker run -v %s:/vm:z -v %s:/headers:z %s \"/bin/bash /vm/scripts/compile_drivers.sh /usr/bin/llc-%d /usr/bin/clang-%d /usr/bin/gcc-%d OFF ON\"", dir, headers, dockerImage, verNumeric, verNumeric, verNumeric)}
 	} else if compilerType == "gcc" {
 		dockerImage = debianbusterContainer
 		if verNumeric >= 9 {
-			dockerImage = ubuntuContainer2310
+			dockerImage = ubuntuContainer2404
 		}
 		shArgs = []string{"-c", fmt.Sprintf("docker run -v %s:/vm:z -v %s:/headers:z %s \"/bin/bash /vm/scripts/compile_drivers.sh /usr/bin/llc-%d /usr/bin/clang-%d /usr/bin/gcc-%d ON OFF\"", dir, headers, dockerImage, verNumeric, verNumeric, verNumeric)}
 	}
