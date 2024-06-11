@@ -152,6 +152,7 @@ libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const
 	define_static_field(ret, this, m_mount_id, "mount_id");
 	define_static_field(ret, this, m_ino, "ino");
 	define_static_field(ret, this, m_pid, "pid");
+	define_static_field(ret, this, m_fd, "fd");
 
 	// in this case we have a union, so many of the following exposed fields
 	// will point to the same memory areas, but this should not be an issue
@@ -176,6 +177,7 @@ libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const
 	define_static_field(ret, this, m_sockinfo.m_ipv6serverinfo.m_l4proto, "socket_ipv6_server_l4_proto");
 	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_source, "socket_unix_src");
 	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_dest, "socket_unix_dest");
+
 	return ret;
 }
 
