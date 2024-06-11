@@ -109,6 +109,9 @@ public:
 		TYPE_FD_STDIN_TYPE,
 		TYPE_FD_STDOUT_TYPE,
 		TYPE_FD_STDERR_TYPE,
+		TYPE_FD_STDIN_NAME,
+		TYPE_FD_STDOUT_NAME,
+		TYPE_FD_STDERR_NAME,
 	};
 
 	sinsp_filter_check_thread();

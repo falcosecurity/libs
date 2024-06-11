@@ -129,6 +129,9 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdin.type", "Standard Input fd type", "The type of file descriptor 0, corresponding to stdin, of the process generating the event."}, 
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdout.type", "Standard Output fd type", "The type of file descriptor 1, corresponding to stdout, of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stderr.type", "Standard Error fd type", "The type of file descriptor 2, corresponding to stderr, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdin.name", "Standard Input fd name", "The name of the file descriptor 0, corresponding to stdin, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdout.name", "Standard Output fd name", "The name of the file descriptor 1, corresponding to stdout, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stderr.name", "Standard Error fd name", "The name of the file descriptor 2, corresponding to stderr, of the process generating the event."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1660,6 +1663,51 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, uint32_t* len
 			m_tstr = fdinfo->get_typestring();
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+	case TYPE_FD_STDIN_NAME:
+		{
+			auto fdtable_ptr = tinfo->get_fd_table();
+			if (fdtable_ptr == nullptr)
+			{
+				return NULL;
+			}
+			auto fdinfo = fdtable_ptr->find(0);
+			if (fdinfo == nullptr)
+			{
+				return NULL;
+			}
+			m_tstr = fdinfo->m_name.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+	case TYPE_FD_STDOUT_NAME:
+		{
+			auto fdtable_ptr = tinfo->get_fd_table();
+			if (fdtable_ptr == nullptr)
+			{
+				return NULL;
+			}
+			auto fdinfo = fdtable_ptr->find(1);
+			if (fdinfo == nullptr)
+			{
+				return NULL;
+			}
+			m_tstr = fdinfo->m_name.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+	case TYPE_FD_STDERR_NAME:
+		{
+			auto fdtable_ptr = tinfo->get_fd_table();
+			if (fdtable_ptr == nullptr)
+			{
+				return NULL;
+			}
+			auto fdinfo = fdtable_ptr->find(2);
+			if (fdinfo == nullptr)
+			{
+				return NULL;
+			}
+			m_tstr = fdinfo->m_name.c_str();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}	
 	default:
 		ASSERT(false);
 		return NULL;
