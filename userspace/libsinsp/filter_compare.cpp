@@ -139,6 +139,10 @@ cmpop str_to_cmpop(std::string_view str)
 	{
 		return CO_IGLOB;
 	}
+	else if(str == "regex")
+	{
+		return CO_REGEX;
+	}
 
 	throw sinsp_exception("unrecognized filter comparison operator '" + std::string(str) + "'");
 }
@@ -166,6 +170,7 @@ bool cmpop_to_str(cmpop op, std::string& out)
 	case CO_INTERSECTS: { out = "intersects"; return true; }
 	case CO_BCONTAINS: { out = "bcontains"; return true; }
 	case CO_BSTARTSWITH: { out = "bstartswith"; return true; }
+	case CO_REGEX: { out = "regex"; return true; }
 	default:
 		ASSERT(false);
 		out = "unknown";
@@ -196,6 +201,7 @@ std::string std::to_string(cmpop c)
 	case CO_INTERSECTS: return "INTERSECTS";
 	case CO_BCONTAINS: return "BCONTAINS";
 	case CO_BSTARTSWITH: return "BSTARTSWITH";
+	case CO_REGEX: return "REGEX";
 	default:
 		ASSERT(false);
 		return "<unset>";
@@ -262,6 +268,7 @@ static inline bool flt_is_comparable_string(cmpop op, std::string& err)
 	case CO_ENDSWITH:
 	case CO_INTERSECTS:
 	case CO_IGLOB:
+	case CO_REGEX:
 		return true;
 	default:
 		std::string opname;
@@ -480,7 +487,8 @@ static inline bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 	case CO_GE:
 		return (strcmp(operand1, operand2) >= 0);
 	case CO_PMATCH:
-		// note: pmatch is not handled here
+	case CO_REGEX:
+		// note: pmatch and regex operators are not handled here
 		return false;
 	default:
 		_throw_if_not_comparable(op, flt_is_comparable_string);

@@ -78,7 +78,7 @@ static const std::vector<std::string> s_binary_num_ops =
 static const std::vector<std::string> s_binary_str_ops =
 {
 	"==", "=", "!=", "glob ", "iglob ", "contains ", "icontains ",
-	"bcontains ", "startswith ", "bstartswith ", "endswith ",
+	"bcontains ", "startswith ", "bstartswith ", "endswith ", "regex ",
 };
 
 static const std::vector<std::string> s_binary_list_ops =
