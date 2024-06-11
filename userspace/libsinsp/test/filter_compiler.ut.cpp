@@ -291,6 +291,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.rawtime bcontains 303000", true);
 	test_filter_compile(factory, "evt.rawtime bstartswith 303000", true);
 	test_filter_compile(factory, "evt.rawtime iglob 1", true);
+	test_filter_compile(factory, "evt.rawtime regex '1'", true);
 	
 	// PT_BOOL
 	test_filter_compile(factory, "evt.is_io exists");
@@ -311,6 +312,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.is_io bcontains 7472756500", true);
 	test_filter_compile(factory, "evt.is_io bstartswith 7472756500", true);
 	test_filter_compile(factory, "evt.is_io iglob true", true);
+	test_filter_compile(factory, "evt.is_io regex '1'", true);
 
 	// PT_BYTEBUF
 	test_filter_compile(factory, "evt.buffer exists");
@@ -331,6 +333,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.buffer bcontains 303000");
 	test_filter_compile(factory, "evt.buffer bstartswith 303000");
 	test_filter_compile(factory, "evt.buffer iglob test", true);
+	test_filter_compile(factory, "evt.buffer regex '.*'", true);
 
 	// PT_CHARBUF
 	test_filter_compile(factory, "fd.name exists");
@@ -351,6 +354,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.name bcontains 303000", true);
 	test_filter_compile(factory, "fd.name bstartswith 303000", true);
 	test_filter_compile(factory, "fd.name iglob true");
+	test_filter_compile(factory, "fd.name regex '/home/.*/dev'");
 
 	// PT_DOUBLE
 	test_filter_compile(factory, "thread.cpu exists");
@@ -373,6 +377,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "thread.cpu bcontains 303000", true);
 	test_filter_compile(factory, "thread.cpu bstartswith 303000", true);
 	test_filter_compile(factory, "thread.cpu iglob 1", true);
+	test_filter_compile(factory, "thread.cpu regex '1'", true);
 
 	// PT_INT16
 	test_filter_compile(factory, "evt.cpu exists");
@@ -393,6 +398,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.cpu bcontains 303000", true);
 	test_filter_compile(factory, "evt.cpu bstartswith 303000", true);
 	test_filter_compile(factory, "evt.cpu iglob 1", true);
+	test_filter_compile(factory, "evt.cpu regex '1'", true);
 
 	// PT_INT32
 	test_filter_compile(factory, "fd.dev exists");
@@ -413,6 +419,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.dev bcontains 303000", true);
 	test_filter_compile(factory, "fd.dev bstartswith 303000", true);
 	test_filter_compile(factory, "fd.dev iglob 1", true);
+	test_filter_compile(factory, "fd.dev regex '1'", true);
 
 	// PT_INT64
 	test_filter_compile(factory, "proc.pid exists");
@@ -433,6 +440,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "proc.pid bcontains 303000", true);
 	test_filter_compile(factory, "proc.pid bstartswith 303000", true);
 	test_filter_compile(factory, "proc.pid iglob 1", true);
+	test_filter_compile(factory, "proc.pid regex '1'", true);
 
 	// PT_IPADDR
 	test_filter_compile(factory, "fd.ip exists");
@@ -453,6 +461,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.ip bcontains 3132372e302e302e3100", true);
 	test_filter_compile(factory, "fd.ip bstartswith 3132372e302e302e3100", true);
 	test_filter_compile(factory, "fd.ip iglob 127.0.0.1", true);
+	test_filter_compile(factory, "fd.ip regex '.*'", true);
 
 	// PT_IPNET
 	test_filter_compile(factory, "fd.net exists");
@@ -473,6 +482,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.net bcontains 3132372e302e302e312f333200", true);
 	test_filter_compile(factory, "fd.net bstartswith 3132372e302e302e312f333200", true);
 	test_filter_compile(factory, "fd.net iglob 127.0.0.1/32", true);
+	test_filter_compile(factory, "fd.net regex '.*'", true);
 
 	// PT_PORT
 	test_filter_compile(factory, "fd.port exists");
@@ -493,6 +503,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.port bcontains 303000", true);
 	test_filter_compile(factory, "fd.port bstartswith 303000", true);
 	test_filter_compile(factory, "fd.port iglob 1", true);
+	test_filter_compile(factory, "fd.port regex '1'", true);
 
 	// PT_RELTIME
 	test_filter_compile(factory, "proc.pid.ts exists");
@@ -513,6 +524,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "proc.pid.ts bcontains 303000", true);
 	test_filter_compile(factory, "proc.pid.ts bstartswith 303000", true);
 	test_filter_compile(factory, "proc.pid.ts iglob 1", true);
+	test_filter_compile(factory, "proc.pid.ts regex '1'", true);
 
 	// PT_UINT32
 	test_filter_compile(factory, "evt.count exists");
@@ -533,6 +545,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.count bcontains 303000", true);
 	test_filter_compile(factory, "evt.count bstartswith 303000", true);
 	test_filter_compile(factory, "evt.count iglob 1", true);
+	test_filter_compile(factory, "evt.count regex '1'", true);
 
 	// PT_UINT64
 	test_filter_compile(factory, "evt.num exists");
@@ -553,6 +566,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.num bcontains 303000", true);
 	test_filter_compile(factory, "evt.num bstartswith 303000", true);
 	test_filter_compile(factory, "evt.num iglob 1", true);
+	test_filter_compile(factory, "evt.num regex '1'", true);
 }
 
 TEST(sinsp_filter_compiler, complex_filter)
@@ -793,4 +807,30 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	EXPECT_EQ(cf->metrics->m_num_extract, 4);
 	EXPECT_EQ(cf->metrics->m_num_extract_cache, 2);
 	cf->metrics->reset();
+}
+
+TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation)
+{
+	// Basic case just to assert that the basic setup works
+	add_default_init_thread();
+	open_inspector();
+
+	auto evt = generate_getcwd_failed_entry_event();
+
+	// legit use case with a string
+	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "evt.source regex '^[s]{1}ysca[l]{2}$'", evt));
+	
+	// respect anchors
+	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex 'yscal.*'", evt));
+	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex '.*yscal'", evt));
+	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "evt.source regex 'syscal.*'", evt));
+
+	// legit use case with a string, evaluating as false
+	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex '^unknown$'", evt));
+
+	// legit use case with a string, also using transformers
+	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "toupper(evt.source) regex '^[A-Z]+$'", evt));
+
+	// can't be used with field-to-field comparisons
+	EXPECT_THROW(evaluate_filter_str(&m_inspector, "evt.plugininfo regex val(evt.source)", evt), sinsp_exception);
 }
