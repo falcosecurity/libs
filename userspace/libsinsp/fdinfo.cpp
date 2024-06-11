@@ -131,7 +131,18 @@ sinsp_fdinfo::sinsp_fdinfo(std::shared_ptr<libsinsp::state::dynamic_struct::fiel
 libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const
 {
 	libsinsp::state::static_struct::field_infos ret;
-	define_static_field(ret, this, (uint32_t) m_openflags, "type");
+
+	// the m_type is weird because it's a C-defined non-scoped enum, meaning that it
+	// should be represented by default as an integer of word-size (e.g. uint32_t in
+	// most cases). However, the state and plugin API only supports integers, and so
+	// we need to do some smart casting. Our enemy is the platform/compiler dependent
+	// integer size with which the enum could be represented, plus the endianess
+	// of the targeted architecture
+	auto is_big_endian = htonl(12) == 12; // the chosen number does not matter
+	size_t type_byte_offset = is_big_endian ? (sizeof(scap_fd_type) - 1) : 0;
+	define_static_field(ret, this, ((uint8_t*)(&m_type))[type_byte_offset], "type");
+
+	// the rest fo the fields are more trivial to expose
 	define_static_field(ret, this, m_openflags, "open_flags");
 	define_static_field(ret, this, m_name, "name");
 	define_static_field(ret, this, m_name_raw, "name_raw");
@@ -141,6 +152,9 @@ libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const
 	define_static_field(ret, this, m_mount_id, "mount_id");
 	define_static_field(ret, this, m_ino, "ino");
 	define_static_field(ret, this, m_pid, "pid");
+
+	// in this case we have a union, so many of the following exposed fields
+	// will point to the same memory areas, but this should not be an issue
 	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sip, "socket_ipv4_src_ip");
 	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_dip, "socket_ipv4_dest_dip");
 	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sport, "socket_ipv4_src_port");
