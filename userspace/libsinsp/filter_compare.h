@@ -49,6 +49,7 @@ enum cmpop: uint8_t
 	CO_BCONTAINS = 16,
 	CO_BSTARTSWITH = 17,
 	CO_IGLOB = 18,
+	CO_REGEX = 19,
 };
 
 cmpop str_to_cmpop(std::string_view str);

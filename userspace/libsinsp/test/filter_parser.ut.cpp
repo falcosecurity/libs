@@ -82,7 +82,7 @@ TEST(parser, supported_operators)
 	static vector<string> expected_all = {
 		"=", "==", "!=", "<=", ">=", "<", ">", "exists",
 		"contains", "icontains", "bcontains", "glob", "iglob", "bstartswith",
-		"startswith", "endswith", "in", "intersects", "pmatch"};
+		"startswith", "endswith", "in", "intersects", "pmatch", "regex"};
 	static vector<string> expected_list_only = {
 		"in", "intersects", "pmatch"};
 	
