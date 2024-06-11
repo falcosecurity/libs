@@ -126,6 +126,9 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "Thread VM RSS (kb)", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "Thread VM Size (b)", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "Thread VM RSS (b)", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdin.type", "Standard Input fd type", "The type of file descriptor 0, corresponding to stdin, of the process generating the event."}, 
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdout.type", "Standard Output fd type", "The type of file descriptor 1, corresponding to stdout, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stderr.type", "Standard Error fd type", "The type of file descriptor 2, corresponding to stderr, of the process generating the event."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -1611,6 +1614,51 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, uint32_t* len
 			{
 				return NULL;
 			}
+		}
+	case TYPE_FD_STDIN_TYPE:
+		{
+			auto fdtable_ptr = tinfo->get_fd_table();
+			if (fdtable_ptr == nullptr)
+			{
+				return NULL;
+			}
+			auto fdinfo = fdtable_ptr->find(0);
+			if (fdinfo == nullptr)
+			{
+				return NULL;
+			}
+			m_tstr = fdinfo->get_typestring();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+	case TYPE_FD_STDOUT_TYPE:
+		{
+			auto fdtable_ptr = tinfo->get_fd_table();
+			if (fdtable_ptr == nullptr)
+			{
+				return NULL;
+			}
+			auto fdinfo = fdtable_ptr->find(1);
+			if (fdinfo == nullptr)
+			{
+				return NULL;
+			}
+			m_tstr = fdinfo->get_typestring();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+	case TYPE_FD_STDERR_TYPE:
+		{
+			auto fdtable_ptr = tinfo->get_fd_table();
+			if (fdtable_ptr == nullptr)
+			{
+				return NULL;
+			}
+			auto fdinfo = fdtable_ptr->find(2);
+			if (fdinfo == nullptr)
+			{
+				return NULL;
+			}
+			m_tstr = fdinfo->get_typestring();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	default:
 		ASSERT(false);
