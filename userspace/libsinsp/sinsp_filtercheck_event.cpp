@@ -80,7 +80,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "CPU Number", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "Arguments", "all the event arguments, aggregated into a single string."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "evt.arg", "Argument", "one of the event arguments specified by name or by number. Some events (e.g. return codes or FDs) will be converted into a text representation when possible. E.g. 'evt.arg.fd' or 'evt.arg[0]'."},
-	{PT_DYN, EPF_ARG_REQUIRED | EPF_NO_RHS | EPF_NO_TRANSFORMER, PF_NA, "evt.rawarg", "Raw Argument", "one of the event arguments specified by name. E.g. 'evt.rawarg.fd'."},
+	{PT_DYN, EPF_ARG_REQUIRED, PF_NA, "evt.rawarg", "Raw Argument", "one of the event arguments specified by name. E.g. 'evt.rawarg.fd'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.info", "Information", "for most events, this field returns the same value as evt.args. However, for some events (like writes to /dev/log) it provides higher level information coming from decoding the arguments."},
 	{PT_BYTEBUF, EPF_NONE, PF_NA, "evt.buffer", "Buffer", "the binary data buffer for events that have one, like read(), recvfrom(), etc. Use this field in filters with 'contains' to search into I/O data buffers."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "evt.buflen", "Buffer Length", "the length of the binary data buffer for events that have one, like read(), recvfrom(), etc."},
