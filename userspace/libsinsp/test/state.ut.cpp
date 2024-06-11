@@ -394,7 +394,7 @@ TEST(thread_manager, table_access)
 TEST(thread_manager, fdtable_access)
 {
     // note: used for regression checks, keep this updated as we make new fields available
-    static const int s_fdinfo_static_fields_count = 31;
+    static const int s_fdinfo_static_fields_count = 32;
 
     sinsp inspector;
 	auto& reg = inspector.get_table_registry();
