@@ -415,7 +415,7 @@ static inline void _throw_if_not_comparable(cmpop op, Check c)
 }
 
 template<typename T>
-static inline bool flt_compare_numeric(cmpop op, uint64_t operand1, uint64_t operand2)
+static inline bool flt_compare_numeric(cmpop op, T operand1, T operand2)
 {
 	switch(op)
 	{
