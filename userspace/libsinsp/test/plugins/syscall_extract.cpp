@@ -147,6 +147,7 @@ static uint16_t* plugin_get_extract_event_types(uint32_t* num_types, ss_plugin_t
         PPME_SYSCALL_INOTIFY_INIT1_E,
         PPME_SYSCALL_INOTIFY_INIT1_X,
         PPME_ASYNCEVENT_E, // used for catching async events
+        PPME_SYSCALL_GETCWD_X, // general purpose, used for other unit tests
     };
     *num_types = sizeof(types) / sizeof(uint16_t);
     return &types[0];
