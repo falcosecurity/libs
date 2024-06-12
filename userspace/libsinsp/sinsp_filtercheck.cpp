@@ -636,7 +636,7 @@ int32_t sinsp_filter_check::parse_field_name(std::string_view str, bool alloc_st
 	for(int32_t j = 0; j != m_info->m_nfields; ++j)
 	{
 		auto& fld = m_info->m_fields[j];
-		int32_t fldlen = (int32_t)strlen(fld.m_name);
+		int32_t fldlen = (int32_t)fld.m_name.size();
 		if(fldlen <= max_fldlen)
 		{
 			continue;
@@ -1095,75 +1095,63 @@ bool sinsp_filter_check::extract(sinsp_evt *evt, std::vector<extract_value_t>& v
 		m_cache_metrics->m_num_extract++;
 	}
 
-	// Never cache extractions for fields that contain arguments.
-	if(m_extraction_cache_entry != NULL && !get_transformed_field_info()->is_arg_supported())
-	{
-		uint64_t en = ((sinsp_evt *)evt)->get_num();
-
-		if(en != m_extraction_cache_entry->m_evtnum)
-		{
-			m_extraction_cache_entry->m_evtnum = en;
-			auto ok = extract_nocache(evt, m_extraction_cache_entry->m_res, sanitize_strings);
-			ok = ok && apply_transformers(m_extraction_cache_entry->m_res);
-			if (!ok)
-			{
-				// clear results in case something fails
-				m_extraction_cache_entry->m_res.clear();
-			}
-		}
-		else
-		{
-			if(m_cache_metrics != NULL)
-			{
-				m_cache_metrics->m_num_extract_cache++;
-			}
-		}
-
-		// Shallow-copy the m_cached values to values
-		values = m_extraction_cache_entry->m_res;
-
-		return !m_extraction_cache_entry->m_res.empty();
-	}
-	else
+	// no cache is installed, so just default to non-cached extraction
+	if (!m_extract_cache)
 	{
 		// extract values and apply transformers on top of them
 		return extract_nocache(evt, values, sanitize_strings) && apply_transformers(values);
 	}
+
+	// cache is not valid for this event, so we perform a non-cached extraction
+	// and update it for the next time. We cache both failed and succeeded extractions
+	if (!m_extract_cache->is_valid(evt))
+	{
+		// for now, we support only shallow copies of cached values for performance
+		// gains -- we rely on each filtercheck to keep owning the result values
+		// across different extractions
+		bool deepcopy = false;
+		auto res = extract_nocache(evt, values, sanitize_strings) && apply_transformers(values);
+		m_extract_cache->update(evt, res, values, deepcopy);
+		return res;
+	}
+	
+	// cache hit, so copy the values, update the metrics, and return
+	values = m_extract_cache->values();
+	if(m_cache_metrics != NULL)
+	{
+		m_cache_metrics->m_num_extract_cache++;
+	}
+	return m_extract_cache->result();
 }
 
 bool sinsp_filter_check::compare(sinsp_evt* evt)
 {
-	if(m_cache_metrics != NULL)
+	if (m_cache_metrics != NULL)
 	{
-		m_cache_metrics->m_num_eval++;
+		m_cache_metrics->m_num_compare++;
 	}
 
-	// Never cache extractions for fields that contain arguments.
-	if (m_eval_cache_entry != NULL
-		&& !get_transformed_field_info()->is_arg_supported()
-		&& !(has_filtercheck_value() && m_rhs_filter_check->get_transformed_field_info()->is_arg_supported()))
-	{
-		uint64_t en = evt->get_num();
-
-		if(en != m_eval_cache_entry->m_evtnum)
-		{
-			m_eval_cache_entry->m_evtnum = en;
-			m_eval_cache_entry->m_res = compare_nocache(evt);
-		}
-		else
-		{
-			if(m_cache_metrics != NULL)
-			{
-				m_cache_metrics->m_num_eval_cache++;
-			}
-		}
-
-		return m_eval_cache_entry->m_res;
-	}
-	else
+	// no cache is installed, so just default to non-cached comparison
+	if (!m_compare_cache)
 	{
 		return compare_nocache(evt);
 	}
+
+	// cache is not valid for this event, so we perform a non-cached comparison
+	// and update it for the next time. We cache both failed and succeeded comparison
+	if (!m_compare_cache->is_valid(evt))
+	{
+		auto res = compare_nocache(evt);
+		m_compare_cache->update(evt, res);
+		return res;
+	}
+
+	// cache hit, so copy the values, update the metrics, and return
+	if (m_cache_metrics != NULL)
+	{
+		m_cache_metrics->m_num_compare_cache++;
+	}
+	return m_compare_cache->result();
 }
 
 bool sinsp_filter_check::compare_nocache(sinsp_evt* evt)

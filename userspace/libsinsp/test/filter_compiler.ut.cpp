@@ -57,7 +57,7 @@ public:
 		throw sinsp_exception("unexpected right-hand side filter comparison");
 	}
 
-	inline bool extract(sinsp_evt *e, vector<extract_value_t>& v, bool) override
+	inline bool extract_nocache(sinsp_evt *e, vector<extract_value_t>& v, bool) override
 	{
 		return false;
 	}
@@ -72,11 +72,6 @@ class mock_compiler_filter_factory: public sinsp_filter_factory
 {
 public:
 	mock_compiler_filter_factory(sinsp *inspector): sinsp_filter_factory(inspector, m_filterlist) {}
-
-	inline std::unique_ptr<sinsp_filter> new_filter() const override
-	{
-		return std::make_unique<sinsp_filter>(m_inspector);
-	}
 
 	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const override
 	{

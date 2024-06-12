@@ -126,7 +126,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_plugin::allocate_new()
 	return std::make_unique<sinsp_filter_check_plugin>(*this);
 }
 
-bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	// reject the event if it comes from an unknown event source
 	if (evt->get_source_idx() == sinsp_no_event_source_idx)
@@ -166,7 +166,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, std::vector<extract_valu
 	// populate the field to extract for the plugin
 	ss_plugin_extract_field efield;
 	efield.field_id = m_field_id;
-	efield.field = m_info->m_fields[m_field_id].m_name;
+	efield.field = m_info->m_fields[m_field_id].m_name.c_str();
 	efield.arg_key = m_arg_key;
 	efield.arg_index = m_arg_index;
 	efield.arg_present = m_arg_present;
@@ -218,7 +218,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, std::vector<extract_valu
 		values.push_back(res);
 	}
 
-	return apply_transformers(values);
+	return true;
 }
 
 void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_name)
