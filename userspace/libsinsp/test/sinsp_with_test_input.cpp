@@ -497,6 +497,20 @@ std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, std::stri
 	return result;
 }
 
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string filter_str)
+{
+	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, m_default_filterlist);
+	sinsp_filter_compiler compiler(factory, filter_str);
+
+	auto filter = compiler.compile();
+	if (!filter)
+	{
+		throw sinsp_exception(std::string("could not compile filter ") + filter_str);
+	}
+
+	return filter->run(evt);
+}
+
 sinsp_evt* sinsp_with_test_input::next_event()
 {
 	sinsp_evt* evt;
