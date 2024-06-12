@@ -14,12 +14,22 @@ class mock_compiler_filter_check : public sinsp_filter_check
 public:
 	int32_t parse_field_name(std::string_view str, bool alloc_state, bool needed_for_filtering) override
 	{
+		static const std::unordered_set<std::string> s_supported_fields = {
+			"c.true", "c.false", "c.buffer", "c.doublequote", "c.singlequote"
+		};
+
 		m_name = str;
 		if (str == "c.buffer")
 		{
 			m_field_info.m_type = PT_BYTEBUF;
 		}
-		return 0;
+
+		if (s_supported_fields.find(m_name) != s_supported_fields.end())
+		{
+			return m_name.size();
+		}
+
+		return -1;
 	}
 
 	inline bool compare(sinsp_evt*) override
@@ -109,7 +119,17 @@ public:
 
 	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const override
 	{
-		return std::make_unique<mock_compiler_filter_check>();
+		if (mock_compiler_filter_check{}.parse_field_name(fldname, false, true) > 0)
+		{
+			return std::make_unique<mock_compiler_filter_check>();
+		}
+
+		if (auto check = sinsp_filter_factory::new_filtercheck(fldname); check != nullptr)
+		{
+			return check;
+		}
+
+		return nullptr;
 	}
 
 	inline list<sinsp_filter_factory::filter_fieldclass_info> get_fields() const override
@@ -150,7 +170,8 @@ void test_filter_run(bool result, string filter_str)
 void test_filter_compile(
 		std::shared_ptr<sinsp_filter_factory> factory,
 		string filter_str,
-		bool expect_fail=false)
+		bool expect_fail=false,
+		size_t expected_warnings=0)
 {
 	sinsp_filter_compiler compiler(factory, filter_str);
 	try
@@ -175,6 +196,13 @@ void test_filter_compile(
 			FAIL() << filter_str << " -> " << "UNKNOWN ERROR";
 		}
 	}
+
+	std::string warnings_fmt;
+	for (const auto& warn : compiler.get_warnings())
+	{
+		warnings_fmt.append("\n").append(warn.pos.as_string()).append(" -> ").append(warn.msg);
+	}
+	ASSERT_EQ(compiler.get_warnings().size(), expected_warnings) << "filter: " + filter_str + "\nactual warnings: " + warnings_fmt;
 }
 
 // In each of these test cases, we compile filter expression
@@ -604,6 +632,39 @@ TEST(sinsp_filter_compiler, complex_filter)
 		")";
 
 	test_filter_compile(factory, filter_str);
+}
+
+TEST(sinsp_filter_compiler, compilation_warnings)
+{
+	sinsp inspector;
+	std::shared_ptr<sinsp_filter_factory> factory(new mock_compiler_filter_factory(&inspector));
+
+	// warnings expected
+	test_filter_compile(factory, "evt.source = evt.plugininfo", false, 1);
+	test_filter_compile(factory, "evt.source = 'tolower(evt.plugininfo)'", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex ^syscall$", false, 1);
+	test_filter_compile(factory, "evt.source regex ^syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall$", false, 1);
+	test_filter_compile(factory, "evt.source regex .*syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall.*", false, 1);
+	test_filter_compile(factory, "evt.source regex .*syscall.*", false, 1);
+	test_filter_compile(factory, "evt.source regex .+syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall.+", false, 1);
+	test_filter_compile(factory, "evt.source regex .+syscall.+", false, 1);
+	test_filter_compile(factory, "evt.source regex .?syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall.?", false, 1);
+	test_filter_compile(factory, "evt.source regex .?syscall.?", false, 1);
+
+	// warnings not expected (not part of our euristics)
+	test_filter_compile(factory, "evt.source = unknown.field", false, 0);
+	test_filter_compile(factory, "evt.source = tolower", false, 0);
+	test_filter_compile(factory, "evt.source = tolower(evt.plugininfo)", false, 0);
+	test_filter_compile(factory, "evt.source = 'tolow(evt.plugininfo)'", false, 0);
+	test_filter_compile(factory, "evt.source regex syscall.{1}", false, 0);
+	test_filter_compile(factory, "evt.source regex syscall\\.*", false, 0);
+	test_filter_compile(factory, "evt.source regex s.*l", false, 0);
+	test_filter_compile(factory, "evt.source regex syscal[l]?", false, 0);
 }
 
 //////////////////////////////

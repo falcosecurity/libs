@@ -258,7 +258,10 @@ private:
 	void visit(const libsinsp::filter::ast::field_transformer_expr*) override;
 	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
 	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string_view field);
-	void check_value_and_add_warnings(const libsinsp::filter::ast::pos_info& pos, const std::string& v);
+	void check_value_and_add_warnings(cmpop op, const libsinsp::filter::ast::pos_info& pos, const std::string& v);
+	void check_warnings_regex_value(const libsinsp::filter::ast::pos_info& pos, const std::string& v);
+	void check_warnings_field_value(const libsinsp::filter::ast::pos_info& pos, const std::string& str, const std::string& strippedstr);
+	void check_warnings_transformer_value(const libsinsp::filter::ast::pos_info& pos, const std::string& str, const std::string& strippedstr);
 
 	libsinsp::filter::ast::pos_info m_pos;
 	boolop m_last_boolop;
