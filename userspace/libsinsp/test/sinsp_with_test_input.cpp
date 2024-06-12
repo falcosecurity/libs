@@ -497,18 +497,25 @@ std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, std::stri
 	return result;
 }
 
-bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str)
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, std::shared_ptr<sinsp_filter_cache_factory> cachef)
 {
-	return eval_filter(evt, filter_str, m_default_filterlist);
+	return eval_filter(evt, filter_str, m_default_filterlist, cachef);
 }
 
-bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, filter_check_list &flist)
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, filter_check_list &flist, std::shared_ptr<sinsp_filter_cache_factory> cachef)
 {
 	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
-	sinsp_filter_compiler compiler(factory, std::string(filter_str));
+	sinsp_filter_compiler compiler(factory, std::string(filter_str), cachef);
 
 	auto filter = compiler.compile();
 
+	return filter->run(evt);
+}
+
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, std::shared_ptr<sinsp_filter_factory> filterf, std::shared_ptr<sinsp_filter_cache_factory> cachef)
+{
+	sinsp_filter_compiler compiler(filterf, std::string(filter_str), cachef);
+	auto filter = compiler.compile();
 	return filter->run(evt);
 }
 

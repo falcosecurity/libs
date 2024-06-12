@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <list>
 #include <sinsp_with_test_input.h>
+#include <plugins/test_plugins.h>
 
 using namespace std;
 
@@ -65,6 +66,39 @@ public:
 	std::string m_name;
 	std::string m_value;
 	filtercheck_field_info m_field_info{PT_CHARBUF, 0, PF_NA, "", "", ""};
+};
+
+struct test_sinsp_filter_cache_factory: public exprstr_sinsp_filter_cache_factory
+{
+	bool docache = true;
+	const std::shared_ptr<sinsp_filter_cache_metrics> metrics = std::make_shared<sinsp_filter_cache_metrics>();
+
+	virtual ~test_sinsp_filter_cache_factory() = default;
+
+	test_sinsp_filter_cache_factory(bool cached = true): docache(cached) { }
+
+	std::shared_ptr<sinsp_filter_extract_cache> new_extract_cache(const ast_expr_t* e, node_info_t& info) override
+    {
+		if (!docache)
+		{
+			return nullptr;
+		}
+		return exprstr_sinsp_filter_cache_factory::new_extract_cache(e, info);
+    }
+
+	std::shared_ptr<sinsp_filter_compare_cache> new_compare_cache(const ast_expr_t* e, node_info_t& info) override
+    {
+        if (!docache)
+		{
+			return nullptr;
+		}
+		return exprstr_sinsp_filter_cache_factory::new_compare_cache(e, info);
+    }
+
+	std::shared_ptr<sinsp_filter_cache_metrics> new_metrics(const ast_expr_t* e, node_info_t& info) override
+    {
+        return metrics;
+    }
 };
 
 // A factory that creates mock filterchecks
@@ -646,4 +680,117 @@ TEST_F(sinsp_with_test_input, filter_transformers_wrong_input_type)
 	ASSERT_FALSE(filter_compiles("toupper(evt.rawres) = -1"));
 	ASSERT_FALSE(filter_compiles("tolower(evt.rawres) = -1"));
 	ASSERT_FALSE(filter_compiles("b64(evt.rawres) = -1"));
+}
+
+TEST_F(sinsp_with_test_input, filter_cache_disabled)
+{
+	add_default_init_thread();
+	open_inspector();
+
+	auto evt = generate_getcwd_failed_entry_event();
+	auto cf = std::make_shared<test_sinsp_filter_cache_factory>(false);
+
+	ASSERT_TRUE(eval_filter(evt, "evt.type = openat or evt.type = getcwd", cf));
+	ASSERT_TRUE(eval_filter(evt, "evt.type = getcwd", cf));
+	evt->set_num(evt->get_num() + 1);
+	ASSERT_TRUE(eval_filter(evt, "evt.type = openat or evt.type = getcwd", cf));
+
+	EXPECT_EQ(cf->metrics->m_num_compare, 5);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 0);
+	EXPECT_EQ(cf->metrics->m_num_extract, 5);
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 0);
+}
+
+TEST_F(sinsp_with_test_input, filter_cache_enabled)
+{
+	add_default_init_thread();
+	open_inspector();
+
+	auto evt = generate_getcwd_failed_entry_event();
+	auto cf = std::make_shared<test_sinsp_filter_cache_factory>();
+
+	ASSERT_TRUE(eval_filter(evt, "evt.type = openat or evt.type = getcwd", cf));
+	ASSERT_TRUE(eval_filter(evt, "evt.type = getcwd", cf));
+	evt->set_num(evt->get_num() + 1);
+	ASSERT_TRUE(eval_filter(evt, "evt.type = openat or evt.type = getcwd", cf));
+
+	EXPECT_EQ(cf->metrics->m_num_compare, 5);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
+	EXPECT_EQ(cf->metrics->m_num_extract, 4);
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 2);
+}
+
+TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
+{
+	sinsp_filter_check_list flist;
+
+	add_default_init_thread();
+	open_inspector();
+
+	// Register a plugin with extraction capabilities
+	std::string err;
+	plugin_api papi;
+	get_plugin_api_sample_syscall_extract(papi);
+	auto pl = m_inspector.register_plugin(&papi);
+	ASSERT_TRUE(pl->init("", err)) << err;
+	flist.add_filter_check(m_inspector.new_generic_filtercheck());
+	flist.add_filter_check(sinsp_plugin::new_filtercheck(pl));
+	
+	auto ff = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	auto cf = std::make_shared<test_sinsp_filter_cache_factory>();
+	auto evt = generate_getcwd_failed_entry_event();
+
+	// plugin fields
+	ASSERT_TRUE(eval_filter(evt, "sample.is_open exists and sample.is_open = 0", ff, cf));
+	ASSERT_TRUE(eval_filter(evt, "sample.is_open = 0", ff, cf));
+	EXPECT_EQ(cf->metrics->m_num_compare, 3);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
+	EXPECT_EQ(cf->metrics->m_num_extract, 2); // the third extraction never happens as the check is cached
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 1);
+	cf->metrics->reset();
+
+	// special comparison logic
+	ASSERT_FALSE(eval_filter(evt, "fd.ip = 127.0.0.1 or fd.ip = 10.0.0.1", ff, cf));
+	ASSERT_FALSE(eval_filter(evt, "fd.ip = 10.0.0.1", ff, cf));
+	EXPECT_EQ(cf->metrics->m_num_compare, 3);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
+	EXPECT_EQ(cf->metrics->m_num_extract, 0); // special logic avoids extraction entirely :/
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 0);
+	cf->metrics->reset();
+
+	// fields with ambiguous comparison (no caching expected)
+	ASSERT_FALSE(eval_filter(evt, "fd.net = 127.0.0.1/32 or fd.net = 10.0.0.1/32", ff, cf));
+	ASSERT_FALSE(eval_filter(evt, "fd.net = 10.0.0.1/32", ff, cf));
+	EXPECT_EQ(cf->metrics->m_num_compare, 3);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 0);
+	EXPECT_EQ(cf->metrics->m_num_extract, 0);
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 0);
+	cf->metrics->reset();
+
+	// fields with arguments
+	ASSERT_TRUE(eval_filter(evt, "evt.arg[1] startswith /etc or evt.arg[1] = /test/dir", ff, cf));
+	ASSERT_TRUE(eval_filter(evt, "evt.arg[1] = /test/dir", ff, cf));
+	EXPECT_EQ(cf->metrics->m_num_compare, 3);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
+	EXPECT_EQ(cf->metrics->m_num_extract, 2);
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 1);
+	cf->metrics->reset();
+
+	// fields with transformers
+	ASSERT_TRUE(eval_filter(evt, "toupper(evt.source) = SYS or toupper(evt.source) = SYSCALL", ff, cf));
+	ASSERT_TRUE(eval_filter(evt, "toupper(evt.source) = SYSCALL", ff, cf));
+	EXPECT_EQ(cf->metrics->m_num_compare, 3);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
+	EXPECT_EQ(cf->metrics->m_num_extract, 2);
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 1);
+	cf->metrics->reset();
+
+	// field-to-field comparisons
+	ASSERT_TRUE(eval_filter(evt, "evt.source = val(evt.plugininfo) or evt.source = val(evt.source)", ff, cf));
+	ASSERT_TRUE(eval_filter(evt, "evt.source = val(evt.source)", ff, cf));
+	EXPECT_EQ(cf->metrics->m_num_compare, 3);
+	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
+	EXPECT_EQ(cf->metrics->m_num_extract, 4);
+	EXPECT_EQ(cf->metrics->m_num_extract_cache, 2);
+	cf->metrics->reset();
 }

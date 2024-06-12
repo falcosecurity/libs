@@ -199,8 +199,9 @@ protected:
 	bool field_has_value(sinsp_evt*, std::string_view field_name, filter_check_list&);
 	std::string get_field_as_string(sinsp_evt*, std::string_view field_name);
 	std::string get_field_as_string(sinsp_evt*, std::string_view field_name, filter_check_list&);
-	bool eval_filter(sinsp_evt* evt, std::string_view filter_str);
-	bool eval_filter(sinsp_evt* evt, std::string_view filter_str, filter_check_list&);
+	bool eval_filter(sinsp_evt* evt, std::string_view filter_str, std::shared_ptr<sinsp_filter_cache_factory> cachef = nullptr);
+	bool eval_filter(sinsp_evt* evt, std::string_view filter_str, filter_check_list&, std::shared_ptr<sinsp_filter_cache_factory> cachef = nullptr);
+	bool eval_filter(sinsp_evt* evt, std::string_view filter_str, std::shared_ptr<sinsp_filter_factory> filterf, std::shared_ptr<sinsp_filter_cache_factory> cachef = nullptr);
 	bool filter_compiles(std::string_view filter_str);
 	bool filter_compiles(std::string_view filter_str, filter_check_list&);
 
