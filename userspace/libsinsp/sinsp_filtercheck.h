@@ -22,6 +22,8 @@ limitations under the License.
 #include <libsinsp/prefix_search.h>
 #include <libsinsp/event.h>
 #include <libsinsp/filter_compare.h>
+#include <libsinsp/filter_field.h>
+#include <libsinsp/filter_cache.h>
 #include <libsinsp/sinsp_filter_transformer.h>
 
 #include <json/json.h>
@@ -46,118 +48,6 @@ namespace std
 {
 std::string to_string(boolop);
 }
-
-class check_extraction_cache_entry
-{
-public:
-	uint64_t m_evtnum = UINT64_MAX;
-	std::vector<extract_value_t> m_res;
-};
-
-class check_eval_cache_entry
-{
-public:
-	uint64_t m_evtnum = UINT64_MAX;
-	bool m_res = false;
-};
-
-class check_cache_metrics
-{
-public:
-	// The number of times extract() was called
-	uint64_t m_num_extract = 0;
-
-	// The number of times extract() could use a cached value
-	uint64_t m_num_extract_cache = 0;
-
-	// The number of times compare() was called
-	uint64_t m_num_eval = 0;
-
-	// The number of times compare() could use a cached value
-	uint64_t m_num_eval_cache = 0;
-};
-
-/*!
-  \brief Information about a filter/formatting field.
-*/
-struct filtercheck_field_info
-{
-	ppm_param_type m_type = PT_NONE; ///< Field type.
-	uint32_t m_flags = 0;  ///< Field flags.
-	ppm_print_format m_print_format = PF_NA;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
-	char m_name[64];  ///< Field name.
-	char m_display[64];  ///< Field display name (short description). May be empty.
-	char m_description[1024];  ///< Field description.
-
-	//
-	// Return true if this field must have an argument
-	//
-	inline bool is_arg_required() const
-	{
-		return m_flags & EPF_ARG_REQUIRED;
-	}
-
-	//
-	// Return true if this field can optionally have an argument
-	//
-	inline bool is_arg_allowed() const
-	{
-		return m_flags & EPF_ARG_REQUIRED;
-	}
-
-	//
-	// Returns true if this field can have an argument, either
-	// optionally or mandatorily
-	//
-	inline bool is_arg_supported() const
-	{
-		return (m_flags & EPF_ARG_REQUIRED) ||(m_flags & EPF_ARG_ALLOWED);
-	}
-
-	//
-	// Returns true if this field is a list of values
-	//
-	inline bool is_list() const
-	{
-		return m_flags & EPF_IS_LIST;
-	}
-
-	//
-	// Returns true if this filter check can support a rhs filter check instead of a const value.
-	//
-	inline bool is_rhs_field_supported() const
-	{
-		return !(m_flags & EPF_NO_RHS);
-	}
-
-	//
-	// Returns true if this filter check can support an extraction transformer on it.
-	//
-	inline bool is_transformer_supported() const
-	{
-		return !(m_flags & EPF_NO_TRANSFORMER);
-	}
-};
-
-/*!
-  \brief Information about a group of filter/formatting fields.
-*/
-class filter_check_info
-{
-public:
-	enum flags: uint8_t
-	{
-		FL_NONE = 0,
-		FL_HIDDEN = (1 << 0),	///< This filter check class won't be shown by fields/filter listings.
-	};
-
-	std::string m_name; ///< Field class name.
-	std::string m_shortdesc; ///< short (< 10 words) description of this filtercheck. Can be blank.
-	std::string m_desc; ///< Field class description.
-	int32_t m_nfields = 0; ///< Number of fields in this field group.
-	const filtercheck_field_info* m_fields = nullptr; ///< Array containing m_nfields field descriptions.
-	uint32_t m_flags = FL_NONE;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // The filter check interface
@@ -270,7 +160,7 @@ public:
 	// Subclasses are meant to either override this, or the single-valued extract method.
 	//
 	// \param values [out] the values extracted from the filter check
-	virtual bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
 	// Compare the field with the constant value obtained from parse_filter_value()
@@ -290,9 +180,9 @@ public:
 
 	sinsp* m_inspector = nullptr;
 	std::vector<extract_value_t> m_extracted_values;
-	check_eval_cache_entry* m_eval_cache_entry = nullptr;
-	check_extraction_cache_entry* m_extraction_cache_entry = nullptr;
-	check_cache_metrics *m_cache_metrics = nullptr;
+	std::shared_ptr<sinsp_filter_compare_cache> m_compare_cache = nullptr;
+	std::shared_ptr<sinsp_filter_extract_cache> m_extract_cache = nullptr;
+	std::shared_ptr<sinsp_filter_cache_metrics> m_cache_metrics = nullptr;
 	boolop m_boolop = BO_NONE;
 	cmpop m_cmpop = CO_NONE;
 
@@ -323,7 +213,7 @@ protected:
 	// Subclasses are meant to either override this, or the multi-valued extract method.
 	//
 	// \param values [out] the values extracted from the filter check
-	bool extract_nocache(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true);
+	virtual bool extract_nocache(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true);
 	// \param len [out] length in bytes for the returned value
 	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true);
 

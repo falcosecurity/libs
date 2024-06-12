@@ -418,7 +418,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, uint32_t* l
 	}
 }
 
-bool sinsp_filter_check_fd::extract(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check_fd::extract_nocache(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	values.clear();
 
@@ -463,7 +463,7 @@ bool sinsp_filter_check_fd::extract(sinsp_evt *evt, std::vector<extract_value_t>
 		return true;
 	}
 
-	return sinsp_filter_check::extract(evt, values, sanitize_strings);
+	return sinsp_filter_check::extract_nocache(evt, values, sanitize_strings);
 }
 
 uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)

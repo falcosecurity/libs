@@ -48,7 +48,8 @@ public:
 		bool alloc_state,
 		bool needed_for_filtering) override;
 
-	bool extract(
+protected:
+	bool extract_nocache(
 		sinsp_evt *evt,
 		std::vector<extract_value_t>& values,
 		bool sanitize_strings = true) override;

@@ -20,12 +20,7 @@ limitations under the License.
 #include <functional>
 #include <driver/ppm_events_public.h>
 #include <libsinsp/sinsp_exception.h>
-
-struct extract_value_t
-{
-	uint8_t* ptr = nullptr;
-	uint32_t len = 0;
-};
+#include <libsinsp/filter_cache.h>
 
 enum filter_transformer_type: uint8_t
 {

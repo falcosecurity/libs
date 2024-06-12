@@ -41,23 +41,6 @@ class sinsp_evt;
 ///////////////////////////////////////////////////////////////////////////////
 // Event arguments
 ///////////////////////////////////////////////////////////////////////////////
-enum filtercheck_field_flags
-{
-	EPF_NONE              = 0,
-	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
-	EPF_PRINT_ONLY        = 1 << 1, ///< this field can only be printed.
-	EPF_ARG_REQUIRED      = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
-	EPF_TABLE_ONLY        = 1 << 3, ///< this field is designed to be used in a table and won't appear in the field listing.
-	EPF_INFO              = 1 << 4, ///< this field contains summary information about the event.
-	EPF_CONVERSATION      = 1 << 5, ///< this field can be used to identify conversations.
-	EPF_IS_LIST           = 1 << 6, ///< this field is a list of values.
-	EPF_ARG_ALLOWED       = 1 << 7, ///< this field optionally includes an argument.
-	EPF_ARG_INDEX         = 1 << 8, ///< this field accepts numeric arguments.
-	EPF_ARG_KEY           = 1 << 9, ///< this field accepts string arguments.
-	EPF_DEPRECATED        = 1 << 10,///< this field is deprecated.
-	EPF_NO_TRANSFORMER    = 1 << 11,///< this field cannot have a field transformer.
-	EPF_NO_RHS            = 1 << 12,///< this field cannot have a right-hand side filter check, and cannot be used as a right-hand side filter check.
-};
 
 /** @defgroup event Event manipulation
  * Classes to manipulate events, extract their content and convert them into strings.

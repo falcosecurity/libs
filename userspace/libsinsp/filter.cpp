@@ -115,11 +115,6 @@ bool sinsp_filter_expression::compare(sinsp_evt *evt)
 	return res;
 }
 
-bool sinsp_filter_expression::extract(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
-{
-	return false;
-}
-
 int32_t sinsp_filter_expression::get_expr_boolop() const
 {
 	if(m_checks.size() <= 1)
@@ -149,9 +144,8 @@ int32_t sinsp_filter_expression::get_expr_boolop() const
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter::sinsp_filter(sinsp *inspector)
+sinsp_filter::sinsp_filter()
 {
-	m_inspector = inspector;
 	m_filter = std::make_unique<sinsp_filter_expression>();
 	m_curexpr = m_filter.get();
 }
@@ -193,25 +187,31 @@ void sinsp_filter::add_check(std::unique_ptr<sinsp_filter_check> chk)
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_filter_compiler::sinsp_filter_compiler(
 		sinsp* inspector,
-		const std::string& fltstr)
+		const std::string& fltstr,
+		std::shared_ptr<sinsp_filter_cache_factory> cache_factory)
 	: m_flt_str(fltstr),
-	  m_factory(std::make_shared<sinsp_filter_factory>(inspector, m_default_filterlist))
+	  m_factory(std::make_shared<sinsp_filter_factory>(inspector, m_default_filterlist)),
+	  m_cache_factory(cache_factory)
 {
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
 		std::shared_ptr<sinsp_filter_factory> factory,
-		const std::string& fltstr)
+		const std::string& fltstr,
+		std::shared_ptr<sinsp_filter_cache_factory> cache_factory)
 	: m_flt_str(fltstr),
-	  m_factory(factory)
+	  m_factory(factory),
+	  m_cache_factory(cache_factory)
 {
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
 		std::shared_ptr<sinsp_filter_factory> factory,
-		const libsinsp::filter::ast::expr* fltast)
+		const libsinsp::filter::ast::expr* fltast,
+		std::shared_ptr<sinsp_filter_cache_factory> cache_factory)
 	: m_flt_ast(fltast),
-	  m_factory(factory)
+	  m_factory(factory),
+	  m_cache_factory(cache_factory)
 {
 }
 
@@ -235,9 +235,16 @@ std::unique_ptr<sinsp_filter> sinsp_filter_compiler::compile()
 		}
 	}
 
+	// make sure the cache factory is all set
+	if (!m_cache_factory)
+	{
+		// by default, use a factory that enables caching
+		m_cache_factory = std::make_shared<exprstr_sinsp_filter_cache_factory>();
+	}
+
 	// create new filter using factory,
 	// setup compiler state and start compilation
-	m_filter = m_factory->new_filter();
+	m_filter = std::make_unique<sinsp_filter>();
 	m_last_boolop = BO_NONE;
 	m_last_node_field = nullptr;
 	m_last_node_field_is_plugin = false;
@@ -325,10 +332,20 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr*
 	{
 		throw sinsp_exception("filter error: missing field in left-hand of unary check");
 	}
+
 	auto check = std::move(m_last_node_field);
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check_op_type_compatibility(*check);
+
+	// install cache in the check
+	sinsp_filter_cache_factory::node_info_t node_info;
+	node_info.m_field = check->get_transformed_field_info();
+	check->m_cache_metrics = m_cache_factory->new_metrics(e->left.get(), node_info);
+	check->m_extract_cache = m_cache_factory->new_extract_cache(e->left.get(), node_info);
+	node_info.m_compare_operator = check->m_cmpop;
+	check->m_compare_cache = m_cache_factory->new_compare_cache(e, node_info);
+
 	m_filter->add_check(std::move(check));
 }
 
@@ -364,6 +381,25 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	
 	auto left_from_plugin = m_last_node_field_is_plugin;
 	auto check = std::move(m_last_node_field);
+
+	// install cache on left-hand side extraction field
+	sinsp_filter_cache_factory::node_info_t node_info;
+	node_info.m_field = check->get_transformed_field_info();
+	check->m_cache_metrics = m_cache_factory->new_metrics(e->left.get(), node_info);
+	check->m_extract_cache = m_cache_factory->new_extract_cache(e->left.get(), node_info);
+
+	// if the extraction comes from a plugin-implemented ield, then 
+	// we need to add a storage transformer as the cache may end up storing a
+	// shallow copy of the value pointers that are not valid anymore. Note that
+	// this should not change the right field's eligibility for caching, as
+	// the storage transformer does not alter the field's info.
+	auto left_has_storage = false;
+	if (left_from_plugin && check->m_extract_cache)
+	{
+		left_has_storage = true;
+		check->add_transformer(filter_transformer_type::FTR_STORAGE);
+	}
+
 	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check_op_type_compatibility(*check);
@@ -390,11 +426,41 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		// * if yes, check if they are associated with the same plugin instance, otherwise, this is not an issue. We use the plugin name
 		//   to understand if the plugin is the same.
 		// * if yes, add the `FTR_STORAGE` transformer to the lhs filter check.
+		//
+		// Note, adding a storage layer on only one of the two sides of the comparison is enough to solve the problem.
+		//
+		// However, we may have already added a storage modifier to the left field due to issues with caching,
+		// in which case we are good already.
 		auto right_from_plugin = m_last_node_field_is_plugin;
-		if (left_from_plugin && right_from_plugin)
+		if (!left_has_storage && left_from_plugin && right_from_plugin)
 		{
 			check->add_transformer(filter_transformer_type::FTR_STORAGE);
 		}
+
+		// install cache on right-hand side extraction field
+		auto prev_left_field_info = node_info.m_field;
+		node_info.m_field = m_last_node_field->get_transformed_field_info();
+		m_last_node_field->m_cache_metrics = m_cache_factory->new_metrics(e->right.get(), node_info);
+		// note: the `val(...)` transformer is a no-op and can be ignored for better extract cache reusage
+		const auto* cacheable_expr = e->right.get();
+		if (const auto* val_transf_expr = dynamic_cast<const libsinsp::filter::ast::field_transformer_expr*>(cacheable_expr);
+				val_transf_expr != nullptr && val_transf_expr->transformer == "val")
+		{
+			cacheable_expr = val_transf_expr->value.get();
+		}
+		m_last_node_field->m_extract_cache = m_cache_factory->new_extract_cache(cacheable_expr, node_info);
+
+		// similarly as above, if the right-hand side extraction comes from a
+		// plugin-implemented field, then we need to add an additional storage
+		// layer on it as well
+		if (right_from_plugin && m_last_node_field->m_extract_cache)
+		{
+			m_last_node_field->add_transformer(filter_transformer_type::FTR_STORAGE);
+		}
+
+		// restore node info and set rhs one for later cache installations
+		node_info.m_right_field = m_last_node_field->get_transformed_field_info();
+		node_info.m_field = prev_left_field_info;
 
 		// We found another field as right-hand side of the comparison
 		check->add_filter_value(std::move(m_last_node_field));
@@ -413,6 +479,13 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 			add_filtercheck_value(check.get(), i, m_field_values[i]);
 		}
 	}
+
+	// install cache in the check comparison
+	// note: we don't need to re-install the metrics as the check is implemented
+	// by the same object responsible of the left-hand side field extraction
+	node_info.m_compare_operator = check->m_cmpop;
+	check->m_compare_cache = m_cache_factory->new_compare_cache(e, node_info);
+
 	m_filter->add_check(std::move(check));
 }
 
@@ -532,11 +605,6 @@ sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
 					   filter_check_list &available_checks)
 	: m_inspector(inspector), m_available_checks(available_checks)
 {
-}
-
-std::unique_ptr<sinsp_filter> sinsp_filter_factory::new_filter() const
-{
-	return std::make_unique<sinsp_filter>(m_inspector);
 }
 
 std::unique_ptr<sinsp_filter_check> sinsp_filter_factory::new_filtercheck(std::string_view fldname) const

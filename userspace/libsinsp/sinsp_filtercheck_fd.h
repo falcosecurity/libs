@@ -76,9 +76,9 @@ public:
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
-	bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
 
 protected:
+	bool extract_nocache(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
 	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 	bool compare_nocache(sinsp_evt*) override;
 

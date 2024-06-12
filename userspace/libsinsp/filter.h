@@ -58,7 +58,6 @@ public:
 	}
 
 	bool compare(sinsp_evt*) override;
-	bool extract(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
 
 	void add_check(std::unique_ptr<sinsp_filter_check> chk);
 
@@ -81,7 +80,7 @@ public:
 class SINSP_PUBLIC sinsp_filter
 {
 public:
-	sinsp_filter(sinsp* inspector);
+	sinsp_filter();
 	virtual ~sinsp_filter() = default;
 
 	bool run(sinsp_evt *evt);
@@ -94,8 +93,6 @@ public:
 
 private:
 	sinsp_filter_expression* m_curexpr;
-
-	sinsp* m_inspector;
 };
 
 class sinsp_filter_factory
@@ -163,8 +160,6 @@ public:
 
 	virtual ~sinsp_filter_factory() = default;
 
-	virtual std::unique_ptr<sinsp_filter> new_filter() const;
-
 	virtual std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const;
 
 	virtual std::list<filter_fieldclass_info> get_fields() const;
@@ -206,7 +201,8 @@ public:
 	*/
 	sinsp_filter_compiler(
 		sinsp* inspector,
-		const std::string& fltstr);
+		const std::string& fltstr,
+		std::shared_ptr<sinsp_filter_cache_factory> cache_factory = nullptr);
 
 	/*!
 		\brief Constructs the compiler
@@ -217,7 +213,8 @@ public:
 	*/
 	sinsp_filter_compiler(
 		std::shared_ptr<sinsp_filter_factory> factory,
-		const std::string& fltstr);
+		const std::string& fltstr,
+		std::shared_ptr<sinsp_filter_cache_factory> cache_factory = nullptr);
 
 	/*!
 		\brief Constructs the compiler
@@ -229,7 +226,8 @@ public:
 	*/
 	sinsp_filter_compiler(
 		std::shared_ptr<sinsp_filter_factory> factory,
-		const libsinsp::filter::ast::expr* fltast);
+		const libsinsp::filter::ast::expr* fltast,
+		std::shared_ptr<sinsp_filter_cache_factory> cache_factory = nullptr);
 
 	/*!
 		\brief Builds a filtercheck tree and bundles it in sinsp_filter
@@ -272,6 +270,7 @@ private:
 	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 	const libsinsp::filter::ast::expr* m_flt_ast = nullptr;
 	std::shared_ptr<sinsp_filter_factory> m_factory;
+	std::shared_ptr<sinsp_filter_cache_factory> m_cache_factory;
 	std::vector<message> m_warnings;
 	sinsp_filter_check_list m_default_filterlist;
 };
