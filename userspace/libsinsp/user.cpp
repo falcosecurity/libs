@@ -240,6 +240,12 @@ scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(
 	std::string_view home,
 	std::string_view shell)
 {
+	if(!name.empty() && (name[0] == '+' || name[0] == '-'))
+	{
+		// ignore NSS entries
+		return nullptr;
+	}
+
 	auto &usr = map[uid];
 	usr.uid = uid;
 	usr.gid = gid;
@@ -257,6 +263,12 @@ scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(
 	uint32_t gid,
 	std::string_view name)
 {
+	if(!name.empty() && (name[0] == '+' || name[0] == '-'))
+	{
+		// ignore NSS entries
+		return nullptr;
+	}
+
 	auto &grp = map[gid];
 	grp.gid = gid;
 	strlcpy(grp.name, (name.data() != nullptr) ? std::string(name).c_str() : "<NA>", MAX_CREDENTIALS_STR_LEN);
