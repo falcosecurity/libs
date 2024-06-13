@@ -240,12 +240,6 @@ scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(
 	std::string_view home,
 	std::string_view shell)
 {
-	if(!name.empty() && (name[0] == '+' || name[0] == '-'))
-	{
-		// ignore NSS entries
-		return nullptr;
-	}
-
 	auto &usr = map[uid];
 	usr.uid = uid;
 	usr.gid = gid;
@@ -263,12 +257,6 @@ scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(
 	uint32_t gid,
 	std::string_view name)
 {
-	if(!name.empty() && (name[0] == '+' || name[0] == '-'))
-	{
-		// ignore NSS entries
-		return nullptr;
-	}
-
 	auto &grp = map[gid];
 	grp.gid = gid;
 	strlcpy(grp.name, (name.data() != nullptr) ? std::string(name).c_str() : "<NA>", MAX_CREDENTIALS_STR_LEN);
@@ -278,6 +266,14 @@ scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(
 
 scap_userinfo *sinsp_usergroup_manager::add_user(const std::string &container_id, int64_t pid, uint32_t uid, uint32_t gid, std::string_view name, std::string_view home, std::string_view shell, bool notify)
 {
+	// ignore NSS entries
+	if(!name.empty() && (name[0] == '+' || name[0] == '-'))
+	{
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+			"NSS user ignored: %.*s", static_cast<int>(name.length()), name.data());
+		return nullptr;
+	}
+
 	if (!m_import_users)
 	{
 		m_fallback_user.uid = uid;
@@ -413,6 +409,14 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 
 scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, int64_t pid, uint32_t gid, std::string_view name, bool notify)
 {
+	// ignore NSS entries
+	if(!name.empty() && (name[0] == '+' || name[0] == '-'))
+	{
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+			"NSS group ignored: %.*s", static_cast<int>(name.length()), name.data());
+		return nullptr;
+	}
+
 	if (!m_import_users)
 	{
 		m_fallback_grp.gid = gid;
