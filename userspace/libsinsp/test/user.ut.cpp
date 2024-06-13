@@ -169,13 +169,13 @@ protected:
 
 		{
 			std::ofstream ofs(etc + "/passwd");
-			ofs << "toor:x:0:0:toor:/toor:/bin/ash" << std::endl;
-			ofs.close();
+			ofs << "toor:x:0:0:toor:/toor:/bin/ash\n"
+			    << "+testuser::::::\n";
 		}
 		{
 			std::ofstream ofs(etc + "/group");
-			ofs << "toor:x:0:toor" << std::endl;
-			ofs.close();
+			ofs << "toor:x:0:toor\n"
+			    << "+testgroup::::::\n";
 		}
 	}
 
@@ -210,5 +210,20 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup)
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
 	ASSERT_STREQ(group->name, "toor");
+}
+
+TEST_F(usergroup_manager_host_root_test, nss_user_lookup)
+{
+	std::string container_id; // empty container_id means host
+
+	sinsp_usergroup_manager mgr(&m_inspector);
+	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});
+	mgr.add_user(container_id, -1, 65534, 0, {}, {}, {});
+
+	auto* usr = mgr.add_user(container_id, -1, 0, 0, "+test_user", "", "");
+	ASSERT_EQ(usr, nullptr);
+
+	auto* grp = mgr.add_group(container_id, -1, 0, "+test_group");
+	ASSERT_EQ(grp, nullptr);
 }
 #endif
