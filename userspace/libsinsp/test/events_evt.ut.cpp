@@ -19,6 +19,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include <sinsp_with_test_input.h>
+#include <sinsp_errno.h>
 #include "test_utils.h"
 
 TEST_F(sinsp_with_test_input, event_category)
@@ -55,6 +56,47 @@ TEST_F(sinsp_with_test_input, event_category)
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "true");
 	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "4");
+}
+
+TEST_F(sinsp_with_test_input, event_res)
+{
+	add_default_init_thread();
+
+	open_inspector();
+
+	sinsp_evt * evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (uint32_t)-1);
+	EXPECT_FALSE(field_has_value(evt, "evt.res"));
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (int64_t)-SE_EINVAL);
+
+	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "EINVAL");
+	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "-22");
+	EXPECT_TRUE(eval_filter(evt, "evt.rawres < 0"));
+	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "true");
+	EXPECT_EQ(get_field_as_string(evt, "evt.count.error"), "1");
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (uint32_t) 100);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (uint64_t) 0);
+
+	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
+	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "0");
+	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "false");
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file.txt", 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (int64_t)123, "/tmp/the_file.txt", 0, 0, 0, (uint64_t) 0);
+
+	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
+	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "123");
+	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "false");
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file.txt", 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (int64_t)-SE_EACCES, "/tmp/the_file.txt", 0, 0, 0, (uint64_t) 0);
+
+	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "EACCES");
+	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), std::to_string(-SE_EACCES).c_str());
+	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "true");
+	EXPECT_EQ(get_field_as_string(evt, "evt.count.error"), "1");
+	EXPECT_EQ(get_field_as_string(evt, "evt.count.error.file"), "1");
 }
 
 TEST_F(sinsp_with_test_input, event_hostname)
