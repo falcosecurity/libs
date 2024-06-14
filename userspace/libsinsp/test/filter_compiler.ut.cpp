@@ -567,22 +567,14 @@ TEST(sinsp_filter_compiler, complex_filter)
 // Test filter strings against real events.
 //////////////////////////////
 
-static bool evaluate_filter_str(sinsp* inspector, std::string filter_str, sinsp_evt* evt)
-{
-	sinsp_filter_check_list filter_list;
-	sinsp_filter_compiler compiler(std::make_shared<sinsp_filter_factory>(inspector, filter_list), filter_str);
-	auto filter = compiler.compile();
-	return filter->run(evt);
-}
-
 TEST_F(sinsp_with_test_input, filter_simple_evaluation)
 {
 	// Basic case just to assert that the basic setup works
 	add_default_init_thread();
 	open_inspector();
-	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(evt.type = getcwd)", generate_getcwd_failed_entry_event()));
-	ASSERT_TRUE(
-		evaluate_filter_str(&m_inspector, "(evt.arg.res = val(evt.arg.res))", generate_getcwd_failed_entry_event()));
+	sinsp_evt * evt = generate_getcwd_failed_entry_event();
+	ASSERT_TRUE(eval_filter(evt, "(evt.type = getcwd)"));
+	ASSERT_TRUE(eval_filter(evt, "(evt.arg.res = val(evt.arg.res))"));
 }
 
 TEST_F(sinsp_with_test_input, filter_val_transformer)
@@ -591,22 +583,20 @@ TEST_F(sinsp_with_test_input, filter_val_transformer)
 	open_inspector();
 	// Please note that with `evt.args = evt.args` we are evaluating the field `evt.args` against the const value
 	// `evt.args`.
-	ASSERT_FALSE(evaluate_filter_str(&m_inspector, "(evt.args = evt.args)", generate_getcwd_failed_entry_event()));
-	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(evt.args = val(evt.args))", generate_getcwd_failed_entry_event()));
+
+	sinsp_evt * evt = generate_getcwd_failed_entry_event();
+
+	ASSERT_FALSE(eval_filter(evt, "(evt.args = evt.args)"));
+	ASSERT_TRUE(eval_filter(evt, "(evt.args = val(evt.args))"));
 
 	// val() expects a field inside it is not a transformer
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "(syscall.type = val(tolower(toupper(syscall.type))))",
-					 generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("(syscall.type = val(tolower(toupper(syscall.type))))"));
 
 	// val() is not supported on the left
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "(val(evt.args) = val(evt.args))", generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("(val(evt.args) = val(evt.args))"));
 
 	// val() cannot support a list
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "(syscall.type = val(syscall.type, evt.type))",
-					 generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("(syscall.type = val(syscall.type, evt.type))"));
 }
 
 TEST_F(sinsp_with_test_input, filter_transformers_combination)
@@ -614,22 +604,14 @@ TEST_F(sinsp_with_test_input, filter_transformers_combination)
 	add_default_init_thread();
 	open_inspector();
 
-	ASSERT_TRUE(
-		evaluate_filter_str(&m_inspector, "(tolower(syscall.type) = getcwd)", generate_getcwd_failed_entry_event()));
+	sinsp_evt * evt = generate_getcwd_failed_entry_event();
 
-	ASSERT_TRUE(
-		evaluate_filter_str(&m_inspector, "(toupper(syscall.type) = GETCWD)", generate_getcwd_failed_entry_event()));
-
-	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(tolower(toupper(syscall.type)) = getcwd)",
-					generate_getcwd_failed_entry_event()));
-
-	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(tolower(syscall.type) = tolower(syscall.type))",
-					generate_getcwd_failed_entry_event()));
-	ASSERT_TRUE(evaluate_filter_str(&m_inspector, "(toupper(syscall.type) = toupper(syscall.type))",
-					generate_getcwd_failed_entry_event()));
-	ASSERT_TRUE(evaluate_filter_str(&m_inspector,
-					"(tolower(toupper(syscall.type)) = tolower(toupper(syscall.type)))",
-					generate_getcwd_failed_entry_event()));
+	ASSERT_TRUE(eval_filter(evt, "(tolower(syscall.type) = getcwd)"));
+	ASSERT_TRUE(eval_filter(evt, "(toupper(syscall.type) = GETCWD)"));
+	ASSERT_TRUE(eval_filter(evt, "(tolower(toupper(syscall.type)) = getcwd)"));
+	ASSERT_TRUE(eval_filter(evt, "(tolower(syscall.type) = tolower(syscall.type))"));
+	ASSERT_TRUE(eval_filter(evt, "(toupper(syscall.type) = toupper(syscall.type))"));
+	ASSERT_TRUE(eval_filter(evt, "(tolower(toupper(syscall.type)) = tolower(toupper(syscall.type)))"));
 }
 
 TEST_F(sinsp_with_test_input, filter_different_types)
@@ -637,9 +619,7 @@ TEST_F(sinsp_with_test_input, filter_different_types)
 	add_default_init_thread();
 	open_inspector();
 
-	// The 2 fields checks have different types
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "syscall.type = val(evt.is_wait)", generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("syscall.type = val(evt.is_wait)"));
 }
 
 TEST_F(sinsp_with_test_input, filter_not_supported_rhs_field)
@@ -648,14 +628,10 @@ TEST_F(sinsp_with_test_input, filter_not_supported_rhs_field)
 	open_inspector();
 
 	// `evt.around` cannot be used as a rhs filter check
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "evt.buflen.in = val(evt.around[1404996934793590564])",
-					 generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("evt.buflen.in = val(evt.around[1404996934793590564])"));
 
 	// `evt.around` cannot support a rhs filter check
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "evt.around[1404996934793590564] = val(evt.buflen.in)",
-					 generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("evt.around[1404996934793590564] = val(evt.buflen.in)"));
 }
 
 TEST_F(sinsp_with_test_input, filter_not_supported_transformers)
@@ -664,8 +640,7 @@ TEST_F(sinsp_with_test_input, filter_not_supported_transformers)
 	open_inspector();
 
 	// `evt.rawarg` doesn't support a transformer
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "toupper(evt.rawarg.res) = -1", generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("toupper(evt.rawarg.res) = -1"));
 }
 
 TEST_F(sinsp_with_test_input, filter_transformers_wrong_input_type)
@@ -673,11 +648,7 @@ TEST_F(sinsp_with_test_input, filter_transformers_wrong_input_type)
 	add_default_init_thread();
 	open_inspector();
 
-	//  These transformers are not supported on `PT_INT64` type
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "toupper(evt.rawres) = -1", generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "tolower(evt.rawres) = -1", generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
-	ASSERT_THROW(evaluate_filter_str(&m_inspector, "b64(evt.rawres) = -1", generate_getcwd_failed_entry_event()),
-		     sinsp_exception);
+	ASSERT_FALSE(filter_compiles("toupper(evt.rawres) = -1"));
+	ASSERT_FALSE(filter_compiles("tolower(evt.rawres) = -1"));
+	ASSERT_FALSE(filter_compiles("b64(evt.rawres) = -1"));
 }

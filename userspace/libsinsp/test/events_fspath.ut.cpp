@@ -20,7 +20,6 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 
-#include "filter_compiler.h"
 #include <sinsp_with_test_input.h>
 
 class fspath : public sinsp_with_test_input
@@ -112,13 +111,13 @@ protected:
 		std::string fieldstr = field;
 
 		std::string eq_filter_str = fieldstr + " = " + expected;
-		filter_run(evt, true, eq_filter_str);
+		EXPECT_TRUE(eval_filter(evt, eq_filter_str));
 
 		std::string in_filter_str = fieldstr + " in (" + expected + ")";
-		filter_run(evt, true, in_filter_str);
+		EXPECT_TRUE(eval_filter(evt, in_filter_str));
 
 		std::string pmatch_filter_str = fieldstr + " pmatch (" + expected + ")";
-		filter_run(evt, true, pmatch_filter_str);
+		EXPECT_TRUE(eval_filter(evt, pmatch_filter_str));
 	}
 
 	void verify_fields(sinsp_evt *evt,

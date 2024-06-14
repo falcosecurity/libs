@@ -199,7 +199,10 @@ protected:
 	bool field_has_value(sinsp_evt*, std::string_view field_name, filter_check_list&);
 	std::string get_field_as_string(sinsp_evt*, std::string_view field_name);
 	std::string get_field_as_string(sinsp_evt*, std::string_view field_name, filter_check_list&);
-	bool eval_filter(sinsp_evt* evt, std::string filter);
+	bool eval_filter(sinsp_evt* evt, std::string_view filter_str);
+	bool eval_filter(sinsp_evt* evt, std::string_view filter_str, filter_check_list&);
+	bool filter_compiles(std::string_view filter_str);
+	bool filter_compiles(std::string_view filter_str, filter_check_list&);
 
 	sinsp_evt* next_event();
 

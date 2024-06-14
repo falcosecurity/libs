@@ -20,7 +20,6 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include <sinsp_with_test_input.h>
-#include "filter_compiler.h"
 
 
 TEST_F(sinsp_with_test_input, pmatch)
@@ -32,27 +31,27 @@ TEST_F(sinsp_with_test_input, pmatch)
 	int64_t fd = 1;
 	sinsp_evt * evt = add_event_advance_ts(increasing_ts(), 3, PPME_SYSCALL_OPEN_X, 6, fd, "/opt/dir/subdir/file.txt", 0, 0, 0, (uint64_t) 0);
 
-	filter_run(evt, true, "fd.name pmatch (/opt/dir)");
-	filter_run(evt, true, "fd.name pmatch (/opt/dir/subdir)");
-	filter_run(evt, false, "fd.name pmatch (/opt/dir2)");
-	filter_run(evt, true, "fd.name pmatch (/opt/dir, /opt/dir2)");
-	filter_run(evt, false, "fd.name pmatch (/opt/dir3, /opt/dir2)");
-	filter_run(evt, true, "fd.name pmatch (/opt/*)");
-	filter_run(evt, true, "fd.name pmatch (/opt/*/subdir)");
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/dir)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/dir/subdir)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/dir2)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/dir, /opt/dir2)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/dir3, /opt/dir2)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/*)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/*/subdir)"));
 	// In Windows systems, the function used to perform path matching differs
 	// from linux and macos: instead of `fnmatch` is used `PathMatchSpecA`
 	// (from the Windows API); this function reflects the Windows behaviour
 	// in path matching (case insentive...). Given that we need to exclude
 	// some tests.
 #if !defined(_WIN32)
-	filter_run(evt, true, "fd.name pmatch (/opt/di?/subdir)");
-	filter_run(evt, false, "fd.name pmatch (/opt/dii?/subdir)");
-	filter_run(evt, true, "fd.name pmatch (/opt/di[r]/subdir)");
-	filter_run(evt, false, "fd.name pmatch (/opt/di[!r]/subdir)");
-	filter_run(evt, false, "fd.name pmatch (/opt/di[t]/subdir)");
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/di?/subdir)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/dii?/subdir)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/di[r]/subdir)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/di[!r]/subdir)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/di[t]/subdir)"));
 #endif
-	filter_run(evt, false, "fd.name pmatch (/opt/di/subdir)");
-	filter_run(evt, false, "fd.name pmatch (/opt/*/subdir2)");
-	filter_run(evt, true, "fd.name pmatch (/opt/*/*)");
-	filter_run(evt, false, "fd.name pmatch (/opt/*/*/subsubdir)");
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/di/subdir)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/*/subdir2)"));
+	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/*/*)"));
+	EXPECT_FALSE(eval_filter(evt, "fd.name pmatch (/opt/*/*/subsubdir)"));
 }

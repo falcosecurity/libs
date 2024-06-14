@@ -497,18 +497,39 @@ std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, std::stri
 	return result;
 }
 
-bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string filter_str)
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str)
 {
-	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, m_default_filterlist);
-	sinsp_filter_compiler compiler(factory, filter_str);
+	return eval_filter(evt, filter_str, m_default_filterlist);
+}
+
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, filter_check_list &flist)
+{
+	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	sinsp_filter_compiler compiler(factory, std::string(filter_str));
 
 	auto filter = compiler.compile();
-	if (!filter)
-	{
-		throw sinsp_exception(std::string("could not compile filter ") + filter_str);
-	}
 
 	return filter->run(evt);
+}
+
+bool sinsp_with_test_input::filter_compiles(std::string_view filter_str)
+{
+	return filter_compiles(filter_str, m_default_filterlist);
+}
+
+bool sinsp_with_test_input::filter_compiles(std::string_view filter_str, filter_check_list &flist)
+{
+	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	sinsp_filter_compiler compiler(factory, std::string(filter_str));
+	try
+	{
+		auto f = compiler.compile();
+		return true;
+	}
+	catch(const sinsp_exception& e)
+	{
+		return false;
+	}
 }
 
 sinsp_evt* sinsp_with_test_input::next_event()
