@@ -106,6 +106,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_escaping.ut.cpp
 	filter_parser.ut.cpp
 	filter_op_bcontains.ut.cpp
+	filter_op_contains.ut.cpp
 	filter_op_pmatch.ut.cpp
 	filter_op_numeric_compare.ut.cpp
 	filter_compiler.ut.cpp
