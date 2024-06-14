@@ -1619,43 +1619,28 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, uint32_t* len
 			}
 		}
 	case TYPE_FD_STDIN_TYPE:
-		{
-			auto fdtable_ptr = tinfo->get_fd_table();
-			if (fdtable_ptr == nullptr)
-			{
-				return NULL;
-			}
-			auto fdinfo = fdtable_ptr->find(0);
-			if (fdinfo == nullptr)
-			{
-				return NULL;
-			}
-			m_tstr = fdinfo->get_typestring();
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
 	case TYPE_FD_STDOUT_TYPE:
-		{
-			auto fdtable_ptr = tinfo->get_fd_table();
-			if (fdtable_ptr == nullptr)
-			{
-				return NULL;
-			}
-			auto fdinfo = fdtable_ptr->find(1);
-			if (fdinfo == nullptr)
-			{
-				return NULL;
-			}
-			m_tstr = fdinfo->get_typestring();
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
 	case TYPE_FD_STDERR_TYPE:
 		{
+			int64_t fd = -1;
+			if (m_field_id == TYPE_FD_STDIN_TYPE)
+			{
+				fd = 0;
+			}
+			else if (m_field_id == TYPE_FD_STDOUT_TYPE)
+			{
+				fd = 1;
+			}
+			else if (m_field_id == TYPE_FD_STDERR_TYPE)
+			{
+				fd = 2;
+			}
 			auto fdtable_ptr = tinfo->get_fd_table();
 			if (fdtable_ptr == nullptr)
 			{
 				return NULL;
 			}
-			auto fdinfo = fdtable_ptr->find(2);
+			auto fdinfo = fdtable_ptr->find(fd);
 			if (fdinfo == nullptr)
 			{
 				return NULL;
@@ -1664,43 +1649,28 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, uint32_t* len
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_FD_STDIN_NAME:
-		{
-			auto fdtable_ptr = tinfo->get_fd_table();
-			if (fdtable_ptr == nullptr)
-			{
-				return NULL;
-			}
-			auto fdinfo = fdtable_ptr->find(0);
-			if (fdinfo == nullptr)
-			{
-				return NULL;
-			}
-			m_tstr = fdinfo->m_name.c_str();
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
 	case TYPE_FD_STDOUT_NAME:
-		{
-			auto fdtable_ptr = tinfo->get_fd_table();
-			if (fdtable_ptr == nullptr)
-			{
-				return NULL;
-			}
-			auto fdinfo = fdtable_ptr->find(1);
-			if (fdinfo == nullptr)
-			{
-				return NULL;
-			}
-			m_tstr = fdinfo->m_name.c_str();
-			RETURN_EXTRACT_STRING(m_tstr);
-		}
 	case TYPE_FD_STDERR_NAME:
 		{
+			int64_t fd = -1;
+			if (m_field_id == TYPE_FD_STDIN_NAME)
+			{
+				fd = 0;
+			}
+			else if (m_field_id == TYPE_FD_STDOUT_NAME)
+			{
+				fd = 1;
+			}
+			else if (m_field_id == TYPE_FD_STDERR_NAME)
+			{
+				fd = 2;
+			}
 			auto fdtable_ptr = tinfo->get_fd_table();
 			if (fdtable_ptr == nullptr)
 			{
 				return NULL;
 			}
-			auto fdinfo = fdtable_ptr->find(2);
+			auto fdinfo = fdtable_ptr->find(fd);
 			if (fdinfo == nullptr)
 			{
 				return NULL;
