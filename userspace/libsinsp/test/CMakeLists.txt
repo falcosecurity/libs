@@ -95,6 +95,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	events_proc.ut.cpp
 	events_user.ut.cpp
 	external_processor.ut.cpp
+	gvisor_config.ut.cpp
 	mpsc_priority_queue.ut.cpp
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
