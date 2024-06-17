@@ -1247,8 +1247,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, uint32_t* len,
 
 			if(pi != NULL)
 			{
-				ASSERT(pi->m_len == sizeof(int64_t));
-				if(*(int64_t*)pi->m_val < 0)
+				if(pi->as<int64_t>() < 0)
 				{
 					m_val.u32 = 1;
 				}
@@ -1259,8 +1258,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt *evt, uint32_t* len,
 
 				if(pi != NULL)
 				{
-					ASSERT(pi->m_len == sizeof(int64_t));
-					if(*(int64_t*)pi->m_val < 0)
+					if(pi->as<int64_t>() < 0)
 					{
 						m_val.u32 = 1;
 					}
