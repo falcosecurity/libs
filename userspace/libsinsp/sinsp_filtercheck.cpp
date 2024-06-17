@@ -72,6 +72,14 @@ void sinsp_filter_check::set_inspector(sinsp* inspector)
 	m_inspector = inspector;
 }
 
+template <class T>
+static inline T rawval_cast(uint8_t *rawval)
+{
+	T val;
+	memcpy(&val, rawval, sizeof(T));
+	return val;
+}
+
 Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 					       ppm_param_type ptype,
 					       ppm_print_format print_format,
@@ -102,7 +110,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
-				return *(int16_t *)rawval;
+				return rawval_cast<int16_t>(rawval);
 			}
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
@@ -119,7 +127,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
-				return *(int32_t *)rawval;
+				return rawval_cast<int32_t>(rawval);
 			}
 			else if(print_format == PF_OCT ||
 				print_format == PF_HEX)
@@ -134,11 +142,11 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		case PT_DOUBLE:
 			if(print_format == PF_DEC)
 			{
-		 		return (Json::Value::Int64)(int64_t)*(double*)rawval;
+				return (Json::Value::Int64)(int64_t)rawval_cast<double>(rawval);
 			}
 			else
 			{
-				return (Json::Value)*(double*)rawval;
+				return (Json::Value)rawval_cast<double>(rawval);
 			}
 		case PT_INT64:
 		case PT_PID:
@@ -146,7 +154,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
-		 		return (Json::Value::Int64)*(int64_t *)rawval;
+				return (Json::Value::Int64)rawval_cast<int64_t>(rawval);
 			}
 			else
 			{
@@ -212,7 +220,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
-				return (Json::Value::UInt64)*(uint64_t *)rawval;
+				return (Json::Value::UInt64)rawval_cast<uint64_t>(rawval);
 			}
 			else if(
 				print_format == PF_10_PADDED_DEC ||
@@ -233,7 +241,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			return Json::nullValue;
 
 		case PT_BOOL:
-			return Json::Value((bool)(*(uint32_t*)rawval != 0));
+			return Json::Value((bool)(rawval_cast<uint32_t>(rawval) != 0));
 
 		case PT_CHARBUF:
 		case PT_FSPATH:
@@ -309,7 +317,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 			snprintf(m_getpropertystr_storage.data(),
 					 STRPROPERTY_STORAGE_SIZE,
-					 prfmt, *(int16_t *)rawval);
+					 prfmt, rawval_cast<int16_t>(rawval));
 			return m_getpropertystr_storage.data();
 		case PT_INT32:
 			if(print_format == PF_OCT)
@@ -334,7 +342,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 			snprintf(m_getpropertystr_storage.data(),
 					 STRPROPERTY_STORAGE_SIZE,
-					 prfmt, *(int32_t *)rawval);
+					 prfmt, rawval_cast<int32_t>(rawval));
 			return m_getpropertystr_storage.data();
 		case PT_INT64:
 		case PT_PID:
@@ -365,7 +373,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 			snprintf(m_getpropertystr_storage.data(),
 					 STRPROPERTY_STORAGE_SIZE,
-					 prfmt, *(int64_t *)rawval);
+					 prfmt, rawval_cast<int64_t>(rawval));
 			return m_getpropertystr_storage.data();
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_UINT8:
@@ -417,7 +425,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 			snprintf(m_getpropertystr_storage.data(),
 					 STRPROPERTY_STORAGE_SIZE,
-					 prfmt, *(uint16_t *)rawval);
+					 prfmt, rawval_cast<uint16_t>(rawval));
 			return m_getpropertystr_storage.data();
 		case PT_UINT32:
 			if(print_format == PF_OCT)
@@ -442,7 +450,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 			snprintf(m_getpropertystr_storage.data(),
 					 STRPROPERTY_STORAGE_SIZE,
-					 prfmt, *(uint32_t *)rawval);
+					 prfmt, rawval_cast<uint32_t>(rawval));
 			return m_getpropertystr_storage.data();
 		case PT_UINT64:
 		case PT_RELTIME:
@@ -473,7 +481,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 			snprintf(m_getpropertystr_storage.data(),
 					 STRPROPERTY_STORAGE_SIZE,
-					 prfmt, *(uint64_t *)rawval);
+					 prfmt, rawval_cast<uint64_t>(rawval));
 			return m_getpropertystr_storage.data();
 		case PT_CHARBUF:
 		case PT_FSPATH:
@@ -494,7 +502,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			ASSERT(false);
 			return NULL;
 		case PT_BOOL:
-			if(*(uint32_t*)rawval != 0)
+			if(rawval_cast<uint32_t>(rawval) != 0)
 			{
 				return (char*)"true";
 			}
@@ -544,7 +552,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
 			snprintf(m_getpropertystr_storage.data(),
 					 STRPROPERTY_STORAGE_SIZE,
-					 "%.1lf", *(double*)rawval);
+					 "%.1lf", rawval_cast<double>(rawval));
 			return m_getpropertystr_storage.data();
 		case PT_IPNET:
 			m_getpropertystr_storage.resize(STRPROPERTY_STORAGE_SIZE);
