@@ -105,3 +105,46 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pexepath_aexepath)
 	/* this field shouldn't exist */
 	ASSERT_FALSE(field_has_value(evt, "proc.aexepath[6]"));
 }
+
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr)
+{
+	DEFAULT_TREE
+	sinsp_evt* evt = NULL;
+	int64_t client_fd = 3, return_value = 0;
+	int64_t stdin_fd = 0, stdout_fd = 1, stderr_fd = 2;
+
+	// Create a connected socket
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
+	
+	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
+
+	sockaddr_in server = test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
+
+	std::vector<uint8_t> server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, client_fd, scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client), reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 3, return_value, scap_const_sized_buffer{socktuple.data(), socktuple.size()}, client_fd);
+
+	// The socket is duped to stdin, stdout, stderr
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, stdin_fd, client_fd, stdin_fd);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, stdout_fd, client_fd, stdout_fd);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, stderr_fd, client_fd, stderr_fd);
+
+	// Exec a process and check stdin, stdout and stderr types and names
+	evt = generate_execve_enter_and_exit_event(0, 1, 1, 1, 1, "/proc_filter_stdin_stdout_stderr", "proc_filter_stdin_stdout_stderr", "/usr/bin/proc_filter_stdin_stdout_stderr");
+	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdin.type"), "ipv4");
+	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdout.type"), "ipv4");
+	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stderr.type"), "ipv4");
+
+	std::string tuple_str = std::string(DEFAULT_IPV4_CLIENT_STRING) + ":" + std::to_string(DEFAULT_CLIENT_PORT) + "->" + std::string(DEFAULT_IPV4_SERVER_STRING) + ":" + std::to_string(DEFAULT_SERVER_PORT);
+	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdin.name"), tuple_str);
+	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdout.name"), tuple_str);
+	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stderr.name"), tuple_str);
+}
+#endif
