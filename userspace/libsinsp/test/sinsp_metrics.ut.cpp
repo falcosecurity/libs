@@ -112,7 +112,7 @@ testns_falco_memory_rss_bytes{raw_name="memory_rss_bytes"} )";
 		}
 	}
 
-	ASSERT_EQ(metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion, 
+	ASSERT_EQ(metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion,
 	"cpu_usage_ratio memory_rss_bytes memory_vsz_bytes memory_pss_bytes container_memory_used_bytes host_cpu_usage_ratio host_memory_used_bytes host_procs_running host_open_fds n_threads n_fds n_noncached_fd_lookups n_cached_fd_lookups n_failed_fd_lookups n_added_fds n_removed_fds n_stored_evts n_store_evts_drops n_retrieved_evts n_retrieve_evts_drops n_noncached_thread_lookups n_cached_thread_lookups n_failed_thread_lookups n_added_threads n_removed_threads n_drops_full_threadtable n_missing_container_images n_containers");
 
 	// Test global wrapper base metrics (pseudo metrics)
@@ -126,63 +126,63 @@ testns_falco_kernel_release_info{raw_name="kernel_release",kernel_release="6.6.7
 
 	// Another round of fake metric tests since we do not fetch real scap metrics, for example.
 	std::vector<metrics_v2> fake_metrics_snapshot;
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.run_cnt",
-											METRICS_V2_LIBBPF_STATS, 
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("sys_enter.run_cnt",
+											METRICS_V2_LIBBPF_STATS,
 											METRIC_VALUE_TYPE_U64,
-											METRIC_VALUE_UNIT_COUNT, 
-											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
+											METRIC_VALUE_UNIT_COUNT,
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC,
 											76435525241UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.run_time_ns",
-											METRICS_V2_LIBBPF_STATS, 
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("sys_enter.run_time_ns",
+											METRICS_V2_LIBBPF_STATS,
 											METRIC_VALUE_TYPE_U64,
-											METRIC_VALUE_UNIT_TIME_NS_COUNT, 
-											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
+											METRIC_VALUE_UNIT_TIME_NS_COUNT,
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC,
 											16269369826392UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("sys_enter.avg_time_ns",
-											METRICS_V2_LIBBPF_STATS, 
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("sys_enter.avg_time_ns",
+											METRICS_V2_LIBBPF_STATS,
 											METRIC_VALUE_TYPE_U64,
-											METRIC_VALUE_UNIT_TIME_NS, 
-											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT, 
+											METRIC_VALUE_UNIT_TIME_NS,
+											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
 											203UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("n_drops",
-											METRICS_V2_KERNEL_COUNTERS, 
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("n_drops",
+											METRICS_V2_KERNEL_COUNTERS,
 											METRIC_VALUE_TYPE_U64,
-											METRIC_VALUE_UNIT_COUNT, 
-											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
+											METRIC_VALUE_UNIT_COUNT,
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC,
 											674200UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("n_drops_buffer_total",
-											METRICS_V2_KERNEL_COUNTERS, 
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("n_drops_buffer_total",
+											METRICS_V2_KERNEL_COUNTERS,
 											METRIC_VALUE_TYPE_U64,
-											METRIC_VALUE_UNIT_COUNT, 
-											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
+											METRIC_VALUE_UNIT_COUNT,
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC,
 											5000UL));
 
 	// Simulate some derived metrics; critical for example for Falco consumer use cases
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("duration_sec",
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("duration_sec",
 											METRICS_V2_MISC,
 											METRIC_VALUE_TYPE_U64,
-											METRIC_VALUE_UNIT_TIME_S_COUNT, 
-											METRIC_VALUE_METRIC_TYPE_MONOTONIC, 
+											METRIC_VALUE_UNIT_TIME_S_COUNT,
+											METRIC_VALUE_METRIC_TYPE_MONOTONIC,
 											144UL));
 
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("evt_rate_sec",
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("evt_rate_sec",
 											METRICS_V2_MISC,
 											METRIC_VALUE_TYPE_D,
-											METRIC_VALUE_UNIT_TIME_S, 
-											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT, 
+											METRIC_VALUE_UNIT_TIME_S,
+											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
 											126065.4));
 
 	// Timestamps while they always go up should still be regarded as gauge from a Prometheus perspective
 	// https://www.robustperception.io/are-increasing-timestamps-counters-or-gauges/
-	fake_metrics_snapshot.emplace_back(libs_metrics_collector.new_metric("host_boot_ts",
-											METRICS_V2_MISC, 
+	fake_metrics_snapshot.emplace_back(libs::metrics::libsinsp_metrics::new_metric("host_boot_ts",
+											METRICS_V2_MISC,
 											METRIC_VALUE_TYPE_U64,
-											METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS, 
-											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT, 
+											METRIC_VALUE_UNIT_TIME_TIMESTAMP_NS,
+											METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
 											1708753667000000000UL));
 
 	for (auto& metric: fake_metrics_snapshot)
@@ -270,7 +270,7 @@ TEST_F(sinsp_with_test_input, sinsp_libs_metrics_collector_output_rule)
 	for(const auto& metric_name : minimal_metrics_names)
 	{
 		size_t i = 0;
-		for (const auto& metric: metrics_snapshot) 
+		for (const auto& metric: metrics_snapshot)
 		{
 			if(metric_name == metric.name)
 			{
