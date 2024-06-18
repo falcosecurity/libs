@@ -126,12 +126,12 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.vmrss", "Thread VM RSS (kb)", "For the process main thread, this is the resident non-swapped memory for the process (as kb). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmsize.b", "Thread VM Size (b)", "For the process main thread, this is the total virtual memory for the process (in bytes). For the other threads, this field is zero."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "thread.vmrss.b", "Thread VM RSS (b)", "For the process main thread, this is the resident non-swapped memory for the process (in bytes). For the other threads, this field is zero."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdin.type", "Standard Input fd type", "The type of file descriptor 0, corresponding to stdin, of the process generating the event."}, 
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdout.type", "Standard Output fd type", "The type of file descriptor 1, corresponding to stdout, of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stderr.type", "Standard Error fd type", "The type of file descriptor 2, corresponding to stderr, of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdin.name", "Standard Input fd name", "The name of the file descriptor 0, corresponding to stdin, of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stdout.name", "Standard Output fd name", "The name of the file descriptor 1, corresponding to stdout, of the process generating the event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.fd.stderr.name", "Standard Error fd name", "The name of the file descriptor 2, corresponding to stderr, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.stdin.type", "Standard Input fd type", "The type of file descriptor 0, corresponding to stdin, of the process generating the event."}, 
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.stdout.type", "Standard Output fd type", "The type of file descriptor 1, corresponding to stdout, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.stderr.type", "Standard Error fd type", "The type of file descriptor 2, corresponding to stderr, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.stdin.name", "Standard Input fd name", "The name of the file descriptor 0, corresponding to stdin, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.stdout.name", "Standard Output fd name", "The name of the file descriptor 1, corresponding to stdout, of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.stderr.name", "Standard Error fd name", "The name of the file descriptor 2, corresponding to stderr, of the process generating the event."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
