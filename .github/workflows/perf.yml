@@ -1,0 +1,104 @@
+name: Perf CI
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+# Checks if any concurrent jobs under the same pull request or branch are being executed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-perf
+  cancel-in-progress: true
+
+jobs:
+  perf-libs-linux-amd64:
+    runs-on: [ "self-hosted", "linux", "X64" ]
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev
+          sudo .github/install-deps.sh
+
+      - name: Build
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=False ../
+          make unit-test-libsinsp -j4
+
+      - name: Run Perf
+        shell: bash
+        run: |
+          cd build
+          sudo perf record --call-graph dwarf -o perf.data -q libsinsp/test/unit-test-libsinsp
+
+      - name: Archive master perf report
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: perf_report
+          retention-days: 30 # 30 days because this is the artifact on master; we need to retain it to be able to properly diff it
+          path: build/perf.data
+          if-no-files-found: error
+
+      - name: Download latest master report
+        if: github.event_name == 'pull_request'
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: ci.yml
+          branch: master
+          event: push
+          name: perf_report
+
+      - name: Diff from master
+        if: github.event_name == 'pull_request'
+        run: |
+          sudo perf diff perf.data build/perf.data -d unit-test-libsinsp -b -o 0 --percentage relative -q &> perf_diff.txt
+
+      - name: Archive perf diff
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: perf_diff
+          path: perf_diff.txt
+          if-no-files-found: error
+
+      # Check will fail if there is any function slowed down >2%
+      # But we will always comment with the perf diff from master
+      - name: Check > 2% threshold
+        if: github.event_name == 'pull_request'
+        id: compare
+        run: |
+          echo "comment_file=perf_diff.txt" >> $GITHUB_OUTPUT
+          awk '{if (substr($2,RSTART+RLENGTH)+0 > 2) print }' perf_diff.txt &> perf_diff_above_thresh.txt
+          if [ -s perf_diff_above_thresh.txt ]; then
+            exit 1
+          fi
+
+      - name: Save PR info
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.number }} > ./pr/NR
+          touch ./pr/COMMENT
+          echo "# Perf diff from master" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          cat "${{ steps.compare.outputs.comment_file }}" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo Uploading PR info...
+          cat ./pr/COMMENT
+          echo ""
+
+      - name: Upload PR info as artifact
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr
+          path: pr/
+          retention-days: 1
+          if-no-files-found: warn
