@@ -77,7 +77,7 @@ sinsp_evt::sinsp_evt() :
 		m_flags(EF_NONE),
 		m_params_loaded(false),
 		m_info(NULL),
-		m_paramstr_storage(256),
+		m_paramstr_storage(1024),
 		m_resolved_paramstr_storage(1024),
 		m_tinfo(NULL),
 		m_fdinfo(NULL),
@@ -1019,9 +1019,14 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, const char** resolved_str, 
 	case PT_FSRELPATH:
 	{
 		std::string_view path = param->as<std::string_view>();
+		if(path.length() + 1 > m_paramstr_storage.size())
+		{
+			m_paramstr_storage.resize(path.length() + 1);
+		}
+
 		strcpy_sanitized(&m_paramstr_storage[0],
 			path.data(),
-			std::min(path.size() + 1, m_paramstr_storage.size()));
+			path.length() + 1);
 
 		sinsp_threadinfo* tinfo = get_thread_info();
 
