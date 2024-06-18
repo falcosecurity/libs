@@ -449,6 +449,13 @@ uint64_t libs_metrics_collector::get_container_memory_used() const
 	return memory_used;
 }
 
+// Small helper to be used by sinsp_stats_v2_collectors as
+// empty lambda return value.
+static metrics_v2 null_metric()
+{
+	return metrics_v2{};
+}
+
 void libs_metrics_collector::snapshot()
 {
 	m_metrics.clear();
@@ -485,11 +492,6 @@ void libs_metrics_collector::snapshot()
 	// METRICS_V2_STATE_COUNTERS related
 	uint64_t n_fds = 0;
 	uint64_t n_threads = 0;
-	if (!m_sinsp_stats_v2)
-	{
-		// Sinsp stats disabled.
-		return;
-	}
 
 	const std::function<metrics_v2()> sinsp_stats_v2_collectors[] = {
 		[SINSP_RESOURCE_UTILIZATION_CPU_PERC] = [this,&cpu_usage_perc]() {
@@ -581,149 +583,175 @@ void libs_metrics_collector::snapshot()
 					  n_fds);
 		},
 		[SINSP_STATS_V2_NONCACHED_FD_LOOKUPS] = [this]() {
-			return new_metric("n_noncached_fd_lookups",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_noncached_fd_lookups);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_noncached_fd_lookups", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_noncached_fd_lookups);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_CACHED_FD_LOOKUPS] = [this]() {
-			return new_metric("n_cached_fd_lookups",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_cached_fd_lookups);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_cached_fd_lookups", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_cached_fd_lookups);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_FAILED_FD_LOOKUPS] = [this]() {
-			return new_metric("n_failed_fd_lookups",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_failed_fd_lookups);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_failed_fd_lookups", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_failed_fd_lookups);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_ADDED_FDS] = [this]() {
-			return new_metric("n_added_fds",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_added_fds);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_added_fds", METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64,
+						  METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_added_fds);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_REMOVED_FDS] = [this]() {
-			return new_metric("n_removed_fds",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_removed_fds);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_removed_fds", METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64,
+						  METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_removed_fds);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_STORED_EVTS] = [this]() {
-			return new_metric("n_stored_evts",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_stored_evts);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_stored_evts", METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64,
+						  METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_stored_evts);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_STORE_EVTS_DROPS] = [this]() {
-			return new_metric("n_store_evts_drops",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_store_evts_drops);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_store_evts_drops", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_store_evts_drops);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_RETRIEVED_EVTS] = [this]() {
-			return new_metric("n_retrieved_evts",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_retrieved_evts);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_retrieved_evts", METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64,
+						  METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_retrieved_evts);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_RETRIEVE_EVTS_DROPS] = [this]() {
-			return new_metric("n_retrieve_evts_drops",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_retrieve_evts_drops);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_retrieve_evts_drops", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_retrieve_evts_drops);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_NONCACHED_THREAD_LOOKUPS] = [this]() {
-			return new_metric("n_noncached_thread_lookups",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_noncached_thread_lookups);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_noncached_thread_lookups", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_noncached_thread_lookups);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_CACHED_THREAD_LOOKUPS] = [this]() {
-			return new_metric("n_cached_thread_lookups",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_cached_thread_lookups);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_cached_thread_lookups", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_cached_thread_lookups);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_FAILED_THREAD_LOOKUPS] = [this]() {
-			return new_metric("n_failed_thread_lookups",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_failed_thread_lookups);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_failed_thread_lookups", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U64, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_failed_thread_lookups);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_ADDED_THREADS] = [this]() {
-			return new_metric("n_added_threads",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_added_threads);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_added_threads", METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64,
+						  METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_added_threads);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_REMOVED_THREADS] = [this]() {
-			return new_metric("n_removed_threads",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U64,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_removed_threads);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_removed_threads", METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U64,
+						  METRIC_VALUE_UNIT_COUNT, METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_removed_threads);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_N_DROPS_FULL_THREADTABLE] = [this]() {
-			return new_metric("n_drops_full_threadtable",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U32,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
-					  m_sinsp_stats_v2->m_n_drops_full_threadtable);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_drops_full_threadtable", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_MONOTONIC,
+						  m_sinsp_stats_v2->m_n_drops_full_threadtable);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_N_MISSING_CONTAINER_IMAGES] = [this]() {
-			return new_metric("n_missing_container_images",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U32,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
-					  m_sinsp_stats_v2->m_n_missing_container_images);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_missing_container_images", METRICS_V2_STATE_COUNTERS,
+						  METRIC_VALUE_TYPE_U32, METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
+						  m_sinsp_stats_v2->m_n_missing_container_images);
+			}
+			return null_metric();
 		},
 		[SINSP_STATS_V2_N_CONTAINERS] = [this]() {
-			return new_metric("n_containers",
-					  METRICS_V2_STATE_COUNTERS,
-					  METRIC_VALUE_TYPE_U32,
-					  METRIC_VALUE_UNIT_COUNT,
-					  METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
-					  m_sinsp_stats_v2->m_n_containers);
+			if (m_sinsp_stats_v2)
+			{
+				return new_metric("n_containers", METRICS_V2_STATE_COUNTERS, METRIC_VALUE_TYPE_U32,
+						  METRIC_VALUE_UNIT_COUNT,
+						  METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT,
+						  m_sinsp_stats_v2->m_n_containers);
+			}
+			return null_metric();
 		},
 	};
-
 	static_assert(sizeof(sinsp_stats_v2_collectors) / sizeof(sinsp_stats_v2_collectors[0]) == SINSP_MAX_STATS_V2, "sinsp_stats_v2_resource_utilization_names array size does not match expected size");
 
 	/* 
 	 * libsinsp metrics 
 	 */
-
 	if((m_metrics_flags & METRICS_V2_RESOURCE_UTILIZATION))
 	{
 		const scap_agent_info* agent_info = m_inspector->get_agent_info();
@@ -733,7 +761,14 @@ void libs_metrics_collector::snapshot()
 		// Resource utilization of the agent itself
 		for (int i = SINSP_RESOURCE_UTILIZATION_CPU_PERC; i <= SINSP_RESOURCE_UTILIZATION_HOST_FDS; i++)
 		{
-			m_metrics.emplace_back(sinsp_stats_v2_collectors[i]());
+			auto metric = sinsp_stats_v2_collectors[i]();
+			if (metric.name[0] != '\0')
+			{
+				// Check that metric is actually initialized,
+				// ie: it is not referencing m_sinsp_stats_v2
+				// when sinsp stats are not enabled.
+				m_metrics.emplace_back(metric);
+			}
 		}
 	}
 
@@ -761,14 +796,20 @@ void libs_metrics_collector::snapshot()
 		// Resource utilization of the agent itself
 		for (int i = SINSP_STATS_V2_N_THREADS; i < SINSP_MAX_STATS_V2; i++)
 		{
-			m_metrics.emplace_back(sinsp_stats_v2_collectors[i]());
+			auto metric = sinsp_stats_v2_collectors[i]();
+			if (metric.name[0] != '\0')
+			{
+				// Check that metric is actually initialized,
+				// ie: it is not referencing m_sinsp_stats_v2
+				// when sinsp stats are not enabled.
+				m_metrics.emplace_back(metric);
+			}
 		}
 	}
 
 	/*
 	* plugins metrics
 	*/
-
 	if(m_metrics_flags & METRICS_V2_PLUGINS)
 	{
 		for (auto& p : m_inspector->get_plugin_manager()->plugins())
