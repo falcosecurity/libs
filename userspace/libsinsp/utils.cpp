@@ -968,7 +968,7 @@ void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns
 	time_t Time;
 	uint64_t sec = ts / ONE_SECOND_IN_NS;
 	uint64_t nsec = ts % ONE_SECOND_IN_NS;
-	static int32_t thiszone = -1;
+	thread_local int32_t thiszone = -1;
 
 	if (thiszone == -1)
 	{
