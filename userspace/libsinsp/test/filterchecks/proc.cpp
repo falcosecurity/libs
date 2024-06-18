@@ -138,13 +138,13 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr)
 
 	// Exec a process and check stdin, stdout and stderr types and names
 	evt = generate_execve_enter_and_exit_event(0, 1, 1, 1, 1, "/proc_filter_stdin_stdout_stderr", "proc_filter_stdin_stdout_stderr", "/usr/bin/proc_filter_stdin_stdout_stderr");
-	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdin.type"), "ipv4");
-	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdout.type"), "ipv4");
-	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stderr.type"), "ipv4");
+	ASSERT_EQ(get_field_as_string(evt, "proc.stdin.type"), "ipv4");
+	ASSERT_EQ(get_field_as_string(evt, "proc.stdout.type"), "ipv4");
+	ASSERT_EQ(get_field_as_string(evt, "proc.stderr.type"), "ipv4");
 
 	std::string tuple_str = std::string(DEFAULT_IPV4_CLIENT_STRING) + ":" + std::to_string(DEFAULT_CLIENT_PORT) + "->" + std::string(DEFAULT_IPV4_SERVER_STRING) + ":" + std::to_string(DEFAULT_SERVER_PORT);
-	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdin.name"), tuple_str);
-	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stdout.name"), tuple_str);
-	ASSERT_EQ(get_field_as_string(evt, "proc.fd.stderr.name"), tuple_str);
+	ASSERT_EQ(get_field_as_string(evt, "proc.stdin.name"), tuple_str);
+	ASSERT_EQ(get_field_as_string(evt, "proc.stdout.name"), tuple_str);
+	ASSERT_EQ(get_field_as_string(evt, "proc.stderr.name"), tuple_str);
 }
 #endif
