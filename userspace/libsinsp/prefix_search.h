@@ -23,6 +23,7 @@ limitations under the License.
 #include <string>
 #include <sstream>
 #include <list>
+#include <map>
 #include <unordered_map>
 
 #include <libsinsp/filter_value.h>
