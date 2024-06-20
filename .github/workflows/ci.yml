@@ -14,51 +14,79 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-libs-linux:
-    name: build-libs-linux-${{ matrix.arch }} 😁 (${{ matrix.name }})
-    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [amd64, arm64]
-        name: [system_deps, bundled_deps, system_deps_minimal, sanitizers]
-        include:
-          - name: system_deps
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
-          - name: bundled_deps
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
-          - name: system_deps_minimal
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
-          - name: sanitizers
-            cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
-    container:
-      image: debian:buster
-    steps:
-      - name: Install deps ⛓️
-        run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
+  build-system-dev:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: x86_64
+      bundled_deps: false
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: false
+      build_type: Debug
 
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          fetch-depth: 0
+  build-system-dev-arm64:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: aarch64
+      bundled_deps: false
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: false
+      build_type: Debug
 
-      - name: Install deps ⛓️
-        run: |
-          .github/install-deps.sh
+  build-system-dev-minimal:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: x86_64
+      bundled_deps: false
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: true
+      build_type: Debug
 
-      - name: Git safe directory
-        run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
+  build-system-dev-minimal-arm64:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: aarch64
+      bundled_deps: false
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: true
+      build_type: Debug
 
-      - name: Build and test 🏗️🧪
-        env:
-          UBSAN_OPTIONS: print_stacktrace=1
-        run: |
-          mkdir -p build
-          cd build && cmake ${{ matrix.cmake_opts }} ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-          make run-unit-tests
+  build-bundled-dev:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: x86_64
+      bundled_deps: true
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: false
+      build_type: Debug
+
+  build-bundled-dev-arm64:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: aarch64
+      bundled_deps: true
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: false
+      build_type: Debug
+
+  build-sanitizers-dev:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: x86_64
+      bundled_deps: false
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: false
+      build_type: Debug
+      sanitizers: true
+
+  build-sanitizers-dev-arm64:
+    uses: ./.github/workflows/reusable_build_dev.yaml
+    with:
+      arch: aarch64
+      bundled_deps: false
+      git_ref: ${{ github.event.pull_request.head.sha }}
+      minimal: false
+      build_type: Debug
+      sanitizers: true
 
   build-libs-linux-amd64-static:
     name: build-libs-linux-amd64-static 🎃
