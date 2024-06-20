@@ -17,6 +17,52 @@ jobs:
     uses: ./.github/workflows/reusable_kernel_tests.yaml
     secrets: inherit
 
+  perf-libs-master:
+    runs-on: [ "self-hosted", "linux", "X64" ]
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Run perf
+        id: perf
+        uses: ./.github/actions/composite-perf
+
+      - name: Archive master perf report
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: perf_report
+          retention-days: 30 # 30 days because this is the artifact on master; we need to retain it to be able to properly diff it
+          path: |
+            ${{ steps.perf.outputs.perf_tests }}
+            ${{ steps.perf.outputs.perf_scap }}
+          if-no-files-found: error
+
+      - name: Checkout Flamegraph ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: 'brendangregg/FlameGraph'
+          path: flamegraph
+          ref: master
+
+      - name: Generate svg file - unit tests
+        run: |
+          sudo perf script --dsos unit-test-libsinsp -i ${{ steps.perf.outputs.perf_tests }} > trace_tests.perf
+          ./flamegraph/stackcollapse-perf.pl trace_tests.perf > trace_tests.folded
+          ./flamegraph/flamegraph.pl trace_tests.folded > trace_tests.svg
+
+      - name: Generate svg file - scap file
+        run: |
+          sudo perf script --dsos sinsp-example -i ${{ steps.perf.outputs.perf_scap }} > trace_scap.perf
+          ./flamegraph/stackcollapse-perf.pl trace_scap.perf > trace_scap.folded
+          ./flamegraph/flamegraph.pl trace_scap.folded > trace_scap.svg 
+
+      - name: Upload svg files
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: perf_svg
+          path: trace_*.svg
+          if-no-files-found: error
+
   deploy-pages:
     needs: [kernel-tests-master]
     environment:
@@ -50,6 +96,20 @@ jobs:
       - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
         with:
           python-version: 3.x
+
+      - name: Download perf svg files
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: perf_svg
+
+      - name: Generate perf pages
+        run: |
+          python3 ./github/generate_inline_svg_md.py trace_tests.svg
+          mv out.md docs/unit_tests.md
+          rm -rf out.md
+          python3 ./github/generate_inline_svg_md.py trace_scap.svg
+          mv out.md docs/scap_file.md
+          rm -rf out.md    
           
       - run: pip install mkdocs mkdocs-material
       

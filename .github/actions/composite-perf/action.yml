@@ -1,0 +1,49 @@
+name: 'libs-perf'
+description: 'Run multiple perf tests on libs.'
+
+outputs:
+  perf_tests:
+    description: "Unit tests perf.data"
+    value: ${{ steps.store-outputs.outputs.tests }}
+  perf_scap:
+    description: "Scap file perf.data"
+    value: ${{ steps.store-outputs.outputs.scap }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install deps ⛓️
+      shell: bash
+      run: |
+        sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev
+        sudo .github/install-deps.sh
+
+    - name: Build
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build && cmake -DUSE_BUNDLED_DEPS=False ../
+        make unit-test-libsinsp -j4
+        make sinsp-example -j4
+
+    - name: Run Perf - unit tests
+      shell: bash
+      run: |
+        cd build
+        sudo perf record --call-graph dwarf -o perf_tests.data -q libsinsp/test/unit-test-libsinsp
+
+    - name: Run Perf - scap file
+      shell: bash
+      run: |
+        cd build
+        wget https://download.falco.org/fixtures/trace-files/traces-positive.zip
+        unzip traces-positive.zip
+        sudo perf record --call-graph dwarf -o perf_scap.data -q ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap   
+
+    - name: Set Outputs
+      id: store-outputs
+      shell: bash
+      run: |
+        cd build
+        echo "tests=$(realpath perf_tests.data)" >> $GITHUB_OUTPUT
+        echo "scap=$(realpath perf_scap.data)" >> $GITHUB_OUTPUT

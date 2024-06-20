@@ -11,3 +11,7 @@ Navigate to the Home of Falco Drivers Kernel Testing on the left, or click this 
 ## Supported Syscalls Report
 
 Navigate to the Home of Falco Drivers Syscalls Report on the left, or click this [link](syscalls.md), or directly proceed to the supported syscalls [report](report.md).
+
+## Perf Continuous Monitoring
+
+Navigate to the Home of Falco Perf Monitoring on the left, or click this [link](perf.md).
