@@ -9,5 +9,9 @@ nav:
     - Syscalls: 
       - syscalls.md
       - Report: report.md
+    - Perf:
+        - perf.md
+        - Unit tests: unit_tests.md
+        - Scap file: scap_file.md
 
 theme: material
