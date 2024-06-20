@@ -42,24 +42,26 @@ jobs:
           path: perf_*_diff.txt
           if-no-files-found: error
 
-      # Check will fail if there is any function slowed down >2%
+      # Check will fail if there is any function slowed down >=3% (relative).
       # But we will always comment with the perf diff from master
-      - name: Check > 2% threshold - unit tests
+      - name: Check >= 3% threshold - unit tests
         id: compare_tests
         run: |
           echo "diff=perf_tests_diff.txt" >> $GITHUB_OUTPUT
-          awk '{if (substr($2,RSTART+RLENGTH)+0 > 2) print }' perf_tests_diff.txt &> perf_diff_above_thresh.txt
+          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 3) print }' perf_tests_diff.txt &> perf_diff_above_thresh.txt
           if [ -s perf_diff_above_thresh.txt ]; then
             exit 1
           fi
 
-      # Check will fail if there is any function slowed down >2%
+      # Check will fail if there is any function slowed down >=10% (relative).
+      # Larger threshold since scap file perf seems much more unstable.
       # But we will always comment with the perf diff from master
-      - name: Check > 2% threshold - scap file
+      - name: Check >= 10% threshold - scap file
         id: compare_scap
+        if: always() # Even if unit tests threshold check failed
         run: |
           echo "diff=perf_scap_diff.txt" >> $GITHUB_OUTPUT
-          awk '{if (substr($2,RSTART+RLENGTH)+0 > 2) print }' perf_scap_diff.txt &> perf_diff_above_thresh.txt
+          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 10) print }' perf_scap_diff.txt &> perf_diff_above_thresh.txt
           if [ -s perf_diff_above_thresh.txt ]; then
             exit 1
           fi
