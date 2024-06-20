@@ -198,7 +198,8 @@ public:
 	*/
 	inline bool is_in_pid_namespace() const
 	{
-		return (m_flags & PPM_CL_CHILD_IN_PIDNS || m_tid != m_vtid);
+		// m_tid should be always valid because we read it from the scap event header
+		return (m_flags & PPM_CL_CHILD_IN_PIDNS || (m_tid != m_vtid && m_vtid >= 0));
 	}
 
 	/*!
