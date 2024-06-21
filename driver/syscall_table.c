@@ -438,6 +438,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_delete_module
 	[__NR_delete_module - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_DELETE_MODULE_E, PPME_SYSCALL_DELETE_MODULE_X, PPM_SC_DELETE_MODULE},
 #endif
+#ifdef __NR_setreuid
+	[__NR_setreuid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETREUID_E, PPME_SYSCALL_SETREUID_X, PPM_SC_SETREUID},
+#endif
+#ifdef __NR_setregid
+	[__NR_setregid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETREGID_E, PPME_SYSCALL_SETREGID_X, PPM_SC_SETREGID},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -505,13 +511,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_rt_sigqueueinfo - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RT_SIGQUEUEINFO},
 	[__NR_rt_sigsuspend - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RT_SIGSUSPEND},
 	[__NR_capget - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_CAPGET},
-
-#ifdef __NR_setreuid
-	[__NR_setreuid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETREUID_E, PPME_SYSCALL_SETREUID_X, PPM_SC_SETREUID},
-#endif
-#ifdef __NR_setregid
-	[__NR_setregid - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_SETREGID_E, PPME_SYSCALL_SETREGID_X, PPM_SC_SETREGID},
-#endif
 	[__NR_getgroups - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_GETGROUPS},
 	[__NR_setgroups - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SETGROUPS},
 #ifdef __NR_fchown

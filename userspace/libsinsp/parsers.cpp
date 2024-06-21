@@ -4903,14 +4903,15 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
 	//
 	retval = evt->get_param(0)->as<int64_t>();
 
-	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	if(retval == 0 && retrieve_enter_event(enter_evt, evt))
 	{
 		uint32_t new_euid = enter_evt->get_param(1)->as<uint32_t>();
 
 		if(new_euid < std::numeric_limits<uint32_t>::max())
 		{
-			if (evt->get_thread_info()) {
-				evt->get_thread_info()->set_user(new_euid);
+			sinsp_threadinfo* ti = evt->get_thread_info();
+			if (ti) {
+				ti->set_user(new_euid);
 			}
 		}
 	}
@@ -4925,14 +4926,15 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt *evt)
 	//
 	retval = evt->get_param(0)->as<int64_t>();
 
-	if(retval >= 0)
+	if(retval == 0)
 	{
 		uint32_t new_euid = evt->get_param(1)->as<uint32_t>();
 
 		if(new_euid < std::numeric_limits<uint32_t>::max())
 		{
-			if (evt->get_thread_info()) {
-				evt->get_thread_info()->set_user(new_euid);
+			sinsp_threadinfo* ti = evt->get_thread_info();
+			if (ti) {
+				ti->set_user(new_euid);
 			}
 		}
 	}
@@ -4948,14 +4950,15 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
 	//
 	retval = evt->get_param(0)->as<int64_t>();
 
-	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	if(retval == 0 && retrieve_enter_event(enter_evt, evt))
 	{
 		uint32_t new_egid = enter_evt->get_param(1)->as<uint32_t>();
 
 		if(new_egid < std::numeric_limits<uint32_t>::max())
 		{
-			if (evt->get_thread_info()) {
-				evt->get_thread_info()->set_group(new_egid);
+			sinsp_threadinfo* ti = evt->get_thread_info();
+			if (ti) {
+				ti->set_group(new_egid);
 			}
 		}
 	}
@@ -4970,14 +4973,15 @@ void sinsp_parser::parse_setregid_exit(sinsp_evt *evt)
 	//
 	retval = evt->get_param(0)->as<int64_t>();
 
-	if(retval >= 0)
+	if(retval == 0)
 	{
 		uint32_t new_egid = evt->get_param(1)->as<uint32_t>();
 
 		if(new_egid < std::numeric_limits<uint32_t>::max())
 		{
-			if (evt->get_thread_info()) {
-				evt->get_thread_info()->set_group(new_egid);
+			sinsp_threadinfo* ti = evt->get_thread_info();
+			if (ti) {
+				ti->set_group(new_egid);
 			}
 		}
 	}
@@ -4993,11 +4997,12 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt)
 	//
 	retval = evt->get_param(0)->as<int64_t>();
 
-	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	if(retval == 0 && retrieve_enter_event(enter_evt, evt))
 	{
 		uint32_t new_euid = enter_evt->get_param(0)->as<uint32_t>();
-		if (evt->get_thread_info()) {
-			evt->get_thread_info()->set_user(new_euid);
+		sinsp_threadinfo* ti = evt->get_thread_info();
+		if (ti) {
+			ti->set_user(new_euid);
 		}
 	}
 }
@@ -5012,11 +5017,12 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 	//
 	retval = evt->get_param(0)->as<int64_t>();
 
-	if(retval >= 0 && retrieve_enter_event(enter_evt, evt))
+	if(retval == 0 && retrieve_enter_event(enter_evt, evt))
 	{
 		uint32_t new_egid = enter_evt->get_param(0)->as<uint32_t>();
-		if (evt->get_thread_info()) {
-			evt->get_thread_info()->set_group(new_egid);
+		sinsp_threadinfo* ti = evt->get_thread_info();
+		if (ti) {
+			ti->set_group(new_egid);
 		}
 	}
 }
