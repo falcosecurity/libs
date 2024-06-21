@@ -42,12 +42,36 @@ jobs:
           path: perf_*_diff.txt
           if-no-files-found: error
 
+      - name: Save PR info
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.number }} > ./pr/NR
+          touch ./pr/COMMENT
+          echo "# Perf diff from master - unit tests" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          head -n10 "perf_tests_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo "" >> ./pr/COMMENT
+          echo "# Perf diff from master - scap file" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          head -n10 "perf_scap_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo Uploading PR info...
+          cat ./pr/COMMENT
+          echo ""
+
+      - name: Upload PR info as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr
+          path: pr/
+          retention-days: 1
+          if-no-files-found: warn
+
       # Check will fail if there is any function slowed down >=3% (relative).
       # But we will always comment with the perf diff from master
       - name: Check >= 3% threshold - unit tests
-        id: compare_tests
         run: |
-          echo "diff=perf_tests_diff.txt" >> $GITHUB_OUTPUT
           awk '{if (substr($2,RSTART+RLENGTH)+0 >= 3) print }' perf_tests_diff.txt &> perf_diff_above_thresh.txt
           if [ -s perf_diff_above_thresh.txt ]; then
             exit 1
@@ -57,39 +81,9 @@ jobs:
       # Larger threshold since scap file perf seems much more unstable.
       # But we will always comment with the perf diff from master
       - name: Check >= 10% threshold - scap file
-        id: compare_scap
         if: always() # Even if unit tests threshold check failed
         run: |
-          echo "diff=perf_scap_diff.txt" >> $GITHUB_OUTPUT
           awk '{if (substr($2,RSTART+RLENGTH)+0 >= 10) print }' perf_scap_diff.txt &> perf_diff_above_thresh.txt
           if [ -s perf_diff_above_thresh.txt ]; then
             exit 1
           fi
-
-      - name: Save PR info
-        if: always()
-        run: |
-          mkdir -p ./pr
-          echo ${{ github.event.number }} > ./pr/NR
-          touch ./pr/COMMENT
-          echo "# Perf diff from master - unit tests" >> ./pr/COMMENT
-          echo "\`\`\`" >> ./pr/COMMENT
-          head -n10 "${{ steps.compare_tests.outputs.diff }}" >> ./pr/COMMENT
-          echo "\`\`\`" >> ./pr/COMMENT
-          echo "" >> ./pr/COMMENT
-          echo "# Perf diff from master - scap file" >> ./pr/COMMENT
-          echo "\`\`\`" >> ./pr/COMMENT
-          head -n10 "${{ steps.compare_scap.outputs.diff }}" >> ./pr/COMMENT
-          echo "\`\`\`" >> ./pr/COMMENT
-          echo Uploading PR info...
-          cat ./pr/COMMENT
-          echo ""
-
-      - name: Upload PR info as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr
-          path: pr/
-          retention-days: 1
-          if-no-files-found: warn
