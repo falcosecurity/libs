@@ -104,10 +104,10 @@ jobs:
 
       - name: Generate perf pages
         run: |
-          python3 ./github/generate_inline_svg_md.py trace_tests.svg
+          python3 .github/generate_inline_svg_md.py trace_tests.svg
           mv out.md docs/unit_tests.md
           rm -rf out.md
-          python3 ./github/generate_inline_svg_md.py trace_scap.svg
+          python3 .github/generate_inline_svg_md.py trace_scap.svg
           mv out.md docs/scap_file.md
           rm -rf out.md    
           
