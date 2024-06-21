@@ -101,10 +101,10 @@ jobs:
       - name: Generate perf pages
         run: |
           mv trace_tests.svg docs/trace_tests.svg
-          echo '![unit tests](./trace_tests.svg)' > docs/unit_tests.md
+          echo '<object data="../trace_tests.svg" type="image/svg+xml" id="unit_tests"></object>' > docs/unit_tests.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/unit_tests.md
           mv trace_scap.svg docs/trace_scap.svg
-          echo '![scap file](./trace_scap.svg)' > docs/scap_file.md
+          echo '<object data="../trace_scap.svg" type="image/svg+xml" id="scap_file"></object>' > docs/scap_file.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/scap_file.md
 
       - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
