@@ -106,11 +106,11 @@ jobs:
         run: |
           python3 .github/generate_inline_svg_md.py trace_tests.svg
           mv out.md docs/unit_tests.md
-          rm -rf out.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/unit_tests.md
           python3 .github/generate_inline_svg_md.py trace_scap.svg
           mv out.md docs/scap_file.md
-          rm -rf out.md    
-          
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/scap_file.md
+
       - run: pip install mkdocs mkdocs-material
       
       - run: mkdocs build
