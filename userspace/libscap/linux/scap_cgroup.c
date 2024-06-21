@@ -496,6 +496,11 @@ static int32_t get_cgroup_subsystems_v2(struct scap_cgroup_interface* cgi, struc
 
 	char line[SCAP_MAX_PATH_SIZE];
 	snprintf(line, sizeof(line), "%s/cgroup.controllers", cgroup_mount);
+	if (access(line, F_OK) == -1) {
+                // If the file does not exist, return success. Skip
+                return SCAP_SUCCESS;
+        }
+
 	FILE* cgroup_controllers = fopen(line, "r");
 	if(!cgroup_controllers)
 	{
