@@ -93,10 +93,6 @@ jobs:
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_X64.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_ARM64.md
 
-      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
-        with:
-          python-version: 3.x
-
       - name: Download perf svg files
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
@@ -104,12 +100,16 @@ jobs:
 
       - name: Generate perf pages
         run: |
-          python3 .github/generate_inline_svg_md.py trace_tests.svg
-          mv out.md docs/unit_tests.md
+          mv trace_tests.svg docs/trace_tests.svg
+          echo '![unit tests](./trace_tests.svg)' > docs/unit_tests.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/unit_tests.md
-          python3 .github/generate_inline_svg_md.py trace_scap.svg
-          mv out.md docs/scap_file.md
+          mv trace_scap.svg docs/trace_scap.svg
+          echo '![scap file](./trace_scap.svg)' > docs/scap_file.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/scap_file.md
+
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+        with:
+          python-version: 3.x
 
       - run: pip install mkdocs mkdocs-material
       
