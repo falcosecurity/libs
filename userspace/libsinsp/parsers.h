@@ -105,8 +105,10 @@ private:
 	void parse_prctl_exit_event(sinsp_evt *evt);
 	void parse_context_switch(sinsp_evt* evt);
 	void parse_brk_munmap_mmap_exit(sinsp_evt* evt);
-	void parse_setresuid_setreuid_exit(sinsp_evt* evt);
-	void parse_setresgid_setregid_exit(sinsp_evt* evt);
+	void parse_setresuid_exit(sinsp_evt* evt);
+	void parse_setreuid_exit(sinsp_evt* evt);
+	void parse_setresgid_exit(sinsp_evt* evt);
+	void parse_setregid_exit(sinsp_evt* evt);
 	void parse_setuid_exit(sinsp_evt* evt);
 	void parse_setgid_exit(sinsp_evt* evt);
 	void parse_container_evt(sinsp_evt* evt); // deprecated, only for backward-compatibility

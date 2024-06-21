@@ -25,14 +25,6 @@ int BPF_PROG(setreuid_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: ruid (type: PT_GID) */
-	uid_t ruid = (uint32_t)extract__syscall_argument(regs, 0);
-	ringbuf__store_u32(&ringbuf, ruid);
-
-	/* Parameter 2: euid (type: PT_GID) */
-	uid_t euid = (uint32_t)extract__syscall_argument(regs, 1);
-	ringbuf__store_u32(&ringbuf, euid);
-
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
@@ -61,6 +53,14 @@ int BPF_PROG(setreuid_x,
 
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: ruid (type: PT_GID) */
+	uid_t ruid = (uint32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_u32(&ringbuf, ruid);
+
+	/* Parameter 3: euid (type: PT_GID) */
+	uid_t euid = (uint32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_u32(&ringbuf, euid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

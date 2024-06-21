@@ -31,14 +31,10 @@ TEST(SyscallEnter, setreuidE)
 
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
-    /* Parameter 1: ruid (type: PT_GID) */
-    evt_test->assert_numeric_param(1, (uint32_t)ruid);
-
-    /* Parameter 2: euid (type: PT_GID) */
-    evt_test->assert_numeric_param(2, (uint32_t)euid);
+	// Here we have no parameters to assert.
 
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
-    evt_test->assert_num_params_pushed(2);
+    evt_test->assert_num_params_pushed(0);
 }
 #endif

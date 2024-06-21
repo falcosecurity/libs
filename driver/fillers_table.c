@@ -363,8 +363,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PROCESS_VM_WRITEV_X] = {FILLER_REF(sys_process_vm_writev_x)},
 	[PPME_SYSCALL_DELETE_MODULE_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_DELETE_MODULE_X] = {FILLER_REF(sys_delete_module_x)},
-	[PPME_SYSCALL_SETREUID_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_SETREUID_X] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_RETVAL} } },
-	[PPME_SYSCALL_SETREGID_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{0}, {1} } },
-	[PPME_SYSCALL_SETREGID_X] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_RETVAL} } },
+	[PPME_SYSCALL_SETREUID_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_SETREUID_X] = {FILLER_REF(sys_autofill), 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
+	[PPME_SYSCALL_SETREGID_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_SETREGID_X] = {FILLER_REF(sys_autofill), 3, APT_REG, {{AF_ID_RETVAL}, {0}, {1} } },
 };
