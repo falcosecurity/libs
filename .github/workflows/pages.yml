@@ -64,7 +64,7 @@ jobs:
           if-no-files-found: error
 
   deploy-pages:
-    needs: [kernel-tests-master]
+    needs: [kernel-tests-master,perf-libs-master]
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
