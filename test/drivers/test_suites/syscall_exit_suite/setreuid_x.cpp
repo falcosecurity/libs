@@ -34,8 +34,14 @@ TEST(SyscallExit, setreuidX)
     /* Parameter 1: res (type: PT_ERRNO) */
     evt_test->assert_numeric_param(1, (int64_t)0);
 
+    /* Parameter 2: ruid (type: PT_GID) */
+    evt_test->assert_numeric_param(2, (uint32_t)ruid);
+
+    /* Parameter 3: euid (type: PT_GID) */
+    evt_test->assert_numeric_param(3, (uint32_t)euid);
+
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
-    evt_test->assert_num_params_pushed(1);
+    evt_test->assert_num_params_pushed(3);
 }
 #endif

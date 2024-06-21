@@ -34,8 +34,14 @@ TEST(SyscallExit, setregidX)
     /* Parameter 1: res (type: PT_ERRNO) */
     evt_test->assert_numeric_param(1, (int64_t)0);
 
+    /* Parameter 1: rgid (type: PT_GID) */
+    evt_test->assert_numeric_param(2, (uint32_t)rgid);
+
+    /* Parameter 2: egid (type: PT_GID) */
+    evt_test->assert_numeric_param(3, (uint32_t)egid);
+
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
-    evt_test->assert_num_params_pushed(1);
+    evt_test->assert_num_params_pushed(3);
 }
 #endif
