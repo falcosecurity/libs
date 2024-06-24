@@ -44,13 +44,23 @@ static int libbpf_print(enum libbpf_print_level level, const char* format, va_li
 	if(g_state.log_fn == NULL)
 		return vfprintf(stderr, format, args);
 
-	char buf[4096];
-	int rc = vsnprintf(buf, sizeof(buf), format, args);
+	// This should be already allocated by the caller, but if for some reason libbpf wants to log again after initialization we create a smaller buffer.
+	// We need a big buffer only for verifier logs at initialization time.
+	if(g_state.log_buf == NULL)
+	{
+		g_state.log_buf_size = 0;
+		// this will be freed when the global state is destroyed.
+		g_state.log_buf = calloc(1, BPF_LOG_SMALL_BUF_SIZE);
+		if(g_state.log_buf == NULL)
+			return -ENOMEM;
+		g_state.log_buf_size = BPF_LOG_SMALL_BUF_SIZE;
+	}
+	int rc = vsnprintf(g_state.log_buf, g_state.log_buf_size, format, args);
 	if(rc < 0)
 		return rc;
 
 	// don't need a component name for libbpf, it will prepend "libbpf: " to logs for us
-	g_state.log_fn(NULL, buf, sev);
+	g_state.log_fn(NULL, g_state.log_buf, sev);
 	return rc;
 }
 
@@ -73,6 +83,12 @@ void pman_clear_state()
 	g_state.n_attached_progs = 0;
 	g_state.stats = NULL;
 	g_state.log_fn = NULL;
+	if(g_state.log_buf)
+	{
+		free(g_state.log_buf);
+	}
+	g_state.log_buf = NULL;
+	g_state.log_buf_size = 0;
 }
 
 int pman_init_state(falcosecurity_log_fn log_fn, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer,
@@ -88,6 +104,11 @@ int pman_init_state(falcosecurity_log_fn log_fn, unsigned long buf_bytes_dim, ui
 
 	/* Set libbpf logging. */
 	g_state.log_fn = log_fn;
+	// we allocate a big buffer for verifier logs we will free it after initialization.
+	g_state.log_buf = calloc(1, BPF_LOG_BIG_BUF_SIZE);
+	if(g_state.log_buf == NULL)
+		return -ENOMEM;
+	g_state.log_buf_size = BPF_LOG_BIG_BUF_SIZE;
 	libbpf_set_print(libbpf_print);
 
 	/* Bump rlimit in any case. We need to do that because some kernels backport

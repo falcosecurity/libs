@@ -70,6 +70,13 @@ int pman_load_probe()
 		return errno;
 	}
 	pman_save_attached_progs();
+	// Programs are loaded so we passed the verifier we can free the 16 MB
+	if(g_state.log_buf)
+	{
+		free(g_state.log_buf);
+		g_state.log_buf = NULL;
+		g_state.log_buf_size = 0;
+	}
 	return 0;
 }
 
