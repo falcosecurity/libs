@@ -11,7 +11,9 @@ nav:
       - Report: report.md
     - Perf:
         - perf.md
-        - Unit tests: unit_tests.md
-        - Scap file: scap_file.md
+        - Perf Unit Tests: perf_unit_tests.md
+        - Perf Scap File: perf_scap_file.md
+        - Memory Unit Tests: heaptrack_unit_tests.md
+        - Memory Scap File: heaptrack_scap_file.md
 
 theme: material
