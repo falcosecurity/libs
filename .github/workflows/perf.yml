@@ -37,11 +37,11 @@ jobs:
 
       - name: Diff from master - heaptrack unit tests
         run: |
-          heaptrack_print heaptrack_tests.data -d ${{ steps.perf.outputs.heaptrack_tests }} &> heaptrack_tests_diff.txt
+          sudo heaptrack_print heaptrack_tests.data -d ${{ steps.perf.outputs.heaptrack_tests }} &> heaptrack_tests_diff.txt
 
       - name: Diff from master - heaptrack scap file
         run: |
-          heaptrack_print heaptrack_scap.data -d ${{ steps.perf.outputs.heaptrack_scap }} &> heaptrack_scap_diff.txt    
+          sudo heaptrack_print heaptrack_scap.data -d ${{ steps.perf.outputs.heaptrack_scap }} &> heaptrack_scap_diff.txt
 
       - name: Archive perf diff
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
@@ -86,41 +86,50 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
-      # Check will fail if there is any function slowed down >=3% (relative).
+      # Check will fail if sum of all differences is >= 1%.
       # But we will always comment with the perf diff from master
-      - name: Check >= 3% threshold - perf unit tests
+      - name: Check >= 1% threshold - perf unit tests
         if: always()
         run: |
-          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 3) print }' perf_tests_diff.txt &> perf_tests_diff_above_thresh.txt
-          if [ -s perf_tests_diff_above_thresh.txt ]; then
+          sum=$(awk '{sum+=sprintf("%f",$2)}END{printf "%.6f\n",sum}' perf_tests_diff.txt | tr ',' '.')
+          if (( $(echo "$sum >= 1.0" | bc -l) )); then
             exit 1
           fi
 
-      # Check will fail if there is any function slowed down >=10% (relative).
-      # Larger threshold since scap file perf seems much more unstable.
+      # Check will fail if sum of all differences is >= 1%.
       # But we will always comment with the perf diff from master
-      - name: Check >= 10% threshold - perf scap file
+      - name: Check >= 1% threshold - perf scap file
         if: always() # Even if other threshold checks failed
         run: |
-          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 10) print }' perf_scap_diff.txt &> perf_scap_diff_above_thresh.txt
-          if [ -s perf_scap_diff_above_thresh.txt ]; then
+          sum=$(awk '{sum+=sprintf("%f",$2)}END{printf "%.6f\n",sum}' perf_scap_diff.txt | tr ',' '.')
+          if (( $(echo "$sum >= 1.0" | bc -l) )); then
             exit 1
           fi
 
-      # Check will fail if there is any heap memory usage difference > 1M.
-      - name: Check >= 1M - heaptrack unit tests
+      # Check will fail if there is any heap memory usage difference >= 1M,
+      # or if there is new memory leaked.
+      - name: Check >= 1M threshold or new leaked mem - heaptrack unit tests
         if: always() # Even if other threshold checks failed
         run: |
-          tail -n 6 heaptrack_tests_diff.txt | grep "peak heap" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_tests_diff_above_thresh.txt
+          tail -n 6 heaptrack_tests_diff.txt | grep "peak heap memory consumption" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_tests_diff_above_thresh.txt
           if [ -s heaptrack_tests_diff_above_thresh.txt ]; then
             exit 1
           fi
+          tail -n 6 heaptrack_scap_diff.txt | grep "total memory leaked" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 > 0) print }' &> heaptrack_scap_diff_above_thresh.txt
+          if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
+            exit 2
+          fi
 
-      # Check will fail if there is any heap memory usage difference > 1M.
-      - name: Check >= 1M - heaptrack scap file
+      # Check will fail if there is any heap memory usage difference >= 1M,
+      # or if there is new memory leaked.
+      - name: Check >= 1M threshold or new leaked mem - heaptrack scap file
         if: always() # Even if other threshold checks failed
         run: |
-          tail -n 6 heaptrack_scap_diff.txt | grep "peak heap" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_scap_diff_above_thresh.txt
+          tail -n 6 heaptrack_scap_diff.txt | grep "peak heap memory consumption" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_scap_diff_above_thresh.txt
           if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
             exit 1
+          fi
+          tail -n 6 heaptrack_scap_diff.txt | grep "total memory leaked" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 > 0) print }' &> heaptrack_scap_diff_above_thresh.txt
+          if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
+            exit 2
           fi
