@@ -29,23 +29,32 @@ limitations under the License.
 
 struct sinsp_stats_v2
 {
+	///@(
+	/** fdtable state related counters, unit: count. */
 	uint64_t m_n_noncached_fd_lookups;
 	uint64_t m_n_cached_fd_lookups;
 	uint64_t m_n_failed_fd_lookups;
 	uint64_t m_n_added_fds;
 	uint64_t m_n_removed_fds;
+	///@)
+	///@(
+	/** evt parsing related counters, unit: count. */
 	uint64_t m_n_stored_evts;
 	uint64_t m_n_store_evts_drops;
 	uint64_t m_n_retrieved_evts;
 	uint64_t m_n_retrieve_evts_drops;
+	///@)
+	///@(
+	/** threadtable state related counters, unit: count. */
 	uint64_t m_n_noncached_thread_lookups;
 	uint64_t m_n_cached_thread_lookups;
 	uint64_t m_n_failed_thread_lookups;
 	uint64_t m_n_added_threads;
 	uint64_t m_n_removed_threads;
-	uint32_t m_n_drops_full_threadtable;
-	uint32_t m_n_missing_container_images;
-	uint32_t m_n_containers;
+	///@)
+	uint32_t m_n_drops_full_threadtable; ///< Number of drops due to full threadtable, unit: count.
+	uint32_t m_n_missing_container_images; ///<  Number of cached containers (cgroups) without container info such as image, hijacked sinsp_container_manager::remove_inactive_containers() -> every flush snapshot update, unit: count.
+	uint32_t m_n_containers; ///<  Number of containers (cgroups) currently cached by sinsp_container_manager, hijacked sinsp_container_manager::remove_inactive_containers() -> every flush snapshot update, unit: count.
 };
 
 #ifdef __linux__
@@ -277,16 +286,18 @@ private:
 	void get_rss_vsz_pss_total_memory_and_open_fds();
 	void get_container_memory_used();
 
-	double m_start_time{};
-	double m_cpu_usage_perc{};
-	double m_host_cpu_usage_perc{};
-	uint32_t m_host_procs_running{};
-	uint32_t m_rss{};
-	uint32_t m_vsz{};
-	uint32_t m_pss{};
-	uint64_t m_host_memory_used{};
-	uint64_t m_host_open_fds{};
-	uint64_t m_container_memory_used{};
+	double m_cpu_usage_perc{}; ///< Current CPU usage, `ps` util like calculation for the calling process (/proc/self), unit: percentage of one CPU.
+
+	uint32_t m_rss{}; ///< Current RSS (Resident Set Size), calculated based on /proc/self/status info, unit: kb.
+	uint32_t m_vsz{}; ///< Current VSZ (Virtual Memory Size), calculated based on /proc/self/status info, unit: kb.
+	uint32_t m_pss{}; ///< Current PSS (Proportional Set Size), calculated based on /proc/self/smaps_rollup info, unit: kb.
+
+	uint64_t m_container_memory_used{}; ///< Cgroup current memory used, default Kubernetes /sys/fs/cgroup/memory/memory.usage_in_bytes, unit: bytes.
+
+	double m_host_cpu_usage_perc{};  ///< Current total host CPU usage (all CPUs), calculated based on ${HOST_ROOT}/proc/stat info, unit: percentage.
+	uint64_t m_host_memory_used{};   ///< Current total memory used out of available host memory, calculated based on ${HOST_ROOT}/proc/meminfo info, unit: kb.
+	uint32_t m_host_procs_running{}; ///< Number of processes currently running on CPUs on the host, retrieved from ${HOST_ROOT}/proc/stat line `procs_running`, unit: count.
+	uint64_t m_host_open_fds{};      ///< Number of allocated fds on the host, retrieved from ${HOST_ROOT}/proc/sys/fs/file-nr, unit: count.
 };
 
 class libs_state_counters : libsinsp_metrics
@@ -298,8 +309,9 @@ public:
 
 private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
-	uint64_t m_n_fds;
-	uint64_t m_n_threads;
+
+	uint64_t m_n_fds;     ///< Total number of fds currently stored across all threadtables associated with each active thread in the sinsp state thread table, unit: count.
+	uint64_t m_n_threads; ///< Total number of threads currently stored in the sinsp state thread table, unit: count.
 };
 
 class libs_metrics_collector
