@@ -35,6 +35,8 @@ jobs:
           path: |
             ${{ steps.perf.outputs.perf_tests }}
             ${{ steps.perf.outputs.perf_scap }}
+            ${{ steps.perf.outputs.heaptrack_tests }}
+            ${{ steps.perf.outputs.heaptrack_scap }}
           if-no-files-found: error
 
       - name: Checkout Flamegraph ⤵️
@@ -44,23 +46,35 @@ jobs:
           path: flamegraph
           ref: master
 
-      - name: Generate svg file - unit tests
+      - name: Generate svg file - perf unit tests
         run: |
-          sudo perf script --dsos unit-test-libsinsp -i ${{ steps.perf.outputs.perf_tests }} > trace_tests.perf
-          ./flamegraph/stackcollapse-perf.pl trace_tests.perf > trace_tests.folded
-          ./flamegraph/flamegraph.pl trace_tests.folded > trace_tests.svg
+          sudo perf script --dsos unit-test-libsinsp -i ${{ steps.perf.outputs.perf_tests }} > perf_tests.perf
+          ./flamegraph/stackcollapse-perf.pl perf_tests.perf > perf_tests.folded
+          ./flamegraph/flamegraph.pl perf_tests.folded > perf_tests.svg
 
-      - name: Generate svg file - scap file
+      - name: Generate svg file - perf scap file
         run: |
-          sudo perf script --dsos sinsp-example -i ${{ steps.perf.outputs.perf_scap }} > trace_scap.perf
-          ./flamegraph/stackcollapse-perf.pl trace_scap.perf > trace_scap.folded
-          ./flamegraph/flamegraph.pl trace_scap.folded > trace_scap.svg 
+          sudo perf script --dsos sinsp-example -i ${{ steps.perf.outputs.perf_scap }} > perf_scap.perf
+          ./flamegraph/stackcollapse-perf.pl perf_scap.perf > perf_scap.folded
+          ./flamegraph/flamegraph.pl perf_scap.folded > perf_scap.svg
+
+      - name: Generate svg file - heaptrack unit tests
+        run: |
+          heaptrack_print ${{ steps.perf.outputs.heaptrack_tests }} -F stacks.txt
+          ./flamegraph/flamegraph.pl stacks.txt > heaptrack_tests.svg
+          rm -rf stacks.txt
+
+      - name: Generate svg file - heaptrack scap file
+        run: |
+          heaptrack_print ${{ steps.perf.outputs.heaptrack_scap }} -F stacks.txt
+          ./flamegraph/flamegraph.pl stacks.txt > heaptrack_scap.svg
+          rm -rf stacks.txt
 
       - name: Upload svg files
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: perf_svg
-          path: trace_*.svg
+          path: '*.svg'
           if-no-files-found: error
 
   deploy-pages:
@@ -100,12 +114,18 @@ jobs:
 
       - name: Generate perf pages
         run: |
-          mv trace_tests.svg docs/trace_tests.svg
-          echo '<object data="../trace_tests.svg" type="image/svg+xml" id="unit_tests"></object>' > docs/unit_tests.md
-          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/unit_tests.md
-          mv trace_scap.svg docs/trace_scap.svg
-          echo '<object data="../trace_scap.svg" type="image/svg+xml" id="scap_file"></object>' > docs/scap_file.md
-          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/scap_file.md
+          mv perf_tests.svg docs/
+          echo '<object data="../perf_tests.svg" type="image/svg+xml" id="perf_unit_tests"></object>' > docs/perf_unit_tests.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/perf_unit_tests.md
+          mv perf_scap.svg docs/
+          echo '<object data="../perf_scap.svg" type="image/svg+xml" id="perf_scap_file"></object>' > docs/perf_scap_file.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/perf_scap_file.md
+          mv heaptrack_tests.svg docs/
+          echo '<object data="../heaptrack_tests.svg" type="image/svg+xml" id="heaptrack_unit_tests"></object>' > docs/heaptrack_unit_tests.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/heaptrack_unit_tests.md
+          mv heaptrack_scap.svg docs/
+          echo '<object data="../heaptrack_scap.svg" type="image/svg+xml" id="heaptrack_scap_file"></object>' > docs/heaptrack_scap_file.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/heaptrack_scap_file.md
 
       - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
         with:

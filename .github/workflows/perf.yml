@@ -27,19 +27,27 @@ jobs:
           event: push
           name: perf_report
 
-      - name: Diff from master - unit tests
+      - name: Diff from master - perf unit tests
         run: |
           sudo perf diff perf_tests.data ${{ steps.perf.outputs.perf_tests }} -d unit-test-libsinsp -b -o 1 --percentage relative -q &> perf_tests_diff.txt
 
-      - name: Diff from master - scap file
+      - name: Diff from master - perf scap file
         run: |
           sudo perf diff perf_scap.data ${{ steps.perf.outputs.perf_scap }} -d sinsp-example -b -o 1 --percentage relative -q &> perf_scap_diff.txt    
+
+      - name: Diff from master - heaptrack unit tests
+        run: |
+          heaptrack_print heaptrack_tests.data -d ${{ steps.perf.outputs.heaptrack_tests }} &> heaptrack_tests_diff.txt
+
+      - name: Diff from master - heaptrack scap file
+        run: |
+          heaptrack_print heaptrack_scap.data -d ${{ steps.perf.outputs.heaptrack_scap }} &> heaptrack_scap_diff.txt    
 
       - name: Archive perf diff
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
           name: perf_diff
-          path: perf_*_diff.txt
+          path: '*_diff.txt'
           if-no-files-found: error
 
       - name: Save PR info
@@ -56,6 +64,16 @@ jobs:
           echo "\`\`\`" >> ./pr/COMMENT
           head -n10 "perf_scap_diff.txt" >> ./pr/COMMENT
           echo "\`\`\`" >> ./pr/COMMENT
+          echo "" >> ./pr/COMMENT
+          echo "# Heap diff from master - unit tests" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          tail -n6 "heaptrack_tests_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo "" >> ./pr/COMMENT
+          echo "# Heap diff from master - scap file" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          tail -n6 "heaptrack_scap_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
           echo Uploading PR info...
           cat ./pr/COMMENT
           echo ""
@@ -70,20 +88,39 @@ jobs:
 
       # Check will fail if there is any function slowed down >=3% (relative).
       # But we will always comment with the perf diff from master
-      - name: Check >= 3% threshold - unit tests
+      - name: Check >= 3% threshold - perf unit tests
+        if: always()
         run: |
-          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 3) print }' perf_tests_diff.txt &> perf_diff_above_thresh.txt
-          if [ -s perf_diff_above_thresh.txt ]; then
+          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 3) print }' perf_tests_diff.txt &> perf_tests_diff_above_thresh.txt
+          if [ -s perf_tests_diff_above_thresh.txt ]; then
             exit 1
           fi
 
       # Check will fail if there is any function slowed down >=10% (relative).
       # Larger threshold since scap file perf seems much more unstable.
       # But we will always comment with the perf diff from master
-      - name: Check >= 10% threshold - scap file
-        if: always() # Even if unit tests threshold check failed
+      - name: Check >= 10% threshold - perf scap file
+        if: always() # Even if other threshold checks failed
         run: |
-          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 10) print }' perf_scap_diff.txt &> perf_diff_above_thresh.txt
-          if [ -s perf_diff_above_thresh.txt ]; then
+          awk '{if (substr($2,RSTART+RLENGTH)+0 >= 10) print }' perf_scap_diff.txt &> perf_scap_diff_above_thresh.txt
+          if [ -s perf_scap_diff_above_thresh.txt ]; then
+            exit 1
+          fi
+
+      # Check will fail if there is any heap memory usage difference > 1M.
+      - name: Check >= 1M - heaptrack unit tests
+        if: always() # Even if other threshold checks failed
+        run: |
+          tail -n 6 heaptrack_tests_diff.txt | grep "peak heap" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_tests_diff_above_thresh.txt
+          if [ -s heaptrack_tests_diff_above_thresh.txt ]; then
+            exit 1
+          fi
+
+      # Check will fail if there is any heap memory usage difference > 1M.
+      - name: Check >= 1M - heaptrack scap file
+        if: always() # Even if other threshold checks failed
+        run: |
+          tail -n 6 heaptrack_scap_diff.txt | grep "peak heap" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_scap_diff_above_thresh.txt
+          if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
             exit 1
           fi

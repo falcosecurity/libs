@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include <libsinsp/utils.h>
+#include <libsinsp/sinsp_exception.h>
 
 TEST(sinsp_utils_test, concatenate_paths)
 {
@@ -214,9 +215,12 @@ TEST(sinsp_utils_test, sinsp_split_check_terminator)
 	// check that the null terminator is enforced
 	const char *in = "hello\0worlddd";
 	size_t len = 13;
+#ifdef _DEBUG
+	EXPECT_THROW(sinsp_split(in, len, '\0'), sinsp_exception);
+#else
 	auto split = sinsp_split(in, len, '\0');
-
 	EXPECT_EQ(split.size(), 2);
 	EXPECT_EQ(split[0], "hello");
 	EXPECT_EQ(split[1], "worldd");
+#endif
 }
