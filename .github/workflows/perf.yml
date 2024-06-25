@@ -22,10 +22,10 @@ jobs:
       - name: Download latest master report
         uses: dawidd6/action-download-artifact@v6
         with:
-          search_artifacts: true
           branch: master
           event: push
           name: perf_report
+          workflow: pages.yml
 
       - name: Diff from master - perf unit tests
         run: |
