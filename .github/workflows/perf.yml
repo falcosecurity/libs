@@ -37,11 +37,11 @@ jobs:
 
       - name: Diff from master - heaptrack unit tests
         run: |
-          sudo heaptrack_print heaptrack_tests.data -d ${{ steps.perf.outputs.heaptrack_tests }} &> heaptrack_tests_diff.txt
+          sudo heaptrack_print heaptrack_tests.data.zst -d ${{ steps.perf.outputs.heaptrack_tests }} &> heaptrack_tests_diff.txt
 
       - name: Diff from master - heaptrack scap file
         run: |
-          sudo heaptrack_print heaptrack_scap.data -d ${{ steps.perf.outputs.heaptrack_scap }} &> heaptrack_scap_diff.txt
+          sudo heaptrack_print heaptrack_scap.data.zst -d ${{ steps.perf.outputs.heaptrack_scap }} &> heaptrack_scap_diff.txt
 
       - name: Archive perf diff
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3

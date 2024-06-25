@@ -70,5 +70,5 @@ runs:
         cd build
         echo "perf_tests=$(realpath perf_tests.data)" >> $GITHUB_OUTPUT
         echo "perf_scap=$(realpath perf_scap.data)" >> $GITHUB_OUTPUT
-        echo "heaptrack_tests=$(realpath heaptrack_tests.data)" >> $GITHUB_OUTPUT
-        echo "heaptrack_scap=$(realpath heaptrack_scap.data)" >> $GITHUB_OUTPUT
+        echo "heaptrack_tests=$(realpath heaptrack_tests.data.zst)" >> $GITHUB_OUTPUT
+        echo "heaptrack_scap=$(realpath heaptrack_scap.data.zst)" >> $GITHUB_OUTPUT
