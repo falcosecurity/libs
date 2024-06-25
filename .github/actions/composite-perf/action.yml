@@ -21,7 +21,7 @@ runs:
     - name: Install deps ⛓️
       shell: bash
       run: |
-        sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-tools-common linux-tools-generic linux-tools-`uname -r` heaptrack
+        sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-tools-common linux-tools-generic linux-tools-`uname -r` heaptrack coreutils util-linux
         sudo .github/install-deps.sh
 
     - name: Build
@@ -31,6 +31,13 @@ runs:
         cd build && cmake -DUSE_BUNDLED_DEPS=False -DCMAKE_BUILD_TYPE=Debug ../
         make unit-test-libsinsp -j4
         make sinsp-example -j4
+
+    - name: Download scap file
+      shell: bash
+      run: |
+        cd build
+        wget https://download.falco.org/fixtures/trace-files/traces-positive.zip
+        unzip traces-positive.zip
 
     - name: Run - perf unit tests
       shell: bash
@@ -42,9 +49,7 @@ runs:
       shell: bash
       run: |
         cd build
-        wget https://download.falco.org/fixtures/trace-files/traces-positive.zip
-        unzip traces-positive.zip
-        sudo perf record --call-graph dwarf -o perf_scap.data -q ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
+        sudo nice ionice -c 1 -n 0 perf record --call-graph dwarf -o perf_scap.data -q ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
 
     - name: Run - heaptrack unit tests
       shell: bash
@@ -56,7 +61,7 @@ runs:
       shell: bash
       run: |
         cd build
-        sudo heaptrack -o heaptrack_scap.data ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
+        sudo nice ionice -c 1 -n 0 heaptrack -o heaptrack_scap.data ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
 
     - name: Set Outputs
       id: store-outputs
