@@ -8,10 +8,10 @@ outputs:
   perf_scap:
     description: "Scap file perf.data"
     value: ${{ steps.store-outputs.outputs.perf_scap }}
-  massif_tests:
+  heaptrack_tests:
     description: "Unit tests heaptrack data"
     value: ${{ steps.store-outputs.outputs.heaptrack_tests }}
-  massif_scap:
+  heaptrack_scap:
     description: "Scap file heaptrack data"
     value: ${{ steps.store-outputs.outputs.heaptrack_scap }}
 
