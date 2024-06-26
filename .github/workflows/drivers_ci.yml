@@ -185,7 +185,7 @@ jobs:
         run: echo "GIT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
 
       - name: Build and test drivers on ppc64le node via ssh
-        if: needs.paths-filter.outputs.driver_needs_rebuild
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PPC64LE_HOST }}
@@ -325,3 +325,13 @@ jobs:
           cd build
           source /opt/rh/devtoolset-9/enable
           make scap-open -j6          
+
+  # Only runs on pull request since on master branch it is already triggered by pages CI.
+  kernel-tests-dev:
+    needs: paths-filter
+    if: github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
+    uses: ./.github/workflows/reusable_kernel_tests.yaml
+    with:
+      # Use real branch's HEAD sha, not the merge commit
+      libsversion: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit
