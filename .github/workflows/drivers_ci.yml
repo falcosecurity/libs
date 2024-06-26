@@ -335,3 +335,42 @@ jobs:
       # Use real branch's HEAD sha, not the merge commit
       libsversion: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
+
+  kernel-tests-upload:
+    needs: kernel-tests-dev
+    if: github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download X64 matrix
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_X64
+          path: matrix_X64
+
+      - name: Download ARM64 matrix
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_ARM64
+          path: matrix_ARM64
+
+      - name: Save PR info
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.number }} > ./pr/NR
+          touch ./pr/COMMENT
+          echo "# X64 kernel testing matrix" >> ./pr/COMMENT
+          echo "$(head -n $(grep -n -v -m1 '^|' matrix_X64/matrix.md | awk -F':'  '{ print $1 }') matrix_X64/matrix.md)" >> ./pr/COMMENT
+          echo "" > ./pr/COMMENT
+          echo "# ARM64 kernel testing matrix" >> ./pr/COMMENT
+          echo "$(head -n $(grep -n -v -m1 '^|' matrix_ARM64/matrix.md | awk -F':'  '{ print $1 }') matrix_ARM64/matrix.md)" >> ./pr/COMMENT
+          echo Uploading PR info...
+          cat ./pr/COMMENT
+          echo ""
+
+      - name: Upload PR info as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr
+          path: pr/
+          retention-days: 1
+          if-no-files-found: warn
