@@ -50,6 +50,7 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 	{"/cri-containerd-", ".scope"}, // systemd containerd
 	{"/crio-", ".scope"}, // systemd cri-o
 	{":cri-containerd:", ""}, // containerd without "SystemdCgroup = true"
+	{"/docker-", ".scope"}, // systemd docker in cri-dockerd scenario
 	{nullptr, nullptr}
 };
 } // namespace
