@@ -69,6 +69,35 @@ std::string sinsp_ipv4_ifinfo::to_string() const
 	return std::string(s);
 }
 
+std::string sinsp_ipv4_ifinfo::addr_to_string(const uint32_t addr) const
+{
+	char str_addr[16];
+	convert_to_string(str_addr, sizeof(str_addr), addr);
+	return std::string(str_addr);
+}
+
+std::string sinsp_ipv4_ifinfo::addr_to_string() const
+{
+	char str_addr[16];
+	convert_to_string(str_addr, sizeof(str_addr), m_addr);
+	return std::string(str_addr);
+}
+
+std::string sinsp_ipv6_ifinfo::addr_to_string() const
+{
+	std::ostringstream oss;
+	const uint16_t* words = reinterpret_cast<const uint16_t*>(m_net.m_b);
+	for (int i = 0; i < 8; ++i)
+	{
+		if (i != 0)
+		{
+			oss << ':';
+		}
+		oss << std::hex << ntohs(words[i]);
+	}
+	return oss.str();
+}
+
 uint32_t sinsp_network_interfaces::infer_ipv4_address(uint32_t destination_address)
 {
 	std::vector<sinsp_ipv4_ifinfo>::iterator it;
