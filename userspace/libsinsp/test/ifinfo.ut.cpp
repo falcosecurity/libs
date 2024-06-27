@@ -125,3 +125,41 @@ TEST(sinsp_network_interfaces, infer_defaults_to_first_non_loopback)
 	interfaces.get_ipv4_list()->push_back(make_ipv4_interface("192.168.22.150", "255.255.255.0", "192.168.22.255", "eth1"));
 	EXPECT_ADDR_EQ("192.168.22.149",interfaces.infer_ipv4_address(parse_ipv4_addr("193.168.22.11")));
 }
+
+TEST(sinsp_network_interfaces, ipv4_addr_to_string)
+{
+	std::vector<std::pair<sinsp_ipv4_ifinfo, std::string>> ipv4_test_cases = 
+	{
+		{make_ipv4_localhost(), "127.0.0.1"},
+		{make_ipv4_interface("192.168.22.149", "255.255.255.0", "192.168.22.255", "eth0"), "192.168.22.149"},
+		{make_ipv4_interface("192.168.22.150", "255.255.255.0", "192.168.22.255", "eth1"), "192.168.22.150"}
+	};
+
+	for (const auto& ipv4_test_case : ipv4_test_cases)
+	{
+		std::string ip_str = ipv4_test_case.first.addr_to_string(ipv4_test_case.first.m_addr);
+		ASSERT_EQ(ip_str, ipv4_test_case.second);
+		ip_str = ipv4_test_case.first.addr_to_string();
+		ASSERT_EQ(ip_str, ipv4_test_case.second);
+	}
+}
+
+TEST(sinsp_network_interfaces, ipv6_addr_to_string)
+{
+	sinsp_ipv6_ifinfo ifinfo;
+
+	std::vector<std::pair<ipv6addr, std::string>> ipv6_test_cases = 
+	{
+		{ipv6addr("2001:0db8:85a3:0000:0000:8a2e:0370:7334"), "2001:db8:85a3:0:0:8a2e:370:7334"},
+		{ipv6addr("fe80:0:0:0:2aa:ff:fe9a:4ca3"), "fe80:0:0:0:2aa:ff:fe9a:4ca3"},
+		{ipv6addr("0:0:0:0:0:0:0:0"), "0:0:0:0:0:0:0:0"},
+		{ipv6addr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"}
+	};
+
+	for (const auto& ipv6_test_case : ipv6_test_cases)
+	{
+		ifinfo.m_net = ipv6_test_case.first;
+		std::string addr_str = ifinfo.addr_to_string();
+		ASSERT_EQ(addr_str, ipv6_test_case.second);
+	}
+}
