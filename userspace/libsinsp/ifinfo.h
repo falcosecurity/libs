@@ -41,6 +41,8 @@ public:
 	sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t bcast, const char* name);
 
 	std::string to_string() const;
+	std::string addr_to_string(const uint32_t addr) const;
+	std::string addr_to_string() const;
 	std::string address() const;
 
 	uint32_t m_addr;
@@ -60,8 +62,9 @@ class SINSP_PUBLIC sinsp_ipv6_ifinfo
 public:
 	sinsp_ipv6_ifinfo() = default;
 
-	ipv6addr m_net;
+	std::string addr_to_string() const;
 
+	ipv6addr m_net;
 	std::string m_name;
 };
 
