@@ -81,7 +81,7 @@ jobs:
       - name: Upload PR info as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pr
+          name: pr-perf
           path: pr/
           retention-days: 1
           if-no-files-found: warn

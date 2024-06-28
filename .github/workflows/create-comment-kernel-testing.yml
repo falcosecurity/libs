@@ -1,7 +1,7 @@
 # NOTE: This has read-write repo token and access to secrets, so this must
 # not run any untrusted code.
 # see: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
-name: Comment with Kernel testing resulsts on pull requests
+name: Comment with Kernel testing results on pull requests
 
 on:
   workflow_run:
@@ -24,7 +24,7 @@ jobs:
                run_id: ${{github.event.workflow_run.id }},
             });
             var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "pr"
+              return artifact.name == "pr-kernel-testing"
             })[0];
             var download = await github.rest.actions.downloadArtifact({
                owner: context.repo.owner,

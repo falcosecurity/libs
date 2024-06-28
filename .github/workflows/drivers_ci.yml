@@ -336,7 +336,7 @@ jobs:
       libsversion: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
 
-  kernel-tests-upload:
+  kernel-tests-pr-info-upload:
     needs: kernel-tests-dev
     if: github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
     runs-on: ubuntu-latest
@@ -370,7 +370,7 @@ jobs:
       - name: Upload PR info as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pr
+          name: pr-kernel-testing
           path: pr/
           retention-days: 1
           if-no-files-found: warn
