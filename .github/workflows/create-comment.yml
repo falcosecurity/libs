@@ -24,7 +24,7 @@ jobs:
                run_id: ${{github.event.workflow_run.id }},
             });
             var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "pr"
+              return artifact.name == "pr-perf"
             })[0];
             var download = await github.rest.actions.downloadArtifact({
                owner: context.repo.owner,
