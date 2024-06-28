@@ -360,7 +360,7 @@ jobs:
           touch ./pr/COMMENT
           echo "# X64 kernel testing matrix" >> ./pr/COMMENT
           echo "$(head -n $(grep -n -v -m1 '^|' matrix_X64/matrix.md | awk -F':'  '{ print $1 }') matrix_X64/matrix.md)" >> ./pr/COMMENT
-          echo "" > ./pr/COMMENT
+          echo "" >> ./pr/COMMENT
           echo "# ARM64 kernel testing matrix" >> ./pr/COMMENT
           echo "$(head -n $(grep -n -v -m1 '^|' matrix_ARM64/matrix.md | awk -F':'  '{ print $1 }') matrix_ARM64/matrix.md)" >> ./pr/COMMENT
           echo Uploading PR info...
