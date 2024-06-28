@@ -148,9 +148,9 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
+std::unique_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
 {
-	std::shared_ptr<sinsp_threadinfo> tinfo(inspector->build_threadinfo().release());
+	auto tinfo = inspector->build_threadinfo();
 	tinfo->m_tid = -1;
 	tinfo->m_pid = -1;
 	tinfo->m_vtid = -2;
@@ -158,7 +158,6 @@ std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspect
 	tinfo->m_comm = "container:" + m_id;
 	tinfo->m_exe = "container:" + m_id;
 	tinfo->m_container_id = m_id;
-
 	return tinfo;
 }
 

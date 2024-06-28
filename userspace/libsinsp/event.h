@@ -764,12 +764,12 @@ public:
 		return m_tinfo_ref;
 	}
 
-	inline std::shared_ptr<sinsp_threadinfo> get_tinfo_ref()
+	inline const std::shared_ptr<sinsp_threadinfo>& get_tinfo_ref()
 	{
 		return m_tinfo_ref;
 	}
 
-	inline void set_tinfo_ref(std::shared_ptr<sinsp_threadinfo> v)
+	inline void set_tinfo_ref(const std::shared_ptr<sinsp_threadinfo>& v)
 	{
 		m_tinfo_ref = v;
 	}
@@ -794,12 +794,12 @@ public:
 		return m_fdinfo_ref;
 	}
 
-	inline std::shared_ptr<sinsp_fdinfo> get_fdinfo_ref()
+	inline const std::shared_ptr<sinsp_fdinfo>& get_fdinfo_ref()
 	{
 		return m_fdinfo_ref;
 	}
 
-	inline void set_fdinfo_ref(std::shared_ptr<sinsp_fdinfo> v)
+	inline void set_fdinfo_ref(const std::shared_ptr<sinsp_fdinfo>& v)
 	{
 		m_fdinfo_ref = v;
 	}

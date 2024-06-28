@@ -479,7 +479,8 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		: libsinsp::state::table<KeyType>(i->name, &s_empty_static_infos),
 		  m_owner(o),
 		  m_input(copy_and_check_table_input(o, i)),
-		  m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input))
+		  m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input)),
+		  m_dyn_fields_as_base_class(m_dyn_fields)
 	{
 		auto t = libsinsp::state::typeinfo::of<KeyType>();
 		if (m_input->key_type != typeinfo_to_state_type(t))
@@ -497,6 +498,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 	sinsp_plugin* m_owner;
 	owned_table_input_t m_input;
 	std::shared_ptr<plugin_field_infos> m_dyn_fields;
+	std::shared_ptr<ds::field_infos> m_dyn_fields_as_base_class;
 
 	const libsinsp::state::static_struct::field_infos* static_fields() const override
 	{
@@ -505,9 +507,9 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		return &s_empty_static_infos;
 	}
 
-	std::shared_ptr<ds::field_infos> dynamic_fields() const override
+	const std::shared_ptr<ds::field_infos>& dynamic_fields() const override
 	{
-		return m_dyn_fields;
+		return m_dyn_fields_as_base_class;
 	}
 
 	size_t entries_count() const override
@@ -577,7 +579,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		{
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) + "create entry failure: " + m_owner->get_last_error());
 		}
-		return std::unique_ptr<libsinsp::state::table_entry>(new plugin_table_entry(m_owner, m_input, m_dyn_fields, res, true));
+		return std::make_unique<plugin_table_entry>(m_owner, m_input, m_dyn_fields, res, true);
 	}
 
 	std::shared_ptr<libsinsp::state::table_entry> get_entry(const KeyType& key) override
@@ -596,7 +598,7 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		// critical path, however it should be used only when doing a sinsp->plugin
 		// access, which is expected to not be common. For plugin->plugin table
 		// access, we optimize for invoking the plugin's table symbol right away
-		return std::shared_ptr<libsinsp::state::table_entry>(new plugin_table_entry(m_owner, m_input, m_dyn_fields, res, false));
+		return std::make_shared<plugin_table_entry>(m_owner, m_input, m_dyn_fields, res, false);
 	}
 
 	std::shared_ptr<libsinsp::state::table_entry> add_entry(const KeyType& key, std::unique_ptr<libsinsp::state::table_entry> e) override

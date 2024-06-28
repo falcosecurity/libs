@@ -105,12 +105,12 @@ public:
      * be allocated and accessible for all the present and future entries
      * present in the table.
      */
-    virtual std::shared_ptr<dynamic_struct::field_infos> dynamic_fields() const
+    virtual const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const
     {
         return m_dynamic_fields;
     }
 
-    virtual void set_dynamic_fields(std::shared_ptr<dynamic_struct::field_infos> dynf)
+    virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf)
     {
         if (!dynf)
         {

@@ -49,7 +49,7 @@ public:
 	/**
 	 * @brief Adds a plugin in the manager.
 	 */
-	void add(std::shared_ptr<sinsp_plugin> plugin)
+	void add(const std::shared_ptr<sinsp_plugin>& plugin)
 	{
 		for(auto& it : m_plugins)
 		{
@@ -117,14 +117,14 @@ public:
 	 * the CAP_EVENT_SOURCE capability. Returns nullptr if no plugin exists
 	 * with the given ID.
 	 */
-	inline std::shared_ptr<sinsp_plugin> plugin_by_id(uint32_t plugin_id) const
+	inline const std::shared_ptr<sinsp_plugin>& plugin_by_id(uint32_t plugin_id) const
 	{
 		if (plugin_id != m_last_id_in)
 		{
 			auto it = m_plugins_id_index.find(plugin_id);
 			if(it == m_plugins_id_index.end())
 			{
-				return nullptr;
+				return m_nullptr_ret;
 			}
 			m_last_id_in = plugin_id;
 			m_last_id_out = it->second;
@@ -136,13 +136,13 @@ public:
 	 * @brief  Returns a plugin given an event. The plugin is guaranteed to have
 	 * the CAP_EVENT_SOURCE capability.
 	 */
-	inline std::shared_ptr<sinsp_plugin> plugin_by_evt(sinsp_evt* evt) const
+	inline const std::shared_ptr<sinsp_plugin>& plugin_by_evt(sinsp_evt* evt) const
 	{
 		if(evt && evt->get_type() == PPME_PLUGINEVENT_E)
 		{
 			return plugin_by_id(evt->get_param(0)->as<int32_t>());
 		}
-		return nullptr;
+		return m_nullptr_ret;
 	}
 
 	/**
@@ -186,4 +186,7 @@ private:
 	mutable size_t m_last_id_out;
 	mutable size_t m_last_source_in;
 	mutable size_t m_last_source_out;
+
+	/* Used internally just for the sake of returning a reference */
+	const std::shared_ptr<sinsp_plugin> m_nullptr_ret;
 };

@@ -1691,11 +1691,6 @@ std::string sinsp::get_filter() const
 	return m_filterstring;
 }
 
-std::shared_ptr<libsinsp::filter::ast::expr> sinsp::get_filter_ast()
-{
-	return m_internal_flt_ast;
-}
-
 bool sinsp::run_filters_on_evt(sinsp_evt *evt)
 {
 	//

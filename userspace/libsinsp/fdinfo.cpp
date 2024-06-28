@@ -123,7 +123,7 @@ const char* sinsp_fdinfo::get_typestring() const
 	}
 }
 
-sinsp_fdinfo::sinsp_fdinfo(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields)
+sinsp_fdinfo::sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields)
 	: table_entry(dyn_fields) 
 {
 }
@@ -309,7 +309,7 @@ sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
 	reset_cache();
 }
 
-inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd)
+inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd)
 {
 	//
 	// Try looking up in our simple cache
@@ -334,7 +334,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd)
 		{
 			m_sinsp_stats_v2->m_n_failed_fd_lookups++;
 		}
-		return nullptr;
+		return m_nullptr_ret;
 	}
 	else
 	{
@@ -350,7 +350,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::find_ref(int64_t fd)
 	}
 }
 
-inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
+inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
 {
 	if (fdinfo->dynamic_fields() != dynamic_fields())
 	{
@@ -386,7 +386,7 @@ inline std::shared_ptr<sinsp_fdinfo> sinsp_fdtable::add_ref(int64_t fd, std::uni
 		}
 		else
 		{
-			return nullptr;
+			return m_nullptr_ret;
 		}
 	}
 	else

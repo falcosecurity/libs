@@ -508,7 +508,7 @@ void libs_resource_utilization::get_container_memory_used()
 	fclose(f);
 }
 
-libs_state_counters::libs_state_counters(std::shared_ptr<sinsp_stats_v2> sinsp_stats_v2, sinsp_thread_manager* thread_manager) : m_sinsp_stats_v2(sinsp_stats_v2), m_n_fds(0), m_n_threads(0) {
+libs_state_counters::libs_state_counters(const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2, sinsp_thread_manager* thread_manager) : m_sinsp_stats_v2(sinsp_stats_v2), m_n_fds(0), m_n_threads(0) {
 	if (thread_manager != nullptr)
 	{
 		m_n_threads = thread_manager->get_thread_count();

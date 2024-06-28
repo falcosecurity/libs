@@ -111,7 +111,7 @@ public:
 		FLAGS_CONNECTION_FAILED = (1 << 16),
 	};
 
-	sinsp_fdinfo(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
+	sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields = nullptr);
 	sinsp_fdinfo(sinsp_fdinfo&& o) = default;
 	sinsp_fdinfo& operator=(sinsp_fdinfo&& o) = default;
 	sinsp_fdinfo(const sinsp_fdinfo& o) = default;
@@ -558,9 +558,10 @@ private:
 	int64_t m_last_accessed_fd;
 	std::shared_ptr<sinsp_fdinfo> m_last_accessed_fdinfo;
 	uint64_t m_tid;
+	std::shared_ptr<sinsp_fdinfo> m_nullptr_ret; // needed for returning a reference
 
 private:
 	inline void lookup_device(sinsp_fdinfo* fdi, uint64_t fd);
-	std::shared_ptr<sinsp_fdinfo> find_ref(int64_t fd);
-	std::shared_ptr<sinsp_fdinfo> add_ref(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
+	const std::shared_ptr<sinsp_fdinfo>& find_ref(int64_t fd);
+	const std::shared_ptr<sinsp_fdinfo>& add_ref(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo);
 };

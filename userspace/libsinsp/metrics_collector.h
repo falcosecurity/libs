@@ -303,7 +303,7 @@ private:
 class libs_state_counters : libsinsp_metrics
 {
 public:
-	libs_state_counters(std::shared_ptr<sinsp_stats_v2> sinsp_stats_v2, sinsp_thread_manager* thread_manager);
+	libs_state_counters(const std::shared_ptr<sinsp_stats_v2>& sinsp_stats_v2, sinsp_thread_manager* thread_manager);
 
 	std::vector<metrics_v2> to_metrics() override;
 

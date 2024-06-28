@@ -111,8 +111,6 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, uint32_t
 
 uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
 {
-
-	std::shared_ptr<sinsp_plugin> plugin;
 	const scap_machine_info* minfo;
 
 	*len = 0;
@@ -163,7 +161,8 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, uint32_t* 
 		RETURN_EXTRACT_VAR(m_val.u64);
 	case TYPE_PLUGINNAME:
 	case TYPE_PLUGININFO:
-		plugin = m_inspector->get_plugin_manager()->plugin_by_evt(evt);
+	{
+		const auto& plugin = m_inspector->get_plugin_manager()->plugin_by_evt(evt);
 		if (plugin == nullptr)
 		{
 			return NULL;
@@ -179,6 +178,7 @@ uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, uint32_t* 
 		}
 
 		RETURN_EXTRACT_STRING(m_strstorage);
+	}
 	case TYPE_SOURCE:
 		if (evt->get_source_idx() == sinsp_no_event_source_idx
 			|| evt->get_source_name() == sinsp_no_event_source_name)

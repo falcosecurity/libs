@@ -958,7 +958,7 @@ std::vector<metrics_v2> sinsp_plugin::get_metrics() const
 
 /** Field Extraction CAP **/
 
-std::unique_ptr<sinsp_filter_check> sinsp_plugin::new_filtercheck(std::shared_ptr<sinsp_plugin> plugin)
+std::unique_ptr<sinsp_filter_check> sinsp_plugin::new_filtercheck(const std::shared_ptr<sinsp_plugin>& plugin)
 {
 	return std::make_unique<sinsp_filter_check_plugin>(plugin);
 }

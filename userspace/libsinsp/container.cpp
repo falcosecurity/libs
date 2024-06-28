@@ -278,7 +278,7 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo, char *scap_err)
+bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::unique_ptr<sinsp_threadinfo> tinfo, char *scap_err)
 {
 	uint32_t json_len = json.length() + 1;
 	size_t totlen = sizeof(scap_evt) + sizeof(uint32_t) + json_len;
@@ -300,8 +300,9 @@ bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, 
 	}
 
 	evt->init();
-	evt->set_tinfo_ref(tinfo);
-	evt->set_tinfo(tinfo.get());
+	std::shared_ptr<sinsp_threadinfo> stinfo = std::move(tinfo);
+	evt->set_tinfo_ref(stinfo);
+	evt->set_tinfo(stinfo.get());
 
 	return true;
 }

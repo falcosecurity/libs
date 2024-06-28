@@ -138,7 +138,7 @@ public:
 
 	sinsp_threadinfo(
 		sinsp *inspector = nullptr,
-		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
+		const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
 
 	libsinsp::state::static_struct::field_infos static_fields() const override;
@@ -754,9 +754,10 @@ public:
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
-	inline void put(ptr_t tinfo)
+	inline const ptr_t& put(const ptr_t& tinfo)
 	{
 		m_threads[tinfo->m_tid] = tinfo;
+		return m_threads[tinfo->m_tid];
 	}
 
 	inline sinsp_threadinfo* get(uint64_t tid)
@@ -769,12 +770,12 @@ public:
 		return it->second.get();
 	}
 
-	inline ptr_t get_ref(uint64_t tid)
+	inline const ptr_t& get_ref(uint64_t tid)
 	{
 		auto it = m_threads.find(tid);
 		if (it == m_threads.end())
 		{
-			return  nullptr;
+			return m_nullptr_ret;
 		}
 		return it->second;
 	}
@@ -832,6 +833,7 @@ public:
 
 protected:
 	std::unordered_map<int64_t, ptr_t> m_threads;
+	const ptr_t m_nullptr_ret; // needed for returning a reference
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -850,7 +852,7 @@ public:
 	void set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const;
 	void set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const;
 
-	threadinfo_map_t::ptr_t add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable);
+	const threadinfo_map_t::ptr_t& add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable);
 	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
 	// Returns true if the table is actually scanned
@@ -880,7 +882,7 @@ public:
        of failure.
     */
 
-	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread=false);
+	const threadinfo_map_t::ptr_t& get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread=false);
 
 	//
     // Note: lookup_only should be used when the query for the thread is made
@@ -888,7 +890,7 @@ public:
     //       just for lookup reason. In that case, m_lastaccess_ts is not updated
     //       and m_last_tinfo is not set.
     //
-    threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only);
+    const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only);
 
 
 	void dump_threads_to_file(scap_dumper_t* dumper);
@@ -969,14 +971,14 @@ public:
 		return false;
 	}
 
-	inline std::shared_ptr<thread_group_info> get_thread_group_info(int64_t pid) const
+	inline const std::shared_ptr<thread_group_info>& get_thread_group_info(int64_t pid) const
 	{
 		auto tgroup = m_thread_groups.find(pid);
 		if(tgroup != m_thread_groups.end())
 		{
 			return tgroup->second;
 		}
-		return nullptr;
+		return m_nullptr_tginfo_ret;
 	}
 
 	inline void set_thread_group_info(int64_t pid, const std::shared_ptr<thread_group_info>& tginfo)
@@ -1022,7 +1024,7 @@ private:
 	std::unordered_map<int64_t, std::shared_ptr<thread_group_info>> m_thread_groups;
 	threadinfo_map_t m_threadtable;
 	int64_t m_last_tid;
-	std::weak_ptr<sinsp_threadinfo> m_last_tinfo;
+	std::shared_ptr<sinsp_threadinfo> m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	// Increased legacy default of 131072 in January 2024 to prevent
 	// possible drops due to full threadtable on more modern servers
@@ -1035,4 +1037,6 @@ private:
 	int32_t m_max_n_proc_socket_lookups = -1;
 
 	std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> m_fdtable_dyn_fields;
+	const std::shared_ptr<sinsp_threadinfo> m_nullptr_tinfo_ret; // needed for returning a reference
+	const std::shared_ptr<thread_group_info> m_nullptr_tginfo_ret; // needed for returning a reference
 };

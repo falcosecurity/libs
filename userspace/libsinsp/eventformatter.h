@@ -127,7 +127,7 @@ private:
 		bool has_transformers = false;
 
 		resolution_token(const std::string& n, token_t t, bool h)
-			: name(n), token(t), has_transformers(h) { }
+			: name(n), token(std::move(t)), has_transformers(h) { }
 	};
 
 	output_format m_output_format;
