@@ -69,7 +69,7 @@ std::string sinsp_ipv4_ifinfo::to_string() const
 	return std::string(s);
 }
 
-std::string sinsp_ipv4_ifinfo::addr_to_string(const uint32_t addr) const
+std::string sinsp_ipv4_ifinfo::addr_to_string(const uint32_t addr)
 {
 	char str_addr[16];
 	convert_to_string(str_addr, sizeof(str_addr), addr);
