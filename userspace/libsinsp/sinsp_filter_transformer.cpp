@@ -115,6 +115,19 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t) const
         // for STORAGE, the transformed type is the same as the input type
         return true;
     }
+    case FTR_BASENAME:
+    {
+        switch(t)
+        {
+        case PT_CHARBUF:
+        case PT_FSPATH:
+        case PT_FSRELPATH:
+            // for BASENAME, the transformed type is the same as the input type
+            return true;
+        default:
+            return false;
+        }
+    }
     default:
         throw_unsupported_err(m_type);
         return false;
@@ -179,6 +192,20 @@ bool sinsp_filter_transformer::transform_values(std::vector<extract_value_t>& ve
             // `vec[i].len` is the same as before
         }
         return true;
+    }
+    case FTR_BASENAME:
+    {
+        return string_transformer(vec, t, [](std::string_view in, storage_t& out) -> bool {
+            auto last_slash_pos = in.find_last_of("/");
+            ssize_t start_idx = last_slash_pos == std::string_view::npos ? 0 : last_slash_pos + 1;
+
+            for (ssize_t i = start_idx; i < in.length(); i++)
+            {
+                out.push_back(in[i]);
+            }
+
+            return true;
+        });
     }
     default:
         throw_unsupported_err(m_type);

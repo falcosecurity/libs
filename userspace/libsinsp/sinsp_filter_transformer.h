@@ -28,6 +28,7 @@ enum filter_transformer_type: uint8_t
 	FTR_TOLOWER = 1,
 	FTR_BASE64 = 2,
 	FTR_STORAGE = 3, // This transformer is only used internally
+	FTR_BASENAME = 4,
 };
 
 static inline std::string filter_transformer_type_str(filter_transformer_type m)
@@ -42,6 +43,8 @@ static inline std::string filter_transformer_type_str(filter_transformer_type m)
 		return "b64";
 	case FTR_STORAGE:
 		return "storage";
+	case FTR_BASENAME:
+		return "basename";
 	default:
 		throw sinsp_exception("unknown field transfomer id " + std::to_string(m));
 	}
@@ -64,6 +67,10 @@ static inline filter_transformer_type filter_transformer_from_str(const std::str
 	if (str == "storage")
 	{
 		return filter_transformer_type::FTR_STORAGE;
+	}
+	if (str == "basename")
+	{
+		return filter_transformer_type::FTR_BASENAME;
 	}
 	throw sinsp_exception("unknown field transfomer '" + str + "'");
 }

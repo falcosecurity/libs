@@ -90,7 +90,7 @@ static constexpr const char* s_field_transformer_val = "val(";
 
 static const std::vector<std::string> s_field_transformers =
 {
-	"tolower(", "toupper(", "b64(",
+	"tolower(", "toupper(", "b64(", "basename(",
 };
 
 static inline void update_pos(const char c, ast::pos_info& pos)
