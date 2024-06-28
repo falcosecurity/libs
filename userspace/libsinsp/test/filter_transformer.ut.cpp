@@ -21,6 +21,7 @@ limitations under the License.
 #include <unordered_set>
 #include <libsinsp/utils.h>
 #include <libsinsp/sinsp_filter_transformer.h>
+#include <sinsp_with_test_input.h>
 
 static std::unordered_set<ppm_param_type> all_param_types()
 {
@@ -230,4 +231,76 @@ TEST(sinsp_filter_transformer, b64)
         EXPECT_FALSE(tr.transform_values(invalid_vals, t));
         EXPECT_EQ(t, PT_CHARBUF);
     }
+}
+
+TEST(sinsp_filter_transformer, basename)
+{
+    sinsp_filter_transformer tr(filter_transformer_type::FTR_BASENAME);
+
+    auto all_types = all_param_types();
+
+    auto supported_types = std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH });
+
+    auto test_cases = std::vector<std::pair<std::string, std::string>>{
+        {"/home/ubuntu/hello.txt", "hello.txt"},
+        {"/usr/local/bin/cat", "cat"},
+        {"/", ""},
+        {"", ""},
+        {"/hello/", ""},
+        {"hello", "hello"},
+    };
+
+
+    std::vector<extract_value_t> sample_vals;
+
+    for (auto& tc : test_cases)
+    {
+        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+    }
+
+    // check for unsupported types
+    for (auto t : all_types)
+    {
+        if (supported_types.find(t) == supported_types.end())
+        {
+            auto vals = sample_vals;
+            EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
+            EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
+        }
+    }
+
+    // check for supported types
+    for (auto t : supported_types)
+    {
+        auto original = t;
+        EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
+        EXPECT_EQ(original, t); // note: basename is expected not to alter the type
+
+        auto vals = sample_vals;
+        EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
+        EXPECT_EQ(original, t);
+        EXPECT_EQ(vals.size(), test_cases.size());
+
+        for (uint32_t i = 0; i < test_cases.size(); i++)
+        {
+            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
+            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+        }
+    }
+}
+
+TEST_F(sinsp_with_test_input, basename_transformer)
+{
+    add_default_init_thread();
+    open_inspector();
+
+    sinsp_evt *evt;
+
+    int64_t dirfd = 3;
+    const char *file_to_run = "/tmp/file_to_run";
+    add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
+    evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, file_to_run, 0, 0, 0, (uint64_t) 0);
+
+    EXPECT_TRUE(eval_filter(evt, "basename(fd.name) = file_to_run"));
+    EXPECT_FALSE(eval_filter(evt, "basename(fd.name) = /tmp/file_to_run"));
 }
