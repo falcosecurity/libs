@@ -156,8 +156,6 @@ enum sinsp_mode_t
 class SINSP_PUBLIC sinsp : public capture_stats_source
 {
 public:
-	typedef std::shared_ptr<sinsp> ptr;
-
 	sinsp(bool static_container = false,
 		  const std::string &static_id = "",
 		  const std::string &static_name = "",
@@ -322,7 +320,10 @@ public:
 
 	  \return the AST (wrapped in a shared pointer) corresponding to the filter previously set with \ref set_filter()..
 	*/
-	std::shared_ptr<libsinsp::filter::ast::expr> get_filter_ast();
+	inline const std::shared_ptr<libsinsp::filter::ast::expr>& get_filter_ast()
+	{
+		return m_internal_flt_ast;
+	}
 
 	bool run_filters_on_evt(sinsp_evt *evt);
 
@@ -470,7 +471,7 @@ public:
 	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd state tables.
 
 	*/
-	inline std::shared_ptr<sinsp_stats_v2> get_sinsp_stats_v2()
+	inline const std::shared_ptr<sinsp_stats_v2>& get_sinsp_stats_v2()
 	{
 		return m_sinsp_stats_v2;
 	}
@@ -1027,7 +1028,7 @@ public:
 
 	bool remove_inactive_threads();
 
-	inline std::shared_ptr<sinsp_threadinfo> add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo)
+	inline const std::shared_ptr<sinsp_threadinfo>& add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo)
 	{
 		return m_thread_manager->add_thread(std::move(ptinfo), false);
 	}

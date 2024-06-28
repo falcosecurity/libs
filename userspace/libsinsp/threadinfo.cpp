@@ -44,7 +44,7 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
 
-sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields):
+sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
 	table_entry(dyn_fields),
 	m_cgroups(new cgroups_t),
 	m_inspector(inspector),
@@ -1493,7 +1493,7 @@ std::unique_ptr<sinsp_fdinfo> sinsp_thread_manager::new_fdinfo() const
  * 2. We are doing a proc scan with a callback or without. (`from_scap_proctable==true`)
  * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
  */
-std::shared_ptr<sinsp_threadinfo> sinsp_thread_manager::add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable)
+const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable)
 {
 
 	/* We have no more space */
@@ -1511,7 +1511,8 @@ std::shared_ptr<sinsp_threadinfo> sinsp_thread_manager::add_thread(std::unique_p
 			}
 			m_sinsp_stats_v2->m_n_drops_full_threadtable++;
 		}
-		return nullptr;
+
+		return m_nullptr_tinfo_ret;
 	}
 
 	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(std::move(threadinfo));
@@ -1532,14 +1533,12 @@ std::shared_ptr<sinsp_threadinfo> sinsp_thread_manager::add_thread(std::unique_p
 	}
 
 	tinfo_shared_ptr->compute_program_hash();
-	m_threadtable.put(tinfo_shared_ptr);
-
 	if (m_sinsp_stats_v2 != nullptr)
 	{
 		m_sinsp_stats_v2->m_n_added_threads++;
 	}
 
-	return tinfo_shared_ptr;
+	return m_threadtable.put(tinfo_shared_ptr);
 }
 
 /* Taken from `find_new_reaper` kernel function:
@@ -2037,9 +2036,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 	});
 }
 
-threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
+const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
 {
-    auto sinsp_proc = find_thread(tid, lookup_only);
+    const auto& sinsp_proc = find_thread(tid, lookup_only);
 
     if(!sinsp_proc && query_os_if_not_found &&
        (m_threadtable.size() < m_max_thread_table_size || tid == m_inspector->m_self_pid))
@@ -2130,39 +2129,34 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
         // Done. Add the new thread to the list.
         //
         add_thread(std::move(newti), false);
-        sinsp_proc = find_thread(tid, lookup_only);
+        return find_thread(tid, lookup_only);
     }
 
     return sinsp_proc;
 }
 
 /* `lookup_only==true` means that we don't fill the `m_last_tinfo` field */
-threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only)
+const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only)
 {
-	threadinfo_map_t::ptr_t thr;
 	//
 	// Try looking up in our simple cache
 	//
-	if(tid == m_last_tid)
+	if(tid == m_last_tid && m_last_tinfo)
 	{
-		thr = m_last_tinfo.lock();
-		if (thr)
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			if (m_sinsp_stats_v2 != nullptr)
-			{
-				m_sinsp_stats_v2->m_n_cached_thread_lookups++;
-			}
-			// This allows us to avoid performing an actual timestamp lookup
-			// for something that may not need to be precise
-			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
-			return thr;
+			m_sinsp_stats_v2->m_n_cached_thread_lookups++;
 		}
+		// This allows us to avoid performing an actual timestamp lookup
+		// for something that may not need to be precise
+		m_last_tinfo->m_lastaccess_ts = m_inspector->get_lastevent_ts();
+		return m_last_tinfo;
 	}
 
 	//
 	// Caching failed, do a real lookup
 	//
-	thr = m_threadtable.get_ref(tid);
+	const auto& thr = m_threadtable.get_ref(tid);
 
 	if(thr)
 	{
@@ -2185,7 +2179,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		{
 			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
-		return NULL;
+
+		return m_nullptr_tinfo_ret;
 	}
 }
 

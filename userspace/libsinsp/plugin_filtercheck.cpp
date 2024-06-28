@@ -27,7 +27,7 @@ sinsp_filter_check_plugin::sinsp_filter_check_plugin()
 	m_eplugin = nullptr;
 }
 
-sinsp_filter_check_plugin::sinsp_filter_check_plugin(std::shared_ptr<sinsp_plugin> plugin)
+sinsp_filter_check_plugin::sinsp_filter_check_plugin(const std::shared_ptr<sinsp_plugin>& plugin)
 {
 	if (!(plugin->caps() & CAP_EXTRACTION))
 	{

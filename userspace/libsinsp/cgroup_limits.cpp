@@ -68,7 +68,7 @@ bool read_cgroup_vals(const std::string &path, std::istream &stream, int64_t &ou
  *          reasonable being [0; CGROUP_VAL_MAX)
  */
 template<typename... Args>
-bool read_cgroup_val(std::shared_ptr<std::string> &subsys,
+bool read_cgroup_val(const std::shared_ptr<std::string> &subsys,
 		     const std::string &cgroup,
 		     const std::string &filename,
 		     int64_t &out,

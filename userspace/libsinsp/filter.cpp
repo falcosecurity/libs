@@ -188,7 +188,7 @@ void sinsp_filter::add_check(std::unique_ptr<sinsp_filter_check> chk)
 sinsp_filter_compiler::sinsp_filter_compiler(
 		sinsp* inspector,
 		const std::string& fltstr,
-		std::shared_ptr<sinsp_filter_cache_factory> cache_factory)
+		const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory)
 	: m_flt_str(fltstr),
 	  m_factory(std::make_shared<sinsp_filter_factory>(inspector, m_default_filterlist)),
 	  m_cache_factory(cache_factory)
@@ -196,9 +196,9 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
-		std::shared_ptr<sinsp_filter_factory> factory,
+		const std::shared_ptr<sinsp_filter_factory>& factory,
 		const std::string& fltstr,
-		std::shared_ptr<sinsp_filter_cache_factory> cache_factory)
+		const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory)
 	: m_flt_str(fltstr),
 	  m_factory(factory),
 	  m_cache_factory(cache_factory)
@@ -206,9 +206,9 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
-		std::shared_ptr<sinsp_filter_factory> factory,
+		const std::shared_ptr<sinsp_filter_factory>& factory,
 		const libsinsp::filter::ast::expr* fltast,
-		std::shared_ptr<sinsp_filter_cache_factory> cache_factory)
+		const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory)
 	: m_flt_ast(fltast),
 	  m_factory(factory),
 	  m_cache_factory(cache_factory)

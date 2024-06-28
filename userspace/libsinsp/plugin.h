@@ -80,7 +80,7 @@ public:
 	 *
 	 * todo(jasondellaluce): make this return a unique_ptr
 	 */
-	static std::unique_ptr<sinsp_filter_check> new_filtercheck(std::shared_ptr<sinsp_plugin> plugin);
+	static std::unique_ptr<sinsp_filter_check> new_filtercheck(const std::shared_ptr<sinsp_plugin>& plugin);
 
 	/**
 	 * @brief Returns true if the source is compatible with the given set

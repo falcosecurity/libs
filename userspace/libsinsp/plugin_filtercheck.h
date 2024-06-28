@@ -35,7 +35,7 @@ class sinsp_filter_check_plugin : public sinsp_filter_check
 public:
 	sinsp_filter_check_plugin();
 
-	explicit sinsp_filter_check_plugin(std::shared_ptr<sinsp_plugin> plugin);
+	explicit sinsp_filter_check_plugin(const std::shared_ptr<sinsp_plugin>& plugin);
 
 	explicit sinsp_filter_check_plugin(const sinsp_filter_check_plugin &p);
 

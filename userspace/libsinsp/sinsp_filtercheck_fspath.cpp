@@ -212,10 +212,10 @@ void sinsp_filter_check_fspath::create_fspath_checks()
 	m_success_checks->emplace(PPME_SYSCALL_UMOUNT2_X, evt_arg_res_eq_0);
 }
 
-void sinsp_filter_check_fspath::set_fspath_checks(std::shared_ptr<filtercheck_map_t> success_checks,
-						  std::shared_ptr<filtercheck_map_t> path_checks,
-						  std::shared_ptr<filtercheck_map_t> source_checks,
-						  std::shared_ptr<filtercheck_map_t> target_checks)
+void sinsp_filter_check_fspath::set_fspath_checks(const std::shared_ptr<filtercheck_map_t>& success_checks,
+						  const std::shared_ptr<filtercheck_map_t>& path_checks,
+						  const std::shared_ptr<filtercheck_map_t>& source_checks,
+						  const std::shared_ptr<filtercheck_map_t>& target_checks)
 {
 	m_success_checks = success_checks;
 	m_path_checks = path_checks;
@@ -368,7 +368,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 
 bool sinsp_filter_check_fspath::extract_fspath(sinsp_evt* evt,
 					       std::vector<extract_value_t>& values,
-					       std::shared_ptr<filtercheck_map_t> checks)
+					       const std::shared_ptr<filtercheck_map_t>& checks)
 {
 	sinsp_evt* extract_evt = evt;
 

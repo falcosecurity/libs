@@ -51,13 +51,13 @@ private:
 	std::shared_ptr<sinsp_filter_check> create_fd_check(const char *name);
 
 	void create_fspath_checks();
-	void set_fspath_checks(std::shared_ptr<filtercheck_map_t> success_checks,
-			       std::shared_ptr<filtercheck_map_t> path_checks,
-			       std::shared_ptr<filtercheck_map_t> source_checks,
-			       std::shared_ptr<filtercheck_map_t> target_checks);
+	void set_fspath_checks(const std::shared_ptr<filtercheck_map_t>& success_checks,
+			       const std::shared_ptr<filtercheck_map_t>& path_checks,
+			       const std::shared_ptr<filtercheck_map_t>& source_checks,
+			       const std::shared_ptr<filtercheck_map_t>& target_checks);
 	bool extract_fspath(sinsp_evt* evt,
 			    std::vector<extract_value_t>& values,
-			    std::shared_ptr<filtercheck_map_t> map);
+			    const std::shared_ptr<filtercheck_map_t>& map);
 	std::string m_tstr;
 
 	std::shared_ptr<filtercheck_map_t> m_success_checks;

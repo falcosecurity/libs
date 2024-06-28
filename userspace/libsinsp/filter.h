@@ -202,7 +202,7 @@ public:
 	sinsp_filter_compiler(
 		sinsp* inspector,
 		const std::string& fltstr,
-		std::shared_ptr<sinsp_filter_cache_factory> cache_factory = nullptr);
+		const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
 
 	/*!
 		\brief Constructs the compiler
@@ -212,9 +212,9 @@ public:
 		\param fltstr The filter string to compile
 	*/
 	sinsp_filter_compiler(
-		std::shared_ptr<sinsp_filter_factory> factory,
+		const std::shared_ptr<sinsp_filter_factory>& factory,
 		const std::string& fltstr,
-		std::shared_ptr<sinsp_filter_cache_factory> cache_factory = nullptr);
+		const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
 
 	/*!
 		\brief Constructs the compiler
@@ -225,9 +225,9 @@ public:
 		tree
 	*/
 	sinsp_filter_compiler(
-		std::shared_ptr<sinsp_filter_factory> factory,
+		const std::shared_ptr<sinsp_filter_factory>& factory,
 		const libsinsp::filter::ast::expr* fltast,
-		std::shared_ptr<sinsp_filter_cache_factory> cache_factory = nullptr);
+		const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
 
 	/*!
 		\brief Builds a filtercheck tree and bundles it in sinsp_filter
@@ -237,9 +237,9 @@ public:
 	*/
 	std::unique_ptr<sinsp_filter> compile();
 
-	std::shared_ptr<const libsinsp::filter::ast::expr> get_filter_ast() const { return m_internal_flt_ast; }
+	const std::shared_ptr<libsinsp::filter::ast::expr> get_filter_ast() const { return m_internal_flt_ast; }
 
-	std::shared_ptr<libsinsp::filter::ast::expr> get_filter_ast() { return m_internal_flt_ast; }
+	const std::shared_ptr<libsinsp::filter::ast::expr>& get_filter_ast() { return m_internal_flt_ast; }
 
 	const libsinsp::filter::ast::pos_info& get_pos() const { return m_pos; }
 
