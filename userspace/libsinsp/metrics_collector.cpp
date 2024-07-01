@@ -488,7 +488,7 @@ void libs_resource_utilization::get_container_memory_used()
 	if (filepath == nullptr)
 	{
 		// No need for scap_get_host_root since we look at the container pid namespace (if applicable)
-		// Known collison for VM memory usage, but this default value is configurable
+		// Known collision for VM memory usage, but this default value is configurable
 		filepath = "/sys/fs/cgroup/memory/memory.usage_in_bytes";
 	}
 
@@ -499,10 +499,13 @@ void libs_resource_utilization::get_container_memory_used()
 	}
 
 	/* memory size returned in bytes */
-	fscanf(f, "%" SCNu64, &m_container_memory_used);
-	fclose(f);
+	int fscanf_matched = fscanf(f, "%" SCNu64, &m_container_memory_used);
+	if (fscanf_matched != 1)
+	{
+		m_container_memory_used = 0;
+	}
 
-	return;
+	fclose(f);
 }
 
 libs_state_counters::libs_state_counters(std::shared_ptr<sinsp_stats_v2> sinsp_stats_v2, sinsp_thread_manager* thread_manager) : m_sinsp_stats_v2(sinsp_stats_v2), m_n_fds(0), m_n_threads(0) {
