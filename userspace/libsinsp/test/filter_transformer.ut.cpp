@@ -40,6 +40,13 @@ static std::string supported_type_msg(ppm_param_type t, bool support_expected)
         + std::string(param_type_to_string(t));
 }
 
+static std::string eq_test_msg(const std::pair<std::string, std::string> &tc)
+{
+    return "expected '" 
+           + tc.first + "' (length: " + std::to_string(tc.first.length()) + ")"
+           + " to be equal to '" + tc.second + "' (length: " + std::to_string(tc.second.length()) + ")";
+}
+
 static extract_value_t const_str_to_extract_value(const char* v)
 {
     extract_value_t ret;
@@ -57,9 +64,19 @@ TEST(sinsp_filter_transformer, toupper)
     auto supported_types = std::unordered_set<ppm_param_type>({
         PT_CHARBUF, PT_FSPATH, PT_FSRELPATH });
 
-    auto sample_vals = std::vector<extract_value_t>({
-        const_str_to_extract_value("hello"),
-        const_str_to_extract_value("world") });
+    auto test_cases = std::vector<std::pair<std::string, std::string>>{
+        {"hello", "HELLO"},
+        {"world", "WORLD"},
+        {"eXcItED", "EXCITED"},
+        {"", ""},
+    };
+
+    std::vector<extract_value_t> sample_vals;
+
+    for (auto& tc : test_cases)
+    {
+        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+    }
 
     // check for unsupported types
     for (auto t : all_types)
@@ -82,11 +99,13 @@ TEST(sinsp_filter_transformer, toupper)
         auto vals = sample_vals;
         EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
         EXPECT_EQ(original, t);
-        EXPECT_EQ(vals.size(), 2);
-        EXPECT_EQ(std::string((const char*) vals[0].ptr), "HELLO");
-        EXPECT_EQ(vals[0].len, sizeof("HELLO"));
-        EXPECT_EQ(std::string((const char*) vals[1].ptr), "WORLD");
-        EXPECT_EQ(vals[1].len, sizeof("WORLD"));
+        EXPECT_EQ(vals.size(), test_cases.size());
+
+        for (uint32_t i = 0; i < test_cases.size(); i++)
+        {
+            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
+            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+        }
     }
 }
 
@@ -99,9 +118,19 @@ TEST(sinsp_filter_transformer, tolower)
     auto supported_types = std::unordered_set<ppm_param_type>({
         PT_CHARBUF, PT_FSPATH, PT_FSRELPATH });
 
-    auto sample_vals = std::vector<extract_value_t>({
-        const_str_to_extract_value("HELLO"),
-        const_str_to_extract_value("WORLD") });
+    auto test_cases = std::vector<std::pair<std::string, std::string>>{
+        {"HELLO", "hello"},
+        {"world", "world"},
+        {"NoT_eXcItED", "not_excited"},
+        {"", ""},
+    };
+
+    std::vector<extract_value_t> sample_vals;
+
+    for (auto& tc : test_cases)
+    {
+        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+    }
 
     // check for unsupported types
     for (auto t : all_types)
@@ -124,11 +153,13 @@ TEST(sinsp_filter_transformer, tolower)
         auto vals = sample_vals;
         EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
         EXPECT_EQ(original, t);
-        EXPECT_EQ(vals.size(), 2);
-        EXPECT_EQ(std::string((const char*) vals[0].ptr), "hello");
-        EXPECT_EQ(vals[0].len, sizeof("hello"));
-        EXPECT_EQ(std::string((const char*) vals[1].ptr), "world");
-        EXPECT_EQ(vals[1].len, sizeof("world"));
+        EXPECT_EQ(vals.size(), test_cases.size());
+
+        for (uint32_t i = 0; i < test_cases.size(); i++)
+        {
+            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
+            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+        }
     }
 }
 
@@ -141,9 +172,21 @@ TEST(sinsp_filter_transformer, b64)
     auto supported_types = std::unordered_set<ppm_param_type>({
         PT_CHARBUF, PT_BYTEBUF });
 
-    auto sample_vals = std::vector<extract_value_t>({
-        const_str_to_extract_value("aGVsbG8="), // 'hello'
-        const_str_to_extract_value("d29ybGQgIQ==") }); // 'world !'
+    auto test_cases = std::vector<std::pair<std::string, std::string>>{
+        {"aGVsbG8=", "hello"},
+        {"d29ybGQgIQ==", "world !"},
+        {"", ""},
+    };
+
+    std::vector<std::string> invalid_test_cases {
+        "!!!"
+    };
+
+    std::vector<extract_value_t> sample_vals;
+    for (auto& tc : test_cases)
+    {
+        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+    }
 
     // check for unsupported types
     for (auto t : all_types)
@@ -166,21 +209,25 @@ TEST(sinsp_filter_transformer, b64)
         auto vals = sample_vals;
         EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
         EXPECT_EQ(original, t);
-        EXPECT_EQ(vals.size(), 2);
-        EXPECT_EQ(std::string((const char*) vals[0].ptr), "hello");
-        EXPECT_EQ(vals[0].len, sizeof("hello"));
-        EXPECT_EQ(std::string((const char*) vals[1].ptr), "world !");
-        EXPECT_EQ(vals[1].len, sizeof("world !"));
+        EXPECT_EQ(vals.size(), test_cases.size());
+
+        for (uint32_t i = 0; i < test_cases.size(); i++)
+        {
+            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
+            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+        }
+    }
+
+    std::vector<extract_value_t> invalid_vals;
+    for (auto& tc : invalid_test_cases)
+    {
+        invalid_vals.push_back(const_str_to_extract_value(tc.c_str()));
     }
 
     // check invalid input being rejected
     {
         auto t = PT_CHARBUF;
-        auto vals = sample_vals;
-        vals[0].ptr = (uint8_t*) ((const char*) "!!!");
-        vals[0].len = sizeof("!!!");
-        EXPECT_FALSE(tr.transform_values(vals, t));
+        EXPECT_FALSE(tr.transform_values(invalid_vals, t));
         EXPECT_EQ(t, PT_CHARBUF);
-        EXPECT_EQ(vals.size(), 2);
     }
 }
