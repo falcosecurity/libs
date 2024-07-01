@@ -70,6 +70,34 @@ struct scap_platform_vtable scap_generic_platform_vtable = {
 	.free_platform = scap_generic_free_platform,
 };
 
+static void scap_generic_get_rss_vsz_pss_total_memory_and_open_fds(uint32_t *rss, uint32_t *vsz, uint32_t *pss, uint64_t *host_memory_used, uint64_t *host_open_fds)
+{
+	*rss = 0;
+	*vsz = 0;
+	*pss = 0;
+	*host_memory_used = 0;
+	*host_open_fds = 0;
+}
+
+static void scap_generic_get_cpu_usage_and_total_procs(double start_time, double *cpu_usage_perc, double *host_cpu_usage_perc, uint32_t *host_procs_running)
+{
+	*cpu_usage_perc = 0;
+	*host_cpu_usage_perc = 0;
+	*host_procs_running = 0;
+}
+
+static void scap_generic_get_container_memory_used(uint64_t *container_memory_used)
+{
+	*container_memory_used = 0;
+	return;
+}
+
+struct scap_metrics_vtable scap_generic_metrics_vtable = {
+	.get_rss_vsz_pss_total_memory_and_open_fds = scap_generic_get_rss_vsz_pss_total_memory_and_open_fds,
+	.get_cpu_usage_and_total_procs = scap_generic_get_cpu_usage_and_total_procs,
+	.get_container_memory_used = scap_generic_get_container_memory_used,
+};
+
 struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
 {
 	struct scap_platform* platform = calloc(1, sizeof(*platform));
@@ -80,6 +108,7 @@ struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callb
 	}
 
 	platform->m_vtable = &scap_generic_platform_vtable;
+	platform->m_metrics_vtable = &scap_generic_metrics_vtable;
 
 	init_proclist(&platform->m_proclist, proc_callback, proc_callback_context);
 

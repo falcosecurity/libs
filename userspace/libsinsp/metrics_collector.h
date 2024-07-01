@@ -57,8 +57,6 @@ struct sinsp_stats_v2
 	uint32_t m_n_containers; ///<  Number of containers (cgroups) currently cached by sinsp_container_manager, hijacked sinsp_container_manager::remove_inactive_containers() -> every flush snapshot update, unit: count.
 };
 
-#ifdef __linux__
-
 namespace libs::metrics
 {
 
@@ -272,20 +270,11 @@ public:
 class libs_resource_utilization : libsinsp_metrics
 {
 public:
-	libs_resource_utilization(double start_time)
-	{
-		get_cpu_usage_and_total_procs(start_time);
-		get_rss_vsz_pss_total_memory_and_open_fds();
-		get_container_memory_used();
-	}
+	libs_resource_utilization(sinsp* inspector, double start_time);
 
 	std::vector<metrics_v2> to_metrics() override;
 
 private:
-	void get_cpu_usage_and_total_procs(double start_time);
-	void get_rss_vsz_pss_total_memory_and_open_fds();
-	void get_container_memory_used();
-
 	double m_cpu_usage_perc{}; ///< Current CPU usage, `ps` util like calculation for the calling process (/proc/self), unit: percentage of one CPU.
 
 	uint32_t m_rss{}; ///< Current RSS (Resident Set Size), calculated based on /proc/self/status info, unit: kb.
@@ -358,5 +347,3 @@ private:
 };
 
 } // namespace libs::metrics
-
-#endif
