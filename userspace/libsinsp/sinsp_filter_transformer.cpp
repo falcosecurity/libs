@@ -57,7 +57,7 @@ bool sinsp_filter_transformer::string_transformer(std::vector<extract_value_t>& 
         }
 
         // we insert a null terminator in case we miss one, just to stay safe
-        if (buf[buf.size() - 1] != '\0')
+        if (buf.size() == 0 || buf[buf.size() - 1] != '\0')
         {
             buf.push_back('\0');
         }
