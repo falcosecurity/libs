@@ -30,7 +30,7 @@ struct test_input_engine
 
 typedef struct test_input_engine test_input_engine;
 
-#define SCAP_HANDLE_T struct test_input_engine
+#define HANDLE(engine) ((struct test_input_engine*)(engine.m_handle))
 
 #include <libscap/engine/noop/noop.h>
 
@@ -39,7 +39,7 @@ typedef struct test_input_engine test_input_engine;
 #include <libscap/scap_proc_util.h>
 #include <libscap/strl.h>
 
-static struct test_input_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct test_input_engine *engine = calloc(1, sizeof(struct test_input_engine));
 	if(engine == NULL)

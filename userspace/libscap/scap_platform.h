@@ -20,9 +20,6 @@ limitations under the License.
 
 #include <stdint.h>
 
-#ifndef SCAP_HANDLE_T
-#define SCAP_HANDLE_T void
-#endif
 #include <libscap/engine_handle.h>
 
 #include <libscap/scap_procs.h>

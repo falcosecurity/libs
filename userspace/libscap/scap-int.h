@@ -22,10 +22,6 @@ limitations under the License.
 
 #pragma once
 
-#ifndef SCAP_HANDLE_T
-#define SCAP_HANDLE_T void
-#endif
-
 #include <libscap/engine_handle.h>
 #include <libscap/scap_vtable.h>
 
