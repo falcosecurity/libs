@@ -14,12 +14,22 @@ class mock_compiler_filter_check : public sinsp_filter_check
 public:
 	int32_t parse_field_name(std::string_view str, bool alloc_state, bool needed_for_filtering) override
 	{
+		static const std::unordered_set<std::string> s_supported_fields = {
+			"c.true", "c.false", "c.buffer", "c.doublequote", "c.singlequote"
+		};
+
 		m_name = str;
 		if (str == "c.buffer")
 		{
 			m_field_info.m_type = PT_BYTEBUF;
 		}
-		return 0;
+
+		if (s_supported_fields.find(m_name) != s_supported_fields.end())
+		{
+			return m_name.size();
+		}
+
+		return -1;
 	}
 
 	inline bool compare(sinsp_evt*) override
@@ -109,7 +119,17 @@ public:
 
 	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const override
 	{
-		return std::make_unique<mock_compiler_filter_check>();
+		if (mock_compiler_filter_check{}.parse_field_name(fldname, false, true) > 0)
+		{
+			return std::make_unique<mock_compiler_filter_check>();
+		}
+
+		if (auto check = sinsp_filter_factory::new_filtercheck(fldname); check != nullptr)
+		{
+			return check;
+		}
+
+		return nullptr;
 	}
 
 	inline list<sinsp_filter_factory::filter_fieldclass_info> get_fields() const override
@@ -150,7 +170,8 @@ void test_filter_run(bool result, string filter_str)
 void test_filter_compile(
 		std::shared_ptr<sinsp_filter_factory> factory,
 		string filter_str,
-		bool expect_fail=false)
+		bool expect_fail=false,
+		size_t expected_warnings=0)
 {
 	sinsp_filter_compiler compiler(factory, filter_str);
 	try
@@ -175,6 +196,13 @@ void test_filter_compile(
 			FAIL() << filter_str << " -> " << "UNKNOWN ERROR";
 		}
 	}
+
+	std::string warnings_fmt;
+	for (const auto& warn : compiler.get_warnings())
+	{
+		warnings_fmt.append("\n").append(warn.pos.as_string()).append(" -> ").append(warn.msg);
+	}
+	ASSERT_EQ(compiler.get_warnings().size(), expected_warnings) << "filter: " + filter_str + "\nactual warnings: " + warnings_fmt;
 }
 
 // In each of these test cases, we compile filter expression
@@ -291,6 +319,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.rawtime bcontains 303000", true);
 	test_filter_compile(factory, "evt.rawtime bstartswith 303000", true);
 	test_filter_compile(factory, "evt.rawtime iglob 1", true);
+	test_filter_compile(factory, "evt.rawtime regex '1'", true);
 	
 	// PT_BOOL
 	test_filter_compile(factory, "evt.is_io exists");
@@ -311,6 +340,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.is_io bcontains 7472756500", true);
 	test_filter_compile(factory, "evt.is_io bstartswith 7472756500", true);
 	test_filter_compile(factory, "evt.is_io iglob true", true);
+	test_filter_compile(factory, "evt.is_io regex '1'", true);
 
 	// PT_BYTEBUF
 	test_filter_compile(factory, "evt.buffer exists");
@@ -331,6 +361,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.buffer bcontains 303000");
 	test_filter_compile(factory, "evt.buffer bstartswith 303000");
 	test_filter_compile(factory, "evt.buffer iglob test", true);
+	test_filter_compile(factory, "evt.buffer regex '.*'", true);
 
 	// PT_CHARBUF
 	test_filter_compile(factory, "fd.name exists");
@@ -351,6 +382,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.name bcontains 303000", true);
 	test_filter_compile(factory, "fd.name bstartswith 303000", true);
 	test_filter_compile(factory, "fd.name iglob true");
+	test_filter_compile(factory, "fd.name regex '/home/.*/dev'");
 
 	// PT_DOUBLE
 	test_filter_compile(factory, "thread.cpu exists");
@@ -373,6 +405,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "thread.cpu bcontains 303000", true);
 	test_filter_compile(factory, "thread.cpu bstartswith 303000", true);
 	test_filter_compile(factory, "thread.cpu iglob 1", true);
+	test_filter_compile(factory, "thread.cpu regex '1'", true);
 
 	// PT_INT16
 	test_filter_compile(factory, "evt.cpu exists");
@@ -393,6 +426,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.cpu bcontains 303000", true);
 	test_filter_compile(factory, "evt.cpu bstartswith 303000", true);
 	test_filter_compile(factory, "evt.cpu iglob 1", true);
+	test_filter_compile(factory, "evt.cpu regex '1'", true);
 
 	// PT_INT32
 	test_filter_compile(factory, "fd.dev exists");
@@ -413,6 +447,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.dev bcontains 303000", true);
 	test_filter_compile(factory, "fd.dev bstartswith 303000", true);
 	test_filter_compile(factory, "fd.dev iglob 1", true);
+	test_filter_compile(factory, "fd.dev regex '1'", true);
 
 	// PT_INT64
 	test_filter_compile(factory, "proc.pid exists");
@@ -433,6 +468,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "proc.pid bcontains 303000", true);
 	test_filter_compile(factory, "proc.pid bstartswith 303000", true);
 	test_filter_compile(factory, "proc.pid iglob 1", true);
+	test_filter_compile(factory, "proc.pid regex '1'", true);
 
 	// PT_IPADDR
 	test_filter_compile(factory, "fd.ip exists");
@@ -453,6 +489,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.ip bcontains 3132372e302e302e3100", true);
 	test_filter_compile(factory, "fd.ip bstartswith 3132372e302e302e3100", true);
 	test_filter_compile(factory, "fd.ip iglob 127.0.0.1", true);
+	test_filter_compile(factory, "fd.ip regex '.*'", true);
 
 	// PT_IPNET
 	test_filter_compile(factory, "fd.net exists");
@@ -473,6 +510,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.net bcontains 3132372e302e302e312f333200", true);
 	test_filter_compile(factory, "fd.net bstartswith 3132372e302e302e312f333200", true);
 	test_filter_compile(factory, "fd.net iglob 127.0.0.1/32", true);
+	test_filter_compile(factory, "fd.net regex '.*'", true);
 
 	// PT_PORT
 	test_filter_compile(factory, "fd.port exists");
@@ -493,6 +531,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "fd.port bcontains 303000", true);
 	test_filter_compile(factory, "fd.port bstartswith 303000", true);
 	test_filter_compile(factory, "fd.port iglob 1", true);
+	test_filter_compile(factory, "fd.port regex '1'", true);
 
 	// PT_RELTIME
 	test_filter_compile(factory, "proc.pid.ts exists");
@@ -513,6 +552,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "proc.pid.ts bcontains 303000", true);
 	test_filter_compile(factory, "proc.pid.ts bstartswith 303000", true);
 	test_filter_compile(factory, "proc.pid.ts iglob 1", true);
+	test_filter_compile(factory, "proc.pid.ts regex '1'", true);
 
 	// PT_UINT32
 	test_filter_compile(factory, "evt.count exists");
@@ -533,6 +573,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.count bcontains 303000", true);
 	test_filter_compile(factory, "evt.count bstartswith 303000", true);
 	test_filter_compile(factory, "evt.count iglob 1", true);
+	test_filter_compile(factory, "evt.count regex '1'", true);
 
 	// PT_UINT64
 	test_filter_compile(factory, "evt.num exists");
@@ -553,6 +594,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.num bcontains 303000", true);
 	test_filter_compile(factory, "evt.num bstartswith 303000", true);
 	test_filter_compile(factory, "evt.num iglob 1", true);
+	test_filter_compile(factory, "evt.num regex '1'", true);
 }
 
 TEST(sinsp_filter_compiler, complex_filter)
@@ -590,6 +632,39 @@ TEST(sinsp_filter_compiler, complex_filter)
 		")";
 
 	test_filter_compile(factory, filter_str);
+}
+
+TEST(sinsp_filter_compiler, compilation_warnings)
+{
+	sinsp inspector;
+	std::shared_ptr<sinsp_filter_factory> factory(new mock_compiler_filter_factory(&inspector));
+
+	// warnings expected
+	test_filter_compile(factory, "evt.source = evt.plugininfo", false, 1);
+	test_filter_compile(factory, "evt.source = 'tolower(evt.plugininfo)'", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex ^syscall$", false, 1);
+	test_filter_compile(factory, "evt.source regex ^syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall$", false, 1);
+	test_filter_compile(factory, "evt.source regex .*syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall.*", false, 1);
+	test_filter_compile(factory, "evt.source regex .*syscall.*", false, 1);
+	test_filter_compile(factory, "evt.source regex .+syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall.+", false, 1);
+	test_filter_compile(factory, "evt.source regex .+syscall.+", false, 1);
+	test_filter_compile(factory, "evt.source regex .?syscall", false, 1);
+	test_filter_compile(factory, "evt.source regex syscall.?", false, 1);
+	test_filter_compile(factory, "evt.source regex .?syscall.?", false, 1);
+
+	// warnings not expected (not part of our euristics)
+	test_filter_compile(factory, "evt.source = unknown.field", false, 0);
+	test_filter_compile(factory, "evt.source = tolower", false, 0);
+	test_filter_compile(factory, "evt.source = tolower(evt.plugininfo)", false, 0);
+	test_filter_compile(factory, "evt.source = 'tolow(evt.plugininfo)'", false, 0);
+	test_filter_compile(factory, "evt.source regex syscall.{1}", false, 0);
+	test_filter_compile(factory, "evt.source regex syscall\\.*", false, 0);
+	test_filter_compile(factory, "evt.source regex s.*l", false, 0);
+	test_filter_compile(factory, "evt.source regex syscal[l]?", false, 0);
 }
 
 //////////////////////////////
@@ -793,4 +868,30 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	EXPECT_EQ(cf->metrics->m_num_extract, 4);
 	EXPECT_EQ(cf->metrics->m_num_extract_cache, 2);
 	cf->metrics->reset();
+}
+
+TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation)
+{
+	// Basic case just to assert that the basic setup works
+	add_default_init_thread();
+	open_inspector();
+
+	auto evt = generate_getcwd_failed_entry_event();
+
+	// legit use case with a string
+	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "evt.source regex '^[s]{1}ysca[l]{2}$'", evt));
+	
+	// respect anchors
+	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex 'yscal.*'", evt));
+	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex '.*yscal'", evt));
+	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "evt.source regex 'syscal.*'", evt));
+
+	// legit use case with a string, evaluating as false
+	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex '^unknown$'", evt));
+
+	// legit use case with a string, also using transformers
+	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "toupper(evt.source) regex '^[A-Z]+$'", evt));
+
+	// can't be used with field-to-field comparisons
+	EXPECT_THROW(evaluate_filter_str(&m_inspector, "evt.plugininfo regex val(evt.source)", evt), sinsp_exception);
 }

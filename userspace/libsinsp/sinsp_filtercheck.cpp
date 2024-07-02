@@ -23,6 +23,8 @@ limitations under the License.
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/value_parser.h>
 
+#include <re2/re2.h>
+
 #define STRPROPERTY_STORAGE_SIZE	1024
 
 std::string std::to_string(boolop b)
@@ -45,12 +47,26 @@ std::string std::to_string(boolop b)
 	return "<unset>";
 }
 
+void sinsp_filter_check::default_re2_deleter::operator()(re2::RE2* __ptr) const
+{
+	std::default_delete<re2::RE2>{}(__ptr);
+}
+
 template <typename Ptr, typename... Params>
 static inline void ensure_unique_ptr_allocated(Ptr& p, Params... args)
 {
 	if (!p)
 	{
 		p = std::make_unique<typename Ptr::element_type>(args...);
+	}
+}
+
+template <typename Ptr, typename... Params>
+static inline void ensure_unique_ptr_allocated_deleter(Ptr& p, Params... args)
+{
+	if (!p)
+	{
+		p.reset(new typename Ptr::element_type(args...));
 	}
 }
 
@@ -734,6 +750,10 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		ensure_unique_ptr_allocated(m_val_storages_paths);
 		m_val_storages_paths->add_search_path(item);
 	}
+	else if (m_cmpop == CO_REGEX)
+	{
+		ensure_unique_ptr_allocated_deleter(m_val_regex, re2::StringPiece((const char*) item.first), re2::RE2::POSIX);
+	}
 }
 
 void sinsp_filter_check::add_filter_value(std::unique_ptr<sinsp_filter_check> rhs_chk)
@@ -757,16 +777,16 @@ void sinsp_filter_check::add_filter_value(std::unique_ptr<sinsp_filter_check> rh
 			+ std::string(m_rhs_filter_check->get_transformed_field_info()->m_name) + "'");
 	}
 
-	if(m_cmpop == CO_PMATCH)
+	if(m_cmpop == CO_PMATCH || m_cmpop == CO_REGEX)
 	{
-		throw sinsp_exception("operator `CO_PMATCH` doesn't support right-hand side fields");
+		throw sinsp_exception("operator '" + std::to_string(m_cmpop) + "' doesn't support right-hand side fields");
 	}
 
 	if (get_transformed_field_info()->m_type == PT_IPNET
 		|| get_transformed_field_info()->m_type == PT_IPV4NET
 		|| get_transformed_field_info()->m_type == PT_IPV6NET)
 	{
-		throw sinsp_exception("field type `IPNET` doesn't support right-hand side fields");
+		throw sinsp_exception("field type 'IPNET' doesn't support right-hand side fields");
 	}
 
 	// For each filter check we need to answer 2 questions:
@@ -986,14 +1006,41 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, std::vector<
 		values[0].len);
 }
 
+static inline filter_value_t craft_filter_value(ppm_param_type type, const void* value, uint32_t len)
+{
+	// For raw strings, the length may not be set. So we do a strlen to find it.
+	switch (type)
+	{
+		case PT_CHARBUF:
+		case PT_FSPATH:
+		case PT_FSRELPATH:
+			// set len if missing
+			if (len == 0)
+			{
+				len = strlen((const char *) value);
+			}
+			
+			// don't count terminator chars
+			while (len > 0 && ((const char*) value)[len - 1] == '\0')
+			{
+				len--;
+			}
+			break;
+		default:
+			break;
+	}
+	return filter_value_t{(uint8_t *) value, len};
+}
+
 bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len)
 {
-	if(op == CO_EXISTS)
+	switch (op)
 	{
+	case CO_EXISTS:
 		return true;
-	}
-
-	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
+	case CO_IN:
+	case CO_PMATCH:
+	case CO_INTERSECTS:
 	{
 		// Certain filterchecks can't be done as a set
 		// membership test/group match. For these, just loop over the
@@ -1006,9 +1053,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 		case PT_SOCKADDR:
 		case PT_SOCKTUPLE:
 		case PT_FDLIST:
-		case PT_FSPATH:
 		case PT_SIGSET:
-		case PT_FSRELPATH:
 			for (uint16_t i=0; i < m_vals.size(); i++)
 			{
 				if (::flt_compare(CO_EQ,
@@ -1023,14 +1068,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 			}
 			return false;
 		default:
-			// For raw strings, the length may not be set. So we do a strlen to find it.
-			if(type == PT_CHARBUF && op1_len == 0)
-			{
-				op1_len = strlen((char *) operand1);
-			}
-
-			filter_value_t item((uint8_t *) operand1, op1_len);
-
+			auto item = craft_filter_value(type, operand1, op1_len);
 			if (op == CO_IN || op == CO_INTERSECTS)
 			{
 				// CO_INTERSECTS is really more interesting when a filtercheck can extract
@@ -1055,11 +1093,27 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 			}
 
 			return false;
-			break;
 		}
+		return false;
 	}
-	else
-	{
+	case CO_REGEX:
+		switch(type)
+		{
+		case PT_CHARBUF:
+		case PT_FSPATH:
+		case PT_FSRELPATH:
+			if (m_val_regex)
+			{
+				auto item = craft_filter_value(type, operand1, op1_len);
+				re2::StringPiece s((const char*) item.first, item.second);
+				return m_val_regex->Match(s, 0, item.second, re2::RE2::Anchor::ANCHOR_BOTH, nullptr, 0);
+			}
+			// fallthrough
+		default:
+			ASSERT(false);
+			return false;
+		};
+	default:
 		return (::flt_compare(op,
 				      type,
 				      operand1,

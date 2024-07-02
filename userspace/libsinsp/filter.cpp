@@ -475,7 +475,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		// the parser is trusted to apply proper grammar checks on this constraint.
 		for (size_t i = 0; i < m_field_values.size(); i++)
 		{
-			check_value_and_add_warnings(e->right->get_pos(), m_field_values[i]);
+			check_value_and_add_warnings(check->m_cmpop, e->right->get_pos(), m_field_values[i]);
 			add_filtercheck_value(check.get(), i, m_field_values[i]);
 		}
 	}
@@ -495,37 +495,104 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::identifier_expr* 
 	throw sinsp_exception("filter error: unexpected identifier '" + e->identifier + "'");
 }
 
+void sinsp_filter_compiler::check_warnings_regex_value(const libsinsp::filter::ast::pos_info& pos, const std::string& v)
+{
+	static const char* rgx_special_chars = ".+*?^$()[]{}|\\";
+	static const char* rgx_occurrence_chars = "+*?";
+	static cmpop suggested_operators[] = {CO_EQ, CO_CONTAINS, CO_STARTSWITH, CO_ENDSWITH};
+
+	auto len = v.length();
+	for (size_t i = 0; i < len; i++)
+	{
+		// skip start/end achors, they are implicitly enforced in the way we evaluate regular expressions
+		if ((i == 0 && v[i] == '^') || (i == len - 1 && v[i] == '$'))
+		{
+			continue;
+		}
+
+		// skip "any-char" occurrence indicators at the start or end of the expression,
+		// as those could potentially be implemented through other operators such as contains,
+		// startswith, or endswith. E.g. we want to catch cases like `.*substring` and `substring.*`
+		// note: for simplicity we just check for wildcard occurrence indicators, and 
+		// not specific quantifiers (e.g. `substring.{2}`)
+		if (((i == 0 && len > 1) || (i == len - 2))
+			&& v[i] == '.' && strchr(rgx_occurrence_chars, v[i + 1]) != nullptr)
+		{
+			i++; // also skip the occurrence indicator char
+			continue;
+		}
+
+		// we encounter some regex special characters in the middle of the expression.
+		// we still have no guarantee that a regex is the only way of implementing this
+		// value check, however we don't have better euristics to apply and just assume
+		// it is a necessary cost
+		if (strchr(rgx_special_chars, v[i]) != nullptr)
+		{
+			return;
+		}
+	}
+
+	auto msg = "regex check with '" + v + "' may be optimized with simpler operators such as ";
+	std::string opstr;
+	for (size_t i = 0; i < sizeof(suggested_operators) / sizeof(suggested_operators[0]); i++)
+	{
+		cmpop_to_str(suggested_operators[i], opstr);
+		msg.append(i == 0 ? "" : ", ").append("'").append(opstr).append("'");
+	}
+	m_warnings.push_back({msg, pos});
+}
+
+void sinsp_filter_compiler::check_warnings_field_value(const libsinsp::filter::ast::pos_info& pos, const std::string& str, const std::string& strippedstr)
+{
+	if (m_factory->new_filtercheck(strippedstr.c_str()) == nullptr)
+	{
+		return;
+	}
+	auto msg = "'" + str + "' may be a valid field misused as a const string value";
+	m_warnings.push_back({msg, pos});
+}
+
+void sinsp_filter_compiler::check_warnings_transformer_value(const libsinsp::filter::ast::pos_info& pos, const std::string& str, const std::string& strippedstr)
+{
+	auto transformers = libsinsp::filter::parser::supported_field_transformers(true);
+	for (const auto& t : transformers)
+	{
+		if (strippedstr.size() >= t.size() + 2
+				&& strippedstr.compare(0, t.size(), t) == 0
+				&& strippedstr[t.size()] == '('
+				&& strippedstr.back() == ')')
+		{
+			auto msg = "'" + str + "' may be a valid field transformer misused as a const string value";
+			m_warnings.push_back({msg, pos});
+		}
+	}
+}
+
 void sinsp_filter_compiler::check_value_and_add_warnings(
-		const libsinsp::filter::ast::pos_info& pos, const std::string& v)
+		cmpop op, const libsinsp::filter::ast::pos_info& pos, const std::string& v)
 {
 	try
 	{
-		// remove all spaces to catch most common errors
-		auto s = v;
-		s.erase(std::remove_if(s.begin(), s.end(), isspace), s.end());
+		// checking the string with nospaces might help reducing noise and
+		// catching most common issues
+		auto nospaces = v;
+		nospaces.erase(std::remove_if(nospaces.begin(), nospaces.end(), isspace), nospaces.end());
 
-		// check if the string is a valid field
-		if (m_factory->new_filtercheck(s.c_str()) != nullptr)
+		// checks using regex operator are the most performance expensive ones,
+		// so we want to appply few euristics to understand if the check could
+		// be trivially rewritten with simpler operators
+		if (op == CO_REGEX)
 		{
-			auto msg = "string '" + v
-				+ "' may be a valid field wrongly interpreted as a string value";
-			m_warnings.push_back({msg, pos});
+			check_warnings_regex_value(pos, v);
 		}
 
-		// check if the string may be a valid transformer
-		auto transformers = libsinsp::filter::parser::supported_field_transformers(true);
-		for (const auto& t : transformers)
-		{
-			if (s.size() >= t.size() + 2
-					&& s.compare(0, t.size(), t) == 0
-					&& s[t.size()] == '('
-					&& s.back() == ')')
-			{
-				auto msg = "string '" + v
-					+ "' may be a valid field transformer wrongly interpreted as a string value";
-				m_warnings.push_back({msg, pos});
-			}
-		}
+		// users may reference a valid field name and use it as a string value
+		// by mistake (e.g. forgetting about using the `val()` transformer)
+		check_warnings_field_value(pos, v, nospaces);
+
+		// users may be confused with the proper usage of transformers and may
+		// end up using one as string values in checks
+		check_warnings_transformer_value(pos, v, nospaces);
 	}
 	catch (...)
 	{

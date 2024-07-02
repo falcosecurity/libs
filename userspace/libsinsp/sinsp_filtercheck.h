@@ -32,6 +32,8 @@ limitations under the License.
 #include <unordered_set>
 #include <memory>
 
+namespace re2 { class RE2; };
+
 enum boolop: uint8_t
 {
 	BO_NONE = 0,
@@ -264,6 +266,9 @@ private:
 	std::unique_ptr<path_prefix_search> m_val_storages_paths;
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
+
+	struct default_re2_deleter { void operator()(re2::RE2* __ptr) const; };
+	std::unique_ptr<re2::RE2, default_re2_deleter> m_val_regex;
 
 	static constexpr const size_t s_min_filter_value_buf_size = 16;
 	static constexpr const size_t s_max_filter_value_buf_size = 256;
