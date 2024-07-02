@@ -338,26 +338,6 @@ static __always_inline uint64_t extract__epoch_ns_from_time(struct timespec64 ti
 }
 
 /**
- * \brief Extract the device number and the inode number from a file descriptor.
- *
- * @param fd generic file descriptor.
- * @param dev pointer to the device number we have to fill.
- * @param ino pointer to the inode number we have to fill.
- */
-static __always_inline void extract__dev_and_ino_from_fd(int32_t fd, dev_t *dev, uint64_t *ino)
-{
-	struct file *f = extract__file_struct_from_fd(fd);
-	if(!f)
-	{
-		return;
-	}
-
-	BPF_CORE_READ_INTO(dev, f, f_inode, i_sb, s_dev);
-	*dev = encode_dev(*dev);
-	BPF_CORE_READ_INTO(ino, f, f_inode, i_ino);
-}
-
-/**
  * \brief Extract the file mode created flag from a file descriptor.
  *
  * @param fd generic file descriptor.
@@ -831,7 +811,7 @@ static __always_inline void extract__egid(struct task_struct *task, uint32_t *eg
 // EXECVE FLAGS EXTRACTION
 ////////////////////////
 
-static __always_inline bool extract__exe_upper_layer(struct inode *inode, struct file *exe_file)
+static __always_inline enum ppm_overlay extract__overlay_layer(struct inode *inode, struct file *exe_file)
 {
 	unsigned long sb_magic = BPF_CORE_READ(inode, i_sb, s_magic);
 
@@ -842,14 +822,14 @@ static __always_inline bool extract__exe_upper_layer(struct inode *inode, struct
 		unsigned long inode_size = bpf_core_type_size(struct inode);
 		if(!inode_size)
 		{
-			return false;
+			return PPM_OVERLAY_LOWER;
 		}
 
 		bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), vfs_inode + inode_size);
 
 		if(!upper_dentry)
 		{
-			return false;
+			return PPM_OVERLAY_LOWER;
 		}
 
 		struct dentry *dentry = (struct dentry *)BPF_CORE_READ(exe_file, f_path.dentry);
@@ -858,7 +838,7 @@ static __always_inline bool extract__exe_upper_layer(struct inode *inode, struct
 		bool disconnected = (d_flags & DCACHE_DISCONNECTED);
 		if(disconnected)
 		{
-			return true;
+			return PPM_OVERLAY_UPPER;
 		}
 
 		unsigned long flags = 0;
@@ -877,12 +857,12 @@ static __always_inline bool extract__exe_upper_layer(struct inode *inode, struct
 		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
 		if(has_upper)
 		{
-			return true;
+			return PPM_OVERLAY_UPPER;
 		}
-
+		return PPM_OVERLAY_LOWER;
 	}
 
-	return false;
+	return PPM_NOT_OVERLAY_FS;
 }
 
 /*
@@ -937,6 +917,32 @@ static __always_inline bool extract__exe_from_memfd(struct file *file)
 	}
 
 	return true;
+}
+
+/**
+ * \brief Extract the device number and the inode number from a file descriptor.
+ *
+ * @param fd generic file descriptor.
+ * @param dev pointer to the device number we have to fill.
+ * @param ino pointer to the inode number we have to fill.
+ */
+static __always_inline void extract__dev_ino_and_file_from_fd(int32_t fd, dev_t *dev, uint64_t *ino, enum ppm_overlay *ol)
+{
+	struct file *f = extract__file_struct_from_fd(fd);
+	if(!f)
+	{
+		return;
+	}
+
+	struct inode *i = BPF_CORE_READ(f, f_inode);
+	if(i)
+	{
+		*ol = extract__overlay_layer(i, f);;
+	}
+
+	BPF_CORE_READ_INTO(dev, i, i_sb, s_dev);
+	*dev = encode_dev(*dev);
+	BPF_CORE_READ_INTO(ino, i, i_ino);
 }
 
 /* log(NGROUPS_MAX) = log(65536) */

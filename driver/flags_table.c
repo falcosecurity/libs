@@ -558,6 +558,7 @@ const struct ppm_name_value execve_flags[] = {
 	{"EXE_WRITABLE", PPM_EXE_WRITABLE},
 	{"EXE_UPPER_LAYER", PPM_EXE_UPPER_LAYER},
 	{"EXE_FROM_MEMFD", PPM_EXE_FROM_MEMFD},
+	{"EXE_LOWER_LAYER", PPM_EXE_LOWER_LAYER},
 	{0, 0},
 };
 
@@ -768,5 +769,11 @@ const struct ppm_name_value finit_module_flags[] = {
 	{"MODULE_INIT_IGNORE_MODVERSIONS", PPM_MODULE_INIT_IGNORE_MODVERSIONS},
 	{"MODULE_INIT_IGNORE_VERMAGIC", PPM_MODULE_INIT_IGNORE_VERMAGIC},
 	{"MODULE_INIT_COMPRESSED_FILE", PPM_MODULE_INIT_COMPRESSED_FILE},
+	{0, 0},
+};
+
+const struct ppm_name_value fd_flags[] = {
+	{"FD_UPPER_LAYER", PPM_FD_UPPER_LAYER},
+	{"FD_LOWER_LAYER", PPM_FD_LOWER_LAYER},
 	{0, 0},
 };
