@@ -879,19 +879,19 @@ TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation)
 	auto evt = generate_getcwd_failed_entry_event();
 
 	// legit use case with a string
-	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "evt.source regex '^[s]{1}ysca[l]{2}$'", evt));
+	EXPECT_TRUE(eval_filter(evt, "evt.source regex '^[s]{1}ysca[l]{2}$'"));
 	
 	// respect anchors
-	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex 'yscal.*'", evt));
-	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex '.*yscal'", evt));
-	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "evt.source regex 'syscal.*'", evt));
+	EXPECT_FALSE(eval_filter(evt, "evt.source regex 'yscal.*'"));
+	EXPECT_FALSE(eval_filter(evt, "evt.source regex '.*yscal'"));
+	EXPECT_TRUE(eval_filter(evt, "evt.source regex 'syscal.*'"));
 
 	// legit use case with a string, evaluating as false
-	EXPECT_FALSE(evaluate_filter_str(&m_inspector, "evt.source regex '^unknown$'", evt));
+	EXPECT_FALSE(eval_filter(evt, "evt.source regex '^unknown$'"));
 
 	// legit use case with a string, also using transformers
-	EXPECT_TRUE(evaluate_filter_str(&m_inspector, "toupper(evt.source) regex '^[A-Z]+$'", evt));
+	EXPECT_TRUE(eval_filter(evt, "toupper(evt.source) regex '^[A-Z]+$'"));
 
 	// can't be used with field-to-field comparisons
-	EXPECT_THROW(evaluate_filter_str(&m_inspector, "evt.plugininfo regex val(evt.source)", evt), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "evt.plugininfo regex val(evt.source)"), sinsp_exception);
 }
