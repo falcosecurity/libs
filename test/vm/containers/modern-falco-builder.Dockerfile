@@ -1,7 +1,20 @@
 FROM centos:7
 
-RUN yum -y install centos-release-scl; \
-    yum -y install devtoolset-9-gcc \
+# fix broken mirrors
+RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo; \
+    sed -i s/^#.*baseurl=http/baseurl=https/g /etc/yum.repos.d/*.repo; \
+    sed -i s/^mirrorlist=http/#mirrorlist=https/g /etc/yum.repos.d/*.repo
+
+RUN yum -y install centos-release-scl
+
+# fix broken mirrors (again)
+RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo; \
+    sed -i s/^#.*baseurl=http/baseurl=https/g /etc/yum.repos.d/*.repo; \
+    sed -i s/^mirrorlist=http/#mirrorlist=https/g /etc/yum.repos.d/*.repo
+
+RUN [ $(uname -m) == 'aarch64' ] && sed -i 's/vault.centos.org\/centos/vault.centos.org\/altarch/g' /etc/yum.repos.d/CentOS-SCLo-scl*.repo
+
+RUN yum -y install devtoolset-9-gcc \
     devtoolset-9-gcc-c++; \
     source scl_source enable devtoolset-9; \
     yum -y install git \
