@@ -137,6 +137,8 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     SYM_RESOLVE(ret, set_async_event_handler);
     SYM_RESOLVE(ret, set_config);
     SYM_RESOLVE(ret, get_metrics);
+    SYM_RESOLVE(ret, capture_open);
+    SYM_RESOLVE(ret, capture_close);
     return ret;
 }
 

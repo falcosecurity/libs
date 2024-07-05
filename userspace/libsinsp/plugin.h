@@ -166,6 +166,8 @@ public:
 	std::string get_init_schema(ss_plugin_schema_type& schema_type) const;
 	bool set_config(const std::string& config);
 	std::vector<metrics_v2> get_metrics() const;
+	void capture_open();
+	void capture_close();
 
 	/** Event Sourcing **/
 	inline uint32_t id() const
