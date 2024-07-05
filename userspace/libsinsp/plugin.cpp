@@ -91,6 +91,7 @@ static void plugin_log_fn(ss_plugin_owner_t* o, const char* component, const cha
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		const plugin_api* api,
 		const std::shared_ptr<libsinsp::state::table_registry>& treg,
+		const std::shared_ptr<thread_pool>& tpool,
 		std::string& errstr)
 {
 	char loadererr[PLUGIN_MAX_ERRLEN];
@@ -101,7 +102,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		return nullptr;
 	}
 
-	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg, tpool);
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
 		// plugin and handle get deleted here by shared_ptr
@@ -114,6 +115,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		const std::string &filepath,
 		const std::shared_ptr<libsinsp::state::table_registry>& treg,
+		const std::shared_ptr<thread_pool>& tpool,
 		std::string& errstr)
 {
 	char loadererr[PLUGIN_MAX_ERRLEN];
@@ -124,7 +126,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		return nullptr;
 	}
 
-	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg, tpool);
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
 		// plugin and handle get deleted here by shared_ptr
