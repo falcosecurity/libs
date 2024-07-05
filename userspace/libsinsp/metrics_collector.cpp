@@ -112,12 +112,26 @@ std::string prometheus_exposition_text(std::string_view metric_qualified_name, s
 	std::string prometheus_text = "# HELP " + fqn + " https://falco.org/docs/metrics/\n";
 	prometheus_text += "# TYPE " + fqn + " " + std::string(metric_type_name) + "\n";
 	prometheus_text += fqn;
-	prometheus_text += "{raw_name=\"" + std::string(metric_name) + "\"" ;
-	for (const auto& [key, value] : const_labels)
+	if (!const_labels.empty())
 	{
-		prometheus_text += "," + key + "=\"" + value + "\"" ;
+		prometheus_text += "{";
+		bool first_label = true;
+		for (const auto& [key, value] : const_labels)
+		{
+			if (!first_label)
+			{
+				prometheus_text += ",";
+			} else
+			{
+				first_label = false;
+			}
+			prometheus_text += key + "=\"" + value + "\"";
+		}
+		prometheus_text += "} "; // white space at the end important!
+	} else
+	{
+		prometheus_text += " "; // white space at the end important!
 	}
-	prometheus_text += "} "; // white space at the end important!
 	prometheus_text += std::string(metric_value);
 	prometheus_text += "\n";
 	return prometheus_text;
