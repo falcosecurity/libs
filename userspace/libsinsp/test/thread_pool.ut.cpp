@@ -46,20 +46,19 @@ TEST_F(sinsp_with_test_input, thread_pool)
     int count = 0;
     r = tp->subscribe([&count]
         {
-            if(count >= 1000)
+            if(count >= 1024)
             {
                 return false;
             }
             count++;
-            usleep(500);
             return true;
         });
     ASSERT_EQ(tp->routines_num(), 1);
 
-    // the routine above keeps increasing a counter every 500 microsenconds, until the counter reaches 1000
+    // the routine above keeps increasing a counter, until the counter reaches 1024
     // we give the routine enough time to finish, then we check if it has been unsubscribed
-    sleep(1);
-    ASSERT_EQ(count, 1000);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    ASSERT_EQ(count, 1024);
     ASSERT_EQ(tp->routines_num(), 0); 
 
     // all the remaining routines should be unsubscribed when the inspector is closed 

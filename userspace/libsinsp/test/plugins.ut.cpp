@@ -929,3 +929,41 @@ TEST_F(sinsp_with_test_input, plugin_metrics)
 }
 
 #endif
+
+TEST_F(sinsp_with_test_input, plugin_routines)
+{
+	auto p = register_plugin(&m_inspector, get_plugin_api_sample_routines);
+	open_inspector();
+
+	// step #0: the plugins subscribes a routine on capture open
+	auto routines_num = m_inspector.m_thread_pool->routines_num();
+	ASSERT_EQ(routines_num, 1);
+
+	// step #1: the plugin subscribes another routine
+	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	routines_num = m_inspector.m_thread_pool->routines_num();
+	ASSERT_EQ(routines_num, 2);
+
+	// step #2: the plugin unsubscribes the previous routine
+	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	routines_num = m_inspector.m_thread_pool->routines_num();
+	ASSERT_EQ(routines_num, 1);
+
+	// step #3: the plugin subscribes another routine
+	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	routines_num = m_inspector.m_thread_pool->routines_num();
+	ASSERT_EQ(routines_num, 2);
+
+	// step #4: the plugin sets a flag that causes the previous routine to be unsubscibed
+	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	std::this_thread::sleep_for(std::chrono::nanoseconds(1000)); //wait for a bit to let routine finish
+	routines_num = m_inspector.m_thread_pool->routines_num();
+	ASSERT_EQ(routines_num, 1);
+
+	// step: #5: the plugin doesn't unsubscribe the last routine, but the thread pool shuould unsubscribe it on capture close
+	m_inspector.close();
+	std::this_thread::sleep_for(std::chrono::nanoseconds(100));; //wait for a bit to let routine finish
+	routines_num = m_inspector.m_thread_pool->routines_num();
+	ASSERT_EQ(routines_num, 0);
+
+}
