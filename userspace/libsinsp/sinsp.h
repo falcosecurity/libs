@@ -1404,6 +1404,10 @@ public:
 	// A registry that managers the state tables of this inspector
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
+	//
+	// A thread pool capable of running non-blocking recurring routines
+	std::shared_ptr<thread_pool> m_thread_pool;
+
 	sinsp_observer* m_observer{nullptr};
 
 	bool m_inited;
