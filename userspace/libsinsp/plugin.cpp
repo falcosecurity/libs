@@ -753,6 +753,40 @@ bool sinsp_plugin::set_config(const std::string& config)
 	return m_handle->api.set_config(m_state, &input) == SS_PLUGIN_SUCCESS;
 }
 
+void sinsp_plugin::capture_open()
+{
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	ss_plugin_routine_vtable routine_vtable;
+	routine_vtable.subscribe = &plugin_subscribe_routine;
+	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
+
+	if(m_handle->api.capture_open)
+	{
+		m_handle->api.capture_open(m_state, routine_vtable);
+	}
+}
+
+void sinsp_plugin::capture_close()
+{
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	ss_plugin_routine_vtable routine_vtable;
+	routine_vtable.subscribe = &plugin_subscribe_routine;
+	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
+
+	if(m_handle->api.capture_close)
+	{
+		m_handle->api.capture_close(m_state, routine_vtable);
+	}
+}
+
 /** Event Source CAP **/
 
 scap_source_plugin& sinsp_plugin::as_scap_source()
