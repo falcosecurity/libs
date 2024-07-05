@@ -392,6 +392,12 @@ void sinsp::open_common(scap_open_args* oargs, const scap_vtable* vtable, scap_p
 			}
 		}
 	}
+
+	// notify registered plugins of capture open
+	for (auto& p : m_plugin_manager->plugins())
+	{
+		p->capture_open();
+	}
 }
 
 void sinsp::mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enable)
@@ -789,6 +795,12 @@ void sinsp::close()
 		{
 			throw sinsp_exception(err);
 		}
+	}
+
+	// notify registered plugins of capture close
+	for (auto& p : m_plugin_manager->plugins())
+	{
+		p->capture_close();
 	}
 
 	m_mode = SINSP_MODE_NONE;

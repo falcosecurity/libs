@@ -977,6 +977,31 @@ typedef struct
 	// 'num_metrics' must be set to the lenght of the array before returning
 	// and it can be set to 0 if no metrics are provided.
 	ss_plugin_metric* (*get_metrics)(ss_plugin_t* s, uint32_t* num_metrics);
+
+	//Capture listening capability API
+	struct
+	{
+		//
+		// Called by the framework when the event capture opens.
+		//
+		// Required: no
+		// Arguments:
+		// - s: the plugin state, returned by init(). Can be NULL.
+		// - r: a vtable containing callback that can be used by the plugin
+		//		for subscribing and unsubscribing routines to the framework's thread pool.
+		//		This vtable can be retained and used for the rest of the plugin's life-cycle.
+		void (*capture_open)(ss_plugin_t* s, ss_plugin_routine_vtable r);
+
+		//
+		// Called by the framework when the event capture closes.
+		//
+		// Required: no
+		// Arguments:
+		// - s: the plugin state, returned by init(). Can be NULL.
+		// - r: a vtable containing callback that can be used by the plugin
+		//		for subscribing and unsubscribing routines to the framework's thread pool. 
+		void (*capture_close)(ss_plugin_t* s, ss_plugin_routine_vtable r);
+	};
 } plugin_api;
 
 #ifdef __cplusplus
