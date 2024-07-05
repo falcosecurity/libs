@@ -199,6 +199,10 @@ if(USE_BUNDLED_JSONCPP)
 	add_dependencies(sinsp jsoncpp)
 endif()
 
+if(USE_BUNDLED_BS_THREADPOOL)
+	add_dependencies(sinsp bs_threadpool)
+endif()
+
 function(prepare_cri_grpc api_version)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cri-${api_version}.proto ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto COPYONLY)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc
