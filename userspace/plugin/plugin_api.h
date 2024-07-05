@@ -388,6 +388,46 @@ typedef struct ss_plugin_set_config_input
 } ss_plugin_set_config_input;
 
 //
+// An opaque pointer representing a routine subscribed in the framework-provided thread pool
+typedef void ss_plugin_routine_t;
+
+//
+// An opaque pointer representing the state of the routine on each iteration
+typedef void ss_plugin_routine_state_t;
+
+//
+// The function executed by the routine on each iteration.
+// Arguments:
+// - s: the plugin state, returned by init(). Can be NULL.
+// - i: the routine state, provided by the plugin when the routine is subscribed
+//
+// Return value: Returning false causes the routine to be unsubcribed from the thread pool.
+typedef ss_plugin_bool (*ss_plugin_routine_fn_t)(ss_plugin_t* s, ss_plugin_routine_state_t* i);
+
+//
+// Vtable used by the plugin to subscribe and unsubscribe recurring loop-like routines
+// to the framework-provide thread pool
+typedef struct
+{
+	//
+	// Subscribes a routine to the framework-provided thread pool.
+	// Arguments:
+	// - o: the plugin's owner
+	// - f: the function executed by the routine on each iteration
+	// - i: the routine's state
+	//
+	// Return value: A routine handle that can be used to later unsubscribe the routine.
+	ss_plugin_routine_t* (*subscribe)(ss_plugin_owner_t* o, ss_plugin_routine_fn_t f, ss_plugin_routine_state_t* i);
+
+	//
+	// Unsubscribes a routine from the framework-provided thread pool.
+	// Arguments:
+	// - o: the plugin's owner
+	// - r: the routine's handle
+	void (*unsubscribe)(ss_plugin_owner_t* o, ss_plugin_routine_t* r);
+} ss_plugin_routine_vtable;
+
+//
 // Function handler used by plugin for sending asynchronous events to the
 // Falcosecurity libs during a live event capture. The asynchronous events
 // must be encoded as an async event type (code 402) as for the libscap specific.
@@ -970,6 +1010,7 @@ typedef struct
 	//
 	// Return an updated set of metrics provided by this plugin.
 	// Required: no
+	// Arguments:
 	// - s: the plugin state, returned by init(). Can be NULL.
 	// - num_metrics: lenght of the returned metrics array.
 	//
