@@ -120,6 +120,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	eventformatter.ut.cpp
 	sinsp_metrics.ut.cpp
 	thread_table.ut.cpp
+	thread_pool.ut.cpp
 	ifinfo.ut.cpp
 	public_sinsp_API/event_related.cpp
 	public_sinsp_API/sinsp_logger.cpp
