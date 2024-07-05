@@ -100,6 +100,7 @@ add_library(sinsp
 	prefix_search.cpp
 	sinsp_syslog.cpp
 	threadinfo.cpp
+	thread_pool.cpp
 	tuples.cpp
 	sinsp.cpp
 	token_bucket.cpp

@@ -59,3 +59,34 @@ public:
 	*/
 	virtual size_t routines_num() = 0;
 };
+
+namespace BS {
+	class thread_pool;
+};
+
+class bs_thread_pool : public thread_pool
+{
+public:
+	bs_thread_pool(size_t num_workers = 0);
+
+	virtual ~bs_thread_pool()
+	{
+		purge();
+	}
+
+	thread_pool::routine_id_t subscribe(const std::function<bool()>& func);
+
+	void unsubscribe(thread_pool::routine_id_t id);
+
+    void purge();
+
+	size_t routines_num();
+
+private:
+	struct default_bs_tp_deleter { void operator()(BS::thread_pool* __ptr) const; };
+
+	void run_routine(std::shared_ptr<std::function<bool()>> id);
+
+	std::unique_ptr<BS::thread_pool, default_bs_tp_deleter> m_pool;
+	std::list<std::shared_ptr<std::function<bool()>>> m_routines;
+};
