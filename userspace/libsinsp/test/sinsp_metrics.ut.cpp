@@ -115,12 +115,19 @@ testns_falco_memory_rss_bytes )";
 	ASSERT_EQ(metrics_names_all_str_post_unit_conversion_pre_prometheus_text_conversion,
 	"cpu_usage_ratio memory_rss_bytes memory_vsz_bytes memory_pss_bytes container_memory_used_bytes host_cpu_usage_ratio host_memory_used_bytes host_procs_running host_open_fds n_threads n_fds n_noncached_fd_lookups n_cached_fd_lookups n_failed_fd_lookups n_added_fds n_removed_fds n_stored_evts n_store_evts_drops n_retrieved_evts n_retrieve_evts_drops n_noncached_thread_lookups n_cached_thread_lookups n_failed_thread_lookups n_added_threads n_removed_threads n_drops_full_threadtable n_missing_container_images n_containers");
 
-	// Test global wrapper base metrics (pseudo metrics)
-	prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus("kernel_release", "testns", "falco", {{"kernel_release", "6.6.7-200.fc39.x86_64"}});
-	prometheus_text_substring = R"(# HELP testns_falco_kernel_release_info https://falco.org/docs/metrics/
-# TYPE testns_falco_kernel_release_info gauge
-testns_falco_kernel_release_info{kernel_release="6.6.7-200.fc39.x86_64"} 1
+	// Test global wrapper base metrics plus test invalid characters sanitization for the metric and label names (pseudo metrics)
+	prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus("56kernel_release-:!", "", "", {{"0kernel_release__", "6.6.7-200.fc39.x86_64"}, {"", "empty_key_name"}});
+	prometheus_text_substring = R"(# HELP _56kernel_release_:_info https://falco.org/docs/metrics/
+# TYPE _56kernel_release_:_info gauge
+_56kernel_release_:_info{_0kernel_release_="6.6.7-200.fc39.x86_64"} 1
 )";
+
+	prometheus_text = prometheus_metrics_converter.convert_metric_to_text_prometheus("", "", "", {{"0kernel_release__", "6.6.7-200.fc39.x86_64"}, {"", "empty_key_name"}});
+		prometheus_text_substring = R"(# HELP _info https://falco.org/docs/metrics/
+# TYPE _info gauge
+_info{_0kernel_release_="6.6.7-200.fc39.x86_64"} 1
+)";
+
 	std::cerr << prometheus_text;
 	ASSERT_TRUE(prometheus_text.find(prometheus_text_substring) != std::string::npos) << "Substring not found in prometheus_text got\n" << prometheus_text;
 
