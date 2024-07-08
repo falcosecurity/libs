@@ -90,10 +90,9 @@ std::string metric_value_to_text(const metrics_v2& metric)
 	return value_text;
 }
 
-std::string prometheus_sanitize_metric_name(const std::string& name)
+std::string prometheus_sanitize_metric_name(const std::string& name, const RE2& invalid_chars = RE2("[^a-zA-Z0-9_:]"))
 {
 	// https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
-	static const RE2 invalid_chars("[^a-zA-Z0-9_:]");
 	std::string sanitized_name = name;
 	RE2::GlobalReplace(&sanitized_name, invalid_chars, "_");
 	RE2::GlobalReplace(&sanitized_name, "_+", "_");
@@ -103,23 +102,6 @@ std::string prometheus_sanitize_metric_name(const std::string& name)
 		sanitized_name = "_" + sanitized_name;
 	}
 	return sanitized_name;
-}
-
-std::string prometheus_sanitize_label_name(const std::string& name)
-	{
-	// https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
-	static const RE2 invalid_chars("[^a-zA-Z0-9_]");
-	std::string sanitized_label = name;
-	RE2::GlobalReplace(&sanitized_label, invalid_chars, "_");
-	RE2::GlobalReplace(&sanitized_label, "_+", "_");
-
-	// Ensure the label starts with a letter or underscore (if empty after sanitizing, set to "_")
-	if (sanitized_label.empty() || (!std::isalpha(sanitized_label.front()) && sanitized_label.front() != '_'))
-	{
-		sanitized_label = "_" + sanitized_label;
-	}
-
-	return sanitized_label;
 }
 
 std::string prometheus_qualifier(std::string_view prometheus_namespace, std::string_view prometheus_subsystem)
@@ -145,6 +127,7 @@ std::string prometheus_exposition_text(std::string_view metric_qualified_name, s
 	prometheus_text += fqn;
 	if (!const_labels.empty())
 	{
+		static const RE2 label_invalid_chars("[^a-zA-Z0-9_]");
 		prometheus_text += "{";
 		bool first_label = true;
 		for (const auto& [key, value] : const_labels)
@@ -160,12 +143,12 @@ std::string prometheus_exposition_text(std::string_view metric_qualified_name, s
 			{
 				first_label = false;
 			}
-			prometheus_text += prometheus_sanitize_label_name(key) + "=\"" + value + "\"";
+			prometheus_text += prometheus_sanitize_metric_name(key, label_invalid_chars) + "=\"" + value + "\"";
 		}
-		prometheus_text += "} "; // white space at the end important!
+		prometheus_text += "} "; // the white space at the end is important!
 	} else
 	{
-		prometheus_text += " "; // white space at the end important!
+		prometheus_text += " "; // the white space at the end is important!
 	}
 	prometheus_text += std::string(metric_value);
 	prometheus_text += "\n";
