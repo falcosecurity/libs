@@ -134,7 +134,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 	return plugin;
 }
 
-bool sinsp_plugin::is_plugin_loaded(std::string &filepath)
+bool sinsp_plugin::is_plugin_loaded(const std::string &filepath)
 {
 	return plugin_is_loaded(filepath.c_str());
 }

@@ -127,7 +127,7 @@ public:
 	 * Emit the given msg to the configured log sink if the given sev
 	 * is greater than or equal to the minimum configured logging severity.
 	 */
-	void log(std::string msg, severity sev = SEV_INFO);
+	void log(const std::string& m, severity sev = SEV_INFO);
 
 	/**
 	 * Write the given printf-style log message of the given severity

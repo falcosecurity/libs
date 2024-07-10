@@ -72,7 +72,7 @@ public:
 	/**
 	 * @brief Return whether a filesystem dynamic library object is loaded.
 	 */
-	static bool is_plugin_loaded(std::string& filepath);
+	static bool is_plugin_loaded(const std::string& filepath);
 
 	/**
 	 * @brief If the plugin has CAP_EXTRACTION capability, returns a

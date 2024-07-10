@@ -184,7 +184,7 @@ public:
 		scap_fseek(m_h, filepos);
 	}
 
-	std::string generate_gvisor_config(std::string socket_path);
+	std::string generate_gvisor_config(const std::string& socket_path);
 
 
 	/*!
@@ -338,7 +338,7 @@ public:
 	/*!
 	  \brief Instruct sinsp to write its log messages to the given file.
 	*/
-	void set_log_file(std::string filename);
+	void set_log_file(const std::string& filename);
 
 	/*!
 	  \brief Instruct sinsp to write its log messages to stderr.

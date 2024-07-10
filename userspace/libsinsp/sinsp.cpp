@@ -670,7 +670,7 @@ bool sinsp::check_current_engine(const std::string& engine_name) const
 
 /*=============================== Engine related ===============================*/
 
-std::string sinsp::generate_gvisor_config(std::string socket_path)
+std::string sinsp::generate_gvisor_config(const std::string& socket_path)
 {
 	return gvisor_config::generate(socket_path);
 }
@@ -1800,7 +1800,7 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 	}
 }
 
-void sinsp::set_log_file(std::string filename)
+void sinsp::set_log_file(const std::string& filename)
 {
 	libsinsp_logger()->add_file_log(filename);
 }

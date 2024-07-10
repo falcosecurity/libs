@@ -628,7 +628,7 @@ void sinsp_threadinfo::set_args(const char* args, size_t len)
 	set_args(sinsp_split(args, len, '\0'));
 }
 
-void sinsp_threadinfo::set_args(std::vector<std::string> args)
+void sinsp_threadinfo::set_args(const std::vector<std::string>& args)
 {
 	m_args = args;
 }
@@ -742,11 +742,11 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 	set_cgroups(sinsp_split(cgroups, len, '\0'));
 }
 
-void sinsp_threadinfo::set_cgroups(std::vector<std::string> cgroups)
+void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups)
 {
-	decltype(m_cgroups) tmp_cgroups(new cgroups_t);
+	auto tmp_cgroups = std::make_unique<sinsp_threadinfo::cgroups_t>();
 
-	for( auto &def : cgroups)
+	for(const auto &def : cgroups)
 	{
 		std::string::size_type eq_pos = def.find("=");
 		if (eq_pos == std::string::npos)
@@ -2050,7 +2050,7 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid,
         {
             libsinsp_logger()->format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
                             PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
-            return NULL;
+            return m_nullptr_tinfo_ret;
         }
 
         scap_threadinfo scap_proc {};

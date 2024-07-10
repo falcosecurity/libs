@@ -333,7 +333,7 @@ static const std::vector<gvisor_point_info_t> s_gvisor_points = {
 
 constexpr unsigned int max_retries = 3;
 
-std::string generate(std::string socket_path)
+std::string generate(const std::string& socket_path)
 {
 	Json::Value jpoints;
 	for(const auto &point_info : s_gvisor_points)

@@ -869,7 +869,7 @@ void sinsp_utils::split_container_image(const std::string &image,
 					std::string &digest,
 					bool split_repo)
 {
-	auto split = [](const std::string &src, std::string &part1, std::string &part2, const std::string sep)
+	auto split = [](const std::string &src, std::string &part1, std::string &part2, const std::string& sep)
 	{
 		size_t pos = src.find(sep);
 		if(pos != std::string::npos)
