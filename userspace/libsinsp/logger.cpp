@@ -144,7 +144,7 @@ sinsp_logger::severity sinsp_logger::get_severity() const
 	return m_sev;
 }
 
-void sinsp_logger::log(std::string msg, const severity sev)
+void sinsp_logger::log(const std::string& m, const severity sev)
 {
 	sinsp_logger_callback cb = nullptr;
 
@@ -153,6 +153,7 @@ void sinsp_logger::log(std::string msg, const severity sev)
 		return;
 	}
 
+	std::string msg = m;
 	if((m_flags & sinsp_logger::OT_NOTS) == 0)
 	{
 		struct timeval ts = {};
