@@ -493,7 +493,7 @@ struct SINSP_PUBLIC unary_check_expr: expr
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const unary_check_expr*>(other);
-        return o != nullptr && left->is_equal(o->left.get());
+        return o != nullptr && left->is_equal(o->left.get()) && op == o->op;
     }
 
     std::unique_ptr<expr> left;

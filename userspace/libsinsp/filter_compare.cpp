@@ -650,25 +650,25 @@ bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void
 	case PT_IPV4ADDR:
 		if (op2_len != sizeof(struct in_addr))
 		{
-			return false;
+			return op == CO_NE;
 		}
 		return flt_compare_ipv4addr(op, flt_cast<uint32_t, uint64_t>(operand1), flt_cast<uint32_t, uint64_t>(operand2));
 	case PT_IPV4NET:
 		if (op2_len != sizeof(ipv4net))
 		{
-			return false;
+			return op == CO_NE;
 		}
 		return flt_compare_ipv4net(op, (uint64_t)*(uint32_t*)operand1, (ipv4net*)operand2);
 	case PT_IPV6ADDR:
 		if (op2_len != sizeof(ipv6addr))
 		{
-			return false;
+			return op == CO_NE;
 		}
 		return flt_compare_ipv6addr(op, (ipv6addr *)operand1, (ipv6addr *)operand2);
 	case PT_IPV6NET:
 		if (op2_len != sizeof(ipv6net))
 		{
-			return false;
+			return op == CO_NE;
 		}
 		return flt_compare_ipv6net(op, (ipv6addr *)operand1, (ipv6net*)operand2);
 	case PT_IPADDR:
@@ -676,7 +676,7 @@ bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void
 		{
 			if (op2_len != sizeof(struct in_addr))
 			{
-				return false;
+				return op == CO_NE;
 			}
 			return flt_compare(op, PT_IPV4ADDR, operand1, operand2, op1_len, op2_len);
 		}
@@ -684,7 +684,7 @@ bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void
 		{
 			if (op2_len != sizeof(ipv6addr))
 			{
-				return false;
+				return op == CO_NE;
 			}
 			return flt_compare(op, PT_IPV6ADDR, operand1, operand2, op1_len, op2_len);
 		}
@@ -697,7 +697,7 @@ bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void
 		{
 			if (op2_len != sizeof(ipv4net))
 			{
-				return false;
+				return op == CO_NE;
 			}
 			return flt_compare(op, PT_IPV4NET, operand1, operand2, op1_len, op2_len);
 		}
@@ -705,7 +705,7 @@ bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void
 		{
 			if (op2_len != sizeof(ipv6net))
 			{
-				return false;
+				return op == CO_NE;
 			}
 			return flt_compare(op, PT_IPV6NET, operand1, operand2, op1_len, op2_len);
 		}
