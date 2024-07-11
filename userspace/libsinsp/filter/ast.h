@@ -535,6 +535,7 @@ struct SINSP_PUBLIC binary_check_expr: expr
         auto o = dynamic_cast<const binary_check_expr*>(other);
         return o != nullptr
             && left->is_equal(o->left.get())
+	    && op == o->op
             && right->is_equal(o->right.get());
     }
 
