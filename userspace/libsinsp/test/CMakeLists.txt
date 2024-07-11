@@ -82,6 +82,7 @@ endif()
 file(GLOB_RECURSE TEST_HELPERS ${CMAKE_CURRENT_SOURCE_DIR}/helpers/*.cpp)
 
 set(LIBSINSP_UNIT_TESTS_SOURCES
+	ast_exprs.ut.cpp
 	test_utils.cpp
 	sinsp_with_test_input.cpp
 	cgroup_list_counter.ut.cpp
