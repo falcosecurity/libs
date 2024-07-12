@@ -81,8 +81,16 @@ void subprocess::wait_for_start() {
 	}
 }
 
+void subprocess::kill() {
+    ::kill(m_pid, SIGKILL);
+}
+
+bool subprocess::is_alive() {
+    return getpgid(m_pid) != 0;
+}
+
 pid_t subprocess::get_pid() {
-	return m_pid;
+    return m_pid;
 }
 
 std::ostream& subprocess::in() {
