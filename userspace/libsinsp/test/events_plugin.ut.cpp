@@ -105,6 +105,20 @@ static void set_mock_plugin_api(plugin_api& api)
 	api.next_batch = mock_plugin_next_batch;
 }
 
+static std::shared_ptr<sinsp_plugin> register_plugin_api(
+		sinsp* i,
+		plugin_api& api,
+		const std::string& initcfg = "")
+{
+	std::string err;
+	auto pl = i->register_plugin(&api);
+	if (!pl->init(initcfg, err))
+	{
+		throw sinsp_exception(err);
+	}
+	return pl;
+}
+
 TEST_F(sinsp_with_test_input, event_sources)
 {
 	sinsp_evt* evt = NULL;
@@ -119,7 +133,7 @@ TEST_F(sinsp_with_test_input, event_sources)
 	// create and register a mock plugin
 	plugin_api mock_api;
 	set_mock_plugin_api(mock_api);
-	m_inspector.register_plugin(&mock_api);
+	ASSERT_NO_THROW(register_plugin_api(&m_inspector, mock_api));
 
 	// regular events have the "syscall" event source
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
