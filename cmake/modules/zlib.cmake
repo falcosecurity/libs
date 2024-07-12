@@ -59,8 +59,8 @@ else()
 			set(ZLIB_LIB "${ZLIB_SRC}/libz${ZLIB_LIB_SUFFIX}")
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
-				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
+				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
+				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				CONFIGURE_COMMAND CFLAGS=${ZLIB_CFLAGS} ./configure --prefix=${ZLIB_SRC} ${ZLIB_CONFIGURE_FLAGS}
 				BUILD_COMMAND make
 				BUILD_IN_SOURCE 1
@@ -80,8 +80,8 @@ else()
 			endif()
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
-				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
+				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
+				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
 				CMAKE_ARGS
