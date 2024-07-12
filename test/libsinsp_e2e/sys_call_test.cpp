@@ -22,6 +22,7 @@ limitations under the License.
 #include "subprocess.h"
 
 #include <cstdint>
+#include <driver/ppm_events_public.h>
 #include <libscap/scap-int.h>
 #include <libscap/scap_engines.h>
 #include <libscap/scap_platform.h>
@@ -2508,4 +2509,41 @@ TEST_F(sys_call_test, thread_lookup_live)
  	EXPECT_EQ(1, scap_tinfo.vtid);
  	EXPECT_EQ(0, scap_tinfo.ptid);
 
+}
+
+TEST_F(sys_call_test, fd_name_max_path)
+{
+	int callnum = 0;
+	std::string pathname("/");
+	pathname.insert(1, PPM_MAX_PATH_SIZE - 3, 'A');
+
+	event_filter_t filter = [&](sinsp_evt* evt)
+	{
+		return (0 == strcmp(evt->get_name(), "open") || 0 == strcmp(evt->get_name(), "openat"))
+				&& m_tid_filter(evt);
+	};
+
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
+	{
+		open(pathname.c_str(), O_RDONLY);
+	};
+
+	sinsp_filter_check_list m_filterlist;
+
+	captured_event_callback_t callback = [&](const callback_param& param)
+	{
+		if((0 == strcmp(param.m_evt->get_name(), "open")) ||
+		   (0 == strcmp(param.m_evt->get_name(), "openat")))
+		{
+			std::string output;
+			sinsp_evt_formatter(param.m_inspector, "*%fd.name", m_filterlist).tostring(param.m_evt, &output);
+			if(pathname == output)
+			{
+				callnum++;
+			}
+		}
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	EXPECT_EQ(1, callnum);
 }
