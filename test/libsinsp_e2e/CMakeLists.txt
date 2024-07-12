@@ -29,28 +29,28 @@ configure_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/libsinsp_test_var.h"
 )
 
-add_executable(
-	libsinsp_e2e_tests
-	capture_to_file_test.cpp
-	container/container.cpp
-	container/container_cgroup.cpp
-	container/docker_utils.cpp
-	event_capture.cpp
-	forking.cpp
-	fs.cpp
-	ipv6.cpp
-	main.cpp
-	paths.cpp
-	process.cpp
-	subprocess.cpp
-	suppress_events.cpp
-	sys_call_test.cpp
-	tcp_client_server.cpp
-	tcp_client_server_ipv4_mapped.cpp
-	threadinfo.cpp
-	thread_state.cpp
-	udp_client_server.cpp
-	unix_client_server.cpp
+add_executable(libsinsp_e2e_tests
+    capture_to_file_test.cpp
+    container/container.cpp
+    container/container_cgroup.cpp
+    container/container_cri.cpp
+    container/docker_utils.cpp
+    event_capture.cpp
+    forking.cpp
+    fs.cpp
+    ipv6.cpp
+    main.cpp
+    paths.cpp
+    process.cpp
+    subprocess.cpp
+    suppress_events.cpp
+    sys_call_test.cpp
+    tcp_client_server.cpp
+    tcp_client_server_ipv4_mapped.cpp
+    threadinfo.cpp
+    thread_state.cpp
+    udp_client_server.cpp
+    unix_client_server.cpp
 )
 
 if(BUILD_BPF)
@@ -95,6 +95,9 @@ configure_file(
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources/)
 
 execute_process(
-	COMMAND tar xzf ${CMAKE_CURRENT_BINARY_DIR}/resources/fake-proc.tar.gz
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources/
-)
+    COMMAND tar xzf ${CMAKE_CURRENT_BINARY_DIR}/resources/fake-proc.tar.gz
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources/
+  )
+
+add_subdirectory(fake_cri)
+add_dependencies(libsinsp_e2e_tests fake_cri)

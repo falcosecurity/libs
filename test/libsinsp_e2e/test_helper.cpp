@@ -18,8 +18,6 @@ limitations under the License.
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <string.h>
 #include <strings.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,6 +28,9 @@ limitations under the License.
 #include <sys/socket.h>
 #include <sys/uio.h>
 
+#include <cstdio>
+#include <cstring>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <sstream>
@@ -51,6 +52,21 @@ limitations under the License.
 #include <cassert>
 
 using namespace std;
+
+bool is_cgroupv2_mounted() {
+	constexpr const char* mounts_file = "/proc/mounts";
+	constexpr const char cgroup_v2_prefix[] = "cgroup2 ";
+	std::ifstream mounts_file_handle(mounts_file);
+	std::string line;
+	while (std::getline(mounts_file_handle, line))
+	{
+		if (line.rfind(cgroup_v2_prefix, 0) == 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
 
 void proc_mgmt(const vector<string>& args) {
 	auto filename = args.at(0).c_str();
@@ -307,7 +323,15 @@ void pgid_test(const vector<string>& args) {
 }
 
 bool custom_container_set_cgroup() {
-	string cpu_cgroup = "/sys/fs/cgroup/cpu/custom_container_foo";
+	std::string cpu_cgroup;
+ 	if (is_cgroupv2_mounted())
+ 	{
+ 		cpu_cgroup = "/sys/fs/cgroup/system.slice/custom_container_foo";
+ 	}
+ 	else
+ 	{
+ 		cpu_cgroup = "/sys/fs/cgroup/cpu/custom_container_foo";
+ 	}
 	struct stat s;
 
 	if(stat(cpu_cgroup.c_str(), &s) < 0) {
@@ -533,9 +557,16 @@ void custom_container(const vector<string>& args) {
 }
 
 bool cri_container_set_cgroup() {
-	string cpu_cgroup =
-	        "/sys/fs/cgroup/cpu/docker/"
-	        "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+	std::string cpu_cgroup;
+	if (is_cgroupv2_mounted()) {
+		cpu_cgroup =
+			"/sys/fs/cgroup/system.slice/"
+			"aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+	} else {
+		cpu_cgroup =
+			"/sys/fs/cgroup/cpu/docker/"
+			"aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+	}
 	struct stat s;
 
 	if(stat(cpu_cgroup.c_str(), &s) < 0) {
