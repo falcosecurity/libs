@@ -169,7 +169,6 @@ public:
 
 		if (!capturing.m_start_failed.load())
 		{
-			//run_function(capturing.m_inspector);
 			run_function(capturing.get_inspector_handle());
 			capturing.stop_capture();
 			capturing.wait_for_capture_stop();

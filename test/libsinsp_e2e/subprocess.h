@@ -36,6 +36,8 @@ class subprocess {
         ~subprocess();
 
         void wait_for_start();
+        void kill();
+        bool is_alive();
         int wait();
 
         pid_t get_pid();
