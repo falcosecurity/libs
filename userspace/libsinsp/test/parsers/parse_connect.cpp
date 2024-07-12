@@ -75,9 +75,19 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket)
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
 	ASSERT_TRUE(fdinfo->is_role_client());
 	ASSERT_TRUE(fdinfo->is_socket_connected());
+
+	std::string expected_unix_tuple = "";
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	// Note: `9c758d0f` is the kernel pointer to the socket that performs the connection.
 	// `9c758d0a` is the kernel pointer to the socket that receives the connection.
-	ASSERT_EQ(fdinfo->m_name, "9c758d0f->9c758d0a /tmp/stream.sock");
+	// Note that the pointers are on 64 bits but the initial zeros are not rendered.
+	expected_unix_tuple = "9c758d0f->9c758d0a /tmp/stream.sock";
+#else
+	// Also here the initial zero is not rendered.
+	expected_unix_tuple = "f8d759c00000000->a8d759c00000000 /tmp/stream.sock";
+#endif
+
+	ASSERT_EQ(fdinfo->m_name, expected_unix_tuple);
 	// we don't have code to populate this `m_name_raw` for sockets.
 	ASSERT_EQ(fdinfo->m_name_raw, "");
 
@@ -88,7 +98,7 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket)
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
 	ASSERT_TRUE(fdinfo->is_role_client());
 	ASSERT_TRUE(fdinfo->is_socket_connected());
-	ASSERT_EQ(fdinfo->m_name, "9c758d0f->9c758d0a /tmp/stream.sock");
+	ASSERT_EQ(fdinfo->m_name, expected_unix_tuple);
 	ASSERT_EQ(fdinfo->m_name_raw, "");
 }
 
