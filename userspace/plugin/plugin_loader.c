@@ -296,6 +296,16 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h, char* err)
         err_append(err, "must implement both 'plugin_get_async_events' and 'plugin_set_async_event_handler' (async events)", ", ");
     }
 
+    if (h->api.capture_open != NULL && h->api.capture_close != NULL)
+    {
+        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_CAPTURE_LISTENING);
+    }
+    else if (h->api.capture_open != NULL)
+    {
+        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
+        err_append(err, "must implement both 'plugin_capture_open' and 'plugin_capture_close' (capture listening)", ", ");
+    }
+
     return caps;
 }
 

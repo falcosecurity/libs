@@ -965,5 +965,4 @@ TEST_F(sinsp_with_test_input, plugin_routines)
 	std::this_thread::sleep_for(std::chrono::nanoseconds(100));; //wait for a bit to let routine finish
 	routines_num = m_inspector.m_thread_pool->routines_num();
 	ASSERT_EQ(routines_num, 0);
-
 }
