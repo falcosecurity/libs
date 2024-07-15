@@ -2314,48 +2314,28 @@ static __always_inline bool get_exe_writable(struct inode *inode, struct cred *c
 	return false;
 }
 
-static __always_inline bool get_exe_upper_layer(struct dentry *dentry, struct super_block *sb)
+static __always_inline bool get_exe_upper_layer(struct file *file)
 {
+	struct dentry* dentry = NULL;
+	bpf_probe_read_kernel(&dentry, sizeof(dentry), &file->f_path.dentry);
+	struct super_block* sb = (struct super_block*)_READ(dentry->d_sb);
 	unsigned long sb_magic = _READ(sb->s_magic);
-	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
+
+	if(sb_magic != PPM_OVERLAYFS_SUPER_MAGIC)
 	{
-		struct dentry *upper_dentry = NULL;
-		char *vfs_inode = (char *)_READ(dentry->d_inode);
-
-		// Pointer arithmetics due to unexported ovl_inode struct
-		// warning: this works if and only if the dentry pointer is placed right after the inode struct
-		struct dentry *tmp = (struct dentry *)(vfs_inode + sizeof(struct inode));
-		upper_dentry = _READ(tmp);
-		if(!upper_dentry)
-		{
-			return false;
-		}
-
-		unsigned int d_flags = _READ(dentry->d_flags);
-		bool disconnected = (d_flags & DCACHE_DISCONNECTED);
-		if(disconnected)
-		{
-			return true;
-		}
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-		struct ovl_entry *oe = (struct ovl_entry*)_READ(dentry->d_fsdata);
-		unsigned long has_upper = (unsigned long)_READ(oe->has_upper);
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0)
-		struct ovl_entry *oe = (struct ovl_entry*)_READ(dentry->d_fsdata);
-		unsigned long flags = _READ(oe->flags);
-		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
-#else
-		unsigned long flags = (unsigned long)_READ(dentry->d_fsdata);
-		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
-#endif
-
-		if(has_upper)
-		{
-			return true;
-		}
+		return false;
 	}
-	return false;
+
+	char *vfs_inode = (char *)_READ(dentry->d_inode);
+	struct dentry *upper_dentry = NULL;
+	bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), (char *)vfs_inode + sizeof(struct inode));
+	if(!upper_dentry)
+	{
+		return false;
+	}
+
+	struct inode *upper_ino = _READ(upper_dentry->d_inode);
+	return _READ(upper_ino->i_ino) != 0;
 }
 
 FILLER(proc_startupdate, true)
@@ -2867,43 +2847,27 @@ FILLER(execve_extra_tail_1, true)
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct file *exe_file = get_exe_file(task);
 	struct inode *inode = get_file_inode(exe_file);
-	struct path f_path = (struct path)_READ(exe_file->f_path);
-	struct dentry* dentry = f_path.dentry;
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
-	struct super_block* sb = _READ(dentry->d_sb);
-#else
-	struct super_block *sb = _READ(inode->i_sb);
-#endif
-
-	/* `exe_writable` and `exe_upper_layer` flag logic */
-	bool exe_writable = false;
-	bool exe_upper_layer = false;
-
 	uint32_t flags = 0;
-	kuid_t euid;
+	kuid_t euid = {0};
 
-	if(sb && inode)
+	if(inode)
 	{
 		/*
 		 * exe_writable
 		 */
-		exe_writable = get_exe_writable(inode, cred);
+		bool exe_writable = get_exe_writable(inode, cred);
 		if (exe_writable) 
 		{
 			flags |= PPM_EXE_WRITABLE;
 		}
+	}
 
-		/*
-		 * exe_upper_layer
-		 */
-		exe_upper_layer = get_exe_upper_layer(dentry,sb);
-		if (exe_upper_layer)
-		{
-			flags |= PPM_EXE_UPPER_LAYER;
-		}
-
-		// write all additional flags for execve family here...
+	/*
+	 * exe_upper_layer
+	 */
+	if(exe_file && get_exe_upper_layer(exe_file))
+	{
+		flags |= PPM_EXE_UPPER_LAYER;
 	}
 
 	if(exe_file && get_exe_from_memfd(exe_file))
@@ -6791,42 +6755,27 @@ FILLER(sched_prog_exec_4, false)
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct file *exe_file = get_exe_file(task);
 	struct inode *inode = get_file_inode(exe_file);
-	struct path f_path = (struct path)_READ(exe_file->f_path);
-	struct dentry* dentry = f_path.dentry;
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
-	struct super_block* sb = _READ(dentry->d_sb);
-#else
-	struct super_block *sb = _READ(inode->i_sb);
-#endif
-
-	/* `exe_writable` and `exe_upper_layer` flag logic */
-	bool exe_writable = false;
-	bool exe_upper_layer = false;
 	uint32_t flags = 0;
-	kuid_t euid;
+	kuid_t euid = {0};
 
-	if(sb && inode)
+	if(inode)
 	{
 		/*
 		 * exe_writable
 		 */
-		exe_writable = get_exe_writable(inode, cred);
+		bool exe_writable = get_exe_writable(inode, cred);
 		if (exe_writable) 
 		{
 			flags |= PPM_EXE_WRITABLE;
 		}
+	}
 
-		/*
-		 * exe_upper_layer
-		 */
-		exe_upper_layer = get_exe_upper_layer(dentry,sb);
-		if (exe_upper_layer)
-		{
-			flags |= PPM_EXE_UPPER_LAYER;
-		}
-
-		// write all additional flags for execve family here...
+	/*
+	 * exe_upper_layer
+	 */
+	if (exe_file && get_exe_upper_layer(exe_file))
+	{
+		flags |= PPM_EXE_UPPER_LAYER;
 	}
 
 	if(exe_file && get_exe_from_memfd(exe_file))
