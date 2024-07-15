@@ -39,12 +39,13 @@ extern "C" {
 */
 typedef enum
 {
-    CAP_NONE        = 0,
-    CAP_SOURCING    = 1 << 0,
-    CAP_EXTRACTION  = 1 << 1,
-    CAP_PARSING     = 1 << 2,
-    CAP_ASYNC       = 1 << 3,
-    CAP_BROKEN      = 1 << 31, // used to report inconsistencies
+    CAP_NONE                = 0,
+    CAP_SOURCING            = 1 << 0,
+    CAP_EXTRACTION          = 1 << 1,
+    CAP_PARSING             = 1 << 2,
+    CAP_ASYNC               = 1 << 3,
+    CAP_CAPTURE_LISTENING   = 1 << 4,
+    CAP_BROKEN              = 1 << 31, // used to report inconsistencies
 } plugin_caps_t;
 
 /*!

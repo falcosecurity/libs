@@ -130,15 +130,15 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
     return SS_PLUGIN_SUCCESS;
 }
 
-static void plugin_capture_open(ss_plugin_t* s, ss_plugin_routine_vtable r)
+static void plugin_capture_open(ss_plugin_t* s, const ss_plugin_capture_listen_input* i)
 {
     plugin_state *ps = (plugin_state *) s;
-    ps->routine_vtable = r;
+    ps->routine_vtable = i->routine;
 
     ps->routine_vtable.subscribe(ps->owner, do_nothing, (ss_plugin_routine_state_t*)&ps->flag);
 }
 
-static void plugin_capture_close(ss_plugin_t* s, ss_plugin_routine_vtable r)
+static void plugin_capture_close(ss_plugin_t* s, const ss_plugin_capture_listen_input* i)
 {
 
 }

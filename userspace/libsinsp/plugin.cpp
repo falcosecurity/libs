@@ -863,9 +863,23 @@ void sinsp_plugin::capture_open()
 	routine_vtable.subscribe = &plugin_subscribe_routine;
 	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
 
+	ss_plugin_capture_listen_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
+	ss_plugin_table_writer_vtable_ext table_writer_ext;
+	ss_plugin_table_reader_vtable table_reader;
+	ss_plugin_table_writer_vtable table_writer;
+
+	in.owner = (ss_plugin_owner_t *) this;
+	in.table_reader_ext = &table_reader_ext;
+	in.table_writer_ext = &table_writer_ext;
+	in.routine = routine_vtable;
+
+	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
+	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
+
 	if(m_handle->api.capture_open)
 	{
-		m_handle->api.capture_open(m_state, routine_vtable);
+		m_handle->api.capture_open(m_state, &in);
 	}
 }
 
@@ -880,9 +894,23 @@ void sinsp_plugin::capture_close()
 	routine_vtable.subscribe = &plugin_subscribe_routine;
 	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
 
+	ss_plugin_capture_listen_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
+	ss_plugin_table_writer_vtable_ext table_writer_ext;
+	ss_plugin_table_reader_vtable table_reader;
+	ss_plugin_table_writer_vtable table_writer;
+
+	in.owner = (ss_plugin_owner_t *) this;
+	in.table_reader_ext = &table_reader_ext;
+	in.table_writer_ext = &table_writer_ext;
+	in.routine = routine_vtable;
+
+	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
+	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
+
 	if(m_handle->api.capture_close)
 	{
-		m_handle->api.capture_close(m_state, routine_vtable);
+		m_handle->api.capture_close(m_state, &in);
 	}
 }
 

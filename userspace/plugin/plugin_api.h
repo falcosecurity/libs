@@ -427,6 +427,25 @@ typedef struct
 	void (*unsubscribe)(ss_plugin_owner_t* o, ss_plugin_routine_t* r);
 } ss_plugin_routine_vtable;
 
+// Input passed to the plugin when the framework start and stops the capture.
+typedef struct ss_plugin_capture_listen_input
+{
+	//
+	// The plugin's owner. Can be passed by the plugin to the callbacks available
+	// in this struct in order to invoke functions of its owner.
+	ss_plugin_owner_t* owner;
+	//
+	// Vtable containing callbacks that can be used by the plugin
+	// for subscribing and unsubscribing routines to the framework's thread pool.
+	ss_plugin_routine_vtable routine;
+	//
+	// Vtable for controlling a state table for read operations.
+	ss_plugin_table_reader_vtable_ext* table_reader_ext;
+	//
+	// Vtable for controlling a state table for write operations.
+	ss_plugin_table_writer_vtable_ext* table_writer_ext;
+} ss_plugin_capture_listen_input;
+
 //
 // Function handler used by plugin for sending asynchronous events to the
 // Falcosecurity libs during a live event capture. The asynchronous events
@@ -1028,20 +1047,17 @@ typedef struct
 		// Required: no
 		// Arguments:
 		// - s: the plugin state, returned by init(). Can be NULL.
-		// - r: a vtable containing callback that can be used by the plugin
-		//		for subscribing and unsubscribing routines to the framework's thread pool.
-		//		This vtable can be retained and used for the rest of the plugin's life-cycle.
-		void (*capture_open)(ss_plugin_t* s, ss_plugin_routine_vtable r);
+		// - i: input containing vtables for performing table operations and subscribe/unsubscribe async routines
+		void (*capture_open)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
 
 		//
 		// Called by the framework when the event capture closes.
 		//
-		// Required: no
+		// Required: yes if capture_open is defined
 		// Arguments:
 		// - s: the plugin state, returned by init(). Can be NULL.
-		// - r: a vtable containing callback that can be used by the plugin
-		//		for subscribing and unsubscribing routines to the framework's thread pool. 
-		void (*capture_close)(ss_plugin_t* s, ss_plugin_routine_vtable r);
+		// - i: input containing vtables for performing table operations and subscribe/unsubscribe async routines
+		void (*capture_close)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
 	};
 } plugin_api;
 
