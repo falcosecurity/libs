@@ -831,59 +831,34 @@ static __always_inline void extract__egid(struct task_struct *task, uint32_t *eg
 // EXECVE FLAGS EXTRACTION
 ////////////////////////
 
-static __always_inline bool extract__exe_upper_layer(struct inode *inode, struct file *exe_file)
+static __always_inline bool extract__exe_upper_layer(struct file *file)
 {
-	unsigned long sb_magic = BPF_CORE_READ(inode, i_sb, s_magic);
+	struct dentry *dentry = (struct dentry *)BPF_CORE_READ(file, f_path.dentry);
+	unsigned long sb_magic = BPF_CORE_READ(dentry, d_sb, s_magic);
 
-	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
+	if(sb_magic != PPM_OVERLAYFS_SUPER_MAGIC)
 	{
-		struct dentry *upper_dentry = NULL;
-		char *vfs_inode = (char *)inode;
-		unsigned long inode_size = bpf_core_type_size(struct inode);
-		if(!inode_size)
-		{
-			return false;
-		}
-
-		bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), vfs_inode + inode_size);
-
-		if(!upper_dentry)
-		{
-			return false;
-		}
-
-		struct dentry *dentry = (struct dentry *)BPF_CORE_READ(exe_file, f_path.dentry);
-
-		unsigned int d_flags = BPF_CORE_READ(dentry, d_flags);
-		bool disconnected = (d_flags & DCACHE_DISCONNECTED);
-		if(disconnected)
-		{
-			return true;
-		}
-
-		unsigned long flags = 0;
-		if(bpf_core_field_exists(((struct ovl_entry___before_v6_5*)0)->flags))
-		{
-			// kernel <6.5
-			struct ovl_entry___before_v6_5 *oe = (struct ovl_entry___before_v6_5*)BPF_CORE_READ(dentry, d_fsdata);
-			flags = (unsigned long)BPF_CORE_READ(oe, flags);
-		}
-		else
-		{
-			// In kernels >=6.5 d_fsdata represents an ovl_entry_flag.
-			flags = (unsigned long)BPF_CORE_READ(dentry, d_fsdata);
-		}
-
-		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
-		if(has_upper)
-		{
-			return true;
-		}
-
+		return false;
 	}
 
-	return false;
+	char *vfs_inode = (char *)BPF_CORE_READ(dentry, d_inode);
+	// We need to compute the size of the inode struct at load time since it can change between kernel versions
+	unsigned long inode_size = bpf_core_type_size(struct inode);
+	if(!inode_size)
+	{
+		return false;
+	}
+
+	struct dentry *upper_dentry = NULL;
+	bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), (char *)vfs_inode + inode_size);
+	if(!upper_dentry)
+	{
+		return false;
+	}
+
+	return BPF_CORE_READ(upper_dentry, d_inode, i_ino) != 0;
 }
+
 
 /*
  * Detect whether the file being referenced is an anonymous file created using memfd_create()

@@ -61,35 +61,6 @@ struct ovl_entry {
 	unsigned numlower;
 	struct path lowerstack[];
 };
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-struct ovl_entry {
-	union {
-		struct {
-			unsigned long has_upper;
-			bool opaque;
-		};
-		struct rcu_head rcu;
-	};
-	unsigned numlower;
-	struct path lowerstack[];
-};
-#else
-struct ovl_entry {
-	union {
-		struct {
-			unsigned long flags;
-		};
-		struct rcu_head rcu;
-	};
-	unsigned numlower;
-	//struct ovl_path lowerstack[];
-};
-
-enum ovl_entry_flag {
-	OVL_E_UPPER_ALIAS,
-	OVL_E_OPAQUE,
-	OVL_E_CONNECTED,
-};
 #endif
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -881,54 +852,70 @@ static uint32_t ppm_get_tty(void)
 	return tty_nr;
 }
 
-bool ppm_is_upper_layer(struct file *exe_file){
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
-	struct super_block *sb = NULL;
-	unsigned long sb_magic = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
-	sb = exe_file->f_path.dentry->d_sb;
-#else
-	sb = exe_file->f_inode->i_sb;
-#endif
-	if(sb)
-	{
-		struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
-		sb_magic = sb->s_magic;
-		if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC && oe)
-		{
-			unsigned long has_upper = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-			if(oe->__upperdentry)
-			{
-				return true;
-			}
-#else
-			struct dentry *upper_dentry = NULL;
-			unsigned int d_flags = exe_file->f_path.dentry->d_flags;
-			bool disconnected = (d_flags & DCACHE_DISCONNECTED);
-
-			// Pointer arithmetics due to unexported ovl_inode struct
-			// warning: this works if and only if the dentry pointer
-			// is placed right after the inode struct
-			upper_dentry = (struct dentry *)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-			has_upper = oe->has_upper;
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 5, 0)
-			has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
-#else
-			has_upper = test_bit(OVL_E_UPPER_ALIAS, (unsigned long*)&oe);
-#endif
-
-			if(upper_dentry && (has_upper || disconnected))
-			{
-				return true;
-			}
-#endif
-		}
-	}
-#endif
+static bool ppm_is_upper_layer(struct file *file)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 	return false;
+#else 
+	struct dentry * dentry = NULL;
+	struct super_block* sb = NULL;
+	struct dentry *upper_dentry = NULL;
+	struct inode * upper_ino = NULL;
+	
+	if(!file)
+	{
+		return false;
+	}
+
+	dentry = file->f_path.dentry;
+	if(!dentry)
+	{
+		return false;
+	}
+	
+	sb = dentry->d_sb;
+	if(!sb)
+	{
+		return false;
+	}
+	
+	if(sb->s_magic != PPM_OVERLAYFS_SUPER_MAGIC)
+	{
+		return false;
+	}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
+	struct ovl_entry *oe = (struct ovl_entry*)(dentry->d_fsdata);
+	if(!oe)
+	{
+		return false;
+	}
+	upper_dentry = oe->__upperdentry;
+#else
+	char *vfs_inode = (char*)dentry->d_inode;
+	if(!vfs_inode)
+	{
+		return false;
+	}
+
+	// Pointer arithmetics due to unexported ovl_inode struct
+	// warning: this works if and only if the dentry pointer
+	// is placed right after the inode struct
+	upper_dentry = (struct dentry *)(vfs_inode + sizeof(struct inode));
+#endif // LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
+	if(!upper_dentry)
+	{
+		return false;
+	}
+
+	// WARNING: this could cause undefined behavior if the upper dentry is not immediately after the vfs_inode
+	upper_ino = upper_dentry->d_inode;
+	if(!upper_ino)
+	{
+		return false;
+	}
+	return upper_ino->i_ino != 0;
+#endif // LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 }
 
 int f_proc_startupdate(struct event_filler_arguments *args)
