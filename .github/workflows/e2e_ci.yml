@@ -95,7 +95,7 @@ jobs:
                 -DUSE_BUNDLED_LIBBPF=ON \
                 -DUSE_BUNDLED_GTEST=ON \
                 ..
-          make -j6 libsinsp_e2e_tests
+          make -j6 libsinsp_e2e_tests fake_cri
           sudo rm -vfr test/libsinsp_e2e/resources/_proc
           cd ..
 

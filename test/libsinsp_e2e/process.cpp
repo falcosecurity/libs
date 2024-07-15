@@ -865,8 +865,7 @@ TEST_F(sys_call_test, procinfo_processchild_cpuload)
 					uint64_t tcpu;
 
 					const sinsp_evt_param* parinfo = e->get_param(0);
-					//tcpu = *(uint64_t*)parinfo->m_val;
-					memcpy(&tcpu,parinfo->m_val, sizeof(uint64_t));
+					memcpy(&tcpu, parinfo->m_val, sizeof(uint64_t));
 
 					uint64_t delta = tcpu - lastcpu;
 
@@ -947,7 +946,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload)
 					uint64_t tcpu;
 
 					const sinsp_evt_param* parinfo = e->get_param(0);
-					tcpu = *(uint64_t*)parinfo->m_val;
+					memcpy(&tcpu, parinfo->m_val, sizeof(uint64_t));
 
 					uint64_t delta = tcpu - lastcpu;
 
@@ -966,7 +965,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload)
 					uint64_t tcpu;
 
 					const sinsp_evt_param* parinfo = e->get_param(0);
-					tcpu = *(uint64_t*)parinfo->m_val;
+					memcpy(&tcpu, parinfo->m_val, sizeof(uint64_t));
 
 					uint64_t delta = tcpu - lastcpu1;
 
