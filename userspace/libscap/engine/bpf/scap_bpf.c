@@ -1387,6 +1387,7 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	for(int i = 0; i < BPF_MAPS_MAX; i++)
 	{
 		close(handle->m_bpf_map_fds[i]);
+		handle->m_bpf_map_fds[i] = -1;
 	}
 
 	return SCAP_SUCCESS;
