@@ -289,19 +289,13 @@ int f_sys_open_e(struct event_filler_arguments *args)
 	unsigned long val;
 	unsigned long flags;
 	unsigned long modes;
-	char *name = NULL;
 	int res;
 
 	/*
 	 * name
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
-	{
-		name = args->str_storage;
-		name[PPM_MAX_PATH_SIZE - 1] = '\0';
-	}
-	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/*
@@ -2947,19 +2941,13 @@ int f_sys_creat_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long modes;
-	char *name = NULL;
 	int res;
 
 	/*
 	 * name
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
-	{
-		name = args->str_storage;
-		name[PPM_MAX_PATH_SIZE - 1] = '\0';
-	}
-	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/*
@@ -3500,7 +3488,6 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	unsigned long flags;
 	unsigned long modes;
 	int32_t fd;
-	char *name = NULL;
 	int res;
 
 	/*
@@ -3518,12 +3505,7 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	 * name
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
-	{
-		name = args->str_storage;
-		name[PPM_MAX_PATH_SIZE - 1] = '\0';
-	}
-	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 	/*
 	 * Flags
@@ -4900,7 +4882,6 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
-	char *name = NULL;
 	int32_t fd;
 	int res;
 #ifdef __NR_openat2
@@ -4922,12 +4903,7 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	 * name
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
-	{
-		name = args->str_storage;
-		name[PPM_MAX_PATH_SIZE - 1] = '\0';
-	}
-	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 
