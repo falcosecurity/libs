@@ -16,6 +16,7 @@
 
 #define CURRENT_PID -1
 #define CURRENT_EVENT_TYPE -1
+#define PPM_MAX_PATH_SIZE 1024	/* Max size that an event parameter can have in the circular buffer, in bytes */
 
 extern "C"
 {
