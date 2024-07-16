@@ -249,7 +249,7 @@ jobs:
   build-modern-bpf-skeleton:
     needs: paths-filter
     # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
-    runs-on: ${{ (inputs.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-latest' }}
+    runs-on: 'ubuntu-latest'
     if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
     container: fedora:latest
     steps:
@@ -270,7 +270,7 @@ jobs:
       - name: Upload skeleton
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
-          name: bpf_probe_${{ inputs.arch }}.skel.h
+          name: bpf_probe_x86_64.skel.h
           path: skeleton-build/skel_dir/bpf_probe.skel.h
           retention-days: 1
 
@@ -279,7 +279,7 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     needs: [paths-filter,build-modern-bpf-skeleton] 
     # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
-    runs-on: ${{ (inputs.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-latest' }}
+    runs-on: 'ubuntu-latest'
     if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
     container: centos:7
     steps:
@@ -300,11 +300,6 @@ jobs:
           sed -i s/^#.*baseurl=http/baseurl=https/g /etc/yum.repos.d/*.repo
           sed -i s/^mirrorlist=http/#mirrorlist=https/g /etc/yum.repos.d/*.repo
 
-      - name: Fix arm64 scl repos to use correct mirror
-        if: inputs.arch == 'aarch64'
-        run: |
-          sed -i 's/vault.centos.org\/centos/vault.centos.org\/altarch/g' /etc/yum.repos.d/CentOS-SCLo-scl*.repo
-
       - name: Install build dependencies
         run: |
           yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
@@ -318,7 +313,7 @@ jobs:
       - name: Download skeleton
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
-          name: bpf_probe_${{ inputs.arch }}.skel.h
+          name: bpf_probe_x86_64.skel.h
           path: /tmp
 
       - name: Install updated cmake
