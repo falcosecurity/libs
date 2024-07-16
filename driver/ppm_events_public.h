@@ -38,7 +38,6 @@ or GPL2.txt for full copies of the license.
  * Limits
  */
 #define PPM_MAX_EVENT_PARAMS (1 << 5)	/* Max number of parameters an event can have */
-#define PPM_MAX_PATH_SIZE 1024	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
 /*
