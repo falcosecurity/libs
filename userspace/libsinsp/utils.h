@@ -263,8 +263,10 @@ const char* print_format_to_string(ppm_print_format fmt);
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////
-std::vector<std::string> sinsp_split(const std::string& s, char delim);
-std::vector<std::string> sinsp_split(const char *buf, size_t len, char delim);
+
+// split a string into components separated by delim.
+// An empty string in input will produce a vector with no elements.
+std::vector<std::string> sinsp_split(std::string_view sv, char delim);
 
 template<typename It>
 std::string sinsp_join(It begin, It end, char delim)

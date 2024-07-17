@@ -92,8 +92,6 @@ class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
 
-std::vector<std::string> sinsp_split(const std::string &s, char delim);
-
 /*!
   \brief The user agent string to use for any libsinsp connection, can be changed at compile time
 */

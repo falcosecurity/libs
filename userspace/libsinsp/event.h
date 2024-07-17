@@ -164,7 +164,14 @@ inline std::string get_event_param_as<std::string>(const sinsp_evt_param& param)
 template<>
 inline std::vector<std::string> get_event_param_as<std::vector<std::string>>(const sinsp_evt_param& param)
 {
-	return sinsp_split(param.m_val, static_cast<size_t>(param.m_len), '\0');
+	// vector string parameters coming from the driver may be NUL-terminated or not. Either way, remove the NUL terminator
+	uint32_t len = param.m_len;
+	if (len > 0 && param.m_val[param.m_len - 1] == '\0')
+	{
+		len--;
+	}
+
+	return sinsp_split({param.m_val, static_cast<std::string_view::size_type>(len)}, '\0');
 }
 
 /*!

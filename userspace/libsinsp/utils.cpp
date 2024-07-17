@@ -1371,43 +1371,31 @@ const char* print_format_to_string(ppm_print_format fmt)
 //
 // String split
 //
-std::vector<std::string> sinsp_split(const std::string &s, char delim)
+std::vector<std::string> sinsp_split(std::string_view sv, char delim)
 {
 	std::vector<std::string> res;
-	std::istringstream f(s);
-	std::string ts;
 
-	while(getline(f, ts, delim))
-	{
-		res.push_back(ts);
-	}
-
-	return res;
-}
-
-std::vector<std::string> sinsp_split(const char *buf, size_t len, char delim)
-{
-	if(len == 0)
+	if(sv.length() == 0)
 	{
 		return {};
 	}
 
-	std::string s {buf, len - 1};
-
-	if(buf[len - 1] != '\0')
+	std::string_view::size_type start = 0;
+    for (std::string_view::size_type i = 0; i < sv.size(); i++)
 	{
-#ifdef _DEBUG
-		throw sinsp_exception("expected a NUL-terminated buffer of size " +	
-							  std::to_string(len) + ", which instead ends with " +
-							  std::to_string(buf[len - 1]));
-#else
-		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "expected a NUL-terminated buffer of size '%ld' which instead ends with '%c'", len, buf[len - 1]);
-		// enforce the null terminator
-		s.replace(len-1, 1, "\0");
-#endif
+		if (sv[i] == delim)
+		{
+			res.push_back(std::string(sv.substr(start, i - start)));
+			start = i + 1;
+		}
 	}
 
-	return sinsp_split(s, delim);
+	if (start <= sv.length())
+	{
+		res.push_back(std::string(sv.substr(start)));
+	}
+
+	return res;
 }
 
 //
