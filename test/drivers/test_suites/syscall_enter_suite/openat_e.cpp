@@ -1,5 +1,4 @@
 #include "../../event_class/event_class.h"
-#include <driver/ppm_events_public.h>
 
 #ifdef __NR_openat
 TEST(SyscallEnter, openatE)
