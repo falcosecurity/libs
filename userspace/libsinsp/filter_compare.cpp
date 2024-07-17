@@ -19,6 +19,7 @@ limitations under the License.
 #include <libsinsp/filter_compare.h>
 #include <libsinsp/sinsp_exception.h>
 #include <libsinsp/utils.h>
+#include <libsinsp/memmem.h>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -28,41 +29,6 @@ limitations under the License.
 #else
 #include "arpa/inet.h"
 #include <netdb.h>
-#endif
-
-//
-// Fallback implementation of memmem
-//
-#if !defined(_GNU_SOURCE) && !defined(__APPLE__)
-#include <string.h>
-
-static inline void *memmem(const void *haystack, size_t haystacklen,
-	const void *needle, size_t needlelen)
-{
-	const unsigned char *ptr;
-	const unsigned char *end;
-
-	if(needlelen == 0)
-	{
-		return (void *)haystack;
-	}
-
-	if(haystacklen < needlelen)
-	{
-		return NULL;
-	}
-
-	end = (const unsigned char *)haystack + haystacklen - needlelen;
-	for(ptr = (const unsigned char *)haystack; ptr <= end; ptr++)
-	{
-		if(!memcmp(ptr, needle, needlelen))
-		{
-			return (void *)ptr;
-		}
-	}
-
-	return NULL;
-}
 #endif
 
 cmpop str_to_cmpop(std::string_view str)
