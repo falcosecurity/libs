@@ -294,6 +294,8 @@ std::string& trim(std::string& s);
 std::string& replace_in_place(std::string& s, const std::string& search, const std::string& replacement);
 std::string replace(const std::string& str, const std::string& search, const std::string& replacement);
 
+std::string buffer_to_multiline_hex(const char *buf, size_t size);
+
 ///////////////////////////////////////////////////////////////////////////////
 // number parser
 ///////////////////////////////////////////////////////////////////////////////

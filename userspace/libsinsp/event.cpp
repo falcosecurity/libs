@@ -39,6 +39,7 @@ limitations under the License.
 #include <libscap/strl.h>
 
 #include <libscap/scap.h>
+#include <libsinsp/utils.h>
 
 extern sinsp_evttables g_infotables;
 
@@ -2179,10 +2180,14 @@ void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const
 
 	std::stringstream ss;
 	ss << "could not parse param " << m_idx << " (" << parinfo->name << ") for event "
-		<< m_evt->get_num() << " of type " << m_evt->get_type() << " (" << m_evt->get_name() << "): expected length "
-		<< requested_length << ", found " << m_len;
+		<< m_evt->get_num() << " of type " << m_evt->get_type() << " (" << m_evt->get_name() << "), for tid " << m_evt->get_tid() 
+		<< ": expected length " << requested_length << ", found " << m_len;
+	std::string error_string = ss.str();
 
-	throw sinsp_exception(ss.str());
+	libsinsp_logger()->log(error_string, sinsp_logger::SEV_DEBUG);
+	libsinsp_logger()->log("parameter raw data: \n" + buffer_to_multiline_hex(m_val, m_len), sinsp_logger::SEV_DEBUG);
+
+	throw sinsp_exception(error_string);
 }
 
 const ppm_param_info* sinsp_evt_param::get_info() const
