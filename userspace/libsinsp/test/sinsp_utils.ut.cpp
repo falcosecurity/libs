@@ -199,28 +199,71 @@ TEST(sinsp_utils_test, concatenate_paths)
 	EXPECT_EQ("/root/c:/hello/world", res); */
 }
 
-TEST(sinsp_utils_test, sinsp_split_buf)
+TEST(sinsp_utils_test, sinsp_split)
 {
 	const char *in = "hello\0world\0";
-	size_t len = 12;
-	auto split = sinsp_split(in, len, '\0');
+	size_t len = 11;
+	std::vector<std::string> split = sinsp_split({in, len}, '\0');
 
 	EXPECT_EQ(split.size(), 2);
 	EXPECT_EQ(split[0], "hello");
 	EXPECT_EQ(split[1], "world");
-}
 
-TEST(sinsp_utils_test, sinsp_split_check_terminator)
-{
-	// check that the null terminator is enforced
-	const char *in = "hello\0worlddd";
-	size_t len = 13;
-#ifdef _DEBUG
-	EXPECT_THROW(sinsp_split(in, len, '\0'), sinsp_exception);
-#else
-	auto split = sinsp_split(in, len, '\0');
+	std::string str;
+
+	str = "A,B,C";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 3);
+	EXPECT_EQ(split[0], "A");
+	EXPECT_EQ(split[1], "B");
+	EXPECT_EQ(split[2], "C");
+
+	str = ",B,C";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 3);
+	EXPECT_EQ(split[0], "");
+	EXPECT_EQ(split[1], "B");
+	EXPECT_EQ(split[2], "C");
+
+	str = "A,B,";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 3);
+	EXPECT_EQ(split[0], "A");
+	EXPECT_EQ(split[1], "B");
+	EXPECT_EQ(split[2], "");
+
+	str = "";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 0);
+
+	str =  "A";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 1);
+	EXPECT_EQ(split[0], "A");
+
+	str =  ",";
+	split = sinsp_split(str, ',');
 	EXPECT_EQ(split.size(), 2);
-	EXPECT_EQ(split[0], "hello");
-	EXPECT_EQ(split[1], "worldd");
-#endif
+	EXPECT_EQ(split[0], "");
+	EXPECT_EQ(split[1], "");
+
+	str =  ",,";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 3);
+	EXPECT_EQ(split[0], "");
+	EXPECT_EQ(split[1], "");
+	EXPECT_EQ(split[2], "");
+
+	str = "A,";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 2);
+	EXPECT_EQ(split[0], "A");
+	EXPECT_EQ(split[1], "");
+
+	str = ",B";
+	split = sinsp_split(str, ',');
+	EXPECT_EQ(split.size(), 2);
+	EXPECT_EQ(split[0], "");
+	EXPECT_EQ(split[1], "B");
+
 }

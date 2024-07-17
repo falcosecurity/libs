@@ -358,21 +358,18 @@ scap_threadinfo sinsp_with_test_input::create_threadinfo(
 	if (!args.empty())
 	{
 		argsv = test_utils::to_null_delimited(args);
-		argsv.push_back('\0');
 	}
 
 	std::string envv;
 	if (!env.empty())
 	{
 		envv = test_utils::to_null_delimited(env);
-		envv.push_back('\0');
 	}
 
 	std::string cgroupsv;
 	if (!cgroups.empty())
 	{
 		cgroupsv = test_utils::to_null_delimited(cgroups);
-		cgroupsv.push_back('\0');
 	}
 
 	memcpy(tinfo.args, argsv.data(), argsv.size());

@@ -625,7 +625,12 @@ std::string sinsp_threadinfo::get_exepath() const
 
 void sinsp_threadinfo::set_args(const char* args, size_t len)
 {
-	set_args(sinsp_split(args, len, '\0'));
+	if (len > 0 && args[len - 1] == '\0')
+	{
+		len--;
+	}
+
+	set_args(sinsp_split({args, len}, '\0'));
 }
 
 void sinsp_threadinfo::set_args(const std::vector<std::string>& args)
@@ -648,7 +653,12 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 		}
 	}
 
-	m_env = sinsp_split(env, len, '\0');
+	if (len > 0 && env[len - 1] == '\0')
+	{
+		len--;
+	}
+
+	m_env = sinsp_split({env, len}, '\0');
 }
 
 bool sinsp_threadinfo::set_env_from_proc() {
@@ -739,7 +749,12 @@ std::string sinsp_threadinfo::concatenate_all_env()
 
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 {
-	set_cgroups(sinsp_split(cgroups, len, '\0'));
+	if (len > 0 && cgroups[len - 1] == '\0')
+	{
+		len--;
+	}
+
+	set_cgroups(sinsp_split({cgroups, len}, '\0'));
 }
 
 void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups)
