@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 
+#include <libsinsp/memmem.h>
+
 #include <sinsp_with_test_input.h>
 #include "test_utils.h"
 
@@ -350,4 +352,33 @@ TEST_F(sinsp_with_test_input, bitmaskparams)
 	const char *val_str = NULL;
 	evt->get_param_as_str(2, &val_str);
 	ASSERT_STREQ(val_str, "O_RDONLY|O_CLOEXEC");
+}
+
+TEST_F(sinsp_with_test_input, invalid_string_len)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	int64_t test_errno = 0;
+
+	const char *content = "01234567890123456789";
+	size_t content_len = strlen(content);
+
+	// `PPME_SYSCALL_CHDIR_X` is a simple event that uses a `PT_CHARBUF`.
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
+
+	// create a regular event with a string
+	scap_evt *sevt = add_event(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, test_errno, content);
+	
+	// corrupt the event by overwriting a \0 in the middle of the string
+	void* content_ptr = memmem(sevt, sevt->len, content, content_len);
+	static_cast<char*>(content_ptr)[10] = '\0';
+
+	// allow this test to print its own debug logs
+	libsinsp_logger()->add_stderr_log();
+	libsinsp_logger()->set_severity(sinsp_logger::SEV_DEBUG);
+
+	libsinsp_logger()->log("An error message and data dump is expected in this test.", sinsp_logger::SEV_DEBUG);
+	// process the event and generate an error. It will be printed.
+	EXPECT_THROW(advance_ts_get_event(sevt->ts), sinsp_exception);
 }

@@ -37,6 +37,8 @@ sinsp_with_test_input::~sinsp_with_test_input()
 	{
 		free(el);
 	}
+
+	libsinsp_logger()->reset();
 }
 
 void sinsp_with_test_input::open_inspector(sinsp_mode_t mode) {
