@@ -22,7 +22,6 @@ limitations under the License.
 #include "subprocess.h"
 
 #include <cstdint>
-#include <driver/ppm_events_public.h>
 #include <libscap/scap-int.h>
 #include <libscap/scap_engines.h>
 #include <libscap/scap_platform.h>
