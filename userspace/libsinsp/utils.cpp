@@ -1963,3 +1963,28 @@ std::string concat_set_in_order(const std::set<std::string>& s, const std::strin
 	std::string s_str = ss.str();
 	return s_str.substr(0, s_str.size() - delim.size());
 }
+
+#define SINSP_UTILS_FORMATBUF_LEN 32
+
+std::string buffer_to_multiline_hex(const char *buf, size_t size)
+{
+	char format_buf[SINSP_UTILS_FORMATBUF_LEN];
+	std::stringstream ss;
+
+	for(size_t i = 0; i < size; i++)
+	{
+		if (i % 16 == 0)
+		{
+			if (i != 0)
+			{
+				ss << "\n";
+			}
+			snprintf(format_buf, SINSP_UTILS_FORMATBUF_LEN, "%03lx | ", i);
+			ss << format_buf;
+		}
+		snprintf(format_buf, SINSP_UTILS_FORMATBUF_LEN, "%02x ", buf[i]);
+		ss << format_buf;
+	}
+
+	return ss.str();
+}
