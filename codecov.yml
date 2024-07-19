@@ -1,0 +1,6 @@
+component_management:
+  individual_components:
+    - component_id: libsinsp
+      name: libsinsp
+      paths:
+        - userspace/libsinsp/**
