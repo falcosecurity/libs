@@ -7,6 +7,117 @@
 
 #include <linux/sched.h>
 
+#define CREATE_OVERLAY_FS                                                                                              \
+                                                                                                                       \
+	/* Create temp directories */                                                                                  \
+	char work[] = "/tmp/work.XXXXXX";                                                                              \
+	char lower[] = "/tmp/lower.XXXXXX";                                                                            \
+	char upper[] = "/tmp/upper.XXXXXX";                                                                            \
+	char merge[] = "/tmp/overlay.XXXXXX";                                                                          \
+                                                                                                                       \
+	char *workdir = mkdtemp(work);                                                                                 \
+	char *lowerdir = mkdtemp(lower);                                                                               \
+	char *upperdir = mkdtemp(upper);                                                                               \
+	char *mergedir = mkdtemp(merge);                                                                               \
+                                                                                                                       \
+	if(workdir == NULL || lowerdir == NULL || upperdir == NULL || mergedir == NULL)                                \
+	{                                                                                                              \
+		FAIL() << "Cannot create temporary directories." << std::endl;                                         \
+	}                                                                                                              \
+                                                                                                                       \
+	/* 1. We create the lower layer file before mounting the overlayfs */                                          \
+                                                                                                                       \
+	/* Copy local bin/true to lower layer */                                                                       \
+	int true_fd = open("/bin/true", O_RDONLY);                                                                     \
+	if(true_fd == -1)                                                                                              \
+	{                                                                                                              \
+		FAIL() << "Cannot open /bin/true." << std::endl;                                                       \
+	}                                                                                                              \
+                                                                                                                       \
+	char lower_exe_path[1024];                                                                                     \
+	snprintf(lower_exe_path, 1024, "%s/lowertrue", lowerdir);                                                      \
+	int lower_exe_fd = open(lower_exe_path, O_WRONLY | O_CREAT, 0777);                                             \
+	if(lower_exe_fd < 0)                                                                                           \
+	{                                                                                                              \
+		FAIL() << "Cannot open /tmp/merged/lowertrue." << std::endl;                                           \
+	}                                                                                                              \
+                                                                                                                       \
+	char buf[1024];                                                                                                \
+	ssize_t bytes_read;                                                                                            \
+	while((bytes_read = read(true_fd, buf, sizeof(buf))) > 0)                                                      \
+	{                                                                                                              \
+		if(write(lower_exe_fd, buf, bytes_read) != bytes_read)                                                 \
+		{                                                                                                      \
+			FAIL() << "Cannot write /tmp/merged/lowertrue." << std::endl;                                  \
+		}                                                                                                      \
+	}                                                                                                              \
+                                                                                                                       \
+	if(bytes_read == -1)                                                                                           \
+	{                                                                                                              \
+		FAIL() << "Error copying /bin/true" << std::endl;                                                      \
+	}                                                                                                              \
+                                                                                                                       \
+	if(close(lower_exe_fd) == -1)                                                                                  \
+	{                                                                                                              \
+		FAIL() << "Error closing /tmp/merged/lowertrue" << std::endl;                                          \
+	}                                                                                                              \
+	if(close(true_fd) == -1)                                                                                       \
+	{                                                                                                              \
+		FAIL() << "Error closing /bin/true" << std::endl;                                                      \
+	}                                                                                                              \
+                                                                                                                       \
+	/* 2. We mount the overlayfs */                                                                                \
+                                                                                                                       \
+	/* Construct the mount options string */                                                                       \
+	char mntopts[1024];                                                                                            \
+	snprintf(mntopts, 1024, "lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir,                              \
+		 workdir); /* Mount the overlayfs */                                                                   \
+	if(mount("overlay", mergedir, "overlay", MS_MGC_VAL, mntopts) != 0)                                            \
+	{                                                                                                              \
+		FAIL() << "Cannot mount overlay." << std::endl;                                                        \
+	} /* 3. We create a file in the upper layer */                                                                 \
+	char upper_exe_path[1024];                                                                                     \
+	sprintf(upper_exe_path, "%s/uppertrue", mergedir);                                                             \
+	int upper_exe_fd = open(upper_exe_path, O_WRONLY | O_CREAT, 0777);                                             \
+	if(upper_exe_fd == -1)                                                                                         \
+	{                                                                                                              \
+		FAIL() << "Cannot open /tmp/merged/uppertrue." << std::endl;                                           \
+	}                                                                                                              \
+	true_fd = open("/bin/true", O_RDONLY);                                                                         \
+	if(true_fd == -1)                                                                                              \
+	{                                                                                                              \
+		FAIL() << "Cannot open /bin/true." << std::endl;                                                       \
+	}                                                                                                              \
+	while((bytes_read = read(true_fd, buf, sizeof(buf))) > 0)                                                      \
+	{                                                                                                              \
+		if(write(upper_exe_fd, buf, bytes_read) != bytes_read)                                                 \
+		{                                                                                                      \
+			FAIL() << "Cannot write /tmp/merged/uppertrue." << std::endl;                                  \
+		}                                                                                                      \
+	}                                                                                                              \
+	if(bytes_read == -1)                                                                                           \
+	{                                                                                                              \
+		FAIL() << "Error copying /bin/true" << std::endl;                                                      \
+	}                                                                                                              \
+	if(close(true_fd) == -1)                                                                                       \
+	{                                                                                                              \
+		FAIL() << "Error closing /bin/true" << std::endl;                                                      \
+	}                                                                                                              \
+	if(close(upper_exe_fd) == -1)                                                                                  \
+	{                                                                                                              \
+		FAIL() << "Error closing /tmp/merged/uppertrue" << std::endl;                                          \
+	}
+
+#define DESTROY_OVERLAY_FS                                                                                             \
+	/* Unmount the overlay file system */                                                                          \
+	unlink(upper_exe_path);                                                                                        \
+	unlink(lower_exe_path);                                                                                        \
+	rmdir(upperdir);                                                                                               \
+	rmdir(workdir);                                                                                                \
+	rmdir(lowerdir);                                                                                               \
+	umount2(mergedir, MNT_FORCE);                                                                                  \
+	rmdir(mergedir);
+
 TEST(SyscallExit, execveX_failure)
 {
 	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
@@ -442,76 +553,13 @@ TEST(SyscallExit, execveX_not_upperlayer)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	const char lowerdir[] = "/bin";
-	const char upperdir[] = "/tmp/upper";
-	const char target[]   = "/tmp/merged";
-	char tmp_template[]  = "/tmp/tmpdir.XXXXXX";
-	char *mntopts;
-
-	/* Create a temporary directory for the work layer */
-	char *workdir = mkdtemp(tmp_template);
-
-	/* Create the overlay mount target directory */
-	mkdir(upperdir, 0777);
-	mkdir(target, 0777);
-
-	/* Construct the mount options string */
-	if(asprintf(&mntopts, "lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir) == -1){
-		FAIL() << "Cannot construct mount options string";
-	};
-
-	/* Mount the overlayfs */
-	if (mount("overlay", target, "overlay", MS_MGC_VAL, mntopts) != 0)
-	{
-		FAIL() << "Cannot mount overlay." << std::endl;
-	}
-
-	/* Copy /bin/true to /tmp/merged/uppertrue in the overlay file system */
-	char true_path[1024], upper_exe_path[1024];
-	sprintf(true_path, "%s/true", lowerdir);
-	sprintf(upper_exe_path, "%s/uppertrue", target);
-
-	int true_fd = open(true_path, O_RDONLY);
-	if (true_fd == -1)
-	{
-		FAIL() << "Cannot open /bin/true." << std::endl;
-	}
-
-	int upper_exe_fd = open(upper_exe_path, O_WRONLY|O_CREAT, 0777);
-	if (upper_exe_fd == -1)
-	{
-		FAIL() << "Cannot open /tmp/merged/uppertrue." << std::endl;
-	}
-
-	char buf[1024];
-	ssize_t bytes_read;
-	while ((bytes_read = read(true_fd, buf, sizeof(buf))) > 0)
-	{
-		if (write(upper_exe_fd, buf, bytes_read) != bytes_read)
-		{
-			FAIL() << "Cannot write /tmp/merged/uppertrue." << std::endl;
-		}
-	}
-
-	if (bytes_read == -1)
-	{
-		FAIL() << "Error copying /bin/true" << std::endl;
-	}
-
-	if (close(true_fd) == -1)
-	{
-		FAIL() << "Error closing /bin/true" << std::endl;
-	}
-
-	if (close(upper_exe_fd) == -1)
-	{
-		FAIL() << "Error closing /tmp/merged/uppertrue" << std::endl;
-	}
+	CREATE_OVERLAY_FS
 
 	/* Prepare the execve args */
-	const char *pathname = true_path;
-	const char *comm = "true";
-	const char *argv[] = {true_path, "randomarg", NULL};
+	char merged_exe_path[1024];
+	snprintf(merged_exe_path, 1024, "%s/lowertrue", mergedir);
+	const char *comm = "lowertrue";
+	const char *argv[] = {merged_exe_path, "randomarg", NULL};
 	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
 
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
@@ -526,7 +574,8 @@ TEST(SyscallExit, execveX_not_upperlayer)
 	 */
 	if(ret_pid == 0)
 	{
-		syscall(__NR_execve, pathname, argv, envp);
+		syscall(__NR_execve, merged_exe_path, argv, envp);
+		printf("execve failed: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -546,16 +595,7 @@ TEST(SyscallExit, execveX_not_upperlayer)
 
 	evt_test->disable_capture();
 
-	/* Unmount the overlay file system */
-	if (umount(target))
-	{
-		FAIL() << "Cannot unmount target dir." << std::endl;
-	}
-
-	/* Remove the upper and work directories */
-	rmdir(upperdir);
-	rmdir(workdir);
-	rmdir(target);
+	DESTROY_OVERLAY_FS
 
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
@@ -577,7 +617,7 @@ TEST(SyscallExit, execveX_not_upperlayer)
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
-	evt_test->assert_charbuf_param(2, pathname);
+	evt_test->assert_charbuf_param(2, merged_exe_path);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	/* Starting from `1` because the first is `exe`. */
@@ -624,7 +664,7 @@ TEST(SyscallExit, execveX_not_upperlayer)
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	evt_test->assert_charbuf_param(28, "/usr/bin/true");
+	evt_test->assert_charbuf_param(28, merged_exe_path);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -639,71 +679,7 @@ TEST(SyscallExit, execveX_upperlayer_success)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	const char lowerdir[] = "/bin";
-	const char upperdir[] = "/tmp/upper";
-	const char target[]   = "/tmp/merged";
-	char tmp_template[]  = "/tmp/tmpdir.XXXXXX";
-	char *mntopts;
-
-	/* Create a temporary directory for the work layer */
-	char *workdir = mkdtemp(tmp_template);
-
-    /* Create the overlay mount target directory */
-    mkdir(upperdir, 0777);
-    mkdir(target, 0777);
-
-	/* Construct the mount options string */
-    if(asprintf(&mntopts, "lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir) == -1){
-		FAIL() << "Cannot construct mount options string";
-	};
-
-    /* Mount the overlayfs */
-	if (mount("overlay", target, "overlay", MS_MGC_VAL, mntopts) != 0)
-	{
-		FAIL() << "Cannot mount overlay." << std::endl;
-    }
-
-	/* Copy /bin/true to /tmp/merged/uppertrue in the overlay file system */
-    char true_path[1024], upper_exe_path[1024];
-    sprintf(true_path, "%s/true", lowerdir);
-    sprintf(upper_exe_path, "%s/uppertrue", target);
-
-    int true_fd = open(true_path, O_RDONLY);
-    if (true_fd == -1)
-	{
-		FAIL() << "Cannot open /bin/true." << std::endl;
-    }
-
-    int upper_exe_fd = open(upper_exe_path, O_WRONLY|O_CREAT, 0777);
-    if (upper_exe_fd == -1)
-	{
-		FAIL() << "Cannot open /tmp/merged/uppertrue." << std::endl;
-    }
-
-    char buf[1024];
-    ssize_t bytes_read;
-    while ((bytes_read = read(true_fd, buf, sizeof(buf))) > 0)
-	{
-        if (write(upper_exe_fd, buf, bytes_read) != bytes_read)
-		{
-			FAIL() << "Cannot write /tmp/merged/uppertrue." << std::endl;
-        }
-    }
-
-    if (bytes_read == -1)
-	{
-		FAIL() << "Error copying /bin/true" << std::endl;
-    }
-
-    if (close(true_fd) == -1)
-	{
-		FAIL() << "Error closing /bin/true" << std::endl;
-    }
-
-    if (close(upper_exe_fd) == -1)
-	{
-		FAIL() << "Error closing /tmp/merged/uppertrue" << std::endl;
-    }
+	CREATE_OVERLAY_FS
 
 	/* Prepare the execve args */
 	const char *pathname = upper_exe_path;
@@ -724,6 +700,7 @@ TEST(SyscallExit, execveX_upperlayer_success)
 	if(ret_pid == 0)
 	{
 		syscall(__NR_execve, pathname, argv, envp);
+		printf("execve failed: %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -743,16 +720,7 @@ TEST(SyscallExit, execveX_upperlayer_success)
 
 	evt_test->disable_capture();
 
-	/* Unmount the overlay file system */
-    if (umount(target))
-	{
-		FAIL() << "Cannot unmount target dir." << std::endl;
-    }
-
-    /* Remove the upper and work directories */
-    rmdir(upperdir);
-    rmdir(workdir);
-    rmdir(target);
+	DESTROY_OVERLAY_FS
 
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
@@ -821,7 +789,7 @@ TEST(SyscallExit, execveX_upperlayer_success)
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	evt_test->assert_charbuf_param(28, "/tmp/merged/uppertrue");
+	evt_test->assert_charbuf_param(28, upper_exe_path);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
