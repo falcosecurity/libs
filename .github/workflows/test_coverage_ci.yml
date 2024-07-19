@@ -48,13 +48,12 @@ jobs:
 
       - name: Generate libsinsp coverage report
         run: |
-          gcovr --filter ".*/userspace/libsinsp/.*" --exclude ".*/third-party/.*" --xml -o ./libsinsp.coverage.xml
+          gcovr --xml -o ./libsinsp.coverage.xml
 
       - name: Upload to codecov
         uses: codecov/codecov-action@79066c46f8dcdf8d7355f820dbac958c5b4cb9d3 # v4.5.0
         with:
           fail_ci_if_error: true
           files: ./libsinsp.coverage.xml
-          flags: libsinsp
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
