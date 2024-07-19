@@ -900,14 +900,14 @@ static bool ppm_is_upper_layer(struct file *file)
 	// Pointer arithmetics due to unexported ovl_inode struct
 	// warning: this works if and only if the dentry pointer
 	// is placed right after the inode struct
-	upper_dentry = (struct dentry *)(vfs_inode + sizeof(struct inode));
+	// todo!: this is dangerous we should find a way to check it at compile time.
+	upper_dentry = *(struct dentry **)(vfs_inode + sizeof(struct inode));
 #endif // LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 	if(!upper_dentry)
 	{
 		return false;
 	}
 
-	// WARNING: this could cause undefined behavior if the upper dentry is not immediately after the vfs_inode
 	upper_ino = upper_dentry->d_inode;
 	if(!upper_ino)
 	{
