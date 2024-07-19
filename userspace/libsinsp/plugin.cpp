@@ -824,6 +824,11 @@ std::vector<metrics_v2> sinsp_plugin::get_metrics() const
 
 thread_pool::routine_id_t sinsp_plugin::subscribe_routine(ss_plugin_routine_fn_t routine_fn, ss_plugin_routine_state_t* routine_state)
 {
+	if(!m_thread_pool)
+	{
+		return static_cast<thread_pool::routine_id_t>(nullptr);
+	}
+
 	auto f = [this, routine_fn, routine_state]() -> bool {
 		return static_cast<bool>(routine_fn(m_state, routine_state));
 	};
@@ -833,6 +838,11 @@ thread_pool::routine_id_t sinsp_plugin::subscribe_routine(ss_plugin_routine_fn_t
 
 void sinsp_plugin::unsubscribe_routine(thread_pool::routine_id_t routine_id)
 {
+	if(!m_thread_pool || !routine_id)
+	{
+		return;
+	}
+
 	m_thread_pool->unsubscribe(routine_id);
 }
 
