@@ -2184,8 +2184,8 @@ void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const
 		<< ": expected length " << requested_length << ", found " << m_len;
 	std::string error_string = ss.str();
 
-	libsinsp_logger()->log(error_string, sinsp_logger::SEV_DEBUG);
-	libsinsp_logger()->log("parameter raw data: \n" + buffer_to_multiline_hex(m_val, m_len), sinsp_logger::SEV_DEBUG);
+	libsinsp_logger()->log(error_string, sinsp_logger::SEV_ERROR);
+	libsinsp_logger()->log("parameter raw data: \n" + buffer_to_multiline_hex(m_val, m_len), sinsp_logger::SEV_ERROR);
 
 	throw sinsp_exception(error_string);
 }
