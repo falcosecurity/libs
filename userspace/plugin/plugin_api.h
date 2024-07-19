@@ -416,7 +416,7 @@ typedef struct
 	// - f: the function executed by the routine on each iteration
 	// - i: the routine's state
 	//
-	// Return value: A routine handle that can be used to later unsubscribe the routine.
+	// Return value: A routine handle that can be used to later unsubscribe the routine. Returns null in case of failure.
 	ss_plugin_routine_t* (*subscribe)(ss_plugin_owner_t* o, ss_plugin_routine_fn_t f, ss_plugin_routine_state_t* i);
 
 	//
