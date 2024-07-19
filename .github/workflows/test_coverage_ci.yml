@@ -15,7 +15,7 @@ jobs:
     name: unit-test-libsinsp-coverage 🧐
     runs-on: 'ubuntu-22.04'
     container:
-      image: debian:buster
+      image: debian:bookworm
     steps:
       - name: Install deps ⛓️
         run: |
@@ -24,7 +24,7 @@ jobs:
             libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev \
             libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc \
             libgtest-dev libprotobuf-dev linux-headers-amd64 \
-            gcovr
+            gpg gpg-agent gcovr
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -50,3 +50,11 @@ jobs:
         run: |
           gcovr --filter ".*/userspace/libsinsp/.*" --exclude ".*/third-party/.*" --xml -o ./libsinsp.coverage.xml
 
+      - name: Upload to codecov
+        uses: codecov/codecov-action@79066c46f8dcdf8d7355f820dbac958c5b4cb9d3 # v4.5.0
+        with:
+          fail_ci_if_error: true
+          files: ./libsinsp.coverage.xml
+          flags: libsinsp
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
