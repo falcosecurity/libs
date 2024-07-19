@@ -19,6 +19,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include <sinsp_with_test_input.h>
 
+#if !defined(__EMSCRIPTEN__)
 TEST_F(sinsp_with_test_input, thread_pool)
 {
     open_inspector();
@@ -70,3 +71,4 @@ TEST_F(sinsp_with_test_input, thread_pool)
     m_inspector.close();
     ASSERT_EQ(tp->routines_num(), 0);
 }
+#endif

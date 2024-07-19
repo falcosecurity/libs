@@ -930,10 +930,14 @@ TEST_F(sinsp_with_test_input, plugin_metrics)
 
 #endif
 
+#if !defined(__EMSCRIPTEN__)
+
 TEST_F(sinsp_with_test_input, plugin_routines)
 {
 	auto p = register_plugin(&m_inspector, get_plugin_api_sample_routines);
 	open_inspector();
+
+	ASSERT_NE(m_inspector.m_thread_pool, nullptr);
 
 	// step #0: the plugins subscribes a routine on capture open
 	auto routines_num = m_inspector.m_thread_pool->routines_num();
@@ -966,3 +970,5 @@ TEST_F(sinsp_with_test_input, plugin_routines)
 	routines_num = m_inspector.m_thread_pool->routines_num();
 	ASSERT_EQ(routines_num, 0);
 }
+
+#endif

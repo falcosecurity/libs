@@ -132,7 +132,9 @@ sinsp::sinsp(bool with_metrics) :
 	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
 	m_table_registry->add_table(m_thread_manager.get());
 
+#if !defined(__EMSCRIPTEN__)
 	m_thread_pool = std::make_shared<bs_thread_pool>();
+#endif
 }
 
 sinsp::~sinsp()
@@ -806,7 +808,10 @@ void sinsp::close()
 	}
 
 	// purge pending routines and wait for the running ones
-	m_thread_pool->purge();
+	if(m_thread_pool)
+	{
+		m_thread_pool->purge();
+	}
 
 	m_mode = SINSP_MODE_NONE;
 }
