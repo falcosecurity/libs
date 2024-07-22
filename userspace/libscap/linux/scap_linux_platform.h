@@ -99,6 +99,22 @@ struct scap_linux_platform
 
 struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context);
 
+/**
+ * @brief A lightweight Linux platform that only collects static host information
+ *
+ * This is useful with source plugins that do not handle syscall data but still want access
+ * to some info about the machine they're running on. Currently collected data includes:
+ * - machine info
+ * - agent info
+ * - interface list
+ */
+struct scap_linux_hostinfo_platform
+{
+	struct scap_platform m_generic;
+};
+
+struct scap_platform* scap_linux_hostinfo_alloc_platform();
+
 #ifdef __cplusplus
 };
 #endif
