@@ -35,9 +35,13 @@ limitations under the License.
 // The test_input and source_plugin engines can optionally use a linux_platform
 // but only on an actual Linux system.
 //
-// Still, to compile properly on non-Linux, provide an implementation
-// of scap_linux_alloc_platform() that always fails at runtime.
+// Still, to compile properly on non-Linux, provide implementations
+// of scap_linux_alloc_platform() and scap_linux_hostinfo_alloc_platform() that always fail at runtime.
 struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
+{
+	return NULL;
+}
+struct scap_platform* scap_linux_hostinfo_alloc_platform()
 {
 	return NULL;
 }
