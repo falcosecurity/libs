@@ -53,7 +53,6 @@ limitations under the License.
 #include <cerrno>
 #include <functional>
 #include <sys/stat.h>
-#include <filesystem>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
@@ -593,23 +592,6 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 	}
 
 	return true;
-}
-
-std::filesystem::path workaround_win_root_name(std::filesystem::path p)
-{
-	if (!p.has_root_name())
-	{
-		return p;
-	}
-
-	if (p.root_name().string().rfind("//", 0) == 0)
-	{
-		// this is something like //dir/hello. Add a leading slash to identify an absolute path rooted at /
-		return std::filesystem::path("/" + p.string());
-	}
-
-	// last case: this is a relative path, like c:/dir/hello. Add a leading ./ to identify a relative path
-	return std::filesystem::path("./" + p.string());
 }
 
 //
