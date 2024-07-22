@@ -139,6 +139,16 @@ enum sinsp_mode_t
 	SINSP_MODE_TEST,
 };
 
+/**
+ * @brief Possible platforms to use with plugins
+ */
+enum class sinsp_plugin_platform
+{
+	SINSP_PLATFORM_GENERIC, //!< generic platform, no system information collected
+	SINSP_PLATFORM_HOSTINFO, //!< basic host information collected, for non-syscall source plugins
+	SINSP_PLATFORM_FULL, //!< full system information collected, for syscall source plugins
+};
+
 /** @defgroup inspector Main library
  @{
 */
@@ -164,7 +174,7 @@ public:
 	virtual void open_nodriver(bool full_proc_scan = false);
 	virtual void open_savefile(const std::string &filename, int fd = 0);
 	virtual void open_plugin(const std::string& plugin_name, const std::string& plugin_open_params,
-				 sinsp_mode_t mode = SINSP_MODE_PLUGIN);
+				 sinsp_plugin_platform platform_type);
 	virtual void open_gvisor(const std::string &config_path, const std::string &root_path, bool no_events = false, int epoll_timeout = -1);
 	/*[EXPERIMENTAL] This API could change between releases, we are trying to find the right configuration to deploy the modern bpf probe:
 	 * `cpus_for_each_buffer` and `online_only` are the 2 experimental params. The first one allows associating more than one CPU to a single ring buffer.

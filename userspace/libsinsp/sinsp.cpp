@@ -553,7 +553,8 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 #endif
 }
 
-void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params, sinsp_mode_t mode)
+void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params,
+			sinsp_plugin_platform platform_type)
 {
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
 	scap_open_args oargs {};
@@ -564,16 +565,23 @@ void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugi
 	oargs.engine_params = &params;
 
 	scap_platform* platform;
-	switch(mode)
+	sinsp_mode_t mode;
+	switch(platform_type)
 	{
-		case SINSP_MODE_PLUGIN:
-			platform = scap_generic_alloc_platform(::on_new_entry_from_proc, this);
-			break;
-		case SINSP_MODE_LIVE:
-			platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
-			break;
-		default:
-			throw sinsp_exception("Unsupported mode for SOURCE_PLUGIN engine");
+	case sinsp_plugin_platform::SINSP_PLATFORM_GENERIC:
+		mode = SINSP_MODE_PLUGIN;
+		platform = scap_generic_alloc_platform(::on_new_entry_from_proc, this);
+		break;
+	case sinsp_plugin_platform::SINSP_PLATFORM_HOSTINFO:
+		mode = SINSP_MODE_PLUGIN;
+		platform = scap_linux_hostinfo_alloc_platform();
+		break;
+	case sinsp_plugin_platform::SINSP_PLATFORM_FULL:
+		mode = SINSP_MODE_LIVE;
+		platform = scap_linux_alloc_platform(::on_new_entry_from_proc, this);
+		break;
+	default:
+		throw sinsp_exception("Unsupported mode for SOURCE_PLUGIN engine");
 	}
 	open_common(&oargs, &scap_source_plugin_engine, platform, mode);
 #else
