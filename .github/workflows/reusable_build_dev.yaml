@@ -1,0 +1,89 @@
+# This is a reusable workflow used by the master CI
+on:
+  workflow_call:
+    outputs:
+      cmdout:
+        description: "Post-build command output"
+        value: ${{ jobs.build-and-test.outputs.cmdout }}
+    inputs:
+      arch:
+        description: x86_64 or aarch64
+        required: true
+        type: string
+      bundled_deps:
+        description: use bundled deps
+        required: true
+        type: boolean
+      minimal:
+        description: Minimal build
+        required: true
+        type: boolean
+      sanitizers:
+        description: Enable sanitizer support
+        required: false
+        default: false
+        type: boolean
+      build_type:
+        description: One of 'Debug' or 'Release'
+        required: true
+        type: string
+      git_ref:
+        description: Git ref used for checking out the code
+        required: true
+        type: string
+      cmd:
+        description: If defined, this command is executed after a successful build and its output is set in the `cmdout` output
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build-and-test:
+    # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
+    runs-on: ${{ (inputs.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    outputs:
+      cmdout: ${{ steps.run_cmd.outputs.out }}
+    container:
+      image: debian:buster
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.git_ref }}
+
+      - name: Update base image
+        run: apt update -y
+
+      - name: Install kernel headers
+        run: DEBIAN_FRONTEND=noninteractive apt install -y linux-headers-${{ inputs.arch == 'aarch64' && 'arm64' || 'amd64' }}
+
+      - name: Install build dependencies
+        run: DEBIAN_FRONTEND=noninteractive apt install -y cmake build-essential git cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget
+
+      - name: Install build dependencies (bundled_deps)
+        if: inputs.bundled_deps != true
+        run: |
+          DEBIAN_FRONTEND=noninteractive apt install -y libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev
+          .github/install-deps.sh
+
+
+      - name: Prepare project
+        run: |
+          cmake -B build -S .\
+            -DCMAKE_BUILD_TYPE=${{ inputs.build_type }} \
+            -DMINIMAL_BUILD=${{ inputs.minimal == true && 'ON' || 'OFF' }} \
+            -DUSE_ASAN=${{ inputs.sanitizers == true && 'ON' || 'OFF' }} \
+            -DUSE_UBSAN=${{ inputs.sanitizers == true && 'ON' || 'OFF' }} \
+            -DUSE_BUNDLED_DEPS=${{ inputs.bundled_deps == true && 'ON' || 'OFF' }}
+
+      - name: Build
+        run: |
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build cmake --build build -j 4
+
+      - name: Run unit tests
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: |
+          cd build
+          make run-unit-tests
