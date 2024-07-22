@@ -213,7 +213,7 @@ public:
 
 class libsinsp_metrics
 {
-protected:
+public:
 	template <typename T>
 	static void set_metric_value(metrics_v2& metric, metrics_v2_value_type type, T val)
 	{
@@ -245,7 +245,6 @@ protected:
 		}
 	}
 
-public:
 	template <typename T>
 	static inline metrics_v2 new_metric(const char* name, uint32_t flags, metrics_v2_value_type type, metrics_v2_value_unit unit, metrics_v2_metric_type metric_type, T val)
 	{
@@ -346,7 +345,7 @@ public:
 		metric.type = type;
 		metric.unit = unit;
 		metric.metric_type = metric_type;
-		set_metric_value(metric, type, val);
+		libsinsp_metrics::set_metric_value(metric, type, val);
 		return metric;
 	}
 
