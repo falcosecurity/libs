@@ -500,7 +500,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	inline threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false)
+	inline const threadinfo_map_t::ptr_t& get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false)
 	{
 		return m_thread_manager->get_thread_ref(tid, query_os_if_not_found, lookup_only, main_thread);
 	}
@@ -1126,7 +1126,7 @@ private:
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
-	inline threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only)
+	inline const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only)
 	{
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
