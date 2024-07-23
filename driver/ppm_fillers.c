@@ -854,6 +854,7 @@ static uint32_t ppm_get_tty(void)
 
 static bool ppm_is_upper_layer(struct file *file)
 {
+	// 3.18 is the Kernel version where overlayfs was introduced
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 	return false;
 #else 
@@ -885,24 +886,29 @@ static bool ppm_is_upper_layer(struct file *file)
 	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-	struct ovl_entry *oe = (struct ovl_entry*)(dentry->d_fsdata);
-	if(!oe)
+	// New scope to avoid `ISO C90 forbids mixed declarations and code` error
 	{
-		return false;
+		struct ovl_entry *oe = (struct ovl_entry*)(dentry->d_fsdata);
+		if(!oe)
+		{
+			return false;
+		}
+		upper_dentry = oe->__upperdentry;
 	}
-	upper_dentry = oe->__upperdentry;
 #else
-	char *vfs_inode = (char*)dentry->d_inode;
-	if(!vfs_inode)
 	{
-		return false;
-	}
+		char *vfs_inode = (char*)dentry->d_inode;
+		if(!vfs_inode)
+		{
+			return false;
+		}
 
-	// Pointer arithmetics due to unexported ovl_inode struct
-	// warning: this works if and only if the dentry pointer
-	// is placed right after the inode struct
-	// todo!: this is dangerous we should find a way to check it at compile time.
-	upper_dentry = *(struct dentry **)(vfs_inode + sizeof(struct inode));
+		// Pointer arithmetics due to unexported ovl_inode struct
+		// warning: this works if and only if the dentry pointer
+		// is placed right after the inode struct
+		// todo!: this is dangerous we should find a way to check it at compile time.
+		upper_dentry = *(struct dentry **)(vfs_inode + sizeof(struct inode));
+	}
 #endif // LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 	if(!upper_dentry)
 	{
