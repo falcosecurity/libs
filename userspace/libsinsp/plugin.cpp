@@ -91,6 +91,7 @@ static void plugin_log_fn(ss_plugin_owner_t* o, const char* component, const cha
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		const plugin_api* api,
 		const std::shared_ptr<libsinsp::state::table_registry>& treg,
+		const std::shared_ptr<thread_pool>& tpool,
 		std::string& errstr)
 {
 	char loadererr[PLUGIN_MAX_ERRLEN];
@@ -101,7 +102,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		return nullptr;
 	}
 
-	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg, tpool);
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
 		// plugin and handle get deleted here by shared_ptr
@@ -114,6 +115,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		const std::string &filepath,
 		const std::shared_ptr<libsinsp::state::table_registry>& treg,
+		const std::shared_ptr<thread_pool>& tpool,
 		std::string& errstr)
 {
 	char loadererr[PLUGIN_MAX_ERRLEN];
@@ -124,7 +126,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 		return nullptr;
 	}
 
-	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg, tpool);
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
 		// plugin and handle get deleted here by shared_ptr
@@ -753,6 +755,175 @@ bool sinsp_plugin::set_config(const std::string& config)
 	return m_handle->api.set_config(m_state, &input) == SS_PLUGIN_SUCCESS;
 }
 
+static void set_plugin_metric_value(metrics_v2& metric, metrics_v2_value_type type, ss_plugin_metric_value val)
+{
+	switch (type)
+	{
+	case METRIC_VALUE_TYPE_U32:
+		metric.value.u32 = val.u32;
+		break;
+	case METRIC_VALUE_TYPE_S32:
+		metric.value.s32 = val.s32;
+		break;
+	case METRIC_VALUE_TYPE_U64:
+		metric.value.u64 = val.u64;
+		break;
+	case METRIC_VALUE_TYPE_S64:
+		metric.value.s64 = val.s64;
+		break;
+	case METRIC_VALUE_TYPE_D:
+		metric.value.d = val.d;
+		break;
+	case METRIC_VALUE_TYPE_F:
+		metric.value.f = val.f;
+		break;
+	case METRIC_VALUE_TYPE_I:
+		metric.value.i = val.i;
+		break;
+	default:
+		break;
+	}
+}
+
+std::vector<metrics_v2> sinsp_plugin::get_metrics() const
+{
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	std::vector<metrics_v2> metrics;
+	uint32_t num_metrics = 0;
+
+	if(!m_handle->api.get_metrics)
+	{
+		return metrics;
+	}
+
+	ss_plugin_metric *plugin_metrics = m_handle->api.get_metrics(m_state, &num_metrics);
+	for (uint32_t i = 0; i < num_metrics; i++)
+	{
+		ss_plugin_metric *plugin_metric = plugin_metrics + i;
+
+		metrics_v2 metric;
+		
+		//copy plugin name
+		snprintf(metric.name, METRIC_NAME_MAX, "%s.%s", m_name.c_str(), plugin_metric->name);
+
+		metric.flags = METRICS_V2_PLUGINS;
+		metric.unit = METRIC_VALUE_UNIT_COUNT;
+		metric.type = static_cast<metrics_v2_value_type>(plugin_metric->value_type);
+		metric.metric_type = static_cast<metrics_v2_metric_type>(plugin_metric->type);
+		set_plugin_metric_value(metric, metric.type, plugin_metric->value);
+
+		metrics.emplace_back(metric);
+	}
+
+	return metrics;
+}
+
+thread_pool::routine_id_t sinsp_plugin::subscribe_routine(ss_plugin_routine_fn_t routine_fn, ss_plugin_routine_state_t* routine_state)
+{
+	if(!m_thread_pool)
+	{
+		return static_cast<thread_pool::routine_id_t>(nullptr);
+	}
+
+	auto f = [this, routine_fn, routine_state]() -> bool {
+		return static_cast<bool>(routine_fn(m_state, routine_state));
+	};
+
+	return m_thread_pool->subscribe(f);
+}
+
+void sinsp_plugin::unsubscribe_routine(thread_pool::routine_id_t routine_id)
+{
+	if(!m_thread_pool || !routine_id)
+	{
+		return;
+	}
+
+	m_thread_pool->unsubscribe(routine_id);
+}
+
+ss_plugin_routine_t* plugin_subscribe_routine(ss_plugin_owner_t* o, ss_plugin_routine_fn_t r, ss_plugin_routine_state_t* s)
+{
+	auto t = static_cast<sinsp_plugin*>(o);
+	auto res = t->subscribe_routine(r, s);
+
+	return static_cast<ss_plugin_routine_t*>(res);
+}
+
+void plugin_unsubscribe_routine(ss_plugin_owner_t* o, ss_plugin_routine_t* r)
+{
+	auto t = static_cast<sinsp_plugin*>(o);
+	auto id = static_cast<thread_pool::routine_id_t>(r);
+
+	t->unsubscribe_routine(id);
+}
+
+void sinsp_plugin::capture_open()
+{
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	ss_plugin_routine_vtable routine_vtable;
+	routine_vtable.subscribe = &plugin_subscribe_routine;
+	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
+
+	ss_plugin_capture_listen_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
+	ss_plugin_table_writer_vtable_ext table_writer_ext;
+	ss_plugin_table_reader_vtable table_reader;
+	ss_plugin_table_writer_vtable table_writer;
+
+	in.owner = (ss_plugin_owner_t *) this;
+	in.table_reader_ext = &table_reader_ext;
+	in.table_writer_ext = &table_writer_ext;
+	in.routine = routine_vtable;
+
+	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
+	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
+
+	if(m_handle->api.capture_open)
+	{
+		m_handle->api.capture_open(m_state, &in);
+	}
+}
+
+void sinsp_plugin::capture_close()
+{
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	ss_plugin_routine_vtable routine_vtable;
+	routine_vtable.subscribe = &plugin_subscribe_routine;
+	routine_vtable.unsubscribe = &plugin_unsubscribe_routine;
+
+	ss_plugin_capture_listen_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
+	ss_plugin_table_writer_vtable_ext table_writer_ext;
+	ss_plugin_table_reader_vtable table_reader;
+	ss_plugin_table_writer_vtable table_writer;
+
+	in.owner = (ss_plugin_owner_t *) this;
+	in.table_reader_ext = &table_reader_ext;
+	in.table_writer_ext = &table_writer_ext;
+	in.routine = routine_vtable;
+
+	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
+	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
+
+	if(m_handle->api.capture_close)
+	{
+		m_handle->api.capture_close(m_state, &in);
+	}
+}
+
 /** Event Source CAP **/
 
 scap_source_plugin& sinsp_plugin::as_scap_source()
@@ -885,73 +1056,6 @@ std::vector<sinsp_plugin::open_param> sinsp_plugin::list_open_params() const
 	}
 
 	return list;
-}
-
-static void set_plugin_metric_value(metrics_v2& metric, metrics_v2_value_type type, ss_plugin_metric_value val)
-{
-	switch (type)
-	{
-	case METRIC_VALUE_TYPE_U32:
-		metric.value.u32 = val.u32;
-		break;
-	case METRIC_VALUE_TYPE_S32:
-		metric.value.s32 = val.s32;
-		break;
-	case METRIC_VALUE_TYPE_U64:
-		metric.value.u64 = val.u64;
-		break;
-	case METRIC_VALUE_TYPE_S64:
-		metric.value.s64 = val.s64;
-		break;
-	case METRIC_VALUE_TYPE_D:
-		metric.value.d = val.d;
-		break;
-	case METRIC_VALUE_TYPE_F:
-		metric.value.f = val.f;
-		break;
-	case METRIC_VALUE_TYPE_I:
-		metric.value.i = val.i;
-		break;
-	default:
-		break;
-	}
-}
-
-std::vector<metrics_v2> sinsp_plugin::get_metrics() const
-{
-	if(!m_inited)
-	{
-		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
-	}
-
-	std::vector<metrics_v2> metrics;
-	uint32_t num_metrics = 0;
-
-	if(!m_handle->api.get_metrics)
-	{
-		return metrics;
-	}
-
-	ss_plugin_metric *plugin_metrics = m_handle->api.get_metrics(m_state, &num_metrics);
-	for (uint32_t i = 0; i < num_metrics; i++)
-	{
-		ss_plugin_metric *plugin_metric = plugin_metrics + i;
-
-		metrics_v2 metric;
-		
-		//copy plugin name
-		snprintf(metric.name, METRIC_NAME_MAX, "%s.%s", m_name.c_str(), plugin_metric->name);
-
-		metric.flags = METRICS_V2_PLUGINS;
-		metric.unit = METRIC_VALUE_UNIT_COUNT;
-		metric.type = static_cast<metrics_v2_value_type>(plugin_metric->value_type);
-		metric.metric_type = static_cast<metrics_v2_metric_type>(plugin_metric->type);
-		set_plugin_metric_value(metric, metric.type, plugin_metric->value);
-
-		metrics.emplace_back(metric);
-	}
-
-	return metrics;
 }
 
 /** End of Event Source CAP **/

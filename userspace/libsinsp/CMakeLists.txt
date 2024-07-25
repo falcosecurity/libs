@@ -100,6 +100,7 @@ add_library(sinsp
 	prefix_search.cpp
 	sinsp_syslog.cpp
 	threadinfo.cpp
+	thread_pool.cpp
 	tuples.cpp
 	sinsp.cpp
 	token_bucket.cpp
@@ -197,6 +198,10 @@ endif()
 
 if(USE_BUNDLED_JSONCPP)
 	add_dependencies(sinsp jsoncpp)
+endif()
+
+if(USE_BUNDLED_BS_THREADPOOL)
+	add_dependencies(sinsp bs_threadpool)
 endif()
 
 function(prepare_cri_grpc api_version)

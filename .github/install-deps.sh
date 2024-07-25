@@ -66,3 +66,8 @@ popd
 echo "=== Downloading uthash.h (1.9.8) ==="
 
 wget -P "/usr/include" "https://raw.githubusercontent.com/troydhanson/uthash/v1.9.8/src/uthash.h"
+
+# === BS_thread_pool ===
+echo "=== Downloading BS_thread_pool.h (4.1.0) ==="
+
+wget -P "/usr/include" "https://github.com/bshoshany/thread-pool/raw/v4.1.0/include/BS_thread_pool.hpp"
