@@ -38,6 +38,8 @@ runs:
         cd build
         wget https://download.falco.org/fixtures/trace-files/traces-positive.zip
         unzip traces-positive.zip
+        mkdir -p /dev/shm/libs-${{ github.run_id }}
+        mv traces-positive/falco-event-generator.scap /dev/shm/libs-${{ github.run_id }}/falco-event-generator.scap
 
     - name: Run - perf unit tests
       shell: bash
@@ -49,7 +51,7 @@ runs:
       shell: bash
       run: |
         cd build
-        sudo nice ionice -c 1 -n 0 perf record --call-graph dwarf -o perf_scap.data -q ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
+        sudo nice ionice -c 1 -n 0 perf record --call-graph dwarf -o perf_scap.data -q ./libsinsp/examples/sinsp-example -s /dev/shm/libs-${{ github.run_id }}/falco-event-generator.scap
 
     - name: Run - heaptrack unit tests
       shell: bash
@@ -61,7 +63,11 @@ runs:
       shell: bash
       run: |
         cd build
-        sudo nice ionice -c 1 -n 0 heaptrack -o heaptrack_scap.data ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
+        sudo nice ionice -c 1 -n 0 heaptrack -o heaptrack_scap.data ./libsinsp/examples/sinsp-example -s /dev/shm/libs-${{ github.run_id }}/falco-event-generator.scap
+
+    - name: Cleanup tmpfs
+      shell: bash
+      run: rm -rf /dev/shm/libs-${{ github.run_id }}/
 
     - name: Set Outputs
       id: store-outputs
