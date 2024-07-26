@@ -1686,6 +1686,13 @@ void sinsp::set_filter(const std::string& filter)
 	m_internal_flt_ast = compiler.get_filter_ast();
 }
 
+void sinsp::set_filter(const std::string& filterstring, std::unique_ptr<sinsp_filter> filter)
+{
+	set_filter(std::move(filter));
+	m_filterstring = filterstring;
+}
+
+
 std::string sinsp::get_filter() const
 {
 	return m_filterstring;
