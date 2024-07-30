@@ -52,7 +52,7 @@ else()
             DEPENDS zlib
             URL "https://sourceware.org/elfutils/ftp/0.189/elfutils-0.189.tar.bz2"
             URL_HASH "SHA256=39bd8f1a338e2b7cd4abc3ff11a0eddc6e690f69578a57478d8179b4148708c8"
-            CONFIGURE_COMMAND ./configure LDFLAGS=-L${ZLIB_SRC} "CFLAGS=${LIBELF_CFLAGS}" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod --without-zstd
+            CONFIGURE_COMMAND ./configure CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} LDFLAGS=-L${ZLIB_SRC} "CFLAGS=${LIBELF_CFLAGS}" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod --without-zstd
             BUILD_IN_SOURCE 1
             BUILD_COMMAND make -C lib libeu.a
             COMMAND make -C libelf libelf${LIBELF_LIB_SUFFIX}
