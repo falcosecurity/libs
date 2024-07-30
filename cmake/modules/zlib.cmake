@@ -68,10 +68,10 @@ else()
 		else()
 			if(BUILD_SHARED_LIBS)
 				set(ZLIB_LIB_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
-				set(ZLIB_LIB "${ZLIB_SRC}/lib/zlib${ZLIB_LIB_SUFFIX}")
+				set(ZLIB_LIB "${ZLIB_SRC}/lib/zlib$<$<CONFIG:Debug>:d>${ZLIB_LIB_SUFFIX}")
 			else()
 				set(ZLIB_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
-				set(ZLIB_LIB "${ZLIB_SRC}/lib/zlibstatic${ZLIB_LIB_SUFFIX}")
+				set(ZLIB_LIB "${ZLIB_SRC}/lib/zlibstatic$<$<CONFIG:Debug>:d>${ZLIB_LIB_SUFFIX}")
 			endif()
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
