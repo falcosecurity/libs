@@ -148,7 +148,7 @@ jobs:
         run: |
           mkdir -p build
           cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON ..
-          cmake --build . --config Release && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
+          cmake --build . --config Release --parallel 4 && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
   build-shared-libs-macos-amd64:
     name: build-shared-libs-macos-amd64 😨
@@ -169,7 +169,7 @@ jobs:
         run: |
           mkdir -p build
           cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=ON -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
-          cmake --build . --config Release
+          cmake --build . --config Release --parallel $(getconf _NPROCESSORS_ONLN)
 
       - name: Install
         run: |
