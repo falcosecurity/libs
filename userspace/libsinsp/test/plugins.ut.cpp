@@ -718,8 +718,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables)
 
 	// get an accessor to a dynamic field declared by the plugin
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
-	const auto& dfield = subtable->dynamic_fields()->fields().find("custom");
-	ASSERT_NE(dfield, table->dynamic_fields()->fields().end());
+	auto dfield = subtable->dynamic_fields()->fields().find("custom");
+	ASSERT_NE(dfield, subtable->dynamic_fields()->fields().end());
 	auto dfieldacc = dfield->second.new_accessor<std::string>();
 
 	// start the event capture
@@ -792,8 +792,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array)
 
 	// get an accessor to a dynamic field representing the array's values
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
-	const auto& dfield = subtable->dynamic_fields()->fields().find("value");
-	ASSERT_NE(dfield, table->dynamic_fields()->fields().end());
+	auto dfield = subtable->dynamic_fields()->fields().find("value");
+	ASSERT_NE(dfield, subtable->dynamic_fields()->fields().end());
 	ASSERT_EQ(dfield->second.readonly(), false);
 	ASSERT_EQ(dfield->second.valid(), true);
 	ASSERT_EQ(dfield->second.name(), "value");
