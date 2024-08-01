@@ -20,6 +20,7 @@ limitations under the License.
 #include <stdint.h>
 
 #include <libscap/ringbuffer/devset.h>
+#include <libscap/ringbuffer/ringbuffer_dump.h>
 #include <driver/ppm_ringbuffer.h>
 #include <libscap/scap_barrier.h>
 #include <libscap/scap_sleep.h>
@@ -282,6 +283,7 @@ static inline int32_t ringbuffer_next(struct scap_device_set* devset, scap_evt**
 			if(pe->len > dev->m_sn_len)
 			{
 				snprintf(devset->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
+				dump_ringbuffer(dev);
 
 				/* if you get the following assertion, first recompile the driver and `libscap` */
 				ASSERT(false);
