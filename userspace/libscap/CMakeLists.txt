@@ -143,6 +143,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		scap_engine_util.c
 		ringbuffer/devset.c
 		ringbuffer/ringbuffer.c
+		ringbuffer/ringbuffer_dump.c
 	)
 	add_dependencies(scap_engine_util uthash)
 	target_include_directories(scap_engine_util
