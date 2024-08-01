@@ -461,11 +461,11 @@ TEST(thread_manager, fdtable_access)
 
 	//checking if the new field has been added
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
-	ASSERT_NE(subtable->dynamic_fields()->fields().find("str_val"), table->dynamic_fields()->fields().end());
+	ASSERT_NE(subtable->dynamic_fields()->fields().find("str_val"), subtable->dynamic_fields()->fields().end());
 
 	//checking if the new field has been added to the other subtable
 	ASSERT_EQ(subtable2->dynamic_fields()->fields().size(), 1);
-	ASSERT_NE(subtable2->dynamic_fields()->fields().find("str_val"), table->dynamic_fields()->fields().end());
+	ASSERT_NE(subtable2->dynamic_fields()->fields().find("str_val"), subtable2->dynamic_fields()->fields().end());
 
 	auto sfieldacc = sfield->second.new_accessor<int64_t>();
 	auto dfieldacc = dfield.new_accessor<std::string>();
