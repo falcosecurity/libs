@@ -43,11 +43,7 @@ static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt)
 
 static inline void scap_bpf_get_buf_pointers(scap_device *dev, uint64_t *phead, uint64_t *ptail, uint64_t *pread_size)
 {
-	struct perf_event_mmap_page *header;
-	uint64_t begin;
-	uint64_t end;
-
-	header = (struct perf_event_mmap_page *) dev->m_buffer;
+	struct perf_event_mmap_page * header = (struct perf_event_mmap_page *) dev->m_buffer;
 
 	*phead = header->data_head;
 	*ptail = header->data_tail;
@@ -56,16 +52,42 @@ static inline void scap_bpf_get_buf_pointers(scap_device *dev, uint64_t *phead, 
 	asm volatile("" ::: "memory");
 	// clang-format on
 
-	begin = *ptail % header->data_size;
-	end = *phead % header->data_size;
+	uint64_t cons = *ptail % header->data_size; // consumer position
+	uint64_t prod = *phead % header->data_size; // producer position
 
-	if(begin > end)
+	/* `pread_size` is the number of bytes our consumer has to read to reach the producer.
+	 * We want to obtain this information so we know how many bytes we can read.
+	 *
+	 * We have 2 possible cases:
+	 * Where
+	 * '*' = empty space
+	 * '-' = data space
+	 * 's' = total buffer size
+	 * 'c' = consumer position
+	 * 'p' = producer position
+	 *
+	 * 1. consumer > producer
+	 *
+	 *      p         c  s
+	 * |----|*********|--|
+	 *
+	 *
+	 * We want to obtain the data space so we do `s - c + p`.
+	 *
+	 * 2. consumer <= producer
+	 *
+	 *      c         p  s
+	 * |****|---------|**|
+	 *
+	 * We want to obtain the data space so we do `p - c`.
+	 */
+	if(cons > prod)
 	{
-		*pread_size = header->data_size - begin + end;
+		*pread_size = header->data_size - cons + prod;
 	}
 	else
 	{
-		*pread_size = end - begin;
+		*pread_size = prod - cons;
 	}
 }
 
