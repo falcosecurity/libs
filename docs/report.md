@@ -75,7 +75,8 @@
 | fsmount                 | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fsopen                  | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fspick                  | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
-| fstat                   | 🟢        | aarch64,ppc64le,riscv64,s390x,x86_64             |
+| fstat                   | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| fstatat                 | 🟡        | aarch64,loongarch64,riscv64                      |
 | fstatfs                 | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | fstatfs64               | 🟡        | ppc64le,s390x                                    |
 | fsync                   | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
@@ -201,7 +202,7 @@
 | munmap                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | name_to_handle_at       | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | nanosleep               | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
-| newfstatat              | 🟢        | aarch64,ppc64le,riscv64,s390x,x86_64             |
+| newfstatat              | 🟢        | ppc64le,s390x,x86_64                             |
 | nice                    | 🟡        | ppc64le,s390x                                    |
 | oldfstat                | 🟡        | ppc64le                                          |
 | oldlstat                | 🟡        | ppc64le                                          |
@@ -320,10 +321,10 @@
 | setns                   | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | setpgid                 | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | setpriority             | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
-| setregid                | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| setregid                | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | setresgid               | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | setresuid               | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
-| setreuid                | 🟡        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| setreuid                | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | setrlimit               | 🟢        | aarch64,ppc64le,riscv64,s390x,x86_64             |
 | setsid                  | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | setsockopt              | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
@@ -396,6 +397,7 @@
 | unlink                  | 🟢        | ppc64le,s390x,x86_64                             |
 | unlinkat                | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | unshare                 | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
+| uretprobe               | 🟡        | aarch64,loongarch64,riscv64,x86_64               |
 | userfaultfd             | 🟢        | aarch64,loongarch64,ppc64le,riscv64,s390x,x86_64 |
 | ustat                   | 🟡        | ppc64le,s390x,x86_64                             |
 | utime                   | 🟡        | ppc64le,s390x,x86_64                             |

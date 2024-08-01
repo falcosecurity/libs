@@ -1100,3 +1100,6 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_mseal
 #define __NR_mseal 462
 #endif
+#ifndef __NR_uretprobe
+#define __NR_uretprobe 467
+#endif
