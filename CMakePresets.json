@@ -1,0 +1,41 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "scap-drivers",
+            "displayName": "Build scap drivers and their tests",
+            "description": "Build all scap drivers (modern eBPF, legacy eBPF, kmod) and their tests",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build-scap-drivers",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_BPF": "ON",
+                "BUILD_DRIVER": "ON",
+                "USE_BUNDLED_DEPS": "ON",
+                "ENABLE_DRIVERS_TESTS": "ON",
+                "MODERN_BPF_DEBUG_MODE": "ON",
+                "BUILD_LIBSCAP_MODERN_BPF": "ON",
+                "BUILD_LIBSCAP_GVISOR": "OFF",
+                "CREATE_TEST_TARGETS": "ON",
+                "ENABLE_LIBSCAP_TESTS": "ON",
+                "SCAP_FILES_SUITE_ENABLE": "OFF"
+            }
+        },
+        {
+            "name": "sinsp-minimal",
+            "displayName": "Build sinsp in minimal build",
+            "description": "Build sinsp in minimal build with its tests",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build-sinsp-minimal",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "BUILD_DRIVER": "ON",
+                "BUILD_BPF": "ON",
+                "USE_BUNDLED_DEPS": "ON",
+                "CREATE_TEST_TARGETS": "ON",
+                "MINIMAL_BUILD": "ON",
+                "SCAP_FILES_SUITE_ENABLE": "OFF"
+            }
+        }
+    ]
+}
