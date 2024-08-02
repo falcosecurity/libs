@@ -173,9 +173,10 @@ struct g_invalidchar
 {
 	bool operator()(char c) const
 	{
+		unsigned char uc = static_cast<unsigned char>(c);
 		// Exclude all non-printable characters and control characters while
 		// including a wide range of languages (emojis, cyrillic, chinese etc)
-		return !(isprint((unsigned)c));
+		return (!(isprint(uc)));
 	}
 };
 
