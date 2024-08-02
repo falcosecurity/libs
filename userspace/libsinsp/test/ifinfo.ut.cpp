@@ -26,7 +26,11 @@ static uint32_t parse_ipv4_addr(const char *dotted_notation)
 {
 	uint32_t a, b, c, d;
 	sscanf(dotted_notation, "%d.%d.%d.%d", &a, &b, &c, &d);
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	return d << 24 | c << 16 | b << 8 | a;
+#else
+	return d | c << 8 | b << 16 | a << 24;
+#endif
 }
 
 static uint32_t parse_ipv4_netmask(const char *dotted_notation)
@@ -56,6 +60,7 @@ static sinsp_ipv4_ifinfo make_ipv4_localhost()
 
 static void convert_to_string(char* dest, size_t len, uint32_t addr)
 {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	snprintf(
 		dest,
 		len,
@@ -64,6 +69,16 @@ static void convert_to_string(char* dest, size_t len, uint32_t addr)
 		((addr & 0xFF00) >> 8),
 		((addr & 0xFF0000) >> 16),
 		((addr & 0xFF000000) >> 24));
+#else
+	snprintf(
+		dest,
+		len,
+		"%d.%d.%d.%d",
+		((addr >> 24)  & 0xFF),
+		((addr >> 16) & 0xFF),
+		((addr >> 8) & 0xFF),
+		(addr & 0xFF));
+#endif
 }
 
 #define EXPECT_ADDR_EQ(dotted_notation,addr) {\
