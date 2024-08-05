@@ -1501,17 +1501,33 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 	switch (m_fdinfo->m_type)
 	{
 	case SCAP_FD_IPV4_SERVSOCK:
+		if (filter_value_len() != sizeof(ipv4net))
+		{
+			return m_cmpop == CO_NE;
+		}
 		return flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, (ipv4net*)filter_value_p());
 
 	case SCAP_FD_IPV6_SERVSOCK:
+		if (filter_value_len() != sizeof(ipv6net))
+		{
+			return m_cmpop == CO_NE;
+		}
 		return flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, (ipv6net*)filter_value_p());
 
 	case SCAP_FD_IPV4_SOCK:
+		if (filter_value_len() != sizeof(ipv4net))
+		{
+			return m_cmpop == CO_NE;
+		}
 		sip_cmp = flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p());
 		dip_cmp = flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p());
 		break;
 
 	case SCAP_FD_IPV6_SOCK:
+		if (filter_value_len() != sizeof(ipv6net))
+		{
+			return m_cmpop == CO_NE;
+		}
 		sip_cmp = flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6net*)filter_value_p());
 		dip_cmp = flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6net*)filter_value_p());
 		break;
