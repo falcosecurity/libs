@@ -245,6 +245,9 @@ public:
 		}
 	}
 
+	/*!
+	\brief Method to create a new metrics_v2
+	*/
 	template <typename T>
 	static inline metrics_v2 new_metric(const char* name, uint32_t flags, metrics_v2_value_type type, metrics_v2_value_unit unit, metrics_v2_metric_type metric_type, T val)
 	{
@@ -332,22 +335,6 @@ public:
 	\brief Method to get a non-const reference to m_metrics vector
 	*/
 	std::vector<metrics_v2>& get_metrics();
-
-	/*!
-	\brief Method to create a new metrics_v2
-	*/
-	template <typename T>
-	metrics_v2 new_metric(const char* name, uint32_t flags, metrics_v2_value_type type, metrics_v2_value_unit unit, metrics_v2_metric_type metric_type, T val)
-	{
-		metrics_v2 metric;
-		strlcpy(metric.name, name, METRIC_NAME_MAX);
-		metric.flags = flags;
-		metric.type = type;
-		metric.unit = unit;
-		metric.metric_type = metric_type;
-		libsinsp_metrics::set_metric_value(metric, type, val);
-		return metric;
-	}
 
 private:
 	sinsp* m_inspector;
