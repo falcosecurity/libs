@@ -303,18 +303,7 @@ public:
 
 	  \param filter the runtime filter object
 	*/
-	void set_filter(std::unique_ptr<sinsp_filter> filter);
-
-	/*!
-	  \brief Installs the given capture runtime filter object and accordingly
-	  sets the filter string.
-
-	  \param filter the filter string. Refer to the filtering language
-	   section for information about the filtering
-	   syntax.
-	  \param filter the runtime filter object
-	*/
-	void set_filter(const std::string& filterstring, std::unique_ptr<sinsp_filter> filter);
+	void set_filter(std::unique_ptr<sinsp_filter> filter, const std::optional<std::string>& filterstring);
 
 	/*!
 	  \brief Return the filter set for this capture.
