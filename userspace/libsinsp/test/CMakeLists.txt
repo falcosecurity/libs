@@ -110,6 +110,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_op_bcontains.ut.cpp
 	filter_op_contains.ut.cpp
 	filter_op_pmatch.ut.cpp
+	filter_op_net_compare.ut.cpp
 	filter_op_numeric_compare.ut.cpp
 	filter_compiler.ut.cpp
 	filter_transformer.ut.cpp
@@ -140,6 +141,7 @@ if(WIN32)
 		events_net.ut.cpp
 		events_proc.ut.cpp
 		events_user.ut.cpp
+		filter_op_net_compare.ut.cpp
 		user.ut.cpp
 		thread_table.ut.cpp
 		public_sinsp_API/sinsp_logger.cpp
@@ -147,6 +149,7 @@ if(WIN32)
 elseif(APPLE OR EMSCRIPTEN)
 	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES
 		events_net.ut.cpp
+		filter_op_net_compare.ut.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/parsers/parse_connect.cpp
 	)
 endif()
