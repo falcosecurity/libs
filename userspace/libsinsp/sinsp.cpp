@@ -1661,7 +1661,7 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 }
 #endif // _WIN32
 
-void sinsp::set_filter(std::unique_ptr<sinsp_filter> filter, const std::optional<std::string>& filterstring)
+void sinsp::set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& filterstring)
 {
 	if(m_filter != NULL)
 	{
@@ -1670,7 +1670,7 @@ void sinsp::set_filter(std::unique_ptr<sinsp_filter> filter, const std::optional
 	}
 
 	m_filter = std::move(filter);
-	m_filterstring = filterstring.value_or("");
+	m_filterstring = filterstring;
 }
 
 void sinsp::set_filter(const std::string& filter)

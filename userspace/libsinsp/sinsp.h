@@ -303,7 +303,7 @@ public:
 
 	  \param filter the runtime filter object
 	*/
-	void set_filter(std::unique_ptr<sinsp_filter> filter, const std::optional<std::string>& filterstring);
+	void set_filter(std::unique_ptr<sinsp_filter> filter, const std::string& filterstring = "");
 
 	/*!
 	  \brief Return the filter set for this capture.
