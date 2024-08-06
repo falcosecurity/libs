@@ -57,13 +57,16 @@ else()
 
 	if(NOT TARGET tbb)
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
-		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.9.0.tar.gz")
-		set(TBB_SRC_URL_HASH "SHA256=1ce48f34dada7837f510735ff1172f6e2c261b09460e3bf773b49791d247d24e")
+		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.12.0.tar.gz")
+		set(TBB_SRC_URL_HASH "SHA256=c7bb7aa69c254d91b8f0041a71c5bcc3936acb64408a1719aec0b2b7639dd84f")
 		set(TBB_FLAGS "")
 		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 			# latest TBB has issues with GCC >= 12
 			# see: https://github.com/oneapi-src/oneTBB/issues/843#issuecomment-1152646035
 			set(TBB_FLAGS "-Wno-error=stringop-overflow")
+		endif()
+		if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+			set(TBB_FLAGS $<$<NOT:$<VERSION_LESS:${CMAKE_CXX_COMPILER_VERSION},12.0>>:-mwaitpkg>)
 		endif()
 
 		if(NOT WIN32)	
@@ -79,6 +82,7 @@ else()
 					-DTBB_OUTPUT_DIR_BASE=lib
 					-DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
 					-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+					-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
 				BUILD_BYPRODUCTS ${TBB_LIB}
 				INSTALL_COMMAND "")
 		else()
@@ -98,6 +102,7 @@ else()
 						-DTBB_OUTPUT_DIR_BASE=lib
 						-DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
 						-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+						-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
 					BUILD_BYPRODUCTS ${TBB_LIB}
 					INSTALL_COMMAND "")
 			else()
