@@ -1,6 +1,16 @@
-component_management:
-  individual_components:
-    - component_id: libsinsp
-      name: libsinsp
-      paths:
-        - userspace/libsinsp/**
+coverage:
+  status:
+    project:
+      default: off
+      libsinsp:
+        flags:
+          - libsinsp
+
+flags:
+  libsinsp:
+    paths:
+      - userspace/libsinsp/
+
+parsers:
+  cobertura:
+    partials_as_hits: true

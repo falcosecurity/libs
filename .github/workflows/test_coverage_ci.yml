@@ -57,3 +57,4 @@ jobs:
           files: ./libsinsp.coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          flags: libsinsp
