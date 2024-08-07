@@ -248,6 +248,60 @@ TEST(modern_bpf, double_scap_stats_call)
 	scap_close(h);
 }
 
+TEST(modern_bpf, metrics_v2_check_per_CPU_stats)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false) << "unable to open modern bpf engine with one single shared ring buffer: " << error_buffer << std::endl;
+
+	ssize_t num_possible_CPUs = num_possible_cpus();
+
+	// We want to check our CPUs counters
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS;
+	uint32_t nstats = 0;
+	int32_t rc = 0;
+	const metrics_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_TRUE(stats_v2);
+	ASSERT_GT(nstats, 0);
+
+	uint32_t i = 0;
+	ssize_t found = 0;
+	char expected_name[METRIC_NAME_MAX] = "";
+	snprintf(expected_name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%ld", found);
+
+	while(i < nstats)
+	{
+		// `sizeof(N_EVENTS_PER_CPU_PREFIX)-1` because we need to exclude the `\0`
+		if(strncmp(stats_v2[i].name, N_EVENTS_PER_CPU_PREFIX, sizeof(N_EVENTS_PER_CPU_PREFIX)-1) == 0)
+		{
+			i++;
+			// The next metric should be the number of drops
+			snprintf(expected_name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%ld", found);
+			if(strncmp(stats_v2[i].name, N_DROPS_PER_CPU_PREFIX, sizeof(N_DROPS_PER_CPU_PREFIX)-1) == 0)
+			{
+				i++;
+				found++;
+			}
+			else
+			{
+				FAIL() << "Missing CPU drops for CPU " << found;
+			}
+		} 
+		else
+		{
+			i++;
+		}
+	}
+
+	// This test could fail in case of rare race conditions in which the number of available CPUs changes
+	// between the scap_open and the `num_possible_cpus` function. In CI we shouldn't have hot plugs so probably we
+	// can live with this. 
+	ASSERT_EQ(num_possible_CPUs, found) << "We didn't find the stats for all the CPUs";
+	scap_close(h);
+}
+
 TEST(modern_bpf, metrics_v2_check_results)
 {
 	char error_buffer[FILENAME_MAX] = {0};
