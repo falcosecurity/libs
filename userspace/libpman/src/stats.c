@@ -140,27 +140,51 @@ clean_print_stats:
 	return errno;
 }
 
+static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val)
+{
+	g_state.stats[pos].type = METRIC_VALUE_TYPE_U64;
+	g_state.stats[pos].flags = METRICS_V2_KERNEL_COUNTERS;
+	g_state.stats[pos].unit = METRIC_VALUE_UNIT_COUNT;
+	g_state.stats[pos].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+	g_state.stats[pos].value.u64 = val;
+}
+
 struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t *rc)
 {
 	*rc = SCAP_FAILURE;
-	/* This is the expected number of stats */
-	*nstats = (MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + (g_state.n_attached_progs * MODERN_BPF_MAX_LIBBPF_STATS));
-	/* offset in stats buffer */
-	int offset = 0;
+	*nstats = 0;
 
-	/* If it is the first time we call this function we populate the stats */
+	// If it is the first time we call this function we populate the stats
 	if(g_state.stats == NULL)
 	{
-		g_state.stats = (metrics_v2 *)calloc(*nstats, sizeof(metrics_v2));
-		if(g_state.stats == NULL)
+		int nprogs_attached = 0;
+		for(int j = 0; j < MODERN_BPF_PROG_ATTACHED_MAX; j++)
 		{
+			if(g_state.attached_progs_fds[j] != -1)
+			{
+				nprogs_attached++;
+			}
+		}
+
+		// At the moment for each available CPU we want:
+		// - the number of events.
+		// - the number of drops.
+		uint32_t per_cpu_stats = g_state.n_possible_cpus* 2;
+
+		g_state.nstats = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats + (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS);
+		g_state.stats = (metrics_v2 *)calloc(g_state.nstats, sizeof(metrics_v2));
+		if(!g_state.stats)
+		{
+			g_state.nstats = 0;
 			pman_print_error("unable to allocate memory for 'metrics_v2' array");
 			return NULL;
 		}
 	}
 
-	/* KERNEL COUNTER STATS */
+	// offset in stats buffer
+	int offset = 0;
 
+	/* KERNEL COUNTER STATS */
 	if(flags & METRICS_V2_KERNEL_COUNTERS)
 	{
 		char error_message[MAX_ERROR_MESSAGE_LEN];
@@ -173,18 +197,15 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 
 		for(uint32_t stat = 0; stat < MODERN_BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			g_state.stats[stat].type = METRIC_VALUE_TYPE_U64;
-			g_state.stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
-			g_state.stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
-			g_state.stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
-			g_state.stats[stat].value.u64 = 0;
-			strlcpy(g_state.stats[stat].name, modern_bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
+			set_u64_monotonic_kernel_counter(stat, 0);
+			strlcpy(g_state.stats[stat].name, (char*)modern_bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
 
 		/* We always take statistics from all the CPUs, even if some of them are not online.
 		 * If the CPU is not online the counter map will be empty.
 		 */
-		struct counter_map cnt_map;
+		struct counter_map cnt_map = {};
+		uint32_t pos = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS;
 		for(uint32_t index = 0; index < g_state.n_possible_cpus; index++)
 		{
 			if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
@@ -212,8 +233,18 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT].value.u64 += cnt_map.n_drops_buffer_proc_exit;
 			g_state.stats[MODERN_BPF_N_DROPS_SCRATCH_MAP].value.u64 += cnt_map.n_drops_max_event_size;
 			g_state.stats[MODERN_BPF_N_DROPS].value.u64 += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+
+			// We set the num events for that CPU.
+			set_u64_monotonic_kernel_counter(pos, cnt_map.n_evts);
+			snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", index);
+			pos++;
+
+			// We set the drops for that CPU.
+			set_u64_monotonic_kernel_counter(pos, cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+			snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", index);
+			pos++;
 		}
-		offset = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS;
+		offset = pos;
 	}
 
 	/* LIBBPF STATS */
@@ -226,9 +257,10 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	 */
 	if((flags & METRICS_V2_LIBBPF_STATS))
 	{
+		int fd = 0;
 		for(int bpf_prog = 0; bpf_prog < MODERN_BPF_PROG_ATTACHED_MAX; bpf_prog++)
 		{
-			int fd = g_state.attached_progs_fds[bpf_prog];
+			fd = g_state.attached_progs_fds[bpf_prog];
 			if(fd < 0)
 			{
 				/* landing here means prog was not attached */
@@ -244,9 +276,9 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 
 			for(int stat = 0; stat < MODERN_BPF_MAX_LIBBPF_STATS; stat++)
 			{
-				if(offset >= *nstats)
+				if(offset >= g_state.nstats)
 				{
-					/* This should never happen we are reading something wrong */
+					/* This should never happen, we are doing something wrong */
 					pman_print_error("no enough space for all the stats");
 					return NULL;
 				}

@@ -68,6 +68,8 @@ static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 	if(engine)
 	{
 		engine->m_lasterr = lasterr_ptr;
+		engine->m_stats = NULL;
+		engine->m_nstats = 0;
 	}
 	return engine;
 }
@@ -523,7 +525,12 @@ int32_t scap_kmod_close(struct scap_engine_handle engine)
 	struct scap_device_set *devset = &HANDLE(engine)->m_dev_set;
 
 	devset_free(devset);
-
+	
+	if(engine.m_handle->m_stats)
+	{
+		free(engine.m_handle->m_stats);
+		engine.m_handle->m_stats = NULL;
+	}
 	return SCAP_SUCCESS;
 }
 
@@ -579,34 +586,57 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
+static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val)
+{
+	m->type = METRIC_VALUE_TYPE_U64;
+	m->flags = METRICS_V2_KERNEL_COUNTERS;
+	m->unit = METRIC_VALUE_UNIT_COUNT;
+	m->metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+	m->value.u64 = val;
+}
+
 const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	struct kmod_engine *handle = engine.m_handle;
 	struct scap_device_set *devset = &handle->m_dev_set;
-	uint32_t j;
-	*nstats = 0;
-	metrics_v2* stats = handle->m_stats;
 
-	if (!stats)
+	*rc = SCAP_FAILURE;
+	*nstats = 0;
+
+	// If it is the first time we call this function, we allocate the stats
+	if(handle->m_stats == NULL)
 	{
-		*rc = SCAP_FAILURE;
-		return NULL;
+		// The difference with other drivers is that here we consider only ONLINE CPUs and not the AVILABLE ones.
+		// At the moment for each ONLINE CPU we want:
+		// - the number of events.
+		// - the number of drops.
+		uint32_t per_dev_stats = devset->m_ndevs* 2;
+
+		handle->m_nstats = KMOD_MAX_KERNEL_COUNTERS_STATS + per_dev_stats;
+		handle->m_stats = (metrics_v2*)calloc(handle->m_nstats, sizeof(metrics_v2));
+		if(!handle->m_stats)
+		{
+			handle->m_nstats = 0;
+			*rc = scap_errprintf(handle->m_lasterr, -1, "unable to allocate memory for 'metrics_v2' array");
+			return NULL;
+		}
 	}
 
+	// offset in stats buffer
+	int offset = 0;
+	metrics_v2* stats = handle->m_stats;
+
+	/* KERNEL COUNTER STATS */
 	if ((flags & METRICS_V2_KERNEL_COUNTERS))
 	{
-		/* KERNEL SIDE STATS COUNTERS */
 		for(uint32_t stat = 0; stat < KMOD_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			stats[stat].type = METRIC_VALUE_TYPE_U64;
-			stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
-			stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
-			stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
-			stats[stat].value.u64 = 0;
-			strlcpy(stats[stat].name, kmod_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
+			set_u64_monotonic_kernel_counter(&(stats[stat]), 0);
+			strlcpy(stats[stat].name, (char*)kmod_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
 
-		for(j = 0; j < devset->m_ndevs; j++)
+		uint32_t pos = KMOD_MAX_KERNEL_COUNTERS_STATS;
+		for(uint32_t j = 0; j < devset->m_ndevs; j++)
 		{
 			struct scap_device *dev = &devset->m_devs[j];
 			stats[KMOD_N_EVTS].value.u64 += dev->m_bufinfo->n_evts;
@@ -629,10 +659,21 @@ const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine
 			stats[KMOD_N_DROPS].value.u64 += dev->m_bufinfo->n_drops_buffer +
 					dev->m_bufinfo->n_drops_pf;
 			stats[KMOD_N_PREEMPTIONS].value.u64 += dev->m_bufinfo->n_preemptions;
+
+			// We set the num events for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[pos]), dev->m_bufinfo->n_evts);
+			snprintf(stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_DEVICE_PREFIX"%d", j);
+			pos++;
+
+			// We set the drops for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[pos]), dev->m_bufinfo->n_drops_buffer + dev->m_bufinfo->n_drops_pf);
+			snprintf(stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_DEVICE_PREFIX"%d", j);
+			pos++;
 		}
-		*nstats = KMOD_MAX_KERNEL_COUNTERS_STATS;
+		offset = pos;
 	}
 
+	*nstats = offset;
 	*rc = SCAP_SUCCESS;
 	return stats;
 }
