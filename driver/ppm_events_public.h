@@ -633,6 +633,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_EXE_WRITABLE		(1 << 0)
 #define PPM_EXE_UPPER_LAYER 	(1 << 1)
 #define PPM_EXE_FROM_MEMFD  	(1 << 2)
+#define PPM_EXE_LOWER_LAYER  	(1 << 3)
   
 /*
  * Execveat flags
@@ -810,6 +811,12 @@ or GPL2.txt for full copies of the license.
 */
 #define PPM_DELETE_MODULE_O_TRUNC		(1 << 0)
 #define PPM_DELETE_MODULE_O_NONBLOCK	(1 << 1)
+
+/*
+ * FD flags
+ */
+#define PPM_FD_UPPER_LAYER 	(1 << 0)
+#define PPM_FD_LOWER_LAYER 	(1 << 1)
 
 /*
  * bpf_commands 
@@ -1042,6 +1049,13 @@ enum ppm_capture_category {
 	PPMC_PAGE_FAULT = 4,
 	PPMC_SCHED_PROC_EXEC = 5,
 	PPMC_SCHED_PROC_FORK = 6,
+};
+
+enum ppm_overlay
+{
+	PPM_NOT_OVERLAY_FS = 0,
+	PPM_OVERLAY_UPPER = 1,
+	PPM_OVERLAY_LOWER = 2,
 };
 
 /** @defgroup etypes Event Types
