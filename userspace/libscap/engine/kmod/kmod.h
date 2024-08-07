@@ -32,5 +32,6 @@ struct kmod_engine
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 	bool capturing;
-	metrics_v2 m_stats[KMOD_MAX_KERNEL_COUNTERS_STATS];
+	metrics_v2* m_stats;
+	uint32_t m_nstats;
 };
