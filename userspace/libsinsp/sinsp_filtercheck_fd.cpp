@@ -94,6 +94,8 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_INT64, EPF_NONE, PF_DEC, "fd.ino", "FD Inode Number", "inode number of the referenced file"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.nameraw", "FD Name Raw", "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is kept raw with limited sanitization and without deriving the absolute path."},
 	{PT_CHARBUF, EPF_IS_LIST | EPF_ARG_ALLOWED | EPF_NO_RHS | EPF_NO_TRANSFORMER, PF_DEC, "fd.types", "FD Type", "List of FD types in used. Can be passed an fd number e.g. fd.types[0] to get the type of stdout as a single item list."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_upper_layer", "FD Upper Layer", "'true' if the fd is of a file in the upper layer of an overlayfs."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.is_lower_layer", "FD Lower Layer", "'true' if the fd is of a file  in the lower layer of an overlayfs."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -1386,6 +1388,28 @@ uint8_t* sinsp_filter_check_fd::extract_single(sinsp_evt *evt, uint32_t* len, bo
 		m_tstr = m_fdinfo->m_name_raw;
 		remove_duplicate_path_separators(m_tstr);
 		RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
+	case TYPE_FDUPPER:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_val.u32 = m_fdinfo->is_overlay_upper();
+			RETURN_EXTRACT_VAR(m_val.u32);
+		}
+		break;
+	case TYPE_FDLOWER:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_val.u32 = m_fdinfo->is_overlay_lower();
+			RETURN_EXTRACT_VAR(m_val.u32);
 		}
 		break;
 	default:

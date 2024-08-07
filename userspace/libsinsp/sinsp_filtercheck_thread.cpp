@@ -86,6 +86,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.ppid.ts", "Parent Process start ts", "Start of parent process as epoch timestamp in nanoseconds."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "Process Executable Is Writable", "'true' if this process' executable file is writable by the same user that spawned the process."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_upper_layer", "Process Executable Is In Upper Layer", "'true' if this process' executable file is in upper layer in overlayfs. This field value can only be trusted if the underlying kernel version is greater or equal than 3.18.0, since overlayfs was introduced at that time."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_lower_layer", "Process Executable Is In Lower Layer", "'true' if this process' executable file is in lower layer in overlayfs. This field value can only be trusted if the underlying kernel version is greater or equal than 3.18.0, since overlayfs was introduced at that time."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_from_memfd", "Process Executable Is Stored In Memfd", "'true' if the executable file of the current process is an anonymous file created using memfd_create() and is being executed by referencing its file descriptor (fd). This type of file exists only in memory and not on disk. Relevant to detect malicious in-memory code injection. Requires kernel version greater or equal to 3.17.0."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_sid_leader", "Process Is Process Session Leader", "'true' if this process is the leader of the process session, proc.sid == proc.vpid. For host processes vpid reflects pid."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_vpgid_leader", "Process Is Virtual Process Group Leader", "'true' if this process is the leader of the virtual process group, proc.vpgid == proc.vpid. For host processes vpgid and vpid reflect pgid and pid. Can help to distinguish if the process was 'directly' executed for instance in a tty (similar to bash history logging, `is_vpgid_leader` would be 'true') or executed as descendent process in the same process group which for example is the case when subprocesses are spawned from a script (`is_vpgid_leader` would be 'false')."},
@@ -1510,6 +1511,9 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt *evt, uint32_t* len
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_IS_EXE_UPPER_LAYER:
 		m_val.u32 = tinfo->m_exe_upper_layer;
+		RETURN_EXTRACT_VAR(m_val.u32);
+	case TYPE_IS_EXE_LOWER_LAYER:
+		m_val.u32 = tinfo->m_exe_lower_layer;
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_IS_EXE_FROM_MEMFD:
 		m_val.u32 = tinfo->m_exe_from_memfd;

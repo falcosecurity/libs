@@ -69,6 +69,7 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	define_static_field(ret, this, m_exepath, "exe_path");
 	define_static_field(ret, this, m_exe_writable, "exe_writable");
 	define_static_field(ret, this, m_exe_upper_layer, "exe_upper_layer");
+	define_static_field(ret, this, m_exe_lower_layer, "exe_lower_layer");
 	define_static_field(ret, this, m_exe_from_memfd, "exe_from_memfd");
 	define_static_field(ret, this, m_args_table_adapter.table_ptr(), "args", true);
 	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "env", true);
@@ -156,6 +157,7 @@ void sinsp_threadinfo::init()
 	m_filtered_out = false;
 	m_exe_writable = false;
 	m_exe_upper_layer = false;
+	m_exe_lower_layer = false;
 	m_exe_from_memfd = false;
 }
 
@@ -465,6 +467,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_exepath = pi->exepath;
 	m_exe_writable = pi->exe_writable;
 	m_exe_upper_layer = pi->exe_upper_layer;
+	m_exe_lower_layer = pi->exe_lower_layer;
 	m_exe_from_memfd = pi->exe_from_memfd;
 
 	/* We cannot obtain the reaper_tid from a /proc scan */

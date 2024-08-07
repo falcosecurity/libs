@@ -65,6 +65,8 @@ struct ovl_entry {
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
+static enum ppm_overlay ppm_get_overlay_layer(struct file *file);
+
 static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
@@ -181,11 +183,10 @@ int f_sys_fstat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline void get_fd_dev_ino(int64_t fd, uint32_t* dev, uint64_t* ino)
+static inline void get_fd_dev_ino_file(int64_t fd, uint32_t* dev, uint64_t* ino, struct file **file)
 {
 	struct files_struct *files;
 	struct fdtable *fdt;
-	struct file *file;
 	struct inode *inode;
 	struct super_block *sb;
 
@@ -201,11 +202,11 @@ static inline void get_fd_dev_ino(int64_t fd, uint32_t* dev, uint64_t* ino)
 	if (unlikely(fd > fdt->max_fds))
 		goto out_unlock;
 
-	file = fdt->fd[fd];
-	if (unlikely(!file))
+	*file = fdt->fd[fd];
+	if (unlikely(!*file))
 		goto out_unlock;
 
-	inode = file_inode(file);
+	inode = file_inode(*file);
 	if (unlikely(!inode))
 		goto out_unlock;
 
@@ -297,6 +298,9 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	uint64_t ino = 0;
 	int res;
 	int64_t retval;
+	struct file *file = NULL;
+	enum ppm_overlay ol;
+	int32_t fd_flags = 0;
 
 	/*
 	 * fd
@@ -331,7 +335,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	CHECK_RES(res);
 
-	get_fd_dev_ino(retval, &dev, &ino);
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 *  dev
@@ -343,6 +347,24 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 *  ino
 	 */
 	res = val_to_ring(args, ino, 0, false, 0);
+	CHECK_RES(res);
+
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		ol = ppm_get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -845,11 +867,11 @@ static uint32_t ppm_get_tty(void)
 	return tty_nr;
 }
 
-static bool ppm_is_upper_layer(struct file *file)
+static enum ppm_overlay ppm_get_overlay_layer(struct file *file)
 {
 	// 3.18 is the Kernel version where overlayfs was introduced
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
-	return false;
+	return PPM_NOT_OVERLAY_FS;
 #else 
 	struct dentry * dentry = NULL;
 	struct super_block* sb = NULL;
@@ -858,24 +880,24 @@ static bool ppm_is_upper_layer(struct file *file)
 	
 	if(!file)
 	{
-		return false;
+		return PPM_NOT_OVERLAY_FS;
 	}
 
 	dentry = file->f_path.dentry;
 	if(!dentry)
 	{
-		return false;
+		return PPM_NOT_OVERLAY_FS;
 	}
 	
 	sb = dentry->d_sb;
 	if(!sb)
 	{
-		return false;
+		return PPM_NOT_OVERLAY_FS;
 	}
 	
 	if(sb->s_magic != PPM_OVERLAYFS_SUPER_MAGIC)
 	{
-		return false;
+		return PPM_NOT_OVERLAY_FS;
 	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
@@ -884,7 +906,7 @@ static bool ppm_is_upper_layer(struct file *file)
 		struct ovl_entry *oe = (struct ovl_entry*)(dentry->d_fsdata);
 		if(!oe)
 		{
-			return false;
+			return PPM_OVERLAY_LOWER;
 		}
 		upper_dentry = oe->__upperdentry;
 	}
@@ -893,7 +915,7 @@ static bool ppm_is_upper_layer(struct file *file)
 		char *vfs_inode = (char*)dentry->d_inode;
 		if(!vfs_inode)
 		{
-			return false;
+			return PPM_OVERLAY_LOWER;
 		}
 
 		// Pointer arithmetics due to unexported ovl_inode struct
@@ -905,15 +927,19 @@ static bool ppm_is_upper_layer(struct file *file)
 #endif // LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 	if(!upper_dentry)
 	{
-		return false;
+		return PPM_OVERLAY_LOWER;
 	}
 
 	upper_ino = upper_dentry->d_inode;
 	if(!upper_ino)
 	{
-		return false;
+		return PPM_OVERLAY_LOWER;
 	}
-	return upper_ino->i_ino != 0;
+	if(upper_ino->i_ino != 0)
+	{
+		return PPM_OVERLAY_UPPER;
+	}
+	return PPM_OVERLAY_LOWER;
 #endif // LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 }
 
@@ -1277,7 +1303,7 @@ cgroups_error:
 		long env_len = 0;
 		uint32_t tty_nr = 0;
 		bool exe_writable = false;
-		bool exe_upper_layer = false;
+		enum ppm_overlay exe_layer = PPM_NOT_OVERLAY_FS;
 		struct file *exe_file = NULL;
 		uint32_t flags = 0; // execve additional flags
 		unsigned long i_ino = 0;
@@ -1374,7 +1400,7 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/*
-		 * exe_writable and exe_upper_layer flags
+		 * exe_writable, exe_upper_layer and exe_lower_layer flags
 		 */
 
 		exe_file = ppm_get_mm_exe_file(mm);
@@ -1403,8 +1429,8 @@ cgroups_error:
 				 * MAY_OT_BLOCK flag is introduced and avoids the processor to being yield.
 				 */
 
-				/* Support exe_upper_layer */
-				exe_upper_layer = ppm_is_upper_layer(exe_file);
+				/* Support exe_upper_layer and exe_lower_layer */
+				exe_layer = ppm_get_overlay_layer(exe_file);
 
 				/* Support exe_from_memfd */
 				flags |= get_exe_from_memfd(exe_file);
@@ -1464,8 +1490,11 @@ cgroups_error:
 			flags |= PPM_EXE_WRITABLE;
 		}
 
-		if (exe_upper_layer) {
+		if (exe_layer == PPM_OVERLAY_UPPER) {
 			flags |= PPM_EXE_UPPER_LAYER;
+		}
+		else if (exe_layer == PPM_OVERLAY_LOWER) {
+			flags |= PPM_EXE_LOWER_LAYER;
 		}
 
 		// write all the additional flags for execve family here...
@@ -2961,6 +2990,9 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	uint64_t ino = 0;
 	int res;
 	int64_t retval;
+	struct file *file = NULL;
+	enum ppm_overlay ol;
+	int32_t fd_flags = 0;
 
 	/*
 	 * fd
@@ -2982,7 +3014,7 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, open_modes_to_scap(O_CREAT, modes), 0, false, 0);
 	CHECK_RES(res);
 
-	get_fd_dev_ino(retval, &dev, &ino);
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 *  dev
@@ -2996,6 +3028,24 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, ino, 0, false, 0);
 	CHECK_RES(res);
 
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		ol = ppm_get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	res = val_to_ring(args, fd_flags, 0, false, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 
@@ -3007,6 +3057,7 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	int pipefd[2] = {-1, -1};
 	uint32_t dev = 0;
 	uint64_t ino = 0;
+	struct file *file = NULL;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -3045,7 +3096,7 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	/* On success, pipe returns `0` */
 	if(retval == 0)
 	{
-		get_fd_dev_ino(pipefd[0], &dev, &ino);
+		get_fd_dev_ino_file(pipefd[0], &dev, &ino, &file);
 	}
 
 	/* Parameter 4: ino (type: PT_UINT64) */
@@ -3063,6 +3114,7 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 	int pipefd[2] = {-1, -1};
 	uint32_t dev = 0;
 	uint64_t ino = 0;
+	struct file *file = NULL;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -3101,7 +3153,7 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 	/* On success, pipe returns `0` */
 	if(retval == 0)
 	{
-		get_fd_dev_ino(pipefd[0], &dev, &ino);
+		get_fd_dev_ino_file(pipefd[0], &dev, &ino, &file);
 	}
 
 	/* Parameter 4: ino (type: PT_UINT64) */
@@ -3530,6 +3582,9 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	int res;
 	int32_t fd;
 	int64_t retval;
+	struct file *file = NULL;
+	enum ppm_overlay ol;
+	int32_t fd_flags = 0;
 
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -3569,7 +3624,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 3, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	CHECK_RES(res);
-	get_fd_dev_ino(retval, &dev, &ino);
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 *  dev
@@ -3581,6 +3636,25 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 */
 	res = val_to_ring(args, ino, 0, false, 0);
 	CHECK_RES(res);
+
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		ol = ppm_get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	res = val_to_ring(args, fd_flags, 0, false, 0);
+	CHECK_RES(res);
+
 	return add_sentinel(args);
 }
 
@@ -4952,6 +5026,9 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	int res;
 	int32_t fd;
 	int64_t retval;
+	struct file *file = NULL;
+	enum ppm_overlay ol;
+	int32_t fd_flags = 0;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -5019,7 +5096,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, resolve, 0, true, 0);
 	CHECK_RES(res);
 
-	get_fd_dev_ino(retval, &dev, &ino);
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 *  dev
@@ -5031,6 +5108,24 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 *  ino
 	 */
 	res = val_to_ring(args, ino, 0, false, 0);
+	CHECK_RES(res);
+
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		ol = ppm_get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -5104,6 +5199,9 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	long retval = 0;
 	char *pathname = NULL;
 	int32_t mountfd = 0;
+	struct file *file = NULL;
+	enum ppm_overlay ol;
+	int32_t fd_flags = 0;
 
 	/* Parameter 1: ret (type: PT_FD) */
 	retval = syscall_get_return_value(current, args->regs);
@@ -5151,7 +5249,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
 	CHECK_RES(res);
 
-	get_fd_dev_ino(retval, &dev, &ino);
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/* Parameter 5: dev (type: PT_UINT32) */
 	res = val_to_ring(args, dev, 0, false, 0);
@@ -5159,6 +5257,24 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 
 	/* Parameter 6: ino (type: PT_UINT64) */
 	res = val_to_ring(args, ino, 0, false, 0);
+	CHECK_RES(res);
+
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		ol = ppm_get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -7249,7 +7365,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	uint32_t tty_nr = 0;
 	uint32_t flags = 0;
 	bool exe_writable = false;
-	bool exe_upper_layer = false;
+	enum ppm_overlay exe_layer = PPM_NOT_OVERLAY_FS;
 	struct file *exe_file = NULL;
 	const struct cred *cred = NULL;
 	unsigned long i_ino = 0;
@@ -7433,7 +7549,7 @@ cgroups_error:
 	res = val_to_ring(args, loginuid, 0, false, 0);
 	CHECK_RES(res);
 
-	/* `exe_writable` and `exe_upper_layer` flag logic */
+	/* `exe_writable`, `exe_upper_layer` and `exe_lower_layer` flag logic */
 	exe_file = ppm_get_mm_exe_file(mm);
 	if(exe_file != NULL)
 	{
@@ -7459,8 +7575,8 @@ cgroups_error:
 			 * MAY_OT_BLOCK flag is introduced and avoids the processor to being yield.
 			 */
 
-			/* Support exe_upper_layer */
-			exe_upper_layer = ppm_is_upper_layer(exe_file);
+			/* Support exe_upper_layer and exe_lower_layer */
+			exe_layer = ppm_get_overlay_layer(exe_file);
 
 			/* Support exe_from_memfd */
 			flags |= get_exe_from_memfd(exe_file);
@@ -7521,9 +7637,13 @@ cgroups_error:
 		flags |= PPM_EXE_WRITABLE;
 	}
 
-	if(exe_upper_layer)
+	if(exe_layer == PPM_OVERLAY_UPPER)
 	{
 		flags |= PPM_EXE_UPPER_LAYER;
+	}
+	else if(exe_layer == PPM_OVERLAY_LOWER)
+	{
+		flags |= PPM_EXE_LOWER_LAYER;
 	}
 
 	// write all the additional flags for execve family here...
