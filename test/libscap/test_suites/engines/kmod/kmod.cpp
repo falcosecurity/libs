@@ -184,6 +184,60 @@ TEST(kmod, double_scap_stats_call)
 	scap_close(h);
 }
 
+TEST(kmod, metrics_v2_check_per_CPU_stats)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open kmod engine: " << error_buffer << std::endl;
+
+	ssize_t num_online_CPUs = sysconf(_SC_NPROCESSORS_ONLN);
+
+	// We want to check our CPUs counters
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS;
+	uint32_t nstats = 0;
+	int32_t rc = 0;
+	const metrics_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_TRUE(stats_v2);
+	ASSERT_GT(nstats, 0);
+
+	uint32_t i = 0;
+	ssize_t found = 0;
+	char expected_name[METRIC_NAME_MAX] = "";
+	snprintf(expected_name, METRIC_NAME_MAX, N_EVENTS_PER_DEVICE_PREFIX"%ld", found);
+
+	while(i < nstats)
+	{
+		// `sizeof(N_EVENTS_PER_DEVICE_PREFIX)-1` because we need to exclude the `\0`
+		if(strncmp(stats_v2[i].name, N_EVENTS_PER_DEVICE_PREFIX, sizeof(N_EVENTS_PER_DEVICE_PREFIX)-1) == 0)
+		{
+			i++;
+			// The next metric should be the number of drops
+			snprintf(expected_name, METRIC_NAME_MAX, N_DROPS_PER_DEVICE_PREFIX"%ld", found);
+			if(strncmp(stats_v2[i].name, N_DROPS_PER_DEVICE_PREFIX, sizeof(N_DROPS_PER_DEVICE_PREFIX)-1) == 0)
+			{
+				i++;
+				found++;
+			}
+			else
+			{
+				FAIL() << "Missing CPU drops for CPU " << found;
+			}
+		} 
+		else
+		{
+			i++;
+		}
+	}
+
+	// This test could fail in case of rare race conditions in which the number of online CPUs changes
+	// between the scap_open and the `sysconf(_SC_NPROCESSORS_ONLN)` function. In CI we shouldn't have hot plugs so probably we
+	// can live with this. 
+	ASSERT_EQ(num_online_CPUs, found) << "We didn't find the stats for all the CPUs";
+	scap_close(h);
+}
+
 TEST(kmod, metrics_v2_check_results)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
