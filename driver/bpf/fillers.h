@@ -89,6 +89,45 @@ static __always_inline int bpf_##x(void *ctx)				\
 									\
 static __always_inline int __bpf_##x(struct filler_data *data)		\
 
+static __always_inline struct inode *get_file_inode(struct file *file)
+{
+	if (file) {
+		return _READ(file->f_inode);
+	}
+	return NULL;
+}
+
+static __always_inline enum ppm_overlay get_overlay_layer(struct file *file)
+{
+	struct dentry* dentry = NULL;
+	bpf_probe_read_kernel(&dentry, sizeof(dentry), &file->f_path.dentry);
+	struct super_block* sb = (struct super_block*)_READ(dentry->d_sb);
+	unsigned long sb_magic = _READ(sb->s_magic);
+
+	if(sb_magic != PPM_OVERLAYFS_SUPER_MAGIC)
+	{
+		return PPM_NOT_OVERLAY_FS;
+	}
+
+	char *vfs_inode = (char *)_READ(dentry->d_inode);
+	struct dentry *upper_dentry = NULL;
+	bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), (char *)vfs_inode + sizeof(struct inode));
+	if(!upper_dentry)
+	{
+		return PPM_OVERLAY_LOWER;
+	}
+
+	struct inode *upper_ino = _READ(upper_dentry->d_inode);
+	if(_READ(upper_ino->i_ino) != 0)
+	{
+		return PPM_OVERLAY_UPPER;
+	}
+	else
+	{
+		return PPM_OVERLAY_LOWER;
+	}
+}
+
 FILLER_RAW(terminate_filler)
 {
 	struct scap_bpf_per_cpu_state *state;
@@ -364,6 +403,8 @@ FILLER(sys_open_x, true)
 	unsigned long ino = 0;
 	long retval;
 	int res;
+	struct file *file = NULL;
+	unsigned int fd_flags = 0;
 
 	/* Parameter 1: ret (type: PT_FD) */
 	retval = bpf_syscall_get_retval(data->ctx);
@@ -389,14 +430,30 @@ FILLER(sys_open_x, true)
 	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino(retval, &dev, &ino);
+	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/* Parameter 5: dev (type: PT_UINT32) */
 	res = bpf_push_u32_to_ring(data, (uint32_t)dev);
 	CHECK_RES(res);
 
 	/* Parameter 6: ino (type: PT_UINT64) */
-	return bpf_push_u64_to_ring(data, (uint64_t)ino);;
+	res = bpf_push_u64_to_ring(data, (uint64_t)ino);
+	CHECK_RES(res);
+
+	/* Parameter 7: fd_flags (type: PT_UINT32) */
+	if (likely(file))
+	{
+		enum ppm_overlay ol = get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
 }
 
 FILLER(sys_read_e, true)
@@ -2162,14 +2219,6 @@ static __always_inline struct file *get_exe_file(struct task_struct *task)
 	return NULL;
 }
 
-static __always_inline struct inode *get_file_inode(struct file *file)
-{
-	if (file) {
-		return _READ(file->f_inode);
-	}
-	return NULL;
-}
-
 /*
  * Detect whether the file being referenced is an anonymous file created using memfd_create()
  * and is being executed by referencing its file descriptor (fd). This type of file does not
@@ -2312,30 +2361,6 @@ static __always_inline bool get_exe_writable(struct inode *inode, struct cred *c
 	}
 
 	return false;
-}
-
-static __always_inline bool get_exe_upper_layer(struct file *file)
-{
-	struct dentry* dentry = NULL;
-	bpf_probe_read_kernel(&dentry, sizeof(dentry), &file->f_path.dentry);
-	struct super_block* sb = (struct super_block*)_READ(dentry->d_sb);
-	unsigned long sb_magic = _READ(sb->s_magic);
-
-	if(sb_magic != PPM_OVERLAYFS_SUPER_MAGIC)
-	{
-		return false;
-	}
-
-	char *vfs_inode = (char *)_READ(dentry->d_inode);
-	struct dentry *upper_dentry = NULL;
-	bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), (char *)vfs_inode + sizeof(struct inode));
-	if(!upper_dentry)
-	{
-		return false;
-	}
-
-	struct inode *upper_ino = _READ(upper_dentry->d_inode);
-	return _READ(upper_ino->i_ino) != 0;
 }
 
 FILLER(proc_startupdate, true)
@@ -2863,16 +2888,24 @@ FILLER(execve_extra_tail_1, true)
 	}
 
 	/*
-	 * exe_upper_layer
+	 * exe_upper_layer/exe_lower_layer and exe_from_memfd
 	 */
-	if(exe_file && get_exe_upper_layer(exe_file))
+	if(exe_file)
 	{
-		flags |= PPM_EXE_UPPER_LAYER;
-	}
+		enum ppm_overlay exe_layer = get_overlay_layer(exe_file);
+		if (exe_layer == PPM_OVERLAY_UPPER)
+		{
+			flags |= PPM_EXE_UPPER_LAYER;
+		}
+		else if (exe_layer == PPM_OVERLAY_LOWER)
+		{
+			flags |= PPM_EXE_LOWER_LAYER;
+		}
 
-	if(exe_file && get_exe_from_memfd(exe_file))
-	{
-		flags |= PPM_EXE_FROM_MEMFD;
+		if(get_exe_from_memfd(exe_file))
+		{
+			flags |= PPM_EXE_FROM_MEMFD;
+		}
 	}
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
@@ -3181,6 +3214,8 @@ FILLER(sys_openat_x, true)
 	long retval;
 	int32_t fd;
 	int res;
+	struct file *file = NULL;
+	unsigned int fd_flags = 0;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
@@ -3222,7 +3257,7 @@ FILLER(sys_openat_x, true)
 	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino(retval, &dev, &ino);
+	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 * Device
@@ -3233,7 +3268,25 @@ FILLER(sys_openat_x, true)
 	/*
 	 * Ino
 	 */
-	return bpf_push_u64_to_ring(data, ino);
+	res = bpf_push_u64_to_ring(data, ino);
+	CHECK_RES(res);
+
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		enum ppm_overlay ol = get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
 }
 
 FILLER(sys_openat2_e, true)
@@ -3314,6 +3367,8 @@ FILLER(sys_openat2_x, true)
 	long retval;
 	int32_t fd;
 	int res;
+	struct file *file = NULL;
+	unsigned int fd_flags = 0;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -3379,7 +3434,7 @@ FILLER(sys_openat2_x, true)
 	res = bpf_push_u32_to_ring(data, resolve);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino(retval, &dev, &ino);
+	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 * dev
@@ -3390,7 +3445,25 @@ FILLER(sys_openat2_x, true)
 	/*
 	 * ino
 	 */
-	return bpf_push_u64_to_ring(data, ino);
+	res = bpf_push_u64_to_ring(data, ino);
+	CHECK_RES(res);
+
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		enum ppm_overlay ol = get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
 }
 
 FILLER(sys_open_by_handle_at_x, true)
@@ -3436,13 +3509,24 @@ FILLER(sys_open_by_handle_at_x, true)
 	CHECK_RES(res);
 
 	/* Parameter 6: ino (type: PT_UINT64) */
-	return bpf_push_u64_to_ring(data, 0);
+	res = bpf_push_u64_to_ring(data, 0);
+	CHECK_RES(res);
+
+	/* Parameter 7: fd_flags (type: PT_UINT32) */
+	return bpf_push_u32_to_ring(data, 0);
+
 }
 
 FILLER(open_by_handle_at_x_extra_tail_1, true)
 {
 	long retval = bpf_syscall_get_retval(data->ctx);
-	struct file *f = bpf_fget(retval);
+	struct file *f = NULL;
+	unsigned long dev = 0;
+	unsigned long ino = 0;
+	unsigned int fd_flags = 0;
+
+	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &f);
+
 	if(f == NULL)
 	{
 		/* In theory here we should send an empty param but we are experimenting some issues
@@ -3459,17 +3543,28 @@ FILLER(open_by_handle_at_x_extra_tail_1, true)
 	char* filepath = bpf_d_path_approx(data, &(f->f_path));
 	int res = bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
 
-	unsigned long dev = 0;
-	unsigned long ino = 0;
-
-	bpf_get_fd_dev_ino(retval, &dev, &ino);
-
 	/* Parameter 5: dev (type: PT_UINT32) */
 	res = bpf_push_u32_to_ring(data, dev);
 	CHECK_RES(res);
 
 	/* Parameter 6: ino (type: PT_UINT64) */
-	return bpf_push_u64_to_ring(data, ino);
+	res = bpf_push_u64_to_ring(data, ino);
+	CHECK_RES(res);
+
+	/* Parameter 7: fd_flags (type: PT_UINT32) */
+	if (likely(f))
+	{
+		enum ppm_overlay ol = get_overlay_layer(f);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
 }
 
 FILLER(sys_io_uring_setup_x, true)
@@ -4550,6 +4645,8 @@ FILLER(sys_creat_x, true)
 	unsigned long mode;
 	long retval;
 	int res;
+	struct file *file = NULL;
+	unsigned int fd_flags = 0;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
@@ -4570,7 +4667,7 @@ FILLER(sys_creat_x, true)
 	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino(retval, &dev, &ino);
+	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 * Device
@@ -4581,7 +4678,25 @@ FILLER(sys_creat_x, true)
 	/*
 	 * Ino
 	 */
-	return bpf_push_u64_to_ring(data, ino);
+	res = bpf_push_u64_to_ring(data, ino);
+	CHECK_RES(res);
+
+	/*
+	 * fd_flags
+	 */
+	if (likely(file))
+	{
+		enum ppm_overlay ol = get_overlay_layer(file);
+		if (ol == PPM_OVERLAY_UPPER)
+		{
+			fd_flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if (ol == PPM_OVERLAY_LOWER)
+		{
+			fd_flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
 }
 
 FILLER(sys_pipe_x, true)
@@ -4609,12 +4724,13 @@ FILLER(sys_pipe_x, true)
 	CHECK_RES(res);
 
 	unsigned long ino = 0;
-	/* Not used, we use it just to call `bpf_get_fd_dev_ino` */
+	/* Not used, we use it just to call `bpf_get_fd_dev_ino_file` */
 	unsigned long dev = 0;
+	struct file *file = NULL;
 	/* On success, pipe returns `0` */
 	if(retval == 0)
 	{
-		bpf_get_fd_dev_ino(pipefd[0], &dev, &ino);
+		bpf_get_fd_dev_ino_file(pipefd[0], &dev, &ino, &file);
 	}
 
 	/* Parameter 4: ino (type: PT_UINT64) */
@@ -4646,12 +4762,13 @@ FILLER(sys_pipe2_x, true)
 	CHECK_RES(res);
 
 	unsigned long ino = 0;
-	/* Not used, we use it just to call `bpf_get_fd_dev_ino` */
+	/* Not used, we use it just to call `bpf_get_fd_dev_ino_file` */
 	unsigned long dev = 0;
+	struct file *file = NULL;
 	/* On success, pipe returns `0` */
 	if(retval == 0)
 	{
-		bpf_get_fd_dev_ino(pipefd[0], &dev, &ino);
+		bpf_get_fd_dev_ino_file(pipefd[0], &dev, &ino, &file);
 	}
 
 	/* Parameter 4: ino (type: PT_UINT64) */
@@ -6771,16 +6888,24 @@ FILLER(sched_prog_exec_4, false)
 	}
 
 	/*
-	 * exe_upper_layer
+	 * exe_upper_layer/exe_lower_layer and exe_from_memfd
 	 */
-	if (exe_file && get_exe_upper_layer(exe_file))
+	if(exe_file)
 	{
-		flags |= PPM_EXE_UPPER_LAYER;
-	}
+		enum ppm_overlay exe_layer = get_overlay_layer(exe_file);
+		if (exe_layer == PPM_OVERLAY_UPPER)
+		{
+			flags |= PPM_EXE_UPPER_LAYER;
+		}
+		else if (exe_layer == PPM_OVERLAY_LOWER)
+		{
+			flags |= PPM_EXE_LOWER_LAYER;
+		}
 
-	if(exe_file && get_exe_from_memfd(exe_file))
-	{
-		flags |= PPM_EXE_FROM_MEMFD;
+		if(get_exe_from_memfd(exe_file))
+		{
+			flags |= PPM_EXE_FROM_MEMFD;
+		}
 	}
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */

@@ -69,6 +69,8 @@ public:
 		TYPE_INO = 41,
 		TYPE_FDNAMERAW = 42,
 		TYPE_FDTYPES = 43,
+		TYPE_FDUPPER = 44,
+		TYPE_FDLOWER = 45,
 	};
 
 	sinsp_filter_check_fd();

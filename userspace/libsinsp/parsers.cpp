@@ -1388,6 +1388,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 
 		child_tinfo->m_exe_upper_layer = caller_tinfo->m_exe_upper_layer;
 
+		child_tinfo->m_exe_lower_layer = caller_tinfo->m_exe_lower_layer;
+
 		child_tinfo->m_exe_from_memfd = caller_tinfo->m_exe_from_memfd;
 
 		child_tinfo->m_root = caller_tinfo->m_root;
@@ -1714,6 +1716,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 		child_tinfo->m_exe_writable = lookup_tinfo->m_exe_writable;
 
 		child_tinfo->m_exe_upper_layer = lookup_tinfo->m_exe_upper_layer;
+
+		child_tinfo->m_exe_lower_layer = lookup_tinfo->m_exe_lower_layer;
 
 		child_tinfo->m_exe_from_memfd = lookup_tinfo->m_exe_from_memfd;
 
@@ -2378,6 +2382,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->get_tinfo()->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
 		evt->get_tinfo()->m_exe_upper_layer = ((flags & PPM_EXE_UPPER_LAYER) != 0);
 		evt->get_tinfo()->m_exe_from_memfd = ((flags & PPM_EXE_FROM_MEMFD) != 0);
+		evt->get_tinfo()->m_exe_lower_layer = ((flags & PPM_EXE_LOWER_LAYER) != 0);
 	}
 
 	// Get capabilities
@@ -2564,6 +2569,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	uint16_t etype = evt->get_type();
 	uint32_t dev = 0;
 	uint64_t ino = 0;
+	uint32_t fd_flags = 0;
 	bool lastevent_retrieved = false;
 
 	if(evt->get_tinfo() == nullptr)
@@ -2598,6 +2604,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 5)
 			{
 				ino = evt->get_param(5)->as<uint64_t>();
+				if (evt->get_num_params() > 6)
+				{
+					fd_flags = evt->get_param(6)->as<uint32_t>();
+				}
 			}
 		}
 
@@ -2635,6 +2645,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 4)
 			{
 				ino = evt->get_param(4)->as<uint64_t>();
+				if (evt->get_num_params() > 5)
+				{
+					fd_flags = evt->get_param(5)->as<uint32_t>();
+				}
 			}
 		}
 
@@ -2681,6 +2695,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 6)
 			{
 				ino = evt->get_param(6)->as<uint64_t>();
+				if (evt->get_num_params() > 7)
+				{
+					fd_flags = evt->get_param(7)->as<uint32_t>();
+				}
 			}
 		}
 		else if(etype == PPME_SYSCALL_OPENAT2_X && evt->get_num_params() > 6)
@@ -2689,6 +2707,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 7)
 			{
 				ino = evt->get_param(7)->as<uint64_t>();
+				if (evt->get_num_params() > 8)
+				{
+					fd_flags = evt->get_param(8)->as<uint32_t>();
+				}
 			}
 		}
 
@@ -2729,6 +2751,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 5)
 			{
 				ino = evt->get_param(5)->as<uint64_t>();
+				if (evt->get_num_params() > 6)
+				{
+					fd_flags = evt->get_param(6)->as<uint32_t>();
+				}
 			}
 		}
 
@@ -2769,6 +2795,14 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi->m_ino = ino;
 		fdi->add_filename_raw(name);
 		fdi->add_filename(fullpath);
+		if(fd_flags & PPM_FD_UPPER_LAYER)
+		{
+			fdi->set_overlay_upper();
+		}
+		if(fd_flags & PPM_FD_LOWER_LAYER)
+		{
+			fdi->set_overlay_lower();
+		}
 
 		//
 		// Add the fd to the table.
