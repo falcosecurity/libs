@@ -11,7 +11,7 @@ jobs:
     name: check-insecure-api
     runs-on: ubuntu-latest
     container:
-      image: returntocorp/semgrep:1.41.0
+      image: docker.io/returntocorp/semgrep:1.84.0@sha256:e792d418d128c4c7ea3842677192b7a06458747fbdbeda350a5cd2c7abbb7bbe
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -29,7 +29,7 @@ jobs:
     name: check-absolute-include-paths
     runs-on: ubuntu-latest
     container:
-      image: returntocorp/semgrep:1.41.0
+      image: docker.io/returntocorp/semgrep:1.84.0@sha256:e792d418d128c4c7ea3842677192b7a06458747fbdbeda350a5cd2c7abbb7bbe
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
