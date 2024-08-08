@@ -2068,6 +2068,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			ring_info->n_drops_buffer++;
 			drops_buffer_syscall_categories_counters(event_type, ring_info);
 		} else {
+			ring_info->n_drops_buffer++;
 			ASSERT(false);
 		}
 	}
