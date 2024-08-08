@@ -29,7 +29,6 @@ limitations under the License.
 static re2::RE2 s_libs_metrics_units_suffix_pre_prometheus_text_conversion("(_kb|_bytes|_mb|_perc|_percentage|_ratio|_ns|_ts|_sec|_total)", re2::RE2::POSIX);
 static re2::RE2 s_libs_metrics_units_memory_suffix("(_kb|_bytes)", re2::RE2::POSIX);
 static re2::RE2 s_libs_metrics_units_perc_suffix("(_perc)", re2::RE2::POSIX);
-static re2::RE2 s_libs_metrics_banned_prometheus_naming_characters("(\\.)", re2::RE2::POSIX);
 
 // For simplicity, needs to stay in sync w/ typedef enum metrics_v2_value_unit
 // https://prometheus.io/docs/practices/naming/ or https://prometheus.io/docs/practices/naming/#base-units.
@@ -91,6 +90,20 @@ std::string metric_value_to_text(const metrics_v2& metric)
 	return value_text;
 }
 
+std::string prometheus_sanitize_metric_name(const std::string& name, const RE2& invalid_chars = RE2("[^a-zA-Z0-9_:]"))
+{
+	// https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+	std::string sanitized_name = name;
+	RE2::GlobalReplace(&sanitized_name, invalid_chars, "_");
+	RE2::GlobalReplace(&sanitized_name, "_+", "_");
+	// Ensure it starts with a letter or underscore (if empty after sanitizing, set to "_")
+	if (sanitized_name.empty() || (!std::isalpha(sanitized_name.front()) && sanitized_name.front() != '_'))
+	{
+		sanitized_name = "_" + sanitized_name;
+	}
+	return sanitized_name;
+}
+
 std::string prometheus_qualifier(std::string_view prometheus_namespace, std::string_view prometheus_subsystem)
 {
 	std::string qualifier;
@@ -108,16 +121,35 @@ std::string prometheus_qualifier(std::string_view prometheus_namespace, std::str
 
 std::string prometheus_exposition_text(std::string_view metric_qualified_name, std::string_view metric_name, std::string_view metric_type_name, std::string_view metric_value, const std::map<std::string, std::string>& const_labels)
 {
-	std::string fqn(metric_qualified_name);
+	std::string fqn = prometheus_sanitize_metric_name(std::string(metric_qualified_name));
 	std::string prometheus_text = "# HELP " + fqn + " https://falco.org/docs/metrics/\n";
 	prometheus_text += "# TYPE " + fqn + " " + std::string(metric_type_name) + "\n";
 	prometheus_text += fqn;
-	prometheus_text += "{raw_name=\"" + std::string(metric_name) + "\"" ;
-	for (const auto& [key, value] : const_labels)
+	if (!const_labels.empty())
 	{
-		prometheus_text += "," + key + "=\"" + value + "\"" ;
+		static const RE2 label_invalid_chars("[^a-zA-Z0-9_]");
+		prometheus_text += "{";
+		bool first_label = true;
+		for (const auto& [key, value] : const_labels)
+		{
+			if (key.empty())
+			{
+				continue;
+			}
+			if (!first_label)
+			{
+				prometheus_text += ",";
+			} else
+			{
+				first_label = false;
+			}
+			prometheus_text += prometheus_sanitize_metric_name(key, label_invalid_chars) + "=\"" + value + "\"";
+		}
+		prometheus_text += "} "; // the white space at the end is important!
+	} else
+	{
+		prometheus_text += " "; // the white space at the end is important!
 	}
-	prometheus_text += "} "; // white space at the end important!
 	prometheus_text += std::string(metric_value);
 	prometheus_text += "\n";
 	return prometheus_text;
@@ -159,7 +191,6 @@ std::string prometheus_metrics_converter::convert_metric_to_text_prometheus(cons
 	std::string prometheus_metric_name_fully_qualified = prometheus_qualifier(prometheus_namespace, prometheus_subsystem) + std::string(metric.name) + "_";
 	// Remove native libs unit suffixes if applicable.
 	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_units_suffix_pre_prometheus_text_conversion, "");
-	RE2::GlobalReplace(&prometheus_metric_name_fully_qualified, s_libs_metrics_banned_prometheus_naming_characters, "_");
 	prometheus_metric_name_fully_qualified += std::string(metrics_unit_name_mappings_prometheus[metric.unit]);
 	return prometheus_exposition_text(prometheus_metric_name_fully_qualified,
 										metric.name,
