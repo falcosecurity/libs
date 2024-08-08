@@ -109,6 +109,8 @@ public:
 		FLAGS_IS_CLONED = (1 << 14),
 		FLAGS_CONNECTION_PENDING = (1 << 15),
 		FLAGS_CONNECTION_FAILED = (1 << 16),
+		FLAGS_OVERLAY_UPPER = (1 << 17),
+		FLAGS_OVERLAY_LOWER = (1 << 18),
 	};
 
 	sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields = nullptr);
@@ -323,6 +325,16 @@ public:
 		return (m_flags & FLAGS_IS_CLONED) == FLAGS_IS_CLONED;
 	}
 
+	inline bool is_overlay_upper() const
+	{
+		return (m_flags & FLAGS_OVERLAY_UPPER) == FLAGS_OVERLAY_UPPER;
+	}
+
+	inline bool is_overlay_lower() const
+	{
+		return (m_flags & FLAGS_OVERLAY_LOWER) == FLAGS_OVERLAY_LOWER;
+	}
+
 	void add_filename_raw(std::string_view rawpath);
 
 	void add_filename(std::string_view fullpath);
@@ -420,6 +432,16 @@ public:
 	inline void set_is_cloned()
 	{
 		m_flags |= FLAGS_IS_CLONED;
+	}
+
+	inline void set_overlay_upper()
+	{
+		m_flags |= FLAGS_OVERLAY_UPPER;
+	}
+
+	inline void set_overlay_lower()
+	{
+		m_flags |= FLAGS_OVERLAY_LOWER;
 	}
 
 	scap_fd_type m_type = SCAP_FD_UNINITIALIZED; ///< The fd type, e.g. file, directory, IPv4 socket...

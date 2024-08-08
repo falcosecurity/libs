@@ -103,7 +103,10 @@ or GPL2.txt for full copies of the license.
 #define PPM_O_LARGEFILE (1 << 11)
 #define PPM_O_CLOEXEC	(1 << 12)
 #define PPM_O_TMPFILE	(1 << 13)
+/* Flags added by syscall probe: */
 #define PPM_O_F_CREATED (1 << 14)	/* file created during the syscall */
+#define PPM_O_F_UPPER_LAYER (1 << 15) /* file is from upper layer */
+#define PPM_O_F_LOWER_LAYER (1 << 16) /* file is from upper layer */
 
 /*
  * File modes
@@ -633,6 +636,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_EXE_WRITABLE		(1 << 0)
 #define PPM_EXE_UPPER_LAYER 	(1 << 1)
 #define PPM_EXE_FROM_MEMFD  	(1 << 2)
+#define PPM_EXE_LOWER_LAYER  	(1 << 3)
   
 /*
  * Execveat flags
@@ -810,6 +814,12 @@ or GPL2.txt for full copies of the license.
 */
 #define PPM_DELETE_MODULE_O_TRUNC		(1 << 0)
 #define PPM_DELETE_MODULE_O_NONBLOCK	(1 << 1)
+
+/*
+ * FD flags
+ */
+#define PPM_FD_UPPER_LAYER 	(1 << 0)
+#define PPM_FD_LOWER_LAYER 	(1 << 1)
 
 /*
  * bpf_commands 
@@ -1042,6 +1052,13 @@ enum ppm_capture_category {
 	PPMC_PAGE_FAULT = 4,
 	PPMC_SCHED_PROC_EXEC = 5,
 	PPMC_SCHED_PROC_FORK = 6,
+};
+
+enum ppm_overlay
+{
+	PPM_NOT_OVERLAY_FS = 0,
+	PPM_OVERLAY_UPPER = 1,
+	PPM_OVERLAY_LOWER = 2,
 };
 
 /** @defgroup etypes Event Types

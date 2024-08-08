@@ -170,9 +170,14 @@ int BPF_PROG(t1_sched_p_exec,
 	{
 		flags |= PPM_EXE_WRITABLE;
 	}
-	if(extract__exe_upper_layer(exe_file))
+	enum ppm_overlay overlay = extract__overlay_layer(exe_file);
+	if(overlay == PPM_OVERLAY_UPPER)
 	{
 		flags |= PPM_EXE_UPPER_LAYER;
+	}
+	else if (overlay == PPM_OVERLAY_LOWER)
+	{
+		flags |= PPM_EXE_LOWER_LAYER;
 	}
 	if(extract__exe_from_memfd(exe_file))
 	{

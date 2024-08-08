@@ -65,6 +65,15 @@ int BPF_PROG(open_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	dev_t dev = 0;
+	uint64_t ino = 0;
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
+
+	if(ret > 0)
+	{
+		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
+	}
+
 	/* Parameter 1: ret (type: PT_FD) */
 	auxmap__store_s64_param(auxmap, ret);
 
@@ -77,19 +86,19 @@ int BPF_PROG(open_x,
 	uint32_t scap_flags = (uint32_t)open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	scap_flags |= extract__fmode_created_from_fd(ret);
+	if(ol == PPM_OVERLAY_UPPER)
+	{
+		scap_flags |= PPM_O_F_UPPER_LAYER;
+	}
+	else if(ol == PPM_OVERLAY_LOWER)
+	{
+		scap_flags |= PPM_O_F_LOWER_LAYER;
+	}
 	auxmap__store_u32_param(auxmap, scap_flags);
 
 	/* Parameter 4: mode (type: PT_UINT32) */
 	unsigned long mode = extract__syscall_argument(regs, 2);
 	auxmap__store_u32_param(auxmap, open_modes_to_scap(flags, mode));
-
-	dev_t dev = 0;
-	uint64_t ino = 0;
-
-	if(ret > 0)
-	{
-		extract__dev_and_ino_from_fd(ret, &dev, &ino);
-	}
 
 	/* Parameter 5: dev (type: PT_UINT32) */
 	auxmap__store_u32_param(auxmap, dev);

@@ -1388,6 +1388,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 
 		child_tinfo->m_exe_upper_layer = caller_tinfo->m_exe_upper_layer;
 
+		child_tinfo->m_exe_lower_layer = caller_tinfo->m_exe_lower_layer;
+
 		child_tinfo->m_exe_from_memfd = caller_tinfo->m_exe_from_memfd;
 
 		child_tinfo->m_root = caller_tinfo->m_root;
@@ -1714,6 +1716,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 		child_tinfo->m_exe_writable = lookup_tinfo->m_exe_writable;
 
 		child_tinfo->m_exe_upper_layer = lookup_tinfo->m_exe_upper_layer;
+
+		child_tinfo->m_exe_lower_layer = lookup_tinfo->m_exe_lower_layer;
 
 		child_tinfo->m_exe_from_memfd = lookup_tinfo->m_exe_from_memfd;
 
@@ -2378,6 +2382,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->get_tinfo()->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
 		evt->get_tinfo()->m_exe_upper_layer = ((flags & PPM_EXE_UPPER_LAYER) != 0);
 		evt->get_tinfo()->m_exe_from_memfd = ((flags & PPM_EXE_FROM_MEMFD) != 0);
+		evt->get_tinfo()->m_exe_lower_layer = ((flags & PPM_EXE_LOWER_LAYER) != 0);
 	}
 
 	// Get capabilities
@@ -2613,11 +2618,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 
-				// keep PPM_O_F_CREATED flag if present
-				if (flags & PPM_O_F_CREATED)
-					flags = enter_evt_flags | PPM_O_F_CREATED;
-				else
-					flags = enter_evt_flags;
+				// keep flags added by the syscall exit probe if present
+				uint32_t mask = ~(PPM_O_F_CREATED - 1);
+				uint32_t added_flags = flags & mask;
+				flags = enter_evt_flags | added_flags;
 			}
 		}
 
@@ -2635,6 +2639,18 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 4)
 			{
 				ino = evt->get_param(4)->as<uint64_t>();
+				if (evt->get_num_params() > 5)
+				{
+					uint16_t fd_flags = evt->get_param(5)->as<uint16_t>();
+					if (fd_flags & PPM_FD_UPPER_LAYER)
+					{
+						flags |= PPM_O_F_UPPER_LAYER;
+					}
+					else if (fd_flags & PPM_FD_LOWER_LAYER)
+					{
+						flags |= PPM_O_F_LOWER_LAYER;
+					}
+				}
 			}
 		}
 
@@ -2647,11 +2663,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 
-				// keep PPM_O_F_CREATED flag if present
-				if (flags & PPM_O_F_CREATED)
-					flags = enter_evt_flags | PPM_O_F_CREATED;
-				else
-					flags = enter_evt_flags;
+				flags |= enter_evt_flags;
 			}
 		}
 
@@ -2705,11 +2717,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 
-				// keep PPM_O_F_CREATED flag if present
-				if (flags & PPM_O_F_CREATED)
-					flags = enter_evt_flags | PPM_O_F_CREATED;
-				else
-					flags = enter_evt_flags;
+				// keep flags added by the syscall exit probe if present
+				uint32_t mask = ~(PPM_O_F_CREATED - 1);
+				uint32_t added_flags = flags & mask;
+				flags = enter_evt_flags | added_flags;
 
 				dirfd = enter_evt_dirfd;
 			}
@@ -2769,6 +2780,14 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi->m_ino = ino;
 		fdi->add_filename_raw(name);
 		fdi->add_filename(fullpath);
+		if(flags & PPM_O_F_UPPER_LAYER)
+		{
+			fdi->set_overlay_upper();
+		}
+		if(flags & PPM_O_F_LOWER_LAYER)
+		{
+			fdi->set_overlay_lower();
+		}
 
 		//
 		// Add the fd to the table.

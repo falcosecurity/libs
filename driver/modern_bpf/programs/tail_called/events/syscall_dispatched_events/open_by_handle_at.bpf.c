@@ -70,7 +70,16 @@ int BPF_PROG(open_by_handle_at_x,
 	flags = (uint32_t)open_flags_to_scap(flags);
 	/* update flags if file is created */
 	flags |= extract__fmode_created_from_fd(ret);
-
+	struct file *f = extract__file_struct_from_fd(ret);
+	enum ppm_overlay ol = extract__overlay_layer(f);
+	if(ol == PPM_OVERLAY_UPPER)
+	{
+		flags |= PPM_O_F_UPPER_LAYER;
+	}
+	else if(ol == PPM_OVERLAY_LOWER)
+	{
+		flags |= PPM_O_F_LOWER_LAYER;
+	}
 	auxmap__store_u32_param(auxmap, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -84,6 +93,8 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 {
 	dev_t dev = 0;
 	uint64_t ino = 0;
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
+	uint16_t fd_flags = 0;
 
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
@@ -107,7 +118,7 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 			auxmap__store_empty_param(auxmap);
 		}
 
-		extract__dev_and_ino_from_fd(ret, &dev, &ino);
+		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
 	}
 	else
 	{
