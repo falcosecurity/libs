@@ -166,12 +166,11 @@ int BPF_PROG(t1_sched_p_exec,
 	struct inode *exe_inode = extract__exe_inode_from_task(task);
 	struct file *exe_file = extract__exe_file_from_task(task);
 
-	enum ppm_overlay overlay;
 	if(extract__exe_writable(task, exe_inode))
 	{
 		flags |= PPM_EXE_WRITABLE;
 	}
-	overlay = extract__overlay_layer(exe_file);
+	enum ppm_overlay overlay = extract__overlay_layer(exe_file);
 	if(overlay == PPM_OVERLAY_UPPER)
 	{
 		flags |= PPM_EXE_UPPER_LAYER;

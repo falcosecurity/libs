@@ -300,7 +300,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int32_t fd_flags = 0;
+	int16_t fd_flags = 0;
 
 	/*
 	 * fd
@@ -2992,7 +2992,7 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int32_t fd_flags = 0;
+	int16_t fd_flags = 0;
 
 	/*
 	 * fd
@@ -3584,7 +3584,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int32_t fd_flags = 0;
+	int16_t fd_flags = 0;
 
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -5028,7 +5028,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int32_t fd_flags = 0;
+	int16_t fd_flags = 0;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -5201,7 +5201,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	int32_t mountfd = 0;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int32_t fd_flags = 0;
+	int16_t fd_flags = 0;
 
 	/* Parameter 1: ret (type: PT_FD) */
 	retval = syscall_get_return_value(current, args->regs);

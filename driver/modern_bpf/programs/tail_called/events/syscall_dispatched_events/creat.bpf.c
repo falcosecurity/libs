@@ -75,11 +75,11 @@ int BPF_PROG(creat_x,
 	dev_t dev = 0;
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
-	uint32_t fd_flags = 0;
+	uint16_t fd_flags = 0;
 
 	if(ret > 0)
 	{
-		extract__dev_ino_and_file_from_fd(ret, &dev, &ino, &ol);
+		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
 	}
 
 	/* Parameter 4: dev (type: PT_UINT32) */
@@ -88,7 +88,7 @@ int BPF_PROG(creat_x,
 	/* Parameter 5: ino (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, ino);
 
-	/* Parameter 6: fd_flags (type: PT_UINT32) */
+	/* Parameter 6: fd_flags (type: PT_FLAGS16) */
 	if(ol == PPM_OVERLAY_UPPER)
 	{
 		fd_flags |= PPM_FD_UPPER_LAYER;
@@ -97,7 +97,7 @@ int BPF_PROG(creat_x,
 	{
 		fd_flags |= PPM_FD_LOWER_LAYER;
 	}
-	auxmap__store_u32_param(auxmap, fd_flags);
+	auxmap__store_u16_param(auxmap, fd_flags);
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
