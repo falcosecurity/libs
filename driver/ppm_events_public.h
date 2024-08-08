@@ -103,7 +103,10 @@ or GPL2.txt for full copies of the license.
 #define PPM_O_LARGEFILE (1 << 11)
 #define PPM_O_CLOEXEC	(1 << 12)
 #define PPM_O_TMPFILE	(1 << 13)
+/* Flags added by syscall probe: */
 #define PPM_O_F_CREATED (1 << 14)	/* file created during the syscall */
+#define PPM_O_F_UPPER_LAYER (1 << 15) /* file is from upper layer */
+#define PPM_O_F_LOWER_LAYER (1 << 16) /* file is from upper layer */
 
 /*
  * File modes
