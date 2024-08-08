@@ -273,7 +273,13 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 
 	// we will not use the test scap engine here, but open the src plugin instead
 	// note: we configure the plugin to just emit 1 event through its open params
-	m_inspector.open_plugin(src_pl->name(), "1");
+	m_inspector.open_plugin(src_pl->name(), "1", sinsp_plugin_platform::SINSP_PLATFORM_HOSTINFO);
+
+#ifdef __linux__
+	// The LINUX_HOSTINFO platform type fills in machine_info, but only on Linux
+	// (non-Linux platforms have a stub implementation in scap.c)
+	ASSERT_GT(m_inspector.get_machine_info()->num_cpus, 0);
+#endif
 
 	auto evt = next_event();
 	ASSERT_NE(evt, nullptr);
@@ -310,7 +316,10 @@ TEST_F(sinsp_with_test_input, plugin_custom_source)
 
 	// we will not use the test scap engine here, but open the src plugin instead
 	// note: we configure the plugin to just emit 1 event through its open params
-	m_inspector.open_plugin(src_pl->name(), "1");
+	m_inspector.open_plugin(src_pl->name(), "1", sinsp_plugin_platform::SINSP_PLATFORM_GENERIC);
+
+	// the GENERIC platform type does not fill in machine_info
+	ASSERT_EQ(m_inspector.get_machine_info()->num_cpus, 0);
 
 	auto evt = next_event();
 	ASSERT_NE(evt, nullptr);
