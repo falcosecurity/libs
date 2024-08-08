@@ -1826,7 +1826,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	ASSERT(ring);
 
 	ring_info = ring->info;
-	ring_info->n_evts++;
 	if (event_datap->category == PPMC_CONTEXT_SWITCH && event_datap->event_info.context_data.sched_prev != NULL) {
 		if (event_type != PPME_SCAPEVENT_E && event_type != PPME_CPU_HOTPLUG_E) {
 			ASSERT(event_datap->event_info.context_data.sched_prev != NULL);
@@ -1851,13 +1850,14 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		 * This means that effectively those events would be lost.
 		 */
 		if (event_type != PPME_PAGE_FAULT_E) {
-			ring_info->n_preemptions++;
 			ASSERT(false);
 		}
+		ring_info->n_preemptions++;
 		atomic_dec(&ring->preempt_count);
 		put_cpu();
 		return res;
 	}
+	ring_info->n_evts++;
 
 	/*
 	 * Calculate the space currently available in the buffer
