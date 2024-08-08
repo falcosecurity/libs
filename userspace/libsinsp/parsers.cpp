@@ -2569,7 +2569,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	uint16_t etype = evt->get_type();
 	uint32_t dev = 0;
 	uint64_t ino = 0;
-	uint16_t fd_flags = 0;
 	bool lastevent_retrieved = false;
 
 	if(evt->get_tinfo() == nullptr)
@@ -2604,10 +2603,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 5)
 			{
 				ino = evt->get_param(5)->as<uint64_t>();
-				if (evt->get_num_params() > 6)
-				{
-					fd_flags = evt->get_param(6)->as<uint16_t>();
-				}
 			}
 		}
 
@@ -2623,11 +2618,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 
-				// keep PPM_O_F_CREATED flag if present
-				if (flags & PPM_O_F_CREATED)
-					flags = enter_evt_flags | PPM_O_F_CREATED;
-				else
-					flags = enter_evt_flags;
+				// keep flags added by the syscall exit probe if present
+				uint32_t mask = ~(PPM_O_F_CREATED - 1);
+				uint32_t added_flags = flags & mask;
+				flags = enter_evt_flags | added_flags;
 			}
 		}
 
@@ -2647,7 +2641,15 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(4)->as<uint64_t>();
 				if (evt->get_num_params() > 5)
 				{
-					fd_flags = evt->get_param(5)->as<uint16_t>();
+					uint16_t fd_flags = evt->get_param(5)->as<uint16_t>();
+					if (fd_flags & PPM_FD_UPPER_LAYER)
+					{
+						flags |= PPM_O_F_UPPER_LAYER;
+					}
+					else if (fd_flags & PPM_FD_LOWER_LAYER)
+					{
+						flags |= PPM_O_F_LOWER_LAYER;
+					}
 				}
 			}
 		}
@@ -2661,11 +2663,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 
-				// keep PPM_O_F_CREATED flag if present
-				if (flags & PPM_O_F_CREATED)
-					flags = enter_evt_flags | PPM_O_F_CREATED;
-				else
-					flags = enter_evt_flags;
+				flags |= enter_evt_flags;
 			}
 		}
 
@@ -2695,10 +2693,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 6)
 			{
 				ino = evt->get_param(6)->as<uint64_t>();
-				if (evt->get_num_params() > 7)
-				{
-					fd_flags = evt->get_param(7)->as<uint16_t>();
-				}
 			}
 		}
 		else if(etype == PPME_SYSCALL_OPENAT2_X && evt->get_num_params() > 6)
@@ -2707,10 +2701,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 7)
 			{
 				ino = evt->get_param(7)->as<uint64_t>();
-				if (evt->get_num_params() > 8)
-				{
-					fd_flags = evt->get_param(8)->as<uint16_t>();
-				}
 			}
 		}
 
@@ -2727,11 +2717,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			{
 				name = enter_evt_name;
 
-				// keep PPM_O_F_CREATED flag if present
-				if (flags & PPM_O_F_CREATED)
-					flags = enter_evt_flags | PPM_O_F_CREATED;
-				else
-					flags = enter_evt_flags;
+				// keep flags added by the syscall exit probe if present
+				uint32_t mask = ~(PPM_O_F_CREATED - 1);
+				uint32_t added_flags = flags & mask;
+				flags = enter_evt_flags | added_flags;
 
 				dirfd = enter_evt_dirfd;
 			}
@@ -2751,10 +2740,6 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			if (evt->get_num_params() > 5)
 			{
 				ino = evt->get_param(5)->as<uint64_t>();
-				if (evt->get_num_params() > 6)
-				{
-					fd_flags = evt->get_param(6)->as<uint16_t>();
-				}
 			}
 		}
 
@@ -2795,11 +2780,11 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi->m_ino = ino;
 		fdi->add_filename_raw(name);
 		fdi->add_filename(fullpath);
-		if(fd_flags & PPM_FD_UPPER_LAYER)
+		if(flags & PPM_O_F_UPPER_LAYER)
 		{
 			fdi->set_overlay_upper();
 		}
-		if(fd_flags & PPM_FD_LOWER_LAYER)
+		if(flags & PPM_O_F_LOWER_LAYER)
 		{
 			fdi->set_overlay_lower();
 		}
