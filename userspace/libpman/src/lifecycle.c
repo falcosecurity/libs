@@ -32,7 +32,6 @@ int pman_open_probe()
 
 static void pman_save_attached_progs()
 {
-	g_state.n_attached_progs = 0;
 	g_state.attached_progs_fds[0] = bpf_program__fd(g_state.skel->progs.sys_enter);
 	g_state.attached_progs_fds[1] = bpf_program__fd(g_state.skel->progs.sys_exit);
 	g_state.attached_progs_fds[2] = bpf_program__fd(g_state.skel->progs.sched_proc_exit);
@@ -48,18 +47,6 @@ static void pman_save_attached_progs()
 	g_state.attached_progs_fds[7] = bpf_program__fd(g_state.skel->progs.pf_kernel);
 #endif
 	g_state.attached_progs_fds[8] = bpf_program__fd(g_state.skel->progs.signal_deliver);
-
-	for(int j = 0; j < MODERN_BPF_PROG_ATTACHED_MAX; j++)
-	{
-		if(g_state.attached_progs_fds[j] < 1)
-		{
-			g_state.attached_progs_fds[j] = -1;
-		}
-		else
-		{
-			g_state.n_attached_progs++;
-		}
-	}
 }
 
 int pman_load_probe()
@@ -85,16 +72,19 @@ void pman_close_probe()
 	if(g_state.stats)
 	{
 		free(g_state.stats);
+		g_state.stats = NULL;
 	}
 
 	if(g_state.cons_pos)
 	{
 		free(g_state.cons_pos);
+		g_state.cons_pos = NULL;
 	}
 
 	if(g_state.prod_pos)
 	{
 		free(g_state.prod_pos);
+		g_state.prod_pos = NULL;
 	}
 
 	if(g_state.skel)

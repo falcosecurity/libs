@@ -31,6 +31,18 @@ extern "C" {
 #define METRIC_NAME_MAX 512
 
 //
+// Prefix names for per-CPU metrics (Used by legacy ebpf and modern ebpf)
+//
+#define N_EVENTS_PER_CPU_PREFIX "n_evts_cpu_"
+#define N_DROPS_PER_CPU_PREFIX "n_drops_cpu_"
+
+//
+// Prefix names for per-Device metrics (Used by kernel module)
+//
+#define N_EVENTS_PER_DEVICE_PREFIX "n_evts_dev_"
+#define N_DROPS_PER_DEVICE_PREFIX "n_drops_dev_"
+
+//
 // metrics_v2 flags
 //
 #define METRICS_V2_KERNEL_COUNTERS (1 << 0)

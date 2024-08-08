@@ -130,6 +130,8 @@ static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 			engine->m_attached_progs[j].fd = -1;
 			engine->m_attached_progs[j].efd = -1;
 		}
+		engine->m_stats = NULL;
+		engine->m_nstats = 0;
 	}
 	return engine;
 }
@@ -434,6 +436,7 @@ static int32_t load_maps(struct bpf_engine *handle, struct bpf_map_data *maps, i
 		   j == SCAP_FRAME_SCRATCH_MAP ||
 		   j == SCAP_TMP_SCRATCH_MAP)
 		{
+			// We allocate entries for all the available CPUs.
 			maps[j].def.max_entries = handle->m_ncpus;
 		}
 
@@ -852,27 +855,6 @@ static int load_all_progs(struct bpf_engine *handle)
 				return SCAP_FAILURE;
 			}
 		}
-	}
-	return SCAP_SUCCESS;
-}
-
-static int allocate_metrics_v2(struct bpf_engine *handle)
-{
-	int nprogs_attached = 0;
-	for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
-	{
-		if (handle->m_attached_progs[j].fd != -1)
-		{
-			nprogs_attached++;
-		}
-	}
-	handle->m_nstats = (BPF_MAX_KERNEL_COUNTERS_STATS + (nprogs_attached * BPF_MAX_LIBBPF_STATS));
-	handle->m_stats = (metrics_v2*)malloc(handle->m_nstats * sizeof(metrics_v2));
-
-	if(!handle->m_stats)
-	{
-		handle->m_nstats = 0;
-		return SCAP_FAILURE;
 	}
 	return SCAP_SUCCESS;
 }
@@ -1524,14 +1506,6 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	/* allocate_metrics_v2 dynamically based on number of valid m_attached_progs,
-	 * In the future, it may change when and how we perform the allocation.
-	 */
-	if(allocate_metrics_v2(handle) != SCAP_SUCCESS)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(populate_syscall_table_map(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
@@ -1622,6 +1596,8 @@ int32_t scap_bpf_load(
 		struct scap_device *dev = &devset->m_devs[online_idx];
 		dev->m_fd = pmu_fd;
 
+		// if some CPUs are not online some entries of the `SCAP_PERF_MAP` buffer will be empty.
+		// if the ebpf driver will try to access these empty entries it will face a `ENOENT`.
 		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &cpu_idx, &pmu_fd, BPF_ANY)) != 0)
 		{
 			return scap_errprintf(handle->m_lasterr, -ret, "unable to update the SCAP_PERF_MAP map for cpu '%d'", cpu_idx);
@@ -1712,20 +1688,18 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
+static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val)
+{
+	m->type = METRIC_VALUE_TYPE_U64;
+	m->flags = METRICS_V2_KERNEL_COUNTERS;
+	m->unit = METRIC_VALUE_UNIT_COUNT;
+	m->metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+	m->value.u64 = val;
+}
+
 const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	struct bpf_engine *handle = engine.m_handle;
-	int ret;
-	int fd;
-	int offset = 0; // offset in stats buffer
-	*nstats = 0;
-	uint32_t nstats_allocated = handle->m_nstats;
-	metrics_v2* stats = handle->m_stats;
-	if (!stats)
-	{
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
 
 	// we can't collect libbpf stats if bpf stats are not enabled
 	if (!(handle->m_flags & ENGINE_FLAG_BPF_STATS_ENABLED))
@@ -1733,26 +1707,57 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 		flags &= ~METRICS_V2_LIBBPF_STATS;
 	}
 
-	if ((flags & METRICS_V2_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS <= nstats_allocated))
+	*rc = SCAP_FAILURE;
+	*nstats = 0;
+
+	// If it is the first time we call this function, we allocate the stats 
+	if(handle->m_stats == NULL)
 	{
-		/* KERNEL SIDE STATS COUNTERS */
-		for(int stat = 0; stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
+		int nprogs_attached = 0;
+		for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
 		{
-			stats[stat].type = METRIC_VALUE_TYPE_U64;
-			stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
-			stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
-			stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
-			stats[stat].value.u64 = 0;
-			strlcpy(stats[stat].name, bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
+			if (handle->m_attached_progs[j].fd != -1)
+			{
+				nprogs_attached++;
+			}
 		}
 
+		// At the moment for each available CPU we want:
+		// - the number of events.
+		// - the number of drops.
+		uint32_t per_cpu_stats = handle->m_ncpus* 2;
+
+		handle->m_nstats = BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats + (nprogs_attached * BPF_MAX_LIBBPF_STATS);
+		handle->m_stats = (metrics_v2*)calloc(handle->m_nstats, sizeof(metrics_v2));
+		if(!handle->m_stats)
+		{
+			handle->m_nstats = 0;
+			*rc = scap_errprintf(handle->m_lasterr, -1, "unable to allocate memory for 'metrics_v2' array");
+			return NULL;
+		}
+	}
+
+	// offset in stats buffer
+	int offset = 0;
+	metrics_v2* stats = handle->m_stats;
+
+	/* KERNEL COUNTER STATS */
+	if ((flags & METRICS_V2_KERNEL_COUNTERS))
+	{
+		for(uint32_t stat = 0; stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
+		{
+			set_u64_monotonic_kernel_counter(&(stats[stat]), 0);
+			strlcpy(stats[stat].name, (char*)bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
+		}
+		
+		struct scap_bpf_per_cpu_state v = {};
+		uint32_t pos = BPF_MAX_KERNEL_COUNTERS_STATS;
 		for(int cpu = 0; cpu < handle->m_ncpus; cpu++)
 		{
-			struct scap_bpf_per_cpu_state v;
-			if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &cpu, &v)))
+			if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &cpu, &v) < 0)
 			{
-				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error looking up local state %d", cpu);
-				return stats;
+				*rc = scap_errprintf(handle->m_lasterr, errno, "Error looking up local state %d", cpu);
+				return NULL;
 			}
 			stats[BPF_N_EVTS].value.u64 += v.n_evts;
 			stats[BPF_N_DROPS_BUFFER_TOTAL].value.u64 += v.n_drops_buffer;
@@ -1777,8 +1782,18 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 				v.n_drops_scratch_map + \
 				v.n_drops_pf + \
 				v.n_drops_bug;
+
+			// We set the num events for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[pos]), v.n_evts);
+			snprintf(stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", cpu);
+			pos++;
+
+			// We set the drops for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[pos]), v.n_drops_buffer + v.n_drops_scratch_map + v.n_drops_pf + v.n_drops_bug);
+			snprintf(stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", cpu);
+			pos++;
 		}
-		offset = BPF_MAX_KERNEL_COUNTERS_STATS;
+		offset = pos;
 	}
 
 	/* LIBBPF STATS */
@@ -1794,6 +1809,7 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 	 */
 	if ((flags & METRICS_V2_LIBBPF_STATS))
 	{
+		int fd = 0;
 		for(int bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
 		{
 			fd = handle->m_attached_progs[bpf_prog].fd;
@@ -1804,17 +1820,19 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 			}
 			struct bpf_prog_info info = {};
 			__u32 len = sizeof(info);
-			if((ret = bpf_obj_get_info_by_fd(fd, &info, &len)))
+			if(bpf_obj_get_info_by_fd(fd, &info, &len))
 			{
-				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error getting bpf prog info for fd %d", fd);
+				/* no info for that prog, it seems like a bug but we can go on */
 				continue;
 			}
 
 			for(int stat = 0; stat < BPF_MAX_LIBBPF_STATS; stat++)
 			{
-				if (offset > nstats_allocated - 1)
+				if (offset >= handle->m_nstats)
 				{
-					break;
+					/* This should never happen, we are doing something wrong */
+					*rc = scap_errprintf(handle->m_lasterr, -1, "no enough space for all the stats");
+					return NULL;
 				}
 				stats[offset].type = METRIC_VALUE_TYPE_U64;
 				stats[offset].flags = METRICS_V2_LIBBPF_STATS;

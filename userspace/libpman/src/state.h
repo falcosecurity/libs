@@ -59,8 +59,8 @@ struct internal_state
 	/* Stats v2 utilities */
 	int32_t attached_progs_fds[MODERN_BPF_PROG_ATTACHED_MAX]; /* file descriptors of attached programs, used to
 								     collect stats */
-	uint16_t n_attached_progs;				  /* number of attached progs */
 	struct metrics_v2* stats;				  /* array of stats collected by libpman */
+	uint32_t nstats;	/* number of stats */
 	char* log_buf; /* buffer used to store logs before sending them to the log_fn */
 	size_t log_buf_size; /* size of the log buffer */
 	falcosecurity_log_fn log_fn;
