@@ -26,7 +26,6 @@ limitations under the License.
 #include <libscap/scap_api_version.h>
 #include <libscap/scap_platform.h>
 
-#define SCAP_HANDLE_T void
 #include <libscap/scap_engines.h>
 
 #ifdef __linux__

@@ -22,10 +22,6 @@ limitations under the License.
 extern "C" {
 #endif
 
-#ifndef SCAP_HANDLE_T
-#define SCAP_HANDLE_T void
-#endif
-
 #include <libscap/linux/scap_cgroup.h>
 #include <libscap/scap_platform_impl.h>
 #include <libscap/engine_handle.h>
