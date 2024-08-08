@@ -404,7 +404,7 @@ FILLER(sys_open_x, true)
 	long retval;
 	int res;
 	struct file *file = NULL;
-	unsigned int fd_flags = 0;
+	unsigned short fd_flags = 0;
 
 	/* Parameter 1: ret (type: PT_FD) */
 	retval = bpf_syscall_get_retval(data->ctx);
@@ -430,7 +430,7 @@ FILLER(sys_open_x, true)
 	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
 
 	/* Parameter 5: dev (type: PT_UINT32) */
 	res = bpf_push_u32_to_ring(data, (uint32_t)dev);
@@ -440,7 +440,7 @@ FILLER(sys_open_x, true)
 	res = bpf_push_u64_to_ring(data, (uint64_t)ino);
 	CHECK_RES(res);
 
-	/* Parameter 7: fd_flags (type: PT_UINT32) */
+	/* Parameter 7: fd_flags (type: PT_FLAGS16) */
 	if (likely(file))
 	{
 		enum ppm_overlay ol = get_overlay_layer(file);
@@ -453,7 +453,7 @@ FILLER(sys_open_x, true)
 			fd_flags |= PPM_FD_LOWER_LAYER;
 		}
 	}
-	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
+	return bpf_push_u16_to_ring(data, (uint16_t)fd_flags);
 }
 
 FILLER(sys_read_e, true)
@@ -3215,7 +3215,7 @@ FILLER(sys_openat_x, true)
 	int32_t fd;
 	int res;
 	struct file *file = NULL;
-	unsigned int fd_flags = 0;
+	unsigned short fd_flags = 0;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
@@ -3257,7 +3257,7 @@ FILLER(sys_openat_x, true)
 	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
 
 	/*
 	 * Device
@@ -3286,7 +3286,7 @@ FILLER(sys_openat_x, true)
 			fd_flags |= PPM_FD_LOWER_LAYER;
 		}
 	}
-	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
+	return bpf_push_u16_to_ring(data, (uint16_t)fd_flags);
 }
 
 FILLER(sys_openat2_e, true)
@@ -3368,7 +3368,7 @@ FILLER(sys_openat2_x, true)
 	int32_t fd;
 	int res;
 	struct file *file = NULL;
-	unsigned int fd_flags = 0;
+	unsigned short fd_flags = 0;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -3434,7 +3434,7 @@ FILLER(sys_openat2_x, true)
 	res = bpf_push_u32_to_ring(data, resolve);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
 
 	/*
 	 * dev
@@ -3463,7 +3463,7 @@ FILLER(sys_openat2_x, true)
 			fd_flags |= PPM_FD_LOWER_LAYER;
 		}
 	}
-	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
+	return bpf_push_u16_to_ring(data, (uint16_t)fd_flags);
 }
 
 FILLER(sys_open_by_handle_at_x, true)
@@ -3512,8 +3512,8 @@ FILLER(sys_open_by_handle_at_x, true)
 	res = bpf_push_u64_to_ring(data, 0);
 	CHECK_RES(res);
 
-	/* Parameter 7: fd_flags (type: PT_UINT32) */
-	return bpf_push_u32_to_ring(data, 0);
+	/* Parameter 7: fd_flags (type: PT_FLAGS16) */
+	return bpf_push_u16_to_ring(data, 0);
 
 }
 
@@ -3523,9 +3523,9 @@ FILLER(open_by_handle_at_x_extra_tail_1, true)
 	struct file *f = NULL;
 	unsigned long dev = 0;
 	unsigned long ino = 0;
-	unsigned int fd_flags = 0;
+	unsigned short fd_flags = 0;
 
-	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &f);
+	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &f);
 
 	if(f == NULL)
 	{
@@ -3551,7 +3551,7 @@ FILLER(open_by_handle_at_x_extra_tail_1, true)
 	res = bpf_push_u64_to_ring(data, ino);
 	CHECK_RES(res);
 
-	/* Parameter 7: fd_flags (type: PT_UINT32) */
+	/* Parameter 7: fd_flags (type: PT_FLAGS16) */
 	if (likely(f))
 	{
 		enum ppm_overlay ol = get_overlay_layer(f);
@@ -3564,7 +3564,7 @@ FILLER(open_by_handle_at_x_extra_tail_1, true)
 			fd_flags |= PPM_FD_LOWER_LAYER;
 		}
 	}
-	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
+	return bpf_push_u16_to_ring(data, (uint16_t)fd_flags);
 }
 
 FILLER(sys_io_uring_setup_x, true)
@@ -4646,7 +4646,7 @@ FILLER(sys_creat_x, true)
 	long retval;
 	int res;
 	struct file *file = NULL;
-	unsigned int fd_flags = 0;
+	unsigned short fd_flags = 0;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
@@ -4667,7 +4667,7 @@ FILLER(sys_creat_x, true)
 	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
-	bpf_get_fd_dev_ino_file(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
 
 	/*
 	 * Device
@@ -4696,7 +4696,7 @@ FILLER(sys_creat_x, true)
 			fd_flags |= PPM_FD_LOWER_LAYER;
 		}
 	}
-	return bpf_push_u32_to_ring(data, (uint32_t)fd_flags);
+	return bpf_push_u16_to_ring(data, (uint16_t)fd_flags);
 }
 
 FILLER(sys_pipe_x, true)
@@ -4724,13 +4724,10 @@ FILLER(sys_pipe_x, true)
 	CHECK_RES(res);
 
 	unsigned long ino = 0;
-	/* Not used, we use it just to call `bpf_get_fd_dev_ino_file` */
-	unsigned long dev = 0;
-	struct file *file = NULL;
 	/* On success, pipe returns `0` */
 	if(retval == 0)
 	{
-		bpf_get_fd_dev_ino_file(pipefd[0], &dev, &ino, &file);
+		bpf_get_ino_from_fd(pipefd[0], &ino);
 	}
 
 	/* Parameter 4: ino (type: PT_UINT64) */
@@ -4762,13 +4759,10 @@ FILLER(sys_pipe2_x, true)
 	CHECK_RES(res);
 
 	unsigned long ino = 0;
-	/* Not used, we use it just to call `bpf_get_fd_dev_ino_file` */
-	unsigned long dev = 0;
-	struct file *file = NULL;
 	/* On success, pipe returns `0` */
 	if(retval == 0)
 	{
-		bpf_get_fd_dev_ino_file(pipefd[0], &dev, &ino, &file);
+		bpf_get_ino_from_fd(pipefd[0], &ino);
 	}
 
 	/* Parameter 4: ino (type: PT_UINT64) */
