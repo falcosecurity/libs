@@ -169,13 +169,9 @@ target_link_libraries(sinsp
 			"${RE2_LIB}"
 )
 
-set(SINSP_PKGCONFIG_LIBRARIES
-	scap
-	"${ZLIB_LIB}"
-	"${CURL_LIBRARIES}"
-	"${JSONCPP_LIB}"
-	"${RE2_LIB}"
-)
+set(SINSP_PKGCONFIG_LIBRARIES)
+set(SINSP_PKGCONFIG_REQUIRES jsoncpp)
+set(SINSP_PKGCONFIG_REQUIRES_PRIVATE libcurl re2)
 
 if(NOT EMSCRIPTEN)
 	target_link_libraries(sinsp
@@ -184,7 +180,8 @@ if(NOT EMSCRIPTEN)
 		PRIVATE
 		"${TBB_LIB}"
 	)
-	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${CARES_LIB}")
+	list(APPEND SINSP_PKGCONFIG_REQUIRES libcares)
+	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
 endif()
 
 if(USE_BUNDLED_VALIJSON)
@@ -248,14 +245,12 @@ if(NOT WIN32)
 						"${PROTOBUF_LIB}"
 						"${CARES_LIB}"
 			)
-			list(APPEND SINSP_PKGCONFIG_LIBRARIES
-						"${GRPC_LIBRARIES}"
-						"${GRPCPP_LIB}"
-						"${GRPC_LIB}"
-						"${GPR_LIB}"
-						"${PROTOBUF_LIB}"
-						"${CARES_LIB}"
-			)
+			list(APPEND SINSP_PKGCONFIG_REQUIRES
+				gpr
+				grpc
+				grpc++
+				protobuf
+				libcares)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				target_link_libraries(sinsp INTERFACE rt anl)
@@ -269,7 +264,7 @@ if(NOT WIN32)
 	endif() # NOT APPLE
 
 	target_link_libraries(sinsp INTERFACE "${OPENSSL_LIBRARIES}")
-	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${OPENSSL_LIBRARIES}")
+	list(APPEND SINSP_PKGCONFIG_REQUIRES libcrypto libssl)
 
 	target_link_libraries(sinsp INTERFACE dl pthread)
 	list(APPEND SINSP_PKGCONFIG_LIBRARIES dl pthread)
@@ -306,41 +301,17 @@ if(NOT DEFINED SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR)
 endif()
 add_definitions(-DSINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR="${SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR}")
 
-# Build our pkg-config "Libs:" flags. For now, loop over SINSP_PKGCONFIG_LIBRARIES. If
-# we ever start using pkg_search_module or pkg_check_modules in cmake/modules
-# we could add each module to our "Requires:" line instead. We might need to
-# expand this to use some of the techniques in
-# https://github.com/curl/curl/blob/curl-7_84_0/CMakeLists.txt#L1539
-set(SINSP_PKG_CONFIG_LIBS)
-set(SINSP_PKG_CONFIG_LIBDIRS "")
-foreach(sinsp_lib ${SINSP_PKGCONFIG_LIBRARIES})
-	if(${sinsp_lib} MATCHES "^-")
-		# We have a flag. Pass it through unchanged.
-		list(APPEND SINSP_PKG_CONFIG_LIBS ${sinsp_lib})
-	elseif(${sinsp_lib} MATCHES "/")
-		# We have a path. Convert it to -L<dir> + -l<lib>.
-		get_filename_component(sinsp_lib_dir ${sinsp_lib} DIRECTORY)
-		list(APPEND SINSP_PKG_CONFIG_LIBDIRS -L${sinsp_lib_dir})
-		get_filename_component(sinsp_lib_base ${sinsp_lib} NAME_WE)
-		string(REGEX REPLACE "^lib" "" sinsp_lib_base ${sinsp_lib_base})
-		list(APPEND SINSP_PKG_CONFIG_LIBS -l${sinsp_lib_base})
-	elseif(${sinsp_lib} STREQUAL "scap")
-		# We require libscap.pc, so skip it.
-	else()
-		# Assume we have a plain library name. Prefix it with "-l".
-		list(APPEND SINSP_PKG_CONFIG_LIBS -l${sinsp_lib})
-	endif()
+list(REMOVE_DUPLICATES SINSP_PKGCONFIG_LIBRARIES)
+list(REMOVE_DUPLICATES SINSP_PKGCONFIG_REQUIRES)
+list(REMOVE_DUPLICATES SINSP_PKGCONFIG_REQUIRES_PRIVATE)
+
+set(SINSP_LINK_FLAGS)
+foreach(sinsp_link_library ${SINSP_PKGCONFIG_LIBRARIES})
+	list(APPEND SINSP_LINK_FLAGS "-l${sinsp_link_library}")
 endforeach()
 
-# Build our pkg-config "Cflags:" flags.
-set(SINSP_PKG_CONFIG_INCLUDES "")
-foreach(sinsp_include_directory ${LIBSINSP_INCLUDE_DIRS})
-	list(APPEND SINSP_PKG_CONFIG_INCLUDES -I${sinsp_include_directory})
-endforeach()
+string(REPLACE ";" " " LIBSINSP_LINK_FLAGS "${SINSP_LINK_FLAGS}")
+string(REPLACE ";" " " LIBSINSP_REQUIRES "${SINSP_PKGCONFIG_REQUIRES}")
+string(REPLACE ";" " " LIBSINSP_REQUIRES_PRIVATE "${SINSP_PKGCONFIG_REQUIRES_PRIVATE}")
 
-string(REPLACE ";" " " SINSP_PKG_CONFIG_LIBS "${SINSP_PKG_CONFIG_LIBS}")
-list(REMOVE_DUPLICATES SINSP_PKG_CONFIG_LIBDIRS)
-string(REPLACE ";" " " SINSP_PKG_CONFIG_LIBDIRS "${SINSP_PKG_CONFIG_LIBDIRS}")
-list(REMOVE_DUPLICATES SINSP_PKG_CONFIG_INCLUDES)
-string(REPLACE ";" " " SINSP_PKG_CONFIG_INCLUDES "${SINSP_PKG_CONFIG_INCLUDES}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libsinsp.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libsinsp.pc @ONLY)
