@@ -300,7 +300,6 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int16_t fd_flags = 0;
 
 	/*
 	 * fd
@@ -317,6 +316,8 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
+
 	/*
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
@@ -325,6 +326,15 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	scap_flags = open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	get_fd_fmode_created(retval, &scap_flags);
+	ol = ppm_get_overlay_layer(file);
+	if (ol == PPM_OVERLAY_UPPER)
+	{
+		scap_flags |= PPM_O_F_UPPER_LAYER;
+	}
+	else if (ol == PPM_OVERLAY_LOWER)
+	{
+		scap_flags |= PPM_O_F_LOWER_LAYER;
+	}
 	res = val_to_ring(args, scap_flags, 0, false, 0);
 	CHECK_RES(res);
 
@@ -334,8 +344,6 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 2, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	CHECK_RES(res);
-
-	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 *  dev
@@ -347,24 +355,6 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 *  ino
 	 */
 	res = val_to_ring(args, ino, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * fd_flags
-	 */
-	if (likely(file))
-	{
-		ol = ppm_get_overlay_layer(file);
-		if (ol == PPM_OVERLAY_UPPER)
-		{
-			fd_flags |= PPM_FD_UPPER_LAYER;
-		}
-		else if (ol == PPM_OVERLAY_LOWER)
-		{
-			fd_flags |= PPM_FD_LOWER_LAYER;
-		}
-	}
-	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -3031,17 +3021,14 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	/*
 	 * fd_flags
 	 */
-	if (likely(file))
+	ol = ppm_get_overlay_layer(file);
+	if (ol == PPM_OVERLAY_UPPER)
 	{
-		ol = ppm_get_overlay_layer(file);
-		if (ol == PPM_OVERLAY_UPPER)
-		{
-			fd_flags |= PPM_FD_UPPER_LAYER;
-		}
-		else if (ol == PPM_OVERLAY_LOWER)
-		{
-			fd_flags |= PPM_FD_LOWER_LAYER;
-		}
+		fd_flags |= PPM_FD_UPPER_LAYER;
+	}
+	else if (ol == PPM_OVERLAY_LOWER)
+	{
+		fd_flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
@@ -3584,7 +3571,6 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int16_t fd_flags = 0;
 
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
@@ -3608,6 +3594,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 	/*
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
@@ -3616,6 +3603,15 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	scap_flags = open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	get_fd_fmode_created(retval, &scap_flags);
+	ol = ppm_get_overlay_layer(file);
+	if (ol == PPM_OVERLAY_UPPER)
+	{
+		scap_flags |= PPM_O_F_UPPER_LAYER;
+	}
+	else if (ol == PPM_OVERLAY_LOWER)
+	{
+		scap_flags |= PPM_O_F_LOWER_LAYER;
+	}
 	res = val_to_ring(args, scap_flags, 0, false, 0);
 	CHECK_RES(res);
 	/*
@@ -3624,7 +3620,6 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 3, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	CHECK_RES(res);
-	get_fd_dev_ino_file(retval, &dev, &ino, &file);
 
 	/*
 	 *  dev
@@ -3635,24 +3630,6 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 *  ino
 	 */
 	res = val_to_ring(args, ino, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * fd_flags
-	 */
-	if (likely(file))
-	{
-		ol = ppm_get_overlay_layer(file);
-		if (ol == PPM_OVERLAY_UPPER)
-		{
-			fd_flags |= PPM_FD_UPPER_LAYER;
-		}
-		else if (ol == PPM_OVERLAY_LOWER)
-		{
-			fd_flags |= PPM_FD_LOWER_LAYER;
-		}
-	}
-	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -5028,7 +5005,6 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	int64_t retval;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int16_t fd_flags = 0;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -5073,12 +5049,24 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	mode = 0;
 	resolve = 0;
 #endif
+
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
+
 	/*
 	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
 	/* update flags if file is created */
 	get_fd_fmode_created(retval, &flags);
+	ol = ppm_get_overlay_layer(file);
+	if (ol == PPM_OVERLAY_UPPER)
+	{
+		flags |= PPM_O_F_UPPER_LAYER;
+	}
+	else if (ol == PPM_OVERLAY_LOWER)
+	{
+		flags |= PPM_O_F_LOWER_LAYER;
+	}
 	res = val_to_ring(args, flags, 0, true, 0);
 	CHECK_RES(res);
 
@@ -5096,8 +5084,6 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, resolve, 0, true, 0);
 	CHECK_RES(res);
 
-	get_fd_dev_ino_file(retval, &dev, &ino, &file);
-
 	/*
 	 *  dev
 	 */
@@ -5108,24 +5094,6 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 *  ino
 	 */
 	res = val_to_ring(args, ino, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * fd_flags
-	 */
-	if (likely(file))
-	{
-		ol = ppm_get_overlay_layer(file);
-		if (ol == PPM_OVERLAY_UPPER)
-		{
-			fd_flags |= PPM_FD_UPPER_LAYER;
-		}
-		else if (ol == PPM_OVERLAY_LOWER)
-		{
-			fd_flags |= PPM_FD_LOWER_LAYER;
-		}
-	}
-	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -5201,7 +5169,6 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	int32_t mountfd = 0;
 	struct file *file = NULL;
 	enum ppm_overlay ol;
-	int16_t fd_flags = 0;
 
 	/* Parameter 1: ret (type: PT_FD) */
 	retval = syscall_get_return_value(current, args->regs);
@@ -5218,11 +5185,22 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, (int64_t)mountfd, 0, false, 0);
 	CHECK_RES(res);
 
+	get_fd_dev_ino_file(retval, &dev, &ino, &file);
+
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	flags = open_flags_to_scap(val);
 	/* update flags if file is created */
 	get_fd_fmode_created(retval, &flags);
+	ol = ppm_get_overlay_layer(file);
+	if (ol == PPM_OVERLAY_UPPER)
+	{
+		flags |= PPM_O_F_UPPER_LAYER;
+	}
+	else if (ol == PPM_OVERLAY_LOWER)
+	{
+		flags |= PPM_O_F_LOWER_LAYER;
+	}
 	res = val_to_ring(args, flags, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5249,32 +5227,12 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
 	CHECK_RES(res);
 
-	get_fd_dev_ino_file(retval, &dev, &ino, &file);
-
 	/* Parameter 5: dev (type: PT_UINT32) */
 	res = val_to_ring(args, dev, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 6: ino (type: PT_UINT64) */
 	res = val_to_ring(args, ino, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * fd_flags
-	 */
-	if (likely(file))
-	{
-		ol = ppm_get_overlay_layer(file);
-		if (ol == PPM_OVERLAY_UPPER)
-		{
-			fd_flags |= PPM_FD_UPPER_LAYER;
-		}
-		else if (ol == PPM_OVERLAY_LOWER)
-		{
-			fd_flags |= PPM_FD_LOWER_LAYER;
-		}
-	}
-	res = val_to_ring(args, fd_flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

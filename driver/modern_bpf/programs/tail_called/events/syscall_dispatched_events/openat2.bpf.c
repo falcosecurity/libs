@@ -79,6 +79,15 @@ int BPF_PROG(openat2_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	dev_t dev = 0;
+	uint64_t ino = 0;
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
+
+	if(ret > 0)
+	{
+		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
+	}
+
 	/* Parameter 1: fd (type: PT_FD) */
 	auxmap__store_s64_param(auxmap, ret);
 
@@ -103,6 +112,14 @@ int BPF_PROG(openat2_x,
 	uint32_t flags = open_flags_to_scap(how.flags);
 	/* update flags if file is created */
 	flags |= extract__fmode_created_from_fd(ret);
+	if(ol == PPM_OVERLAY_UPPER)
+	{
+		flags |= PPM_O_F_UPPER_LAYER;
+	}
+	else if(ol == PPM_OVERLAY_LOWER)
+	{
+		flags |= PPM_O_F_LOWER_LAYER;
+	}
 
 	auxmap__store_u32_param(auxmap, flags);
 
@@ -112,32 +129,11 @@ int BPF_PROG(openat2_x,
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
 	auxmap__store_u32_param(auxmap, openat2_resolve_to_scap(how.resolve));
 
-	dev_t dev = 0;
-	uint64_t ino = 0;
-	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
-	uint16_t fd_flags = 0;
-
-	if(ret > 0)
-	{
-		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
-	}
-
 	/* Parameter 7: dev (type: PT_UINT32) */
 	auxmap__store_u32_param(auxmap, dev);
 
 	/* Parameter 8: ino (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, ino);
-
-	/* Parameter 9: fd_flags (type: PT_FLAGS16) */
-	if(ol == PPM_OVERLAY_UPPER)
-	{
-		fd_flags |= PPM_FD_UPPER_LAYER;
-	}
-	else if(ol == PPM_OVERLAY_LOWER)
-	{
-		fd_flags |= PPM_FD_LOWER_LAYER;
-	}
-	auxmap__store_u16_param(auxmap, fd_flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
