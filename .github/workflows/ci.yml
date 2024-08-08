@@ -152,8 +152,6 @@ jobs:
 
   build-shared-libs-macos-amd64:
     name: build-shared-libs-macos-amd64 😨
-    strategy:
-      fail-fast: false
     runs-on: macos-latest
     steps:
       - name: Checkout Libs ⤵️
