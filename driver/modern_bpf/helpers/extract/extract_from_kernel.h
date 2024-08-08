@@ -903,8 +903,9 @@ static __always_inline bool extract__exe_from_memfd(struct file *file)
  * @param fd generic file descriptor.
  * @param dev pointer to the device number we have to fill.
  * @param ino pointer to the inode number we have to fill.
+ * @param ol pointer to the overlay layer we have to fill.
  */
-static __always_inline void extract__dev_ino_and_file_from_fd(int32_t fd, dev_t *dev, uint64_t *ino, enum ppm_overlay *ol)
+static __always_inline void extract__dev_ino_overlay_from_fd(int32_t fd, dev_t *dev, uint64_t *ino, enum ppm_overlay *ol)
 {
 	struct file *f = extract__file_struct_from_fd(fd);
 	if(!f)

@@ -2569,7 +2569,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	uint16_t etype = evt->get_type();
 	uint32_t dev = 0;
 	uint64_t ino = 0;
-	uint32_t fd_flags = 0;
+	uint16_t fd_flags = 0;
 	bool lastevent_retrieved = false;
 
 	if(evt->get_tinfo() == nullptr)
@@ -2606,7 +2606,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(5)->as<uint64_t>();
 				if (evt->get_num_params() > 6)
 				{
-					fd_flags = evt->get_param(6)->as<uint32_t>();
+					fd_flags = evt->get_param(6)->as<uint16_t>();
 				}
 			}
 		}
@@ -2647,7 +2647,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(4)->as<uint64_t>();
 				if (evt->get_num_params() > 5)
 				{
-					fd_flags = evt->get_param(5)->as<uint32_t>();
+					fd_flags = evt->get_param(5)->as<uint16_t>();
 				}
 			}
 		}
@@ -2697,7 +2697,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(6)->as<uint64_t>();
 				if (evt->get_num_params() > 7)
 				{
-					fd_flags = evt->get_param(7)->as<uint32_t>();
+					fd_flags = evt->get_param(7)->as<uint16_t>();
 				}
 			}
 		}
@@ -2709,7 +2709,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(7)->as<uint64_t>();
 				if (evt->get_num_params() > 8)
 				{
-					fd_flags = evt->get_param(8)->as<uint32_t>();
+					fd_flags = evt->get_param(8)->as<uint16_t>();
 				}
 			}
 		}
@@ -2753,7 +2753,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(5)->as<uint64_t>();
 				if (evt->get_num_params() > 6)
 				{
-					fd_flags = evt->get_param(6)->as<uint32_t>();
+					fd_flags = evt->get_param(6)->as<uint16_t>();
 				}
 			}
 		}

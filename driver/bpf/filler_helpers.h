@@ -280,7 +280,28 @@ static __always_inline unsigned long bpf_encode_dev(dev_t dev)
 	return (minor & 0xff) | (major << 8) | ((minor & ~0xff) << 12);
 }
 
-static __always_inline void bpf_get_fd_dev_ino_file(int fd, unsigned long *dev, unsigned long *ino, struct file **file)
+static __always_inline void bpf_get_ino_from_fd(int fd, unsigned long *ino)
+{
+	struct super_block *sb;
+	struct inode *inode;
+	struct file *file;
+	dev_t kdev;
+
+	if (fd < 0)
+		return;
+
+	file = bpf_fget(fd);
+	if (!file)
+		return;
+
+	inode = _READ(file->f_inode);
+	if (!inode)
+		return;
+
+	*ino = _READ(inode->i_ino);
+}
+
+static __always_inline void bpf_get_dev_ino_file_from_fd(int fd, unsigned long *dev, unsigned long *ino, struct file **file)
 {
 	struct super_block *sb;
 	struct inode *inode;
