@@ -76,6 +76,13 @@ struct scap_platform_vtable
 	void (*free_platform)(struct scap_platform* platform);
 };
 
+struct scap_metrics_vtable
+{
+	void (*get_rss_vsz_pss_total_memory_and_open_fds)(uint32_t *rss, uint32_t *vsz, uint32_t *pss, uint64_t *host_memory_used, uint64_t *host_open_fds);
+	void (*get_cpu_usage_and_total_procs)(double start_time, double *cpu_usage_perc, double *host_cpu_usage_perc, uint32_t *host_procs_running);
+	void (*get_container_memory_used)(uint64_t *container_memory_used);
+};
+
 // the parts of the platform struct shared across all implementations
 // this *must* be the first member of all implementations
 // (the pointers are cast back&forth between the two)
@@ -89,6 +96,8 @@ struct scap_platform
 	scap_agent_info m_agent_info;
 	scap_machine_info m_machine_info;
 	struct ppm_proclist_info* m_driver_procinfo;
+
+	const struct scap_metrics_vtable* m_metrics_vtable;
 };
 
 #ifdef __cplusplus

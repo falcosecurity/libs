@@ -301,11 +301,6 @@ if (BUILD_LIBSINSP_EXAMPLES)
 	add_subdirectory(sinsp_debug)
 endif()
 
-if(NOT DEFINED SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR)
-	set(SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR "AGENT_CGROUP_MEM_PATH")
-endif()
-add_definitions(-DSINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR="${SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR}")
-
 # Build our pkg-config "Libs:" flags. For now, loop over SINSP_PKGCONFIG_LIBRARIES. If
 # we ever start using pkg_search_module or pkg_check_modules in cmake/modules
 # we could add each module to our "Requires:" line instead. We might need to
