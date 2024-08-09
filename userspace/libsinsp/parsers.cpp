@@ -2732,8 +2732,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			}
 		}
 
-		// since open_by_handle_at returns an absolute path we will always start at /
-		sdir = "";
+		int64_t dirfd_mountfd = evt->get_param(1)->as<int64_t>(); // mountfd
+		sdir = parse_dirfd(evt, name, dirfd_mountfd);
 	}
 	else
 	{

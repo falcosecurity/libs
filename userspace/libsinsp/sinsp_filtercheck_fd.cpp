@@ -259,6 +259,15 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, uint32_t
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
 		{
 			m_tstr = evt->get_param(3)->as<std::string>();
+			int64_t dirfd = evt->get_param(1)->as<int64_t>(); // mountfd
+			
+			std::string sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+
+			if(!fd_nameraw)
+			{
+				// fullpath
+				m_tstr = sinsp_utils::concatenate_paths(sdir, m_tstr); // here we'd like a string
+			}
 
 			if(sanitize_strings)
 			{

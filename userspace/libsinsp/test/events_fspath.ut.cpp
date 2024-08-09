@@ -53,7 +53,9 @@ protected:
 	const char *rel_linkpath = "tmp/linkpath";
 	const char *rel_targetpath = "tmp/targetpath";
 	const char *resolved_rel_linkpath = "/root/tmp/linkpath";
+	const char *resolved_rel_linkpath_at = "<UNKNOWN>tmp/linkpath";
 	const char *resolved_rel_targetpath = "/root/tmp/targetpath";
+	const char *resolved_rel_targetpath_at = "<UNKNOWN>tmp/targetpath";
 	const char *mountpath = "/mnt/cdrom";
 	uint32_t mode = S_IFREG;
 	int64_t res = 0;
@@ -536,8 +538,8 @@ TEST_F(fspath, symlinkat)
 TEST_F(fspath, symlinkat_relative)
 {
 	test_enter(PPME_SYSCALL_SYMLINKAT_E, 0);
-	test_exit_source_target(resolved_rel_linkpath, rel_linkpath,
-				    resolved_rel_targetpath, rel_targetpath,
+	test_exit_source_target(resolved_rel_linkpath_at, rel_linkpath,
+				    resolved_rel_targetpath_at, rel_targetpath,
 				    PPME_SYSCALL_SYMLINKAT_X, 4, res, rel_targetpath, linkdirfd, rel_linkpath);
 }
 
