@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2024 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,22 +18,22 @@ limitations under the License.
 
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_cycledumper.h>
-
+#include <helpers/scap_file_helpers.h>
 #include <gtest/gtest.h>
 
 using namespace std;
 
 #ifdef __x86_64__
-TEST(savefile, proclist)
+TEST(scap_file, filter)
 {
-	sinsp inspector;
-	inspector.open_savefile(RESOURCE_DIR "/sample.scap");
+	{
+		// Check the dimension of the table before the filtering
+		sinsp inspector;
+		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
 
-	ASSERT_EQ(inspector.m_thread_manager->get_thread_count(), 94);
-}
+		ASSERT_EQ(inspector.m_thread_manager->get_thread_count(), 94);
+	}
 
-TEST(savefile, filter)
-{
 	char filtered_scap[] = "filtered.XXXXXX.scap";
 
 	int filtered_fd = mkstemps(filtered_scap, strlen(".scap"));
@@ -43,10 +43,9 @@ TEST(savefile, filter)
 	{
 		sinsp inspector;
 		inspector.set_filter("proc.name=ifplugd");
-		inspector.open_savefile(RESOURCE_DIR "/sample.scap");
+		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
 
-		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, filtered_scap,
-								  0, 0, 0, 0, true);
+		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, filtered_scap, 0, 0, 0, 0, true);
 
 		int32_t res;
 		sinsp_evt* evt;
@@ -58,8 +57,7 @@ TEST(savefile, filter)
 			{
 				dumper->dump(evt);
 			}
-		}
-		while(res != SCAP_EOF);
+		} while(res != SCAP_EOF);
 
 		dumper->close();
 		inspector.close();
@@ -78,17 +76,11 @@ TEST(savefile, filter)
 int n_opens = 0;
 int n_closes = 0;
 
-void open_cb()
-{
-	n_opens +=1;
-}
+void open_cb() { n_opens += 1; }
 
-void close_cb()
-{
-	n_closes += 1;
-}
+void close_cb() { n_closes += 1; }
 
-TEST(savefile, cycledumper_num_events)
+TEST(scap_file, cycledumper_num_events)
 {
 	char capture_scap[] = "capture.XXXXXX.scap";
 	int events_per_capture = 100;
@@ -102,12 +94,12 @@ TEST(savefile, cycledumper_num_events)
 
 	{
 		sinsp inspector;
-		inspector.open_savefile(RESOURCE_DIR "/sample.scap");
+		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
 
-		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, capture_scap,
-								  0, 0, 0, events_per_capture, true);
+		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, capture_scap, 0, 0, 0, events_per_capture,
+								  true);
 
-		std::vector<std::function<void()>> open_cbs  = {std::bind(&open_cb)};
+		std::vector<std::function<void()>> open_cbs = {std::bind(&open_cb)};
 		std::vector<std::function<void()>> close_cbs = {std::bind(&close_cb)};
 
 		dumper->set_callbacks(open_cbs, close_cbs);
@@ -122,8 +114,7 @@ TEST(savefile, cycledumper_num_events)
 			{
 				dumper->dump(evt);
 			}
-		}
-		while(res != SCAP_EOF);
+		} while(res != SCAP_EOF);
 
 		dumper->close();
 		inspector.close();
@@ -135,7 +126,7 @@ TEST(savefile, cycledumper_num_events)
 	unlink(capture_scap);
 }
 
-TEST(savefile, cycledumper_seconds)
+TEST(scap_file, cycledumper_seconds)
 {
 	char capture_scap[] = "capture.XXXXXX.scap";
 	int seconds_per_capture = 1;
@@ -149,12 +140,12 @@ TEST(savefile, cycledumper_seconds)
 
 	{
 		sinsp inspector;
-		inspector.open_savefile(RESOURCE_DIR "/sample.scap");
+		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
 
-		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, capture_scap,
-								  0, seconds_per_capture, 0,  0, true);
+		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, capture_scap, 0, seconds_per_capture, 0,
+								  0, true);
 
-		std::vector<std::function<void()>> open_cbs  = {std::bind(&open_cb)};
+		std::vector<std::function<void()>> open_cbs = {std::bind(&open_cb)};
 		std::vector<std::function<void()>> close_cbs = {std::bind(&close_cb)};
 
 		dumper->set_callbacks(open_cbs, close_cbs);
@@ -169,8 +160,7 @@ TEST(savefile, cycledumper_seconds)
 			{
 				dumper->dump(evt);
 			}
-		}
-		while(res != SCAP_EOF);
+		} while(res != SCAP_EOF);
 
 		dumper->close();
 		inspector.close();
