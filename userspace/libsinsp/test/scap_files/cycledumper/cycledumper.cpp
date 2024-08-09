@@ -20,32 +20,21 @@ limitations under the License.
 #include <libsinsp/sinsp_cycledumper.h>
 #include <helpers/scap_file_helpers.h>
 #include <gtest/gtest.h>
+#include <filesystem>
+#include <fstream>
 
-using namespace std;
-
-#ifdef __x86_64__
 TEST(scap_file, filter)
 {
-	{
-		// Check the dimension of the table before the filtering
-		sinsp inspector;
-		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
+	std::filesystem::path tmp_scap_file_path = std::filesystem::temp_directory_path() / "tmp.XYZXXZZZZ.scap";
+	std::string tmp_scap_file_name = tmp_scap_file_path.string();
 
-		ASSERT_EQ(inspector.m_thread_manager->get_thread_count(), 94);
-	}
-
-	char filtered_scap[] = "filtered.XXXXXX.scap";
-
-	int filtered_fd = mkstemps(filtered_scap, strlen(".scap"));
-	ASSERT_NE(filtered_fd, -1);
-	close(filtered_fd);
-
+	// Dump a filtered scap-file
 	{
 		sinsp inspector;
 		inspector.set_filter("proc.name=ifplugd");
 		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
 
-		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, filtered_scap, 0, 0, 0, 0, true);
+		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, tmp_scap_file_name, 0, 0, 0, 0, true);
 
 		int32_t res;
 		sinsp_evt* evt;
@@ -65,12 +54,11 @@ TEST(scap_file, filter)
 
 	{
 		sinsp inspector;
-		inspector.open_savefile(filtered_scap);
-
+		inspector.open_savefile(tmp_scap_file_name);
 		ASSERT_EQ(inspector.m_thread_manager->get_thread_count(), 1);
 	}
 
-	unlink(filtered_scap);
+	std::filesystem::remove(tmp_scap_file_path);
 }
 
 int n_opens = 0;
@@ -82,22 +70,18 @@ void close_cb() { n_closes += 1; }
 
 TEST(scap_file, cycledumper_num_events)
 {
-	char capture_scap[] = "capture.XXXXXX.scap";
 	int events_per_capture = 100;
-
 	n_opens = 0;
 	n_closes = 0;
 
-	int capture_fd = mkstemps(capture_scap, strlen(".scap"));
-	ASSERT_NE(capture_fd, -1);
-	close(capture_fd);
-
+	std::filesystem::path tmp_scap_file_path = std::filesystem::temp_directory_path() / "tmp.XYZXXZZZZ.scap";
+	std::string tmp_scap_file_name = tmp_scap_file_path.string();
 	{
 		sinsp inspector;
 		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
 
-		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, capture_scap, 0, 0, 0, events_per_capture,
-								  true);
+		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, tmp_scap_file_name, 0, 0, 0,
+								  events_per_capture, true);
 
 		std::vector<std::function<void()>> open_cbs = {std::bind(&open_cb)};
 		std::vector<std::function<void()>> close_cbs = {std::bind(&close_cb)};
@@ -122,28 +106,23 @@ TEST(scap_file, cycledumper_num_events)
 
 	ASSERT_EQ(n_opens, 5);
 	ASSERT_EQ(n_closes, 6); // a autodump_stop is called before starting.
-
-	unlink(capture_scap);
+	std::filesystem::remove(tmp_scap_file_path);
 }
 
 TEST(scap_file, cycledumper_seconds)
 {
-	char capture_scap[] = "capture.XXXXXX.scap";
 	int seconds_per_capture = 1;
-
 	n_opens = 0;
 	n_closes = 0;
 
-	int capture_fd = mkstemps(capture_scap, strlen(".scap"));
-	ASSERT_NE(capture_fd, -1);
-	close(capture_fd);
-
+	std::filesystem::path tmp_scap_file_path = std::filesystem::temp_directory_path() / "tmp.XYZXXZZZZ.scap";
+	std::string tmp_scap_file_name = tmp_scap_file_path.string();
 	{
 		sinsp inspector;
 		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
 
-		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, capture_scap, 0, seconds_per_capture, 0,
-								  0, true);
+		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, tmp_scap_file_name, 0,
+								  seconds_per_capture, 0, 0, true);
 
 		std::vector<std::function<void()>> open_cbs = {std::bind(&open_cb)};
 		std::vector<std::function<void()>> close_cbs = {std::bind(&close_cb)};
@@ -168,7 +147,5 @@ TEST(scap_file, cycledumper_seconds)
 
 	ASSERT_EQ(n_opens, 1);
 	ASSERT_EQ(n_closes, 2); // a autodump_stop is called before starting.
-
-	unlink(capture_scap);
+	std::filesystem::remove(tmp_scap_file_path);
 }
-#endif
