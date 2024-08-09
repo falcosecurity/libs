@@ -39,8 +39,6 @@ configure_file (
 
 file(GLOB_RECURSE TEST_PLUGINS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*.cpp)
 
-add_definitions(-DRESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
-
 if(NOT WIN32)
 	file(GLOB_RECURSE SINSP_PARSERS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/parsers/*.cpp)
 
@@ -119,7 +117,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	state.ut.cpp
 	dns_manager.ut.cpp
 	eventformatter.ut.cpp
-	savefile.ut.cpp
 	sinsp_metrics.ut.cpp
 	thread_table.ut.cpp
 	ifinfo.ut.cpp
