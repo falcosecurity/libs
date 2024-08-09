@@ -69,6 +69,7 @@ public:
 		TYPE_INO = 41,
 		TYPE_FDNAMERAW = 42,
 		TYPE_FDTYPES = 43,
+		TYPE_CONTAINERPIDNAME = 44,
 	};
 
 	sinsp_filter_check_fd();
