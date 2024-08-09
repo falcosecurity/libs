@@ -480,6 +480,102 @@ TEST(SyscallExit, execveatX_execve_exit)
 #endif
 }
 
+TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
+{
+	auto evt_test = get_syscall_event_test();
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	/* Prepare the execve args */
+	const char* exe_path = "/usr/bin/echo";
+	int dirfd = open(exe_path, O_RDONLY);
+	if(dirfd < 0)
+	{
+		FAIL() << "failed to open the file\n";
+	}
+
+	// We will use the `AT_EMPTY_PATH` strategy
+	const char *pathname = "";
+	const char *argv[] = {pathname, "[OUTPUT] SyscallExit.execveatX_execve_exit_comm_equal_to_fd", NULL};
+	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
+	int flags = AT_EMPTY_PATH;
+
+	clone_args cl_args = {};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		syscall(__NR_execveat, dirfd, pathname, argv, envp, flags);
+		exit(EXIT_FAILURE);
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The child execveat failed." << std::endl;
+	}
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+/* `s390x` returns an `EXECVEAT_X` event while other architectures retun an `EXECVE_X` */
+#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__) || defined(__loongarch64)
+	/* We search for a child event. */
+	evt_test->assert_event_absence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
+#else
+	/* We search for a child event. */
+	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Please note here we cannot assert all the params, we check only the possible ones. */
+
+	/* Parameter 1: res (type: PT_ERRNO)*/
+	evt_test->assert_numeric_param(1, (int64_t)0);
+
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(2, pathname);
+
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+	/* Starting from `1` because the first is `exe`. */
+	evt_test->assert_charbuf_array_param(3, &argv[1]);
+
+	/* Parameter 14: comm (type: PT_CHARBUF) */
+	// This is exactly the behavior that we obtain using the `AT_EMPTY_PATH` flag
+	// https://github.com/torvalds/linux/blob/master/fs/exec.c#L1600
+	// https://github.com/torvalds/linux/blob/master/fs/exec.c#L1425
+	std::string comm = std::to_string(dirfd);	
+	evt_test->assert_charbuf_param(14, comm.c_str());
+
+	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(28, exe_path);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(28);
+#endif
+}
+
+
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
 #include <sys/mman.h>
 TEST(SyscallExit, execveatX_success_memfd)
