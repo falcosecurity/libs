@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <libsinsp/sinsp.h>
 #include <libsinsp/event.h>
+#include <libsinsp_test_var.h>
 
 namespace scap_file_test_helpers
 {
