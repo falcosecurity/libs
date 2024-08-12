@@ -264,7 +264,7 @@ if(NOT WIN32)
 			prepare_cri_grpc(v1alpha2)
 			prepare_cri_grpc(v1)
 
-			target_link_libraries(sinsp PRIVATE cri_v1alpha2 cri_v1)
+			target_link_libraries(sinsp PUBLIC cri_v1alpha2 cri_v1)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
