@@ -218,6 +218,22 @@ function(prepare_cri_grpc api_version)
 		cri_${api_version} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	)
 	add_dependencies(cri_${api_version} grpc)
+	install(
+		FILES ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.h
+			  ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.h
+		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libsinsp"
+		COMPONENT "scap"
+	)
+	if(NOT BUILD_SHARED_LIBS)
+		install(
+			TARGETS cri_${api_version}
+			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+					COMPONENT "scap"
+					OPTIONAL
+		)
+	endif()
 endfunction()
 
 if(NOT EMSCRIPTEN)
