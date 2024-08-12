@@ -235,6 +235,7 @@ TEST(SyscallExit, execveatX_correct_exit) {
 	                            "2_ARGUMENT=no",
 	                            NULL};
 
+#if defined(__s390x__) || defined(__riscv) || defined(__powerpc64__) || defined(__loongarch64)
 	bool expect_truncated = true;
 	if(evt_test->is_kmod_engine() && getpagesize() > 4096) {
 		// for kmod, the size limit is actually PAGE_SIZE;
@@ -242,6 +243,7 @@ TEST(SyscallExit, execveatX_correct_exit) {
 		// In case PAGE_SIZE is < 4096, expect NON-truncated args/envs
 		expect_truncated = false;
 	}
+#endif
 
 	int flags = 0;
 
