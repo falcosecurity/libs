@@ -86,11 +86,6 @@ else()
 		DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 		COMPONENT "libs-deps"
 	)
-	install(
-		DIRECTORY "${LIBELF_INCLUDE}"
-		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
-		COMPONENT "libs-deps"
-	)
 endif()
 
 # We add a custom target, in this way we can always depend on `libelf` without distinguishing
