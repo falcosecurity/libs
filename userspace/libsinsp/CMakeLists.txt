@@ -217,6 +217,16 @@ function(prepare_cri_grpc api_version)
 	target_include_directories(
 		cri_${api_version} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	)
+	target_link_libraries(
+		cri_${api_version}
+		PUBLIC "${GRPCPP_LIB}"
+			   "${GRPC_LIB}"
+			   "${GPR_LIB}"
+			   "${GRPC_LIBRARIES}"
+			   "${PROTOBUF_LIB}"
+			   "${CARES_LIB}"
+			   "${OPENSSL_LIBRARIES}"
+	)
 	add_dependencies(cri_${api_version} grpc)
 	install(
 		FILES ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.h
