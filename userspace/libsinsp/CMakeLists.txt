@@ -280,7 +280,6 @@ if(NOT WIN32)
 		endif() # NOT MINIMAL_BUILD
 	endif() # NOT APPLE
 
-	target_link_libraries(sinsp INTERFACE "${OPENSSL_LIBRARIES}")
 	target_link_libraries(sinsp INTERFACE dl pthread)
 
 	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
