@@ -29,6 +29,7 @@ endif()
 
 include(ExternalProject)
 
+include(BuildPkgConfigDependencies)
 include(jsoncpp)
 include(zlib)
 
@@ -165,15 +166,12 @@ target_link_libraries(
 	PRIVATE "${CURL_LIBRARIES}" "${JSONCPP_LIB}" "${RE2_LIB}"
 )
 
-set(SINSP_PKGCONFIG_LIBRARIES scap "${ZLIB_LIB}" "${CURL_LIBRARIES}" "${JSONCPP_LIB}" "${RE2_LIB}")
-
 if(NOT EMSCRIPTEN)
 	target_link_libraries(
 		sinsp
 		INTERFACE "${CARES_LIB}"
 		PRIVATE "${TBB_LIB}"
 	)
-	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${CARES_LIB}")
 endif()
 
 if(USE_BUNDLED_VALIJSON)
@@ -240,50 +238,32 @@ if(NOT WIN32)
 			prepare_cri_grpc(v1alpha2)
 			prepare_cri_grpc(v1)
 
-			target_link_libraries(
-				sinsp
-				PRIVATE cri_v1alpha2 cri_v1
-				INTERFACE "${GRPC_LIBRARIES}" "${GRPCPP_LIB}" "${GRPC_LIB}" "${GPR_LIB}"
-						  "${PROTOBUF_LIB}" "${CARES_LIB}"
-			)
-			list(
-				APPEND
-				SINSP_PKGCONFIG_LIBRARIES
-				"${GRPC_LIBRARIES}"
-				"${GRPCPP_LIB}"
-				"${GRPC_LIB}"
-				"${GPR_LIB}"
-				"${PROTOBUF_LIB}"
-				"${CARES_LIB}"
+			target_link_libraries(sinsp
+					PRIVATE
+						cri_v1alpha2
+						cri_v1
 			)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
 				if(LIB_ANL)
 					target_link_libraries(sinsp INTERFACE rt anl)
-					list(APPEND SINSP_PKGCONFIG_LIBRARIES rt anl)
 				else()
 					target_link_libraries(sinsp INTERFACE rt)
-					list(APPEND SINSP_PKGCONFIG_LIBRARIES rt)
 				endif()
 			endif()
 
 		else()
 			target_link_libraries(sinsp INTERFACE rt)
-			list(APPEND SINSP_PKGCONFIG_LIBRARIES rt)
 		endif() # NOT MINIMAL_BUILD
 	endif() # NOT APPLE
 
 	target_link_libraries(sinsp INTERFACE "${OPENSSL_LIBRARIES}")
-	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${OPENSSL_LIBRARIES}")
-
 	target_link_libraries(sinsp INTERFACE dl pthread)
-	list(APPEND SINSP_PKGCONFIG_LIBRARIES dl pthread)
 
 	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
 			target_link_libraries(sinsp INTERFACE stdc++fs)
-			list(APPEND SINSP_PKGCONFIG_LIBRARIES stdc++fs)
 		endif()
 	endif()
 endif() # NOT WIN32
@@ -318,24 +298,7 @@ add_definitions(-DSINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR="${SINSP_AGENT_CGROUP_MEM_
 # https://github.com/curl/curl/blob/curl-7_84_0/CMakeLists.txt#L1539
 set(SINSP_PKG_CONFIG_LIBS)
 set(SINSP_PKG_CONFIG_LIBDIRS "")
-foreach(sinsp_lib ${SINSP_PKGCONFIG_LIBRARIES})
-	if(${sinsp_lib} MATCHES "^-")
-		# We have a flag. Pass it through unchanged.
-		list(APPEND SINSP_PKG_CONFIG_LIBS ${sinsp_lib})
-	elseif(${sinsp_lib} MATCHES "/")
-		# We have a path. Convert it to -L<dir> + -l<lib>.
-		get_filename_component(sinsp_lib_dir ${sinsp_lib} DIRECTORY)
-		list(APPEND SINSP_PKG_CONFIG_LIBDIRS -L${sinsp_lib_dir})
-		get_filename_component(sinsp_lib_base ${sinsp_lib} NAME_WE)
-		string(REGEX REPLACE "^lib" "" sinsp_lib_base ${sinsp_lib_base})
-		list(APPEND SINSP_PKG_CONFIG_LIBS -l${sinsp_lib_base})
-	elseif(${sinsp_lib} STREQUAL "scap")
-		# We require libscap.pc, so skip it.
-	else()
-		# Assume we have a plain library name. Prefix it with "-l".
-		list(APPEND SINSP_PKG_CONFIG_LIBS -l${sinsp_lib})
-	endif()
-endforeach()
+add_pkgconfig_dependency(SINSP_PKG_CONFIG_LIBDIRS SINSP_PKG_CONFIG_LIBS sinsp scap)
 
 # Build our pkg-config "Cflags:" flags.
 set(SINSP_PKG_CONFIG_INCLUDES "")
