@@ -1,10 +1,10 @@
 prefix=${pcfiledir}/../..
 libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
-includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/@LIBS_PACKAGE_NAME@
 
 Name: libscap
 Description: lib for System CAPture
 Version: @FALCOSECURITY_LIBS_VERSION@
 
 Libs: -L${libdir} @LIBSCAP_LINK_LIBDIRS_FLAGS@ @LIBSCAP_LINK_LIBRARIES_FLAGS@
-Cflags: -I${includedir}/@LIBS_PACKAGE_NAME@/libscap
+Cflags: -I${includedir}
