@@ -2736,7 +2736,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		name = evt->get_param(3)->as<std::string_view>();
 
-		if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X && evt->get_num_params() > 4)
+		if(evt->get_num_params() > 4)
 		{
 			dev = evt->get_param(4)->as<uint32_t>();
 			if (evt->get_num_params() > 5)
@@ -2745,7 +2745,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			}
 		}
 
-		// since open_by_handle_at returns an absolute path we will always start at /
+		// The driver implementation always serves an absolute path for open_by_handle_at using dpath traversal;
+		// hence there is no need to interpret the path relative to mountfd.
 		sdir = "";
 	}
 	else
