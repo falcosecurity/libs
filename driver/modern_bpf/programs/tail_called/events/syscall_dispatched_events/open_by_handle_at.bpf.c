@@ -65,23 +65,6 @@ int BPF_PROG(open_by_handle_at_x,
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)mountfd);
 
-	/* Parameter 3: flags (type: PT_FLAGS32) */
-	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
-	flags = (uint32_t)open_flags_to_scap(flags);
-	/* update flags if file is created */
-	flags |= extract__fmode_created_from_fd(ret);
-	struct file *f = extract__file_struct_from_fd(ret);
-	enum ppm_overlay ol = extract__overlay_layer(f);
-	if(ol == PPM_OVERLAY_UPPER)
-	{
-		flags |= PPM_O_F_UPPER_LAYER;
-	}
-	else if(ol == PPM_OVERLAY_LOWER)
-	{
-		flags |= PPM_O_F_LOWER_LAYER;
-	}
-	auxmap__store_u32_param(auxmap, flags);
-
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_OPEN_BY_HANDLE_AT_X);
@@ -94,7 +77,6 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 	dev_t dev = 0;
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
-	uint16_t fd_flags = 0;
 
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
@@ -104,7 +86,28 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* We collect the file path, dev and ino from the file descriptor only if it is valid */
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
+	flags = (uint32_t)open_flags_to_scap(flags);
+	/* We collect dev, ino and overlay from the file descriptor only if it is valid */
+	if(ret > 0)
+	{
+		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
+
+		/* Parameter 3: flags (type: PT_FLAGS32) */
+		/* update flags if file is created */
+		flags |= extract__fmode_created_from_fd(ret);
+		if(ol == PPM_OVERLAY_UPPER)
+		{
+			flags |= PPM_FD_UPPER_LAYER;
+		}
+		else if(ol == PPM_OVERLAY_LOWER)
+		{
+			flags |= PPM_FD_LOWER_LAYER;
+		}
+	}
+	auxmap__store_u32_param(auxmap, flags);
+
+	/* We collect the file path from the file descriptor only if it is valid */
 	if(ret > 0)
 	{
 		/* Parameter 4: path (type: PT_FSPATH) */
@@ -117,8 +120,6 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 		{
 			auxmap__store_empty_param(auxmap);
 		}
-
-		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
 	}
 	else
 	{

@@ -187,7 +187,7 @@ protected:
 		uint64_t cap_permitted = 0x1ffffffffff, uint64_t cap_inheritable = 0, uint64_t cap_effective = 0x1ffffffffff,
 		uint32_t vmsize_kb = 10000, uint32_t vmrss_kb = 100, uint32_t vmswap_kb = 0, uint64_t pfmajor = 222, uint64_t pfminor = 22,
 		const std::vector<std::string>& cgroups = {}, const std::string& root = "/",
-		int filtered_out = 0, uint32_t tty = 0, uint32_t loginuid = UINT32_MAX, bool exe_upper_layer = false, bool exe_from_memfd = false);
+		int filtered_out = 0, uint32_t tty = 0, uint32_t loginuid = UINT32_MAX, bool exe_upper_layer = false, bool exe_lower_layer = false, bool exe_from_memfd = false);
 
 	void add_default_init_thread();
 	void add_simple_thread(int64_t tid, int64_t pid, int64_t ptid, const std::string& comm = "random");

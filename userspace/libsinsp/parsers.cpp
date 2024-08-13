@@ -2641,14 +2641,16 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 				ino = evt->get_param(4)->as<uint64_t>();
 				if (evt->get_num_params() > 5)
 				{
-					uint16_t fd_flags = evt->get_param(5)->as<uint16_t>();
-					if (fd_flags & PPM_FD_UPPER_LAYER)
+					uint16_t creat_flags = evt->get_param(5)->as<uint16_t>();
+					// creat is a special case becuase it has no flags parameter, so the layer info bits arrive from probe
+					// in a separate creat_flags parameter and flags need to be constructed from it
+					if (creat_flags & PPM_FD_UPPER_LAYER_CREAT)
 					{
-						flags |= PPM_O_F_UPPER_LAYER;
+						flags |= PPM_FD_UPPER_LAYER;
 					}
-					else if (fd_flags & PPM_FD_LOWER_LAYER)
+					else if (creat_flags & PPM_FD_LOWER_LAYER_CREAT)
 					{
-						flags |= PPM_O_F_LOWER_LAYER;
+						flags |= PPM_FD_LOWER_LAYER;
 					}
 				}
 			}
@@ -2780,11 +2782,11 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi->m_ino = ino;
 		fdi->add_filename_raw(name);
 		fdi->add_filename(fullpath);
-		if(flags & PPM_O_F_UPPER_LAYER)
+		if(flags & PPM_FD_UPPER_LAYER)
 		{
 			fdi->set_overlay_upper();
 		}
-		if(flags & PPM_O_F_LOWER_LAYER)
+		if(flags & PPM_FD_LOWER_LAYER)
 		{
 			fdi->set_overlay_lower();
 		}
