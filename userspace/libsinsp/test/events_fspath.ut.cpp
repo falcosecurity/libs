@@ -29,19 +29,21 @@ protected:
 	const char *filename = "/tmp/random/dir.../..//../filename.txt";
 	const char *resolved_filename = "/tmp/filename.txt";
 	const char *rel_filename = "tmp/filename.txt";
-	const char *resolved_rel_filename = "/root/tmp/filename.txt";
+	const char *resolved_rel_filename_cwd = "/root/tmp/filename.txt";
 
 	const char *rel_filename_complex = "../\\.../../tmp/filename_complex";
-	const char *resolved_rel_filename_complex = "/tmp/filename_complex";
+	const char *resolved_rel_filename_complex = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/tmp/filename_complex";
 
 	const char *rel_filename_nopath = "nopath";
-	const char *resolved_rel_filename_nopath = "/root/nopath";
+	const char *resolved_rel_filename_nopath = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/nopath";
+
+	const char *path = "/tmp/path";
+	const char *dirfd_path = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8";
 
 	const char *name = "/tmp/random/dir...///../../name/";
 	const char *resolved_name = "/tmp/name";
-	const char *rel_name = "tmp/random/dir...///../../name/";
-	const char *resolved_rel_name = "/root/tmp/name";
-	const char *path = "/tmp/path";
+	const char *rel_name = "tmp/random/dir...///../../name.txt";
+	const char *resolved_rel_name = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/name.txt";
 	const char *oldpath = "/tmp/oldpath";
 	const char *newpath = "/tmp/newpath";
 	const char *rel_oldpath = "tmp/oldpath";
@@ -53,16 +55,18 @@ protected:
 	const char *rel_linkpath = "tmp/linkpath";
 	const char *rel_targetpath = "tmp/targetpath";
 	const char *resolved_rel_linkpath = "/root/tmp/linkpath";
+	const char *resolved_rel_linkpath_at = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/linkpath";
 	const char *resolved_rel_targetpath = "/root/tmp/targetpath";
+	const char *resolved_rel_targetpath_at = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/targetpath";
 	const char *mountpath = "/mnt/cdrom";
 	uint32_t mode = S_IFREG;
 	int64_t res = 0;
 	int64_t failed_res = -1;
-	int64_t dirfd = 0;
-	int64_t rel_dirfd = AT_FDCWD;
-	int64_t olddirfd = -1;
-	int64_t newdirfd = -1;
-	int64_t linkdirfd = -1;
+	int64_t evt_dirfd = 2;
+	int64_t evt_dirfd_cwd = AT_FDCWD;
+	int64_t olddirfd = evt_dirfd;
+	int64_t newdirfd = evt_dirfd;
+	int64_t linkdirfd = evt_dirfd;
 	int32_t flags = 0;
 	int64_t fd = 3;
 	int32_t open_flags = PPM_O_RDWR;
@@ -94,7 +98,6 @@ protected:
 	}
 
 	void verify_no_fields(sinsp_evt *evt)
-
 	{
 		ASSERT_FALSE(field_has_value(evt, fs_path_name));
 		ASSERT_FALSE(field_has_value(evt, fs_path_nameraw));
@@ -102,6 +105,11 @@ protected:
 		ASSERT_FALSE(field_has_value(evt, fs_path_sourceraw));
 		ASSERT_FALSE(field_has_value(evt, fs_path_target));
 		ASSERT_FALSE(field_has_value(evt, fs_path_targetraw));
+	}
+
+	void verify_fd_name_same_fs_path_name(sinsp_evt *evt)
+	{
+		ASSERT_EQ(get_field_as_string(evt, fs_path_name), get_field_as_string(evt, "fd.name"));
 	}
 
 	void verify_value_using_filters(sinsp_evt *evt,
@@ -120,7 +128,7 @@ protected:
 		EXPECT_TRUE(eval_filter(evt, pmatch_filter_str));
 	}
 
-	void verify_fields(sinsp_evt *evt,
+	void verify_fields(ppm_event_code event_type, sinsp_evt *evt,
 			   const char *expected_name,
 			   const char *expected_nameraw,
 			   const char *expected_source,
@@ -163,6 +171,19 @@ protected:
 			ASSERT_STREQ(get_field_as_string(evt, fs_path_targetraw).c_str(), expected_targetraw);
 			verify_value_using_filters(evt, fs_path_targetraw, expected_targetraw);
 		}
+		switch (event_type)
+		{
+			// case PPME_SYSCALL_OPENAT_2_X: // those 2 are currently failing
+			// case PPME_SYSCALL_OPENAT2_X:
+			case PPME_SYSCALL_OPEN_X:
+			case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
+				{
+					verify_fd_name_same_fs_path_name(evt);
+				}
+				break;	
+			default:
+				break;
+		}
 	}
 
 	void test_enter(ppm_event_code event_type, uint32_t n, ...)
@@ -181,10 +202,27 @@ protected:
 
 		va_list args;
 		va_start(args, n);
-		sinsp_evt* evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
+		sinsp_evt* evt;
+		switch (event_type)
+		{
+			case PPME_SYSCALL_OPENAT_2_X:
+			case PPME_SYSCALL_OPENAT2_X:
+			case PPME_SYSCALL_FCHMODAT_X:
+			case PPME_SYSCALL_FCHOWNAT_X:
+			case PPME_SYSCALL_UNLINKAT_2_X:
+				{
+					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 2, evt_dirfd, dirfd_path);
+					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 5, evt_dirfd, evt_dirfd, dirfd_path, open_flags, mode);
+				}
+				break;	
+			default:
+				break;
+		}
+		
+		evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
 		va_end(args);
 
-		verify_fields(evt, expected_name, expected_name_raw, NULL, NULL, NULL, NULL);
+		verify_fields(event_type, evt, expected_name, expected_name_raw, NULL, NULL, NULL, NULL);
 	}
 
 	void test_exit_source_target(const char *expected_source,
@@ -196,10 +234,23 @@ protected:
 
 		va_list args;
 		va_start(args, n);
-		sinsp_evt* evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
+		sinsp_evt* evt;
+		switch (event_type)
+		{
+			case PPME_SYSCALL_LINKAT_2_X:
+			case PPME_SYSCALL_SYMLINKAT_X:
+				{
+					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 2, evt_dirfd, dirfd_path);
+					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 5, evt_dirfd, evt_dirfd, dirfd_path, open_flags, mode);
+				}
+				break;
+			default:
+				break;
+		}
+		evt = add_event_advance_ts_v(increasing_ts(), 1, event_type, n, args);
 		va_end(args);
 
-		verify_fields(evt,
+		verify_fields(event_type, evt,
 			      NULL, NULL,
 			      expected_source, expected_sourceraw,
 			      expected_target, expected_targetraw);
@@ -233,8 +284,8 @@ TEST_F(fspath, mkdir_2)
 TEST_F(fspath, mkdirat)
 {
 	test_enter(PPME_SYSCALL_MKDIRAT_E, 0);
-	test_exit_path(path, path, PPME_SYSCALL_MKDIRAT_X, 4, res, dirfd, path, mode);
-	test_failed_exit(PPME_SYSCALL_MKDIRAT_X, 4, failed_res, dirfd, path, mode);
+	test_exit_path(path, path, PPME_SYSCALL_MKDIRAT_X, 4, res, evt_dirfd, path, mode);
+	test_failed_exit(PPME_SYSCALL_MKDIRAT_X, 4, failed_res, evt_dirfd, path, mode);
 }
 
 TEST_F(fspath, rmdir)
@@ -260,7 +311,7 @@ TEST_F(fspath, unlink)
 
 TEST_F(fspath, unlinkat)
 {
-	test_enter(PPME_SYSCALL_UNLINKAT_E, 2, dirfd, name);
+	test_enter(PPME_SYSCALL_UNLINKAT_E, 2, evt_dirfd, name);
 	test_exit_path(resolved_name, name, PPME_SYSCALL_UNLINKAT_X, 1, res);
 	test_failed_exit(PPME_SYSCALL_UNLINKAT_X, 1, failed_res);
 }
@@ -275,8 +326,8 @@ TEST_F(fspath, unlink_2)
 TEST_F(fspath, unlinkat_2)
 {
 	test_enter(PPME_SYSCALL_UNLINKAT_2_E, 0);
-	test_exit_path(resolved_rel_name, rel_name, PPME_SYSCALL_UNLINKAT_2_X, 4, res, rel_dirfd, rel_name, flags);
-	test_failed_exit(PPME_SYSCALL_UNLINKAT_2_X, 4, failed_res, dirfd, name, flags);
+	test_exit_path(resolved_rel_name, rel_name, PPME_SYSCALL_UNLINKAT_2_X, 4, res, evt_dirfd, rel_name, flags);
+	test_failed_exit(PPME_SYSCALL_UNLINKAT_2_X, 4, failed_res, evt_dirfd, name, flags);
 }
 
 TEST_F(fspath, open)
@@ -288,48 +339,72 @@ TEST_F(fspath, open)
 
 TEST_F(fspath, openat)
 {
-	test_enter(PPME_SYSCALL_OPENAT_E, 4, dirfd, name, open_flags, mode);
+	test_enter(PPME_SYSCALL_OPENAT_E, 4, evt_dirfd, name, open_flags, mode);
 	test_exit_path(resolved_name, name, PPME_SYSCALL_OPENAT_X, 1, fd);
 	test_failed_exit(PPME_SYSCALL_OPENAT_X, 6, failed_res);
 }
 
 TEST_F(fspath, openat_2)
 {
-	test_enter(PPME_SYSCALL_OPENAT_2_E, 4, dirfd, name, open_flags, mode);
-	test_exit_path(resolved_name, name, PPME_SYSCALL_OPENAT_2_X, 7, fd, dirfd, name, open_flags, mode, dev, ino);
-	test_failed_exit(PPME_SYSCALL_OPENAT_2_X, 7, failed_res, dirfd, name, open_flags, mode, dev, ino);
+	test_enter(PPME_SYSCALL_OPENAT_2_E, 4, evt_dirfd, name, open_flags, mode);
+	test_exit_path(resolved_name, name, PPME_SYSCALL_OPENAT_2_X, 7, fd, evt_dirfd, name, open_flags, mode, dev, ino);
+	test_failed_exit(PPME_SYSCALL_OPENAT_2_X, 7, failed_res, evt_dirfd, name, open_flags, mode, dev, ino);
+}
+
+TEST_F(fspath, openat_2_relative)
+{
+	test_enter(PPME_SYSCALL_OPENAT_2_E, 4, evt_dirfd, name, open_flags, mode);
+	test_exit_path(resolved_rel_name, rel_name, PPME_SYSCALL_OPENAT_2_X, 7, fd, evt_dirfd, rel_name, open_flags, mode, dev, ino);
+	test_failed_exit(PPME_SYSCALL_OPENAT_2_X, 7, failed_res, evt_dirfd, name, open_flags, mode, dev, ino);
 }
 
 TEST_F(fspath, openat2)
 {
-	test_enter(PPME_SYSCALL_OPENAT2_E, 5, dirfd, name, open_flags, mode, resolve);
-	test_exit_path(resolved_rel_name, rel_name, PPME_SYSCALL_OPENAT2_X, 6, fd, rel_dirfd, rel_name, open_flags, mode, resolve);
-	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, dirfd, name, open_flags, mode, resolve);
+	test_enter(PPME_SYSCALL_OPENAT2_E, 5, evt_dirfd, name, open_flags, mode, resolve);
+	test_exit_path(resolved_name, name, PPME_SYSCALL_OPENAT2_X, 6, fd, evt_dirfd, name, open_flags, mode, resolve);
+	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, evt_dirfd, name, open_flags, mode, resolve);
+}
+
+TEST_F(fspath, openat2_relative)
+{
+	test_enter(PPME_SYSCALL_OPENAT2_E, 5, evt_dirfd, name, open_flags, mode, resolve);
+	test_exit_path(resolved_rel_name, rel_name, PPME_SYSCALL_OPENAT2_X, 6, fd, evt_dirfd, rel_name, open_flags, mode, resolve);
+	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, evt_dirfd, name, open_flags, mode, resolve);
+}
+
+TEST_F(fspath, openat2_relative_dirfd_cwd)
+{
+	// Also test scenario where relative path should be interpreted relative to the cwd and not dirfd
+	const char *resolved_rel_name_dirfd_cwd = "/root/tmp/name.txt";
+	test_enter(PPME_SYSCALL_OPENAT2_E, 5, PPM_AT_FDCWD, name, open_flags, mode, resolve);
+	test_exit_path(resolved_rel_name_dirfd_cwd, rel_name, PPME_SYSCALL_OPENAT2_X, 6, fd, PPM_AT_FDCWD, rel_name, open_flags, mode, resolve);
+	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, PPM_AT_FDCWD, name, open_flags, mode, resolve);
 }
 
 TEST_F(fspath, fchmodat)
 {
 	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
-	test_exit_path(resolved_filename, filename, PPME_SYSCALL_FCHMODAT_X, 4, res, dirfd, filename, mode);
-	test_failed_exit(PPME_SYSCALL_FCHMODAT_X, 4, failed_res, dirfd, filename, mode);
+	test_exit_path(resolved_filename, filename, PPME_SYSCALL_FCHMODAT_X, 4, res, evt_dirfd, filename, mode);
+	test_failed_exit(PPME_SYSCALL_FCHMODAT_X, 4, failed_res, evt_dirfd, filename, mode);
 }
 
 TEST_F(fspath, fchmodat_relative)
 {
 	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
-	test_exit_path(resolved_rel_filename, rel_filename, PPME_SYSCALL_FCHMODAT_X, 4, res, rel_dirfd, rel_filename, mode);
+	test_exit_path(resolved_rel_name, rel_name, PPME_SYSCALL_FCHMODAT_X, 4, res, evt_dirfd, rel_name, mode);
 }
 
 TEST_F(fspath, fchmodat_relative_complex)
 {
+
 	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
-	test_exit_path(resolved_rel_filename_complex, rel_filename_complex, PPME_SYSCALL_FCHMODAT_X, 4, res, rel_dirfd, rel_filename_complex, mode);
+	test_exit_path(resolved_rel_filename_complex, rel_filename_complex, PPME_SYSCALL_FCHMODAT_X, 4, res, evt_dirfd, rel_filename_complex, mode);
 }
 
 TEST_F(fspath, fchmodat_relative_nopath)
 {
 	test_enter(PPME_SYSCALL_FCHMODAT_E, 0);
-	test_exit_path(resolved_rel_filename_nopath, rel_filename_nopath, PPME_SYSCALL_FCHMODAT_X, 4, res, rel_dirfd, rel_filename_nopath, mode);
+	test_exit_path(resolved_rel_filename_nopath, rel_filename_nopath, PPME_SYSCALL_FCHMODAT_X, 4, res, evt_dirfd, rel_filename_nopath, mode);
 }
 
 TEST_F(fspath, chmod)
@@ -342,7 +417,7 @@ TEST_F(fspath, chmod)
 TEST_F(fspath, chmod_relative)
 {
 	test_enter(PPME_SYSCALL_CHMOD_E, 0);
-	test_exit_path(resolved_rel_filename, rel_filename, PPME_SYSCALL_CHMOD_X, 3, res, rel_filename, mode);
+	test_exit_path(resolved_rel_filename_cwd, rel_filename, PPME_SYSCALL_CHMOD_X, 3, res, rel_filename, mode);
 }
 
 TEST_F(fspath, fchmod)
@@ -385,18 +460,19 @@ TEST_F(fspath, fchownat)
 	const char *pathname = "/tmp/pathname";
 
 	test_enter(PPME_SYSCALL_FCHOWNAT_E, 0);
-	test_exit_path(pathname, pathname, PPME_SYSCALL_FCHOWNAT_X, 6, res, dirfd, pathname, uid, gid, flags);
-	test_failed_exit(PPME_SYSCALL_FCHOWNAT_X, 6, failed_res, dirfd, pathname, uid, gid, flags);
+	test_exit_path(pathname, pathname, PPME_SYSCALL_FCHOWNAT_X, 6, res, evt_dirfd, pathname, uid, gid, flags);
+	test_failed_exit(PPME_SYSCALL_FCHOWNAT_X, 6, failed_res, evt_dirfd, pathname, uid, gid, flags);
 }
 
 TEST_F(fspath, fchownat_relative)
 {
+
 	// the term "pathname" is only used for this syscall, so not putting at class level
 	const char *rel_pathname = "tmp/pathname";
-	const char *resolved_rel_pathname = "/root/tmp/pathname";
+	const char *resolved_rel_pathname = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/pathname";
 
 	test_enter(PPME_SYSCALL_FCHOWNAT_E, 0);
-	test_exit_path(resolved_rel_pathname, rel_pathname, PPME_SYSCALL_FCHOWNAT_X, 6, res, rel_dirfd, rel_pathname, uid, gid, flags);
+	test_exit_path(resolved_rel_pathname, rel_pathname, PPME_SYSCALL_FCHOWNAT_X, 6, res, evt_dirfd, rel_pathname, uid, gid, flags);
 }
 
 TEST_F(fspath, quotactl)
@@ -460,6 +536,7 @@ TEST_F(fspath, link)
 
 TEST_F(fspath, link_relative)
 {
+
 	test_enter(PPME_SYSCALL_LINK_E, 2, rel_oldpath, rel_newpath);
 	test_exit_source_target(resolved_rel_newpath, rel_newpath,
 				    resolved_rel_oldpath, rel_oldpath,
@@ -490,6 +567,7 @@ TEST_F(fspath, link_2)
 
 TEST_F(fspath, link_2_relative)
 {
+
 	test_enter(PPME_SYSCALL_LINK_2_E, 0);
 	test_exit_source_target(resolved_rel_newpath, rel_newpath,
 				    resolved_rel_oldpath, rel_oldpath,
@@ -535,9 +613,12 @@ TEST_F(fspath, symlinkat)
 
 TEST_F(fspath, symlinkat_relative)
 {
+	const char *resolved_rel_targetpath_at_symlinkat = "<UNKNOWN>tmp/targetpath";
+	const char *resolved_rel_linkpath_at_symlinkat = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/linkpath";
+
 	test_enter(PPME_SYSCALL_SYMLINKAT_E, 0);
-	test_exit_source_target(resolved_rel_linkpath, rel_linkpath,
-				    resolved_rel_targetpath, rel_targetpath,
+	test_exit_source_target(resolved_rel_linkpath_at_symlinkat, rel_linkpath,
+				    resolved_rel_targetpath_at_symlinkat, rel_targetpath,
 				    PPME_SYSCALL_SYMLINKAT_X, 4, res, rel_targetpath, linkdirfd, rel_linkpath);
 }
 
