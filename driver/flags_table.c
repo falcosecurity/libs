@@ -72,8 +72,14 @@ const struct ppm_name_value file_flags[] = {
 	{"O_NONE", PPM_O_NONE},
 	{"O_TMPFILE", PPM_O_TMPFILE},
 	{"O_F_CREATED", PPM_O_F_CREATED},
-	{"O_F_UPPER_LAYER", PPM_O_F_UPPER_LAYER},
-	{"O_F_LOWER_LAYER", PPM_O_F_LOWER_LAYER},
+	{"FD_UPPER_LAYER", PPM_FD_UPPER_LAYER},
+	{"FD_LOWER_LAYER", PPM_FD_LOWER_LAYER},
+	{0, 0},
+};
+
+const struct ppm_name_value creat_flags[] = {
+	{"FD_UPPER_LAYER_CREAT", PPM_FD_UPPER_LAYER_CREAT},
+	{"FD_LOWER_LAYER_CREAT", PPM_FD_LOWER_LAYER_CREAT},
 	{0, 0},
 };
 
@@ -771,11 +777,5 @@ const struct ppm_name_value finit_module_flags[] = {
 	{"MODULE_INIT_IGNORE_MODVERSIONS", PPM_MODULE_INIT_IGNORE_MODVERSIONS},
 	{"MODULE_INIT_IGNORE_VERMAGIC", PPM_MODULE_INIT_IGNORE_VERMAGIC},
 	{"MODULE_INIT_COMPRESSED_FILE", PPM_MODULE_INIT_COMPRESSED_FILE},
-	{0, 0},
-};
-
-const struct ppm_name_value fd_flags[] = {
-	{"FD_UPPER_LAYER", PPM_FD_UPPER_LAYER},
-	{"FD_LOWER_LAYER", PPM_FD_LOWER_LAYER},
 	{0, 0},
 };

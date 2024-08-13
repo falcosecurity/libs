@@ -649,7 +649,7 @@ TEST(SyscallExit, execveX_not_upperlayer)
 	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
 	 * file that is used to spawn it or is its owner or otherwise capable.
 	 */
-	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE, EQUAL);
+	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE | PPM_EXE_LOWER_LAYER, EQUAL);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);

@@ -186,7 +186,7 @@ TEST_F(sinsp_with_test_input, filename_toctou)
 
 	fd = 4;
 	add_event(increasing_ts(), 2, PPME_SYSCALL_CREAT_E, 2, "/tmp/the_file", 0);
-	evt = add_event_advance_ts(increasing_ts(), 2, PPME_SYSCALL_CREAT_X, 5, fd, "/tmp/some_other_file", 0, 0, (uint64_t) 0);
+	evt = add_event_advance_ts(increasing_ts(), 2, PPME_SYSCALL_CREAT_X, 6, fd, "/tmp/some_other_file", 0, 0, (uint64_t) 0, (uint16_t) PPM_FD_LOWER_LAYER_CREAT);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 }
 

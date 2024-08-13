@@ -105,8 +105,18 @@ or GPL2.txt for full copies of the license.
 #define PPM_O_TMPFILE	(1 << 13)
 /* Flags added by syscall probe: */
 #define PPM_O_F_CREATED (1 << 14)	/* file created during the syscall */
-#define PPM_O_F_UPPER_LAYER (1 << 15) /* file is from upper layer */
-#define PPM_O_F_LOWER_LAYER (1 << 16) /* file is from upper layer */
+#define PPM_FD_UPPER_LAYER (1 << 15) /* file is from upper layer */
+#define PPM_FD_LOWER_LAYER (1 << 16) /* file is from upper layer */
+
+/*
+ * creat flags
+ */
+/* These flags serve the same puropse as the flags PPM_FD_UPPER_LAYER and PPM_FD_LOWER_LAYER in the 'File flags' section.
+ * They are used in creat system call because it doesn't have a 'flags' parameter that can be used.
+ * This redifintion is needed because this 'creat_flags' parameter is 16 bits and the aforementioned flags are over 16 bits.
+ */
+#define PPM_FD_UPPER_LAYER_CREAT 	(1 << 0) /* file is from upper layer. Equivalent to PPM_FD_UPPER_LAYER */
+#define PPM_FD_LOWER_LAYER_CREAT 	(1 << 1) /* file is from upper layer. Equivalent to PPM_FD_LOWER_LAYER */
 
 /*
  * File modes
@@ -814,12 +824,6 @@ or GPL2.txt for full copies of the license.
 */
 #define PPM_DELETE_MODULE_O_TRUNC		(1 << 0)
 #define PPM_DELETE_MODULE_O_NONBLOCK	(1 << 1)
-
-/*
- * FD flags
- */
-#define PPM_FD_UPPER_LAYER 	(1 << 0)
-#define PPM_FD_LOWER_LAYER 	(1 << 1)
 
 /*
  * bpf_commands 
@@ -2197,6 +2201,7 @@ struct ppm_evt_hdr {
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
+extern const struct ppm_name_value creat_flags[];
 extern const struct ppm_name_value flock_flags[];
 extern const struct ppm_name_value clone_flags[];
 extern const struct ppm_name_value futex_operations[];

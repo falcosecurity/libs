@@ -89,49 +89,6 @@ static __always_inline int bpf_##x(void *ctx)				\
 									\
 static __always_inline int __bpf_##x(struct filler_data *data)		\
 
-static __always_inline struct inode *get_file_inode(struct file *file)
-{
-	if (file) {
-		return _READ(file->f_inode);
-	}
-	return NULL;
-}
-
-static __always_inline enum ppm_overlay get_overlay_layer(struct file *file)
-{
-	if (!file)
-	{
-		return PPM_NOT_OVERLAY_FS;
-	}
-	struct dentry* dentry = NULL;
-	bpf_probe_read_kernel(&dentry, sizeof(dentry), &file->f_path.dentry);
-	struct super_block* sb = (struct super_block*)_READ(dentry->d_sb);
-	unsigned long sb_magic = _READ(sb->s_magic);
-
-	if(sb_magic != PPM_OVERLAYFS_SUPER_MAGIC)
-	{
-		return PPM_NOT_OVERLAY_FS;
-	}
-
-	char *vfs_inode = (char *)_READ(dentry->d_inode);
-	struct dentry *upper_dentry = NULL;
-	bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), (char *)vfs_inode + sizeof(struct inode));
-	if(!upper_dentry)
-	{
-		return PPM_OVERLAY_LOWER;
-	}
-
-	struct inode *upper_ino = _READ(upper_dentry->d_inode);
-	if(_READ(upper_ino->i_ino) != 0)
-	{
-		return PPM_OVERLAY_UPPER;
-	}
-	else
-	{
-		return PPM_OVERLAY_LOWER;
-	}
-}
-
 FILLER_RAW(terminate_filler)
 {
 	struct scap_bpf_per_cpu_state *state;
@@ -407,7 +364,7 @@ FILLER(sys_open_x, true)
 	unsigned long ino = 0;
 	long retval;
 	int res;
-	struct file *file = NULL;
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
 	/* Parameter 1: ret (type: PT_FD) */
 	retval = bpf_syscall_get_retval(data->ctx);
@@ -419,21 +376,20 @@ FILLER(sys_open_x, true)
 	res = bpf_val_to_ring(data, val);
 	CHECK_RES(res);
 
-	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_overlay_from_fd(retval, &dev, &ino, &ol);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data, 1);
 	flags = open_flags_to_scap(val);
 	/* update flags if file is created*/	
 	flags |= bpf_get_fd_fmode_created(retval);
-	enum ppm_overlay ol = get_overlay_layer(file);
 	if (ol == PPM_OVERLAY_UPPER)
 	{
-		flags |= PPM_O_F_UPPER_LAYER;
+		flags |= PPM_FD_UPPER_LAYER;
 	}
 	else if (ol == PPM_OVERLAY_LOWER)
 	{
-		flags |= PPM_O_F_LOWER_LAYER;
+		flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
@@ -3210,7 +3166,7 @@ FILLER(sys_openat_x, true)
 	long retval;
 	int32_t fd;
 	int res;
-	struct file *file = NULL;
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
@@ -3233,7 +3189,7 @@ FILLER(sys_openat_x, true)
 	res = bpf_val_to_ring(data, val);
 	CHECK_RES(res);
 
-	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_overlay_from_fd(retval, &dev, &ino, &ol);
 
 	/*
 	 * Flags
@@ -3243,14 +3199,13 @@ FILLER(sys_openat_x, true)
 	flags = open_flags_to_scap(val);
 	/* update flags if file is created*/	
 	flags |= bpf_get_fd_fmode_created(retval);
-	enum ppm_overlay ol = get_overlay_layer(file);
 	if (ol == PPM_OVERLAY_UPPER)
 	{
-		flags |= PPM_O_F_UPPER_LAYER;
+		flags |= PPM_FD_UPPER_LAYER;
 	}
 	else if (ol == PPM_OVERLAY_LOWER)
 	{
-		flags |= PPM_O_F_LOWER_LAYER;
+		flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
@@ -3353,7 +3308,7 @@ FILLER(sys_openat2_x, true)
 	long retval;
 	int32_t fd;
 	int res;
-	struct file *file = NULL;
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 #ifdef __NR_openat2
 	struct open_how how;
 #endif
@@ -3396,7 +3351,7 @@ FILLER(sys_openat2_x, true)
 	resolve = 0;
 #endif
 
-	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_overlay_from_fd(retval, &dev, &ino, &ol);
 
 	/*
 	 * flags (extracted from open_how structure)
@@ -3404,14 +3359,13 @@ FILLER(sys_openat2_x, true)
 	 */
 	/* update flags if file is created*/	
 	flags |= bpf_get_fd_fmode_created(retval);
-	enum ppm_overlay ol = get_overlay_layer(file);
 	if (ol == PPM_OVERLAY_UPPER)
 	{
-		flags |= PPM_O_F_UPPER_LAYER;
+		flags |= PPM_FD_UPPER_LAYER;
 	}
 	else if (ol == PPM_OVERLAY_LOWER)
 	{
-		flags |= PPM_O_F_LOWER_LAYER;
+		flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
@@ -3445,7 +3399,6 @@ FILLER(sys_openat2_x, true)
 FILLER(sys_open_by_handle_at_x, true)
 {
 	long retval = bpf_syscall_get_retval(data->ctx);
-	struct file *file = bpf_fget(retval);
 
 	/* Parameter 1: ret (type: PT_FD) */
 	int res = bpf_push_s64_to_ring(data, retval);
@@ -3460,26 +3413,6 @@ FILLER(sys_open_by_handle_at_x, true)
 	res = bpf_push_s64_to_ring(data, (int64_t)mountfd);
 	CHECK_RES(res);
 
-	/* Parameter 3: flags (type: PT_FLAGS32) */
-	/* Here we need to use `bpf_val_to_ring` to
-	 * fix verifier issues on Amazolinux2 (Kernel 4.14.309-231.529.amzn2.x86_64)
-	 */
-	uint32_t flags = (uint32_t)bpf_syscall_get_argument(data, 2);
-	flags = (uint32_t)open_flags_to_scap(flags);
-	/* update flags if file is created*/	
-	flags |= bpf_get_fd_fmode_created(retval);
-	enum ppm_overlay ol = get_overlay_layer(file);
-	if (ol == PPM_OVERLAY_UPPER)
-	{
-		flags |= PPM_O_F_UPPER_LAYER;
-	}
-	else if (ol == PPM_OVERLAY_LOWER)
-	{
-		flags |= PPM_O_F_LOWER_LAYER;
-	}
-	res = bpf_val_to_ring(data, flags);
-	CHECK_RES(res);
-	
 	if(retval > 0)
 	{
 		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_open_by_handle_at_x_extra_tail_1);
@@ -3487,6 +3420,12 @@ FILLER(sys_open_by_handle_at_x, true)
 		return PPM_FAILURE_BUG;
 	}
 
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	uint32_t flags = (uint32_t)bpf_syscall_get_argument(data, 2);
+	flags = (uint32_t)open_flags_to_scap(flags);
+	res = bpf_val_to_ring(data, flags);
+	CHECK_RES(res);
+	
 	/* Parameter 4: path (type: PT_FSPATH) */
 	res = bpf_push_empty_param(data);
 	CHECK_RES(res);
@@ -3502,12 +3441,10 @@ FILLER(sys_open_by_handle_at_x, true)
 FILLER(open_by_handle_at_x_extra_tail_1, true)
 {
 	long retval = bpf_syscall_get_retval(data->ctx);
-	struct file *f = NULL;
+	struct file *f = bpf_fget(retval);
 	unsigned long dev = 0;
 	unsigned long ino = 0;
-	unsigned short fd_flags = 0;
-
-	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &f);
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
 	if(f == NULL)
 	{
@@ -3521,9 +3458,30 @@ FILLER(open_by_handle_at_x_extra_tail_1, true)
 		return PPM_FAILURE_BUG;
 	}
 	
+	bpf_get_dev_ino_overlay_from_fd(retval, &dev, &ino, &ol);
+
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	/* Here we need to use `bpf_val_to_ring` to
+	 * fix verifier issues on Amazolinux2 (Kernel 4.14.309-231.529.amzn2.x86_64)
+	 */
+	uint32_t flags = (uint32_t)bpf_syscall_get_argument(data, 2);
+	flags = (uint32_t)open_flags_to_scap(flags);
+	/* update flags if file is created*/	
+	flags |= bpf_get_fd_fmode_created(retval);
+	if (ol == PPM_OVERLAY_UPPER)
+	{
+		flags |= PPM_FD_UPPER_LAYER;
+	}
+	else if (ol == PPM_OVERLAY_LOWER)
+	{
+		flags |= PPM_FD_LOWER_LAYER;
+	}
+	int res = bpf_val_to_ring(data, flags);
+	CHECK_RES(res);
+	
 	/* Parameter 4: path (type: PT_FSPATH) */
 	char* filepath = bpf_d_path_approx(data, &(f->f_path));
-	int res = bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
+	res = bpf_val_to_ring_mem(data,(unsigned long)filepath, KERNEL);
 
 	/* Parameter 5: dev (type: PT_UINT32) */
 	res = bpf_push_u32_to_ring(data, dev);
@@ -4611,8 +4569,8 @@ FILLER(sys_creat_x, true)
 	unsigned long mode;
 	long retval;
 	int res;
-	struct file *file = NULL;
-	unsigned short fd_flags = 0;
+	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
+	unsigned short creat_flags = 0;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
@@ -4633,7 +4591,7 @@ FILLER(sys_creat_x, true)
 	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
-	bpf_get_dev_ino_file_from_fd(retval, &dev, &ino, &file);
+	bpf_get_dev_ino_overlay_from_fd(retval, &dev, &ino, &ol);
 
 	/*
 	 * Device
@@ -4648,21 +4606,17 @@ FILLER(sys_creat_x, true)
 	CHECK_RES(res);
 
 	/*
-	 * fd_flags
+	 * creat_flags
 	 */
-	if (likely(file))
+	if (ol == PPM_OVERLAY_UPPER)
 	{
-		enum ppm_overlay ol = get_overlay_layer(file);
-		if (ol == PPM_OVERLAY_UPPER)
-		{
-			fd_flags |= PPM_FD_UPPER_LAYER;
-		}
-		else if (ol == PPM_OVERLAY_LOWER)
-		{
-			fd_flags |= PPM_FD_LOWER_LAYER;
-		}
+		creat_flags |= PPM_FD_UPPER_LAYER_CREAT;
 	}
-	return bpf_push_u16_to_ring(data, (uint16_t)fd_flags);
+	else if (ol == PPM_OVERLAY_LOWER)
+	{
+		creat_flags |= PPM_FD_LOWER_LAYER_CREAT;
+	}
+	return bpf_push_u16_to_ring(data, (uint16_t)creat_flags);
 }
 
 FILLER(sys_pipe_x, true)

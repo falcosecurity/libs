@@ -35,6 +35,14 @@ enum read_memory
 	KERNEL = 1,
 };
 
+static __always_inline struct inode *get_file_inode(struct file *file)
+{
+	if (file) {
+		return _READ(file->f_inode);
+	}
+	return NULL;
+}
+
 static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
 	return port >= min && port <= max;
@@ -301,20 +309,58 @@ static __always_inline void bpf_get_ino_from_fd(int fd, unsigned long *ino)
 	*ino = _READ(inode->i_ino);
 }
 
-static __always_inline void bpf_get_dev_ino_file_from_fd(int fd, unsigned long *dev, unsigned long *ino, struct file **file)
+static __always_inline enum ppm_overlay get_overlay_layer(struct file *file)
+{
+	if (!file)
+	{
+		return PPM_NOT_OVERLAY_FS;
+	}
+	struct dentry* dentry = NULL;
+	bpf_probe_read_kernel(&dentry, sizeof(dentry), &file->f_path.dentry);
+	struct super_block* sb = (struct super_block*)_READ(dentry->d_sb);
+	unsigned long sb_magic = _READ(sb->s_magic);
+
+	if(sb_magic != PPM_OVERLAYFS_SUPER_MAGIC)
+	{
+		return PPM_NOT_OVERLAY_FS;
+	}
+
+	char *vfs_inode = (char *)_READ(dentry->d_inode);
+	struct dentry *upper_dentry = NULL;
+	bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), (char *)vfs_inode + sizeof(struct inode));
+	if(!upper_dentry)
+	{
+		return PPM_OVERLAY_LOWER;
+	}
+
+	struct inode *upper_ino = _READ(upper_dentry->d_inode);
+	if(_READ(upper_ino->i_ino) != 0)
+	{
+		return PPM_OVERLAY_UPPER;
+	}
+	else
+	{
+		return PPM_OVERLAY_LOWER;
+	}
+}
+
+static __always_inline void bpf_get_dev_ino_overlay_from_fd(int fd, unsigned long *dev, unsigned long *ino, enum ppm_overlay *ol)
 {
 	struct super_block *sb;
 	struct inode *inode;
 	dev_t kdev;
+	struct file *file;
 
 	if (fd < 0)
 		return;
 
-	*file = bpf_fget(fd);
-	if (!*file)
+	file = bpf_fget(fd);
+	if (!file)
 		return;
 
-	inode = _READ((*file)->f_inode);
+	*ol = get_overlay_layer(file);
+
+	inode = _READ(file->f_inode);
 	if (!inode)
 		return;
 

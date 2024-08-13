@@ -22,6 +22,7 @@ TEST(SyscallExit, creatX_success)
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
+	uint16_t creat_flags = 0;
 
 	/* Remove the file. */
 	syscall(__NR_close, fd);
@@ -62,9 +63,12 @@ TEST(SyscallExit, creatX_success)
 	/* Parameter 5: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(5, (uint64_t)inode);
 
+	/* Parameter 6: creat_flags (type: PT_FLAGS16) */
+	evt_test->assert_numeric_param(6, (uint16_t)creat_flags);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(6);
 }
 #endif /* defined(__NR_fstat) && defined(__NR_unlinkat) && defined(__NR_close) */
 
@@ -113,8 +117,11 @@ TEST(SyscallExit, creatX_failure)
 	/* Parameter 5: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(5, (uint64_t)0);
 
+	/* Parameter 6: creat_flags (type: PT_FLAGS16) */
+	evt_test->assert_numeric_param(6, (uint16_t)0);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(5);
+	evt_test->assert_num_params_pushed(6);
 }
 #endif

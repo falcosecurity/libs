@@ -114,11 +114,11 @@ int BPF_PROG(openat2_x,
 	flags |= extract__fmode_created_from_fd(ret);
 	if(ol == PPM_OVERLAY_UPPER)
 	{
-		flags |= PPM_O_F_UPPER_LAYER;
+		flags |= PPM_FD_UPPER_LAYER;
 	}
 	else if(ol == PPM_OVERLAY_LOWER)
 	{
-		flags |= PPM_O_F_LOWER_LAYER;
+		flags |= PPM_FD_LOWER_LAYER;
 	}
 
 	auxmap__store_u32_param(auxmap, flags);

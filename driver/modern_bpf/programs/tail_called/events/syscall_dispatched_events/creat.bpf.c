@@ -75,7 +75,7 @@ int BPF_PROG(creat_x,
 	dev_t dev = 0;
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
-	uint16_t fd_flags = 0;
+	uint16_t creat_flags = 0;
 
 	if(ret > 0)
 	{
@@ -88,16 +88,16 @@ int BPF_PROG(creat_x,
 	/* Parameter 5: ino (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, ino);
 
-	/* Parameter 6: fd_flags (type: PT_FLAGS16) */
+	/* Parameter 6: creat_flags (type: PT_FLAGS16) */
 	if(ol == PPM_OVERLAY_UPPER)
 	{
-		fd_flags |= PPM_FD_UPPER_LAYER;
+		creat_flags |= PPM_FD_UPPER_LAYER_CREAT;
 	}
 	else if(ol == PPM_OVERLAY_LOWER)
 	{
-		fd_flags |= PPM_FD_LOWER_LAYER;
+		creat_flags |= PPM_FD_LOWER_LAYER_CREAT;
 	}
-	auxmap__store_u16_param(auxmap, fd_flags);
+	auxmap__store_u16_param(auxmap, creat_flags);
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
