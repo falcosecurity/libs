@@ -60,38 +60,16 @@ if(USE_BUNDLED_JSONCPP)
 	add_dependencies(scap jsoncpp)
 endif()
 
-if(BUILD_SHARED_LIBS)
-	# Trying to build a shared scap_engine_gvisor will result in circular dependencies, so just add
-	# our sources to scap. Additionally, the GENERATED property doesn't propogate across
-	# directories, so enforce our dependency chain using an object library.
-	# https://gitlab.kitware.com/cmake/cmake/-/issues/18399
-	add_library(
-		scap_engine_gvisor_o OBJECT ${scap_engine_gvisor_sources}
-									${scap_engine_gvisor_generated_sources}
-	)
-	set_property(TARGET scap_engine_gvisor_o PROPERTY POSITION_INDEPENDENT_CODE ON)
+add_library(
+	scap_engine_gvisor ${scap_engine_gvisor_sources} ${scap_engine_gvisor_generated_sources}
+)
 
-	target_include_directories(scap_engine_gvisor_o PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_dependencies(scap_engine_gvisor uthash)
+target_link_libraries(
+	scap_engine_gvisor PUBLIC scap_platform_util scap_error ${CMAKE_THREAD_LIBS_INIT}
+							  ${PROTOBUF_LIB} ${JSONCPP_LIB}
+)
 
-	target_link_libraries(scap_engine_gvisor_o PRIVATE scap_platform_util)
+target_include_directories(scap_engine_gvisor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-	add_dependencies(scap_engine_gvisor_o uthash)
-	add_dependencies(scap scap_engine_gvisor_o)
-	target_sources(scap PRIVATE $<TARGET_OBJECTS:scap_engine_gvisor_o>)
-else()
-	add_library(
-		scap_engine_gvisor ${scap_engine_gvisor_sources} ${scap_engine_gvisor_generated_sources}
-	)
-
-	add_dependencies(scap_engine_gvisor uthash)
-	target_link_libraries(
-		scap_engine_gvisor
-		PRIVATE scap
-		PUBLIC scap_platform_util scap_error ${CMAKE_THREAD_LIBS_INIT} ${PROTOBUF_LIB}
-			   ${JSONCPP_LIB}
-	)
-
-	target_include_directories(scap_engine_gvisor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-	set_scap_target_properties(scap_engine_gvisor)
-endif()
+set_scap_target_properties(scap_engine_gvisor)

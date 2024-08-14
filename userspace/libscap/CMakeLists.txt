@@ -185,26 +185,7 @@ endif()
 
 if(HAS_ENGINE_GVISOR)
 	add_subdirectory(engine/gvisor)
-	# The static and shared build differs here because a shared scap_engine_gvisor will result in
-	# circular dependencies.
-	if(BUILD_SHARED_LIBS)
-		# We can move this to the gvisor CMakeFile when we use CMake 3.13 or later.
-		# https://cmake.org/cmake/help/latest/policy/CMP0079.html
-		target_link_libraries(
-			scap
-			PUBLIC ${CMAKE_THREAD_LIBS_INIT}
-				   ${GRPCPP_LIB}
-				   ${GRPC_LIB}
-				   ${GPR_LIB}
-				   ${GRPC_LIBRARIES}
-				   ${PROTOBUF_LIB}
-				   ${CARES_LIB}
-				   ${OPENSSL_LIBRARIES}
-				   ${JSONCPP_LIB}
-		)
-	else()
-		target_link_libraries(scap PRIVATE scap_engine_gvisor)
-	endif()
+	target_link_libraries(scap PUBLIC scap_engine_gvisor)
 endif()
 
 # ##################################################################################################
