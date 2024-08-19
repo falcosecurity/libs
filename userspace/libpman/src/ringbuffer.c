@@ -260,13 +260,13 @@ static inline void *ringbuf__get_first_ring_event(struct ring *r, int pos)
 	/* If the consumer reaches the producer update the producer position to
 	 * get the newly collected events.
 	 */
-	if(g_state.cons_pos[pos] >= g_state.prod_pos[pos])
+	if(g_state.cons_pos[pos] == g_state.prod_pos[pos])
 	{
 		// We try to increment the producer and continue. It is likely that the producer
 		// has produced new events on this CPU and these events could have a timestamp
 		// lowest than all the other events in the other buffers.
 		g_state.prod_pos[pos] = smp_load_acquire(r->producer_pos);
-		if(g_state.cons_pos[pos] >= g_state.prod_pos[pos])
+		if(g_state.cons_pos[pos] == g_state.prod_pos[pos])
 		{
 			return NULL;
 		}
