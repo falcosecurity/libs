@@ -526,10 +526,10 @@ int32_t scap_kmod_close(struct scap_engine_handle engine)
 
 	devset_free(devset);
 	
-	if(engine.m_handle->m_stats)
+	if(HANDLE(engine)->m_stats)
 	{
-		free(engine.m_handle->m_stats);
-		engine.m_handle->m_stats = NULL;
+		free(HANDLE(engine)->m_stats);
+		HANDLE(engine)->m_stats = NULL;
 	}
 	return SCAP_SUCCESS;
 }
