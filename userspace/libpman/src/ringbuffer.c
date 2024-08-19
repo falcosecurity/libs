@@ -22,6 +22,7 @@ limitations under the License.
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/mman.h>
+#include <ringbuffer_debug_macro.h>
 #include <driver/ppm_events_public.h>
 
 #include "ringbuffer_definitions.h"
@@ -311,9 +312,11 @@ static void ringbuf__consume_first_event(struct ring_buffer *rb, struct ppm_evt_
 		smp_store_release(r->consumer_pos, g_state.cons_pos[g_state.last_ring_read]);
 	}
 
+	R_D_MSG("\n-----------------------------\nIterate over all the buffers\n");
 	for(uint16_t pos = 0; pos < rb->ring_cnt; pos++)
 	{
 		*event_ptr = ringbuf__get_first_ring_event(rb->rings[pos], pos);
+		R_D_EVENT(*event_ptr, pos);
 
 		/* if NULL search for events in another buffer */
 		if(*event_ptr == NULL)
@@ -327,6 +330,7 @@ static void ringbuf__consume_first_event(struct ring_buffer *rb, struct ppm_evt_
 			tmp_pointer = *event_ptr;
 			tmp_ring = pos;
 			tmp_cons_increment = g_state.last_event_size;
+			R_D_MSG("Found new min with ts '%ld' on buffer %d\n",(*event_ptr)->ts, pos);
 		}
 	}
 
@@ -334,6 +338,8 @@ static void ringbuf__consume_first_event(struct ring_buffer *rb, struct ppm_evt_
 	*buffer_id = tmp_ring;
 	g_state.last_ring_read = tmp_ring;
 	g_state.last_event_size = tmp_cons_increment;
+	R_D_MSG("Send event -> ");
+	R_D_EVENT(*event_ptr, tmp_ring);
 }
 
 /* Consume */
