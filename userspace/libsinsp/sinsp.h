@@ -154,11 +154,7 @@ enum sinsp_mode_t
 class SINSP_PUBLIC sinsp : public capture_stats_source
 {
 public:
-	sinsp(bool static_container = false,
-		  const std::string &static_id = "",
-		  const std::string &static_name = "",
-		  const std::string &static_image = "",
-	          bool with_metrics = false);
+	sinsp(bool with_metrics = false);
 
 	virtual ~sinsp() override;
 
@@ -929,6 +925,10 @@ public:
 	inline void set_container_engine_mask(uint64_t mask)
 	{
 		m_container_manager.set_container_engine_mask(mask);
+	}
+
+	inline void set_static_container(const std::string& id, const std::string& name, const std::string& image) {
+		m_container_manager.set_static_container(id, name, image);
 	}
 
 	// Add comm to the list of comms for which the inspector

@@ -54,11 +54,7 @@ public:
 	 * right now being "static" or not. I'm sure we will find time in the future to do this
 	 * in a more general way. 2020/11/24
 	 */
-	sinsp_container_manager(sinsp* inspector,
-	                        bool static_container = false,
-	                        const std::string static_id = "",
-	                        const std::string static_name = "",
-	                        const std::string static_image = "");
+	sinsp_container_manager(sinsp* inspector);
 
 	virtual ~sinsp_container_manager() = default;
 
@@ -162,6 +158,26 @@ public:
 	inline void set_container_engine_mask(uint64_t mask)
 	{
 		m_container_engine_mask = mask;
+	}
+
+	/**
+	 * @brief Set static container information
+	 * @param id the id for the static container.
+	 * @param name the name for the static container.
+	 * @param image the used by the static container.
+	 *
+	 *  Note: the CRI engine handles multiple container types which can only
+	 *  be enabled or disabled together.
+	 *
+	 *  This method *must* be called before the first container detection,
+	 *  i.e. before inspector->open()
+	 */
+	inline void set_static_container(const std::string& id, const std::string& name, const std::string& image)
+	{
+		m_static_id = id;
+		m_static_name = name;
+		m_static_image = image;
+		m_static_container = true;
 	}
 
 	void create_engines();
