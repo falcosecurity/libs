@@ -313,7 +313,10 @@ TEST(async_key_value_source_test, look_key_delayed_async_callback)
 	std::string sync_response = "sync-response-not-set";
 	std::string async_response = "async-response-not-set";
 	bool async_response_received = false;
+	bool lookup_complete = false;
 	bool response_found;
+
+	std::mutex m;
 
 	// Seed the precanned response
 	source.set_response(key, metadata);
@@ -321,11 +324,12 @@ TEST(async_key_value_source_test, look_key_delayed_async_callback)
 	response_found =
 	    source.lookup(key,
 	                  sync_response,
-	                  [&async_response, &async_response_received](const std::string& key,
+	                  [&m, &async_response, &lookup_complete](const std::string& key,
 	                                                              const std::string& value)
 	                  {
-		                  async_response = value;
-		                  async_response_received = true;
+						std::lock_guard lk(m);
+	                    async_response = value;
+	                    lookup_complete = true;
 	                  });
 
 	ASSERT_FALSE(response_found);
@@ -336,14 +340,22 @@ TEST(async_key_value_source_test, look_key_delayed_async_callback)
 	// long, but expect some scheduling overhead.  If we have to wait more
 	// than 5 seconds, something went wrong.
 	std::this_thread::sleep_for(std::chrono::milliseconds(DELAY_MS));
+	std::string response;
 	const int FIVE_SECS_IN_MS = 5 * 1000;
 	for (int i = 0; !async_response_received && i < FIVE_SECS_IN_MS; ++i)
 	{
+		{
+			std::lock_guard lk(m);
+			if (lookup_complete) {
+				response = async_response;
+				async_response_received = true;
+			}
+		}
 		// Avoid tight busy loop
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
-	ASSERT_EQ(metadata, async_response);
+	ASSERT_EQ(metadata, response);
 }
 
 /**
@@ -506,22 +518,26 @@ TEST(async_key_value_source_test, async)
 {
 	uint64_t ttl_ms = std::numeric_limits<uint64_t>::max();
 	short num_failures = 3;
-	test_key_value_source t(0, 0, ttl_ms, num_failures);
 	result res;
 	std::condition_variable cv;
 	std::mutex cv_m;
+	test_key_value_source t(0, 0, ttl_ms, num_failures);
 
 	bool done = false;
-	t.lookup("1", res, [&cv, &done](const std::string& key, const result& res)
-		 {
-	            ASSERT_EQ(1, res.val);
-	            ASSERT_EQ(3, res.retries);
-                done = true;
-                cv.notify_all(); });
+	t.lookup("1", res, [&cv_m, &cv, &done](const std::string& key, const result& res) {
+		ASSERT_EQ(1, res.val);
+		ASSERT_EQ(3, res.retries);
+		{
+			std::lock_guard<std::mutex> lk(cv_m);
+			done = true;
+		}
+		cv.notify_all();
+	});
+
 	std::unique_lock<std::mutex> lk(cv_m);
-	if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done]()
-			{ return done; }))
+	if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done](){ return done; })) {
 		FAIL() << "Timeout expired while waiting for result";
+	}
 }
 
 TEST(async_key_value_source_test, async_ttl_expired)
@@ -529,30 +545,42 @@ TEST(async_key_value_source_test, async_ttl_expired)
 	uint64_t ttl_ms = 10;
 	short num_failures = 3;
 	short backoff_ms = 6;
-	test_key_value_source t(0, 0, ttl_ms, num_failures, backoff_ms);
 	result res;
 	std::condition_variable cv;
 	std::mutex cv_m;
+	test_key_value_source t(0, 0, ttl_ms, num_failures, backoff_ms);
 
 	bool done = false;
 	t.lookup(
 		"1", res,
-		[&cv, &done](const std::string& key, const result& res)
+		[&cv_m, &cv, &done](const std::string& key, const result& res)
 		{
+
 			FAIL() << "unexpected callback for key: " << key;
-			done = true;
+			{
+				std::lock_guard<std::mutex> lk(cv_m);
+				done = true;
+			}
 			cv.notify_all();
 		},
-		[&cv, &done](const std::string& key)
+		[&cv_m, &cv, &done](const std::string& key)
 		{
 			ASSERT_EQ("1", key);
-			done = true;
+			{
+				std::lock_guard<std::mutex> lk(cv_m);
+				done = true;
+			}
 			cv.notify_all();
 		});
-	std::unique_lock<std::mutex> lk(cv_m);
-	if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done]()
-			{ return done; }))
-		FAIL() << "Timeout expired while waiting for result";
+	
+	{
+		std::unique_lock<std::mutex> lk(cv_m);
+		if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done]()
+				{ return done; })) {
+			FAIL() << "Timeout expired while waiting for result";
+		}
+	}
+
 	// Verify that no keys are left in the queue.
 	std::string key;
 	ASSERT_FALSE(t.next_key(key));
