@@ -267,7 +267,16 @@ int BPF_PROG(t1_execve_x,
 	else
 	{
 		struct inode___v6_6 *exe_inode_v6_6 = (void *)exe_inode;
-		BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
+		if(bpf_core_field_exists(exe_inode_v6_6->__i_ctime))
+		{
+			BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
+		}
+		else
+		{
+			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
+			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_ctime_sec);
+			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_ctime_nsec);
+		}
 	}
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
@@ -279,7 +288,16 @@ int BPF_PROG(t1_execve_x,
 	else
 	{
 		struct inode___v6_7 *exe_inode_v6_7 = (void *)exe_inode;
-		BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
+		if(bpf_core_field_exists(exe_inode_v6_7->__i_mtime))
+		{
+			BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
+		}
+		else
+		{
+			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
+			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_mtime_sec);
+			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_mtime_nsec);
+		}
 	}
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 

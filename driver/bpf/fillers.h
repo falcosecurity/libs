@@ -2914,7 +2914,10 @@ FILLER(execve_extra_tail_1, true)
 	struct timespec64 time = {0};
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+	time.tv_sec = _READ(inode->i_ctime_sec);
+	time.tv_nsec = _READ(inode->i_ctime_nsec);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 	time = _READ(inode->__i_ctime);
 #else
 	time = _READ(inode->i_ctime);
@@ -2923,7 +2926,10 @@ FILLER(execve_extra_tail_1, true)
 	CHECK_RES(res);
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+	time.tv_sec = _READ(inode->i_mtime_sec);
+	time.tv_nsec = _READ(inode->i_mtime_nsec);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
 	time = _READ(inode->__i_mtime);
 #else
 	time = _READ(inode->i_mtime);
@@ -6822,7 +6828,10 @@ FILLER(sched_prog_exec_4, false)
 	struct timespec64 time = {0};
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+	time.tv_sec = _READ(inode->i_ctime_sec);
+	time.tv_nsec = _READ((inode->i_ctime_nsec);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 	time = _READ(inode->__i_ctime);
 #else
 	time = _READ(inode->i_ctime);
@@ -6831,7 +6840,10 @@ FILLER(sched_prog_exec_4, false)
 	CHECK_RES(res);
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+	time.tv_sec = _READ(inode->i_mtime_sec);
+	time.tv_nsec = _READ(inode->i_mtime_nsec);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
 	time = _READ(inode->__i_mtime);
 #else
 	time = _READ(inode->i_mtime);
