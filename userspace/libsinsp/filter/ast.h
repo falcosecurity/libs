@@ -18,6 +18,7 @@ limitations under the License.
 
 #pragma once
 
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <algorithm>
