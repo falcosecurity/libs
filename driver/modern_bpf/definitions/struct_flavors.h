@@ -52,6 +52,13 @@ struct inode___v6_7 {
 	struct timespec64 __i_mtime;
 };
 
+struct inode___v6_11 {
+	int64_t	i_mtime_sec;
+	int64_t	i_ctime_sec;
+	uint32_t i_mtime_nsec;
+	uint32_t i_ctime_nsec;
+};
+
 #ifndef BPF_NO_PRESERVE_ACCESS_INDEX
 #pragma clang attribute pop
 #endif
