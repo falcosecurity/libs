@@ -64,13 +64,13 @@ int32_t on_new_entry_from_proc(void* context, char* error, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 std::atomic<int> sinsp::instance_count{0};
 
-sinsp::sinsp(bool static_container, const std::string &static_id, const std::string &static_name, const std::string &static_image, bool with_metrics) :
+sinsp::sinsp(bool with_metrics) :
 	m_external_event_processor(),
 	m_sinsp_stats_v2(with_metrics ? std::make_shared<sinsp_stats_v2>() : nullptr),
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_host_root(scap_get_host_root()),
-	m_container_manager(this, static_container, static_id, static_name, static_image),
+	m_container_manager(this),
 	m_usergroup_manager(this),
 	m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
 	m_suppressed_comms(),
