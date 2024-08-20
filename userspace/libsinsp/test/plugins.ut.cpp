@@ -581,12 +581,12 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	// we open a capture and iterate, so that we make sure that all
 	// the state operations keep working at every round of the loop
 	open_inspector();
-	auto asyncname = "sampleasync";
-	auto sample_plugin_evtdata = "hello world";
+	const char* asyncname = "sampleasync";
+	const char* sample_plugin_evtdata = "hello world";
 	uint64_t max_iterations = 10000;
 	for (uint64_t i = 0; i < max_iterations; i++)
 	{
-		auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_ASYNCEVENT_E, 3, (uint32_t) 0, asyncname, scap_const_sized_buffer{&sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1});
+		auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_ASYNCEVENT_E, 3, (uint32_t) 0, asyncname, scap_const_sized_buffer{sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1});
 		ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
 		ASSERT_EQ(evt->get_source_idx(), 0);
 	}
