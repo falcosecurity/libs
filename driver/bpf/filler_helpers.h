@@ -496,159 +496,143 @@ static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 
 #define get_buf(x) data->buf[(data->state->tail_ctx.curoff + (x)) & SCRATCH_SIZE_HALF]
 
-static __always_inline uint32_t bpf_compute_snaplen(struct filler_data *data,
-					       uint32_t lookahead_size)
+static __always_inline uint32_t bpf_compute_snaplen(struct filler_data *data, uint32_t lookahead_size)
 {
-	struct sockaddr_storage *sock_address;
-	struct sockaddr_storage *peer_address;
 	uint32_t res = data->settings->snaplen;
-	struct socket *sock;
-	struct sock *sk;
-	uint16_t sport;
-	uint16_t dport;
 
-	if (!data->settings->do_dynamic_snaplen)
+	if(!data->settings->do_dynamic_snaplen)
 		return res;
 
-	if (data->fd == -1)
+	// We set this in the previous syscall-specific logic
+	if(data->fd == -1)
 		return res;
 
-	sock = bpf_sockfd_lookup(data, data->fd);
-	if (!sock)
+	struct socket *socket = bpf_sockfd_lookup(data, data->fd);
+	if(!socket)
 		return res;
 
-	sock_address = (struct sockaddr_storage *)data->tmp_scratch;
-	peer_address = (struct sockaddr_storage *)data->tmp_scratch + 1;
-
-	if (!bpf_getsockname(sock, sock_address, 0))
+	struct sock *sk = _READ(socket->sk);
+	if(!sk)
 		return res;
 
-	if (data->state->tail_ctx.evt_type == PPME_SOCKET_SENDTO_X) {
-		unsigned long val;
-		struct sockaddr *usrsockaddr;
+	uint16_t port_local = 0;
+	uint16_t port_remote = 0;
 
-		usrsockaddr = (struct sockaddr *)bpf_syscall_get_argument(data, 4);
+	uint16_t socket_family = _READ(sk->sk_family);
+	if(socket_family == AF_INET || socket_family == AF_INET6)
+	{
+		struct inet_sock *inet = (struct inet_sock *)sk;
+		port_local = _READ(inet->inet_sport);
+		port_remote = _READ(sk->__sk_common.skc_dport);
+		port_local = ntohs(port_local);
+		port_remote = ntohs(port_remote);
+		struct sockaddr *sockaddr = NULL;
 
-		if (!usrsockaddr) {
-			if (!bpf_getsockname(sock, peer_address, 1))
-				return res;
-		} else {
-			int addrlen = bpf_syscall_get_argument(data, 5);
+		switch(data->state->tail_ctx.evt_type)
+		{
+		case PPME_SOCKET_SENDTO_X:
+		case PPME_SOCKET_RECVFROM_X:
+			sockaddr = (struct sockaddr *)bpf_syscall_get_argument(data, 4);
+			break;
 
-			if (addrlen != 0) {
-				if (bpf_addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)peer_address))
-					return res;
-			} else if (!bpf_getsockname(sock, peer_address, 1)) {
-				return res;
+		case PPME_SOCKET_RECVMSG_X:
+		case PPME_SOCKET_SENDMSG_X:
+		{
+			unsigned long mh_p = bpf_syscall_get_argument(data, 1);
+#ifdef CONFIG_COMPAT
+			if(bpf_in_ia32_syscall())
+			{
+				struct compat_msghdr compat_mh = {};
+				if(likely(bpf_probe_read_user(&compat_mh, sizeof(compat_mh), (void *)mh_p) == 0))
+				{
+					sockaddr = (struct sockaddr *)(unsigned long)(compat_mh.msg_name);
+				}
+				// in any case we break the switch.
+				break;
+			}
+#endif
+			struct user_msghdr mh = {};
+			if(bpf_probe_read_user(&mh, sizeof(mh), (void *)mh_p) == 0)
+			{
+				sockaddr = (struct sockaddr *)mh.msg_name;
+			} 
+		}
+		break;
+
+		default:
+			break;
+		}
+
+		if(port_remote == 0 && sockaddr != NULL)
+		{
+			if(socket_family == AF_INET)
+			{
+				struct sockaddr_in sockaddr_in = {};
+				bpf_probe_read_user(&sockaddr_in, sizeof(sockaddr_in), sockaddr);
+				port_remote = ntohs(sockaddr_in.sin_port);
+			}
+			else
+			{
+				struct sockaddr_in6 sockaddr_in6 = {};
+				bpf_probe_read_user(&sockaddr_in6, sizeof(sockaddr_in6), sockaddr);
+				port_remote = ntohs(sockaddr_in6.sin6_port);
 			}
 		}
-	} else if (data->state->tail_ctx.evt_type == PPME_SOCKET_SENDMSG_X) {
-		struct sockaddr *usrsockaddr;
-		struct user_msghdr mh;
-		unsigned long val;
-		int addrlen;
-
-		val = bpf_syscall_get_argument(data, 1);
-		if (bpf_probe_read_user(&mh, sizeof(mh), (void *)val)) {
-			usrsockaddr = NULL;
-			addrlen = 0;
-		} else {
-			usrsockaddr = (struct sockaddr *)mh.msg_name;
-			addrlen = mh.msg_namelen;
-		}
-
-		if (usrsockaddr && addrlen != 0) {
-			if (bpf_addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)peer_address))
-				return res;
-		} else if (!bpf_getsockname(sock, peer_address, 1)) {
-			return res;
-		}
-	} else if (!bpf_getsockname(sock, peer_address, 1)) {
-		return res;
-	}
-
-	sk = _READ(sock->sk);
-	if (!sk)
-		return res;
-
-	sa_family_t family = _READ(sk->sk_family);
-
-	if (family == AF_INET) {
-		sport = ntohs(((struct sockaddr_in *)sock_address)->sin_port);
-		dport = ntohs(((struct sockaddr_in *)peer_address)->sin_port);
-	} else if (family == AF_INET6) {
-		sport = ntohs(((struct sockaddr_in6 *)sock_address)->sin6_port);
-		dport = ntohs(((struct sockaddr_in6 *)peer_address)->sin6_port);
-	} else {
-		sport = 0;
-		dport = 0;
 	}
 
 	uint16_t min_port = data->settings->fullcapture_port_range_start;
 	uint16_t max_port = data->settings->fullcapture_port_range_end;
 
-	if (max_port > 0 &&
-		(in_port_range(sport, min_port, max_port) ||
-		 in_port_range(dport, min_port, max_port))) {
-		/*
-		 * Before checking the well-known ports, see if the user has requested
-		 * an increased snaplen for the port in question.
-		 */
-		return SNAPLEN_FULLCAPTURE_PORT;
-	} else if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
-		if (lookahead_size >= 5) {
-			if (get_buf(0) == 3 ||
-			    get_buf(1) == 3 ||
-			    get_buf(2) == 3 ||
-			    get_buf(3) == 3 ||
-			    get_buf(4) == 3) {
-				return SNAPLEN_EXTENDED;
-			} else if (get_buf(2) == 0 && get_buf(3) == 0) {
-				return SNAPLEN_EXTENDED;
-			}
-		}
-	} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
-		if (lookahead_size >= 2) {
-			if ((get_buf(0) == 'Q' && get_buf(1) == 0) || /* SimpleQuery command */
-			    (get_buf(0) == 'P' && get_buf(1) == 0) || /* Prepare statement command */
-			    (get_buf(4) == 0 && get_buf(5) == 3 && get_buf(6) == 0) || /* startup command */
-			    (get_buf(0) == 'E' && get_buf(1) == 0) /* error or execute command */
-			) {
-				return SNAPLEN_EXTENDED;
-			}
-		}
-	} else if ((sport == PPM_PORT_MONGODB || dport == PPM_PORT_MONGODB) ||
-			(lookahead_size >= 16 && (*(int32_t *)&get_buf(12) == 1 || /* matches header */
-						  *(int32_t *)&get_buf(12) == 2001 ||
-						  *(int32_t *)&get_buf(12) == 2002 ||
-						  *(int32_t *)&get_buf(12) == 2003 ||
-						  *(int32_t *)&get_buf(12) == 2004 ||
-						  *(int32_t *)&get_buf(12) == 2005 ||
-						  *(int32_t *)&get_buf(12) == 2006 ||
-						  *(int32_t *)&get_buf(12) == 2007))) {
-		return SNAPLEN_EXTENDED;
-	} else if (dport == data->settings->statsd_port) {
-		return SNAPLEN_EXTENDED;
-	} else {
-		if (lookahead_size >= 5) {
-			uint32_t buf = *(uint32_t *)&get_buf(0);
-
-#ifdef CONFIG_S390
-			buf = __builtin_bswap32(buf);
-#endif
-			if (buf == BPF_HTTP_GET ||
-			    buf == BPF_HTTP_POST ||
-			    buf == BPF_HTTP_PUT ||
-			    buf == BPF_HTTP_DELETE ||
-			    buf == BPF_HTTP_TRACE ||
-			    buf == BPF_HTTP_CONNECT ||
-			    buf == BPF_HTTP_OPTIONS ||
-			    (buf == BPF_HTTP_PREFIX && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
-				return SNAPLEN_EXTENDED;
-			}
+	if(max_port > 0 && (in_port_range(port_local, min_port, max_port) || in_port_range(port_remote, min_port, max_port)))
+	{
+		return res > SNAPLEN_FULLCAPTURE_PORT ? res : SNAPLEN_FULLCAPTURE_PORT;
+	}
+	else if(port_remote == data->settings->statsd_port)
+	{
+		return res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+	}
+	else if((port_local == PPM_PORT_MYSQL || port_remote == PPM_PORT_MYSQL) && lookahead_size >= 5)
+	{
+		if((get_buf(0) == 3 || get_buf(1) == 3 || get_buf(2) == 3 || get_buf(3) == 3 || get_buf(4) == 3) ||
+		   (get_buf(2) == 0 && get_buf(3) == 0))
+		{
+			return res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 		}
 	}
+	else if((port_local == PPM_PORT_POSTGRES || port_remote == PPM_PORT_POSTGRES) && lookahead_size >= 7)
+	{
+		if((get_buf(0) == 'Q' && get_buf(1) == 0) ||		      /* SimpleQuery command */
+		   (get_buf(0) == 'P' && get_buf(1) == 0) ||		      /* Prepare statement command */
+		   (get_buf(4) == 0 && get_buf(5) == 3 && get_buf(6) == 0) || /* startup command */
+		   (get_buf(0) == 'E' && get_buf(1) == 0)		      /* error or execute command */
+		)
+		{
+			return res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+		}
+	}
+	else if((port_local == PPM_PORT_MONGODB || port_remote == PPM_PORT_MONGODB) ||
+		(lookahead_size >= 16 && (*(int32_t *)&get_buf(12) == 1 || /* matches header */
+					  *(int32_t *)&get_buf(12) == 2001 || *(int32_t *)&get_buf(12) == 2002 ||
+					  *(int32_t *)&get_buf(12) == 2003 || *(int32_t *)&get_buf(12) == 2004 ||
+					  *(int32_t *)&get_buf(12) == 2005 || *(int32_t *)&get_buf(12) == 2006 ||
+					  *(int32_t *)&get_buf(12) == 2007)))
+	{
+		return res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+	}
+	else if(lookahead_size >= 5)
+	{
+		uint32_t buf = *(uint32_t *)&get_buf(0);
 
+#ifdef CONFIG_S390
+		buf = __builtin_bswap32(buf);
+#endif
+		if(buf == BPF_HTTP_GET || buf == BPF_HTTP_POST || buf == BPF_HTTP_PUT || buf == BPF_HTTP_DELETE ||
+		   buf == BPF_HTTP_TRACE || buf == BPF_HTTP_CONNECT || buf == BPF_HTTP_OPTIONS ||
+		   (buf == BPF_HTTP_PREFIX && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/'))
+		{ // "HTTP/"
+			return res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+		}
+	}
 	return res;
 }
 
