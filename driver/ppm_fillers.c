@@ -2319,13 +2319,14 @@ static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	int res;
 	unsigned long size;
 	unsigned long val;
+	int32_t tmp_fd = 0;
 
 	/*
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-
-	res = val_to_ring(args, val, 0, false, 0);
+	tmp_fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)tmp_fd, 0, false, 0);
 	CHECK_RES(res);
 
 	*fd = val;
@@ -2635,7 +2636,7 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	struct compat_msghdr compat_mh;
 #endif
 	unsigned long iovcnt;
-	int fd;
+	int32_t fd = 0;
 	uint16_t size = 0;
 	int addrlen;
 	int err = 0;
@@ -2647,8 +2648,8 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 
-	fd = val;
-	res = val_to_ring(args, val, 0, false, 0);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/*
