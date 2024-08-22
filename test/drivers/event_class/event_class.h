@@ -77,7 +77,6 @@ enum direction
  */
 #define assert_syscall_state(syscall_state, syscall_name, ...) \
         do { \
-		errno = 0; \
 		_assert_syscall_state(syscall_state, syscall_name, __VA_ARGS__); \
                 if(errno == ENOSYS) \
 			GTEST_SKIP() << "Syscall " << syscall_name << " not implemented" << std::endl; \
