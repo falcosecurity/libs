@@ -76,7 +76,7 @@ int BPF_PROG(recvmsg_x,
 		 * have in the buffer.
 		 */
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, true, NULL);
+		apply_dynamic_snaplen(regs, &snaplen, true, PPME_SOCKET_RECVMSG_X);
 		if(snaplen > ret)
 		{
 			snaplen = ret;

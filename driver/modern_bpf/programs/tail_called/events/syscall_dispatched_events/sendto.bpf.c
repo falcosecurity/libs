@@ -85,15 +85,15 @@ int BPF_PROG(sendto_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[5] = {0};
-	extract__network_args(args, 5, regs);
+	unsigned long args[3] = {0};
+	extract__network_args(args, 3, regs);
 
 	/* If the syscall doesn't fail we use the return value as `size`
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
 	int64_t bytes_to_read = ret > 0 ? ret : args[2];
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, false, (struct sockaddr*)args[4]);
+	apply_dynamic_snaplen(regs, &snaplen, false, PPME_SOCKET_SENDTO_X);
 	if((int64_t)snaplen > bytes_to_read)
 	{
 		snaplen = bytes_to_read;

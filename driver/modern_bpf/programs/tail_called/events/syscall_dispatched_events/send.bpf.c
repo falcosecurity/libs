@@ -73,7 +73,7 @@ int BPF_PROG(send_x,
 
 	int64_t bytes_to_read = ret > 0 ? ret : args[2];
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, false, NULL);
+	apply_dynamic_snaplen(regs, &snaplen, false, PPME_SOCKET_SEND_X);
 	if((int64_t)snaplen > bytes_to_read)
 	{
 		snaplen = bytes_to_read;
