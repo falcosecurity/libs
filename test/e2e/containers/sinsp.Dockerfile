@@ -7,7 +7,7 @@ RUN apt-get update && \
     libcurl4 \
     libgrpc++1 \
     jq \
-    libjsoncpp1 \
+    nlohmann-json3-dev \
     openssl \
     libre2-5 \
     libtbb2

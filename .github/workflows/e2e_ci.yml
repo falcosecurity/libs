@@ -50,7 +50,7 @@ jobs:
             libssl-dev \
             libtbb-dev \
             libjq-dev \
-            libjsoncpp-dev \
+            nlohmann-json3-dev \
             libgrpc++-dev \
             protobuf-compiler-grpc \
             libgtest-dev \
