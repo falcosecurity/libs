@@ -50,7 +50,7 @@ public:
 
 	char* tostring_nice(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 	using sinsp_filter_check::tojson; // to avoid warning: "... hides overloaded virtual function"
-	Json::Value tojson(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
+	nlohmann::json tojson(sinsp_evt* evt, uint32_t str_len, uint64_t time_delta);
 
 private:
 	inline char* format_bytes(double val, uint32_t str_len, bool is_int);

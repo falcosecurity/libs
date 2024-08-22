@@ -26,7 +26,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <libsinsp/container_engine/sinsp_container_type.h>
-#include "json/json.h"
+#include <nlohmann/json.hpp>
 
 class sinsp;
 class sinsp_threadinfo;
@@ -174,18 +174,18 @@ public:
 		{
 		}
 
-		container_mount_info(const Json::Value &source, const Json::Value &dest,
-				     const Json::Value &mode, const Json::Value &rw,
-				     const Json::Value &propagation)
+		container_mount_info(const nlohmann::json &source, const nlohmann::json &dest,
+				     const nlohmann::json &mode, const nlohmann::json &rw,
+				     const nlohmann::json &propagation)
 		{
 			get_string_value(source, m_source);
 			get_string_value(dest, m_dest);
 			get_string_value(mode, m_mode);
 			get_string_value(propagation, m_propagation);
 
-			if(!rw.isNull() && rw.isBool())
+			if(!rw.is_null() && rw.is_boolean())
 			{
-				m_rdwr = rw.asBool();
+				m_rdwr = rw;
 			}
 		}
 
@@ -198,11 +198,11 @@ public:
 			       m_propagation;
 		}
 
-		inline void get_string_value(const Json::Value &val, std::string &result)
+		inline void get_string_value(const nlohmann::json &val, std::string &result)
 		{
-			if(!val.isNull() && val.isString())
+			if(!val.is_null() && val.is_string())
 			{
-				result = val.asString();
+				result = val;
 			}
 		}
 
@@ -233,12 +233,12 @@ public:
 
 		// Parse any health probes out of the provided
 		// container json, updating the list of probes.
-		static void parse_health_probes(const Json::Value &config_obj,
+		static void parse_health_probes(const nlohmann::json &config_obj,
 						std::list<container_health_probe> &probes);
 
 		// Serialize the list of health probes, adding to the provided json object
 		static void add_health_probes(const std::list<container_health_probe> &probes,
-					      Json::Value &config_obj);
+					      nlohmann::json &config_obj);
 
 		container_health_probe();
 		container_health_probe(const probe_type probe_type,

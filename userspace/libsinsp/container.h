@@ -252,7 +252,7 @@ public:
 
 private:
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::unique_ptr<sinsp_threadinfo> tinfo, char* scap_err);
-	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
+	std::string get_docker_env(const nlohmann::json &env_vars, const std::string &mti);
 
 	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
 	std::map<sinsp_container_type, std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engine_by_type;

@@ -389,7 +389,7 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	}
 }
 
-Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
+nlohmann::json sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 	uint32_t str_len,
 	uint64_t time_delta)
 {

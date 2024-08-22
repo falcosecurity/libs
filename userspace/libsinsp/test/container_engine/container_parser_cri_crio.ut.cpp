@@ -44,7 +44,8 @@ limitations under the License.
  * Many lists in the mock example JSONs were truncated and are not complete
  */
 
-std::string container_info_json_crio = R"({
+std::string container_info_json_crio = R"(
+{
     "sandboxID": "1f04600dc6949359da68eee5fe7c4069706a567c07d1ef89fe3bbfdeac7a6dca",
     "pid": 1835083,
     "runtimeSpec": {
@@ -222,10 +223,10 @@ std::string container_info_json_crio = R"({
       }
     },
     "privileged": true
-  }
 })";
 
-std::string pod_info_json_crio = R"({
+std::string pod_info_json_crio = R"(
+{
    "runtimeSpec": {
       "ociVersion": "1.0.2-dev",
       "process": {
@@ -397,8 +398,7 @@ std::string pod_info_json_crio = R"({
           ]
         }
       }
-    }
-  }
+   }
 })";
 
 runtime::v1alpha2::ContainerStatusResponse get_default_cri_crio_container_status_resp()
@@ -566,10 +566,10 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
-	const auto root_container = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
+	auto root_container = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
+	auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
@@ -592,7 +592,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_EQ("quay.io/crio/redis:alpine", container.m_image);
 	ASSERT_EQ("quay.io/crio/redis", container.m_imagerepo);
 	ASSERT_EQ("alpine", container.m_imagetag);
-
 	// CRI image failure resilience test for cases where it may begin with sha256
 	auto status = container_status_resp.mutable_status();
 	status->set_image_ref("sha256:49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad");
@@ -605,7 +604,6 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio)
 	ASSERT_EQ("alpine", container.m_imagetag);
 	res = cri_api_v1alpha2->parse_cri_json_imageid(root_container, container);
 	ASSERT_FALSE(res); // parse_cri_json_imageid only supported for containerd
-
 	res = cri_api_v1alpha2->parse_cri_mounts(resp_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_env(root_container, container);
@@ -703,7 +701,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio_sandbox_container)
 
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
+	auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	sinsp_container_info &container = *container_ptr;
 

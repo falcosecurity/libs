@@ -224,7 +224,7 @@ if(HAS_ENGINE_GVISOR)
 		PRIVATE
 			${CMAKE_THREAD_LIBS_INIT}
 			${PROTOBUF_LIB}
-			${JSONCPP_LIB}
+			nlohmann_json::nlohmann_json
 		)
 	else()
 		target_link_libraries(scap PRIVATE scap_engine_gvisor)

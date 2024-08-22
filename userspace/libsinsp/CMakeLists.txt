@@ -30,7 +30,7 @@ endif()
 
 include(ExternalProject)
 
-include(jsoncpp)
+include(njson)
 include(zlib)
 
 if(NOT MINIMAL_BUILD)
@@ -162,10 +162,9 @@ endif()
 set_sinsp_target_properties(sinsp)
 
 target_link_libraries(sinsp
-		PUBLIC scap
+		PUBLIC scap nlohmann_json::nlohmann_json
 		PRIVATE
 			"${CURL_LIBRARIES}"
-			"${JSONCPP_LIB}"
 			"${RE2_LIB}"
 )
 
@@ -173,14 +172,14 @@ set(SINSP_PKGCONFIG_LIBRARIES
 	scap
 	"${ZLIB_LIB}"
 	"${CURL_LIBRARIES}"
-	"${JSONCPP_LIB}"
+	nlohmann_json::nlohmann_json
 	"${RE2_LIB}"
 )
 
 if(NOT EMSCRIPTEN)
 	target_link_libraries(sinsp
 		INTERFACE
-			"${CARES_LIB}"
+		"${CARES_LIB}"
 		PRIVATE
 		"${TBB_LIB}"
 	)
@@ -195,8 +194,8 @@ if(USE_BUNDLED_RE2)
 	add_dependencies(sinsp re2)
 endif()
 
-if(USE_BUNDLED_JSONCPP)
-	add_dependencies(sinsp jsoncpp)
+if(USE_BUNDLED_NLOHMANN_JSON)
+	add_dependencies(sinsp njson)
 endif()
 
 function(prepare_cri_grpc api_version)

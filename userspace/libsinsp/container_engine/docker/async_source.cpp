@@ -41,38 +41,36 @@ docker_async_source::~docker_async_source()
 			"docker_async: Source destructor");
 }
 
-bool docker_async_source::get_k8s_pod_spec(const Json::Value &config_obj,
-					   Json::Value &spec)
+bool docker_async_source::get_k8s_pod_spec(const nlohmann::json &config_obj,
+					   nlohmann::json &spec)
 {
 	std::string cfg_str;
-	Json::Reader reader;
 	std::string k8s_label = "annotation.kubectl.kubernetes.io/last-applied-configuration";
 
-	if(config_obj.isNull() ||
-	   !config_obj.isMember("Labels") ||
-	   !config_obj["Labels"].isMember(k8s_label))
+	if(config_obj.is_null() ||
+	   !config_obj.contains("Labels") ||
+	   !config_obj["Labels"].contains(k8s_label))
 	{
 		return false;
 	}
 
 	// The pod spec is stored as a stringified json label on the container
-	cfg_str = config_obj["Labels"][k8s_label].asString();
-
-	if(cfg_str == "")
+	cfg_str = config_obj["Labels"][k8s_label];
+	if(cfg_str.empty())
 	{
 		return false;
 	}
 
-	Json::Value cfg;
-	if(!reader.parse(cfg_str.c_str(), cfg))
+	nlohmann::json cfg = nlohmann::json::parse(cfg_str, nullptr, false);
+	if(cfg.is_discarded())
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Could not parse pod config '%s'", cfg_str.c_str());
 		return false;
 	}
 
-	if(!cfg.isMember("spec") ||
-	   !cfg["spec"].isMember("containers") ||
-	   !cfg["spec"]["containers"].isArray())
+	if(!cfg.contains("spec") ||
+	   !cfg["spec"].contains("containers") ||
+	   !cfg["spec"]["containers"].is_array())
 	{
 		return false;
 	}
@@ -105,56 +103,56 @@ std::string docker_async_source::normalize_arg(const std::string &arg)
 	return ret;
 }
 
-void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
+void docker_async_source::parse_healthcheck(const nlohmann::json &healthcheck_obj,
 					    sinsp_container_info &container)
 {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"docker (%s): Trying to parse healthcheck from %s",
-			container.m_id.c_str(), Json::FastWriter().write(healthcheck_obj).c_str());
+			container.m_id.c_str(), healthcheck_obj.dump().c_str());
 
-	if(healthcheck_obj.isNull())
+	if(healthcheck_obj.is_null())
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (No Healthcheck property)",
-				Json::FastWriter().write(healthcheck_obj).c_str());
+					  healthcheck_obj.dump().c_str());
 
 		return;
 	}
 
-	if(!healthcheck_obj.isMember("Test"))
+	if(!healthcheck_obj.contains("Test"))
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck does not have Test property)",
-				Json::FastWriter().write(healthcheck_obj).c_str());
+					  healthcheck_obj.dump().c_str());
 
 		return;
 	}
 
-	const Json::Value &test_obj = healthcheck_obj["Test"];
+	const nlohmann::json &test_obj = healthcheck_obj["Test"];
 
-	if(!test_obj.isArray())
+	if(!test_obj.is_array())
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Healthcheck Test property is not array)",
-				Json::FastWriter().write(healthcheck_obj).c_str());
+					  healthcheck_obj.dump().c_str());
 		return;
 	}
 
 	if(test_obj.size() == 1)
 	{
-		if(test_obj[0].asString() != "NONE")
+		if(test_obj[0] != "NONE")
 		{
 			libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected NONE for single-element Test array)",
-					Json::FastWriter().write(healthcheck_obj).c_str());
+						  healthcheck_obj.dump().c_str());
 		}
 		return;
 	}
 
-	if(test_obj[0].asString() == "CMD")
+	if(test_obj[0] == "CMD")
 	{
-		std::string exe = normalize_arg(test_obj[1].asString());
+		std::string exe = normalize_arg(test_obj[1]);
 		std::vector<std::string> args;
 
 		for(uint32_t i = 2; i < test_obj.size(); i++)
 		{
-			args.push_back(normalize_arg(test_obj[i].asString()));
+			args.push_back(normalize_arg(test_obj[i]));
 		}
 
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -165,13 +163,13 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 						       std::move(exe),
 						       std::move(args));
 	}
-	else if(test_obj[0].asString() == "CMD-SHELL")
+	else if(test_obj[0] == "CMD-SHELL")
 	{
 		std::string exe = "/bin/sh";
 		std::vector<std::string> args;
 
 		args.push_back("-c");
-		args.push_back(test_obj[1].asString());
+		args.push_back(test_obj[1]);
 
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Setting PT_HEALTHCHECK exe=%s nargs=%d",
@@ -184,35 +182,35 @@ void docker_async_source::parse_healthcheck(const Json::Value &healthcheck_obj,
 	else
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Could not parse health check from %s (Expected CMD/CMD-SHELL for multi-element Test array)",
-				Json::FastWriter().write(healthcheck_obj).c_str());
+					  healthcheck_obj.dump().c_str());
 		return;
 	}
 }
 
-bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &probe_obj,
+bool docker_async_source::parse_liveness_readiness_probe(const nlohmann::json &probe_obj,
 							 sinsp_container_info::container_health_probe::probe_type ptype,
 							 sinsp_container_info &container)
 {
-	if(probe_obj.isNull() ||
-	   !probe_obj.isMember("exec") ||
-	   !probe_obj["exec"].isMember("command"))
+	if(probe_obj.is_null() ||
+	   !probe_obj.contains("exec") ||
+	   !probe_obj["exec"].contains("command"))
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_WARNING, "Could not parse liveness/readiness probe from %s",
-				Json::FastWriter().write(probe_obj).c_str());
+				probe_obj.dump().c_str());
 		return false;
 	}
 
-	const Json::Value command_obj = probe_obj["exec"]["command"];
+	const nlohmann::json command_obj = probe_obj["exec"]["command"];
 
-	if(!command_obj.isNull() && command_obj.isArray())
+	if(!command_obj.is_null() && command_obj.is_array())
 	{
 		std::string exe;
 		std::vector<std::string> args;
 
-		exe = normalize_arg(command_obj[0].asString());
+		exe = normalize_arg(command_obj[0]);
 		for(uint32_t i = 1; i < command_obj.size(); i++)
 		{
-			args.push_back(normalize_arg(command_obj[i].asString()));
+			args.push_back(normalize_arg(command_obj[i]));
 		}
 
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -227,22 +225,22 @@ bool docker_async_source::parse_liveness_readiness_probe(const Json::Value &prob
 	return true;
 }
 
-bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Value &config_obj,
+bool docker_async_source::get_sandbox_liveness_readiness_probes(const nlohmann::json &config_obj,
 								sinsp_container_info &container)
 {
 	std::string sandbox_container_id;
 	std::string sandbox_label = "io.kubernetes.sandbox.id";
 
-	if(config_obj.isNull() ||
-	   !config_obj.isMember("Labels") ||
-	   !config_obj["Labels"].isMember(sandbox_label))
+	if(config_obj.is_null() ||
+	   !config_obj.contains("Labels") ||
+	   !config_obj["Labels"].contains(sandbox_label))
 	{
 		SINSP_DEBUG("docker (%s): No sandbox label found, not copying liveness/readiness probes",
 			    container.m_id.c_str());
 		return false;
 	}
 
-	sandbox_container_id = config_obj["Labels"][sandbox_label].asString();
+	sandbox_container_id = config_obj["Labels"][sandbox_label];
 
 	if(sandbox_container_id.size() > 12)
 	{
@@ -258,7 +256,7 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 		return false;
 	}
 
-	if(sandbox_container->m_health_probes.size() == 0)
+	if(sandbox_container->m_health_probes.empty())
 	{
 		SINSP_DEBUG("docker (%s): Sandbox container %s has no liveness/readiness probes, not copying",
 			    container.m_id.c_str(), sandbox_container_id.c_str());
@@ -272,10 +270,10 @@ bool docker_async_source::get_sandbox_liveness_readiness_probes(const Json::Valu
 	return true;
 }
 
-void docker_async_source::parse_health_probes(const Json::Value &config_obj,
+void docker_async_source::parse_health_probes(const nlohmann::json &config_obj,
 					      sinsp_container_info &container)
 {
-	Json::Value spec;
+	nlohmann::json spec;
 	bool liveness_readiness_added = false;
 
 	// When parsing the full container json for live containers, a label contains stringified json that
@@ -286,7 +284,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 				"docker (%s): Parsing liveness/readiness probes from pod spec",
 				container.m_id.c_str());
 
-		if(spec.isMember("livenessProbe"))
+		if(spec.contains("livenessProbe"))
 		{
 			if(parse_liveness_readiness_probe(spec["livenessProbe"],
 							  sinsp_container_info::container_health_probe::PT_LIVENESS_PROBE,
@@ -295,7 +293,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 				liveness_readiness_added = true;
 			}
 		}
-		else if(spec.isMember("readinessProbe"))
+		else if(spec.contains("readinessProbe"))
 		{
 			if(parse_liveness_readiness_probe(spec["readinessProbe"],
 							  sinsp_container_info::container_health_probe::PT_READINESS_PROBE,
@@ -320,7 +318,7 @@ void docker_async_source::parse_health_probes(const Json::Value &config_obj,
 	// To avoid any confusion about containers that both refer to
 	// a healthcheck and liveness/readiness probe, we only
 	// consider a healthcheck if no liveness/readiness was added.
-	if(!liveness_readiness_added && config_obj.isMember("Healthcheck"))
+	if(!liveness_readiness_added && config_obj.contains("Healthcheck"))
 	{
 		parse_healthcheck(config_obj["Healthcheck"], container);
 	}
@@ -337,8 +335,6 @@ void docker_async_source::set_query_image_info(bool query_image_info)
 
 void docker_async_source::fetch_image_info(const docker_lookup_request& request, sinsp_container_info& container)
 {
-	Json::Reader reader;
-
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s) image (%s): Fetching image info",
 			request.container_id.c_str(),
@@ -366,8 +362,8 @@ void docker_async_source::fetch_image_info(const docker_lookup_request& request,
 			container.m_imageid.c_str(),
 			img_json.c_str());
 
-	Json::Value img_root;
-	if(!reader.parse(img_json, img_root))
+	nlohmann::json img_root = nlohmann::json::parse(img_json, nullptr, false);
+	if(img_root.is_discarded())
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s) image (%s): Could not parse json image info \"%s\"",
@@ -382,8 +378,6 @@ void docker_async_source::fetch_image_info(const docker_lookup_request& request,
 
 void docker_async_source::fetch_image_info_from_list(const docker_lookup_request& request, sinsp_container_info& container)
 {
-	Json::Reader reader;
-
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Fetching image list",
 			request.container_id.c_str());
@@ -435,8 +429,8 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 			request.container_id.c_str(),
 			img_json.c_str());
 
-	Json::Value img_root;
-	if(!reader.parse(img_json, img_root))
+	nlohmann::json img_root = nlohmann::json::parse(img_json, nullptr, false);
+	if(img_root.is_discarded())
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s): Could not parse json image list \"%s\"",
@@ -452,7 +446,7 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 		// twice but this is less effort and we only call this function
 		// for podman anyway
 		const auto& names = img["Names"];
-		if(!names.isArray())
+		if(!names.is_array())
 		{
 			return;
 		}
@@ -461,7 +455,7 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 		{
 			if(name == match_name)
 			{
-				std::string imgstr = img["Id"].asString();
+				std::string imgstr = img["Id"];
 				size_t cpos = imgstr.find(':');
 				if(cpos != std::string::npos)
 				{
@@ -476,15 +470,15 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 	}
 }
 
-void docker_async_source::parse_image_info(sinsp_container_info& container, const Json::Value& img)
+void docker_async_source::parse_image_info(sinsp_container_info& container, const nlohmann::json& img)
 {
 	const auto& podman_digest = img["Digest"];
-	if(podman_digest.isString())
+	if(podman_digest.is_string())
 	{
 		// img["Digest"] if present is the digest in the form we need it
 		// e.g. "sha256:b6a9fc3535388a6fc04f3bdb83fb4d9d0b4ffd85e7609a6ff2f0f731427823e3"
 		// so just use it directly
-		container.m_imagedigest = podman_digest.asString();
+		container.m_imagedigest = podman_digest;
 	}
 	else
 	{
@@ -500,9 +494,9 @@ void docker_async_source::parse_image_info(sinsp_container_info& container, cons
 		std::unordered_set<std::string> imageDigestSet;
 		for(const auto& rdig : img["RepoDigests"])
 		{
-			if(rdig.isString())
+			if(rdig.is_string())
 			{
-				std::string repodigest = rdig.asString();
+				std::string repodigest = rdig;
 				std::string digest = repodigest.substr(repodigest.find('@')+1);
 				imageDigestSet.insert(digest);
 				if(container.m_imagerepo.empty())
@@ -525,9 +519,9 @@ void docker_async_source::parse_image_info(sinsp_container_info& container, cons
 	}
 	for(const auto& rtag : img["RepoTags"])
 	{
-		if(rtag.isString())
+		if(rtag.is_string())
 		{
-			std::string repotag = rtag.asString();
+			std::string repotag = rtag;
 			if(container.m_imagerepo.empty())
 			{
 				container.m_imagerepo = repotag.substr(0, repotag.rfind(':'));
@@ -541,13 +535,13 @@ void docker_async_source::parse_image_info(sinsp_container_info& container, cons
 	}
 }
 
-void docker_async_source::get_image_info(const docker_lookup_request& request, sinsp_container_info& container, const Json::Value& root)
+void docker_async_source::get_image_info(const docker_lookup_request& request, sinsp_container_info& container, const nlohmann::json& root)
 {
-	container.m_image = root["Config"]["Image"].asString();
+	container.m_image = root["Config"]["Image"];
 
 	// podman has the image *name*, not the *id* in the Image field
 	// detect that with the presence of '/' in the field
-	std::string imgstr = root["Image"].asString();
+	std::string imgstr = root["Image"];
 	if(imgstr.find('/') == std::string::npos)
 	{
 		// no '/' in the Image field, assume it's a Docker image id
@@ -627,14 +621,13 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 	}
 
 }
-void docker_async_source::parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts)
+void docker_async_source::parse_json_mounts(const nlohmann::json &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts)
 {
-	if(!mnt_obj.isNull() && mnt_obj.isArray())
+	if(!mnt_obj.is_null() && mnt_obj.is_array())
 	{
-		for(uint32_t i=0; i<mnt_obj.size(); i++)
+		for(const auto & mount : mnt_obj)
 		{
-			const Json::Value &mount = mnt_obj[i];
-			mounts.emplace_back(mount["Source"], mount["Destination"],
+				mounts.emplace_back(mount["Source"], mount["Destination"],
 					    mount["Mode"], mount["RW"],
 					    mount["Propagation"]);
 		}
@@ -688,10 +681,8 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 			request.container_id.c_str(),
 			json.c_str());
 
-	Json::Value root;
-	Json::Reader reader;
-	bool parsingSuccessful = reader.parse(json, root);
-	if(!parsingSuccessful)
+	nlohmann::json root = nlohmann::json::parse(json, nullptr, false);
+	if (root.is_discarded())
 	{
 		libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s): Could not parse json \"%s\", returning false",
@@ -704,17 +695,17 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 	
 	get_image_info(request, container, root);
 
-	const Json::Value& config_obj = root["Config"];
-	const Json::Value& user = config_obj["User"];
-	if(!user.isNull())
+	const nlohmann::json& config_obj = root["Config"];
+	const nlohmann::json& user = config_obj["User"];
+	if(!user.is_null())
 	{
-		container.m_container_user = user.asString();
+		container.m_container_user = user;
 	}
 
 	parse_health_probes(config_obj, container);
 
-	container.m_full_id = root["Id"].asString();
-	container.m_name = root["Name"].asString();
+	container.m_full_id = root["Id"];
+	container.m_name = root["Name"];
 	// k8s Docker container names could have '/' as the first character.
 	if(!container.m_name.empty() && container.m_name[0] == '/')
 	{
@@ -727,16 +718,16 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 
 	// Get the created time - this will be string format i.e. "%Y-%m-%dT%H:%M:%SZ"
 	// Convert it to seconds. This can be done with get_epoc_utc_seconds()
-	container.m_created_time = static_cast<int64_t>(get_epoch_utc_seconds(root["Created"].asString()));
+	container.m_created_time = static_cast<int64_t>(get_epoch_utc_seconds(root["Created"]));
 
-	const Json::Value& net_obj = root["NetworkSettings"];
+	const nlohmann::json& net_obj = root["NetworkSettings"];
 
-	std::string ip = net_obj["IPAddress"].asString();
+	std::string ip = net_obj["IPAddress"];
 
 	if(ip.empty())
 	{
-		const Json::Value& hconfig_obj = root["HostConfig"];
-		std::string net_mode = hconfig_obj["NetworkMode"].asString();
+		const nlohmann::json& hconfig_obj = root["HostConfig"];
+		std::string net_mode = hconfig_obj["NetworkMode"];
 
 		if(strncmp(net_mode.c_str(), "container:", strlen("container:")) == 0)
 		{
@@ -784,26 +775,26 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		container.m_container_ip = ntohl(container.m_container_ip);
 	}
 
-	std::vector<std::string> ports = net_obj["Ports"].getMemberNames();
-	for(std::vector<std::string>::const_iterator it = ports.begin(); it != ports.end(); ++it)
+	std::vector<std::string> ports = net_obj["Ports"];
+	for(const auto & it : ports)
 	{
-		size_t tcp_pos = it->find("/tcp");
+		size_t tcp_pos = it.find("/tcp");
 		if(tcp_pos == std::string::npos)
 		{
 			continue;
 		}
 
-		uint16_t container_port = atoi(it->c_str());
+		uint16_t container_port = atoi(it.c_str());
 
-		const Json::Value& v = net_obj["Ports"][*it];
-		if(v.isArray())
+		const nlohmann::json& v = net_obj["Ports"][it];
+		if(v.is_array())
 		{
 			for(uint32_t j = 0; j < v.size(); ++j)
 			{
 				sinsp_container_info::container_port_mapping port_mapping;
 
-				ip = v[j]["HostIp"].asString();
-				std::string port = v[j]["HostPort"].asString();
+				ip = v[j]["HostIp"];
+				std::string port = v[j]["HostPort"];
 
 				if(inet_pton(AF_INET, ip.c_str(), &port_mapping.m_host_ip) == -1)
 				{
@@ -819,12 +810,12 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		}
 	}
 
-	std::vector<std::string> labels = config_obj["Labels"].getMemberNames();
-	for(std::vector<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+	std::vector<std::string> labels = config_obj["Labels"];
+	for(const auto & label : labels)
 	{
-		std::string val = config_obj["Labels"][*it].asString();
+		std::string val = config_obj["Labels"][label];
 		if(val.length() <= sinsp_container_info::m_container_label_max_length ) {
-			container.m_labels[*it] = val;
+			container.m_labels[label] = val;
 		}
 	}
 
@@ -840,20 +831,20 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		}
 	}
 
-	const Json::Value& env_vars = config_obj["Env"];
+	const nlohmann::json& env_vars = config_obj["Env"];
 
 	for(const auto& env_var : env_vars)
 	{
-		if(env_var.isString())
+		if(env_var.is_string())
 		{
-			container.m_env.emplace_back(env_var.asString());
+			container.m_env.emplace_back(env_var);
 		}
 	}
 
 	const auto& host_config_obj = root["HostConfig"];
-	container.m_memory_limit = host_config_obj["Memory"].asInt64();
-	container.m_swap_limit = host_config_obj["MemorySwap"].asInt64();
-	const auto cpu_shares = host_config_obj["CpuShares"].asInt64();
+	container.m_memory_limit = host_config_obj["Memory"];
+	container.m_swap_limit = host_config_obj["MemorySwap"];
+	const auto cpu_shares = host_config_obj["CpuShares"];
 	if(cpu_shares > 0)
 	{
 		container.m_cpu_shares = cpu_shares;
@@ -880,27 +871,27 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 	 *
 	 * 2) When --cpu-quota and/or --cpu-period are used, the corresponding values are returned; NanoCpus is 0
 	 */
-	container.m_cpu_quota = std::max(host_config_obj["CpuQuota"].asInt64(), host_config_obj["NanoCpus"].asInt64()/10000);
-	const auto cpu_period = host_config_obj["CpuPeriod"].asInt64();
+	container.m_cpu_quota = std::max((int64_t)host_config_obj["CpuQuota"], (int64_t)host_config_obj["NanoCpus"]/10000);
+	const int64_t cpu_period = host_config_obj["CpuPeriod"];
 	if(cpu_period > 0)
 	{
 		container.m_cpu_period = cpu_period;
 	}
-	const auto cpuset_cpus = host_config_obj["CpusetCpus"].asString();
+	const std::string cpuset_cpus = host_config_obj["CpusetCpus"];
 	if (!cpuset_cpus.empty())
 	{
 		libsinsp::cgroup_list_counter counter;
 		container.m_cpuset_cpu_count = counter(cpuset_cpus.c_str());
 	}
-	const Json::Value& privileged = host_config_obj["Privileged"];
-	if(!privileged.isNull() && privileged.isBool())
+	const nlohmann::json& privileged = host_config_obj["Privileged"];
+	if(!privileged.is_null() && privileged.is_boolean())
 	{
-		container.m_privileged = privileged.asBool();
+		container.m_privileged = privileged;
 	}
 
 	parse_json_mounts(root["Mounts"], container.m_mounts);
 
-	container.m_size_rw_bytes = root["SizeRw"].asInt64();
+	container.m_size_rw_bytes = root["SizeRw"];
 
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): parse returning true",

@@ -96,7 +96,7 @@ static inline T rawval_cast(uint8_t *rawval)
 	return val;
 }
 
-Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
+nlohmann::json sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 					       ppm_param_type ptype,
 					       ppm_print_format print_format,
 					       uint32_t len)
@@ -119,7 +119,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else
 			{
 				ASSERT(false);
-				return Json::nullValue;
+				return {};
 			}
 
 		case PT_INT16:
@@ -136,7 +136,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else
 			{
 				ASSERT(false);
-				return Json::nullValue;
+				return {};
 			}
 
 		case PT_INT32:
@@ -153,16 +153,16 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else
 			{
 				ASSERT(false);
-				return Json::nullValue;
+				return {};
 			}
 		case PT_DOUBLE:
 			if(print_format == PF_DEC)
 			{
-				return (Json::Value::Int64)(int64_t)rawval_cast<double>(rawval);
+				return (int64_t)rawval_cast<double>(rawval);
 			}
 			else
 			{
-				return (Json::Value)rawval_cast<double>(rawval);
+				return rawval_cast<double>(rawval);
 			}
 		case PT_INT64:
 		case PT_PID:
@@ -170,7 +170,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
-				return (Json::Value::Int64)rawval_cast<int64_t>(rawval);
+				return rawval_cast<int64_t>(rawval);
 			}
 			else
 			{
@@ -192,7 +192,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else
 			{
 				ASSERT(false);
-				return Json::nullValue;
+				return {};
 			}
 
 		case PT_PORT: // This can be resolved in the future
@@ -210,7 +210,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else
 			{
 				ASSERT(false);
-				return Json::nullValue;
+				return {};
 			}
 
 		case PT_UINT32:
@@ -227,7 +227,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else
 			{
 				ASSERT(false);
-				return Json::nullValue;
+				return {};
 			}
 
 		case PT_UINT64:
@@ -236,7 +236,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
-				return (Json::Value::UInt64)rawval_cast<uint64_t>(rawval);
+				return rawval_cast<uint64_t>(rawval);
 			}
 			else if(
 				print_format == PF_10_PADDED_DEC ||
@@ -248,16 +248,16 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			else
 			{
 				ASSERT(false);
-				return Json::nullValue;
+				return {};
 			}
 
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 			ASSERT(false);
-			return Json::nullValue;
+			return {};
 
 		case PT_BOOL:
-			return Json::Value((bool)(rawval_cast<uint32_t>(rawval) != 0));
+			return (bool)(rawval_cast<uint32_t>(rawval) != 0);
 
 		case PT_CHARBUF:
 		case PT_FSPATH:
@@ -610,17 +610,17 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 	return rawval_to_string(m_extracted_values[0].ptr, ftype, m_field->m_print_format, m_extracted_values[0].len);
 }
 
-Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
+nlohmann::json sinsp_filter_check::tojson(sinsp_evt* evt)
 {
 	uint32_t len;
-	Json::Value jsonval = extract_as_js(evt, &len);
+	nlohmann::json jsonval = extract_as_js(evt, &len);
 
-	if(jsonval == Json::nullValue)
+	if(jsonval.is_null())
 	{
 		m_extracted_values.clear();
 		if(!extract(evt, m_extracted_values))
 		{
-			return Json::nullValue;
+			return {};
 		}
 
 		auto ftype = get_transformed_field_info()->m_type;
@@ -628,7 +628,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 		{
 			for (auto &val : m_extracted_values)
 			{
-				jsonval.append(rawval_to_json(val.ptr, ftype, m_field->m_print_format, val.len));
+				jsonval.push_back(rawval_to_json(val.ptr, ftype, m_field->m_print_format, val.len));
 			}
 			return jsonval;
 		}

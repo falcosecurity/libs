@@ -586,12 +586,12 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt *evt, uint32_
 	return NULL;
 }
 
-Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, uint32_t* len)
+nlohmann::json sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, uint32_t* len)
 {
 	switch(m_field_id)
 	{
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
-		return (Json::Value::Int64)evt->get_ts();
+		return evt->get_ts();
 
 	case TYPE_LATENCY:
 	case TYPE_LATENCY_S:
@@ -599,16 +599,16 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, uint32_t* le
 	case TYPE_DELTA:
 	case TYPE_DELTA_S:
 	case TYPE_DELTA_NS:
-		return (Json::Value::Int64)*(uint64_t*)extract_single(evt, len);
+		return *(uint64_t*)extract_single(evt, len);
 	case TYPE_COUNT:
 		m_val.u32 = 1;
 		return m_val.u32;
 
 	default:
-		return Json::nullValue;
+		return {};
 	}
 
-	return Json::nullValue;
+	return {};
 }
 
 uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, uint32_t* len)

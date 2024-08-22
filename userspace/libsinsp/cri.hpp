@@ -210,9 +210,9 @@ inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const 
 // Generic parsers helpers
 /////////////////////////////
 
-inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key)
+inline bool walk_down_json(const nlohmann::json &root, const nlohmann::json **out, const std::string &key)
 {
-	if(root.isMember(key))
+	if(root.contains(key))
 	{
 		*out = &root[key];
 		return true;
@@ -221,57 +221,56 @@ inline bool walk_down_json(const Json::Value &root, const Json::Value **out, con
 }
 
 template<typename... Args>
-inline bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key, Args... args)
+inline bool walk_down_json(const nlohmann::json &root, const nlohmann::json **out, const std::string &key, Args... args)
 {
-	if(root.isMember(key))
+	if(root.contains(key))
 	{
 		return walk_down_json(root[key], out, args...);
 	}
 	return false;
 }
 
-inline bool set_numeric_32(const Json::Value &dict, const std::string &key, int32_t &val)
+inline bool set_numeric_32(const nlohmann::json &dict, const std::string &key, int32_t &val)
 {
-	if(!dict.isMember(key))
+	if(!dict.contains(key))
 	{
 		return false;
 	}
 	const auto &json_val = dict[key];
-	if(!json_val.isNumeric())
+	if(!json_val.is_number())
 	{
 		return false;
 	}
-	val = json_val.asInt();
+	val = json_val;
 	return true;
 }
 
-inline bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &val)
+inline bool set_numeric_64(const nlohmann::json &dict, const std::string &key, int64_t &val)
 {
-	if(!dict.isMember(key))
+	if(!dict.contains(key))
 	{
 		return false;
 	}
 	const auto &json_val = dict[key];
-	if(!json_val.isNumeric())
+	if(!json_val.is_number())
 	{
 		return false;
 	}
-	val = json_val.asInt64();
+	val = json_val;
 	return true;
 }
 
 template<typename api>
-inline Json::Value cri_interface<api>::get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info)
+inline nlohmann::json cri_interface<api>::get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info)
 {
 
-	Json::Value root;
-	Json::Reader reader;
+	nlohmann::json root;
 	const auto &info_it = info.find("info");
 	if(info_it == info.end())
 	{
 		return root;
 	}
-	reader.parse(info_it->second, root);
+	root = nlohmann::json::parse(info_it->second, nullptr, false);
 	return root;
 }
 
@@ -292,17 +291,17 @@ inline bool cri_interface<api>::parse_cri_base(const typename api::ContainerStat
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_pod_sandbox_id_for_container(const Json::Value &root,
+inline bool cri_interface<api>::parse_cri_pod_sandbox_id_for_container(const nlohmann::json &root,
 			     sinsp_container_info &container)
 {
-	if(root.isNull())
+	if(root.is_null())
 	{
 		return false;
 	}
 
-	if(root.isMember("sandboxID") && root["sandboxID"].isString())
+	if(root.contains("sandboxID") && root["sandboxID"].is_string())
 	{
-		std::string pod_sandbox_id = root["sandboxID"].asString();
+		std::string pod_sandbox_id = root["sandboxID"];
 		container.m_pod_sandbox_id = pod_sandbox_id;
 		// Add the pod sandbox id as label to the container for backward compatibility
 		container.m_labels["io.kubernetes.sandbox.id"] = pod_sandbox_id;
@@ -326,7 +325,7 @@ inline bool cri_interface<api>::parse_cri_labels(const typename api::ContainerSt
 
 template<typename api>
 inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &status,
-					 const Json::Value &root,
+					 nlohmann::json &root,
 					 sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
@@ -364,24 +363,23 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 		 * or otherwise was not successfully retrieved. Brute force try each schema we know of for containerd 
 		 * and cri-o container runtimes. 
 		*/
-
-		if(!root.isNull())
+		if(!root.is_null())
 		{
-			Json::Value jvalue;
+			nlohmann::json jvalue;
 			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri.image-name"];
-			if(jvalue.isNull())
+			if(jvalue.is_null())
 			{
 				jvalue =
 					root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
 			}
-			if(jvalue.isNull())
+			if(jvalue.is_null())
 			{
 				jvalue = root["runtimeSpec"]["annotations"]
 							["io.kubernetes.cri-o.ImageName"];
 			}
-			if(!jvalue.isNull())
+			if(!jvalue.is_null())
 			{
-				image_name = jvalue.asString();
+				image_name = jvalue;
 				get_tag_from_image = false;
 			}
 		}
@@ -426,20 +424,20 @@ inline bool cri_interface<api>::parse_cri_image(const typename api::ContainerSta
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_json_imageid(const Json::Value &root, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_json_imageid(const nlohmann::json &root, sinsp_container_info &container)
 {
-	if(root.isNull())
+	if(root.is_null())
 	{
 		return false;
 	}
 
-	const Json::Value *image = nullptr;
-	if(!walk_down_json(root, &image, "config", "image", "image") || !image->isString())
+	const nlohmann::json *image = nullptr;
+	if(!walk_down_json(root, &image, "config", "image", "image") || !image->is_string())
 	{
 		return false;
 	}
 
-	auto image_str = image->asString();
+	std::string image_str = *image;
 	auto pos = image_str.find(':');
 	if(pos == std::string::npos)
 	{
@@ -481,15 +479,15 @@ inline bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerSt
 }
 
 template<typename api> 
-inline bool cri_interface<api>::parse_cri_env(const Json::Value &root, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_env(const nlohmann::json &root, sinsp_container_info &container)
 {
-	if(root.isNull())
+	if(root.is_null())
 	{
 		return false;
 	}
 
-	const Json::Value *envs = nullptr;
-	if(!walk_down_json(root, &envs, "config", "envs") || !envs->isArray())
+	const nlohmann::json *envs = nullptr;
+	if(!walk_down_json(root, &envs, "config", "envs") || !envs->is_array())
 	{
 		return false;
 	}
@@ -499,11 +497,11 @@ inline bool cri_interface<api>::parse_cri_env(const Json::Value &root, sinsp_con
 		const auto &key = env_var["key"];
 		const auto &value = env_var["value"];
 
-		if(key.isString() && value.isString())
+		if(key.is_string() && value.is_string())
 		{
-			auto var = key.asString();
+			std::string var = key;
 			var += '=';
-			var += value.asString();
+			var += value;
 			container.m_env.emplace_back(var);
 		}
 	}
@@ -511,28 +509,28 @@ inline bool cri_interface<api>::parse_cri_env(const Json::Value &root, sinsp_con
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &root, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_ext_container_info(const nlohmann::json &root, sinsp_container_info &container)
 {
-	if(root.isNull())
+	if(root.is_null())
 	{
 		return false;
 	}
 
-	const Json::Value *linux = nullptr;
-	if(!walk_down_json(root, &linux, "runtimeSpec", "linux") || !linux->isObject())
+	const nlohmann::json *linux = nullptr;
+	if(!walk_down_json(root, &linux, "runtimeSpec", "linux") || !linux->is_object())
 	{
 		return false;
 	}
 
-	const Json::Value *memory = nullptr;
+	const nlohmann::json *memory = nullptr;
 	if(walk_down_json(*linux, &memory, "resources", "memory"))
 	{
 		set_numeric_64(*memory, "limit", container.m_memory_limit);
 		container.m_swap_limit = container.m_memory_limit;
 	}
 
-	const Json::Value *cpu = nullptr;
-	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->isObject())
+	const nlohmann::json *cpu = nullptr;
+	if(walk_down_json(*linux, &cpu, "resources", "cpu") && cpu->is_object())
 	{
 		set_numeric_64(*cpu, "shares", container.m_cpu_shares);
 		set_numeric_64(*cpu, "quota", container.m_cpu_quota);
@@ -541,26 +539,26 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 	}
 
 	bool priv_found = false;
-	const Json::Value *privileged = nullptr;
+	const nlohmann::json *privileged = nullptr;
 	// old containerd?
-	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
+	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->is_boolean())
 	{
-		container.m_privileged = privileged->asBool();
+		container.m_privileged = privileged;
 		priv_found = true;
 	}
 
 	// containerd
 	if(!priv_found && walk_down_json(root, &privileged, "config", "linux", "security_context", "privileged") &&
-	   privileged->isBool())
+	   privileged->is_boolean())
 	{
-		container.m_privileged = privileged->asBool();
+		container.m_privileged = privileged;
 		priv_found = true;
 	}
 
 	// cri-o
-	if(!priv_found && walk_down_json(root, &privileged, "privileged") && privileged->isBool())
+	if(!priv_found && walk_down_json(root, &privileged, "privileged") && privileged->is_boolean())
 	{
-		container.m_privileged = privileged->asBool();
+		container.m_privileged = privileged;
 		priv_found = true;
 	}
 
@@ -568,20 +566,20 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 }
 
 template<typename api>
-inline bool cri_interface<api>::parse_cri_user_info(const Json::Value &root, sinsp_container_info &container)
+inline bool cri_interface<api>::parse_cri_user_info(const nlohmann::json &root, sinsp_container_info &container)
 {
-	if(root.isNull())
+	if(root.is_null())
 	{
 		return false;
 	}
 
-	const Json::Value *uid = nullptr;
-	if(!walk_down_json(root, &uid, "runtimeSpec", "process", "user", "uid") || !uid->isInt())
+	const nlohmann::json *uid = nullptr;
+	if(!walk_down_json(root, &uid, "runtimeSpec", "process", "user", "uid") || !uid->is_number_integer())
 	{
 		return false;
 	}
 
-	container.m_container_user = std::to_string(uid->asInt());
+	container.m_container_user = std::to_string((int)*uid);
 	return true;
 }
 
@@ -644,7 +642,7 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_labels(const typename api:
 
 template<typename api>
 inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api::PodSandboxStatus &status,
-			     const Json::Value &root,
+			     nlohmann::json &root,
 			     sinsp_container_info &container)
 {
 	//
@@ -668,46 +666,44 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(const typename api
 	// Pod Sandbox CNI Result
 	//
 
-	if(root.isNull())
+	if(root.is_null())
 	{
 		return false;
 	}
 
 	std::string cniresult;
-	Json::Value jvalue;
+	nlohmann::json jvalue;
 	/* Lookup approach is brute force "try all schemas" we know of, do not condition by container runtime for
 	 * possible future "would just work" luck in case other runtimes standardize on one of the current schemas. */
 
 	jvalue = root["cniResult"]["Interfaces"]; /* pod info schema of CT_CONTAINERD runtime. */
-	if(!jvalue.isNull())
+	if(!jvalue.is_null())
 	{
 		/* If applicable remove members / fields not needed for incident response. */
-		jvalue.removeMember("lo");
-		for(auto &key : jvalue.getMemberNames())
+		jvalue.erase("lo");
+		for (const auto& val : jvalue.items())
 		{
-			if(0 == strncmp(key.c_str(), "veth", 4))
+			if(0 == strncmp(val.key().c_str(), "veth", 4))
 			{
-				jvalue.removeMember(key);
+				jvalue.erase(val.key());
 			}
 			else
 			{
-				jvalue[key].removeMember("Mac");
-				jvalue[key].removeMember("Sandbox");
+				jvalue[val.key()].erase("Mac");
+				jvalue[val.key()].erase("Sandbox");
 			}
 		}
-
-		Json::FastWriter fastWriter;
-		cniresult = fastWriter.write(jvalue);
+		cniresult = jvalue.dump();
 	}
 
-	if(jvalue.isNull())
+	if(jvalue.is_null())
 	{
 		jvalue = root["runtimeSpec"]["annotations"]
 			     ["io.kubernetes.cri-o.CNIResult"]; /* pod info schema of CT_CRIO runtime. Note interfaces
 								   names are unknown here. */
-		if(!jvalue.isNull())
+		if(!jvalue.is_null())
 		{
-			cniresult = jvalue.asString();
+			cniresult = jvalue;
 		}
 	}
 
@@ -759,7 +755,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 			container.m_is_pod_sandbox = true;
 			const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 			const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-			const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
+			auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
 			parse_cri_base(resp_pod_sandbox_container, container);
 			parse_cri_pod_sandbox_id_for_podsandbox(container);
 			// `parse_cri_labels`: The pod sandbox container does not contain the namespace etc as labels.
@@ -788,7 +784,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
-	const auto root_container = get_info_jvalue(resp_container_info);
+	auto root_container = get_info_jvalue(resp_container_info);
 	parse_cri_base(resp_container, container);
 	parse_cri_pod_sandbox_id_for_container(root_container, container);
 	parse_cri_labels(resp_container, container);
@@ -847,7 +843,7 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		}
 		const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 		const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-		const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
+		auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
 		// Add pod response network and labels to original container
 		parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
 		parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);

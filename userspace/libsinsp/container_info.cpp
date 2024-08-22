@@ -50,33 +50,36 @@ sinsp_container_info::container_health_probe::~container_health_probe()
 {
 }
 
-void sinsp_container_info::container_health_probe::parse_health_probes(const Json::Value &config_obj,
+void sinsp_container_info::container_health_probe::parse_health_probes(const nlohmann::json &config_obj,
 								       std::list<container_health_probe> &probes)
 {
 	// Add any health checks described in the container config/labels.
 	for(int i=PT_NONE; i != PT_END; i++)
 	{
-		std::string key = probe_type_names[i];
-		const Json::Value& probe_obj = config_obj[key];
-
-		if(!probe_obj.isNull() && probe_obj.isObject())
+		const std::string& key = probe_type_names[i];
+		if (!config_obj.contains(key))
 		{
-			const Json::Value& probe_exe_obj = probe_obj["exe"];
+			continue;
+		}
+		const nlohmann::json& probe_obj = config_obj[key];
 
-			if(!probe_exe_obj.isNull() && probe_exe_obj.isConvertibleTo(Json::stringValue))
+		if(!probe_obj.is_null() && probe_obj.is_object())
+		{
+			const nlohmann::json& probe_exe_obj = probe_obj["exe"];
+			if(!probe_exe_obj.is_null() && probe_exe_obj.is_string())
 			{
-				const Json::Value& probe_args_obj = probe_obj["args"];
+				const nlohmann::json& probe_args_obj = probe_obj["args"];
 
-				std::string probe_exe = probe_exe_obj.asString();
+				std::string probe_exe = probe_exe_obj;
 				std::vector<std::string> probe_args;
 
-				if(!probe_args_obj.isNull() && probe_args_obj.isArray())
+				if(!probe_args_obj.is_null() && probe_args_obj.is_array())
 				{
 					for(const auto &item : probe_args_obj)
 					{
-						if(item.isConvertibleTo(Json::stringValue))
+						if(item.is_string())
 						{
-							probe_args.push_back(item.asString());
+							probe_args.push_back(item);
 						}
 					}
 				}
@@ -93,17 +96,17 @@ void sinsp_container_info::container_health_probe::parse_health_probes(const Jso
 }
 
 void sinsp_container_info::container_health_probe::add_health_probes(const std::list<container_health_probe> &probes,
-								     Json::Value &config_obj)
+								     nlohmann::json &config_obj)
 {
 	for(auto &probe : probes)
 	{
 		std::string key = probe_type_names[probe.m_probe_type];
-		Json::Value args;
+		nlohmann::json args;
 
 		config_obj[key]["exe"] = probe.m_health_probe_exe;
 		for(auto &arg : probe.m_health_probe_args)
 		{
-			args.append(arg);
+			args.push_back(arg);
 		}
 
 		config_obj[key]["args"] = args;

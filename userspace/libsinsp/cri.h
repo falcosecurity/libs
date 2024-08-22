@@ -274,21 +274,21 @@ public:
 	/**
 	 * @brief fill out container image information based on CRI response
 	 * @param status `status` field of the ContainerStatusResponse
-	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
+	 * @param root nlohmann::json of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
 	bool parse_cri_image(const typename api::ContainerStatus &status,
-			     const Json::Value &root,
+			     nlohmann::json &root,
 			     sinsp_container_info &container);
 
 	/**
 	 * @brief fill out pod sandbox id, only valid when used w/ ContainerStatusResponse, not PodSandboxStatusResponse
-	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
+	 * @param root nlohmann::json of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_pod_sandbox_id_for_container(const Json::Value &root,
+	bool parse_cri_pod_sandbox_id_for_container(const nlohmann::json &root,
 			     sinsp_container_info &container);
 
 	/**
@@ -301,41 +301,41 @@ public:
 
 	/**
 	 * @brief fill out container environment variables based on CRI response, valid for containerd only
-	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
+	 * @param root nlohmann::json of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 *
 	 * Note: only containerd exposes this data
 	 */
-	bool parse_cri_env(const Json::Value &root, sinsp_container_info &container);
+	bool parse_cri_env(const nlohmann::json &root, sinsp_container_info &container);
 
 	/**
 	 * @brief fill out extra image info based on CRI response, valid for containerd only
-	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
+	 * @param root nlohmann::json of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 *
 	 * Note: only containerd exposes this data
 	 */
-	bool parse_cri_json_imageid(const Json::Value &root, sinsp_container_info &container);
+	bool parse_cri_json_imageid(const nlohmann::json &root, sinsp_container_info &container);
 
 	/**
 	 * @brief fill out extra container info (e.g. resource limits) based on CRI response
-	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
+	 * @param root nlohmann::json of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_ext_container_info(const Json::Value &root, sinsp_container_info &container);
+	bool parse_cri_ext_container_info(const nlohmann::json &root, sinsp_container_info &container);
 
 	/**
 	 * @brief fill out extra container user info (e.g. configured uid) based on CRI response
-	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
+	 * @param root nlohmann::json of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 *
 	 * Note: only containerd exposes this data
 	 */
-	bool parse_cri_user_info(const Json::Value &root, sinsp_container_info &container);
+	bool parse_cri_user_info(const nlohmann::json &root, sinsp_container_info &container);
 
 	/**
 	 * @brief fill out container labels
@@ -384,12 +384,12 @@ public:
 	/**
 	 * @brief fill out pod sandbox network info
 	 * @param status `status` field of the PodSandboxStatusResponse
-	 * @param root Json::Value of status.info() at "info" of the PodSandboxStatusResponse
+	 * @param root nlohmann::json of status.info() at "info" of the PodSandboxStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
 	bool parse_cri_pod_sandbox_network(const typename api::PodSandboxStatus &status,
-			     const Json::Value &root,
+			     nlohmann::json &root,
 			     sinsp_container_info &container);
 
 
@@ -398,11 +398,11 @@ public:
 	/////////////////////////////
 
 	/**
-	 * @brief get the Json::Value of status.info() at "info"
+	 * @brief get the nlohmann::json of status.info() at "info"
 	 * @param info status.info() Map
-	 * @return Json::Value, can be null
+	 * @return nlohmann::json, can be null
 	 */
-	Json::Value get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info);
+	nlohmann::json get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info);
 
 
 	///////////////////////////////////////////////////////////////////

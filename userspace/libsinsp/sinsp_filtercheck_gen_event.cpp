@@ -84,7 +84,7 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_gen_event::allocate_new()
 	return std::make_unique<sinsp_filter_check_gen_event>();
 }
 
-Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, uint32_t* len)
+nlohmann::json sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, uint32_t* len)
 {
 	switch(m_field_id)
 	{
@@ -93,7 +93,7 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, uint32_t
 	case TYPE_TIME_ISO8601:
 	case TYPE_DATETIME:
 	case TYPE_DATETIME_S:
-		return (Json::Value::Int64)evt->get_ts();
+		return evt->get_ts();
 
 	case TYPE_RAWTS:
 	case TYPE_RAWTS_S:
@@ -101,12 +101,12 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, uint32_t
 	case TYPE_RELTS:
 	case TYPE_RELTS_S:
 	case TYPE_RELTS_NS:
-		return (Json::Value::Int64)*(uint64_t*)extract_single(evt, len);
+		return *(uint64_t*)extract_single(evt, len);
 	default:
-		return Json::nullValue;
+		return {};
 	}
 
-	return Json::nullValue;
+	return {};
 }
 
 uint8_t* sinsp_filter_check_gen_event::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)

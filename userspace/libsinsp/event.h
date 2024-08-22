@@ -23,7 +23,7 @@ limitations under the License.
 #include <string_view>
 #include <memory>
 
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #include <libsinsp/sinsp_inet.h>
 #include <libsinsp/sinsp_public.h>
@@ -699,7 +699,7 @@ public:
 
 	std::string get_param_value_str(uint32_t id, bool resolved);
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
-	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
+	int render_fd_json(nlohmann::json *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	inline uint32_t get_dump_flags() const { return m_dump_flags; }
 	inline void set_dump_flags(uint32_t v) { m_dump_flags = v; }
 	static bool clone_event(sinsp_evt& dest, const sinsp_evt& src);

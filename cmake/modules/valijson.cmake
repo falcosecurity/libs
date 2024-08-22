@@ -33,6 +33,9 @@ else()
 		URL "https://github.com/tristanpenman/valijson/archive/refs/tags/v1.0.2.tar.gz"
 		URL_HASH "SHA256=35d86e54fc727f1265226434dc996e33000a570f833537a25c8b702b0b824431"
 		CONFIGURE_COMMAND ""
+		CMAKE_ARGS
+			-Dvalijson_BUILD_EXAMPLES=Off
+			-Dvalijson_BUILD_TESTS=Off
 		BUILD_COMMAND ""
 		INSTALL_COMMAND "")	
 endif()

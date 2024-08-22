@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 include(protobuf)
-include(jsoncpp)
+include(njson)
 
 find_package(Threads)
 
@@ -57,8 +57,8 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if(USE_BUNDLED_JSONCPP)
-    add_dependencies(scap jsoncpp)
+if(USE_BUNDLED_NLOHMANN_JSON)
+    add_dependencies(scap njson)
 endif()
 
 if (BUILD_SHARED_LIBS)
@@ -84,13 +84,14 @@ else()
 
     add_dependencies(scap_engine_gvisor uthash)
     target_link_libraries(scap_engine_gvisor
+    PUBLIC
+        nlohmann_json::nlohmann_json
     PRIVATE
         scap
         scap_platform_util
         scap_error
         ${CMAKE_THREAD_LIBS_INIT}
         ${PROTOBUF_LIB}
-        ${JSONCPP_LIB}
     )
 
     target_include_directories(scap_engine_gvisor

@@ -24,11 +24,8 @@ limitations under the License.
 #include <set>
 #include <sstream>
 #include <numeric>
-#include <json/json.h>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#include <valijson/adapters/jsoncpp_adapter.hpp>
-#pragma GCC diagnostic pop
+#include <nlohmann/json.hpp>
+#include <valijson/adapters/nlohmann_json_adapter.hpp>
 #include <valijson/schema.hpp>
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
@@ -265,22 +262,22 @@ std::string sinsp_plugin::get_last_error() const
 	return ret;
 }
 
-void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf)
+void sinsp_plugin::resolve_dylib_field_arg(nlohmann::json root, filtercheck_field_info &tf)
 {
-	if (root.isNull())
+	if (root.is_null())
 	{
 		return;
 	}
 
-	const Json::Value &isRequired = root.get("isRequired", Json::Value::null);
-	if (!isRequired.isNull())
+	const nlohmann::json &isRequired = root["isRequired"];
+	if (!isRequired.is_null())
 	{
-		if (!isRequired.isBool())
+		if (!isRequired.is_boolean())
 		{
 			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isRequired property is not boolean");
 		}
 
-		if (isRequired.asBool() == true)
+		if (isRequired == true)
 		{
 			// All the extra casting is because this is the one flags value
 			// that is strongly typed and not just an int.
@@ -288,15 +285,15 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 		}
 	}
 
-	const Json::Value &isIndex = root.get("isIndex", Json::Value::null);
-	if (!isIndex.isNull())
+	const nlohmann::json &isIndex = root["isIndex"];
+	if (!isIndex.is_null())
 	{
-		if (!isIndex.isBool())
+		if (!isIndex.is_boolean())
 		{
 			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isIndex property is not boolean");
 		}
 
-		if (isIndex.asBool() == true)
+		if (isIndex == true)
 		{
 			// We set `EPF_ARG_ALLOWED` implicitly.
 			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_INDEX);
@@ -304,15 +301,15 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 		}
 	}
 
-	const Json::Value &isKey = root.get("isKey", Json::Value::null);
-	if (!isKey.isNull())
+	const nlohmann::json &isKey = root["isKey"];
+	if (!isKey.is_null())
 	{
-		if (!isKey.isBool())
+		if (!isKey.is_boolean())
 		{
 			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isKey property is not boolean");
 		}
 
-		if (isKey.asBool() == true)
+		if (isKey == true)
 		{
 			// We set `EPF_ARG_ALLOWED` implicitly.
 			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_KEY);
@@ -326,7 +323,6 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 	{
 		throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " arg has isRequired true, but none of isKey nor isIndex is true");
 	}
-	return;
 }
 
 // this logic is shared between the field extraction and event parsing caps
@@ -336,7 +332,7 @@ void sinsp_plugin::resolve_dylib_compatible_codes(
 		libsinsp::events::set<ppm_event_code>& codes)
 {
 	codes.clear();
-	if (get_codes != NULL)
+	if (get_codes != nullptr)
 	{
 		uint32_t ntypes = 0;
 		auto types = get_codes(&ntypes, m_state);
@@ -369,7 +365,7 @@ static void resolve_dylib_json_strlist(
 		bool allow_empty)
 {
 	out.clear();
-	if(get_list == NULL)
+	if(get_list == nullptr)
 	{
 		return;
 	}
@@ -390,20 +386,20 @@ static void resolve_dylib_json_strlist(
 		}
 	}
 
-	Json::Value root;
-	if (!Json::Reader().parse(jsonstr, root) || root.type() != Json::arrayValue)
+	nlohmann::json root = nlohmann::json::parse(jsonstr, nullptr, false);
+	if (root.is_discarded() || !root.is_array())
 	{
 		throw sinsp_exception("error in plugin " + plname + ": '"
 			+ symbol + "' did not return a json array");
 	}
 	for (const auto& j : root)
 	{
-		if (!j.isConvertibleTo(Json::stringValue))
+		if (!j.is_string())
 		{
 			throw sinsp_exception("error in plugin " + plname + ": '"
 				+ symbol + "' did not return a json array");
 		}
-		auto src = j.asString();
+		std::string src = j;
 		if (!src.empty())
 		{
 			out.insert(src);
@@ -510,36 +506,42 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 		}
 		string json(sfields);
 
-		Json::Value root;
-		if (Json::Reader().parse(json, root) == false || root.type() != Json::arrayValue) {
+		nlohmann::json root = nlohmann::json::parse(json, nullptr, false);
+		if (root.is_discarded() || !root.is_array()) {
 			throw sinsp_exception(
 					string("error in plugin ") + name() + ": get_fields returned an invalid JSON");
 		}
 
 		m_fields.clear();
-		for (Json::Value::ArrayIndex j = 0; j < root.size(); j++) {
+		for (auto &it : root) {
 			filtercheck_field_info tf;
 			tf.m_flags = EPF_NONE;
 
-			const Json::Value &jvtype = root[j]["type"];
-			string ftype = jvtype.asString();
-			if (ftype == "") {
+			if (!it.contains("type"))
+			{
 				throw sinsp_exception(
-						string("error in plugin ") + name() + ": field JSON entry has no type");
+					string("error in plugin ") + name() + ": field JSON entry has no type");
 			}
-			const Json::Value &jvname = root[j]["name"];
-			string fname = jvname.asString();
-			if (fname == "") {
+			const std::string &ftype = it["type"];
+
+			if (!it.contains("name"))
+			{
 				throw sinsp_exception(
-						string("error in plugin ") + name() + ": field JSON entry has no name");
+					string("error in plugin ") + name() + ": field JSON entry has no name");
 			}
-			const Json::Value &jvdisplay = root[j]["display"];
-			string fdisplay = jvdisplay.asString();
-			const Json::Value &jvdesc = root[j]["desc"];
-			string fdesc = jvdesc.asString();
-			if (fdesc == "") {
+			const std::string &fname = it["name"];
+
+			if (!it.contains("desc"))
+			{
 				throw sinsp_exception(
 						string("error in plugin ") + name() + ": field JSON entry has no desc");
+			}
+			const std::string &fdesc = it["desc"];
+
+			std::string fdisplay = "";
+			if (it.contains("display"))
+			{
+				fdisplay = it["display"];
 			}
 
 			tf.m_name = fname;
@@ -553,35 +555,35 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 						string("error in plugin ") + name() + ": invalid field type " + ftype);
 			}
 
-			const Json::Value &jvIsList = root[j].get("isList", Json::Value::null);
-			if (!jvIsList.isNull()) {
-				if (!jvIsList.isBool()) {
+			const nlohmann::json &jvIsList = it["isList"];
+			if (!jvIsList.is_null()) {
+				if (!jvIsList.is_boolean()) {
 					throw sinsp_exception(string("error in plugin ") + name() + ": field " + fname +
 					                      " isList property is not boolean ");
 				}
 
-				if (jvIsList.asBool()) {
+				if (jvIsList == true) {
 					tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags |
 					                                        (int) filtercheck_field_flags::EPF_IS_LIST);
 				}
 			}
 
-			resolve_dylib_field_arg(root[j].get("arg", Json::Value::null), tf);
+			resolve_dylib_field_arg(it["arg"], tf);
 
-			const Json::Value &jvProperties = root[j].get("properties", Json::Value::null);
-			if (!jvProperties.isNull()) {
-				if (!jvProperties.isArray()) {
+			const nlohmann::json &jvProperties = it["properties"];
+			if (!jvProperties.is_null()) {
+				if (!jvProperties.is_array()) {
 					throw sinsp_exception(string("error in plugin ") + name() + ": field " + fname +
 					                      " properties property is not array ");
 				}
 
 				for (const auto & prop : jvProperties) {
-						if (!prop.isString()) {
+						if (!prop.is_string()) {
 						throw sinsp_exception(string("error in plugin ") + name() + ": field " + fname +
 						                      " properties value is not string ");
 					}
 
-					const std::string &str = prop.asString();
+					const std::string &str = prop;
 
 					// "hidden" is used inside and outside libs. "info" and "conversation" are used outside libs.
 					if (str == "hidden") {
@@ -634,7 +636,7 @@ std::string sinsp_plugin::get_init_schema(ss_plugin_schema_type& schema_type) co
 	{
 		return str_from_alloc_charbuf(m_handle->api.get_init_schema(&schema_type));
 	}
-	return std::string("");
+	return "";
 }
 
 const libsinsp::events::set<ppm_event_code>& sinsp_plugin::extract_event_codes() const
@@ -679,36 +681,21 @@ void sinsp_plugin::validate_config(std::string& config)
 
 void sinsp_plugin::validate_config_json_schema(std::string& config, std::string &schema)
 {
-	Json::Value schemaJson;
-	if(!Json::Reader().parse(schema, schemaJson) || schemaJson.type() != Json::objectValue)
-	{
-		throw sinsp_exception(
-			string("error in plugin ")
-			+ name()
-			+ ": get_init_schema did not return a json object");
-	}
-
+	nlohmann::json schemaJson = nlohmann::json::parse(schema);
 	// stub empty configs to an empty json object
-	if (config.size() == 0)
+	if (config.empty())
 	{
 		config = "{}";
 	}
-	Json::Value configJson;
-	if(!Json::Reader().parse(config, configJson))
-	{
-		throw sinsp_exception(
-			string("error in plugin ")
-			+ name()
-			+ ": init config is not a valid json");
-	}
+	nlohmann::json configJson = nlohmann::json::parse(config);
 
 	// validate config with json schema
 	valijson::Schema schemaDef;
 	valijson::SchemaParser schemaParser;
 	valijson::Validator validator;
 	valijson::ValidationResults validationResults;
-	valijson::adapters::JsonCppAdapter configAdapter(configJson);
-	valijson::adapters::JsonCppAdapter schemaAdapter(schemaJson);
+	valijson::adapters::NlohmannJsonAdapter configAdapter(configJson);
+	valijson::adapters::NlohmannJsonAdapter schemaAdapter(schemaJson);
 	schemaParser.populateSchema(schemaAdapter, schemaDef);
 	if (!validator.validate(schemaDef, configAdapter, &validationResults))
 	{
@@ -864,21 +851,21 @@ std::vector<sinsp_plugin::open_param> sinsp_plugin::list_open_params() const
 
 		if (jsonString.size() > 0)
 		{
-			Json::Value root;
-			if(Json::Reader().parse(jsonString, root) == false || root.type() != Json::arrayValue)
+			nlohmann::json root = nlohmann::json::parse(jsonString, nullptr, false);
+			if(root.is_discarded() || !root.is_array())
 			{
 				throw sinsp_exception(string("error in plugin ") + name() + ": list_open_params returned a non-array JSON");
 			}
-			for(Json::Value::ArrayIndex i = 0; i < root.size(); i++)
+			for(const auto& it : root)
 			{
 				open_param param;
-				param.value = root[i]["value"].asString();
-				if(param.value == "")
+				param.value = it["value"];
+				if(param.value.empty())
 				{
 					throw sinsp_exception(string("error in plugin ") + name() + ": list_open_params has entry with no value");
 				}
-				param.desc = root[i]["desc"].asString();
-				param.separator = root[i]["separator"].asString();
+				param.desc = it["desc"];
+				param.separator = it["separator"];
 				list.push_back(param);
 			}
 		}

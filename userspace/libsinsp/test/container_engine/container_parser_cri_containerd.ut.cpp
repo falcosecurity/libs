@@ -574,10 +574,10 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
-	const auto root_container = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
+	auto root_container = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
+	auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
@@ -630,13 +630,13 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
 
-	// 
+	//
 	// Test sinsp filterchecks, similar to spawn_process_container test
 	// 
 
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt *evt = NULL;
+	sinsp_evt *evt = nullptr;
 
 	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20;
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
@@ -743,7 +743,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
+	auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	sinsp_container_info &container = *container_ptr;
 

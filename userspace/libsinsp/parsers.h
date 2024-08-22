@@ -23,6 +23,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_syslog.h>
 #include <libsinsp/fdinfo.h>
+#include <stack>
 #include <memory>
 
 class sinsp_parser

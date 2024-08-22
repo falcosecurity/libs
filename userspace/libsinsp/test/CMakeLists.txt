@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-include(jsoncpp)
 if (NOT EMSCRIPTEN)
 	include(tbb)
 endif()
@@ -198,7 +197,6 @@ target_link_libraries(unit-test-libsinsp
 	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
 	"${TBB_LIB}"
-	"${JSONCPP_LIB}"
 )
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`

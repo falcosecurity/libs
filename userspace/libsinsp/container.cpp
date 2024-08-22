@@ -171,8 +171,8 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 std::string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
 {
-	Json::Value obj;
-	Json::Value& container = obj["container"];
+	nlohmann::json obj;
+	nlohmann::json& container = obj["container"];
 	container["id"] = container_info.m_id;
 	container["full_id"] = container_info.m_full_id;
 	container["type"] = container_info.m_type;
@@ -185,13 +185,13 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 	container["privileged"] = container_info.m_privileged;
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 	container["lookup_state"] = static_cast<int>(container_info.get_lookup_status());
-	container["created_time"] = static_cast<Json::Value::Int64>(container_info.m_created_time);
+	container["created_time"] = container_info.m_created_time;
 
-	Json::Value mounts = Json::arrayValue;
+	nlohmann::json mounts = nlohmann::json::array();
 
 	for (auto &mntinfo : container_info.m_mounts)
 	{
-		Json::Value mount;
+		nlohmann::json mount;
 
 		mount["Source"] = mntinfo.m_source;
 		mount["Destination"] = mntinfo.m_dest;
@@ -199,7 +199,7 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 		mount["RW"] = mntinfo.m_rdwr;
 		mount["Propagation"] = mntinfo.m_propagation;
 
-		mounts.append(mount);
+		mounts.push_back(mount);
 	}
 
 	container["Mounts"] = mounts;
@@ -216,35 +216,35 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 	container["cni_json"] = container_info.m_pod_sandbox_cniresult;
 	container["pod_sandbox_id"] = container_info.m_pod_sandbox_id;
 
-	Json::Value port_mappings = Json::arrayValue;
+	nlohmann::json port_mappings = nlohmann::json::array();
 
 	for(auto &mapping : container_info.m_port_mappings)
 	{
-		Json::Value jmap;
+		nlohmann::json jmap;
 		jmap["HostIp"] = mapping.m_host_ip;
 		jmap["HostPort"] = mapping.m_host_port;
 		jmap["ContainerPort"] = mapping.m_container_port;
 
-		port_mappings.append(jmap);
+		port_mappings.push_back(jmap);
 	}
 
 	container["port_mappings"] = port_mappings;
 
-	Json::Value labels;
+	nlohmann::json labels;
 	for (auto &pair : container_info.m_labels)
 	{
 		labels[pair.first] = pair.second;
 	}
 	container["labels"] = labels;
 
-	Json::Value pod_sandbox_labels;
+	nlohmann::json pod_sandbox_labels;
 	for (auto &pair : container_info.m_pod_sandbox_labels)
 	{
 		pod_sandbox_labels[pair.first] = pair.second;
 	}
 	container["pod_sandbox_labels"] = pod_sandbox_labels;
 
-	Json::Value env_vars = Json::arrayValue;
+	nlohmann::json env_vars = nlohmann::json::array();
 
 	for (auto &var : container_info.m_env)
 	{
@@ -254,25 +254,25 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 		   var.find("MARATHON") != std::string::npos ||
 		   var.find("mesos") != std::string::npos)
 		{
-			env_vars.append(var);
+			env_vars.push_back(var);
 		}
 	}
 	container["env"] = env_vars;
 
-	container["memory_limit"] = (Json::Value::Int64) container_info.m_memory_limit;
-	container["swap_limit"] = (Json::Value::Int64) container_info.m_swap_limit;
-	container["cpu_shares"] = (Json::Value::Int64) container_info.m_cpu_shares;
-	container["cpu_quota"] = (Json::Value::Int64) container_info.m_cpu_quota;
-	container["cpu_period"] = (Json::Value::Int64) container_info.m_cpu_period;
-	container["cpuset_cpu_count"] = (Json::Value::Int) container_info.m_cpuset_cpu_count;
+	container["memory_limit"] = container_info.m_memory_limit;
+	container["swap_limit"] = container_info.m_swap_limit;
+	container["cpu_shares"] = container_info.m_cpu_shares;
+	container["cpu_quota"] = container_info.m_cpu_quota;
+	container["cpu_period"] = container_info.m_cpu_period;
+	container["cpuset_cpu_count"] = container_info.m_cpuset_cpu_count;
 
 	if(!container_info.m_mesos_task_id.empty())
 	{
 		container["mesos_task_id"] = container_info.m_mesos_task_id;
 	}
 
-	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
-	return Json::FastWriter().write(obj);
+	container["metadata_deadline"] = container_info.m_metadata_deadline;
+	return obj.dump();
 }
 
 bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::unique_ptr<sinsp_threadinfo> tinfo, char *scap_err)

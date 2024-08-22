@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <iostream>
 #include <vector>
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #include <libsinsp/gvisor_config.h>
 
@@ -335,17 +335,17 @@ constexpr unsigned int max_retries = 3;
 
 std::string generate(const std::string& socket_path)
 {
-	Json::Value jpoints;
+	nlohmann::json jpoints;
 	for(const auto &point_info : s_gvisor_points)
 	{
-		Json::Value jpoint;
+		nlohmann::json jpoint;
 		jpoint["name"] = point_info.m_name;
 		if (!point_info.m_context_fields.empty())
 		{
-			Json::Value jcontext_fields;
+			nlohmann::json jcontext_fields;
 			for(const auto &context_field : point_info.m_context_fields)
 			{
-				jcontext_fields.append(context_field);
+				jcontext_fields.push_back(context_field);
 			}
 
 			jpoint["context_fields"] = jcontext_fields;
@@ -353,35 +353,35 @@ std::string generate(const std::string& socket_path)
 
 		if (!point_info.m_optional_fields.empty())
 		{
-			Json::Value joptional_fields;
+			nlohmann::json joptional_fields;
 			for(const auto &optional_field : point_info.m_optional_fields)
 			{
-				joptional_fields.append(optional_field);
+				joptional_fields.push_back(optional_field);
 			}
 
 			jpoint["optional_fields"] = joptional_fields;
 		}
 
-		jpoints.append(jpoint);
+		jpoints.push_back(jpoint);
 	}
 
-	Json::Value jsinks, jsink;
+	nlohmann::json jsinks, jsink;
 	jsink["name"] = "remote";
 	jsink["config"]["endpoint"] = socket_path.empty() ? s_default_socket_path : socket_path;
 	jsink["config"]["retries"] = max_retries;
 	jsink["ignore_setup_error"] = true;
-	jsinks.append(jsink);
+	jsinks.push_back(jsink);
 
-	Json::Value jtrace_session;
+	nlohmann::json jtrace_session;
 	jtrace_session["name"] = "Default";
 	jtrace_session["ignore_missing"] = true;
 	jtrace_session["points"] = jpoints;
 	jtrace_session["sinks"] = jsinks;
 
-	Json::Value jroot;
+	nlohmann::json jroot;
 	jroot["trace_session"] = jtrace_session;
 
-	return jroot.toStyledString();
+	return jroot.dump();
 }
 
 } // namespace gvisor_config

@@ -46,7 +46,7 @@ limitations under the License.
 #include <sstream>
 #include <string>
 
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #include <libscap/engine/gvisor/gvisor.h>
 #include <libscap/engine/gvisor/parsers.h>
@@ -2165,7 +2165,7 @@ procfs_result parse_procfs_json(const std::string &input, uint32_t sandbox_id)
 {
 	procfs_result res;
 	memset(&res.tinfo, 0, sizeof(res.tinfo));
-	Json::Value root;
+	nlohmann::json root;
 	Json::CharReaderBuilder builder;
 	std::string err;
 	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
@@ -2195,13 +2195,13 @@ procfs_result parse_procfs_json(const std::string &input, uint32_t sandbox_id)
 	{
 		return res;
 	}
-	Json::Value &status = root["status"];
+	nlohmann::json &status = root["status"];
 
 	if(!root.isMember("stat"))
 	{
 		return res;
 	}
-	Json::Value &stat = root["stat"];
+	nlohmann::json &stat = root["stat"];
 
 	// tid
 	if(!status.isMember("pid") || !status["pid"].isUInt64())
@@ -2254,7 +2254,7 @@ procfs_result parse_procfs_json(const std::string &input, uint32_t sandbox_id)
 		return res;
 	}
 	std::string args;
-	for(Json::Value::ArrayIndex i = 0; i < root["args"].size(); i++)
+	for(nlohmann::json::ArrayIndex i = 0; i < root["args"].size(); i++)
 	{
 		args += root["args"][i].asString();
 		args.push_back('\0');
@@ -2270,7 +2270,7 @@ procfs_result parse_procfs_json(const std::string &input, uint32_t sandbox_id)
 		return res;
 	}
 	std::string env;
-	for(Json::Value::ArrayIndex i = 0; i < root["env"].size(); i++)
+	for(nlohmann::json::ArrayIndex i = 0; i < root["env"].size(); i++)
 	{
 		env += root["env"][i].asString();
 		env.push_back('\0');
@@ -2333,9 +2333,9 @@ procfs_result parse_procfs_json(const std::string &input, uint32_t sandbox_id)
 	{
 		return res;
 	}
-	for(Json::Value::ArrayIndex i = 0; i != root["fdlist"].size(); i++)
+	for(nlohmann::json::ArrayIndex i = 0; i != root["fdlist"].size(); i++)
 	{
-		Json::Value &entry = root["fdlist"][i];
+		nlohmann::json &entry = root["fdlist"][i];
 		scap_fdinfo fdinfo;
 
 		if(!entry.isMember("number") || !entry["number"].isUInt64())
@@ -2382,7 +2382,7 @@ config_result parse_config(std::string config)
 	res.status = SCAP_FAILURE;
 
 	std::string err;
-	Json::Value root;
+	nlohmann::json root;
 	Json::CharReaderBuilder builder;
 	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
 
@@ -2398,7 +2398,7 @@ config_result parse_config(std::string config)
 		res.error = "Could not find trace_session entry in configuration";
 		return res;
 	}
-	Json::Value &trace_session = root["trace_session"];
+	nlohmann::json &trace_session = root["trace_session"];
 
 	if(!trace_session.isMember("sinks") || !trace_session["sinks"].isArray())
 	{
@@ -2414,14 +2414,14 @@ config_result parse_config(std::string config)
 
 	// We don't know how to distinguish between sinks in case there is more than one
 	// we're taking the first for now but this can be tweaked if necessary.
-	Json::Value &sink = trace_session["sinks"][0];
+	nlohmann::json &sink = trace_session["sinks"][0];
 
 	if(!sink.isMember("config"))
 	{
 		res.error = "Could not find config in sink item";
 		return res;
 	}
-	Json::Value &sink_config = sink["config"];
+	nlohmann::json &sink_config = sink["config"];
 
 	if(!sink_config.isMember("endpoint") || !sink_config["endpoint"].isString())
 	{

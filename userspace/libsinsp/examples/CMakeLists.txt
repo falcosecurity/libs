@@ -15,8 +15,6 @@
 # limitations under the License.
 #
 
-include(jsoncpp)
-
 add_executable(sinsp-example
 	util.cpp
 	test.cpp
@@ -24,7 +22,6 @@ add_executable(sinsp-example
 
 target_link_libraries(sinsp-example
 	sinsp
-	"${JSONCPP_LIB}"
 )
 
 if (EMSCRIPTEN)

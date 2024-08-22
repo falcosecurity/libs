@@ -278,16 +278,15 @@ bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt, std::string &outpu
 				// todo!: is this the desired behavior?
 				continue;
 			}
-			Json::Value json_value = t.token->tojson(evt);
-			if(json_value == Json::nullValue && m_require_all_values)
+			nlohmann::json json_value = t.token->tojson(evt);
+			if(json_value.is_null() && m_require_all_values)
 			{
 				retval = false;
 				break;
 			}
 			m_root[t.name] = t.token->tojson(evt);
 		}
-		output = m_writer.write(m_root);
-		output = output.substr(0, output.size() - 1);
+		output = m_root.dump();
 		return retval;
 	}
 
@@ -295,7 +294,7 @@ bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt, std::string &outpu
 	for(size_t j = 0; j < m_output_tokens.size(); j++)
 	{
 		const char* str = m_output_tokens[j]->tostring(evt);
-		if(str == NULL)
+		if(str == nullptr)
 		{
 			if(m_require_all_values)
 			{

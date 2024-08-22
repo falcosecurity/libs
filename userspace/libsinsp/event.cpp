@@ -591,7 +591,7 @@ static uint32_t strcpy_sanitized(char *dest, const char *src, uint32_t dstsize)
 	return dstsize;
 }
 
-int sinsp_evt::render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt)
+int sinsp_evt::render_fd_json(nlohmann::json *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
 	sinsp_threadinfo* tinfo = get_thread_info();
 	if(tinfo == NULL)

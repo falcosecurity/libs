@@ -94,7 +94,7 @@ public:
 	size_t parse_filter_value(const char* str, uint32_t len, uint8_t* storage, uint32_t storage_len) override;
 
 protected:
-	Json::Value extract_as_js(sinsp_evt*, uint32_t* len) override;
+	nlohmann::json extract_as_js(sinsp_evt*, uint32_t* len) override;
 	virtual uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 	virtual bool compare_nocache(sinsp_evt*) override;
 

@@ -32,8 +32,6 @@ limitations under the License.
 #include <sstream>
 #include <string>
 
-#include <json/json.h>
-
 #include <libscap/engine/gvisor/gvisor.h>
 #include <libscap/compat/misc.h>
 #include <driver/ppm_events_public.h>

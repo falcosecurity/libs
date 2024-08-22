@@ -21,7 +21,7 @@ limitations under the License.
 #include <utility>
 #include <string>
 #include <memory>
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #include <libsinsp/filter_check_list.h>
 #include <libsinsp/filter.h>
@@ -142,8 +142,7 @@ private:
 	bool m_require_all_values = false;
 	bool m_resolve_transformed_fields = false;
 
-	Json::Value m_root;
-	Json::FastWriter m_writer;
+	nlohmann::json m_root;
 };
 
 class sinsp_evt_formatter_factory

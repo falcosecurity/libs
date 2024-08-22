@@ -26,7 +26,7 @@ limitations under the License.
 #include <libsinsp/filter_cache.h>
 #include <libsinsp/sinsp_filter_transformer.h>
 
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #include <string>
 #include <unordered_set>
@@ -178,7 +178,7 @@ public:
 	// Extract the value from the event and convert it into a Json value
 	// or object
 	//
-	virtual Json::Value tojson(sinsp_evt* evt);
+	virtual nlohmann::json tojson(sinsp_evt* evt);
 
 	sinsp* m_inspector = nullptr;
 	std::vector<extract_value_t> m_extracted_values;
@@ -197,9 +197,9 @@ public:
 protected:
 	virtual bool compare_nocache(sinsp_evt*);
 
-	virtual Json::Value extract_as_js(sinsp_evt*, uint32_t* len)
+	virtual nlohmann::json extract_as_js(sinsp_evt*, uint32_t* len)
 	{
-		return Json::nullValue;
+		return nlohmann::json{};
 	}
 
 	//
@@ -222,7 +222,7 @@ protected:
 	bool compare_rhs(cmpop op, ppm_param_type type, const void* operand1, uint32_t op1_len = 0);
 	bool compare_rhs(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values);
 
-	Json::Value rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
+	nlohmann::json rawval_to_json(uint8_t* rawval, ppm_param_type ptype, ppm_print_format print_format, uint32_t len);
 
 	inline uint8_t* filter_value_p(uint16_t i = 0)
 	{

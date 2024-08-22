@@ -202,20 +202,20 @@ bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 bool rkt::rkt::parse_rkt(sinsp_container_info &container, const std::string &podid, const std::string &appname)
 {
 	bool ret = false;
-	Json::Reader reader;
-	Json::Value jroot;
+	nlohmann::json jroot;
 
 	char image_manifest_path[SCAP_MAX_PATH_SIZE];
 	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
 	std::ifstream image_manifest(image_manifest_path);
-	if(reader.parse(image_manifest, jroot))
+	jroot = nlohmann::json::parse(image_manifest, nullptr, false);
+	if(!jroot.is_discarded())
 	{
-		container.m_image = jroot["name"].asString();
+		container.m_image = jroot["name"];
 		for(const auto& label_entry : jroot["labels"])
 		{
-			std::string val = label_entry["value"].asString();
+			std::string val = label_entry["value"];
 			if(val.length() <= sinsp_container_info::m_container_label_max_length ) {
-				container.m_labels.emplace(label_entry["name"].asString(), val);
+				container.m_labels.emplace(label_entry["name"], val);
 			}
 		}
 		auto version_label_it = container.m_labels.find("version");
@@ -229,10 +229,12 @@ bool rkt::rkt::parse_rkt(sinsp_container_info &container, const std::string &pod
 	char net_info_path[SCAP_MAX_PATH_SIZE];
 	snprintf(net_info_path, sizeof(net_info_path), "%s/var/lib/rkt/pods/run/%s/net-info.json", scap_get_host_root(), podid.c_str());
 	std::ifstream net_info(net_info_path);
-	if(reader.parse(net_info, jroot) && jroot.size() > 0)
+	jroot = nlohmann::json::parse(net_info, nullptr, false);
+	if(!jroot.is_discarded() && !jroot.empty())
 	{
 		const auto& first_net = jroot[0];
-		if(inet_pton(AF_INET, first_net["ip"].asCString(), &container.m_container_ip) == -1)
+		const std::string ip = first_net["ip"];
+		if(inet_pton(AF_INET, ip.c_str(), &container.m_container_ip) == -1)
 		{
 			ASSERT(false);
 		}
@@ -243,29 +245,30 @@ bool rkt::rkt::parse_rkt(sinsp_container_info &container, const std::string &pod
 	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
 	std::ifstream pod_manifest(pod_manifest_path);
 	std::unordered_map<std::string, uint32_t> image_ports;
-	if(reader.parse(pod_manifest, jroot) && jroot.size() > 0)
+	jroot = nlohmann::json::parse(pod_manifest, nullptr, false);
+	if(!jroot.is_discarded() && !jroot.empty())
 	{
 		for(const auto& japp : jroot["apps"])
 		{
-			if (japp["name"].asString() == appname)
+			if (japp["name"] == appname)
 			{
 				for(const auto& image_port : japp["app"]["ports"])
 				{
-					image_ports[image_port["name"].asString()] = image_port["port"].asUInt();
+					image_ports[image_port["name"]] = image_port["port"];
 				}
 				break;
 			}
 		}
 		for(const auto& jport : jroot["ports"])
 		{
-			auto host_port = jport["hostPort"].asUInt();
-			auto container_port_it = image_ports.find(jport["name"].asString());
+			unsigned int host_port = jport["hostPort"];
+			auto container_port_it = image_ports.find(jport["name"]);
 			if(host_port > 0 && container_port_it != image_ports.end())
 			{
 				sinsp_container_info::container_port_mapping port_mapping;
 				port_mapping.m_host_port = host_port;
 				port_mapping.m_container_port = container_port_it->second;
-				container.m_port_mappings.emplace_back(std::move(port_mapping));
+				container.m_port_mappings.emplace_back(port_mapping);
 			}
 		}
 	}
