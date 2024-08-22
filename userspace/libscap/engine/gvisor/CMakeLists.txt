@@ -57,10 +57,6 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if(USE_BUNDLED_NLOHMANN_JSON)
-    add_dependencies(scap nlohmann_json)
-endif()
-
 if (BUILD_SHARED_LIBS)
     # Trying to build a shared scap_engine_gvisor will result in circular
     # dependencies, so just add our sources to scap.
@@ -73,7 +69,7 @@ if (BUILD_SHARED_LIBS)
     )
     set_property(TARGET scap_engine_gvisor_o PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-    add_dependencies(scap_engine_gvisor_o uthash)
+    add_dependencies(scap_engine_gvisor_o uthash njson)
     add_dependencies(scap scap_engine_gvisor_o)
     target_sources(scap PRIVATE $<TARGET_OBJECTS:scap_engine_gvisor_o>)
 else()
@@ -82,7 +78,7 @@ else()
         ${scap_engine_gvisor_generated_sources}
     )
 
-    add_dependencies(scap_engine_gvisor uthash)
+    add_dependencies(scap_engine_gvisor uthash njson)
     target_link_libraries(scap_engine_gvisor
     PRIVATE
         scap

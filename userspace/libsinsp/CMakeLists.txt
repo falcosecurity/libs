@@ -185,17 +185,7 @@ if(NOT EMSCRIPTEN)
 	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${CARES_LIB}")
 endif()
 
-if(USE_BUNDLED_VALIJSON)
-	add_dependencies(sinsp valijson)
-endif()
-
-if(USE_BUNDLED_RE2)
-	add_dependencies(sinsp re2)
-endif()
-
-if(USE_BUNDLED_NLOHMANN_JSON)
-	add_dependencies(sinsp nlohmann_json)
-endif()
+add_dependencies(sinsp valijson re2 njson)
 
 function(prepare_cri_grpc api_version)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cri-${api_version}.proto ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto COPYONLY)

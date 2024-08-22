@@ -29,20 +29,22 @@ else()
 
     message(STATUS "Using bundled nlohmann-json in '${NJSON_SRC}'")
 
-    ExternalProject_Add(nlohmann_json
-        PREFIX "${PROJECT_BINARY_DIR}/nlohmann-json-prefix"
-        URL https://github.com/nlohmann/json/archive/v3.11.3.tar.gz
-        URL_HASH SHA256=0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
-        CONFIGURE_COMMAND ""
-        CMAKE_ARGS
-            -DCMAKE_BUILD_TYPE=Release
-            -DJSON_BuildTests=OFF
-        BUILD_COMMAND ""
-        INSTALL_COMMAND "")
+    if(NOT TARGET njson)
+        ExternalProject_Add(njson
+            PREFIX "${PROJECT_BINARY_DIR}/nlohmann-json-prefix"
+            URL https://github.com/nlohmann/json/archive/v3.11.3.tar.gz
+            URL_HASH SHA256=0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
+            CONFIGURE_COMMAND ""
+            CMAKE_ARGS
+                -DCMAKE_BUILD_TYPE=Release
+                -DJSON_BuildTests=OFF
+            BUILD_COMMAND ""
+            INSTALL_COMMAND "")
+    endif()
 endif()
 
-if(NOT TARGET nlohmann_json)
-    add_custom_target(nlohmann_json)
+if(NOT TARGET njson)
+    add_custom_target(njson)
 endif()
 
 include_directories("${NJSON_INCLUDE}")
