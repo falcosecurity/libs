@@ -58,7 +58,7 @@ add_custom_command(
 )
 
 if(USE_BUNDLED_NLOHMANN_JSON)
-    add_dependencies(scap njson)
+    add_dependencies(scap nlohmann_json)
 endif()
 
 if (BUILD_SHARED_LIBS)

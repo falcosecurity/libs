@@ -172,7 +172,6 @@ set(SINSP_PKGCONFIG_LIBRARIES
 	scap
 	"${ZLIB_LIB}"
 	"${CURL_LIBRARIES}"
-	nlohmann_json::nlohmann_json
 	"${RE2_LIB}"
 )
 
@@ -195,7 +194,7 @@ if(USE_BUNDLED_RE2)
 endif()
 
 if(USE_BUNDLED_NLOHMANN_JSON)
-	add_dependencies(sinsp njson)
+	add_dependencies(sinsp nlohmann_json)
 endif()
 
 function(prepare_cri_grpc api_version)

@@ -66,3 +66,23 @@ popd
 echo "=== Downloading uthash.h (1.9.8) ==="
 
 wget -P "/usr/include" "https://raw.githubusercontent.com/troydhanson/uthash/v1.9.8/src/uthash.h"
+
+# === Nlohmann json ===
+echo "=== Building and installing njson v3.11.3 ==="
+
+wget "https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.tar.gz"
+
+tar xzf v3.11.3.tar.gz
+pushd json-3.11.3
+
+mkdir -p build
+cd build
+
+cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DJSON_BuildTests=OFF \
+    ../
+
+make install -j
+popd
