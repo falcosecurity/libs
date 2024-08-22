@@ -24,14 +24,14 @@ elseif(NOT USE_BUNDLED_NJSON)
         message(FATAL_ERROR "Couldn't find system nlohmann-json")
     endif()
 else()
-    set(NJSON_SRC "${PROJECT_BINARY_DIR}/nlohmann-json-prefix/src/nlohmann_json")
+    set(NJSON_SRC "${PROJECT_BINARY_DIR}/njson-prefix/src/njson")
     set(NJSON_INCLUDE "${NJSON_SRC}/include")
 
     message(STATUS "Using bundled nlohmann-json in '${NJSON_SRC}'")
 
     if(NOT TARGET njson)
         ExternalProject_Add(njson
-            PREFIX "${PROJECT_BINARY_DIR}/nlohmann-json-prefix"
+            PREFIX "${PROJECT_BINARY_DIR}/njson-prefix"
             URL https://github.com/nlohmann/json/archive/v3.11.3.tar.gz
             URL_HASH SHA256=0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
             CONFIGURE_COMMAND ""
