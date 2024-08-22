@@ -2,12 +2,12 @@
 
 #ifdef __NR_sendmsg
 
-#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown)
+#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) &&                     \
+	defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown)
 
-/* By default `snaplen` is 80 bytes.
- * No `snaplen` because here we don't hit the 80 bytes so we don't have to truncate the message.
- */
-TEST(SyscallExit, sendmsgX_no_snaplen)
+/*=============================== TCP ===========================*/
+
+TEST(SyscallExit, sendmsgX_ipv4_tcp_message_not_truncated_by_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
 
@@ -15,37 +15,8 @@ TEST(SyscallExit, sendmsgX_no_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	int32_t client_socket_fd = 0;
-	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {};
-	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
-
-	/* Send a message to the server */
-	struct msghdr send_msg;
-	struct iovec iov[2];
-	memset(&send_msg, 0, sizeof(send_msg));
-	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (sockaddr*)&server_addr;
-	send_msg.msg_namelen = sizeof(server_addr);
-	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
-	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
-	iov[0].iov_base = sent_data_1;
-	iov[0].iov_len = sizeof(sent_data_1);
-	iov[1].iov_base = sent_data_2;
-	iov[1].iov_len = sizeof(sent_data_2);
-	send_msg.msg_iov = iov;
-	send_msg.msg_iovlen = 2;
-	uint32_t sendmsg_flags = 0;
-
-	int64_t sent_bytes = syscall(__NR_sendmsg, client_socket_fd, &send_msg, sendmsg_flags);
-	assert_syscall_state(SYSCALL_SUCCESS, "sendmsg (client)", sent_bytes, NOT_EQUAL, -1);
-
-	/* Cleaning phase */
-	syscall(__NR_shutdown, server_socket_fd, 2);
-	syscall(__NR_shutdown, client_socket_fd, 2);
-	syscall(__NR_close, server_socket_fd);
-	syscall(__NR_close, client_socket_fd);
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg}, receive_data{.skip_recv_phase = true},
+					protocol_L3::IPv4, protocol_L4::TCP);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -65,18 +36,17 @@ TEST(SyscallExit, sendmsgX_no_snaplen)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, NO_SNAPLEN_MESSAGE, sent_bytes);
+	evt_test->assert_bytebuf_param(2, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(2);
 }
 
-/* Here we need to truncate our message since it is greater than `snaplen` */
-TEST(SyscallExit, sendmsgX_snaplen)
+TEST(SyscallExit, sendmsgX_ipv4_tcp_message_truncated_by_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
 
@@ -84,40 +54,8 @@ TEST(SyscallExit, sendmsgX_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	int32_t client_socket_fd = 0;
-	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {};
-	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
-
-	/* Send a message to the server */
-	struct msghdr send_msg;
-	struct iovec iov[3];
-	memset(&send_msg, 0, sizeof(send_msg));
-	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (sockaddr*)&server_addr;
-	send_msg.msg_namelen = sizeof(server_addr);
-	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
-	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
-	char sent_data_3[THIRD_MESSAGE_LEN] = "hey! there is a third message here.";
-	iov[0].iov_base = sent_data_1;
-	iov[0].iov_len = sizeof(sent_data_1);
-	iov[1].iov_base = sent_data_2;
-	iov[1].iov_len = sizeof(sent_data_2);
-	iov[2].iov_base = sent_data_3;
-	iov[2].iov_len = sizeof(sent_data_3);
-	send_msg.msg_iov = iov;
-	send_msg.msg_iovlen = 3;
-	uint32_t sendmsg_flags = 0;
-
-	int64_t sent_bytes = syscall(__NR_sendmsg, client_socket_fd, &send_msg, sendmsg_flags);
-	assert_syscall_state(SYSCALL_SUCCESS, "sendmsg (client)", sent_bytes, NOT_EQUAL, -1);
-
-	/* Cleaning phase */
-	syscall(__NR_shutdown, server_socket_fd, 2);
-	syscall(__NR_shutdown, client_socket_fd, 2);
-	syscall(__NR_close, server_socket_fd);
-	syscall(__NR_close, client_socket_fd);
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::TCP);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -137,15 +75,302 @@ TEST(SyscallExit, sendmsgX_snaplen)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, FULL_MESSAGE, DEFAULT_SNAPLEN);
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(2);
 }
+
+TEST(SyscallExit, sendmsgX_ipv4_tcp_message_not_truncated_fullcapture_port)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	// In sendmsg the missing one is the server port because it is the destination port.
+	evt_test->set_fullcapture_port_range(IPV4_PORT_SERVER, IPV4_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::TCP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendmsgX_ipv6_tcp_message_not_truncated_fullcapture_port)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	// In sendmsg the missing one is the server port because it is the destination port.
+	evt_test->set_fullcapture_port_range(IPV6_PORT_SERVER, IPV6_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv6, protocol_L4::TCP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendmsgX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL_sockaddr)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->set_fullcapture_port_range(IPV4_PORT_SERVER, IPV4_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(
+		send_data{.syscall_num = __NR_sendmsg, .greater_snaplen = true, .null_sockaddr = true},
+		receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::TCP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+/*=============================== UDP ===========================*/
+
+TEST(SyscallExit, sendmsgX_ipv4_udp_message_not_truncated_by_snaplen)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg}, receive_data{.skip_recv_phase = true},
+					protocol_L3::IPv4, protocol_L4::UDP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendmsgX_ipv4_udp_message_truncated_by_snaplen)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::UDP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendmsgX_ipv4_udp_message_not_truncated_fullcapture_port)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->set_fullcapture_port_range(IPV4_PORT_SERVER, IPV4_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::UDP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+// We cannot call a sendmsg without a destination address in UDP. Errno: 89 err_message: Destination address required.
+// TEST(SyscallExit, sendmsgX_ipv4_udp_message_not_truncated_fullcapture_port_NULL_sockaddr)
+
 #endif
 
 TEST(SyscallExit, sendmsgX_fail)
@@ -232,7 +457,8 @@ TEST(SyscallExit, sendmsgX_null_iovec)
 		 * right now we drop the entire event.
 		 */
 		evt_test->assert_event_absence();
-		GTEST_SKIP() << "[SENDMSG_X]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+		GTEST_SKIP() << "[SENDMSG_X]: what we receive is correct but we need to reimplement it, see the code"
+			     << std::endl;
 	}
 
 	if(HasFatalFailure())

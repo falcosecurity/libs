@@ -2,12 +2,12 @@
 
 #ifdef __NR_sendto
 
-#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown)
+#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) &&                     \
+	defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown)
 
-/* By default `snaplen` is 80 bytes.
- * No `snaplen` because here we don't hit the 80 bytes so we don't have to truncate the message.
- */
-TEST(SyscallExit, sendtoX_no_snaplen)
+/*=============================== TCP ===========================*/
+
+TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_by_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
@@ -15,23 +15,8 @@ TEST(SyscallExit, sendtoX_no_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	int32_t client_socket_fd = 0;
-	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {};
-	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
-
-	/* Send a message to the server */
-	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
-	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
-
-	/* Cleaning phase */
-	syscall(__NR_shutdown, server_socket_fd, 2);
-	syscall(__NR_shutdown, client_socket_fd, 2);
-	syscall(__NR_close, server_socket_fd);
-	syscall(__NR_close, client_socket_fd);
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto}, receive_data{.skip_recv_phase = true},
+					protocol_L3::IPv4, protocol_L4::TCP);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -51,18 +36,17 @@ TEST(SyscallExit, sendtoX_no_snaplen)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, NO_SNAPLEN_MESSAGE, sent_bytes);
+	evt_test->assert_bytebuf_param(2, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(2);
 }
 
-/* Here we need to truncate our message since it is greater than `snaplen` */
-TEST(SyscallExit, sendtoX_snaplen)
+TEST(SyscallExit, sendtoX_ipv4_tcp_message_truncated_by_snaplen)
 {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
@@ -70,23 +54,8 @@ TEST(SyscallExit, sendtoX_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	int32_t client_socket_fd = 0;
-	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {};
-	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
-
-	/* Send a message to the server */
-	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
-	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
-
-	/* Cleaning phase */
-	syscall(__NR_shutdown, server_socket_fd, 2);
-	syscall(__NR_shutdown, client_socket_fd, 2);
-	syscall(__NR_close, server_socket_fd);
-	syscall(__NR_close, client_socket_fd);
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::TCP);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -106,15 +75,301 @@ TEST(SyscallExit, sendtoX_snaplen)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, FULL_MESSAGE, DEFAULT_SNAPLEN);
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(2);
 }
+
+TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_fullcapture_port)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	// In sendto the missing one is the server port because it is the destination port.
+	evt_test->set_fullcapture_port_range(IPV4_PORT_SERVER, IPV4_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::TCP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendtoX_ipv6_tcp_message_not_truncated_fullcapture_port)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	// In sendto the missing one is the server port because it is the destination port.
+	evt_test->set_fullcapture_port_range(IPV6_PORT_SERVER, IPV6_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv6, protocol_L4::TCP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL_sockaddr)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->set_fullcapture_port_range(IPV4_PORT_SERVER, IPV4_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(
+		send_data{.syscall_num = __NR_sendto, .greater_snaplen = true, .null_sockaddr = true},
+		receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::TCP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+/*=============================== UDP ===========================*/
+
+TEST(SyscallExit, sendtoX_ipv4_udp_message_not_truncated_by_snaplen)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto}, receive_data{.skip_recv_phase = true},
+					protocol_L3::IPv4, protocol_L4::UDP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)SHORT_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendtoX_ipv4_udp_message_truncated_by_snaplen)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::UDP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, DEFAULT_SNAPLEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, sendtoX_ipv4_udp_message_not_truncated_fullcapture_port)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+	evt_test->set_do_dynamic_snaplen(true);
+
+	evt_test->set_fullcapture_port_range(IPV4_PORT_SERVER, IPV4_PORT_SERVER);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::UDP);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->set_do_dynamic_snaplen(false);
+
+	evt_test->assert_event_presence();
+
+	/* we need to clean the values after we read our event because the kernel module
+	 * flushes the ring buffers when we change this config.
+	 */
+	evt_test->set_fullcapture_port_range(0, 0);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+// We cannot call a sendto without a destination address in UDP. Errno: 89 err_message: Destination address required.
+// TEST(SyscallExit, sendtoX_ipv4_udp_message_not_truncated_fullcapture_port_NULL_sockaddr)
 #endif
 
 TEST(SyscallExit, sendtoX_fail)
@@ -132,7 +387,8 @@ TEST(SyscallExit, sendtoX_fail)
 	struct sockaddr* dest_addr = NULL;
 	socklen_t addrlen = 0;
 
-	assert_syscall_state(SYSCALL_FAILURE, "sendto", syscall(__NR_sendto, mock_fd, sent_data, len, sendto_flags, dest_addr, addrlen));
+	assert_syscall_state(SYSCALL_FAILURE, "sendto",
+			     syscall(__NR_sendto, mock_fd, sent_data, len, sendto_flags, dest_addr, addrlen));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -178,7 +434,8 @@ TEST(SyscallExit, sendtoX_empty)
 	struct sockaddr* dest_addr = NULL;
 	socklen_t addrlen = 0;
 
-	assert_syscall_state(SYSCALL_FAILURE, "sendto", syscall(__NR_sendto, mock_fd, sent_data, len, sendto_flags, dest_addr, addrlen));
+	assert_syscall_state(SYSCALL_FAILURE, "sendto",
+			     syscall(__NR_sendto, mock_fd, sent_data, len, sendto_flags, dest_addr, addrlen));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
