@@ -406,6 +406,259 @@ void event_test::connect_ipv4_client_to_server(int32_t* client_socket, sockaddr_
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, *client_socket, (sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
 }
 
+void event_test::client_to_server(send_data send_d, receive_data receive_d, protocol_L3 proto_L3, protocol_L4 proto_L4)
+{
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
+	sockaddr_in6 client_addr6 = {};
+	sockaddr_in6 server_addr6 = {};
+	sockaddr* addr = NULL;
+	socklen_t addrlen = 0;
+
+	//////////////////////
+	// Setup Connection
+	//////////////////////
+
+	switch(proto_L3)
+	{
+	case protocol_L3::IPv4:
+		if(proto_L4 == protocol_L4::TCP)
+		{
+			this->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd,
+							    &server_addr);
+		}
+		else
+		{
+			this->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd,
+								&server_addr);
+		}
+		// for the `recv*` syscalls we will use the memory of the server sockaddr but this will be overwritten
+		// by the kernel so it shouldn't be an issue.
+		addr = (sockaddr*)&server_addr;
+		addrlen = sizeof(server_addr);
+		break;
+	case protocol_L3::IPv6:
+		if(proto_L4 == protocol_L4::TCP)
+		{
+			this->connect_ipv6_client_to_server(&client_socket_fd, &client_addr6, &server_socket_fd,
+							    &server_addr6);
+		}
+		else
+		{
+			this->connect_ipv6_udp_client_to_server(&client_socket_fd, &client_addr6, &server_socket_fd,
+								&server_addr6);
+		}
+		addr = (sockaddr*)&server_addr6;
+		addrlen = sizeof(server_addr6);
+		break;
+	default:
+		FAIL() << "Invalid protocol_L3" << std::endl;
+		break;
+	}
+
+	//////////////////////
+	// Send message
+	//////////////////////
+
+	switch(send_d.syscall_num)
+	{
+	case __NR_sendto:
+	{
+		const void* sent_data = NULL;
+		size_t sent_data_len = 0;
+		uint32_t sendto_flags = 0;
+		sent_data = (const void*)SHORT_MESSAGE;
+		sent_data_len = SHORT_MESSAGE_LEN;
+
+		if(send_d.greater_snaplen)
+		{
+			sent_data = (const void*)LONG_MESSAGE;
+			sent_data_len = LONG_MESSAGE_LEN;
+		}
+
+		if(send_d.null_sockaddr)
+		{
+			addr = NULL;
+			addrlen = 0;
+		}
+
+		/* Send a message to the server */
+		int64_t sent_bytes =
+			syscall(__NR_sendto, client_socket_fd, sent_data, sent_data_len, sendto_flags, addr, addrlen);
+		assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
+	}
+	break;
+
+	case __NR_sendmsg:
+	{
+		struct msghdr send_msg = {};
+		struct iovec iov[1] = {};
+		memset(&send_msg, 0, sizeof(send_msg));
+		memset(iov, 0, sizeof(iov));
+		uint32_t sendmsg_flags = 0;
+		send_msg.msg_iov = iov;
+		send_msg.msg_iovlen = 1;
+		send_msg.msg_name = addr;
+		send_msg.msg_namelen = addrlen;
+		iov[0].iov_base = (void*)SHORT_MESSAGE;
+		iov[0].iov_len = SHORT_MESSAGE_LEN;
+
+		if(send_d.greater_snaplen)
+		{
+			iov[0].iov_base = (void*)LONG_MESSAGE;
+			iov[0].iov_len = LONG_MESSAGE_LEN;
+		}
+
+		if(send_d.null_sockaddr)
+		{
+			send_msg.msg_name = NULL;
+			send_msg.msg_namelen = 0;
+		}
+
+		assert_syscall_state(SYSCALL_SUCCESS, "sendmsg (client)",
+				     syscall(__NR_sendmsg, client_socket_fd, &send_msg, sendmsg_flags), NOT_EQUAL, -1);
+	}
+	break;
+
+	case __NR_write:
+	{
+		const void* sent_data = (const void*)SHORT_MESSAGE;
+		size_t sent_data_len = SHORT_MESSAGE_LEN;
+
+		if(send_d.greater_snaplen)
+		{
+			sent_data = (const void*)LONG_MESSAGE;
+			sent_data_len = LONG_MESSAGE_LEN;
+		}
+
+		ssize_t write_bytes = syscall(__NR_write, client_socket_fd, sent_data, sent_data_len);
+		assert_syscall_state(SYSCALL_SUCCESS, "write (client)", write_bytes, NOT_EQUAL, -1);
+	}
+	break;
+
+	default:
+		FAIL() << "Invalid send syscall" << std::endl;
+		break;
+	}
+
+	if(receive_d.skip_recv_phase)
+	{
+		// Cleanup and return immediately
+		syscall(__NR_shutdown, server_socket_fd, 2);
+		syscall(__NR_shutdown, client_socket_fd, 2);
+		syscall(__NR_close, server_socket_fd);
+		syscall(__NR_close, client_socket_fd);
+		return;
+	}
+
+	//////////////////////
+	// Receive message
+	//////////////////////
+	int receive_socket_fd = server_socket_fd;
+	if(proto_L4 == protocol_L4::TCP)
+	{
+		// In case of TCP we need to accept the connection.
+		receive_socket_fd = syscall(__NR_accept4, server_socket_fd, NULL, NULL, 0);
+		assert_syscall_state(SYSCALL_SUCCESS, "accept4 (server)", receive_socket_fd, NOT_EQUAL, -1);
+	}
+
+	switch(receive_d.syscall_num)
+	{
+	case __NR_recvfrom:
+	{
+		char received_data[MAX_RECV_BUF_SIZE];
+		uint32_t recvfrom_flags = 0;
+		char* received_data_ptr = &received_data[0];
+		socklen_t received_data_len = MAX_RECV_BUF_SIZE;
+
+		if(receive_d.null_sockaddr)
+		{
+			addr = NULL;
+			addrlen = 0;
+		}
+
+		if(receive_d.null_receiver_buffer)
+		{
+			received_data_ptr = NULL;
+			received_data_len = 0;
+		}
+
+		int64_t received_bytes = syscall(__NR_recvfrom, receive_socket_fd, received_data_ptr, received_data_len,
+						 recvfrom_flags, addr, &addrlen);
+		assert_syscall_state(SYSCALL_SUCCESS, "recvfrom (server)", received_bytes, NOT_EQUAL, -1);
+	}
+	break;
+
+	case __NR_recvmsg:
+	{
+		struct msghdr recv_msg = {};
+		struct iovec iov[1] = {};
+		memset(&recv_msg, 0, sizeof(recv_msg));
+		memset(iov, 0, sizeof(iov));
+		uint32_t recvmsg_flags = 0;
+		char data[MAX_RECV_BUF_SIZE];
+		recv_msg.msg_name = addr;
+		recv_msg.msg_namelen = addrlen;
+		iov[0].iov_base = data;
+		iov[0].iov_len = MAX_RECV_BUF_SIZE;
+		recv_msg.msg_iov = iov;
+		recv_msg.msg_iovlen = 1;
+
+		if(receive_d.null_sockaddr)
+		{
+			recv_msg.msg_name = NULL;
+			recv_msg.msg_namelen = 0;
+		}
+
+		if(receive_d.null_receiver_buffer)
+		{
+			recv_msg.msg_iov = NULL;
+			recv_msg.msg_iovlen = 0;
+		}
+
+		int64_t received_bytes = syscall(__NR_recvmsg, receive_socket_fd, &recv_msg, recvmsg_flags);
+		assert_syscall_state(SYSCALL_SUCCESS, "recvmsg (server)", received_bytes, NOT_EQUAL, -1);
+	}
+	break;
+
+	case __NR_read:
+	{
+		char buf[MAX_RECV_BUF_SIZE];
+		char* received_data_ptr = &buf[0];
+		size_t received_data_len = MAX_RECV_BUF_SIZE;
+
+		if(receive_d.null_receiver_buffer)
+		{
+			received_data_ptr = NULL;
+			received_data_len = 0;
+		}
+
+		ssize_t read_bytes = syscall(__NR_read, receive_socket_fd, (void*)received_data_ptr, received_data_len);
+		assert_syscall_state(SYSCALL_SUCCESS, "read (server)", read_bytes, NOT_EQUAL, -1);
+	}
+	break;
+
+	default:
+		FAIL() << "Invalid recv syscall" << std::endl;
+		break;
+	}
+
+	//////////////////////
+	// Cleaning phase
+	//////////////////////
+	if(proto_L4 == protocol_L4::TCP)
+	{
+		syscall(__NR_shutdown, receive_socket_fd, 2);
+		syscall(__NR_close, receive_socket_fd);
+	}
+	syscall(__NR_shutdown, server_socket_fd, 2);
+	syscall(__NR_shutdown, client_socket_fd, 2);
+	syscall(__NR_close, server_socket_fd);
+	syscall(__NR_close, client_socket_fd);
+}
+
 void event_test::connect_ipv4_udp_client_to_server(int32_t* client_socket, sockaddr_in* client_sockaddr, int32_t* server_socket, sockaddr_in* server_sockaddr, int32_t port_client, int32_t port_server)
 {
 	/* Create the server socket. */
@@ -458,6 +711,32 @@ void event_test::connect_ipv6_client_to_server(int32_t* client_socket, sockaddr_
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, *client_socket, (sockaddr*)client_sockaddr, sizeof(*client_sockaddr)), NOT_EQUAL, -1);
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, *client_socket, (sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
+}
+
+void event_test::connect_ipv6_udp_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr)
+{
+	/* Create the server socket. */
+	*server_socket = syscall(__NR_socket, AF_INET6, SOCK_DGRAM, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", *server_socket, NOT_EQUAL, -1);
+	server_reuse_address_port(*server_socket);
+
+	memset(server_sockaddr, 0, sizeof(*server_sockaddr));
+	server_fill_sockaddr_in6(server_sockaddr);
+
+	/* Now we bind the server socket with the server address. */
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, *server_socket, (sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
+
+	/* The server now is ready, we need to create at least one connection from the client. */
+
+	*client_socket = syscall(__NR_socket, AF_INET6, SOCK_DGRAM, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", *client_socket, NOT_EQUAL, -1);
+	client_reuse_address_port(*client_socket);
+
+	memset(client_sockaddr, 0, sizeof(*client_sockaddr));
+	client_fill_sockaddr_in6(client_sockaddr);
+
+	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, *client_socket, (sockaddr*)client_sockaddr, sizeof(*client_sockaddr)), NOT_EQUAL, -1);
 }
 
 void event_test::connect_unix_client_to_server(int32_t* client_socket, sockaddr_un* client_sockaddr, int32_t* server_socket, sockaddr_un* server_sockaddr)
@@ -639,6 +918,20 @@ void event_test::assert_bytebuf_param(int param_num, const char* param, int buf_
 {
 	assert_param_boundaries(param_num);
 	assert_param_len(buf_dimension);
+
+	std::string msg = "\nparam: ";
+	for (int i =0; i<buf_dimension; i++)
+	{
+		msg += m_event_params[m_current_param].valptr[i];
+	}
+	msg += "\nexpected param: ";
+	for (int i =0; i<buf_dimension; i++)
+	{
+		msg += param[i];
+	}
+	msg += "\n\n";
+	SCOPED_TRACE(msg);
+
 	/* We have to use `memcmp` because we could have bytebuf with string terminator `\0` inside. */
 	ASSERT_EQ(memcmp(m_event_params[m_current_param].valptr, param, buf_dimension), 0) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 }

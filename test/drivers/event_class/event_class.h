@@ -37,6 +37,31 @@ struct fd_poll
 	int16_t flags;
 };
 
+struct send_data {
+	int syscall_num;
+	bool greater_snaplen;
+	bool null_sockaddr;
+};
+
+struct receive_data {
+	int syscall_num;
+	bool null_sockaddr;
+	bool null_receiver_buffer;
+	bool skip_recv_phase;
+};
+
+enum protocol_L4
+{
+	TCP = 0,
+	UDP = 1,
+};
+
+enum protocol_L3
+{
+	IPv4 = 0,
+	IPv6 = 1,
+};
+
 /* Assertion operators */
 enum assertion_operators
 {
@@ -319,17 +344,24 @@ public:
 	 * @brief Connect a client to a server that is now ready to receive messages
 	 * and accept new connections.
 	 *
+	 * todo!: we should rename it into `connect_ipv4_tcp_client_to_server`
+	 * 
 	 * @param client_socket client socket file descriptor.
 	 * @param client_sockaddr client `sockaddr` struct to fill.
 	 * @param server_socket server socket file descriptor.
 	 * @param server_sockaddr server `sockaddr` struct to fill.
 	 */
 	void connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
-	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr);
-	void connect_unix_client_to_server(int32_t* client_socket, struct sockaddr_un* client_sockaddr, int32_t* server_socket, struct sockaddr_un* server_sockaddr);
-
 	void connect_ipv4_udp_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
 
+	// todo!: we should rename it into `connect_ipv6_client_to_server`
+	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr);
+	void connect_ipv6_udp_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr);
+
+	void connect_unix_client_to_server(int32_t* client_socket, struct sockaddr_un* client_sockaddr, int32_t* server_socket, struct sockaddr_un* server_sockaddr);
+
+	void client_to_server(send_data send_d, receive_data receive_d, protocol_L3 proto_L3, protocol_L4 proto_L4);
+	
 	/////////////////////////////////
 	// GENERIC EVENT ASSERTIONS
 	/////////////////////////////////

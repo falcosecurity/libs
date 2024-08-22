@@ -64,6 +64,15 @@
 
 /*=============================== SEND/RECEIVE ===========================*/
 
+
+#define SHORT_MESSAGE "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+#define SHORT_MESSAGE_LEN 61
+
+#define LONG_MESSAGE "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL"
+#define LONG_MESSAGE_LEN 121
+
+
+// todo!: These macro are used in legacy network tests. They should be removed when we cleanup all nwtwork tests.
 /* we have also the null terminator because in all our messages
  * (first, second, third) we have left the last byte for the
  * null terminator.
