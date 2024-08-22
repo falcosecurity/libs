@@ -12,15 +12,37 @@
 # specific language governing permissions and limitations under the License.
 #
 
-option(USE_BUNDLED_NLOHMANN_JSON "Enable building of the bundled nlohmann-json" ${USE_BUNDLED_DEPS})
+option(USE_BUNDLED_NJSON "Enable building of the bundled nlohmann-json" ${USE_BUNDLED_DEPS})
 
-if(USE_BUNDLED_NLOHMANN_JSON)
-    include(FetchContent)
-    FetchContent_Declare(nlohmann_json
-            URL https://github.com/nlohmann/json/archive/v3.11.3.tar.gz
-            URL_HASH SHA256=0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
-    )
-    FetchContent_MakeAvailable(nlohmann_json)
+if(NJSON_INCLUDE)
+    # we already have nlohmann-json
+elseif(NOT USE_BUNDLED_NJSON)
+    find_path(NJSON_INCLUDE nlohmann/json.hpp PATH_SUFFIXES nlohmann)
+    if(NJSON_INCLUDE)
+        message(STATUS "Found nlohmann-json: include: ${NJSON_INCLUDE}")
+    else()
+        message(FATAL_ERROR "Couldn't find system nlohmann-json")
+    endif()
 else()
-    find_package(nlohmann_json CONFIG REQUIRED)
+    set(NJSON_SRC "${PROJECT_BINARY_DIR}/nlohmann-json-prefix/src/nlohmann_json")
+    set(NJSON_INCLUDE "${NJSON_SRC}/include")
+
+    message(STATUS "Using bundled nlohmann-json in '${NJSON_SRC}'")
+
+    ExternalProject_Add(nlohmann_json
+        PREFIX "${PROJECT_BINARY_DIR}/nlohmann-json-prefix"
+        URL https://github.com/nlohmann/json/archive/v3.11.3.tar.gz
+        URL_HASH SHA256=0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
+        CONFIGURE_COMMAND ""
+        CMAKE_ARGS
+            -DCMAKE_BUILD_TYPE=Release
+            -DJSON_BuildTests=OFF
+        BUILD_COMMAND ""
+        INSTALL_COMMAND "")
 endif()
+
+if(NOT TARGET nlohmann_json)
+    add_custom_target(nlohmann_json)
+endif()
+
+include_directories("${NJSON_INCLUDE}")

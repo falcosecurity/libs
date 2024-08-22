@@ -162,7 +162,7 @@ endif()
 set_sinsp_target_properties(sinsp)
 
 target_link_libraries(sinsp
-		PUBLIC scap nlohmann_json::nlohmann_json
+		PUBLIC scap
 		PRIVATE
 			"${CURL_LIBRARIES}"
 			"${RE2_LIB}"

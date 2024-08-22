@@ -84,8 +84,6 @@ else()
 
     add_dependencies(scap_engine_gvisor uthash)
     target_link_libraries(scap_engine_gvisor
-    PUBLIC
-        nlohmann_json::nlohmann_json
     PRIVATE
         scap
         scap_platform_util
