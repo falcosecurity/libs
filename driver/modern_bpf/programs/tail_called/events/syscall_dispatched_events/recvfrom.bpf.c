@@ -67,11 +67,7 @@ int BPF_PROG(recvfrom_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	/* Please note: when the peer has performed an orderly shutdown the return value is 0
-	 * and we cannot catch the right length of the data received from the return value.
-	 * Right now in this case we send an empty parameter to userspace.
-	 */
-	if(ret > 0)
+	if(ret >= 0)
 	{
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
