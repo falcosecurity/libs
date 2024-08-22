@@ -74,7 +74,7 @@ int BPF_PROG(recv_x,
 		extract__network_args(args, 2, regs);
 
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, false, NULL);
+		apply_dynamic_snaplen(regs, &snaplen, false, PPME_SOCKET_RECV_X);
 		if(snaplen > ret)
 		{
 			snaplen = ret;

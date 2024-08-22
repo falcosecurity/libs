@@ -1456,7 +1456,7 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(uint16_t) + (num_pairs * (sizeof(int64_t) + sizeof(int16_t))));
 }
 
-static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t *snaplen, bool only_port_range, struct sockaddr *sockaddr)
+static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t *snaplen, bool only_port_range, ppm_event_code evt_type)
 {
 	if(!maps__get_do_dynamic_snaplen())
 	{
@@ -1497,8 +1497,44 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	 *  - recvmsg
 	 *  - sendmsg
 	 */
-	unsigned long args[3] = {0};
-	extract__network_args(args, 3, regs);
+	unsigned long args[5] = {0};
+	struct sockaddr *sockaddr = NULL;
+
+	switch(evt_type)
+	{
+	case PPME_SOCKET_SENDTO_X:
+	case PPME_SOCKET_RECVFROM_X:
+		extract__network_args(args, 5, regs);
+		sockaddr = (struct sockaddr *)args[4];
+		break;
+
+	case PPME_SOCKET_RECVMSG_X:
+	case PPME_SOCKET_SENDMSG_X:
+	{
+		extract__network_args(args, 3, regs);
+		if(bpf_in_ia32_syscall())
+		{
+			struct compat_msghdr compat_mh = {};
+			if(likely(bpf_probe_read_user(&compat_mh, bpf_core_type_size(struct compat_msghdr), (void *)args[1]) == 0))
+			{
+				sockaddr = (struct sockaddr *)(unsigned long)(compat_mh.msg_name);
+			}
+			// in any case we break the switch.
+			break;
+		}
+
+		struct user_msghdr mh = {};
+		if(bpf_probe_read_user(&mh, bpf_core_type_size(struct user_msghdr), (void *)args[1]) == 0)
+		{
+			sockaddr = (struct sockaddr *)mh.msg_name;
+		} 
+	}
+	break;
+
+	default:
+		extract__network_args(args, 3, regs);
+		break;
+	}
 
 	/* All the syscalls involved in this logic have the `fd` as first syscall argument */
 	int32_t socket_fd = (int32_t)args[0];
@@ -1524,12 +1560,6 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 
 	/* We perform some checks regarding ports only for these 2 families */
 	uint16_t socket_family = BPF_CORE_READ(sk, __sk_common.skc_family);
-	/* We return if `fd` is not a socket */
-	if(socket_family == 0)
-	{
-		return;
-	}
-
 	if(socket_family == AF_INET || socket_family == AF_INET6)
 	{
 		struct inet_sock *inet = (struct inet_sock *)sk;
@@ -1540,7 +1570,6 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 
 		if(port_remote == 0 && sockaddr != NULL)
 		{
-			// If socket_family is 0 we skip this part.
 			if(socket_family == AF_INET)
 			{
 				struct sockaddr_in sockaddr_in = {};
@@ -1605,7 +1634,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 	}
 
 	/* POSTGRES */
-	if((port_local == PPM_PORT_POSTGRES || port_remote == PPM_PORT_POSTGRES) && size >= 2)
+	if((port_local == PPM_PORT_POSTGRES || port_remote == PPM_PORT_POSTGRES) && size >= 7)
 	{
 		if((buf[0] == 'Q' && buf[1] == 0) ||		  /* SimpleQuery command */
 		   (buf[0] == 'P' && buf[1] == 0) ||		  /* Prepare statement command */

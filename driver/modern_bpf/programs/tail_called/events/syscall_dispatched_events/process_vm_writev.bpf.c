@@ -68,7 +68,7 @@ int BPF_PROG(process_vm_writev_x,
 		 * have in the buffer.
 		 */
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, true, NULL);
+		apply_dynamic_snaplen(regs, &snaplen, true, PPME_SYSCALL_PROCESS_VM_WRITEV_X);
 		if(snaplen > ret)
 		{
 			snaplen = ret;
