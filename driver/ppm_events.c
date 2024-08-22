@@ -305,218 +305,160 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, uint32_t lookahead_size)
 {
 	uint32_t res = args->consumer->snaplen;
-	int err;
-	struct socket *sock;
-	sa_family_t family;
-	struct sockaddr_storage sock_address;
-	struct sockaddr_storage peer_address;
-	uint16_t sport, dport;
-	uint16_t min_port = 0, max_port = 0;
-	uint32_t dynamic_snaplen = SNAPLEN_EXTENDED;
+	int err = 0;
+	struct socket *sock = NULL;
+	struct sock *sk = NULL;
+	uint16_t port_local = 0, port_remote = 0, socket_family = 0, min_port = 0, max_port = 0;
 
-	if (args->consumer->snaplen > dynamic_snaplen) {
-		/*
-		 * If the user requested a default snaplen greater than the custom
-		 * snaplen given to certain applications, just use the greater value.
-		 */
-		dynamic_snaplen = args->consumer->snaplen;
-	}
+	if(!args->consumer->do_dynamic_snaplen)
+		return res;
 
-	if (!args->consumer->do_dynamic_snaplen)
+	// We set this in the previous syscall-specific logic
+	if(args->fd == -1)
 		return res;
 
 	sock = sockfd_lookup(args->fd, &err);
-
-	if (!sock) {
+	if(!sock)
 		return res;
-	}
 
-	if (!sock->sk) {
+	sk = sock->sk;
+	if(!sk)
 		goto done;
-	}
 
-	err = sock_getname(sock, (struct sockaddr *)&sock_address, 0);
-
-	if (err != 0) {
+	socket_family = sk->sk_family;
+	if(socket_family == AF_INET || socket_family == AF_INET6)
+	{
+		struct inet_sock *inet = (struct inet_sock *)sk;
+// Kernel 2.6.33 renamed `inet->sport` into `inet->inet_sport`
+// https://elixir.bootlin.com/linux/v2.6.33/source/include/net/inet_sock.h#L126
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+		port_local = ntohs(inet->inet_sport);
+		// In recent kernels `inet_dport` is just an alias for `sk.__sk_common.skc_dport`
+		port_remote = ntohs(inet->inet_dport);
+#else
+		// Unsupported kernel versions.
 		goto done;
-	}
+#endif
+		struct sockaddr *sockaddr = NULL;
+		struct sockaddr_in sockaddr_in = {};
+		struct sockaddr_in6 sockaddr_in6 = {};
 
-	/* Try to get the source and destination port */
-	if (args->event_type == PPME_SOCKET_SENDTO_X) {
-		unsigned long val;
-		struct sockaddr __user * usrsockaddr;
-		/*
-		 * Get the address
-		 */
-		val = args->args[4];
+		switch(args->event_type)
+		{
+		case PPME_SOCKET_SENDTO_X:
+		case PPME_SOCKET_RECVFROM_X:
+			// Reading directly from this could cause a page fault.
+			// That's why we WILL copy its content into the stack with `ppm_copy_from_user`.
+			sockaddr = (struct sockaddr *)args->args[4];
+			break;
 
-		usrsockaddr = (struct sockaddr __user *)val;
-
-		if(usrsockaddr == NULL) {
-			/*
-			 * Suppose is a connected socket, fall back to fd
-			 */
-			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
-		} else {
-			/*
-			 * Get the address len
-			 */
-			val = args->args[5];
-			if (val != 0) {
-				/*
-				 * Copy the address
-				 */
-				err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&peer_address);
-			} else {
-				/*
-				 * This case should be very rare, fallback again to sock
-				 */
-				err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
-			}
-		}
-	} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
-		unsigned long val;
-		struct sockaddr __user * usrsockaddr;
-		int addrlen;
+		case PPME_SOCKET_RECVMSG_X:
+		case PPME_SOCKET_SENDMSG_X:
+		{
 #ifdef CONFIG_COMPAT
-		struct compat_msghdr compat_mh;
+			if(args->compat)
+			{
+				struct compat_msghdr compat_mh = {};
+				if(likely(ppm_copy_from_user(&compat_mh, (const void *)compat_ptr(args->args[1]),
+							     sizeof(compat_mh))==0))
+				{
+					sockaddr = (struct sockaddr *)compat_ptr(compat_mh.msg_name);
+				}
+				// in any case we break the switch.
+				break;
+			}
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
-		struct user_msghdr mh;
+			struct user_msghdr mh = {};
 #else
-		struct msghdr mh;
+			struct msghdr mh = {};
 #endif
-
-		val = args->args[1];
-
-#ifdef CONFIG_COMPAT
-		if (!args->compat) {
-#endif
-			if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh)))) {
-				usrsockaddr = NULL;
-				addrlen = 0;
-			} else {
-				usrsockaddr = (struct sockaddr __user *)mh.msg_name;
-				addrlen = mh.msg_namelen;
-			}
-#ifdef CONFIG_COMPAT
-		} else {
-			if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh)))) {
-				usrsockaddr = NULL;
-				addrlen = 0;
-			} else {
-				usrsockaddr = (struct sockaddr __user *)compat_ptr(compat_mh.msg_name);
-				addrlen = compat_mh.msg_namelen;
+			if(likely(ppm_copy_from_user(&mh, (const void *)args->args[1], sizeof(mh))==0))
+			{
+				sockaddr = (struct sockaddr*)mh.msg_name;
 			}
 		}
-#endif
+		break;
 
-		if (usrsockaddr != NULL && addrlen != 0) {
-			/*
-			 * Copy the address
-			 */
-			err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&peer_address);
-		} else {
-			/*
-			 * Suppose it is a connected socket, fall back to fd
-			 */
-			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+		default:
+			break;
 		}
-	} else {
-		err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+
+		if(port_remote == 0 && sockaddr != NULL)
+		{
+			if(socket_family == AF_INET)
+			{
+				if(ppm_copy_from_user(&sockaddr_in, sockaddr, sizeof(struct sockaddr_in)) == 0)
+				{
+					port_remote = ntohs(sockaddr_in.sin_port);
+				}
+			}
+			else
+			{
+				if(ppm_copy_from_user(&sockaddr_in6, sockaddr, sizeof(struct sockaddr_in6)) == 0)
+				{
+					port_remote = ntohs(sockaddr_in6.sin6_port);
+				}
+			}
+		}
 	}
 
-	if (err != 0) {
-		goto done;
-	}
-
-	/*
-	 * If there's a valid source / dest port, use it to run heuristics
-	 * for determining snaplen.
-	 */
 	min_port = args->consumer->fullcapture_port_range_start;
 	max_port = args->consumer->fullcapture_port_range_end;
-	family = sock->sk->sk_family;
-
-	if (family == AF_INET) {
-		sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
-		dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
-	} else if (family == AF_INET6) {
-		sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
-		dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
-	} else {
-		sport = 0;
-		dport = 0;
+	if(max_port > 0 &&
+	   (in_port_range(port_local, min_port, max_port) || in_port_range(port_remote, min_port, max_port)))
+	{
+		res = res > SNAPLEN_FULLCAPTURE_PORT ? res : SNAPLEN_FULLCAPTURE_PORT;
+		goto done;
 	}
-
-	if (max_port > 0 &&
-	    (in_port_range(sport, min_port, max_port) ||
-	     in_port_range(dport, min_port, max_port))) {
-		/*
-		 * Before checking the well-known ports, see if the user has requested
-		 * an increased snaplen for the port in question.
-		 */
-		sockfd_put(sock);
-		return SNAPLEN_FULLCAPTURE_PORT;
-	} else if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
-		if (lookahead_size >= 5) {
-			if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {
-				res = dynamic_snaplen;
-				goto done;
-			} else if (buf[2] == 0 && buf[3] == 0) {
-				res = dynamic_snaplen;
-				goto done;
-			}
-		}
-	} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
-		if (lookahead_size >= 2) {
-			if ((buf[0] == 'Q' && buf[1] == 0) || /* SimpleQuery command */
-			    (buf[0] == 'P' && buf[1] == 0) || /* Prepare statement command */
-			    (buf[0] == 'E' && buf[1] == 0) /* error or execute command */
-			) {
-				res = dynamic_snaplen;
-				goto done;
-			}
-		}
-		if (lookahead_size >= 7 &&
-		    (buf[4] == 0 && buf[5] == 3 && buf[6] == 0)) { /* startup command */
-			res = dynamic_snaplen;
+	else if(port_remote == args->consumer->statsd_port)
+	{
+		res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+		goto done;
+	}
+	else if((port_local == PPM_PORT_MYSQL || port_remote == PPM_PORT_MYSQL) && lookahead_size >= 5)
+	{
+		if((buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) ||
+		   (buf[2] == 0 && buf[3] == 0))
+		{
+			res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 			goto done;
 		}
-	} else if ((sport == PPM_PORT_MONGODB || dport == PPM_PORT_MONGODB) ||
-	            (lookahead_size >= 16 &&
-	               (*(int32_t *)(buf+12) == 1    || /* matches header */
-	                *(int32_t *)(buf+12) == 2001 ||
-	                *(int32_t *)(buf+12) == 2002 ||
-	                *(int32_t *)(buf+12) == 2003 ||
-	                *(int32_t *)(buf+12) == 2004 ||
-	                *(int32_t *)(buf+12) == 2005 ||
-	                *(int32_t *)(buf+12) == 2006 ||
-	                *(int32_t *)(buf+12) == 2007)
-	            )
-	          ) {
-		res = dynamic_snaplen;
-		goto done;
-	} else if (dport == args->consumer->statsd_port) {
-		res = dynamic_snaplen;
-		goto done;
-	} else {
-		if (lookahead_size >= 5) {
-			if (*(uint32_t *)buf == g_http_get_intval ||
-			    *(uint32_t *)buf == g_http_post_intval ||
-			    *(uint32_t *)buf == g_http_put_intval ||
-			    *(uint32_t *)buf == g_http_delete_intval ||
-			    *(uint32_t *)buf == g_http_trace_intval ||
-			    *(uint32_t *)buf == g_http_connect_intval ||
-			    *(uint32_t *)buf == g_http_options_intval ||
-			    ((*(uint32_t *)buf == g_http_resp_intval) && (buf[4] == '/'))
-			) {
-				res = dynamic_snaplen;
-				goto done;
-			}
+	}
+	else if((port_local == PPM_PORT_POSTGRES || port_remote == PPM_PORT_POSTGRES) && lookahead_size >= 7)
+	{
+		if((buf[0] == 'Q' && buf[1] == 0) ||		  /* SimpleQuery command */
+		   (buf[0] == 'P' && buf[1] == 0) ||		  /* Prepare statement command */
+		   (buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
+		   (buf[0] == 'E' && buf[1] == 0)		  /* error or execute command */
+		)
+		{
+			res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+			goto done;
 		}
 	}
-
+	else if((port_local == PPM_PORT_MONGODB || port_remote == PPM_PORT_MONGODB) ||
+		(lookahead_size >= 16 &&
+		 (*(int32_t *)(buf + 12) == 1 || /* matches header */
+		  *(int32_t *)(buf + 12) == 2001 || *(int32_t *)(buf + 12) == 2002 || *(int32_t *)(buf + 12) == 2003 ||
+		  *(int32_t *)(buf + 12) == 2004 || *(int32_t *)(buf + 12) == 2005 || *(int32_t *)(buf + 12) == 2006 ||
+		  *(int32_t *)(buf + 12) == 2007)))
+	{
+		res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+		goto done;
+	}
+	else if(lookahead_size >= 5)
+	{
+		if(*(uint32_t *)buf == g_http_get_intval || *(uint32_t *)buf == g_http_post_intval ||
+		   *(uint32_t *)buf == g_http_put_intval || *(uint32_t *)buf == g_http_delete_intval ||
+		   *(uint32_t *)buf == g_http_trace_intval || *(uint32_t *)buf == g_http_connect_intval ||
+		   *(uint32_t *)buf == g_http_options_intval ||
+		   ((*(uint32_t *)buf == g_http_resp_intval) && (buf[4] == '/')))
+		{
+			res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
+			goto done;
+		}
+	}
 done:
 	sockfd_put(sock);
 	return res;
