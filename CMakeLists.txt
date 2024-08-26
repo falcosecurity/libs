@@ -151,3 +151,8 @@ if(CREATE_TEST_TARGETS)
 	endif()
 
 endif()
+
+option(ENABLE_BENCHMARKS "Enable Benchmarks" OFF)
+if(ENABLE_BENCHMARKS)
+	add_subdirectory(benchmark)
+endif()
