@@ -329,6 +329,10 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 	if(socket_family == AF_INET || socket_family == AF_INET6)
 	{
 		struct inet_sock *inet = (struct inet_sock *)sk;
+		struct sockaddr *sockaddr = NULL;
+		struct sockaddr_in sockaddr_in = {};
+		struct sockaddr_in6 sockaddr_in6 = {};
+
 // Kernel 2.6.33 renamed `inet->sport` into `inet->inet_sport`
 // https://elixir.bootlin.com/linux/v2.6.33/source/include/net/inet_sock.h#L126
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
@@ -339,9 +343,6 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 		// Unsupported kernel versions.
 		goto done;
 #endif
-		struct sockaddr *sockaddr = NULL;
-		struct sockaddr_in sockaddr_in = {};
-		struct sockaddr_in6 sockaddr_in6 = {};
 
 		switch(args->event_type)
 		{
@@ -355,6 +356,12 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 		case PPME_SOCKET_RECVMSG_X:
 		case PPME_SOCKET_SENDMSG_X:
 		{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+			struct user_msghdr mh = {};
+#else
+			struct msghdr mh = {};
+#endif
+
 #ifdef CONFIG_COMPAT
 			if(args->compat)
 			{
@@ -367,11 +374,6 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 				// in any case we break the switch.
 				break;
 			}
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
-			struct user_msghdr mh = {};
-#else
-			struct msghdr mh = {};
 #endif
 			if(likely(ppm_copy_from_user(&mh, (const void *)args->args[1], sizeof(mh))==0))
 			{
