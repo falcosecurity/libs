@@ -269,8 +269,8 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_sockaddr)
 	else
 	{
 		evt_test->assert_empty_param(4);
-		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple because the pointer to sockaddr is NULL, but "
-				"we should rely on kernel structs"
+		GTEST_SKIP() << "[RECVMSG_X]: we rely on the addrlen provided by the kernel but this seems to be always 0."
+			     << "we should rely on kernel structs"
 			     << std::endl;
 	}
 

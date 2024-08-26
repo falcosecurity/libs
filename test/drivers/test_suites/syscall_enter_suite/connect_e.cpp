@@ -2,7 +2,7 @@
 
 #if defined(__NR_connect)
 
-TEST(SyscallEnter, connectE_INET)
+TEST(SyscallEnter, connectE_INET_failure)
 {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
@@ -53,7 +53,7 @@ TEST(SyscallEnter, connectE_INET)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, connectE_INET6)
+TEST(SyscallEnter, connectE_INET6_failure)
 {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
@@ -104,7 +104,7 @@ TEST(SyscallEnter, connectE_INET6)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, connectE_UNIX)
+TEST(SyscallEnter, connectE_UNIX_failure)
 {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
@@ -164,7 +164,7 @@ TEST(SyscallEnter, connectE_UNIX)
 #define UNIX_LONG_PATH "/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/too_long/too_longgg*"
 #define EXPECTED_UNIX_LONG_PATH "/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/too_long/too_longgg"
 
-TEST(SyscallEnter, connectE_UNIX_max_path)
+TEST(SyscallEnter, connectE_UNIX_max_path_failure)
 {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
@@ -220,7 +220,7 @@ TEST(SyscallEnter, connectE_UNIX_max_path)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, connectE_null_sockaddr)
+TEST(SyscallEnter, connectE_null_sockaddr_failure)
 {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
