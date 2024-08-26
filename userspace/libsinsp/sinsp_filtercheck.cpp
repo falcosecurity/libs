@@ -1069,6 +1069,7 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 			return false;
 		default:
 			auto item = craft_filter_value(type, operand1, op1_len);
+
 			if (op == CO_IN || op == CO_INTERSECTS)
 			{
 				// CO_INTERSECTS is really more interesting when a filtercheck can extract
@@ -1076,8 +1077,8 @@ bool sinsp_filter_check::compare_rhs(cmpop op, ppm_param_type type, const void* 
 				// against the set of rhs values. sinsp_filter_checks only extract a
 				// single value, so CO_INTERSECTS is really the same as CO_IN.
 				ensure_unique_ptr_allocated(m_val_storages_members);
-				if(op1_len >= m_val_storages_min_size &&
-				   op1_len <= m_val_storages_max_size &&
+				if(item.second >= m_val_storages_min_size &&
+				   item.second <= m_val_storages_max_size &&
 				   m_val_storages_members->find(item) != m_val_storages_members->end())
 				{
 					return true;
