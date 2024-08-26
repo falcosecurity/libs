@@ -36,7 +36,15 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
+          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
+
+      - name: Install a recent version of CMake ⛓️
+        run: |
+          curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.22.5/cmake-3.22.5-linux-$(uname -m).tar.gz
+          gzip -d /tmp/cmake.tar.gz
+          tar -xpf /tmp/cmake.tar --directory=/tmp
+          cp -R /tmp/cmake-3.22.5-linux-$(uname -m)/* /usr
+          rm -rf /tmp/cmake-3.22.5-linux-$(uname -m)/
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -56,7 +64,7 @@ jobs:
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
           mkdir -p build
-          cd build && cmake ${{ matrix.cmake_opts }} ../
+          cd build && cmake ${{ matrix.cmake_opts }} -DENABLE_BENCHMARKS=ON ../
           KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
           make run-unit-tests
 
@@ -82,8 +90,14 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_BPF=On -DBUILD_DRIVER=Off -DUSE_BUNDLED_DEPS=On -DUSE_BUNDLED_LIBELF=Off -DUSE_SHARED_LIBELF=Off -DBUILD_LIBSCAP_MODERN_BPF=ON -DMUSL_OPTIMIZED_BUILD=On ../
+          cd build && cmake -DBUILD_BPF=On -DBUILD_DRIVER=Off -DUSE_BUNDLED_DEPS=On -DUSE_BUNDLED_LIBELF=Off -DUSE_SHARED_LIBELF=Off -DBUILD_LIBSCAP_MODERN_BPF=ON -DMUSL_OPTIMIZED_BUILD=On -DENABLE_BENCHMARKS=ON ../
           make run-unit-tests -j4
+
+      - name: Run benchmarks
+        run: |
+          cd build
+          make bench
+          ./benchmark/bench
 
   build-shared-libs-linux-amd64:
     name: build-shared-libs-linux-amd64 🧐
@@ -107,7 +121,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ../
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test -DENABLE_BENCHMARKS=ON ../
           make -j4
           make run-unit-tests
 
@@ -147,7 +161,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON ..
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON -DENABLE_BENCHMARKS=ON ..
           cmake --build . --config Release --parallel 4 && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
   build-shared-libs-macos-amd64:
