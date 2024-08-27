@@ -15,6 +15,13 @@ jobs:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
+      - name: Checkout Google benchmark ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: 'google/benchmark'
+          ref: 'v1.9.0'
+          path: google-benchmark/
+
       - name: Run perf
         id: perf
         uses: ./.github/actions/composite-perf
@@ -45,22 +52,8 @@ jobs:
 
       - name: Diff from master - gbench
         run: |
-          sudo apt update && sudo apt install -y --no-install-recommends jq
-          echo "test | master | head | diff | diff %" > gbench_diff.txt
-          # Load keys from master gbench json
-          keys=$(jq -r '.benchmarks[] | select(.name | test("_mean")) | .name' gbench_data.json)
-          for key in $keys; do
-            # Load master real time value
-            master_val=$(jq -r '.benchmarks[] | select(.name == "$key") | .real_time' gbench_data.json)
-            # Load PR head real time value         
-            head_val=$(jq -r '.benchmarks[] | select(.name == "$key") | .real_time' ${{ steps.perf.outputs.gbench_json }})
-            # Only dump existing keys in current head (ie: if test was renamed/removed, skip it)
-            if [[ ! -z $head_val ]]; then
-              diff_val=$(jq -n '$head_val-$master_val')
-              diff_val_pct=$(jq -n '$diff_val/$master_val*100')
-              echo "$key | $master_val | $head_val | $diff_val | $diff_val_pct" >> gbench_diff.txt
-            fi
-          done
+          pip3 install -r google-benchmark/tools/requirements.txt
+          python3 google-benchmark/tools/compare.py --no-color benchmarks gbench_data.json ${{ steps.perf.outputs.gbench_json }} &> gbench_diff.txt
 
       - name: Archive perf diff
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
@@ -163,8 +156,9 @@ jobs:
       - name: Check >= 5% slowdown on google benchmarks
         if: always() # Even if other threshold checks failed
         run: |
-          tail -n+2 gbench_diff.txt | while read p; do
-            diff_pct=$(echo $p | awk '{print $NF}')
+          # Remove first 3 lines and last line that are no tests results
+          tail -n+4 gbench_diff.txt | head -n -1 | while read p; do
+            diff_pct=$(echo "$p" | awk '{print $3}' | tr -d '+')
             if (( $(echo "$diff_pct >= 5.0" | bc -l) )); then
               exit 1
             fi
