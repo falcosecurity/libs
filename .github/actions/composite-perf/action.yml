@@ -14,6 +14,9 @@ outputs:
   heaptrack_scap:
     description: "Scap file heaptrack data"
     value: ${{ steps.store-outputs.outputs.heaptrack_scap }}
+  gbench_json:
+    description: "Google benchmarks json data"
+    value: ${{ steps.store-outputs.outputs.gbench_json }}
 
 runs:
   using: "composite"
@@ -28,8 +31,9 @@ runs:
       shell: bash
       run: |
         mkdir -p build
-        cd build && cmake -DUSE_BUNDLED_DEPS=False -DCMAKE_BUILD_TYPE=Debug ../
+        cd build && cmake -DUSE_BUNDLED_DEPS=False -DCMAKE_BUILD_TYPE=Debug -DENABLE_BENCHMARKS=True ../
         make unit-test-libsinsp -j4
+        make bench -j4
         make sinsp-example -j4
 
     - name: Download scap file
@@ -70,6 +74,12 @@ runs:
         cd build
         sudo heaptrack -o heaptrack_scap.data ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
 
+    - name: Run - gbench
+      shell: bash
+      run: |
+        cd build
+        ./benchmark/bench --benchmark_report_aggregates_only --benchmark_out=gbench_data.json --benchmark_out_format=json
+
     - name: Set Outputs
       id: store-outputs
       shell: bash
@@ -79,3 +89,4 @@ runs:
         echo "perf_scap=$(realpath perf_scap.data)" >> $GITHUB_OUTPUT
         echo "heaptrack_tests=$(realpath heaptrack_tests.data.zst)" >> $GITHUB_OUTPUT
         echo "heaptrack_scap=$(realpath heaptrack_scap.data.zst)" >> $GITHUB_OUTPUT
+        echo "gbench_json=$(realpath gbench_data.json)" >> $GITHUB_OUTPUT
