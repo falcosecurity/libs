@@ -47,7 +47,6 @@ or GPL2.txt for full copies of the license.
 	FN(sys_recvfrom_x)                   \
 	FN(sys_recvmsg_x)                    \
 	FN(sys_recvmsg_x_2)                  \
-	FN(sys_recvmmsg_e)                   \
 	FN(sys_recvmmsg_x)                   \
 	FN(sys_recvmmsg_x_2)                 \
 	FN(sys_shutdown_e)                   \
