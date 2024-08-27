@@ -32,7 +32,7 @@ TEST(scap_file, filter)
 	{
 		sinsp inspector;
 		inspector.set_filter("proc.name=ifplugd");
-		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
+		inspector.open_savefile(LIBSINSP_TEST_SCAP_FILES_DIR "/sample.scap");
 
 		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, tmp_scap_file_name, 0, 0, 0, 0, true);
 
@@ -78,7 +78,7 @@ TEST(scap_file, cycledumper_num_events)
 	std::string tmp_scap_file_name = tmp_scap_file_path.string();
 	{
 		sinsp inspector;
-		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
+		inspector.open_savefile(LIBSINSP_TEST_SCAP_FILES_DIR "/sample.scap");
 
 		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, tmp_scap_file_name, 0, 0, 0,
 								  events_per_capture, true);
@@ -119,7 +119,7 @@ TEST(scap_file, cycledumper_seconds)
 	std::string tmp_scap_file_name = tmp_scap_file_path.string();
 	{
 		sinsp inspector;
-		inspector.open_savefile(LIBSINSP_TMP_TEST_SCAP_FILES_DIR "/sample.scap");
+		inspector.open_savefile(LIBSINSP_TEST_SCAP_FILES_DIR "/sample.scap");
 
 		auto dumper = std::make_unique<sinsp_cycledumper>(&inspector, tmp_scap_file_name, 0,
 								  seconds_per_capture, 0, 0, true);
