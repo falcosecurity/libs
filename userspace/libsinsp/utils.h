@@ -116,7 +116,7 @@ public:
 	// If path2 is absolute, the result will be equivalent to path2.
 	// If the result would be too long, the output will contain the string "/PATH_TOO_LONG" instead.
 	//
-	static std::string concatenate_paths(std::string_view path1, std::string_view path2);
+	static std::string concatenate_paths(std::string_view path1, std::string_view path2, size_t max_len=SCAP_MAX_PATH_SIZE-1);
 
 	//
 	// Determines if an IPv6 address is IPv4-mapped
