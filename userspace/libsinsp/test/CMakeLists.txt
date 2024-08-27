@@ -58,6 +58,7 @@ if((NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x") AND ${SCAP_FILES_SUITE_
 	set(SCAP_FILE_NAMES
 	    "kexec_arm64.scap"
 		"kexec_x86.scap"
+		"sample.scap"
 	)
 	set(SCAP_FILE_DOWNLOAD_PREFIX
 		"https://download.falco.org/fixtures/libs/scap_files"
