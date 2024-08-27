@@ -112,6 +112,10 @@ public:
 
     virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf)
     {
+        if (m_dynamic_fields.get() == dynf.get())
+        {
+            return;
+        }
         if (!dynf)
         {
             throw sinsp_exception("null definitions passed to set_dynamic_fields");

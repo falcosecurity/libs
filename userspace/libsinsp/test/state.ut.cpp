@@ -161,7 +161,7 @@ TEST(dynamic_struct, defs_and_access)
     // struct construction and setting fields definition
     sample_struct s(fields);
     ASSERT_ANY_THROW(s.set_dynamic_fields(nullptr));
-    ASSERT_ANY_THROW(s.set_dynamic_fields(fields));
+    ASSERT_ANY_THROW(s.set_dynamic_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>()));
     // The double paranthesis fixes
     // Error C2063 'std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>' : not a function C
     // on the Windows compiler.
@@ -170,7 +170,7 @@ TEST(dynamic_struct, defs_and_access)
     ASSERT_NO_THROW(sample_struct(nullptr));
     auto s2 = sample_struct(nullptr);
     s2.set_dynamic_fields(fields);
-    ASSERT_ANY_THROW(s2.set_dynamic_fields(fields));
+    ASSERT_NO_THROW(s2.set_dynamic_fields(fields));
 
     // check field definitions
     ASSERT_EQ(fields->fields().size(), 0);
@@ -228,6 +228,77 @@ TEST(dynamic_struct, defs_and_access)
     auto field_num2 = fields2->add_field<uint64_t>("num");
     auto acc_num2 = field_num2.new_accessor<uint64_t>();
     ASSERT_ANY_THROW(s.get_dynamic_field(acc_num2, tmp));
+}
+
+TEST(dynamic_struct, mem_ownership)
+{
+    struct sample_struct: public libsinsp::state::dynamic_struct
+    {
+        sample_struct(const std::shared_ptr<field_infos>& i): dynamic_struct(i) { }
+    };
+
+    std::string tmpstr1, tmpstr2;
+    auto defs1 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
+
+    // construct two entries, test safety checks
+    sample_struct s1(nullptr);
+    ASSERT_NO_THROW(s1.set_dynamic_fields(nullptr));
+    ASSERT_NO_THROW(s1.set_dynamic_fields(defs1));
+    sample_struct s2(defs1);
+    ASSERT_ANY_THROW(s1.set_dynamic_fields(nullptr));
+    ASSERT_NO_THROW(s1.set_dynamic_fields(defs1));
+    ASSERT_ANY_THROW(s1.set_dynamic_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>()));
+
+    // define a string dynamic field
+    auto field_str = defs1->add_field<std::string>("str");
+    auto field_str_acc = field_str.new_accessor<std::string>();
+
+    // write same value in both structs, ensure they have two distinct copies
+    s1.set_dynamic_field(field_str_acc, std::string("hello"));
+    s1.get_dynamic_field(field_str_acc, tmpstr1);
+    ASSERT_EQ(tmpstr1, std::string("hello"));
+    s2.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_EQ(tmpstr2, std::string("")); // s2 should not be influenced
+    s2.set_dynamic_field(field_str_acc, std::string("hello2"));
+    s2.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_EQ(tmpstr2, tmpstr1 + "2");
+    s1.get_dynamic_field(field_str_acc, tmpstr1); // s1 should not be influenced
+    ASSERT_EQ(tmpstr2, tmpstr1 + "2");
+
+    // deep copy and memory ownership (constructor)
+    sample_struct s3(s1);
+    ASSERT_EQ(s1.dynamic_fields().get(), s3.dynamic_fields().get());
+    s1.get_dynamic_field(field_str_acc, tmpstr1);
+    s3.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_EQ(tmpstr1, tmpstr2);
+    s3.set_dynamic_field(field_str_acc, std::string("hello3"));
+    s1.get_dynamic_field(field_str_acc, tmpstr1); // should still be "hello" as before
+    s3.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_NE(tmpstr1, tmpstr2);
+
+    // deep copy and memory ownership (assignment)
+    sample_struct s4(std::make_shared<libsinsp::state::dynamic_struct::field_infos>());
+    s4 = s1;
+    ASSERT_EQ(s1.dynamic_fields().get(), s4.dynamic_fields().get());
+    s1.get_dynamic_field(field_str_acc, tmpstr1);
+    s4.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_EQ(tmpstr1, tmpstr2);
+    s4.set_dynamic_field(field_str_acc, std::string("hello4"));
+    s1.get_dynamic_field(field_str_acc, tmpstr1); // should still be "hello" as before
+    s4.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_NE(tmpstr1, tmpstr2);
+
+    // deep copy and memory ownership (assignment, null initial definitions)
+    sample_struct s5(nullptr);
+    s5 = s1;
+    ASSERT_EQ(s1.dynamic_fields().get(), s5.dynamic_fields().get());
+    s1.get_dynamic_field(field_str_acc, tmpstr1);
+    s5.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_EQ(tmpstr1, tmpstr2);
+    s5.set_dynamic_field(field_str_acc, std::string("hello4"));
+    s1.get_dynamic_field(field_str_acc, tmpstr1); // should still be "hello" as before
+    s5.get_dynamic_field(field_str_acc, tmpstr2);
+    ASSERT_NE(tmpstr1, tmpstr2);
 }
 
 TEST(table_registry, defs_and_access)
