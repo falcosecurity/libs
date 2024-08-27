@@ -1363,7 +1363,7 @@ std::vector<std::string> sinsp_split(std::string_view sv, char delim)
 	}
 
 	std::string_view::size_type start = 0;
-    for (std::string_view::size_type i = 0; i < sv.size(); i++)
+    	for (std::string_view::size_type i = 0; i < sv.size(); i++)
 	{
 		if (sv[i] == delim)
 		{
