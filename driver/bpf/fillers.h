@@ -3413,7 +3413,7 @@ FILLER(sys_open_by_handle_at_x, true)
 	res = bpf_push_s64_to_ring(data, (int64_t)mountfd);
 	CHECK_RES(res);
 
-	if(retval > 0)
+	if(retval >= 0)
 	{
 		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_open_by_handle_at_x_extra_tail_1);
 		bpf_printk("Can't tail call 'open_by_handle_at_x_extra_tail_1' filler\n");
@@ -3421,6 +3421,8 @@ FILLER(sys_open_by_handle_at_x, true)
 	}
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
+	// If `retval < 0` we cannot retrieve the `struct file` and 
+	// so we cannot retrieve the `OVERLAY` and the `O_F_CREATED` flags
 	uint32_t flags = (uint32_t)bpf_syscall_get_argument(data, 2);
 	flags = (uint32_t)open_flags_to_scap(flags);
 	res = bpf_val_to_ring(data, flags);
