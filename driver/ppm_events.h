@@ -66,6 +66,10 @@ struct event_filler_arguments {
 	__kernel_pid_t spid;            /* PID of source process */
 	__kernel_pid_t dpid;            /* PID of destination process */
 	struct fault_data_t fault_data; /* For page faults */
+	struct {
+		long index;
+		long count;
+	} mmsg;
 };
 
 extern const struct ppm_event_entry g_ppm_events[];
