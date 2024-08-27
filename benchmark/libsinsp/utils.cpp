@@ -29,7 +29,7 @@ static void BM_sinsp_split(benchmark::State& state)
 }
 BENCHMARK(BM_sinsp_split);
 
-static void BM_sinsp_concatenate_paths_relative_path2(benchmark::State& state)
+static void BM_sinsp_concatenate_paths_relative_path(benchmark::State& state)
 {
 	std::string path1 = "/tmp/";
 	std::string path2 = "foo/bar";
@@ -38,9 +38,9 @@ static void BM_sinsp_concatenate_paths_relative_path2(benchmark::State& state)
 		sinsp_utils::concatenate_paths(path1, path2);
 	}
 }
-BENCHMARK(BM_sinsp_concatenate_paths_relative_path2);
+BENCHMARK(BM_sinsp_concatenate_paths_relative_path);
 
-static void BM_sinsp_concatenate_paths_empty_path2(benchmark::State& state)
+static void BM_sinsp_concatenate_paths_empty_path(benchmark::State& state)
 {
 	std::string path1 = "/tmp/";
 	std::string path2 = "";
@@ -49,9 +49,9 @@ static void BM_sinsp_concatenate_paths_empty_path2(benchmark::State& state)
 		sinsp_utils::concatenate_paths(path1, path2);
 	}
 }
-BENCHMARK(BM_sinsp_concatenate_paths_empty_path2);
+BENCHMARK(BM_sinsp_concatenate_paths_empty_path);
 
-static void BM_sinsp_concatenate_paths_absolute_path2(benchmark::State& state)
+static void BM_sinsp_concatenate_paths_absolute_path(benchmark::State& state)
 {
 	std::string path1 = "/tmp/";
 	std::string path2 = "/foo/bar";
@@ -60,7 +60,7 @@ static void BM_sinsp_concatenate_paths_absolute_path2(benchmark::State& state)
 		sinsp_utils::concatenate_paths(path1, path2);
 	}
 }
-BENCHMARK(BM_sinsp_concatenate_paths_absolute_path2);
+BENCHMARK(BM_sinsp_concatenate_paths_absolute_path);
 
 static void BM_sinsp_split_container_image(benchmark::State& state)
 {
