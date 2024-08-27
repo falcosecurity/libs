@@ -27,7 +27,7 @@ static void BM_sinsp_split(benchmark::State& state)
 		sinsp_split(str, ',');
 	}
 }
-BENCHMARK(BM_sinsp_split)->Repetitions(2);
+BENCHMARK(BM_sinsp_split);
 
 static void BM_sinsp_concatenate_paths_relative_path2(benchmark::State& state)
 {
@@ -38,7 +38,7 @@ static void BM_sinsp_concatenate_paths_relative_path2(benchmark::State& state)
 		sinsp_utils::concatenate_paths(path1, path2);
 	}
 }
-BENCHMARK(BM_sinsp_concatenate_paths_relative_path2)->Repetitions(2);
+BENCHMARK(BM_sinsp_concatenate_paths_relative_path2);
 
 static void BM_sinsp_concatenate_paths_empty_path2(benchmark::State& state)
 {
@@ -49,7 +49,7 @@ static void BM_sinsp_concatenate_paths_empty_path2(benchmark::State& state)
 		sinsp_utils::concatenate_paths(path1, path2);
 	}
 }
-BENCHMARK(BM_sinsp_concatenate_paths_empty_path2)->Repetitions(2);
+BENCHMARK(BM_sinsp_concatenate_paths_empty_path2);
 
 static void BM_sinsp_concatenate_paths_absolute_path2(benchmark::State& state)
 {
@@ -60,7 +60,7 @@ static void BM_sinsp_concatenate_paths_absolute_path2(benchmark::State& state)
 		sinsp_utils::concatenate_paths(path1, path2);
 	}
 }
-BENCHMARK(BM_sinsp_concatenate_paths_absolute_path2)->Repetitions(2);
+BENCHMARK(BM_sinsp_concatenate_paths_absolute_path2);
 
 static void BM_sinsp_split_container_image(benchmark::State& state)
 {
@@ -71,4 +71,4 @@ static void BM_sinsp_split_container_image(benchmark::State& state)
 		sinsp_utils::split_container_image(container_image, hostname, port, name, tag, digest);
 	}
 }
-BENCHMARK(BM_sinsp_split_container_image)->Repetitions(2);
+BENCHMARK(BM_sinsp_split_container_image);

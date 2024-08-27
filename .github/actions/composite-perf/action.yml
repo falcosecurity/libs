@@ -78,7 +78,7 @@ runs:
       shell: bash
       run: |
         cd build
-        ./benchmark/bench --benchmark_report_aggregates_only --benchmark_out=gbench_data.json --benchmark_out_format=json
+        ./benchmark/bench --benchmark_repetitions=20 --benchmark_report_aggregates_only --benchmark_out=gbench_data.json --benchmark_out_format=json
 
     - name: Set Outputs
       id: store-outputs
