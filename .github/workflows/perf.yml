@@ -43,6 +43,25 @@ jobs:
         run: |
           sudo heaptrack_print heaptrack_scap.data.zst -d ${{ steps.perf.outputs.heaptrack_scap }} &> heaptrack_scap_diff.txt
 
+      - name: Diff from master - gbench
+        run: |
+          sudo apt update && sudo apt install -y --no-install-recommends jq
+          echo "test | master | head | diff | diff %" > gbench_diff.txt
+          # Load keys from master gbench json
+          keys=$(jq -r '.benchmarks[] | select(.name | test("_mean")) | .name' gbench_data.json)
+          for key in $keys; do
+            # Load master real time value
+            master_val=$(jq -r '.benchmarks[] | select(.name == "$key") | .real_time' gbench_data.json)
+            # Load PR head real time value         
+            head_val=$(jq -r '.benchmarks[] | select(.name == "$key") | .real_time' ${{ steps.perf.outputs.gbench_json }})
+            # Only dump existing keys in current head (ie: if test was renamed/removed, skip it)
+            if [[ ! -z $head_val ]]; then
+              diff_val=$(jq -n '$head_val-$master_val')
+              diff_val_pct=$(jq -n '$diff_val/$master_val*100')
+              echo "$key | $master_val | $head_val | $diff_val | $diff_val_pct" >> gbench_diff.txt
+            fi
+          done
+
       - name: Archive perf diff
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
@@ -74,6 +93,10 @@ jobs:
           echo "# Heap diff from master - scap file" >> ./pr/COMMENT
           echo "\`\`\`" >> ./pr/COMMENT
           tail -n3 "heaptrack_scap_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo "# Benchmarks diff from master" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          cat "gbench_diff.txt" >> ./pr/COMMENT
           echo "\`\`\`" >> ./pr/COMMENT
           echo Uploading PR info...
           cat ./pr/COMMENT
@@ -135,3 +158,14 @@ jobs:
           if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
             exit 2
           fi
+
+      # Check will fail if there any google benchmark is slowed more than 5%
+      - name: Check >= 5% slowdown on google benchmarks
+        if: always() # Even if other threshold checks failed
+        run: |
+          tail -n+2 gbench_diff.txt | while read p; do
+            diff_pct=$(echo $p | awk '{print $NF}')
+            if (( $(echo "$diff_pct >= 5.0" | bc -l) )); then
+              exit 1
+            fi
+          done

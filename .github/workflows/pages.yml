@@ -37,6 +37,7 @@ jobs:
             ${{ steps.perf.outputs.perf_scap }}
             ${{ steps.perf.outputs.heaptrack_tests }}
             ${{ steps.perf.outputs.heaptrack_scap }}
+            ${{ steps.perf.outputs.gbench_json }}
           if-no-files-found: error
 
       - name: Checkout Flamegraph ⤵️
