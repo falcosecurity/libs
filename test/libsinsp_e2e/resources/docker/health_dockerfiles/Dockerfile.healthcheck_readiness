@@ -1,0 +1,8 @@
+FROM busybox
+RUN cp /bin/true /bin/ut-health-check
+
+# This container runs a docker healthcheck, but due to the
+# annotation.... label, it gets interpretated as if it were a k8s
+# readiness check.
+HEALTHCHECK --interval=0.5s CMD ["/bin/ut-health-check"]
+LABEL annotation.kubectl.kubernetes.io/last-applied-configuration="{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"name\":\"mysql-app\",\"namespace\":\"default\"},\"spec\":{\"containers\":[{\"env\":[{\"name\":\"MYSQL_ROOT_PASSWORD\",\"value\":\"no\"}],\"image\":\"mstemm/mysql:healthcheck\",\"readinessProbe\":{\"exec\":{\"command\":[\"/bin/ut-health-check\"]},\"initialDelaySeconds\":5,\"periodSeconds\":5},\"name\":\"mysql\"}]}}\n"

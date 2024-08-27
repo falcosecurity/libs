@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,13 +23,15 @@ limitations under the License.
 #include <string>
 #include <sstream>
 #include <list>
+#include <map>
 #include <unordered_map>
 
-#include "filter_value.h"
+#include <libsinsp/filter_value.h>
+#include <libsinsp/utils.h>
 
 namespace path_prefix_map_ut
 {
-	typedef std::list<filter_value_t> filter_components_t;
+	typedef std::list<std::string> filter_components_t;
 
         // Split path /var/log/messages into a list of components (var, log, messages). Empty components are skipped.
 	void split_path(const filter_value_t &path, filter_components_t &components);
@@ -60,11 +63,6 @@ public:
 
 	void add_search_path(const char *path, Value &v);
 	void add_search_path(const filter_value_t &path, Value &v);
-
-	// With the above methods the pointers in the char */uint8_t *
-	// above point to memory not owned by this object. The below
-	// method passes a string which is copied into the object,
-	// holding its own memory.
 	void add_search_path(const std::string &str, Value &v);
 
 	// Similar to add_search_path, but takes a path already split
@@ -85,11 +83,41 @@ public:
 private:
 
 	std::string as_string(const std::string &prefix, bool include_vals);
+	std::string as_string(const std::string &prefix, bool include_vals,
+			      const std::string& key,
+			      std::pair<path_prefix_map *, Value *>& val);
 
-	void add_search_path_components(const path_prefix_map_ut::filter_components_t &components, path_prefix_map_ut::filter_components_t::const_iterator comp, Value &v);
+	typedef std::unordered_map<std::string,
+		std::pair<path_prefix_map *, Value *>> path_map_t;
 
-	Value *match_components(const path_prefix_map_ut::filter_components_t &components, path_prefix_map_ut::filter_components_t::const_iterator comp);
+	// Only used for as_string() and consistent outputs
+	typedef std::map<std::string,
+		std::pair<path_prefix_map *, Value *>> ordered_path_map_t;
 
+	void add_search_path_components(const path_prefix_map_ut::filter_components_t &components,
+					path_prefix_map_ut::filter_components_t::const_iterator comp,
+					Value &v);
+
+	void add_search_path_components(const path_prefix_map_ut::filter_components_t &components,
+					path_prefix_map_ut::filter_components_t::const_iterator comp,
+					Value &v,
+					path_map_t& dirs);
+
+	Value *match_components(const path_prefix_map_ut::filter_components_t &components,
+				path_prefix_map_ut::filter_components_t::const_iterator comp);
+
+	Value *match_components_direct(const path_prefix_map_ut::filter_components_t &components,
+				       path_prefix_map_ut::filter_components_t::const_iterator comp);
+
+	Value *match_components_glob(const path_prefix_map_ut::filter_components_t &components,
+				     path_prefix_map_ut::filter_components_t::const_iterator comp);
+
+	Value *check_match_value(std::pair<path_prefix_map *, Value*>& val,
+				 const path_prefix_map_ut::filter_components_t &components,
+				 path_prefix_map_ut::filter_components_t::const_iterator comp);
+
+	// This is used *only* for components that do not contain glob
+	// characters.
 	// Maps from the path component at the current level to a
 	// prefix search for the sub-path below the current level.
 	// For example, if the set of search paths is (/var/run, /etc,
@@ -102,12 +130,15 @@ private:
 	// Note that because usr is a prefix of /usr/lib, the /usr/lib
 	// path is dropped and only /usr is kept.  Also note that
 	// terminator paths have a NULL path_prefix_map object.
-	std::unordered_map<filter_value_t,
-		std::pair<path_prefix_map *, Value *>,
-		g_hash_membuf,
-		g_equal_to_membuf> m_dirs;
 
-	std::list<std::string> m_strvals;
+	path_map_t m_dirs;
+
+	// Maps from a wildcard pattern at the current level to a
+	// prefix search for the sub-path below the current
+	// level. This behaves identically to m_dirs, it's just that
+	// the lookup is done by iterating over the keys and doing
+	// sinsp_utils::glob_match for each.
+	path_map_t m_glob_dirs;
 };
 
 template<class Value>
@@ -123,9 +154,14 @@ path_prefix_map<Value>::~path_prefix_map()
 		delete(ent.second.first);
 		delete(ent.second.second);
 	}
+
+	for (auto &ent : m_glob_dirs)
+	{
+		delete(ent.second.first);
+		delete(ent.second.second);
+	}
 }
 
-// NOTE: this does not copy, so it is only valid as long as path is valid.
 template<class Value>
 void path_prefix_map<Value>::add_search_path(const char *path, Value &v)
 {
@@ -136,9 +172,8 @@ void path_prefix_map<Value>::add_search_path(const char *path, Value &v)
 template<class Value>
 void path_prefix_map<Value>::add_search_path(const std::string &str, Value &v)
 {
-	m_strvals.push_back(str);
-
-	return add_search_path(m_strvals.back().c_str(), v);
+	filter_value_t mem((uint8_t *) str.c_str(), (uint32_t) str.length());
+	return add_search_path(mem, v);
 }
 
 template<class Value>
@@ -152,7 +187,7 @@ void path_prefix_map<Value>::add_search_path(const filter_value_t &path, Value &
 	// ensures that a top-level path of '/' still results in a
 	// non-empty components list. For all other paths, there will
 	// be a dummy 'root' prefix at the top of every path.
-	components.emplace_front((uint8_t *) "root", 4);
+	components.emplace_front("root");
 
 	return add_search_path_components(components, v);
 }
@@ -168,12 +203,33 @@ void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut
 							path_prefix_map_ut::filter_components_t::const_iterator comp,
 							Value &v)
 {
+	// If the component contains glob wildcard characters, add it
+	// to m_glob_dirs
+	if(comp->find_first_of("?*[") != std::string::npos)
+	{
+		add_search_path_components(components, comp, v, m_glob_dirs);
+	}
+	else
+	{
+		add_search_path_components(components, comp, v, m_dirs);
+	}
+}
+
+template<class Value>
+void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut::filter_components_t &components,
+							path_prefix_map_ut::filter_components_t::const_iterator comp,
+							Value &v,
+							path_prefix_map<Value>::path_map_t& dirs)
+{
 	path_prefix_map *subtree = NULL;
-	auto it = m_dirs.find(*comp);
+
+	// If the component contains glob wildcard characters, add it to m_glob_dirs
+
+	auto it = dirs.find(*comp);
 	auto cur = comp;
 	comp++;
 
-	if(it == m_dirs.end())
+	if(it == dirs.end())
 	{
 		// This path component doesn't match any existing
 		// dirent. We need to add one and its subtree.
@@ -185,7 +241,7 @@ void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut
 
 		// If the path doesn't have anything remaining, we
 		// also add the value here.
-		m_dirs[*cur] = std::pair<path_prefix_map*,Value *>(subtree, (comp == components.end() ? new Value(v) : NULL));
+		dirs[*cur] = std::pair<path_prefix_map*,Value *>(subtree, (comp == components.end() ? new Value(v) : NULL));
 	}
 	else
 	{
@@ -199,8 +255,8 @@ void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut
 			// drop /usr/lib when adding /usr.
 			delete(it->second.first);
 			delete(it->second.second);
-			m_dirs.erase(*cur);
-			m_dirs[*cur] = std::pair<path_prefix_map*,Value*>(NULL, new Value(v));
+			dirs.erase(*cur);
+			dirs[*cur] = std::pair<path_prefix_map*,Value*>(NULL, new Value(v));
 		}
 		else if(it->second.first == NULL)
 		{
@@ -218,7 +274,6 @@ void path_prefix_map<Value>::add_search_path_components(const path_prefix_map_ut
 	}
 }
 
-// NOTE: this does not copy, so it is only valid as long as path is valid.
 template<class Value>
 Value *path_prefix_map<Value>::match(const char *path)
 {
@@ -237,7 +292,7 @@ Value *path_prefix_map<Value>::match(const filter_value_t &path)
 	// ensures that a top-level path of '/' still results in a
 	// non-empty components list. For all other paths, there will
 	// be a dummy 'root' prefix at the top of every path.
-	components.emplace_front((uint8_t *) "root", 4);
+	components.emplace_front("root");
 
 	return match_components(components);
 }
@@ -249,10 +304,25 @@ Value *path_prefix_map<Value>::match_components(const path_prefix_map_ut::filter
 }
 
 template<class Value>
-Value *path_prefix_map<Value>::match_components(const path_prefix_map_ut::filter_components_t &components, path_prefix_map_ut::filter_components_t::const_iterator comp)
+Value *path_prefix_map<Value>::match_components(const path_prefix_map_ut::filter_components_t &components,
+						path_prefix_map_ut::filter_components_t::const_iterator comp)
+{
+
+	Value *ret = match_components_direct(components, comp);
+
+	if (ret != NULL)
+	{
+		return ret;
+	}
+
+	return match_components_glob(components, comp);
+}
+
+template<class Value>
+Value *path_prefix_map<Value>::match_components_direct(const path_prefix_map_ut::filter_components_t &components,
+						       path_prefix_map_ut::filter_components_t::const_iterator comp)
 {
 	auto it = m_dirs.find(*comp);
-	comp++;
 
 	if(it == m_dirs.end())
 	{
@@ -260,32 +330,60 @@ Value *path_prefix_map<Value>::match_components(const path_prefix_map_ut::filter
 	}
 	else
 	{
-		// If there is nothing left in the match path, the
-		// subtree must be null. This ensures that /var
-		// matches only /var and not /var/lib
-		if(comp == components.end())
+		return check_match_value(it->second, components, ++comp);
+	}
+}
+
+template<class Value>
+Value *path_prefix_map<Value>::match_components_glob(const path_prefix_map_ut::filter_components_t &components,
+						     path_prefix_map_ut::filter_components_t::const_iterator comp)
+{
+	for(auto& it : m_glob_dirs)
+	{
+		if(sinsp_utils::glob_match(it.first.c_str(), comp->c_str(), false))
 		{
-			if(it->second.first == NULL)
+			Value *v = check_match_value(it.second, components, ++comp);
+			if(v != NULL)
 			{
-				return it->second.second;
-			}
-			else
-			{
-				return NULL;
+				return v;
 			}
 		}
-		else if(it->second.first == NULL)
+	}
+
+	return NULL;
+}
+
+template<class Value>
+Value *path_prefix_map<Value>::check_match_value(std::pair<path_prefix_map *, Value*>& val,
+						 const path_prefix_map_ut::filter_components_t &components,
+						 path_prefix_map_ut::filter_components_t::const_iterator comp)
+{
+	// If there is nothing left in the match path, the
+	// subtree must be null. This ensures that /var
+	// matches only /var and not /var/lib
+	if(comp == components.end())
+	{
+		if(val.first == NULL)
 		{
-			// /foo/bar matched a prefix /foo, so we're
-			// done.
-			return it->second.second;
+			return val.second;
 		}
 		else
 		{
-			return it->second.first->match_components(components, comp);
+			return NULL;
 		}
 	}
+	else if(val.first == NULL)
+	{
+		// /foo/bar matched a prefix /foo, so we're
+		// done.
+		return val.second;
+	}
+	else
+	{
+		return val.first->match_components(components, comp);
+	}
 }
+
 
 template<class Value>
 std::string path_prefix_map<Value>::as_string(bool include_vals)
@@ -293,30 +391,48 @@ std::string path_prefix_map<Value>::as_string(bool include_vals)
 	return as_string(std::string(""), include_vals);
 }
 
-// Unlike all the other methods, this does perform copies.
+template<class Value>
+std::string path_prefix_map<Value>::as_string(const std::string& prefix,
+					      bool include_vals,
+					      const std::string& key,
+					      std::pair<path_prefix_map *, Value *>& val)
+
+{
+	std::ostringstream os;
+
+	os << prefix << key << " ->";
+	if (include_vals && val.first == NULL)
+	{
+		os << " v=" << (*val.second);
+	}
+
+	os << std::endl;
+
+	if(val.first)
+	{
+		std::string indent = prefix;
+		indent += "    ";
+		os << val.first->as_string(indent, include_vals);
+	}
+
+	return os.str();
+};
+
 template<class Value>
 std::string path_prefix_map<Value>::as_string(const std::string &prefix, bool include_vals)
 {
 	std::ostringstream os;
 
-	for (auto &it : m_dirs)
+	ordered_path_map_t ordered_dirs(m_dirs.begin(), m_dirs.end());
+	for (auto &it : ordered_dirs)
 	{
-		std::string dirent((const char *) it.first.first, it.first.second);
+		os << as_string(prefix, include_vals, it.first, it.second);
+	}
 
-		os << prefix << dirent << " -> ";
-		if (include_vals && it.second.first == NULL)
-		{
-			os << "v=" << (*it.second.second);
-		}
-
-		os << std::endl;
-
-		if(it.second.first)
-		{
-			std::string indent = prefix;
-			indent += "    ";
-			os << it.second.first->as_string(indent, include_vals);
-		}
+	ordered_path_map_t ordered_glob_dirs(m_glob_dirs.begin(), m_glob_dirs.end());
+	for (auto &it : ordered_glob_dirs)
+	{
+		os << as_string(prefix, include_vals, it.first, it.second);
 	}
 
 	return os.str();
@@ -325,8 +441,8 @@ std::string path_prefix_map<Value>::as_string(const std::string &prefix, bool in
 class path_prefix_search : public path_prefix_map<bool>
 {
 public:
-	path_prefix_search();
-	~path_prefix_search();
+	path_prefix_search() = default;
+	virtual ~path_prefix_search() = default;
 
 	void add_search_path(const char *path);
 	void add_search_path(const filter_value_t &path);

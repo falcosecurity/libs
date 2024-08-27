@@ -1,0 +1,393 @@
+name: Drivers CI Build
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'release/**'
+      - 'maintainers/**'
+  workflow_dispatch:
+  # we cannot use paths key here since otherwise required_status_checks jobs won't run.
+  # See https://github.com/orgs/community/discussions/26251.
+  # We need to use the paths-filter job.
+
+# Checks if any concurrent jobs under the same pull request or branch are being executed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      driver: ${{ steps.filter.outputs.driver }}
+      libscap: ${{ steps.filter.outputs.libscap }}
+      libpman: ${{ steps.filter.outputs.libpman }}
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+      id: filter
+      with:
+        filters: |
+          driver:
+            - 'driver/**'
+          libscap:
+            - 'userspace/libscap/**'
+          libpman:
+            - 'userspace/libpman/**'
+
+  # This job run all engine tests and scap-open
+  test-scap:
+    name: test-scap-${{ matrix.arch }} 😆 (bundled_deps)
+    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    needs: paths-filter
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            enable_gvisor: True
+          - arch: amd64
+            enable_gvisor: False  
+      fail-fast: false  
+    steps:
+      - name: Checkout Libs ⤵️
+        # We need to skip each step because of https://github.com/orgs/community/discussions/9141.
+        # This avoids having a skipped job whose name is not the resolved matrix name, like "test-scap-${{ matrix.arch }} 😆 (bundled_deps)"
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
+          sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
+          sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
+          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
+          cd bpftool
+          git submodule update --init
+          cd src && sudo make install
+
+      - name: Install kernel headers (actuated)
+        uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'arm64'
+
+      - name: Install kernel headers
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'amd64'
+        run: |
+          sudo apt install -y --no-install-recommends linux-headers-$(uname -r)
+          
+      - name: Build scap-open and drivers 🏗️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
+          make scap-open driver bpf libscap_test -j6
+
+      - name: Run scap-open with modern bpf 🏎️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          cd build
+          sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 10
+
+      - name: Run scap-open with bpf 🏎️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          cd build
+          sudo ./libscap/examples/01-open/scap-open --bpf ./driver/bpf/probe.o --num_events 10
+
+      - name: Run scap-open with kmod 🏎️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          cd build
+          sudo insmod ./driver/scap.ko
+          sudo ./libscap/examples/01-open/scap-open --kmod --num_events 10
+          sudo rmmod scap
+
+      - name: Run libscap_test 🏎️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          cd build
+          sudo ./test/libscap/libscap_test
+
+  test-drivers:
+    name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
+    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    needs: paths-filter
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+      fail-fast: false
+    steps:
+      - name: Checkout Libs ⤵️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev clang-14 llvm-14 libtool
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
+          sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
+          sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
+          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
+          cd bpftool
+          git submodule update --init
+          cd src && sudo make install
+
+      - name: Install kernel headers (actuated)
+        uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'arm64'
+
+      - name: Install kernel headers and gcc
+        if: (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true') && matrix.arch == 'amd64'
+        run: |
+          sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
+
+      - name: Build drivers tests 🏗️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+          make drivers_test driver bpf -j6
+
+      - name: Run drivers_test with modern bpf 🏎️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          cd build
+          sudo ./test/drivers/drivers_test -m
+
+      - name: Run drivers_test with bpf 🏎️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          cd build
+          sudo ./test/drivers/drivers_test -b
+
+      - name: Run drivers_test with kmod 🏎️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        run: |
+          cd build
+          sudo ./test/drivers/drivers_test -k
+          
+  test-drivers-ppc64le:
+    name: test-drivers-ppc64le 😁 (system_deps,custom node)
+    runs-on: ubuntu-22.04
+    needs: paths-filter
+    steps:
+      - name: Extract branch name
+        run: echo "GIT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
+
+      - name: Build and test drivers on ppc64le node via ssh
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
+        with:
+          host: ${{ secrets.PPC64LE_HOST }}
+          username: ${{ secrets.PPC64LE_USERNAME }}
+          key: ${{ secrets.PPC64LE_KEY }}
+          port: ${{ secrets.PPC64LE_PORT }}
+          envs: GIT_BRANCH,GITHUB_REPOSITORY,GITHUB_SERVER_URL
+          command_timeout: 60m
+          script: |
+            sudo dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
+            git clone -b $GIT_BRANCH $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git libs
+            cd libs
+            mkdir -p build
+            cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+            make drivers_test driver bpf -j6
+            sudo ./test/drivers/drivers_test -m
+            rc_modern=$?
+            sudo ./test/drivers/drivers_test -b
+            rc_bpf=$?
+            sudo ./test/drivers/drivers_test -k
+            rc_kmod=$?
+            exit $(($rc_modern + $rc_bpf +$rc_kmod))
+        
+  build-drivers-s390x:
+    name: build-drivers-s390x 😁 (system_deps)
+    runs-on: ubuntu-22.04
+    needs: paths-filter
+    steps:
+      - name: Checkout Libs ⤵️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - uses: uraimo/run-on-arch-action@4ed76f16f09d12e83abd8a49e1ac1e5bf08784d4 # v2.5.1
+        name: Run s390x build 🏗️
+        if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+        with:
+          arch: s390x
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libcap-dev libgtest-dev libprotobuf-dev linux-headers-generic            
+            git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
+            cd bpftool
+            git submodule update --init
+            cd src && make install
+            cd ../../
+            git clone https://github.com/libbpf/libbpf.git --branch v1.3.0 --single-branch
+            cd libbpf/src && BUILD_STATIC_ONLY=y DESTDIR=/ make install
+            ln -s /usr/lib64/libbpf.a /usr/lib/s390x-linux-gnu/
+          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
+          run: |
+            git config --global --add safe.directory $GITHUB_WORKSPACE
+            .github/install-deps.sh
+            mkdir -p build
+            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/s390x-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DENABLE_DRIVERS_TESTS=On -DCREATE_TEST_TARGETS=On -DBUILD_LIBSCAP_GVISOR=OFF ../
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make driver bpf drivers_test -j6
+  
+  build-modern-bpf-skeleton:
+    needs: paths-filter
+    # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
+    runs-on: 'ubuntu-latest'
+    if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+    container: fedora:latest
+    steps:
+      # Always install deps before invoking checkout action, to properly perform a full clone.
+      - name: Install build dependencies
+        run: |
+          dnf install -y bpftool ca-certificates cmake make automake gcc gcc-c++ kernel-devel clang git pkg-config autoconf automake libbpf-devel
+
+      - name: Checkout
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
+      - name: Build modern BPF skeleton
+        run: |
+          mkdir skeleton-build && cd skeleton-build
+          cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DCREATE_TEST_TARGETS=Off ..
+          make ProbeSkeleton -j6
+
+      - name: Upload skeleton
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: bpf_probe_x86_64.skel.h
+          path: skeleton-build/skel_dir/bpf_probe.skel.h
+          retention-days: 1
+
+  build-scap-open-w-extern-bpf-skeleton:
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+    needs: [paths-filter,build-modern-bpf-skeleton] 
+    # See https://github.com/actions/runner/issues/409#issuecomment-1158849936
+    runs-on: 'ubuntu-latest'
+    if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
+    container: centos:7
+    steps:
+      # Always install deps before invoking checkout action, to properly perform a full clone.
+      - name: Fix mirrors to use vault.centos.org
+        run: |
+          sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
+          sed -i s/^#.*baseurl=http/baseurl=https/g /etc/yum.repos.d/*.repo
+          sed -i s/^mirrorlist=http/#mirrorlist=https/g /etc/yum.repos.d/*.repo
+
+      - name: Install scl repos
+        run: |
+          yum -y install centos-release-scl
+
+      - name: Fix new mirrors to use vault.centos.org
+        run: |
+          sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
+          sed -i s/^#.*baseurl=http/baseurl=https/g /etc/yum.repos.d/*.repo
+          sed -i s/^mirrorlist=http/#mirrorlist=https/g /etc/yum.repos.d/*.repo
+
+      - name: Install build dependencies
+        run: |
+          yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
+          source /opt/rh/devtoolset-9/enable
+          yum install -y wget git make m4 rpm-build perl-IPC-Cmd
+
+      - name: Checkout
+        # It is not possible to upgrade the checkout action to versions >= v4.0.0 because of incompatibilities with centos 7's libc.
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Download skeleton
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: bpf_probe_x86_64.skel.h
+          path: /tmp
+
+      - name: Install updated cmake
+        run: |
+          curl -L -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.22.5/cmake-3.22.5-linux-$(uname -m).tar.gz
+          gzip -d /tmp/cmake.tar.gz
+          tar -xpf /tmp/cmake.tar --directory=/tmp
+          cp -R /tmp/cmake-3.22.5-linux-$(uname -m)/* /usr
+          rm -rf /tmp/cmake-3.22.5-linux-$(uname -m)
+
+      - name: Prepare project
+        run: |
+          mkdir build && cd build
+          source /opt/rh/devtoolset-9/enable
+          cmake \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DUSE_BUNDLED_DEPS=On \
+              -DBUILD_LIBSCAP_MODERN_BPF=ON \
+              -DMODERN_BPF_SKEL_DIR=/tmp \
+              -DBUILD_DRIVER=Off \
+              -DBUILD_BPF=Off \
+              ..
+
+      - name: Build project
+        run: |
+          cd build
+          source /opt/rh/devtoolset-9/enable
+          make scap-open -j6          
+
+  # Only runs on pull request since on master branch it is already triggered by pages CI.
+  kernel-tests-dev:
+    needs: paths-filter
+    if: github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
+    uses: ./.github/workflows/reusable_kernel_tests.yaml
+    with:
+      # Use real branch's HEAD sha, not the merge commit
+      libsversion: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit
+
+  kernel-tests-pr-info-upload:
+    needs: kernel-tests-dev
+    if: github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download X64 matrix
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_X64
+          path: matrix_X64
+
+      - name: Download ARM64 matrix
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_ARM64
+          path: matrix_ARM64
+
+      - name: Save PR info
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.number }} > ./pr/NR
+          touch ./pr/COMMENT
+          echo "# X64 kernel testing matrix" >> ./pr/COMMENT
+          echo "$(head -n $(grep -n -v -m1 '^|' matrix_X64/matrix.md | awk -F':'  '{ print $1 }') matrix_X64/matrix.md)" >> ./pr/COMMENT
+          echo "" >> ./pr/COMMENT
+          echo "# ARM64 kernel testing matrix" >> ./pr/COMMENT
+          echo "$(head -n $(grep -n -v -m1 '^|' matrix_ARM64/matrix.md | awk -F':'  '{ print $1 }') matrix_ARM64/matrix.md)" >> ./pr/COMMENT
+          echo Uploading PR info...
+          cat ./pr/COMMENT
+          echo ""
+
+      - name: Upload PR info as artifact
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4
+        with:
+          name: pr-kernel-testing
+          path: pr/
+          retention-days: 1
+          if-no-files-found: warn

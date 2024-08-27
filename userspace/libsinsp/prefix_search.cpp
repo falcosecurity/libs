@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,17 +18,9 @@ limitations under the License.
 
 #include <string.h>
 
-#include "prefix_search.h"
+#include <libsinsp/prefix_search.h>
 
 using namespace std;
-
-path_prefix_search::path_prefix_search()
-{
-}
-
-path_prefix_search::~path_prefix_search()
-{
-}
 
 void path_prefix_search::add_search_path(const char *path)
 {
@@ -78,13 +71,13 @@ void path_prefix_map_ut::split_path(const filter_value_t &path, filter_component
 		{
 			if (sep-pos > 0)
 			{
-				components.emplace_back(pos, sep-pos);
+				components.emplace_back(std::string((const char *) pos, sep-pos));
 			}
 			pos = sep + 1;
 		}
 		else
 		{
-			components.emplace_back(pos, path.second - (pos - path.first));
+			components.emplace_back(std::string((const char *) pos, path.second - (pos - path.first)));
 			pos = path.first + path.second + 1;
 		}
 	}

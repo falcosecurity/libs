@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "container_engine/bpm.h"
-#include "sinsp.h"
+#include <libsinsp/container_engine/bpm.h>
+#include <libsinsp/sinsp.h>
 
 using namespace libsinsp::container_engine;
 
@@ -24,16 +25,16 @@ bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	sinsp_container_info container_info;
 	bool matches = false;
 
-	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
+	for(const auto& it : tinfo->cgroups())
 	{
-		string cgroup = it->second;
+		std::string cgroup = it.second;
 		size_t pos;
 
 		//
 		// Non-systemd and systemd BPM
 		//
 		pos = cgroup.find("bpm-");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			auto id_start = pos + sizeof("bpm-") - 1;
 			auto id_end = cgroup.find(".scope", id_start);
@@ -60,6 +61,7 @@ bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	if(container_cache().should_lookup(container_info.m_id, CT_BPM))
 	{
 		container_info.m_name = container_info.m_id;
+		container_info.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		container_cache().add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
 		container_cache().notify_new_container(container_info, tinfo);
 	}

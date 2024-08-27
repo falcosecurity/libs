@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,5 +25,5 @@ limitations under the License.
 class sinsp_filter_value_parser
 {
  public:
-	static size_t string_to_rawval(const char* str, uint32_t len, uint8_t *storage, string::size_type max_len, ppm_param_type ptype);
+	static size_t string_to_rawval(const char* str, uint32_t len, uint8_t *storage, std::string::size_type max_len, ppm_param_type ptype);
 };

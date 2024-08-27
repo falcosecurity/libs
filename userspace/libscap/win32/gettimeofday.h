@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,20 +21,21 @@ limitations under the License.
 #include <Windows.h>
 #include <stdint.h>
 
-static inline uint64_t get_timestamp_ns()
+static inline uint64_t ft_to_epoch_nsec(FILETIME* ft)
 {
-	uint64_t ts;
-
-	FILETIME ft;
 	static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
-
-	GetSystemTimePreciseAsFileTime(&ft);
-
-	uint64_t ftl = (((uint64_t)ft.dwHighDateTime) << 32) + ft.dwLowDateTime;
+	uint64_t ftl = (((uint64_t)ft->dwHighDateTime) << 32) + ft->dwLowDateTime;
 	ftl -= EPOCH;
 
-	ts = ftl * 100;
-
+	uint64_t ts = ftl * 100;
 	return ts;
+}
+
+static inline uint64_t get_timestamp_ns()
+{
+	FILETIME ft;
+	GetSystemTimePreciseAsFileTime(&ft);
+
+	return ft_to_epoch_nsec(&ft);
 }
 

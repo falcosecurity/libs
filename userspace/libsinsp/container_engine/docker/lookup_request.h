@@ -1,6 +1,6 @@
 #pragma once
 
-#include "container_engine/sinsp_container_type.h"
+#include <libsinsp/container_engine/sinsp_container_type.h>
 
 namespace libsinsp {
 namespace container_engine {

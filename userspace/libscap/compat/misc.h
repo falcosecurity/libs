@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +36,20 @@ limitations under the License.
 */
 #ifndef O_TMPFILE
 #define O_TMPFILE 020200000
+#endif
+
+/* This can be the case for static MUSL builds */
+#if !defined(__WEXITSTATUS) && defined(WEXITSTATUS)
+#define __WEXITSTATUS(x) WEXITSTATUS(x)
+#endif
+#if !defined(__WIFSIGNALED) && defined(WIFSIGNALED)
+#define __WIFSIGNALED(x) WIFSIGNALED(x)
+#endif
+#if !defined(__WTERMSIG) && defined(WTERMSIG)
+#define __WTERMSIG(x) WTERMSIG(x)
+#endif
+#if !defined(__WCOREDUMP) && defined(WCOREDUMP)
+#define __WCOREDUMP(x) WCOREDUMP(x)
 #endif
 
 #endif

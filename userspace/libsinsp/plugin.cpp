@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,27 +16,47 @@ limitations under the License.
 
 */
 
-#ifndef _WIN32
-#include <dlfcn.h>
-#endif
+
 #include <inttypes.h>
 #include <string.h>
+#include <memory>
 #include <vector>
 #include <set>
 #include <sstream>
 #include <numeric>
 #include <json/json.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include <valijson/adapters/jsoncpp_adapter.hpp>
+#pragma GCC diagnostic pop
 #include <valijson/schema.hpp>
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
 
-#include "sinsp_int.h"
-#include "sinsp_exception.h"
-#include "plugin.h"
-#include "plugin_filtercheck.h"
+#include <libsinsp/sinsp_int.h>
+#include <libsinsp/sinsp_exception.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/plugin_filtercheck.h>
+#include <libscap/strl.h>
 
 using namespace std;
+
+static constexpr const char* s_not_init_err = "plugin capability used before init";
+
+static constexpr const char* s_init_twice_err = "plugin has been initialized twice";
+
+//
+// Plugin Type Look Up Table
+//
+const std::unordered_map<std::string, ppm_param_type> s_pt_lut = {
+	{"string", PT_CHARBUF},
+	{"uint64", PT_UINT64},
+	{"reltime", PT_RELTIME},
+	{"abstime", PT_ABSTIME},
+	{"bool", PT_BOOL},
+	{"ipaddr", PT_IPADDR},
+	{"ipnet", PT_IPNET},
+};
 
 // Used below--set a std::string from the provided allocated charbuf
 static std::string str_from_alloc_charbuf(const char* charbuf)
@@ -50,127 +71,134 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
-	const std::string &filepath,
-	std::string &errstr)
+const char* sinsp_plugin::get_owner_last_error(ss_plugin_owner_t* o)
 {
-#ifdef _WIN32
-	sinsp_plugin_handle handle = LoadLibrary(filepath.c_str());
-
-	if(handle == NULL)
+	auto t = static_cast<sinsp_plugin*>(o);
+	if (t->m_last_owner_err.empty())
 	{
-		errstr = "error loading plugin " + filepath + ": ";
-		DWORD flg = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
-		LPTSTR msg_buf = 0;
-		if(FormatMessageA(flg, 0, GetLastError(), 0, (LPTSTR)&msg_buf, 0, NULL))
-		if(msg_buf)
-		{
-			errstr.append(msg_buf, strlen(msg_buf));
-			LocalFree(msg_buf);
-		}
+		return NULL;
+	}
+	return t->m_last_owner_err.c_str();
+}
+
+static void plugin_log_fn(ss_plugin_owner_t* o, const char* component, const char* msg, ss_plugin_log_severity sev)
+{
+	auto t = static_cast<sinsp_plugin*>(o);
+	std::string prefix = (component == NULL) ? t->name() : std::string(component);
+	libsinsp_logger()->log(prefix + ": " + msg, (sinsp_logger::severity)sev);
+}
+
+std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
+		const plugin_api* api,
+		const std::shared_ptr<libsinsp::state::table_registry>& treg,
+		std::string& errstr)
+{
+	char loadererr[PLUGIN_MAX_ERRLEN];
+	auto handle = plugin_load_api(api, loadererr);
+	if (handle == NULL)
+	{
+		errstr = loadererr;
 		return nullptr;
 	}
-#else
-	sinsp_plugin_handle handle = dlopen(filepath.c_str(), RTLD_LAZY);
 
-	if(handle == NULL)
-	{
-		errstr = "error loading plugin " + filepath + ": " + dlerror();
-		return nullptr;
-	}
-#endif
-
-	std::shared_ptr<sinsp_plugin> plugin(new sinsp_plugin(handle));
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
+		// plugin and handle get deleted here by shared_ptr
 		return nullptr;
 	}
-	if (plugin->m_caps == 0)
-	{
-		errstr = "loaded plugin implements no capability: " + filepath;
-		return nullptr;
-	}
+
 	return plugin;
 }
 
-void* sinsp_plugin::getsym(const char* name, std::string &errstr)
+std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
+		const std::string &filepath,
+		const std::shared_ptr<libsinsp::state::table_registry>& treg,
+		std::string& errstr)
 {
-	void *ret;
-
-#ifdef _WIN32
-	ret = GetProcAddress(m_handle, name);
-#else
-	ret = dlsym(m_handle, name);
-#endif
-
-	if(ret == NULL)
+	char loadererr[PLUGIN_MAX_ERRLEN];
+	auto handle = plugin_load(filepath.c_str(), loadererr);
+	if (handle == NULL)
 	{
-		errstr = string("Dynamic library symbol ") + name + " not present";
-	} else {
-		errstr = "";
+		errstr = loadererr;
+		return nullptr;
 	}
 
-	return ret;
+	auto plugin = std::make_shared<sinsp_plugin>(handle, treg);
+	if (!plugin->resolve_dylib_symbols(errstr))
+	{
+		// plugin and handle get deleted here by shared_ptr
+		return nullptr;
+	}
+
+	return plugin;
 }
 
-ss_plugin_caps sinsp_plugin::caps() const
+bool sinsp_plugin::is_plugin_loaded(const std::string &filepath)
 {
-	return m_caps;
-}
-
-bool sinsp_plugin::is_plugin_loaded(std::string &filepath)
-{
-#ifdef _WIN32
-	/*
-	 * LoadLibrary maps the module into the address space of the calling process, if necessary,
-	 * and increments the modules reference count, if it is already mapped.
-	 * GetModuleHandle, however, returns the handle to a mapped module
-	 * without incrementing its reference count.
-	 *
-	 * This returns an HMODULE indeed, but they are the same thing
-	 */
-	sinsp_plugin_handle handle = (HINSTANCE)GetModuleHandle(filepath.c_str());
-#else
-	/*
-	 * RTLD_NOLOAD (since glibc 2.2)
-	 *	Don't load the shared object. This can be used to test if
-	 *	the object is already resident (dlopen() returns NULL if
-	 *	it is not, or the object's handle if it is resident).
-	 *	This does not increment dlobject reference count.
-	 */
-	sinsp_plugin_handle handle = dlopen(filepath.c_str(), RTLD_LAZY | RTLD_NOLOAD);
-#endif
-	return handle != NULL;
-}
-
-sinsp_plugin::sinsp_plugin(sinsp_plugin_handle handle)
-	: m_state(nullptr), m_caps((ss_plugin_caps) 0), m_handle(handle)
-{
-	memset(&m_api, 0, sizeof(m_api));
-	m_id = -1;
-	m_fields.clear();
+	return plugin_is_loaded(filepath.c_str());
 }
 
 sinsp_plugin::~sinsp_plugin()
 {
 	destroy();
-	destroy_handle(m_handle);
-	m_fields.clear();
+	plugin_unload(m_handle);
+
+	auto cur_async_handler = m_async_evt_handler.load();
+	if (cur_async_handler)
+	{
+		m_async_evt_handler.store(nullptr);
+		delete cur_async_handler;
+	}
 }
 
 bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 {
-	if (!m_api.init)
+	if (m_inited)
+	{
+		errstr = std::string(s_init_twice_err) + ": " + m_name;
+		return false;
+	}
+
+	if (!m_handle->api.init)
 	{
 		errstr = string("init api symbol not found");
 		return false;
 	}
 
 	ss_plugin_rc rc;
-	std::string conf = config;
-	validate_init_config(conf);
 
-	ss_plugin_t *state = m_api.init(conf.c_str(), &rc);
+	std::string conf = config;
+	validate_config(conf);
+
+	ss_plugin_init_input in = {};
+	in.owner = this;
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	in.tables = NULL;
+	in.config = conf.c_str();
+	in.log_fn = &plugin_log_fn;
+
+	ss_plugin_init_tables_input tables_in = {};
+	ss_plugin_table_fields_vtable_ext table_fields_ext = {};
+	ss_plugin_table_reader_vtable reader_deprecated = {}; // unused
+	ss_plugin_table_reader_vtable_ext table_reader_ext = {};
+	ss_plugin_table_writer_vtable writer_deprecated = {}; // unused
+	ss_plugin_table_writer_vtable_ext table_writer_ext = {};
+
+	if (m_caps & (CAP_PARSING | CAP_EXTRACTION))
+	{
+		tables_in.fields_ext = &table_fields_ext;
+		tables_in.reader_ext = &table_reader_ext;
+		tables_in.writer_ext = &table_writer_ext;
+		sinsp_plugin::table_field_api(tables_in.fields, table_fields_ext);
+		sinsp_plugin::table_read_api(reader_deprecated, table_reader_ext);
+		sinsp_plugin::table_write_api(writer_deprecated, table_writer_ext);
+		tables_in.list_tables = sinsp_plugin::table_api_list_tables;
+		tables_in.get_table = sinsp_plugin::table_api_get_table;
+		tables_in.add_table = sinsp_plugin::table_api_add_table;
+		in.tables = &tables_in;
+	}
+	ss_plugin_t *state = m_handle->api.init(&in, &rc);
 	if (state != NULL)
 	{
 		// Plugins can return a state even if the result code is
@@ -179,63 +207,62 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 		m_state = state;
 	}
 
+	m_inited = true;
 	if (rc != SS_PLUGIN_SUCCESS)
 	{
-		errstr = "Could not initialize plugin: " + get_last_error();
+		errstr = "could not initialize plugin: " + get_last_error();
 		return false;
 	}
+
+	// resolve post-init event code filters
+	if (m_caps & CAP_EXTRACTION)
+	{
+		/* Here we populate the `m_extract_event_codes` for the plugin, while `m_extract_event_sources` is already populated in the plugin_init */
+		resolve_dylib_compatible_codes(m_handle->api.get_extract_event_types,
+			m_extract_event_sources, m_extract_event_codes);
+	}
+	if (m_caps & CAP_PARSING)
+	{
+		/* Here we populate the `m_parse_event_codes` for the plugin, while `m_parse_event_sources` is already populated in the plugin_init */
+		resolve_dylib_compatible_codes(m_handle->api.get_parse_event_types,
+			m_parse_event_sources, m_parse_event_codes);
+	}
+
+	// do some defensive garbage collection
+	clear_ephemeral_tables();
+	clear_accessed_entries();
 
 	return true;
 }
 
 void sinsp_plugin::destroy()
 {
-	if(m_state && m_api.destroy)
+	m_inited = false;
+	if(m_state && m_handle->api.destroy)
 	{
-		m_api.destroy(m_state);
+		m_handle->api.destroy(m_state);
 		m_state = NULL;
 	}
 }
 
 std::string sinsp_plugin::get_last_error() const
 {
-	std::string ret;
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
 
+	std::string ret;
 	if(m_state)
 	{
-		ret = str_from_alloc_charbuf(m_api.get_last_error(m_state));
+		ret = str_from_alloc_charbuf(m_handle->api.get_last_error(m_state));
 	}
 	else
 	{
-		ret = "Plugin handle or get_last_error function not defined";
+		ret = "plugin handle or 'get_last_error' function not defined";
 	}
 
 	return ret;
-}
-
-const std::string &sinsp_plugin::name() const
-{
-	return m_name;
-}
-
-const std::string &sinsp_plugin::description() const
-{
-	return m_description;
-}
-
-const std::string &sinsp_plugin::contact() const
-{
-	return m_contact;
-}
-
-const sinsp_version &sinsp_plugin::plugin_version() const
-{
-	return m_plugin_version;
-}
-
-const sinsp_version &sinsp_plugin::required_api_version() const
-{
-	return m_required_api_version;
 }
 
 void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf)
@@ -302,110 +329,187 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 	return;
 }
 
+// this logic is shared between the field extraction and event parsing caps
+void sinsp_plugin::resolve_dylib_compatible_codes(
+		uint16_t *(*get_codes)(uint32_t*,ss_plugin_t*),
+		const std::unordered_set<std::string>& sources,
+		libsinsp::events::set<ppm_event_code>& codes)
+{
+	codes.clear();
+	if (get_codes != NULL)
+	{
+		uint32_t ntypes = 0;
+		auto types = get_codes(&ntypes, m_state);
+		if (types)
+		{
+			for (uint32_t i = 0; i < ntypes; i++)
+			{
+				codes.insert((ppm_event_code) types[i]);
+			}
+		}
+	}
+	if (codes.empty())
+	{
+		if (is_source_compatible(sources, sinsp_syscall_event_source_name))
+		{
+			codes = libsinsp::events::all_event_set();
+		}
+		else
+		{
+			codes.insert(ppm_event_code::PPME_PLUGINEVENT_E);
+		}
+	}
+}
+
+static void resolve_dylib_json_strlist(
+		const std::string& plname,
+		const std::string& symbol,
+		const char *(*get_list)(),
+		std::unordered_set<std::string>& out,
+		bool allow_empty)
+{
+	out.clear();
+	if(get_list == NULL)
+	{
+		return;
+	}
+
+	std::string jsonstr = str_from_alloc_charbuf(get_list());
+
+	if(jsonstr.empty())
+	{
+		if(allow_empty)
+		{
+			// Do nothing, we allow an empty json string.
+			return;
+		}
+		else
+		{
+			throw sinsp_exception("error in plugin " + plname + ": '"
+				+ symbol + "' did not return a json array but it should");
+		}
+	}
+
+	Json::Value root;
+	if (!Json::Reader().parse(jsonstr, root) || root.type() != Json::arrayValue)
+	{
+		throw sinsp_exception("error in plugin " + plname + ": '"
+			+ symbol + "' did not return a json array");
+	}
+	for (const auto& j : root)
+	{
+		if (!j.isConvertibleTo(Json::stringValue))
+		{
+			throw sinsp_exception("error in plugin " + plname + ": '"
+				+ symbol + "' did not return a json array");
+		}
+		auto src = j.asString();
+		if (!src.empty())
+		{
+			out.insert(src);
+		}
+	}
+}
+
+// this logic is shared between the field extraction and event parsing caps
+void sinsp_plugin::resolve_dylib_compatible_sources(
+		const std::string& symbol,
+		const char *(*get_sources)(),
+		std::unordered_set<std::string>& sources)
+{
+	resolve_dylib_json_strlist(name(), symbol, get_sources, sources, true);
+
+	// A plugin with source capability extracts/parses events
+	// from its own specific source (if no other sources are specified)
+	if (m_caps & CAP_SOURCING && !m_event_source.empty())
+	{
+		sources.insert(m_event_source);
+	}
+}
+
 bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 {
+	char err[PLUGIN_MAX_ERRLEN];
 
-	if ((*(void **) (&(m_api.get_required_api_version)) = getsym("plugin_get_required_api_version", errstr)) == NULL)
+	// Before doing anything else, check the required api version
+	if (!plugin_check_required_api_version(m_handle, err))
 	{
-		errstr = string("Could not resolve plugin_get_required_api_version function");
+		errstr = err;
 		return false;
 	}
 
-	std::string req_version_str = str_from_alloc_charbuf(m_api.get_required_api_version());
-	m_required_api_version = sinsp_version(req_version_str);
-	if(!m_required_api_version.m_valid)
+	// check that the API requirements are satisfied
+	// These are the minimum APIs that all plugins should implement
+	if (!plugin_check_required_symbols(m_handle, err))
 	{
-		errstr = "Plugin provided an invalid required API version string: '" + req_version_str + "'";
-		return false;
-	}
-	// Before doing anything else, check the required api
-	// version. If it doesn't match, return an error.
-	// This is always valid
-	sinsp_version frameworkVers(PLUGIN_API_VERSION_STR);
-	if(!frameworkVers.check(m_required_api_version))
-	{
-		errstr = "Plugin required API version '"
-			+ m_required_api_version.as_string()
-			+ "' is not supported by the plugin API version of the framework '"
-			+ PLUGIN_API_VERSION_STR + "'";
+		errstr = err;
 		return false;
 	}
 
-	/** Common plugin API **/
-	// Some functions are required and return false if not found.
-	if((*(void **) (&(m_api.get_last_error)) = getsym("plugin_get_last_error", errstr)) == NULL ||
-	   (*(void **) (&(m_api.get_name)) = getsym("plugin_get_name", errstr)) == NULL ||
-	   (*(void **) (&(m_api.get_description)) = getsym("plugin_get_description", errstr)) == NULL ||
-	   (*(void **) (&(m_api.get_contact)) = getsym("plugin_get_contact", errstr)) == NULL ||
-	   (*(void **) (&(m_api.get_version)) = getsym("plugin_get_version", errstr)) == NULL)
-	{
-		return false;
-	}
-
-	// Others are not and the values will be checked when needed.
-	(*(void **) (&m_api.init)) = getsym("plugin_init", errstr);
-	(*(void **) (&m_api.destroy)) = getsym("plugin_destroy", errstr);
-	(*(void **) (&m_api.get_init_schema)) = getsym("plugin_get_init_schema", errstr);
-
-	m_name = str_from_alloc_charbuf(m_api.get_name());
-	m_description = str_from_alloc_charbuf(m_api.get_description());
-	m_contact = str_from_alloc_charbuf(m_api.get_contact());
-
-	std::string version_str = str_from_alloc_charbuf(m_api.get_version());
+	// store descriptive info in internal state
+	m_name = str_from_alloc_charbuf(m_handle->api.get_name());
+	m_description = str_from_alloc_charbuf(m_handle->api.get_description());
+	m_contact = str_from_alloc_charbuf(m_handle->api.get_contact());
+	std::string version_str = str_from_alloc_charbuf(m_handle->api.get_version());
 	m_plugin_version = sinsp_version(version_str);
-	if(!m_plugin_version.m_valid)
+	if(!m_plugin_version.is_valid())
 	{
-		errstr = "Plugin provided an invalid version string: '" + version_str + "'";
+		errstr = "plugin provided an invalid version string: '" + version_str + "'";
 		return false;
 	}
-	/** **/
-
-	/** Sourcing API **/
-	if((*(void **) (&(m_api.get_id)) = getsym("plugin_get_id", errstr)) != NULL &&
-	   (*(void **) (&(m_api.get_event_source)) = getsym("plugin_get_event_source", errstr)) != NULL &&
-	   (*(void **) (&(m_api.open)) = getsym("plugin_open", errstr)) != NULL &&
-	   (*(void **) (&(m_api.close)) = getsym("plugin_close", errstr)) != NULL &&
-	   (*(void **) (&(m_api.next_batch)) = getsym("plugin_next_batch", errstr)) != NULL)
+	std::string req_api_version_str = str_from_alloc_charbuf(m_handle->api.get_required_api_version());
+	m_required_api_version = sinsp_version(req_api_version_str);
+	if(!m_required_api_version.is_valid())
 	{
-		m_caps = (ss_plugin_caps) ((uint32_t) m_caps | (uint32_t) CAP_SOURCING);
-
-		(*(void **) (&m_api.get_progress)) = getsym("plugin_get_progress", errstr);
-		(*(void **) (&m_api.list_open_params)) = getsym("plugin_list_open_params", errstr);
-		(*(void **) (&m_api.event_to_string)) = getsym("plugin_event_to_string", errstr);
-
-		m_id = m_api.get_id();
-		m_event_source = str_from_alloc_charbuf(m_api.get_event_source());
+		errstr = "plugin provided an invalid required api version string: '" + req_api_version_str + "'";
+		return false;
 	}
-	else
+
+	// read capabilities and process their info
+	m_caps = plugin_get_capabilities(m_handle, err);
+	if (m_caps & CAP_BROKEN)
 	{
-		m_api.get_id = NULL;
-		m_api.get_event_source = NULL;
-		m_api.open = NULL;
-		m_api.close = NULL;
-		m_api.next_batch = NULL;
+		errstr = "broken plugin capabilities: " + std::string(err);
+		return false;
 	}
-	/** **/
+	if (m_caps == CAP_NONE)
+	{
+		errstr = "plugin does not implement any capability";
+		return false;
+	}
 
-	/** Extraction API **/
-	if((*(void **) (&(m_api.get_fields)) = getsym("plugin_get_fields", errstr)) != NULL &&
-	   (*(void **) (&(m_api.extract_fields)) = getsym("plugin_extract_fields", errstr)) != NULL) {
+	if(m_caps & CAP_SOURCING)
+	{
+		/* Default case: no id and no source */
+		m_id = 0;
+		m_event_source.clear();
+		if (m_handle->api.get_id != NULL
+			&& m_handle->api.get_event_source != NULL
+			&& m_handle->api.get_id() != 0)
+		{
+			m_id = m_handle->api.get_id();
+			m_event_source = str_from_alloc_charbuf(m_handle->api.get_event_source());
+			if (m_event_source == sinsp_syscall_event_source_name)
+			{
+				errstr = "plugin can't implement the reserved event source '" + m_event_source + "'";
+				return false;
+			}
+		}
+	}
 
-		m_caps = (ss_plugin_caps) ((uint32_t) m_caps | (uint32_t) CAP_EXTRACTION);
-
-		(*(void **) (&m_api.get_extract_event_sources)) = getsym("plugin_get_extract_event_sources", errstr);
-
-
+	if(m_caps & CAP_EXTRACTION)
+	{
 		//
 		// If filter fields are exported by the plugin, get the json from get_fields(),
 		// parse it, create our list of fields, and create a filtercheck from the fields.
 		//
-		const char *sfields = m_api.get_fields();
+		const char *sfields = m_handle->api.get_fields();
 		if (sfields == NULL) {
 			throw sinsp_exception(
 					string("error in plugin ") + name() + ": get_fields returned a null string");
 		}
 		string json(sfields);
-		SINSP_DEBUG("Parsing Fields JSON=%s", json.c_str());
+
 		Json::Value root;
 		if (Json::Reader().parse(json, root) == false || root.type() != Json::arrayValue) {
 			throw sinsp_exception(
@@ -438,15 +542,12 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 						string("error in plugin ") + name() + ": field JSON entry has no desc");
 			}
 
-			strlcpy(tf.m_name, fname.c_str(), sizeof(tf.m_name));
-			strlcpy(tf.m_display, fdisplay.c_str(), sizeof(tf.m_display));
-			strlcpy(tf.m_description, fdesc.c_str(), sizeof(tf.m_description));
+			tf.m_name = fname;
+			tf.m_display = fdisplay;
+			tf.m_description = fdesc;
 			tf.m_print_format = PF_DEC;
-
-			if (ftype == "string") {
-				tf.m_type = PT_CHARBUF;
-			} else if (ftype == "uint64") {
-				tf.m_type = PT_UINT64;
+			if(s_pt_lut.find(ftype) != s_pt_lut.end()) {
+				tf.m_type = s_pt_lut.at(ftype);
 			} else {
 				throw sinsp_exception(
 						string("error in plugin ") + name() + ": invalid field type " + ftype);
@@ -498,45 +599,29 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			m_fields.push_back(tf);
 		}
 
-		if (m_api.get_extract_event_sources != NULL) {
-			std::string esources = str_from_alloc_charbuf(m_api.get_extract_event_sources());
+		// populate fields info
+		m_fields_info.m_name = name() + string(" (plugin)");
+		m_fields_info.m_fields = &m_fields[0]; // we use a vector so this should be safe
+		m_fields_info.m_nfields = m_fields.size();
+		m_fields_info.m_flags = filter_check_info::FL_NONE;
 
-			if (esources.length() == 0)
-			{
-				throw sinsp_exception(string("error in plugin ") + name() +
-				                      ": get_extract_event_sources returned an empty string");
-			}
-
-			Json::Value root;
-			if (!Json::Reader().parse(esources, root) || root.type() != Json::arrayValue)
-			{
-				throw sinsp_exception(string("error in plugin ") + name() +
-				                      ": get_extract_event_sources did not return a json array");
-			}
-
-			for (const auto & j : root)
-			{
-				if (!j.isConvertibleTo(Json::stringValue))
-				{
-					throw sinsp_exception(string("error in plugin ") + name() +
-					                      ": get_extract_event_sources did not return a json array");
-				}
-
-				m_extract_event_sources.insert(j.asString());
-			}
-		}
-
-		// A plugin with source capability
-		// must extract event from its source
-		if (m_caps & CAP_SOURCING)
-		{
-			m_extract_event_sources.insert(m_event_source);
-		}
+		// This API is not compulsory for the extraction capability
+		resolve_dylib_compatible_sources("get_extract_event_sources",
+			m_handle->api.get_extract_event_sources, m_extract_event_sources);
 	}
-	else
+
+	if(m_caps & CAP_PARSING)
 	{
-		m_api.get_fields = NULL;
-		m_api.extract_fields = NULL;
+		resolve_dylib_compatible_sources("get_parse_event_sources",
+			m_handle->api.get_parse_event_sources, m_parse_event_sources);
+	}
+
+	if(m_caps & CAP_ASYNC)
+	{
+		resolve_dylib_compatible_sources("get_async_event_sources",
+			m_handle->api.get_async_event_sources, m_async_event_sources);
+		resolve_dylib_json_strlist(name(), "get_async_events",
+			m_handle->api.get_async_events, m_async_event_names, false);
 	}
 
 	return true;
@@ -545,14 +630,32 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 std::string sinsp_plugin::get_init_schema(ss_plugin_schema_type& schema_type) const
 {
 	schema_type = SS_PLUGIN_SCHEMA_NONE;
-	if (m_api.get_init_schema != NULL)
+	if (m_handle->api.get_init_schema != NULL)
 	{
-		return str_from_alloc_charbuf(m_api.get_init_schema(&schema_type));
+		return str_from_alloc_charbuf(m_handle->api.get_init_schema(&schema_type));
 	}
 	return std::string("");
 }
 
-void sinsp_plugin::validate_init_config(std::string& config)
+const libsinsp::events::set<ppm_event_code>& sinsp_plugin::extract_event_codes() const
+{
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+	return m_extract_event_codes;
+}
+
+const libsinsp::events::set<ppm_event_code>& sinsp_plugin::parse_event_codes() const
+{
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+	return m_parse_event_codes;
+}
+
+void sinsp_plugin::validate_config(std::string& config)
 {
 	ss_plugin_schema_type schema_type;
 	std::string schema = get_init_schema(schema_type);
@@ -561,7 +664,7 @@ void sinsp_plugin::validate_init_config(std::string& config)
 		switch (schema_type)
 		{
 			case SS_PLUGIN_SCHEMA_JSON:
-				validate_init_config_json_schema(config, schema);
+				validate_config_json_schema(config, schema);
 				break;
 			default:
 				ASSERT(false);
@@ -574,7 +677,7 @@ void sinsp_plugin::validate_init_config(std::string& config)
 	}
 }
 
-void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::string &schema)
+void sinsp_plugin::validate_config_json_schema(std::string& config, std::string &schema)
 {
 	Json::Value schemaJson;
 	if(!Json::Reader().parse(schema, schemaJson) || schemaJson.type() != Json::objectValue)
@@ -629,59 +732,68 @@ void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::st
 	}
 }
 
-void sinsp_plugin::destroy_handle(sinsp_plugin_handle handle)
+bool sinsp_plugin::set_config(const std::string& config)
 {
-	if (handle)
+	if(!m_inited)
 	{
-#ifdef _WIN32
-		FreeLibrary(handle);
-#else
-		dlclose(handle);
-#endif
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
 	}
+
+	std::string conf = config;
+	validate_config(conf);
+
+	ss_plugin_set_config_input input;
+	input.config = conf.c_str();
+
+	if(!m_handle->api.set_config)
+	{
+		return false;
+	}
+
+	return m_handle->api.set_config(m_state, &input) == SS_PLUGIN_SUCCESS;
 }
 
 /** Event Source CAP **/
 
 scap_source_plugin& sinsp_plugin::as_scap_source()
 {
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
 	if (!(caps() & CAP_SOURCING))
 	{
-		throw sinsp_exception("Can't create scap_source_plugin from a plugin without CAP_SOURCING capability.");
+		throw sinsp_exception("can't create scap_source_plugin from a plugin without CAP_SOURCING capability.");
 	}
 
 	m_scap_source_plugin.state = m_state;
 	m_scap_source_plugin.name = m_name.c_str();
 	m_scap_source_plugin.id = m_id;
-	m_scap_source_plugin.open = m_api.open;
-	m_scap_source_plugin.close = m_api.close;
-	m_scap_source_plugin.get_last_error = m_api.get_last_error;
-	m_scap_source_plugin.next_batch = m_api.next_batch;
+	m_scap_source_plugin.open = m_handle->api.open;
+	m_scap_source_plugin.close = m_handle->api.close;
+	m_scap_source_plugin.get_last_error = m_handle->api.get_last_error;
+	m_scap_source_plugin.next_batch = m_handle->api.next_batch;
 	return m_scap_source_plugin;
-}
-
-uint32_t sinsp_plugin::id() const
-{
-	return m_id;
-}
-
-const std::string &sinsp_plugin::event_source() const
-{
-	return m_event_source;
 }
 
 std::string sinsp_plugin::get_progress(uint32_t &progress_pct) const
 {
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
 	std::string ret;
 	progress_pct = 0;
 
-	if(!m_api.get_progress || !m_scap_source_plugin.handle)
+	if(!m_handle->api.get_progress || !m_scap_source_plugin.handle)
 	{
 		return ret;
 	}
 
 	uint32_t ppct;
-	ret = str_from_alloc_charbuf(m_api.get_progress(m_state, m_scap_source_plugin.handle, &ppct));
+	ret = str_from_alloc_charbuf(m_handle->api.get_progress(m_state, m_scap_source_plugin.handle, &ppct));
 
 	progress_pct = ppct;
 
@@ -690,24 +802,33 @@ std::string sinsp_plugin::get_progress(uint32_t &progress_pct) const
 
 std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 {
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	if (evt->get_type() != PPME_PLUGINEVENT_E || evt->get_param(0)->as<uint32_t>() != m_id)
+	{
+		throw sinsp_exception("can't format unknown non-plugin event to string");
+	}
+
 	string ret = "";
 	auto datalen = evt->get_param(1)->m_len;
 	auto data = (const uint8_t *) evt->get_param(1)->m_val;
-	if (m_state && m_api.event_to_string)
+	if (m_state && m_handle->api.event_to_string)
 	{
-		ss_plugin_event pevt;
-		pevt.evtnum = evt->get_num();
-		pevt.data = data;
-		pevt.datalen = datalen;
-		pevt.ts = evt->get_ts();
-		ret = str_from_alloc_charbuf(m_api.event_to_string(m_state, &pevt));
+		ss_plugin_event_input input;
+		input.evt = (const ss_plugin_event*) evt->get_scap_evt();
+		input.evtnum = evt->get_num();
+		input.evtsrc = evt->get_source_name();
+		ret = str_from_alloc_charbuf(m_handle->api.event_to_string(m_state, &input));
 	}
 	if (ret.empty())
 	{
 		ret += "datalen=";
 		ret += std::to_string(datalen);
 		ret += " data=";
-		for (size_t i = 0; i < MIN(datalen, 50); ++i)
+		for (size_t i = 0; i < std::min(datalen, uint32_t(50)); ++i)
 		{
 			if (!std::isprint(data[i]))
 			{
@@ -715,7 +836,7 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 				return ret;
 			}
 		}
-		ret.append((char*) data, MIN(datalen, 50));
+		ret.append((char*) data, std::min(datalen, uint32_t(50)));
 		if (datalen > 50)
 		{
 			ret += "...";
@@ -724,13 +845,18 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 	return ret;
 }
 
-std::vector<sinsp_plugin_cap_sourcing::open_param> sinsp_plugin::list_open_params() const
+std::vector<sinsp_plugin::open_param> sinsp_plugin::list_open_params() const
 {
-	std::vector<sinsp_plugin_cap_sourcing::open_param> list;
-	if(m_state && m_api.list_open_params)
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	std::vector<sinsp_plugin::open_param> list;
+	if(m_state && m_handle->api.list_open_params)
 	{
 		ss_plugin_rc rc;
-		string jsonString = str_from_alloc_charbuf(m_api.list_open_params(m_state, &rc));
+		string jsonString = str_from_alloc_charbuf(m_handle->api.list_open_params(m_state, &rc));
 		if (rc != SS_PLUGIN_SUCCESS)
 		{
 			throw sinsp_exception(string("error in plugin ") + name() + ": list_open_params has error " + get_last_error());
@@ -761,50 +887,294 @@ std::vector<sinsp_plugin_cap_sourcing::open_param> sinsp_plugin::list_open_param
 	return list;
 }
 
+static void set_plugin_metric_value(metrics_v2& metric, metrics_v2_value_type type, ss_plugin_metric_value val)
+{
+	switch (type)
+	{
+	case METRIC_VALUE_TYPE_U32:
+		metric.value.u32 = val.u32;
+		break;
+	case METRIC_VALUE_TYPE_S32:
+		metric.value.s32 = val.s32;
+		break;
+	case METRIC_VALUE_TYPE_U64:
+		metric.value.u64 = val.u64;
+		break;
+	case METRIC_VALUE_TYPE_S64:
+		metric.value.s64 = val.s64;
+		break;
+	case METRIC_VALUE_TYPE_D:
+		metric.value.d = val.d;
+		break;
+	case METRIC_VALUE_TYPE_F:
+		metric.value.f = val.f;
+		break;
+	case METRIC_VALUE_TYPE_I:
+		metric.value.i = val.i;
+		break;
+	default:
+		break;
+	}
+}
+
+std::vector<metrics_v2> sinsp_plugin::get_metrics() const
+{
+	if(!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	std::vector<metrics_v2> metrics;
+	uint32_t num_metrics = 0;
+
+	if(!m_handle->api.get_metrics)
+	{
+		return metrics;
+	}
+
+	ss_plugin_metric *plugin_metrics = m_handle->api.get_metrics(m_state, &num_metrics);
+	for (uint32_t i = 0; i < num_metrics; i++)
+	{
+		ss_plugin_metric *plugin_metric = plugin_metrics + i;
+
+		metrics_v2 metric;
+		
+		//copy plugin name
+		snprintf(metric.name, METRIC_NAME_MAX, "%s.%s", m_name.c_str(), plugin_metric->name);
+
+		metric.flags = METRICS_V2_PLUGINS;
+		metric.unit = METRIC_VALUE_UNIT_COUNT;
+		metric.type = static_cast<metrics_v2_value_type>(plugin_metric->value_type);
+		metric.metric_type = static_cast<metrics_v2_metric_type>(plugin_metric->type);
+		set_plugin_metric_value(metric, metric.type, plugin_metric->value);
+
+		metrics.emplace_back(metric);
+	}
+
+	return metrics;
+}
+
 /** End of Event Source CAP **/
 
-/** Extractor CAP **/
+/** Field Extraction CAP **/
 
-const std::set<std::string> &sinsp_plugin::extract_event_sources() const
+std::unique_ptr<sinsp_filter_check> sinsp_plugin::new_filtercheck(const std::shared_ptr<sinsp_plugin>& plugin)
 {
-	return m_extract_event_sources;
+	return std::make_unique<sinsp_filter_check_plugin>(plugin);
 }
 
-const std::vector<filtercheck_field_info>& sinsp_plugin::fields() const
+bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields)
 {
-	return m_fields;
-}
-
-sinsp_filter_check* sinsp_plugin::new_filtercheck(std::shared_ptr<sinsp_plugin> plugin)
-{
-	return new sinsp_filter_check_plugin(plugin);
-}
-
-bool sinsp_plugin::extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const
-{
-	if(!m_state)
+	if (!m_inited)
 	{
-		return false;
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
 	}
 
-	return m_api.extract_fields(m_state, &evt, num_fields, fields) == SS_PLUGIN_SUCCESS;
+	ss_plugin_event_input ev;
+	ev.evt = (const ss_plugin_event*) evt->get_scap_evt();
+	ev.evtnum = evt->get_num();
+	ev.evtsrc = evt->get_source_name();
+
+	ss_plugin_field_extract_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
+	in.num_fields = num_fields;
+	in.fields = fields;
+	in.owner = (ss_plugin_owner_t *) this;
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	in.table_reader_ext = &table_reader_ext;
+	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
+	auto res = m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+
+	// do some defensive garbage collection
+	clear_ephemeral_tables();
+	clear_accessed_entries();
+
+	return res;
 }
 
-bool sinsp_plugin::is_source_compatible(const std::string &source) const
+/** End of Field Extraction CAP **/
+
+/** Event Parsing CAP **/
+
+bool sinsp_plugin::parse_event(sinsp_evt* evt)
 {
-	if (m_extract_event_sources.size() == 0)
+	if (!m_inited)
 	{
-		if (m_caps & CAP_SOURCING)
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	ss_plugin_event_input ev;
+	ev.evt = (const ss_plugin_event*) evt->get_scap_evt();
+	ev.evtnum = evt->get_num();
+	ev.evtsrc = evt->get_source_name();
+
+	ss_plugin_event_parse_input in;
+	ss_plugin_table_reader_vtable_ext table_reader_ext;
+	ss_plugin_table_writer_vtable_ext table_writer_ext;
+	in.owner = (ss_plugin_owner_t *) this;
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	in.table_reader_ext = &table_reader_ext;
+	in.table_writer_ext = &table_writer_ext;
+	sinsp_plugin::table_read_api(in.table_reader, table_reader_ext);
+	sinsp_plugin::table_write_api(in.table_writer, table_writer_ext);
+	auto res = m_handle->api.parse_event(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
+
+	// do some defensive garbage collection
+	clear_ephemeral_tables();
+	clear_accessed_entries();
+
+	return res;
+}
+
+/** End of Event Parsing CAP **/
+
+/** Async Events CAP **/
+
+ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const ss_plugin_event* e, char* err)
+{
+	// note: this function can be invoked from different plugin threads,
+	// so we need to make sure that every variable we read is either constant
+	// during the lifetime of those threads, or that it is atomic.
+	auto p = static_cast<sinsp_plugin*>(o);
+	auto handler = p->m_async_evt_handler.load();
+	if (!(p->caps() & CAP_ASYNC))
+	{
+		if (err)
 		{
-			//
-			// If this is a plugin with event sourcing capabilities, reject events that have
-			// not been generated by a plugin with this id specifically.
-			//
-			return source == m_event_source;
+			strlcpy(err, "plugin without async events cap used as async handler", PLUGIN_MAX_ERRLEN);
 		}
-		return true;
+		return SS_PLUGIN_FAILURE;
 	}
-	return m_extract_event_sources.find(source) != m_extract_event_sources.end();
+
+	if (!handler)
+	{
+		if (err)
+		{
+			auto e = "async event sent with NULL handler: " + p->name();
+			strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	if (e->type != PPME_ASYNCEVENT_E || e->nparams != 3)
+	{
+		if (err)
+		{
+			auto e = "malformed async event produced by plugin: " + p->name();
+			strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	auto name = (const char*) ((uint8_t*) e + sizeof(ss_plugin_event) + 4+4+4+4);
+	if (p->async_event_names().find(name) == p->async_event_names().end())
+	{
+		if (err)
+		{
+			auto e = "incompatible async event '" + std::string(name)
+				+ "' produced by plugin: " + p->name();
+			strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	try
+	{
+		auto evt = std::make_unique<sinsp_evt>();
+		ASSERT(evt->get_scap_evt_storage() == nullptr);
+		evt->set_scap_evt_storage(new char[e->len]);
+		memcpy(evt->get_scap_evt_storage(), e, e->len);
+		evt->set_cpuid(0);
+		evt->set_num(0);
+		evt->set_scap_evt((scap_evt *) evt->get_scap_evt_storage());
+		evt->init();
+		// note: plugin ID and timestamp will be set by the inspector
+		(*handler)(*p, std::move(evt));
+	}
+	catch (const std::exception& _e)
+	{
+		if (err)
+		{
+			strlcpy(err, _e.what(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+	catch (...)
+	{
+		if (err)
+		{
+			strlcpy(err, "unknwon error in pushing async event", PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	return SS_PLUGIN_SUCCESS;
 }
 
-/** **/
+bool sinsp_plugin::set_async_event_handler(async_event_handler_t handler)
+{
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	// note: setting the handler before invoking the plugin's function,
+	// so that it can be visible to other threads that can potentially
+	// be spawned by the plugin for producing async events.
+	// In the same way, we need to reset it to NULL after the function
+	// returns, to allow any potential extra threads to finish before
+	// changing the value. In any case, we make the handler function
+	// atomic in case plugin developers fail in stopping async threads.
+	//
+	// As for the atomic updates to m_async_evt_handler, the possible cases
+	// depend on the current handler (CH) and new handler (NH):
+	//   - CH null, NH null: the handler value is already null, no updates needed.
+	//   - CH null, NH not-null: the handler value must be updated before setting
+	//     it to the plugin, so that any newly-spawned thread in the plugin
+	//     can see the new value. In case of failure, we should set the handler
+	//     to its previous value.
+	//   - CH not-null, NH null: the handler value must be updated after setting
+	//     it to the plugin, so that any already-running thread in the plugin
+	//     can be stopped before setting the handler to null. In case of success,
+	//     we can set the handler value to null.
+	//   - CH not-null, NH not-null: not supported for now, need to reset
+	//     the current handler to null before setting a new one.
+
+	auto cur_handler = m_async_evt_handler.load();
+	auto new_handler = (handler != nullptr) ? new async_event_handler_t(handler) : nullptr;
+
+	if (new_handler != nullptr)
+	{
+		if (cur_handler != nullptr)
+		{
+			delete new_handler;
+			throw sinsp_exception("must reset the async event handler before setting a new one");
+		}
+		m_async_evt_handler.store(new_handler);
+	}
+
+	auto callback = (handler != nullptr) ? sinsp_plugin::handle_plugin_async_event : NULL;
+	auto rc = m_handle->api.set_async_event_handler(m_state, this, callback);
+
+	if (cur_handler == nullptr && new_handler != nullptr)
+	{
+		if (rc != SS_PLUGIN_SUCCESS)
+		{
+			// new handler rejected, restore current one
+			delete new_handler;
+			m_async_evt_handler.store(cur_handler);
+		}
+	}
+
+	if (cur_handler != nullptr && new_handler == nullptr)
+	{
+		if (rc == SS_PLUGIN_SUCCESS)
+		{
+			// new handler accepted, delete current one
+			delete cur_handler;
+			m_async_evt_handler.store(new_handler);
+		}
+	}
+
+	return rc == SS_PLUGIN_SUCCESS;
+}

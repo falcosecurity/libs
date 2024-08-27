@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,4 +22,5 @@ limitations under the License.
 #define SCAP_MAX_ARGS_SIZE 4096
 #define SCAP_MAX_ENV_SIZE 4096
 #define SCAP_MAX_CGROUPS_SIZE 4096
-#define SCAP_MAX_SUPPRESSED_COMMS 32
+
+#define SCAP_IPV6_ADDR_LEN 16

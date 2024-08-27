@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,10 +18,6 @@ limitations under the License.
 
 #pragma once
 
-#ifndef SCAP_HANDLE_T
-#error "You need to define SCAP_HANDLE_T to a concrete type before including engine_handle.h"
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,7 +25,7 @@ extern "C" {
 // this is passed by value everywhere so keep it small
 // it only contains a pointer to a struct containing the engine-specific bits
 struct scap_engine_handle {
-	SCAP_HANDLE_T* m_handle;
+	void* m_handle;
 };
 
 #ifdef __cplusplus

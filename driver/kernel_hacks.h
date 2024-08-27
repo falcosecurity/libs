@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
- * Copyright (C) 2021 The Falco Authors.
+ * Copyright (C) 2023 The Falco Authors.
  *
  * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
  * or GPL2.txt for full copies of the license.
@@ -65,19 +66,7 @@ static inline struct inode *file_inode(struct file *f)
 }
 #endif
 
-/*
- * Linux 5.1 kernels modify the syscall_get_arguments function to always
- * return all arguments rather than allowing the caller to select which
- * arguments are desired. This wrapper replicates the original
- * functionality.
- */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0))
-#define syscall_get_arguments_deprecated syscall_get_arguments
-#else
-#define syscall_get_arguments_deprecated(_task, _reg, _start, _len, _args) \
+#define syscall_get_arguments_deprecated(_args, _start, _len, _out) \
 	do { \
-	    unsigned long _sga_args[6] = {}; \
-	    syscall_get_arguments(_task, _reg, _sga_args); \
-	    memcpy(_args, &_sga_args[_start], _len * sizeof(unsigned long)); \
+	    memcpy(_out, &_args->args[_start], _len * sizeof(unsigned long)); \
 	} while(0)
-#endif

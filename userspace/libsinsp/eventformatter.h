@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,12 +20,11 @@ limitations under the License.
 #include <map>
 #include <utility>
 #include <string>
+#include <memory>
 #include <json/json.h>
 
-#include "filter_check_list.h"
-#include "gen_filter.h"
-
-class sinsp_filter_check;
+#include <libsinsp/filter_check_list.h>
+#include <libsinsp/filter.h>
 
 /** @defgroup event Event manipulation
  *  @{
@@ -35,9 +35,14 @@ class sinsp_filter_check;
   This class can be used to format an event into a string, based on an arbitrary
   format.
 */
-class SINSP_PUBLIC sinsp_evt_formatter : public gen_event_formatter
+class SINSP_PUBLIC sinsp_evt_formatter
 {
 public:
+	enum output_format {
+		OF_NORMAL = 0,
+		OF_JSON   = 1
+	};
+
 	/*!
 	  \brief Constructs a formatter.
 
@@ -47,121 +52,116 @@ public:
 	   as the one of the output in Falco rules, so refer to the Falco
 	   documentation for details.
 	*/
-	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks = g_filterlist);
+	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks);
 
-	sinsp_evt_formatter(sinsp* inspector, const string& fmt, filter_check_list &available_checks = g_filterlist);
+	sinsp_evt_formatter(sinsp* inspector, const std::string& fmt, filter_check_list &available_checks);
 
-	void set_format(gen_event_formatter::output_format of, const string& fmt) override;
-
-	~sinsp_evt_formatter();
+	virtual ~sinsp_evt_formatter() = default;
 
 	/*!
 	  \brief Resolve all the formatted tokens and return them in a key/value
 	  map.
 
 	  \param evt Pointer to the event to be converted into string.
-	  \param res Reference to the map that will be filled with the result.
+	  \param values Reference to the map that will be filled with the result.
 
-	  \return true if all the tokens can be retrieved successfully, false
-	  otherwise.
+	  \return true if all the tokens can be retrieved successfully, false otherwise.
 	*/
-	bool resolve_tokens(sinsp_evt *evt, map<string,string>& values);
+	bool resolve_tokens(sinsp_evt *evt, std::map<std::string,std::string>& values);
 
-	// For compatibility with gen_event_filter_factory
+	virtual void set_format(output_format of, const std::string& fmt);
+
+	// For compatibility with sinsp_filter_factory
 	// interface. It just calls resolve_tokens().
-	bool get_field_values(gen_event *evt, std::map<std::string, std::string> &fields) override;
+	virtual bool get_field_values(sinsp_evt *evt, std::map<std::string, std::string> &fields);
 
-	gen_event_formatter::output_format get_output_format() override;
+	virtual void get_field_names(std::vector<std::string> &fields);
+
+	virtual output_format get_output_format();
 
 	/*!
 	  \brief Fills res with the string rendering of the event.
 
 	  \param evt Pointer to the event to be converted into string.
-	  \param res Pointer to the string that will be filled with the result.
+	  \param res [out] Pointer to the string that will be filled with the result.
 
 	  \return true if the string should be shown (based on the initial *),
 	   false otherwise.
 	*/
-	bool tostring(sinsp_evt* evt, OUT string* res);
+	inline bool tostring(sinsp_evt* evt, std::string* res)
+	{
+		if (!res)
+		{
+			return false;
+		}
+		return tostring(evt, *res);
+	}
+	virtual bool tostring(sinsp_evt* evt, std::string &output);
 
-	// For compatibility with gen_event_formatter
-	bool tostring(gen_event* evt, std::string &output) override;
+	virtual bool tostring_withformat(sinsp_evt* evt, std::string &output, output_format of);
 
-	bool tostring_withformat(gen_event* evt, std::string &output, gen_event_formatter::output_format of) override;
-
-	/*!
-	  \brief Fills res with end of capture string rendering of the event.
-	  \param res Pointer to the string that will be filled with the result.
-
-	  \return true if there is a string to show (based on the format),
-	   false otherwise.
+	/**
+	 * \brief If true, when resolving tokens in key -> value mappings (e.g.
+	 * with `resolve_tokens` or `tostring` with JSON output format), the result
+	 * will include fields with their applied transformers. The version of fields
+	 * with no transformers will be included in results in any case regardless
+	 * of this property.
 	*/
-	bool on_capture_end(OUT string* res);
+	inline bool get_resolve_transformed_fields() const
+	{
+		return m_resolve_transformed_fields;
+	}
+
+	inline void set_resolve_transformed_fields(bool v)
+	{
+		m_resolve_transformed_fields = v;
+	}
 
 private:
-	gen_event_formatter::output_format m_output_format;
+	using token_t = std::shared_ptr<sinsp_filter_check>;
+
+	struct resolution_token
+	{
+		std::string name;
+		token_t token;
+		bool has_transformers = false;
+
+		resolution_token(const std::string& n, token_t t, bool h)
+			: name(n), token(std::move(t)), has_transformers(h) { }
+	};
+
+	output_format m_output_format;
 
 	// vector of (full string of the token, filtercheck) pairs
 	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
-	vector<pair<string, sinsp_filter_check*>> m_tokens;
-	vector<uint32_t> m_tokenlens;
-	sinsp* m_inspector;
+	std::vector<token_t> m_output_tokens;
+	std::vector<uint32_t> m_output_tokenlens;
+	std::vector<resolution_token> m_resolution_tokens;
+	sinsp* m_inspector = nullptr;
 	filter_check_list &m_available_checks;
-	bool m_require_all_values;
-	vector<sinsp_filter_check*> m_chks_to_free;
+	bool m_require_all_values = false;
+	bool m_resolve_transformed_fields = false;
 
 	Json::Value m_root;
 	Json::FastWriter m_writer;
 };
 
-/*!
-  \brief Caching version of sinsp_evt_formatter
-  This class is a wrapper around sinsp_evt_formatter, maintaining a
-  cache of previously seen formatters. It avoids the overhead of
-  recreating sinsp_evt_formatter objects for each event.
-*/
-class SINSP_PUBLIC sinsp_evt_formatter_cache
+class sinsp_evt_formatter_factory
 {
 public:
-	sinsp_evt_formatter_cache(sinsp *inspector);
-	virtual ~sinsp_evt_formatter_cache();
+	sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks);
+	virtual ~sinsp_evt_formatter_factory() = default;
 
-	// Resolve the tokens inside format and return them as a key/value map.
-	// Creates a new sinsp_evt_formatter object if necessary.
-	bool resolve_tokens(sinsp_evt *evt, std::string &format, map<string,string>& values);
+	virtual void set_output_format(sinsp_evt_formatter::output_format of);
 
-	// Fills in res with the event formatted according to
-	// format. Creates a new sinsp_evt_formatter object if
-	// necessary.
-	bool tostring(sinsp_evt *evt, std::string &format, OUT std::string *res);
-
-private:
-
-	// Get the formatter for this format string. Creates a new
-	// sinsp_evt_formatter object if necessary.
-	std::shared_ptr<sinsp_evt_formatter>& get_cached_formatter(string &format);
-
-	std::map<std::string,std::shared_ptr<sinsp_evt_formatter>> m_formatter_cache;
-	sinsp *m_inspector;
-};
-/*@}*/
-
-class sinsp_evt_formatter_factory : public gen_event_formatter_factory
-{
-public:
-	sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks=g_filterlist);
-	virtual ~sinsp_evt_formatter_factory();
-
-	void set_output_format(gen_event_formatter::output_format of) override;
-
-	std::shared_ptr<gen_event_formatter> create_formatter(const std::string &format) override;
+	virtual std::shared_ptr<sinsp_evt_formatter> create_formatter(const std::string &format);
 
 protected:
 
 	// Maps from output string to formatter
-	std::map<std::string, std::shared_ptr<gen_event_formatter>> m_formatters;
+	std::map<std::string, std::shared_ptr<sinsp_evt_formatter>> m_formatters;
 
 	sinsp *m_inspector;
 	filter_check_list &m_available_checks;
-	gen_event_formatter::output_format m_output_format;
+	sinsp_evt_formatter::output_format m_output_format;
 };

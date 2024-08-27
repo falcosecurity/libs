@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,12 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "connection.h"
+#include <libsinsp/container_engine/docker/connection.h>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 namespace {
+const uint32_t max_allowed_timeouts = 5;
 
 size_t docker_curl_write_callback(const char *ptr, size_t size, size_t nmemb, std::string *json)
 {
@@ -58,7 +60,7 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 	CURL* curl = curl_easy_init();
 	if(!curl)
 	{
-		g_logger.format(sinsp_logger::SEV_WARNING,
+		libsinsp_logger()->format(sinsp_logger::SEV_WARNING,
 				"docker_async (%s): Failed to initialize curl handle",
 				req_url.c_str());
 		return docker_response::RESP_ERROR;
@@ -69,16 +71,17 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
 	curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 
 	std::string url = "http://localhost" + m_api_version + req_url;
 
-	g_logger.format(sinsp_logger::SEV_DEBUG,
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Fetching url",
 			url.c_str());
 
 	if(curl_easy_setopt(curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_easy_setopt(CURLOPT_URL) failed",
 				url.c_str());
 
@@ -88,7 +91,7 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 	}
 	if(curl_easy_setopt(curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_easy_setopt(CURLOPT_WRITEDATA) failed",
 				url.c_str());
 		curl_easy_cleanup(curl);
@@ -98,7 +101,7 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 
 	if(curl_multi_add_handle(m_curlm, curl) != CURLM_OK)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_multi_add_handle() failed",
 				url.c_str());
 		curl_easy_cleanup(curl);
@@ -106,13 +109,14 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 		return docker_response::RESP_ERROR;
 	}
 
+	uint32_t num_timeouts = 0;
 	while(true)
 	{
 		int still_running;
 		CURLMcode res = curl_multi_perform(m_curlm, &still_running);
 		if(res != CURLM_OK)
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): curl_multi_perform() failed",
 					url.c_str());
 
@@ -131,7 +135,7 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 		res = curl_multi_wait(m_curlm, NULL, 0, 1000, &numfds);
 		if(res != CURLM_OK)
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): curl_multi_wait() failed",
 					url.c_str());
 
@@ -140,11 +144,26 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 			ASSERT(false);
 			return docker_response::RESP_ERROR;
 		}
+		if(numfds == 0)
+		{
+			// Operation timed out
+			if(++num_timeouts >= max_allowed_timeouts)
+			{
+				libsinsp_logger()->format(sinsp_logger::SEV_WARNING,
+				                "docker_async (%s): Max timeouts exceeded",
+				                url.c_str());
+				return docker_response::RESP_TIMEOUT;
+			}
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+			                "docker_async (%s): Operation timed out %d times",
+			                url.c_str(),
+			                num_timeouts);
+		}
 	}
 
 	if(curl_multi_remove_handle(m_curlm, curl) != CURLM_OK)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_multi_remove_handle() failed",
 				url.c_str());
 
@@ -156,7 +175,7 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 	long http_code = 0;
 	if(curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_easy_getinfo(CURLINFO_RESPONSE_CODE) failed",
 				url.c_str());
 
@@ -166,30 +185,30 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 	}
 
 	curl_easy_cleanup(curl);
-	g_logger.format(sinsp_logger::SEV_DEBUG,
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): http_code=%ld",
 			url.c_str(), http_code);
 
 	switch(http_code)
 	{
 	case 0: /* connection failed, apparently */
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): returning RESP_ERROR",
 				url.c_str());
 		return docker_response::RESP_ERROR;
 	case 200:
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): returning RESP_OK",
 				url.c_str());
 		return docker_response::RESP_OK;
 	default:
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): returning RESP_BAD_REQUEST",
 				url.c_str());
 		return docker_response::RESP_BAD_REQUEST;
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG,
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): fallthrough, returning RESP_OK",
 			url.c_str());
 

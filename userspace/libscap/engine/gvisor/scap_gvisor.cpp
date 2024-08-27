@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,10 +29,11 @@ limitations under the License.
 #include <fstream>
 #include <sstream>
 
-#include "gvisor.h"
+#include <libscap/engine/gvisor/gvisor.h>
 #include "pkg/sentry/seccheck/points/common.pb.h"
 
-#include "../../../common/strlcpy.h"
+#include <libscap/strl.h>
+#include <libscap/engine/gvisor/scap_gvisor_stats.h>
 
 namespace scap_gvisor {
 
@@ -43,12 +45,20 @@ constexpr size_t initial_event_buffer_size = 32;
 constexpr int listen_backlog_size = 128;
 const std::string default_root_path = "/var/run/docker/runtime-runc/moby";
 
+static const char * const gvisor_counters_stats_names[] = {
+	[scap_gvisor::stats::GVISOR_N_EVTS] = "n_evts",
+	[scap_gvisor::stats::GVISOR_N_DROPS_BUG] = "n_drops_bug",
+	[scap_gvisor::stats::GVISOR_N_DROPS_BUFFER_TOTAL] ="n_drops_buffer_total",
+	[scap_gvisor::stats::GVISOR_N_DROPS] = "n_drops",
+};
+
 sandbox_entry::sandbox_entry()
 {
 	m_buf.buf = nullptr;
 	m_buf.size = 0;
 	m_last_dropped_count = 0;
 	m_closing = false;
+	m_id = 0xffffffff;
 }
 
 sandbox_entry::~sandbox_entry()
@@ -63,7 +73,8 @@ int32_t sandbox_entry::expand_buffer(size_t size)
 {
 	void* new_buf;
 
-	if (m_buf.buf == nullptr) {
+	if (m_buf.buf == nullptr)
+	{
 		new_buf = malloc(size);
 	} else
 	{
@@ -72,6 +83,8 @@ int32_t sandbox_entry::expand_buffer(size_t size)
 
 	if (new_buf == nullptr)
 	{
+		// no need to clean up existing buffers in case of failed realloc
+		// since they will be cleaned up by the destructor
 		return SCAP_FAILURE;
 	}
 
@@ -94,7 +107,7 @@ engine::~engine()
 
 }
 
-int32_t engine::init(std::string config_path, std::string root_path)
+int32_t engine::init(std::string config_path, std::string root_path, bool no_events, int epoll_timeout, scap_gvisor_platform *platform)
 {
 	if(root_path.empty())
 	{
@@ -105,8 +118,24 @@ int32_t engine::init(std::string config_path, std::string root_path)
 		m_root_path = root_path;
 	}
 
+	if(epoll_timeout >= 0)
+	{
+		m_epoll_timeout = epoll_timeout;
+	}
+	else
+	{
+		m_epoll_timeout = -1;
+	}
+
+	if(platform == nullptr)
+	{
+		strlcpy(m_lasterr, "A platform is required for gVisor", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+	m_platform = platform;
+
 	m_trace_session_path = config_path;
-	
+
 	std::ifstream config_file(config_path);
 	if (config_file.fail())
 	{
@@ -124,6 +153,14 @@ int32_t engine::init(std::string config_path, std::string root_path)
 		return config_result.status;
 	}
 
+	// Check if runsc is installed in the system
+	runsc::result version = runsc::version();
+	if(version.error)
+	{
+		strlcpy(m_lasterr, "Cannot find runsc binary", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+
 	// Initialize the listen fd
 	m_socket_path = config_result.socket_path;
 	if (m_socket_path.empty())
@@ -132,15 +169,13 @@ int32_t engine::init(std::string config_path, std::string root_path)
 		return SCAP_FAILURE;
 	}
 
-	unlink(m_socket_path.c_str());
-	
-	// Check if runsc is installed in the system
-	runsc::result version = runsc::version();
-	if(version.error)
+	m_no_events = no_events;
+	if(no_events)
 	{
-		strlcpy(m_lasterr, "Cannot find runsc binary", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return SCAP_SUCCESS;
 	}
+
+	unlink(m_socket_path.c_str());
 
 	int sock = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if(sock == -1)
@@ -186,6 +221,11 @@ int32_t engine::init(std::string config_path, std::string root_path)
 
 int32_t engine::close()
 {
+	if(m_no_events)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	stop_capture();
 	unlink(m_socket_path.c_str());
     return SCAP_SUCCESS;
@@ -226,7 +266,7 @@ static bool handshake(int client)
 	{
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -263,6 +303,10 @@ static void accept_thread(int listenfd, int epollfd)
 
 int32_t engine::start_capture()
 {
+	if(m_no_events)
+	{
+		return SCAP_FAILURE;
+	}
 	//
 	// Retrieve all running sandboxes
 	// We will need to recreate a session for each of them
@@ -280,18 +324,17 @@ int32_t engine::start_capture()
 	m_accept_thread.detach();
 
 	m_capture_started = true;
-	
+
 	for(const auto& sandbox : existing_sandboxes)
 	{
 		// Since they were already running, we need to force the creation
 		runsc::result trace_create_res = runsc::trace_create(m_root_path, m_trace_session_path, sandbox, true);
 		if(trace_create_res.error)
 		{
-			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
-			return SCAP_FAILURE;
+			// some sandboxes may not be traced, we can skip them safely
+			continue;
 		}
 	}
-
 
 	// Catch all sandboxes that might have been created in the meantime
 	runsc::result new_sandboxes_res = runsc::list(m_root_path);
@@ -320,8 +363,8 @@ int32_t engine::start_capture()
 		runsc::result trace_create_res = runsc::trace_create(m_root_path, m_trace_session_path, sandbox, false);
 		if(trace_create_res.error)
 		{
-			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
-			return SCAP_FAILURE;
+			// some sandboxes may not be traced, we can skip them safely
+			continue;
 		}
 	}
 
@@ -355,73 +398,53 @@ int32_t engine::stop_capture()
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot delete session for sandbox %s", sandbox.c_str());
 			return SCAP_FAILURE;
 		}
-	}	
+	}
 
 	m_capture_started = false;
     return SCAP_SUCCESS;
 }
 
-uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
-{
-	runsc::result sandboxes_res = runsc::list(m_root_path);
-	std::vector<std::string> &sandboxes = sandboxes_res.output;
-
-	m_threadinfos_threads.clear();
-	m_threadinfos_fds.clear();
-
-	for(const auto &sandbox : sandboxes)
-	{
-		runsc::result procfs_res = runsc::trace_procfs(m_root_path, sandbox);
-		for(const auto &line : procfs_res.output)
-		{
-			// skip first line of the output and empty lines
-			if(line.find("PROCFS DUMP") != std::string::npos || line.compare("\n") == 0)
-			{
-				continue;
-			}
-
-			parsers::procfs_result res = parsers::parse_procfs_json(line, sandbox);
-			if(res.status != SCAP_SUCCESS)
-			{
-				*tinfos = NULL;
-				*n = 0;
-				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "%s", res.error.c_str());
-				return res.status;
-			}
-			
-			m_threadinfos_threads.emplace_back(res.tinfo);
-			m_threadinfos_fds[res.tinfo.tid] = res.fdinfos;
-		}
-	}
-
-	*tinfos = m_threadinfos_threads.data();
-	*n = m_threadinfos_threads.size();
-
-	return SCAP_SUCCESS;
-}
-
-uint32_t engine::get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
-{
-	*n = m_threadinfos_fds[tinfo->tid].size();
-	if (*n != 0) {
-		*fdinfos = m_threadinfos_fds[tinfo->tid].data();
-	}
-
-	return SCAP_SUCCESS;
-}
-
-uint32_t engine::get_vxid(uint64_t xid)
+uint32_t engine::get_vxid(uint64_t xid) const
 {
 	return parsers::get_vxid(xid);
 }
 
-int32_t engine::get_stats(scap_stats *stats)
+int32_t engine::get_stats(scap_stats *stats) const
 {
 	stats->n_drops = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
 	stats->n_drops_bug = m_gvisor_stats.n_drops_parsing;
 	stats->n_drops_buffer = m_gvisor_stats.n_drops_gvisor;
 	stats->n_evts = m_gvisor_stats.n_evts;
 	return SCAP_SUCCESS;
+}
+
+const metrics_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc)
+{
+	*nstats = scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS;
+	metrics_v2* stats = engine::m_stats;
+	if (!stats)
+	{
+		*nstats = 0;
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	/* GVISOR STATS COUNTERS */
+	for(uint32_t stat = 0; stat < scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS; stat++)
+	{
+		stats[stat].type = METRIC_VALUE_TYPE_U64;
+		stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
+		stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
+		stats[stat].value.u64 = 0;
+		strlcpy(stats[stat].name, gvisor_counters_stats_names[stat], METRIC_NAME_MAX);
+	}
+	stats[scap_gvisor::stats::GVISOR_N_EVTS].value.u64 = m_gvisor_stats.n_evts;
+	stats[scap_gvisor::stats::GVISOR_N_DROPS_BUG].value.u64 = m_gvisor_stats.n_drops_parsing;
+	stats[scap_gvisor::stats::GVISOR_N_DROPS_BUFFER_TOTAL].value.u64 = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
+	stats[scap_gvisor::stats::GVISOR_N_DROPS].value.u64 = m_gvisor_stats.n_drops_gvisor;
+
+	*rc = SCAP_SUCCESS;
+	return stats;
 }
 
 // Reads one gvisor message from the specified fd, stores the resulting events overwriting m_buffers and adds pointers to m_event_queue.
@@ -446,7 +469,9 @@ int32_t engine::process_message_from_fd(int fd)
 		return SCAP_EOF;
 	}
 
-	// check if we need to allocate a new buffer for this sandbox
+	scap_const_sized_buffer gvisor_msg = {.buf = static_cast<void*>(message), .size = static_cast<size_t>(nbytes)};
+
+	// check if we need to create a new entry for this sandbox
 	if(m_sandbox_data.count(fd) != 1)
 	{
 		m_sandbox_data.emplace(fd, sandbox_entry{});
@@ -454,20 +479,29 @@ int32_t engine::process_message_from_fd(int fd)
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize %zu bytes for gvisor sandbox on fd %d", initial_event_buffer_size, fd);
 			return SCAP_FAILURE;
 		}
+
+		std::string container_id = parsers::parse_container_id(gvisor_msg);
+		if (container_id == "")
+		{
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize sandbox on fd %d: could not parse container ID", fd);
+			return SCAP_FAILURE;
+		}
+
+		m_sandbox_data[fd].m_container_id = container_id;
+		m_sandbox_data[fd].m_id = m_platform->m_platform->get_numeric_sandbox_id(container_id);
 	}
 
-	scap_const_sized_buffer gvisor_msg = {.buf = static_cast<void*>(message), .size = static_cast<size_t>(nbytes)};
-
-	parsers::parse_result parse_result = parsers::parse_gvisor_proto(gvisor_msg, m_sandbox_data[fd].m_buf);
+	uint32_t id = m_sandbox_data[fd].m_id;
+	parsers::parse_result parse_result = parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
 	if(parse_result.status == SCAP_INPUT_TOO_SMALL)
 	{
 		if (m_sandbox_data[fd].expand_buffer(parse_result.size) == SCAP_FAILURE)
 		{
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE,"Cannot realloc gvisor buffer to %zu", parse_result.size);
 			return SCAP_FAILURE;
-		};
-		parse_result = parsers::parse_gvisor_proto(gvisor_msg, m_sandbox_data[fd].m_buf);
-	} 
+		}
+		parse_result = parsers::parse_gvisor_proto(id, gvisor_msg, m_sandbox_data[fd].m_buf);
+	}
 
 	if(parse_result.status == SCAP_NOT_SUPPORTED)
 	{
@@ -493,10 +527,15 @@ int32_t engine::process_message_from_fd(int fd)
 	return parse_result.status;
 }
 
-int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
+int32_t engine::next(scap_evt **pevent, uint16_t *pdevid, uint32_t *pflags)
 {
+	if(m_no_events)
+	{
+		return SCAP_FAILURE;
+	}
+
 	epoll_event evts[max_ready_sandboxes];
-	*pcpuid = 0;
+	*pdevid = 0;
 
 	// if there are still events to process do it before getting more
 	if(!m_event_queue.empty())
@@ -509,15 +548,17 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 
 	// at this moment, there are no events in any of the buffers we allocated
 	// for each sandbox: this is the right place to close fds and deallocate
-	// buffers safely for all the sandboxes that are no longer connected. 
+	// buffers safely for all the sandboxes that are no longer connected.
 
 	for(auto it = m_sandbox_data.begin(); it != m_sandbox_data.end(); )
 	{
 		sandbox_entry &sandbox = it->second;
 		if(sandbox.m_closing)
 		{
+			std::string container_id = sandbox.m_container_id;
 			::close(it->first);
 			it = m_sandbox_data.erase(it);
+			m_platform->m_platform->release_sandbox_id(container_id);
 		}
 		else
 		{
@@ -525,13 +566,13 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 		}
 	}
 
-	int nfds = epoll_wait(m_epollfd, evts, max_ready_sandboxes, -1);
+	int nfds = epoll_wait(m_epollfd, evts, max_ready_sandboxes, m_epoll_timeout);
 	if (nfds < 0)
 	{
 		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll_wait error: %s", strerror(errno));
 		if (errno == EINTR) {
-			// Syscall interrupted. Nothing else to read.
-			return SCAP_EOF;
+			// Syscall interrupted.
+			return SCAP_TIMEOUT;
 		}
 		// unhandled error
 		return SCAP_FAILURE;
@@ -582,6 +623,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 	if(!m_event_queue.empty())
 	{
 		*pevent = m_event_queue.front();
+		*pflags = 0;
 		m_event_queue.pop_front();
 		m_gvisor_stats.n_evts++;
 		return SCAP_SUCCESS;

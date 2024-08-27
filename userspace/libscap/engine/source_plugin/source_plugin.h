@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +18,9 @@ limitations under the License.
 #pragma once
 
 #include <stdint.h>
-#include "plugin_info.h"
+#include <libscap/engine/source_plugin/plugin_info.h>
+#include <libscap/engine/source_plugin/source_plugin_stats.h>
+#include <libscap/metrics_v2.h>
 
 struct scap;
 
@@ -29,15 +32,13 @@ struct source_plugin_engine
 	uint32_t m_nevts;
 
 	scap_source_plugin* m_input_plugin;
-	uint8_t* m_input_plugin_evt_storage;
-	uint32_t m_input_plugin_evt_storage_len;
 
 	// The number of items held in batch_evts
 	uint32_t m_input_plugin_batch_nevts;
 
 	// A set of events returned from next_batch. The array is
 	// allocated and must be free()d when done.
-	ss_plugin_event* m_input_plugin_batch_evts;
+	ss_plugin_event** m_input_plugin_batch_evts;
 
 	// The current position into the above arrays (0-indexed),
 	// reflecting how many of the above items have been returned
@@ -47,6 +48,7 @@ struct source_plugin_engine
 	// The return value from the last call to next_batch().
 	ss_plugin_rc m_input_plugin_last_batch_res;
 
-};
+	// Stats v2.
+	metrics_v2 m_stats[MAX_SOURCE_PLUGIN_COUNTERS_STATS];
 
-#define SCAP_HANDLE_T struct source_plugin_engine
+};

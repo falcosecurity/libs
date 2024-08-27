@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,27 +22,30 @@ limitations under the License.
 #include <memory>
 #include <unordered_map>
 
-#include "scap.h"
+#include <libscap/scap.h>
 
-#include "event.h"
-#include "container_info.h"
+#include <libsinsp/event.h>
+#include <libsinsp/container_info.h>
 
-#if !defined(_WIN32) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD)
+#if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
 #endif
 
-#include "container_engine/container_cache_interface.h"
-#include "container_engine/container_engine_base.h"
-#include "container_engine/sinsp_container_type.h"
-#include "mutex.h"
+#include <libsinsp/container_engine/container_cache_interface.h>
+#include <libsinsp/container_engine/container_engine_base.h>
+#include <libsinsp/container_engine/sinsp_container_type.h>
+#include <libsinsp/mutex.h>
+
+class sinsp_dumper;
 
 class sinsp_container_manager :
 	public libsinsp::container_engine::container_cache_interface
 {
 public:
 	using map_ptr_t = libsinsp::ConstMutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
+	using map_mut_ptr_t = libsinsp::MutexGuard<std::unordered_map<std::string, sinsp_container_info::ptr_t>>;
 
 	/**
 	 * Due to how the container manager is architected, it makes it difficult
@@ -50,19 +54,21 @@ public:
 	 * right now being "static" or not. I'm sure we will find time in the future to do this
 	 * in a more general way. 2020/11/24
 	 */
-	sinsp_container_manager(sinsp* inspector,
-	                        bool static_container = false,
-	                        const std::string static_id = "",
-	                        const std::string static_name = "",
-	                        const std::string static_image = "");
+	sinsp_container_manager(sinsp* inspector);
 
-	virtual ~sinsp_container_manager();
+	virtual ~sinsp_container_manager() = default;
 
 	/**
 	 * @brief Get the whole container map (read-only)
 	 * @return the map of container_id -> shared_ptr<container_info>
 	 */
 	map_ptr_t get_containers() const;
+
+	inline map_mut_ptr_t get_containers()
+	{
+		return m_containers.lock();
+	}
+
 	bool remove_inactive_containers();
 
 	/**
@@ -118,7 +124,7 @@ public:
 	 * it may still be happening in the background asynchronously
 	 */
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	void dump_containers(scap_dumper_t* dumper);
+	void dump_containers(sinsp_dumper& dumper);
 	std::string get_container_name(sinsp_threadinfo* tinfo) const;
 
 	// Set tinfo's m_category based on the container context.  It
@@ -138,6 +144,42 @@ public:
 	void subscribe_on_new_container(new_container_cb callback);
 	void subscribe_on_remove_container(remove_container_cb callback);
 
+	/**
+	 * @brief Selectively enable/disable container engines
+	 * @param mask the bit mask of sinsp_container_type values
+	 *             for the engines to be enabled
+	 *
+	 *  Note: the CRI engine handles multiple container types which can only
+	 *  be enabled or disabled together.
+	 *
+	 *  This method *must* be called before the first container detection,
+	 *  i.e. before inspector->open()
+	 */
+	inline void set_container_engine_mask(uint64_t mask)
+	{
+		m_container_engine_mask = mask;
+	}
+
+	/**
+	 * @brief Set static container information
+	 * @param id the id for the static container.
+	 * @param name the name for the static container.
+	 * @param image the used by the static container.
+	 *
+	 *  Note: the CRI engine handles multiple container types which can only
+	 *  be enabled or disabled together.
+	 *
+	 *  This method *must* be called before the first container detection,
+	 *  i.e. before inspector->open()
+	 */
+	inline void set_static_container(const std::string& id, const std::string& name, const std::string& image)
+	{
+		m_static_id = id;
+		m_static_name = name;
+		m_static_image = image;
+		m_static_container = true;
+	}
+
 	void create_engines();
 
 	/**
@@ -156,7 +198,6 @@ public:
 	void add_cri_socket_path(const std::string &path);
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
-	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 	sinsp* get_inspector() { return m_inspector; }
 
@@ -171,7 +212,7 @@ public:
 	 * state of the lookup via this method and call should_lookup() before
 	 * starting a new lookup.
 	 */
-	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state) override
+	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup::state state) override
 	{
 		m_lookups[container_id][ctype] = state;
 	}
@@ -196,18 +237,30 @@ public:
 		auto engine_lookup = container_lookups->second.find(ctype);
 		return engine_lookup == container_lookups->second.end();
 	}
-private:
+
+	/**
+	* \brief get the list of container engines in the inspector
+	*
+	* @return a pointer to the list of container engines
+	*/
+	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>>* get_container_engines() {
+		return &m_container_engines;
+	}
+	uint64_t m_last_flush_time_ns;
 	std::string container_to_json(const sinsp_container_info& container_info);
-	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
+
+
+private:
+	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::unique_ptr<sinsp_threadinfo> tinfo, char* scap_err);
 	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
 
 	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
 	std::map<sinsp_container_type, std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engine_by_type;
 
 	sinsp* m_inspector;
+	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
-	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup_state>> m_lookups;
-	uint64_t m_last_flush_time_ns;
+	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup::state>> m_lookups;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;
 
@@ -218,7 +271,6 @@ private:
 	std::string m_static_id;
 	std::string m_static_name;
 	std::string m_static_image;
-
-	friend class test_helper;
+	uint64_t m_container_engine_mask;
 };
 

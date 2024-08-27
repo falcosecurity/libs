@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +21,12 @@ limitations under the License.
 class sinsp;
 class sinsp_evt;
 
+#include <libscap/scap_savefile_api.h>
+
+#include <string>
+
+typedef struct scap_dumper scap_dumper_t;
+
 /** @defgroup dump Dumping events to disk
  * Classes to perform miscellaneous functionality
  *  @{
@@ -33,25 +40,24 @@ class SINSP_PUBLIC sinsp_dumper
 public:
 	/*!
 	  \brief Constructs the dumper.
-
-	  \param inspector Pointer to the inspector object that will be the source
-	   of the events to save.
 	*/
-	sinsp_dumper(sinsp* inspector);
+	sinsp_dumper();
 
 	/*!
 	  \brief Constructs a dumper that saves to memory instead of disk.
 	  Takes the address and the size of a preallocated memory buffer
 	  where the data will go.
 	*/
-	sinsp_dumper(sinsp* inspector,
-		uint8_t* target_memory_buffer,
+	sinsp_dumper(uint8_t* target_memory_buffer,
 		uint64_t target_memory_buffer_size);
 
 	~sinsp_dumper();
 
 	/*!
 	  \brief Opens the dump file.
+
+	  \param inspector Pointer to the inspector object that will be the source
+	   of the events to save.
 
 	  \param filename The name of the target file.
 
@@ -64,13 +70,9 @@ public:
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const string& filename,
-		bool compress,
-		bool threads_from_sinsp=false);
+	void open(sinsp* inspector, const std::string& filename, bool compress);
 
-	void fdopen(int fd,
-		    bool compress,
-		    bool threads_from_sinsp=false);
+	void fdopen(sinsp* inspector, int fd, bool compress);
 
 	/*!
 	  \brief Closes the dump file.
@@ -81,19 +83,19 @@ public:
 	  \brief Return whether or not the underling scap file has been
 	         opened.
 	*/
-	bool is_open();
+	bool is_open() const;
 
 	/*!
 	  \brief Return the number of events dumped so far.
 	*/
-	bool written_events();
+	bool written_events() const;
 
 	/*!
 	  \brief Return the current size of a trace file.
 
 	  \return The current size of the dump file.
 	*/
-	uint64_t written_bytes();
+	uint64_t written_bytes() const;
 
 	/*!
 	  \brief Return the starting position for the next write into
@@ -102,7 +104,7 @@ public:
 
 	  \return The starting position for the next write.
 	*/
-	uint64_t next_write_position();
+	uint64_t next_write_position() const;
 
 	/*!
 	  \brief Flush all pending output into the file.

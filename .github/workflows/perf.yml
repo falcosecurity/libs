@@ -1,0 +1,137 @@
+name: Perf CI
+on:
+  pull_request:
+  workflow_dispatch:
+
+# Checks if any concurrent jobs under the same pull request or branch are being executed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-perf
+  cancel-in-progress: true
+
+jobs:
+  perf-libs-linux-amd64:
+    runs-on: [ "self-hosted", "linux", "X64" ]
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Run perf
+        id: perf
+        uses: ./.github/actions/composite-perf
+
+      - name: Download latest master report
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11 # v6
+        with:
+          branch: master
+          event: push
+          name: perf_report
+          workflow: pages.yml
+
+      - name: Diff from master - perf unit tests
+        run: |
+          sudo perf diff perf_tests.data ${{ steps.perf.outputs.perf_tests }} -d unit-test-libsinsp -b -o 1 --percentage relative -q &> perf_tests_diff.txt
+
+      - name: Diff from master - perf scap file
+        run: |
+          sudo perf diff perf_scap.data ${{ steps.perf.outputs.perf_scap }} -d sinsp-example -b -o 1 --percentage relative -q &> perf_scap_diff.txt    
+
+      - name: Diff from master - heaptrack unit tests
+        run: |
+          sudo heaptrack_print heaptrack_tests.data.zst -d ${{ steps.perf.outputs.heaptrack_tests }} &> heaptrack_tests_diff.txt
+
+      - name: Diff from master - heaptrack scap file
+        run: |
+          sudo heaptrack_print heaptrack_scap.data.zst -d ${{ steps.perf.outputs.heaptrack_scap }} &> heaptrack_scap_diff.txt
+
+      - name: Archive perf diff
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: perf_diff
+          path: '*_diff.txt'
+          if-no-files-found: error
+
+      - name: Save PR info
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.number }} > ./pr/NR
+          touch ./pr/COMMENT
+          echo "# Perf diff from master - unit tests" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          head -n10 "perf_tests_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo "" >> ./pr/COMMENT
+          # Drop unstable perf results!
+          # echo "# Perf diff from master - scap file" >> ./pr/COMMENT
+          # echo "\`\`\`" >> ./pr/COMMENT
+          # head -n10 "perf_scap_diff.txt" >> ./pr/COMMENT
+          # echo "\`\`\`" >> ./pr/COMMENT
+          # echo "" >> ./pr/COMMENT
+          echo "# Heap diff from master - unit tests" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          tail -n3 "heaptrack_tests_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo "" >> ./pr/COMMENT
+          echo "# Heap diff from master - scap file" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          tail -n3 "heaptrack_scap_diff.txt" >> ./pr/COMMENT
+          echo "\`\`\`" >> ./pr/COMMENT
+          echo Uploading PR info...
+          cat ./pr/COMMENT
+          echo ""
+
+      - name: Upload PR info as artifact
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4
+        with:
+          name: pr-perf
+          path: pr/
+          retention-days: 1
+          if-no-files-found: warn
+
+      # Check will fail if sum of all differences is >= 1%.
+      # But we will always comment with the perf diff from master
+      - name: Check >= 1% threshold - perf unit tests
+        if: always()
+        run: |
+          sum=$(awk '{sum+=sprintf("%f",$2)}END{printf "%.6f\n",sum}' perf_tests_diff.txt | tr ',' '.')
+          if (( $(echo "$sum >= 1.0" | bc -l) )); then
+            exit 1
+          fi
+
+      # Check will fail if sum of all differences is >= 1%.
+      # But we will always comment with the perf diff from master
+      # CHECK DISABLED: UNSTABLE PERF TEST.
+#      - name: Check >= 1% threshold - perf scap file
+#        if: always() # Even if other threshold checks failed
+#        run: |
+#          sum=$(awk '{sum+=sprintf("%f",$2)}END{printf "%.6f\n",sum}' perf_scap_diff.txt | tr ',' '.')
+#          if (( $(echo "$sum >= 1.0" | bc -l) )); then
+#            exit 1
+#          fi
+
+      # Check will fail if there is any heap memory usage difference >= 1M,
+      # or if there is new memory leaked.
+      - name: Check >= 1M threshold or new leaked mem - heaptrack unit tests
+        if: always() # Even if other threshold checks failed
+        run: |
+          tail -n 3 heaptrack_tests_diff.txt | grep "peak heap memory consumption" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_tests_diff_above_thresh.txt
+          if [ -s heaptrack_tests_diff_above_thresh.txt ]; then
+            exit 1
+          fi
+          tail -n 3 heaptrack_scap_diff.txt | grep "total memory leaked" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 > 0) print }' &> heaptrack_scap_diff_above_thresh.txt
+          if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
+            exit 2
+          fi
+
+      # Check will fail if there is any heap memory usage difference >= 1M,
+      # or if there is new memory leaked.
+      - name: Check >= 1M threshold or new leaked mem - heaptrack scap file
+        if: always() # Even if other threshold checks failed
+        run: |
+          tail -n 3 heaptrack_scap_diff.txt | grep "peak heap memory consumption" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 >= 1048576) print }' &> heaptrack_scap_diff_above_thresh.txt
+          if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
+            exit 1
+          fi
+          tail -n 3 heaptrack_scap_diff.txt | grep "total memory leaked" | awk -F': ' '{print $2 }' | tr '.' ',' | numfmt --from=iec | awk '{if (substr($1,RSTART+RLENGTH)+0 > 0) print }' &> heaptrack_scap_diff_above_thresh.txt
+          if [ -s heaptrack_scap_diff_above_thresh.txt ]; then
+            exit 2
+          fi

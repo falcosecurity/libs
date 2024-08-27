@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +18,7 @@ limitations under the License.
 
 #pragma once
 
-#include "container_info.h"
+#include <libsinsp/container_info.h>
 
 namespace libsinsp
 {
@@ -36,7 +37,7 @@ public:
 
 	virtual bool should_lookup(const std::string& container_id, sinsp_container_type ctype) = 0;
 
-	virtual void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state) = 0;
+	virtual void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup::state state) = 0;
 
 	/**
 	 * Get a container from the cache.

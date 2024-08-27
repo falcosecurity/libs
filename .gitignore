@@ -24,3 +24,7 @@ driver/driver_config.h
 .cache.mk
 build*
 CMakeUserPresets.json
+cscope.out
+tags
+third_party
+*.vagrant*

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,10 +36,12 @@ namespace libsinsp
  * value source.  Subclasses will override the the run_impl() method and
  * implement the concrete value lookup behavior.  In that method, subclasses
  * will use use dequeue_next_key() method to get the key that it will use to
- * collect the value(s), collect the appropriate value(s), and call the
- * store_value() method to save the value.  The run_impl() method should
- * continue to dequeue and process values while the dequeue_next_key() method
- * returns true.
+ * collect the value(s), collect the appropriate value(s), and either:
+ *   - call the store_value() method to save the value.
+ *   - call the defer_lookup() method to retry the lookup after a delay.
+ *
+ * The run_impl() method should continue to dequeue and process values
+ * while the dequeue_next_key() method returns true.
  *
  * The constructor for this class accepts a maximum wait time; this specifies
  * how long client code is willing to wait for a synchronous response (i.e.,
@@ -81,8 +84,14 @@ public:
 	 * A callback handler will take a key and a output reference to the
 	 * value.
 	 */
-        typedef std::function<void(const key_type& key,
-			           const value_type& value)> callback_handler;
+	typedef std::function<void(const key_type& key,
+				   const value_type& value)>
+		callback_handler;
+
+	/**
+	 * A ttl expired handler will take the expired key as argument.
+	 */
+	typedef std::function<void(const key_type& key)> ttl_expired_handler;
 
 	/**
 	 * Initialize this new async_key_value_source, which will block
@@ -129,6 +138,25 @@ public:
 	 *                      will contain the collected value.  The value
 	 *                      of this parameter is defined only if this method
 	 *                      returns true.
+	 *
+	 * @returns true if this method was able to lookup and return the
+	 *          value synchronously; false otherwise.
+	 */
+	bool lookup(const key_type& key, value_type& value);
+
+	/**
+	 * Lookup value(s) based on the given key.  This method will block
+	 * the caller for up the max_wait_ms time specified at construction
+	 * for the desired value(s) to be available.
+	 *
+	 * @param[in] key       The key to the value for which the client
+	 *                      wishes to query.
+	 * @param[out] value    If this method is able to fetch the desired
+	 *                      value within the max_wait_ms specified at
+	 *                      construction time, then this output parameter
+	 *                      will contain the collected value.  The value
+	 *                      of this parameter is defined only if this method
+	 *                      returns true.
 	 * @param[in] handler   If this method is unable to collect the requested
 	 *                      value(s) before the timeout, and if this parameter
 	 *                      is a valid, non-empty, function, then this class
@@ -144,9 +172,49 @@ public:
 	 * @returns true if this method was able to lookup and return the
 	 *          value synchronously; false otherwise.
 	 */
-	bool lookup(const key_type& key,
-		    value_type& value,
-		    const callback_handler& handler = callback_handler());
+	bool lookup(const key_type& key, value_type& value,
+		    const callback_handler& handler);
+
+	/**
+	 * Lookup value(s) based on the given key.  This method will block
+	 * the caller for up the max_wait_ms time specified at construction
+	 * for the desired value(s) to be available.
+	 *
+	 * @param[in] key           The key to the value for which the client
+	 *                          wishes to query.
+	 * @param[out] value        If this method is able to fetch the desired
+	 *                          value within the max_wait_ms specified at
+	 *                          construction time, then this output parameter
+	 *                          will contain the collected value.  The value
+	 *                          of this parameter is defined only if this method
+	 *                          returns true.
+	 * @param[in] handler       If this method is unable to collect the
+	 *                          requested value(s) before the timeout, and if
+	 *                          this parameter is a valid, non-empty, function,
+	 *                          then this class will invoke the given handler
+	 *                          from the async thread immediately after the
+	 *                          collected values are available.
+	 *                          If this handler is empty, then this
+	 *                          async_key_value_source will store the values
+	 *                          until either the next call to lookup() or until
+	 *                          its ttl expires, whichever comes first.
+	 *                          The handler is responsible for any thread-safety
+	 *                          guarantees.
+	 *
+	 * @param[in] ttl_expired   If the ttl for a given key expires, and this
+	 *                          parameter is a valid, non-empty, function, then
+	 *                          this class will invoke the given handler from
+	 *                          the async thread right before the value is
+	 *                          removed from the internal data structures.
+	 *                          The handler is responsible for any
+	 *                          thread-safety guarantees.
+	 *
+	 * @returns true if this method was able to lookup and return the
+	 *          value synchronously; false otherwise.
+	 */
+	bool lookup(const key_type& key, value_type& value,
+		    const callback_handler& handler,
+		    const ttl_expired_handler& ttl_expired);
 
 	/**
 	 * Lookup a value based on the specified key, after an initial delay.
@@ -156,9 +224,10 @@ public:
 	 * @see lookup() for details
 	 */
 	bool lookup_delayed(const key_type& key,
-                    value_type& value,
-                    std::chrono::milliseconds delay,
-                    const callback_handler& handler = callback_handler());
+			    value_type& value,
+			    std::chrono::milliseconds delay,
+			    const callback_handler& handler = callback_handler(),
+			    const ttl_expired_handler& ttl_expired = ttl_expired_handler());
 
 	/**
 	 * Determines if the async thread associated with this
@@ -212,15 +281,15 @@ public:
 	std::unordered_map<key_type, value_type> get_complete_results();
 
 protected:
-
 	/**
 	 * Dequeues an entry from the request queue and returns it in the given
 	 * key.  Concrete subclasses will call this method to get the next key
 	 * for which to collect values.
+	 * Get also the associated value by providing @p value_ptr
 	 *
 	 * @returns true if there was a key to dequeue, false otherwise.
 	 */
-	bool dequeue_next_key(key_type& key);
+	bool dequeue_next_key(key_type& key, value_type* value_ptr = nullptr);
 
 	/**
 	 * Get the (potentially partial) value for the given key.
@@ -240,6 +309,19 @@ protected:
 	 * @param[in] value The collected value.
 	 */
 	void store_value(const key_type& key, const value_type& value);
+
+	/**
+	 * Defer the lookup for the given key for delay ms. This puts
+	 * the key back on the request queue with a deadline of now +
+	 * delay ms to allow the run_impl thread to retry the lookup
+	 * later.
+	 *
+	 * If value_ptr is non-NULL, the contents will be saved and provided
+	 * to the next call of dequeue_next_key().
+	 */
+	void defer_lookup(const key_type& key,
+			  value_type* value_ptr,
+			 std::chrono::milliseconds delay);
 
 	/**
 	 * Concrete subclasses must override this method to perform the
@@ -301,6 +383,13 @@ private:
 		 */
 		callback_handler m_callback;
 
+		/**
+		 * A optional client-specified callback handler for async
+		 * response notification.
+		 */
+		ttl_expired_handler m_ttl_callback;
+
+
 		/** The time at which this request was made. */
 		std::chrono::time_point<std::chrono::steady_clock> m_start_time;
 	};
@@ -346,4 +435,4 @@ private:
 
 } // end namespace libsinsp
 
-#include "async_key_value_source.tpp"
+#include <libsinsp/async/async_key_value_source.tpp>

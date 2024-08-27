@@ -1,6 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
 #
-# zlib
+# Copyright (C) 2023 The Falco Authors.
 #
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
 
 if(ZLIB_INCLUDE)
@@ -31,15 +42,27 @@ else()
 		"${ZLIB_INCLUDE}/zutil.h"
 	)
 	if(NOT TARGET zlib)
+		set(ZLIB_CFLAGS )
+		if (ENABLE_PIC)
+			set(ZLIB_CFLAGS -fPIC)
+		endif()
+
 		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
 		if(NOT WIN32)
-			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
+			if(BUILD_SHARED_LIBS)
+				set(ZLIB_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+				set(ZLIB_CONFIGURE_FLAGS )
+			else()
+				set(ZLIB_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+				set(ZLIB_CONFIGURE_FLAGS "--static")
+			endif()
+			set(ZLIB_LIB "${ZLIB_SRC}/libz${ZLIB_LIB_SUFFIX}")
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
-				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
-				CONFIGURE_COMMAND ./configure --prefix=${ZLIB_SRC}
-				BUILD_COMMAND ${CMD_MAKE}
+				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
+				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
+				CONFIGURE_COMMAND CFLAGS=${ZLIB_CFLAGS} ./configure --prefix=${ZLIB_SRC} ${ZLIB_CONFIGURE_FLAGS}
+				BUILD_COMMAND make
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
 				INSTALL_COMMAND "")
@@ -48,22 +71,36 @@ else()
 			install(FILES ${ZLIB_HEADERS} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/zlib"
 					COMPONENT "libs-deps")
 		else()
-			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
+			if(BUILD_SHARED_LIBS)
+				set(ZLIB_LIB_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
+				set(ZLIB_LIB "${ZLIB_SRC}/lib/zlib$<$<CONFIG:Debug>:d>${ZLIB_LIB_SUFFIX}")
+			else()
+				set(ZLIB_LIB_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+				set(ZLIB_LIB "${ZLIB_SRC}/lib/zlibstatic$<$<CONFIG:Debug>:d>${ZLIB_LIB_SUFFIX}")
+			endif()
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
-				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
-				CONFIGURE_COMMAND ""
-				BUILD_COMMAND nmake -f win32/Makefile.msc
+				URL "https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz"
+				URL_HASH "SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23"
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
-				INSTALL_COMMAND "")
+				CMAKE_ARGS
+					-DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+					-DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
+					-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+					-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+					-DCMAKE_INSTALL_PREFIX=${ZLIB_SRC})
 			install(FILES "${ZLIB_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 					COMPONENT "libs-deps")
 			install(FILES ${ZLIB_HEADERS} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/zlib"
 					COMPONENT "libs-deps")
 		endif()
 	endif()
+endif()
+
+if(NOT TARGET zlib)
+	add_custom_target(zlib)
 endif()
 
 include_directories(${ZLIB_INCLUDE})

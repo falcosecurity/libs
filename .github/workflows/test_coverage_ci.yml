@@ -1,0 +1,60 @@
+name: Test Coverage CI
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+# Checks if any concurrent jobs under the same pull request or branch are being executed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  unit-test-libsinsp-coverage:
+    name: unit-test-libsinsp-coverage 🧐
+    runs-on: 'ubuntu-22.04'
+    container:
+      image: debian:bookworm
+    steps:
+      - name: Install deps ⛓️
+        run: |
+          apt update && apt install -y --no-install-recommends ca-certificates \
+            cmake build-essential git clang llvm pkg-config autoconf automake \
+            libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev \
+            libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc \
+            libgtest-dev libprotobuf-dev linux-headers-amd64 \
+            gpg gpg-agent gcovr
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          .github/install-deps.sh
+
+      - name: Git safe directory
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build and test 🏗️🧪
+        run: |
+          mkdir -p build
+          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=True -DENABLE_COVERAGE=True -DUSE_BUNDLED_DEPS=False ../
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+          make run-unit-tests
+
+      - name: Generate libsinsp coverage report
+        run: |
+          gcovr --xml -o ./libsinsp.coverage.xml
+
+      - name: Upload to codecov
+        uses: codecov/codecov-action@79066c46f8dcdf8d7355f820dbac958c5b4cb9d3 # v4.5.0
+        with:
+          fail_ci_if_error: true
+          files: ./libsinsp.coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          flags: libsinsp

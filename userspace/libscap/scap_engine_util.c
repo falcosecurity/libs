@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,65 +16,53 @@ limitations under the License.
 
 */
 
+#include <errno.h>
 #include <stdio.h>
+#include <time.h>
 
-#include "scap.h"
-#include "scap-int.h"
-#include "scap_engine_util.h"
+#include <libscap/scap_engine_util.h>
+#include <libscap/scap_const.h>
+#include <libscap/strerror.h>
 
-#ifdef __linux__
-#include "driver_config.h"
-#endif
+#include <libscap/compat/misc.h>
 
-/* `ppm_sc_of_interest` is never `NULL`, we check it before calling this method. */
-void fill_syscalls_of_interest(interesting_ppm_sc_set *ppm_sc_of_interest, bool (*syscalls_of_interest)[SYSCALL_TABLE_SIZE])
+static inline uint64_t timespec_to_nsec(const struct timespec* ts)
 {
-	for (int i = 0; i < PPM_SC_MAX; i++)
-	{
-		// We need to convert from PPM_SC to SYSCALL_NR, using the routing table
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-		{
-			// Find the match between the ppm_sc and the syscall_nr
-			if(g_syscall_code_routing_table[syscall_nr] == i)
-			{
-				// UF_NEVER_DROP syscalls must be always traced
-				if (ppm_sc_of_interest->ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
-				{
-					(*syscalls_of_interest)[syscall_nr] = true;
-				}
-				// DO NOT break as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
-			}
-		}
-	}
+	return ts->tv_sec * 1000000000 + ts->tv_nsec;
 }
 
-int32_t check_api_compatibility(scap_t *handle, char *error)
+int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time)
 {
-#ifdef PPM_API_CURRENT_VERSION_MAJOR
-	if(!scap_is_api_compatible(handle->m_api_version, SCAP_MINIMUM_DRIVER_API_VERSION))
+	struct timespec wall_ts, boot_ts;
+
+	if(clock_gettime(CLOCK_BOOTTIME, &boot_ts) < 0)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports API version %llu.%llu.%llu, but running version needs %d.%d.%d",
-			 PPM_API_VERSION_MAJOR(handle->m_api_version),
-			 PPM_API_VERSION_MINOR(handle->m_api_version),
-			 PPM_API_VERSION_PATCH(handle->m_api_version),
-			 PPM_API_CURRENT_VERSION_MAJOR,
-			 PPM_API_CURRENT_VERSION_MINOR,
-			 PPM_API_CURRENT_VERSION_PATCH);
-		return SCAP_FAILURE;
+		return scap_errprintf(last_err, errno, "Failed to get CLOCK_BOOTTIME");
 	}
 
-	if(!scap_is_api_compatible(handle->m_schema_version, SCAP_MINIMUM_DRIVER_SCHEMA_VERSION))
+	if(clock_gettime(CLOCK_REALTIME, &wall_ts) < 0)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports schema version %llu.%llu.%llu, but running version needs %d.%d.%d",
-			 PPM_API_VERSION_MAJOR(handle->m_schema_version),
-			 PPM_API_VERSION_MINOR(handle->m_schema_version),
-			 PPM_API_VERSION_PATCH(handle->m_schema_version),
-			 PPM_SCHEMA_CURRENT_VERSION_MAJOR,
-			 PPM_SCHEMA_CURRENT_VERSION_MINOR,
-			 PPM_SCHEMA_CURRENT_VERSION_PATCH);
-		return SCAP_FAILURE;
+		return scap_errprintf(last_err, errno, "Failed to get CLOCK_REALTIME");
 	}
-#endif
+
+	*boot_time = timespec_to_nsec(&wall_ts) - timespec_to_nsec(&boot_ts);
 	return SCAP_SUCCESS;
+}
+
+bool scap_get_bpf_stats_enabled()
+{
+	FILE* f;
+	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
+	{
+		uint32_t bpf_stats_enabled = 0;
+		if(fscanf(f, "%u", &bpf_stats_enabled) == 1)
+		{
+			fclose(f);
+			return bpf_stats_enabled;
+		}
+
+		fclose(f);
+	}
+	return false;
 }
 

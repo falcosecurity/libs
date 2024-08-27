@@ -10,8 +10,9 @@ To use filtering, specify a [filter](https://falco.org/docs/rules/supported-fiel
 
 ### Usage ###
 
+Sinsp-example provides an helper message with all the supported command line options:
 ```
-$ sudo ./sinsp-example [-f filter]
+$ sudo ./sinsp-example -h/--help
 ```
 
 ## Sample Output ##

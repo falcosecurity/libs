@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,13 +18,14 @@ limitations under the License.
 
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <list>
 #include <string>
 #include <vector>
-#include "container_engine/sinsp_container_type.h"
+#include <libsinsp/container_engine/sinsp_container_type.h>
 #include "json/json.h"
 
 class sinsp;
@@ -37,8 +39,6 @@ template<> struct hash<sinsp_container_type> {
 };
 }
 
-class sinsp_threadinfo;
-
 // Docker and CRI-compatible runtimes are very similar
 static inline bool is_docker_compatible(sinsp_container_type t)
 {
@@ -49,22 +49,91 @@ static inline bool is_docker_compatible(sinsp_container_type t)
 		t == CT_PODMAN;
 }
 
-/**
- * \brief the state of a container metadata lookup
- *
- * Some container engines (Docker, CRI) do external API calls to find container
- * metadata. This value stores the state of the lookup (a separate value is kept
- * for each container_id/engine pair). The purpose is to avoid repeated lookups
- * after failure, especially when multiple engines match against the same process
- * (e.g. Docker and containerd may use the same cgroup layout).
- *
- * If all engines fail to find metadata for a container, we need to remember that
- * for each engine individually and there's only one sinsp_container_info->m_type
- */
-enum class sinsp_container_lookup_state {
-	STARTED = 0,
-	SUCCESSFUL = 1,
-	FAILED = 2
+class sinsp_container_lookup
+{
+public:
+	sinsp_container_lookup(short max_retry = 3, short max_delay_ms = 500):
+		m_max_retry(max_retry),
+		m_max_delay_ms(max_delay_ms),
+		m_state(state::FAILED),
+		m_retry(0)
+	{
+		assert(max_retry >= 0);
+		assert(max_delay_ms > 0);
+	}
+
+	/**
+	 * \brief the state of a container metadata lookup
+	 *
+	 * Some container engines (Docker, CRI) do external API calls to find container
+	 * metadata. This value stores the state of the lookup (a separate value is kept
+	 * for each container_id/engine pair). The purpose is to avoid repeated lookups
+	 * after failure, especially when multiple engines match against the same process
+	 * (e.g. Docker and containerd may use the same cgroup layout).
+	 *
+	 * If all engines fail to find metadata for a container, we need to remember that
+	 * for each engine individually and there's only one sinsp_container_info->m_type
+	 */
+	enum class state
+	{
+		STARTED = 0,
+		SUCCESSFUL = 1,
+		FAILED = 2
+	};
+
+	state get_status() const { return m_state; }
+	void set_status(state s) { m_state = s; }
+
+	bool is_successful() const
+	{
+		return m_state == state::SUCCESSFUL;
+	}
+
+	/**
+	 * True when not successful and we didn't do too many attempts
+	 */
+	bool should_retry() const
+	{
+		if(is_successful())
+		{
+			return false;
+		}
+
+		return m_retry < m_max_retry;
+	}
+
+	/**
+	 * i.e. whether we didn't do any retry yet
+	 */
+	bool first_attempt() const
+	{
+		return m_retry == 0;
+	}
+
+	short retry_no() const
+	{
+		return m_retry;
+	}
+
+	void attempt_increment()
+	{
+		++m_retry;
+	}
+
+	/**
+	 * Compute the delay and increment retry count
+	 */
+	short delay()
+	{
+		int curr_delay = 125 << (m_retry-1);
+		return curr_delay > m_max_delay_ms ? m_max_delay_ms : curr_delay;
+	}
+
+private:
+	short m_max_retry;
+	short m_max_delay_ms;
+	state m_state = state::FAILED;
+	short m_retry;
 };
 
 class sinsp_container_info
@@ -186,7 +255,8 @@ public:
 		std::vector<std::string> m_health_probe_args;
 	};
 
-	sinsp_container_info():
+	sinsp_container_info(sinsp_container_lookup &&lookup = sinsp_container_lookup()):
+		m_type(CT_UNKNOWN),
 		m_container_ip(0),
 		m_privileged(false),
 		m_memory_limit(0),
@@ -196,27 +266,41 @@ public:
 		m_cpu_period(100000),
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
-		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
+		m_lookup(std::move(lookup)),
+		m_container_user("<NA>"),
 		m_metadata_deadline(0),
 		m_size_rw_bytes(-1)
 	{
 	}
 
+	void clear()
+	{
+		this->~sinsp_container_info();
+		new(this) sinsp_container_info();
+	}
+
 	const std::vector<std::string>& get_env() const { return m_env; }
 
 	const container_mount_info *mount_by_idx(uint32_t idx) const;
-	const container_mount_info *mount_by_source(std::string &source) const;
-	const container_mount_info *mount_by_dest(std::string &dest) const;
+	const container_mount_info *mount_by_source(const std::string&) const;
+	const container_mount_info *mount_by_dest(const std::string&) const;
 
 	bool is_pod_sandbox() const {
 		return m_is_pod_sandbox;
 	}
 
-	bool is_successful() const {
-		return m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL;
+	bool is_successful() const { return m_lookup.is_successful(); }
+
+	void set_lookup_status(sinsp_container_lookup::state s)
+	{
+		m_lookup.set_status(s);
+	}
+	sinsp_container_lookup::state get_lookup_status() const
+	{
+		return m_lookup.get_status();
 	}
 
-	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
+	std::unique_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
 
 	// Match a process against the set of health probes
 	container_health_probe::probe_type match_health_probe(sinsp_threadinfo *tinfo) const;
@@ -244,13 +328,16 @@ public:
 	int64_t m_cpu_period;
 	int32_t m_cpuset_cpu_count;
 	std::list<container_health_probe> m_health_probes;
+	std::string m_pod_sandbox_id;
+	std::map<std::string, std::string> m_pod_sandbox_labels;
+	std::string m_pod_sandbox_cniresult;
 
 	bool m_is_pod_sandbox;
 
-	sinsp_container_lookup_state m_lookup_state;
-#ifdef HAS_ANALYZER
-	std::string m_sysdig_agent_conf;
-#endif
+	sinsp_container_lookup m_lookup;
+
+	std::string m_container_user;
+
 	uint64_t m_metadata_deadline;
 
 	/**
@@ -267,7 +354,7 @@ public:
 	int64_t m_created_time;
 
 	/**
-	 * The max container label length value. This is static because it is 
+	 * The max container label length value. This is static because it is
 	 * universal across all instances and needs to be set once only.
 	 */
 	static uint32_t m_container_label_max_length;

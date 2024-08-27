@@ -1,3 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright (C) 2023 The Falco Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
 option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
 
 if(GTEST_INCLUDE_DIR)
@@ -38,6 +52,10 @@ else()
 	set(GTEST_MAIN_LIB "gtest_main")
 	install(DIRECTORY "${GTEST_INCLUDE_DIR}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
 			COMPONENT "libs-deps")
+endif()
+
+if(NOT TARGET gtest)
+	add_custom_target(gtest)
 endif()
 
 include_directories("${GTEST_INCLUDE_DIR}")

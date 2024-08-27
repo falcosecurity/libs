@@ -1,17 +1,23 @@
+# SPDX-License-Identifier: GPL-2.0-only OR MIT
 #
-# Copyright (C) 2022 The Falco Authors.
+# Copyright (C) 2023 The Falco Authors.
 #
 # This file is dual licensed under either the MIT or GPL 2. See
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
-@DRIVER_NAME@-y += main.o dynamic_params_table.o fillers_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table.o ppm_cputime.o
+@DRIVER_NAME@-y += main.o dynamic_params_table.o fillers_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table64.o ppm_cputime.o ppm_tp.o syscall_ia32_64_map.o
 obj-m += @DRIVER_NAME@.o
 ccflags-y := @KBUILD_FLAGS@
 
-KERNELDIR 		?= /lib/modules/$(shell uname -r)/build
+ifeq ($(strip $(MAKEFILE_LIST)),Makefile)
+#
+# If MAKEFILE_LIST is just "Makefile", it means `make` was invoked pointing to
+# this Makefile. Targets don't make any sense if the Makefile was included.
+#
+KERNELDIR 	?= /lib/modules/$(shell uname -r)/build
+TOP 		:= $(shell pwd)
 
-TOP := $(shell pwd)
 all:
 	$(MAKE) -C $(KERNELDIR) M=$(TOP) modules
 
@@ -20,3 +26,21 @@ clean:
 
 install: all
 	$(MAKE) -C $(KERNELDIR) M=$(TOP) modules_install
+
+else
+
+KERNELDIR 	?= $(CURDIR)
+#
+# Get the path of the module sources
+#
+FIRST_MAKEFILE := $(firstword $(MAKEFILE_LIST))
+FIRST_MAKEFILE_FILENAME := $(notdir $(FIRST_MAKEFILE))
+FIRST_MAKEFILE_DIRNAME := $(shell basename $(dir $(FIRST_MAKEFILE)))
+ifeq ($(FIRST_MAKEFILE_DIRNAME)/$(FIRST_MAKEFILE_FILENAME), scripts/Makefile.build)
+# Build phase
+MODULE_MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+MAKEFILE_INC_FILES := $(shell find $(MODULE_MAKEFILE_DIR)/configure -type f -name Makefile.inc)
+$(info [configure-kmod] Including $(MAKEFILE_INC_FILES))
+include $(MAKEFILE_INC_FILES)
+endif
+endif # $(strip $(MAKEFILE_LIST)),Makefile

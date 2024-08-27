@@ -1,6 +1,8 @@
 #pragma once
 
-#include "container_engine/docker/base.h"
+#include <libsinsp/container_engine/docker/base.h>
+
+#include <optional>
 
 namespace libsinsp {
 namespace container_engine {
@@ -16,7 +18,7 @@ private:
 
 	// true if any file matching any possible api socket pattern
 	// exists. Is set at the first call to resolve()
-	std::unique_ptr<bool> m_api_sock_can_exist;
+	std::optional<bool> m_api_sock_can_exist;
 
 	// Return true if any possible api socket pattern exists.
 	bool can_api_sock_exist();

@@ -143,7 +143,7 @@ int catch_syscall_exit_event(struct sys_exit_args * ctx):
    6: (bf) r3 = r0
    7: (85) call bpf_probe_read_kernel#-64432
    8: (b7) r1 = 944
-   9: (79) r3 = *(u64 *)(r10 -16)
+   9: (79) r3 = *(uint64_t *)(r10 -16)
   10: (0f) r3 += r1
   11: (bf) r1 = r10
 ; 
@@ -185,9 +185,9 @@ int catch_syscall_exit_event(struct sys_exit_args * ctx):
 ; struct task_struct *t = bpf_get_current_task_btf();
    0: (85) call bpf_get_current_task_btf#-61936
 ; struct file * f = t->mm->exe_file;
-   1: (79) r1 = *(u64 *)(r0 +2192)
+   1: (79) r1 = *(uint64_t *)(r0 +2192)
 ; struct file * f = t->mm->exe_file;
-   2: (79) r1 = *(u64 *)(r1 +944)
+   2: (79) r1 = *(uint64_t *)(r1 +944)
    3: (b7) r0 = 1
 ; if(!f)
    4: (15) if r1 == 0x0 goto pc+1

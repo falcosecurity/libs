@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -10,10 +11,13 @@ or GPL2.txt for full copies of the license.
 
 #include <generated/utsrelease.h>
 #include <uapi/linux/bpf.h>
+#if __has_include(<asm/rwonce.h>)
+#include <asm/rwonce.h>
+#endif
 #include <linux/sched.h>
 
-#include "../driver_config.h"
-#include "../ppm_events_public.h"
+#include "driver_config.h"
+#include "ppm_events_public.h"
 #include "bpf_helpers.h"
 #include "types.h"
 #include "maps.h"
@@ -23,55 +27,111 @@ or GPL2.txt for full copies of the license.
 #include "fillers.h"
 #include "builtins.h"
 
-#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME #event)				\
-int bpf_##event(struct type *ctx)
-#else
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME prefix #event)			\
-int bpf_##event(struct type *ctx)
-#endif
+#define __NR_ia32_socketcall 102
 
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 {
-	const struct syscall_evt_pair *sc_evt;
-	struct scap_bpf_settings *settings;
-	enum ppm_event_type evt_type;
-	int drop_flags;
-	long id;
-
-	if (bpf_in_ia32_syscall())
-		return 0;
+	const struct syscall_evt_pair *sc_evt = NULL;
+	ppm_event_code evt_type = -1;
+	int drop_flags = 0;
+	long id = 0;
+	bool enabled = false;
+	int socketcall_syscall_id = -1;
 
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
 
-	settings = get_bpf_settings();
-	if (!settings)
+	if (bpf_in_ia32_syscall())
+	{
+	// Right now we support 32-bit emulation only on x86.
+	// We try to convert the 32-bit id into the 64-bit one.
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+		if (id == __NR_ia32_socketcall)
+		{
+			socketcall_syscall_id = __NR_ia32_socketcall;
+		}
+		else
+		{
+			id = convert_ia32_to_64(id);
+			// syscalls defined only on 32 bits are dropped here.
+			if(id == -1)
+			{
+				return 0;
+			}
+		}
+#else
+		// Unsupported arch
 		return 0;
-
-	if (!settings->capture_enabled)
+#endif		
+	}
+	else
+	{
+	// Right now only s390x supports it
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
+	}
+	
+	// Now all syscalls on 32-bit should be converted to 64-bit apart from `socketcall`.
+	// This one deserves a special treatment
+	if(id == socketcall_syscall_id)
+	{
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+		bool is_syscall_return = false;
+		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
+		if (return_code == -1)
+		{
+			// Wrong SYS_ argument passed. Drop the syscall.
+			return 0;
+		}
+		if(!is_syscall_return)
+		{
+			evt_type = return_code;
+			drop_flags = UF_USED;
+		}
+		else
+		{
+			id = return_code;
+		}
+#else
+		// We do not support socketcall when raw tracepoints are not supported.
 		return 0;
-
-	sc_evt = get_syscall_info(id);
-	if (!sc_evt)
-		return 0;
-
-	if (sc_evt->flags & UF_UNINTERESTING)
-		return 0;
-
-	if (sc_evt->flags & UF_USED) {
-		evt_type = sc_evt->enter_event_type;
-		drop_flags = sc_evt->flags;
-	} else {
-		evt_type = PPME_GENERIC_E;
-		drop_flags = UF_ALWAYS_DROP;
+#endif
 	}
 
+	// In case of `evt_type!=-1`, we need to skip the syscall filtering logic because
+	// the actual `id` is no longer representative for this event.
+	// There could be cases in which we have a `PPME_SOCKET_SEND_E` event
+	// and`id=__NR_ia32_socketcall`...We resolved the correct event type but we cannot
+	// update the `id`.
+	if (evt_type == -1)
+	{
+		enabled = is_syscall_interesting(id);
+		if(!enabled)
+		{
+			return 0;
+		}
+
+		sc_evt = get_syscall_info(id);
+		if(!sc_evt)
+			return 0;
+
+		if(sc_evt->flags & UF_USED)
+		{
+			evt_type = sc_evt->enter_event_type;
+			drop_flags = sc_evt->flags;
+		}
+		else
+		{
+			evt_type = PPME_GENERIC_E;
+			drop_flags = UF_ALWAYS_DROP;
+		}
+	}
+
+
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-	call_filler(ctx, ctx, evt_type, settings, drop_flags);
+	call_filler(ctx, ctx, evt_type, drop_flags, socketcall_syscall_id);
 #else
 	/* Duplicated here to avoid verifier madness */
 	struct sys_enter_args stack_ctx;
@@ -80,56 +140,140 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	if (stash_args(stack_ctx.args))
 		return 0;
 
-	call_filler(ctx, &stack_ctx, evt_type, settings, drop_flags);
+	call_filler(ctx, &stack_ctx, evt_type, drop_flags, socketcall_syscall_id);
 #endif
 	return 0;
 }
 
 BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 {
-	const struct syscall_evt_pair *sc_evt;
-	struct scap_bpf_settings *settings;
-	enum ppm_event_type evt_type;
-	int drop_flags;
-	long id;
-
-	if (bpf_in_ia32_syscall())
-		return 0;
+	const struct syscall_evt_pair *sc_evt = NULL;
+	ppm_event_code evt_type = -1;
+	int drop_flags = 0;
+	long id = 0;
+	bool enabled = false;
+	struct scap_bpf_settings *settings = 0; 
+	long retval = 0;
+	int socketcall_syscall_id = -1;
 
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
 
+	if (bpf_in_ia32_syscall())
+	{
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+		if (id == __NR_ia32_socketcall)
+		{
+			socketcall_syscall_id = __NR_ia32_socketcall;
+		}
+		else
+		{
+			/*
+			 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+			 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+			 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+			 * which is a very old syscall, not used anymore by most applications
+			 */
+#ifdef __NR_execveat
+			if(id != __NR_execve && id != __NR_execveat)
+#else
+			if(id != __NR_execve)
+#endif
+			{
+				id = convert_ia32_to_64(id);
+				if(id == -1)
+				{
+					return 0;
+				}
+			}
+		}
+#else
+		// Unsupported arch
+		return 0;
+#endif
+	}
+	else
+	{
+#ifdef __NR_socketcall
+		socketcall_syscall_id = __NR_socketcall;
+#endif
+	}
+
+	if(id == socketcall_syscall_id)
+	{
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+		bool is_syscall_return = false;
+		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
+		if (return_code == -1)
+		{
+			// Wrong SYS_ argument passed. Drop the syscall.
+			return 0;
+		}
+		if(!is_syscall_return)
+		{
+			evt_type = return_code + 1; // we are in sys_exit!
+			drop_flags = UF_USED;
+		}
+		else
+		{
+			id = return_code;
+		}
+#else
+		// We do not support socketcall when raw tracepoints are not supported.
+		return 0;
+#endif
+	}
+
+	if(evt_type == -1)
+	{
+		enabled = is_syscall_interesting(id);
+		if(!enabled)
+		{
+			return 0;
+		}
+		sc_evt = get_syscall_info(id);
+		if(!sc_evt)
+			return 0;
+
+		if(sc_evt->flags & UF_USED)
+		{
+			evt_type = sc_evt->exit_event_type;
+			drop_flags = sc_evt->flags;
+		}
+		else
+		{
+			evt_type = PPME_GENERIC_X;
+			drop_flags = UF_ALWAYS_DROP;
+		}
+	}
+
 	settings = get_bpf_settings();
 	if (!settings)
 		return 0;
 
-	if (!settings->capture_enabled)
-		return 0;
-
-	sc_evt = get_syscall_info(id);
-	if (!sc_evt)
-		return 0;
-
-	if (sc_evt->flags & UF_UNINTERESTING)
-		return 0;
-
-	if (sc_evt->flags & UF_USED) {
-		evt_type = sc_evt->exit_event_type;
-		drop_flags = sc_evt->flags;
-	} else {
-		evt_type = PPME_GENERIC_X;
-		drop_flags = UF_ALWAYS_DROP;
+	// Drop failed syscalls if necessary
+	if (settings->drop_failed)
+	{
+		retval = bpf_syscall_get_retval(ctx);
+		if (retval < 0)
+		{
+			return 0;
+		}
 	}
 
-	call_filler(ctx, ctx, evt_type, settings, drop_flags);
+#if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
+	if(bpf_drop_syscall_exit_events(ctx, evt_type))
+		return 0;
+#endif
+
+	call_filler(ctx, ctx, evt_type, drop_flags, socketcall_syscall_id);
 	return 0;
 }
 
 BPF_PROBE("sched/", sched_process_exit, sched_process_exit_args)
 {
-	struct scap_bpf_settings *settings;
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 	struct task_struct *task;
 	unsigned int flags;
 
@@ -139,59 +283,30 @@ BPF_PROBE("sched/", sched_process_exit, sched_process_exit_args)
 	if (flags & PF_KTHREAD)
 		return 0;
 
-	settings = get_bpf_settings();
-	if (!settings)
-		return 0;
-
-	if (!settings->capture_enabled)
-		return 0;
-
 	evt_type = PPME_PROCEXIT_1_E;
 
-	call_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP);
+	call_filler(ctx, ctx, evt_type, UF_NEVER_DROP, -1);
 	return 0;
 }
 
 BPF_PROBE("sched/", sched_switch, sched_switch_args)
 {
-	struct scap_bpf_settings *settings;
-	enum ppm_event_type evt_type;
-
-	settings = get_bpf_settings();
-	if (!settings)
-		return 0;
-
-	if (!settings->capture_enabled)
-		return 0;
+	ppm_event_code evt_type;
 
 	evt_type = PPME_SCHEDSWITCH_6_E;
 
-	call_filler(ctx, ctx, evt_type, settings, 0);
+	call_filler(ctx, ctx, evt_type, 0, -1);
 	return 0;
 }
 
-#ifndef __aarch64__
-/* Page fault tracepoints are not defined in ARM64, so
- * we don't inject anything into the kernel.
- */
+#ifdef CAPTURE_PAGE_FAULTS
 static __always_inline int bpf_page_fault(struct page_fault_args *ctx)
 {
-	struct scap_bpf_settings *settings;
-	enum ppm_event_type evt_type;
-
-	settings = get_bpf_settings();
-	if (!settings)
-		return 0;
-
-	if (!settings->page_faults)
-		return 0;
-
-	if (!settings->capture_enabled)
-		return 0;
+	ppm_event_code evt_type;
 
 	evt_type = PPME_PAGE_FAULT_E;
 
-	call_filler(ctx, ctx, evt_type, settings, UF_ALWAYS_DROP);
+	call_filler(ctx, ctx, evt_type, UF_ALWAYS_DROP, -1);
 	return 0;
 }
 
@@ -208,37 +323,21 @@ BPF_PROBE("exceptions/", page_fault_kernel, page_fault_args)
 
 BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 {
-	struct scap_bpf_settings *settings;
-	enum ppm_event_type evt_type;
-
-	settings = get_bpf_settings();
-	if (!settings)
-		return 0;
-
-	if (!settings->capture_enabled)
-		return 0;
+	ppm_event_code evt_type;
 
 	evt_type = PPME_SIGNALDELIVER_E;
 
-	call_filler(ctx, ctx, evt_type, settings, UF_ALWAYS_DROP);
+	call_filler(ctx, ctx, evt_type, UF_ALWAYS_DROP, -1);
 	return 0;
 }
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
-__bpf_section(TP_NAME "sched/sched_process_fork")
+__bpf_section(TP_NAME "sched/sched_process_fork&1")
 int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 {
-	struct scap_bpf_settings *settings;
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 	struct sys_stash_args args;
 	unsigned long *argsp;
-
-	settings = get_bpf_settings();
-	if (!settings)
-		return 0;
-
-	if (!settings->capture_enabled)
-		return 0;
 
 	argsp = __unstash_args(ctx->parent_pid);
 	if (!argsp)
@@ -252,49 +351,12 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 }
 #endif
 
-#ifdef __aarch64__
-/* This section explains why we need two additional `raw_tracepoint`
- * in ARM64 architectures. Right now, we catch information from all
- * syscalls with `sys_enter` and `sys_exit` tracepoint. In x86 we are
- * able to catch all the information we want through these tracepoints
- * but in ARM64 we cannot do the same thing.
- * More precisely we are not able to catch 2 main events:
- * 
- * - `execve` exit event.
- * - `clone` child exit event.
- * 
- * Here https://www.spinics.net/lists/linux-trace/msg01001.html
- * you can find a brief description of the problem.
- * 
- * This exit events don't call the `sys_exit` tracepoint and so our
- * bpf programs are not called. These events are really important so
- * in order to not lose them, we use 2 new tracepoints: 
- * 
- * - `sched_process_exec`: we catch every process that correctly performs
- *                         an execve call.
- * - `sched_process_fork`: we catch every new process that is spawned.
- * 
- * Please note: we need to use raw_tracepoint programs in order to access
- * the raw tracepoint arguments! This is not so relevant for `sched_process_exec`
- * since we can access all needed information from the current task, but it is
- * essential for `sched_process_fork` since the only way we have to access the
- * child task struct is through the raw tracepoint arguments.
- * 
- * Since we need to use `BPF_PROG_TYPE_RAW_TRACEPOINT`, the ARM64 support for our
- * BPF probe requires kernel versions greater or equal than `4.17`. If you run old kernels, 
- * you can use the kernel module which requires kernel versions greater or equal than `3.4`.
- */
-
-/* This macro `BPF_PROBE()` is equivalent to:
- *
- * __bpf_section(raw_tracepoint/sched_process_exec)
- * int bpf_sched_process_exec(struct sched_process_exec_raw_args *ctx)
- */
-BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
+#ifdef CAPTURE_SCHED_PROC_EXEC
+BPF_PROBE("sched/", sched_process_exec, sched_process_exec_args)
 {
 	struct scap_bpf_settings *settings;
 	/* We will always send an execve exit event. */
-	enum ppm_event_type event_type = PPME_SYSCALL_EXECVE_19_X;
+	ppm_event_code event_type = PPME_SYSCALL_EXECVE_19_X;
 
 	/* We are not interested in kernel threads. */
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
@@ -304,17 +366,16 @@ BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 		return 0;
 	}
 
-	/* Check if the capture is enabled. */
-	settings = get_bpf_settings();
-	if(!(settings && settings->capture_enabled))
-	{
-		return 0;
-	}
-
 	/* Reset the tail context in the CPU state map. */
 	uint32_t cpu = bpf_get_smp_processor_id();
 	struct scap_bpf_per_cpu_state * state = get_local_state(cpu);
 	if(!state)
+	{
+		return 0;
+	}
+
+	settings = get_bpf_settings();
+	if(!settings)
 	{
 		return 0;
 	}
@@ -330,12 +391,15 @@ BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 		   filler_code);	
 	return 0;
 }
+#endif /* CAPTURE_SCHED_PROC_EXEC */
 
-BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
+#ifdef CAPTURE_SCHED_PROC_FORK
+__bpf_section("raw_tracepoint/sched_process_fork&2")
+int bpf_sched_process_fork(struct sched_process_fork_raw_args *ctx)
 {
 	struct scap_bpf_settings *settings;
 	/* We will always send a clone exit event. */
-	enum ppm_event_type event_type = PPME_SYSCALL_CLONE_20_X;
+	ppm_event_code event_type = PPME_SYSCALL_CLONE_20_X;
 
 	/* We are not interested in kernel threads. */
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
@@ -345,17 +409,16 @@ BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
 		return 0;
 	}
 
-	/* Check if the capture is enabled. */
-	settings = get_bpf_settings();
-	if(!(settings && settings->capture_enabled))
-	{
-		return 0;
-	}
-
 	/* Reset the tail context in the CPU state map. */
 	uint32_t cpu = bpf_get_smp_processor_id();
 	struct scap_bpf_per_cpu_state * state = get_local_state(cpu);
 	if(!state)
+	{
+		return 0;
+	}
+
+	settings = get_bpf_settings();
+	if(!settings)
 	{
 		return 0;
 	}
@@ -370,11 +433,11 @@ BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
 		   filler_code);	
 	return 0;
 }
-#endif
+#endif /* CAPTURE_SCHED_PROC_FORK */
 
 char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
 
-char __license[] __bpf_section("license") = "GPL";
+char __license[] __bpf_section("license") = "Dual MIT/GPL";
 
 char probe_ver[] __bpf_section("probe_version") = DRIVER_VERSION;
 

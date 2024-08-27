@@ -1,0 +1,70 @@
+name: Test drivers build against latest mainline kernel in archlinux
+
+on:
+  workflow_dispatch:
+    inputs:
+      linux-version:
+        description: 'Archlinux kernel version to build a driver against, eg: 6.2.arch1-1 or empty to build latest mainline'
+        required: false
+        type: string
+  schedule:
+    - cron: '0 8 * * *' # every day at 8am
+
+jobs:
+  build-latest-kernel:
+    name: build-latest-kernel
+    runs-on: ubuntu-latest
+    container:
+      image: falcosecurity/driverkit:latest
+    steps:
+      - name: Checkout Archlinux mainline package ⤵️
+        run: |
+          apk update && apk add git
+          git clone https://aur.archlinux.org/linux-mainline.git linux/
+    
+      - name: Generate driverkit config
+        id: latest-version
+        # Note: in case we are building latest mainline,
+        # we grep the linux-mainline aur PKGBUILD "_tag" line, that is made like: "_tag=v6.4-rc1"
+        # We then need to extract the part after the "=" and finally remove the starting "v".
+        run: |    
+          cd linux/
+          echo "kernelversion: 1" > dk.yaml
+          echo "architecture: amd64" >> dk.yaml
+          echo "driverversion: ${{ github.sha }}" >> dk.yaml
+          echo "output:" >> dk.yaml
+          echo "  module: mod.ko" >> dk.yaml
+          echo "  probe: probe.o" >> dk.yaml
+          if [ "${{ inputs.linux-version }}" = "" ]; then
+            krel=$(grep "_tag" PKGBUILD | head -n1 | awk -F"=" '{print $2}')
+            echo "kernelrelease: ${krel:1}" >> dk.yaml
+            echo "target: vanilla" >> dk.yaml
+            echo "kernelconfigdata: \"$(cat config | base64 | tr -d '\n')\"" >> dk.yaml
+          else
+            echo "kernelrelease: ${{ inputs.linux-version }}" >> dk.yaml
+            echo "target: arch" >> dk.yaml
+          fi
+          echo "latest_vers=$(grep kernelrelease dk.yaml | awk -F": " '{print $2}')" >> $GITHUB_OUTPUT
+      
+      - name: Upload driverkit config
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: driverkit_config.yaml
+          path: linux/dk.yaml
+          
+      - name: Test drivers build
+        id: build
+        run: |
+          echo "Testing build of drivers against: ${{ steps.latest-version.outputs.latest_vers }}"
+          driverkit docker -c linux/dk.yaml -l debug
+          
+      - name: Update README badge
+        uses: schneegans/dynamic-badges-action@e9a478b16159b4d31420099ba146cdc50f134483 # v1.7.0
+        if: always() && github.event_name == 'schedule'
+        with:
+          auth: ${{ secrets.FEDEDP_GIST_SECRET }}
+          gistID: 1cbc5d42edf8e3a02fb75e76625f1072
+          filename: kernel.json
+          label: Drivers build
+          message: ${{ steps.latest-version.outputs.latest_vers }}
+          color: ${{ steps.build.outcome != 'success' && 'red' || 'brightgreen' }}

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,10 +19,18 @@ limitations under the License.
 #include <stdio.h>
 #include <stdint.h>
 
-#include "devset.h"
-#include "../../../driver/ppm_ringbuffer.h"
-#include "barrier.h"
-#include "sleep.h"
+#include <libscap/ringbuffer/devset.h>
+#include <libscap/ringbuffer/ringbuffer_dump.h>
+#include <driver/ppm_ringbuffer.h>
+#include <libscap/scap_barrier.h>
+#include <libscap/scap_sleep.h>
+
+/* Check buffer dimension in bytes. 
+ * Our 2 eBPF probes require that this number is a power of 2! Right now we force this
+ * constraint to all our drivers (also the kernel module and udig) just for conformity.
+ */
+int32_t check_buffer_bytes_dim(char* error, unsigned long buf_bytes_dim);
+
 
 #ifndef GET_BUF_POINTERS
 #define GET_BUF_POINTERS ringbuffer_get_buf_pointers
@@ -33,7 +42,7 @@ static inline void ringbuffer_get_buf_pointers(scap_device* dev, uint64_t* phead
 
 	if(*ptail > *phead)
 	{
-		*pread_size = RING_BUF_SIZE - *ptail + *phead;
+		*pread_size = dev->m_buffer_size - *ptail + *phead;
 	}
 	else
 	{
@@ -63,13 +72,13 @@ static inline void ringbuffer_advance_tail(struct scap_device* dev)
 	//
 	mem_barrier();
 
-	if(ttail < RING_BUF_SIZE)
+	if(ttail < dev->m_buffer_size)
 	{
 		dev->m_bufinfo->tail = ttail;
 	}
 	else
 	{
-		dev->m_bufinfo->tail = ttail - RING_BUF_SIZE;
+		dev->m_bufinfo->tail = ttail - dev->m_buffer_size;
 	}
 
 	dev->m_lastreadsize = 0;
@@ -78,7 +87,11 @@ static inline void ringbuffer_advance_tail(struct scap_device* dev)
 
 #ifndef READBUF
 #define READBUF ringbuffer_readbuf
-static inline int32_t ringbuffer_readbuf(struct scap_device *dev, OUT char** buf, OUT uint32_t* len)
+/**
+ * \param buf [out] buffer holding the returned data
+ * \param len [out] number of bytes read into buf
+ */
+static inline int32_t ringbuffer_readbuf(struct scap_device *dev, char** buf, uint32_t* len)
 {
 	uint64_t thead;
 	uint64_t ttail;
@@ -118,6 +131,9 @@ static inline uint64_t buf_size_used(scap_device* dev)
 	return read_size;
 }
 
+/* if at least one buffer has more than `BUFFER_EMPTY_THRESHOLD_B` return false
+ * otherwise return true and consider all the buffers empty.
+ */
 static inline bool are_buffers_empty(struct scap_device_set *devset)
 {
 	uint32_t j;
@@ -149,10 +165,7 @@ static inline int32_t refill_read_buffers(struct scap_device_set *devset)
 		devset->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 	}
 
-	//
-	// Refill our data for each of the devices
-	//
-
+	/* In any case (potentially also after a `sleep`) we refill our buffers */
 	for(j = 0; j < ndevs; j++)
 	{
 		struct scap_device *dev = &(devset->m_devs[j]);
@@ -167,11 +180,7 @@ static inline int32_t refill_read_buffers(struct scap_device_set *devset)
 		}
 	}
 
-	//
-	// Note: we might return a spurious timeout here in case the previous loop extracted valid data to parse.
-	//       It's ok, since this is rare and the caller will just call us again after receiving a
-	//       SCAP_TIMEOUT.
-	//
+	/* Return `SCAP_TIMEOUT` after a refill so we can start consuming the new events. */
 	return SCAP_TIMEOUT;
 }
 
@@ -193,26 +202,69 @@ static inline void ringbuffer_advance_to_evt(scap_device* dev, scap_evt *event)
 }
 #endif
 
-static inline int32_t ringbuffer_next(struct scap_device_set *devset, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+/**
+ * \brief Get next event in the ringbuffer
+ *
+ * The flow here is:
+ * - For every buffer, read how many data are available and save the pointer + its length. (this is what we call a block)
+ * - Consume from all these blocks the event with the lowest timestamp. (repeat until all the blocks are empty!)
+ *   When we have read all the data from a buffer block, update the consumer position for that buffer, and wait
+ *   for all the other buffer blocks to be read.
+ * - When we have consumed all the blocks we are ready to read again a new block for every buffer
+ *
+ * Possible pain points:
+ * - if the buffers are not full enough we sleep and this could be dangerous in this situation!
+ * - we increase the consumer position only when we have consumed the entire block, but if the block
+ *   is huge we could cause several drops.
+ * - before refilling a buffer we have to consume all the others!
+ * - we perform a lot of cycles but we have to be super fast here!
+ *
+ * \param pevent [out] where the pointer to the next event gets stored
+ * \param pdevid [out] where the device on which the event was received
+ *               gets stored
+ * \param pflags [out] where the flags for the event get stored
+ */
+static inline int32_t ringbuffer_next(struct scap_device_set* devset, scap_evt** pevent, uint16_t* pdevid,
+				      uint32_t* pflags)
 {
 	uint32_t j;
-	uint64_t max_ts = 0xffffffffffffffffLL;
+	uint64_t min_ts = 0xffffffffffffffffLL;
 	scap_evt* pe = NULL;
 	uint32_t ndevs = devset->m_ndevs;
 
-	*pcpuid = 65535;
+	*pdevid = 65535;
 
 	for(j = 0; j < ndevs; j++)
 	{
 		scap_device* dev = &(devset->m_devs[j]);
 
+		/* `dev->m_sn_len` and `dev->m_lastreadsize` initially contain the dimension
+		 * of the full buffer block we have read in `refill_read_buffers`.
+		 * The difference is that `dev->m_sn_len` is decreased at every new event
+		 * that we read while `dev->m_lastreadsize` preserve the block dimension since
+		 * it will be used to move the consumer position in `ADVANCE_TAIL`.
+		 * 
+		 * Note that even if we have consumed the entire block for this buffer we don't refill
+		 * it immediately but we wait for all other buffers!
+		 */ 
 		if(dev->m_sn_len == 0)
 		{
-			//
-			// If we don't have data from this ring, but we are
-			// still occupying, free the resources for the
-			// producer rather than sitting on them.
-			//
+			/* If we don't have data from this ring, but we are
+			 * still occupying, free the resources for the
+			 * producer rather than sitting on them.
+			 * 
+			 * Please note: this is the unique point in which
+			 * we move the consumer position. We move the consumer
+			 * position only when we have consumed all the block
+			 * previously read in `refill_read_buffers`.
+			 * 
+			 * This could be quite dangerous if we read huge blocks
+			 * because we have to read the entire block before increasing
+			 * the consumer!
+			 * 
+			 * `dev->m_lastreadsize` this contains the full length of the entire 
+			 * block we have just consumed.
+			 */
 			if(dev->m_lastreadsize > 0)
 			{
 				ADVANCE_TAIL(dev);
@@ -221,49 +273,46 @@ static inline int32_t ringbuffer_next(struct scap_device_set *devset, OUT scap_e
 			continue;
 		}
 
+		/* Get the next event from the block */
 		pe = NEXT_EVENT(dev);
 
-		//
-		// We want to consume the event with the lowest timestamp
-		//
-		if(pe->ts < max_ts)
+		/* Search the event with the lower timestamp */
+		if(pe->ts < min_ts)
 		{
+			/* if the event length is greater than the remaining size in our block there is something wrong! */
 			if(pe->len > dev->m_sn_len)
 			{
 				snprintf(devset->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
+				dump_ringbuffer(dev);
 
-				//
-				// if you get the following assertion, first recompile the driver and libscap
-				//
+				/* if you get the following assertion, first recompile the driver and `libscap` */
 				ASSERT(false);
 				return SCAP_FAILURE;
 			}
 
 			*pevent = pe;
-			*pcpuid = j;
-			max_ts = pe->ts;
+			*pdevid = j;
+			min_ts = pe->ts;
 		}
 	}
 
-	//
-	// Check which buffer has been picked
-	//
-	if(*pcpuid != 65535)
+	if(*pdevid != 65535)
 	{
-		struct scap_device *dev = &devset->m_devs[*pcpuid];
-
-		//
-		// Update the pointers.
-		//
+		/* Check from which buffer we have read and move the position inside
+	 	 * the block with `ADVANCE_TO_EVT`
+	 	 */
+		struct scap_device* dev = &devset->m_devs[*pdevid];
 		ADVANCE_TO_EVT(dev, (*pevent));
+
+		// we don't really store the flags in the ringbuffer anywhere
+		*pflags = 0;
 		return SCAP_SUCCESS;
 	}
 	else
 	{
-		//
-		// All the buffers have been consumed. Check if there's enough data to keep going or
-		// if we should wait.
-		//
+		/* If there are enough new data read again one block for every buffer
+		 * otherwise sleep!
+		 */
 		return refill_read_buffers(devset);
 	}
 }

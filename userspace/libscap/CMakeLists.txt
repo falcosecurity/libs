@@ -1,5 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2022 The Falco Authors.
+# Copyright (C) 2023 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,26 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../common")
+
+include(engine_config)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
-if(NOT MSVC)
-	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-		add_definitions(-DHAS_CAPTURE)
-	endif()
-else() # MSVC
-	# todo(leogr): this should be removed - double check
-	add_definitions(-DHAS_CAPTURE)
-endif()
-
 include(ExternalProject)
 
-if(WIN32 OR NOT MINIMAL_BUILD)
-	include(zlib)
-endif()
+include(zlib)
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
+add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
+add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -46,157 +39,201 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 	string(REPLACE "-" "_" SCAP_KERNEL_MODULE_NAME "${DRIVER_NAME}")
 	add_definitions(-DSCAP_KERNEL_MODULE_NAME="${SCAP_KERNEL_MODULE_NAME}")
-
-	if(NOT DEFINED SCAP_PROBE_BPF_FILEPATH)
-		# note that the home folder is prepended by scap at runtime
-		set(SCAP_PROBE_BPF_FILEPATH ".${DRIVER_NAME}/${DRIVER_NAME}-bpf.o")
-	endif()
-	add_definitions(-DSCAP_PROBE_BPF_FILEPATH="${SCAP_PROBE_BPF_FILEPATH}")
 endif()
-
-if(NOT DEFINED SCAP_BPF_PROBE_ENV_VAR_NAME)
-	set(SCAP_BPF_PROBE_ENV_VAR_NAME "BPF_PROBE")
-endif()
-add_definitions(-DSCAP_BPF_PROBE_ENV_VAR_NAME="${SCAP_BPF_PROBE_ENV_VAR_NAME}")
 
 if(NOT DEFINED SCAP_HOST_ROOT_ENV_VAR_NAME)
 	set(SCAP_HOST_ROOT_ENV_VAR_NAME "HOST_ROOT")
 endif()
 add_definitions(-DSCAP_HOST_ROOT_ENV_VAR_NAME="${SCAP_HOST_ROOT_ENV_VAR_NAME}")
 
-if (DEFINED SCAP_BPF_PROGS_MAX)
-	add_definitions(-DBPF_PROGS_MAX=${SCAP_BPF_PROGS_MAX})
+if(NOT DEFINED SCAP_HOSTNAME_ENV_VAR)
+	set(SCAP_HOSTNAME_ENV_VAR "SCAP_HOSTNAME")
+endif()
+add_definitions(-DSCAP_HOSTNAME_ENV_VAR="${SCAP_HOSTNAME_ENV_VAR}")
+
+if (DEFINED SCAP_BPF_PROGS_TAIL_CALLED_MAX)
+	add_definitions(-DBPF_PROGS_TAIL_CALLED_MAX=${SCAP_BPF_PROGS_TAIL_CALLED_MAX})
 endif()
 
-if(CYGWIN)
-include_directories("${WIN_HAL_INCLUDE}")
-endif()
 
-list(APPEND targetfiles
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_strl_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/scap_strl_config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/scap_config.h)
+
+
+add_library(scap_error STATIC strerror.c)
+
+target_include_directories(scap_error PUBLIC $<BUILD_INTERFACE:${LIBS_DIR}/userspace>)
+
+add_library(scap
 	scap.c
+	scap_api_version.c
+	scap_savefile.c
+	scap_platform_api.c
+)
+
+target_include_directories(scap
+PUBLIC
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}>
+)
+
+set_scap_target_properties(scap)
+
+add_library(scap_platform_util STATIC
+	scap_platform.c
 	scap_fds.c
 	scap_iflist.c
-	scap_savefile.c
+	scap_proc_util.c
 	scap_procs.c
-	scap_userlist.c)
+	scap_userlist.c
+)
+add_dependencies(scap_platform_util uthash)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
-    include_directories(${PROJECT_BINARY_DIR}/driver/src)
-endif()
+target_include_directories(scap_platform_util
+PUBLIC
+	$<BUILD_INTERFACE:${LIBS_DIR}>
+	$<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+)
 
-if(CYGWIN OR WIN32)
-	list(APPEND targetfiles
-		windows_hal.c)
-endif()
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-add_library(scap STATIC
-	${targetfiles})
-
-if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
-	add_dependencies(scap zlib)
-endif()
-
-if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
-	target_link_libraries(scap
-		socket nsl)
-elseif (WIN32)
-	target_link_libraries(scap
-		Ws2_32.lib)
-elseif (CYGWIN)
-	target_link_libraries(scap
-		/lib/w32api/libpsapi.a
-		${WIN_HAL_LIB}/dragent_win_hal.lib)
-endif()
-
-if(NOT MINIMAL_BUILD)
 target_link_libraries(scap
-	"${ZLIB_LIB}")
-endif()
+PRIVATE
+	scap_error
+	"${ZLIB_LIB}"
+)
+
+add_library(scap_event_schema STATIC
+	scap_event.c
+	ppm_sc_names.c
+	${LIBS_DIR}/driver/dynamic_params_table.c
+	${LIBS_DIR}/driver/event_table.c
+	${LIBS_DIR}/driver/flags_table.c
+	${LIBS_DIR}/driver/syscall_table64.c
+	${LIBS_DIR}/driver/syscall_ia32_64_map.c
+	linux/scap_ppm_sc.c
+)
+
+add_dependencies(scap_event_schema uthash)
+
+target_include_directories(scap_event_schema
+PUBLIC
+	$<BUILD_INTERFACE:${LIBS_DIR}>
+	$<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+)
+
+target_link_libraries(scap PUBLIC scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
-
-    if (BUILD_LIBSCAP_EXAMPLES)
-        add_subdirectory(examples/01-open)
-        add_subdirectory(examples/02-validatebuffer)
-    endif()
-
+	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 	include(FindMakedev)
-endif()
 
-# gVisor is currently only supported on Linux x86_64
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux" AND NOT MINIMAL_BUILD)
-	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
-	if (BUILD_LIBSCAP_GVISOR)
-		add_definitions(-DHAS_ENGINE_GVISOR)
-		add_subdirectory(engine/gvisor)
-		target_link_libraries(scap scap_engine_gvisor)
-	endif()
-endif()
-
-option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
-
-if(CREATE_TEST_TARGETS AND NOT WIN32)
-		# Add unit test directories
-		add_subdirectory(test)
-endif()
-
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_subdirectory(linux)
-	include_directories(linux)
-elseif(WIN32)
-	add_subdirectory(win32)
-	include_directories(win32)
-elseif(APPLE)
-	add_subdirectory(macos)
-	include_directories(macos)
+	target_link_libraries(scap PUBLIC scap_platform)
+
+
+	add_library(driver_event_schema STATIC
+		${LIBS_DIR}/driver/fillers_table.c)
+
+	target_link_libraries(scap_event_schema driver_event_schema)
+
+
+	add_library(scap_engine_util STATIC
+		scap_engine_util.c
+		ringbuffer/devset.c
+		ringbuffer/ringbuffer.c
+		ringbuffer/ringbuffer_dump.c
+	)
+	add_dependencies(scap_engine_util uthash)
+	target_include_directories(scap_engine_util
+	PUBLIC
+		$<BUILD_INTERFACE:${LIBS_DIR}>
+		$<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+		$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+	)
+	target_link_libraries(scap PRIVATE scap_engine_util)
 endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_library(scap_event_schema
-		scap_event.c
-		syscall_info_table.c
-		../../driver/dynamic_params_table.c
-		../../driver/event_table.c
-		../../driver/flags_table.c
-		../../driver/syscall_table.c
-		../../driver/fillers_table.c)
 
-	target_link_libraries(scap scap_event_schema)
-endif()
+################## LISCAP ENGINES ##################
 
-add_library(scap_engine_util
-	scap_engine_util.c
-	ringbuffer/devset.c)
-
-target_link_libraries(scap scap_engine_util)
-
-add_definitions(-DHAS_ENGINE_NOOP)
 add_subdirectory(engine/noop)
 # don't link the noop engine to libscap directly,
 # it's a helper library for other engines (it's completely useless on its own)
 
-add_definitions(-DHAS_ENGINE_NODRIVER)
-add_subdirectory(engine/nodriver)
-target_link_libraries(scap scap_engine_nodriver)
+if(HAS_ENGINE_NODRIVER)
+	add_subdirectory(engine/nodriver)
+	target_link_libraries(scap PUBLIC scap_engine_nodriver)
+endif()
 
-add_definitions(-DHAS_ENGINE_SOURCE_PLUGIN)
-add_subdirectory(engine/source_plugin)
-target_link_libraries(scap scap_engine_source_plugin)
+if(HAS_ENGINE_TEST_INPUT)
+	# Add engine only used for testing
+	add_subdirectory(engine/test_input)
+	target_link_libraries(scap PUBLIC scap_engine_test_input)
+endif()
 
-add_definitions(-DHAS_ENGINE_UDIG)
-add_subdirectory(engine/udig)
-target_link_libraries(scap scap_engine_udig)
+if(HAS_ENGINE_SAVEFILE)
+	add_subdirectory(engine/savefile)
+	target_link_libraries(scap PUBLIC scap_engine_savefile)
+endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_definitions(-DHAS_ENGINE_BPF)
-	add_subdirectory(engine/bpf)
-	target_link_libraries(scap scap_engine_bpf)
+if(HAS_ENGINE_SOURCE_PLUGIN)
+	add_subdirectory(engine/source_plugin)
+	target_link_libraries(scap PUBLIC scap_engine_source_plugin)
+endif()
 
-	add_definitions(-DHAS_ENGINE_KMOD)
+if(HAS_ENGINE_KMOD)
 	add_subdirectory(engine/kmod)
-	target_link_libraries(scap scap_engine_kmod)
+	target_link_libraries(scap PUBLIC scap_engine_kmod)
+	target_include_directories(scap_engine_kmod
+	PRIVATE
+		${PROJECT_BINARY_DIR}/driver/src
+	)
+endif()
+
+if(HAS_ENGINE_BPF)
+	include(libelf)
+	add_subdirectory(engine/bpf)
+	target_link_libraries(scap PUBLIC scap_engine_bpf)
+	target_include_directories(scap_engine_bpf
+	PRIVATE
+		${PROJECT_BINARY_DIR}/driver/src
+	)
+endif()
+
+if(HAS_ENGINE_MODERN_BPF)
+	include(libelf)
+	add_subdirectory(engine/modern_bpf)
+	target_link_libraries(scap PUBLIC scap_engine_modern_bpf)
+	target_include_directories(scap_engine_modern_bpf
+	PRIVATE
+		${PROJECT_BINARY_DIR}/driver/src
+	)
+endif()
+
+if(HAS_ENGINE_GVISOR)
+	add_subdirectory(engine/gvisor)
+	# The static and shared build differs here because a shared scap_engine_gvisor
+	# will result in circular dependencies.
+	if(BUILD_SHARED_LIBS)
+		# We can move this to the gvisor CMakeFile when we use
+		# CMake 3.13 or later.
+		# https://cmake.org/cmake/help/latest/policy/CMP0079.html
+		target_link_libraries(scap
+		PRIVATE
+			${CMAKE_THREAD_LIBS_INIT}
+			${PROTOBUF_LIB}
+			${JSONCPP_LIB}
+		)
+	else()
+		target_link_libraries(scap PRIVATE scap_engine_gvisor)
+	endif()
+endif()
+
+####################################################
+
+if (BUILD_LIBSCAP_EXAMPLES)
+	add_subdirectory(examples/01-open)
+	add_subdirectory(examples/02-validatebuffer)
 endif()

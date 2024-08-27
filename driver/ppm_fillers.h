@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -10,32 +11,21 @@ or GPL2.txt for full copies of the license.
 #ifndef PPM_FILLERS_H_
 #define PPM_FILLERS_H_
 
-/* This is described in syscall(2). Some syscalls take 64-bit arguments. On
- * arches that have 64-bit registers, these arguments are shipped in a register.
- * On 32-bit arches, however, these are split between two consecutive registers,
- * with some alignment requirements. Some require an odd/even pair while some
- * others require even/odd. For now I assume they all do what x86_32 does, and
- * we can handle the rest when we port those.
- */
-#ifdef __KERNEL__
-#ifdef CONFIG_64BIT
-	#define _64BIT_ARGS_SINGLE_REGISTER
-#endif /* CONFIG_64BIT */
-#else
-#if defined(__x86_64__) || defined(__aarch64__)
-	#define _64BIT_ARGS_SINGLE_REGISTER
-#endif /* __x86_64__ */
-#endif /* __KERNEL__ */
-
 #define FILLER_LIST_MAPPER(FN)			\
 	FN(sys_autofill)			\
 	FN(sys_generic)				\
 	FN(sys_empty)				\
+	FN(sys_getcwd_x)			\
+	FN(sys_getdents_e)			\
+	FN(sys_getdents64_e)			\
 	FN(sys_single)				\
 	FN(sys_single_x)			\
+	FN(sys_fstat_e)				\
 	FN(sys_open_e)				\
 	FN(sys_open_x)				\
+	FN(sys_read_e)				\
 	FN(sys_read_x)				\
+	FN(sys_write_e)				\
 	FN(sys_write_x)				\
 	FN(sys_execve_e)			\
 	FN(proc_startupdate)			\
@@ -68,20 +58,23 @@ or GPL2.txt for full copies of the license.
 	FN(sys_poll_e)				\
 	FN(sys_poll_x)				\
 	FN(sys_pread64_e)			\
-	FN(sys_preadv64_e)			\
 	FN(sys_writev_e)			\
 	FN(sys_pwrite64_e)			\
+	FN(sys_readv_e)				\
+	FN(sys_preadv_e)			\
 	FN(sys_readv_preadv_x)			\
 	FN(sys_writev_pwritev_x)		\
 	FN(sys_pwritev_e)			\
 	FN(sys_nanosleep_e)			\
 	FN(sys_getrlimit_setrlimit_e)		\
-	FN(sys_getrlimit_setrlrimit_x)		\
+	FN(sys_getrlimit_x)		\
+	FN(sys_setrlimit_x)		\
 	FN(sys_prlimit_e)			\
 	FN(sys_prlimit_x)			\
 	FN(sched_switch_e)			\
 	FN(sched_drop)				\
 	FN(sys_fcntl_e)				\
+	FN(sys_fcntl_x)				\
 	FN(sys_ptrace_e)			\
 	FN(sys_ptrace_x)			\
 	FN(sys_mmap_e)				\
@@ -114,6 +107,10 @@ or GPL2.txt for full copies of the license.
 	FN(sys_fchmodat_x)			\
 	FN(sys_chmod_x)				\
 	FN(sys_fchmod_x)			\
+	FN(sys_chown_x)				\
+	FN(sys_lchown_x)			\
+	FN(sys_fchown_x)			\
+	FN(sys_fchownat_x)			\
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_e)			\
 	FN(sys_openat_x)			\
@@ -123,11 +120,13 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mprotect_e)			\
 	FN(sys_mprotect_x)			\
 	FN(sys_execveat_e)			\
-	FN(execve_family_flags)		\
+	FN(execve_extra_tail_1)		\
+	FN(execve_extra_tail_2)		\
 	FN(sys_copy_file_range_e)	\
 	FN(sys_copy_file_range_x)	\
 	FN(sys_connect_e)			\
 	FN(sys_open_by_handle_at_x) \
+	FN(open_by_handle_at_x_extra_tail_1) \
 	FN(sys_io_uring_setup_x)		\
 	FN(sys_io_uring_enter_x)		\
 	FN(sys_io_uring_register_x)		\
@@ -143,12 +142,55 @@ or GPL2.txt for full copies of the license.
 	FN(sys_dup_e)				\
 	FN(sys_dup_x)				\
 	FN(sched_prog_exec)			\
-	FN(sched_prog_exec_2)		\
-	FN(sched_prog_exec_3)		\
-	FN(sched_prog_exec_4)		\
+	FN(sched_prog_exec_2)		        \
+	FN(sched_prog_exec_3)		        \
+	FN(sched_prog_exec_4)		        \
+	FN(sched_prog_exec_5)		        \
 	FN(sched_prog_fork)			\
-	FN(sched_prog_fork_2)		\
-	FN(sched_prog_fork_3)		\
+	FN(sched_prog_fork_2)		        \
+	FN(sched_prog_fork_3)		        \
+	FN(sys_mlock2_x)			\
+	FN(sys_fsconfig_x)			\
+	FN(sys_epoll_create_e)                  \
+	FN(sys_epoll_create_x)                  \
+	FN(sys_epoll_create1_e)                 \
+	FN(sys_epoll_create1_x)                 \
+	FN(sys_socket_bind_e)                 \
+	FN(sys_bpf_e)                 \
+	FN(sys_close_e)                 \
+	FN(sys_close_x)                 \
+	FN(sys_fchdir_e)                 \
+	FN(sys_fchdir_x)                 \
+	FN(sys_ioctl_e)                 \
+	FN(sys_mkdir_e)                 \
+	FN(sys_setpgid_e)                 \
+	FN(sys_recvfrom_e)                 \
+	FN(sys_recvmsg_e)                 \
+	FN(sys_listen_e)                  \
+	FN(sys_signalfd_e)                 \
+	FN(sys_splice_e)				\
+	FN(sys_umount_x)				\
+	FN(sys_umount2_e)				\
+	FN(sys_umount2_x)				\
+	FN(sys_pipe2_x)                 \
+	FN(sys_inotify_init_e)          \
+	FN(sys_inotify_init1_x)          \
+	FN(sys_eventfd2_e)          \
+	FN(sys_eventfd2_x)          \
+	FN(sys_signalfd4_e)          \
+	FN(sys_signalfd4_x)          \
+	FN(sys_prctl_x)		 		\
+	FN(sys_memfd_create_x)                 \
+	FN(sys_pidfd_getfd_x)			\
+	FN(sys_pidfd_open_x)				\
+	FN(sys_init_module_x)				\
+	FN(sys_finit_module_x)				\
+	FN(sys_mknod_x)						\
+	FN(sys_mknodat_x)					\
+	FN(sys_newfstatat_x)					\
+	FN(sys_process_vm_readv_x)					\
+	FN(sys_process_vm_writev_x)					\
+	FN(sys_delete_module_x) 			   \
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

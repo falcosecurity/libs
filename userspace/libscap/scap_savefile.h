@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,11 +16,11 @@ limitations under the License.
 
 */
 
+#pragma once
+
 // Force struct alignment
 #if defined _MSC_VER
 #pragma pack(push)
-#pragma pack(1)
-#elif defined __sun
 #pragma pack(1)
 #else
 #pragma pack(push, 1)
@@ -152,8 +153,4 @@ typedef struct _section_header_block
 
 #define EVF_BLOCK_TYPE_V2_LARGE		0x222
 
-#if defined __sun
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif

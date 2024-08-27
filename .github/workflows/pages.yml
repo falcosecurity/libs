@@ -1,0 +1,143 @@
+name: Deploy Github Pages
+on:
+  push:
+    branches: [master]
+      
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  kernel-tests-master:
+    uses: ./.github/workflows/reusable_kernel_tests.yaml
+    secrets: inherit
+
+  perf-libs-master:
+    runs-on: [ "self-hosted", "linux", "X64" ]
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Run perf
+        id: perf
+        uses: ./.github/actions/composite-perf
+
+      - name: Archive master perf report
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: perf_report
+          retention-days: 30 # 30 days because this is the artifact on master; we need to retain it to be able to properly diff it
+          path: |
+            ${{ steps.perf.outputs.perf_tests }}
+            ${{ steps.perf.outputs.perf_scap }}
+            ${{ steps.perf.outputs.heaptrack_tests }}
+            ${{ steps.perf.outputs.heaptrack_scap }}
+          if-no-files-found: error
+
+      - name: Checkout Flamegraph ⤵️
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          repository: 'brendangregg/FlameGraph'
+          path: flamegraph
+          ref: master
+
+      - name: Generate svg file - perf unit tests
+        run: |
+          sudo perf script --dsos unit-test-libsinsp -i ${{ steps.perf.outputs.perf_tests }} > perf_tests.perf
+          ./flamegraph/stackcollapse-perf.pl perf_tests.perf > perf_tests.folded
+          ./flamegraph/flamegraph.pl perf_tests.folded > perf_tests.svg
+
+      - name: Generate svg file - perf scap file
+        run: |
+          sudo perf script --dsos sinsp-example -i ${{ steps.perf.outputs.perf_scap }} > perf_scap.perf
+          ./flamegraph/stackcollapse-perf.pl perf_scap.perf > perf_scap.folded
+          ./flamegraph/flamegraph.pl perf_scap.folded > perf_scap.svg
+
+      - name: Generate svg file - heaptrack unit tests
+        run: |
+          heaptrack_print ${{ steps.perf.outputs.heaptrack_tests }} -F stacks.txt
+          ./flamegraph/flamegraph.pl stacks.txt > heaptrack_tests.svg
+          rm -rf stacks.txt
+
+      - name: Generate svg file - heaptrack scap file
+        run: |
+          heaptrack_print ${{ steps.perf.outputs.heaptrack_scap }} -F stacks.txt
+          ./flamegraph/flamegraph.pl stacks.txt > heaptrack_scap.svg
+          rm -rf stacks.txt
+
+      - name: Upload svg files
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: perf_svg
+          path: '*.svg'
+          if-no-files-found: error
+
+  deploy-pages:
+    needs: [kernel-tests-master,perf-libs-master]
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      
+      - name: Download matrix X64
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_X64
+      
+      - name: Move X64 matrix under docs
+        run: mv matrix.md docs/matrix_X64.md
+      
+      - name: Download matrix ARM64
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: matrix_ARM64
+          
+      - name: Move ARM64 matrix under docs
+        run: mv matrix.md docs/matrix_ARM64.md    
+      
+      - name: Disable Table Of Content for matrixes pages
+        run: |
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_X64.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/matrix_ARM64.md
+
+      - name: Download perf svg files
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: perf_svg
+
+      - name: Generate perf pages
+        run: |
+          mv perf_tests.svg docs/
+          echo '<object data="../perf_tests.svg" type="image/svg+xml" id="perf_unit_tests"></object>' > docs/perf_unit_tests.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/perf_unit_tests.md
+          mv perf_scap.svg docs/
+          echo '<object data="../perf_scap.svg" type="image/svg+xml" id="perf_scap_file"></object>' > docs/perf_scap_file.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/perf_scap_file.md
+          mv heaptrack_tests.svg docs/
+          echo '<object data="../heaptrack_tests.svg" type="image/svg+xml" id="heaptrack_unit_tests"></object>' > docs/heaptrack_unit_tests.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/heaptrack_unit_tests.md
+          mv heaptrack_scap.svg docs/
+          echo '<object data="../heaptrack_scap.svg" type="image/svg+xml" id="heaptrack_scap_file"></object>' > docs/heaptrack_scap_file.md
+          sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/heaptrack_scap_file.md
+
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+        with:
+          python-version: 3.x
+
+      - run: pip install mkdocs mkdocs-material
+      
+      - run: mkdocs build
+      
+      - uses: actions/upload-pages-artifact@a753861a5debcf57bf8b404356158c8e1e33150c # v2.0.0
+        with:
+          path: 'site'
+
+      - id: deployment
+        uses: actions/deploy-pages@9dbe3824824f8a1377b8e298bafde1a50ede43e5 # v2.0.4

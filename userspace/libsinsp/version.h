@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,7 +30,7 @@ limitations under the License.
 class sinsp_version
 {
 public:
-	inline sinsp_version() : m_valid(false) { }
+	inline sinsp_version() : sinsp_version("0.0.0") { }
 
 	inline explicit sinsp_version(const std::string &version_str)
 	{
@@ -37,7 +38,12 @@ public:
 			&m_version_major, &m_version_minor, &m_version_patch) == 3;
 	}
 
-	virtual ~sinsp_version() = default;
+	sinsp_version(sinsp_version&&) = default;
+	sinsp_version& operator = (sinsp_version&&) = default;
+	sinsp_version(const sinsp_version& s) = default;
+	sinsp_version& operator = (const sinsp_version& s) = default;
+
+	~sinsp_version() = default;
 
 	inline std::string as_string() const
 	{
@@ -46,29 +52,92 @@ public:
 			+ "." + std::to_string(m_version_patch);
 	}
 
-	inline bool check(const sinsp_version &requested) const
+	inline bool operator<(sinsp_version const& right) const
 	{
-		if(this->m_version_major != requested.m_version_major)
+		if(this->m_version_major > right.m_version_major)
 		{
-			// major numbers disagree
 			return false;
 		}
 
-		if(this->m_version_minor < requested.m_version_minor)
+		if(this->m_version_major == right.m_version_major)
 		{
-			// framework's minor version is < requested one
-			return false;
+			if(this->m_version_minor > right.m_version_minor)
+			{
+				return false;
+			}
+
+			if(this->m_version_minor == right.m_version_minor && this->m_version_patch >= right.m_version_patch)
+			{
+				return false;
+			}
 		}
 
-		if(this->m_version_minor == requested.m_version_minor
-			&& this->m_version_patch < requested.m_version_patch)
-		{
-			// framework's patch level is < requested one
-			return false;
-		}
 		return true;
 	}
 
+	inline bool operator>(sinsp_version const& right) const
+	{
+		return (*this != right && !(*this < right));
+	}
+
+	inline bool operator==(sinsp_version const& right) const
+	{
+		if(this->m_version_major == right.m_version_major 
+			&& this->m_version_minor == right.m_version_minor
+			&& this->m_version_patch == right.m_version_patch)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	inline bool operator!=(sinsp_version const& right) const
+	{
+		return !(*this == right);
+	}
+
+	inline bool operator>=(sinsp_version const& right) const
+	{
+		return ((*this == right) || (*this > right));
+	}
+
+	inline bool operator<=(sinsp_version const& right) const
+	{
+		return ((*this == right) || (*this < right));
+	}
+
+	inline bool compatible_with(const sinsp_version &requested) const
+	{
+		if(!m_valid || !requested.m_valid)
+		{
+			return false;
+		}
+
+		return (this->m_version_major == requested.m_version_major) && (*this >= requested);
+	}
+
+	inline bool is_valid() const
+	{
+		return m_valid;
+	}
+
+	inline uint32_t major() const
+	{
+		return m_version_major;
+	}
+
+	inline uint32_t minor() const
+	{
+		return m_version_minor;
+	}
+
+	inline uint32_t patch() const
+	{
+		return m_version_patch;
+	}
+
+private:
 	bool m_valid;
 	uint32_t m_version_major;
 	uint32_t m_version_minor;

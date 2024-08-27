@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,23 +18,30 @@ limitations under the License.
 
 #pragma once
 
-#include <string>
-#include <vector>
-#include <list>
-#include <cctype>
-#include <algorithm>
-#include <locale>
-#include <sstream>
+#include <libscap/scap.h>
+#include <libsinsp/sinsp_public.h>
+#include <libsinsp/tuples.h>
 
-#include <tuples.h>
-#include <scap.h>
-#include "json/json.h"
-#include "../common/strlcpy.h"
-#include "../common/types.h"
-#include "sinsp_public.h"
+#include <json/json.h>
+
+#include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <cstring>
+#include <list>
+#include <locale>
+#include <set>
+#include <sstream>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
 
 class sinsp_evttables;
-typedef union _sinsp_sockinfo sinsp_sockinfo;
+union sinsp_sockinfo;
 class filter_check_info;
 
 extern sinsp_evttables g_infotables;
@@ -48,7 +56,6 @@ class sinsp_initializer
 {
 public:
 	sinsp_initializer();
-	~sinsp_initializer();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,29 +80,43 @@ public:
 	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve = false);
 
 	//
-	// Check if string ends with another 
+	// Check if string ends with another
 	//
-	static bool endswith(const std::string& str, const std::string& ending);
-	static bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
+	static inline bool endswith(std::string_view str, std::string_view ending)
+	{
+		if (ending.size() <= str.size())
+		{
+			return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+		}
+		return false;
+	}
+
+	static inline bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend)
+	{
+		if (lstr >= lend)
+		{
+			return (0 == memcmp(ending, str + (lstr - lend), lend));
+		}
+		return 0;
+	}
 
 	//
 	// Check if string starts with another
 	//
-	static bool startswith(const std::string& s, const std::string& prefix);
+	static bool startswith(std::string_view, std::string_view prefix);
 
 	//
-	// Transform a hex string into bytes 
+	// Transform a hex string into bytes
 	//
-	static bool unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes);
+	static bool unhex(std::string_view hex_chars, std::vector<char>& hex_bytes);
 
 	//
-	// Concatenate two paths and puts the result in "target".
-	// If path2 is relative, the concatenation happens and the result is true.
-	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.
-	// Assumes that path1 is well formed.
-	// Supports both unix and windows paths. Use the windows_paths argument to specify which one you want.
+	// Concatenate posix-style path1 and path2 up to max_len in size, normalizing the result.
+	// path1 MUST be '/' terminated and is not sanitized.
+	// If path2 is absolute, the result will be equivalent to path2.
+	// If the result would be too long, the output will contain the string "/PATH_TOO_LONG" instead.
 	//
-	static bool concatenate_paths(char* target, uint32_t targetlen, const char* path1, uint32_t len1, const char* path2, uint32_t len2, bool windows_paths);
+	static std::string concatenate_paths(std::string_view path1, std::string_view path2);
 
 	//
 	// Determines if an IPv6 address is IPv4-mapped
@@ -105,16 +126,11 @@ public:
 	//
 	// Given a string, scan the event list and find the longest argument that the input string contains
 	//
-	static const struct ppm_param_info* find_longest_matching_evt_param(std::string name);
-
-	//
-	// Get the list of filtercheck fields
-	//
-	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>& list);
+	static const ppm_param_info* find_longest_matching_evt_param(std::string_view name);
 
 	static uint64_t get_current_time_ns();
 
-	static bool glob_match(const char *pattern, const char *string);
+	static bool glob_match(const char *pattern, const char *string, const bool& case_insensitive = false);
 
 #ifndef _WIN32
 	//
@@ -122,9 +138,6 @@ public:
 	//
 	static void bt(void);
 #endif // _WIN32
-
-	static bool find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys);
-	static bool find_env(std::string &out, const std::vector<std::string> &env, const std::string &key);
 
 	static void split_container_image(const std::string &image,
 					  std::string &hostname,
@@ -134,25 +147,21 @@ public:
 					  std::string &digest,
 					  bool split_repo = true);
 
-	static void parse_suppressed_types(const std::vector<std::string> &supp_strs,
-					   std::vector<uint16_t> *supp_ids);
+	/*
+	* \param res [out] the generated string representation of the provided timestamp
+	*/
+	static void ts_to_string(uint64_t ts, std::string* res, bool date, bool ns);
 
-	static const char* event_name_by_id(uint16_t id);
-
-	static void ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns);
-
-	static void ts_to_iso_8601(uint64_t ts, OUT std::string* res);
-
-        // Limited version of iso 8601 time string parsing, that assumes a
-        // timezone of Z for UTC, but does support parsing fractional seconds,
-        // unlike get_epoch_utc_seconds_* below.
-	static bool parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns);
+	/*
+	* \param res [out] the generated string representation of the provided timestamp
+	*/
+	static void ts_to_iso_8601(uint64_t ts, std::string* res);
 
 	//
 	// Convert caps from their numeric representation to a space-separated string list
 	//
 	static std::string caps_to_string(const uint64_t caps);
-	
+
 	static uint64_t get_max_caps();
 };
 
@@ -162,15 +171,13 @@ public:
 
 struct g_invalidchar
 {
-    bool operator()(char c) const
-    {
-	    if(c < -1)
-	    {
-		    return true;
-	    }
-
-	    return !isprint((unsigned)c);
-    }
+	bool operator()(char c) const
+	{
+		unsigned char uc = static_cast<unsigned char>(c);
+		// Exclude all non-printable characters and control characters while
+		// including a wide range of languages (emojis, cyrillic, chinese etc)
+		return (!(isprint(uc)));
+	}
 };
 
 inline void sanitize_string(std::string &str)
@@ -182,6 +189,31 @@ inline void sanitize_string(std::string &str)
 	//
 	// Optimize for the release case, then.
 	str.erase(remove_if(str.begin(), str.end(), g_invalidchar()), str.end());
+}
+
+inline void remove_duplicate_path_separators(std::string &str)
+{
+    // Light fd name sanitization if fd is a file - only remove consecutive duplicate separators
+    if(str.size() < 2)
+    {
+        // There is nothing to do if there are 0 or 1 chars in the string, protecting dereference operations
+        return;
+    }
+
+    char prev_char = *str.begin();
+
+    for (auto cur_char_it = str.begin() + 1; cur_char_it != str.end();)
+    {
+        if (prev_char == *cur_char_it && prev_char == '/')
+        {
+            cur_char_it = str.erase(cur_char_it);
+        }
+        else
+        {
+            prev_char = *cur_char_it;
+            cur_char_it++;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -232,7 +264,10 @@ const char* print_format_to_string(ppm_print_format fmt);
 ///////////////////////////////////////////////////////////////////////////////
 // String helpers
 ///////////////////////////////////////////////////////////////////////////////
-std::vector<std::string> sinsp_split(const std::string& s, char delim);
+
+// split a string into components separated by delim.
+// An empty string in input will produce a vector with no elements.
+std::vector<std::string> sinsp_split(std::string_view sv, char delim);
 
 template<typename It>
 std::string sinsp_join(It begin, It end, char delim)
@@ -254,8 +289,15 @@ std::string sinsp_join(It begin, It end, char delim)
 std::string& ltrim(std::string& s);
 std::string& rtrim(std::string& s);
 std::string& trim(std::string& s);
+
+[[nodiscard]] std::string_view ltrim_sv(std::string_view);
+[[nodiscard]] std::string_view rtrim_sv(std::string_view);
+[[nodiscard]] std::string_view trim_sv(std::string_view);
+
 std::string& replace_in_place(std::string& s, const std::string& search, const std::string& replacement);
 std::string replace(const std::string& str, const std::string& search, const std::string& replacement);
+
+std::string buffer_to_multiline_hex(const char *buf, size_t size);
 
 ///////////////////////////////////////////////////////////////////////////////
 // number parser
@@ -282,112 +324,6 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// JSON helpers
-///////////////////////////////////////////////////////////////////////////////
-namespace Json
-{
-	class Value;
-}
-
-std::string get_json_string(const Json::Value& obj, const std::string& name);
-inline std::string json_as_string(const Json::Value& json)
-{
-	return Json::FastWriter().write(json);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// A simple class to manage pre-allocated objects in a LIFO
-// fashion and make sure all of them are deleted upon destruction.
-///////////////////////////////////////////////////////////////////////////////
-template<typename OBJ>
-class simple_lifo_queue
-{
-public:
-	simple_lifo_queue(uint32_t size)
-	{
-		uint32_t j;
-		for(j = 0; j < size; j++)
-		{
-			OBJ* newentry = new OBJ;
-			m_full_list.push_back(newentry);
-			m_avail_list.push_back(newentry);
-		}
-	}
-	~simple_lifo_queue()
-	{
-		while(!m_avail_list.empty())
-		{
-			OBJ* head = m_avail_list.front();
-			delete head;
-			m_avail_list.pop_front();
-		}
-	}
-	void push(OBJ* newentry)
-
-	{
-		m_avail_list.push_front(newentry);
-	}
-
-	OBJ* pop()
-	{
-		if(m_avail_list.empty())
-		{
-			return NULL;
-		}
-		OBJ* head = m_avail_list.front();
-		m_avail_list.pop_front();
-		return head;
-	}
-
-	bool empty()
-	{
-		return m_avail_list.empty();
-	}
-
-private:
-	std::list<OBJ*> m_avail_list;
-	std::list<OBJ*> m_full_list;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// Case-insensitive string find.
-///////////////////////////////////////////////////////////////////////////////
-template<typename charT>
-struct ci_equal
-{
-	ci_equal(const std::locale& loc) : m_loc(loc) {}
-	bool operator()(charT ch1, charT ch2)
-	{
-		return std::toupper(ch1, m_loc) == std::toupper(ch2, m_loc);
-	}
-private:
-	const std::locale& m_loc;
-};
-
-template<typename T>
-int ci_find_substr(const T& str1, const T& str2, const std::locale& loc = std::locale())
-{
-	typename T::const_iterator it = std::search(str1.begin(), str1.end(),
-		str2.begin(), str2.end(), ci_equal<typename T::value_type>(loc) );
-	if(it != str1.end()) { return it - str1.begin(); }
-	return -1;
-}
-
-struct ci_compare
-{
-	// less-than, for use in STL containers
-	bool operator() (const std::string& a, const std::string& b) const
-	{
-		return strcasecmp(a.c_str(), b.c_str()) < 0;
-	}
-
-	static bool is_equal(const std::string& a, const std::string& b)
-	{
-		return strcasecmp(a.c_str(), b.c_str()) == 0;
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // socket helpers
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -405,3 +341,37 @@ inline void hash_combine(std::size_t &seed, const T& val)
 {
 	seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Log helpers
+///////////////////////////////////////////////////////////////////////////////
+void sinsp_scap_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev);
+
+///////////////////////////////////////////////////////////////////////////////
+// Set operation functions.
+///////////////////////////////////////////////////////////////////////////////
+
+
+template<typename T>
+std::set<T> unordered_set_to_ordered(const std::unordered_set<T>& unordered_set);
+
+template<typename T>
+std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
+
+template<typename T>
+std::set<T> set_difference(const std::set<T>& a, const std::set<T>& b);
+
+template<typename T>
+std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
+
+template<typename T>
+std::set<T> set_union(const std::set<T>& a, const std::set<T>& b);
+
+template<typename T>
+std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
+
+template<typename T>
+std::set<T> set_intersection(const std::set<T>& a, const std::set<T>& b);
+
+std::string concat_set_in_order(const std::unordered_set<std::string>& s, const std::string& delim = ", ");
+std::string concat_set_in_order(const std::set<std::string>& s, const std::string& delim = ", ");

@@ -1,11 +1,8 @@
 LIBRARY scap
 
 EXPORTS
-		scap_open_offline
-		scap_open_offline_fd
 		scap_open
 		scap_close
-		scap_get_os_platform
 		scap_get_ndevs
 		scap_getlasterr
 		scap_max_buf_used
@@ -19,29 +16,29 @@ EXPORTS
 		scap_dump_flush
 		scap_dump_ftell
 		scap_dump
-		scap_event_reset_count
 		scap_event_get_num
-		scap_get_proc_table
 		scap_event_getinfo
 		scap_stop_capture
 		scap_get_ifaddr_list
 		scap_get_stats
+		scap_get_stats_v2
 		scap_get_event_info_table
-		scap_get_syscall_info_table
+		scap_get_syscall_category_from_event
+		scap_get_event_category_from_event
+		scap_get_ppm_sc_name
 		scap_proc_get
 		scap_proc_free
 		scap_start_capture
 		scap_get_machine_info
+		scap_get_agent_info
 		scap_stop_dropping_mode
 		scap_start_dropping_mode
 		scap_get_user_list
 		scap_free_userlist
 		scap_set_snaplen
 		scap_get_readfile_offset
-		scap_clear_eventmask
-		scap_set_eventmask
-		scap_unset_eventmask
-		scap_number_of_bytes_to_write
+		scap_set_ppm_sc
+		scap_set_dropfailed
 		scap_event_get_dump_flags
 		scap_enable_dynamic_snaplen
 		scap_disable_dynamic_snaplen

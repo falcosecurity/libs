@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -133,7 +134,7 @@ static inline void task_cputime(struct task_struct *t,
 }
 #endif /* CONFIG_VIRT_CPU_ACCOUNTING_GEN */
 
-u64 nsecs_to_jiffies64(u64 n)
+uint64_t nsecs_to_jiffies64(uint64_t n)
 {
 #if (NSEC_PER_SEC % HZ) == 0
 		/* Common case, HZ = 100, 128, 200, 250, 256, 500, 512, 1000 etc. */
@@ -150,7 +151,7 @@ u64 nsecs_to_jiffies64(u64 n)
 #endif
 }
 
-unsigned long nsecs_to_jiffies(u64 n)
+unsigned long nsecs_to_jiffies(uint64_t n)
 {
 		return (unsigned long)nsecs_to_jiffies64(n);
 }
@@ -169,9 +170,9 @@ unsigned long nsecs_to_jiffies(u64 n)
  * Perform (stime * rtime) / total, but avoid multiplication overflow by
  * loosing precision when the numbers are big.
  */
-static cputime_t scale_stime(u64 stime, u64 rtime, u64 total)
+static cputime_t scale_stime(uint64_t stime, uint64_t rtime, uint64_t total)
 {
-	u64 scaled;
+	uint64_t scaled;
 
 	for (;;) {
 		/* Make sure "rtime" is the bigger of stime/rtime */
@@ -205,7 +206,7 @@ drop_precision:
 	 * Make sure gcc understands that this is a 32x32->64 multiply,
 	 * followed by a 64/32->64 divide.
 	 */
-	scaled = div_u64((u64) (u32) stime * (u64) (u32) rtime, (u32)total);
+	scaled = div_u64((uint64_t) (uint32_t) stime * (uint64_t) (uint32_t) rtime, (uint32_t)total);
 	return (__force cputime_t) scaled;
 }
 
@@ -270,8 +271,8 @@ static void cputime_adjust(struct task_cputime *curr,
 	} else {
 		cputime_t total = stime + utime;
 
-		stime = scale_stime((__force u64)stime,
-				    (__force u64)rtime, (__force u64)total);
+		stime = scale_stime((__force uint64_t)stime,
+				    (__force uint64_t)rtime, (__force uint64_t)total);
 		utime = rtime - stime;
 	}
 
@@ -301,14 +302,14 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 
 static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total)
 {
-	u64 temp = (__force u64) rtime;
+	uint64_t temp = (__force uint64_t) rtime;
 
-	temp *= (__force u64) utime;
+	temp *= (__force uint64_t) utime;
 
 	if (sizeof(cputime_t) == 4)
-		temp = div_u64(temp, (__force u32) total);
+		temp = div_u64(temp, (__force uint32_t) total);
 	else
-		temp = div64_u64(temp, (__force u64) total);
+		temp = div64_u64(temp, (__force uint64_t) total);
 
 	return (__force cputime_t) temp;
 }
@@ -349,7 +350,7 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 /*
  * Implementation copied from kernel/time/time.c in 4.11.0
  */
-u64 nsec_to_clock_t(u64 x)
+uint64_t nsec_to_clock_t(uint64_t x)
 {
 #if (NSEC_PER_SEC % USER_HZ) == 0
 	return div_u64(x, NSEC_PER_SEC / USER_HZ);

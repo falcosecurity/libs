@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,29 +16,29 @@ limitations under the License.
 
 */
 
-#include "container_engine/mesos.h"
+#include <libsinsp/container_engine/mesos.h>
 
 #include <unistd.h>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
 {
-	for(auto it = tinfo->m_cgroups.begin(); it != tinfo->m_cgroups.end(); ++it)
+	for(const auto& it : tinfo->cgroups())
 	{
-		string cgroup = it->second;
+		std::string cgroup = it.second;
 		size_t pos;
 
 		pos = cgroup.find("/mesos/");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			// It should match `/mesos/a9f41620-b165-4d24-abe0-af0af92e7b20`
 			auto id = cgroup.substr(pos + sizeof("/mesos/") - 1);
-			if(id.size() == 36 && id.find_first_not_of("0123456789abcdefABCDEF-") == string::npos)
+			if(id.size() == 36 && id.find_first_not_of("0123456789abcdefABCDEF-") == std::string::npos)
 			{
 				container_info.m_type = CT_MESOS;
-				container_info.m_id = move(id);
+				container_info.m_id = std::move(id);
 				// Consider a mesos container valid only if we find the mesos_task_id
 				// this will exclude from the container itself the mesos-executor
 				// but makes sure that we have task_id parsed properly. Otherwise what happens
@@ -61,15 +62,16 @@ bool libsinsp::container_engine::mesos::resolve(sinsp_threadinfo* tinfo, bool qu
 	if(container_cache().should_lookup(container.m_id, CT_MESOS))
 	{
 		container.m_name = container.m_id;
+		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		container_cache().add_container(std::make_shared<sinsp_container_info>(container), tinfo);
 		container_cache().notify_new_container(container, tinfo);
 	}
 	return true;
 }
 
-string libsinsp::container_engine::mesos::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
+std::string libsinsp::container_engine::mesos::get_env_mesos_task_id(sinsp_threadinfo* tinfo)
 {
-	string mtid;
+	std::string mtid;
 
 	sinsp_threadinfo::visitor_func_t visitor = [&mtid] (sinsp_threadinfo *ptinfo)
 	{
@@ -111,7 +113,7 @@ bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info &
 
 	if(tinfo)
 	{
-		string& mtid = container.m_mesos_task_id;
+		std::string& mtid = container.m_mesos_task_id;
 		if(mtid.empty())
 		{
 			mtid = get_env_mesos_task_id(tinfo);
@@ -122,12 +124,12 @@ bool libsinsp::container_engine::mesos::set_mesos_task_id(sinsp_container_info &
 			if(!mtid.empty() && mtid.length()>=3 &&
 			   (mtid.find_first_of("._") != std::string::npos))
 			{
-				g_logger.log("Mesos native container: [" + container.m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
+				libsinsp_logger()->log("Mesos native container: [" + container.m_id + "], Mesos task ID: " + mtid, sinsp_logger::SEV_DEBUG);
 				return true;
 			}
 			else
 			{
-				g_logger.log("Mesos container [" + container.m_id + "],"
+				libsinsp_logger()->log("Mesos container [" + container.m_id + "],"
 										     "thread [" + std::to_string(tinfo->m_tid) +
 					     "], has likely malformed mesos task id [" + mtid + "], ignoring", sinsp_logger::SEV_DEBUG);
 			}

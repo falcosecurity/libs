@@ -1,0 +1,81 @@
+name: 'libs-perf'
+description: 'Run multiple perf tests on libs.'
+
+outputs:
+  perf_tests:
+    description: "Unit tests perf.data"
+    value: ${{ steps.store-outputs.outputs.perf_tests }}
+  perf_scap:
+    description: "Scap file perf.data"
+    value: ${{ steps.store-outputs.outputs.perf_scap }}
+  heaptrack_tests:
+    description: "Unit tests heaptrack data"
+    value: ${{ steps.store-outputs.outputs.heaptrack_tests }}
+  heaptrack_scap:
+    description: "Scap file heaptrack data"
+    value: ${{ steps.store-outputs.outputs.heaptrack_scap }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install deps ⛓️
+      shell: bash
+      run: |
+        sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-tools-common linux-tools-generic linux-tools-`uname -r` heaptrack coreutils util-linux
+        sudo .github/install-deps.sh
+
+    - name: Build
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build && cmake -DUSE_BUNDLED_DEPS=False -DCMAKE_BUILD_TYPE=Debug ../
+        make unit-test-libsinsp -j4
+        make sinsp-example -j4
+
+    - name: Download scap file
+      shell: bash
+      run: |
+        cd build
+        wget https://download.falco.org/fixtures/trace-files/traces-positive.zip
+        unzip traces-positive.zip
+
+    - name: Run - perf unit tests
+      shell: bash
+      run: |
+        cd build
+        sudo perf record --call-graph dwarf -o perf_tests.data -q libsinsp/test/unit-test-libsinsp
+
+    # First empty run to stabilize disk IO (scap file read) perf
+    - name: Run - load scap file
+      shell: bash
+      run: |
+        cd build
+        sudo ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap &> /dev/null
+
+    - name: Run - perf scap file
+      shell: bash
+      run: |
+        cd build
+        sudo perf record --call-graph dwarf -o perf_scap.data -q ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
+
+    - name: Run - heaptrack unit tests
+      shell: bash
+      run: |
+        cd build
+        sudo heaptrack -o heaptrack_tests.data libsinsp/test/unit-test-libsinsp
+
+    - name: Run - heaptrack scap file
+      shell: bash
+      run: |
+        cd build
+        sudo heaptrack -o heaptrack_scap.data ./libsinsp/examples/sinsp-example -s traces-positive/falco-event-generator.scap
+
+    - name: Set Outputs
+      id: store-outputs
+      shell: bash
+      run: |
+        cd build
+        echo "perf_tests=$(realpath perf_tests.data)" >> $GITHUB_OUTPUT
+        echo "perf_scap=$(realpath perf_scap.data)" >> $GITHUB_OUTPUT
+        echo "heaptrack_tests=$(realpath heaptrack_tests.data.zst)" >> $GITHUB_OUTPUT
+        echo "heaptrack_scap=$(realpath heaptrack_scap.data.zst)" >> $GITHUB_OUTPUT

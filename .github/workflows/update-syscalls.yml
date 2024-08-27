@@ -1,0 +1,41 @@
+name: Update Syscalls
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 1 * *'
+
+jobs:
+  update-syscalls:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: master
+          path: libs
+
+      - name: Bump syscalls
+        uses: falcosecurity/syscalls-bumper@main
+        with:
+          repo-root: ${{ github.workspace }}/libs
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
+        with:
+          path: libs
+          signoff: true
+          base: master
+          branch: update/syscalls
+          title: 'update(driver): update syscalls tables and driver report.'
+          body: |
+            This PR updates the list of supported syscalls from the latest kernel. Do not edit this PR.
+            /area driver
+            ```release-note
+            NONE
+            ```
+          commit-message: 'update(driver): update syscalls tables and driver report.'
+          token: ${{ secrets.GITHUB_TOKEN }}

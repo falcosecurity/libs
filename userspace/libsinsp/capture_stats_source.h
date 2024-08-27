@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,9 @@ limitations under the License.
 */
 #pragma once
 
-#include "sinsp_public.h"
+#include <libsinsp/sinsp_public.h>
+#include <stdint.h>
+#include <libsinsp/logger.h>
 
 struct scap_stats;
 
@@ -43,4 +46,21 @@ public:
 	 * @param[out] stats The capture statistics
 	 */
 	virtual void get_capture_stats(scap_stats* stats) const = 0;
+
+	/**
+	 * Print a log with statistics about the currently
+	 * open capture.
+	 *
+	 * @note This may not work for a file-based capture source.
+	 *
+	 * @param[in] sev severity used to log
+	 */
+	virtual void print_capture_stats(sinsp_logger::severity sev) const = 0;
+
+	/**
+	 * Get engine statistics (including counters and `bpftool prog show` like stats).
+	 *
+	 * @return Pointer to a \ref metrics_v2 structure filled with the libscap stats.
+	 */
+	virtual const struct metrics_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const = 0;
 };

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,17 +19,16 @@ limitations under the License.
 #ifndef _WIN32
 #include <inttypes.h>
 #include <unistd.h>
+#include <limits.h>
 #endif
 #include <stdio.h>
 #include <algorithm>
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "protodecoder.h"
-#include "tracers.h"
+#include <libscap/strl.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/scap-int.h>
 
-#ifdef HAS_ANALYZER
-#include "tracer_emitter.h"
-#endif
+constexpr static const char* s_thread_table_name = "threads";
 
 extern sinsp_evttables g_infotables;
 
@@ -43,12 +43,71 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector) :
-	m_tracer_parser(NULL),
+
+sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
+	table_entry(dyn_fields),
+	m_cgroups(new cgroups_t),
 	m_inspector(inspector),
-	m_fdtable(inspector)
+	m_fdtable(inspector),
+	m_args_table_adapter("args", m_args),
+	m_env_table_adapter("env", m_env)
 {
 	init();
+}
+
+libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() const
+{
+	libsinsp::state::static_struct::field_infos ret;
+	// todo(jasondellaluce): support missing fields that are vectors, maps, or sub-tables
+	define_static_field(ret, this, m_tid, "tid");
+	define_static_field(ret, this, m_pid, "pid");
+	define_static_field(ret, this, m_ptid, "ptid");
+	define_static_field(ret, this, m_reaper_tid, "reaper_tid");
+	define_static_field(ret, this, m_sid, "sid");
+	define_static_field(ret, this, m_comm, "comm");
+	define_static_field(ret, this, m_exe, "exe");
+	define_static_field(ret, this, m_exepath, "exe_path");
+	define_static_field(ret, this, m_exe_writable, "exe_writable");
+	define_static_field(ret, this, m_exe_upper_layer, "exe_upper_layer");
+	define_static_field(ret, this, m_exe_from_memfd, "exe_from_memfd");
+	define_static_field(ret, this, m_args_table_adapter.table_ptr(), "args", true);
+	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "env", true);
+	// m_cgroups
+	define_static_field(ret, this, m_container_id, "container_id");
+	define_static_field(ret, this, m_flags, "flags");
+	define_static_field(ret, this, m_fdlimit, "fd_limit");
+	// m_user
+	// m_loginuser
+	// m_group
+	// m_cap_permitted
+	// m_cap_effective
+	// m_cap_inheritable
+	define_static_field(ret, this, m_exe_ino, "exe_ino");
+	define_static_field(ret, this, m_exe_ino_ctime, "exe_ino_ctime");
+	define_static_field(ret, this, m_exe_ino_mtime, "exe_ino_mtime");
+	// m_exe_ino_ctime_duration_clone_ts
+	// m_exe_ino_ctime_duration_pidns_start
+	// m_vmsize_kb
+	// m_vmrss_kb
+	// m_vmswap_kb
+	// m_pfmajor
+	// m_pfminor
+	define_static_field(ret, this, m_vtid, "vtid");
+	define_static_field(ret, this, m_vpid, "vpid");
+	define_static_field(ret, this, m_vpgid, "vpgid");
+	define_static_field(ret, this, m_pidns_init_start_ts, "pidns_init_start_ts");
+	define_static_field(ret, this, m_root, "root");
+	// m_program_hash
+	// m_program_hash_scripts
+	define_static_field(ret, this, m_tty, "tty");
+	// m_category
+	// m_clone_ts
+	// m_lastexec_ts
+	// m_latency
+	define_static_field(ret, this, m_fdtable.table_ptr(), "file_descriptors", true);
+	define_static_field(ret, this, m_cwd, "cwd", true);
+	// m_parent_loop_detected
+	return ret;
 }
 
 void sinsp_threadinfo::init()
@@ -58,14 +117,16 @@ void sinsp_threadinfo::init()
 	m_ptid = (uint64_t) - 1LL;
 	m_vpgid = (uint64_t) - 1LL;
 	set_lastevent_data_validity(false);
+	m_reaper_tid = - 1;
+	m_not_expired_children = 0;
 	m_lastevent_type = -1;
 	m_lastevent_ts = 0;
 	m_prevevent_ts = 0;
 	m_lastaccess_ts = 0;
 	m_clone_ts = 0;
+	m_lastexec_ts = 0;
 	m_lastevent_category.m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
-	m_nchilds = 0;
 	m_fdlimit = -1;
 	m_vmsize_kb = 0;
 	m_vmrss_kb = 0;
@@ -74,7 +135,7 @@ void sinsp_threadinfo::init()
 	m_pfminor = 0;
 	m_vtid = -1;
 	m_vpid = -1;
-	m_main_thread.reset();
+	m_pidns_init_start_ts = 0;
 	m_lastevent_fd = 0;
 	m_last_latency_entertime = 0;
 	m_latency = 0;
@@ -84,69 +145,58 @@ void sinsp_threadinfo::init()
 	m_parent_loop_detected = false;
 	m_tty = 0;
 	m_category = CAT_NONE;
-	m_blprogram = NULL;
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
 	m_cap_effective = 0;
-
-	memset(&m_user, 0, sizeof(scap_userinfo));
-	memset(&m_group, 0, sizeof(scap_groupinfo));
-	memset(&m_loginuser, 0, sizeof(scap_userinfo));
+	m_exe_ino = 0;
+	m_exe_ino_ctime = 0;
+	m_exe_ino_mtime = 0;
+	m_exe_ino_ctime_duration_clone_ts = 0;
+	m_exe_ino_ctime_duration_pidns_start = 0;
+	m_filtered_out = false;
+	m_exe_writable = false;
+	m_exe_upper_layer = false;
+	m_exe_from_memfd = false;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
 {
-	uint32_t j;
-
-	for(j = 0; j < m_private_state.size(); j++)
-	{
-		free(m_private_state[j]);
-	}
-
-	m_private_state.clear();
 	if(m_lastevent_data)
 	{
 		free(m_lastevent_data);
-	}
-
-	if(m_tracer_parser)
-	{
-		delete m_tracer_parser;
 	}
 }
 
 void sinsp_threadinfo::fix_sockets_coming_from_proc()
 {
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
-
-	for(it = m_fdtable.m_table.begin(); it != m_fdtable.m_table.end(); it++)
-	{
-		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
+	m_fdtable.loop([this](int64_t fd, sinsp_fdinfo& fdi) {
+		if(fdi.m_type == SCAP_FD_IPV4_SOCK)
 		{
-			if(m_inspector->m_thread_manager->m_server_ports.find(it->second.m_sockinfo.m_ipv4info.m_fields.m_sport) !=
+			if(m_inspector->m_thread_manager->m_server_ports.find(fdi.m_sockinfo.m_ipv4info.m_fields.m_sport) !=
 				m_inspector->m_thread_manager->m_server_ports.end())
 			{
 				uint32_t tip;
 				uint16_t tport;
 
-				tip = it->second.m_sockinfo.m_ipv4info.m_fields.m_sip;
-				tport = it->second.m_sockinfo.m_ipv4info.m_fields.m_sport;
+				tip = fdi.m_sockinfo.m_ipv4info.m_fields.m_sip;
+				tport = fdi.m_sockinfo.m_ipv4info.m_fields.m_sport;
 
-				it->second.m_sockinfo.m_ipv4info.m_fields.m_sip = it->second.m_sockinfo.m_ipv4info.m_fields.m_dip;
-				it->second.m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
-				it->second.m_sockinfo.m_ipv4info.m_fields.m_sport = it->second.m_sockinfo.m_ipv4info.m_fields.m_dport;
-				it->second.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_sip = fdi.m_sockinfo.m_ipv4info.m_fields.m_dip;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_dip = tip;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_sport = fdi.m_sockinfo.m_ipv4info.m_fields.m_dport;
+				fdi.m_sockinfo.m_ipv4info.m_fields.m_dport = tport;
 
-				it->second.m_name = ipv4tuple_to_string(&it->second.m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+				fdi.m_name = ipv4tuple_to_string(&fdi.m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 
-				it->second.set_role_server();
+				fdi.set_role_server();
 			}
 			else
 			{
-				it->second.set_role_client();
+				fdi.set_role_client();
 			}
 		}
-	}
+		return true;
+	});
 }
 
 #define STR_AS_NUM_JAVA 0x6176616a
@@ -207,17 +257,17 @@ void sinsp_threadinfo::compute_program_hash()
 	}
 }
 
-void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *res)
+void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi)
 {
-	sinsp_fdinfo_t* newfdi = res;
-	newfdi->reset();
+	auto newfdi = m_inspector->build_fdinfo();
 	bool do_add = true;
 
 	newfdi->m_type = fdi->type;
 	newfdi->m_openflags = 0;
 	newfdi->m_type = fdi->type;
-	newfdi->m_flags = sinsp_fdinfo_t::FLAGS_FROM_PROC;
+	newfdi->m_flags = sinsp_fdinfo::FLAGS_FROM_PROC;
 	newfdi->m_ino = fdi->ino;
+	newfdi->m_fd = fdi->fd;
 
 	switch(newfdi->m_type)
 	{
@@ -229,19 +279,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv4info.l4proto;
 		if(fdi->info.ipv4info.l4proto == SCAP_L4_TCP)
 		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_SOCKET_CONNECTED;
+			newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 		}
-		if(m_inspector->m_network_interfaces)
-		{
-			m_inspector->m_network_interfaces->update_fd(newfdi);
-		}
-		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+		m_inspector->get_ifaddr_list().update_fd(*newfdi);
+		newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_ip = fdi->info.ipv4serverinfo.ip;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_port = fdi->info.ipv4serverinfo.port;
 		newfdi->m_sockinfo.m_ipv4serverinfo.m_l4proto = fdi->info.ipv4serverinfo.l4proto;
-		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
+		newfdi->m_name = ipv4serveraddr_to_string(&newfdi->m_sockinfo.m_ipv4serverinfo, m_inspector->is_hostname_and_port_resolution_enabled());
 
 		//
 		// We keep note of all the host bound server ports.
@@ -266,13 +313,10 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 			newfdi->m_sockinfo.m_ipv4info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
 			if(fdi->info.ipv6info.l4proto == SCAP_L4_TCP)
 			{
-				newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_SOCKET_CONNECTED;
+				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			if(m_inspector->m_network_interfaces)
-			{
-				m_inspector->m_network_interfaces->update_fd(newfdi);
-			}
-			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->m_hostname_and_port_resolution_enabled);
+			m_inspector->get_ifaddr_list().update_fd(*newfdi);
+			newfdi->m_name = ipv4tuple_to_string(&newfdi->m_sockinfo.m_ipv4info, m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 		else
 		{
@@ -283,16 +327,16 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 			newfdi->m_sockinfo.m_ipv6info.m_fields.m_l4proto = fdi->info.ipv6info.l4proto;
 			if(fdi->info.ipv6info.l4proto == SCAP_L4_TCP)
 			{
-				newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_SOCKET_CONNECTED;
+				newfdi->m_flags |= sinsp_fdinfo::FLAGS_SOCKET_CONNECTED;
 			}
-			newfdi->m_name = ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info, m_inspector->m_hostname_and_port_resolution_enabled);
+			newfdi->m_name = ipv6tuple_to_string(&newfdi->m_sockinfo.m_ipv6info, m_inspector->is_hostname_and_port_resolution_enabled());
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
 		copy_ipv6_address(newfdi->m_sockinfo.m_ipv6serverinfo.m_ip.m_b, fdi->info.ipv6serverinfo.ip);
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_port = fdi->info.ipv6serverinfo.port;
 		newfdi->m_sockinfo.m_ipv6serverinfo.m_l4proto = fdi->info.ipv6serverinfo.l4proto;
-		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo, m_inspector->m_hostname_and_port_resolution_enabled);
+		newfdi->m_name = ipv6serveraddr_to_string(&newfdi->m_sockinfo.m_ipv6serverinfo, m_inspector->is_hostname_and_port_resolution_enabled());
 
 		//
 		// We keep note of all the host bound server ports.
@@ -319,16 +363,6 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		newfdi->m_name = fdi->info.regularinfo.fname;
 		newfdi->m_dev = fdi->info.regularinfo.dev;
 		newfdi->m_mount_id = fdi->info.regularinfo.mount_id;
-
-		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
-		}
-		else
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
-		}
-
 		break;
 	case SCAP_FD_FIFO:
 	case SCAP_FD_FILE:
@@ -340,17 +374,12 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 	case SCAP_FD_NETLINK:
+	case SCAP_FD_BPF:
+	case SCAP_FD_USERFAULTFD:
+	case SCAP_FD_IOURING:
+	case SCAP_FD_MEMFD:
+	case SCAP_FD_PIDFD:
 		newfdi->m_name = fdi->info.fname;
-
-		if(newfdi->m_name == USER_EVT_DEVICE_NAME)
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
-		}
-		else
-		{
-			newfdi->m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
-		}
-
 		break;
 	default:
 		ASSERT(false);
@@ -358,32 +387,70 @@ void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo *fdi, OUT sinsp_fdinfo_t *re
 		break;
 	}
 
-	//
-	// Call the protocol decoder callbacks associated to notify them about this FD
-	//
-	ASSERT(m_inspector != NULL);
-	vector<sinsp_protodecoder*>::iterator it;
-
-	for(it = m_inspector->m_parser->m_open_callbacks.begin();
-		it != m_inspector->m_parser->m_open_callbacks.end(); ++it)
-	{
-		(*it)->on_fd_from_proc(newfdi);
-	}
 
 	//
 	// Add the FD to the table
 	//
-	if(do_add)
+	if(!do_add)
 	{
-		m_fdtable.add(fdi->fd, newfdi);
+		return;
+	}
+
+	auto addedfdi = m_fdtable.add(fdi->fd, std::move(newfdi));
+	if(m_inspector->m_filter != nullptr && m_inspector->is_capture())
+	{
+		// in case the inspector is configured with an internal filter, we can
+		// filter-out thread infos (and their fd infos) to not dump them in
+		// captures unless actually used. Here, we simulate an internal event
+		// using the new file descriptor info to understand if we can set
+		// its thread info as non-filterable.
+
+		// note: just like the case of  PPME_SCAPEVENT_E used for thread info
+		// filtering, the usage of PPME_SYSCALL_READ_X is opinionated. This
+		// kind of event has been chosen as a tradeoff of a lightweight and
+		// usually-ignored event (in the context of filtering), but that is also
+		// marked as using a file descriptor so that file-descriptor filter fields
+		// can extract meaningful values.
+		scap_evt tscapevt = {};
+		tscapevt.type = PPME_SYSCALL_READ_X;
+		tscapevt.tid = m_tid;
+		tscapevt.ts = 0;
+		tscapevt.nparams = 0;
+		tscapevt.len = sizeof(scap_evt);
+
+		sinsp_evt tevt = {};
+		tevt.set_scap_evt(&tscapevt);
+		tevt.set_info(&(g_infotables.m_event_info[PPME_SYSCALL_READ_X]));
+		tevt.set_cpuid(0);
+		tevt.set_num(0);
+		tevt.set_inspector(m_inspector);
+		tevt.set_tinfo(this);
+		tevt.set_fdinfo_ref(nullptr);
+		tevt.set_fd_info(addedfdi);
+		int64_t tlefd = tevt.get_tinfo()->m_lastevent_fd;
+		tevt.get_tinfo()->m_lastevent_fd = fdi->fd;
+
+		if(m_inspector->m_filter->run(&tevt))
+		{
+			// we mark the thread info as non-filterable due to one event
+			// using one of its file descriptor has passed the filter
+			m_filtered_out = false;
+		}
+		else
+		{
+			// we can't say if the thread info for this fd is filterable or not,
+			// but we can mark the given file descriptor as filterable. This flag
+			// will prevent the fd info from being written in captures.
+			fdi->type = SCAP_FD_UNINITIALIZED;
+		}
+
+		tevt.get_tinfo()->m_lastevent_fd = tlefd;
+		m_lastevent_data = NULL;
 	}
 }
 
 void sinsp_threadinfo::init(scap_threadinfo* pi)
 {
-	scap_fdinfo *fdi;
-	scap_fdinfo *tfdi;
-
 	init();
 
 	m_tid = pi->tid;
@@ -394,105 +461,59 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;
+	/* The exepath is extracted from `/proc/pid/exe`. */
 	m_exepath = pi->exepath;
 	m_exe_writable = pi->exe_writable;
+	m_exe_upper_layer = pi->exe_upper_layer;
+	m_exe_from_memfd = pi->exe_from_memfd;
+
+	/* We cannot obtain the reaper_tid from a /proc scan */
+	m_reaper_tid = -1;
+	m_not_expired_children = 0;
+
 	set_args(pi->args, pi->args_len);
 	if(is_main_thread())
 	{
 		set_env(pi->env, pi->env_len);
-		set_cwd(pi->cwd, (uint32_t)strlen(pi->cwd));
+		update_cwd({pi->cwd});
 	}
 	m_flags |= pi->flags;
 	m_flags |= PPM_CL_ACTIVE; // Assume that all the threads coming from /proc are real, active threads
 	m_fdtable.clear();
-	m_fdtable.m_tid = m_tid;
+	m_fdtable.set_tid(m_tid);
 	m_fdlimit = pi->fdlimit;
 
 	m_cap_permitted = pi->cap_permitted;
 	m_cap_effective = pi->cap_effective;
 	m_cap_inheritable = pi->cap_inheritable;
 
+	m_exe_ino = pi->exe_ino;
+	m_exe_ino_ctime = pi->exe_ino_ctime;
+	m_exe_ino_mtime = pi->exe_ino_mtime;
+	m_exe_ino_ctime_duration_clone_ts = pi->exe_ino_ctime_duration_clone_ts;
+	m_exe_ino_ctime_duration_pidns_start = pi->exe_ino_ctime_duration_pidns_start;
+
 	m_vmsize_kb = pi->vmsize_kb;
 	m_vmrss_kb = pi->vmrss_kb;
 	m_vmswap_kb = pi->vmswap_kb;
 	m_pfmajor = pi->pfmajor;
 	m_pfminor = pi->pfminor;
-	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
+	m_pidns_init_start_ts = pi->pidns_init_start_ts;
 	m_clone_ts = pi->clone_ts;
+	m_lastexec_ts = 0;
 	m_tty = pi->tty;
 	m_category = CAT_NONE;
 
-	set_cgroups(pi->cgroups, pi->cgroups_len);
+	set_cgroups(pi->cgroups.path, pi->cgroups.len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
-	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture());
+	m_inspector->m_container_manager.resolve_container(this, m_inspector->is_live() || m_inspector->is_syscall_plugin());
 
 	set_group(pi->gid);
 	set_user(pi->uid);
 	set_loginuser((uint32_t)pi->loginuid);
-
-	//
-	// Prepare for filtering
-	//
-	sinsp_fdinfo_t tfdinfo;
-	sinsp_evt tevt;
-	scap_evt tscapevt;
-
-	//
-	// Initialize the fake events for filtering
-	//
-	tscapevt.ts = 0;
-	tscapevt.type = PPME_SYSCALL_READ_X;
-	tscapevt.len = 0;
-	tscapevt.nparams = 0;
-
-	tevt.m_inspector = m_inspector;
-	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSCALL_READ_X]);
-	tevt.m_pevt = NULL;
-	tevt.m_cpuid = 0;
-	tevt.m_evtnum = 0;
-	tevt.m_pevt = &tscapevt;
-	bool match = false;
-
-	HASH_ITER(hh, pi->fdlist, fdi, tfdi)
-	{
-		add_fd_from_scap(fdi, &tfdinfo);
-
-		if(m_inspector->m_filter != NULL && m_inspector->m_filter_proc_table_when_saving)
-		{
-			tevt.m_tinfo = this;
-			tevt.m_fdinfo = &tfdinfo;
-			tscapevt.tid = m_tid;
-			int64_t tlefd = tevt.m_tinfo->m_lastevent_fd;
-			tevt.m_tinfo->m_lastevent_fd = fdi->fd;
-
-			if(m_inspector->m_filter->run(&tevt))
-			{
-				match = true;
-			}
-			else
-			{
-				//
-				// This tells scap not to include this FD in the write file
-				//
-				fdi->type = SCAP_FD_UNINITIALIZED;
-			}
-
-			tevt.m_tinfo->m_lastevent_fd = tlefd;
-		}
-	}
-
-	m_lastevent_data = NULL;
-
-	if(m_inspector->m_filter != NULL && m_inspector->m_filter_proc_table_when_saving)
-	{
-		if(!match)
-		{
-			pi->filtered_out = 1;
-		}
-	}
 }
 
 void sinsp_threadinfo::set_user(uint32_t uid)
@@ -500,21 +521,28 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
 	if (!user)
 	{
-		// this can fail if import_user is disabled
-		user = m_inspector->m_usergroup_manager.add_user(m_container_id, uid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
+		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		user = m_inspector->m_usergroup_manager.add_user(m_container_id, m_pid, uid, m_group.gid(), {}, {}, {}, notify);
 	}
 
 	if (user)
 	{
-		memcpy(&m_user, user, sizeof(scap_userinfo));
+		m_user.set_uid(user->uid);
+		m_user.set_gid(m_group.gid());
+
+		if (m_inspector->is_user_details_enabled())
+		{
+			m_user.set_name(user->name, strnlen(user->name, MAX_CREDENTIALS_STR_LEN));
+			m_user.set_homedir(user->homedir, strnlen(user->homedir, MAX_CREDENTIALS_STR_LEN));
+			m_user.set_shell(user->shell, strnlen(user->shell, MAX_CREDENTIALS_STR_LEN));
+		}
 	}
 	else
 	{
-		m_user.uid = uid;
-		m_user.gid = m_group.gid;
-		strcpy(m_user.name, "<NA>");
-		strcpy(m_user.homedir, "<NA>");
-		strcpy(m_user.shell, "<NA>");
+		// No need to set name/homedir/shell, the default values from
+		// sinsp_userinfo are going to be used.
+		m_user.set_uid(uid);
+		m_user.set_gid(m_group.gid());
 	}
 }
 
@@ -523,44 +551,61 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 	scap_groupinfo *group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
 	if (!group)
 	{
-		// this can fail if import_user is disabled
-		group = m_inspector->m_usergroup_manager.add_group(m_container_id, gid, NULL, m_inspector->is_live());
+		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		group = m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, {}, notify);
 	}
-
 	if (group)
 	{
-		memcpy(&m_group, group, sizeof(scap_groupinfo));
+		m_group.set_gid(group->gid);
+
+		if (m_inspector->is_user_details_enabled())
+		{
+			m_group.set_name(group->name, strnlen(group->name, MAX_CREDENTIALS_STR_LEN));
+		}
 	}
 	else
 	{
-		m_group.gid = gid;
-		strcpy(m_group.name, "<NA>");
+		// No need to set name/homedir/shell, the default values from
+		// sinsp_userinfo are going to be used.
+		m_group.set_gid(gid);
 	}
-	// Force-sync user.gid and group id
-	m_user.gid = m_group.gid;
+	m_user.set_gid(m_group.gid());
 }
 
 void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 {
 	scap_userinfo *login_user = m_inspector->m_usergroup_manager.get_user(m_container_id, loginuid);
-	if (!login_user)
-	{
-		// this can fail if import_user is disabled
-		login_user = m_inspector->m_usergroup_manager.add_user(m_container_id, loginuid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
-	}
 
 	if (login_user)
 	{
-		memcpy(&m_loginuser, login_user, sizeof(scap_userinfo));
+		m_loginuser.set_uid(login_user->uid);
+		m_loginuser.set_gid(m_group.gid());
+
+		if (m_inspector->is_user_details_enabled())
+		{
+			m_loginuser.set_name(login_user->name, strnlen(login_user->name, MAX_CREDENTIALS_STR_LEN));
+			m_loginuser.set_homedir(login_user->homedir, strnlen(login_user->homedir, MAX_CREDENTIALS_STR_LEN));
+			m_loginuser.set_shell(login_user->shell, strnlen(login_user->shell, MAX_CREDENTIALS_STR_LEN));
+		}
 	}
 	else
 	{
-		m_loginuser.uid =loginuid;
-		m_loginuser.gid = m_group.gid;
-		strcpy(m_loginuser.name, "<NA>");
-		strcpy(m_loginuser.homedir, "<NA>");
-		strcpy(m_loginuser.shell, "<NA>");
+		// No need to set name/homedir/shell, the default values from
+		// sinsp_userinfo are going to be used.
+		m_loginuser.set_uid(loginuid);
+		m_loginuser.set_gid(m_group.gid());
 	}
+}
+
+sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const
+{
+	if(m_cgroups)
+	{
+		return *m_cgroups;
+	}
+
+	static cgroups_t empty;
+	return empty;
 }
 
 std::string sinsp_threadinfo::get_comm() const
@@ -580,14 +625,17 @@ std::string sinsp_threadinfo::get_exepath() const
 
 void sinsp_threadinfo::set_args(const char* args, size_t len)
 {
-	m_args.clear();
-
-	size_t offset = 0;
-	while(offset < len)
+	if (len > 0 && args[len - 1] == '\0')
 	{
-		m_args.push_back(args + offset);
-		offset += m_args.back().length() + 1;
+		len--;
 	}
+
+	set_args(sinsp_split({args, len}, '\0'));
+}
+
+void sinsp_threadinfo::set_args(const std::vector<std::string>& args)
+{
+	m_args = args;
 }
 
 void sinsp_threadinfo::set_env(const char* env, size_t len)
@@ -598,41 +646,25 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 		// this may fail for short-lived processes
 		if (set_env_from_proc())
 		{
-			g_logger.format(sinsp_logger::SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Large environment for process %lu [%s], loaded from /proc", m_pid, m_comm.c_str());
 			return;
 		} else {
-			g_logger.format(sinsp_logger::SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
+			libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Failed to load environment for process %lu [%s] from /proc, using first %d bytes", m_pid, m_comm.c_str(), SCAP_MAX_ENV_SIZE);
 		}
 	}
 
-	m_env.clear();
-	size_t offset = 0;
-	while(offset < len)
+	if (len > 0 && env[len - 1] == '\0')
 	{
-		const char* left = env + offset;
-		// environment string may actually be shorter than indicated by len
-		// if the rest is empty, we bail out early
-		if(!strlen(left))
-		{
-			size_t sz = len - offset;
-			void* zero = calloc(sz, sizeof(char));
-			if(!memcmp(left, zero, sz))
-			{
-				free(zero);
-				return;
-			}
-			free(zero);
-		}
-		m_env.push_back(left);
-
-		offset += m_env.back().length() + 1;
+		len--;
 	}
+
+	m_env = sinsp_split({env, len}, '\0');
 }
 
 bool sinsp_threadinfo::set_env_from_proc() {
-	string environ_path = string(scap_get_host_root()) + "/proc/" + to_string(m_pid) + "/environ";
+	std::string environ_path = std::string(scap_get_host_root()) + "/proc/" + std::to_string(m_pid) + "/environ";
 
-	ifstream environment(environ_path);
+	std::ifstream environment(environ_path);
 	if (!environment)
 	{
 		// failed to read the environment from /proc, work with what we have
@@ -641,7 +673,7 @@ bool sinsp_threadinfo::set_env_from_proc() {
 
 	m_env.clear();
 	while (environment) {
-		string env;
+		std::string env;
 		getline(environment, env, '\0');
 		if (!env.empty())
 		{
@@ -652,7 +684,7 @@ bool sinsp_threadinfo::set_env_from_proc() {
 	return true;
 }
 
-const vector<string>& sinsp_threadinfo::get_env()
+const std::vector<std::string>& sinsp_threadinfo::get_env()
 {
 	if(is_main_thread())
 	{
@@ -669,14 +701,13 @@ const vector<string>& sinsp_threadinfo::get_env()
 		{
 			// it should never happen but provide a safe fallback just in case
 			// except during sinsp::scap_open() (see sinsp::get_thread()).
-			ASSERT(false);
 			return m_env;
 		}
 	}
 }
 
 // Return value string for the exact environment variable name given
-string sinsp_threadinfo::get_env(const string& name)
+std::string sinsp_threadinfo::get_env(const std::string& name)
 {
 	size_t nlen = name.length();
 	for(const auto& env_var : get_env())
@@ -686,7 +717,7 @@ string sinsp_threadinfo::get_env(const string& name)
 		{
 			// Stripping spaces, not sure if we really should or need to
 			size_t first = env_var.find_first_not_of(' ', nlen + 1);
-			if (first == string::npos)
+			if (first == std::string::npos)
 				return "";
 			size_t last = env_var.find_last_not_of(' ');
 
@@ -697,27 +728,52 @@ string sinsp_threadinfo::get_env(const string& name)
 	return "";
 }
 
+std::string sinsp_threadinfo::concatenate_all_env()
+{
+	const auto& all_env = get_env();
+	if(all_env.size() == 0)
+	{
+		return "";
+	}
+
+	// Here we have at least one env so we can pop the last character at the end of the loop.
+	std::string concatenate_env;
+	for(const auto& env_var : all_env)
+	{
+		concatenate_env += env_var;
+		concatenate_env += ' ';
+	}
+	concatenate_env.pop_back();
+	return concatenate_env;
+}
+
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 {
-	m_cgroups.clear();
-
-	size_t offset = 0;
-	while(offset < len)
+	if (len > 0 && cgroups[len - 1] == '\0')
 	{
-		const char* str = cgroups + offset;
-		const char* sep = strrchr(str, '=');
-		if(sep == NULL)
+		len--;
+	}
+
+	set_cgroups(sinsp_split({cgroups, len}, '\0'));
+}
+
+void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups)
+{
+	auto tmp_cgroups = std::make_unique<sinsp_threadinfo::cgroups_t>();
+
+	for(const auto &def : cgroups)
+	{
+		std::string::size_type eq_pos = def.find("=");
+		if (eq_pos == std::string::npos)
 		{
-			ASSERT(false);
 			return;
 		}
 
-		string subsys(str, sep - str);
-		string cgroup(sep + 1);
+		std::string subsys = def.substr(0, eq_pos);
+		std::string cgroup = def.substr(eq_pos + 1);
 
-		size_t subsys_length = subsys.length();
 		size_t pos = subsys.find("_cgroup");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			subsys.erase(pos, sizeof("_cgroup") - 1);
 		}
@@ -738,19 +794,26 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 			subsys = "blkio";
 		}
 
-		m_cgroups.push_back(std::make_pair(subsys, cgroup));
-		offset += subsys_length + 1 + cgroup.length() + 1;
+		tmp_cgroups->push_back(std::make_pair(subsys, cgroup));
 	}
+
+	m_cgroups.swap(tmp_cgroups);
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
 {
-	return m_inspector->get_thread_ref(m_ptid, false, true).get();
+	return m_inspector->get_thread_ref(m_ptid, false).get();
 }
 
-sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
+sinsp_fdinfo* sinsp_threadinfo::add_fd(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
 {
-	sinsp_fdinfo_t* res = get_fd_table()->add(fd, fdinfo);
+	sinsp_fdtable* fd_table_ptr = get_fd_table();
+	if(fd_table_ptr == NULL)
+	{
+		ASSERT(false);
+		return NULL;
+	}
+	auto* res = fd_table_ptr->add(fd, std::move(fdinfo));
 
 	//
 	// Update the last event fd. It's needed by the filtering engine
@@ -762,58 +825,89 @@ sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
 
 void sinsp_threadinfo::remove_fd(int64_t fd)
 {
-	get_fd_table()->erase(fd);
+	sinsp_fdtable* fd_table_ptr = get_fd_table();
+	if(fd_table_ptr == NULL)
+	{
+		ASSERT(false);
+		return;
+	}
+	fd_table_ptr->erase(fd);
 }
 
-bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
+bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_const_visitor_t visitor)
 {
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
-
 	sinsp_fdtable* fdt = get_fd_table();
-
-	for(it = fdt->m_table.begin(); it != fdt->m_table.end(); ++it)
+	if(fdt == NULL)
 	{
-		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
-		{
-			if(it->second.m_sockinfo.m_ipv4info.m_fields.m_dport == number)
-			{
-				return true;
-			}
-		}
-		else if(it->second.m_type == SCAP_FD_IPV4_SERVSOCK)
-		{
-			if(it->second.m_sockinfo.m_ipv4serverinfo.m_port == number)
-			{
-				return true;
-			}
-		}
+		ASSERT(false);
+		return false;
 	}
 
-	return false;
+	return fdt->const_loop(visitor);
 }
 
-bool sinsp_threadinfo::uses_client_port(uint16_t number)
+bool sinsp_threadinfo::is_bound_to_port(uint16_t number) const
 {
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
-
-	sinsp_fdtable* fdt = get_fd_table();
-
-	for(it = fdt->m_table.begin();
-		it != fdt->m_table.end(); ++it)
+	const sinsp_fdtable* fdt = get_fd_table();
+	if(fdt == NULL)
 	{
-		if(it->second.m_type == SCAP_FD_IPV4_SOCK)
-		{
-			if(it->second.m_sockinfo.m_ipv4info.m_fields.m_sport == number)
-			{
-				return true;
-			}
-		}
+		ASSERT(false);
+		return false;
 	}
 
-	return false;
+	bool ret = false;
+	fdt->const_loop([&](int64_t fd, const sinsp_fdinfo& fdi) {
+		if(fdi.m_type == SCAP_FD_IPV4_SOCK)
+		{
+			if(fdi.m_sockinfo.m_ipv4info.m_fields.m_dport == number)
+			{
+				// set result and break out of the loop
+				ret = true;
+				return false;
+			}
+		}
+		else if(fdi.m_type == SCAP_FD_IPV4_SERVSOCK)
+		{
+			if(fdi.m_sockinfo.m_ipv4serverinfo.m_port == number)
+			{
+				// set result and break out of the loop
+				ret = true;
+				return false;
+			}
+		}
+		return true;
+	});
+
+	return ret;
 }
 
-bool sinsp_threadinfo::is_lastevent_data_valid()
+bool sinsp_threadinfo::uses_client_port(uint16_t number) const
+{
+	const sinsp_fdtable* fdt = get_fd_table();
+	if(fdt == NULL)
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	bool ret = false;
+	fdt->const_loop([&](int64_t fd, const sinsp_fdinfo& fdi) {
+		if(fdi.m_type == SCAP_FD_IPV4_SOCK)
+		{
+			if(fdi.m_sockinfo.m_ipv4info.m_fields.m_sport == number)
+			{
+				// set result and break out of the loop
+				ret = true;
+				return false;
+			}
+		}
+		return true;
+	});
+
+	return ret;
+}
+
+bool sinsp_threadinfo::is_lastevent_data_valid() const
 {
 	return (m_lastevent_cpuid != (uint16_t) - 1);
 }
@@ -830,7 +924,7 @@ sinsp_threadinfo* sinsp_threadinfo::get_cwd_root()
 	}
 }
 
-string sinsp_threadinfo::get_cwd()
+std::string sinsp_threadinfo::get_cwd()
 {
 	// Ideally we should use get_cwd_root()
 	// but scap does not read CLONE_FS from /proc
@@ -845,69 +939,26 @@ string sinsp_threadinfo::get_cwd()
 	}
 	else
 	{
-		ASSERT(false);
+		///todo(@Andreagit97) not sure we want to return "./" it seems like a valid path
 		return "./";
 	}
 }
 
-void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
+void sinsp_threadinfo::update_cwd(std::string_view cwd)
 {
-	char tpath[SCAP_MAX_PATH_SIZE];
 	sinsp_threadinfo* tinfo = get_main_thread();
 
-	if(tinfo)
+	if (tinfo == nullptr)
 	{
-		sinsp_utils::concatenate_paths(tpath,
-			SCAP_MAX_PATH_SIZE,
-			(char*)tinfo->m_cwd.c_str(),
-			(uint32_t)tinfo->m_cwd.size(),
-			cwd,
-			cwdlen,
-			m_inspector->m_is_windows);
-
-		tinfo->m_cwd = tpath;
-
-		uint32_t size = tinfo->m_cwd.size();
-
-		if(size == 0 || (tinfo->m_cwd[size - 1] != '/'))
-		{
-			tinfo->m_cwd += '/';
-		}
-	}
-	else
-	{
-		ASSERT(false);
-	}
-}
-
-void sinsp_threadinfo::allocate_private_state()
-{
-	uint32_t j = 0;
-
-	if(m_inspector != NULL)
-	{
-		m_private_state.clear();
-
-		vector<uint32_t>* sizes = &m_inspector->m_thread_privatestate_manager.m_memory_sizes;
-
-		for(j = 0; j < sizes->size(); j++)
-		{
-			void* newbuf = malloc(sizes->at(j));
-			memset(newbuf, 0, sizes->at(j));
-			m_private_state.push_back(newbuf);
-		}
-	}
-}
-
-void* sinsp_threadinfo::get_private_state(uint32_t id)
-{
-	if(id >= m_private_state.size())
-	{
-		ASSERT(false);
-		throw sinsp_exception("invalid thread state ID" + to_string((long long) id));
+		return;
 	}
 
-	return m_private_state[id];
+	tinfo->m_cwd = sinsp_utils::concatenate_paths(m_cwd, cwd);
+
+	if(tinfo->m_cwd.empty() || tinfo->m_cwd.back() != '/')
+	{
+		tinfo->m_cwd += '/';
+	}
 }
 
 uint64_t sinsp_threadinfo::get_fd_usage_pct()
@@ -956,19 +1007,29 @@ double sinsp_threadinfo::get_fd_usage_pct_d()
 
 uint64_t sinsp_threadinfo::get_fd_opencount() const
 {
-	return get_main_thread()->m_fdtable.size();
+	auto main_thread = get_main_thread();
+	if(main_thread == nullptr)
+	{
+		return 0;
+	}
+	return main_thread->get_fdtable().size();
 }
 
 uint64_t sinsp_threadinfo::get_fd_limit()
 {
-	return get_main_thread()->m_fdlimit;
+	auto main_thread = get_main_thread();
+	if(main_thread == nullptr)
+	{
+		return 0;
+	}
+	return main_thread->m_fdlimit;
 }
 
 const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
 {
 	static const std::string notfound = "/";
 
-	for(const auto& it : m_cgroups)
+	for(const auto& it : cgroups())
 	{
 		if(it.first == subsys)
 		{
@@ -977,6 +1038,20 @@ const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
 	}
 
 	return notfound;
+}
+
+bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup) const
+{
+	for(const auto& it : cgroups())
+	{
+		if(it.first == subsys)
+		{
+			cgroup = it.second;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
@@ -1015,7 +1090,7 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 				// Note we only log a loop once for a given main thread, to avoid flooding logs.
 				if(!m_parent_loop_detected)
 				{
-					g_logger.log(string("Loop in parent thread state detected for pid ") +
+					libsinsp_logger()->log(std::string("Loop in parent thread state detected for pid ") +
 						     std::to_string(m_pid) +
 						     ". stopped at tid= " + std::to_string(slow->m_tid) +
 						     " ptid=" + std::to_string(slow->m_ptid),
@@ -1028,7 +1103,51 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
-void sinsp_threadinfo::populate_cmdline(string &cmdline, const sinsp_threadinfo *tinfo)
+/* We should never call this method if we don't have children to reparent
+ * if we want to save some clock cycles
+ */
+void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
+{
+	/* We have no children to reparent. */
+	if(m_children.size() == 0)
+	{
+		return;
+	}
+
+	if(reaper == this)
+	{
+		throw sinsp_exception("the current process is reaper of itself, this should never happen!");
+	}
+
+	auto child = m_children.begin();
+	while(child != m_children.end())
+	{
+		/* If the child is not expired we move it to the reaper
+		 * and we change its `ptid`.
+		 */
+		if(!child->expired())
+		{
+			if(reaper == nullptr)
+			{
+				/* we set `0` as the parent for all children */
+				child->lock()->m_ptid = 0;
+			}
+			else
+			{
+				/* Add the child to the reaper list */
+				reaper->add_child(child->lock());
+			}
+		}
+
+		/* In any case (expired or not) we remove the child
+		 * from the list.
+		 */
+		child = m_children.erase(child);
+	}
+	m_not_expired_children = 0;
+}
+
+void sinsp_threadinfo::populate_cmdline(std::string &cmdline, const sinsp_threadinfo *tinfo)
 {
 	cmdline = tinfo->get_comm();
 
@@ -1039,20 +1158,19 @@ void sinsp_threadinfo::populate_cmdline(string &cmdline, const sinsp_threadinfo 
 	}
 }
 
-bool sinsp_threadinfo::is_health_probe()
+bool sinsp_threadinfo::is_health_probe() const
 {
 	return (m_category == sinsp_threadinfo::CAT_HEALTHCHECK ||
 		m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE ||
 	        m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
 }
 
-string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
+std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 {
-	sinsp_fdinfo_t* dir_fdinfo = get_fd(dir_fd);
+	sinsp_fdinfo* dir_fdinfo = get_fd(dir_fd);
 	if (!dir_fdinfo || dir_fdinfo->m_name.empty())
 	{
-#ifndef WIN32 // we will have to implement this for Windows
-#ifdef HAS_CAPTURE
+#ifndef _WIN32 // we will have to implement this for Windows
 		// Sad day; we don't have the directory in the tinfo's fd cache.
 		// Must manually look it up so we can resolve filenames correctly.
 		char proc_path[PATH_MAX];
@@ -1068,7 +1186,7 @@ string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		ret = readlink(proc_path, dirfd_path, sizeof(dirfd_path) - 1);
 		if (ret < 0)
 		{
-			g_logger.log("Unable to determine path for file descriptor.",
+			libsinsp_logger()->log("Unable to determine path for file descriptor.",
 			             sinsp_logger::SEV_INFO);
 			return "";
 		}
@@ -1076,21 +1194,11 @@ string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 		std::string rel_path_base = dirfd_path;
 		sanitize_string(rel_path_base);
 		rel_path_base.append("/");
-		g_logger.log(std::string("Translating to ") + rel_path_base);
+		libsinsp_logger()->log(std::string("Translating to ") + rel_path_base);
 		return rel_path_base;
-#else
-		g_logger.log("Can't translate working directory outside of live capture.",
-		             sinsp_logger::SEV_INFO);
-		return "";
-#endif
-#endif // WIN32
+#endif // _WIN32
 	}
 	return dir_fdinfo->m_name;
-}
-
-shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
-{
-	return m_inspector->get_thread_ref(m_pid, true, true, true);
 }
 
 size_t sinsp_threadinfo::args_len() const
@@ -1101,19 +1209,6 @@ size_t sinsp_threadinfo::args_len() const
 size_t sinsp_threadinfo::env_len() const
 {
 	return strvec_len(m_env);
-}
-
-size_t sinsp_threadinfo::cgroups_len() const
-{
-	size_t totlen = 0;
-
-	for(auto &cgroup : m_cgroups)
-	{
-		totlen += cgroup.first.size() + 1 + cgroup.second.size();
-		totlen++; // Trailing NULL
-	}
-
-	return totlen;
 }
 
 void sinsp_threadinfo::args_to_iovec(struct iovec **iov, int *iovcnt,
@@ -1136,7 +1231,7 @@ void sinsp_threadinfo::env_to_iovec(struct iovec **iov, int *iovcnt,
 // won't, copy the portion that will fit to rem and set the iovec to
 // rem. Updates alen with the new total length and possibly sets rem
 // to any truncated string.
-void sinsp_threadinfo::add_to_iovec(const string &str,
+void sinsp_threadinfo::add_to_iovec(const std::string &str,
 				    const bool include_trailing_null,
 				    struct iovec &iov,
 				    uint32_t &alen,
@@ -1163,19 +1258,23 @@ void sinsp_threadinfo::add_to_iovec(const string &str,
 // iov will be allocated and must be freed. rem is used to hold a
 // possibly truncated final argument.
 void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
-				       std::string &rem) const
+				       std::string &rem, const cgroups_t& cgroups) const
 {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
-	static const string eq = "=";
+	static const std::string eq = "=";
 
 	// We allocate an iovec big enough to hold all the cgroups and
 	// intermediate '=' signs. Based on alen, we might not use all
 	// of the iovec.
-	*iov = (struct iovec *) malloc((3 * m_cgroups.size()) * sizeof(struct iovec));
+	*iov = (struct iovec *) malloc((3 * cgroups.size()) * sizeof(struct iovec));
+	if(iov == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_threadinfo::cgroups_to_iovec.");
+	}
 
 	*iovcnt = 0;
 
-	for(auto it = m_cgroups.begin(); it != m_cgroups.end() && alen > 0; ++it)
+	for(auto it = cgroups.begin(); it != cgroups.end() && alen > 0; ++it)
 	{
 		add_to_iovec(it->first, false, (*iov)[(*iovcnt)++], alen, rem);
 		if(alen > 0)
@@ -1190,7 +1289,7 @@ void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
 	}
 }
 
-size_t sinsp_threadinfo::strvec_len(const vector<string> &strs) const
+size_t sinsp_threadinfo::strvec_len(const std::vector<std::string> &strs) const
 {
 	size_t totlen = 0;
 
@@ -1205,7 +1304,7 @@ size_t sinsp_threadinfo::strvec_len(const vector<string> &strs) const
 
 // iov will be allocated and must be freed. rem is used to hold a
 // possibly truncated final argument.
-void sinsp_threadinfo::strvec_to_iovec(const vector<string> &strs,
+void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string> &strs,
 				       struct iovec **iov, int *iovcnt,
 				       std::string &rem) const
 {
@@ -1214,6 +1313,10 @@ void sinsp_threadinfo::strvec_to_iovec(const vector<string> &strs,
 	// We allocate an iovec big enough to hold all the entries in
 	// strs. Based on alen, we might not use all of the iovec.
 	*iov = (struct iovec *) malloc(strs.size() * sizeof(struct iovec));
+	if(iov == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_threadinfo::strvec_to_iovec.");
+	}
 
 	*iovcnt = 0;
 
@@ -1223,11 +1326,11 @@ void sinsp_threadinfo::strvec_to_iovec(const vector<string> &strs,
 	}
 }
 
-
-void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
+static void fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo* src)
 {
 	dst->type = src->m_type;
 	dst->ino = src->m_ino;
+	dst->fd = src->m_fd;
 
 	switch(dst->type)
 	{
@@ -1276,6 +1379,11 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 	case SCAP_FD_NETLINK:
+	case SCAP_FD_BPF:
+	case SCAP_FD_USERFAULTFD:
+	case SCAP_FD_IOURING:
+	case SCAP_FD_MEMFD:
+	case SCAP_FD_PIDFD:
 		strlcpy(dst->info.fname, src->m_name.c_str(), sizeof(dst->info.fname));
 		break;
 	default:
@@ -1284,186 +1392,435 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 	}
 }
 
+static const auto s_threadinfo_static_fields = sinsp_threadinfo().static_fields();
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
-	: m_max_thread_table_size(m_thread_table_absolute_max_size)
+	: table(s_thread_table_name, &s_threadinfo_static_fields),
+	  m_max_thread_table_size(m_thread_table_default_size),
+	  m_fdtable_dyn_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>())
 {
 	m_inspector = inspector;
+	if (m_inspector != nullptr)
+	{
+		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
+	}
+	else
+	{
+		m_sinsp_stats_v2 = nullptr;
+	}
 	clear();
 }
 
 void sinsp_thread_manager::clear()
 {
 	m_threadtable.clear();
+	m_thread_groups.clear();
 	m_last_tid = 0;
-	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
-	m_n_drops = 0;
-
-#ifdef GATHER_INTERNAL_STATS
-	m_failed_lookups = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_failed_lookups","Failed thread lookups"));
-	m_cached_lookups = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_cached_lookups","Cached thread lookups"));
-	m_non_cached_lookups = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_non_cached_lookups","Non cached thread lookups"));
-	m_added_threads = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_added","Number of added threads"));
-	m_removed_threads = &m_inspector->m_stats.get_metrics_registry().register_counter(internal_metrics::metric_name("thread_removed","Removed threads"));
-#endif
 }
 
-void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* threadinfo)
+/* This is called on the table after the `/proc` scan */
+void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo)
 {
-	if(threadinfo->m_flags & PPM_CL_CLONE_THREAD)
+	/* This should never happen */
+	if(tinfo == nullptr)
 	{
-		//
-		// Increment the refcount of the main thread so it won't
-		// be deleted (if it calls pthread_exit()) until we are done
-		//
-		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
-
-		sinsp_threadinfo* main_thread = m_inspector->get_thread_ref(threadinfo->m_pid, true, true).get();
-		if(main_thread)
-		{
-			++main_thread->m_nchilds;
-		}
-		else
-		{
-			ASSERT(false);
-		}
+		throw sinsp_exception("There is a NULL pointer in the thread table, this should never happen");
 	}
+
+	/* For invalid threads we do nothing.
+	 * They won't have a valid parent or a valid thread group.
+	 * We use them just to see which tid calls a syscall.
+	 */
+	if(tinfo->is_invalid())
+	{
+		return;
+	}
+
+	/* This is a defensive check, it should never happen
+	 * a thread that calls this method should never have a thread group info
+	 */
+	if(tinfo->m_tginfo != nullptr)
+	{
+		return;
+	}
+
+	bool reaper = false;
+	/* reaper should be true if we are an init process for the init namespace or for an inner namespace */
+	if(tinfo->m_pid == 1 || tinfo->m_vpid == 1)
+	{
+		reaper = true;
+	}
+
+	/* Create the thread group info for the thread. */
+	auto tginfo = m_inspector->m_thread_manager->get_thread_group_info(tinfo->m_pid);
+	if(tginfo == nullptr)
+	{
+		tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, reaper, tinfo);
+		m_inspector->m_thread_manager->set_thread_group_info(tinfo->m_pid, tginfo);
+	}
+	else
+	{
+		tginfo->add_thread_to_group(tinfo, tinfo->is_main_thread());
+	}
+	tinfo->m_tginfo = tginfo;
+
+	/* init group has no parent */
+	if(tinfo->m_pid == 1)
+	{
+		return;
+	}
+
+	/* Assign the child to the parent for the first time, we are a thread
+	 * just created and we need to assign us to a parent.
+	 * Remember that in `/proc` scan the `ptid` is `ppid`.
+	 * If we don't find the parent in the table we can do nothing, so we consider
+	 * INIT as the new parent.
+	 * Here we avoid scanning `/proc` to not trigger a possible recursion
+	 * on all the parents
+	 */
+	auto parent_thread = m_inspector->get_thread_ref(tinfo->m_ptid, false);
+	if(parent_thread == nullptr || parent_thread->is_invalid())
+	{
+		/* If we have a valid parent we assign the new child to it otherwise we set ptid = 0. */
+		tinfo->m_ptid = 0;
+		return;
+	}
+	parent_thread->add_child(tinfo);
 }
 
-bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
+std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
 {
-#ifdef GATHER_INTERNAL_STATS
-	m_added_threads->increment();
-#endif
+	auto tinfo = new sinsp_threadinfo(m_inspector, dynamic_fields());
+	return std::unique_ptr<sinsp_threadinfo>(tinfo);
+}
 
-	m_last_tinfo.reset();
+std::unique_ptr<sinsp_fdinfo> sinsp_thread_manager::new_fdinfo() const
+{
+	return sinsp_fdtable(m_inspector).new_fdinfo();
+}
 
+/* Can be called when:
+ * 1. We crafted a new event to create in clone parsers. (`from_scap_proctable==false`)
+ * 2. We are doing a proc scan with a callback or without. (`from_scap_proctable==true`)
+ * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
+ */
+const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(std::unique_ptr<sinsp_threadinfo> threadinfo, bool from_scap_proctable)
+{
+
+	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size
-#if defined(HAS_CAPTURE)
 	   && threadinfo->m_pid != m_inspector->m_self_pid
-#endif
 	)
 	{
-		// rate limit messages to avoid spamming the logs
-		if (m_n_drops % m_max_thread_table_size == 0)
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			g_logger.format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
-				threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
+			// rate limit messages to avoid spamming the logs
+			if (m_sinsp_stats_v2->m_n_drops_full_threadtable % m_max_thread_table_size == 0)
+			{
+				libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Thread table full, dropping tid %lu (pid %lu, comm \"%s\")",
+					threadinfo->m_tid, threadinfo->m_pid, threadinfo->m_comm.c_str());
+			}
+			m_sinsp_stats_v2->m_n_drops_full_threadtable++;
 		}
-		m_n_drops++;
-		return false;
+
+		return m_nullptr_tinfo_ret;
 	}
+
+	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(std::move(threadinfo));
 
 	if(!from_scap_proctable)
 	{
-		increment_mainthread_childcount(threadinfo);
+		create_thread_dependencies(tinfo_shared_ptr);
 	}
 
-	threadinfo->compute_program_hash();
-	threadinfo->allocate_private_state();
-	m_threadtable.put(threadinfo);
+	if (tinfo_shared_ptr->dynamic_fields() != dynamic_fields())
+	{
+		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
+	}
 
-	return true;
+	if (tinfo_shared_ptr->get_fdtable().dynamic_fields() != m_fdtable_dyn_fields)
+	{
+		throw sinsp_exception("adding entry with incompatible dynamic defs to of file descriptor sub-table");
+	}
+
+	tinfo_shared_ptr->compute_program_hash();
+	if (m_sinsp_stats_v2 != nullptr)
+	{
+		m_sinsp_stats_v2->m_n_added_threads++;
+	}
+
+	return m_threadtable.put(tinfo_shared_ptr);
 }
 
-void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
+/* Taken from `find_new_reaper` kernel function:
+ *
+ * When we die, we re-parent all our children, and try to:
+ * 1. give them to another thread in our thread group, if such a member exists.
+ * 2. give them to the first ancestor process which prctl'd itself as a
+ *    child_subreaper for its children (like a service manager)
+ * 3. give them to the init process (PID 1) in our pid namespace
+ */
+sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 {
-	uint64_t nchilds;
-	sinsp_threadinfo* tinfo = m_threadtable.get(tid);
-
 	if(tinfo == nullptr)
 	{
-		//
-		// Looks like there's no thread to remove.
-		// Either the thread creation event was dropped or our logic doesn't support the
-		// call that created this thread. The assertion will detect it, while in release mode we just
-		// keep going.
-		//
-#ifdef GATHER_INTERNAL_STATS
-		m_failed_lookups->increment();
-#endif
+		throw sinsp_exception("cannot call find_new_reaper() on a null tinfo");
+	}
+
+	/* First we check in our thread group for alive threads */
+	if(tinfo->m_tginfo != nullptr && tinfo->m_tginfo->get_thread_count() > 0)
+	{
+		for(const auto& thread_weak : tinfo->m_tginfo->get_thread_list())
+		{
+			if(thread_weak.expired())
+			{
+				continue;
+			}
+			auto thread = thread_weak.lock().get();
+			if(!thread->is_dead() && thread != tinfo)
+			{
+				return thread;
+			}
+		}
+	}
+
+	/* This is a best-effort logic to detect loops.
+	 * If a parent points to a thread that is a child of
+	 * the current `tinfo` it is possible that we are not
+	 * able to detect the loop and we assign the wrong reaper.
+	 * By the way, this should never happen and this logic is here
+	 * just to avoid infinite loops, is not here to guarantee 100%
+	 * correctness.
+	 * We should never have a self-loop but if we have it
+	 * we break it and we return a `nullptr` as a reaper.
+	 */
+	std::unordered_set<int64_t> loop_detection_set{tinfo->m_tid};
+	uint16_t prev_set_size = 1;
+
+	auto parent_tinfo = tinfo->get_parent_thread();
+	while(parent_tinfo != nullptr)
+	{
+		prev_set_size = loop_detection_set.size();
+		loop_detection_set.insert(parent_tinfo->m_tid);
+		if(loop_detection_set.size() == prev_set_size)
+		{
+			/* loop detected */
+			ASSERT(false);
+			break;
+		}
+
+		/* The only possible case in which we break here is:
+		 * - the parent is not in a namespace while the child yes
+		 *
+		 * WARNING: this is a best-effort check, in sinsp we have no knowledge of
+		 * namespace level so it's possible that the parent is in a different namespace causing
+		 * a container escape! We are not able to detect it with the actual info.
+		 */
+		if(parent_tinfo->is_in_pid_namespace() != tinfo->is_in_pid_namespace())
+		{
+			break;
+		}
+
+		if(parent_tinfo->m_tginfo != nullptr &&
+			parent_tinfo->m_tginfo->is_reaper() &&
+			parent_tinfo->m_tginfo->get_thread_count() > 0)
+		{
+			for(const auto& thread_weak : parent_tinfo->m_tginfo->get_thread_list())
+			{
+				if(thread_weak.expired())
+				{
+					continue;
+				}
+				auto thread = thread_weak.lock().get();
+				if(!thread->is_dead())
+				{
+					return thread;
+				}
+			}
+		}
+		parent_tinfo = parent_tinfo->get_parent_thread();
+	}
+
+	return nullptr;
+}
+
+void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread)
+{
+	///todo(@Andreagit97): all this logic is useful only if we have a `m_fd_listener`
+	///we could avoid it if not present.
+
+	/* Please note that the main thread is not always here, it is possible
+	 * that for some reason we lose it!
+	 */
+	if(main_thread == nullptr)
+	{
 		return;
 	}
-	else if((nchilds = tinfo->m_nchilds) == 0 || force)
+
+	sinsp_fdtable* fd_table_ptr = main_thread->get_fd_table();
+	if(fd_table_ptr == nullptr)
 	{
+		return;
+	}
+
+	erase_fd_params eparams;
+	eparams.m_remove_from_table = false;
+	eparams.m_tinfo = main_thread;
+	eparams.m_ts = m_inspector->get_lastevent_ts();
+
+	fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& fdinfo) {
+		eparams.m_fd = fd;
+
 		//
-		// Decrement the refcount of the main thread/program because
-		// this reference is gone
+		// The canceled fd should always be deleted immediately, so if it appears
+		// here it means we have a problem.
 		//
-		if(tinfo->m_flags & PPM_CL_CLONE_THREAD)
+		ASSERT(eparams.m_fd != CANCELED_FD_NUMBER);
+		eparams.m_fdinfo = &fdinfo;
+
+		/* Here we are just calling the `on_erase` callback */
+		m_inspector->get_parser()->erase_fd(&eparams);
+		return true;
+	});
+}
+
+void sinsp_thread_manager::remove_thread(int64_t tid)
+{
+	auto thread_to_remove = m_threadtable.get_ref(tid);
+
+	/* This should never happen but just to be sure. */
+	if(thread_to_remove == nullptr)
+	{
+		// Extra m_inspector nullptr check
+		if (m_sinsp_stats_v2 != nullptr)
 		{
-			ASSERT(tinfo->m_pid != tinfo->m_tid);
-			sinsp_threadinfo* main_thread = m_inspector->get_thread_ref(tinfo->m_pid, false, true).get();
-			if(main_thread)
-			{
-				if(main_thread->m_nchilds > 0)
-				{
-					--main_thread->m_nchilds;
-				}
-				else
-				{
-					ASSERT(false);
-				}
-			}
-			else
-			{
-				ASSERT(false);
-			}
+			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
 		}
+		return;
+	}
 
-		//
-		// If this is the main thread of a process, erase all the FDs that the process owns
-		//
-		if((tinfo->m_pid == tinfo->m_tid) || tinfo->m_flags & PPM_CL_IS_MAIN_THREAD)
-		{
-			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(tinfo->get_fd_table()->m_table);
-			unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
-
-			erase_fd_params eparams;
-			eparams.m_remove_from_table = false;
-			eparams.m_tinfo = tinfo;
-			eparams.m_ts = m_inspector->m_lastevent_ts;
-
-			for(fdit = fdtable->begin(); fdit != fdtable->end(); ++fdit)
-			{
-				eparams.m_fd = fdit->first;
-
-				//
-				// The canceled fd should always be deleted immediately, so if it appears
-				// here it means we have a problem.
-				//
-				ASSERT(eparams.m_fd != CANCELED_FD_NUMBER);
-				eparams.m_fdinfo = &(fdit->second);
-
-				m_inspector->m_parser->erase_fd(&eparams);
-			}
-		}
-
-		//
-		// Reset the cache
-		//
-		m_last_tid = 0;
-		m_last_tinfo.reset();
-
-#ifdef GATHER_INTERNAL_STATS
-		m_removed_threads->increment();
-#endif
-
+	/* [Remove invalid threads]
+	 * All threads should have a m_tginfo apart from the invalid ones
+	 * which don't have a group or children.
+	 */
+	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr)
+	{
+		thread_to_remove->remove_child_from_parent();
 		m_threadtable.erase(tid);
+		m_last_tid = -1;
+		return;
+	}
 
-		//
-		// If the thread has a nonzero refcount, it means that we are forcing the removal
-		// of a main process or program that some child refer to.
-		// We need to recalculate the child relationships, or the table will become
-		// corrupted.
-		//
-		if(nchilds != 0)
+	/* [Mark the thread as dead]
+	 * If didn't lose the PROC_EXIT event we have already done it
+	 */
+	if(!thread_to_remove->is_dead())
+	{
+		/* we should decrement only if the thread is alive */
+		thread_to_remove->m_tginfo->decrement_thread_count();
+		thread_to_remove->set_dead();
+	}
+
+	/* [Reparent children]
+	 * There are different cases:
+	 * 1. We have no children so we have nothing to reparent.
+	 * 2. We receive a PROC_EXIT event for this thread, with reaper info:
+	 *   - Reaper 0 means that the kernel didn't find any children for this thread,
+	 *     probably we are not correctly aligned with it. In this case, we will use our userspace logic
+	 *     to find a reaper.
+	 *   - Reaper -1 means that we cannot find the correct reaper info in the kernel due
+	 *     to BPF verifier limits. In this case, we will use our userspace logic to find a reaper.
+	 *   - Reaper > 0 means the kernel sent us a valid reaper we will use it if present in our thread table.
+	 * 	   If not present we will use our userspace logic.
+	 * 3. We receive an old version of the PROC_EXIT event without reaper info. In this case,
+	 *    we use our userspace logic.
+	 * 4. We lost the PROC_EXIT event, so we are here because the purging logic called us. Also
+	 *    in this case we use our userspace logic.
+	 *
+	 * So excluding the case in which the kernel sent us a valid reaper we always fallback to
+	 * our userspace logic.
+	 */
+	if(thread_to_remove->m_children.size())
+	{
+		sinsp_threadinfo *reaper_tinfo = nullptr;
+
+		if(thread_to_remove->m_reaper_tid > 0)
 		{
-			recreate_child_dependencies();
+			/* The kernel sent us a valid reaper
+			 * We should have the reaper thread in the table, but if we don't have
+			 * it, we try to create it from /proc
+			 */
+			reaper_tinfo = m_inspector->get_thread_ref(thread_to_remove->m_reaper_tid , true).get();
 		}
+
+		if(reaper_tinfo == nullptr || reaper_tinfo->is_invalid())
+		{
+			/* Fallback case:
+		 	 * We search for a reaper in best effort traversing our table
+		 	 */
+			reaper_tinfo = find_new_reaper(thread_to_remove.get());
+		}
+
+		if(reaper_tinfo != nullptr)
+		{
+			/* We update the reaper tid if necessary. */
+			thread_to_remove->m_reaper_tid = reaper_tinfo->m_tid;
+
+			/* If that thread group was not marked as a reaper we mark it now.
+			 * Since the reaper could be also a thread in the same thread group
+			 * we need to exclude that case. In all other cases, we want to mark
+			 * the thread group as a reaper:
+			 * - init process of a namespace.
+			 * - process that called prctl on itself.
+			 * Please note that in the kernel init processes are not marked with `is_child_subreaper`
+			 * but here we don't make distinctions we mark reapers and sub reapers with the same flag.
+			 */
+			if(reaper_tinfo->m_pid != thread_to_remove->m_pid && reaper_tinfo->m_tginfo)
+			{
+				reaper_tinfo->m_tginfo->set_reaper(true);
+			}
+		}
+		thread_to_remove->assign_children_to_reaper(reaper_tinfo);
+	}
+
+	/* [Remove main thread]
+	 * We remove the main thread if there are no other threads in the group
+	 */
+	if((thread_to_remove->m_tginfo->get_thread_count() == 0))
+	{
+		remove_main_thread_fdtable(thread_to_remove->get_main_thread());
+
+		/* we remove the main thread and the thread group */
+		/* even if thread_to_remove is not the main thread the parent will be
+		 * the same so it's ok.
+		 */
+		thread_to_remove->remove_child_from_parent();
+		m_thread_groups.erase(thread_to_remove->m_pid);
+		m_threadtable.erase(thread_to_remove->m_pid);
+	}
+
+	/* [Remove the current thread]
+	 * We remove the current thread if it is not the main one.
+	 * If we are the main thread and it's time to be removed, we are removed
+	 * in the previous `if`.
+	 */
+	if(!thread_to_remove->is_main_thread())
+	{
+		thread_to_remove->remove_child_from_parent();
+		m_threadtable.erase(tid);
+	}
+
+	/* Maybe we removed the thread info that was cached, we clear
+	 * the cache just to be sure.
+	 */
+	m_last_tid = -1;
+	if (m_sinsp_stats_v2 != nullptr)
+	{
+		m_sinsp_stats_v2->m_n_removed_threads++;
 	}
 }
 
@@ -1477,8 +1834,6 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc()
 
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 {
-	tinfo.m_main_thread.reset();
-
 	sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL)
 	{
@@ -1486,56 +1841,32 @@ void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 	}
 }
 
-/*
-void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
-{
-	it->second.m_main_program_thread = NULL;
-	it->second.m_main_thread = NULL;
-	it->second.m_progid = -1LL;
-	it->second.m_fdtable.reset_cache();
-}
-*/
-
 void sinsp_thread_manager::reset_child_dependencies()
 {
-	m_last_tinfo.reset();
-	m_last_tid = 0;
-
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		tinfo.m_nchilds = 0;
+		tinfo.clean_expired_children();
+		/* Little optimization: only the main thread cleans the thread group from expired threads.
+		 * Downside: if the main thread is not present in the thread group because we lost it we don't
+		 * clean the thread group from expired threads.
+		 */
+		if(tinfo.is_main_thread() && tinfo.m_tginfo != nullptr)
+		{
+			tinfo.m_tginfo->clean_expired_threads();
+		}
 		clear_thread_pointers(tinfo);
 		return true;
 	});
 }
 
-void sinsp_thread_manager::create_child_dependencies()
+void sinsp_thread_manager::create_thread_dependencies_after_proc_scan()
 {
-	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		increment_mainthread_childcount(&tinfo);
+	m_threadtable.const_loop_shared_pointer([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
+		create_thread_dependencies(tinfo);
 		return true;
 	});
 }
 
-void sinsp_thread_manager::recreate_child_dependencies()
-{
-	reset_child_dependencies();
-	create_child_dependencies();
-}
-
-void sinsp_thread_manager::update_statistics()
-{
-#ifdef GATHER_INTERNAL_STATS
-	m_inspector->m_stats.m_n_threads = get_thread_count();
-
-	m_inspector->m_stats.m_n_fds = 0;
-	for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end(); it++)
-	{
-		m_inspector->m_stats.m_n_fds += it->second.get_fd_table()->size();
-	}
-#endif
-}
-
-void sinsp_thread_manager::free_dump_fdinfos(vector<scap_fdinfo*>* fdinfos_to_free)
+void sinsp_thread_manager::free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free)
 {
 	for(uint32_t j = 0; j < fdinfos_to_free->size(); j++)
 	{
@@ -1564,8 +1895,8 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 
 	sctinfo->flags = tinfo.m_flags ;
 	sctinfo->fdlimit = tinfo.m_fdlimit;
-	sctinfo->uid = tinfo.m_user.uid;
-	sctinfo->gid = tinfo.m_group.gid;
+	sctinfo->uid = tinfo.m_user.uid();
+	sctinfo->gid = tinfo.m_group.gid();
 	sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
 	sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
 	sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
@@ -1574,200 +1905,182 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->vtid = tinfo.m_vtid;
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
-	sctinfo->loginuid = tinfo.m_loginuser.uid;
-	sctinfo->filtered_out = false;
+	sctinfo->loginuid = tinfo.m_loginuser.uid();
+	sctinfo->filtered_out = tinfo.m_filtered_out;
 }
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
-	//
-	// First pass of the table to calculate the lengths
-	//
-	uint32_t totlen = 0;
-
-	vector<uint32_t> lengths;
-
-	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		uint32_t il = (uint32_t)
-			(sizeof(uint32_t) +     // len
-			sizeof(uint64_t) +	// tid
-			sizeof(uint64_t) +	// pid
-			sizeof(uint64_t) +	// ptid
-			sizeof(uint64_t) +	// sid
-			sizeof(uint64_t) +  // pgid
-			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
-			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
-			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
-                        2 + MIN(tinfo.args_len(), SCAP_MAX_ARGS_SIZE) +
-                        // 1 is sizeof("/")
-                        2 + MIN((tinfo.m_cwd == "")? 1 : tinfo.m_cwd.size(), SCAP_MAX_PATH_SIZE) +
-			sizeof(uint64_t) +	// fdlimit
-			sizeof(uint32_t) +	// flags
-			sizeof(uint32_t) +	// uid
-			sizeof(uint32_t) +	// gid
-			sizeof(uint32_t) +  // vmsize_kb
-			sizeof(uint32_t) +  // vmrss_kb
-			sizeof(uint32_t) +  // vmswap_kb
-			sizeof(uint64_t) +  // pfmajor
-			sizeof(uint64_t) +  // pfminor
-                        2 + MIN(tinfo.env_len(), SCAP_MAX_ENV_SIZE) +
-			sizeof(int64_t) +  // vtid
-			sizeof(int64_t) +  // vpid
-                        2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
-			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE)) +
-			sizeof(int32_t) + // loginuid;
-			sizeof(uint64_t) + // cap_inheritable
-			sizeof(uint64_t) + // cap_permitted
-			sizeof(uint64_t) + //cap_effective
-			sizeof(uint8_t); // exe_writable
-
-		lengths.push_back(il);
-		totlen += il;
-		return true;
-	});
-
-	//
-	// Second pass of the table to dump the Threads
-	//
-	if(scap_write_proclist_header(m_inspector->m_h, dumper, totlen) != SCAP_SUCCESS)
+	if(m_threadtable.size() == 0)
 	{
-		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+		return;
 	}
 
-	uint32_t idx = 0;
-	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		scap_threadinfo *sctinfo;
-		struct iovec *args_iov, *envs_iov, *cgroups_iov;
-		int argscnt, envscnt, cgroupscnt;
-		string argsrem, envsrem, cgroupsrem;
+	scap_dumper_t *proclist_dumper = scap_write_proclist_begin();
+	if(proclist_dumper == nullptr)
+	{
+			throw sinsp_exception("Failed to create proclist dumper");
+	}
 
-		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
+	uint32_t totlen = 0;
+	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+		if(tinfo.m_filtered_out)
 		{
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+			return true;
 		}
 
-		thread_to_scap(tinfo, sctinfo);
+		scap_threadinfo sctinfo {};
+		struct iovec *args_iov, *envs_iov, *cgroups_iov;
+		int argscnt, envscnt, cgroupscnt;
+		std::string argsrem, envsrem, cgroupsrem;
+		uint32_t entrylen = 0;
+		const auto& cg = tinfo.cgroups();
+
+		memset(&sctinfo, 0, sizeof(scap_threadinfo));
+
+		thread_to_scap(tinfo, &sctinfo);
 		tinfo.args_to_iovec(&args_iov, &argscnt, argsrem);
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
-		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
+		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem, cg);
 
-		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo, lengths[idx++],
+		if(scap_write_proclist_entry_bufs(proclist_dumper, &sctinfo, &entrylen,
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),
 						  args_iov, argscnt,
 						  envs_iov, envscnt,
-						  (tinfo.m_cwd == "" ? "/" : tinfo.m_cwd.c_str()),
+						  (tinfo.get_cwd() == "" ? "/" : tinfo.get_cwd().c_str()),
 						  cgroups_iov, cgroupscnt,
 						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+			sinsp_exception exc(scap_dump_getlasterr(proclist_dumper));
+			scap_dump_close(proclist_dumper);
+			throw exc;
 		}
+
+		totlen += entrylen;
 
 		free(args_iov);
 		free(envs_iov);
 		free(cgroups_iov);
 
-		scap_proc_free(m_inspector->m_h, sctinfo);
 		return true;
 	});
 
-	if(scap_write_proclist_trailer(m_inspector->m_h, dumper, totlen) != SCAP_SUCCESS)
+	if(scap_write_proclist_end(dumper, proclist_dumper, totlen) != SCAP_SUCCESS)
 	{
-		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+		throw sinsp_exception(scap_dump_getlasterr(dumper));
 	}
 
 	//
-	// Third pass of the table to dump the FDs
+	// Dump the FDs
 	//
 
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		scap_threadinfo *sctinfo;
-
-		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
+		if(tinfo.m_filtered_out)
 		{
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+			return true;
 		}
+
+		scap_threadinfo sctinfo {};
+
+		memset(&sctinfo, 0, sizeof(scap_threadinfo));
 
 		// Note: as scap_fd_add/scap_write_proc_fds do not use
 		// any of the array-based fields like comm, etc. a
 		// shallow copy is safe
-		thread_to_scap(tinfo, sctinfo);
+		thread_to_scap(tinfo, &sctinfo);
 
 		if(tinfo.is_main_thread())
 		{
 			//
 			// Add the FDs
 			//
-			unordered_map<int64_t, sinsp_fdinfo_t>& fdtable = tinfo.get_fd_table()->m_table;
-			for(auto it = fdtable.begin(); it != fdtable.end(); ++it)
+			sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
+			if(fd_table_ptr == NULL)
 			{
+				return false;
+			}
+
+			bool should_exit = false;
+			fd_table_ptr->loop([&](int64_t fd, sinsp_fdinfo& info) {
 				//
 				// Allocate the scap fd info
 				//
 				scap_fdinfo* scfdinfo = (scap_fdinfo*)malloc(sizeof(scap_fdinfo));
 				if(scfdinfo == NULL)
 				{
-					scap_proc_free(m_inspector->m_h, sctinfo);
-					throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
+					scap_fd_free_proc_fd_table(&sctinfo);
+					should_exit = true;
+					return false;
 				}
 
 				//
 				// Populate the fd info
 				//
-				scfdinfo->fd = it->first;
-				tinfo.fd_to_scap(scfdinfo, &it->second);
+				fd_to_scap(scfdinfo, &info);
 
 				//
 				// Add the new fd to the scap table.
 				//
-				if(scap_fd_add(m_inspector->m_h, sctinfo, it->first, scfdinfo) != SCAP_SUCCESS)
+				if(scap_fd_add(&sctinfo, scfdinfo) != SCAP_SUCCESS)
 				{
-					scap_proc_free(m_inspector->m_h, sctinfo);
-					throw sinsp_exception("error calling scap_fd_add in sinsp_thread_manager::to_scap (" + string(scap_getlasterr(m_inspector->m_h)) + ")");
+					scap_fd_free_proc_fd_table(&sctinfo);
+					throw sinsp_exception("Failed to add fd to hash table");
 				}
+
+				return true;
+			});
+
+			if (should_exit)
+			{
+				return false;
 			}
 		}
 
 		//
 		// Dump the thread to disk
 		//
-		if(scap_write_proc_fds(m_inspector->m_h, sctinfo, dumper) != SCAP_SUCCESS)
+		if(scap_write_proc_fds(dumper, &sctinfo) != SCAP_SUCCESS)
 		{
-			scap_proc_free(m_inspector->m_h, sctinfo);
-			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap (" + string(scap_getlasterr(m_inspector->m_h)) + ")");
+			throw sinsp_exception("error calling scap_write_proc_fds in sinsp_thread_manager::dump_threads_to_file (" + std::string(scap_dump_getlasterr(dumper)) + ")");
 		}
 
-		scap_proc_free(m_inspector->m_h, sctinfo);
+		scap_fd_free_proc_fd_table(&sctinfo);
 		return true;
 	});
 }
 
-threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
+const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid, bool query_os_if_not_found, bool lookup_only, bool main_thread)
 {
-    auto sinsp_proc = find_thread(tid, lookup_only);
+    const auto& sinsp_proc = find_thread(tid, lookup_only);
 
     if(!sinsp_proc && query_os_if_not_found &&
-       (m_threadtable.size() < m_max_thread_table_size
-#if defined(HAS_CAPTURE)
-	|| tid == m_inspector->m_self_pid
-#endif
-	))
+       (m_threadtable.size() < m_max_thread_table_size || tid == m_inspector->m_self_pid))
     {
         // Certain code paths can lead to this point from scap_open() (incomplete example:
         // scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
         // defensive check here to protect both, callers of get_env and get_thread.
-        if (!m_inspector->m_h)
+        if (!m_inspector->get_scap_handle())
         {
-            g_logger.format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
+            libsinsp_logger()->format(sinsp_logger::SEV_INFO, "%s: Unable to complete for tid=%"
                             PRIu64 ": sinsp::scap_t* is uninitialized", __func__, tid);
-            return NULL;
+            return m_nullptr_tinfo_ret;
         }
 
-        scap_threadinfo* scap_proc = NULL;
+        scap_threadinfo scap_proc {};
+        bool have_scap_proc = false;
+
+        // leaving scap_proc uninitialized could lead to undefined behaviour.
+        // to be safe we should initialized to zero.
+        memset(&scap_proc, 0, sizeof(scap_threadinfo));
+
+        scap_proc.tid = -1;
+        scap_proc.pid = -1;
+        scap_proc.ptid = -1;
 
 		// unfortunately, sinsp owns the threade factory
-        sinsp_threadinfo* newti = m_inspector->build_threadinfo();
+        auto newti = m_inspector->build_threadinfo();
 
         m_n_proc_lookups++;
 
@@ -1778,17 +2091,13 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
 
         if(m_n_proc_lookups == m_max_n_proc_lookups)
         {
-            g_logger.format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
+            libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Reached max process lookup number, duration=%" PRIu64 "ms",
                 m_n_proc_lookups_duration_ns / 1000000);
         }
 
         if(m_max_n_proc_lookups < 0 ||
            m_n_proc_lookups <= m_max_n_proc_lookups)
         {
-#ifdef HAS_ANALYZER
-            tracer_emitter("sinsp_proc_lookup");
-#endif
-
             bool scan_sockets = false;
 
             if(m_max_n_proc_socket_lookups < 0 ||
@@ -1797,24 +2106,22 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
                 scan_sockets = true;
                 if(m_n_proc_lookups == m_max_n_proc_socket_lookups)
                 {
-                    g_logger.format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64 "ms",
+                    libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Reached max socket lookup number, tid=%" PRIu64 ", duration=%" PRIu64 "ms",
                         tid, m_n_proc_lookups_duration_ns / 1000000);
                 }
             }
 
-#ifdef HAS_ANALYZER
             uint64_t ts = sinsp_utils::get_current_time_ns();
-#endif
-            scap_proc = scap_proc_get(m_inspector->m_h, tid, scan_sockets);
-#ifdef HAS_ANALYZER
+            if(scap_proc_get(m_inspector->get_scap_platform(), tid, &scap_proc, scan_sockets) == SCAP_SUCCESS)
+            {
+                have_scap_proc = true;
+            }
             m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
-#endif
         }
 
-        if(scap_proc)
+        if(have_scap_proc)
         {
-            newti->init(scap_proc);
-            scap_proc_free(m_inspector->m_h, scap_proc);
+            newti->init(&scap_proc);
         }
         else
         {
@@ -1822,69 +2129,59 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
             // Add a fake entry to avoid a continuous lookup
             //
             newti->m_tid = tid;
-            newti->m_pid = tid;
+            newti->m_pid = -1;
             newti->m_ptid = -1;
+            newti->m_reaper_tid = -1;
+            newti->m_not_expired_children = 0;
             newti->m_comm = "<NA>";
             newti->m_exe = "<NA>";
-            newti->m_user.uid = 0xffffffff;
-            newti->m_group.gid = 0xffffffff;
-            newti->m_nchilds = 0;
-            newti->m_loginuser.uid = 0xffffffff;
+            newti->m_user.set_uid(0xffffffff);
+            newti->m_group.set_gid(0xffffffff);
+            newti->m_loginuser.set_uid(0xffffffff);
         }
-
-        //
-        // Since this thread is created out of thin air, we need to
-        // properly set its reference count, by scanning the table
-        //
-        m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-            if(tinfo.m_pid == tid)
-            {
-                newti->m_nchilds++;
-            }
-            return true;
-        });
 
         //
         // Done. Add the new thread to the list.
         //
-        add_thread(newti, false);
-        sinsp_proc = find_thread(tid, lookup_only);
+        add_thread(std::move(newti), false);
+        return find_thread(tid, lookup_only);
     }
 
     return sinsp_proc;
 }
 
-threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only)
+/* `lookup_only==true` means that we don't fill the `m_last_tinfo` field */
+const threadinfo_map_t::ptr_t& sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only)
 {
-	threadinfo_map_t::ptr_t thr;
 	//
 	// Try looking up in our simple cache
 	//
-	if(tid == m_last_tid)
+	if(tid == m_last_tid && m_last_tinfo)
 	{
-		thr = m_last_tinfo.lock();
-		if (thr)                                                                                     {
-#ifdef GATHER_INTERNAL_STATS
-			m_cached_lookups->increment();
-#endif
-			// This allows us to avoid performing an actual timestamp lookup
-			// for something that may not need to be precise
-			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
-			return thr;
-		}                                                                                        }
+		if (m_sinsp_stats_v2 != nullptr)
+		{
+			m_sinsp_stats_v2->m_n_cached_thread_lookups++;
+		}
+		// This allows us to avoid performing an actual timestamp lookup
+		// for something that may not need to be precise
+		m_last_tinfo->m_lastaccess_ts = m_inspector->get_lastevent_ts();
+		return m_last_tinfo;
+	}
 
 	//
 	// Caching failed, do a real lookup
 	//
-	thr = m_threadtable.get_ref(tid);
+	const auto& thr = m_threadtable.get_ref(tid);
 
 	if(thr)
 	{
-#ifdef GATHER_INTERNAL_STATS
-		m_non_cached_lookups->increment();
-#endif
+		if (m_sinsp_stats_v2 != nullptr)
+		{
+			m_sinsp_stats_v2->m_n_noncached_thread_lookups++;
+		}
 		if(!lookup_only)
 		{
+			m_last_tinfo.reset();
 			m_last_tid = tid;
 			m_last_tinfo = thr;
 			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
@@ -1893,14 +2190,38 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	}
 	else
 	{
-#ifdef GATHER_INTERNAL_STATS
-		m_failed_lookups->increment();
-#endif
-		return NULL;
+		if (m_sinsp_stats_v2 != nullptr)
+		{
+			m_sinsp_stats_v2->m_n_failed_thread_lookups++;
+		}
+
+		return m_nullptr_tinfo_ret;
 	}
 }
 
 void sinsp_thread_manager::set_max_thread_table_size(uint32_t value)
 {
-    m_max_thread_table_size = std::min(value, m_thread_table_absolute_max_size);
+    m_max_thread_table_size = value;
+}
+
+std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const
+{
+	return m_inspector->build_threadinfo();
+}
+
+void sinsp_thread_manager::set_tinfo_shared_dynamic_fields(sinsp_threadinfo& tinfo) const
+{
+	if (tinfo.dynamic_fields() == nullptr)
+	{
+		tinfo.set_dynamic_fields(dynamic_fields());
+	}
+	tinfo.get_fdtable().set_dynamic_fields(m_fdtable_dyn_fields);
+}
+
+void sinsp_thread_manager::set_fdinfo_shared_dynamic_fields(sinsp_fdinfo& fdinfo) const
+{
+	if (fdinfo.dynamic_fields() == nullptr)
+	{
+		fdinfo.set_dynamic_fields(m_fdtable_dyn_fields);
+	}
 }

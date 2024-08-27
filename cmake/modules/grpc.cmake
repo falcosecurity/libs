@@ -1,3 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright (C) 2023 The Falco Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+#
+
 option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
 
 if(GRPC_INCLUDE)
@@ -58,6 +72,12 @@ else()
 	include(protobuf)
 	include(zlib)
 	include(openssl)
+	if(BUILD_SHARED_LIBS)
+		set(GRPC_OPENSSL_STATIC_LIBS_OPTION FALSE)
+	else()
+		set(GRPC_OPENSSL_STATIC_LIBS_OPTION TRUE)
+	endif()
+	include(re2)
 	set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
 	set(GRPC_INSTALL_DIR "${GRPC_SRC}/target")
 	set(GRPC_INCLUDE 
@@ -92,7 +112,6 @@ else()
 		set(GRPC_LIBRARIES "")
 		list(APPEND GRPC_LIBRARIES
 			"${GRPC_SRC}/libaddress_sorting.a"
-			"${GRPC_SRC}/third_party/re2/libre2.a"
 			"${GRPC_SRC}/libupb.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_city.a"
@@ -132,21 +151,22 @@ else()
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen_hwaes.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen_hwaes_impl.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_platform.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen_slow.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_seed_material.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_platform.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_seed_gen_exception.a"
 		)
 		
 		ExternalProject_Add(grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
-			DEPENDS openssl protobuf c-ares zlib
+			DEPENDS openssl protobuf c-ares zlib re2
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
 			GIT_TAG v1.44.0
-			GIT_SUBMODULES "third_party/abseil-cpp third_party/re2"
+			GIT_SUBMODULES "third_party/abseil-cpp"
 			CMAKE_CACHE_ARGS
 				-DCMAKE_INSTALL_PREFIX:PATH=${GRPC_INSTALL_DIR}
 				-DCMAKE_BUILD_TYPE:STRING=Release
+				-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=${ENABLE_PIC}
 				-DgRPC_INSTALL:BOOL=OFF
 				# disable unused stuff
 				-DgRPC_BUILD_TESTS:BOOL=OFF
@@ -173,16 +193,19 @@ else()
 				# https://cmake.org/cmake/help/v3.6/module/FindOpenSSL.html
 				-DgRPC_SSL_PROVIDER:STRING=package
 				-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_INSTALL_DIR}
-				-DOPENSSL_USE_STATIC_LIBS:BOOL=TRUE
+				-DOPENSSL_USE_STATIC_LIBS:BOOL=${GRPC_OPENSSL_STATIC_LIBS_OPTION}
 				# https://cmake.org/cmake/help/v3.6/module/FindZLIB.html
 				-DgRPC_ZLIB_PROVIDER:STRING=package
 				-DZLIB_ROOT:STRING=${ZLIB_SRC}
+				# RE2
+				-DgRPC_RE2_PROVIDER:STRING=package
+				-Dre2_DIR:PATH=${RE2_DIR}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB} ${GPR_LIB} ${GRPC_LIBRARIES}
 			# Keep installation files into the local ${GRPC_INSTALL_DIR} 
 			# since here is the case when we are embedding gRPC
 			UPDATE_COMMAND ""
-			INSTALL_COMMAND DESTDIR= ${CMD_MAKE} install
+			INSTALL_COMMAND DESTDIR= ${CMAKE_MAKE_PROGRAM} install
 		)
 		install(FILES ${GRPC_MAIN_LIBS} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 				COMPONENT "libs-deps")
@@ -191,6 +214,10 @@ else()
 		install(DIRECTORY "${GRPC_SRC}/target/include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
 				COMPONENT "libs-deps")
 	endif()
+endif()
+
+if(NOT TARGET grpc)
+	add_custom_target(grpc)
 endif()
 
 include_directories("${GRPC_INCLUDE}")

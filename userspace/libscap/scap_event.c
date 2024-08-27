@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,26 +26,29 @@ limitations under the License.
 #include <netinet/in.h>
 #endif // _WIN32
 
-#include "scap.h"
-#include "scap-int.h"
+#include <libscap/scap.h>
+#include <libscap/scap-int.h>
 
-#include "../common/strlcpy.h"
+#include <libscap/strl.h>
 
 //
 // Get the event info table
 //
 const struct ppm_event_info* scap_get_event_info_table()
 {
-	ASSERT(validate_info_table_size());
 	return g_event_info;
 }
 
-//
-// Get the syscall info table
-//
-const struct ppm_syscall_desc* scap_get_syscall_info_table()
+enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev)
 {
-	return g_syscall_info_table;
+	ASSERT(ev < PPM_EVENT_MAX);
+	return g_event_info[ev].category & (EC_SYSCALL -1);
+}
+
+enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev)
+{
+	ASSERT(ev < PPM_EVENT_MAX);
+	return g_event_info[ev].category & ~(EC_SYSCALL -1);
 }
 
 uint32_t scap_event_getlen(scap_evt* e)
@@ -55,11 +59,6 @@ uint32_t scap_event_getlen(scap_evt* e)
 uint64_t scap_event_get_num(scap_t* handle)
 {
 	return handle->m_evtcnt;
-}
-
-void scap_event_reset_count(scap_t* handle)
-{
-	handle->m_evtcnt = 0;
 }
 
 uint64_t scap_event_get_ts(scap_evt* e)
@@ -143,7 +142,7 @@ static inline int32_t scap_buffer_can_fit(struct scap_sized_buffer buf, size_t l
 	return (buf.size >= len);
 }
 
-int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, ...)
+int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *event_size, char *error, ppm_event_code event_type, uint32_t n, ...)
 {
     va_list args;
     va_start(args, n);
@@ -153,7 +152,7 @@ int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *eve
 	return ret;
 }
 
-int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, va_list args)
+int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, size_t *event_size, char *error, ppm_event_code event_type, uint32_t n, va_list args)
 {
 	scap_evt *event = NULL;
 
@@ -246,7 +245,14 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_FSPATH:
 		case PT_FSRELPATH:
             param.buf = va_arg(args, char*);
-            param.size = strlen(param.buf) + 1;
+			if(param.buf == NULL)
+			{
+				param.size = 0;
+			}
+			else
+			{
+				param.size = strlen(param.buf) + 1;
+			}
 			break;
 
 		case PT_BYTEBUF: /* A raw buffer of bytes not suitable for printing */
@@ -325,7 +331,10 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 	len = len + sizeof(uint32_t);
 #endif
 
-	*event_size = len;
+	if (event_size != NULL)
+	{
+		*event_size = len;
+	}
 
 	// we were not able to write the event to the buffer
 	if (!scap_buffer_can_fit(event_buf, len))

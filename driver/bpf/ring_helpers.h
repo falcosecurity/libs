@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -19,7 +20,7 @@ static __always_inline void write_evt_hdr(struct filler_data *data)
 	evt_hdr->nparams = data->evt->nparams;
 
 	data->state->tail_ctx.curoff = sizeof(struct ppm_evt_hdr) +
-				       sizeof(u16) * data->evt->nparams;
+				       sizeof(uint16_t) * data->evt->nparams;
 	data->state->tail_ctx.len = data->state->tail_ctx.curoff;
 }
 
@@ -39,7 +40,7 @@ static __always_inline void fixup_evt_arg_len(char *p,
 		return;
 	}
 	volatile unsigned int argnumv = argnum;
-	*((u16 *)&p[sizeof(struct ppm_evt_hdr)] + (argnumv & (PPM_MAX_EVENT_PARAMS - 1))) = arglen;
+	*((uint16_t *)&p[sizeof(struct ppm_evt_hdr)] + (argnumv & (PPM_MAX_EVENT_PARAMS - 1))) = arglen;
 }
 
 static __always_inline int push_evt_frame(void *ctx,

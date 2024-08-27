@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +18,10 @@ limitations under the License.
 
 #pragma once
 
-#include "ast.h"
+#include <libsinsp/filter/ast.h>
+#include <cstdint>
+
+namespace re2 { class RE2; };
 
 //
 // Context-free Grammar for Sinsp Filters
@@ -33,16 +37,23 @@ limitations under the License.
 //     NotExpr             ::= ('not ')* NotExprTail
 //     NotExprTail         ::= 'not(' Expr ')'
 //                             | Check
-//     Check               ::= CheckField CheckCondition
+//     Check               ::= Field Condition
+//                             | FieldTransformer Condition 
 //                             | Identifier
 //                             | '(' Expr ')'
-//     CheckCondition      ::= UnaryOperator
-//                             | NumOperator NumValue
-//                             | StrOperator StrValue
-//                             | ListOperator ListValue
+//     FieldTransformer       ::= FieldTransformerType FieldTransformerTail
+//     FieldTransformerTail   ::= FieldTransformerArg ')'
+//     FieldTransformerArg    ::= FieldTransformer
+//                             | Field
+//     FieldTransformerOrVal  ::= FieldTransformer
+//                             | FieldTransformerVal Field ')'
+//     Condition           ::= UnaryOperator
+//                             | NumOperator (NumValue | FieldTransformerOrVal)
+//                             | StrOperator (StrValue | FieldTransformerOrVal)
+//                             | ListOperator (ListValue | FieldTransformerOrVal)
 //     ListValue           ::= '(' (StrValue (',' StrValue)*)* ')'
 //                             | Identifier
-//     CheckField          ::= FieldName('[' FieldArg ']')?
+//     Field               ::= FieldName('[' FieldArg ']')?
 //     FieldArg            ::= QuotedStr | FieldArgBareStr 
 //     NumValue            ::= HexNumber | Number
 //     StrValue            ::= QuotedStr | BareStr
@@ -50,9 +61,13 @@ limitations under the License.
 // Supported Check Operators (EBNF Syntax):
 //     UnaryOperator       ::= 'exists'
 //     NumOperator         ::= '<=' | '<' | '>=' | '>' 
-//     StrOperator         ::= '==' | '=' | '!=' | 'glob ' | 'contains '
-//                             | 'icontains ' | 'startswith ' | 'endswith '
+//     StrOperator         ::= '==' | '=' | '!='
+//                             | 'glob ' | 'iglob '
+//                             | 'contains ' | 'icontains ' | 'bcontains '
+//                             | 'startswith ' | 'bstartswith ' | 'endswith '
 //     ListOperator        ::= 'intersects' | 'in' | 'pmatch' 
+//     FieldTransformerVal    ::= 'val('
+//     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename('
 // 
 // Tokens (Regular Expressions):
 //     Identifier          ::= [a-zA-Z]+[a-zA-Z0-9_]*
@@ -75,35 +90,14 @@ class SINSP_PUBLIC parser
 {
 public:
 	/*!
-		\brief A struct containing info about the position of the parser
-		relatively to the string input. For example, this can either be used
-		to retrieve context information when an exception is thrown.
-	*/
-	struct pos_info
-	{
-		inline void reset() 
-		{
-			idx = 0;
-			line = 1;
-			col = 1;
-		}
-		
-		inline std::string as_string() const
-		{
-			return "index " + std::to_string(idx) 
-				+ ", line " + std::to_string(line) 
-				+ ", column " + std::to_string(col);
-		}
-
-		uint32_t idx;
-		uint32_t line;
-		uint32_t col;
-	};
-
-	/*!
 		\brief Returns the set of filtering operators supported by libsinsp
 	*/
 	static std::vector<std::string> supported_operators(bool list_only=false);
+
+	/*!
+		\brief Returns the set of field transformers supported by libsinsp
+	*/
+	static std::vector<std::string> supported_field_transformers(bool include_val=false);
 
 	/*!
 		\brief Constructs the parser with a given filter string input
@@ -115,13 +109,13 @@ public:
 		\brief Retrieves the parser position info.
 		\param pos pos_info struct in which the info is written.
 	*/
-	void get_pos(pos_info& pos) const;
+	void get_pos(ast::pos_info& pos) const;
 
 	/*!
 		\brief Retrieves the parser position info.
 		\return pos_info struct in which the info is written.
 	*/
-	pos_info get_pos() const;
+	ast::pos_info get_pos() const;
 
 	/*!
 		\brief Sets the partial parsing option. Default is true.
@@ -146,42 +140,52 @@ public:
 		by it. The pointer is automatically deleted in case of exception.
 		On delete, each node of the AST deletes all its subnodes.
 	*/
-	ast::expr* parse();
+	std::unique_ptr<ast::expr> parse();
 
 private:
-	ast::expr* parse_or();
-	ast::expr* parse_and();
-	ast::expr* parse_not();
-	ast::expr* parse_embedded_remainder();
-	ast::expr* parse_check();
-	ast::expr* parse_list_value();
-	ast::value_expr* parse_num_value();
-	ast::value_expr* parse_str_value();
-	bool lex_blank();
-	bool lex_identifier();
-	bool lex_field_name();
-	bool lex_field_arg_bare_str();
-	bool lex_hex_num();
-	bool lex_num();
-	bool lex_quoted_str();
-	bool lex_bare_str();
-	bool lex_unary_op();
-	bool lex_num_op();
-	bool lex_str_op();
-	bool lex_list_op();
-	bool lex_helper_rgx(std::string rgx);
-	bool lex_helper_str(const std::string& str);
-	bool lex_helper_str_list(const std::vector<std::string>& list);
-	void depth_push();
-	void depth_pop();
-	const char* cursor();
-	std::string escape_str(const std::string& str);
-	std::string trim_str(std::string str);
+	std::unique_ptr<ast::expr> parse_or();
+	std::unique_ptr<ast::expr> parse_and();
+	std::unique_ptr<ast::expr> parse_not();
+	std::unique_ptr<ast::expr> parse_embedded_remainder();
+	std::unique_ptr<ast::expr> parse_check();
+	std::unique_ptr<ast::expr> parse_list_value();
+	std::unique_ptr<ast::expr> parse_field_remainder(
+								std::string fieldname,
+								const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_field_or_transformer_remainder(
+								std::string transformer,
+								const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_condition(
+								std::unique_ptr<ast::expr> left,
+								const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_list_value_or_transformer();
+	std::unique_ptr<ast::expr> parse_num_value_or_transformer();
+	std::unique_ptr<ast::expr> parse_str_value_or_transformer(bool no_transformer);
+	std::unique_ptr<ast::expr> try_parse_transformer_or_val();
+	inline bool lex_blank();
+	inline bool lex_identifier();
+	inline bool lex_field_name();
+	inline bool lex_field_arg_bare_str();
+	inline bool lex_hex_num();
+	inline bool lex_num();
+	inline bool lex_quoted_str();
+	inline bool lex_bare_str();
+	inline bool lex_unary_op();
+	inline bool lex_num_op();
+	inline bool lex_str_op();
+	inline bool lex_list_op();
+	inline bool lex_field_transformer_val();
+	inline bool lex_field_transformer_type();
+	inline bool lex_helper_rgx(const re2::RE2& rgx);
+	inline bool lex_helper_str(const std::string& str);
+	inline bool lex_helper_str_list(const std::vector<std::string>& list);
+	inline const char* cursor();
+	inline std::string trim_str(std::string str);
 
 	bool m_parse_partial;
 	uint32_t m_depth;
 	uint32_t m_max_depth;
-	pos_info m_pos;
+	ast::pos_info m_pos;
 	std::string m_input;
 	std::string m_last_token;
 };

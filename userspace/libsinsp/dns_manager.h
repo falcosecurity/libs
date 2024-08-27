@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ limitations under the License.
 */
 
 #include <sys/types.h>
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#ifdef _WIN32
 #include <WinSock2.h>
 #else
 #include <sys/socket.h>
@@ -27,10 +28,11 @@ limitations under the License.
 #include <chrono>
 #include <future>
 #include <mutex>
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#include <memory>
+#if !defined(__EMSCRIPTEN__)
 #include "tbb/concurrent_unordered_map.h"
 #endif
-#include "sinsp.h"
+#include <libsinsp/sinsp.h>
 
 
 struct sinsp_dns_resolver
@@ -43,15 +45,15 @@ class sinsp_dns_manager
 public:
 
 	bool match(const char *name, int af, void *addr, uint64_t ts);
-	string name_of(int af, void *addr, uint64_t ts);
+	std::string name_of(int af, void *addr, uint64_t ts);
 
 	void cleanup();
 
-        static sinsp_dns_manager& get()
-        {
-            static sinsp_dns_manager instance;
-            return instance;
-        };
+	static sinsp_dns_manager& get()
+	{
+		static sinsp_dns_manager instance;
+		return instance;
+	};
 
 	void set_erase_timeout(uint64_t ns)
 	{
@@ -66,9 +68,9 @@ public:
 		m_max_refresh_timeout = ns;
 	};
 
-	size_t size()
+	size_t size() const
 	{
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 		return m_cache.size();
 #else
 		return 0;
@@ -82,10 +84,15 @@ private:
 		m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
 		m_max_refresh_timeout(320 * ONE_SECOND_IN_NS)
 	{};
-        sinsp_dns_manager(sinsp_dns_manager const&) = delete;
-        void operator=(sinsp_dns_manager const&) = delete;
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+	~sinsp_dns_manager() {
+		cleanup();
+	}
+
+	sinsp_dns_manager(sinsp_dns_manager const&) = delete;
+	void operator=(sinsp_dns_manager const&) = delete;
+
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	struct dns_info
 	{
 		bool operator==(const dns_info &other) const
@@ -118,7 +125,7 @@ private:
 	// used to let m_resolver know when to terminate
 	std::promise<void> m_exit_signal;
 
-	std::thread *m_resolver;
+	std::unique_ptr<std::thread> m_resolver;
 
 	uint64_t m_erase_timeout;
 	uint64_t m_base_refresh_timeout;

@@ -1,5 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2023 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +15,7 @@
 # limitations under the License.
 #
 
-cmake_minimum_required(VERSION 2.8.2)
+cmake_minimum_required(VERSION 3.12)
 
 project(googletest-download NONE)
 

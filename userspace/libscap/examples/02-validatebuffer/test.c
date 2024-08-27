@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,13 +22,14 @@ limitations under the License.
 #include <unistd.h>
 #include <assert.h>
 
-#include <scap.h>
-#include "../../../../driver/ppm_events_public.h"
+#include <libscap/scap.h>
+#include <driver/ppm_events_public.h>
+#include <libscap/scap_engines.h>
 
 extern const struct ppm_event_info g_event_info[];
 
 
-size_t g_get_event_size(enum ppm_event_type event_type, uint16_t* lens)
+size_t g_get_event_size(ppm_event_code event_type, uint16_t* lens)
 {
 	uint32_t j;
 	int32_t res = 0;
@@ -44,7 +46,7 @@ size_t g_get_event_size(enum ppm_event_type event_type, uint16_t* lens)
 #endif
 }
 
-int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, OUT uint32_t* nevents)
+int32_t g_check_integrity(uint32_t* cur_event, char* copy_buffer, int buf_len, uint32_t* nevents)
 {
 	uint32_t offset = 0;
 	*nevents = 0;
@@ -167,9 +169,9 @@ int main()
 			&new_mask);
 	*/
 
-	scap_open_args args = {.mode = SCAP_MODE_LIVE};
+	scap_open_args args = {};
 
-	scap_t* h = scap_open(args, error, &ret);
+	scap_t* h = scap_open(&args, &scap_kmod_engine, error, &ret);
 	if(h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, ret);

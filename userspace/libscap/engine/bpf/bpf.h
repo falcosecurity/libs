@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,15 +19,18 @@ limitations under the License.
 #pragma once
 
 #include <stdbool.h>
-#include "../../ringbuffer/devset.h"
-#include "../../../../driver/ppm_events_public.h"
+#include <libscap/ringbuffer/devset.h>
+#include <libscap/scap_open.h>
+#include <libscap/engine/bpf/attached_prog.h>
+#include <libscap/metrics_v2.h>
+#include <libscap/engine/bpf/scap_bpf_stats.h>
 
 //
 // ebpf defs
 //
 
-#ifndef BPF_PROGS_MAX
-#define BPF_PROGS_MAX 156
+#ifndef BPF_PROGS_TAIL_CALLED_MAX
+#define BPF_PROGS_TAIL_CALLED_MAX 256
 #endif
 
 #define BPF_MAPS_MAX 32
@@ -34,14 +38,27 @@ limitations under the License.
 struct bpf_engine
 {
 	struct scap_device_set m_dev_set;
-	bool m_syscalls_of_interest[SYSCALL_TABLE_SIZE];
 	size_t m_ncpus;
 	char* m_lasterr;
-	int m_bpf_prog_fds[BPF_PROGS_MAX];
-	int m_bpf_prog_cnt;
-	int m_bpf_event_fd[BPF_PROGS_MAX];
+
+	int m_tail_called_fds[BPF_PROGS_TAIL_CALLED_MAX];
+	int m_tail_called_cnt;
+	bpf_attached_prog m_attached_progs[BPF_PROG_ATTACHED_MAX];
+
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
-};
+	char m_filepath[PATH_MAX];
 
-#define SCAP_HANDLE_T struct bpf_engine
+	/* ELF related */
+	int program_fd;
+	Elf *elf;
+	GElf_Ehdr ehdr;
+
+	interesting_ppm_sc_set curr_sc_set;
+	uint64_t m_api_version;
+	uint64_t m_schema_version;
+	bool capturing;
+	metrics_v2* m_stats;
+	uint32_t m_nstats;
+	uint64_t m_flags;
+};

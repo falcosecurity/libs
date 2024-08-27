@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +20,7 @@ limitations under the License.
 
 #include <string>
 #include <vector>
+#include <memory>
 
 class sinsp_filter_check;
 class filter_check_info;
@@ -31,15 +33,15 @@ class sinsp;
 class filter_check_list
 {
 public:
-	filter_check_list();
-	~filter_check_list();
-	void add_filter_check(sinsp_filter_check* filter_check);
-	void get_all_fields(std::vector<const filter_check_info*>& list);
-	sinsp_filter_check* new_filter_check_from_another(sinsp_filter_check *chk);
-	sinsp_filter_check* new_filter_check_from_fldname(const std::string& name, sinsp* inspector, bool do_exact_check);
+	filter_check_list() = default;
+	virtual ~filter_check_list() = default;
+
+	void add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check);
+	void get_all_fields(std::vector<const filter_check_info*>&) const;
+	std::unique_ptr<sinsp_filter_check> new_filter_check_from_fldname(std::string_view name, sinsp*, bool do_exact_check) const;
 
 protected:
-	std::vector<sinsp_filter_check*> m_check_list;
+	std::vector<std::unique_ptr<sinsp_filter_check>> m_check_list;
 };
 
 //
@@ -48,9 +50,5 @@ class sinsp_filter_check_list : public filter_check_list
 {
 public:
 	sinsp_filter_check_list();
-	virtual ~sinsp_filter_check_list();
+	virtual ~sinsp_filter_check_list() = default;
 };
-
-// This is the "default" filter check list
-extern sinsp_filter_check_list g_filterlist;
-

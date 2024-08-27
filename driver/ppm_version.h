@@ -1,6 +1,15 @@
-#ifndef UDIG
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
+/*
+ * Copyright (C) 2023 The Falco Authors.
+ *
+ * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+ * or GPL2.txt for full copies of the license.
+ */
+
+#ifndef PPM_VERSION_H_
+#define PPM_VERSION_H_
+
 #include <linux/version.h>
-#endif
 
 /**
  * for RHEL kernels, export the release code (which is equal to e.g.
@@ -18,3 +27,5 @@
 #define PPM_RHEL_RELEASE_CODE 0
 #define PPM_RHEL_RELEASE_VERSION(x,y) 0
 #endif
+
+#endif /* PPM_VERSION_H_ */

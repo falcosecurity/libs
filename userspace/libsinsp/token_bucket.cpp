@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +21,8 @@ limitations under the License.
 #include <sys/time.h>
 #endif
 
-#include "token_bucket.h"
-#include "utils.h"
+#include <libsinsp/token_bucket.h>
+#include <libsinsp/utils.h>
 
 token_bucket::token_bucket():
 	token_bucket(sinsp_utils::get_current_time_ns)
@@ -32,10 +33,6 @@ token_bucket::token_bucket(std::function<uint64_t()> timer)
 {
 	m_timer = timer;
 	init(1, 1);
-}
-
-token_bucket::~token_bucket()
-{
 }
 
 void token_bucket::init(double rate, double max_tokens, uint64_t now)

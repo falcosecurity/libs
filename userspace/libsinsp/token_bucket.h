@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +28,7 @@ class token_bucket
 public:
 	token_bucket();
 	token_bucket(std::function<uint64_t()> timer);
-	virtual ~token_bucket();
+	virtual ~token_bucket() = default;
 
 	//
 	// Initialize the token bucket and start accumulating tokens

@@ -1,16 +1,39 @@
+# SPDX-License-Identifier: GPL-2.0-only OR MIT
 #
-# Copyright (C) 2022 The Falco Authors.
+# Copyright (C) 2023 The Falco Authors.
 #
 # This file is dual licensed under either the MIT or GPL 2. See
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
-cmake_minimum_required(VERSION 2.8.5)
+cmake_minimum_required(VERSION 3.12)
 project(driver)
 
 set(TARGET_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
-if((NOT TARGET_ARCH STREQUAL "x86_64") AND (NOT TARGET_ARCH STREQUAL "aarch64"))
+if((NOT TARGET_ARCH STREQUAL "x86_64") AND
+   (NOT TARGET_ARCH STREQUAL "aarch64") AND
+   (NOT TARGET_ARCH STREQUAL "s390x") AND
+   (NOT TARGET_ARCH STREQUAL "riscv64") AND
+   (NOT TARGET_ARCH STREQUAL "ppc64le") AND
+   (NOT TARGET_ARCH STREQUAL "loongarch64"))
 	message(WARNING "Target architecture not officially supported by our drivers!")
+else()
+	# Load current kernel version
+	execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+	string(REGEX MATCH "[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${UNAME_RESULT})
+	message(STATUS  "Kernel version: ${UNAME_RESULT}")
+
+	# Check minimum kernel version
+	set(kmod_min_kver_map_x86_64 2.6)
+	set(kmod_min_kver_map_aarch64 3.16)
+	set(kmod_min_kver_map_s390x 2.6)
+	set(kmod_min_kver_map_riscv64 5.0)
+	set(kmod_min_kver_map_ppc64le 2.6)
+	set(kmod_min_kver_map_loongarch64 5.10)
+
+	if (LINUX_KERNEL_VERSION VERSION_LESS ${kmod_min_kver_map_${TARGET_ARCH}})
+		message(WARNING "[KMOD] To run this driver you need a Linux kernel version >= ${kmod_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
+	endif()
 endif()
 
 option(BUILD_DRIVER "Build the driver on Linux" ON)
@@ -24,6 +47,9 @@ endif()
 
 if(NOT DEFINED DRIVER_COMPONENT_NAME)
 	set(DRIVER_COMPONENT_NAME "scap-driver")
+endif()
+if(NOT DEFINED DRIVER_KMOD_COMPONENT_NAME)
+	set(DRIVER_KMOD_COMPONENT_NAME ${DRIVER_COMPONENT_NAME})
 endif()
 
 if(NOT DEFINED DRIVER_PACKAGE_NAME)
@@ -65,26 +91,39 @@ endif()
 # ${CMAKE_CURRENT_BINARY_DIR}/src. To maintain compatibility with older versions,
 # after the build we copy the compiled module one directory up,
 # to ${CMAKE_CURRENT_BINARY_DIR}.
-file(STRINGS API_VERSION DRIVER_API_VERSION LIMIT_COUNT 1)
-string(REGEX MATCHALL "[0-9]+" DRIVER_API_COMPONENTS "${DRIVER_API_VERSION}")
-list(GET DRIVER_API_COMPONENTS 0 PPM_API_CURRENT_VERSION_MAJOR)
-list(GET DRIVER_API_COMPONENTS 1 PPM_API_CURRENT_VERSION_MINOR)
-list(GET DRIVER_API_COMPONENTS 2 PPM_API_CURRENT_VERSION_PATCH)
-message(STATUS "Driver API version ${PPM_API_CURRENT_VERSION_MAJOR}.${PPM_API_CURRENT_VERSION_MINOR}.${PPM_API_CURRENT_VERSION_PATCH}")
-
-file(STRINGS SCHEMA_VERSION DRIVER_SCHEMA_VERSION LIMIT_COUNT 1)
-string(REGEX MATCHALL "[0-9]+" DRIVER_SCHEMA_COMPONENTS "${DRIVER_SCHEMA_VERSION}")
-list(GET DRIVER_SCHEMA_COMPONENTS 0 PPM_SCHEMA_CURRENT_VERSION_MAJOR)
-list(GET DRIVER_SCHEMA_COMPONENTS 1 PPM_SCHEMA_CURRENT_VERSION_MINOR)
-list(GET DRIVER_SCHEMA_COMPONENTS 2 PPM_SCHEMA_CURRENT_VERSION_PATCH)
-message(STATUS "Driver schema version ${PPM_SCHEMA_CURRENT_VERSION_MAJOR}.${PPM_SCHEMA_CURRENT_VERSION_MINOR}.${PPM_SCHEMA_CURRENT_VERSION_PATCH}")
-
-execute_process(COMMAND git rev-parse HEAD OUTPUT_VARIABLE GIT_COMMIT ERROR_QUIET WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-string(STRIP "${GIT_COMMIT}" GIT_COMMIT)
+include(compute_versions RESULT_VARIABLE RESULT)
+if(RESULT STREQUAL NOTFOUND)
+  message(FATAL_ERROR "problem with compute_versions.cmake in ${CMAKE_MODULE_PATH}")
+endif()
+compute_versions(API_VERSION SCHEMA_VERSION)
 
 configure_file(dkms.conf.in src/dkms.conf)
 configure_file(Makefile.in src/Makefile)
 configure_file(driver_config.h.in src/driver_config.h)
+
+#
+# Copy all the "configure" modules
+#
+file(GLOB configure_modules "${CMAKE_CURRENT_SOURCE_DIR}/configure/*")
+foreach(subdir ${configure_modules})
+	if(IS_DIRECTORY "${subdir}")
+		file(RELATIVE_PATH CONFIGURE_MODULE "${CMAKE_CURRENT_SOURCE_DIR}/configure" "${subdir}")
+		configure_file(configure/${CONFIGURE_MODULE}/test.c src/configure/${CONFIGURE_MODULE}/test.c COPYONLY)
+		configure_file(configure/Makefile src/configure/${CONFIGURE_MODULE}/Makefile COPYONLY)
+		configure_file(configure/build.sh src/configure/${CONFIGURE_MODULE}/build.sh COPYONLY)
+		configure_file(configure/Makefile.inc.in src/configure/${CONFIGURE_MODULE}/Makefile.inc)
+		if(ENABLE_DKMS)
+			install(FILES
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/build.sh"
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/test.c"
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile"
+				"${CMAKE_CURRENT_BINARY_DIR}/src/configure/${CONFIGURE_MODULE}/Makefile.inc"
+				DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/configure/${CONFIGURE_MODULE}"
+				COMPONENT ${DRIVER_KMOD_COMPONENT_NAME})
+		endif()
+	endif()
+endforeach()
+
 
 set(DRIVER_SOURCES
 	dynamic_params_table.c
@@ -92,6 +131,7 @@ set(DRIVER_SOURCES
 	fillers_table.c
 	flags_table.c
 	kernel_hacks.h
+	feature_gates.h
 	main.c
 	ppm.h
 	ppm_api_version.h
@@ -102,12 +142,17 @@ set(DRIVER_SOURCES
 	ppm_fillers.h
 	ppm_flag_helpers.h
 	ppm_ringbuffer.h
-	ppm_syscall.h
 	syscall_table.c
+	syscall_table64.c
 	ppm_cputime.c
-	ppm_compat_unistd_32.h
 	ppm_version.h
 	systype_compat.h
+	ppm_tp.h
+	ppm_tp.c
+	ppm_consumer.h
+	capture_macro.h
+	socketcall_to_syscall.h
+	syscall_ia32_64_map.c
 )
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)
@@ -151,7 +196,7 @@ if(ENABLE_DKMS)
 		${CMAKE_CURRENT_BINARY_DIR}/src/driver_config.h
 		${DRIVER_SOURCES}
 		DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}"
-		COMPONENT ${DRIVER_COMPONENT_NAME})
+		COMPONENT ${DRIVER_KMOD_COMPONENT_NAME})
 endif()
 
 add_subdirectory(bpf)

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +17,10 @@ limitations under the License.
 */
 
 #pragma once
+
+#include <libscap/scap_const.h>
+#include <libscap/scap_platform_api.h>
+#include <libscap/metrics_v2.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,28 +55,37 @@ extern "C" {
 //
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
-
-struct iovec;
+struct scap_platform;
+struct scap_vtable;
 
 //
 // Core types
 //
 #include <time.h>
 #include <stdarg.h>
-#include "uthash.h"
-#include "../common/types.h"
-#include "../../driver/ppm_api_version.h"
-#include "../../driver/ppm_events_public.h"
+#include <libscap/uthash_ext.h>
+#include <driver/ppm_api_version.h>
+#include <driver/ppm_events_public.h>
+#include <driver/capture_macro.h>
 #ifdef _WIN32
 #include <time.h>
-#define MAP_FAILED (void*)-1
 #endif
 
-#include "plugin_info.h"
-#include "scap_limits.h"
-#include "scap_open.h"
-#include "scap_procs.h"
-#include "engine/bpf/bpf_public.h"
+#include <libscap/scap_limits.h>
+#include <libscap/scap_open.h>
+#include <libscap/scap_machine_info.h>
+#include <libscap/scap_procs.h>
+#include <libscap/scap_cgroup_set.h>
+
+/* Include engine-specific params. */
+#include <libscap/engine/bpf/bpf_public.h>
+#include <libscap/engine/gvisor/gvisor_public.h>
+#include <libscap/engine/kmod/kmod_public.h>
+#include <libscap/engine/modern_bpf/modern_bpf_public.h>
+#include <libscap/engine/nodriver/nodriver_public.h>
+#include <libscap/engine/savefile/savefile_public.h>
+#include <libscap/engine/source_plugin/source_plugin_public.h>
+#include <libscap/engine/test_input/test_input_public.h>
 
 //
 // The minimum API and schema versions the driver has to support before we can use it
@@ -87,27 +101,25 @@ struct iovec;
 // call `scap_get_driver_api_version()` and/or `scap_get_driver_schema_version()`
 // and handle the result
 //
-#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(1, 0, 0)
+#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(8, 0, 0)
 #define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(2, 0, 0)
 
 //
-// Return types
+// This is the dimension we used before introducing the variable buffer size.
 //
-#define SCAP_SUCCESS 0
-#define SCAP_FAILURE 1
-#define SCAP_TIMEOUT -1
-#define SCAP_ILLEGAL_INPUT 3
-#define SCAP_NOTFOUND 4
-#define SCAP_INPUT_TOO_SMALL 5
-#define SCAP_EOF 6
-#define SCAP_UNEXPECTED_BLOCK 7
-#define SCAP_VERSION_MISMATCH 8
-#define SCAP_NOT_SUPPORTED 9
+#define DEFAULT_DRIVER_BUFFER_BYTES_DIM 8 * 1024 * 1024
 
 //
-// Last error string size for `scap_open...` methods.
+// Value for proc_scan_timeout_ms field in scap_open_args, to specify
+// that scan should run to completion without any timeout imposed
 //
-#define SCAP_LASTERR_SIZE 256
+#define SCAP_PROC_SCAN_TIMEOUT_NONE 0
+
+//
+// Value for proc_scan_log_interval_ms field in scap_open_args, to specify
+// that no progress logging should be performed
+//
+#define SCAP_PROC_SCAN_LOG_NONE 0
 
 /*!
   \brief Statistics about an in progress capture
@@ -117,6 +129,20 @@ typedef struct scap_stats
 	uint64_t n_evts; ///< Total number of events that were received by the driver.
 	uint64_t n_drops; ///< Number of dropped events.
 	uint64_t n_drops_buffer; ///< Number of dropped events caused by full buffer.
+	uint64_t n_drops_buffer_clone_fork_enter;
+	uint64_t n_drops_buffer_clone_fork_exit;
+	uint64_t n_drops_buffer_execve_enter;
+	uint64_t n_drops_buffer_execve_exit;
+	uint64_t n_drops_buffer_connect_enter;
+	uint64_t n_drops_buffer_connect_exit;
+	uint64_t n_drops_buffer_open_enter;
+	uint64_t n_drops_buffer_open_exit;
+	uint64_t n_drops_buffer_dir_file_enter;
+	uint64_t n_drops_buffer_dir_file_exit;
+	uint64_t n_drops_buffer_other_interest_enter;
+	uint64_t n_drops_buffer_other_interest_exit;
+	uint64_t n_drops_buffer_close_exit;
+	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_scratch_map; ///< Number of dropped events caused by full frame scratch map.
 	uint64_t n_drops_pf; ///< Number of dropped events caused by invalid memory access.
 	uint64_t n_drops_bug; ///< Number of dropped events caused by an invalid condition in the kernel instrumentation.
@@ -124,17 +150,6 @@ typedef struct scap_stats
 	uint64_t n_suppressed; ///< Number of events skipped due to the tid being in a set of suppressed tids.
 	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed.
 }scap_stats;
-
-/*!
-  \brief Information about the parameter of an event
-*/
-typedef struct evt_param_info
-{
-	const char* name; ///< The event name.
-	uint32_t type; ///< The event type. See the ppm_event_type enum in driver/ppm_events_public.h
-	uint32_t len; ///< The event total length.
-	char* val; ///< The event data.
-}evt_param_info;
 
 /*!
   \brief File Descriptor type
@@ -158,7 +173,12 @@ typedef enum scap_fd_type
 	SCAP_FD_INOTIFY = 13,
 	SCAP_FD_TIMERFD = 14,
 	SCAP_FD_NETLINK = 15,
-	SCAP_FD_FILE_V2 = 16
+	SCAP_FD_FILE_V2 = 16,
+	SCAP_FD_BPF = 17,
+	SCAP_FD_USERFAULTFD = 18,
+	SCAP_FD_IOURING = 19,
+	SCAP_FD_MEMFD = 20,
+	SCAP_FD_PIDFD = 21
 }scap_fd_type;
 
 /*!
@@ -244,6 +264,8 @@ typedef struct scap_threadinfo
 	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
 	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
 	bool exe_writable; ///< true if the original executable is writable by the same user that spawned it.
+	bool exe_upper_layer; //< True if the original executable belongs to upper layer in overlayfs
+	bool exe_from_memfd;  //< True if the original executable is stored in pathless memory referenced by a memfd
 	char args[SCAP_MAX_ARGS_SIZE+1]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
 	char env[SCAP_MAX_ENV_SIZE+1]; ///< Environment
@@ -256,21 +278,26 @@ typedef struct scap_threadinfo
 	uint64_t cap_permitted; ///< permitted capabilities
 	uint64_t cap_effective; ///< effective capabilities
 	uint64_t cap_inheritable; ///< inheritable capabilities
+	uint64_t exe_ino; ///< executable inode ino
+	uint64_t exe_ino_ctime; ///< executable inode ctime (last status change time)
+	uint64_t exe_ino_mtime; ///< executable inode mtime (last modification time)
+	uint64_t exe_ino_ctime_duration_clone_ts; ///< duration in ns between executable inode ctime (last status change time) and clone_ts
+	uint64_t exe_ino_ctime_duration_pidns_start; ///< duration in ns between pidns start ts and executable inode ctime (last status change time) if pidns start predates ctime
 	uint32_t vmsize_kb; ///< total virtual memory (as kb)
 	uint32_t vmrss_kb; ///< resident non-swapped memory (as kb)
 	uint32_t vmswap_kb; ///< swapped memory (as kb)
 	uint64_t pfmajor; ///< number of major page faults since start
 	uint64_t pfminor; ///< number of minor page faults since start
-	int64_t vtid;
-	int64_t vpid;
-	char cgroups[SCAP_MAX_CGROUPS_SIZE];
-	uint16_t cgroups_len;
-	char root[SCAP_MAX_PATH_SIZE+1];
+	int64_t vtid;  ///< The virtual id of this thread.
+	int64_t vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
+	uint64_t pidns_init_start_ts; ///<The pid_namespace init task start_time ts.
+	struct scap_cgroup_set cgroups;
+	char root[SCAP_MAX_PATH_SIZE + 1];
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
-	uint64_t clone_ts;
-	int32_t tty;
-    int32_t loginuid; ///< loginuid (auid)
+	uint64_t clone_ts; ///< When the clone that started this process happened.
+	uint32_t tty; ///< Number of controlling terminal
+	uint32_t loginuid; ///< loginuid (auid)
 
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;
@@ -278,7 +305,7 @@ typedef struct scap_threadinfo
 /*!
   \brief Mount information
 */
-typedef struct {
+typedef struct scap_mountinfo {
 	uint64_t mount_id; ///< mount id from /proc/self/mountinfo
 	uint32_t dev; ///< device number
 	UT_hash_handle hh; ///< makes this structure hashable
@@ -290,29 +317,9 @@ typedef struct {
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
-#elif defined __sun
-#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
-
-/*!
-  \brief Machine information
-*/
-typedef struct _scap_machine_info
-{
-	uint32_t num_cpus;	///< Number of processors
-	uint64_t memory_size_bytes; ///< Physical memory size
-	uint64_t max_pid; ///< Highest PID number on this machine
-	char hostname[128]; ///< The machine hostname
-	uint64_t reserved1; ///< reserved for future use
-	uint64_t reserved2; ///< reserved for future use
-	uint64_t reserved3; ///< reserved for future use
-	uint64_t reserved4; ///< reserved for future use
-}scap_machine_info;
-
-
-#define SCAP_IPV6_ADDR_LEN 16
 
 /*!
   \brief Interface address type
@@ -342,19 +349,6 @@ typedef struct scap_ifinfo_ipv4
 }scap_ifinfo_ipv4;
 
 /*!
-  \brief For backward compatibility only
-*/
-typedef struct scap_ifinfo_ipv4_nolinkspeed
-{
-	uint16_t type;
-	uint16_t ifnamelen;
-	uint32_t addr;
-	uint32_t netmask;
-	uint32_t bcast;
-	char ifname[SCAP_MAX_PATH_SIZE];
-}scap_ifinfo_ipv4_nolinkspeed;
-
-/*!
   \brief IPv6 interface address information
 */
 typedef struct scap_ifinfo_ipv6
@@ -369,24 +363,7 @@ typedef struct scap_ifinfo_ipv6
 	char ifname[SCAP_MAX_PATH_SIZE]; ///< interface name (e.g. "eth0")
 }scap_ifinfo_ipv6;
 
-/*!
-  \brief For backword compatibility only
-*/
-typedef struct scap_ifinfo_ipv6_nolinkspeed
-{
-	uint16_t type;
-	uint16_t ifnamelen;
-	char addr[SCAP_IPV6_ADDR_LEN];
-	char netmask[SCAP_IPV6_ADDR_LEN];
-	char bcast[SCAP_IPV6_ADDR_LEN];
-	char ifname[SCAP_MAX_PATH_SIZE];
-}scap_ifinfo_ipv6_nolinkspeed;
-
-#if defined __sun
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
 
 /*!
   \brief List of the machine network interfaces
@@ -442,18 +419,6 @@ typedef struct scap_userlist
 //
 
 /*!
-  \brief The OS on which the capture was made
-*/
-typedef enum scap_os_platform
-{
-	SCAP_PFORM_UNKNOWN = 0,
-	SCAP_PFORM_LINUX_I386 = 1,
-	SCAP_PFORM_LINUX_X64 = 2,
-	SCAP_PFORM_WINDOWS_I386 = 3,
-	SCAP_PFORM_WINDOWS_X64 = 4,
-}scap_os_platform;
-
-/*!
   \brief Indicates if an event is an enter one or an exit one
 */
 typedef enum event_direction
@@ -463,15 +428,6 @@ typedef enum event_direction
 }event_direction;
 
 /*!
-  \brief Indicates the compression type used when writing a tracefile
-*/
-typedef enum compression_mode
-{
-	SCAP_COMPRESSION_NONE = 0,
-	SCAP_COMPRESSION_GZIP = 1
-}compression_mode;
-
-/*!
   \brief Flags for scap_dump
 */
 typedef enum scap_dump_flags
@@ -479,22 +435,9 @@ typedef enum scap_dump_flags
 	SCAP_DF_NONE = 0,
 	SCAP_DF_STATE_ONLY = 1,		///< The event should be used for state update but it should
 								///< not be shown to the user
-	SCAP_DF_TRACER = (1 << 1),	///< This event is a tracer
+	// SCAP_DF_TRACER = (1 << 1),	/// note: deprecated
 	SCAP_DF_LARGE = (1 << 2)	///< This event has large payload (up to UINT_MAX Bytes, ie 4GB)
 }scap_dump_flags;
-
-typedef struct scap_dumper scap_dumper_t;
-
-typedef struct scap_reader scap_reader_t;
-
-/*!
-  \brief System call description struct.
-*/
-struct ppm_syscall_desc {
-	enum ppm_event_category category; /**< System call category. */
-	enum ppm_event_flags flags;
-	char *name; /**< System call name, e.g. 'open'. */
-};
 
 /*!
   \brief Structure used to pass a buffer and its size.
@@ -517,39 +460,6 @@ typedef struct scap_const_sized_buffer scap_const_sized_buffer;
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
-// Structs and defines used internally
-///////////////////////////////////////////////////////////////////////////////
-
-#define IN
-#define OUT
-
-//
-// udig stuff
-//
-#define UDIG_RING_SM_FNAME "udig_buf"
-#define UDIG_RING_DESCS_SM_FNAME "udig_descs"
-#define UDIG_RING_SIZE (8 * 1024 * 1024)
-
-struct udig_ring_buffer_status {
-	volatile uint64_t m_buffer_lock;
-	volatile int m_initialized;
-	volatile int m_capturing_pid;
-	volatile int m_stopped;
-	volatile struct timespec m_last_print_time;
-	struct udig_consumer_t m_consumer;
-};
-
-typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
-
-int32_t udig_alloc_ring(void* ring_id, uint8_t** ring, uint32_t *ringsize, char *error);
-int32_t udig_alloc_ring_descriptors(void* ring_descs_id,
-	struct ppm_ring_buffer_info** ring_info,
-	struct udig_ring_buffer_status** ring_status,
-	char *error);
-void udig_free_ring(uint8_t* addr, uint32_t size);
-void udig_free_ring_descriptors(uint8_t* addr);
-
-///////////////////////////////////////////////////////////////////////////////
 // API functions
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -558,35 +468,38 @@ void udig_free_ring_descriptors(uint8_t* addr);
  */
 
 /*!
-  \brief Start an event capture from file.
-
-  \param fname The name of the file to open.
-  \param error Pointer to a buffer that will contain the error string in case the
-    function fails. The buffer must have size SCAP_LASTERR_SIZE.
-  \param rc Integer pointer that will contain the scap return code in case the
-    function fails.
+  \brief Allocate a handle
 
   \return The capture instance handle in case of success. NULL in case of failure.
+  Before the handle can be used, \ref scap_init must be called on it.
 */
-scap_t* scap_open_offline(const char* fname, char *error, int32_t *rc);
+scap_t* scap_alloc(void);
 
 /*!
-  \brief Start an event capture from an already opened file descriptor.
+  \brief Initialize a handle
 
-  \param fd The fd to use.
-  \param error Pointer to a buffer that will contain the error string in case the
-    function fails. The buffer must have size SCAP_LASTERR_SIZE.
-  \param rc Integer pointer that will contain the scap return code in case the
-    function fails.
+  \param oargs a \ref scap_open_args structure containing the open parameters.
 
-  \return The capture instance handle in case of success. NULL in case of failure.
+  \return the scap return code describing whether the function succeeded or failed.
+  The error string in case the function fails is accessible via \ref scap_getlasterr
+
+  If this function fails, the only thing you can safely do with the handle is to call
+  \ref scap_deinit on it.
 */
-scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc);
+int32_t scap_init(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable);
 
 /*!
-  \brief Advanced function to start a capture.
+  \brief Allocate and initialize a handle
 
-  \param args a \ref scap_open_args structure containing the open parameters.
+  This function combines scap_alloc and scap_init in a single call.
+  It's more convenient to use if you do not rely on having access to the handle
+  address while it's being initialized.
+
+  One notable example where you do need the address is the process callback:
+  without calling scap_alloc/scap_init it can't know where the handle is
+  (it's first called from scap_init)
+
+  \param oargs a \ref scap_open_args structure containing the open parameters.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
   \param rc Integer pointer that will contain the scap return code in case the
@@ -594,7 +507,24 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc);
 
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open(scap_open_args args, char *error, int32_t *rc);
+scap_t* scap_open(scap_open_args* oargs, const struct scap_vtable* vtable, char* error, int32_t* rc);
+
+/*!
+  \brief Deinitialize a capture handle.
+
+  \param handle Handle to the capture instance.
+*/
+void scap_deinit(scap_t* handle);
+
+/*!
+  \brief Free a capture handle.
+
+  \param handle Handle to the capture instance.
+
+  You need to call \ref scap_deinit before calling this function
+  or you risk leaking memory. Or just call \ref scap_close.
+*/
+void scap_free(scap_t* handle);
 
 /*!
   \brief Close a capture handle.
@@ -616,19 +546,6 @@ void scap_close(scap_t* handle);
 uint32_t scap_restart_capture(scap_t* handle);
 
 /*!
-  \brief Retrieve the OS platform for the given capture handle.
-
-  \param handle Handle to the capture instance.
-
-  \return The type of operating system on which the capture was made.
-
-  \note For live handles, the return value indicates the current local OS.
-    For offline handles, the return value indicates the OS where the data was
-	originally captured.
-*/
-scap_os_platform scap_get_os_platform(scap_t* handle);
-
-/*!
   \brief Return a string with the last error that happened on the given capture.
 */
 const char* scap_getlasterr(scap_t* handle);
@@ -642,16 +559,17 @@ uint64_t scap_max_buf_used(scap_t* handle);
   \brief Get the next event from the from the given capture instance
 
   \param handle Handle to the capture instance.
-  \param pevent User-provided event pointer that will be initialized with address of the event.
-  \param pcpuid User-provided event pointer that will be initialized with the ID if the CPU
+  \param pevent [out] User-provided event pointer that will be initialized with address of the event.
+  \param pdevid [out] User-provided event pointer that will be initialized with the ID of the device
     where the event was captured.
+  \param pflags [out] User-provided event pointer that will be initialized with the flags of the event.
 
-  \return SCAP_SUCCESS if the call is successful and pevent and pcpuid contain valid data.
+  \return SCAP_SUCCESS if the call is successful and pevent, pcpuid and pflags contain valid data.
    SCAP_TIMEOUT in case the read timeout expired and no event is available.
    SCAP_EOF when the end of an offline capture is reached.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain the cause of the error.
 */
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+int32_t scap_next(scap_t* handle, scap_evt** pevent, uint16_t* pcpuid, uint32_t* pflags);
 
 /*!
   \brief Get the length of an event
@@ -682,13 +600,6 @@ uint64_t scap_event_get_ts(scap_evt* e);
 uint64_t scap_event_get_num(scap_t* handle);
 
 /*!
-  \brief Reset the event count to 0.
-
-  \param handle Handle to the capture instance.
-*/
-void scap_event_reset_count(scap_t* handle);
-
-/*!
   \brief Return the meta-information describing the given event
 
   \param e pointer to an event returned by \ref scap_next.
@@ -715,124 +626,67 @@ uint32_t scap_event_get_dump_flags(scap_t* handle);
 int64_t scap_get_readfile_offset(scap_t* handle);
 
 /*!
-  \brief Open a trace file for writing
-
-  \param handle Handle to the capture instance.
-  \param fname The name of the trace file.
-
-  \return Dump handle that can be used to identify this specific dump instance.
-*/
-scap_dumper_t* scap_dump_open(scap_t *handle, const char *fname, compression_mode compress, bool skip_proc_scan);
-
-/*!
-  \brief Open a trace file for writing, using the provided fd.
-
-  \param handle Handle to the capture instance.
-  \param fd A file descriptor to which the dumper will write
-
-  \return Dump handle that can be used to identify this specific dump instance.
-*/
-scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan);
-
-/*!
-  \brief Close a trace file.
-
-  \param d The dump handle, returned by \ref scap_dump_open
-*/
-void scap_dump_close(scap_dumper_t *d);
-
-/*!
-  \brief Return the current size of a trace file.
-
-  \param d The dump handle, returned by \ref scap_dump_open
-  \return The current size of the dump file pointed by d.
-*/
-int64_t scap_dump_get_offset(scap_dumper_t *d);
-
-/*!
-  \brief Return the position for the next write to a trace file.
-         This uses gztell, while scap_dump_get_offset uses gzoffset.
-
-  \param d The dump handle, returned by \ref scap_dump_open
-  \return The next write position.
-*/
-int64_t scap_dump_ftell(scap_dumper_t *d);
-
-/*!
-  \brief Flush all pending output into the file.
-
-  \param d The dump handle, returned by \ref scap_dump_open
-*/
-void scap_dump_flush(scap_dumper_t *d);
-
-/*!
-  \brief Tell how many bytes would be written (a dry run of scap_dump)
-
-  \param e pointer to an event returned by \ref scap_next.
-  \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
-  \param bytes The number of bytes to write
-
-  \return SCAP_SUCCESS if the call is successful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
-   the cause of the error.
-*/
-int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t* bytes);
-
-/*!
-  \brief Write an event to a trace file
-
-  \param handle Handle to the capture instance.
-  \param d The dump handle, returned by \ref scap_dump_open
-  \param e pointer to an event returned by \ref scap_next.
-  \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
-  \param flags The event flags. 0 means no flags.
-
-  \return SCAP_SUCCESS if the call is successful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
-   the cause of the error.
-*/
-int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid, uint32_t flags);
-
-/*!
-  \brief Get the process list for the given capture instance
-
-  \param handle Handle to the capture instance.
-
-  \return Pointer to the process list.
-
-  for live captures, the process list is created when the capture starts by scanning the
-  proc file system. For offline captures, it is retrieved from the file.
-  The process list contains information about the processes that were already open when
-  the capture started. It can be traversed with uthash, using the following syntax:
-
-  \code
-  scap_threadinfo *pi;
-  scap_threadinfo *tpi;
-  scap_threadinfo *table = scap_get_proc_table(phandle);
-
-  HASH_ITER(hh, table, pi, tpi)
-  {
-    // do something with pi
-  }
-  \endcode
-
-  Refer to the documentation of the \ref scap_threadinfo struct for details about its
-  content.
-*/
-scap_threadinfo* scap_get_proc_table(scap_t* handle);
-
-/*!
   \brief Return the capture statistics for the given capture handle.
 
   \param handle Handle to the capture instance.
-  \param stats Pointer to a \ref scap_stats structure that will be filled with the
+  \param stats [out] Pointer to a \ref scap_stats structure that will be filled with the
   statistics.
 
   \return SCAP_SECCESS if the call is successful.
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
-int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
+int32_t scap_get_stats(scap_t* handle, scap_stats* stats);
+
+/*!
+  \brief Get engine statistics (including counters and `bpftool prog show` like stats)
+
+  \param handle Handle to the capture instance.
+  \param flags holding statistics category flags.
+  \param nstats [out] Pointer reflecting number of statistics in returned buffer.
+  \param rc [out] Pointer to return code.
+
+  \return Pointer to a \ref metrics_v2 structure filled with the statistics.
+*/
+const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, uint32_t* nstats, int32_t* rc);
+
+/*!
+  \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
+
+  \param ppm_sc_array [out] the array of ppm_sc that had their state modified
+*/
+int scap_get_modifies_state_ppm_sc(uint8_t ppm_sc_array[PPM_SC_MAX]);
+
+/*!
+  \brief Take an array of `ppm_sc` as input and provide the associated array of events as output.
+
+  \param ppm_sc_array [in] the `ppm_sc` to look for
+  \param events_array [out] the array of events associated to the provided `ppm_sc`s
+*/
+int scap_get_events_from_ppm_sc(const uint8_t ppm_sc_array[PPM_SC_MAX], uint8_t events_array[PPM_EVENT_MAX]);
+
+/*!
+  \brief Take an array of `ppm_event_code` as input and provide the associated array of ppm_sc as output.
+
+  \param events_array [in] the array of events to look for
+  \param ppm_sc_array [out] the array of `ppm_sc`s associated to the provided events
+*/
+int scap_get_ppm_sc_from_events(const uint8_t events_array[PPM_EVENT_MAX], uint8_t ppm_sc_array[PPM_SC_MAX]);
+
+/*!
+  \brief Given a name, returns associated ppm_sc.
+*/
+ppm_sc_code scap_ppm_sc_from_name(const char *name);
+
+/*!
+  \brief Convert a native syscall nr to ppm_sc
+*/
+ppm_sc_code scap_native_id_to_ppm_sc(int native_id);
+
+/*!
+  \brief Convert a native ppm_sc to native syscall id, if syscall
+*/
+int scap_ppm_sc_to_native_id(ppm_sc_code sc_code);
 
 /*!
   \brief This function can be used to temporarily interrupt event capture.
@@ -857,27 +711,6 @@ int32_t scap_stop_capture(scap_t* handle);
 int32_t scap_start_capture(scap_t* handle);
 
 /*!
-  \brief Return the list of the the user interfaces of the machine from which the
-  events are being captured.
-
-  \param handle Handle to the capture instance.
-
-  \return The pointer to a \ref scap_addrlist structure containing the interface list,
-  or NULL if the function fails.
-*/
-scap_addrlist* scap_get_ifaddr_list(scap_t* handle);
-
-/*!
-  \brief Return the machine user and group lists
-
-  \param handle Handle to the capture instance.
-
-  \return The pointer to a \ref scap_userlist structure containing the user and
-  group lists, or NULL if the function fails.
-*/
-scap_userlist* scap_get_user_list(scap_t* handle);
-
-/*!
   \brief Retrieve the table with the description of every event type that
   the capture driver supports.
 
@@ -890,26 +723,39 @@ scap_userlist* scap_get_user_list(scap_t* handle);
 const struct ppm_event_info* scap_get_event_info_table();
 
 /*!
-  \brief Retrieve the table with the description of system call that
-  the capture driver supports.
+  \brief Retrieve the syscall category of the event.
+  The event category is composed of 2 parts:
+  1. The highest bits represent the event category:
+    - `EC_SYSCALL`
+    - `EC_TRACEPOINT
+    - `EC_PLUGIN`
+    - `EC_METAEVENT`
 
-  \return The pointer to a table of \ref ppm_syscall_desc entries, each of which describes
-  one of the events that can come from the driver. The table contains SYSCALL_TABLE_SIZE entries,
-  and the position of each entry in the table corresponds to the system call ID.
+  2. The lowest bits represent the syscall category to which the specific event belongs.
 
-  This table can be used to interpret the ID parameter of PPME_GENERIC_E and PPME_GENERIC_X.
+  With this method, we are retrieving the syscall category
 */
-const struct ppm_syscall_desc* scap_get_syscall_info_table();
+enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev);
 
 /*!
-  \brief Get generic machine information
+  \brief Retrieve the event category of the event
+  The event category is composed of 2 parts:
+  1. The highest bits represent the event category:
+    - `EC_SYSCALL`
+    - `EC_TRACEPOINT
+    - `EC_PLUGIN`
+    - `EC_METAEVENT`
 
-  \return The pointer to a \ref scap_machine_info structure containing the information.
+  2. The lowest bits represent the syscall category to which the specific event belongs.
 
-  \note for live captures, the information is collected from the operating system. For
-  offline captures, it comes from the capture file.
+  With this method, we are retrieving the event category
 */
-const scap_machine_info* scap_get_machine_info(scap_t* handle);
+enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev);
+
+/*!
+  \brief Retrieve the name associated with the specified ppm_sc.
+*/
+const char* scap_get_ppm_sc_name(ppm_sc_code sc);
 
 /*!
   \brief Set the capture snaplen, i.e. the maximum size an event parameter can
@@ -929,37 +775,26 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle);
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
 
 /*!
-  \brief Clear the event mask: no events will be passed
-
-  \param handle Handle to the capture instance.
-
-  \note This function can only be called for live captures.
-*/
-int32_t scap_clear_eventmask(scap_t* handle);
-
-/*!
-  \brief Set the event into the eventmask so that
-  users can receive the event. Useful for offloading
+  \brief (Un)Set the ppm_sc bit in the syscall mask so that
+  users can (drop)receive the related syscall. Useful for offloading
   operations such as evt.type=open
 
   \param handle Handle to the capture instance.
-  \param event id (example PPME_SOCKET_BIND_X)
+  \param ppm_sc id (example PPM_SC_EXECVE)
+  \param enabled whether to enable or disable the syscall
   \note This function can only be called for live captures.
 */
-int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id);
-
+int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled);
 
 /*!
-  \brief Unset the event into the eventmask so that
-  users can no longer receive the event. It is
-  the opposite of scap_set_eventmask
+  \brief (Un)Set the drop failed feature of the drivers.
+  When enabled, drivers will stop sending failed syscalls (exit) events.
 
   \param handle Handle to the capture instance.
-  \param event id (example PPME_SOCKET_BIND_X)
+  \param enabled whether to enable or disable the feature
   \note This function can only be called for live captures.
 */
-int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
-
+int32_t scap_set_dropfailed(scap_t* handle, bool enabled);
 
 /*!
   \brief Get the root directory of the system. This usually changes
@@ -969,33 +804,13 @@ int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
 const char* scap_get_host_root();
 
 /*!
-  \brief Get the process list.
+  \brief Check if the current engine name matches the provided engine_name
 */
-struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
-
-bool scap_get_bpf_enabled(scap_t* handle);
-
-/*!
-  \brief stop returning events for all subsequently spawned
-  processes with the provided comm, as well as their children.
-  This includes fork()/clone()ed processes that might later
-  exec to a different comm.
-
-  returns SCAP_FAILURE if there are already MAX_SUPPRESSED_COMMS comm
-  values, SCAP_SUCCESS otherwise.
-*/
-
-int32_t scap_suppress_events_comm(scap_t* handle, const char *comm);
-
-/*!
-  \brief return whether the provided tid is currently being suppressed.
-*/
-
-bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
+bool scap_check_current_engine(scap_t *handle, const char* engine_name);
 
 /*!
   \brief Get (at most) n parameters for this event.
- 
+
   \param e The scap event.
   \param params An array large enough to contain at least one entry per event parameter (which is at most PPM_MAX_EVENT_PARAMS).
  */
@@ -1009,7 +824,7 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
    - String types (including PT_FSPATH, PT_FSRELPATH) are passed via a null-terminated char*
    - Buffer types, variable size types and similar, including PT_BYTEBUF, PT_SOCKTUPLE are passed with
      a struct scap_const_sized_buffer
-  
+
   If the event was written successfully, SCAP_SUCCESS is returned. If the supplied buffer is not large enough to contain
   the event, SCAP_INPUT_TOO_SMALL is returned and event_size is set with the required size to contain the entire event.
 
@@ -1024,8 +839,8 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
   is set with the required size to contain the entire event. In other error cases, SCAP_FAILURE is returned.
 
  */
-int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, ...);
-int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, va_list args);
+int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *event_size, char *error, ppm_event_code event_type, uint32_t n, ...);
+int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf, size_t *event_size, char *error, ppm_event_code event_type, uint32_t n, va_list args);
 
 /*@}*/
 
@@ -1033,79 +848,37 @@ int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf, size_t *e
 // Non public functions
 ///////////////////////////////////////////////////////////////////////////////
 
+// get the features supported by the engine (bitmask of ENGINE_FLAG_* flags)
+uint64_t scap_get_engine_flags(scap_t* handle);
+
 //
 // Return the number of event capture devices that the library is handling. Each processor
 // has its own event capture device.
 //
 uint32_t scap_get_ndevs(scap_t* handle);
 
-// Retrieve a buffer of events from one of the cpus
-extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len);
+/*
+ * \brief Retrieve a buffer of events from one of the cpus
+ *
+ * \param buf [out] buffer holding the returned events
+ * \param len [out] number of bytes read into buf
+ */
+extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, char** buf, uint32_t* len);
 
 #ifdef PPM_ENABLE_SENTINEL
 // Get the sentinel at the beginning of the event
 uint32_t scap_event_get_sentinel_begin(scap_evt* e);
 #endif
 
-// Get the information about a process.
-// The returned pointer must be freed via scap_proc_free by the caller.
-struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets);
-
-// Check if the given thread exists in ;proc
-bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm);
-
-// like getpid() but returns the global PID even inside a container
-int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
-
-struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
-void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
-void scap_dev_delete(scap_t* handle, scap_mountinfo* dev);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
-void scap_proc_free_table(scap_t* handle);
-void scap_free_device_table(scap_t* handle);
-void scap_refresh_iflist(scap_t* handle);
-void scap_refresh_proc_table(scap_t* handle);
-void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
-int32_t scap_enable_tracers_capture(scap_t* handle);
-int32_t scap_enable_page_faults(scap_t *handle);
-uint64_t scap_get_unexpected_block_readsize(scap_t* handle);
-int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
-int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
-scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);
-#ifdef USE_ZLIB
-int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level);
-#endif
-uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
-int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d);
-int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
-int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen);
-int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t len);
-// Variant of scap_write_proclist_entry where array-backed information
-// about the thread is provided separate from the scap_threadinfo
-// struct.
-int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t len,
-				       const char *comm,
-				       const char *exe,
-				       const char *exepath,
-				       const struct iovec *args, int argscnt,
-				       const struct iovec *envs, int envscnt,
-				       const char *cwd,
-				       const struct iovec *cgroups, int cgroupscnt,
-				       const char *root);
+int32_t scap_fd_add(scap_threadinfo* tinfo, scap_fdinfo* fdinfo);
 
-// Turn on processing only a subset syscalls. This is only appliable when scap
-// is in LIVE mode.
-int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
-#ifdef CYGWING_AGENT
-typedef struct wh_t wh_t;
-wh_t* scap_get_wmi_handle(scap_t* handle);
-#endif
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
 
 /**
@@ -1116,17 +889,16 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
 
 /**
- * Is `driver_api_version` compatible with `required_api_version`?
- */
-bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long required_api_version);
-
-/**
  * Get API version supported by the driver
+ * If the API version is unavailable for whatever reason,
+ * it's equivalent to version 0.0.0
  */
 uint64_t scap_get_driver_api_version(scap_t* handle);
 
 /**
  * Get schema version supported by the driver
+ * If the schema version is unavailable for whatever reason,
+ * it's equivalent to version 0.0.0
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
 

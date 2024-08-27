@@ -1,6 +1,6 @@
 #pragma once
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(MINIMAL_BUILD)
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include "container_engine/docker/lookup_request.h"
+#include <libsinsp/container_engine/docker/lookup_request.h>
 
 namespace libsinsp {
 namespace container_engine {
@@ -18,7 +18,8 @@ public:
 	enum docker_response {
 		RESP_OK = 0,
 		RESP_BAD_REQUEST = 1,
-		RESP_ERROR = 2
+		RESP_ERROR = 2,
+		RESP_TIMEOUT = 3
 	};
 
 	docker_connection();
@@ -35,7 +36,7 @@ public:
 private:
 	std::string m_api_version;
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(MINIMAL_BUILD)
 	CURLM *m_curlm;
 #endif
 };

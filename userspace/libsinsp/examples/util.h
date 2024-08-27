@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,14 +16,14 @@ limitations under the License.
 */
 
 #include <string>
-#include <sinsp.h>
+#include <libsinsp/sinsp.h>
 
 //
 // Get the string representation of a ppm_event_category
 //
-std::string get_event_category(ppm_event_category category);
+std::string get_event_category_name(ppm_event_category category);
 
 //
 // Get the string representation of a ppm_event_type
 //
-std::string get_event_type(uint16_t type);
+std::string get_event_type_name(sinsp_evt *ev);

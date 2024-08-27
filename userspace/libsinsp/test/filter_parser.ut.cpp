@@ -1,11 +1,11 @@
-#include <filter/parser.h>
+#include <libsinsp/filter/parser.h>
 #include <gtest/gtest.h>
 
 using namespace std;
 using namespace libsinsp::filter;
 using namespace libsinsp::filter::ast;
 
-static void test_equal_ast(string in, expr* ast)
+static void test_equal_ast(const string& in, expr* ast)
 {
 	parser parser(in);
 	try
@@ -13,24 +13,25 @@ static void test_equal_ast(string in, expr* ast)
 		auto res = parser.parse();
 		if (!res->is_equal(ast))
 		{
-			FAIL() << "parsed ast is not equal to the expected one -> " << in;
+
+			FAIL() << "parsed ast is not equal to the expected one" << std::endl
+				<< "    expected: " << in << std::endl
+				<< "    actual: " << as_string(res.get());
 		}
-		delete res;
 	}
 	catch (runtime_error& e)
 	{
 		auto pos = parser.get_pos();
 		FAIL() << "at " << pos.as_string() << ": " << e.what() << " -> " << in;
 	}
-	delete ast;
 };
 
-static void test_accept(string in, parser::pos_info* out_pos = NULL)
+static void test_accept(string in, ast::pos_info* out_pos = NULL)
 {
 	parser parser(in);
 	try
 	{
-	   	delete parser.parse();
+	   	parser.parse();
 	}
 	catch (runtime_error& e)
 	{
@@ -48,7 +49,7 @@ static void test_reject(string in)
 	parser parser(in);
 	try
 	{
-		delete parser.parse();
+		parser.parse();
 		FAIL() << "error expected but not received -> " << in;
 	}
 	catch (runtime_error& e)
@@ -57,12 +58,31 @@ static void test_reject(string in)
 	}
 }
 
+TEST(pos_info, equality_assignments)
+{
+	pos_info a;
+	pos_info b(5, 1, 3);
+	ASSERT_EQ(a.idx, 0);
+	ASSERT_EQ(a.line, 1);
+	ASSERT_EQ(a.col, 1);
+	ASSERT_EQ(b.idx, 5);
+	ASSERT_EQ(b.line, 1);
+	ASSERT_EQ(b.col, 3);
+	ASSERT_NE(a, b);
+
+	a = b;
+	ASSERT_EQ(a.idx, 5);
+	ASSERT_EQ(a.line, 1);
+	ASSERT_EQ(a.col, 3);
+	ASSERT_EQ(a, b);
+}
+
 TEST(parser, supported_operators)
 {
 	static vector<string> expected_all = {
 		"=", "==", "!=", "<=", ">=", "<", ">", "exists",
-		"contains", "icontains", "bcontains", "glob", "bstartswith",
-		"startswith", "endswith", "in", "intersects", "pmatch"};
+		"contains", "icontains", "bcontains", "glob", "iglob", "bstartswith",
+		"startswith", "endswith", "in", "intersects", "pmatch", "regex"};
 	static vector<string> expected_list_only = {
 		"in", "intersects", "pmatch"};
 	
@@ -83,6 +103,34 @@ TEST(parser, supported_operators)
 		if (count(actual_list_only.begin(), actual_list_only.end(), op) != 1)
 		{
 			FAIL() << "expected support for list operator: " << op;
+		}
+	}
+}
+
+TEST(parser, supported_field_transformers)
+{
+	std::string expected_val = "val";
+	std::vector<std::string> expected = {
+		"tolower", "toupper", "b64", "basename" };
+	
+	auto actual = parser::supported_field_transformers();
+	ASSERT_EQ(actual.size(), expected.size());
+	for (auto &op : expected)
+	{
+		if (count(actual.begin(), actual.end(), op) != 1)
+		{
+			FAIL() << "expected support for field transformer: " << op;
+		}
+	}
+
+	actual = parser::supported_field_transformers(true);
+	expected.insert(expected.begin(), expected_val);
+	ASSERT_EQ(actual.size(), expected.size());
+	for (auto &op : expected)
+	{
+		if (count(actual.begin(), actual.end(), op) != 1)
+		{
+			FAIL() << "expected support for field transformer: " << op;
 		}
 	}
 }
@@ -318,6 +366,7 @@ TEST(parser, parse_operators)
 	test_accept("test.op == value");
 	test_accept("test.op != value");
 	test_accept("test.op glob value");
+	test_accept("test.op iglob value");
 	test_accept("test.op contains value");
 	test_accept("test.op icontains value");
 	test_accept("test.op bcontains 48545450");
@@ -346,11 +395,214 @@ TEST(parser, parse_operators)
 	test_reject("test.op icontainsvalue");
 	test_reject("test.op bcontainsvalue");
 	test_reject("test.op globvalue");
+	test_reject("test.op iglobvalue");
+}
+
+TEST(parser, parse_transformers_left_hand)
+{
+	// testing supported transformers
+	test_accept("tolower(test.field) exists");
+	test_accept("toupper(test.field) exists");
+	test_accept("b64(test.field) exists");
+
+	// testing that left-hand transformers work with supported operators
+	test_accept("b64(test.field) exists");
+	test_accept("b64(test.field) = value");
+	test_accept("b64(test.field) == value");
+	test_accept("b64(test.field) != value");
+	test_accept("b64(test.field) glob value");
+
+	// testing left-hand transformers in an expression
+	test_accept("(b64(test.field) exists)");
+	test_accept("b64(test.field) exists and b64(test.field) contains 'a'");
+	test_accept("b64(test.field) exists or b64(test.field) contains 'a'");
+	test_accept("not b64(test.field) exists or b64(test.field) contains 'a'");
+	test_accept("b64(test.field) exists or not b64(test.field) contains 'a'");
+	test_accept("b64(test.field) exists or (b64(test.field) contains 'a')");
+	test_accept("not (b64(test.field) exists or b64(test.field) contains 'a')");
+
+	// valid uses of left-hand transformers (mixed, nested, with spaces)
+	test_accept("b64(toupper(test.field)) exists");
+	test_accept("toupper(b64(test.field)) exists");
+	test_accept(" b64(test.field) exists");
+	test_accept("\nb64(test.field) exists");
+	test_accept("b64( test.field) exists");
+	test_accept("b64(\ntest.field) exists");
+	test_accept("b64(test.field ) exists");
+	test_accept("b64(test.field\n) exists");
+	test_accept("b64(test.field)\n exists");
+	test_accept("b64(b64(test.field)) exists");
+	test_accept("b64( b64(test.field)) exists");
+	test_accept("b64(\nb64(test.field)) exists");
+	test_accept("b64(b64( test.field)) exists");
+	test_accept("b64(b64(\ntest.field)) exists");
+	test_accept("b64(b64(test.field )) exists");
+	test_accept("b64(b64(test.field\n)) exists");
+	test_accept("b64(b64(test.field)\n) exists");
+	test_accept("b64(b64(test.field))\n exists");
+
+	// invalid use of "val" left-hand transformers (can't be used in left-hand fields)
+	test_reject("val(test.field) exists");
+	test_reject("val(val(test.field)) exists");
+	test_reject("val(b64(test.field)) exists");
+	test_reject("b64(val(test.field)) exists");
+
+	// invalid uses of left-hand transformers
+	test_reject("b64(test.field [1]) exists");
+	test_reject("some_fake_transformer(test.field) exists");
+	test_reject("some_fake_transformer (test.field) exists");
+	test_reject("some.fake.transformer(test.field) exists");
+	test_reject("b64 (test.field) exists"); // no space is allowed before '('
+	test_reject("b64,(test.field) exists");
+	test_reject("b64(testfield)) exists");
+	test_reject("b64(test_field)) exists");
+	test_reject("b64(b64)) exists");
+	test_reject("b64\n(test.field) exists");
+	test_reject("b64(test.field exists");
+	test_reject("test.field) exists");
+	test_reject("b64(b64(test.field exists");
+	test_reject("b64(b64(test.field) exists");
+	test_reject("b64(test.field)) exists");
+	test_reject("(test.field) exists");
+	test_reject("(test.field exists");
+	test_reject("test.field) exists");
+	test_reject("a(test.field) exists");
+	test_reject("aaaa(test.field) exists");
+	test_reject("a(b(test.field)) exists");
+}
+
+TEST(parser, parse_transformers_right_hand)
+{
+	// note: using a field as right-hand without using any transformer
+	// will end up making the parser read it as a bare string value, and not
+	// as an actual field. This is something we can't catch or distinguish
+	// at the grammar/parser level, so this syntax is legit. However, we should
+	// consider emitting a warning at the compiler level (we can't error,
+	// otherwise we may introduce very unpredictable breaking changes).
+	test_accept("some.field = test.field");
+
+	// testing supported transformers
+	test_accept("some.field = val(test.field)");
+	test_accept("some.field = tolower(test.field)");
+	test_accept("some.field = toupper(test.field)");
+	test_accept("some.field = b64(test.field)");
+
+	// testing that transformers work with all operators
+	test_accept("some.field = val(test.field)");
+	test_accept("some.field = b64(test.field)");
+	test_accept("some.field == val(test.field)");
+	test_accept("some.field == b64(test.field)");
+	test_accept("some.field != val(test.field)");
+	test_accept("some.field != b64(test.field)");
+	test_accept("some.field glob val(test.field)");
+	test_accept("some.field glob b64(test.field)");
+	test_accept("some.field iglob val(test.field)");
+	test_accept("some.field iglob b64(test.field)");
+	test_accept("some.field contains val(test.field)");
+	test_accept("some.field contains b64(test.field)");
+	test_accept("some.field icontains val(test.field)");
+	test_accept("some.field icontains b64(test.field)");
+	test_accept("some.field bcontains val(test.field)");
+	test_accept("some.field bcontains b64(test.field)");
+	test_accept("some.field startswith val(test.field)");
+	test_accept("some.field startswith b64(test.field)");
+	test_accept("some.field bstartswith val(test.field)");
+	test_accept("some.field bstartswith b64(test.field)");
+	test_accept("some.field endswith val(test.field)");
+	test_accept("some.field endswith b64(test.field)");
+	test_accept("some.field > val(test.field)");
+	test_accept("some.field > b64(test.field)");
+	test_accept("some.field < val(test.field)");
+	test_accept("some.field < b64(test.field)");
+	test_accept("some.field >= val(test.field)");
+	test_accept("some.field >= b64(test.field)");
+	test_accept("some.field <= val(test.field)");
+	test_accept("some.field <= b64(test.field)");
+	test_accept("some.field in val(test.field)");
+	test_accept("some.field in b64(test.field)");
+	test_accept("some.field intersects val(test.field)");
+	test_accept("some.field intersects b64(test.field)");
+	test_accept("some.field pmatch val(test.field)");
+	test_accept("some.field pmatch b64(test.field)");
+
+	// testing right-hand transformers in an expression
+	test_accept("(some.field = b64(test.field))");
+	test_accept("some.field = b64(test.field) and some.field contains b64(test.field)");
+	test_accept("some.field = b64(test.field) or some.field contains b64(test.field)");
+	test_accept("not some.field = b64(test.field) or some.field contains b64(test.field)");
+	test_accept("some.field = b64(test.field) or not some.field contains b64(test.field)");
+	test_accept("some.field = b64(test.field) or (some.field contains b64(test.field))");
+	test_accept("not (some.field = b64(test.field) or some.field contains b64(test.field))");
+
+	// valid uses of right-hand transformers (mixed, nested, with spaces)
+	test_accept("some.field = b64(toupper(test.field))");
+	test_accept("some.field = toupper(b64(test.field))");
+	test_accept("some.field = b64( test.field)");
+	test_accept("some.field = b64(\ntest.field)");
+	test_accept("some.field = b64(test.field )");
+	test_accept("some.field = b64(test.field\n)");
+	test_accept("some.field = b64(test.field)\n");
+	test_accept("some.field = b64(b64(test.field))");
+	test_accept("some.field = b64( b64(test.field))");
+	test_accept("some.field = b64(\nb64(test.field))");
+	test_accept("some.field = b64(b64( test.field))");
+	test_accept("some.field = b64(b64(\ntest.field))");
+	test_accept("some.field = b64(b64(test.field ))");
+	test_accept("some.field = b64(b64(test.field\n))");
+	test_accept("some.field = b64(b64(test.field)\n)");
+	test_accept("some.field = b64(b64(test.field))\n");
+
+	// testing left-hand transformers together with right-hand transformers
+	test_accept("tolower(some.field) = b64(test.field)");
+	test_accept("tolower(some.field) = b64(test.field) or tolower(other.field) = tolower(anoter.field)");
+
+	// these are non-transformer use cases that are a bit ambiguous
+	test_reject("some.field = b64and(some_macro)");
+	test_reject("some.field = b64or(some_macro)");
+	test_accept("some.field = b64 and(some_macro)");
+	test_accept("some.field = b64 or(some_macro)");
+	test_accept("some.field = 'some_fake_transformer(some_macro)'");
+	test_accept("some.field = \"some_fake_transformer(some_macro)\"");
+
+	// invalid uses of right-hand transformers
+	test_reject("some.field = val(test.field [1])");
+	test_reject("some.field = some_fake_transformer(test.field)");
+	test_reject("some.field = some_fake_transformer (test.field)");
+	test_reject("some.field = some.fake.transformer(test.field)");
+	test_reject("some.field = val(val(test.field))"); // val cannot have nested transformers
+	test_reject("some.field = val(toupper(test.field))");
+	test_reject("some.field = b64(val(test.field))"); // val can't be nested
+	test_reject("some.field = b64 (test.field)");  // no space is allowed before '('
+	test_reject("some.field = b64,(test.field)");
+	test_reject("some.field = (b64(test.field))");
+	test_reject("some.field = (b64(test.field)");
+	test_reject("some.field = (b64(test.field");
+	test_reject("some.field = b64(test.field))");
+	test_reject("some.field = b64(testfield))");
+	test_reject("some.field = b64(test_field))");
+	test_reject("some.field = b64(b64))");
+	test_reject("some.field = ((b64(test.field)))");
+	test_reject("some.field = b64\n(test.field)");
+	test_reject("some.field = b64(test.field");
+	test_reject("some.field = test.field)");
+	test_reject("some.field = b64(b64(test.field");
+	test_reject("some.field = b64(b64(test.field)");
+	test_reject("some.field = b64(test.field))");
+	test_reject("some.field = (test.field)");
+	test_reject("some.field = (test.field");
+	test_reject("some.field = test.field)");
+	test_reject("some.field = a(test.field)");
+	test_reject("some.field = aaaa(test.field)");
+	test_reject("some.field = a(b(test.field))");
+	// can't use transformer as list values
+	test_reject("some.field in (b64(test.field))");
+	test_reject("some.field in (a, b64(test.field))");
+	test_reject("some.field in (a, b, b64(test.field))");
 }
 
 TEST(parser, parse_position_info)
 {
-	parser::pos_info pos;
+	ast::pos_info pos;
 
 	test_accept("a and b", &pos);
 	EXPECT_EQ(pos.idx, 7);
@@ -385,57 +637,348 @@ TEST(parser, parse_position_info)
 // complex test case with all supported node types
 TEST(parser, expr_all_node_types)
 {
+	std::vector<std::unique_ptr<expr>> and_children;
+	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name", ""), "exists"));
+	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""), "in", list_expr::create({"a", "b"})));
+	and_children.push_back(not_expr::create(binary_check_expr::create(field_expr::create("evt.dir", ""), "=", value_expr::create("<"))));
+
+	std::vector<std::unique_ptr<expr>> or_children;
+	or_children.push_back(and_expr::create(and_children));
+	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name", ""), "=", value_expr::create("cat")));
+
+	std::unique_ptr<expr> ast = or_expr::create(or_children);
+
 	test_equal_ast(
 		"evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-		new or_expr({
-			new and_expr({
-				new unary_check_expr("evt.name", "", "exists"), 
-				new binary_check_expr("evt.type", "", "in", new list_expr({"a", "b"})),
-				new not_expr(
-					new binary_check_expr("evt.dir", "", "=", new value_expr("<"))
-				),
-			}),
-			new binary_check_expr("proc.name", "", "=", new value_expr("cat")),
-		})
+		ast.get()
+	);
+}
+
+TEST(parser, expr_transformers)
+{
+	std::vector<std::unique_ptr<expr>> and_children;
+	and_children.push_back(
+		unary_check_expr::create(
+			field_transformer_expr::create("b64", field_expr::create("evt.name", "")),
+			"exists"));
+	and_children.push_back(
+		binary_check_expr::create(
+			field_transformer_expr::create("tolower", field_transformer_expr::create("toupper", field_expr::create("evt.type", ""))),
+			"in",
+			field_transformer_expr::create("val", field_expr::create("some.field", ""))));
+	and_children.push_back(
+		not_expr::create(
+			binary_check_expr::create(
+				field_expr::create("evt.dir", ""),
+				"=",
+				field_transformer_expr::create("b64", field_expr::create("some.field", "")))));
+
+	std::vector<std::unique_ptr<expr>> or_children;
+	or_children.push_back(and_expr::create(and_children));
+	or_children.push_back(
+		binary_check_expr::create(
+			field_expr::create("proc.name", ""),
+			"=",
+			field_transformer_expr::create("b64", field_transformer_expr::create("tolower", field_expr::create("some.field", "")))));
+
+	std::unique_ptr<expr> ast = or_expr::create(or_children);
+
+	test_equal_ast(
+		"b64(evt.name) exists and tolower(toupper(evt.type)) in val(some.field) and not evt.dir=b64(some.field) or proc.name=b64(tolower(some.field))",
+		ast.get()
 	);
 }
 
 // complex example with parenthesis
 TEST(parser, expr_parenthesis)
 {
+	std::vector<std::unique_ptr<expr>> and_children;
+	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name", ""), "exists"));
+	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""), "in", list_expr::create({"a", "b"})));
+	and_children.push_back(not_expr::create(binary_check_expr::create(field_expr::create("evt.dir", ""), "=", value_expr::create("<"))));
+
+	std::vector<std::unique_ptr<expr>> or_children;
+	or_children.push_back(and_expr::create(and_children));
+	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name", ""), "=", value_expr::create("cat")));
+
+	std::unique_ptr<expr> ast = or_expr::create(or_children);
+
 	test_equal_ast(
 		"evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-		new or_expr({
-			new and_expr({
-				new unary_check_expr("evt.name", "", "exists"), 
-				new binary_check_expr("evt.type", "", "in", new list_expr({"a", "b"})),
-				new not_expr(
-					new binary_check_expr("evt.dir", "", "=", new value_expr("<"))
-				),
-			}),
-			new binary_check_expr("proc.name", "", "=", new value_expr("cat")),
-		})
+		ast.get()
 	);
 }
 
 // stressing nested negation and identifiers
 TEST(parser, expr_multi_negation)
 {
+	std::vector<std::unique_ptr<expr>> and_children;
+	and_children.push_back(unary_check_expr::create(field_expr::create("evt.name", ""), "exists"));
+	and_children.push_back(binary_check_expr::create(field_expr::create("evt.type", ""), "in", list_expr::create({"a", "b"})));
+	and_children.push_back(not_expr::create(binary_check_expr::create(field_expr::create("evt.dir", ""), "=", value_expr::create("<"))));
+
+	std::vector<std::unique_ptr<expr>> or_children;
+	or_children.push_back(and_expr::create(and_children));
+	or_children.push_back(binary_check_expr::create(field_expr::create("proc.name", ""), "=", value_expr::create("cat")));
+
+	std::unique_ptr<expr> ast = or_expr::create(or_children);
+
 	test_equal_ast(
 		"evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-		new or_expr({
-			new and_expr({
-				new unary_check_expr("evt.name", "", "exists"), 
-				new binary_check_expr("evt.type", "", "in", new list_expr({"a", "b"})),
-				new not_expr(
-					new binary_check_expr("evt.dir", "", "=", new value_expr("<"))
-				),
-			}),
-			new binary_check_expr("proc.name", "", "=", new value_expr("cat")),
-		})
+		ast.get()
 	);
+
+	ast = not_expr::create(not_expr::create(identifier_expr::create("not_macro")));
+
 	test_equal_ast(
 		"not not not not not(not not(not not_macro))",
-		new not_expr(new not_expr(new value_expr("not_macro")))
+		ast.get()
 	);
+}
+
+struct pos_visitor : public expr_visitor
+{
+public:
+	void visit(and_expr* e) override
+	{
+		visit_logical_op("and", e->get_pos(), e->children);
+	};
+
+	virtual void visit(or_expr* e) override
+	{
+		visit_logical_op("or", e->get_pos(), e->children);
+	}
+
+	virtual void visit(not_expr* e) override
+	{
+		m_str += "not";
+		add_pos(e->get_pos());
+
+		e->child->accept(this);
+	}
+
+	virtual void visit(identifier_expr* e) override
+	{
+		m_str += "identifier";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(value_expr* e) override
+	{
+		m_str += "value";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(list_expr* e) override
+	{
+		m_str += "list";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(unary_check_expr* e) override
+	{
+		m_str += "unary";
+		add_pos(e->get_pos());
+		e->left->accept(this);
+	}
+
+	virtual void visit(binary_check_expr* e) override
+	{
+		m_str += "binary";
+		add_pos(e->get_pos());
+		e->left->accept(this);
+		e->right->accept(this);
+	}
+
+	virtual void visit(field_expr* e) override
+	{
+		m_str += "field";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(field_transformer_expr* e) override
+	{
+		m_str += "transformer";
+		add_pos(e->get_pos());
+		e->value->accept(this);
+	}
+
+	const std::string& as_string() {
+		return m_str;
+	};
+
+private:
+
+	void visit_logical_op(const char* op,
+			      const pos_info& pos,
+			      const std::vector<std::unique_ptr<expr>> &children)
+	{
+		m_str += op;
+		add_pos(pos);
+
+		for(auto&c : children)
+		{
+			c->accept(this);
+		}
+	}
+
+	void add_pos(const pos_info& pos)
+	{
+		m_str += std::to_string(pos.idx) + " " +
+			std::to_string(pos.line) + " " +
+			std::to_string(pos.col);
+	}
+
+	std::string m_str;
+};
+
+TEST(parser, position_unary_check)
+{
+	parser parser("proc.name exists");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "unary0 1 1field0 1 1");
+}
+
+TEST(parser, position_binary_check)
+{
+	parser parser("proc.name=nginx");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1field0 1 1value10 1 11");
+}
+
+TEST(parser, position_binary_check_params)
+{
+	parser parser("proc.aname[3]=nginx");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1field0 1 1value14 1 15");
+}
+
+TEST(parser, position_binary_check_space_before)
+{
+	parser parser("proc.name =nginx");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1field0 1 1value11 1 12");
+}
+
+TEST(parser, position_binary_check_space_after)
+{
+	parser parser("proc.name= nginx");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1field0 1 1value11 1 12");
+}
+
+TEST(parser, position_binary_check_space_both)
+{
+	parser parser("proc.name = nginx");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1field0 1 1value12 1 13");
+}
+
+TEST(parser, position_binary_check_list)
+{
+	parser parser("proc.name in (nginx, apache)");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1field0 1 1list13 1 14");
+}
+
+TEST(parser, position_binary_check_list_space_after)
+{
+	parser parser("proc.name in ( nginx, apache)");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1field0 1 1list13 1 14");
+}
+
+TEST(parser, position_not)
+{
+	parser parser("not proc.name=nginx");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "not0 1 1binary4 1 5field4 1 5value14 1 15");
+}
+
+TEST(parser, position_or)
+{
+	parser parser("proc.name=nginx or proc.name=apache");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1binary0 1 1field0 1 1value10 1 11binary19 1 20field19 1 20value29 1 30");
+}
+
+TEST(parser, position_or_parens)
+{
+	parser parser("(proc.name=nginx or proc.name=apache)");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "or1 1 2binary1 1 2field1 1 2value11 1 12binary20 1 21field20 1 21value30 1 31");
+}
+
+TEST(parser, position_and)
+{
+	parser parser("proc.name=nginx and proc.name=apache");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "and0 1 1binary0 1 1field0 1 1value10 1 11binary20 1 21field20 1 21value30 1 31");
+}
+
+TEST(parser, position_and_parens)
+{
+	parser parser("(proc.name=nginx and proc.name=apache)");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "and1 1 2binary1 1 2field1 1 2value11 1 12binary21 1 22field21 1 22value31 1 32");
+}
+
+TEST(parser, position_complex)
+{
+	parser parser("(proc.aname[2]=nginx and evt.type in (connect,accept)) or (not fd.name exists) or (proc.name=apache and evt.type=switch)");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1and1 1 2binary1 1 2field1 1 2value15 1 16binary25 1 26field25 1 26list37 1 38not59 1 60unary63 1 64field63 1 64and83 1 84binary83 1 84field83 1 84value93 1 94binary104 1 105field104 1 105value113 1 114");
+}
+
+TEST(parser, position_complex_multiline)
+{
+	const char* str = R"EOF(
+(proc.aname[2]=nginx
+     and evt.type in (connect,accept))
+   or (not fd.name exists)
+   or (proc.name=apache
+       and evt.type=switch))EOF";
+
+	parser parser(str);
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1and2 2 2binary2 2 2field2 2 2value16 2 16binary31 3 10field31 3 10list43 3 22not68 4 8unary72 4 12field72 4 12and95 5 8binary95 5 8field95 5 8value105 5 18binary123 6 12field123 6 12value132 6 21");
+}
+
+TEST(parser, position_complex_transformers)
+{
+	parser parser("b64(evt.name) exists and tolower(toupper(evt.type)) in val(some.field) and not evt.dir=b64(some.field) or proc.name=b64(tolower(some.field))");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1and0 1 1unary0 1 1transformer0 1 1field4 1 5binary25 1 26transformer25 1 26transformer33 1 34field41 1 42transformer55 1 56field59 1 60not75 1 76binary79 1 80field79 1 80transformer87 1 88field91 1 92binary106 1 107field106 1 107transformer116 1 117transformer120 1 121field128 1 129");
 }

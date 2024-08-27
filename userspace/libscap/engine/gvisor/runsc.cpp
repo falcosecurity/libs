@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,18 +17,20 @@ limitations under the License.
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <ext/stdio_filebuf.h>
+#include <iostream>
+#include <fstream>
+#include <string>
 
-#include "gvisor.h"
+#include <libscap/engine/gvisor/gvisor.h>
 
 namespace scap_gvisor {
 
 namespace runsc {
 
-constexpr size_t max_line_size = 8192;
-
 result runsc(char *argv[])
 {
-	result res = {0};
+	result res;
 	int pipefds[2];
 
 	int ret = pipe(pipefds);
@@ -39,9 +42,8 @@ result runsc(char *argv[])
 	pid_t pid = vfork();
 	if(pid > 0)
 	{
-		char line[max_line_size];
 		int status;
-		
+
 		close(pipefds[1]);
 		wait(&status);
 		if(!WIFEXITED(status) || WEXITSTATUS(status) != 0)
@@ -50,18 +52,14 @@ result runsc(char *argv[])
 			return res;
 		}
 
-		FILE *f = fdopen(pipefds[0], "r");
-		if(!f)
-		{
-			return res;
-		}
+		__gnu_cxx::stdio_filebuf<char> filebuf(pipefds[0], std::ios::in);
+		std::string line;
+		std::istream is(&filebuf);
 
-		while(fgets(line, max_line_size, f))
+		while(std::getline(is, line))
 		{
 			res.output.emplace_back(std::string(line));
 		}
-
-		fclose(f);
 	}
 	else
 	{
@@ -87,11 +85,11 @@ result version()
 
 result list(const std::string &root_path)
 {
-	result res = {0};
+	result res;
 	std::vector<std::string> running_sandboxes;
 
 	const char *argv[] = {
-		"runsc", 
+		"runsc",
 		"--root",
 		root_path.c_str(),
 		"list",
@@ -120,13 +118,13 @@ result list(const std::string &root_path)
 result trace_create(const std::string &root_path, const std::string &trace_session_path, const std::string &sandbox_id, bool force)
 {
 	const char *argv[] = {
-		"runsc", 
+		"runsc",
 		"--root",
 		root_path.c_str(),
 		"trace",
 		"create",
 		force ? "--force" : "",
-		"--config", 
+		"--config",
 		trace_session_path.c_str(),
 		sandbox_id.c_str(),
 		NULL
@@ -138,7 +136,7 @@ result trace_create(const std::string &root_path, const std::string &trace_sessi
 result trace_delete(const std::string &root_path, const std::string &session_name, const std::string &sandbox_id)
 {
 	const char *argv[] = {
-		"runsc", 
+		"runsc",
 		"--root",
 		root_path.c_str(),
 		"trace",
@@ -155,13 +153,13 @@ result trace_delete(const std::string &root_path, const std::string &session_nam
 result trace_procfs(const std::string &root_path, const std::string &sandbox_id)
 {
 	const char *argv[] = {
-		"runsc", 
+		"runsc",
 		"--root",
 		root_path.c_str(),
 		"trace",
 		"procfs",
 		sandbox_id.c_str(),
-		NULL, 
+		NULL,
 	};
 
 	return runsc((char **)argv);

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +15,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-#include "logger.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/logger.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/strl.h>
 
 #ifndef _WIN32
 #include <sys/time.h>
@@ -33,6 +35,13 @@ thread_local char s_tbuf[16384];
 const size_t ENCODE_LEN = sizeof(uint64_t);
 
 } // end namespace
+
+sinsp_logger sinsp_logger::s_logger;
+
+sinsp_logger* sinsp_logger::instance()
+{
+	return &s_logger;
+}
 
 const uint32_t sinsp_logger::OT_NONE       = 0;
 const uint32_t sinsp_logger::OT_STDOUT     = 1;
@@ -122,7 +131,7 @@ void sinsp_logger::remove_callback_log()
 
 void sinsp_logger::set_severity(const severity sev)
 {
-	if(m_sev < SEV_MIN || m_sev > SEV_MAX)
+	if(sev < SEV_MIN || sev > SEV_MAX)
 	{
 		throw sinsp_exception("Invalid log severity");
 	}
@@ -135,7 +144,7 @@ sinsp_logger::severity sinsp_logger::get_severity() const
 	return m_sev;
 }
 
-void sinsp_logger::log(std::string msg, const severity sev)
+void sinsp_logger::log(const std::string& m, const severity sev)
 {
 	sinsp_logger_callback cb = nullptr;
 
@@ -144,33 +153,28 @@ void sinsp_logger::log(std::string msg, const severity sev)
 		return;
 	}
 
+	std::string msg = m;
 	if((m_flags & sinsp_logger::OT_NOTS) == 0)
 	{
 		struct timeval ts = {};
 
 		if(gettimeofday(&ts, nullptr) == 0)
 		{
-			const std::string::size_type ts_length = sizeof("31-12 23:59:59.999999 ");
-			char ts_buf[ts_length];
-			struct tm* ti;
-			struct tm time_info = {};
-
 #ifdef _WIN32
-			ti = _gmtime32((__time32_t*)&ts.tv_sec);
+			tm* ti = _gmtime32((__time32_t*)&ts.tv_sec);
 #else
+			tm time_info;
 			gmtime_r(&ts.tv_sec, &time_info);
-			ti = &time_info;
+			tm* ti = &time_info;
 #endif
-
-			snprintf(ts_buf,
-				 sizeof(ts_buf),
-				 "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
-				 ti->tm_mon + 1,
-				 ti->tm_mday,
-				 ti->tm_hour,
-				 ti->tm_min,
-				 ti->tm_sec,
-				 (int)ts.tv_usec);
+			char ts_buf[80]; // holds date/time string: "31-12 23:59:59.999999 "
+			snprintf(ts_buf, sizeof(ts_buf), "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
+				ti->tm_mon + 1,
+				ti->tm_mday,
+				ti->tm_hour,
+				ti->tm_min,
+				ti->tm_sec,
+				(int)ts.tv_usec);
 
 			ts_buf[sizeof(ts_buf) - 1] = '\0';
 			msg.insert(0, ts_buf);
@@ -302,4 +306,22 @@ size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
 	}
 
 	return 0;
+}
+
+void sinsp_logger::reset()
+{
+	m_callback = nullptr;
+	m_sev = SEV_INFO;
+	if(m_file)
+	{
+		ASSERT(m_flags & sinsp_logger::OT_FILE);
+		fclose(m_file);
+		m_file = nullptr;
+	}
+	m_flags = OT_NONE;
+}
+
+sinsp_logger* libsinsp_logger()
+{
+	return sinsp_logger::instance();
 }

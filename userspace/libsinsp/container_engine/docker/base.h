@@ -1,14 +1,14 @@
 #pragma once
 
-#include "container_engine/container_engine_base.h"
-#include "container_engine/docker/async_source.h"
+#include <libsinsp/container_engine/container_engine_base.h>
+#include <libsinsp/container_engine/docker/async_source.h>
 
 class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
 
-class docker_lookup_request;
+struct docker_lookup_request;
 
 class docker_base : public container_engine_base
 {

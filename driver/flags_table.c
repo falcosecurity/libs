@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -70,6 +71,7 @@ const struct ppm_name_value file_flags[] = {
 	{"O_CLOEXEC", PPM_O_CLOEXEC},
 	{"O_NONE", PPM_O_NONE},
 	{"O_TMPFILE", PPM_O_TMPFILE},
+	{"O_F_CREATED", PPM_O_F_CREATED},
 	{0, 0},
 };
 
@@ -175,11 +177,13 @@ const struct ppm_name_value mount_flags[] = {
 	{"NOSEC", PPM_MS_NOSEC},
 	{"BORN", PPM_MS_BORN},
 	{"ACTIVE", PPM_MS_ACTIVE},
-	{"NOUSER", PPM_MS_NOUSER},
+	{"NOUSER", PPM_MS_NOUSER}, // NOTE: we are at 1 << 31 -> and we have an uint32_t value.
 	{0, 0},
 };
 
-/* http://lxr.free-electrons.com/source/include/linux/fs.h?v=4.2#L1251 */
+/* There is a 1:1 mapping between `umount2` flags and our `PPM` notation, so we don't
+ * need a dedicated helper for the conversion.
+ */
 const struct ppm_name_value umount_flags[] = {
 	{"FORCE", PPM_MNT_FORCE},
 	{"DETACH", PPM_MNT_DETACH},
@@ -196,6 +200,7 @@ const struct ppm_name_value lseek_whence[] = {
 };
 
 const struct ppm_name_value shutdown_how[] = {
+	{"SHUT_UNKNOWN", PPM_SHUT_UNKNOWN},
 	{"SHUT_RDWR", PPM_SHUT_RDWR},
 	{"SHUT_WR", PPM_SHUT_WR},
 	{"SHUT_RD", PPM_SHUT_RD},
@@ -503,6 +508,13 @@ const struct ppm_name_value linkat_flags[] = {
 	{0, 0},
 };
 
+const struct ppm_name_value newfstatat_flags[] = {
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{"AT_NO_AUTOMOUNT", PPM_AT_NO_AUTOMOUNT},
+	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_NOFOLLOW},
+	{0, 0},
+};
+
 const struct ppm_name_value chmod_mode[] = {
     {"S_IXOTH", PPM_S_IXOTH},
     {"S_IWOTH", PPM_S_IWOTH},
@@ -517,6 +529,12 @@ const struct ppm_name_value chmod_mode[] = {
     {"S_ISGID", PPM_S_ISGID},
     {"S_ISUID", PPM_S_ISUID},
     {0, 0},
+};
+
+const struct ppm_name_value fchownat_flags[] = {
+	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_FOLLOW},
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{0, 0},
 };
 
 const struct ppm_name_value renameat2_flags[] = {
@@ -538,6 +556,8 @@ const struct ppm_name_value openat2_flags[] = {
 
 const struct ppm_name_value execve_flags[] = {
 	{"EXE_WRITABLE", PPM_EXE_WRITABLE},
+	{"EXE_UPPER_LAYER", PPM_EXE_UPPER_LAYER},
+	{"EXE_FROM_MEMFD", PPM_EXE_FROM_MEMFD},
 	{0, 0},
 };
 
@@ -613,4 +633,140 @@ const struct ppm_name_value mlockall_flags[] = {
 	{"MCL_FUTURE", PPM_MLOCKALL_MCL_FUTURE},
 	{"MCL_ONFAULT", PPM_MLOCKALL_MCL_ONFAULT},
 	{0,0},
+};
+
+const struct ppm_name_value mlock2_flags[] = {
+	{"MLOCK_ONFAULT", PPM_MLOCK_ONFAULT},
+	{0,0},
+};
+
+const struct ppm_name_value fsconfig_cmds[] = {
+	{"FSCONFIG_SET_FLAG", PPM_FSCONFIG_SET_FLAG},
+	{"FSCONFIG_SET_STRING", PPM_FSCONFIG_SET_STRING},
+	{"FSCONFIG_SET_BINARY", PPM_FSCONFIG_SET_BINARY},
+	{"FSCONFIG_SET_PATH", PPM_FSCONFIG_SET_PATH},
+	{"FSCONFIG_SET_PATH_EMPTY", PPM_FSCONFIG_SET_PATH_EMPTY},
+	{"FSCONFIG_SET_FD", PPM_FSCONFIG_SET_FD},
+	{"FSCONFIG_CMD_CREATE", PPM_FSCONFIG_CMD_CREATE},
+	{"FSCONFIG_CMD_RECONFIGURE", PPM_FSCONFIG_CMD_RECONFIGURE},
+	{0, 0},
+};
+
+const struct ppm_name_value epoll_create1_flags[] = {
+	{"EPOLL_CLOEXEC", PPM_EPOLL_CLOEXEC},
+	{0, 0},
+};
+
+const struct ppm_name_value prctl_options[] = {
+	{"PR_GET_DUMPABLE",PPM_PR_GET_DUMPABLE},
+	{"PR_SET_DUMPABLE",PPM_PR_SET_DUMPABLE},
+	{"PR_GET_KEEPCAPS",PPM_PR_GET_KEEPCAPS},
+	{"PR_SET_KEEPCAPS",PPM_PR_SET_KEEPCAPS},
+	{"PR_SET_NAME",PPM_PR_SET_NAME},
+	{"PR_GET_NAME",PPM_PR_GET_NAME},
+	{"PR_GET_SECCOMP",PPM_PR_GET_SECCOMP},
+	{"PR_SET_SECCOMP",PPM_PR_SET_SECCOMP},
+	{"PR_CAPBSET_READ",PPM_PR_CAPBSET_READ},
+	{"PR_CAPBSET_DROP",PPM_PR_CAPBSET_DROP},
+	{"PR_GET_SECUREBITS",PPM_PR_GET_SECUREBITS},
+	{"PR_SET_SECUREBITS",PPM_PR_SET_SECUREBITS},
+	{"PR_MCE_KILL",PPM_PR_MCE_KILL},
+	{"PR_MCE_KILL",PPM_PR_MCE_KILL},
+	{"PR_SET_MM",PPM_PR_SET_MM},
+	{"PR_SET_CHILD_SUBREAPER",PPM_PR_SET_CHILD_SUBREAPER},
+	{"PR_GET_CHILD_SUBREAPER",PPM_PR_GET_CHILD_SUBREAPER},
+	{"PR_SET_NO_NEW_PRIVS",PPM_PR_SET_NO_NEW_PRIVS},
+	{"PR_GET_NO_NEW_PRIVS",PPM_PR_GET_NO_NEW_PRIVS},
+	{"PR_GET_TID_ADDRESS",PPM_PR_GET_TID_ADDRESS},
+	{"PR_SET_THP_DISABLE",PPM_PR_SET_THP_DISABLE},
+	{"PR_GET_THP_DISABLE",PPM_PR_GET_THP_DISABLE},
+	{"PR_CAP_AMBIENT",PPM_PR_CAP_AMBIENT},
+	{0, 0},
+};
+
+const struct ppm_name_value memfd_create_flags[] = {
+	{"MFD_CLOEXEC",PPM_MFD_CLOEXEC},
+	{"MFD_ALLOW_SEALING",PPM_MFD_ALLOW_SEALING},
+	{"MFD_HUGETLB",PPM_MFD_HUGETLB},
+	{0,0},
+};
+
+const struct ppm_name_value pidfd_open_flags[] = {
+	{"PIDFD_NONBLOCK", PPM_PIDFD_NONBLOCK},
+	{0,0},
+};
+
+const struct ppm_name_value mknod_mode[] = {
+	{"S_IXOTH", PPM_S_IXOTH},
+	{"S_IWOTH", PPM_S_IWOTH},
+	{"S_IROTH", PPM_S_IROTH},
+	{"S_IXGRP", PPM_S_IXGRP},
+	{"S_IWGRP", PPM_S_IWGRP},
+	{"S_IRGRP", PPM_S_IRGRP},
+	{"S_IXUSR", PPM_S_IXUSR},
+	{"S_IWUSR", PPM_S_IWUSR},
+	{"S_IRUSR", PPM_S_IRUSR},
+	{"S_ISVTX", PPM_S_ISVTX},
+	{"S_ISGID", PPM_S_ISGID},
+	{"S_ISUID", PPM_S_ISUID},
+	{"S_IFREG", PPM_S_IFREG},
+	{"S_IFCHR", PPM_S_IFCHR},
+	{"S_IFBLK", PPM_S_IFBLK},
+	{"S_IFIFO", PPM_S_IFIFO},
+	{"S_IFSOCK", PPM_S_IFSOCK},
+	{0, 0},
+};
+
+const struct ppm_name_value bpf_commands[] = {
+	{"BPF_MAP_CREATE", PPM_BPF_MAP_CREATE},
+	{"BPF_MAP_LOOKUP_ELEM", PPM_BPF_MAP_LOOKUP_ELEM},
+	{"BPF_MAP_UPDATE_ELEM", PPM_BPF_MAP_UPDATE_ELEM},
+	{"BPF_MAP_DELETE_ELEM", PPM_BPF_MAP_DELETE_ELEM},
+	{"BPF_MAP_GET_NEXT_KEY", PPM_BPF_MAP_GET_NEXT_KEY},
+	{"BPF_PROG_LOAD", PPM_BPF_PROG_LOAD},
+	{"BPF_OBJ_PIN", PPM_BPF_OBJ_PIN},
+	{"BPF_OBJ_GET", PPM_BPF_OBJ_GET},
+	{"BPF_PROG_ATTACH", PPM_BPF_PROG_ATTACH},
+	{"BPF_PROG_DETACH", PPM_BPF_PROG_DETACH},
+	{"BPF_PROG_TEST_RUN", PPM_BPF_PROG_TEST_RUN},
+	{"BPF_PROG_RUN", PPM_BPF_PROG_RUN},
+	{"BPF_PROG_GET_NEXT_ID", PPM_BPF_PROG_GET_NEXT_ID},
+	{"BPF_MAP_GET_NEXT_ID", PPM_BPF_MAP_GET_NEXT_ID},
+	{"BPF_PROG_GET_FD_BY_ID", PPM_BPF_PROG_GET_FD_BY_ID},
+	{"BPF_MAP_GET_FD_BY_ID", PPM_BPF_MAP_GET_FD_BY_ID},
+	{"BPF_OBJ_GET_INFO_BY_FD", PPM_BPF_OBJ_GET_INFO_BY_FD},
+	{"BPF_PROG_QUERY", PPM_BPF_PROG_QUERY},
+	{"BPF_RAW_TRACEPOINT_OPEN", PPM_BPF_RAW_TRACEPOINT_OPEN},
+	{"BPF_BTF_LOAD", PPM_BPF_BTF_LOAD},
+	{"BPF_BTF_GET_FD_BY_ID", PPM_BPF_BTF_GET_FD_BY_ID},
+	{"BPF_TASK_FD_QUERY", PPM_BPF_TASK_FD_QUERY},
+	{"BPF_MAP_LOOKUP_AND_DELETE_ELEM", PPM_BPF_MAP_LOOKUP_AND_DELETE_ELEM},
+	{"BPF_MAP_FREEZE", PPM_BPF_MAP_FREEZE},
+	{"BPF_BTF_GET_NEXT_ID", PPM_BPF_BTF_GET_NEXT_ID},
+	{"BPF_MAP_LOOKUP_BATCH", PPM_BPF_MAP_LOOKUP_BATCH},
+	{"BPF_MAP_LOOKUP_AND_DELETE_BATCH", PPM_BPF_MAP_LOOKUP_AND_DELETE_BATCH},
+	{"BPF_MAP_UPDATE_BATCH", PPM_BPF_MAP_UPDATE_BATCH},
+	{"BPF_MAP_DELETE_BATCH", PPM_BPF_MAP_DELETE_BATCH},
+	{"BPF_LINK_CREATE", PPM_BPF_LINK_CREATE},
+	{"BPF_LINK_UPDATE", PPM_BPF_LINK_UPDATE},
+	{"BPF_LINK_GET_FD_BY_ID", PPM_BPF_LINK_GET_FD_BY_ID},
+	{"BPF_LINK_GET_NEXT_ID", PPM_BPF_LINK_GET_NEXT_ID},
+	{"BPF_ENABLE_STATS", PPM_BPF_ENABLE_STATS},
+	{"BPF_ITER_CREATE", PPM_BPF_ITER_CREATE},
+	{"BPF_LINK_DETACH", PPM_BPF_LINK_DETACH},
+	{"BPF_PROG_BIND_MAP", PPM_BPF_PROG_BIND_MAP},
+	{0,0},
+};
+
+const struct ppm_name_value delete_module_flags[] = {
+	{"O_NONBLOCK", PPM_DELETE_MODULE_O_NONBLOCK},
+	{"O_TRUNC", PPM_DELETE_MODULE_O_TRUNC},
+	{0, 0},
+};
+
+const struct ppm_name_value finit_module_flags[] = {
+	{"MODULE_INIT_IGNORE_MODVERSIONS", PPM_MODULE_INIT_IGNORE_MODVERSIONS},
+	{"MODULE_INIT_IGNORE_VERMAGIC", PPM_MODULE_INIT_IGNORE_VERMAGIC},
+	{"MODULE_INIT_COMPRESSED_FILE", PPM_MODULE_INIT_COMPRESSED_FILE},
+	{0, 0},
 };

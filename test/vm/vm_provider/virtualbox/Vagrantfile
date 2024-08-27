@@ -1,0 +1,37 @@
+Vagrant.configure("2") do |config|
+
+  unless Vagrant.has_plugin?("vagrant-vbguest")
+    raise '[ERROR] vagrant-vbguest is not installed!'
+  end
+
+  config.vm.provider "virtualbox" do |v|
+    v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+  end
+
+  config.ssh.forward_agent = true
+
+  config.vm.define "centos7" do | m |
+    m.vm.box = "bento/centos-7"
+    m.vm.hostname = "centos7"
+    m.vbguest.auto_update = false
+    m.vm.synced_folder '.', '/vagrant', disabled: true
+    m.vm.network "private_network", ip: ENV["LIBS_CENTOS7_IP"] || "192.168.56.25"
+  end
+
+  config.vm.define "ubuntu" do | m |
+    m.vm.box = "bento/ubuntu-20.04"
+    m.vm.hostname = "ubuntu"
+    m.vbguest.auto_update = false
+    m.vm.synced_folder '.', '/vagrant', disabled: true
+    m.vm.network "private_network", ip: ENV["LIBS_UBUNTU2004_IP"] || "192.168.56.26"
+  end
+
+  config.vm.define "amazonlinux2" do | m |
+    m.vm.box = "bento/amazonlinux-2"
+    m.vm.hostname = "amazonlinux2"
+    m.vbguest.auto_update = false
+    m.vm.synced_folder '.', '/vagrant', disabled: true
+    m.vm.network "private_network", ip: ENV["LIBS_AMAZONLINUX2_IP"] || "192.168.56.30"
+  end
+
+end

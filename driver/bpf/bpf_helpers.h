@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -69,9 +70,30 @@ static unsigned long long (*bpf_get_prandom_u32)(void) =
 	(void *)BPF_FUNC_get_prandom_u32;
 static int (*bpf_xdp_adjust_head)(void *ctx, int offset) =
 	(void *)BPF_FUNC_xdp_adjust_head;
-static int (*bpf_probe_read_str)(void *dst, u64 size, const void *unsafe_ptr) =
+static int (*bpf_probe_read_str)(void *dst, uint64_t size, const void *unsafe_ptr) =
 	(void *)BPF_FUNC_probe_read_str;
-static u64 (*bpf_get_current_task)(void) =
+
+#if defined(USE_BPF_PROBE_KERNEL_USER_VARIANTS)
+static int (*bpf_probe_read_user)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read_user;
+static int (*bpf_probe_read_kernel)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read_kernel;
+static int (*bpf_probe_read_user_str)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read_user_str;
+static int (*bpf_probe_read_kernel_str)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read_kernel_str;
+#else
+static int (*bpf_probe_read_user)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read;
+static int (*bpf_probe_read_kernel)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read;
+static int (*bpf_probe_read_user_str)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read_str;
+static int (*bpf_probe_read_kernel_str)(void *dst, uint32_t size, const void *unsafe_ptr) =
+	(void *)BPF_FUNC_probe_read_str;
+#endif
+
+static uint64_t (*bpf_get_current_task)(void) =
 	(void *)BPF_FUNC_get_current_task;
 static int (*bpf_skb_load_bytes)(void *ctx, int off, void *to, int len) =
 	(void *)BPF_FUNC_skb_load_bytes;

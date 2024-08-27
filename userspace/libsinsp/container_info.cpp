@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,9 +18,9 @@ limitations under the License.
 
 #include <utility>
 
-#include "container_info.h"
-#include "sinsp.h"
-#include "sinsp_int.h"
+#include <libsinsp/container_info.h>
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
 
 std::vector<std::string> sinsp_container_info::container_health_probe::probe_type_names = {
 	"None",
@@ -30,7 +31,7 @@ std::vector<std::string> sinsp_container_info::container_health_probe::probe_typ
 };
 
 // Initialize container max label length to default 100 value
-uint32_t sinsp_container_info::m_container_label_max_length = 100; 
+uint32_t sinsp_container_info::m_container_label_max_length = 100;
 
 sinsp_container_info::container_health_probe::container_health_probe()
 {
@@ -55,7 +56,7 @@ void sinsp_container_info::container_health_probe::parse_health_probes(const Jso
 	// Add any health checks described in the container config/labels.
 	for(int i=PT_NONE; i != PT_END; i++)
 	{
-		string key = probe_type_names[i];
+		std::string key = probe_type_names[i];
 		const Json::Value& probe_obj = config_obj[key];
 
 		if(!probe_obj.isNull() && probe_obj.isObject())
@@ -79,7 +80,7 @@ void sinsp_container_info::container_health_probe::parse_health_probes(const Jso
 						}
 					}
 				}
-				g_logger.format(sinsp_logger::SEV_DEBUG,
+				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 						"add_health_probes: adding %s %s %d",
 						probe_type_names[i].c_str(),
 						probe_exe.c_str(),
@@ -96,7 +97,7 @@ void sinsp_container_info::container_health_probe::add_health_probes(const std::
 {
 	for(auto &probe : probes)
 	{
-		string key = probe_type_names[probe.m_probe_type];
+		std::string key = probe_type_names[probe.m_probe_type];
 		Json::Value args;
 
 		config_obj[key]["exe"] = probe.m_health_probe_exe;
@@ -119,7 +120,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return &(m_mounts[idx]);
 }
 
-const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(std::string &source) const
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(const std::string& source) const
 {
 	// note: linear search
 	for (auto &mntinfo :m_mounts)
@@ -133,7 +134,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(std::string &dest) const
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(const std::string& dest) const
 {
 	// note: linear search
 	for (auto &mntinfo :m_mounts)
@@ -147,27 +148,27 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
+std::unique_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
 {
-	std::shared_ptr<sinsp_threadinfo> tinfo(inspector->build_threadinfo());
+	auto tinfo = inspector->build_threadinfo();
 	tinfo->m_tid = -1;
 	tinfo->m_pid = -1;
 	tinfo->m_vtid = -2;
 	tinfo->m_vpid = -2;
 	tinfo->m_comm = "container:" + m_id;
+	tinfo->m_exe = "container:" + m_id;
 	tinfo->m_container_id = m_id;
-
 	return tinfo;
 }
 
 sinsp_container_info::container_health_probe::probe_type sinsp_container_info::match_health_probe(sinsp_threadinfo *tinfo) const
 {
-	g_logger.format(sinsp_logger::SEV_DEBUG,
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			"match_health_probe (%s): %u health probes to consider",
 			m_id.c_str(), m_health_probes.size());
 
 	auto pred = [&] (const container_health_probe &p) {
-                g_logger.format(sinsp_logger::SEV_DEBUG,
+                libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 				"match_health_probe (%s): Matching tinfo %s %d against %s %d",
 				m_id.c_str(),
 				tinfo->m_exe.c_str(), tinfo->m_args.size(),

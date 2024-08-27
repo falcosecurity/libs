@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only OR MIT
 /*
 
-Copyright (C) 2021 The Falco Authors.Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -10,20 +11,24 @@ or GPL2.txt for full copies of the license.
 #ifndef EVENTS_PUBLIC_H_
 #define EVENTS_PUBLIC_H_
 
-#if defined(__sun)
-#include <sys/ioccom.h>
-#endif
-
 #ifdef __KERNEL__
 #include <linux/types.h>
+#elif defined(__USE_VMLINUX__ )
+/* In the modern probe, if we have the vmlinux.h we need nothing here. */
 #else
-#include "../userspace/common/types.h"
+#include <stdint.h>
+#endif
+
+#include "./feature_gates.h"
+
+#ifndef UINT32_MAX
+#define UINT32_MAX (4294967295U)
 #endif
 
 /*
  * Macros for packing in different build environments
  */
-#if !defined(CYGWING_AGENT) && (defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32))
+#if defined(_WIN32)
 #define _packed __pragma(pack(push, 1)); __pragma(pack(pop))
 #else
 #define _packed __attribute__((packed))
@@ -33,7 +38,6 @@ or GPL2.txt for full copies of the license.
  * Limits
  */
 #define PPM_MAX_EVENT_PARAMS (1 << 5)	/* Max number of parameters an event can have */
-#define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
 
 /*
@@ -99,6 +103,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_O_LARGEFILE (1 << 11)
 #define PPM_O_CLOEXEC	(1 << 12)
 #define PPM_O_TMPFILE	(1 << 13)
+#define PPM_O_F_CREATED (1 << 14)	/* file created during the syscall */
 
 /*
  * File modes
@@ -116,6 +121,15 @@ or GPL2.txt for full copies of the license.
 #define PPM_S_ISVTX (1 << 9)
 #define PPM_S_ISGID (1 << 10)
 #define PPM_S_ISUID (1 << 11)
+
+/*
+ * mknod() modes
+ */
+#define PPM_S_IFREG  0100000
+#define PPM_S_IFCHR  0020000
+#define PPM_S_IFBLK  0060000
+#define PPM_S_IFIFO  0010000
+#define PPM_S_IFSOCK 0140000
 
 /*
  * flock() flags
@@ -258,6 +272,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_SHUT_RD 0
 #define PPM_SHUT_WR 1
 #define PPM_SHUT_RDWR 2
+#define PPM_SHUT_UNKNOWN 0xffff
 
 /*
  * fs *at() flags
@@ -274,6 +289,13 @@ or GPL2.txt for full copies of the license.
  */
 #define PPM_AT_SYMLINK_FOLLOW	0x400
 #define PPM_AT_EMPTY_PATH       0x1000
+
+/*
+ * newfstatat() flags
+ */
+#define PPM_AT_NO_AUTOMOUNT		0x800
+#define PPM_AT_SYMLINK_NOFOLLOW	0x100
+
 
 /*
  * rlimit resources
@@ -609,6 +631,8 @@ or GPL2.txt for full copies of the license.
  * Execve family additional flags.
  */
 #define PPM_EXE_WRITABLE		(1 << 0)
+#define PPM_EXE_UPPER_LAYER 	(1 << 1)
+#define PPM_EXE_FROM_MEMFD  	(1 << 2)
   
 /*
  * Execveat flags
@@ -683,6 +707,256 @@ or GPL2.txt for full copies of the license.
 #define PPM_MLOCKALL_MCL_CURRENT		(1<<0)
 #define PPM_MLOCKALL_MCL_FUTURE			(1<<1)
 #define PPM_MLOCKALL_MCL_ONFAULT		(1<<2)
+
+/*
+ * Mlock2 flags
+ */
+#define PPM_MLOCK_ONFAULT	(1<<0)
+
+/*
+ * Memfd_create flags
+ */
+#define PPM_MFD_CLOEXEC 		(1<<0)
+#define PPM_MFD_ALLOW_SEALING 	(1<<1)
+#define PPM_MFD_HUGETLB 		(1<<2)
+
+/*
+ * Fsconfig flags
+ */
+#define PPM_FSCONFIG_SET_FLAG	0
+#define PPM_FSCONFIG_SET_STRING	1
+#define PPM_FSCONFIG_SET_BINARY	2
+#define PPM_FSCONFIG_SET_PATH	3
+#define PPM_FSCONFIG_SET_PATH_EMPTY	4
+#define PPM_FSCONFIG_SET_FD	5
+#define PPM_FSCONFIG_CMD_CREATE	6
+#define PPM_FSCONFIG_CMD_RECONFIGURE	7
+
+/*
+ * Epoll_create1 flags
+ */
+#define PPM_EPOLL_CLOEXEC       (1 << 0)
+
+/*
+ * Prctl flags
+ */
+//taken from https://github.com/torvalds/linux/blob/master/include/uapi/linux/prctl.h
+/* Values to pass as first argument to prctl() */
+#define PPM_PR_SET_PDEATHSIG  1  /* Second arg is a signal */
+#define PPM_PR_GET_PDEATHSIG  2  /* Second arg is a ptr to return the signal */
+/* Get/set current->mm->dumpable */
+#define PPM_PR_GET_DUMPABLE   3
+#define PPM_PR_SET_DUMPABLE   4
+
+/* Get/set unaligned access control bits (if meaningful) */
+#define PPM_PR_GET_UNALIGN	  5
+#define PPM_PR_SET_UNALIGN	  6
+
+/* Get/set whether or not to drop capabilities on setuid() away from
+ * uid 0 (as per security/commoncap.c) */
+#define PPM_PR_GET_KEEPCAPS   7
+#define PPM_PR_SET_KEEPCAPS   8
+
+/* Get/set floating-point emulation control bits (if meaningful) */
+#define PPM_PR_GET_FPEMU  9
+#define PPM_PR_SET_FPEMU 10
+
+/* Get/set floating-point exception mode (if meaningful) */
+#define PPM_PR_GET_FPEXC	11
+#define PPM_PR_SET_FPEXC	12
+
+/* Get/set whether we use statistical process timing or accurate timestamp
+ * based process timing */
+#define PPM_PR_GET_TIMING   13
+#define PPM_PR_SET_TIMING   14
+
+#define PPM_PR_SET_NAME    15		/* Set process name */
+#define PPM_PR_GET_NAME    16		/* Get process name */
+
+/* Get/set process endian */
+#define PPM_PR_GET_ENDIAN	19
+#define PPM_PR_SET_ENDIAN	20
+
+/* Get/set process seccomp mode */
+#define PPM_PR_GET_SECCOMP	21
+#define PPM_PR_SET_SECCOMP	22
+
+/* Get/set the capability bounding set (as per security/commoncap.c) */
+#define PPM_PR_CAPBSET_READ 23
+#define PPM_PR_CAPBSET_DROP 24
+
+/* Get/set the process' ability to use the timestamp counter instruction */
+#define PPM_PR_GET_TSC 25
+#define PPM_PR_SET_TSC 26
+
+/* Get/set securebits (as per security/commoncap.c) */
+#define PPM_PR_GET_SECUREBITS 27
+#define PPM_PR_SET_SECUREBITS 28
+
+/*
+ * pidfd_open flags	
+*/
+#define PPM_PIDFD_NONBLOCK (1<<0)
+
+/*
+ * finit_module flags	
+*/
+#define PPM_MODULE_INIT_IGNORE_MODVERSIONS	1
+#define PPM_MODULE_INIT_IGNORE_VERMAGIC     2
+#define PPM_MODULE_INIT_COMPRESSED_FILE     4
+
+/*
+ * delete_module flags
+*/
+#define PPM_DELETE_MODULE_O_TRUNC		(1 << 0)
+#define PPM_DELETE_MODULE_O_NONBLOCK	(1 << 1)
+
+/*
+ * bpf_commands 
+*/
+#define PPM_BPF_MAP_CREATE			0
+#define	PPM_BPF_MAP_LOOKUP_ELEM     1
+#define	PPM_BPF_MAP_UPDATE_ELEM		2
+#define	PPM_BPF_MAP_DELETE_ELEM		3
+#define	PPM_BPF_MAP_GET_NEXT_KEY	4
+#define	PPM_BPF_PROG_LOAD			5
+#define	PPM_BPF_OBJ_PIN				6
+#define	PPM_BPF_OBJ_GET				7
+#define	PPM_BPF_PROG_ATTACH			8
+#define	PPM_BPF_PROG_DETACH			9
+#define	PPM_BPF_PROG_TEST_RUN		10
+#define	PPM_BPF_PROG_RUN  PPM_BPF_PROG_TEST_RUN
+#define	PPM_BPF_PROG_GET_NEXT_ID	11
+#define	PPM_BPF_MAP_GET_NEXT_ID		12
+#define	PPM_BPF_PROG_GET_FD_BY_ID	13
+#define	PPM_BPF_MAP_GET_FD_BY_ID	14
+#define	PPM_BPF_OBJ_GET_INFO_BY_FD	15
+#define	PPM_BPF_PROG_QUERY			16
+#define	PPM_BPF_RAW_TRACEPOINT_OPEN	17
+#define	PPM_BPF_BTF_LOAD			18
+#define	PPM_BPF_BTF_GET_FD_BY_ID	19
+#define	PPM_BPF_TASK_FD_QUERY		20
+#define	PPM_BPF_MAP_LOOKUP_AND_DELETE_ELEM 21
+#define	PPM_BPF_MAP_FREEZE			22
+#define	PPM_BPF_BTF_GET_NEXT_ID		23
+#define	PPM_BPF_MAP_LOOKUP_BATCH	24		
+#define	PPM_BPF_MAP_LOOKUP_AND_DELETE_BATCH 25
+#define	PPM_BPF_MAP_UPDATE_BATCH	26
+#define	PPM_BPF_MAP_DELETE_BATCH	27
+#define	PPM_BPF_LINK_CREATE			28
+#define	PPM_BPF_LINK_UPDATE			29
+#define	PPM_BPF_LINK_GET_FD_BY_ID	30
+#define	PPM_BPF_LINK_GET_NEXT_ID	31
+#define	PPM_BPF_ENABLE_STATS		32
+#define	PPM_BPF_ITER_CREATE			33
+#define	PPM_BPF_LINK_DETACH			34
+#define	PPM_BPF_PROG_BIND_MAP		35
+
+/*
+ * Get/set the timerslack as used by poll/select/nanosleep
+ * A value of 0 means "use default"
+ */
+#define PPM_PR_SET_TIMERSLACK 29
+#define PPM_PR_GET_TIMERSLACK 30
+
+#define PPM_PR_TASK_PERF_EVENTS_DISABLE		31
+#define PPM_PR_TASK_PERF_EVENTS_ENABLE		32
+
+/*
+ * Set early/late kill mode for hwpoison memory corruption.
+ * This influences when the process gets killed on a memory corruption.
+ */
+#define PPM_PR_MCE_KILL	33
+
+
+#define PPM_PR_MCE_KILL_GET 34
+
+/*
+ * Tune up process memory map specifics.
+ */
+#define PPM_PR_SET_MM		35
+
+/*
+ * Set specific pid that is allowed to ptrace the current task.
+ * A value of 0 mean "no process".
+ */
+#define PPM_PR_SET_PTRACER 0x59616d61
+
+#define PPM_PR_SET_CHILD_SUBREAPER	36
+#define PPM_PR_GET_CHILD_SUBREAPER	37
+
+/*
+ * If no_new_privs is set, then operations that grant new privileges (i.e.
+ * execve) will either fail or not grant them.  This affects suid/sgid,
+ * file capabilities, and LSMs.
+ *
+ * Operations that merely manipulate or drop existing privileges (setresuid,
+ * capset, etc.) will still work.  Drop those privileges if you want them gone.
+ *
+ * Changing LSM security domain is considered a new privilege.  So, for example,
+ * asking selinux for a specific new context (e.g. with runcon) will result
+ * in execve returning -EPERM.
+ *
+ * See Documentation/userspace-api/no_new_privs.rst for more details.
+ */
+#define PPM_PR_SET_NO_NEW_PRIVS	38
+#define PPM_PR_GET_NO_NEW_PRIVS	39
+
+#define PPM_PR_GET_TID_ADDRESS	40
+
+#define PPM_PR_SET_THP_DISABLE	41
+#define PPM_PR_GET_THP_DISABLE	42
+
+/*
+ * No longer implemented, but left here to ensure the numbers stay reserved:
+ */
+#define PPM_PR_MPX_ENABLE_MANAGEMENT  43
+#define PPM_PR_MPX_DISABLE_MANAGEMENT 44
+
+#define PPM_PR_SET_FP_MODE		45
+#define PPM_PR_GET_FP_MODE		46
+
+/* Control the ambient capability set */
+#define PPM_PR_CAP_AMBIENT			47
+
+/* arm64 Scalable Vector Extension controls */
+/* Flag values must be kept in sync with ptrace NT_ARM_SVE interface */
+#define PPM_PR_SVE_SET_VL			50	/* set task vector length */
+#define PPM_PR_SVE_GET_VL			51	/* get task vector length */
+
+/* Per task speculation control */
+#define PPM_PR_GET_SPECULATION_CTRL		52
+#define PPM_PR_SET_SPECULATION_CTRL		53
+
+/* Reset arm64 pointer authentication keys */
+#define PPM_PR_PAC_RESET_KEYS		54
+
+/* Tagged user address controls for arm64 */
+#define PPM_PR_SET_TAGGED_ADDR_CTRL		55
+#define PPM_PR_GET_TAGGED_ADDR_CTRL		56
+
+/* Control reclaim behavior when allocating memory */
+#define PPM_PR_SET_IO_FLUSHER		57
+#define PPM_PR_GET_IO_FLUSHER		58
+
+/* Dispatch syscalls to a userspace handler */
+#define PPM_PR_SET_SYSCALL_USER_DISPATCH	59
+
+/* Set/get enabled arm64 pointer authentication keys */
+#define PPM_PR_PAC_SET_ENABLED_KEYS		60
+#define PPM_PR_PAC_GET_ENABLED_KEYS		61
+
+/* Request the scheduler to share a core */
+#define PPM_PR_SCHED_CORE			62
+
+/* arm64 Scalable Matrix Extension controls */
+/* Flag values must be in sync with SVE versions */
+#define PPM_PR_SME_SET_VL			63	/* set task vector length */
+#define PPM_PR_SME_GET_VL			64	/* get task vector length */
+/* Bits common to PR_SME_SET_VL and PR_SME_GET_VL */
+
+#define PPM_PR_SET_VMA		0x53564d41
+
 
 /*
  * SuS says limits have to be unsigned.
@@ -773,7 +1047,7 @@ enum ppm_capture_category {
 /** @defgroup etypes Event Types
  *  @{
  */
-enum ppm_event_type {
+typedef enum {
 	PPME_GENERIC_E = 0,
 	PPME_GENERIC_X = 1,
 	PPME_SYSCALL_OPEN_E = 2,
@@ -1143,355 +1417,568 @@ enum ppm_event_type {
 	PPME_SYSCALL_DUP3_X = 365,
 	PPME_SYSCALL_DUP_1_E = 366,
 	PPME_SYSCALL_DUP_1_X = 367,
-	PPM_EVENT_MAX = 368
-};
+	PPME_SYSCALL_BPF_2_E = 368,
+	PPME_SYSCALL_BPF_2_X = 369,
+	PPME_SYSCALL_MLOCK2_E = 370,
+	PPME_SYSCALL_MLOCK2_X = 371,
+	PPME_SYSCALL_FSCONFIG_E = 372,
+	PPME_SYSCALL_FSCONFIG_X = 373,
+	PPME_SYSCALL_EPOLL_CREATE_E = 374,
+	PPME_SYSCALL_EPOLL_CREATE_X = 375,
+	PPME_SYSCALL_EPOLL_CREATE1_E = 376,
+	PPME_SYSCALL_EPOLL_CREATE1_X = 377,
+	PPME_SYSCALL_CHOWN_E = 378,
+	PPME_SYSCALL_CHOWN_X = 379,
+	PPME_SYSCALL_LCHOWN_E = 380,
+	PPME_SYSCALL_LCHOWN_X = 381,
+	PPME_SYSCALL_FCHOWN_E = 382,
+	PPME_SYSCALL_FCHOWN_X = 383,
+	PPME_SYSCALL_FCHOWNAT_E = 384,
+	PPME_SYSCALL_FCHOWNAT_X = 385,
+	PPME_SYSCALL_UMOUNT_1_E = 386,
+	PPME_SYSCALL_UMOUNT_1_X = 387,
+	PPME_SOCKET_ACCEPT4_6_E = 388,
+	PPME_SOCKET_ACCEPT4_6_X = 389,
+	PPME_SYSCALL_UMOUNT2_E = 390,
+	PPME_SYSCALL_UMOUNT2_X = 391,
+	PPME_SYSCALL_PIPE2_E = 392,
+	PPME_SYSCALL_PIPE2_X = 393,
+	PPME_SYSCALL_INOTIFY_INIT1_E = 394,
+	PPME_SYSCALL_INOTIFY_INIT1_X = 395,
+	PPME_SYSCALL_EVENTFD2_E = 396,
+	PPME_SYSCALL_EVENTFD2_X = 397,
+	PPME_SYSCALL_SIGNALFD4_E = 398,
+	PPME_SYSCALL_SIGNALFD4_X = 399,
+	PPME_SYSCALL_PRCTL_E = 400,
+	PPME_SYSCALL_PRCTL_X = 401,
+	PPME_ASYNCEVENT_E = 402,
+	PPME_ASYNCEVENT_X = 403,
+	PPME_SYSCALL_MEMFD_CREATE_E = 404,
+	PPME_SYSCALL_MEMFD_CREATE_X = 405,
+	PPME_SYSCALL_PIDFD_GETFD_E = 406,
+	PPME_SYSCALL_PIDFD_GETFD_X = 407,
+	PPME_SYSCALL_PIDFD_OPEN_E = 408,
+	PPME_SYSCALL_PIDFD_OPEN_X = 409,
+	PPME_SYSCALL_INIT_MODULE_E = 410,
+	PPME_SYSCALL_INIT_MODULE_X = 411,
+	PPME_SYSCALL_FINIT_MODULE_E = 412,
+	PPME_SYSCALL_FINIT_MODULE_X = 413,
+	PPME_SYSCALL_MKNOD_E = 414,
+	PPME_SYSCALL_MKNOD_X = 415,
+	PPME_SYSCALL_MKNODAT_E = 416,
+	PPME_SYSCALL_MKNODAT_X = 417,
+	PPME_SYSCALL_NEWFSTATAT_E = 418,
+	PPME_SYSCALL_NEWFSTATAT_X = 419,
+	PPME_SYSCALL_PROCESS_VM_READV_E = 420,
+	PPME_SYSCALL_PROCESS_VM_READV_X = 421,
+	PPME_SYSCALL_PROCESS_VM_WRITEV_E = 422,
+	PPME_SYSCALL_PROCESS_VM_WRITEV_X = 423,
+	PPME_SYSCALL_DELETE_MODULE_E = 424,
+	PPME_SYSCALL_DELETE_MODULE_X = 425,
+	PPME_SYSCALL_SETREUID_E = 426,
+	PPME_SYSCALL_SETREUID_X = 427,
+	PPME_SYSCALL_SETREGID_E = 428,
+	PPME_SYSCALL_SETREGID_X = 429,
+	PPM_EVENT_MAX = 430
+} ppm_event_code;
 /*@}*/
+
+
+/* ----------- Used only by modern BPF probe -----------
+ * "Tx_" stands for "extra tail call number x for the event after '_'".
+ * For example "T1_EXECVE_X" stands for:
+ * - `T1` = extra tail call number 1.
+ * - `EXECVE` = name of the syscall for which we need an extra tail call.
+ * - `X` = means that we need this extra tail call for the exit event, `E` means enter the event.
+ *
+ */
+enum extra_event_prog_code
+{
+	T1_EXECVE_X = 0,
+	T1_EXECVEAT_X = 1,
+	T1_CLONE_X = 2,
+	T1_CLONE3_X = 3,
+	T1_FORK_X = 4,
+	T1_VFORK_X = 5,
+	T1_SCHED_PROC_EXEC = 6,
+	T1_SCHED_PROC_FORK = 7,
+	T2_SCHED_PROC_FORK = 8,
+	T2_CLONE_X = 9,
+	T2_CLONE3_X = 10,
+	T2_FORK_X = 11,
+	T2_VFORK_X = 12,
+	T1_DROP_E = 13,
+	T1_DROP_X = 14,
+	T1_HOTPLUG_E = 15,
+	T1_OPEN_BY_HANDLE_AT_X =16,
+	T2_EXECVE_X = 17,
+	T2_EXECVEAT_X = 18,
+	T2_SCHED_PROC_EXEC = 19,
+	TAIL_EXTRA_EVENT_PROG_MAX = 20
+};
 
 /*
  * System-independent syscall codes
  */
-enum ppm_syscall_code {
-	PPM_SC_UNKNOWN = 0,
-	PPM_SC_RESTART_SYSCALL = 1,
-	PPM_SC_EXIT = 2,
-	PPM_SC_READ = 3,
-	PPM_SC_WRITE = 4,
-	PPM_SC_OPEN = 5,
-	PPM_SC_CLOSE = 6,
-	PPM_SC_CREAT = 7,
-	PPM_SC_LINK = 8,
-	PPM_SC_UNLINK = 9,
-	PPM_SC_CHDIR = 10,
-	PPM_SC_TIME = 11,
-	PPM_SC_MKNOD = 12,
-	PPM_SC_CHMOD = 13,
-	PPM_SC_STAT = 14,
-	PPM_SC_LSEEK = 15,
-	PPM_SC_GETPID = 16,
-	PPM_SC_MOUNT = 17,
-	PPM_SC_PTRACE = 18,
-	PPM_SC_ALARM = 19,
-	PPM_SC_FSTAT = 20,
-	PPM_SC_PAUSE = 21,
-	PPM_SC_UTIME = 22,
-	PPM_SC_ACCESS = 23,
-	PPM_SC_SYNC = 24,
-	PPM_SC_KILL = 25,
-	PPM_SC_RENAME = 26,
-	PPM_SC_MKDIR = 27,
-	PPM_SC_RMDIR = 28,
-	PPM_SC_DUP = 29,
-	PPM_SC_PIPE = 30,
-	PPM_SC_TIMES = 31,
-	PPM_SC_BRK = 32,
-	PPM_SC_ACCT = 33,
-	PPM_SC_IOCTL = 34,
-	PPM_SC_FCNTL = 35,
-	PPM_SC_SETPGID = 36,
-	PPM_SC_UMASK = 37,
-	PPM_SC_CHROOT = 38,
-	PPM_SC_USTAT = 39,
-	PPM_SC_DUP2 = 40,
-	PPM_SC_GETPPID = 41,
-	PPM_SC_GETPGRP = 42,
-	PPM_SC_SETSID = 43,
-	PPM_SC_SETHOSTNAME = 44,
-	PPM_SC_SETRLIMIT = 45,
-	PPM_SC_GETRUSAGE = 46,
-	PPM_SC_GETTIMEOFDAY = 47,
-	PPM_SC_SETTIMEOFDAY = 48,
-	PPM_SC_SYMLINK = 49,
-	PPM_SC_LSTAT = 50,
-	PPM_SC_READLINK = 51,
-	PPM_SC_USELIB = 52,
-	PPM_SC_SWAPON = 53,
-	PPM_SC_REBOOT = 54,
-	PPM_SC_MMAP = 55,
-	PPM_SC_MUNMAP = 56,
-	PPM_SC_TRUNCATE = 57,
-	PPM_SC_FTRUNCATE = 58,
-	PPM_SC_FCHMOD = 59,
-	PPM_SC_GETPRIORITY = 60,
-	PPM_SC_SETPRIORITY = 61,
-	PPM_SC_STATFS = 62,
-	PPM_SC_FSTATFS = 63,
-	PPM_SC_SYSLOG = 64,
-	PPM_SC_SETITIMER = 65,
-	PPM_SC_GETITIMER = 66,
-	PPM_SC_UNAME = 67,
-	PPM_SC_VHANGUP = 68,
-	PPM_SC_WAIT4 = 69,
-	PPM_SC_SWAPOFF = 70,
-	PPM_SC_SYSINFO = 71,
-	PPM_SC_FSYNC = 72,
-	PPM_SC_SETDOMAINNAME = 73,
-	PPM_SC_ADJTIMEX = 74,
-	PPM_SC_MPROTECT = 75,
-	PPM_SC_INIT_MODULE = 76,
-	PPM_SC_DELETE_MODULE = 77,
-	PPM_SC_QUOTACTL = 78,
-	PPM_SC_GETPGID = 79,
-	PPM_SC_FCHDIR = 80,
-	PPM_SC_SYSFS = 81,
-	PPM_SC_PERSONALITY = 82,
-	PPM_SC_GETDENTS = 83,
-	PPM_SC_SELECT = 84,
-	PPM_SC_FLOCK = 85,
-	PPM_SC_MSYNC = 86,
-	PPM_SC_READV = 87,
-	PPM_SC_WRITEV = 88,
-	PPM_SC_GETSID = 89,
-	PPM_SC_FDATASYNC = 90,
-	PPM_SC_MLOCK = 91,
-	PPM_SC_MUNLOCK = 92,
-	PPM_SC_MLOCKALL = 93,
-	PPM_SC_MUNLOCKALL = 94,
-	PPM_SC_SCHED_SETPARAM = 95,
-	PPM_SC_SCHED_GETPARAM = 96,
-	PPM_SC_SCHED_SETSCHEDULER = 97,
-	PPM_SC_SCHED_GETSCHEDULER = 98,
-	PPM_SC_SCHED_YIELD = 99,
-	PPM_SC_SCHED_GET_PRIORITY_MAX = 100,
-	PPM_SC_SCHED_GET_PRIORITY_MIN = 101,
-	PPM_SC_SCHED_RR_GET_INTERVAL = 102,
-	PPM_SC_NANOSLEEP = 103,
-	PPM_SC_MREMAP = 104,
-	PPM_SC_POLL = 105,
-	PPM_SC_PRCTL = 106,
-	PPM_SC_RT_SIGACTION = 107,
-	PPM_SC_RT_SIGPROCMASK = 108,
-	PPM_SC_RT_SIGPENDING = 109,
-	PPM_SC_RT_SIGTIMEDWAIT = 110,
-	PPM_SC_RT_SIGQUEUEINFO = 111,
-	PPM_SC_RT_SIGSUSPEND = 112,
-	PPM_SC_GETCWD = 113,
-	PPM_SC_CAPGET = 114,
-	PPM_SC_CAPSET = 115,
-	PPM_SC_SENDFILE = 116,
-	PPM_SC_GETRLIMIT = 117,
-	PPM_SC_LCHOWN = 118,
-	PPM_SC_GETUID = 119,
-	PPM_SC_GETGID = 120,
-	PPM_SC_GETEUID = 121,
-	PPM_SC_GETEGID = 122,
-	PPM_SC_SETREUID = 123,
-	PPM_SC_SETREGID = 124,
-	PPM_SC_GETGROUPS = 125,
-	PPM_SC_SETGROUPS = 126,
-	PPM_SC_FCHOWN = 127,
-	PPM_SC_SETRESUID = 128,
-	PPM_SC_GETRESUID = 129,
-	PPM_SC_SETRESGID = 130,
-	PPM_SC_GETRESGID = 131,
-	PPM_SC_CHOWN = 132,
-	PPM_SC_SETUID = 133,
-	PPM_SC_SETGID = 134,
-	PPM_SC_SETFSUID = 135,
-	PPM_SC_SETFSGID = 136,
-	PPM_SC_PIVOT_ROOT = 137,
-	PPM_SC_MINCORE = 138,
-	PPM_SC_MADVISE = 139,
-	PPM_SC_GETTID = 140,
-	PPM_SC_SETXATTR = 141,
-	PPM_SC_LSETXATTR = 142,
-	PPM_SC_FSETXATTR = 143,
-	PPM_SC_GETXATTR = 144,
-	PPM_SC_LGETXATTR = 145,
-	PPM_SC_FGETXATTR = 146,
-	PPM_SC_LISTXATTR = 147,
-	PPM_SC_LLISTXATTR = 148,
-	PPM_SC_FLISTXATTR = 149,
-	PPM_SC_REMOVEXATTR = 150,
-	PPM_SC_LREMOVEXATTR = 151,
-	PPM_SC_FREMOVEXATTR = 152,
-	PPM_SC_TKILL = 153,
-	PPM_SC_FUTEX = 154,
-	PPM_SC_SCHED_SETAFFINITY = 155,
-	PPM_SC_SCHED_GETAFFINITY = 156,
-	PPM_SC_SET_THREAD_AREA = 157,
-	PPM_SC_GET_THREAD_AREA = 158,
-	PPM_SC_IO_SETUP = 159,
-	PPM_SC_IO_DESTROY = 160,
-	PPM_SC_IO_GETEVENTS = 161,
-	PPM_SC_IO_SUBMIT = 162,
-	PPM_SC_IO_CANCEL = 163,
-	PPM_SC_EXIT_GROUP = 164,
-	PPM_SC_EPOLL_CREATE = 165,
-	PPM_SC_EPOLL_CTL = 166,
-	PPM_SC_EPOLL_WAIT = 167,
-	PPM_SC_REMAP_FILE_PAGES = 168,
-	PPM_SC_SET_TID_ADDRESS = 169,
-	PPM_SC_TIMER_CREATE = 170,
-	PPM_SC_TIMER_SETTIME = 171,
-	PPM_SC_TIMER_GETTIME = 172,
-	PPM_SC_TIMER_GETOVERRUN = 173,
-	PPM_SC_TIMER_DELETE = 174,
-	PPM_SC_CLOCK_SETTIME = 175,
-	PPM_SC_CLOCK_GETTIME = 176,
-	PPM_SC_CLOCK_GETRES = 177,
-	PPM_SC_CLOCK_NANOSLEEP = 178,
-	PPM_SC_TGKILL = 179,
-	PPM_SC_UTIMES = 180,
-	PPM_SC_MQ_OPEN = 181,
-	PPM_SC_MQ_UNLINK = 182,
-	PPM_SC_MQ_TIMEDSEND = 183,
-	PPM_SC_MQ_TIMEDRECEIVE = 184,
-	PPM_SC_MQ_NOTIFY = 185,
-	PPM_SC_MQ_GETSETATTR = 186,
-	PPM_SC_KEXEC_LOAD = 187,
-	PPM_SC_WAITID = 188,
-	PPM_SC_ADD_KEY = 189,
-	PPM_SC_REQUEST_KEY = 190,
-	PPM_SC_KEYCTL = 191,
-	PPM_SC_IOPRIO_SET = 192,
-	PPM_SC_IOPRIO_GET = 193,
-	PPM_SC_INOTIFY_INIT = 194,
-	PPM_SC_INOTIFY_ADD_WATCH = 195,
-	PPM_SC_INOTIFY_RM_WATCH = 196,
-	PPM_SC_OPENAT = 197,
-	PPM_SC_MKDIRAT = 198,
-	PPM_SC_MKNODAT = 199,
-	PPM_SC_FCHOWNAT = 200,
-	PPM_SC_FUTIMESAT = 201,
-	PPM_SC_UNLINKAT = 202,
-	PPM_SC_RENAMEAT = 203,
-	PPM_SC_LINKAT = 204,
-	PPM_SC_SYMLINKAT = 205,
-	PPM_SC_READLINKAT = 206,
-	PPM_SC_FCHMODAT = 207,
-	PPM_SC_FACCESSAT = 208,
-	PPM_SC_PSELECT6 = 209,
-	PPM_SC_PPOLL = 210,
-	PPM_SC_UNSHARE = 211,
-	PPM_SC_SET_ROBUST_LIST = 212,
-	PPM_SC_GET_ROBUST_LIST = 213,
-	PPM_SC_SPLICE = 214,
-	PPM_SC_TEE = 215,
-	PPM_SC_VMSPLICE = 216,
-	PPM_SC_GETCPU = 217,
-	PPM_SC_EPOLL_PWAIT = 218,
-	PPM_SC_UTIMENSAT = 219,
-	PPM_SC_SIGNALFD = 220,
-	PPM_SC_TIMERFD_CREATE = 221,
-	PPM_SC_EVENTFD = 222,
-	PPM_SC_TIMERFD_SETTIME = 223,
-	PPM_SC_TIMERFD_GETTIME = 224,
-	PPM_SC_SIGNALFD4 = 225,
-	PPM_SC_EVENTFD2 = 226,
-	PPM_SC_EPOLL_CREATE1 = 227,
-	PPM_SC_DUP3 = 228,
-	PPM_SC_PIPE2 = 229,
-	PPM_SC_INOTIFY_INIT1 = 230,
-	PPM_SC_PREADV = 231,
-	PPM_SC_PWRITEV = 232,
-	PPM_SC_RT_TGSIGQUEUEINFO = 233,
-	PPM_SC_PERF_EVENT_OPEN = 234,
-	PPM_SC_FANOTIFY_INIT = 235,
-	PPM_SC_PRLIMIT64 = 236,
-	PPM_SC_CLOCK_ADJTIME = 237,
-	PPM_SC_SYNCFS = 238,
-	PPM_SC_SETNS = 239,
-	PPM_SC_GETDENTS64 = 240,
-	PPM_SC_SOCKET = 241,
-	PPM_SC_BIND = 242,
-	PPM_SC_CONNECT = 243,
-	PPM_SC_LISTEN = 244,
-	PPM_SC_ACCEPT = 245,
-	PPM_SC_GETSOCKNAME = 246,
-	PPM_SC_GETPEERNAME = 247,
-	PPM_SC_SOCKETPAIR = 248,
-	PPM_SC_SENDTO = 249,
-	PPM_SC_RECVFROM = 250,
-	PPM_SC_SHUTDOWN = 251,
-	PPM_SC_SETSOCKOPT = 252,
-	PPM_SC_GETSOCKOPT = 253,
-	PPM_SC_SENDMSG = 254,
-	PPM_SC_SENDMMSG = 255,
-	PPM_SC_RECVMSG = 256,
-	PPM_SC_RECVMMSG = 257,
-	PPM_SC_ACCEPT4 = 258,
-	PPM_SC_SEMOP = 259,
-	PPM_SC_SEMGET = 260,
-	PPM_SC_SEMCTL = 261,
-	PPM_SC_MSGSND = 262,
-	PPM_SC_MSGRCV = 263,
-	PPM_SC_MSGGET = 264,
-	PPM_SC_MSGCTL = 265,
-	PPM_SC_SHMDT = 266,
-	PPM_SC_SHMGET = 267,
-	PPM_SC_SHMCTL = 268,
-	PPM_SC_STATFS64 = 269,
-	PPM_SC_FSTATFS64 = 270,
-	PPM_SC_FSTATAT64 = 271,
-	PPM_SC_SENDFILE64 = 272,
-	PPM_SC_UGETRLIMIT = 273,
-	PPM_SC_BDFLUSH = 274,
-	PPM_SC_SIGPROCMASK = 275,
-	PPM_SC_IPC = 276,
-	PPM_SC_SOCKETCALL = 277,
-	PPM_SC_STAT64 = 278,
-	PPM_SC_LSTAT64 = 279,
-	PPM_SC_FSTAT64 = 280,
-	PPM_SC_FCNTL64 = 281,
-	PPM_SC_MMAP2 = 282,
-	PPM_SC__NEWSELECT = 283,
-	PPM_SC_SGETMASK = 284,
-	PPM_SC_SSETMASK = 285,
-	PPM_SC_SIGPENDING = 286,
-	PPM_SC_OLDUNAME = 287,
-	PPM_SC_UMOUNT = 288,
-	PPM_SC_SIGNAL = 289,
-	PPM_SC_NICE = 290,
-	PPM_SC_STIME = 291,
-	PPM_SC__LLSEEK = 292,
-	PPM_SC_WAITPID = 293,
-	PPM_SC_PREAD64 = 294,
-	PPM_SC_PWRITE64 = 295,
-	PPM_SC_ARCH_PRCTL = 296,
-	PPM_SC_SHMAT = 297,
-	PPM_SC_SIGRETURN = 298,
-	PPM_SC_FALLOCATE = 299,
-	PPM_SC_NEWFSSTAT = 300,
-	PPM_SC_PROCESS_VM_READV = 301,
-	PPM_SC_PROCESS_VM_WRITEV = 302,
-	PPM_SC_FORK = 303,
-	PPM_SC_VFORK = 304,
-	PPM_SC_SETUID32 = 305,
-	PPM_SC_GETUID32 = 306,
-	PPM_SC_SETGID32 = 307,
-	PPM_SC_GETEUID32 = 308,
-	PPM_SC_GETGID32 = 309,
-	PPM_SC_SETRESUID32 = 310,
-	PPM_SC_SETRESGID32 = 311,
-	PPM_SC_GETRESUID32 = 312,
-	PPM_SC_GETRESGID32 = 313,
-	PPM_SC_FINIT_MODULE = 314,
-	PPM_SC_BPF = 315,
-	PPM_SC_SECCOMP = 316,
-	PPM_SC_SIGALTSTACK = 317,
-	PPM_SC_GETRANDOM = 318,
-	PPM_SC_FADVISE64 = 319,
-	PPM_SC_RENAMEAT2 = 320,
-	PPM_SC_USERFAULTFD = 321,
-	PPM_SC_OPENAT2 = 322,
-	PPM_SC_UMOUNT2 = 323,
-	PPM_SC_EXECVE = 324,
-	PPM_SC_EXECVEAT = 325,
-	PPM_SC_COPY_FILE_RANGE = 326,
-	PPM_SC_CLONE = 327,
-	PPM_SC_CLONE3 = 328,
-	PPM_SC_OPEN_BY_HANDLE_AT = 329,
-	PPM_SC_IO_URING_SETUP = 330,
-	PPM_SC_IO_URING_ENTER = 331,
-	PPM_SC_IO_URING_REGISTER = 332,
-	PPM_SC_MAX = 333,
-};
+
+#define PPM_SC_FIELDS \
+	PPM_SC_X(UNKNOWN, 0) \
+	PPM_SC_X(RESTART_SYSCALL, 1) \
+	PPM_SC_X(EXIT, 2) \
+	PPM_SC_X(READ, 3) \
+	PPM_SC_X(WRITE, 4) \
+	PPM_SC_X(OPEN, 5) \
+	PPM_SC_X(CLOSE, 6) \
+	PPM_SC_X(CREAT, 7) \
+	PPM_SC_X(LINK, 8) \
+	PPM_SC_X(UNLINK, 9) \
+	PPM_SC_X(CHDIR, 10) \
+	PPM_SC_X(TIME, 11) \
+	PPM_SC_X(MKNOD, 12) \
+	PPM_SC_X(CHMOD, 13) \
+	PPM_SC_X(STAT, 14) \
+	PPM_SC_X(LSEEK, 15) \
+	PPM_SC_X(GETPID, 16) \
+	PPM_SC_X(MOUNT, 17) \
+	PPM_SC_X(PTRACE, 18) \
+	PPM_SC_X(ALARM, 19) \
+	PPM_SC_X(FSTAT, 20) \
+	PPM_SC_X(PAUSE, 21) \
+	PPM_SC_X(UTIME, 22) \
+	PPM_SC_X(ACCESS, 23) \
+	PPM_SC_X(SYNC, 24) \
+	PPM_SC_X(KILL, 25) \
+	PPM_SC_X(RENAME, 26) \
+	PPM_SC_X(MKDIR, 27) \
+	PPM_SC_X(RMDIR, 28) \
+	PPM_SC_X(DUP, 29) \
+	PPM_SC_X(PIPE, 30) \
+	PPM_SC_X(TIMES, 31) \
+	PPM_SC_X(BRK, 32) \
+	PPM_SC_X(ACCT, 33) \
+	PPM_SC_X(IOCTL, 34) \
+	PPM_SC_X(FCNTL, 35) \
+	PPM_SC_X(SETPGID, 36) \
+	PPM_SC_X(UMASK, 37) \
+	PPM_SC_X(CHROOT, 38) \
+	PPM_SC_X(USTAT, 39) \
+	PPM_SC_X(DUP2, 40) \
+	PPM_SC_X(GETPPID, 41) \
+	PPM_SC_X(GETPGRP, 42) \
+	PPM_SC_X(SETSID, 43) \
+	PPM_SC_X(SETHOSTNAME, 44) \
+	PPM_SC_X(SETRLIMIT, 45) \
+	PPM_SC_X(GETRUSAGE, 46) \
+	PPM_SC_X(GETTIMEOFDAY, 47) \
+	PPM_SC_X(SETTIMEOFDAY, 48) \
+	PPM_SC_X(SYMLINK, 49) \
+	PPM_SC_X(LSTAT, 50) \
+	PPM_SC_X(READLINK, 51) \
+	PPM_SC_X(USELIB, 52) \
+	PPM_SC_X(SWAPON, 53) \
+	PPM_SC_X(REBOOT, 54) \
+	PPM_SC_X(MMAP, 55) \
+	PPM_SC_X(MUNMAP, 56) \
+	PPM_SC_X(TRUNCATE, 57) \
+	PPM_SC_X(FTRUNCATE, 58) \
+	PPM_SC_X(FCHMOD, 59) \
+	PPM_SC_X(GETPRIORITY, 60) \
+	PPM_SC_X(SETPRIORITY, 61) \
+	PPM_SC_X(STATFS, 62) \
+	PPM_SC_X(FSTATFS, 63) \
+	PPM_SC_X(SYSLOG, 64) \
+	PPM_SC_X(SETITIMER, 65) \
+	PPM_SC_X(GETITIMER, 66) \
+	PPM_SC_X(UNAME, 67) \
+	PPM_SC_X(VHANGUP, 68) \
+	PPM_SC_X(WAIT4, 69) \
+	PPM_SC_X(SWAPOFF, 70) \
+	PPM_SC_X(SYSINFO, 71) \
+	PPM_SC_X(FSYNC, 72) \
+	PPM_SC_X(SETDOMAINNAME, 73) \
+	PPM_SC_X(ADJTIMEX, 74) \
+	PPM_SC_X(MPROTECT, 75) \
+	PPM_SC_X(INIT_MODULE, 76) \
+	PPM_SC_X(DELETE_MODULE, 77) \
+	PPM_SC_X(QUOTACTL, 78) \
+	PPM_SC_X(GETPGID, 79) \
+	PPM_SC_X(FCHDIR, 80) \
+	PPM_SC_X(SYSFS, 81) \
+	PPM_SC_X(PERSONALITY, 82) \
+	PPM_SC_X(GETDENTS, 83) \
+	PPM_SC_X(SELECT, 84) \
+	PPM_SC_X(FLOCK, 85) \
+	PPM_SC_X(MSYNC, 86) \
+	PPM_SC_X(READV, 87) \
+	PPM_SC_X(WRITEV, 88) \
+	PPM_SC_X(GETSID, 89) \
+	PPM_SC_X(FDATASYNC, 90) \
+	PPM_SC_X(MLOCK, 91) \
+	PPM_SC_X(MUNLOCK, 92) \
+	PPM_SC_X(MLOCKALL, 93) \
+	PPM_SC_X(MUNLOCKALL, 94) \
+	PPM_SC_X(SCHED_SETPARAM, 95) \
+	PPM_SC_X(SCHED_GETPARAM, 96) \
+	PPM_SC_X(SCHED_SETSCHEDULER, 97) \
+	PPM_SC_X(SCHED_GETSCHEDULER, 98) \
+	PPM_SC_X(SCHED_YIELD, 99) \
+	PPM_SC_X(SCHED_GET_PRIORITY_MAX, 100) \
+	PPM_SC_X(SCHED_GET_PRIORITY_MIN, 101) \
+	PPM_SC_X(SCHED_RR_GET_INTERVAL, 102) \
+	PPM_SC_X(NANOSLEEP, 103) \
+	PPM_SC_X(MREMAP, 104) \
+	PPM_SC_X(POLL, 105) \
+	PPM_SC_X(PRCTL, 106) \
+	PPM_SC_X(RT_SIGACTION, 107) \
+	PPM_SC_X(RT_SIGPROCMASK, 108) \
+	PPM_SC_X(RT_SIGPENDING, 109) \
+	PPM_SC_X(RT_SIGTIMEDWAIT, 110) \
+	PPM_SC_X(RT_SIGQUEUEINFO, 111) \
+	PPM_SC_X(RT_SIGSUSPEND, 112) \
+	PPM_SC_X(GETCWD, 113) \
+	PPM_SC_X(CAPGET, 114) \
+	PPM_SC_X(CAPSET, 115) \
+	PPM_SC_X(SENDFILE, 116) \
+	PPM_SC_X(GETRLIMIT, 117) \
+	PPM_SC_X(LCHOWN, 118) \
+	PPM_SC_X(GETUID, 119) \
+	PPM_SC_X(GETGID, 120) \
+	PPM_SC_X(GETEUID, 121) \
+	PPM_SC_X(GETEGID, 122) \
+	PPM_SC_X(SETREUID, 123) \
+	PPM_SC_X(SETREGID, 124) \
+	PPM_SC_X(GETGROUPS, 125) \
+	PPM_SC_X(SETGROUPS, 126) \
+	PPM_SC_X(FCHOWN, 127) \
+	PPM_SC_X(SETRESUID, 128) \
+	PPM_SC_X(GETRESUID, 129) \
+	PPM_SC_X(SETRESGID, 130) \
+	PPM_SC_X(GETRESGID, 131) \
+	PPM_SC_X(CHOWN, 132) \
+	PPM_SC_X(SETUID, 133) \
+	PPM_SC_X(SETGID, 134) \
+	PPM_SC_X(SETFSUID, 135) \
+	PPM_SC_X(SETFSGID, 136) \
+	PPM_SC_X(PIVOT_ROOT, 137) \
+	PPM_SC_X(MINCORE, 138) \
+	PPM_SC_X(MADVISE, 139) \
+	PPM_SC_X(GETTID, 140) \
+	PPM_SC_X(SETXATTR, 141) \
+	PPM_SC_X(LSETXATTR, 142) \
+	PPM_SC_X(FSETXATTR, 143) \
+	PPM_SC_X(GETXATTR, 144) \
+	PPM_SC_X(LGETXATTR, 145) \
+	PPM_SC_X(FGETXATTR, 146) \
+	PPM_SC_X(LISTXATTR, 147) \
+	PPM_SC_X(LLISTXATTR, 148) \
+	PPM_SC_X(FLISTXATTR, 149) \
+	PPM_SC_X(REMOVEXATTR, 150) \
+	PPM_SC_X(LREMOVEXATTR, 151) \
+	PPM_SC_X(FREMOVEXATTR, 152) \
+	PPM_SC_X(TKILL, 153) \
+	PPM_SC_X(FUTEX, 154) \
+	PPM_SC_X(SCHED_SETAFFINITY, 155) \
+	PPM_SC_X(SCHED_GETAFFINITY, 156) \
+	PPM_SC_X(SET_THREAD_AREA, 157) \
+	PPM_SC_X(GET_THREAD_AREA, 158) \
+	PPM_SC_X(IO_SETUP, 159) \
+	PPM_SC_X(IO_DESTROY, 160) \
+	PPM_SC_X(IO_GETEVENTS, 161) \
+	PPM_SC_X(IO_SUBMIT, 162) \
+	PPM_SC_X(IO_CANCEL, 163) \
+	PPM_SC_X(EXIT_GROUP, 164) \
+	PPM_SC_X(EPOLL_CREATE, 165) \
+	PPM_SC_X(EPOLL_CTL, 166) \
+	PPM_SC_X(EPOLL_WAIT, 167) \
+	PPM_SC_X(REMAP_FILE_PAGES, 168) \
+	PPM_SC_X(SET_TID_ADDRESS, 169) \
+	PPM_SC_X(TIMER_CREATE, 170) \
+	PPM_SC_X(TIMER_SETTIME, 171) \
+	PPM_SC_X(TIMER_GETTIME, 172) \
+	PPM_SC_X(TIMER_GETOVERRUN, 173) \
+	PPM_SC_X(TIMER_DELETE, 174) \
+	PPM_SC_X(CLOCK_SETTIME, 175) \
+	PPM_SC_X(CLOCK_GETTIME, 176) \
+	PPM_SC_X(CLOCK_GETRES, 177) \
+	PPM_SC_X(CLOCK_NANOSLEEP, 178) \
+	PPM_SC_X(TGKILL, 179) \
+	PPM_SC_X(UTIMES, 180) \
+	PPM_SC_X(MQ_OPEN, 181) \
+	PPM_SC_X(MQ_UNLINK, 182) \
+	PPM_SC_X(MQ_TIMEDSEND, 183) \
+	PPM_SC_X(MQ_TIMEDRECEIVE, 184) \
+	PPM_SC_X(MQ_NOTIFY, 185) \
+	PPM_SC_X(MQ_GETSETATTR, 186) \
+	PPM_SC_X(KEXEC_LOAD, 187) \
+	PPM_SC_X(WAITID, 188) \
+	PPM_SC_X(ADD_KEY, 189) \
+	PPM_SC_X(REQUEST_KEY, 190) \
+	PPM_SC_X(KEYCTL, 191) \
+	PPM_SC_X(IOPRIO_SET, 192) \
+	PPM_SC_X(IOPRIO_GET, 193) \
+	PPM_SC_X(INOTIFY_INIT, 194) \
+	PPM_SC_X(INOTIFY_ADD_WATCH, 195) \
+	PPM_SC_X(INOTIFY_RM_WATCH, 196) \
+	PPM_SC_X(OPENAT, 197) \
+	PPM_SC_X(MKDIRAT, 198) \
+	PPM_SC_X(MKNODAT, 199) \
+	PPM_SC_X(FCHOWNAT, 200) \
+	PPM_SC_X(FUTIMESAT, 201) \
+	PPM_SC_X(UNLINKAT, 202) \
+	PPM_SC_X(RENAMEAT, 203) \
+	PPM_SC_X(LINKAT, 204) \
+	PPM_SC_X(SYMLINKAT, 205) \
+	PPM_SC_X(READLINKAT, 206) \
+	PPM_SC_X(FCHMODAT, 207) \
+	PPM_SC_X(FACCESSAT, 208) \
+	PPM_SC_X(PSELECT6, 209) \
+	PPM_SC_X(PPOLL, 210) \
+	PPM_SC_X(UNSHARE, 211) \
+	PPM_SC_X(SET_ROBUST_LIST, 212) \
+	PPM_SC_X(GET_ROBUST_LIST, 213) \
+	PPM_SC_X(SPLICE, 214) \
+	PPM_SC_X(TEE, 215) \
+	PPM_SC_X(VMSPLICE, 216) \
+	PPM_SC_X(GETCPU, 217) \
+	PPM_SC_X(EPOLL_PWAIT, 218) \
+	PPM_SC_X(UTIMENSAT, 219) \
+	PPM_SC_X(SIGNALFD, 220) \
+	PPM_SC_X(TIMERFD_CREATE, 221) \
+	PPM_SC_X(EVENTFD, 222) \
+	PPM_SC_X(TIMERFD_SETTIME, 223) \
+	PPM_SC_X(TIMERFD_GETTIME, 224) \
+	PPM_SC_X(SIGNALFD4, 225) \
+	PPM_SC_X(EVENTFD2, 226) \
+	PPM_SC_X(EPOLL_CREATE1, 227) \
+	PPM_SC_X(DUP3, 228) \
+	PPM_SC_X(PIPE2, 229) \
+	PPM_SC_X(INOTIFY_INIT1, 230) \
+	PPM_SC_X(PREADV, 231) \
+	PPM_SC_X(PWRITEV, 232) \
+	PPM_SC_X(RT_TGSIGQUEUEINFO, 233) \
+	PPM_SC_X(PERF_EVENT_OPEN, 234) \
+	PPM_SC_X(FANOTIFY_INIT, 235) \
+	PPM_SC_X(PRLIMIT64, 236) \
+	PPM_SC_X(CLOCK_ADJTIME, 237) \
+	PPM_SC_X(SYNCFS, 238) \
+	PPM_SC_X(SETNS, 239) \
+	PPM_SC_X(GETDENTS64, 240) \
+	PPM_SC_X(SOCKET, 241) \
+	PPM_SC_X(BIND, 242) \
+	PPM_SC_X(CONNECT, 243) \
+	PPM_SC_X(LISTEN, 244) \
+	PPM_SC_X(ACCEPT, 245) \
+	PPM_SC_X(GETSOCKNAME, 246) \
+	PPM_SC_X(GETPEERNAME, 247) \
+	PPM_SC_X(SOCKETPAIR, 248) \
+	PPM_SC_X(SENDTO, 249) \
+	PPM_SC_X(RECVFROM, 250) \
+	PPM_SC_X(SHUTDOWN, 251) \
+	PPM_SC_X(SETSOCKOPT, 252) \
+	PPM_SC_X(GETSOCKOPT, 253) \
+	PPM_SC_X(SENDMSG, 254) \
+	PPM_SC_X(SENDMMSG, 255) \
+	PPM_SC_X(RECVMSG, 256) \
+	PPM_SC_X(RECVMMSG, 257) \
+	PPM_SC_X(ACCEPT4, 258) \
+	PPM_SC_X(SEMOP, 259) \
+	PPM_SC_X(SEMGET, 260) \
+	PPM_SC_X(SEMCTL, 261) \
+	PPM_SC_X(MSGSND, 262) \
+	PPM_SC_X(MSGRCV, 263) \
+	PPM_SC_X(MSGGET, 264) \
+	PPM_SC_X(MSGCTL, 265) \
+	PPM_SC_X(SHMDT, 266) \
+	PPM_SC_X(SHMGET, 267) \
+	PPM_SC_X(SHMCTL, 268) \
+	PPM_SC_X(STATFS64, 269) \
+	PPM_SC_X(FSTATFS64, 270) \
+	PPM_SC_X(FSTATAT64, 271) \
+	PPM_SC_X(SENDFILE64, 272) \
+	PPM_SC_X(UGETRLIMIT, 273) \
+	PPM_SC_X(BDFLUSH, 274) \
+	PPM_SC_X(SIGPROCMASK, 275) \
+	PPM_SC_X(IPC, 276) \
+	PPM_SC_X(SOCKETCALL, 277) \
+	PPM_SC_X(STAT64, 278) \
+	PPM_SC_X(LSTAT64, 279) \
+	PPM_SC_X(FSTAT64, 280) \
+	PPM_SC_X(FCNTL64, 281) \
+	PPM_SC_X(MMAP2, 282) \
+	PPM_SC_X(_NEWSELECT, 283) \
+	PPM_SC_X(SGETMASK, 284) \
+	PPM_SC_X(SSETMASK, 285) \
+	PPM_SC_X(SIGPENDING, 286) \
+	PPM_SC_X(OLDUNAME, 287) \
+	PPM_SC_X(UMOUNT, 288) \
+	PPM_SC_X(SIGNAL, 289) \
+	PPM_SC_X(NICE, 290) \
+	PPM_SC_X(STIME, 291) \
+	PPM_SC_X(_LLSEEK, 292) \
+	PPM_SC_X(WAITPID, 293) \
+	PPM_SC_X(PREAD64, 294) \
+	PPM_SC_X(PWRITE64, 295) \
+	PPM_SC_X(ARCH_PRCTL, 296) \
+	PPM_SC_X(SHMAT, 297) \
+	PPM_SC_X(RT_SIGRETURN, 298) \
+	PPM_SC_X(FALLOCATE, 299) \
+	PPM_SC_X(NEWFSTATAT, 300) \
+	PPM_SC_X(PROCESS_VM_READV, 301) \
+	PPM_SC_X(PROCESS_VM_WRITEV, 302) \
+	PPM_SC_X(FORK, 303) \
+	PPM_SC_X(VFORK, 304) \
+	PPM_SC_X(SETUID32, 305) \
+	PPM_SC_X(GETUID32, 306) \
+	PPM_SC_X(SETGID32, 307) \
+	PPM_SC_X(GETEUID32, 308) \
+	PPM_SC_X(GETGID32, 309) \
+	PPM_SC_X(SETRESUID32, 310) \
+	PPM_SC_X(SETRESGID32, 311) \
+	PPM_SC_X(GETRESUID32, 312) \
+	PPM_SC_X(GETRESGID32, 313) \
+	PPM_SC_X(FINIT_MODULE, 314) \
+	PPM_SC_X(BPF, 315) \
+	PPM_SC_X(SECCOMP, 316) \
+	PPM_SC_X(SIGALTSTACK, 317) \
+	PPM_SC_X(GETRANDOM, 318) \
+	PPM_SC_X(FADVISE64, 319) \
+	PPM_SC_X(RENAMEAT2, 320) \
+	PPM_SC_X(USERFAULTFD, 321) \
+	PPM_SC_X(OPENAT2, 322) \
+	PPM_SC_X(UMOUNT2, 323) \
+	PPM_SC_X(EXECVE, 324) \
+	PPM_SC_X(EXECVEAT, 325) \
+	PPM_SC_X(COPY_FILE_RANGE, 326) \
+	PPM_SC_X(CLONE, 327) \
+	PPM_SC_X(CLONE3, 328) \
+	PPM_SC_X(OPEN_BY_HANDLE_AT, 329) \
+	PPM_SC_X(IO_URING_SETUP, 330) \
+	PPM_SC_X(IO_URING_ENTER, 331) \
+	PPM_SC_X(IO_URING_REGISTER, 332) \
+	PPM_SC_X(MLOCK2, 333) \
+	PPM_SC_X(GETEGID32, 334) \
+	PPM_SC_X(FSCONFIG, 335) \
+	PPM_SC_X(FSPICK, 336) \
+	PPM_SC_X(FSMOUNT, 337) \
+	PPM_SC_X(FSOPEN, 338) \
+	PPM_SC_X(OPEN_TREE, 339) \
+	PPM_SC_X(MOVE_MOUNT, 340) \
+	PPM_SC_X(MOUNT_SETATTR, 341) \
+	PPM_SC_X(MEMFD_CREATE, 342) \
+	PPM_SC_X(MEMFD_SECRET, 343) \
+	PPM_SC_X(IOPERM, 344) \
+	PPM_SC_X(KEXEC_FILE_LOAD, 345) \
+	PPM_SC_X(PIDFD_GETFD, 346) \
+	PPM_SC_X(PIDFD_OPEN, 347) \
+	PPM_SC_X(PIDFD_SEND_SIGNAL, 348) \
+	PPM_SC_X(PKEY_ALLOC, 349) \
+	PPM_SC_X(PKEY_MPROTECT, 350) \
+	PPM_SC_X(PKEY_FREE, 351) \
+	PPM_SC_X(LANDLOCK_CREATE_RULESET, 352) \
+	PPM_SC_X(QUOTACTL_FD, 353) \
+	PPM_SC_X(LANDLOCK_RESTRICT_SELF, 354) \
+	PPM_SC_X(LANDLOCK_ADD_RULE, 355) \
+	PPM_SC_X(EPOLL_PWAIT2, 356) \
+	PPM_SC_X(MIGRATE_PAGES, 357) \
+	PPM_SC_X(MOVE_PAGES, 358) \
+	PPM_SC_X(PREADV2, 359) \
+	PPM_SC_X(PWRITEV2, 360) \
+	PPM_SC_X(KCMP, 361) \
+	PPM_SC_X(SCHED_SETATTR, 362) \
+	PPM_SC_X(MBIND, 363) \
+	PPM_SC_X(EPOLL_CTL_OLD, 364) \
+	PPM_SC_X(LOOKUP_DCOOKIE, 365) \
+	PPM_SC_X(MODIFY_LDT, 366) \
+	PPM_SC_X(STATX, 367) \
+	PPM_SC_X(SET_MEMPOLICY, 368) \
+	PPM_SC_X(IO_PGETEVENTS, 369) \
+	PPM_SC_X(SET_MEMPOLICY_HOME_NODE, 370) \
+	PPM_SC_X(SEMTIMEDOP, 371) \
+	PPM_SC_X(GET_KERNEL_SYMS, 372) \
+	PPM_SC_X(READAHEAD, 373) \
+	PPM_SC_X(FUTEX_WAITV, 374) \
+	PPM_SC_X(GETPMSG, 375) \
+	PPM_SC_X(NAME_TO_HANDLE_AT, 376) \
+	PPM_SC_X(PROCESS_MRELEASE, 377) \
+	PPM_SC_X(NFSSERVCTL, 378) \
+	PPM_SC_X(EPOLL_WAIT_OLD, 379) \
+	PPM_SC_X(RSEQ, 380) \
+	PPM_SC_X(CREATE_MODULE, 381) \
+	/*PPM_SC_X(NA_1, 382)*/ \
+	PPM_SC_X(SCHED_GETATTR, 383) \
+	PPM_SC_X(FACCESSAT2, 384) \
+	PPM_SC_X(_SYSCTL, 385) \
+	PPM_SC_X(QUERY_MODULE, 386) \
+	PPM_SC_X(GET_MEMPOLICY, 387) \
+	PPM_SC_X(SYNC_FILE_RANGE, 388) \
+	PPM_SC_X(PROCESS_MADVISE, 389) \
+	PPM_SC_X(MEMBARRIER, 390) \
+	PPM_SC_X(IOPL, 391) \
+	PPM_SC_X(CLOSE_RANGE, 392) \
+	PPM_SC_X(FANOTIFY_MARK, 393) \
+	PPM_SC_X(RECV, 394) \
+	PPM_SC_X(SEND, 395) \
+	PPM_SC_X(SCHED_PROCESS_EXIT, 396) \
+	PPM_SC_X(SCHED_SWITCH, 397) \
+	PPM_SC_X(PAGE_FAULT_USER, 398) \
+	PPM_SC_X(PAGE_FAULT_KERNEL, 399) \
+	PPM_SC_X(SIGNAL_DELIVER, 400) \
+	PPM_SC_X(TIMERFD, 401) \
+	PPM_SC_X(S390_PCI_MMIO_READ, 402) \
+	PPM_SC_X(SIGACTION, 403) \
+	PPM_SC_X(S390_PCI_MMIO_WRITE, 404) \
+	PPM_SC_X(READDIR, 405) \
+	PPM_SC_X(S390_STHYI, 406) \
+	PPM_SC_X(SIGSUSPEND, 407) \
+	PPM_SC_X(IDLE, 408) \
+	PPM_SC_X(S390_RUNTIME_INSTR, 409) \
+	PPM_SC_X(SIGRETURN, 410) \
+	PPM_SC_X(S390_GUARDED_STORAGE, 411) \
+	PPM_SC_X(CACHESTAT, 412) \
+	PPM_SC_X(FCHMODAT2, 413) \
+	PPM_SC_X(MAP_SHADOW_STACK, 414) \
+	PPM_SC_X(RISCV_FLUSH_ICACHE, 415) \
+	PPM_SC_X(RISCV_HWPROBE, 416) \
+	PPM_SC_X(FUTEX_WAKE, 417) \
+	PPM_SC_X(FUTEX_REQUEUE, 418) \
+	PPM_SC_X(FUTEX_WAIT, 419) \
+	PPM_SC_X(OLDSTAT, 420) \
+	PPM_SC_X(SWITCH_ENDIAN, 421) \
+	PPM_SC_X(MULTIPLEXER, 422) \
+	PPM_SC_X(OLDLSTAT, 423) \
+	PPM_SC_X(SPU_CREATE, 424) \
+	PPM_SC_X(SYNC_FILE_RANGE2, 425) \
+	PPM_SC_X(OLDFSTAT, 426) \
+	PPM_SC_X(SPU_RUN, 427) \
+	PPM_SC_X(SWAPCONTEXT, 428) \
+	PPM_SC_X(PCICONFIG_WRITE, 429) \
+	PPM_SC_X(RTAS, 430) \
+	PPM_SC_X(PCICONFIG_READ, 431) \
+	PPM_SC_X(SYS_DEBUG_SETCONTEXT, 432) \
+	PPM_SC_X(VM86, 433) \
+	PPM_SC_X(OLDOLDUNAME, 434) \
+	PPM_SC_X(SUBPAGE_PROT, 435) \
+	PPM_SC_X(PCICONFIG_IOBASE, 436) \
+	PPM_SC_X(LISTMOUNT, 437) \
+	PPM_SC_X(STATMOUNT, 438) \
+	PPM_SC_X(LSM_GET_SELF_ATTR, 439) \
+	PPM_SC_X(LSM_SET_SELF_ATTR, 440) \
+	PPM_SC_X(LSM_LIST_MODULES, 441) \
+	PPM_SC_X(MSEAL, 442) \
+	PPM_SC_X(URETPROBE, 443)
+
+typedef enum {
+#define PPM_SC_X(name, value) PPM_SC_##name = (value),
+	PPM_SC_FIELDS
+#undef PPM_SC_X
+	PPM_SC_MAX,
+} ppm_sc_code;
 
 /*
  * Event information enums
  */
 enum ppm_event_category {
-	EC_UNKNOWN = 0,	/* Unknown */
+	EC_UNKNOWN = 0,	/* Unknown event created just to fill the pair ENTER/EXIT */
 	EC_OTHER = 1,	/* No specific category */
 	EC_FILE = 2,	/* File operation (open, close...) or file I/O */
 	EC_NET = 3,		/* Network operation (socket, bind...) or network I/O */
@@ -1508,15 +1995,19 @@ enum ppm_event_category {
 	EC_IO_READ = 32,/* General I/O read (can be file, socket, IPC...) */
 	EC_IO_WRITE = 33,/* General I/O write (can be file, socket, IPC...) */
 	EC_IO_OTHER = 34,/* General I/O that is neither read not write (can be file, socket, IPC...) */
-	EC_WAIT = 64,	/* General wait (can be file, socket, IPC...) */
-	EC_SCHEDULER = 128,	/* Scheduler event (e.g. context switch) */
-	EC_INTERNAL = 256,	/* Internal event that shouldn't be shown to the user */
+	EC_WAIT = (1 << 6),	/* General wait (can be file, socket, IPC...) */
+	EC_SCHEDULER = (1 << 7),	/* Scheduler event (e.g. context switch) */
+	EC_INTERNAL = (1 << 8),	/* Internal event generated by the libraries and not by drivers */
+	EC_SYSCALL = (1 << 9),	/* Event generated by a syscall */
+	EC_TRACEPOINT = (1 << 10),	/* Event generated by a tracepoint */
+	EC_PLUGIN = (1 << 11),	/* Event generated by a plugin */
+	EC_METAEVENT = (1 << 12),	/* Meta-event not generated by a source but used for notifications or enrichment */
 };
 
 enum ppm_event_flags {
 	EF_NONE = 0,
-	EF_CREATES_FD = (1 << 0), /* This event creates an FD (e.g. open) */
-	EF_DESTROYS_FD = (1 << 1), /* This event destroys an FD (e.g. close) */
+	EF_CREATES_FD = (1 << 0), /* This event creates an FD (e.g. open). NOTE: a parser MUST always be created when this flag is set, to parse fd and add it to threadinfo list of fds */
+	EF_DESTROYS_FD = (1 << 1), /* This event destroys an FD (e.g. close). NOTE: a parser MUST always be created when this flag is set, to parse fd and erasing it from threadinfo list (using sinsp_parser::erase_fd) */
 	EF_USES_FD = (1 << 2), /* This event operates on an FD. */
 	EF_READS_FROM_FD = (1 << 3), /* This event reads data from an FD. */
 	EF_WRITES_TO_FD = (1 << 4), /* This event writes data to an FD. */
@@ -1525,7 +2016,7 @@ enum ppm_event_flags {
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
 	EF_OLD_VERSION = (1 << 9), /* This event is kept for backward compatibility */
-	EF_DROP_SIMPLE_CONS = (1 << 10), /* This event can be skipped by consumers that privilege low overhead to full event capture */
+	// EF_DROP_SIMPLE_CONS = (1 << 10), /* This event can be skipped by consumers that privilege low overhead to full event capture */ SUPPORT DROPPED
 	EF_LARGE_PAYLOAD = (1 << 11), /* This event has a large payload, ie: up to UINT32_MAX bytes. DO NOT USE ON syscalls-driven events!!! */
 };
 
@@ -1551,7 +2042,7 @@ enum ppm_param_type {
 	PT_PID = 15, /* A pid/tid, 64bit */
 	PT_FDLIST = 16, /* A list of fds, 16bit count + count * (64bit fd + 16bit flags) */
 	PT_FSPATH = 17,	/* A string containing a relative or absolute file system path, null terminated */
-	PT_SYSCALLID = 18, /* A 16bit system call ID. Can be used as a key for the g_syscall_info_table table. */
+	PT_SYSCALLID = 18, /* A 16bit system call ID. Can be used as a key for the g_ppm_sc_names table. */
 	PT_SIGTYPE = 19, /* An 8bit signal number */
 	PT_RELTIME = 20, /* A relative time. Seconds * 10^9  + nanoseconds. 64bit. */
 	PT_ABSTIME = 21, /* An absolute time interval. Seconds from epoch * 10^9  + nanoseconds. 64bit. */
@@ -1614,7 +2105,7 @@ struct ppm_param_info {
 						   if this is a FSRELPATH parameter, it references the related dirfd,
 					   else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
-} _packed;
+};
 
 /*!
   \brief Event information.
@@ -1627,12 +2118,10 @@ struct ppm_event_info {
 	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
-} _packed;
+};
 
 #if defined _MSC_VER
 #pragma pack(push)
-#pragma pack(1)
-#elif defined __sun
 #pragma pack(1)
 #else
 #pragma pack(push, 1)
@@ -1647,44 +2136,47 @@ struct ppm_evt_hdr {
 	uint16_t type; /* the event type */
 	uint32_t nparams; /* the number of parameters of the event */
 };
-#if defined __sun
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
 
 /*
  * IOCTL codes
  */
-#ifndef CYGWING_AGENT
 #define PPM_IOCTL_MAGIC	's'
-#define PPM_IOCTL_DISABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 0)
-#define PPM_IOCTL_ENABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 1)
+// #define PPM_IOCTL_DISABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 0) Support dropped
+// #define PPM_IOCTL_ENABLE_CAPTURE _IO(PPM_IOCTL_MAGIC, 1) Support dropped
 #define PPM_IOCTL_DISABLE_DROPPING_MODE _IO(PPM_IOCTL_MAGIC, 2)
 #define PPM_IOCTL_ENABLE_DROPPING_MODE _IO(PPM_IOCTL_MAGIC, 3)
 #define PPM_IOCTL_SET_SNAPLEN _IO(PPM_IOCTL_MAGIC, 4)
-#define PPM_IOCTL_MASK_ZERO_EVENTS _IO(PPM_IOCTL_MAGIC, 5)
-#define PPM_IOCTL_MASK_SET_EVENT   _IO(PPM_IOCTL_MAGIC, 6)
-#define PPM_IOCTL_MASK_UNSET_EVENT _IO(PPM_IOCTL_MAGIC, 7)
+// #define PPM_IOCTL_MASK_ZERO_EVENTS _IO(PPM_IOCTL_MAGIC, 5) Support dropped
+// #define PPM_IOCTL_MASK_SET_EVENT   _IO(PPM_IOCTL_MAGIC, 6) Support dropped
+// #define PPM_IOCTL_MASK_UNSET_EVENT _IO(PPM_IOCTL_MAGIC, 7) Support dropped
 #define PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN _IO(PPM_IOCTL_MAGIC, 8)
 #define PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN _IO(PPM_IOCTL_MAGIC, 9)
 #define PPM_IOCTL_GET_VTID _IO(PPM_IOCTL_MAGIC, 10)
 #define PPM_IOCTL_GET_VPID _IO(PPM_IOCTL_MAGIC, 11)
 #define PPM_IOCTL_GET_CURRENT_TID _IO(PPM_IOCTL_MAGIC, 12)
 #define PPM_IOCTL_GET_CURRENT_PID _IO(PPM_IOCTL_MAGIC, 13)
-#define PPM_IOCTL_DISABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 14)
-#define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15)
+// #define PPM_IOCTL_DISABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 14) Support dropped
+// #define PPM_IOCTL_ENABLE_SIGNAL_DELIVER _IO(PPM_IOCTL_MAGIC, 15) Support dropped
 #define PPM_IOCTL_GET_PROCLIST _IO(PPM_IOCTL_MAGIC, 16)
-#define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17)
-#define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18)
-#define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19)
+// #define PPM_IOCTL_SET_TRACERS_CAPTURE _IO(PPM_IOCTL_MAGIC, 17) Support dropped
+// #define PPM_IOCTL_SET_SIMPLE_MODE _IO(PPM_IOCTL_MAGIC, 18) Support dropped
+// #define PPM_IOCTL_ENABLE_PAGE_FAULTS _IO(PPM_IOCTL_MAGIC, 19) Support dropped
 #define PPM_IOCTL_GET_N_TRACEPOINT_HIT _IO(PPM_IOCTL_MAGIC, 20)
 #define PPM_IOCTL_GET_DRIVER_VERSION _IO(PPM_IOCTL_MAGIC, 21)
 #define PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE _IO(PPM_IOCTL_MAGIC, 22)
 #define PPM_IOCTL_SET_STATSD_PORT _IO(PPM_IOCTL_MAGIC, 23)
 #define PPM_IOCTL_GET_API_VERSION _IO(PPM_IOCTL_MAGIC, 24)
 #define PPM_IOCTL_GET_SCHEMA_VERSION _IO(PPM_IOCTL_MAGIC, 25)
-#endif // CYGWING_AGENT
+// #define PPM_IOCTL_MANAGE_TP _IO(PPM_IOCTL_MAGIC, 26) Support dropped
+// #define PPM_IOCTL_GET_TPMASK _IO(PPM_IOCTL_MAGIC, 27) Support dropped
+// #define PPM_IOCTL_ZERO_SYSCALLS _IO(PPM_IOCTL_MAGIC, 28) Support dropped
+#define PPM_IOCTL_ENABLE_SYSCALL   _IO(PPM_IOCTL_MAGIC, 29) // this replaces PPM_IOCTL_MASK_SET_EVENT
+#define PPM_IOCTL_DISABLE_SYSCALL _IO(PPM_IOCTL_MAGIC, 30) // this replaces PPM_IOCTL_MASK_UNSET_EVENT
+#define PPM_IOCTL_ENABLE_TP _IO(PPM_IOCTL_MAGIC, 31)
+#define PPM_IOCTL_DISABLE_TP _IO(PPM_IOCTL_MAGIC, 32)
+#define PPM_IOCTL_ENABLE_DROPFAILED _IO(PPM_IOCTL_MAGIC, 33)
+#define PPM_IOCTL_DISABLE_DROPFAILED _IO(PPM_IOCTL_MAGIC, 34)
 
 extern const struct ppm_name_value socket_families[];
 extern const struct ppm_name_value file_flags[];
@@ -1715,7 +2207,9 @@ extern const struct ppm_name_value access_flags[];
 extern const struct ppm_name_value pf_flags[];
 extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
+extern const struct ppm_name_value newfstatat_flags[];
 extern const struct ppm_name_value chmod_mode[];
+extern const struct ppm_name_value mknod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
 extern const struct ppm_name_value openat2_flags[];
 extern const struct ppm_name_value execve_flags[];
@@ -1725,19 +2219,19 @@ extern const struct ppm_name_value io_uring_setup_feats[];
 extern const struct ppm_name_value io_uring_enter_flags[];
 extern const struct ppm_name_value io_uring_register_opcodes[];
 extern const struct ppm_name_value mlockall_flags[];
+extern const struct ppm_name_value mlock2_flags[];
+extern const struct ppm_name_value fsconfig_cmds[];
+extern const struct ppm_name_value epoll_create1_flags[];
+extern const struct ppm_name_value fchownat_flags[];
+extern const struct ppm_name_value prctl_options[];
+extern const struct ppm_name_value memfd_create_flags[];
+extern const struct ppm_name_value pidfd_open_flags[];
+extern const struct ppm_name_value bpf_commands[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
-
-/*
- * Driver event notification ID
- */
-enum ppm_driver_event_id {
-	DEI_NONE = 0,
-	DEI_DISABLE_DROPPING = 1,
-	DEI_ENABLE_DROPPING = 2,
-};
-
+extern const struct ppm_name_value delete_module_flags[];
+extern const struct ppm_name_value finit_module_flags[];
 /*!
   \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
 */
@@ -1758,16 +2252,16 @@ enum syscall_flags {
 	UF_USED = (1 << 0),
 	UF_NEVER_DROP = (1 << 1),
 	UF_ALWAYS_DROP = (1 << 2),
-	UF_SIMPLEDRIVER_KEEP = (1 << 3), ///< Mark a syscall to be kept in simpledriver mode, see scap_enable_simpledriver_mode()
+	// UF_SIMPLEDRIVER_KEEP = (1 << 3), ///< Mark a syscall to be kept in simpledriver mode, see scap_enable_simpledriver_mode() -> SUPPORT DROPPED
 	UF_ATOMIC = (1 << 4), ///< The handler should not block (interrupt context)
-	UF_UNINTERESTING = (1 << 5), ///< Marks a syscall as not interesting. Currently only used by BPF probe to avoid tracing uninteresting syscalls.
-				     ///< Kmod uses a different logic path as we communicate with it through ioctls
 };
 
 struct syscall_evt_pair {
 	int flags;
-	enum ppm_event_type enter_event_type;
-	enum ppm_event_type exit_event_type;
+	ppm_event_code enter_event_type;
+	ppm_event_code exit_event_type;
+	ppm_sc_code ppm_sc;
+
 } _packed;
 
 #define SYSCALL_TABLE_SIZE 512
@@ -1779,9 +2273,9 @@ struct syscall_evt_pair {
 #define PPM_MAX_AUTOFILL_ARGS (1 << 2)
 
 /*
- * Max size of a parameter in the kernel module is u16, so no point
+ * Max size of a parameter in the kernel module is uint16_t, so no point
  * in going beyond 0xffff. However, in BPF the limit is more stringent
- * because the entire perf event must fit in u16, so make this
+ * because the entire perf event must fit in uint16_t, so make this
  * a more conservative 65k so we have some room for the other
  * parameters in the event. It shouldn't cause issues since typically
  * snaplen is much lower than this.
@@ -1831,31 +2325,5 @@ struct ppm_event_entry {
 #define PPM_FAILURE_BUG -3
 #define PPM_SKIP_EVENT -4
 #define PPM_FAILURE_FRAME_SCRATCH_MAP_FULL -5	/* this is used only inside bpf, kernel module does not have a frame scratch map*/
-
-#define RW_SNAPLEN 80
-#define RW_MAX_SNAPLEN PPM_MAX_ARG_SIZE
-#define RW_MAX_FULLCAPTURE_PORT_SNAPLEN 16000
-
-/*
- * Udig stuff
- */
-struct udig_consumer_t {
-	uint32_t snaplen;
-	uint32_t sampling_ratio;
-	bool do_dynamic_snaplen;
-	uint32_t sampling_interval;
-	int is_dropping;
-	int dropping_mode;
-	volatile int need_to_insert_drop_e;
-	volatile int need_to_insert_drop_x;
-	uint16_t fullcapture_port_range_start;
-	uint16_t fullcapture_port_range_end;
-	uint16_t statsd_port;
-};
-#ifdef UDIG
-typedef struct udig_consumer_t ppm_consumer_t;
-#else
-typedef struct ppm_consumer_t ppm_consumer_t;
-#endif /* UDIG */
 
 #endif /* EVENTS_PUBLIC_H_ */

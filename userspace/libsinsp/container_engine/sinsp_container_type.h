@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,4 +32,7 @@ enum sinsp_container_type
 	CT_BPM = 9,
 	CT_STATIC = 10,
 	CT_PODMAN = 11,
+
+	// Default value, may be changed if necessary
+	CT_UNKNOWN = 0xffff
 };

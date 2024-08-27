@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,36 +20,11 @@ limitations under the License.
 #include <inttypes.h>
 #include <algorithm>
 #endif
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "scap-int.h"
+#include <libsinsp/sinsp.h>
+#include <libsinsp/sinsp_int.h>
+#include <libscap/scap-int.h>
 
-///////////////////////////////////////////////////////////////////////////////
-// sinsp_fdinfo implementation
-///////////////////////////////////////////////////////////////////////////////
-template<> sinsp_fdinfo_t::sinsp_fdinfo()
-{
-	m_type = SCAP_FD_UNINITIALIZED;
-	m_flags = FLAGS_NONE;
-	m_callbacks = NULL;
-	m_usrstate = NULL;
-}
-
-template<> void sinsp_fdinfo_t::reset()
-{
-	m_type = SCAP_FD_UNINITIALIZED;
-	m_flags = FLAGS_NONE;
-	delete(m_callbacks);
-	m_callbacks = NULL;
-	m_usrstate = NULL;
-}
-
-template<> string* sinsp_fdinfo_t::tostring()
-{
-	return &m_name;
-}
-
-template<> char sinsp_fdinfo_t::get_typechar()
+char sinsp_fdinfo::get_typechar() const
 {
 	switch(m_type)
 	{
@@ -85,64 +61,147 @@ template<> char sinsp_fdinfo_t::get_typechar()
 		return CHAR_FD_TIMERFD;
 	case SCAP_FD_NETLINK:
 		return CHAR_FD_NETLINK;
+	case SCAP_FD_BPF:
+		return CHAR_FD_BPF;
+	case SCAP_FD_USERFAULTFD:
+		return CHAR_FD_USERFAULTFD;
+	case SCAP_FD_IOURING:
+		return CHAR_FD_IO_URING;
+	case SCAP_FD_MEMFD:
+		return CHAR_FD_MEMFD;
+	case SCAP_FD_PIDFD:
+		return CHAR_FD_PIDFD;
 	default:
 //		ASSERT(false);
 		return '?';
 	}
 }
 
-template<> char* sinsp_fdinfo_t::get_typestring()
+const char* sinsp_fdinfo::get_typestring() const
 {
 	switch(m_type)
 	{
 	case SCAP_FD_FILE_V2:
 	case SCAP_FD_FILE:
-		return (char*)"file";
+		return "file";
 	case SCAP_FD_DIRECTORY:
-		return (char*)"directory";
+		return "directory";
 	case SCAP_FD_IPV4_SOCK:
 	case SCAP_FD_IPV4_SERVSOCK:
-		return (char*)"ipv4";
+		return "ipv4";
 	case SCAP_FD_IPV6_SOCK:
 	case SCAP_FD_IPV6_SERVSOCK:
-		return (char*)"ipv6";
+		return "ipv6";
 	case SCAP_FD_UNIX_SOCK:
-		return (char*)"unix";
+		return "unix";
 	case SCAP_FD_FIFO:
-		return (char*)"pipe";
+		return "pipe";
 	case SCAP_FD_EVENT:
-		return (char*)"event";
+		return "event";
 	case SCAP_FD_SIGNALFD:
-		return (char*)"signalfd";
+		return "signalfd";
 	case SCAP_FD_EVENTPOLL:
-		return (char*)"eventpoll";
+		return "eventpoll";
 	case SCAP_FD_INOTIFY:
-		return (char*)"inotify";
+		return "inotify";
 	case SCAP_FD_TIMERFD:
-		return (char*)"timerfd";
+		return "timerfd";
 	case SCAP_FD_NETLINK:
-		return (char*)"netlink";
+		return "netlink";
+	case SCAP_FD_BPF:
+		return "bpf";
+	case SCAP_FD_USERFAULTFD:
+		return "userfaultfd";
+	case SCAP_FD_IOURING:
+		return "io_uring";
+	case SCAP_FD_MEMFD:
+		return "memfd";
+	case SCAP_FD_PIDFD:
+		return "pidfd";
 	default:
-		return (char*)"<NA>";
+		return "<NA>";
 	}
 }
 
-template<> string sinsp_fdinfo_t::tostring_clean()
+sinsp_fdinfo::sinsp_fdinfo(const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields)
+	: table_entry(dyn_fields) 
 {
-	string m_tstr = m_name;
-	sanitize_string(m_tstr);
-
-	return m_tstr;
 }
 
-template<> void sinsp_fdinfo_t::add_filename(const char* fullpath)
+libsinsp::state::static_struct::field_infos sinsp_fdinfo::static_fields() const
 {
-	m_name = fullpath;
+	libsinsp::state::static_struct::field_infos ret;
+
+	// the m_type is weird because it's a C-defined non-scoped enum, meaning that it
+	// should be represented by default as an integer of word-size (e.g. uint32_t in
+	// most cases). However, the state and plugin API only supports integers, and so
+	// we need to do some smart casting. Our enemy is the platform/compiler dependent
+	// integer size with which the enum could be represented, plus the endianess
+	// of the targeted architecture
+	auto is_big_endian = htonl(12) == 12; // the chosen number does not matter
+	size_t type_byte_offset = is_big_endian ? (sizeof(scap_fd_type) - 1) : 0;
+	define_static_field(ret, this, ((uint8_t*)(&m_type))[type_byte_offset], "type");
+
+	// the rest fo the fields are more trivial to expose
+	define_static_field(ret, this, m_openflags, "open_flags");
+	define_static_field(ret, this, m_name, "name");
+	define_static_field(ret, this, m_name_raw, "name_raw");
+	define_static_field(ret, this, m_oldname, "old_name");
+	define_static_field(ret, this, m_flags, "flags");
+	define_static_field(ret, this, m_dev, "dev");
+	define_static_field(ret, this, m_mount_id, "mount_id");
+	define_static_field(ret, this, m_ino, "ino");
+	define_static_field(ret, this, m_pid, "pid");
+	define_static_field(ret, this, m_fd, "fd");
+
+	// in this case we have a union, so many of the following exposed fields
+	// will point to the same memory areas, but this should not be an issue
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sip, "socket_ipv4_src_ip");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_dip, "socket_ipv4_dest_dip");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_sport, "socket_ipv4_src_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_dport, "socket_ipv4_dst_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv4info.m_fields.m_l4proto, "socket_ipv4_l4_proto");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_sip)[0], "socket_ipv6_src_ip_low");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_sip)[1], "socket_ipv6_src_ip_high");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_dip)[0], "socket_ipv6_dest_ip_low");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6info.m_fields.m_dip)[1], "socket_ipv6_dest_ip_high");
+	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_sport, "socket_ipv6_src_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_dport, "socket_ipv6_dst_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv6info.m_fields.m_l4proto, "socket_ipv6_l4_proto");
+	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_ip, "socket_ipv4_server_ip");
+	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_port, "socket_ipv4_server_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv4serverinfo.m_l4proto, "socket_ipv4_server_l4_proto");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6serverinfo.m_ip)[0], "socket_ipv6_server_ip_low");
+	define_static_field(ret, this, ((uint64_t*) &m_sockinfo.m_ipv6serverinfo.m_ip)[1], "socket_ipv6_server_ip_high");
+	define_static_field(ret, this, m_sockinfo.m_ipv6serverinfo.m_port, "socket_ipv6_server_port");
+	define_static_field(ret, this, m_sockinfo.m_ipv6serverinfo.m_l4proto, "socket_ipv6_server_l4_proto");
+	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_source, "socket_unix_src");
+	define_static_field(ret, this, m_sockinfo.m_unixinfo.m_fields.m_dest, "socket_unix_dest");
+
+	return ret;
 }
 
-template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
+std::string sinsp_fdinfo::tostring_clean() const
+{
+	std::string tstr = m_name;
+	sanitize_string(tstr);
+
+	return tstr;
+}
+
+void sinsp_fdinfo::add_filename_raw(std::string_view rawpath)
+{
+	m_name_raw = std::string(rawpath);
+}
+
+void sinsp_fdinfo::add_filename(std::string_view fullpath)
+{
+	m_name = std::string(fullpath);
+}
+
+bool sinsp_fdinfo::set_net_role_by_guessing(sinsp* inspector,
 										  sinsp_threadinfo* ptinfo,
-										  sinsp_fdinfo_t* pfdinfo,
+										  sinsp_fdinfo* pfdinfo,
 										  bool incoming)
 {
 	//
@@ -165,7 +224,7 @@ template<> bool sinsp_fdinfo_t::set_net_role_by_guessing(sinsp* inspector,
 	}
 
 wildass_guess:
-	if(!(pfdinfo->m_flags & (sinsp_fdinfo_t::FLAGS_ROLE_CLIENT | sinsp_fdinfo_t::FLAGS_ROLE_SERVER)))
+	if(!(pfdinfo->m_flags & (sinsp_fdinfo::FLAGS_ROLE_CLIENT | sinsp_fdinfo::FLAGS_ROLE_SERVER)))
 	{
 		//
 		// We just assume that a server usually starts with a read and a client with a write
@@ -183,7 +242,7 @@ wildass_guess:
 	return true;
 }
 
-template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
+scap_l4_proto sinsp_fdinfo::get_l4proto() const
 {
 	scap_fd_type evt_type = m_type;
 
@@ -229,82 +288,77 @@ template<> scap_l4_proto sinsp_fdinfo_t::get_l4proto()
 	}
 }
 
-template<> void sinsp_fdinfo_t::register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
-{
-	if(this->m_callbacks == NULL)
-	{
-		m_callbacks = new fd_callbacks_info();
-	}
-
-	switch(etype)
-	{
-	case CT_READ:
-		m_callbacks->m_read_callbacks.push_back(dec);
-		break;
-	case CT_WRITE:
-		m_callbacks->m_write_callbacks.push_back(dec);
-		break;
-	default:
-		ASSERT(false);
-		break;
-	}
-
-	return;
-}
-
-template<> void sinsp_fdinfo_t::unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
-{
-	vector<sinsp_protodecoder*>::iterator it;
-
-	if(m_callbacks == NULL)
-	{
-		ASSERT(false);
-		return;
-	}
-
-	switch(etype)
-	{
-	case CT_READ:
-		for(it = m_callbacks->m_read_callbacks.begin(); it != m_callbacks->m_read_callbacks.end(); ++it)
-		{
-			if(*it == dec)
-			{
-				m_callbacks->m_read_callbacks.erase(it);
-				return;
-			}
-		}
-
-		break;
-	case CT_WRITE:
-		for(it = m_callbacks->m_write_callbacks.begin(); it != m_callbacks->m_write_callbacks.end(); ++it)
-		{
-			if(*it == dec)
-			{
-				m_callbacks->m_write_callbacks.erase(it);
-				return;
-			}
-		}
-
-		break;
-	default:
-		ASSERT(false);
-		break;
-	}
-
-	return;
-}
+static const auto s_fdtable_static_fields = sinsp_fdinfo().static_fields();
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_fdtable implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_fdtable::sinsp_fdtable(sinsp* inspector)
+	: table("file_descriptors", &s_fdtable_static_fields)
 {
+	m_tid = 0;
 	m_inspector = inspector;
+	if (m_inspector != nullptr)
+	{
+		m_sinsp_stats_v2 = m_inspector->get_sinsp_stats_v2();
+	}
+	else
+	{
+		m_sinsp_stats_v2 = nullptr;
+	}
 	reset_cache();
 }
 
-sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
+inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::find_ref(int64_t fd)
 {
+	//
+	// Try looking up in our simple cache
+	//
+	if(m_last_accessed_fd != -1 && fd == m_last_accessed_fd)
+	{
+		if (m_sinsp_stats_v2)
+		{
+			m_sinsp_stats_v2->m_n_cached_fd_lookups++;
+		}
+		return m_last_accessed_fdinfo;
+	}
+
+	//
+	// Caching failed, do a real lookup
+	//
+	auto fdit = m_table.find(fd);
+
+	if(fdit == m_table.end())
+	{
+		if (m_sinsp_stats_v2)
+		{
+			m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+		}
+		return m_nullptr_ret;
+	}
+	else
+	{
+		if (m_sinsp_stats_v2 != nullptr)
+		{
+			m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
+		}
+
+		m_last_accessed_fd = fd;
+		m_last_accessed_fdinfo = fdit->second;
+		lookup_device(m_last_accessed_fdinfo.get(), fd);
+		return m_last_accessed_fdinfo;
+	}
+}
+
+inline const std::shared_ptr<sinsp_fdinfo>& sinsp_fdtable::add_ref(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
+{
+	if (fdinfo->dynamic_fields() != dynamic_fields())
+	{
+		throw sinsp_exception("adding entry with incompatible dynamic defs to fd table");
+	}
+
+	fdinfo->m_fd = fd;
+
 	//
 	// Look for the FD in the table
 	//
@@ -323,15 +377,16 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			// No entry in the table, this is the normal case
 			//
 			m_last_accessed_fd = -1;
-#ifdef GATHER_INTERNAL_STATS
-			m_inspector->m_stats.m_n_added_fds++;
-#endif
-			pair<unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res = m_table.emplace(fd, *fdinfo);
-			return &(insert_res.first->second);
+			if (m_sinsp_stats_v2 != nullptr)
+			{
+				m_sinsp_stats_v2->m_n_added_fds++;
+			}
+
+			return m_table.emplace(fd, std::move(fdinfo)).first->second;
 		}
 		else
 		{
-			return nullptr;
+			return m_nullptr_ret;
 		}
 	}
 	else
@@ -339,7 +394,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// the fd is already in the table.
 		//
-		if(it->second.m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS)
+		if(it->second->m_flags & sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS)
 		{
 			//
 			// Sometimes an FD-creating syscall can be called on an FD that is being closed (i.e
@@ -347,10 +402,10 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 			// If this is the case, mark the new entry so that the successive close exit won't
 			// destroy it.
 			//
-			fdinfo->m_flags &= ~sinsp_fdinfo_t::FLAGS_CLOSE_IN_PROGRESS;
-			fdinfo->m_flags |= sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED;
+			fdinfo->m_flags &= ~sinsp_fdinfo::FLAGS_CLOSE_IN_PROGRESS;
+			fdinfo->m_flags |= sinsp_fdinfo::FLAGS_CLOSE_CANCELED;
 
-			m_table[CANCELED_FD_NUMBER] = it->second;
+			m_table[CANCELED_FD_NUMBER] = it->second->clone();
 		}
 		else
 		{
@@ -370,14 +425,15 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 		//
 		// Replace the fd as a struct copy
 		//
-		it->second.copy(*fdinfo, true);
-		return &(it->second);
+		m_last_accessed_fd = -1;
+		it->second = std::move(fdinfo);
+		return it->second;
 	}
 }
 
-void sinsp_fdtable::erase(int64_t fd)
+bool sinsp_fdtable::erase(int64_t fd)
 {
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
+	auto fdit = m_table.find(fd);
 
 	if(fd == m_last_accessed_fd)
 	{
@@ -392,18 +448,21 @@ void sinsp_fdtable::erase(int64_t fd)
 		// call that created this fd. The assertion will detect it, while in release mode we just
 		// keep going.
 		//
-		ASSERT(false);
-#ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_failed_fd_lookups++;
-#endif
+		if (m_sinsp_stats_v2 != nullptr)
+		{
+			m_sinsp_stats_v2->m_n_failed_fd_lookups++;
+		}
+		return false;
 	}
 	else
 	{
 		m_table.erase(fdit);
-#ifdef GATHER_INTERNAL_STATS
-		m_inspector->m_stats.m_n_noncached_fd_lookups++;
-		m_inspector->m_stats.m_n_removed_fds++;
-#endif
+		if (m_sinsp_stats_v2 != nullptr)
+		{
+			m_sinsp_stats_v2->m_n_noncached_fd_lookups++;
+			m_sinsp_stats_v2->m_n_removed_fds++;
+		}
+		return true;
 	}
 }
 
@@ -412,7 +471,7 @@ void sinsp_fdtable::clear()
 	m_table.clear();
 }
 
-size_t sinsp_fdtable::size()
+size_t sinsp_fdtable::size() const
 {
 	return m_table.size();
 }
@@ -422,22 +481,41 @@ void sinsp_fdtable::reset_cache()
 	m_last_accessed_fd = -1;
 }
 
-void sinsp_fdtable::lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd)
+void sinsp_fdtable::lookup_device(sinsp_fdinfo* fdi, uint64_t fd)
 {
-#ifdef HAS_CAPTURE
-#ifndef WIN32
-	if(m_inspector->is_capture())
+#ifndef _WIN32
+	if(m_inspector == nullptr || m_inspector->is_offline() ||
+	   (m_inspector->is_plugin() && !m_inspector->is_syscall_plugin()))
 	{
 		return;
 	}
 
-	if(fdi->is_file() && fdi->m_dev == 0 && fdi->m_mount_id != 0)
+	if(m_tid != 0 && m_tid != (uint64_t)-1 && fdi->is_file() && fdi->m_dev == 0 && fdi->m_mount_id != 0)
 	{
 		char procdir[SCAP_MAX_PATH_SIZE];
 		snprintf(procdir, sizeof(procdir), "%s/proc/%ld/", scap_get_host_root(), m_tid);
-		fdi->m_dev = scap_get_device_by_mount_id(m_inspector->m_h, procdir, fdi->m_mount_id);
+		fdi->m_dev = scap_get_device_by_mount_id(m_inspector->get_scap_platform(), procdir, fdi->m_mount_id);
 		fdi->m_mount_id = 0; // don't try again
 	}
-#endif // WIN32
-#endif // HAS_CAPTURE
+#endif // _WIN32
+}
+
+sinsp_fdinfo* sinsp_fdtable::find(int64_t fd)
+{
+	return find_ref(fd).get();
+}
+
+sinsp_fdinfo* sinsp_fdtable::add(int64_t fd, std::unique_ptr<sinsp_fdinfo> fdinfo)
+{
+	return add_ref(fd, std::move(fdinfo)).get();
+}
+
+std::unique_ptr<libsinsp::state::table_entry> sinsp_fdtable::new_entry() const
+{
+	return m_inspector->build_fdinfo();
+};
+
+std::shared_ptr<libsinsp::state::table_entry> sinsp_fdtable::get_entry(const int64_t& key)
+{
+	return find_ref(key);
 }
