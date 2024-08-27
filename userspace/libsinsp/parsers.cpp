@@ -130,8 +130,10 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SOCKET_SEND_X:
 	case PPME_SOCKET_RECVFROM_X:
 	case PPME_SOCKET_RECVMSG_X:
+	case PPME_SOCKET_RECVMMSG_X:
 	case PPME_SOCKET_SENDTO_X:
 	case PPME_SOCKET_SENDMSG_X:
+	case PPME_SOCKET_SENDMMSG_X:
 	case PPME_SYSCALL_READV_X:
 	case PPME_SYSCALL_WRITEV_X:
 	case PPME_SYSCALL_PREAD_X:
@@ -647,6 +649,12 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 				tinfo->m_lastevent_fd = evt->get_param(1)->as<int64_t>();
 			}
 
+			// sendmmsg and recvmmsg send all data in the exit event, fd included
+			if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
+			   evt->get_num_params() > 0) {
+				tinfo->m_lastevent_fd = evt->get_param(1)->as<int64_t>();
+			}
+
 			// todo!: this should become the unique logic when we'll disable the enter events.
 			if(tinfo->m_lastevent_fd == -1) {
 				int fd_location = get_exit_event_fd_location((ppm_event_code)etype);
@@ -654,8 +662,8 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 					tinfo->m_lastevent_fd = evt->get_param(fd_location)->as<int64_t>();
 				}
 			}
-			evt->set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
 
+			evt->set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
 			if(evt->get_fd_info() == NULL) {
 				return false;
 			}
@@ -3669,6 +3677,12 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 	int64_t tid = evt->get_tid();
 	sinsp_evt *enter_evt = &m_tmp_evt;
 	ppm_event_flags eflags = evt->get_info_flags();
+	uint16_t etype = evt->get_scap_evt()->type;
+
+	if((etype == PPME_SOCKET_SENDMMSG_X || etype == PPME_SOCKET_RECVMMSG_X) &&
+	   evt->get_num_params() == 0) {
+		return;
+	}
 
 	//
 	// Extract the return value
@@ -3697,6 +3711,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 				tupleparam = 2;
 			} else if(etype == PPME_SOCKET_RECVMSG_X) {
 				tupleparam = 3;
+			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
+				tupleparam = 4;
 			}
 
 			if(tupleparam != -1 &&
@@ -3745,6 +3761,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			if(etype == PPME_SYSCALL_READV_X || etype == PPME_SYSCALL_PREADV_X ||
 			   etype == PPME_SOCKET_RECVMSG_X) {
 				parinfo = evt->get_param(2);
+			} else if(etype == PPME_SOCKET_RECVMMSG_X) {
+				parinfo = evt->get_param(3);
 			} else {
 				parinfo = evt->get_param(1);
 			}
@@ -3774,8 +3792,15 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			// accordingly via procfs scan.
 			//
 #ifndef _WIN32
+			int32_t cmparam = -1;
 			if(etype == PPME_SOCKET_RECVMSG_X && evt->get_num_params() >= 5) {
-				parinfo = evt->get_param(4);
+				cmparam = 4;
+			} else if(etype == PPME_SOCKET_RECVMMSG_X && evt->get_num_params() >= 6) {
+				cmparam = 5;
+			}
+
+			if(cmparam != -1) {
+				parinfo = evt->get_param(cmparam);
 				if(parinfo->m_len > sizeof(cmsghdr)) {
 					cmsghdr cmsg;
 					memcpy(&cmsg, parinfo->m_val, sizeof(cmsghdr));
@@ -3819,6 +3844,8 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 
 			if(etype == PPME_SOCKET_SENDTO_X || etype == PPME_SOCKET_SENDMSG_X) {
 				tupleparam = 2;
+			} else if(etype == PPME_SOCKET_SENDMMSG_X) {
+				tupleparam = 4;
 			}
 
 			if(tupleparam != -1 &&
@@ -3828,7 +3855,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 				// If the fd still doesn't contain tuple info (because the socket is a datagram one
 				// or because some event was lost), add it here.
 				//
-				if(!retrieve_enter_event(enter_evt, evt)) {
+				if(etype == PPME_SOCKET_SENDMMSG_X) {
+					// sendmmsg has the tuple as part of the exit event, so
+					// we trick the parser to read it from this event.
+					enter_evt = evt;
+				} else if(!retrieve_enter_event(enter_evt, evt)) {
 					return;
 				}
 
@@ -3869,7 +3900,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			// Extract the data buffer
 			//
-			parinfo = evt->get_param(1);
+			if(etype == PPME_SOCKET_SENDMMSG_X) {
+				parinfo = evt->get_param(2);
+			} else {
+				parinfo = evt->get_param(1);
+			}
 			datalen = parinfo->m_len;
 			const char *data = parinfo->m_val;
 
