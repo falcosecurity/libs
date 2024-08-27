@@ -113,7 +113,7 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
 
 /**
  * @brief Copy the entire event from the auxiliary map to bpf ringbuf.
- * If the event is correctly copied in the ringbuf we increments the number
+ * If the event is correctly copied in the ringbuf we increment the number
  * of events sent to userspace, otherwise we increment the dropped events.
  *
  * @param auxmap pointer to the auxmap in which we have already written the entire event.
