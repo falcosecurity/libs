@@ -252,6 +252,7 @@ void event_test::parse_event() {
 	/* Insert a dummy param just to use index starting from 1 insted of 0. */
 	par.len = 0;
 	par.valptr = NULL;
+	m_event_params.clear();
 	m_event_params.push_back(par);
 
 	for(int j = 0; j < nparams; j++) {
@@ -571,6 +572,36 @@ void event_test::client_to_server(send_data send_d,
 		                     -1);
 	} break;
 
+	case __NR_sendmmsg: {
+		struct mmsghdr mmsg = {};
+		struct iovec iov = {};
+		uint32_t flags = 0;
+		uint32_t vlen = 1;
+		mmsg.msg_len = vlen;
+		mmsg.msg_hdr.msg_iov = &iov;
+		mmsg.msg_hdr.msg_iovlen = 1;
+		mmsg.msg_hdr.msg_name = addr;
+		mmsg.msg_hdr.msg_namelen = addrlen;
+		iov.iov_base = (void*)SHORT_MESSAGE;
+		iov.iov_len = SHORT_MESSAGE_LEN;
+
+		if(send_d.greater_snaplen) {
+			iov.iov_base = (void*)LONG_MESSAGE;
+			iov.iov_len = LONG_MESSAGE_LEN;
+		}
+
+		if(send_d.null_sockaddr) {
+			mmsg.msg_hdr.msg_name = NULL;
+			mmsg.msg_hdr.msg_namelen = 0;
+		}
+
+		assert_syscall_state(SYSCALL_SUCCESS,
+		                     "sendmmsg (client)",
+		                     syscall(__NR_sendmmsg, client_socket_fd, &mmsg, vlen, flags),
+		                     EQUAL,
+		                     vlen);
+	} break;
+
 	case __NR_write: {
 		const void* sent_data = (const void*)SHORT_MESSAGE;
 		size_t sent_data_len = SHORT_MESSAGE_LEN;
@@ -661,6 +692,39 @@ void event_test::client_to_server(send_data send_d,
 
 		int64_t received_bytes = syscall(__NR_recvmsg, receive_socket_fd, &recv_msg, recvmsg_flags);
 		assert_syscall_state(SYSCALL_SUCCESS, "recvmsg (server)", received_bytes, NOT_EQUAL, -1);
+	} break;
+
+	case __NR_recvmmsg: {
+		// Max number of message we can receive with this method is 1,
+		// should be enough for testing.
+		uint32_t vlen = 1;
+		struct mmsghdr mmsg = {};
+		struct iovec iov = {};
+		std::array<char, MAX_RECV_BUF_SIZE> data;
+
+		iov.iov_base = data.data();
+		iov.iov_len = MAX_RECV_BUF_SIZE;
+
+		mmsg.msg_len = 1;
+		mmsg.msg_hdr.msg_name = addr;
+		mmsg.msg_hdr.msg_namelen = addrlen;
+		mmsg.msg_hdr.msg_iov = &iov;
+		mmsg.msg_hdr.msg_iovlen = 1;
+
+		if(receive_d.null_sockaddr) {
+			mmsg.msg_hdr.msg_name = NULL;
+			mmsg.msg_hdr.msg_namelen = 0;
+		}
+
+		if(receive_d.null_receiver_buffer) {
+			mmsg.msg_hdr.msg_iov = NULL;
+			mmsg.msg_hdr.msg_iovlen = 0;
+		}
+
+		int flags = 0;
+		int64_t received_messages =
+		        syscall(__NR_recvmmsg, receive_socket_fd, &mmsg, vlen, flags, NULL);
+		assert_syscall_state(SYSCALL_SUCCESS, "recvmmsg (server)", received_messages, EQUAL, vlen);
 	} break;
 
 	case __NR_read: {
@@ -1354,10 +1418,10 @@ void event_test::assert_fd_list(int param_num,
 
 void event_test::assert_param_boundaries(int param_num) {
 	m_current_param = param_num;
-	ASSERT_GE(m_current_param, 1) << ">>>>> The param id '" << m_current_param << "' is to low."
+	ASSERT_GE(m_current_param, 1) << ">>>>> The param id '" << m_current_param << "' is too low."
 	                              << std::endl;
 	ASSERT_LE(m_current_param, m_event_header->nparams)
-	        << ">>>>> The param id '" << m_current_param << "' is to big." << std::endl;
+	        << ">>>>> The param id '" << m_current_param << "' is too big." << std::endl;
 }
 
 void event_test::assert_param_len(uint16_t expected_size) {
