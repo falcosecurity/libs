@@ -267,21 +267,26 @@ protected:
     };
 
     inline explicit dynamic_struct(const std::shared_ptr<field_infos>& dynamic_fields)
-        : m_fields_len(0), m_fields(), m_dynamic_fields(dynamic_fields) { }
+        : m_fields(), m_dynamic_fields(dynamic_fields) { }
+
     inline dynamic_struct(dynamic_struct&&) = default;
-    inline dynamic_struct& operator = (dynamic_struct&&) = default;
-    inline dynamic_struct(const dynamic_struct& s) = default;
-    inline dynamic_struct& operator = (const dynamic_struct& s) = default;
+
+    inline dynamic_struct& operator=(dynamic_struct&&) = default;
+
+    inline dynamic_struct(const dynamic_struct& s)
+    {
+        deep_fields_copy(s);
+    }
+
+    inline dynamic_struct& operator=(const dynamic_struct& s)
+    {
+        deep_fields_copy(s);
+        return *this;
+    }
+
     virtual ~dynamic_struct()
     {
-        if (m_dynamic_fields)
-        {
-            for (size_t i = 0; i < m_fields.size(); i++)
-            {
-                m_dynamic_fields->m_definitions_ordered[i]->info().destroy(m_fields[i]);
-                free(m_fields[i]);
-            }
-        }
+        destroy_dynamic_fields();
     }
 
     /**
@@ -323,6 +328,10 @@ protected:
      */
     virtual void set_dynamic_fields(const std::shared_ptr<field_infos>& defs)
     {
+        if (m_dynamic_fields.get() == defs.get())
+        {
+            return;
+        }
         if (m_dynamic_fields && m_dynamic_fields.use_count() > 1)
         {
             throw sinsp_exception("dynamic struct defintions set twice");
@@ -373,6 +382,23 @@ protected:
         }
     }
 
+    /**
+     * @brief Destroys all the dynamic field values currently allocated
+    */
+    virtual void destroy_dynamic_fields()
+    {
+        if (!m_dynamic_fields)
+        {
+            return;
+        }
+        for (size_t i = 0; i < m_fields.size(); i++)
+        {
+            m_dynamic_fields->m_definitions_ordered[i]->info().destroy(m_fields[i]);
+            free(m_fields[i]);
+        }
+        m_fields.clear();
+    }
+
 private:
     inline void _check_defsptr(const field_info& i, bool write) const
     {
@@ -400,18 +426,38 @@ private:
         {
             throw sinsp_exception("dynamic struct access overflow: " + std::to_string(index));
         }
-        while (m_fields_len <= index)
+        while (m_fields.size() <= index)
         {
-            auto def = m_dynamic_fields->m_definitions_ordered[m_fields_len];
+            auto def = m_dynamic_fields->m_definitions_ordered[m_fields.size()];
             void* fieldbuf = malloc(def->info().size());
             def->info().construct(fieldbuf);
             m_fields.push_back(fieldbuf);
-            m_fields_len++;
         }
         return m_fields[index];
     }
 
-    size_t m_fields_len;
+    inline void deep_fields_copy(const dynamic_struct& other_const)
+    {
+        // note: const cast should be safe here as we're not going to resize
+        // nor edit the dynamic fields allocated in "other"
+        auto& other = const_cast<dynamic_struct&>(other_const);
+
+        // copy the definitions
+        set_dynamic_fields(other.dynamic_fields());
+
+        // deep copy of all the fields
+        destroy_dynamic_fields();
+        for (size_t i = 0; i < other.m_fields.size(); i++)
+        {
+            const auto info = m_dynamic_fields->m_definitions_ordered[i];
+            // note: we use uintptr_t as it fits all the data types supported for
+            // reading and writing dynamic fields (e.g. uint32_t, uint64_t, const char*, base_table*, ...)
+            uintptr_t val = 0;
+            other.get_dynamic_field(*info, reinterpret_cast<void*>(&val));
+            set_dynamic_field(*info, &val);
+        }
+    }
+
     std::vector<void*> m_fields;
     std::shared_ptr<field_infos> m_dynamic_fields;
 };

@@ -127,6 +127,11 @@ protected:
 		}
 	}
 
+	virtual void destroy_dynamic_fields() override final
+	{
+		// nothing to do
+	}
+
 private:
 	T* m_value;
 };
