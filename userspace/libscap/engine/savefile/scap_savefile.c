@@ -119,11 +119,11 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		tinfo.cap_permitted = 0;
 		tinfo.cap_effective = 0;
 		tinfo.exe_upper_layer = false;
-		tinfo.exe_lower_layer = false;
 		tinfo.exe_ino = 0;
 		tinfo.exe_ino_ctime = 0;
 		tinfo.exe_ino_mtime = 0;
 		tinfo.exe_from_memfd = false;
+		tinfo.exe_lower_layer = false;
 
 		//
 		// len
@@ -684,14 +684,6 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			subreadsize += readsize;
 		}
 
-		// exe_lower_layer
-		if(sub_len && (subreadsize + sizeof(uint8_t)) <= sub_len)
-		{
-			readsize = r->read(r, &(tinfo.exe_lower_layer), sizeof(uint8_t));
-			CHECK_READ_SIZE_ERR(readsize, sizeof(uint8_t), error);
-			subreadsize += readsize;
-		}
-
 		// exe_ino
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
@@ -724,6 +716,14 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint8_t), error);
 			subreadsize += readsize;
 			tinfo.exe_from_memfd = (exe_from_memfd != 0);
+		}
+
+		// exe_lower_layer
+		if(sub_len && (subreadsize + sizeof(uint8_t)) <= sub_len)
+		{
+			readsize = r->read(r, &(tinfo.exe_lower_layer), sizeof(uint8_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint8_t), error);
+			subreadsize += readsize;
 		}
 
 		//
