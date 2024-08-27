@@ -327,7 +327,7 @@ jobs:
         with:
           name: ${{ matrix.name }}_report
           path: |
-            ${{ github.workspace }}/build/report/
+            /tmp/report/
 
   build-libs-emscripten:
     name: build-libs-emscripten 🧐
