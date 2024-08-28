@@ -406,7 +406,7 @@ void event_test::connect_ipv4_client_to_server(int32_t* client_socket, sockaddr_
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, *client_socket, (sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
 }
 
-void event_test::client_to_server(send_data send_d, receive_data receive_d, protocol_L3 proto_L3, protocol_L4 proto_L4)
+void event_test::client_to_server(send_data send_d, recv_data receive_d, network_config net_config)
 {
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
@@ -421,18 +421,18 @@ void event_test::client_to_server(send_data send_d, receive_data receive_d, prot
 	// Setup Connection
 	//////////////////////
 
-	switch(proto_L3)
+	switch(net_config.proto_L3)
 	{
 	case protocol_L3::IPv4:
-		if(proto_L4 == protocol_L4::TCP)
+		if(net_config.proto_L4 == protocol_L4::TCP)
 		{
 			this->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd,
-							    &server_addr);
+							    &server_addr, net_config.client_port, net_config.server_port);
 		}
 		else
 		{
 			this->connect_ipv4_udp_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd,
-								&server_addr);
+								&server_addr, net_config.client_port, net_config.server_port);
 		}
 		// for the `recv*` syscalls we will use the memory of the server sockaddr but this will be overwritten
 		// by the kernel so it shouldn't be an issue.
@@ -440,15 +440,15 @@ void event_test::client_to_server(send_data send_d, receive_data receive_d, prot
 		addrlen = sizeof(server_addr);
 		break;
 	case protocol_L3::IPv6:
-		if(proto_L4 == protocol_L4::TCP)
+		if(net_config.proto_L4 == protocol_L4::TCP)
 		{
 			this->connect_ipv6_client_to_server(&client_socket_fd, &client_addr6, &server_socket_fd,
-							    &server_addr6);
+							    &server_addr6, net_config.client_port, net_config.server_port);
 		}
 		else
 		{
 			this->connect_ipv6_udp_client_to_server(&client_socket_fd, &client_addr6, &server_socket_fd,
-								&server_addr6);
+								&server_addr6, net_config.client_port, net_config.server_port);
 		}
 		addr = (sockaddr*)&server_addr6;
 		addrlen = sizeof(server_addr6);
@@ -557,7 +557,7 @@ void event_test::client_to_server(send_data send_d, receive_data receive_d, prot
 	// Receive message
 	//////////////////////
 	int receive_socket_fd = server_socket_fd;
-	if(proto_L4 == protocol_L4::TCP)
+	if(net_config.proto_L4 == protocol_L4::TCP)
 	{
 		// In case of TCP we need to accept the connection.
 		receive_socket_fd = syscall(__NR_accept4, server_socket_fd, NULL, NULL, 0);
@@ -648,7 +648,7 @@ void event_test::client_to_server(send_data send_d, receive_data receive_d, prot
 	//////////////////////
 	// Cleaning phase
 	//////////////////////
-	if(proto_L4 == protocol_L4::TCP)
+	if(net_config.proto_L4 == protocol_L4::TCP)
 	{
 		syscall(__NR_shutdown, receive_socket_fd, 2);
 		syscall(__NR_close, receive_socket_fd);
@@ -657,6 +657,26 @@ void event_test::client_to_server(send_data send_d, receive_data receive_d, prot
 	syscall(__NR_shutdown, client_socket_fd, 2);
 	syscall(__NR_close, server_socket_fd);
 	syscall(__NR_close, client_socket_fd);
+}
+
+void event_test::client_to_server_ipv4_tcp(send_data send_d, recv_data receive_d, int32_t client_port, int32_t server_port)
+{
+	this->client_to_server(send_d, receive_d, network_config{.proto_L3 = protocol_L3::IPv4, .proto_L4 = protocol_L4::TCP, .client_port = client_port, .server_port = server_port});
+}
+
+void event_test::client_to_server_ipv4_udp(send_data send_d, recv_data receive_d, int32_t client_port, int32_t server_port)
+{
+	this->client_to_server(send_d, receive_d, network_config{.proto_L3 = protocol_L3::IPv4, .proto_L4 = protocol_L4::UDP, .client_port = client_port, .server_port = server_port});
+}
+
+void event_test::client_to_server_ipv6_tcp(send_data send_d, recv_data receive_d, int32_t client_port, int32_t server_port)
+{
+	this->client_to_server(send_d, receive_d, network_config{.proto_L3 = protocol_L3::IPv6, .proto_L4 = protocol_L4::TCP, .client_port = client_port, .server_port = server_port});
+}
+
+void event_test::client_to_server_ipv6_udp(send_data send_d, recv_data receive_d, int32_t client_port, int32_t server_port)
+{
+	this->client_to_server(send_d, receive_d, network_config{.proto_L3 = protocol_L3::IPv6, .proto_L4 = protocol_L4::UDP, .client_port = client_port, .server_port = server_port});
 }
 
 void event_test::connect_ipv4_udp_client_to_server(int32_t* client_socket, sockaddr_in* client_sockaddr, int32_t* server_socket, sockaddr_in* server_sockaddr, int32_t port_client, int32_t port_server)
@@ -685,7 +705,7 @@ void event_test::connect_ipv4_udp_client_to_server(int32_t* client_socket, socka
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, *client_socket, (sockaddr*)client_sockaddr, sizeof(*client_sockaddr)), NOT_EQUAL, -1);
 }
 
-void event_test::connect_ipv6_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr)
+void event_test::connect_ipv6_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr, int32_t port_client, int32_t port_server)
 {
 	/* Create the server socket. */
 	*server_socket = syscall(__NR_socket, AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
@@ -693,7 +713,7 @@ void event_test::connect_ipv6_client_to_server(int32_t* client_socket, sockaddr_
 	server_reuse_address_port(*server_socket);
 
 	memset(server_sockaddr, 0, sizeof(*server_sockaddr));
-	server_fill_sockaddr_in6(server_sockaddr);
+	server_fill_sockaddr_in6(server_sockaddr, port_server);
 
 	/* Now we bind the server socket with the server address. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, *server_socket, (sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
@@ -706,14 +726,14 @@ void event_test::connect_ipv6_client_to_server(int32_t* client_socket, sockaddr_
 	client_reuse_address_port(*client_socket);
 
 	memset(client_sockaddr, 0, sizeof(*client_sockaddr));
-	client_fill_sockaddr_in6(client_sockaddr);
+	client_fill_sockaddr_in6(client_sockaddr, port_client);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, *client_socket, (sockaddr*)client_sockaddr, sizeof(*client_sockaddr)), NOT_EQUAL, -1);
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, *client_socket, (sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
 }
 
-void event_test::connect_ipv6_udp_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr)
+void event_test::connect_ipv6_udp_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr, int32_t port_client, int32_t port_server)
 {
 	/* Create the server socket. */
 	*server_socket = syscall(__NR_socket, AF_INET6, SOCK_DGRAM, 0);
@@ -721,7 +741,7 @@ void event_test::connect_ipv6_udp_client_to_server(int32_t* client_socket, socka
 	server_reuse_address_port(*server_socket);
 
 	memset(server_sockaddr, 0, sizeof(*server_sockaddr));
-	server_fill_sockaddr_in6(server_sockaddr);
+	server_fill_sockaddr_in6(server_sockaddr, port_server);
 
 	/* Now we bind the server socket with the server address. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, *server_socket, (sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
@@ -733,7 +753,7 @@ void event_test::connect_ipv6_udp_client_to_server(int32_t* client_socket, socka
 	client_reuse_address_port(*client_socket);
 
 	memset(client_sockaddr, 0, sizeof(*client_sockaddr));
-	client_fill_sockaddr_in6(client_sockaddr);
+	client_fill_sockaddr_in6(client_sockaddr, port_client);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, *client_socket, (sockaddr*)client_sockaddr, sizeof(*client_sockaddr)), NOT_EQUAL, -1);

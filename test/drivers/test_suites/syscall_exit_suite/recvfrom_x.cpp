@@ -16,8 +16,8 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_by_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto},
-					receive_data{.syscall_num = __NR_recvfrom}, protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto},
+					recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -61,8 +61,8 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_truncated_by_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom}, protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -109,8 +109,8 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom}, protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -165,8 +165,8 @@ TEST(SyscallExit, recvfromX_ipv6_tcp_message_not_truncated_fullcapture_port)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom}, protocol_L3::IPv6, protocol_L4::TCP);
+	evt_test->client_to_server_ipv6_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -216,9 +216,8 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_sockaddr)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true},
-					protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -270,9 +269,8 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port_NULL
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true},
-					protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -322,9 +320,8 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_NULL_buffer)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom, .null_receiver_buffer = true},
-					protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom, .null_receiver_buffer = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -369,8 +366,8 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_by_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto},
-					receive_data{.syscall_num = __NR_recvfrom}, protocol_L3::IPv4, protocol_L4::UDP);
+	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto},
+					recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -412,8 +409,8 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_by_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom}, protocol_L3::IPv4, protocol_L4::UDP);
+	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -460,8 +457,8 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_not_truncated_fullcapture_port)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom}, protocol_L3::IPv4, protocol_L4::UDP);
+	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -511,8 +508,8 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_sockaddr)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true}, protocol_L3::IPv4, protocol_L4::UDP);
+	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -564,8 +561,8 @@ TEST(SyscallExit, recvfromX_ipv4_udp_message_truncated_fullcapture_port_NULL_soc
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true}, protocol_L3::IPv4, protocol_L4::UDP);
+	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -615,8 +612,8 @@ TEST(SyscallExit, recvfromX_ipv4_udp_NULL_buffer)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					receive_data{.syscall_num = __NR_recvfrom, .null_receiver_buffer = true}, protocol_L3::IPv4, protocol_L4::UDP);
+	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+					recv_data{.syscall_num = __NR_recvfrom, .null_receiver_buffer = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

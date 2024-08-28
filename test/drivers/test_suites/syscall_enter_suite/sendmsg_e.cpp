@@ -13,8 +13,7 @@ TEST(SyscallEnter, sendmsgE_ipv4_tcp)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg}, receive_data{.skip_recv_phase = true},
-					protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -53,8 +52,7 @@ TEST(SyscallEnter, sendmsgE_ipv4_tcp_NULL_sockaddr)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg, .null_sockaddr = true},
-					receive_data{.skip_recv_phase = true}, protocol_L3::IPv4, protocol_L4::TCP);
+	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendmsg, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -104,8 +102,7 @@ TEST(SyscallEnter, sendmsgE_ipv4_udp)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server(send_data{.syscall_num = __NR_sendmsg}, receive_data{.skip_recv_phase = true},
-					protocol_L3::IPv4, protocol_L4::UDP);
+	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

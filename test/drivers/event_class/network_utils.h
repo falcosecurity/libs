@@ -16,22 +16,34 @@
 /* Server queue length. */
 #define QUEUE_LENGTH 2
 
+/* IP ports 
+ * todo!: The distinction between ipv4 and ipv6 ports is not necessary.
+ * at the moment we keep them just too avoid to touch many files.
+ */
+#define IP_PORT_DNS 53
+#define IP_PORT_EMPTY 0
+#define IP_PORT_EMPTY_STRING "0"
+#define IP_PORT_CLIENT 51789
+#define IP_PORT_CLIENT_STRING "51789"
+#define IP_PORT_SERVER 52889
+#define IP_PORT_SERVER_STRING "52889"
+
 /*=============================== IPV4 ===========================*/
 
 /* Empty endpoint */
 #define IPV4_EMPTY "0.0.0.0"
-#define IPV4_PORT_EMPTY 0
-#define IPV4_PORT_EMPTY_STRING "0"
+#define IPV4_PORT_EMPTY IP_PORT_EMPTY
+#define IPV4_PORT_EMPTY_STRING IP_PORT_EMPTY_STRING
 
 /* IPv4 Client */
 #define IPV4_CLIENT "127.0.21.34"
-#define IPV4_PORT_CLIENT 51789
-#define IPV4_PORT_CLIENT_STRING "51789"
+#define IPV4_PORT_CLIENT IP_PORT_CLIENT
+#define IPV4_PORT_CLIENT_STRING IP_PORT_CLIENT_STRING
 
 /* IPv4 Server */
 #define IPV4_SERVER "127.59.21.35"
-#define IPV4_PORT_SERVER 52889
-#define IPV4_PORT_SERVER_STRING "52889"
+#define IPV4_PORT_SERVER IP_PORT_SERVER
+#define IPV4_PORT_SERVER_STRING IP_PORT_SERVER_STRING
 
 /*=============================== IPV4 ===========================*/
 
@@ -39,13 +51,13 @@
 
 /* IPv6 Client */
 #define IPV6_CLIENT "::ffff:127.0.0.4"
-#define IPV6_PORT_CLIENT 51790
-#define IPV6_PORT_CLIENT_STRING "51790"
+#define IPV6_PORT_CLIENT IP_PORT_CLIENT
+#define IPV6_PORT_CLIENT_STRING IP_PORT_CLIENT_STRING
 
 /* IPv6 Server */
 #define IPV6_SERVER "::ffff:127.0.0.5"
-#define IPV6_PORT_SERVER 52890
-#define IPV6_PORT_SERVER_STRING "52890"
+#define IPV6_PORT_SERVER IP_PORT_SERVER
+#define IPV6_PORT_SERVER_STRING IP_PORT_SERVER_STRING
 
 /*=============================== IPV6 ===========================*/
 

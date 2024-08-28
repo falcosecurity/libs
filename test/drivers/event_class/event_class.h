@@ -43,7 +43,7 @@ struct send_data {
 	bool null_sockaddr;
 };
 
-struct receive_data {
+struct recv_data {
 	int syscall_num;
 	bool null_sockaddr;
 	bool null_receiver_buffer;
@@ -60,6 +60,14 @@ enum protocol_L3
 {
 	IPv4 = 0,
 	IPv6 = 1,
+};
+
+struct network_config
+{
+	protocol_L3 proto_L3;
+	protocol_L4 proto_L4;
+	int32_t client_port;
+	int32_t server_port;
 };
 
 /* Assertion operators */
@@ -355,12 +363,16 @@ public:
 	void connect_ipv4_udp_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
 
 	// todo!: we should rename it into `connect_ipv6_client_to_server`
-	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr);
-	void connect_ipv6_udp_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr);
+	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr, int32_t client_port = IPV6_PORT_CLIENT, int32_t server_port = IPV6_PORT_SERVER);
+	void connect_ipv6_udp_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr, int32_t client_port = IPV6_PORT_CLIENT, int32_t server_port = IPV6_PORT_SERVER);
 
 	void connect_unix_client_to_server(int32_t* client_socket, struct sockaddr_un* client_sockaddr, int32_t* server_socket, struct sockaddr_un* server_sockaddr);
 
-	void client_to_server(send_data send_d, receive_data receive_d, protocol_L3 proto_L3, protocol_L4 proto_L4);
+	void client_to_server(send_data send_d, recv_data receive_d, network_config net_config);
+	void client_to_server_ipv4_tcp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
+	void client_to_server_ipv4_udp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
+	void client_to_server_ipv6_tcp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
+	void client_to_server_ipv6_udp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
 	
 	/////////////////////////////////
 	// GENERIC EVENT ASSERTIONS
