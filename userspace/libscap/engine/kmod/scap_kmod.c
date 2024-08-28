@@ -586,10 +586,10 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val)
+static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val, uint32_t metric_type)
 {
 	m->type = METRIC_VALUE_TYPE_U64;
-	m->flags = METRICS_V2_KERNEL_COUNTERS;
+	m->flags = metric_type;
 	m->unit = METRIC_VALUE_UNIT_COUNT;
 	m->metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 	m->value.u64 = val;
@@ -606,11 +606,17 @@ const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine
 	// If it is the first time we call this function, we allocate the stats
 	if(handle->m_stats == NULL)
 	{
-		// The difference with other drivers is that here we consider only ONLINE CPUs and not the AVILABLE ones.
-		// At the moment for each ONLINE CPU we want:
-		// - the number of events.
-		// - the number of drops.
-		uint32_t per_dev_stats = devset->m_ndevs* 2;
+		// We don't allocate space for per-cpu stats, if we don't enable them at init time.
+		// At the moment we don't support dynamic metrics selection at runtime.
+		uint32_t per_dev_stats = 0;
+		if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU)
+		{
+			// The difference with other drivers is that here we consider only ONLINE CPUs and not the AVILABLE ones.
+			// At the moment for each ONLINE CPU we want:
+			// - the number of events.
+			// - the number of drops.
+			per_dev_stats = devset->m_ndevs* 2;
+		}
 
 		handle->m_nstats = KMOD_MAX_KERNEL_COUNTERS_STATS + per_dev_stats;
 		handle->m_stats = (metrics_v2*)calloc(handle->m_nstats, sizeof(metrics_v2));
@@ -631,7 +637,7 @@ const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine
 	{
 		for(uint32_t stat = 0; stat < KMOD_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			set_u64_monotonic_kernel_counter(&(stats[stat]), 0);
+			set_u64_monotonic_kernel_counter(&(stats[stat]), 0, METRICS_V2_KERNEL_COUNTERS);
 			strlcpy(stats[stat].name, (char*)kmod_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
 
@@ -660,17 +666,43 @@ const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine
 					dev->m_bufinfo->n_drops_pf;
 			stats[KMOD_N_PREEMPTIONS].value.u64 += dev->m_bufinfo->n_preemptions;
 
-			// We set the num events for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[pos]), dev->m_bufinfo->n_evts);
-			snprintf(stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_DEVICE_PREFIX"%d", j);
-			pos++;
+			// This is just a way to avoid the double loop on the number of devices.
+			if((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU))
+			{
+				// We set the num events for that CPU.
+				set_u64_monotonic_kernel_counter(&(stats[pos]), dev->m_bufinfo->n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_DEVICE_PREFIX"%d", j);
+				pos++;
 
-			// We set the drops for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[pos]), dev->m_bufinfo->n_drops_buffer + dev->m_bufinfo->n_drops_pf);
-			snprintf(stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_DEVICE_PREFIX"%d", j);
-			pos++;
+				// We set the drops for that CPU.
+				set_u64_monotonic_kernel_counter(&(stats[pos]), dev->m_bufinfo->n_drops_buffer + dev->m_bufinfo->n_drops_pf, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_DEVICE_PREFIX"%d", j);
+				pos++;
+			}
 		}
 		offset = pos;
+	}
+
+	/* KERNEL COUNTERS PER CPU STATS 
+	 * The following `if` handle the case in which we want to get the metrics per CPU but not the global ones.
+	 * It is an unsual case but at the moment we support it.
+	 */
+	if ((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) && !(flags & METRICS_V2_KERNEL_COUNTERS))
+	{
+		for(uint32_t j = 0; j < devset->m_ndevs; j++)
+		{
+			struct scap_device *dev = &devset->m_devs[j];
+
+			// We set the num events for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[offset]), dev->m_bufinfo->n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+			snprintf(stats[offset].name, METRIC_NAME_MAX, N_EVENTS_PER_DEVICE_PREFIX"%d", j);
+			offset++;
+
+			// We set the drops for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[offset]), dev->m_bufinfo->n_drops_buffer + dev->m_bufinfo->n_drops_pf, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+			snprintf(stats[offset].name, METRIC_NAME_MAX, N_DROPS_PER_DEVICE_PREFIX"%d", j);
+			offset++;
+		}
 	}
 
 	*nstats = offset;

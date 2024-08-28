@@ -866,7 +866,7 @@ void print_stats()
 {
 	gettimeofday(&tval_end, NULL);
 	timersub(&tval_end, &tval_start, &tval_result);
-	uint32_t flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS;
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS | METRICS_V2_LIBBPF_STATS | METRICS_V2_KERNEL_COUNTERS_PER_CPU;
 	uint32_t nstats;
 	int32_t rc;
 	const metrics_v2* stats_v2;
