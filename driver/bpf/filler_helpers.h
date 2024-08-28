@@ -591,6 +591,10 @@ static __always_inline uint32_t bpf_compute_snaplen(struct filler_data *data, ui
 	{
 		return res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 	}
+	else if(port_remote == PPM_PORT_DNS)
+	{
+		return res > SNAPLEN_DNS_UDP ? res : SNAPLEN_DNS_UDP;
+	}
 	else if((port_local == PPM_PORT_MYSQL || port_remote == PPM_PORT_MYSQL) && lookahead_size >= 5)
 	{
 		if((get_buf(0) == 3 || get_buf(1) == 3 || get_buf(2) == 3 || get_buf(3) == 3 || get_buf(4) == 3) ||

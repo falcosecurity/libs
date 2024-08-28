@@ -1603,6 +1603,12 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, uint16_t
 		*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
 		return;
 	}
+	else if(port_remote == PPM_PORT_DNS)
+	{
+		/* Expanded snaplen for DNS port */
+		*snaplen = *snaplen > SNAPLEN_DNS_UDP ? *snaplen : SNAPLEN_DNS_UDP;
+		return;
+	}
 
 	/* If we check only port range without reading syscall data we can stop here */
 	if(only_port_range)

@@ -13,6 +13,7 @@ or GPL2.txt for full copies of the license.
 // #define SNAPLEN_TRACERS_ENABLED 4096 // note: deprecated
 #define SNAPLEN_FULLCAPTURE_PORT 16000
 #define SNAPLEN_MAX 65000
+#define SNAPLEN_DNS_UDP 512
 
 /* Deep packet inspection logic */
 #define DPI_LOOKAHEAD_SIZE 16
@@ -20,6 +21,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_PORT_POSTGRES 5432
 #define PPM_PORT_STATSD 8125
 #define PPM_PORT_MONGODB 27017
+#define PPM_PORT_DNS 53
 
 /* HTTP */
 #define BPF_HTTP_GET 0x20544547
