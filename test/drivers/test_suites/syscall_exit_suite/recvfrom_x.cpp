@@ -152,6 +152,50 @@ TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_fullcapture_port)
 	evt_test->assert_num_params_pushed(3);
 }
 
+TEST(SyscallExit, recvfromX_ipv4_tcp_message_not_truncated_DNS_snaplen)
+{
+    auto evt_test = get_syscall_event_test(__NR_recvfrom, EXIT_EVENT);
+
+    evt_test->set_do_dynamic_snaplen(true);
+
+    evt_test->enable_capture();
+
+    /*=============================== TRIGGER SYSCALL  ===========================*/
+
+    evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+                    recv_data{.syscall_num = __NR_recvfrom}, IP_PORT_DNS, IP_PORT_SERVER);
+
+    /*=============================== TRIGGER SYSCALL ===========================*/
+
+    evt_test->disable_capture();
+
+    evt_test->set_do_dynamic_snaplen(false);
+
+    evt_test->assert_event_presence();
+
+    if(HasFatalFailure())
+    {
+        return;
+    }
+
+    evt_test->parse_event();
+
+    evt_test->assert_header();
+
+    /*=============================== ASSERT PARAMETERS  ===========================*/
+
+    /* Parameter 1: res (type: PT_ERRNO) */
+    evt_test->assert_numeric_param(1, (int64_t)MAX_RECV_BUF_SIZE);
+
+    /* Parameter 2: data (type: PT_BYTEBUF) */
+    // Since the client port matches the fullcapture port range we should see the full message.
+    evt_test->assert_bytebuf_param(2, LONG_MESSAGE, MAX_RECV_BUF_SIZE);
+
+    /*=============================== ASSERT PARAMETERS  ===========================*/
+
+    evt_test->assert_num_params_pushed(3);
+}
+
 TEST(SyscallExit, recvfromX_ipv6_tcp_message_not_truncated_fullcapture_port)
 {
 	auto evt_test = get_syscall_event_test(__NR_recvfrom, EXIT_EVENT);
