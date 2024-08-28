@@ -133,6 +133,49 @@ TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_fullcapture_port)
 	evt_test->assert_num_params_pushed(2);
 }
 
+TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_DNS_snaplen)
+{
+    auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
+
+    evt_test->set_do_dynamic_snaplen(true);
+
+    evt_test->enable_capture();
+
+    /*=============================== TRIGGER SYSCALL  ===========================*/
+
+    // The remote port is the DNS one so the snaplen should be increased.
+    evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true}, recv_data{.skip_recv_phase = true}, IP_PORT_CLIENT, IP_PORT_DNS);
+
+    /*=============================== TRIGGER SYSCALL ===========================*/
+
+    evt_test->disable_capture();
+
+    evt_test->set_do_dynamic_snaplen(false);
+
+    evt_test->assert_event_presence();
+
+    if(HasFatalFailure())
+    {
+        return;
+    }
+
+    evt_test->parse_event();
+
+    evt_test->assert_header();
+
+    /*=============================== ASSERT PARAMETERS  ===========================*/
+
+    /* Parameter 1: res (type: PT_ERRNO) */
+    evt_test->assert_numeric_param(1, (int64_t)LONG_MESSAGE_LEN);
+
+    /* Parameter 2: data (type: PT_BYTEBUF)*/
+    evt_test->assert_bytebuf_param(2, LONG_MESSAGE, LONG_MESSAGE_LEN);
+
+    /*=============================== ASSERT PARAMETERS  ===========================*/
+
+    evt_test->assert_num_params_pushed(2);
+}
+
 TEST(SyscallExit, sendtoX_ipv6_tcp_message_not_truncated_fullcapture_port)
 {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
