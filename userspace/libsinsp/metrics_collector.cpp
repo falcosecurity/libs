@@ -696,7 +696,7 @@ void libs_metrics_collector::snapshot()
 	 * libscap metrics
 	 */
 
-	if((m_metrics_flags & METRICS_V2_KERNEL_COUNTERS) || (m_metrics_flags & METRICS_V2_LIBBPF_STATS))
+	if((m_metrics_flags & METRICS_V2_KERNEL_COUNTERS) || (m_metrics_flags & METRICS_V2_LIBBPF_STATS) || (m_metrics_flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU))
 	{
 		uint32_t nstats = 0;
 		int32_t rc = 0;
