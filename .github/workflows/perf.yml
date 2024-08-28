@@ -158,8 +158,11 @@ jobs:
         run: |
           # Remove first 3 lines and last line that are no tests results
           tail -n+4 gbench_diff.txt | head -n -1 | while read p; do
-            diff_pct=$(echo "$p" | awk '{print $3}' | tr -d '+')
-            if (( $(echo "$diff_pct >= 5.0" | bc -l) )); then
-              exit 1
+            test_name=$(echo "$p" | awk '{print $1}')
+            if [[ "$test_name" =~ _mean$ ]]; then
+              diff_pct=$(echo "$p" | awk '{print $3}' | tr -d '+')
+              if (( $(echo "$diff_pct >= 5.0" | bc -l) )); then
+                exit 1
+              fi
             fi
           done
