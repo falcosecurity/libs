@@ -61,7 +61,7 @@ if(NOT MODERN_CLANG_EXE)
 endif()
 
 # If it is a relative path we convert it to an absolute one relative to the root source directory.
-get_filename_component(MODERN_CLANG_EXE "${MODERN_CLANG_EXE}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+get_filename_component(MODERN_CLANG_EXE "${MODERN_CLANG_EXE}" ABSOLUTE BASE_DIR "${CMAKE_SOURCE_DIR}")
 message(STATUS "${MODERN_BPF_LOG_PREFIX} clang used by the modern bpf probe: '${MODERN_CLANG_EXE}'")
 
 # Check the right clang version (>=12)
