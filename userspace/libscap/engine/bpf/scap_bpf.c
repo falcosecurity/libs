@@ -1688,10 +1688,10 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val)
+static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val, uint32_t metric_type)
 {
 	m->type = METRIC_VALUE_TYPE_U64;
-	m->flags = METRICS_V2_KERNEL_COUNTERS;
+	m->flags = metric_type;
 	m->unit = METRIC_VALUE_UNIT_COUNT;
 	m->metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 	m->value.u64 = val;
@@ -1722,11 +1722,15 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 			}
 		}
 
-		// At the moment for each available CPU we want:
-		// - the number of events.
-		// - the number of drops.
-		uint32_t per_cpu_stats = handle->m_ncpus* 2;
-
+		uint32_t per_cpu_stats = 0;
+		if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU)
+		{
+			// At the moment for each available CPU we want:
+			// - the number of events.
+			// - the number of drops.
+			per_cpu_stats = handle->m_ncpus* 2;
+		}
+		
 		handle->m_nstats = BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats + (nprogs_attached * BPF_MAX_LIBBPF_STATS);
 		handle->m_stats = (metrics_v2*)calloc(handle->m_nstats, sizeof(metrics_v2));
 		if(!handle->m_stats)
@@ -1746,7 +1750,7 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 	{
 		for(uint32_t stat = 0; stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			set_u64_monotonic_kernel_counter(&(stats[stat]), 0);
+			set_u64_monotonic_kernel_counter(&(stats[stat]), 0, METRICS_V2_KERNEL_COUNTERS);
 			strlcpy(stats[stat].name, (char*)bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
 		
@@ -1783,17 +1787,47 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 				v.n_drops_pf + \
 				v.n_drops_bug;
 
-			// We set the num events for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[pos]), v.n_evts);
-			snprintf(stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", cpu);
-			pos++;
+			if((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU))
+			{
+				// We set the num events for that CPU.
+				set_u64_monotonic_kernel_counter(&(stats[pos]), v.n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", cpu);
+				pos++;
 
-			// We set the drops for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[pos]), v.n_drops_buffer + v.n_drops_scratch_map + v.n_drops_pf + v.n_drops_bug);
-			snprintf(stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", cpu);
-			pos++;
+				// We set the drops for that CPU.
+				set_u64_monotonic_kernel_counter(&(stats[pos]), v.n_drops_buffer + v.n_drops_scratch_map + v.n_drops_pf + v.n_drops_bug, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", cpu);
+				pos++;
+			}
 		}
 		offset = pos;
+	}
+
+	/* KERNEL COUNTERS PER CPU STATS 
+	 * The following `if` handle the case in which we want to get the metrics per CPU but not the global ones.
+	 * It is an unsual case but at the moment we support it.
+	 */
+	if ((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) && !(flags & METRICS_V2_KERNEL_COUNTERS))
+	{
+		struct scap_bpf_per_cpu_state v = {};
+		for(int cpu = 0; cpu < handle->m_ncpus; cpu++)
+		{
+			if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &cpu, &v) < 0)
+			{
+				*rc = scap_errprintf(handle->m_lasterr, errno, "Error looking up local state %d", cpu);
+				return NULL;
+			}
+
+			// We set the num events for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[offset]), v.n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+			snprintf(stats[offset].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", cpu);
+			offset++;
+
+			// We set the drops for that CPU.
+			set_u64_monotonic_kernel_counter(&(stats[offset]), v.n_drops_buffer + v.n_drops_scratch_map + v.n_drops_pf + v.n_drops_bug, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+			snprintf(stats[offset].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", cpu);
+			offset++;
+		}
 	}
 
 	/* LIBBPF STATS */

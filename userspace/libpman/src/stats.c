@@ -140,10 +140,10 @@ clean_print_stats:
 	return errno;
 }
 
-static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val)
+static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val, uint32_t metric_type)
 {
 	g_state.stats[pos].type = METRIC_VALUE_TYPE_U64;
-	g_state.stats[pos].flags = METRICS_V2_KERNEL_COUNTERS;
+	g_state.stats[pos].flags = metric_type;
 	g_state.stats[pos].unit = METRIC_VALUE_UNIT_COUNT;
 	g_state.stats[pos].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 	g_state.stats[pos].value.u64 = val;
@@ -166,11 +166,15 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			}
 		}
 
-		// At the moment for each available CPU we want:
-		// - the number of events.
-		// - the number of drops.
-		uint32_t per_cpu_stats = g_state.n_possible_cpus* 2;
-
+		uint32_t per_cpu_stats = 0;
+		if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU)
+		{
+			// At the moment for each available CPU we want:
+			// - the number of events.
+			// - the number of drops.
+			per_cpu_stats = g_state.n_possible_cpus* 2;
+		}
+		
 		g_state.nstats = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats + (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS);
 		g_state.stats = (metrics_v2 *)calloc(g_state.nstats, sizeof(metrics_v2));
 		if(!g_state.stats)
@@ -197,7 +201,7 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 
 		for(uint32_t stat = 0; stat < MODERN_BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			set_u64_monotonic_kernel_counter(stat, 0);
+			set_u64_monotonic_kernel_counter(stat, 0, METRICS_V2_KERNEL_COUNTERS);
 			strlcpy(g_state.stats[stat].name, (char*)modern_bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
 		}
 
@@ -234,17 +238,57 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			g_state.stats[MODERN_BPF_N_DROPS_SCRATCH_MAP].value.u64 += cnt_map.n_drops_max_event_size;
 			g_state.stats[MODERN_BPF_N_DROPS].value.u64 += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 
-			// We set the num events for that CPU.
-			set_u64_monotonic_kernel_counter(pos, cnt_map.n_evts);
-			snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", index);
-			pos++;
+			if((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU))
+			{
+				// We set the num events for that CPU.
+				set_u64_monotonic_kernel_counter(pos, cnt_map.n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", index);
+				pos++;
 
-			// We set the drops for that CPU.
-			set_u64_monotonic_kernel_counter(pos, cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
-			snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", index);
-			pos++;
+				// We set the drops for that CPU.
+				set_u64_monotonic_kernel_counter(pos, cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", index);
+				pos++;
+			}
 		}
 		offset = pos;
+	}
+
+	/* KERNEL COUNTERS PER CPU STATS 
+	 * The following `if` handle the case in which we want to get the metrics per CPU but not the global ones.
+	 * It is an unsual case but at the moment we support it.
+	 */
+	if ((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) && !(flags & METRICS_V2_KERNEL_COUNTERS))
+	{
+		char error_message[MAX_ERROR_MESSAGE_LEN];
+		int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
+		if(counter_maps_fd <= 0)
+		{
+			pman_print_error("unable to get 'counter_maps' fd during kernel stats processing");
+			return NULL;
+		}
+
+		struct counter_map cnt_map = {};
+		for(uint32_t index = 0; index < g_state.n_possible_cpus; index++)
+		{
+			if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
+			{
+				snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get the counter map for CPU %d", index);
+				pman_print_error((const char *)error_message);
+				close(counter_maps_fd);
+				return NULL;
+			}
+
+			// We set the num events for that CPU.
+			set_u64_monotonic_kernel_counter(offset, cnt_map.n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+			snprintf(g_state.stats[offset].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", index);
+			offset++;
+
+			// We set the drops for that CPU.
+			set_u64_monotonic_kernel_counter(offset, cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+			snprintf(g_state.stats[offset].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", index);
+			offset++;
+		}
 	}
 
 	/* LIBBPF STATS */
