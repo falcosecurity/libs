@@ -333,7 +333,6 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 				{
 				case RUN_CNT:
 					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_CNT], sizeof(g_state.stats[offset].name));
-					g_state.stats[stat].flags = METRICS_V2_KERNEL_COUNTERS;
 					g_state.stats[stat].unit = METRIC_VALUE_UNIT_COUNT;
 					g_state.stats[stat].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 					g_state.stats[offset].value.u64 = info.run_cnt;
