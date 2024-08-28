@@ -418,6 +418,11 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 		res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 		goto done;
 	}
+	else if(port_remote == PPM_PORT_DNS)
+	{
+		res = res > SNAPLEN_DNS_UDP ? res : SNAPLEN_DNS_UDP;
+		goto done;
+	}
 	else if((port_local == PPM_PORT_MYSQL || port_remote == PPM_PORT_MYSQL) && lookahead_size >= 5)
 	{
 		if((buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) ||
