@@ -53,7 +53,7 @@ typedef enum modern_bpf_libbpf_stats
 } modern_bpf_libbpf_stats;
 
 const char *const modern_bpf_kernel_counters_stats_names[] = {
-	[MODERN_BPF_N_EVTS] = "n_evts",
+	[MODERN_BPF_N_EVTS] = N_EVENTS_PREFIX,
 	[MODERN_BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
 	[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
 	[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
@@ -252,43 +252,6 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 			}
 		}
 		offset = pos;
-	}
-
-	/* KERNEL COUNTERS PER CPU STATS 
-	 * The following `if` handle the case in which we want to get the metrics per CPU but not the global ones.
-	 * It is an unsual case but at the moment we support it.
-	 */
-	if ((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) && !(flags & METRICS_V2_KERNEL_COUNTERS))
-	{
-		char error_message[MAX_ERROR_MESSAGE_LEN];
-		int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-		if(counter_maps_fd <= 0)
-		{
-			pman_print_error("unable to get 'counter_maps' fd during kernel stats processing");
-			return NULL;
-		}
-
-		struct counter_map cnt_map = {};
-		for(uint32_t index = 0; index < g_state.n_possible_cpus; index++)
-		{
-			if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
-			{
-				snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get the counter map for CPU %d", index);
-				pman_print_error((const char *)error_message);
-				close(counter_maps_fd);
-				return NULL;
-			}
-
-			// We set the num events for that CPU.
-			set_u64_monotonic_kernel_counter(offset, cnt_map.n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-			snprintf(g_state.stats[offset].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", index);
-			offset++;
-
-			// We set the drops for that CPU.
-			set_u64_monotonic_kernel_counter(offset, cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-			snprintf(g_state.stats[offset].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", index);
-			offset++;
-		}
 	}
 
 	/* LIBBPF STATS */

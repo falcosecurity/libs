@@ -50,7 +50,7 @@ limitations under the License.
 #include <libscap/strerror.h>
 
 static const char * const bpf_kernel_counters_stats_names[] = {
-	[BPF_N_EVTS] = "n_evts",
+	[BPF_N_EVTS] = N_EVENTS_PREFIX,
 	[BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
 	[BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
 	[BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
@@ -1801,33 +1801,6 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 			}
 		}
 		offset = pos;
-	}
-
-	/* KERNEL COUNTERS PER CPU STATS 
-	 * The following `if` handle the case in which we want to get the metrics per CPU but not the global ones.
-	 * It is an unsual case but at the moment we support it.
-	 */
-	if ((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) && !(flags & METRICS_V2_KERNEL_COUNTERS))
-	{
-		struct scap_bpf_per_cpu_state v = {};
-		for(int cpu = 0; cpu < handle->m_ncpus; cpu++)
-		{
-			if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &cpu, &v) < 0)
-			{
-				*rc = scap_errprintf(handle->m_lasterr, errno, "Error looking up local state %d", cpu);
-				return NULL;
-			}
-
-			// We set the num events for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[offset]), v.n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-			snprintf(stats[offset].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", cpu);
-			offset++;
-
-			// We set the drops for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[offset]), v.n_drops_buffer + v.n_drops_scratch_map + v.n_drops_pf + v.n_drops_bug, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-			snprintf(stats[offset].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", cpu);
-			offset++;
-		}
 	}
 
 	/* LIBBPF STATS */

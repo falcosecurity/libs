@@ -302,6 +302,12 @@ int32_t scap_get_stats(scap_t* handle, scap_stats* stats)
 //
 const struct metrics_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
+	// If we enable per-cpu counters, we also enable kernel global counters by default.
+	if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU)
+	{
+		flags |= METRICS_V2_KERNEL_COUNTERS;
+	}
+
 	if(handle && handle->m_vtable)
 	{
 		return handle->m_vtable->get_stats_v2(handle->m_engine, flags, nstats, rc);

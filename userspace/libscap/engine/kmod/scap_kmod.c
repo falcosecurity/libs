@@ -40,7 +40,7 @@ limitations under the License.
 #include <assert.h>
 
 static const char * const kmod_kernel_counters_stats_names[] = {
-	[KMOD_N_EVTS] = "n_evts",
+	[KMOD_N_EVTS] = N_EVENTS_PREFIX,
 	[KMOD_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
 	[KMOD_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
 	[KMOD_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
@@ -666,7 +666,6 @@ const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine
 					dev->m_bufinfo->n_drops_pf;
 			stats[KMOD_N_PREEMPTIONS].value.u64 += dev->m_bufinfo->n_preemptions;
 
-			// This is just a way to avoid the double loop on the number of devices.
 			if((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU))
 			{
 				// We set the num events for that CPU.
@@ -681,28 +680,6 @@ const struct metrics_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine
 			}
 		}
 		offset = pos;
-	}
-
-	/* KERNEL COUNTERS PER CPU STATS 
-	 * The following `if` handle the case in which we want to get the metrics per CPU but not the global ones.
-	 * It is an unsual case but at the moment we support it.
-	 */
-	if ((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) && !(flags & METRICS_V2_KERNEL_COUNTERS))
-	{
-		for(uint32_t j = 0; j < devset->m_ndevs; j++)
-		{
-			struct scap_device *dev = &devset->m_devs[j];
-
-			// We set the num events for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[offset]), dev->m_bufinfo->n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-			snprintf(stats[offset].name, METRIC_NAME_MAX, N_EVENTS_PER_DEVICE_PREFIX"%d", j);
-			offset++;
-
-			// We set the drops for that CPU.
-			set_u64_monotonic_kernel_counter(&(stats[offset]), dev->m_bufinfo->n_drops_buffer + dev->m_bufinfo->n_drops_pf, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-			snprintf(stats[offset].name, METRIC_NAME_MAX, N_DROPS_PER_DEVICE_PREFIX"%d", j);
-			offset++;
-		}
 	}
 
 	*nstats = offset;

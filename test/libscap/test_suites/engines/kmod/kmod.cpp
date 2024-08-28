@@ -193,8 +193,8 @@ TEST(kmod, metrics_v2_check_per_CPU_stats)
 
 	ssize_t num_online_CPUs = sysconf(_SC_NPROCESSORS_ONLN);
 
-	// We want to check our CPUs counters
-	uint32_t flags = METRICS_V2_KERNEL_COUNTERS;
+	// Enabling `METRICS_V2_KERNEL_COUNTERS_PER_CPU` we also enable `METRICS_V2_KERNEL_COUNTERS`
+	uint32_t flags = METRICS_V2_KERNEL_COUNTERS_PER_CPU;
 	uint32_t nstats = 0;
 	int32_t rc = 0;
 	const metrics_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
@@ -206,9 +206,18 @@ TEST(kmod, metrics_v2_check_per_CPU_stats)
 	ssize_t found = 0;
 	char expected_name[METRIC_NAME_MAX] = "";
 	snprintf(expected_name, METRIC_NAME_MAX, N_EVENTS_PER_DEVICE_PREFIX"%ld", found);
+	bool check_general_kernel_counters_presence = false;
 
 	while(i < nstats)
 	{
+		// We check if `METRICS_V2_KERNEL_COUNTERS` are enabled as well
+		if(strncmp(stats_v2[i].name, N_EVENTS_PREFIX, sizeof(N_EVENTS_PREFIX)) == 0)
+		{
+			check_general_kernel_counters_presence = true;
+			i++;
+			continue;
+		}
+
 		// `sizeof(N_EVENTS_PER_DEVICE_PREFIX)-1` because we need to exclude the `\0`
 		if(strncmp(stats_v2[i].name, N_EVENTS_PER_DEVICE_PREFIX, sizeof(N_EVENTS_PER_DEVICE_PREFIX)-1) == 0)
 		{
@@ -230,6 +239,8 @@ TEST(kmod, metrics_v2_check_per_CPU_stats)
 			i++;
 		}
 	}
+
+	ASSERT_TRUE(check_general_kernel_counters_presence) << "per-CPU counter are enabled but general kernel counters are not";
 
 	// This test could fail in case of rare race conditions in which the number of online CPUs changes
 	// between the scap_open and the `sysconf(_SC_NPROCESSORS_ONLN)` function. In CI we shouldn't have hot plugs so probably we
@@ -271,6 +282,16 @@ TEST(kmod, metrics_v2_check_results)
 			FAIL() << "unable to find stat '" << stat_name << "' into the array";
 		}
 	}
+
+	// Check per-CPU stats are not enabled since we didn't provide the flag.
+	for(i = 0; i < nstats; i++)
+	{
+		if(strncmp(stats_v2[i].name, N_EVENTS_PER_DEVICE_PREFIX, sizeof(N_EVENTS_PER_DEVICE_PREFIX)-1) == 0)
+		{
+			FAIL() << "per-CPU counters are enabled but we didn't provide the flag!";	
+		} 
+	}
+	
 	scap_close(h);
 }
 

@@ -31,6 +31,11 @@ extern "C" {
 #define METRIC_NAME_MAX 512
 
 //
+// Prefix name for n_evts metric (Used by all drivers)
+//
+#define N_EVENTS_PREFIX "n_evts"
+
+//
 // Prefix names for per-CPU metrics (Used by legacy ebpf and modern ebpf)
 //
 #define N_EVENTS_PER_CPU_PREFIX "n_evts_cpu_"
