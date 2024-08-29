@@ -19,6 +19,9 @@ limitations under the License.
 #include "sample_table.h"
 #include "test_plugins.h"
 
+#include <atomic>
+#include <memory>
+
 struct plugin_state
 {
     std::string lasterr;
@@ -26,7 +29,7 @@ struct plugin_state
     ss_plugin_routine_vtable routine_vtable;
 
     uint8_t step = 1;
-    bool flag = true;
+    std::atomic<bool> flag = true;
     ss_plugin_routine_t *routine;
 };
 
@@ -130,17 +133,20 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
     return SS_PLUGIN_SUCCESS;
 }
 
-static void plugin_capture_open(ss_plugin_t* s, const ss_plugin_capture_listen_input* i)
+static ss_plugin_rc plugin_capture_open(ss_plugin_t* s, const ss_plugin_capture_listen_input* i)
 {
     plugin_state *ps = (plugin_state *) s;
-    ps->routine_vtable = i->routine;
+    ps->routine_vtable.subscribe = i->routine->subscribe;
+    ps->routine_vtable.unsubscribe = i->routine->unsubscribe;
 
     ps->routine_vtable.subscribe(ps->owner, do_nothing, (ss_plugin_routine_state_t*)&ps->flag);
+
+    return SS_PLUGIN_SUCCESS;
 }
 
-static void plugin_capture_close(ss_plugin_t* s, const ss_plugin_capture_listen_input* i)
+static ss_plugin_rc plugin_capture_close(ss_plugin_t* s, const ss_plugin_capture_listen_input* i)
 {
-
+    return SS_PLUGIN_SUCCESS;
 }
 
 void get_plugin_api_sample_routines(plugin_api& out)

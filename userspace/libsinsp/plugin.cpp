@@ -826,7 +826,7 @@ thread_pool::routine_id_t sinsp_plugin::subscribe_routine(ss_plugin_routine_fn_t
 {
 	if(!m_thread_pool)
 	{
-		return static_cast<thread_pool::routine_id_t>(nullptr);
+		return reinterpret_cast<thread_pool::routine_id_t>(nullptr);
 	}
 
 	auto f = [this, routine_fn, routine_state]() -> bool {
@@ -836,14 +836,14 @@ thread_pool::routine_id_t sinsp_plugin::subscribe_routine(ss_plugin_routine_fn_t
 	return m_thread_pool->subscribe(f);
 }
 
-void sinsp_plugin::unsubscribe_routine(thread_pool::routine_id_t routine_id)
+bool sinsp_plugin::unsubscribe_routine(thread_pool::routine_id_t routine_id)
 {
 	if(!m_thread_pool || !routine_id)
 	{
-		return;
+		return false;
 	}
 
-	m_thread_pool->unsubscribe(routine_id);
+	return m_thread_pool->unsubscribe(routine_id);
 }
 
 ss_plugin_routine_t* plugin_subscribe_routine(ss_plugin_owner_t* o, ss_plugin_routine_fn_t r, ss_plugin_routine_state_t* s)
@@ -851,22 +851,27 @@ ss_plugin_routine_t* plugin_subscribe_routine(ss_plugin_owner_t* o, ss_plugin_ro
 	auto t = static_cast<sinsp_plugin*>(o);
 	auto res = t->subscribe_routine(r, s);
 
-	return static_cast<ss_plugin_routine_t*>(res);
+	return reinterpret_cast<ss_plugin_routine_t*>(res);
 }
 
-void plugin_unsubscribe_routine(ss_plugin_owner_t* o, ss_plugin_routine_t* r)
+ss_plugin_rc plugin_unsubscribe_routine(ss_plugin_owner_t* o, ss_plugin_routine_t* r)
 {
 	auto t = static_cast<sinsp_plugin*>(o);
-	auto id = static_cast<thread_pool::routine_id_t>(r);
+	auto id = reinterpret_cast<thread_pool::routine_id_t>(r);
 
-	t->unsubscribe_routine(id);
+	return t->unsubscribe_routine(id) ? SS_PLUGIN_SUCCESS : SS_PLUGIN_FAILURE;
 }
 
-void sinsp_plugin::capture_open()
+bool sinsp_plugin::capture_open()
 {
 	if(!m_inited)
 	{
 		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	if(!m_handle->api.capture_open)
+	{
+		return false;
 	}
 
 	ss_plugin_routine_vtable routine_vtable;
@@ -882,22 +887,24 @@ void sinsp_plugin::capture_open()
 	in.owner = (ss_plugin_owner_t *) this;
 	in.table_reader_ext = &table_reader_ext;
 	in.table_writer_ext = &table_writer_ext;
-	in.routine = routine_vtable;
+	in.routine = &routine_vtable;
 
 	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
 	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
 
-	if(m_handle->api.capture_open)
-	{
-		m_handle->api.capture_open(m_state, &in);
-	}
+	return m_handle->api.capture_open(m_state, &in) == SS_PLUGIN_SUCCESS;
 }
 
-void sinsp_plugin::capture_close()
+bool sinsp_plugin::capture_close()
 {
 	if(!m_inited)
 	{
 		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	if(!m_handle->api.capture_close)
+	{
+		return false;
 	}
 
 	ss_plugin_routine_vtable routine_vtable;
@@ -913,15 +920,12 @@ void sinsp_plugin::capture_close()
 	in.owner = (ss_plugin_owner_t *) this;
 	in.table_reader_ext = &table_reader_ext;
 	in.table_writer_ext = &table_writer_ext;
-	in.routine = routine_vtable;
+	in.routine = &routine_vtable;
 
 	sinsp_plugin::table_read_api(table_reader, table_reader_ext);
 	sinsp_plugin::table_write_api(table_writer, table_writer_ext);
 
-	if(m_handle->api.capture_close)
-	{
-		m_handle->api.capture_close(m_state, &in);
-	}
+	return m_handle->api.capture_close(m_state, &in) == SS_PLUGIN_SUCCESS;
 }
 
 /** Event Source CAP **/

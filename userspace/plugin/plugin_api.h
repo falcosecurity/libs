@@ -424,7 +424,9 @@ typedef struct
 	// Arguments:
 	// - o: the plugin's owner
 	// - r: the routine's handle
-	void (*unsubscribe)(ss_plugin_owner_t* o, ss_plugin_routine_t* r);
+	//
+	// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+	ss_plugin_rc (*unsubscribe)(ss_plugin_owner_t* o, ss_plugin_routine_t* r);
 } ss_plugin_routine_vtable;
 
 // Input passed to the plugin when the framework start and stops the capture.
@@ -437,7 +439,7 @@ typedef struct ss_plugin_capture_listen_input
 	//
 	// Vtable containing callbacks that can be used by the plugin
 	// for subscribing and unsubscribing routines to the framework's thread pool.
-	ss_plugin_routine_vtable routine;
+	ss_plugin_routine_vtable* routine;
 	//
 	// Vtable for controlling a state table for read operations.
 	ss_plugin_table_reader_vtable_ext* table_reader_ext;
@@ -1048,7 +1050,9 @@ typedef struct
 		// Arguments:
 		// - s: the plugin state, returned by init(). Can be NULL.
 		// - i: input containing vtables for performing table operations and subscribe/unsubscribe async routines
-		void (*capture_open)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
+		//
+		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+		ss_plugin_rc (*capture_open)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
 
 		//
 		// Called by the framework when the event capture closes.
@@ -1057,7 +1061,9 @@ typedef struct
 		// Arguments:
 		// - s: the plugin state, returned by init(). Can be NULL.
 		// - i: input containing vtables for performing table operations and subscribe/unsubscribe async routines
-		void (*capture_close)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
+		//
+		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+		ss_plugin_rc (*capture_close)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
 	};
 } plugin_api;
 

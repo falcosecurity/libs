@@ -77,6 +77,10 @@ if(NOT MSVC)
 		set(FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS "${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS};--coverage")
 	endif()
 
+	if(ENABLE_THREAD_POOL)
+		set(FALCOSECURITY_LIBS_COMMON_FLAGS "${FALCOSECURITY_LIBS_COMMON_FLAGS} -DENABLE_THREAD_POOL")
+	endif()
+
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FALCOSECURITY_LIBS_COMMON_FLAGS}")
 	# we need also `-std=c++17` here beacuse `set(CMAKE_CXX_STANDARD 17)` is not enough to enforce c++17
 	# with some Cmake versions: https://github.com/falcosecurity/libs/pull/950

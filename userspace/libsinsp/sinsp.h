@@ -1018,6 +1018,9 @@ public:
 	bool get_track_connection_status() const;
 	inline void set_track_connection_status(bool enabled);
 
+	std::shared_ptr<thread_pool> get_thread_pool();
+	bool set_thread_pool(std::shared_ptr<thread_pool> tpool);
+
 	/**
 	 * \brief Get a new timestamp.
 	 *
@@ -1202,6 +1205,8 @@ private:
 	std::string m_host_root;
 
 	int32_t m_quantization_interval = -1;
+
+	std::shared_ptr<thread_pool> m_thread_pool;
 
 public:
 	std::unique_ptr<sinsp_thread_manager> m_thread_manager;
@@ -1403,10 +1408,6 @@ public:
 	//
 	// A registry that managers the state tables of this inspector
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
-
-	//
-	// A thread pool capable of running non-blocking recurring routines
-	std::shared_ptr<thread_pool> m_thread_pool;
 
 	sinsp_observer* m_observer{nullptr};
 

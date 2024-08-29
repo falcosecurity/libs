@@ -29,8 +29,13 @@ limitations under the License.
 #include <libsinsp/version.h>
 #include <libsinsp/events/sinsp_events.h>
 #include <libsinsp/state/table_registry.h>
-#include <libsinsp/thread_pool.h>
 #include <plugin/plugin_loader.h>
+
+#if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
+#include <libsinsp/thread_pool_bs.h>
+#else
+#include <libsinsp/thread_pool.h>
+#endif
 
 /**
  * @brief An object-oriented representation of a plugin.
@@ -172,10 +177,10 @@ public:
 	std::string get_init_schema(ss_plugin_schema_type& schema_type) const;
 	bool set_config(const std::string& config);
 	std::vector<metrics_v2> get_metrics() const;
-	void capture_open();
-	void capture_close();
+	bool capture_open();
+	bool capture_close();
 	thread_pool::routine_id_t subscribe_routine(ss_plugin_routine_fn_t routine_fn, ss_plugin_routine_state_t* routine_state);
-	void unsubscribe_routine(thread_pool::routine_id_t routine_id);
+	bool unsubscribe_routine(thread_pool::routine_id_t routine_id);
 
 	/** Event Sourcing **/
 	inline uint32_t id() const
