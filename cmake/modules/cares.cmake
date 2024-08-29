@@ -28,37 +28,32 @@ elseif(NOT USE_BUNDLED_CARES)
 else()
 	if(BUILD_SHARED_LIBS)
 		set(CARES_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
-		set(CARES_CPPFLAGS)
-		set(CARES_STATIC_OPTION)
+		set(CARES_STATIC_OPTION "Off")
 	else()
 		set(CARES_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
-		set(CARES_CPPFLAGS -DCARES_STATICLIB)
-		set(CARES_STATIC_OPTION --disable-shared)
+		set(CARES_STATIC_OPTION "On")
 	endif()
 	set(CARES_SRC "${PROJECT_BINARY_DIR}/c-ares-prefix/src/c-ares")
-	set(CARES_INCLUDE "${CARES_SRC}/target/include/")
-	set(CARES_LIB "${CARES_SRC}/target/lib/libcares${CARES_LIB_SUFFIX}")
-	set(CARES_INSTALL_DIR "${CARES_SRC}/target")
+	set(CARES_INCLUDE "${CARES_SRC}/include/")
+	set(CARES_LIB "${CARES_SRC}/lib/libcares${CARES_LIB_SUFFIX}")
 
 	if(NOT TARGET c-ares)
-		if(NOT ENABLE_PIC)
-			set(CARES_PIC_OPTION)
-		else()
-			set(CARES_PIC_OPTION "--with-pic=yes")
-		endif()
-
 		message(STATUS "Using bundled c-ares in '${CARES_SRC}'")
 		ExternalProject_Add(
 			c-ares
 			PREFIX "${PROJECT_BINARY_DIR}/c-ares-prefix"
-			URL "https://github.com/c-ares/c-ares/releases/download/v1.30.0/c-ares-1.30.0.tar.gz"
-			URL_HASH "SHA256=4fea312112021bcef081203b1ea020109842feb58cd8a36a3d3f7e0d8bc1138c"
-			CONFIGURE_COMMAND CPPFLAGS=${CARES_CPPFLAGS} ./configure ${CARES_STATIC_OPTION}
-							  ${CARES_PIC_OPTION} --prefix=${CARES_INSTALL_DIR}
-			BUILD_COMMAND make
+			URL "https://github.com/c-ares/c-ares/releases/download/v1.33.1/c-ares-1.33.1.tar.gz"
+			URL_HASH "SHA256=06869824094745872fa26efd4c48e622b9bd82a89ef0ce693dc682a23604f415"
 			BUILD_IN_SOURCE 1
+			CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+					   -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
+					   -DCARES_SHARED=${BUILD_SHARED_LIBS}
+					   -DCARES_STATIC=${CARES_STATIC_OPTION}
+					   -DCARES_STATIC_PIC=${ENABLE_PIC}
+					   -DCARES_BUILD_TOOLS=Off
+					   -DCARES_INSTALL=Off
 			BUILD_BYPRODUCTS ${CARES_INCLUDE} ${CARES_LIB}
-			INSTALL_COMMAND make install
+			INSTALL_COMMAND ""
 		)
 		install(
 			FILES "${CARES_LIB}"
