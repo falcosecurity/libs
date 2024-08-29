@@ -57,7 +57,7 @@ extern "C" {
 #define METRICS_V2_RULE_COUNTERS (1 << 4)
 #define METRICS_V2_MISC (1 << 5)
 #define METRICS_V2_PLUGINS (1 << 6)
-#define METRICS_V2_KERNEL_COUNTERS_PER_CPU (1 << 7)
+#define METRICS_V2_KERNEL_COUNTERS_PER_CPU (1 << 7) // Requesting this does also silently enable METRICS_V2_KERNEL_COUNTERS
 
 typedef union metrics_v2_value {
 	uint32_t u32;
