@@ -16,6 +16,7 @@
 #
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
+option(ENABLE_THREAD_POOL "Enable inspector thread pool" OFF)
 
 if(NOT MSVC)
 	add_definitions(-DHAVE_PWD_H)
@@ -100,7 +101,6 @@ add_library(sinsp
 	prefix_search.cpp
 	sinsp_syslog.cpp
 	threadinfo.cpp
-	thread_pool.cpp
 	tuples.cpp
 	sinsp.cpp
 	token_bucket.cpp
@@ -112,6 +112,13 @@ add_library(sinsp
 	events/sinsp_events.cpp
 	events/sinsp_events_ppm_sc.cpp
 )
+
+if (ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
+	target_sources(sinsp
+	PRIVATE
+		thread_pool_bs.cpp
+	)
+endif()
 
 if(NOT WIN32 AND NOT APPLE)
 	target_sources(sinsp PRIVATE procfs_utils.cpp sinsp_cgroup.cpp)
@@ -200,7 +207,7 @@ if(USE_BUNDLED_JSONCPP)
 	add_dependencies(sinsp jsoncpp)
 endif()
 
-if(USE_BUNDLED_BS_THREADPOOL)
+if(ENABLE_THREAD_POOL AND USE_BUNDLED_BS_THREADPOOL)
 	add_dependencies(sinsp bs_threadpool)
 endif()
 

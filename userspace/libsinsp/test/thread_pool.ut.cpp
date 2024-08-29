@@ -19,12 +19,12 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include <sinsp_with_test_input.h>
 
-#if !defined(__EMSCRIPTEN__)
+#if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
 TEST_F(sinsp_with_test_input, thread_pool)
 {
     open_inspector();
 
-    auto& tp = m_inspector.m_thread_pool;
+    auto tp = m_inspector.get_thread_pool();
     
     ASSERT_NE(tp, nullptr);
     ASSERT_EQ(tp->routines_num(), 0);
@@ -36,19 +36,26 @@ TEST_F(sinsp_with_test_input, thread_pool)
         });
 
     // check if the routine has been subscribed
-    ASSERT_NE(r, nullptr);
+    ASSERT_NE(r, 0);
     ASSERT_EQ(tp->routines_num(), 1);
 
     // check if the routine has been unsubscribed
-    tp->unsubscribe(r);
+    auto res = tp->unsubscribe(r);
     ASSERT_EQ(tp->routines_num(), 0);
+    ASSERT_EQ(res, true);
+
+    // unsuccessful unsubscribe
+    res = tp->unsubscribe(0);
+    ASSERT_EQ(res, false);
 
     // subscribe a routine that keeps running until a condition is met (returns false)
-    int count = 0;
-    r = tp->subscribe([&count]
+    std::atomic<int> count = 0;
+    std::atomic<bool> routine_exited = false;
+    r = tp->subscribe([&count, &routine_exited]
         {
             if(count >= 1024)
             {
+                routine_exited = true;
                 return false;
             }
             count++;
@@ -57,8 +64,11 @@ TEST_F(sinsp_with_test_input, thread_pool)
     ASSERT_EQ(tp->routines_num(), 1);
 
     // the routine above keeps increasing a counter, until the counter reaches 1024
-    // we give the routine enough time to finish, then we check if it has been unsubscribed
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    // we wait for the routine to exit, then we check if it has been unsubscribed
+    while(!routine_exited)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
     ASSERT_EQ(count, 1024);
     ASSERT_EQ(tp->routines_num(), 0); 
 

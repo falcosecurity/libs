@@ -132,9 +132,12 @@ sinsp::sinsp(bool with_metrics) :
 	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
 	m_table_registry->add_table(m_thread_manager.get());
 
-#if !defined(__EMSCRIPTEN__)
-	m_thread_pool = std::make_shared<bs_thread_pool>();
+#if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
+	m_thread_pool = std::make_shared<thread_pool_bs>();
+#else
+	m_thread_pool = nullptr;
 #endif
+
 }
 
 sinsp::~sinsp()
@@ -2165,5 +2168,21 @@ bool sinsp::get_track_connection_status() const
 void sinsp::set_track_connection_status(bool enabled)
 {
 	m_parser->set_track_connection_status(enabled);
+}
+
+std::shared_ptr<thread_pool> sinsp::get_thread_pool() 
+{
+	return m_thread_pool;
+}
+
+bool sinsp::set_thread_pool(std::shared_ptr<thread_pool> tpool)
+{
+	if(!m_thread_pool)
+	{
+		m_thread_pool = tpool;
+		return true;
+	}
+
+	return false;
 }
 
