@@ -7,10 +7,10 @@
 This document introduces the coding style that will be applied in this repository.
 This coding style involves all the following files: `.c`, `.h`, `.cpp`, `.cmake`, `CMakeLists.txt`. To enforce it we rely on two main tools:
 
-1. `clang-format` version `17.0.6`.
+1. `clang-format` version `18.1.8`.
 2. `cmake-format` version `0.6.13`.
 
-> __Please note__: tools versions are important! Different versions will enforce slightly different changes on the code. For example `clang-format-17` will produce a slightly different output respect to `clang-format-16` always respecting the imposed style.
+> __Please note__: tools versions are important! Different versions will enforce slightly different changes on the code. For example `clang-format-18` will produce a slightly different output respect to `clang-format-17` always respecting the imposed style.
 
 The coding style is expressed through the 2 configuration file that you find in this repo: `.clang-format`, `.cmake-format.json`.  
 
@@ -68,7 +68,7 @@ pre-commit uninstall --hook-type pre-commit
 
 In order to use the repo `Makefile`, you need to install on your local machine the two aforementioned tools:
 
-__clang-format v17.0.6__
+__clang-format v18.1.8__
 
 One of the easiest ways to install `clang-format` could be directly downloading its static binary from [here](https://github.com/muttleyxd/clang-tools-static-binaries).
 There are other ways for example you can download the package for your distro or you can also build it from sources.
