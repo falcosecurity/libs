@@ -17,7 +17,7 @@
 # mofidy the following variables to match your paths
 CLANG_FORMAT_EXE ?= clang-format
 CLANG_FORMAT_VERSION = "$(shell ${CLANG_FORMAT_EXE} --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')"
-CLANG_FORMAT_DESIRED_VERSION ="17.0.6"
+CLANG_FORMAT_DESIRED_VERSION ="18.1.8"
 
 CMAKE_FORMAT_EXE ?= cmake-format
 CMAKE_FORMAT_VERSION = "$(shell ${CMAKE_FORMAT_EXE} --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')"
