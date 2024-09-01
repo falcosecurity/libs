@@ -2531,14 +2531,17 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int
 		return ".";
 	}
 
+	if(evt->get_tinfo() == NULL)
+	{
+		// In this case we can
+		// - neither retrieve the cwd when dirfd == PPM_AT_FDCWD
+		// - nor attempt to query the threadtable for the dirfd fd_info
+		return "<UNKNOWN>";
+	}
+
 	if(dirfd == PPM_AT_FDCWD)
 	{
-		if(evt->get_tinfo() != NULL)
-		{
-			return evt->get_tinfo()->get_cwd();
-		}
-
-		return "<UNKNOWN>";
+		return evt->get_tinfo()->get_cwd();
 	}
 
 	evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
