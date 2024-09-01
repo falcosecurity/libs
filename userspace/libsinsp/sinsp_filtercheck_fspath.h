@@ -58,6 +58,7 @@ private:
 	bool extract_fspath(sinsp_evt* evt,
 			    std::vector<extract_value_t>& values,
 			    const std::shared_ptr<filtercheck_map_t>& map);
+	std::string parse_dirfd_stateless(sinsp_evt *evt, std::string_view name, int64_t dirfd);
 	std::string m_tstr;
 
 	std::shared_ptr<filtercheck_map_t> m_success_checks;

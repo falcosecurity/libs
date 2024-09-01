@@ -30,6 +30,7 @@ protected:
 	const char *resolved_filename = "/tmp/filename.txt";
 	const char *rel_filename = "tmp/filename.txt";
 	const char *resolved_rel_filename_cwd = "/root/tmp/filename.txt";
+	const char *resolved_rel_filename2_cwd = "/root/tmp/name.txt";
 
 	const char *rel_filename_complex = "../\\.../../tmp/filename_complex";
 	const char *resolved_rel_filename_complex = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/tmp/filename_complex";
@@ -173,14 +174,14 @@ protected:
 		}
 		switch (event_type)
 		{
-			// case PPME_SYSCALL_OPENAT_2_X: // those 2 are currently failing
-			// case PPME_SYSCALL_OPENAT2_X:
+			case PPME_SYSCALL_OPENAT_2_X: // involves dirfd resolution
+			case PPME_SYSCALL_OPENAT2_X: // involves dirfd resolution
 			case PPME_SYSCALL_OPEN_X:
 			case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
 				{
 					verify_fd_name_same_fs_path_name(evt);
 				}
-				break;	
+				break;
 			default:
 				break;
 		}
@@ -365,20 +366,19 @@ TEST_F(fspath, openat2)
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, evt_dirfd, name, open_flags, mode, resolve);
 }
 
-TEST_F(fspath, openat2_relative)
+TEST_F(fspath, openat2_relative_dirfd)
 {
 	test_enter(PPME_SYSCALL_OPENAT2_E, 5, evt_dirfd, name, open_flags, mode, resolve);
 	test_exit_path(resolved_rel_name, rel_name, PPME_SYSCALL_OPENAT2_X, 6, fd, evt_dirfd, rel_name, open_flags, mode, resolve);
 	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, evt_dirfd, name, open_flags, mode, resolve);
 }
 
-TEST_F(fspath, openat2_relative_dirfd_cwd)
+TEST_F(fspath, openat2_relative_cwd)
 {
 	// Also test scenario where relative path should be interpreted relative to the cwd and not dirfd
-	const char *resolved_rel_name_dirfd_cwd = "/root/tmp/name.txt";
-	test_enter(PPME_SYSCALL_OPENAT2_E, 5, PPM_AT_FDCWD, name, open_flags, mode, resolve);
-	test_exit_path(resolved_rel_name_dirfd_cwd, rel_name, PPME_SYSCALL_OPENAT2_X, 6, fd, PPM_AT_FDCWD, rel_name, open_flags, mode, resolve);
-	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, PPM_AT_FDCWD, name, open_flags, mode, resolve);
+	test_enter(PPME_SYSCALL_OPENAT2_E, 5, evt_dirfd_cwd, name, open_flags, mode, resolve);
+	test_exit_path(resolved_rel_filename2_cwd, rel_name, PPME_SYSCALL_OPENAT2_X, 6, fd, evt_dirfd_cwd, rel_name, open_flags, mode, resolve);
+	test_failed_exit(PPME_SYSCALL_OPENAT2_X, 6, failed_res, evt_dirfd_cwd, name, open_flags, mode, resolve);
 }
 
 TEST_F(fspath, fchmodat)
