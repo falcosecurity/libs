@@ -240,6 +240,56 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fspath::allocate_new()
 	return ret;
 }
 
+std::string sinsp_filter_check_fspath::parse_dirfd_stateless(sinsp_evt *evt, std::string_view name, int64_t dirfd)
+{
+	// Slight alteration ("stateless" meaning no writes to the thread table's fd_info) 
+	// else a 1:1 adoption of sinsp_parser::parse_dirfd
+
+	bool is_absolute = false;
+	/* This should never happen but just to be sure. */
+	if(name.data() != nullptr)
+	{
+		is_absolute = (!name.empty() && name[0] == '/');
+	}
+
+	std::string tdirstr;
+
+	if(is_absolute)
+	{
+		//
+		// The path is absolute.
+		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
+		// and absolute path, and openat succeeds.
+		//
+		return ".";
+	}
+
+	if(!evt->get_tinfo())
+	{
+		return "<UNKNOWN>";
+	}
+
+	if(dirfd == PPM_AT_FDCWD)
+	{
+		return evt->get_tinfo()->get_cwd();
+	}
+
+	auto fd_info_dirfd = evt->get_tinfo()->get_fd(dirfd);
+
+	if(!fd_info_dirfd)
+	{
+		return "<UNKNOWN>";
+	}
+
+	if(fd_info_dirfd->m_name[fd_info_dirfd->m_name.length()] == '/')
+	{
+		return fd_info_dirfd->m_name;
+	}
+
+	tdirstr = fd_info_dirfd->m_name + '/';
+	return tdirstr;
+}
+
 uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
@@ -341,7 +391,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 	}
 
 	// For the non-raw fields, if the path is not absolute,
-	// prepend the cwd of the threadinfo to the path.
+	// prepend the cwd of the threadinfo or the dirfd to the path.
 	if((m_field_id == TYPE_NAME ||
 	    m_field_id == TYPE_SOURCE ||
 	    m_field_id == TYPE_TARGET))
@@ -364,9 +414,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 				case PPME_SYSCALL_OPENAT2_E:
 				{
 					int64_t dirfd = evt->get_param(0)->as<int64_t>();
-					// `parse_dirfd` checks if path is absolute and if so returns an '.' string to sdir
-					// Function tries to return fd name from the fd stored at dirfd in the fd table
-					sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+					sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
 				}
 				break;
 				case PPME_SYSCALL_OPENAT_2_X: // dirfd
@@ -379,9 +427,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 				case PPME_SYSCALL_MKNODAT_X:
 				{
 					int64_t dirfd = evt->get_param(1)->as<int64_t>();
-					// `parse_dirfd` checks if path is absolute and if so returns an '.' string to sdir
-					// Function tries to return fd name from the fd stored at dirfd in the fd table
-					sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+					sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
 				}
 				break;
 				case PPME_SYSCALL_SYMLINKAT_X: // linkdirfd
@@ -390,9 +436,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 					{
 						// linkdirfd
 						int64_t dirfd = evt->get_param(2)->as<int64_t>();
-						// `parse_dirfd` checks if path is absolute and if so returns an '.' string to sdir
-						// Function tries to return fd name from the fd stored at dirfd in the fd table
-						sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+						sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
 					} else 
 					{
 						sdir = "<UNKNOWN>";
@@ -406,16 +450,12 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 					{
 						// newdirfd
 						dirfd = evt->get_param(3)->as<int64_t>();
-						// `parse_dirfd` checks if path is absolute and if so returns an '.' string to sdir
-						// Function tries to return fd name from the fd stored at dirfd in the fd table
-						sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+						sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
 					} else if (m_field_id == TYPE_SOURCE)
 					{
 						// olddirfd
 						dirfd = evt->get_param(1)->as<int64_t>();
-						// `parse_dirfd` checks if path is absolute and if so returns an '.' string to sdir
-						// Function tries to return fd name from the fd stored at dirfd in the fd table
-						sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+						sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
 					} else 
 					{
 						sdir = "<UNKNOWN>";
@@ -431,7 +471,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 
 			/* Note on what `sdir` is:
 			* - the pathname is absolute:
-			*	 sdir = "." after running `m_inspector->get_parser()->parse_dirfd`
+			*	 sdir = "." after running `parse_dirfd_stateless`
 			*    or sdir = ""
 			* - the pathname is relative:
 			*   - if `dirfd` is `PPM_AT_FDCWD` -> sdir = cwd.
