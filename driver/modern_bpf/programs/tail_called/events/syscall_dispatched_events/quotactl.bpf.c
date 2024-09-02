@@ -116,121 +116,106 @@ int BPF_PROG(quotactl_x,
 	}
 
 	/* We extract the `struct if_dqblk` if possible. */
-	struct if_dqblk dqblk = {0};
-	if(scap_cmd == PPM_Q_GETQUOTA || scap_cmd == PPM_Q_SETQUOTA)
+	uint64_t dqb_bhardlimit = 0;
+	uint64_t dqb_bsoftlimit = 0;
+	uint64_t dqb_curspace = 0;
+	uint64_t dqb_ihardlimit = 0;
+	uint64_t dqb_isoftlimit = 0;
+	uint64_t dqb_btime = 0;
+	uint64_t dqb_itime = 0;
+
+	if(bpf_core_type_exists(struct if_dqblk) && (scap_cmd == PPM_Q_GETQUOTA || scap_cmd == PPM_Q_SETQUOTA))
 	{
+		struct if_dqblk dqblk = {0};
 		bpf_probe_read_user((void *)&dqblk, bpf_core_type_size(struct if_dqblk), (void *)addr_pointer);
+
+		/* Please note that `dqblk` struct could be filled with values different from `0`,
+		 * even if these values are not valid, so we need to explicitly send `0`.
+		 */
+		if(dqblk.dqb_valid & QIF_BLIMITS)
+		{
+			dqb_bhardlimit = dqblk.dqb_bhardlimit;
+			dqb_bsoftlimit = dqblk.dqb_bsoftlimit;
+		}
+
+		if(dqblk.dqb_valid & QIF_SPACE)
+		{
+			dqb_curspace = dqblk.dqb_curspace;
+		}
+
+		if(dqblk.dqb_valid & QIF_ILIMITS)
+		{
+			dqb_ihardlimit = dqblk.dqb_ihardlimit;
+			dqb_isoftlimit = dqblk.dqb_isoftlimit;
+		}
+
+		if(dqblk.dqb_valid & QIF_BTIME)
+		{
+			dqb_btime = dqblk.dqb_btime;
+		}
+
+		if(dqblk.dqb_valid & QIF_ITIME)
+		{
+			dqb_itime = dqblk.dqb_itime;
+		}
 	}
 
-	/* Please note that `dqblk` struct could be filled with values different from `0`,
-	 * even if these values are not valid, so we need to explicitly send `0`.
-	 */
-	if(dqblk.dqb_valid & QIF_BLIMITS)
-	{
-		/* Parameter 4: dqb_bhardlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, dqblk.dqb_bhardlimit);
+	/* Parameter 4: dqb_bhardlimit (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, dqb_bhardlimit);
 
-		/* Parameter 5: dqb_bsoftlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, dqblk.dqb_bsoftlimit);
-	}
-	else
-	{
-		/* Parameter 4: dqb_bhardlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, 0);
+	/* Parameter 5: dqb_bsoftlimit (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, dqb_bsoftlimit);
 
-		/* Parameter 5: dqb_bsoftlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, 0);
-	}
+	/* Parameter 6: dqb_curspace (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, dqb_curspace);
 
-	if(dqblk.dqb_valid & QIF_SPACE)
-	{
-		/* Parameter 6: dqb_curspace (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, dqblk.dqb_curspace);
-	}
-	else
-	{
-		/* Parameter 6: dqb_curspace (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, 0);
-	}
+	/* Parameter 7: dqb_ihardlimit (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, dqb_ihardlimit);
 
-	if(dqblk.dqb_valid & QIF_ILIMITS)
-	{
-		/* Parameter 7: dqb_ihardlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, dqblk.dqb_ihardlimit);
+	/* Parameter 8: dqb_isoftlimit (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, dqb_isoftlimit);
 
-		/* Parameter 8: dqb_isoftlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, dqblk.dqb_isoftlimit);
-	}
-	else
-	{
-		/* Parameter 7: dqb_ihardlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, 0);
+	/* Parameter 9: dqb_btime (type: PT_RELTIME) */
+	auxmap__store_u64_param(auxmap, dqb_btime);
 
-		/* Parameter 8: dqb_isoftlimit (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, 0);
-	}
+	/* Parameter 10: dqb_itime (type: PT_RELTIME) */
+	auxmap__store_u64_param(auxmap, dqb_itime);
 
-	if(dqblk.dqb_valid & QIF_BTIME)
-	{
-		/* Parameter 9: dqb_btime (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, dqblk.dqb_btime);
-	}
-	else
-	{
-		/* Parameter 9: dqb_btime (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, 0);
-	}
+	uint64_t dqi_bgrace = 0;
+	uint64_t dqi_igrace = 0;
+	uint64_t dqi_flags = 0;
 
-	if(dqblk.dqb_valid & QIF_ITIME)
+	if(bpf_core_type_exists(struct if_dqinfo) && (scap_cmd == PPM_Q_GETINFO || scap_cmd == PPM_Q_SETINFO))
 	{
-		/* Parameter 10: dqb_itime (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, dqblk.dqb_itime);
-	}
-	else
-	{
-		/* Parameter 10: dqb_itime (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, 0);
-	}
-
-	/* We extract the `struct if_dqinfo` if possible. */
-	struct if_dqinfo dqinfo = {0};
-	if(scap_cmd == PPM_Q_GETINFO || scap_cmd == PPM_Q_SETINFO)
-	{
+		struct if_dqinfo dqinfo = {0};
 		bpf_probe_read_user((void *)&dqinfo, bpf_core_type_size(struct if_dqinfo), (void *)addr_pointer);
+
+		if(dqinfo.dqi_valid & IIF_BGRACE)
+		{
+			dqi_bgrace = dqinfo.dqi_bgrace;
+		}
+
+		if(dqinfo.dqi_valid & IIF_IGRACE)
+		{
+			/* Parameter 12: dqi_igrace (type: PT_RELTIME) */
+			dqi_igrace = dqinfo.dqi_igrace;
+		}
+
+		if(dqinfo.dqi_valid & IIF_FLAGS)
+		{
+			/* Parameter 13: dqi_flags (type: PT_FLAGS8) */
+			dqi_flags = dqinfo.dqi_flags;
+		}
 	}
 
-	if(dqinfo.dqi_valid & IIF_BGRACE)
-	{
-		/* Parameter 11: dqi_bgrace (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, dqinfo.dqi_bgrace);
-	}
-	else
-	{
-		/* Parameter 11: dqi_bgrace (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, 0);
-	}
+	/* Parameter 11: dqi_bgrace (type: PT_RELTIME) */
+	auxmap__store_u64_param(auxmap, dqi_bgrace);
 
-	if(dqinfo.dqi_valid & IIF_IGRACE)
-	{
-		/* Parameter 12: dqi_igrace (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, dqinfo.dqi_igrace);
-	}
-	else
-	{
-		/* Parameter 12: dqi_igrace (type: PT_RELTIME) */
-		auxmap__store_u64_param(auxmap, 0);
-	}
+	/* Parameter 12: dqi_igrace (type: PT_RELTIME) */
+	auxmap__store_u64_param(auxmap, dqi_igrace);
 
-	if(dqinfo.dqi_valid & IIF_FLAGS)
-	{
-		/* Parameter 13: dqi_flags (type: PT_FLAGS8) */
-		auxmap__store_u8_param(auxmap, dqinfo.dqi_flags);
-	}
-	else
-	{
-		/* Parameter 13: dqi_flags (type: PT_FLAGS8) */
-		auxmap__store_u8_param(auxmap, 0);
-	}
+	/* Parameter 13: dqi_flags (type: PT_FLAGS8) */
+	auxmap__store_u8_param(auxmap, dqi_flags);
 
 	/* Parameter 14: quota_fmt_out (type: PT_FLAGS8) */
 	uint32_t quota_fmt_out = PPM_QFMT_NOT_USED;
