@@ -179,6 +179,9 @@ jobs:
   test-drivers-ppc64le:
     name: test-drivers-ppc64le 😁 (system_deps,custom node)
     runs-on: ubuntu-22.04
+    # Avoid running on forks since this job uses a private secret
+    # not available on forks, leading to failures.
+    if: github.repository == 'falcosecurity/libs'
     needs: paths-filter
     steps:
       - name: Extract branch name
@@ -346,7 +349,9 @@ jobs:
   # Only runs on pull request since on master branch it is already triggered by pages CI.
   kernel-tests-dev:
     needs: paths-filter
-    if: github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
+    # Avoid running on forks since this job uses a private secret
+    # not available on forks, leading to failures.
+    if: github.repository == 'falcosecurity/libs' && github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
     uses: ./.github/workflows/reusable_kernel_tests.yaml
     with:
       # Use real branch's HEAD sha, not the merge commit
@@ -355,7 +360,9 @@ jobs:
 
   kernel-tests-pr-info-upload:
     needs: kernel-tests-dev
-    if: github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
+    # Avoid running on forks since this job uses a private secret
+    # not available on forks, leading to failures.
+    if: github.repository == 'falcosecurity/libs' && github.event_name == 'pull_request' && (needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Download X64 matrix
