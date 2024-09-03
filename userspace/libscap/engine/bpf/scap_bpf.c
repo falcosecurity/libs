@@ -1856,22 +1856,20 @@ const struct metrics_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine,
 				{
 					strlcpy(stats[offset].name, info.name, METRIC_NAME_MAX);
 				}
+				strlcat(stats[offset].name, bpf_libbpf_stats_names[stat], sizeof(stats[offset].name));
 				switch(stat)
 				{
 				case RUN_CNT:
-					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[offset].name));
 					stats[offset].value.u64 = info.run_cnt;
 					stats[offset].unit = METRIC_VALUE_UNIT_COUNT;
 					stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 					break;
 				case RUN_TIME_NS:
-					strlcat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[offset].name));
 					stats[offset].value.u64 = info.run_time_ns;
 					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS_COUNT;
 					stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 					break;
 				case AVG_TIME_NS:
-					strlcat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name));
 					stats[offset].value.u64 = 0;
 					stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
 					stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
