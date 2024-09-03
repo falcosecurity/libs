@@ -140,10 +140,10 @@ clean_print_stats:
 	return errno;
 }
 
-static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val, uint32_t metric_type)
+static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val, uint32_t metric_flag)
 {
 	g_state.stats[pos].type = METRIC_VALUE_TYPE_U64;
-	g_state.stats[pos].flags = metric_type;
+	g_state.stats[pos].flags = metric_flag;
 	g_state.stats[pos].unit = METRIC_VALUE_UNIT_COUNT;
 	g_state.stats[pos].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 	g_state.stats[pos].value.u64 = val;

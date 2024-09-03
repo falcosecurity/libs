@@ -586,10 +586,10 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val, uint32_t metric_type)
+static void set_u64_monotonic_kernel_counter(struct metrics_v2* m, uint64_t val, uint32_t metric_flag)
 {
 	m->type = METRIC_VALUE_TYPE_U64;
-	m->flags = metric_type;
+	m->flags = metric_flag;
 	m->unit = METRIC_VALUE_UNIT_COUNT;
 	m->metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
 	m->value.u64 = val;
