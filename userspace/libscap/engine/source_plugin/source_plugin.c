@@ -210,7 +210,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt** pevent, uint16_
 	// Sanity checks in case a plugin implements a non-syscall event source.
 	// If a plugin has event sourcing capability and has a specific ID, then
 	// it is allowed to produce only plugin events of its own event source.
-	uint32_t* pplugin_id = (uint32_t*)((uint8_t*) evt + sizeof(scap_evt) + 4 + 4);
+	uint8_t* pplugin_id = (uint8_t*) evt + sizeof(scap_evt) + sizeof(uint32_t) + sizeof(uint32_t);
 	uint32_t plugin_id;
 	memcpy(&plugin_id, pplugin_id, sizeof(plugin_id));
 
