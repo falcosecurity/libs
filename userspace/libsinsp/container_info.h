@@ -216,20 +216,25 @@ public:
 	};
 
 	sinsp_container_info(sinsp_container_lookup &&lookup = sinsp_container_lookup()):
-	        m_type(CT_UNKNOWN),
-	        m_container_ip(0),
-	        m_privileged(false),
-	        m_memory_limit(0),
-	        m_swap_limit(0),
-	        m_cpu_shares(1024),
-	        m_cpu_quota(0),
-	        m_cpu_period(100000),
-	        m_cpuset_cpu_count(0),
-	        m_is_pod_sandbox(false),
-	        m_lookup(std::move(lookup)),
-	        m_container_user("<NA>"),
-	        m_metadata_deadline(0),
-	        m_size_rw_bytes(-1) {}
+		m_type(CT_UNKNOWN),
+		m_container_ip(0),
+		m_privileged(false),
+		m_host_pid(false),
+		m_host_network(false),
+		m_host_ipc(false),
+		m_memory_limit(0),
+		m_swap_limit(0),
+		m_cpu_shares(1024),
+		m_cpu_quota(0),
+		m_cpu_period(100000),
+		m_cpuset_cpu_count(0),
+		m_is_pod_sandbox(false),
+		m_lookup(std::move(lookup)),
+		m_container_user("<NA>"),
+		m_metadata_deadline(0),
+		m_size_rw_bytes(-1)
+	{
+	}
 
 	void clear() {
 		this->~sinsp_container_info();
@@ -265,6 +270,9 @@ public:
 	std::string m_imagedigest;
 	uint32_t m_container_ip;
 	bool m_privileged;
+	bool m_host_pid;
+	bool m_host_network;
+	bool m_host_ipc;
 	std::vector<container_mount_info> m_mounts;
 	std::vector<container_port_mapping> m_port_mappings;
 	std::map<std::string, std::string> m_labels;
