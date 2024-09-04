@@ -529,6 +529,11 @@ inline bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &
 
 	bool priv_found = false;
 	const Json::Value *privileged = nullptr;
+
+	//
+	// Privileged flag
+	//
+
 	// old containerd?
 	if(walk_down_json(*linux, &privileged, "security_context", "privileged") &&
 	   privileged->isBool()) {
@@ -629,6 +634,14 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(
         const Json::Value &root,
         sinsp_container_info &container) {
 	//
+	// Pod network namespace mode
+	//
+	if (status.linux().namespaces().options().network() == api::NamespaceMode::NODE)
+	{
+		container.m_host_network = true;
+	}
+
+	//
 	// Pod IP
 	//
 
@@ -699,6 +712,32 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(
 	return true;
 }
 
+template<typename api>
+inline void cri_interface<api>::parse_cri_pod_sandbox_pid(const typename api::PodSandboxStatus &status, 
+				 sinsp_container_info &container)
+{
+	//
+	// Pod pid namespace mode
+	//
+	if (status.linux().namespaces().options().pid() == api::NamespaceMode::NODE)
+	{
+		container.m_host_pid = true;
+	}
+}
+
+template<typename api>
+inline void cri_interface<api>::parse_cri_pod_sandbox_ipc(const typename api::PodSandboxStatus &status, 
+				 sinsp_container_info &container)
+{
+	//
+	// Pod ipc namespace mode
+	//
+	if (status.linux().namespaces().options().ipc() == api::NamespaceMode::NODE)
+	{
+		container.m_host_ipc = true;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////
 // Main CRI parse entrypoint (make API calls and parse responses)
 ///////////////////////////////////////////////////////////////////
@@ -739,6 +778,8 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 			// elsewhere in the response and add them as labels
 			parse_cri_labels(resp_pod_sandbox_container, container);
 			parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+			parse_cri_pod_sandbox_pid(resp_pod_sandbox_container, container);
+			parse_cri_pod_sandbox_ipc(resp_pod_sandbox_container, container);
 			parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 			return true;
 		} else {
@@ -829,6 +870,8 @@ inline bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limi
 		const auto root_pod_sandbox = get_info_jvalue(resp_pod_sandbox_container_info);
 		// Add pod response network and labels to original container
 		parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+		parse_cri_pod_sandbox_pid(resp_pod_sandbox_container, container);
+		parse_cri_pod_sandbox_ipc(resp_pod_sandbox_container, container);
 		parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	}
 
