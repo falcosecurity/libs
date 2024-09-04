@@ -242,7 +242,8 @@ void sinsp_threadinfo::compute_program_hash()
 	//
 	if(m_comm.size() == 4)
 	{
-		uint32_t ncomm = *(uint32_t*)m_comm.c_str();
+		uint32_t ncomm;
+		memcpy(&ncomm, m_comm.c_str(), 4);
 
 		if(ncomm == STR_AS_NUM_JAVA || ncomm == STR_AS_NUM_RUBY ||
 			ncomm == STR_AS_NUM_PERL || ncomm == STR_AS_NUM_NODE)
