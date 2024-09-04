@@ -4736,11 +4736,27 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt) {
 		if(check_json_val_is_convertible(privileged, Json::booleanValue, "privileged")) {
 			container_info->m_privileged = privileged.asBool();
 		}
-		const Json::Value &lookup_state = container["lookup_state"];
-		if(check_json_val_is_convertible(lookup_state, Json::uintValue, "lookup_state")) {
-			container_info->set_lookup_status(
-			        static_cast<sinsp_container_lookup::state>(lookup_state.asUInt()));
-			switch(container_info->get_lookup_status()) {
+		const Json::Value& host_pid = container["host_pid"];
+		if(check_json_val_is_convertible(host_pid, Json::booleanValue, "host_pid"))
+		{
+			container_info->m_host_pid = host_pid.asBool();
+		}
+		const Json::Value& host_network = container["host_network"];
+		if(check_json_val_is_convertible(host_network, Json::booleanValue, "host_network"))
+		{
+			container_info->m_host_network = host_network.asBool();
+		}
+		const Json::Value& host_ipc = container["host_ipc"];
+		if(check_json_val_is_convertible(host_ipc, Json::booleanValue, "host_ipc"))
+		{
+			container_info->m_host_ipc = host_ipc.asBool();
+		}
+		const Json::Value& lookup_state = container["lookup_state"];
+		if(check_json_val_is_convertible(lookup_state, Json::uintValue, "lookup_state"))
+		{
+			container_info->set_lookup_status(static_cast<sinsp_container_lookup::state>(lookup_state.asUInt()));
+			switch(container_info->get_lookup_status())
+			{
 			case sinsp_container_lookup::state::STARTED:
 			case sinsp_container_lookup::state::SUCCESSFUL:
 			case sinsp_container_lookup::state::FAILED:
