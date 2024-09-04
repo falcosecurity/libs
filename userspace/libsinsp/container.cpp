@@ -166,6 +166,9 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 	container["imagetag"] = container_info.m_imagetag;
 	container["imagedigest"] = container_info.m_imagedigest;
 	container["privileged"] = container_info.m_privileged;
+	container["host_pid"] = container_info.m_host_pid;
+	container["host_network"] = container_info.m_host_network;
+	container["host_ipc"] = container_info.m_host_ipc;
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 	container["lookup_state"] = static_cast<int>(container_info.get_lookup_status());
 	container["created_time"] = static_cast<Json::Value::Int64>(container_info.m_created_time);
