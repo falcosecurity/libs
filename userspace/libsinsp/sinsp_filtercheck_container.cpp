@@ -34,209 +34,35 @@ using namespace std;
 		return (uint8_t *)(x).c_str(); \
 	} while(0)
 
-static const filtercheck_field_info sinsp_filter_check_container_fields[] = {
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.id",
-         "Container ID",
-         "The truncated container ID (first 12 characters), e.g. 3ad7b26ded6d is extracted from "
-         "the Linux cgroups by Falco within the kernel. Consequently, this field is reliably "
-         "available and serves as the lookup key for Falco's synchronous or asynchronous requests "
-         "against the container runtime socket to retrieve all other 'container.*' information. "
-         "One important aspect to be aware of is that if the process occurs on the host, meaning "
-         "not in the container PID namespace, this field is set to a string called 'host'. In "
-         "Kubernetes, pod sandbox container processes can exist where `container.id` matches "
-         "`k8s.pod.sandbox_id`, lacking other 'container.*' details."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.full_id",
-         "Container ID",
-         "The full container ID, e.g. "
-         "3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e. In contrast to "
-         "`container.id`, we enrich this field as part of the container engine enrichment. In "
-         "instances of userspace container engine lookup delays, this field may not be available "
-         "yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.name",
-         "Container Name",
-         "The container name. In instances of userspace container engine lookup delays, this field "
-         "may not be available yet. One important aspect to be aware of is that if the process "
-         "occurs on the host, meaning not in the container PID namespace, this field is set to a "
-         "string called 'host'."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.image",
-         "Image Name",
-         "The container image name (e.g. falcosecurity/falco:latest for docker). In instances of "
-         "userspace container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.image.id",
-         "Image ID",
-         "The container image id (e.g. 6f7e2741b66b). In instances of userspace container engine "
-         "lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.type",
-         "Type",
-         "The container type, e.g. docker, cri-o, containerd etc."},
-        {PT_BOOL,
-         EPF_NONE,
-         PF_NA,
-         "container.privileged",
-         "Privileged",
-         "'true' for containers running as privileged, 'false' otherwise. In instances of "
-         "userspace container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.mounts",
-         "Mounts",
-         "A space-separated list of mount information. Each item in the list has the format "
-         "'source:dest:mode:rdrw:propagation'. In instances of userspace container engine lookup "
-         "delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
-         PF_NA,
-         "container.mount",
-         "Mount",
-         "Information about a single mount, specified by number (e.g. container.mount[0]) or mount "
-         "source (container.mount[/usr/local]). The pathname can be a glob "
-         "(container.mount[/usr/local/*]), in which case the first matching mount will be "
-         "returned. The information has the format 'source:dest:mode:rdrw:propagation'. If there "
-         "is no mount with the specified index or matching the provided source, returns the string "
-         "\"none\" instead of a NULL value. In instances of userspace container engine lookup "
-         "delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
-         PF_NA,
-         "container.mount.source",
-         "Mount Source",
-         "The mount source, specified by number (e.g. container.mount.source[0]) or mount "
-         "destination (container.mount.source[/host/lib/modules]). The pathname can be a glob. In "
-         "instances of userspace container engine lookup delays, this field may not be available "
-         "yet."},
-        {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
-         PF_NA,
-         "container.mount.dest",
-         "Mount Destination",
-         "The mount destination, specified by number (e.g. container.mount.dest[0]) or mount "
-         "source (container.mount.dest[/lib/modules]). The pathname can be a glob. In instances of "
-         "userspace container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
-         PF_NA,
-         "container.mount.mode",
-         "Mount Mode",
-         "The mount mode, specified by number (e.g. container.mount.mode[0]) or mount source "
-         "(container.mount.mode[/usr/local]). The pathname can be a glob. In instances of "
-         "userspace container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
-         PF_NA,
-         "container.mount.rdwr",
-         "Mount Read/Write",
-         "The mount rdwr value, specified by number (e.g. container.mount.rdwr[0]) or mount source "
-         "(container.mount.rdwr[/usr/local]). The pathname can be a glob. In instances of "
-         "userspace container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
-         PF_NA,
-         "container.mount.propagation",
-         "Mount Propagation",
-         "The mount propagation value, specified by number (e.g. container.mount.propagation[0]) "
-         "or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob. "
-         "In instances of userspace container engine lookup delays, this field may not be "
-         "available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.image.repository",
-         "Repository",
-         "The container image repository (e.g. falcosecurity/falco). In instances of userspace "
-         "container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.image.tag",
-         "Image Tag",
-         "The container image tag (e.g. stable, latest). In instances of userspace container "
-         "engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.image.digest",
-         "Registry Digest",
-         "The container image registry digest (e.g. "
-         "sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27). In instances of "
-         "userspace container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.healthcheck",
-         "Health Check",
-         "The container's health check. Will be the null value (\"N/A\") if no healthcheck "
-         "configured, \"NONE\" if configured but explicitly not created, and the healthcheck "
-         "command line otherwise. In instances of userspace container engine lookup delays, this "
-         "field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.liveness_probe",
-         "Liveness",
-         "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe "
-         "configured, the liveness probe command line otherwise. In instances of userspace "
-         "container engine lookup delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.readiness_probe",
-         "Readiness",
-         "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe "
-         "configured, the readiness probe command line otherwise. In instances of userspace "
-         "container engine lookup delays, this field may not be available yet."},
-        {PT_UINT64,
-         EPF_NONE,
-         PF_DEC,
-         "container.start_ts",
-         "Container start",
-         "Container start as epoch timestamp in nanoseconds based on proc.pidns_init_start_ts and "
-         "extracted in the kernel and not from the container runtime socket / container engine."},
-        {PT_RELTIME,
-         EPF_NONE,
-         PF_DEC,
-         "container.duration",
-         "Number of nanoseconds since container.start_ts",
-         "Number of nanoseconds since container.start_ts."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.ip",
-         "Container ip address",
-         "The container's / pod's primary ip address as retrieved from the container engine. Only "
-         "ipv4 addresses are tracked. Consider container.cni.json (CRI use case) for logging ip "
-         "addresses for each network interface. In instances of userspace container engine lookup "
-         "delays, this field may not be available yet."},
-        {PT_CHARBUF,
-         EPF_NONE,
-         PF_NA,
-         "container.cni.json",
-         "Container's / pod's CNI result json",
-         "The container's / pod's CNI result field from the respective pod status info. It "
-         "contains ip addresses for each network interface exposed as unparsed escaped JSON "
-         "string. Supported for CRI container engine (containerd, cri-o runtimes), optimized for "
-         "containerd (some non-critical JSON keys removed). Useful for tracking ips (ipv4 and "
-         "ipv6, dual-stack support) for each network interface (multi-interface support). In "
-         "instances of userspace container engine lookup delays, this field may not be available "
-         "yet."},
+static const filtercheck_field_info sinsp_filter_check_container_fields[] =
+{
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "Container ID", "The truncated container ID (first 12 characters), e.g. 3ad7b26ded6d is extracted from the Linux cgroups by Falco within the kernel. Consequently, this field is reliably available and serves as the lookup key for Falco's synchronous or asynchronous requests against the container runtime socket to retrieve all other 'container.*' information. One important aspect to be aware of is that if the process occurs on the host, meaning not in the container PID namespace, this field is set to a string called 'host'. In Kubernetes, pod sandbox container processes can exist where `container.id` matches `k8s.pod.sandbox_id`, lacking other 'container.*' details."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.full_id", "Container ID", "The full container ID, e.g. 3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e. In contrast to `container.id`, we enrich this field as part of the container engine enrichment. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "Container Name", "The container name. In instances of userspace container engine lookup delays, this field may not be available yet. One important aspect to be aware of is that if the process occurs on the host, meaning not in the container PID namespace, this field is set to a string called 'host'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "Image Name", "The container image name (e.g. falcosecurity/falco:latest for docker). In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.id", "Image ID", "The container image id (e.g. 6f7e2741b66b). In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "Type", "The container type, e.g. docker, cri-o, containerd etc."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "Privileged", "'true' for containers running as privileged, 'false' otherwise. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mounts", "Mounts", "A space-separated list of mount information. Each item in the list has the format 'source:dest:mode:rdrw:propagation'. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.mount", "Mount", "Information about a single mount, specified by number (e.g. container.mount[0]) or mount source (container.mount[/usr/local]). The pathname can be a glob (container.mount[/usr/local/*]), in which case the first matching mount will be returned. The information has the format 'source:dest:mode:rdrw:propagation'. If there is no mount with the specified index or matching the provided source, returns the string \"none\" instead of a NULL value. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.mount.source", "Mount Source", "The mount source, specified by number (e.g. container.mount.source[0]) or mount destination (container.mount.source[/host/lib/modules]). The pathname can be a glob. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.mount.dest", "Mount Destination", "The mount destination, specified by number (e.g. container.mount.dest[0]) or mount source (container.mount.dest[/lib/modules]). The pathname can be a glob. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.mount.mode", "Mount Mode", "The mount mode, specified by number (e.g. container.mount.mode[0]) or mount source (container.mount.mode[/usr/local]). The pathname can be a glob. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.mount.rdwr", "Mount Read/Write", "The mount rdwr value, specified by number (e.g. container.mount.rdwr[0]) or mount source (container.mount.rdwr[/usr/local]). The pathname can be a glob. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "container.mount.propagation", "Mount Propagation", "The mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.repository", "Repository", "The container image repository (e.g. falcosecurity/falco). In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.tag", "Image Tag", "The container image tag (e.g. stable, latest). In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "Registry Digest", "The container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27). In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "Health Check", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.liveness_probe", "Liveness", "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe configured, the liveness probe command line otherwise. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "Readiness", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "container.start_ts", "Container start", "Container start as epoch timestamp in nanoseconds based on proc.pidns_init_start_ts and extracted in the kernel and not from the container runtime socket / container engine."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since container.start_ts", "Number of nanoseconds since container.start_ts."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's / pod's primary ip address as retrieved from the container engine. Only ipv4 addresses are tracked. Consider container.cni.json (CRI use case) for logging ip addresses for each network interface. In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.cni.json", "Container's / pod's CNI result json", "The container's / pod's CNI result field from the respective pod status info. It contains ip addresses for each network interface exposed as unparsed escaped JSON string. Supported for CRI container engine (containerd, cri-o runtimes), optimized for containerd (some non-critical JSON keys removed). Useful for tracking ips (ipv4 and ipv6, dual-stack support) for each network interface (multi-interface support). In instances of userspace container engine lookup delays, this field may not be available yet."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.host_pid", "Host PID Namespace", "'true' if the process is running in the host PID namespace, 'false' otherwise."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.host_network", "Host Network Namespace", "'true' if the process is running in the host network namespace, 'false' otherwise."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.host_ipc", "Host IPC Namespace", "'true' if the process is running in the host IPC namespace, 'false' otherwise."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container() {
@@ -497,6 +323,44 @@ uint8_t *sinsp_filter_check_container::extract_single(sinsp_evt *evt,
 			}
 
 			m_val.u32 = (container_info->m_privileged ? 1 : 0);
+		}
+
+		RETURN_EXTRACT_VAR(m_val.u32);
+		break;
+	case TYPE_CONTAINER_HOST_PID:
+	case TYPE_CONTAINER_HOST_NETWORK:
+	case TYPE_CONTAINER_HOST_IPC:
+		if (tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else 
+		{
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			// Only return a true/false value for
+			// container types where we really know the
+			// host_pid status. // todo(loresuso): double check this
+			if (!is_docker_compatible(container_info->m_type))
+			{
+				return NULL;
+			}
+
+			if (m_field_id == TYPE_CONTAINER_HOST_NETWORK)
+			{
+				m_val.u32 = (container_info->m_host_network ? 1 : 0);
+			}
+			else if (m_field_id == TYPE_CONTAINER_HOST_IPC)
+			{
+				m_val.u32 = (container_info->m_host_ipc ? 1 : 0);
+			}
+			else if (m_field_id == TYPE_CONTAINER_HOST_PID)
+			{
+				m_val.u32 = (container_info->m_host_pid ? 1 : 0);
+			}
 		}
 
 		RETURN_EXTRACT_VAR(m_val.u32);
