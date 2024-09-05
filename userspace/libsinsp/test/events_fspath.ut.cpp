@@ -64,7 +64,7 @@ protected:
 	int64_t res = 0;
 	int64_t failed_res = -1;
 	int64_t evt_dirfd = 2;
-	int64_t evt_dirfd_cwd = AT_FDCWD;
+	int64_t evt_dirfd_cwd = PPM_AT_FDCWD;
 	int64_t olddirfd = evt_dirfd;
 	int64_t newdirfd = evt_dirfd;
 	int64_t linkdirfd = evt_dirfd;
