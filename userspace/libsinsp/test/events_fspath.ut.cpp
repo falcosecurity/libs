@@ -50,7 +50,9 @@ protected:
 	const char *rel_oldpath = "tmp/oldpath";
 	const char *rel_newpath = "tmp/newpath";
 	const char *resolved_rel_oldpath = "/root/tmp/oldpath";
+	const char *resolved_rel_oldpath_at = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/oldpath";
 	const char *resolved_rel_newpath = "/root/tmp/newpath";
+	const char *resolved_rel_newpath_at = "/tmp/dirfd1/dirfd2/dirfd3/dirfd4/dirfd5/dirfd6/dirfd7/dirfd8/tmp/newpath";
 	const char *linkpath = "/tmp/linkpath";
 	const char *targetpath = "/tmp/targetpath";
 	const char *rel_linkpath = "tmp/linkpath";
@@ -241,6 +243,7 @@ protected:
 		{
 			case PPME_SYSCALL_LINKAT_2_X:
 			case PPME_SYSCALL_SYMLINKAT_X:
+			case PPME_SYSCALL_RENAMEAT2_X:
 				{
 					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 2, evt_dirfd, dirfd_path);
 					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 5, evt_dirfd, evt_dirfd, dirfd_path, open_flags | PPM_O_DIRECTORY, mode);
@@ -526,6 +529,14 @@ TEST_F(fspath, renameat2)
 	test_enter(PPME_SYSCALL_RENAMEAT2_E, 0);
 	test_exit_source_target(oldpath, oldpath, newpath, newpath, PPME_SYSCALL_RENAMEAT2_X, 5, res, olddirfd, oldpath, newdirfd, newpath, flags);
 	test_failed_exit(PPME_SYSCALL_RENAMEAT2_X, 5, failed_res, olddirfd, oldpath, newdirfd, newpath, flags);
+}
+
+TEST_F(fspath, renameat2_relative)
+{
+	test_enter(PPME_SYSCALL_RENAMEAT2_E, 0);
+	test_exit_source_target(resolved_rel_oldpath_at, rel_oldpath,
+					resolved_rel_newpath_at, rel_newpath,
+					PPME_SYSCALL_RENAMEAT2_X, 5, res, olddirfd, rel_oldpath, newdirfd, rel_newpath, flags);
 }
 
 TEST_F(fspath, link)
