@@ -442,6 +442,33 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_PRCTL_X:
 		parse_prctl_exit_event(evt);
 		break;
+	case PPME_SYSCALL_NEWFSTATAT_X:
+	case PPME_SYSCALL_FCHOWNAT_X:
+	case PPME_SYSCALL_FCHMODAT_X:
+	case PPME_SYSCALL_MKDIRAT_X:
+	case PPME_SYSCALL_UNLINKAT_2_X:
+	case PPME_SYSCALL_MKNODAT_X:
+	{
+		auto res = evt->get_param(0)->as<int64_t>();
+		if (res >= 0)
+		{
+			// Only if successful
+			auto dirfd = evt->get_param(1)->as<int64_t>();
+			evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+		}
+		break;
+	}
+	case PPME_SYSCALL_SYMLINKAT_X:
+	{
+		auto res = evt->get_param(0)->as<int64_t>();
+		if (res >= 0)
+		{
+			// Only if successful
+			auto dirfd = evt->get_param(2)->as<int64_t>();
+			evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -452,7 +479,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	if(do_filter_later)
 	{
-		if(m_inspector->run_filters_on_evt(evt) == false)
+		if(!m_inspector->run_filters_on_evt(evt))
 		{
 			evt->set_filtered_out(true);
 			return;
@@ -2307,6 +2334,12 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 				*/
 				std::string sdir = parse_dirfd(evt, pathname, dirfd);
 
+				// Update event fdinfo since parse_dirfd is stateless
+				if (sdir != "." && sdir != "<UNKNOWN>")
+				{
+					evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+				}
+
 				/* (4) In this case, we were not able to recover the pathname from the kernel or
 				* we are not able to recover information about `dirfd` in our `sinsp` state.
 				* Fallback to `<NA>`.
@@ -2499,7 +2532,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			m_inspector->remove_thread(thread_ptr->m_tid);
 		}
 	}
-	return;
 }
 
 /* Different possible cases:
@@ -2518,8 +2550,6 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int
 	{
 		is_absolute = (!name.empty() && name[0] == '/');
 	}
-
-	std::string tdirstr;
 
 	if(is_absolute)
 	{
@@ -2544,20 +2574,17 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int
 		return evt->get_tinfo()->get_cwd();
 	}
 
-	evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
-
-	if(evt->get_fd_info() == NULL)
+	auto fdinfo = evt->get_tinfo()->get_fd(dirfd);
+	if(fdinfo == NULL)
 	{
 		return "<UNKNOWN>";
 	}
 
-	if(evt->get_fd_info()->m_name[evt->get_fd_info()->m_name.length()] == '/')
+	if(fdinfo->m_name.back() == '/')
 	{
-		return evt->get_fd_info()->m_name;
+		return fdinfo->m_name;
 	}
-
-	tdirstr = evt->get_fd_info()->m_name + '/';
-	return tdirstr;
+	return fdinfo->m_name + '/';
 }
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)

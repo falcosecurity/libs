@@ -213,7 +213,8 @@ protected:
 			case PPME_SYSCALL_UNLINKAT_2_X:
 				{
 					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 2, evt_dirfd, dirfd_path);
-					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 5, evt_dirfd, evt_dirfd, dirfd_path, open_flags, mode);
+					// pass PPM_O_DIRECTORY since we are creating a folder!
+					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 5, evt_dirfd, evt_dirfd, dirfd_path, open_flags | PPM_O_DIRECTORY, mode);
 				}
 				break;	
 			default:
@@ -242,7 +243,7 @@ protected:
 			case PPME_SYSCALL_SYMLINKAT_X:
 				{
 					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 2, evt_dirfd, dirfd_path);
-					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 5, evt_dirfd, evt_dirfd, dirfd_path, open_flags, mode);
+					add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 5, evt_dirfd, evt_dirfd, dirfd_path, open_flags | PPM_O_DIRECTORY, mode);
 				}
 				break;
 			default:

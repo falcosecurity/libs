@@ -240,54 +240,23 @@ std::unique_ptr<sinsp_filter_check> sinsp_filter_check_fspath::allocate_new()
 	return ret;
 }
 
-std::string sinsp_filter_check_fspath::parse_dirfd_stateless(sinsp_evt *evt, std::string_view name, int64_t dirfd)
+
+// Similar to sinsp_parser::parse_dirfd().
+// Makes only sense when called against a directory fdinfo.
+static inline std::string format_dirfd(sinsp_evt* evt)
 {
-	// Slight alteration ("stateless" meaning no writes to the thread table's fd_info) 
-	// else a 1:1 adoption of sinsp_parser::parse_dirfd
-
-	bool is_absolute = false;
-	/* This should never happen but just to be sure. */
-	if(name.data() != nullptr)
-	{
-		is_absolute = (!name.empty() && name[0] == '/');
-	}
-
-	std::string tdirstr;
-
-	if(is_absolute)
-	{
-		//
-		// The path is absolute.
-		// Some processes (e.g. irqbalance) actually do this: they pass an invalid fd and
-		// and absolute path, and openat succeeds.
-		//
-		return ".";
-	}
-
-	if(!evt->get_tinfo())
+	auto fd_info_dirfd = evt->get_fd_info();
+	if(!fd_info_dirfd || !fd_info_dirfd->is_directory())
 	{
 		return "<UNKNOWN>";
 	}
 
-	if(dirfd == PPM_AT_FDCWD)
-	{
-		return evt->get_tinfo()->get_cwd();
-	}
-
-	auto fd_info_dirfd = evt->get_tinfo()->get_fd(dirfd);
-
-	if(!fd_info_dirfd)
-	{
-		return "<UNKNOWN>";
-	}
-
-	if(fd_info_dirfd->m_name[fd_info_dirfd->m_name.length()] == '/')
+	if(fd_info_dirfd->m_name.back() == '/')
 	{
 		return fd_info_dirfd->m_name;
 	}
 
-	tdirstr = fd_info_dirfd->m_name + '/';
-	return tdirstr;
+	return fd_info_dirfd->m_name + '/';
 }
 
 uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len, bool sanitize_strings)
@@ -407,66 +376,73 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 		{
 			std::string sdir; // init
 			// Compare to `sinsp_filter_check_fd::extract_fdname_from_creator` logic
+			// note: no implementation for old / legacy event definitions
 			switch(evt->get_type())
 			{
-				// note: no implementation for old / legacy event definitions
-				case PPME_SYSCALL_OPENAT_2_E: // dirfd
-				case PPME_SYSCALL_OPENAT2_E:
-				{
-					int64_t dirfd = evt->get_param(0)->as<int64_t>();
-					sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
-				}
-				break;
-				case PPME_SYSCALL_OPENAT_2_X: // dirfd
+				// For openat, event fdinfo is already correctly expanded by parsers;
+				// See sinsp_parser::parse_open_openat_creat_exit().
+				case PPME_SYSCALL_OPENAT_2_X:
 				case PPME_SYSCALL_OPENAT2_X:
+				{
+					sdir = "";
+					auto fdinfo = evt->get_fd_info();
+					if (fdinfo != nullptr)
+					{
+						m_tstr = evt->get_fd_info()->m_name;
+					}
+					else
+					{
+						m_tstr = "<UNKNOWN>";
+					}
+					break;
+				}
+				// For the following syscalls, the event fdinfo is set to their dirfd.
+				// Set `sdir` to the dirfd info path.
 				case PPME_SYSCALL_NEWFSTATAT_X:
 				case PPME_SYSCALL_FCHOWNAT_X:
 				case PPME_SYSCALL_FCHMODAT_X:
 				case PPME_SYSCALL_MKDIRAT_X:
 				case PPME_SYSCALL_UNLINKAT_2_X:
 				case PPME_SYSCALL_MKNODAT_X:
-				{
-					int64_t dirfd = evt->get_param(1)->as<int64_t>();
-					sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
-				}
-				break;
+					sdir = format_dirfd(evt);
+					break;
 				case PPME_SYSCALL_SYMLINKAT_X: // linkdirfd
 				{
 					if (m_field_id == TYPE_SOURCE)
 					{
-						// linkdirfd
-						int64_t dirfd = evt->get_param(2)->as<int64_t>();
-						sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
-					} else 
+						sdir = format_dirfd(evt);
+					}
+					else
 					{
 						sdir = "<UNKNOWN>";
 					}
+					break;
 				}
-				break;
-				case PPME_SYSCALL_RENAMEAT2_X: // newdirfd or olddirfd
+				case PPME_SYSCALL_RENAMEAT2_X:
 				{
+					// newdirfd or olddirfd, we need to extract the dirfd on the fly here
 					int64_t dirfd;
 					if (m_field_id == TYPE_TARGET)
 					{
 						// newdirfd
 						dirfd = evt->get_param(3)->as<int64_t>();
-						sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
-					} else if (m_field_id == TYPE_SOURCE)
+						sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+					}
+					else if (m_field_id == TYPE_SOURCE)
 					{
 						// olddirfd
 						dirfd = evt->get_param(1)->as<int64_t>();
-						sdir = parse_dirfd_stateless(evt, m_tstr, dirfd);
-					} else 
+						sdir = m_inspector->get_parser()->parse_dirfd(evt, m_tstr, dirfd);
+					}
+					else
 					{
 						sdir = "<UNKNOWN>";
 					}
+					break;
 				}
-				break;
 				default: // assign cwd as sdir
-				{
 					sdir = tinfo->get_cwd();
-				}
-				break;
+					break;
 			}
 
 			/* Note on what `sdir` is:
@@ -481,7 +457,8 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt, uint32_t* len
 			*/
 			
 			m_tstr = sinsp_utils::concatenate_paths(sdir, m_tstr);
-		} else
+		}
+		else
 		{
 			/* Note about `concatenate_paths`
 			* It takes care of resolving the path and as such needed even if sdir is empty
