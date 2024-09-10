@@ -18,8 +18,7 @@ limitations under the License.
 
 #include <helpers/threads_helpers.h>
 
-TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads)
-{
+TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads) {
 	DEFAULT_TREE
 
 	/* we call a random event to obtain an event associated with this thread info */
@@ -39,8 +38,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nthreads)
 	ASSERT_EQ(get_field_as_string(evt, "proc.nthreads"), "0");
 }
 
-TEST_F(sinsp_with_test_input, PROC_FILTER_nchilds)
-{
+TEST_F(sinsp_with_test_input, PROC_FILTER_nchilds) {
 	DEFAULT_TREE
 
 	/* we call a random event to obtain an event associated with this thread info */
@@ -65,37 +63,71 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_nchilds)
 	ASSERT_EQ(get_field_as_string(evt, "proc.nchilds"), "0");
 }
 
-TEST_F(sinsp_with_test_input, PROC_FILTER_exepath)
-{
+TEST_F(sinsp_with_test_input, PROC_FILTER_exepath) {
 	DEFAULT_TREE
 
 	/* Now we call an execve on p6_t1 */
-	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/good-exe", "good-exe", "/usr/bin/bad-exe");
+	auto evt = generate_execve_enter_and_exit_event(0,
+	                                                p6_t1_tid,
+	                                                p6_t1_tid,
+	                                                p6_t1_pid,
+	                                                p6_t1_ptid,
+	                                                "/good-exe",
+	                                                "good-exe",
+	                                                "/usr/bin/bad-exe");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/bad-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "good-exe");
 }
 
-TEST_F(sinsp_with_test_input, PROC_FILTER_pexepath_aexepath)
-{
+TEST_F(sinsp_with_test_input, PROC_FILTER_pexepath_aexepath) {
 	DEFAULT_TREE
 
 	/* p3_t1 call execve to set an exepath */
-	generate_execve_enter_and_exit_event(0, p3_t1_tid, p3_t1_tid, p3_t1_pid, p3_t1_ptid, "/p3_t1_exepath", "p3_t1", "/usr/bin/p3_t1_trusted_exepath");
+	generate_execve_enter_and_exit_event(0,
+	                                     p3_t1_tid,
+	                                     p3_t1_tid,
+	                                     p3_t1_pid,
+	                                     p3_t1_ptid,
+	                                     "/p3_t1_exepath",
+	                                     "p3_t1",
+	                                     "/usr/bin/p3_t1_trusted_exepath");
 
 	/* p4_t2 call execve to set an exepath */
-	generate_execve_enter_and_exit_event(0, p4_t2_tid, p4_t1_tid, p4_t1_pid, p4_t1_ptid, "/p4_t1_exepath", "p4_t1", "/usr/bin/p4_t1_trusted_exepath");
+	generate_execve_enter_and_exit_event(0,
+	                                     p4_t2_tid,
+	                                     p4_t1_tid,
+	                                     p4_t1_pid,
+	                                     p4_t1_ptid,
+	                                     "/p4_t1_exepath",
+	                                     "p4_t1",
+	                                     "/usr/bin/p4_t1_trusted_exepath");
 
 	/* p5_t2 call execve to set an exepath */
-	generate_execve_enter_and_exit_event(0, p5_t2_tid, p5_t1_tid, p5_t1_pid, p5_t1_ptid, "/p5_t1_exepath", "p5_t1", "/usr/bin/p5_t1_trusted_exepath");
+	generate_execve_enter_and_exit_event(0,
+	                                     p5_t2_tid,
+	                                     p5_t1_tid,
+	                                     p5_t1_pid,
+	                                     p5_t1_ptid,
+	                                     "/p5_t1_exepath",
+	                                     "p5_t1",
+	                                     "/usr/bin/p5_t1_trusted_exepath");
 
 	/* Now we call an execve on p6_t1 and we check for `pexepath` and `aexepath` */
-	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/p6_t1_exepath", "p6_t1", "/usr/bin/p6_t1_trusted_exepath");
+	auto evt = generate_execve_enter_and_exit_event(0,
+	                                                p6_t1_tid,
+	                                                p6_t1_tid,
+	                                                p6_t1_pid,
+	                                                p6_t1_ptid,
+	                                                "/p6_t1_exepath",
+	                                                "p6_t1",
+	                                                "/usr/bin/p6_t1_trusted_exepath");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/p6_t1_trusted_exepath");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[0]"), "/usr/bin/p6_t1_trusted_exepath");
 	ASSERT_EQ(get_field_as_string(evt, "proc.pexepath"), "/usr/bin/p5_t1_trusted_exepath");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[1]"), get_field_as_string(evt, "proc.pexepath"));
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[1]"),
+	          get_field_as_string(evt, "proc.pexepath"));
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[2]"), "/usr/bin/p4_t1_trusted_exepath");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[3]"), "/usr/bin/p3_t1_trusted_exepath");
 	/* p2_t1 never calls an execve so it takes the exepath from `init` */
@@ -106,12 +138,19 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pexepath_aexepath)
 	ASSERT_FALSE(field_has_value(evt, "proc.aexepath[6]"));
 }
 
-TEST_F(sinsp_with_test_input, PROC_FILTER_aname)
-{
+TEST_F(sinsp_with_test_input, PROC_FILTER_aname) {
 	DEFAULT_TREE
 
-	// proc.aname[0]=good-exe, proc.aname[1]=bash, proc.aname[2]=bash, proc.aname[3]=bash, proc.aname[4]=bash, proc.aname[5]=init
-	auto evt = generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/good-exe", "good-exe", "/good-exe");
+	// proc.aname[0]=good-exe, proc.aname[1]=bash, proc.aname[2]=bash, proc.aname[3]=bash,
+	// proc.aname[4]=bash, proc.aname[5]=init
+	auto evt = generate_execve_enter_and_exit_event(0,
+	                                                p6_t1_tid,
+	                                                p6_t1_tid,
+	                                                p6_t1_pid,
+	                                                p6_t1_ptid,
+	                                                "/good-exe",
+	                                                "good-exe",
+	                                                "/good-exe");
 
 	EXPECT_TRUE(eval_filter(evt, "proc.aname in (init)"));
 	EXPECT_TRUE(eval_filter(evt, "proc.aname in (bash)"));
@@ -125,42 +164,92 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_aname)
 }
 
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr)
-{
+TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	DEFAULT_TREE
 	sinsp_evt* evt = NULL;
 	int64_t client_fd = 3, return_value = 0;
 	int64_t stdin_fd = 0, stdout_fd = 1, stderr_fd = 2;
 
 	// Create a connected socket
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SOCKET_SOCKET_E,
+	                     3,
+	                     (uint32_t)PPM_AF_INET,
+	                     (uint32_t)SOCK_STREAM,
+	                     0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
-	
-	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
 
-	sockaddr_in server = test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
+	sockaddr_in client =
+	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
 
-	std::vector<uint8_t> server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, client_fd, scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	sockaddr_in server =
+	        test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
 
-	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client), reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 3, return_value, scap_const_sized_buffer{socktuple.data(), socktuple.size()}, client_fd);
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_E,
+	        2,
+	        client_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+	                                   reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SOCKET_CONNECT_X,
+	                           3,
+	                           return_value,
+	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	                           client_fd);
 
 	// The socket is duped to stdin, stdout, stderr
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, stdin_fd, client_fd, stdin_fd);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_DUP2_X,
+	                           3,
+	                           stdin_fd,
+	                           client_fd,
+	                           stdin_fd);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, stdout_fd, client_fd, stdout_fd);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_DUP2_X,
+	                           3,
+	                           stdout_fd,
+	                           client_fd,
+	                           stdout_fd);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, stderr_fd, client_fd, stderr_fd);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_DUP2_X,
+	                           3,
+	                           stderr_fd,
+	                           client_fd,
+	                           stderr_fd);
 
 	// Exec a process and check stdin, stdout and stderr types and names
-	evt = generate_execve_enter_and_exit_event(0, 1, 1, 1, 1, "/proc_filter_stdin_stdout_stderr", "proc_filter_stdin_stdout_stderr", "/usr/bin/proc_filter_stdin_stdout_stderr");
+	evt = generate_execve_enter_and_exit_event(0,
+	                                           1,
+	                                           1,
+	                                           1,
+	                                           1,
+	                                           "/proc_filter_stdin_stdout_stderr",
+	                                           "proc_filter_stdin_stdout_stderr",
+	                                           "/usr/bin/proc_filter_stdin_stdout_stderr");
 	ASSERT_EQ(get_field_as_string(evt, "proc.stdin.type"), "ipv4");
 	ASSERT_EQ(get_field_as_string(evt, "proc.stdout.type"), "ipv4");
 	ASSERT_EQ(get_field_as_string(evt, "proc.stderr.type"), "ipv4");
 
-	std::string tuple_str = std::string(DEFAULT_IPV4_CLIENT_STRING) + ":" + std::to_string(DEFAULT_CLIENT_PORT) + "->" + std::string(DEFAULT_IPV4_SERVER_STRING) + ":" + std::to_string(DEFAULT_SERVER_PORT);
+	std::string tuple_str = std::string(DEFAULT_IPV4_CLIENT_STRING) + ":" +
+	                        std::to_string(DEFAULT_CLIENT_PORT) + "->" +
+	                        std::string(DEFAULT_IPV4_SERVER_STRING) + ":" +
+	                        std::to_string(DEFAULT_SERVER_PORT);
 	ASSERT_EQ(get_field_as_string(evt, "proc.stdin.name"), tuple_str);
 	ASSERT_EQ(get_field_as_string(evt, "proc.stdout.name"), tuple_str);
 	ASSERT_EQ(get_field_as_string(evt, "proc.stderr.name"), tuple_str);

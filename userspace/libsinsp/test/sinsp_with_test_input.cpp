@@ -18,23 +18,19 @@ limitations under the License.
 
 #include "sinsp_with_test_input.h"
 
-sinsp_with_test_input::sinsp_with_test_input()
-{
+sinsp_with_test_input::sinsp_with_test_input() {
 	m_test_data.event_count = 0;
 	m_test_data.events = nullptr;
 	m_test_data.thread_count = 0;
 	m_test_data.threads = nullptr;
 }
 
-sinsp_with_test_input::~sinsp_with_test_input()
-{
-	for (auto& el : m_events)
-	{
+sinsp_with_test_input::~sinsp_with_test_input() {
+	for(auto& el : m_events) {
 		free(el);
 	}
 
-	for (auto& el : m_async_events)
-	{
+	for(auto& el : m_async_events) {
 		free(el);
 	}
 
@@ -45,8 +41,11 @@ void sinsp_with_test_input::open_inspector(sinsp_mode_t mode) {
 	m_inspector.open_test_input(&m_test_data, mode);
 }
 
-scap_evt* sinsp_with_test_input::_add_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
-{
+scap_evt* sinsp_with_test_input::_add_event(uint64_t ts,
+                                            uint64_t tid,
+                                            ppm_event_code event_type,
+                                            uint32_t n,
+                                            ...) {
 	va_list args;
 	va_start(args, n);
 	scap_evt* ret = add_event_v(ts, tid, event_type, n, args);
@@ -55,10 +54,9 @@ scap_evt* sinsp_with_test_input::_add_event(uint64_t ts, uint64_t tid, ppm_event
 	return ret;
 }
 
-sinsp_evt* sinsp_with_test_input::advance_ts_get_event(uint64_t ts)
-{
-	for (sinsp_evt* evt = next_event(); evt != nullptr; evt = next_event()) {
-		if (evt->get_ts() == ts) {
+sinsp_evt* sinsp_with_test_input::advance_ts_get_event(uint64_t ts) {
+	for(sinsp_evt* evt = next_event(); evt != nullptr; evt = next_event()) {
+		if(evt->get_ts() == ts) {
 			return evt;
 		}
 	}
@@ -67,8 +65,11 @@ sinsp_evt* sinsp_with_test_input::advance_ts_get_event(uint64_t ts)
 }
 
 // adds an event and advances the inspector to the new timestamp
-sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
-{
+sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts,
+                                                        uint64_t tid,
+                                                        ppm_event_code event_type,
+                                                        uint32_t n,
+                                                        ...) {
 	va_list args;
 	va_start(args, n);
 	sinsp_evt* ret = add_event_advance_ts_v(ts, tid, event_type, n, args);
@@ -77,20 +78,28 @@ sinsp_evt* sinsp_with_test_input::_add_event_advance_ts(uint64_t ts, uint64_t ti
 	return ret;
 }
 
-sinsp_evt* sinsp_with_test_input::add_event_advance_ts_v(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, va_list args)
-{
+sinsp_evt* sinsp_with_test_input::add_event_advance_ts_v(uint64_t ts,
+                                                         uint64_t tid,
+                                                         ppm_event_code event_type,
+                                                         uint32_t n,
+                                                         va_list args) {
 	add_event_v(ts, tid, event_type, n, args);
 	sinsp_evt* evt = advance_ts_get_event(ts);
-	if (evt != nullptr) {
+	if(evt != nullptr) {
 		return evt;
 	}
 
-	throw std::runtime_error("could not retrieve last event or internal error (event vector size: " + std::to_string(m_events.size()) + std::string(")"));
+	throw std::runtime_error(
+	        "could not retrieve last event or internal error (event vector size: " +
+	        std::to_string(m_events.size()) + std::string(")"));
 }
 
 // Generates and allocates a new event.
-scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, va_list args)
-{
+scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts,
+                                                uint64_t tid,
+                                                ppm_event_code event_type,
+                                                uint32_t n,
+                                                va_list args) {
 	struct scap_sized_buffer event_buf = {NULL, 0};
 	size_t event_size = 0;
 	char error[SCAP_LASTERR_SIZE] = {'\0'};
@@ -129,10 +138,15 @@ scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts, uint64_t tid, ppm_e
 	return event;
 }
 
-scap_evt* sinsp_with_test_input::add_event_v(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, va_list args)
-{
-	if (ts < m_last_recorded_timestamp) {
-		throw std::runtime_error("the test framework does not currently support out of order events with decreasing timestamps");
+scap_evt* sinsp_with_test_input::add_event_v(uint64_t ts,
+                                             uint64_t tid,
+                                             ppm_event_code event_type,
+                                             uint32_t n,
+                                             va_list args) {
+	if(ts < m_last_recorded_timestamp) {
+		throw std::runtime_error(
+		        "the test framework does not currently support out of order events with decreasing "
+		        "timestamps");
 	}
 
 	scap_evt* event = create_event_v(ts, tid, event_type, n, args);
@@ -146,8 +160,11 @@ scap_evt* sinsp_with_test_input::add_event_v(uint64_t ts, uint64_t tid, ppm_even
 	return event;
 }
 
-scap_evt* sinsp_with_test_input::add_async_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
-{
+scap_evt* sinsp_with_test_input::add_async_event(uint64_t ts,
+                                                 uint64_t tid,
+                                                 ppm_event_code event_type,
+                                                 uint32_t n,
+                                                 ...) {
 	va_list args;
 	va_start(args, n);
 	scap_evt* ret = add_async_event_v(ts, tid, event_type, n, args);
@@ -156,8 +173,11 @@ scap_evt* sinsp_with_test_input::add_async_event(uint64_t ts, uint64_t tid, ppm_
 	return ret;
 }
 
-scap_evt* sinsp_with_test_input::add_async_event_v(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, va_list args)
-{
+scap_evt* sinsp_with_test_input::add_async_event_v(uint64_t ts,
+                                                   uint64_t tid,
+                                                   ppm_event_code event_type,
+                                                   uint32_t n,
+                                                   va_list args) {
 	scap_evt* scap_event = create_event_v(ts, tid, event_type, n, args);
 	m_async_events.push_back(scap_event);
 
@@ -172,19 +192,23 @@ scap_evt* sinsp_with_test_input::add_async_event_v(uint64_t ts, uint64_t tid, pp
 
 //=============================== PROCESS GENERATION ===========================
 
-// Allowed event types: PPME_SYSCALL_CLONE_20_X, PPME_SYSCALL_FORK_20_X, PPME_SYSCALL_VFORK_20_X, PPME_SYSCALL_CLONE3_X
-sinsp_evt* sinsp_with_test_input::generate_clone_x_event(int64_t retval, int64_t tid, int64_t pid, int64_t ppid, uint32_t flags,
-					int64_t vtid, int64_t vpid,
-					const std::string& name, const std::vector<std::string>& cgroup_vec,
-					ppm_event_code event_type)
-{
-	if(vtid == DEFAULT_VALUE)
-	{
+// Allowed event types: PPME_SYSCALL_CLONE_20_X, PPME_SYSCALL_FORK_20_X, PPME_SYSCALL_VFORK_20_X,
+// PPME_SYSCALL_CLONE3_X
+sinsp_evt* sinsp_with_test_input::generate_clone_x_event(int64_t retval,
+                                                         int64_t tid,
+                                                         int64_t pid,
+                                                         int64_t ppid,
+                                                         uint32_t flags,
+                                                         int64_t vtid,
+                                                         int64_t vpid,
+                                                         const std::string& name,
+                                                         const std::vector<std::string>& cgroup_vec,
+                                                         ppm_event_code event_type) {
+	if(vtid == DEFAULT_VALUE) {
 		vtid = tid;
 	}
 
-	if(vpid == DEFAULT_VALUE)
-	{
+	if(vpid == DEFAULT_VALUE) {
 		vpid = pid;
 	}
 
@@ -197,112 +221,164 @@ sinsp_evt* sinsp_with_test_input::generate_clone_x_event(int64_t retval, int64_t
 	std::string cgroupsv = test_utils::to_null_delimited(cgroup_vec);
 
 	// If the cgroup vector is not empty overwrite it
-	if(!cgroup_vec.empty())
-	{
+	if(!cgroup_vec.empty()) {
 		cgroup_byte_buf = scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()};
 	}
 
-	return add_event_advance_ts(increasing_ts(), tid, event_type, 20, retval, name.c_str(), empty_bytebuf,
-					tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64,
-					not_relevant_32, not_relevant_32, not_relevant_32, name.c_str(),
-					cgroup_byte_buf, flags, not_relevant_32, not_relevant_32, vtid, vpid);
+	return add_event_advance_ts(increasing_ts(),
+	                            tid,
+	                            event_type,
+	                            20,
+	                            retval,
+	                            name.c_str(),
+	                            empty_bytebuf,
+	                            tid,
+	                            pid,
+	                            ppid,
+	                            "",
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            name.c_str(),
+	                            cgroup_byte_buf,
+	                            flags,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            vtid,
+	                            vpid);
 }
 
-sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(int64_t retval, int64_t old_tid, int64_t new_tid, int64_t pid,
-						int64_t ppid, const std::string& pathname,
-						const std::string& comm,
-						const std::string& resolved_kernel_path,
-						const std::vector<std::string>& cgroup_vec)
-{
+sinsp_evt* sinsp_with_test_input::generate_execve_enter_and_exit_event(
+        int64_t retval,
+        int64_t old_tid,
+        int64_t new_tid,
+        int64_t pid,
+        int64_t ppid,
+        const std::string& pathname,
+        const std::string& comm,
+        const std::string& resolved_kernel_path,
+        const std::vector<std::string>& cgroup_vec) {
 	// Scaffolding needed to call the PPME_SYSCALL_EXECVE_19_X
 	uint64_t not_relevant_64 = 0;
 	uint32_t not_relevant_32 = 0;
-	scap_const_sized_buffer empty_bytebuf = { /*.buf =*/nullptr, /*.size =*/0 };
+	scap_const_sized_buffer empty_bytebuf = {/*.buf =*/nullptr, /*.size =*/0};
 	scap_const_sized_buffer cgroup_byte_buf = empty_bytebuf;
 	std::string cgroupsv = test_utils::to_null_delimited(cgroup_vec);
 
 	// If the cgroup vector is not empty overwrite it
-	if(!cgroup_vec.empty())
-	{
+	if(!cgroup_vec.empty()) {
 		cgroup_byte_buf = scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()};
 	}
 
 	add_event_advance_ts(increasing_ts(), old_tid, PPME_SYSCALL_EXECVE_19_E, 1, pathname.c_str());
 	// we have an `old_tid` and a `new_tid` because if a secondary thread calls the execve
 	// the thread leader will take control so the `tid` between enter and exit event will change
-	return add_event_advance_ts(
-		increasing_ts(), new_tid, PPME_SYSCALL_EXECVE_19_X, 28, retval, pathname.c_str(), empty_bytebuf,
-		new_tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32,
-		not_relevant_32, not_relevant_32, comm.c_str(), cgroup_byte_buf, empty_bytebuf, not_relevant_32,
-		not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_64, not_relevant_64,
-		not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32,
-		resolved_kernel_path.c_str());
+	return add_event_advance_ts(increasing_ts(),
+	                            new_tid,
+	                            PPME_SYSCALL_EXECVE_19_X,
+	                            28,
+	                            retval,
+	                            pathname.c_str(),
+	                            empty_bytebuf,
+	                            new_tid,
+	                            pid,
+	                            ppid,
+	                            "",
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            comm.c_str(),
+	                            cgroup_byte_buf,
+	                            empty_bytebuf,
+	                            not_relevant_32,
+	                            not_relevant_64,
+	                            not_relevant_32,
+	                            not_relevant_32,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_32,
+	                            resolved_kernel_path.c_str());
 }
 
-void sinsp_with_test_input::remove_thread(int64_t tid_to_remove, int64_t reaper_tid)
-{
+void sinsp_with_test_input::remove_thread(int64_t tid_to_remove, int64_t reaper_tid) {
 	generate_proc_exit_event(tid_to_remove, reaper_tid);
 	// Generate a random event on init to trigger the removal after proc exit
 	generate_random_event();
 }
 
-sinsp_evt* sinsp_with_test_input::generate_proc_exit_event(int64_t tid_to_remove, int64_t reaper_tid)
-{
+sinsp_evt* sinsp_with_test_input::generate_proc_exit_event(int64_t tid_to_remove,
+                                                           int64_t reaper_tid) {
 	// Scaffolding needed to call the PPME_PROCEXIT_1_E
 	int64_t not_relevant_64 = 0;
 	uint8_t not_relevant_8 = 0;
 
-	return add_event_advance_ts(increasing_ts(), tid_to_remove, PPME_PROCEXIT_1_E, 5, not_relevant_64, not_relevant_64, not_relevant_8, not_relevant_8, reaper_tid);
+	return add_event_advance_ts(increasing_ts(),
+	                            tid_to_remove,
+	                            PPME_PROCEXIT_1_E,
+	                            5,
+	                            not_relevant_64,
+	                            not_relevant_64,
+	                            not_relevant_8,
+	                            not_relevant_8,
+	                            reaper_tid);
 }
 
-sinsp_evt* sinsp_with_test_input::generate_random_event(int64_t tid_caller)
-{
+sinsp_evt* sinsp_with_test_input::generate_random_event(int64_t tid_caller) {
 	// Generate a random failed event. Useful when we want to trigger some actions on an event
 	// and we don't care about the event chosen.
 	return add_event_advance_ts(increasing_ts(), tid_caller, PPME_SYSCALL_GETCWD_E, 0);
 }
 
-sinsp_evt* sinsp_with_test_input::generate_getcwd_failed_entry_event(int64_t tid_caller)
-{
+sinsp_evt* sinsp_with_test_input::generate_getcwd_failed_entry_event(int64_t tid_caller) {
 	int64_t err = -1;
 	std::string path = "/test/dir";
-	return add_event_advance_ts(increasing_ts(), tid_caller, PPME_SYSCALL_GETCWD_X, 2, err, path.c_str());
+	return add_event_advance_ts(increasing_ts(),
+	                            tid_caller,
+	                            PPME_SYSCALL_GETCWD_X,
+	                            2,
+	                            err,
+	                            path.c_str());
 }
 
 //=============================== PROCESS GENERATION ===========================
 
-void sinsp_with_test_input::add_thread(const scap_threadinfo& tinfo, const std::vector<scap_fdinfo>& fdinfos)
-{
+void sinsp_with_test_input::add_thread(const scap_threadinfo& tinfo,
+                                       const std::vector<scap_fdinfo>& fdinfos) {
 	m_threads.push_back(tinfo);
 	m_test_data.threads = m_threads.data();
 	m_test_data.thread_count = m_threads.size();
 
 	m_fdinfos.push_back(fdinfos);
-	scap_test_fdinfo_data fdinfo_descriptor = {
-		/*.fdinfos =*/ m_fdinfos.back().data(),
-		/*.fdinfo_count =*/ m_fdinfos.back().size()
-	};
+	scap_test_fdinfo_data fdinfo_descriptor = {/*.fdinfos =*/m_fdinfos.back().data(),
+	                                           /*.fdinfo_count =*/m_fdinfos.back().size()};
 	m_test_fdinfo_data.push_back(fdinfo_descriptor);
 
 	m_test_data.fdinfo_data = m_test_fdinfo_data.data();
 }
 
-void sinsp_with_test_input::set_threadinfo_last_access_time(int64_t tid, uint64_t access_time_ns)
-{
+void sinsp_with_test_input::set_threadinfo_last_access_time(int64_t tid, uint64_t access_time_ns) {
 	auto tinfo = m_inspector.get_thread_ref(tid, false).get();
-	if(tinfo != nullptr)
-	{
+	if(tinfo != nullptr) {
 		tinfo->m_lastaccess_ts = access_time_ns;
-	}
-	else
-	{
-		throw sinsp_exception("There is no thread info associated with tid: " + std::to_string(tid));
+	} else {
+		throw sinsp_exception("There is no thread info associated with tid: " +
+		                      std::to_string(tid));
 	}
 }
 
 // Remove all threads with `tinfo->m_lastaccess_ts` minor than `m_lastevent_ts - thread_timeout`
-void sinsp_with_test_input::remove_inactive_threads(uint64_t m_lastevent_ts, uint64_t thread_timeout)
-{
+void sinsp_with_test_input::remove_inactive_threads(uint64_t m_lastevent_ts,
+                                                    uint64_t thread_timeout) {
 	// We need to set these 2 variables to enable the remove_inactive_logic
 	m_inspector.m_thread_manager->set_last_flush_time_ns(1);
 	m_inspector.m_threads_purging_scan_time_ns = 2;
@@ -313,19 +389,41 @@ void sinsp_with_test_input::remove_inactive_threads(uint64_t m_lastevent_ts, uin
 }
 
 // static
-scap_threadinfo sinsp_with_test_input::create_threadinfo(
-	uint64_t tid, uint64_t pid, uint64_t ptid, uint64_t vpgid, int64_t vtid, int64_t vpid,
-	const std::string& comm, const std::string& exe, const std::string& exepath,
-	uint64_t clone_ts, uint32_t uid, uint32_t gid,
-	const std::vector<std::string>& args, uint64_t sid,
-	const std::vector<std::string>& env, const std::string& cwd,
-	int64_t fdlimit, uint32_t flags, bool exe_writable,
-	uint64_t cap_permitted, uint64_t cap_inheritable, uint64_t cap_effective,
-	uint32_t vmsize_kb, uint32_t vmrss_kb, uint32_t vmswap_kb, uint64_t pfmajor, uint64_t pfminor,
-	const std::vector<std::string>& cgroups, const std::string& root,
-	int filtered_out, uint32_t tty, uint32_t loginuid, bool exe_upper_layer, bool exe_lower_layer,
-	bool exe_from_memfd)
-{
+scap_threadinfo sinsp_with_test_input::create_threadinfo(uint64_t tid,
+                                                         uint64_t pid,
+                                                         uint64_t ptid,
+                                                         uint64_t vpgid,
+                                                         int64_t vtid,
+                                                         int64_t vpid,
+                                                         const std::string& comm,
+                                                         const std::string& exe,
+                                                         const std::string& exepath,
+                                                         uint64_t clone_ts,
+                                                         uint32_t uid,
+                                                         uint32_t gid,
+                                                         const std::vector<std::string>& args,
+                                                         uint64_t sid,
+                                                         const std::vector<std::string>& env,
+                                                         const std::string& cwd,
+                                                         int64_t fdlimit,
+                                                         uint32_t flags,
+                                                         bool exe_writable,
+                                                         uint64_t cap_permitted,
+                                                         uint64_t cap_inheritable,
+                                                         uint64_t cap_effective,
+                                                         uint32_t vmsize_kb,
+                                                         uint32_t vmrss_kb,
+                                                         uint32_t vmswap_kb,
+                                                         uint64_t pfmajor,
+                                                         uint64_t pfminor,
+                                                         const std::vector<std::string>& cgroups,
+                                                         const std::string& root,
+                                                         int filtered_out,
+                                                         uint32_t tty,
+                                                         uint32_t loginuid,
+                                                         bool exe_upper_layer,
+                                                         bool exe_lower_layer,
+                                                         bool exe_from_memfd) {
 	scap_threadinfo tinfo = {};
 
 	tinfo.tid = tid;
@@ -357,20 +455,17 @@ scap_threadinfo sinsp_with_test_input::create_threadinfo(
 	tinfo.exe_from_memfd = exe_from_memfd;
 
 	std::string argsv;
-	if (!args.empty())
-	{
+	if(!args.empty()) {
 		argsv = test_utils::to_null_delimited(args);
 	}
 
 	std::string envv;
-	if (!env.empty())
-	{
+	if(!env.empty()) {
 		envv = test_utils::to_null_delimited(env);
 	}
 
 	std::string cgroupsv;
-	if (!cgroups.empty())
-	{
+	if(!cgroups.empty()) {
 		cgroupsv = test_utils::to_null_delimited(cgroups);
 	}
 
@@ -389,10 +484,24 @@ scap_threadinfo sinsp_with_test_input::create_threadinfo(
 	return tinfo;
 }
 
-void sinsp_with_test_input::add_default_init_thread()
-{
-	std::vector<std::string> env = { "TEST_ENV_PARENT_LINEAGE=secret", "HOME=/home/user/parent" };
-	scap_threadinfo tinfo = create_threadinfo(1, 1, 0, 1, 1, 1, "init", "/sbin/init", "/sbin/init", increasing_ts(), 0, 0, {}, 0, env, "/root/");
+void sinsp_with_test_input::add_default_init_thread() {
+	std::vector<std::string> env = {"TEST_ENV_PARENT_LINEAGE=secret", "HOME=/home/user/parent"};
+	scap_threadinfo tinfo = create_threadinfo(1,
+	                                          1,
+	                                          0,
+	                                          1,
+	                                          1,
+	                                          1,
+	                                          "init",
+	                                          "/sbin/init",
+	                                          "/sbin/init",
+	                                          increasing_ts(),
+	                                          0,
+	                                          0,
+	                                          {},
+	                                          0,
+	                                          env,
+	                                          "/root/");
 
 	std::vector<scap_fdinfo> fdinfos;
 	scap_fdinfo fdinfo;
@@ -410,101 +519,120 @@ void sinsp_with_test_input::add_default_init_thread()
 	add_thread(tinfo, fdinfos);
 }
 
-void sinsp_with_test_input::add_simple_thread(int64_t tid, int64_t pid, int64_t ptid, const std::string& comm)
-{
-	scap_threadinfo tinfo = create_threadinfo(tid, pid, ptid, tid, tid, pid, comm, "/sbin/init", "/sbin/init", increasing_ts(), 0, 0, {}, 0, {}, "/root/");
+void sinsp_with_test_input::add_simple_thread(int64_t tid,
+                                              int64_t pid,
+                                              int64_t ptid,
+                                              const std::string& comm) {
+	scap_threadinfo tinfo = create_threadinfo(tid,
+	                                          pid,
+	                                          ptid,
+	                                          tid,
+	                                          tid,
+	                                          pid,
+	                                          comm,
+	                                          "/sbin/init",
+	                                          "/sbin/init",
+	                                          increasing_ts(),
+	                                          0,
+	                                          0,
+	                                          {},
+	                                          0,
+	                                          {},
+	                                          "/root/");
 	add_thread(tinfo, {});
 }
 
-uint64_t sinsp_with_test_input::increasing_ts()
-{
+uint64_t sinsp_with_test_input::increasing_ts() {
 	uint64_t ret = m_test_timestamp;
-	m_test_timestamp += 10000000; // 10 msec increment
+	m_test_timestamp += 10000000;  // 10 msec increment
 	return ret;
 }
 
 // Return true if `field_name` exists in the filtercheck list.
 // The field value could also be NULL, but in this method, we are not interested in the value.
-bool sinsp_with_test_input::field_exists(sinsp_evt* evt, std::string_view field_name)
-{
+bool sinsp_with_test_input::field_exists(sinsp_evt* evt, std::string_view field_name) {
 	return field_exists(evt, field_name, m_default_filterlist);
 }
 
-bool sinsp_with_test_input::field_exists(sinsp_evt* evt, std::string_view field_name, filter_check_list& flist)
-{
-	if (evt == nullptr) {
+bool sinsp_with_test_input::field_exists(sinsp_evt* evt,
+                                         std::string_view field_name,
+                                         filter_check_list& flist) {
+	if(evt == nullptr) {
 		throw sinsp_exception("The event class is NULL");
 	}
 
 	auto new_fl = flist.new_filter_check_from_fldname(field_name, &m_inspector, false);
-	if(new_fl != nullptr)
-	{
+	if(new_fl != nullptr) {
 		// if we can create a filter check it means that the field exists
 		return true;
-	}
-	else
-	{
+	} else {
 		return false;
 	}
 }
 
 // Return true if `field_name` value is not NULL for this event.
-bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, std::string_view field_name)
-{
+bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, std::string_view field_name) {
 	return field_has_value(evt, field_name, m_default_filterlist);
 }
 
-bool sinsp_with_test_input::field_has_value(sinsp_evt* evt, std::string_view field_name, filter_check_list& flist)
-{
-	if (evt == nullptr) {
+bool sinsp_with_test_input::field_has_value(sinsp_evt* evt,
+                                            std::string_view field_name,
+                                            filter_check_list& flist) {
+	if(evt == nullptr) {
 		throw sinsp_exception("The event class is NULL");
 	}
 
-	std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
-	if(chk == nullptr)
-	{
+	std::unique_ptr<sinsp_filter_check> chk(
+	        flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
+	if(chk == nullptr) {
 		throw sinsp_exception("The field " + std::string(field_name) + " is not a valid field.");
 	}
-	// we created a filter check starting from the field name so if we arrive here we will find it for sure
+	// we created a filter check starting from the field name so if we arrive here we will find it
+	// for sure
 	chk->parse_field_name(field_name, true, false);
 	std::vector<extract_value_t> values;
 	return chk->extract(evt, values);
 }
 
-std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, std::string_view field_name)
-{
+std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt,
+                                                       std::string_view field_name) {
 	return get_field_as_string(evt, field_name, m_default_filterlist);
 }
 
-std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt, std::string_view field_name, filter_check_list& flist)
-{
-	if (evt == nullptr) {
+std::string sinsp_with_test_input::get_field_as_string(sinsp_evt* evt,
+                                                       std::string_view field_name,
+                                                       filter_check_list& flist) {
+	if(evt == nullptr) {
 		throw sinsp_exception("The event class is NULL");
 	}
 
-	std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
-	if(chk == nullptr)
-	{
+	std::unique_ptr<sinsp_filter_check> chk(
+	        flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
+	if(chk == nullptr) {
 		throw sinsp_exception("The field " + std::string(field_name) + " is not a valid field.");
 	}
-	// we created a filter check starting from the field name so if we arrive here we will find it for sure
+	// we created a filter check starting from the field name so if we arrive here we will find it
+	// for sure
 	chk->parse_field_name(field_name, true, false);
 
 	const char* result = chk->tostring(evt);
-	if (result == nullptr) {
+	if(result == nullptr) {
 		throw sinsp_exception("The field " + std::string(field_name) + " is NULL");
 	}
 
 	return result;
 }
 
-bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, std::shared_ptr<sinsp_filter_cache_factory> cachef)
-{
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt,
+                                        std::string_view filter_str,
+                                        std::shared_ptr<sinsp_filter_cache_factory> cachef) {
 	return eval_filter(evt, filter_str, m_default_filterlist, cachef);
 }
 
-bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, filter_check_list &flist, std::shared_ptr<sinsp_filter_cache_factory> cachef)
-{
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt,
+                                        std::string_view filter_str,
+                                        filter_check_list& flist,
+                                        std::shared_ptr<sinsp_filter_cache_factory> cachef) {
 	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
 	sinsp_filter_compiler compiler(factory, std::string(filter_str), cachef);
 
@@ -513,35 +641,31 @@ bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_
 	return filter->run(evt);
 }
 
-bool sinsp_with_test_input::eval_filter(sinsp_evt* evt, std::string_view filter_str, std::shared_ptr<sinsp_filter_factory> filterf, std::shared_ptr<sinsp_filter_cache_factory> cachef)
-{
+bool sinsp_with_test_input::eval_filter(sinsp_evt* evt,
+                                        std::string_view filter_str,
+                                        std::shared_ptr<sinsp_filter_factory> filterf,
+                                        std::shared_ptr<sinsp_filter_cache_factory> cachef) {
 	sinsp_filter_compiler compiler(filterf, std::string(filter_str), cachef);
 	auto filter = compiler.compile();
 	return filter->run(evt);
 }
 
-bool sinsp_with_test_input::filter_compiles(std::string_view filter_str)
-{
+bool sinsp_with_test_input::filter_compiles(std::string_view filter_str) {
 	return filter_compiles(filter_str, m_default_filterlist);
 }
 
-bool sinsp_with_test_input::filter_compiles(std::string_view filter_str, filter_check_list &flist)
-{
+bool sinsp_with_test_input::filter_compiles(std::string_view filter_str, filter_check_list& flist) {
 	auto factory = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
 	sinsp_filter_compiler compiler(factory, std::string(filter_str));
-	try
-	{
+	try {
 		auto f = compiler.compile();
 		return true;
-	}
-	catch(const sinsp_exception& e)
-	{
+	} catch(const sinsp_exception& e) {
 		return false;
 	}
 }
 
-sinsp_evt* sinsp_with_test_input::next_event()
-{
+sinsp_evt* sinsp_with_test_input::next_event() {
 	sinsp_evt* evt;
 	auto result = m_inspector.next(&evt);
 	return result == SCAP_SUCCESS ? evt : nullptr;

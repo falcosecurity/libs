@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_tkill
-TEST(SyscallExit, tkillX)
-{
+TEST(SyscallExit, tkillX) {
 	auto evt_test = get_syscall_event_test(__NR_tkill, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,7 @@ TEST(SyscallExit, tkillX)
 	int32_t mock_tid = 0;
 	int32_t signal = 0;
 	assert_syscall_state(SYSCALL_FAILURE, "tkill", syscall(__NR_tkill, mock_tid, signal));
-    int64_t errno_value = -errno;
+	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +20,7 @@ TEST(SyscallExit, tkillX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

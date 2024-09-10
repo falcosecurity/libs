@@ -20,23 +20,23 @@ limitations under the License.
 #define SAVEFILE_ENGINE "savefile"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-	struct scap_platform;
+struct scap_platform;
 
-	struct scap_savefile_engine_params
-	{
-		int fd;		       ///< If non-zero, will be used instead of fname.
-		const char* fname;     ///< The name of the file to open.
-		uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
-		uint32_t fbuffer_size; ///< If non-zero, offline captures will read from file using a buffer of this size.
+struct scap_savefile_engine_params {
+	int fd;                 ///< If non-zero, will be used instead of fname.
+	const char* fname;      ///< The name of the file to open.
+	uint64_t start_offset;  ///< Used to start reading a capture file from an arbitrary offset. This
+	                        ///< is leveraged when opening merged files.
+	uint32_t fbuffer_size;  ///< If non-zero, offline captures will read from file using a buffer of
+	                        ///< this size.
 
-		struct scap_platform* platform;
-	};
+	struct scap_platform* platform;
+};
 
-	struct scap_platform* scap_savefile_alloc_platform(proc_entry_callback proc_callback,
-							   void* proc_callback_context);
+struct scap_platform* scap_savefile_alloc_platform(proc_entry_callback proc_callback,
+                                                   void* proc_callback_context);
 
 #ifdef __cplusplus
 };

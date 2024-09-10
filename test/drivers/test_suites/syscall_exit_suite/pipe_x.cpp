@@ -4,8 +4,7 @@
 
 #if defined(__NR_fstat) && defined(__NR_close)
 
-TEST(SyscallExit, pipeX_success)
-{
+TEST(SyscallExit, pipeX_success) {
 	auto evt_test = get_syscall_event_test(__NR_pipe, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +15,11 @@ TEST(SyscallExit, pipeX_success)
 	assert_syscall_state(SYSCALL_SUCCESS, "pipe", syscall(__NR_pipe, pipefd), NOT_EQUAL, -1);
 
 	struct stat file_stat;
-	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, pipefd[0], &file_stat), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "fstat",
+	                     syscall(__NR_fstat, pipefd[0], &file_stat),
+	                     NOT_EQUAL,
+	                     -1);
 	uint64_t inode = file_stat.st_ino;
 
 	syscall(__NR_close, pipefd[0]);
@@ -28,8 +31,7 @@ TEST(SyscallExit, pipeX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -58,8 +60,7 @@ TEST(SyscallExit, pipeX_success)
 
 #endif /* defined(__NR_fstat) && defined(__NR_close) */
 
-TEST(SyscallExit, pipeX_failure)
-{
+TEST(SyscallExit, pipeX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_pipe, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -76,8 +77,7 @@ TEST(SyscallExit, pipeX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

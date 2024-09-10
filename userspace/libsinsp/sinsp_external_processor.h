@@ -11,18 +11,15 @@
 class sinsp;
 class threadinfo;
 
-namespace libsinsp
-{
-enum event_return
-{
+namespace libsinsp {
+enum event_return {
 	EVENT_RETURN_TIMEOUT,
 	EVENT_RETURN_EOF,
 	EVENT_RETURN_NONE,
 	EVENT_RETURN_FILTERED
 };
 
-class event_processor
-{
+class event_processor {
 public:
 	virtual ~event_processor() = default;
 

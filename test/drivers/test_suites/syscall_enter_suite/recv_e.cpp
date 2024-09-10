@@ -2,8 +2,7 @@
 
 #ifdef __NR_recv
 
-TEST(SyscallEnter, recvE)
-{
+TEST(SyscallEnter, recvE) {
 	auto evt_test = get_syscall_event_test(__NR_recv, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, recvE)
 	char* mock_buf = NULL;
 	size_t mock_count = DEFAULT_SNAPLEN;
 	int flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "recv", syscall(__NR_recv, mock_fd, (void*)(mock_buf), mock_count, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "recv",
+	                     syscall(__NR_recv, mock_fd, (void*)(mock_buf), mock_count, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, recvE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

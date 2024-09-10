@@ -13,17 +13,14 @@
 #include <helpers/base/read_from_task.h>
 #include <helpers/extract/extract_from_kernel.h>
 
-static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint32_t syscall_id)
-{
+static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(uint32_t syscall_id) {
 	return maps__64bit_interesting_syscall(syscall_id);
 }
 
-static __always_inline long convert_network_syscalls(struct pt_regs *regs)
-{
+static __always_inline long convert_network_syscalls(struct pt_regs *regs) {
 	int socketcall_id = (int)extract__syscall_argument(regs, 0);
 
-	switch(socketcall_id)
-	{
+	switch(socketcall_id) {
 #ifdef __NR_socket
 	case SYS_SOCKET:
 		return __NR_socket;
@@ -147,10 +144,10 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 	 * ----- x86 with CONFIG_IA32_EMULATION
 	 * - `SYS_ACCEPT` is defined but `__NR_accept` is not defined
 	 * -> In this case we return a `__NR_accept`
-	 * 
+	 *
 	 * - `SYS_SEND` is defined but `__NR_send` is not defined
 	 * -> In this case we drop the event
-	 * 
+	 *
 	 * - `SYS_RECV` is defined but `__NR_recv` is not defined
 	 * -> In this case we drop the event
 	 */

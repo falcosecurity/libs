@@ -26,86 +26,71 @@ limitations under the License.
 
 /*=============================== ATTACH PROGRAMS ===============================*/
 
-int pman_attach_syscall_enter_dispatcher()
-{
+int pman_attach_syscall_enter_dispatcher() {
 	/* The program is already attached. */
-	if(g_state.skel->links.sys_enter != NULL)
-	{
+	if(g_state.skel->links.sys_enter != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.sys_enter = bpf_program__attach(g_state.skel->progs.sys_enter);
-	if(!g_state.skel->links.sys_enter)
-	{
+	if(!g_state.skel->links.sys_enter) {
 		pman_print_error("failed to attach the 'sys_enter' program");
 		return errno;
 	}
 	return 0;
 }
 
-int pman_attach_syscall_exit_dispatcher()
-{
+int pman_attach_syscall_exit_dispatcher() {
 	/* The program is already attached. */
-	if(g_state.skel->links.sys_exit != NULL)
-	{
+	if(g_state.skel->links.sys_exit != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.sys_exit = bpf_program__attach(g_state.skel->progs.sys_exit);
-	if(!g_state.skel->links.sys_exit)
-	{
+	if(!g_state.skel->links.sys_exit) {
 		pman_print_error("failed to attach the 'sys_exit' program");
 		return errno;
 	}
 	return 0;
 }
 
-int pman_attach_sched_proc_exit()
-{
+int pman_attach_sched_proc_exit() {
 	/* The program is already attached. */
-	if(g_state.skel->links.sched_proc_exit != NULL)
-	{
+	if(g_state.skel->links.sched_proc_exit != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.sched_proc_exit = bpf_program__attach(g_state.skel->progs.sched_proc_exit);
-	if(!g_state.skel->links.sched_proc_exit)
-	{
+	if(!g_state.skel->links.sched_proc_exit) {
 		pman_print_error("failed to attach the 'sched_proc_exit' program");
 		return errno;
 	}
 	return 0;
 }
 
-int pman_attach_sched_switch()
-{
+int pman_attach_sched_switch() {
 	/* The program is already attached. */
-	if(g_state.skel->links.sched_switch != NULL)
-	{
+	if(g_state.skel->links.sched_switch != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.sched_switch = bpf_program__attach(g_state.skel->progs.sched_switch);
-	if(!g_state.skel->links.sched_switch)
-	{
+	if(!g_state.skel->links.sched_switch) {
 		pman_print_error("failed to attach the 'sched_switch' program");
 		return errno;
 	}
 	return 0;
 }
 
-int pman_attach_sched_proc_exec()
-{
+int pman_attach_sched_proc_exec() {
 #ifdef CAPTURE_SCHED_PROC_EXEC
 	/* The program is already attached. */
-	if(g_state.skel->links.sched_p_exec != NULL)
-	{
+	if(g_state.skel->links.sched_p_exec != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.sched_p_exec = bpf_program__attach(g_state.skel->progs.sched_p_exec);
-	if(!g_state.skel->links.sched_p_exec)
-	{
+	if(!g_state.skel->links.sched_p_exec) {
 		pman_print_error("failed to attach the 'sched_proc_exec' program");
 		return errno;
 	}
@@ -113,18 +98,15 @@ int pman_attach_sched_proc_exec()
 	return 0;
 }
 
-int pman_attach_sched_proc_fork()
-{
+int pman_attach_sched_proc_fork() {
 #ifdef CAPTURE_SCHED_PROC_FORK
 	/* The program is already attached. */
-	if(g_state.skel->links.sched_p_fork != NULL)
-	{
+	if(g_state.skel->links.sched_p_fork != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.sched_p_fork = bpf_program__attach(g_state.skel->progs.sched_p_fork);
-	if(!g_state.skel->links.sched_p_fork)
-	{
+	if(!g_state.skel->links.sched_p_fork) {
 		pman_print_error("failed to attach the 'sched_proc_fork' program");
 		return errno;
 	}
@@ -132,18 +114,15 @@ int pman_attach_sched_proc_fork()
 	return 0;
 }
 
-int pman_attach_page_fault_user()
-{
+int pman_attach_page_fault_user() {
 #ifdef CAPTURE_PAGE_FAULTS
 	/* The program is already attached. */
-	if(g_state.skel->links.pf_user != NULL)
-	{
+	if(g_state.skel->links.pf_user != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.pf_user = bpf_program__attach(g_state.skel->progs.pf_user);
-	if(!g_state.skel->links.pf_user)
-	{
+	if(!g_state.skel->links.pf_user) {
 		pman_print_error("failed to attach the 'pf_user' program");
 		return errno;
 	}
@@ -151,18 +130,15 @@ int pman_attach_page_fault_user()
 	return 0;
 }
 
-int pman_attach_page_fault_kernel()
-{
+int pman_attach_page_fault_kernel() {
 #ifdef CAPTURE_PAGE_FAULTS
 	/* The program is already attached. */
-	if(g_state.skel->links.pf_kernel != NULL)
-	{
+	if(g_state.skel->links.pf_kernel != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.pf_kernel = bpf_program__attach(g_state.skel->progs.pf_kernel);
-	if(!g_state.skel->links.pf_kernel)
-	{
+	if(!g_state.skel->links.pf_kernel) {
 		pman_print_error("failed to attach the 'pf_kernel' program");
 		return errno;
 	}
@@ -170,17 +146,14 @@ int pman_attach_page_fault_kernel()
 	return 0;
 }
 
-int pman_attach_signal_deliver()
-{
+int pman_attach_signal_deliver() {
 	/* The program is already attached. */
-	if(g_state.skel->links.signal_deliver != NULL)
-	{
+	if(g_state.skel->links.signal_deliver != NULL) {
 		return 0;
 	}
 
 	g_state.skel->links.signal_deliver = bpf_program__attach(g_state.skel->progs.signal_deliver);
-	if(!g_state.skel->links.signal_deliver)
-	{
+	if(!g_state.skel->links.signal_deliver) {
 		pman_print_error("failed to attach the 'signal_deliver' program");
 		return errno;
 	}
@@ -191,10 +164,8 @@ int pman_attach_signal_deliver()
 
 /*=============================== DETACH PROGRAMS ===============================*/
 
-int pman_detach_syscall_enter_dispatcher()
-{
-	if(g_state.skel->links.sys_enter && bpf_link__destroy(g_state.skel->links.sys_enter))
-	{
+int pman_detach_syscall_enter_dispatcher() {
+	if(g_state.skel->links.sys_enter && bpf_link__destroy(g_state.skel->links.sys_enter)) {
 		pman_print_error("failed to detach the 'sys_enter' program");
 		return errno;
 	}
@@ -202,10 +173,8 @@ int pman_detach_syscall_enter_dispatcher()
 	return 0;
 }
 
-int pman_detach_syscall_exit_dispatcher()
-{
-	if(g_state.skel->links.sys_exit && bpf_link__destroy(g_state.skel->links.sys_exit))
-	{
+int pman_detach_syscall_exit_dispatcher() {
+	if(g_state.skel->links.sys_exit && bpf_link__destroy(g_state.skel->links.sys_exit)) {
 		pman_print_error("failed to detach the 'sys_exit' program");
 		return errno;
 	}
@@ -213,10 +182,9 @@ int pman_detach_syscall_exit_dispatcher()
 	return 0;
 }
 
-int pman_detach_sched_proc_exit()
-{
-	if(g_state.skel->links.sched_proc_exit && bpf_link__destroy(g_state.skel->links.sched_proc_exit))
-	{
+int pman_detach_sched_proc_exit() {
+	if(g_state.skel->links.sched_proc_exit &&
+	   bpf_link__destroy(g_state.skel->links.sched_proc_exit)) {
 		pman_print_error("failed to detach the 'sched_proc_exit' program");
 		return errno;
 	}
@@ -224,10 +192,8 @@ int pman_detach_sched_proc_exit()
 	return 0;
 }
 
-int pman_detach_sched_switch()
-{
-	if(g_state.skel->links.sched_switch && bpf_link__destroy(g_state.skel->links.sched_switch))
-	{
+int pman_detach_sched_switch() {
+	if(g_state.skel->links.sched_switch && bpf_link__destroy(g_state.skel->links.sched_switch)) {
 		pman_print_error("failed to detach the 'sched_switch' program");
 		return errno;
 	}
@@ -235,11 +201,9 @@ int pman_detach_sched_switch()
 	return 0;
 }
 
-int pman_detach_sched_proc_exec()
-{
+int pman_detach_sched_proc_exec() {
 #ifdef CAPTURE_SCHED_PROC_EXEC
-	if(g_state.skel->links.sched_p_exec && bpf_link__destroy(g_state.skel->links.sched_p_exec))
-	{
+	if(g_state.skel->links.sched_p_exec && bpf_link__destroy(g_state.skel->links.sched_p_exec)) {
 		pman_print_error("failed to detach the 'sched_proc_exec' program");
 		return errno;
 	}
@@ -248,11 +212,9 @@ int pman_detach_sched_proc_exec()
 	return 0;
 }
 
-int pman_detach_sched_proc_fork()
-{
+int pman_detach_sched_proc_fork() {
 #ifdef CAPTURE_SCHED_PROC_FORK
-	if(g_state.skel->links.sched_p_fork && bpf_link__destroy(g_state.skel->links.sched_p_fork))
-	{
+	if(g_state.skel->links.sched_p_fork && bpf_link__destroy(g_state.skel->links.sched_p_fork)) {
 		pman_print_error("failed to detach the 'sched_proc_fork' program");
 		return errno;
 	}
@@ -261,11 +223,9 @@ int pman_detach_sched_proc_fork()
 	return 0;
 }
 
-int pman_detach_page_fault_user()
-{
+int pman_detach_page_fault_user() {
 #ifdef CAPTURE_PAGE_FAULTS
-	if(g_state.skel->links.pf_user && bpf_link__destroy(g_state.skel->links.pf_user))
-	{
+	if(g_state.skel->links.pf_user && bpf_link__destroy(g_state.skel->links.pf_user)) {
 		pman_print_error("failed to detach the 'pf_user' program");
 		return errno;
 	}
@@ -274,11 +234,9 @@ int pman_detach_page_fault_user()
 	return 0;
 }
 
-int pman_detach_page_fault_kernel()
-{
+int pman_detach_page_fault_kernel() {
 #ifdef CAPTURE_PAGE_FAULTS
-	if(g_state.skel->links.pf_kernel && bpf_link__destroy(g_state.skel->links.pf_kernel))
-	{
+	if(g_state.skel->links.pf_kernel && bpf_link__destroy(g_state.skel->links.pf_kernel)) {
 		pman_print_error("failed to detach the 'pf_kernel' program");
 		return errno;
 	}
@@ -287,10 +245,9 @@ int pman_detach_page_fault_kernel()
 	return 0;
 }
 
-int pman_detach_signal_deliver()
-{
-	if(g_state.skel->links.signal_deliver && bpf_link__destroy(g_state.skel->links.signal_deliver))
-	{
+int pman_detach_signal_deliver() {
+	if(g_state.skel->links.signal_deliver &&
+	   bpf_link__destroy(g_state.skel->links.signal_deliver)) {
 		pman_print_error("failed to detach the 'signal_deliver' program");
 		return errno;
 	}

@@ -33,11 +33,9 @@ limitations under the License.
  * callback function, (2) a registered file, (3) standard output, and
  * (4) standard error.
  */
-class SINSP_PUBLIC sinsp_logger
-{
+class SINSP_PUBLIC sinsp_logger {
 public:
-	enum severity
-	{
+	enum severity {
 		SEV_FATAL = FALCOSECURITY_LOG_SEV_FATAL,
 		SEV_CRITICAL = FALCOSECURITY_LOG_SEV_CRITICAL,
 		SEV_ERROR = FALCOSECURITY_LOG_SEV_ERROR,
@@ -154,7 +152,7 @@ public:
 	 *  Returns the length of the severity string on success
 	 *  and 0 in case of errors
 	 */
-	static size_t decode_severity(const std::string &s, severity& sev);
+	static size_t decode_severity(const std::string& s, severity& sev);
 
 	/**
 	 *  Reset the logger instance to its defaults.
@@ -178,7 +176,6 @@ private:
 
 	/** Returns true if the callback log sync is enabled, false otherwise. */
 	bool is_callback() const;
-
 
 	/** Returns a string containing encoded severity, for OT_ENCODE_SEV. */
 	static const char* encode_severity(severity sev);

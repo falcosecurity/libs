@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(getcwd_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(getcwd_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GETCWD_E_SIZE, PPME_SYSCALL_GETCWD_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETCWD_E_SIZE, PPME_SYSCALL_GETCWD_E)) {
 		return 0;
 	}
 
@@ -40,13 +36,9 @@ int BPF_PROG(getcwd_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(getcwd_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(getcwd_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -57,15 +49,13 @@ int BPF_PROG(getcwd_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	/* we get the path only in case of success, in case of failure we would read only userspace junk */
-	if(ret >= 0)
-	{
+	/* we get the path only in case of success, in case of failure we would read only userspace junk
+	 */
+	if(ret >= 0) {
 		/* Parameter 2: path (type: PT_CHARBUF) */
 		unsigned long path_pointer = extract__syscall_argument(regs, 0);
 		auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
-	}
-	else
-	{
+	} else {
 		/* Parameter 2: path (type: PT_CHARBUF) */
 		auxmap__store_empty_param(auxmap);
 	}

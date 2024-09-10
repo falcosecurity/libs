@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(pipe_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(pipe_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE_E_SIZE, PPME_SYSCALL_PIPE_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE_E_SIZE, PPME_SYSCALL_PIPE_E)) {
 		return 0;
 	}
 
@@ -39,13 +35,9 @@ int BPF_PROG(pipe_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(pipe_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(pipe_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE_X_SIZE, PPME_SYSCALL_PIPE_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE_X_SIZE, PPME_SYSCALL_PIPE_X)) {
 		return 0;
 	}
 
@@ -59,8 +51,7 @@ int BPF_PROG(pipe_x,
 	int32_t pipefd[2] = {-1, -1};
 	/* This is a pointer to the vector with the 2 file descriptors. */
 	unsigned long fd_vector_pointer = extract__syscall_argument(regs, 0);
-	if(bpf_probe_read_user((void *)pipefd, sizeof(pipefd), (void *)fd_vector_pointer) != 0)
-	{
+	if(bpf_probe_read_user((void *)pipefd, sizeof(pipefd), (void *)fd_vector_pointer) != 0) {
 		pipefd[0] = -1;
 		pipefd[1] = -1;
 	}
@@ -73,8 +64,7 @@ int BPF_PROG(pipe_x,
 
 	uint64_t ino = 0;
 	/* On success, pipe returns `0` */
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		extract__ino_from_fd(pipefd[0], &ino);
 	}
 

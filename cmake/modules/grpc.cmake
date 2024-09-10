@@ -2,14 +2,15 @@
 #
 # Copyright (C) 2023 The Falco Authors.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations under the License.
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
 #
 
 option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS})
@@ -33,14 +34,22 @@ elseif(NOT USE_BUNDLED_GRPC)
 
 		# gRPC include dir + properly handle grpc{++,pp}
 		get_target_property(GRPC_INCLUDE gRPC::grpc++ INTERFACE_INCLUDE_DIRECTORIES)
-		find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h PATHS ${GRPC_INCLUDE})
+		find_path(
+			GRPCXX_INCLUDE
+			NAMES grpc++/grpc++.h
+			PATHS ${GRPC_INCLUDE}
+		)
 		if(NOT GRPCXX_INCLUDE)
-			find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h PATHS ${GRPC_INCLUDE})
+			find_path(
+				GRPCPP_INCLUDE
+				NAMES grpcpp/grpcpp.h
+				PATHS ${GRPC_INCLUDE}
+			)
 			add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
 		endif()
 	else()
-		# Fallback to manually find libraries;
-		# Some distro, namely Ubuntu focal, do not install gRPC config cmake module
+		# Fallback to manually find libraries; Some distro, namely Ubuntu focal, do not install gRPC
+		# config cmake module
 		find_library(GPR_LIB NAMES gpr)
 		if(GPR_LIB)
 			message(STATUS "Found gpr lib: ${GPR_LIB}")
@@ -57,8 +66,14 @@ elseif(NOT USE_BUNDLED_GRPC)
 		endif()
 		find_library(GRPC_LIB NAMES grpc)
 		find_library(GRPCPP_LIB NAMES grpc++)
-		if(GRPC_INCLUDE AND GRPC_LIB AND GRPCPP_LIB)
-			message(STATUS "Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPCPP_LIB}")
+		if(GRPC_INCLUDE
+		   AND GRPC_LIB
+		   AND GRPCPP_LIB
+		)
+			message(
+				STATUS
+					"Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPCPP_LIB}"
+			)
 		else()
 			message(FATAL_ERROR "Couldn't find system grpc")
 		endif()
@@ -80,17 +95,17 @@ else()
 	include(re2)
 	set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
 	set(GRPC_INSTALL_DIR "${GRPC_SRC}/target")
-	set(GRPC_INCLUDE 
-		"${GRPC_INSTALL_DIR}/include"
-		"${GRPC_SRC}/third_party/abseil-cpp")
+	set(GRPC_INCLUDE "${GRPC_INSTALL_DIR}/include" "${GRPC_SRC}/third_party/abseil-cpp")
 	set(GPR_LIB "${GRPC_SRC}/libgpr.a")
 	set(GRPC_LIB "${GRPC_SRC}/libgrpc.a")
 	set(GRPCPP_LIB "${GRPC_SRC}/libgrpc++.a")
 	set(GRPC_CPP_PLUGIN "${GRPC_SRC}/grpc_cpp_plugin")
 	set(GRPC_MAIN_LIBS "")
-	list(APPEND GRPC_MAIN_LIBS
-		"${GPR_LIB}" 
-		"${GRPC_LIB}" 
+	list(
+		APPEND
+		GRPC_MAIN_LIBS
+		"${GPR_LIB}"
+		"${GRPC_LIB}"
 		"${GRPCPP_LIB}"
 		"${GRPC_SRC}/libgrpc++_alts.a"
 		"${GRPC_SRC}/libgrpc++_error_details.a"
@@ -106,11 +121,13 @@ else()
 	if(NOT TARGET grpc)
 		message(STATUS "Using bundled grpc in '${GRPC_SRC}'")
 
-		# fixme(leogr): this workaround is required to inject the missing deps (built by gRCP cmakefiles)
-		# into target_link_libraries later
-		# note: the list below is manually generated starting from the output of pkg-config --libs grpc++
+		# fixme(leogr): this workaround is required to inject the missing deps (built by gRCP
+		# cmakefiles) into target_link_libraries later note: the list below is manually generated
+		# starting from the output of pkg-config --libs grpc++
 		set(GRPC_LIBRARIES "")
-		list(APPEND GRPC_LIBRARIES
+		list(
+			APPEND
+			GRPC_LIBRARIES
 			"${GRPC_SRC}/libaddress_sorting.a"
 			"${GRPC_SRC}/libupb.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
@@ -156,8 +173,9 @@ else()
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_platform.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_seed_gen_exception.a"
 		)
-		
-		ExternalProject_Add(grpc
+
+		ExternalProject_Add(
+			grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
 			DEPENDS openssl protobuf c-ares zlib re2
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
@@ -202,17 +220,26 @@ else()
 				-Dre2_DIR:PATH=${RE2_DIR}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB} ${GPR_LIB} ${GRPC_LIBRARIES}
-			# Keep installation files into the local ${GRPC_INSTALL_DIR} 
-			# since here is the case when we are embedding gRPC
+			# Keep installation files into the local ${GRPC_INSTALL_DIR} since here is the case when
+			# we are embedding gRPC
 			UPDATE_COMMAND ""
 			INSTALL_COMMAND DESTDIR= ${CMAKE_MAKE_PROGRAM} install
 		)
-		install(FILES ${GRPC_MAIN_LIBS} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
-				COMPONENT "libs-deps")
-		install(FILES ${GRPC_LIBRARIES} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
-				COMPONENT "libs-deps")
-		install(DIRECTORY "${GRPC_SRC}/target/include/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
-				COMPONENT "libs-deps")
+		install(
+			FILES ${GRPC_MAIN_LIBS}
+			DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+			COMPONENT "libs-deps"
+		)
+		install(
+			FILES ${GRPC_LIBRARIES}
+			DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+			COMPONENT "libs-deps"
+		)
+		install(
+			DIRECTORY "${GRPC_SRC}/target/include/"
+			DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
+			COMPONENT "libs-deps"
+		)
 	endif()
 endif()
 

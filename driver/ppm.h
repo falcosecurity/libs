@@ -49,7 +49,7 @@ struct ppm_ring_buffer_context {
 	nanoseconds last_print_time;
 	uint32_t nevents;
 	atomic_t preempt_count;
-	char *str_storage;	/* String storage. Size is one page. */
+	char *str_storage; /* String storage. Size is one page. */
 };
 
 /*
@@ -67,21 +67,21 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n);
  */
 
 #ifdef CONFIG_MIPS
-  #define SYSCALL_TABLE_ID0 __NR_Linux
+#define SYSCALL_TABLE_ID0 __NR_Linux
 #elif defined CONFIG_ARM
-  #define SYSCALL_TABLE_ID0 __NR_SYSCALL_BASE
+#define SYSCALL_TABLE_ID0 __NR_SYSCALL_BASE
 #elif defined CONFIG_X86 || defined CONFIG_SUPERH
-  #define SYSCALL_TABLE_ID0 0
+#define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_PPC64
-  #define SYSCALL_TABLE_ID0 0
+#define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_S390
-  #define SYSCALL_TABLE_ID0 0
+#define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_ARM64
-  #define SYSCALL_TABLE_ID0 0
+#define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_RISCV
-  #define SYSCALL_TABLE_ID0 0
+#define SYSCALL_TABLE_ID0 0
 #elif defined CONFIG_LOONGARCH
-  #define SYSCALL_TABLE_ID0 0
+#define SYSCALL_TABLE_ID0 0
 #endif
 
 extern const struct syscall_evt_pair g_syscall_table[];
@@ -91,7 +91,9 @@ extern const struct ppm_event_info g_event_info[];
 extern const struct syscall_evt_pair g_syscall_ia32_table[];
 #endif
 
-extern void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *regs, unsigned long *args);
+extern void ppm_syscall_get_arguments(struct task_struct *task,
+                                      struct pt_regs *regs,
+                                      unsigned long *args);
 
 #define NS_TO_SEC(_ns) ((_ns) / 1000000000)
 #define MORE_THAN_ONE_SECOND_AHEAD(_ns1, _ns2) ((_ns1) - (_ns2) > 1000000000)

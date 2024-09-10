@@ -1,11 +1,13 @@
 #include "../../event_class/event_class.h"
 
-#if defined(__NR_accept4) && defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown)
+#if defined(__NR_accept4) && defined(__NR_connect) && defined(__NR_socket) && \
+        defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) &&  \
+        defined(__NR_setsockopt) && defined(__NR_shutdown)
 
-/* On `s390x` architectures only `accept4` (`accept` is not defined) is used so we need to test all the cases also here. */
+/* On `s390x` architectures only `accept4` (`accept` is not defined) is used so we need to test all
+ * the cases also here. */
 
-TEST(SyscallExit, accept4X_INET)
-{
+TEST(SyscallExit, accept4X_INET) {
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,11 +18,14 @@ TEST(SyscallExit, accept4X_INET)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	sockaddr* addr = NULL;
-	socklen_t *addrlen = NULL;
+	socklen_t* addrlen = NULL;
 	int flags = 0;
 	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, addr, addrlen, flags);
 	assert_syscall_state(SYSCALL_SUCCESS, "accept4 (server)", connected_socket_fd, NOT_EQUAL, -1);
@@ -39,8 +44,7 @@ TEST(SyscallExit, accept4X_INET)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -55,7 +59,12 @@ TEST(SyscallExit, accept4X_INET)
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* The server performs an `accept` so the `client` is the src. */
-	evt_test->assert_tuple_inet_param(2, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
+	evt_test->assert_tuple_inet_param(2,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/* Parameter 3: queuepct (type: PT_UINT8) */
 	/* we expect 0 elements in the queue so 0%. */
@@ -73,8 +82,7 @@ TEST(SyscallExit, accept4X_INET)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, accept4X_INET6)
-{
+TEST(SyscallExit, accept4X_INET6) {
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -85,11 +93,14 @@ TEST(SyscallExit, accept4X_INET6)
 	int32_t server_socket_fd = 0;
 	sockaddr_in6 client_addr = {};
 	sockaddr_in6 server_addr = {};
-	evt_test->connect_ipv6_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv6_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	sockaddr* addr = NULL;
-	socklen_t *addrlen = NULL;
+	socklen_t* addrlen = NULL;
 	int flags = 0;
 	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, addr, addrlen, flags);
 	assert_syscall_state(SYSCALL_SUCCESS, "accept4 (server)", connected_socket_fd, NOT_EQUAL, -1);
@@ -108,8 +119,7 @@ TEST(SyscallExit, accept4X_INET6)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -124,7 +134,12 @@ TEST(SyscallExit, accept4X_INET6)
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* The server performs an `accept` so the `client` is the src. */
-	evt_test->assert_tuple_inet6_param(2, PPM_AF_INET6, IPV6_CLIENT, IPV6_SERVER, IPV6_PORT_CLIENT_STRING, IPV6_PORT_SERVER_STRING);
+	evt_test->assert_tuple_inet6_param(2,
+	                                   PPM_AF_INET6,
+	                                   IPV6_CLIENT,
+	                                   IPV6_SERVER,
+	                                   IPV6_PORT_CLIENT_STRING,
+	                                   IPV6_PORT_SERVER_STRING);
 
 	/* Parameter 3: queuepct (type: PT_UINT8) */
 	/* we expect 0 elements in the queue so 0%. */
@@ -143,8 +158,7 @@ TEST(SyscallExit, accept4X_INET6)
 }
 
 #ifdef __NR_unlinkat
-TEST(SyscallExit, accept4X_UNIX)
-{
+TEST(SyscallExit, accept4X_UNIX) {
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -155,11 +169,14 @@ TEST(SyscallExit, accept4X_UNIX)
 	int32_t server_socket_fd = 0;
 	struct sockaddr_un client_addr = {};
 	struct sockaddr_un server_addr = {};
-	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_unix_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	sockaddr* addr = NULL;
-	socklen_t *addrlen = NULL;
+	socklen_t* addrlen = NULL;
 	int flags = 0;
 	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, addr, addrlen, flags);
 	assert_syscall_state(SYSCALL_SUCCESS, "accept4 (server)", connected_socket_fd, NOT_EQUAL, -1);
@@ -180,8 +197,7 @@ TEST(SyscallExit, accept4X_UNIX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -215,8 +231,7 @@ TEST(SyscallExit, accept4X_UNIX)
 }
 #endif /* __NR_unlinkat */
 
-TEST(SyscallExit, accept4X_failure)
-{
+TEST(SyscallExit, accept4X_failure) {
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -225,9 +240,11 @@ TEST(SyscallExit, accept4X_failure)
 
 	int32_t mock_fd = -1;
 	sockaddr* addr = NULL;
-	socklen_t *addrlen = NULL;
+	socklen_t* addrlen = NULL;
 	int flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "accept4", syscall(__NR_accept4, mock_fd, addr, addrlen, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "accept4",
+	                     syscall(__NR_accept4, mock_fd, addr, addrlen, flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -236,8 +253,7 @@ TEST(SyscallExit, accept4X_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

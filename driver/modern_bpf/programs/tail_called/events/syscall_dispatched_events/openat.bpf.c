@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(openat_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(openat_e, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -27,8 +23,7 @@ int BPF_PROG(openat_e,
 
 	/* Parameter 1: dirfd (type: PT_FD) */
 	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
@@ -59,13 +54,9 @@ int BPF_PROG(openat_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(openat_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(openat_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -77,8 +68,7 @@ int BPF_PROG(openat_x,
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
-	if(ret > 0)
-	{
+	if(ret > 0) {
 		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
 	}
 
@@ -87,8 +77,7 @@ int BPF_PROG(openat_x,
 
 	/* Parameter 2: dirfd (type: PT_FD) */
 	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
@@ -102,12 +91,9 @@ int BPF_PROG(openat_x,
 	uint32_t scap_flags = (uint32_t)open_flags_to_scap(flags);
 	/* update flags if file is created */
 	scap_flags |= extract__fmode_created_from_fd(ret);
-	if(ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		scap_flags |= PPM_FD_UPPER_LAYER;
-	}
-	else if(ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		scap_flags |= PPM_FD_LOWER_LAYER;
 	}
 	auxmap__store_u32_param(auxmap, scap_flags);

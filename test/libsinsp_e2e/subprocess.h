@@ -30,32 +30,34 @@ limitations under the License.
 #include <ext/stdio_filebuf.h>
 
 class subprocess {
-    public:
-        subprocess(std::string command, std::vector<std::string> arguments,
-                bool start_now=true, int retry_attempts=3);
-        ~subprocess();
+public:
+	subprocess(std::string command,
+	           std::vector<std::string> arguments,
+	           bool start_now = true,
+	           int retry_attempts = 3);
+	~subprocess();
 
-        void wait_for_start();
-        int wait();
+	void wait_for_start();
+	int wait();
 
-        pid_t get_pid();
+	pid_t get_pid();
 
-        std::ostream& in();
-        std::string out();
+	std::ostream& in();
+	std::string out();
 
-        void start();
+	void start();
 
-    private:
-        std::string m_command;
-        std::vector<std::string> m_args;
-        pid_t m_pid;
-        int m_in_pipe[2];
-        int m_out_pipe[2];
-        int m_retry_attemps;
+private:
+	std::string m_command;
+	std::vector<std::string> m_args;
+	pid_t m_pid;
+	int m_in_pipe[2];
+	int m_out_pipe[2];
+	int m_retry_attemps;
 
-        std::ostream* m_in_stream;
-        std::istream* m_out_stream;
+	std::ostream* m_in_stream;
+	std::istream* m_out_stream;
 
-        __gnu_cxx::stdio_filebuf<char>* m_in_filebuf;
-        __gnu_cxx::stdio_filebuf<char>* m_out_filebuf;
+	__gnu_cxx::stdio_filebuf<char>* m_in_filebuf;
+	__gnu_cxx::stdio_filebuf<char>* m_out_filebuf;
 };

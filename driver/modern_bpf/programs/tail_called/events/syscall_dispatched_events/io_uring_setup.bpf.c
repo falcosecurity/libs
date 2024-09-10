@@ -11,13 +11,12 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(io_uring_setup_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(io_uring_setup_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, IO_URING_SETUP_E_SIZE, PPME_SYSCALL_IO_URING_SETUP_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf,
+	                           ctx,
+	                           IO_URING_SETUP_E_SIZE,
+	                           PPME_SYSCALL_IO_URING_SETUP_E)) {
 		return 0;
 	}
 
@@ -39,13 +38,12 @@ int BPF_PROG(io_uring_setup_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(io_uring_setup_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(io_uring_setup_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, IO_URING_SETUP_X_SIZE, PPME_SYSCALL_IO_URING_SETUP_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf,
+	                           ctx,
+	                           IO_URING_SETUP_X_SIZE,
+	                           PPME_SYSCALL_IO_URING_SETUP_X)) {
 		return 0;
 	}
 
@@ -66,11 +64,12 @@ int BPF_PROG(io_uring_setup_x,
 	 * `struct io_uring_params` defined in their vmlinux, for this reason, we send
 	 * empty params.
 	 */
-	if(bpf_core_type_exists(struct io_uring_params))
-	{
+	if(bpf_core_type_exists(struct io_uring_params)) {
 		unsigned long params_pointer = extract__syscall_argument(regs, 1);
 		struct io_uring_params params = {0};
-		bpf_probe_read_user((void *)&params, bpf_core_type_size(struct io_uring_params), (void *)params_pointer);
+		bpf_probe_read_user((void *)&params,
+		                    bpf_core_type_size(struct io_uring_params),
+		                    (void *)params_pointer);
 
 		/* Parameter 3: sq_entries (type: PT_UINT32) */
 		ringbuf__store_u32(&ringbuf, params.sq_entries);
@@ -89,9 +88,7 @@ int BPF_PROG(io_uring_setup_x,
 
 		/* Parameter 8: features (type: PT_FLAGS32) */
 		ringbuf__store_u32(&ringbuf, (uint32_t)io_uring_setup_feats_to_scap(params.features));
-	}
-	else
-	{
+	} else {
 		/* Parameter 3: sq_entries (type: PT_UINT32) */
 		ringbuf__store_u32(&ringbuf, 0);
 

@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_renameat
-TEST(SyscallExit, renameatX)
-{
+TEST(SyscallExit, renameatX) {
 	auto evt_test = get_syscall_event_test(__NR_renameat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallExit, renameatX)
 	int32_t new_fd = AT_FDCWD;
 	const char* old_path = "**//this/is/the/old/path";
 	const char* new_path = "**//this/is/the/new/path/";
-	assert_syscall_state(SYSCALL_FAILURE, "renameat", syscall(__NR_renameat, old_fd, old_path, new_fd, new_path));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "renameat",
+	                     syscall(__NR_renameat, old_fd, old_path, new_fd, new_path));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -23,8 +24,7 @@ TEST(SyscallExit, renameatX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

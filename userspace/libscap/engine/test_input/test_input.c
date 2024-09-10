@@ -22,10 +22,9 @@ limitations under the License.
 struct scap;
 struct scap_test_input_data;
 
-struct test_input_engine
-{
+struct test_input_engine {
 	char* m_lasterr;
-	struct scap_test_input_data *m_data;
+	struct scap_test_input_data* m_data;
 };
 
 typedef struct test_input_engine test_input_engine;
@@ -39,11 +38,9 @@ typedef struct test_input_engine test_input_engine;
 #include <libscap/scap_proc_util.h>
 #include <libscap/strl.h>
 
-static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
-{
-	struct test_input_engine *engine = calloc(1, sizeof(struct test_input_engine));
-	if(engine == NULL)
-	{
+static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr) {
+	struct test_input_engine* engine = calloc(1, sizeof(struct test_input_engine));
+	if(engine == NULL) {
 		return NULL;
 	}
 
@@ -52,13 +49,14 @@ static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 	return engine;
 }
 
-static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
-{
-	test_input_engine *engine = handle.m_handle;
-	scap_test_input_data *data = engine->m_data;
+static int32_t next(struct scap_engine_handle handle,
+                    scap_evt** pevent,
+                    uint16_t* pdevid,
+                    uint32_t* pflags) {
+	test_input_engine* engine = handle.m_handle;
+	scap_test_input_data* data = engine->m_data;
 
-	if (!data->events || data->event_count == 0)
-	{
+	if(!data->events || data->event_count == 0) {
 		return SCAP_TIMEOUT;
 	}
 
@@ -70,13 +68,12 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 	return SCAP_SUCCESS;
 }
 
-static int32_t init(scap_t* main_handle, scap_open_args* oargs)
-{
-	test_input_engine *engine = main_handle->m_engine.m_handle;
-	struct scap_test_input_engine_params *params = oargs->engine_params;
+static int32_t init(scap_t* main_handle, scap_open_args* oargs) {
+	test_input_engine* engine = main_handle->m_engine.m_handle;
+	struct scap_test_input_engine_params* params = oargs->engine_params;
 	engine->m_data = params->test_input_data;
 
-	if (engine->m_data == NULL) {
+	if(engine->m_data == NULL) {
 		strlcpy(engine->m_lasterr, "No test input data provided", SCAP_LASTERR_SIZE);
 		return SCAP_FAILURE;
 	}
@@ -85,22 +82,22 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 }
 
 const struct scap_vtable scap_test_input_engine = {
-	.name = TEST_INPUT_ENGINE,
-	.savefile_ops = NULL,
+        .name = TEST_INPUT_ENGINE,
+        .savefile_ops = NULL,
 
-	.alloc_handle = alloc_handle,
-	.init = init,
-	.free_handle = noop_free_handle,
-	.close = noop_close_engine,
-	.next = next,
-	.start_capture = noop_start_capture,
-	.stop_capture = noop_stop_capture,
-	.configure = noop_configure,
-	.get_stats = noop_get_stats,
-	.get_stats_v2 = noop_get_stats_v2,
-	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
-	.get_n_devs = noop_get_n_devs,
-	.get_max_buf_used = noop_get_max_buf_used,
-	.get_api_version = NULL,
-	.get_schema_version = NULL,
+        .alloc_handle = alloc_handle,
+        .init = init,
+        .free_handle = noop_free_handle,
+        .close = noop_close_engine,
+        .next = next,
+        .start_capture = noop_start_capture,
+        .stop_capture = noop_stop_capture,
+        .configure = noop_configure,
+        .get_stats = noop_get_stats,
+        .get_stats_v2 = noop_get_stats_v2,
+        .get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
+        .get_n_devs = noop_get_n_devs,
+        .get_max_buf_used = noop_get_max_buf_used,
+        .get_api_version = NULL,
+        .get_schema_version = NULL,
 };

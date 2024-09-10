@@ -19,25 +19,17 @@ limitations under the License.
 #include <libsinsp/container_engine/container_engine_base.h>
 #include <libsinsp/logger.h>
 
-namespace libsinsp
-{
+namespace libsinsp {
 
-namespace container_engine
-{
+namespace container_engine {
 
-container_engine_base::container_engine_base(container_cache_interface &cache) :
-   m_cache(cache)
-{
-}
+container_engine_base::container_engine_base(container_cache_interface &cache): m_cache(cache) {}
 
-void container_engine_base::update_with_size(const std::string &container_id)
-{
+void container_engine_base::update_with_size(const std::string &container_id) {
 	SINSP_DEBUG("Updating container size not supported for this container type.");
 }
 
-void container_engine_base::cleanup()
-{
-}
+void container_engine_base::cleanup() {}
 
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

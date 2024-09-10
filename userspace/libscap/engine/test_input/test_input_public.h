@@ -20,18 +20,17 @@ limitations under the License.
 #define TEST_INPUT_ENGINE "test_input"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-	struct scap_test_input_engine_params
-	{
-		scap_test_input_data* test_input_data; ///<  only used for testing scap consumers by supplying arbitrary test data.
-	};
+struct scap_test_input_engine_params {
+	scap_test_input_data* test_input_data;  ///<  only used for testing scap consumers by supplying
+	                                        ///<  arbitrary test data.
+};
 
-	struct scap_platform;
-	struct scap_platform* scap_test_input_alloc_platform(proc_entry_callback proc_callback,
-							     void* proc_callback_context);
+struct scap_platform;
+struct scap_platform* scap_test_input_alloc_platform(proc_entry_callback proc_callback,
+                                                     void* proc_callback_context);
 #ifdef __cplusplus
 };
 #endif

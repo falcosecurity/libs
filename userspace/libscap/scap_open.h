@@ -27,29 +27,27 @@ limitations under the License.
 #include <libscap/scap_log.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-	/*!
-	 * \brief Argument for scap_open
-	 * Set any PPM_SC syscall idx to true to enable its tracing at driver level,
-	 * otherwise syscalls are not traced (so called "uninteresting syscalls").
-	 */
-	typedef struct
-	{
-		bool ppm_sc[PPM_SC_MAX];
-	} interesting_ppm_sc_set;
+/*!
+ * \brief Argument for scap_open
+ * Set any PPM_SC syscall idx to true to enable its tracing at driver level,
+ * otherwise syscalls are not traced (so called "uninteresting syscalls").
+ */
+typedef struct {
+	bool ppm_sc[PPM_SC_MAX];
+} interesting_ppm_sc_set;
 
-	typedef struct scap_open_args
-	{
-		bool import_users;					 ///< true if the user list should be created when opening the capture.
-		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
-                falcosecurity_log_fn log_fn; //< Function which SCAP may use to log messages
-		uint64_t proc_scan_timeout_ms; //< Timeout in msec, after which so-far-successful scan of /proc should be cut short with success return
-		uint64_t proc_scan_log_interval_ms; //< Interval for logging progress messages from /proc scan
-		void* engine_params;			   ///< engine-specific params.
-	} scap_open_args;
+typedef struct scap_open_args {
+	bool import_users;  ///< true if the user list should be created when opening the capture.
+	interesting_ppm_sc_set ppm_sc_of_interest;  ///< syscalls of interest.
+	falcosecurity_log_fn log_fn;                //< Function which SCAP may use to log messages
+	uint64_t proc_scan_timeout_ms;  //< Timeout in msec, after which so-far-successful scan of /proc
+	                                // should be cut short with success return
+	uint64_t proc_scan_log_interval_ms;  //< Interval for logging progress messages from /proc scan
+	void* engine_params;                 ///< engine-specific params.
+} scap_open_args;
 
 #ifdef __cplusplus
 }

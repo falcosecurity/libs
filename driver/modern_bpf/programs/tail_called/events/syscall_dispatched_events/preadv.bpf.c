@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(preadv_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(preadv_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PREADV_E_SIZE, PPME_SYSCALL_PREADV_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PREADV_E_SIZE, PPME_SYSCALL_PREADV_E)) {
 		return 0;
 	}
 
@@ -46,13 +42,9 @@ int BPF_PROG(preadv_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(preadv_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(preadv_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -63,8 +55,7 @@ int BPF_PROG(preadv_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	if(ret > 0)
-	{
+	if(ret > 0) {
 		/* Parameter 2: size (type: PT_UINT32) */
 		auxmap__store_u32_param(auxmap, (uint32_t)ret);
 
@@ -73,8 +64,7 @@ int BPF_PROG(preadv_x,
 		 */
 		uint16_t snaplen = maps__get_snaplen();
 		apply_dynamic_snaplen(regs, &snaplen, true, PPME_SYSCALL_PREADV_X);
-		if(snaplen > ret)
-		{
+		if(snaplen > ret) {
 			snaplen = ret;
 		}
 
@@ -83,9 +73,7 @@ int BPF_PROG(preadv_x,
 
 		//* Parameter 3: data (type: PT_BYTEBUF) */
 		auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, snaplen);
-	}
-	else
-	{
+	} else {
 		/* Parameter 2: size (type: PT_UINT32) */
 		auxmap__store_u32_param(auxmap, 0);
 

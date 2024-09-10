@@ -1,9 +1,10 @@
 #include "../../event_class/event_class.h"
 
-#if defined(__NR_accept) && defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown)
+#if defined(__NR_accept) && defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && \
+        defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) &&                 \
+        defined(__NR_shutdown)
 
-TEST(SyscallExit, acceptX_INET)
-{
+TEST(SyscallExit, acceptX_INET) {
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +15,10 @@ TEST(SyscallExit, acceptX_INET)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
@@ -34,8 +38,7 @@ TEST(SyscallExit, acceptX_INET)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -50,7 +53,12 @@ TEST(SyscallExit, acceptX_INET)
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* The server performs an `accept` so the `client` is the src. */
-	evt_test->assert_tuple_inet_param(2, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
+	evt_test->assert_tuple_inet_param(2,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/* Parameter 3: queuepct (type: PT_UINT8) */
 	/* we expect 0 elements in the queue so 0%. */
@@ -68,8 +76,7 @@ TEST(SyscallExit, acceptX_INET)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, acceptX_INET6)
-{
+TEST(SyscallExit, acceptX_INET6) {
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -80,7 +87,10 @@ TEST(SyscallExit, acceptX_INET6)
 	int32_t server_socket_fd = 0;
 	sockaddr_in6 client_addr = {};
 	sockaddr_in6 server_addr = {};
-	evt_test->connect_ipv6_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv6_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
@@ -100,8 +110,7 @@ TEST(SyscallExit, acceptX_INET6)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -116,7 +125,12 @@ TEST(SyscallExit, acceptX_INET6)
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* The server performs an `accept` so the `client` is the src. */
-	evt_test->assert_tuple_inet6_param(2, PPM_AF_INET6, IPV6_CLIENT, IPV6_SERVER, IPV6_PORT_CLIENT_STRING, IPV6_PORT_SERVER_STRING);
+	evt_test->assert_tuple_inet6_param(2,
+	                                   PPM_AF_INET6,
+	                                   IPV6_CLIENT,
+	                                   IPV6_SERVER,
+	                                   IPV6_PORT_CLIENT_STRING,
+	                                   IPV6_PORT_SERVER_STRING);
 
 	/* Parameter 3: queuepct (type: PT_UINT8) */
 	/* we expect 0 elements in the queue so 0%. */
@@ -135,8 +149,7 @@ TEST(SyscallExit, acceptX_INET6)
 }
 
 #ifdef __NR_unlinkat
-TEST(SyscallExit, acceptX_UNIX)
-{
+TEST(SyscallExit, acceptX_UNIX) {
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -147,7 +160,10 @@ TEST(SyscallExit, acceptX_UNIX)
 	int32_t server_socket_fd = 0;
 	struct sockaddr_un client_addr = {};
 	struct sockaddr_un server_addr = {};
-	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_unix_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
@@ -169,8 +185,7 @@ TEST(SyscallExit, acceptX_UNIX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -204,8 +219,7 @@ TEST(SyscallExit, acceptX_UNIX)
 }
 #endif /* __NR_unlinkat */
 
-TEST(SyscallExit, acceptX_failure)
-{
+TEST(SyscallExit, acceptX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -214,7 +228,7 @@ TEST(SyscallExit, acceptX_failure)
 
 	int mock_fd = -1;
 	sockaddr* addr = NULL;
-	socklen_t *addrlen = NULL;
+	socklen_t* addrlen = NULL;
 	assert_syscall_state(SYSCALL_FAILURE, "accept", syscall(__NR_accept, mock_fd, addr, addrlen));
 	int64_t errno_value = -errno;
 
@@ -224,8 +238,7 @@ TEST(SyscallExit, acceptX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

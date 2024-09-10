@@ -21,8 +21,7 @@ limitations under the License.
 
 using namespace libsinsp::filter::ast;
 
-static std::unique_ptr<expr> make_expr(const std::string& cond)
-{
+static std::unique_ptr<expr> make_expr(const std::string& cond) {
 	libsinsp::filter::parser p(cond);
 
 	std::unique_ptr<expr> e = p.parse();
@@ -30,8 +29,7 @@ static std::unique_ptr<expr> make_expr(const std::string& cond)
 	return e;
 }
 
-TEST(ast, compare_binary_check_exprs)
-{
+TEST(ast, compare_binary_check_exprs) {
 	std::unique_ptr<expr> e1 = make_expr("evt.num >= 0");
 	std::unique_ptr<expr> e2 = make_expr("evt.num = 0");
 	ASSERT_FALSE(e1->is_equal(e2.get()));

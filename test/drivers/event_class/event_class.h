@@ -18,21 +18,18 @@
 #define CURRENT_EVENT_TYPE -1
 #define PPM_MAX_PATH_SIZE 1024
 
-extern "C"
-{
+extern "C" {
 #include <driver/ppm_events_public.h>
 #include <driver/feature_gates.h>
 }
 
-struct param
-{
+struct param {
 	char* valptr;
 	uint16_t len;
 };
 
 /* This is the struct we send to userspace in `poll` and `ppoll` syscalls */
-struct fd_poll
-{
+struct fd_poll {
 	int64_t fd;
 	int16_t flags;
 };
@@ -50,20 +47,17 @@ struct recv_data {
 	bool skip_recv_phase;
 };
 
-enum protocol_L4
-{
+enum protocol_L4 {
 	TCP = 0,
 	UDP = 1,
 };
 
-enum protocol_L3
-{
+enum protocol_L3 {
 	IPv4 = 0,
 	IPv6 = 1,
 };
 
-struct network_config
-{
+struct network_config {
 	protocol_L3 proto_L3;
 	protocol_L4 proto_L4;
 	int32_t client_port;
@@ -71,8 +65,7 @@ struct network_config
 };
 
 /* Assertion operators */
-enum assertion_operators
-{
+enum assertion_operators {
 	EQUAL = 0,
 	NOT_EQUAL = 1,
 	GREATER = 2,
@@ -81,8 +74,7 @@ enum assertion_operators
 	LESS_EQUAL = 5,
 };
 
-enum direction
-{
+enum direction {
 	SOURCE = 0,
 	DEST = 1,
 };
@@ -108,10 +100,10 @@ enum direction
  * dealing with ENOSYS syscalls, ie: syscalls that are defined but unimplemented,
  * skipping the test.
  */
-#define assert_syscall_state(syscall_state, syscall_name, ...) \
-        do { \
-		_assert_syscall_state(syscall_state, syscall_name, __VA_ARGS__); \
-                if(errno == ENOSYS) \
+#define assert_syscall_state(syscall_state, syscall_name, ...)                             \
+	do {                                                                                   \
+		_assert_syscall_state(syscall_state, syscall_name, __VA_ARGS__);                   \
+		if(errno == ENOSYS)                                                                \
 			GTEST_SKIP() << "Syscall " << syscall_name << " not implemented" << std::endl; \
 	} while(0)
 
@@ -135,17 +127,18 @@ enum direction
  * @param op the operation we want to perform in the assertion.
  * @param expected_rc the return code we expect.
  */
-void _assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, enum assertion_operators op = EQUAL, long expected_rc = -1);
+void _assert_syscall_state(int syscall_state,
+                           const char* syscall_name,
+                           long syscall_rc,
+                           enum assertion_operators op = EQUAL,
+                           long expected_rc = -1);
 
-class event_test
-{
+class event_test {
 public:
 	static scap_t* s_scap_handle;
 
-	static void clear_ppm_sc_mask()
-	{
-		for(int i = 0; i < PPM_SC_MAX; i++)
-		{
+	static void clear_ppm_sc_mask() {
+		for(int i = 0; i < PPM_SC_MAX; i++) {
 			scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)i, false);
 		}
 	}
@@ -279,18 +272,14 @@ public:
 	 *
 	 * @return true if the current engine is bpf
 	 */
-	bool is_bpf_engine()
-	{
-		return scap_check_current_engine(s_scap_handle, BPF_ENGINE);
-	}
+	bool is_bpf_engine() { return scap_check_current_engine(s_scap_handle, BPF_ENGINE); }
 
 	/**
 	 * @brief Check the current engine type
 	 *
 	 * @return true if the current engine is modern-bpf
 	 */
-	bool is_modern_bpf_engine()
-	{
+	bool is_modern_bpf_engine() {
 		return scap_check_current_engine(s_scap_handle, MODERN_BPF_ENGINE);
 	}
 
@@ -299,10 +288,7 @@ public:
 	 *
 	 * @return true if the current engine is kmod
 	 */
-	bool is_kmod_engine()
-	{
-		return scap_check_current_engine(s_scap_handle, KMOD_ENGINE);
-	}
+	bool is_kmod_engine() { return scap_check_current_engine(s_scap_handle, KMOD_ENGINE); }
 
 	/////////////////////////////////
 	// NETWORK SCAFFOLDING
@@ -324,8 +310,12 @@ public:
 	 * @param ipv4_port port as an integer value.
 	 * @param ipv4_string ipv4 as a string.
 	 */
-	void client_fill_sockaddr_in(struct sockaddr_in* sockaddr, int32_t ipv4_port = IPV4_PORT_CLIENT, const char* ipv4_string = IPV4_CLIENT);
-	void server_fill_sockaddr_in(struct sockaddr_in* sockaddr, int32_t ipv4_port = IPV4_PORT_SERVER, const char* ipv4_string = IPV4_SERVER);
+	void client_fill_sockaddr_in(struct sockaddr_in* sockaddr,
+	                             int32_t ipv4_port = IPV4_PORT_CLIENT,
+	                             const char* ipv4_string = IPV4_CLIENT);
+	void server_fill_sockaddr_in(struct sockaddr_in* sockaddr,
+	                             int32_t ipv4_port = IPV4_PORT_SERVER,
+	                             const char* ipv4_string = IPV4_SERVER);
 
 	/**
 	 * @brief Fill a `sockaddr_in6` struct. It uses default values defined
@@ -335,8 +325,12 @@ public:
 	 * @param ipv6_port port as an integer value.
 	 * @param ipv6_string ipv6 as a string.
 	 */
-	void client_fill_sockaddr_in6(struct sockaddr_in6* sockaddr, int32_t ipv6_port = IPV6_PORT_CLIENT, const char* ipv6_string = IPV6_CLIENT);
-	void server_fill_sockaddr_in6(struct sockaddr_in6* sockaddr, int32_t ipv6_port = IPV6_PORT_SERVER, const char* ipv6_string = IPV6_SERVER);
+	void client_fill_sockaddr_in6(struct sockaddr_in6* sockaddr,
+	                              int32_t ipv6_port = IPV6_PORT_CLIENT,
+	                              const char* ipv6_string = IPV6_CLIENT);
+	void server_fill_sockaddr_in6(struct sockaddr_in6* sockaddr,
+	                              int32_t ipv6_port = IPV6_PORT_SERVER,
+	                              const char* ipv6_string = IPV6_SERVER);
 
 	/**
 	 * @brief Fill a `sockaddr_un` struct. It uses default values defined
@@ -353,27 +347,62 @@ public:
 	 * and accept new connections.
 	 *
 	 * todo!: we should rename it into `connect_ipv4_tcp_client_to_server`
-	 * 
+	 *
 	 * @param client_socket client socket file descriptor.
 	 * @param client_sockaddr client `sockaddr` struct to fill.
 	 * @param server_socket server socket file descriptor.
 	 * @param server_sockaddr server `sockaddr` struct to fill.
 	 */
-	void connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
-	void connect_ipv4_udp_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
+	void connect_ipv4_client_to_server(int32_t* client_socket,
+	                                   struct sockaddr_in* client_sockaddr,
+	                                   int32_t* server_socket,
+	                                   struct sockaddr_in* server_sockaddr,
+	                                   int32_t client_port = IPV4_PORT_CLIENT,
+	                                   int32_t server_port = IPV4_PORT_SERVER);
+	void connect_ipv4_udp_client_to_server(int32_t* client_socket,
+	                                       struct sockaddr_in* client_sockaddr,
+	                                       int32_t* server_socket,
+	                                       struct sockaddr_in* server_sockaddr,
+	                                       int32_t client_port = IPV4_PORT_CLIENT,
+	                                       int32_t server_port = IPV4_PORT_SERVER);
 
 	// todo!: we should rename it into `connect_ipv6_client_to_server`
-	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr, int32_t client_port = IPV6_PORT_CLIENT, int32_t server_port = IPV6_PORT_SERVER);
-	void connect_ipv6_udp_client_to_server(int32_t* client_socket, sockaddr_in6* client_sockaddr, int32_t* server_socket, sockaddr_in6* server_sockaddr, int32_t client_port = IPV6_PORT_CLIENT, int32_t server_port = IPV6_PORT_SERVER);
+	void connect_ipv6_client_to_server(int32_t* client_socket,
+	                                   struct sockaddr_in6* client_sockaddr,
+	                                   int32_t* server_socket,
+	                                   struct sockaddr_in6* server_sockaddr,
+	                                   int32_t client_port = IPV6_PORT_CLIENT,
+	                                   int32_t server_port = IPV6_PORT_SERVER);
+	void connect_ipv6_udp_client_to_server(int32_t* client_socket,
+	                                       sockaddr_in6* client_sockaddr,
+	                                       int32_t* server_socket,
+	                                       sockaddr_in6* server_sockaddr,
+	                                       int32_t client_port = IPV6_PORT_CLIENT,
+	                                       int32_t server_port = IPV6_PORT_SERVER);
 
-	void connect_unix_client_to_server(int32_t* client_socket, struct sockaddr_un* client_sockaddr, int32_t* server_socket, struct sockaddr_un* server_sockaddr);
+	void connect_unix_client_to_server(int32_t* client_socket,
+	                                   struct sockaddr_un* client_sockaddr,
+	                                   int32_t* server_socket,
+	                                   struct sockaddr_un* server_sockaddr);
 
 	void client_to_server(send_data send_d, recv_data receive_d, network_config net_config);
-	void client_to_server_ipv4_tcp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
-	void client_to_server_ipv4_udp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
-	void client_to_server_ipv6_tcp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
-	void client_to_server_ipv6_udp(send_data send_d, recv_data receive_d = {.skip_recv_phase = true}, int32_t client_port = IP_PORT_CLIENT, int32_t server_port = IP_PORT_SERVER);
-	
+	void client_to_server_ipv4_tcp(send_data send_d,
+	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               int32_t client_port = IP_PORT_CLIENT,
+	                               int32_t server_port = IP_PORT_SERVER);
+	void client_to_server_ipv4_udp(send_data send_d,
+	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               int32_t client_port = IP_PORT_CLIENT,
+	                               int32_t server_port = IP_PORT_SERVER);
+	void client_to_server_ipv6_tcp(send_data send_d,
+	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               int32_t client_port = IP_PORT_CLIENT,
+	                               int32_t server_port = IP_PORT_SERVER);
+	void client_to_server_ipv6_udp(send_data send_d,
+	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               int32_t client_port = IP_PORT_CLIENT,
+	                               int32_t server_port = IP_PORT_SERVER);
+
 	/////////////////////////////////
 	// GENERIC EVENT ASSERTIONS
 	/////////////////////////////////
@@ -395,7 +424,8 @@ public:
 	 * @param pid_to_search pid that generated the event we are looking for.
 	 * @param event_to_search event type we are looking for.
 	 */
-	void assert_event_presence(pid_t pid_to_search = CURRENT_PID, int event_to_search = CURRENT_EVENT_TYPE);
+	void assert_event_presence(pid_t pid_to_search = CURRENT_PID,
+	                           int event_to_search = CURRENT_EVENT_TYPE);
 
 	/**
 	 * @brief Assert if our buffers *don't* contain an event:
@@ -414,7 +444,8 @@ public:
 	 * @param pid_to_search pid that generated the event we are looking for.
 	 * @param event_to_search event type we are looking for.
 	 */
-	void assert_event_absence(pid_t pid_to_search = CURRENT_PID, int event_to_search = CURRENT_EVENT_TYPE);
+	void assert_event_absence(pid_t pid_to_search = CURRENT_PID,
+	                          int event_to_search = CURRENT_EVENT_TYPE);
 
 	/**
 	 * @brief Assert some fields of the event header:
@@ -560,7 +591,10 @@ public:
 	 * @param desired_ipv4 expected ipv4.
 	 * @param desired_port expected port.
 	 */
-	void assert_addr_info_inet_param(int param_num, uint8_t desired_family, const char* desired_ipv4, const char* desired_port);
+	void assert_addr_info_inet_param(int param_num,
+	                                 uint8_t desired_family,
+	                                 const char* desired_ipv4,
+	                                 const char* desired_port);
 
 	/**
 	 * @brief Assert the values extracted from an INET6 `sockaddr`:
@@ -573,7 +607,10 @@ public:
 	 * @param desired_ipv6 expected ipv6.
 	 * @param desired_port expected port.
 	 */
-	void assert_addr_info_inet6_param(int param_num, uint8_t desired_family, const char* desired_ipv6, const char* desired_port);
+	void assert_addr_info_inet6_param(int param_num,
+	                                  uint8_t desired_family,
+	                                  const char* desired_ipv6,
+	                                  const char* desired_port);
 
 	/**
 	 * @brief Assert the values extracted from a UNIX `sockaddr`:
@@ -584,7 +621,9 @@ public:
 	 * @param desired_family expected socket family.
 	 * @param desired_path expected unix path.
 	 */
-	void assert_addr_info_unix_param(int param_num, uint8_t desired_family, const char* desired_path);
+	void assert_addr_info_unix_param(int param_num,
+	                                 uint8_t desired_family,
+	                                 const char* desired_path);
 
 	/**
 	 * @brief Assert the tuple extracted from a kernel INET socket:
@@ -601,8 +640,12 @@ public:
 	 * @param desired_src_port expected source port.
 	 * @param desired_dest_port expected dest port.
 	 */
-	void assert_tuple_inet_param(int param_num, uint8_t desired_family, const char* desired_src_ipv4,
-				     const char* desired_dest_ipv4, const char* desired_src_port, const char* desired_dest_port);
+	void assert_tuple_inet_param(int param_num,
+	                             uint8_t desired_family,
+	                             const char* desired_src_ipv4,
+	                             const char* desired_dest_ipv4,
+	                             const char* desired_src_port,
+	                             const char* desired_dest_port);
 
 	/**
 	 * @brief Assert the tuple extracted from a kernel INET6 socket:
@@ -619,8 +662,12 @@ public:
 	 * @param desired_src_port expected source port.
 	 * @param desired_dest_port expected dest port.
 	 */
-	void assert_tuple_inet6_param(int param_num, uint8_t desired_family, const char* desired_src_ipv6, const char* desired_dest_ipv6,
-				      const char* desired_src_port, const char* desired_dest_port);
+	void assert_tuple_inet6_param(int param_num,
+	                              uint8_t desired_family,
+	                              const char* desired_src_ipv6,
+	                              const char* desired_dest_ipv6,
+	                              const char* desired_src_port,
+	                              const char* desired_dest_port);
 
 	/**
 	 * @brief Assert the tuple extracted from a kernel UNIX socket:
@@ -686,12 +733,13 @@ public:
 	static bool is_ext4_fs(int fd);
 
 private:
-	ppm_event_code m_event_type;		  /* type of the event we want to assert in this test. */
+	ppm_event_code m_event_type; /* type of the event we want to assert in this test. */
 	std::vector<struct param> m_event_params; /* all the params of the event (len+value). */
-	struct ppm_evt_hdr* m_event_header;	  /* header of the event. */
-	uint32_t m_event_len;			  /* total event length. */
-	uint32_t m_current_param;		  /* current param that we are analyzing in a single assert method. */
-	std::vector<uint8_t> m_sc_set;		  /* Set of scap codes that must be enabled for the specific test. */
+	struct ppm_evt_hdr* m_event_header;       /* header of the event. */
+	uint32_t m_event_len;                     /* total event length. */
+	uint32_t m_current_param; /* current param that we are analyzing in a single assert method. */
+	std::vector<uint8_t>
+	        m_sc_set; /* Set of scap codes that must be enabled for the specific test. */
 
 	/**
 	 * @brief Performs two main actions:
@@ -738,7 +786,9 @@ private:
 	 * @param desired_ipv4 expected ipv4 address as a string.
 	 * @param starting_index index inside the param where we can find the ipv4 address.
 	 */
-	void assert_ipv4_string(const char* desired_ipv4, int starting_index, enum direction dir = DEST);
+	void assert_ipv4_string(const char* desired_ipv4,
+	                        int starting_index,
+	                        enum direction dir = DEST);
 
 	/**
 	 * @brief Assert the port number as part of a `sockaddr` or a `tuple`.
@@ -749,7 +799,9 @@ private:
 	 * @param desired_port expected port number as a string.
 	 * @param starting_index index inside the param where we can find the port number.
 	 */
-	void assert_port_string(const char* desired_port, int starting_index, enum direction dir = DEST);
+	void assert_port_string(const char* desired_port,
+	                        int starting_index,
+	                        enum direction dir = DEST);
 
 	/**
 	 * @brief Assert an ipv6 address as part of a `sockaddr` or a `tuple`.
@@ -760,7 +812,9 @@ private:
 	 * @param desired_ipv6 expected ipv6 address.
 	 * @param starting_index index inside the param where we can find the ipv6 address.
 	 */
-	void assert_ipv6_string(const char* desired_ipv6, int starting_index, enum direction dir = DEST);
+	void assert_ipv6_string(const char* desired_ipv6,
+	                        int starting_index,
+	                        enum direction dir = DEST);
 
 	/**
 	 * @brief Assert an unix socket path as part of a `sockaddr` or a `tuple`.

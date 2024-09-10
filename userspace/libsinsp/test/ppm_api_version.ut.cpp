@@ -19,14 +19,12 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include <driver/ppm_api_version.h>
 
-TEST(api_version, unpack)
-{
+TEST(api_version, unpack) {
 	uint64_t ver1_2_3 = (1ULL << 44) | (2ULL << 24) | 3;
 	ASSERT_EQ(ver1_2_3, PPM_API_VERSION(1, 2, 3));
 }
 
-TEST(api_version, pack)
-{
+TEST(api_version, pack) {
 	uint64_t ver1_2_3 = (1ULL << 44) | (2ULL << 24) | 3;
 	EXPECT_EQ(1u, PPM_API_VERSION_MAJOR(ver1_2_3));
 	EXPECT_EQ(2u, PPM_API_VERSION_MINOR(ver1_2_3));

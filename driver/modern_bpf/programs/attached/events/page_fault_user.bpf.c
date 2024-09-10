@@ -15,18 +15,13 @@
  */
 #ifdef CAPTURE_PAGE_FAULTS
 SEC("tp_btf/page_fault_user")
-int BPF_PROG(pf_user,
-	     unsigned long address, struct pt_regs *regs,
-	     unsigned long error_code)
-{
-	if(sampling_logic(ctx, PPME_PAGE_FAULT_E, MODERN_BPF_TRACEPOINT))
-	{
+int BPF_PROG(pf_user, unsigned long address, struct pt_regs *regs, unsigned long error_code) {
+	if(sampling_logic(ctx, PPME_PAGE_FAULT_E, MODERN_BPF_TRACEPOINT)) {
 		return 0;
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PAGE_FAULT_SIZE, PPME_PAGE_FAULT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PAGE_FAULT_SIZE, PPME_PAGE_FAULT_E)) {
 		return 0;
 	}
 

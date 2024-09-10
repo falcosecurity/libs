@@ -16,39 +16,33 @@ limitations under the License.
 
 #include <libsinsp/state/table.h>
 
-namespace libsinsp
-{
-namespace state
-{
+namespace libsinsp {
+namespace state {
 
 /**
  * @brief A subclass of dynamic_struct::field_infos that have a fixed,
  * and immutable, list of dynamic field definitions all declared at
  * construction-time
  */
-class fixed_dynamic_fields_infos : public dynamic_struct::field_infos
-{
+class fixed_dynamic_fields_infos : public dynamic_struct::field_infos {
 public:
 	virtual ~fixed_dynamic_fields_infos() = default;
 
 	inline fixed_dynamic_fields_infos(std::initializer_list<dynamic_struct::field_info> infos):
-		field_infos(infos.begin()->defs_id())
-	{
+	        field_infos(infos.begin()->defs_id()) {
 		auto defs_id = infos.begin()->defs_id();
-		for(const auto& f : infos)
-		{
-			if(f.defs_id() != defs_id)
-			{
+		for(const auto& f : infos) {
+			if(f.defs_id() != defs_id) {
 				throw sinsp_exception(
-					"inconsistent definition ID passed to fixed_dynamic_fields_infos");
+				        "inconsistent definition ID passed to fixed_dynamic_fields_infos");
 			}
 			field_infos::add_field_info(f);
 		}
 	}
 
 protected:
-	const dynamic_struct::field_info& add_field_info(const dynamic_struct::field_info& field) override final
-	{
+	const dynamic_struct::field_info& add_field_info(
+	        const dynamic_struct::field_info& field) override final {
 		throw sinsp_exception("can't add field to fixed_dynamic_fields_infos: " + field.name());
 	}
 };
@@ -61,21 +55,19 @@ protected:
  * and make the wrapped value available as a single dynamic field. The dynamic
  * fields definitions of this wrapper are fixed and immutable.
  */
-template<typename T> class value_table_entry_adapter : public libsinsp::state::table_entry
-{
+template<typename T>
+class value_table_entry_adapter : public libsinsp::state::table_entry {
 public:
 	// note: this dynamic definitions are fixed in size and structure,
 	// so there's no need of worrying about specific identifier checks
 	// as they should be safely interchangeable
 	static const constexpr uintptr_t s_dynamic_fields_id = 1234;
 
-	struct dynamic_fields_t : public fixed_dynamic_fields_infos
-	{
+	struct dynamic_fields_t : public fixed_dynamic_fields_infos {
 		using _dfi = dynamic_struct::field_info;
 
-		inline dynamic_fields_t(): fixed_dynamic_fields_infos({_dfi::build<T>("value", 0, s_dynamic_fields_id)})
-		{
-		}
+		inline dynamic_fields_t():
+		        fixed_dynamic_fields_infos({_dfi::build<T>("value", 0, s_dynamic_fields_id)}) {}
 
 		virtual ~dynamic_fields_t() = default;
 	};
@@ -91,44 +83,34 @@ public:
 	inline void set_value(T* v) { m_value = v; }
 
 protected:
-	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final
-	{
-		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id)
-		{
+	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
+		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
-				"invalid field info passed to value_table_entry_adapter::get_dynamic_field");
+			        "invalid field info passed to value_table_entry_adapter::get_dynamic_field");
 		}
 
-		if(i.info().index() == typeinfo::index_t::TI_STRING)
-		{
+		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((const char**)out) = ((const std::string*)m_value)->c_str();
-		}
-		else
-		{
+		} else {
 			memcpy(out, (const void*)m_value, i.info().size());
 		}
 	}
 
-	virtual void set_dynamic_field(const dynamic_struct::field_info& i, const void* in) override final
-	{
-		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id)
-		{
+	virtual void set_dynamic_field(const dynamic_struct::field_info& i,
+	                               const void* in) override final {
+		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
-				"invalid field info passed to value_table_entry_adapter::set_dynamic_field");
+			        "invalid field info passed to value_table_entry_adapter::set_dynamic_field");
 		}
 
-		if(i.info().index() == typeinfo::index_t::TI_STRING)
-		{
+		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((std::string*)m_value) = *((const char**)in);
-		}
-		else
-		{
+		} else {
 			memcpy((void*)m_value, in, i.info().size());
 		}
 	}
 
-	virtual void destroy_dynamic_fields() override final
-	{
+	virtual void destroy_dynamic_fields() override final {
 		// nothing to do
 	}
 
@@ -146,14 +128,14 @@ private:
  * be extra careful when performing addition or deletion operations, as that
  * can lead to expensive sparse array operations or results.
  */
-template<typename T, typename TWrap = value_table_entry_adapter<typename T::value_type>,
-	 typename DynFields = typename TWrap::dynamic_fields_t>
-class stl_container_table_adapter : public libsinsp::state::table<uint64_t>
-{
+template<typename T,
+         typename TWrap = value_table_entry_adapter<typename T::value_type>,
+         typename DynFields = typename TWrap::dynamic_fields_t>
+class stl_container_table_adapter : public libsinsp::state::table<uint64_t> {
 public:
 	stl_container_table_adapter(const std::string& name, T& container):
-		table(name, _static_fields()), m_container(container)
-	{
+	        table(name, _static_fields()),
+	        m_container(container) {
 		set_dynamic_fields(std::make_shared<DynFields>());
 	}
 
@@ -163,67 +145,57 @@ public:
 
 	void clear_entries() override { m_container.clear(); }
 
-	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override
-	{
+	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
 		auto ret = std::make_unique<TWrap>();
 		ret->set_dynamic_fields(this->dynamic_fields());
 		return ret;
 	}
 
-	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override
-	{
+	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override {
 		TWrap w;
 		w.set_dynamic_fields(this->dynamic_fields());
-		for(auto& v : m_container)
-		{
+		for(auto& v : m_container) {
 			w.set_value(&v);
-			if(!pred(w))
-			{
+			if(!pred(w)) {
 				return false;
 			}
 		}
 		return true;
 	}
 
-	std::shared_ptr<libsinsp::state::table_entry> get_entry(const uint64_t& key) override
-	{
-		if(key >= m_container.size())
-		{
+	std::shared_ptr<libsinsp::state::table_entry> get_entry(const uint64_t& key) override {
+		if(key >= m_container.size()) {
 			return nullptr;
 		}
 		return wrap_value(&m_container[key]);
 	}
 
-	std::shared_ptr<libsinsp::state::table_entry>
-	add_entry(const uint64_t& key, std::unique_ptr<libsinsp::state::table_entry> entry) override
-	{
-		if(!entry)
-		{
+	std::shared_ptr<libsinsp::state::table_entry> add_entry(
+	        const uint64_t& key,
+	        std::unique_ptr<libsinsp::state::table_entry> entry) override {
+		if(!entry) {
 			throw sinsp_exception("null entry added to table: " + this->name());
 		}
-		if(entry->dynamic_fields() != this->dynamic_fields())
-		{
-			throw sinsp_exception("entry with mismatching dynamic fields added to table: " + this->name());
+		if(entry->dynamic_fields() != this->dynamic_fields()) {
+			throw sinsp_exception("entry with mismatching dynamic fields added to table: " +
+			                      this->name());
 		}
 
 		auto value = dynamic_cast<TWrap*>(entry.get());
-		if(!value)
-		{
+		if(!value) {
 			throw sinsp_exception("entry with mismatching type added to table: " + this->name());
 		}
-		if(value->value() != nullptr)
-		{
-			throw sinsp_exception("entry with unexpected owned value added to table: " + this->name());
+		if(value->value() != nullptr) {
+			throw sinsp_exception("entry with unexpected owned value added to table: " +
+			                      this->name());
 		}
 
 		m_container.resize(key + 1);
 		return wrap_value(&m_container[key]);
 	}
 
-	bool erase_entry(const uint64_t& key) override
-	{
-		if(key >= m_container.size())
-		{
+	bool erase_entry(const uint64_t& key) override {
+		if(key >= m_container.size()) {
 			return false;
 		}
 		m_container.erase(m_container.begin() + key);
@@ -231,8 +203,7 @@ public:
 	}
 
 private:
-	static inline const static_struct::field_infos* _static_fields()
-	{
+	static inline const static_struct::field_infos* _static_fields() {
 		static const auto s_fields = TWrap{}.static_fields();
 		return &s_fields;
 	}
@@ -242,12 +213,9 @@ private:
 	// helps us dynamically allocate a batch of wrappers, creating new ones
 	// only if we need them. Wrappers are reused for multiple entries, and
 	// we leverage shared_ptrs to automatically release them once not anymore used
-	inline std::shared_ptr<libsinsp::state::table_entry> wrap_value(typename T::value_type* v)
-	{
-		for(auto& w : m_wrappers)
-		{
-			if(w.value() == nullptr)
-			{
+	inline std::shared_ptr<libsinsp::state::table_entry> wrap_value(typename T::value_type* v) {
+		for(auto& w : m_wrappers) {
+			if(w.value() == nullptr) {
 				w.set_value(v);
 				return std::shared_ptr<libsinsp::state::table_entry>(&w, wrap_deleter);
 			}
@@ -261,8 +229,8 @@ private:
 	}
 
 	T& m_container;
-	std::list<TWrap> m_wrappers; // using lists for ptr stability
+	std::list<TWrap> m_wrappers;  // using lists for ptr stability
 };
 
-}; // namespace state
-}; // namespace libsinsp
+};  // namespace state
+};  // namespace libsinsp

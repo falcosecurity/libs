@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_fchmodat
-TEST(SyscallEnter, fchmodatE)
-{
+TEST(SyscallEnter, fchmodatE) {
 	auto evt_test = get_syscall_event_test(__NR_fchmodat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallEnter, fchmodatE)
 	const char* pathname = NULL;
 	uint32_t mode = 0;
 	uint32_t flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "fchmodat", syscall(__NR_fchmodat, mock_dirfd, pathname, mode, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "fchmodat",
+	                     syscall(__NR_fchmodat, mock_dirfd, pathname, mode, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallEnter, fchmodatE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

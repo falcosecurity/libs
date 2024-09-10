@@ -25,8 +25,7 @@ limitations under the License.
 #include <libsinsp/fdinfo.h>
 #include <memory>
 
-class sinsp_parser
-{
+class sinsp_parser {
 public:
 	sinsp_parser(sinsp* inspector);
 	~sinsp_parser();
@@ -47,21 +46,18 @@ public:
 	//
 	// Combine the openat arguments into a full file name
 	//
-	std::string parse_dirfd(sinsp_evt *evt, std::string_view name, int64_t dirfd);
+	std::string parse_dirfd(sinsp_evt* evt, std::string_view name, int64_t dirfd);
 
 	void set_track_connection_status(bool enabled);
 	bool get_track_connection_status() const { return m_track_connection_status; }
 
-	inline sinsp_syslog_decoder& get_syslog_decoder()
-	{
-		return m_syslog_decoder;
-	}
+	inline sinsp_syslog_decoder& get_syslog_decoder() { return m_syslog_decoder; }
 
 private:
 	//
 	// Helpers
 	//
-	bool reset(sinsp_evt *evt);
+	bool reset(sinsp_evt* evt);
 	inline void store_event(sinsp_evt* evt);
 
 	//
@@ -84,7 +80,7 @@ private:
 	void parse_close_exit(sinsp_evt* evt);
 	void parse_thread_exit(sinsp_evt* evt);
 	void parse_memfd_create_exit(sinsp_evt* evt, scap_fd_type type);
-	void parse_pidfd_open_exit(sinsp_evt *evt);
+	void parse_pidfd_open_exit(sinsp_evt* evt);
 	void parse_pidfd_getfd_exit(sinsp_evt* evt);
 	void parse_fspath_related_exit(sinsp_evt* evt);
 	inline void parse_rw_exit(sinsp_evt* evt);
@@ -99,10 +95,10 @@ private:
 	void parse_single_param_fd_exit(sinsp_evt* evt, scap_fd_type type);
 	void parse_getrlimit_setrlimit_exit(sinsp_evt* evt);
 	void parse_prlimit_exit(sinsp_evt* evt);
-	void parse_select_poll_epollwait_enter(sinsp_evt *evt);
+	void parse_select_poll_epollwait_enter(sinsp_evt* evt);
 	void parse_fcntl_enter(sinsp_evt* evt);
 	void parse_fcntl_exit(sinsp_evt* evt);
-	void parse_prctl_exit_event(sinsp_evt *evt);
+	void parse_prctl_exit_event(sinsp_evt* evt);
 	void parse_context_switch(sinsp_evt* evt);
 	void parse_brk_munmap_mmap_exit(sinsp_evt* evt);
 	void parse_setresuid_exit(sinsp_evt* evt);
@@ -111,30 +107,45 @@ private:
 	void parse_setregid_exit(sinsp_evt* evt);
 	void parse_setuid_exit(sinsp_evt* evt);
 	void parse_setgid_exit(sinsp_evt* evt);
-	void parse_container_evt(sinsp_evt* evt); // deprecated, only for backward-compatibility
-	void parse_container_json_evt(sinsp_evt *evt);
-	void parse_user_evt(sinsp_evt *evt);
-	void parse_group_evt(sinsp_evt *evt);
+	void parse_container_evt(sinsp_evt* evt);  // deprecated, only for backward-compatibility
+	void parse_container_json_evt(sinsp_evt* evt);
+	void parse_user_evt(sinsp_evt* evt);
+	void parse_group_evt(sinsp_evt* evt);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
-	void parse_chroot_exit(sinsp_evt *evt);
-	void parse_setsid_exit(sinsp_evt *evt);
-	void parse_getsockopt_exit(sinsp_evt *evt);
-	void parse_capset_exit(sinsp_evt *evt);
-	void parse_unshare_setns_exit(sinsp_evt *evt);
+	void parse_chroot_exit(sinsp_evt* evt);
+	void parse_setsid_exit(sinsp_evt* evt);
+	void parse_getsockopt_exit(sinsp_evt* evt);
+	void parse_capset_exit(sinsp_evt* evt);
+	void parse_unshare_setns_exit(sinsp_evt* evt);
 
 	inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo* fdinfo,
-		uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport, bool overwrite_dest=true);
+	                                            uint32_t tsip,
+	                                            uint16_t tsport,
+	                                            uint32_t tdip,
+	                                            uint16_t tdport,
+	                                            bool overwrite_dest = true);
 	inline void fill_client_socket_info(sinsp_evt* evt, uint8_t* packed_data, bool overwrite_dest);
-	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
-	inline void infer_sendto_fdinfo(sinsp_evt *evt);
-	inline void add_pipe(sinsp_evt *evt, int64_t fd, uint64_t ino, uint32_t openflags);
+	inline void add_socket(sinsp_evt* evt,
+	                       int64_t fd,
+	                       uint32_t domain,
+	                       uint32_t type,
+	                       uint32_t protocol);
+	inline void infer_sendto_fdinfo(sinsp_evt* evt);
+	inline void add_pipe(sinsp_evt* evt, int64_t fd, uint64_t ino, uint32_t openflags);
 	// Return false if the update didn't happen (for example because the tuple is NULL)
-	bool update_fd(sinsp_evt *evt, const sinsp_evt_param* parinfo);
+	bool update_fd(sinsp_evt* evt, const sinsp_evt_param* parinfo);
 
-	// Next 4 return false if the update didn't happen because the tuple is identical to the given address
-	bool set_ipv4_addresses_and_ports(sinsp_fdinfo* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
-	bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
-	bool set_ipv6_addresses_and_ports(sinsp_fdinfo* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
+	// Next 4 return false if the update didn't happen because the tuple is identical to the given
+	// address
+	bool set_ipv4_addresses_and_ports(sinsp_fdinfo* fdinfo,
+	                                  uint8_t* packed_data,
+	                                  bool overwrite_dest = true);
+	bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo* fdinfo,
+	                                              uint8_t* packed_data,
+	                                              bool overwrite_dest = true);
+	bool set_ipv6_addresses_and_ports(sinsp_fdinfo* fdinfo,
+	                                  uint8_t* packed_data,
+	                                  bool overwrite_dest = true);
 	bool set_unix_info(sinsp_fdinfo* fdinfo, uint8_t* packed_data);
 
 	void swap_addresses(sinsp_fdinfo* fdinfo);

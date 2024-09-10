@@ -3,8 +3,7 @@
 #ifdef __NR_creat
 
 #if defined(__NR_fstat) && defined(__NR_unlinkat) && defined(__NR_close)
-TEST(SyscallExit, creatX_success)
-{
+TEST(SyscallExit, creatX_success) {
 	auto evt_test = get_syscall_event_test(__NR_creat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -18,7 +17,11 @@ TEST(SyscallExit, creatX_success)
 
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
-	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "fstat",
+	                     syscall(__NR_fstat, fd, &file_stat),
+	                     NOT_EQUAL,
+	                     -1);
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
@@ -34,8 +37,7 @@ TEST(SyscallExit, creatX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -55,8 +57,7 @@ TEST(SyscallExit, creatX_success)
 	evt_test->assert_numeric_param(3, (uint32_t)(PPM_S_IRUSR | PPM_S_IWUSR | PPM_S_IXUSR));
 
 	/* Parameter 4: dev (type: PT_UINT32) */
-	if (is_ext4)
-	{
+	if(is_ext4) {
 		evt_test->assert_numeric_param(4, (uint32_t)dev);
 	}
 
@@ -72,8 +73,7 @@ TEST(SyscallExit, creatX_success)
 }
 #endif /* defined(__NR_fstat) && defined(__NR_unlinkat) && defined(__NR_close) */
 
-TEST(SyscallExit, creatX_failure)
-{
+TEST(SyscallExit, creatX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_creat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -91,8 +91,7 @@ TEST(SyscallExit, creatX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

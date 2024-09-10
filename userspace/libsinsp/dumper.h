@@ -35,8 +35,7 @@ typedef struct scap_dumper scap_dumper_t;
 /*!
   \brief A support class to dump events to file in scap format.
 */
-class SINSP_PUBLIC sinsp_dumper
-{
+class SINSP_PUBLIC sinsp_dumper {
 public:
 	/*!
 	  \brief Constructs the dumper.
@@ -48,8 +47,7 @@ public:
 	  Takes the address and the size of a preallocated memory buffer
 	  where the data will go.
 	*/
-	sinsp_dumper(uint8_t* target_memory_buffer,
-		uint64_t target_memory_buffer_size);
+	sinsp_dumper(uint8_t* target_memory_buffer, uint64_t target_memory_buffer_size);
 
 	~sinsp_dumper();
 
@@ -99,8 +97,8 @@ public:
 
 	/*!
 	  \brief Return the starting position for the next write into
-          	  the file. (Under the covers, this uses gztell while
-        	  written_bytes uses gzoffset, which represent different values).
+	          the file. (Under the covers, this uses gztell while
+	          written_bytes uses gzoffset, which represent different values).
 
 	  \return The starting position for the next write.
 	*/
@@ -118,15 +116,9 @@ public:
 	*/
 	void dump(sinsp_evt* evt);
 
-	inline uint8_t* get_memory_dump_cur_buf()
-	{
-		return scap_get_memorydumper_curpos(m_dumper);
-	}
+	inline uint8_t* get_memory_dump_cur_buf() { return scap_get_memorydumper_curpos(m_dumper); }
 
-	inline void set_inspector(sinsp *inspector)
-	{
-		m_inspector = inspector;
-	}
+	inline void set_inspector(sinsp* inspector) { m_inspector = inspector; }
 
 private:
 	sinsp* m_inspector;

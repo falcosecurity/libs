@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_epoll_wait
-TEST(SyscallEnter, epoll_waitE)
-{
+TEST(SyscallEnter, epoll_waitE) {
 	auto evt_test = get_syscall_event_test(__NR_epoll_wait, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallEnter, epoll_waitE)
 	void* events = NULL;
 	int maxevents = 10;
 	int timeout = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "epoll_wait", syscall(__NR_epoll_wait, epfd, events, maxevents, timeout));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "epoll_wait",
+	                     syscall(__NR_epoll_wait, epfd, events, maxevents, timeout));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallEnter, epoll_waitE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

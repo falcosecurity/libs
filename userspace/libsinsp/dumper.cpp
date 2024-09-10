@@ -21,49 +21,45 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <libsinsp/dumper.h>
 
-sinsp_dumper::sinsp_dumper()
-{
+sinsp_dumper::sinsp_dumper() {
 	m_dumper = NULL;
 	m_target_memory_buffer = NULL;
 	m_target_memory_buffer_size = 0;
 	m_nevts = 0;
 }
 
-sinsp_dumper::sinsp_dumper(uint8_t* target_memory_buffer, uint64_t target_memory_buffer_size)
-{
+sinsp_dumper::sinsp_dumper(uint8_t* target_memory_buffer, uint64_t target_memory_buffer_size) {
 	m_dumper = NULL;
 	m_target_memory_buffer = target_memory_buffer;
 	m_target_memory_buffer_size = target_memory_buffer_size;
 }
 
-sinsp_dumper::~sinsp_dumper()
-{
-	if(m_dumper != NULL)
-	{
+sinsp_dumper::~sinsp_dumper() {
+	if(m_dumper != NULL) {
 		scap_dump_close(m_dumper);
 	}
 }
 
-void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool compress)
-{
+void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool compress) {
 	char error[SCAP_LASTERR_SIZE];
-	if(inspector->get_scap_handle() == NULL)
-	{
+	if(inspector->get_scap_handle() == NULL) {
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	if(m_target_memory_buffer)
-	{
-		m_dumper = scap_memory_dump_open(inspector->get_scap_platform(), m_target_memory_buffer, m_target_memory_buffer_size, error);
-	}
-	else
-	{
+	if(m_target_memory_buffer) {
+		m_dumper = scap_memory_dump_open(inspector->get_scap_platform(),
+		                                 m_target_memory_buffer,
+		                                 m_target_memory_buffer_size,
+		                                 error);
+	} else {
 		auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
-		m_dumper = scap_dump_open(inspector->get_scap_platform(), filename.c_str(), compress_mode, error);
+		m_dumper = scap_dump_open(inspector->get_scap_platform(),
+		                          filename.c_str(),
+		                          compress_mode,
+		                          error);
 	}
 
-	if(m_dumper == nullptr)
-	{
+	if(m_dumper == nullptr) {
 		throw sinsp_exception(error);
 	}
 
@@ -74,19 +70,16 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	m_nevts = 0;
 }
 
-void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress)
-{
+void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress) {
 	char error[SCAP_LASTERR_SIZE];
-	if(inspector->get_scap_handle() == NULL)
-	{
+	if(inspector->get_scap_handle() == NULL) {
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
 	auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
 	m_dumper = scap_dump_open_fd(inspector->get_scap_platform(), fd, compress_mode, true, error);
 
-	if(m_dumper == nullptr)
-	{
+	if(m_dumper == nullptr) {
 		throw sinsp_exception(error);
 	}
 
@@ -97,29 +90,23 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress)
 	m_nevts = 0;
 }
 
-void sinsp_dumper::close()
-{
-	if(m_dumper != NULL)
-	{
+void sinsp_dumper::close() {
+	if(m_dumper != NULL) {
 		scap_dump_close(m_dumper);
 		m_dumper = NULL;
 	}
 }
 
-bool sinsp_dumper::is_open() const
-{
+bool sinsp_dumper::is_open() const {
 	return (m_dumper != NULL);
 }
 
-bool sinsp_dumper::written_events() const
-{
+bool sinsp_dumper::written_events() const {
 	return m_nevts;
 }
 
-void sinsp_dumper::dump(sinsp_evt* evt)
-{
-	if(m_dumper == NULL)
-	{
+void sinsp_dumper::dump(sinsp_evt* evt) {
+	if(m_dumper == NULL) {
 		throw sinsp_exception("dumper not opened yet");
 	}
 
@@ -128,57 +115,47 @@ void sinsp_dumper::dump(sinsp_evt* evt)
 	scap_dump_flags dflags;
 
 	dflags = evt->get_dump_flags(&do_drop);
-	if(do_drop)
-	{
+	if(do_drop) {
 		return;
 	}
 
 	int32_t res = scap_dump(m_dumper, pdevt, evt->get_cpuid(), dflags);
 
-	if(res != SCAP_SUCCESS)
-	{
+	if(res != SCAP_SUCCESS) {
 		throw sinsp_exception(scap_dump_getlasterr(m_dumper));
 	}
 
 	m_nevts++;
 }
 
-uint64_t sinsp_dumper::written_bytes() const
-{
-	if(m_dumper == NULL)
-	{
+uint64_t sinsp_dumper::written_bytes() const {
+	if(m_dumper == NULL) {
 		return 0;
 	}
 
 	int64_t written_bytes = scap_dump_get_offset(m_dumper);
-	if(written_bytes == -1)
-	{
+	if(written_bytes == -1) {
 		throw sinsp_exception("error getting offset");
 	}
 
 	return written_bytes;
 }
 
-uint64_t sinsp_dumper::next_write_position() const
-{
-	if(m_dumper == NULL)
-	{
+uint64_t sinsp_dumper::next_write_position() const {
+	if(m_dumper == NULL) {
 		return 0;
 	}
 
 	int64_t position = scap_dump_ftell(m_dumper);
-	if(position == -1)
-	{
+	if(position == -1) {
 		throw sinsp_exception("error getting offset");
 	}
 
 	return position;
 }
 
-void sinsp_dumper::flush()
-{
-	if(m_dumper == NULL)
-	{
+void sinsp_dumper::flush() {
+	if(m_dumper == NULL) {
 		throw sinsp_exception("dumper not opened yet");
 	}
 

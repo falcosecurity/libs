@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_fspath : public sinsp_filter_check
-{
+class sinsp_filter_check_fspath : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_NAME = 0,
 		TYPE_NAMERAW = 1,
 		TYPE_SOURCE = 2,
@@ -44,20 +42,20 @@ protected:
 private:
 	typedef std::map<uint16_t, std::shared_ptr<sinsp_filter_check>> filtercheck_map_t;
 
-	std::shared_ptr<sinsp_filter_check> create_event_check(const char *name,
-							       cmpop cop = CO_NONE,
-							       const char *value = NULL);
+	std::shared_ptr<sinsp_filter_check> create_event_check(const char* name,
+	                                                       cmpop cop = CO_NONE,
+	                                                       const char* value = NULL);
 
-	std::shared_ptr<sinsp_filter_check> create_fd_check(const char *name);
+	std::shared_ptr<sinsp_filter_check> create_fd_check(const char* name);
 
 	void create_fspath_checks();
 	void set_fspath_checks(const std::shared_ptr<filtercheck_map_t>& success_checks,
-			       const std::shared_ptr<filtercheck_map_t>& path_checks,
-			       const std::shared_ptr<filtercheck_map_t>& source_checks,
-			       const std::shared_ptr<filtercheck_map_t>& target_checks);
+	                       const std::shared_ptr<filtercheck_map_t>& path_checks,
+	                       const std::shared_ptr<filtercheck_map_t>& source_checks,
+	                       const std::shared_ptr<filtercheck_map_t>& target_checks);
 	bool extract_fspath(sinsp_evt* evt,
-			    std::vector<extract_value_t>& values,
-			    const std::shared_ptr<filtercheck_map_t>& map);
+	                    std::vector<extract_value_t>& values,
+	                    const std::shared_ptr<filtercheck_map_t>& map);
 
 	std::string m_tstr;
 

@@ -28,8 +28,7 @@ limitations under the License.
 /*
  * Operators to compare events
  */
-enum cmpop: uint8_t
-{
+enum cmpop : uint8_t {
 	CO_NONE = 0,
 	CO_EQ = 1,
 	CO_NE = 2,
@@ -55,13 +54,24 @@ enum cmpop: uint8_t
 cmpop str_to_cmpop(std::string_view str);
 bool cmpop_to_str(cmpop op, std::string& out);
 
-namespace std
-{
+namespace std {
 std::string to_string(cmpop);
 }
 
 bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& err);
-bool flt_compare(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
-bool flt_compare_avg(cmpop op, ppm_param_type type, const void* operand1, const void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
+bool flt_compare(cmpop op,
+                 ppm_param_type type,
+                 const void* operand1,
+                 const void* operand2,
+                 uint32_t op1_len = 0,
+                 uint32_t op2_len = 0);
+bool flt_compare_avg(cmpop op,
+                     ppm_param_type type,
+                     const void* operand1,
+                     const void* operand2,
+                     uint32_t op1_len,
+                     uint32_t op2_len,
+                     uint32_t cnt1,
+                     uint32_t cnt2);
 bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
-bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *operand2);
+bool flt_compare_ipv6net(cmpop op, const ipv6addr* operand1, const ipv6net* operand2);

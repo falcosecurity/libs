@@ -28,26 +28,22 @@ namespace scap_gvisor {
 
 namespace runsc {
 
-result runsc(char *argv[])
-{
+result runsc(char *argv[]) {
 	result res;
 	int pipefds[2];
 
 	int ret = pipe(pipefds);
-	if(ret)
-	{
+	if(ret) {
 		return res;
 	}
 
 	pid_t pid = vfork();
-	if(pid > 0)
-	{
+	if(pid > 0) {
 		int status;
 
 		close(pipefds[1]);
 		wait(&status);
-		if(!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-		{
+		if(!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
 			res.error = status;
 			return res;
 		}
@@ -56,13 +52,10 @@ result runsc(char *argv[])
 		std::string line;
 		std::istream is(&filebuf);
 
-		while(std::getline(is, line))
-		{
+		while(std::getline(is, line)) {
 			res.output.emplace_back(std::string(line));
 		}
-	}
-	else
-	{
+	} else {
 		close(pipefds[0]);
 		dup2(pipefds[1], STDOUT_FILENO);
 		execvp("runsc", argv);
@@ -72,40 +65,25 @@ result runsc(char *argv[])
 	return res;
 }
 
-result version()
-{
-	const char *argv[] = {
-		"runsc",
-		"--version",
-		NULL
-	};
+result version() {
+	const char *argv[] = {"runsc", "--version", NULL};
 
 	return runsc((char **)argv);
 }
 
-result list(const std::string &root_path)
-{
+result list(const std::string &root_path) {
 	result res;
 	std::vector<std::string> running_sandboxes;
 
-	const char *argv[] = {
-		"runsc",
-		"--root",
-		root_path.c_str(),
-		"list",
-		NULL
-	};
+	const char *argv[] = {"runsc", "--root", root_path.c_str(), "list", NULL};
 
 	res = runsc((char **)argv);
-	if(res.error)
-	{
+	if(res.error) {
 		return res;
 	}
 
-	for(const auto &line : res.output)
-	{
-		if(line.find("running") != std::string::npos)
-		{
+	for(const auto &line : res.output) {
+		if(line.find("running") != std::string::npos) {
 			std::string sandbox = line.substr(0, line.find_first_of(" ", 0));
 			running_sandboxes.emplace_back(sandbox);
 		}
@@ -115,56 +93,54 @@ result list(const std::string &root_path)
 	return res;
 }
 
-result trace_create(const std::string &root_path, const std::string &trace_session_path, const std::string &sandbox_id, bool force)
-{
+result trace_create(const std::string &root_path,
+                    const std::string &trace_session_path,
+                    const std::string &sandbox_id,
+                    bool force) {
+	const char *argv[] = {"runsc",
+	                      "--root",
+	                      root_path.c_str(),
+	                      "trace",
+	                      "create",
+	                      force ? "--force" : "",
+	                      "--config",
+	                      trace_session_path.c_str(),
+	                      sandbox_id.c_str(),
+	                      NULL};
+
+	return runsc((char **)argv);
+}
+
+result trace_delete(const std::string &root_path,
+                    const std::string &session_name,
+                    const std::string &sandbox_id) {
+	const char *argv[] = {"runsc",
+	                      "--root",
+	                      root_path.c_str(),
+	                      "trace",
+	                      "delete",
+	                      "--name",
+	                      session_name.c_str(),
+	                      sandbox_id.c_str(),
+	                      NULL};
+
+	return runsc((char **)argv);
+}
+
+result trace_procfs(const std::string &root_path, const std::string &sandbox_id) {
 	const char *argv[] = {
-		"runsc",
-		"--root",
-		root_path.c_str(),
-		"trace",
-		"create",
-		force ? "--force" : "",
-		"--config",
-		trace_session_path.c_str(),
-		sandbox_id.c_str(),
-		NULL
+	        "runsc",
+	        "--root",
+	        root_path.c_str(),
+	        "trace",
+	        "procfs",
+	        sandbox_id.c_str(),
+	        NULL,
 	};
 
 	return runsc((char **)argv);
 }
 
-result trace_delete(const std::string &root_path, const std::string &session_name, const std::string &sandbox_id)
-{
-	const char *argv[] = {
-		"runsc",
-		"--root",
-		root_path.c_str(),
-		"trace",
-		"delete",
-		"--name",
-		session_name.c_str(),
-		sandbox_id.c_str(),
-		NULL
-	};
+}  // namespace runsc
 
-	return runsc((char **)argv);
-}
-
-result trace_procfs(const std::string &root_path, const std::string &sandbox_id)
-{
-	const char *argv[] = {
-		"runsc",
-		"--root",
-		root_path.c_str(),
-		"trace",
-		"procfs",
-		sandbox_id.c_str(),
-		NULL,
-	};
-
-	return runsc((char **)argv);
-}
-
-} // namespace runsc
-
-} // namespace scap_gvisor
+}  // namespace scap_gvisor

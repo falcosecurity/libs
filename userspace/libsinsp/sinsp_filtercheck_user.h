@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_user : public sinsp_filter_check
-{
+class sinsp_filter_check_user : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_UID = 0,
 		TYPE_NAME = 1,
 		TYPE_HOMEDIR = 2,

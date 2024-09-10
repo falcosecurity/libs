@@ -52,8 +52,7 @@ extern sinsp_evttables g_infotables;
 // ONE-SHOT INIT-TIME OPERATIONS SHOULD BE DONE IN THE CONSTRUCTOR OF THIS
 // CLASS TO KEEP THEM UNDER A SINGLE PLACE.
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_initializer
-{
+class sinsp_initializer {
 public:
 	sinsp_initializer();
 };
@@ -61,8 +60,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 // A collection of useful functions
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_utils
-{
+class sinsp_utils {
 public:
 	//
 	// Convert an errno number into the corresponding compact code
@@ -77,24 +75,24 @@ public:
 	//
 	//
 	//
-	static bool sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve = false);
+	static bool sockinfo_to_str(sinsp_sockinfo* sinfo,
+	                            scap_fd_type stype,
+	                            char* targetbuf,
+	                            uint32_t targetbuf_size,
+	                            bool resolve = false);
 
 	//
 	// Check if string ends with another
 	//
-	static inline bool endswith(std::string_view str, std::string_view ending)
-	{
-		if (ending.size() <= str.size())
-		{
+	static inline bool endswith(std::string_view str, std::string_view ending) {
+		if(ending.size() <= str.size()) {
 			return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
 		}
 		return false;
 	}
 
-	static inline bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend)
-	{
-		if (lstr >= lend)
-		{
+	static inline bool endswith(const char* str, const char* ending, uint32_t lstr, uint32_t lend) {
+		if(lstr >= lend) {
 			return (0 == memcmp(ending, str + (lstr - lend), lend));
 		}
 		return 0;
@@ -124,37 +122,40 @@ public:
 	static bool is_ipv4_mapped_ipv6(uint8_t* paddr);
 
 	//
-	// Given a string, scan the event list and find the longest argument that the input string contains
+	// Given a string, scan the event list and find the longest argument that the input string
+	// contains
 	//
 	static const ppm_param_info* find_longest_matching_evt_param(std::string_view name);
 
 	static uint64_t get_current_time_ns();
 
-	static bool glob_match(const char *pattern, const char *string, const bool& case_insensitive = false);
+	static bool glob_match(const char* pattern,
+	                       const char* string,
+	                       const bool& case_insensitive = false);
 
 #ifndef _WIN32
 	//
 	// Print the call stack
 	//
 	static void bt(void);
-#endif // _WIN32
+#endif  // _WIN32
 
-	static void split_container_image(const std::string &image,
-					  std::string &hostname,
-					  std::string &port,
-					  std::string &name,
-					  std::string &tag,
-					  std::string &digest,
-					  bool split_repo = true);
+	static void split_container_image(const std::string& image,
+	                                  std::string& hostname,
+	                                  std::string& port,
+	                                  std::string& name,
+	                                  std::string& tag,
+	                                  std::string& digest,
+	                                  bool split_repo = true);
 
 	/*
-	* \param res [out] the generated string representation of the provided timestamp
-	*/
+	 * \param res [out] the generated string representation of the provided timestamp
+	 */
 	static void ts_to_string(uint64_t ts, std::string* res, bool date, bool ns);
 
 	/*
-	* \param res [out] the generated string representation of the provided timestamp
-	*/
+	 * \param res [out] the generated string representation of the provided timestamp
+	 */
 	static void ts_to_iso_8601(uint64_t ts, std::string* res);
 
 	//
@@ -169,10 +170,8 @@ public:
 // little STL thing to sanitize strings
 ///////////////////////////////////////////////////////////////////////////////
 
-struct g_invalidchar
-{
-	bool operator()(char c) const
-	{
+struct g_invalidchar {
+	bool operator()(char c) const {
 		unsigned char uc = static_cast<unsigned char>(c);
 		// Exclude all non-printable characters and control characters while
 		// including a wide range of languages (emojis, cyrillic, chinese etc)
@@ -180,8 +179,7 @@ struct g_invalidchar
 	}
 };
 
-inline void sanitize_string(std::string &str)
-{
+inline void sanitize_string(std::string& str) {
 	// It turns out with -O3 (release flags) using erase and
 	// remove_if is slightly faster than the inline version that
 	// was here. It's not faster for -O2, and is actually much
@@ -191,49 +189,44 @@ inline void sanitize_string(std::string &str)
 	str.erase(remove_if(str.begin(), str.end(), g_invalidchar()), str.end());
 }
 
-inline void remove_duplicate_path_separators(std::string &str)
-{
-    // Light fd name sanitization if fd is a file - only remove consecutive duplicate separators
-    if(str.size() < 2)
-    {
-        // There is nothing to do if there are 0 or 1 chars in the string, protecting dereference operations
-        return;
-    }
+inline void remove_duplicate_path_separators(std::string& str) {
+	// Light fd name sanitization if fd is a file - only remove consecutive duplicate separators
+	if(str.size() < 2) {
+		// There is nothing to do if there are 0 or 1 chars in the string, protecting dereference
+		// operations
+		return;
+	}
 
-    char prev_char = *str.begin();
+	char prev_char = *str.begin();
 
-    for (auto cur_char_it = str.begin() + 1; cur_char_it != str.end();)
-    {
-        if (prev_char == *cur_char_it && prev_char == '/')
-        {
-            cur_char_it = str.erase(cur_char_it);
-        }
-        else
-        {
-            prev_char = *cur_char_it;
-            cur_char_it++;
-        }
-    }
+	for(auto cur_char_it = str.begin() + 1; cur_char_it != str.end();) {
+		if(prev_char == *cur_char_it && prev_char == '/') {
+			cur_char_it = str.erase(cur_char_it);
+		} else {
+			prev_char = *cur_char_it;
+			cur_char_it++;
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
 
-time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt = "%Y-%m-%dT%H:%M:%SZ");
+time_t get_epoch_utc_seconds(const std::string& time_str,
+                             const std::string& fmt = "%Y-%m-%dT%H:%M:%SZ");
 time_t get_epoch_utc_seconds_now();
 
 // Time functions for Windows
 
 #ifdef _WIN32
-struct timezone2
-{
-	int32_t  tz_minuteswest;
-	bool  tz_dsttime;
+struct timezone2 {
+	int32_t tz_minuteswest;
+	bool tz_dsttime;
 };
 
-SINSP_PUBLIC int gettimeofday(struct timeval *tv, struct timezone2 *tz);
-#endif // _WIN32
+SINSP_PUBLIC int gettimeofday(struct timeval* tv, struct timezone2* tz);
+#endif  // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////
 // gethostname wrapper
@@ -270,17 +263,14 @@ const char* print_format_to_string(ppm_print_format fmt);
 std::vector<std::string> sinsp_split(std::string_view sv, char delim);
 
 template<typename It>
-std::string sinsp_join(It begin, It end, char delim)
-{
-	if(begin == end)
-	{
+std::string sinsp_join(It begin, It end, char delim) {
+	if(begin == end) {
 		return "";
 	}
 	std::stringstream ss;
 	ss << *begin;
 	++begin;
-	for(auto it = begin; it != end; ++it)
-	{
+	for(auto it = begin; it != end; ++it) {
 		ss << delim << *it;
 	}
 	return ss.str();
@@ -294,16 +284,19 @@ std::string& trim(std::string& s);
 [[nodiscard]] std::string_view rtrim_sv(std::string_view);
 [[nodiscard]] std::string_view trim_sv(std::string_view);
 
-std::string& replace_in_place(std::string& s, const std::string& search, const std::string& replacement);
-std::string replace(const std::string& str, const std::string& search, const std::string& replacement);
+std::string& replace_in_place(std::string& s,
+                              const std::string& search,
+                              const std::string& replacement);
+std::string replace(const std::string& str,
+                    const std::string& search,
+                    const std::string& replacement);
 
-std::string buffer_to_multiline_hex(const char *buf, size_t size);
+std::string buffer_to_multiline_hex(const char* buf, size_t size);
 
 ///////////////////////////////////////////////////////////////////////////////
 // number parser
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_numparser
-{
+class sinsp_numparser {
 public:
 	static uint8_t parseu8(const std::string& str);
 	static int8_t parsed8(const std::string& str);
@@ -336,42 +329,46 @@ unsigned int read_num_possible_cpus(void);
 ///////////////////////////////////////////////////////////////////////////////
 
 // http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3876.pdf
-template <typename T>
-inline void hash_combine(std::size_t &seed, const T& val)
-{
-	seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+template<typename T>
+inline void hash_combine(std::size_t& seed, const T& val) {
+	seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Log helpers
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_scap_log_fn(const char* component, const char* msg, const enum falcosecurity_log_severity sev);
+void sinsp_scap_log_fn(const char* component,
+                       const char* msg,
+                       const enum falcosecurity_log_severity sev);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Set operation functions.
 ///////////////////////////////////////////////////////////////////////////////
 
-
 template<typename T>
 std::set<T> unordered_set_to_ordered(const std::unordered_set<T>& unordered_set);
 
 template<typename T>
-std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
+std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a,
+                                               const std::unordered_set<T>& b);
 
 template<typename T>
 std::set<T> set_difference(const std::set<T>& a, const std::set<T>& b);
 
 template<typename T>
-std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
+std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a,
+                                          const std::unordered_set<T>& b);
 
 template<typename T>
 std::set<T> set_union(const std::set<T>& a, const std::set<T>& b);
 
 template<typename T>
-std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
+std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a,
+                                                 const std::unordered_set<T>& b);
 
 template<typename T>
 std::set<T> set_intersection(const std::set<T>& a, const std::set<T>& b);
 
-std::string concat_set_in_order(const std::unordered_set<std::string>& s, const std::string& delim = ", ");
+std::string concat_set_in_order(const std::unordered_set<std::string>& s,
+                                const std::string& delim = ", ");
 std::string concat_set_in_order(const std::set<std::string>& s, const std::string& delim = ", ");

@@ -5,8 +5,7 @@
 
 #if defined(__NR_close) && defined(__NR_openat) && defined(__NR_close)
 
-TEST(SyscallExit, writeX_no_snaplen)
-{
+TEST(SyscallExit, writeX_no_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -29,8 +28,7 @@ TEST(SyscallExit, writeX_no_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -51,8 +49,7 @@ TEST(SyscallExit, writeX_no_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writeX_snaplen)
-{
+TEST(SyscallExit, writeX_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -75,8 +72,7 @@ TEST(SyscallExit, writeX_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -97,8 +93,7 @@ TEST(SyscallExit, writeX_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writeX_fail)
-{
+TEST(SyscallExit, writeX_fail) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -117,8 +112,7 @@ TEST(SyscallExit, writeX_fail)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -139,8 +133,7 @@ TEST(SyscallExit, writeX_fail)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writeX_empty)
-{
+TEST(SyscallExit, writeX_empty) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -158,8 +151,7 @@ TEST(SyscallExit, writeX_empty)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -180,15 +172,15 @@ TEST(SyscallExit, writeX_empty)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen)
-{
+TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_write, .greater_snaplen = true});
+	evt_test->client_to_server_ipv4_tcp(
+	        send_data{.syscall_num = __NR_write, .greater_snaplen = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -196,8 +188,7 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -218,8 +209,7 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port)
-{
+TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -230,7 +220,8 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_write, .greater_snaplen = true});
+	evt_test->client_to_server_ipv4_tcp(
+	        send_data{.syscall_num = __NR_write, .greater_snaplen = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -245,8 +236,7 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port)
 	 */
 	evt_test->set_fullcapture_port_range(0, 0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -267,8 +257,9 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port)
 	evt_test->assert_num_params_pushed(2);
 }
 
-// We cannot call a write without a destination address in UDP. Errno: 89 err_message: Destination address required.
-// To run this test we should use a UDP socket connected to the server, and so we should use the connect syscall.
-// TEST(SyscallExit, writeX_ipv4_udp_message_not_truncated_fullcapture_port)
+// We cannot call a write without a destination address in UDP. Errno: 89 err_message: Destination
+// address required. To run this test we should use a UDP socket connected to the server, and so we
+// should use the connect syscall. TEST(SyscallExit,
+// writeX_ipv4_udp_message_not_truncated_fullcapture_port)
 #endif
 #endif

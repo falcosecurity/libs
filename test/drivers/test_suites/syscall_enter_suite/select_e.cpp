@@ -1,15 +1,16 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_select
-TEST(SyscallEnter, selectE)
-{
+TEST(SyscallEnter, selectE) {
 	auto evt_test = get_syscall_event_test(__NR_select, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	assert_syscall_state(SYSCALL_FAILURE, "select", syscall(__NR_select, -1, nullptr, nullptr, nullptr, nullptr));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "select",
+	                     syscall(__NR_select, -1, nullptr, nullptr, nullptr, nullptr));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -17,8 +18,7 @@ TEST(SyscallEnter, selectE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

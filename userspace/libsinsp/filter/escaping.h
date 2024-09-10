@@ -24,13 +24,12 @@ namespace libsinsp {
 namespace filter {
 
 /*!
-	\brief Methods to escape/unescape strings
-	\note Throws a sinsp_exception in case of parsing errors.
-	\return an escaped/unescaped verison of the string
+    \brief Methods to escape/unescape strings
+    \note Throws a sinsp_exception in case of parsing errors.
+    \return an escaped/unescaped verison of the string
 */
 std::string escape_str(const std::string& str);
 std::string unescape_str(const std::string& str);
 
-
-}
-}
+}  // namespace filter
+}  // namespace libsinsp

@@ -4,8 +4,7 @@
 
 #include <poll.h>
 
-TEST(SyscallExit, pollX_success)
-{
+TEST(SyscallExit, pollX_success) {
 	auto evt_test = get_syscall_event_test(__NR_poll, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -37,7 +36,11 @@ TEST(SyscallExit, pollX_success)
 	expected[1].fd = fds[1].fd;
 	expected[1].flags = 0;
 
-	assert_syscall_state(SYSCALL_SUCCESS, "poll", syscall(__NR_poll, fds, nfds, timeout), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "poll",
+	                     syscall(__NR_poll, fds, nfds, timeout),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -45,8 +48,7 @@ TEST(SyscallExit, pollX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

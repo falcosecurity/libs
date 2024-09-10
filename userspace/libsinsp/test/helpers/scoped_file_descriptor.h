@@ -18,15 +18,13 @@ limitations under the License.
 
 #pragma once
 
-namespace test_helpers
-{
+namespace test_helpers {
 
 /**
  * Wraps a file descriptor for the lifetime of the object, and closes the
  * file descriptor (if not already closed) when destroyed.
  */
-class scoped_file_descriptor
-{
+class scoped_file_descriptor {
 public:
 	scoped_file_descriptor(int fd);
 	~scoped_file_descriptor();

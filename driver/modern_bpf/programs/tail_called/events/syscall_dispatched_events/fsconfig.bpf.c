@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(fsconfig_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(fsconfig_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FSCONFIG_E_SIZE, PPME_SYSCALL_FSCONFIG_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FSCONFIG_E_SIZE, PPME_SYSCALL_FSCONFIG_E)) {
 		return 0;
 	}
 
@@ -40,13 +36,9 @@ int BPF_PROG(fsconfig_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(fsconfig_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(fsconfig_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -73,8 +65,7 @@ int BPF_PROG(fsconfig_x,
 
 	int aux = extract__syscall_argument(regs, 4);
 
-	if(ret < 0)
-	{
+	if(ret < 0) {
 		/* If the syscall fails we push empty params to userspace. */
 
 		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
@@ -82,15 +73,13 @@ int BPF_PROG(fsconfig_x,
 
 		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
 		auxmap__store_empty_param(auxmap);
-	}
-	else
-	{
+	} else {
 		unsigned long value_pointer = extract__syscall_argument(regs, 3);
 
-		/* According to the command we need to understand what value we have to push to userspace. */
+		/* According to the command we need to understand what value we have to push to userspace.
+		 */
 		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
-		switch(scap_cmd)
-		{
+		switch(scap_cmd) {
 		case PPM_FSCONFIG_SET_FLAG:
 		case PPM_FSCONFIG_SET_FD:
 		case PPM_FSCONFIG_CMD_CREATE:

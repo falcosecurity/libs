@@ -14,7 +14,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/types.h>
 
 struct ppm_consumer_t {
-	unsigned int id; // numeric id for the consumer (ie: registration index)
+	unsigned int id;  // numeric id for the consumer (ie: registration index)
 	struct task_struct *consumer_id;
 #ifdef __percpu
 	struct ppm_ring_buffer_context __percpu *ring_buffers;
@@ -41,4 +41,4 @@ struct ppm_consumer_t {
 
 typedef struct ppm_consumer_t ppm_consumer_t;
 
-#endif // CONSUMER_H_
+#endif  // CONSUMER_H_

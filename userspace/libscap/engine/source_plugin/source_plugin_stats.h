@@ -21,4 +21,4 @@ limitations under the License.
 typedef enum source_plugin_counters_stats {
 	N_EVTS = 0,
 	MAX_SOURCE_PLUGIN_COUNTERS_STATS,
-}source_plugin_counters_stats;
+} source_plugin_counters_stats;

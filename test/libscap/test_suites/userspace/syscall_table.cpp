@@ -21,23 +21,22 @@ limitations under the License.
 
 extern const syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
-/* Each syscall_id should have its own PPM_SC, note that this should be true also for generic syscalls
- * only the event type is generic, the PPM_SC code is defined! This test is architecture dependent!
+/* Each syscall_id should have its own PPM_SC, note that this should be true also for generic
+ * syscalls only the event type is generic, the PPM_SC code is defined! This test is architecture
+ * dependent!
  */
-TEST(syscall_table, check_1_1_match_between_ppm_sc_syscall_id)
-{
+TEST(syscall_table, check_1_1_match_between_ppm_sc_syscall_id) {
 	std::vector<int> ppm_sc_count(PPM_SC_MAX, 0);
 
-	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-	{
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++) {
 		ppm_sc_count[g_syscall_table[syscall_nr].ppm_sc]++;
 	}
 
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-        if(ppm_sc != PPM_SC_UNKNOWN)
-        {
-		    ASSERT_TRUE(ppm_sc_count[ppm_sc] <= 1) << "[fail] SYSCALL (" << scap_get_ppm_sc_name((ppm_sc_code)ppm_sc) << ") is found '" << ppm_sc_count[ppm_sc] << "' times" << std::endl;
-        }
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++) {
+		if(ppm_sc != PPM_SC_UNKNOWN) {
+			ASSERT_TRUE(ppm_sc_count[ppm_sc] <= 1)
+			        << "[fail] SYSCALL (" << scap_get_ppm_sc_name((ppm_sc_code)ppm_sc)
+			        << ") is found '" << ppm_sc_count[ppm_sc] << "' times" << std::endl;
+		}
 	}
 }

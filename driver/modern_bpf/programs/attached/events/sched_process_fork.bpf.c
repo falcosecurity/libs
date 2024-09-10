@@ -16,22 +16,18 @@
 #ifdef CAPTURE_SCHED_PROC_FORK
 /* chose a short name for bpftool debugging*/
 SEC("tp_btf/sched_process_fork")
-int BPF_PROG(sched_p_fork,
-	     struct task_struct *parent, struct task_struct *child)
-{
+int BPF_PROG(sched_p_fork, struct task_struct *parent, struct task_struct *child) {
 	struct task_struct *task = get_current_task();
 	uint32_t flags = 0;
 	READ_TASK_FIELD_INTO(&flags, task, flags);
 
 	/* We are not interested in kernel threads. */
-	if(flags & PF_KTHREAD)
-	{
+	if(flags & PF_KTHREAD) {
 		return 0;
 	}
 
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 	auxmap__preload_event_header(auxmap, PPME_SYSCALL_CLONE_20_X);
@@ -68,12 +64,15 @@ int BPF_PROG(sched_p_fork,
 	/* We need to extract the len of `exe` arg so we can understand
 	 * the overall length of the remaining args.
 	 */
-	uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
+	uint16_t exe_arg_len =
+	        auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-	auxmap__store_charbufarray_as_bytebuf(auxmap, arg_start_pointer + exe_arg_len,
-						      total_args_len - exe_arg_len, MAX_PROC_ARG_ENV - exe_arg_len);
+	auxmap__store_charbufarray_as_bytebuf(auxmap,
+	                                      arg_start_pointer + exe_arg_len,
+	                                      total_args_len - exe_arg_len,
+	                                      MAX_PROC_ARG_ENV - exe_arg_len);
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
@@ -134,12 +133,9 @@ int BPF_PROG(sched_p_fork,
 }
 
 SEC("tp_btf/sched_process_fork")
-int BPF_PROG(t1_sched_p_fork,
-	     struct task_struct *parent, struct task_struct *child)
-{
+int BPF_PROG(t1_sched_p_fork, struct task_struct *parent, struct task_struct *child) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -159,8 +155,7 @@ int BPF_PROG(t1_sched_p_fork,
 	 */
 	pid_t tid = READ_TASK_FIELD(child, pid);
 	pid_t tgid = READ_TASK_FIELD(child, tgid);
-	if(tid != tgid)
-	{
+	if(tid != tgid) {
 		flags |= PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM;
 	}
 
@@ -172,8 +167,7 @@ int BPF_PROG(t1_sched_p_fork,
 	struct files_struct *parent_file_struct = NULL;
 	READ_TASK_FIELD_INTO(&file_struct, child, files);
 	READ_TASK_FIELD_INTO(&parent_file_struct, parent, files);
-	if(parent_file_struct == file_struct)
-	{
+	if(parent_file_struct == file_struct) {
 		flags |= PPM_CL_CLONE_FILES;
 	}
 
@@ -184,8 +178,7 @@ int BPF_PROG(t1_sched_p_fork,
 	struct pid *pid_struct = extract__task_pid_struct(child, PIDTYPE_PID);
 	struct pid_namespace *pid_namespace_struct = extract__namespace_of_pid(pid_struct);
 	int pidns_level = BPF_CORE_READ(pid_namespace_struct, level);
-	if(pidns_level != 0)
-	{
+	if(pidns_level != 0) {
 		flags |= PPM_CL_CHILD_IN_PIDNS;
 	}
 	auxmap__store_u32_param(auxmap, flags);
@@ -218,12 +211,9 @@ int BPF_PROG(t1_sched_p_fork,
 }
 
 SEC("tp_btf/sched_process_fork")
-int BPF_PROG(t2_sched_p_fork,
-	     struct task_struct *parent, struct task_struct *child)
-{
+int BPF_PROG(t2_sched_p_fork, struct task_struct *parent, struct task_struct *child) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 

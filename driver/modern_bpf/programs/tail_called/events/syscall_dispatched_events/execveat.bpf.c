@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(execveat_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(execveat_e, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 	auxmap__preload_event_header(auxmap, PPME_SYSCALL_EXECVEAT_E);
@@ -26,8 +22,7 @@ int BPF_PROG(execveat_e,
 
 	/* Parameter 1: dirfd (type: PT_FD) */
 	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
@@ -58,26 +53,21 @@ int BPF_PROG(execveat_e,
  * the call is successful.
  */
 SEC("tp_btf/sys_exit")
-int BPF_PROG(execveat_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
-
+int BPF_PROG(execveat_x, struct pt_regs *regs, long ret) {
 /* On some recent kernels the execve/execveat issue is solved:
  * https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?h=linux-5.15.y&id=42eede3ae05bbf32cb0d87940b466ec5a76aca3f
- * BTW we already catch the event with our `sched_process_exec` tracepoint, for this reason we don't need also this instrumentation.
- * Please note that we still need to catch the syscall failure for this reason we check the `ret==0`.
+ * BTW we already catch the event with our `sched_process_exec` tracepoint, for this reason we don't
+ * need also this instrumentation. Please note that we still need to catch the syscall failure for
+ * this reason we check the `ret==0`.
  */
 #ifdef CAPTURE_SCHED_PROC_EXEC
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		return 0;
 	}
 #endif
 
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 	auxmap__preload_event_header(auxmap, PPME_SYSCALL_EXECVEAT_X);
@@ -92,8 +82,7 @@ int BPF_PROG(execveat_x,
 	/* In case of success we take `exe` and `args` directly from the kernel
 	 * otherwise we get them from the syscall arguments.
 	 */
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		unsigned long arg_start_pointer = 0;
 		unsigned long arg_end_pointer = 0;
 
@@ -105,15 +94,16 @@ int BPF_PROG(execveat_x,
 		READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
 
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
+		uint16_t exe_arg_len =
+		        auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-		auxmap__store_charbufarray_as_bytebuf(auxmap, arg_start_pointer + exe_arg_len,
-						      total_args_len - exe_arg_len, MAX_PROC_ARG_ENV - exe_arg_len);
-	}
-	else
-	{
+		auxmap__store_charbufarray_as_bytebuf(auxmap,
+		                                      arg_start_pointer + exe_arg_len,
+		                                      total_args_len - exe_arg_len,
+		                                      MAX_PROC_ARG_ENV - exe_arg_len);
+	} else {
 		unsigned long argv = extract__syscall_argument(regs, 2);
 
 		/* Parameter 2: exe (type: PT_CHARBUF) */
@@ -183,13 +173,9 @@ int BPF_PROG(execveat_x,
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t1_execveat_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(t1_execveat_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -203,8 +189,7 @@ int BPF_PROG(t1_execveat_x,
 	/* In case of success we take `env` directly from the kernel
 	 * otherwise we get them from the syscall arguments.
 	 */
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		unsigned long env_start_pointer = 0;
 		unsigned long env_end_pointer = 0;
 
@@ -212,11 +197,11 @@ int BPF_PROG(t1_execveat_x,
 		READ_TASK_FIELD_INTO(&env_end_pointer, task, mm, env_end);
 
 		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
-		auxmap__store_charbufarray_as_bytebuf(auxmap, env_start_pointer, env_end_pointer - env_start_pointer,
-						      MAX_PROC_ARG_ENV);
-	}
-	else
-	{
+		auxmap__store_charbufarray_as_bytebuf(auxmap,
+		                                      env_start_pointer,
+		                                      env_end_pointer - env_start_pointer,
+		                                      MAX_PROC_ARG_ENV);
+	} else {
 		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 		unsigned long envp = extract__syscall_argument(regs, 3);
 		auxmap__store_env_failure(auxmap, (char **)envp);
@@ -240,21 +225,16 @@ int BPF_PROG(t1_execveat_x,
 	struct inode *exe_inode = extract__exe_inode_from_task(task);
 	struct file *exe_file = extract__exe_file_from_task(task);
 
-	if(extract__exe_writable(task, exe_inode))
-	{
+	if(extract__exe_writable(task, exe_inode)) {
 		flags |= PPM_EXE_WRITABLE;
 	}
 	enum ppm_overlay overlay = extract__overlay_layer(exe_file);
-	if(overlay == PPM_OVERLAY_UPPER)
-	{
+	if(overlay == PPM_OVERLAY_UPPER) {
 		flags |= PPM_EXE_UPPER_LAYER;
-	}
-	else if (overlay == PPM_OVERLAY_LOWER)
-	{
+	} else if(overlay == PPM_OVERLAY_LOWER) {
 		flags |= PPM_EXE_LOWER_LAYER;
 	}
-	if(extract__exe_from_memfd(exe_file))
-	{
+	if(extract__exe_from_memfd(exe_file)) {
 		flags |= PPM_EXE_FROM_MEMFD;
 	}
 	auxmap__store_u32_param(auxmap, flags);
@@ -276,21 +256,16 @@ int BPF_PROG(t1_execveat_x,
 	extract__ino_from_inode(exe_inode, &ino);
 	auxmap__store_u64_param(auxmap, ino);
 
-	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	struct timespec64 time = { 0, 0 };
-	if(bpf_core_field_exists(exe_inode->i_ctime))
-	{
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
+	struct timespec64 time = {0, 0};
+	if(bpf_core_field_exists(exe_inode->i_ctime)) {
 		BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
-	}
-	else
-	{
+	} else {
 		struct inode___v6_6 *exe_inode_v6_6 = (void *)exe_inode;
-		if(bpf_core_field_exists(exe_inode_v6_6->__i_ctime))
-		{
+		if(bpf_core_field_exists(exe_inode_v6_6->__i_ctime)) {
 			BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
-		}
-		else
-		{
+		} else {
 			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
 			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_ctime_sec);
 			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_ctime_nsec);
@@ -298,20 +273,15 @@ int BPF_PROG(t1_execveat_x,
 	}
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
-	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	if(bpf_core_field_exists(exe_inode->i_mtime))
-	{
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
+	if(bpf_core_field_exists(exe_inode->i_mtime)) {
 		BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
-	}
-	else
-	{
+	} else {
 		struct inode___v6_7 *exe_inode_v6_7 = (void *)exe_inode;
-		if(bpf_core_field_exists(exe_inode_v6_7->__i_mtime))
-		{
+		if(bpf_core_field_exists(exe_inode_v6_7->__i_mtime)) {
 			BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
-		}
-		else
-		{
+		} else {
 			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
 			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_mtime_sec);
 			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_mtime_nsec);
@@ -331,11 +301,9 @@ int BPF_PROG(t1_execveat_x,
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t2_execveat_x, struct pt_regs *regs, long ret)
-{
+int BPF_PROG(t2_execveat_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -345,12 +313,9 @@ int BPF_PROG(t2_execveat_x, struct pt_regs *regs, long ret)
 	struct file *exe_file = extract__exe_file_from_task(task);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	if(exe_file != NULL)
-	{
+	if(exe_file != NULL) {
 		auxmap__store_d_path_approx(auxmap, &(exe_file->f_path));
-	}
-	else
-	{
+	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 

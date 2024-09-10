@@ -27,11 +27,10 @@ limitations under the License.
     \return On success, zero is returned.  On error, -1 is returned, and
        errno is set to indicate the error.
  */
-static inline int thread_seteuid(uid_t uid)
-{
+static inline int thread_seteuid(uid_t uid) {
 	int result;
 
-	if (uid == (uid_t) ~0) {
+	if(uid == (uid_t)~0) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -51,11 +50,10 @@ static inline int thread_seteuid(uid_t uid)
     \return On success, zero is returned.  On error, -1 is returned, and
        errno is set to indicate the error.
  */
-static inline int thread_setegid(gid_t gid)
-{
+static inline int thread_setegid(gid_t gid) {
 	int result;
 
-	if (gid == (gid_t) ~0) {
+	if(gid == (gid_t)~0) {
 		errno = EINVAL;
 		return -1;
 	}

@@ -19,8 +19,7 @@
  * Right now we cannot directly include it, let's see if we need other helpers
  * from this file, in that case, we can think of splitting it.
  */
-uint64_t capabilities_to_scap(unsigned long caps)
-{
+uint64_t capabilities_to_scap(unsigned long caps) {
 	uint64_t res = 0;
 
 #ifdef CAP_CHOWN

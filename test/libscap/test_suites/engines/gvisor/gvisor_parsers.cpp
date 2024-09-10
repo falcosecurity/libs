@@ -36,472 +36,473 @@ limitations under the License.
 #endif /* __x86_64__ */
 
 template<class T>
-uint32_t prepare_message(char *message, uint32_t message_size, uint16_t message_type, T &gvisor_evt)
-{
-    uint32_t proto_size = static_cast<uint32_t>(gvisor_evt.ByteSizeLong());
-    uint16_t header_size = sizeof(scap_gvisor::header);
-    uint32_t total_size = header_size + proto_size;
-    uint32_t dropped_count = 0;
+uint32_t prepare_message(char *message,
+                         uint32_t message_size,
+                         uint16_t message_type,
+                         T &gvisor_evt) {
+	uint32_t proto_size = static_cast<uint32_t>(gvisor_evt.ByteSizeLong());
+	uint16_t header_size = sizeof(scap_gvisor::header);
+	uint32_t total_size = header_size + proto_size;
+	uint32_t dropped_count = 0;
 
-    // Fill the message header
-    memcpy(message, &header_size, sizeof(uint16_t));
-    memcpy(&message[sizeof(uint16_t)], &message_type, sizeof(uint16_t));
-    memcpy(&message[sizeof(uint16_t) + sizeof(uint16_t)], &dropped_count, sizeof(uint32_t));
+	// Fill the message header
+	memcpy(message, &header_size, sizeof(uint16_t));
+	memcpy(&message[sizeof(uint16_t)], &message_type, sizeof(uint16_t));
+	memcpy(&message[sizeof(uint16_t) + sizeof(uint16_t)], &dropped_count, sizeof(uint32_t));
 
-    // Serialize proto
-    gvisor_evt.SerializeToArray(&message[header_size], message_size - header_size);
+	// Serialize proto
+	gvisor_evt.SerializeToArray(&message[header_size], message_size - header_size);
 
-    return total_size;
+	return total_size;
 }
 
-TEST(gvisor_parsers, parse_execve_e)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_execve_e) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::Execve gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
-    gvisor_evt.set_sysno(__NR_execve);
-    gvisor_evt.set_pathname("/usr/bin/ls");
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
+	gvisor::syscall::Execve gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
+	gvisor_evt.set_sysno(__NR_execve);
+	gvisor_evt.set_pathname("/usr/bin/ls");
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 1);
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[0].buf), "/usr/bin/ls");
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 1);
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[0].buf), "/usr/bin/ls");
 }
 
-TEST(gvisor_parsers, parse_container_id)
-{
-    char message[1024];
+TEST(gvisor_parsers, parse_container_id) {
+	char message[1024];
 
-    std::string container_id = "1234";
-    std::string parsed_container_id;
-    gvisor::syscall::Execve execve_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
-    execve_evt.set_sysno(__NR_execve);
-    execve_evt.set_pathname("/usr/bin/ls");
-    auto *context_data = execve_evt.mutable_context_data();
-    context_data->set_container_id(container_id);
+	std::string container_id = "1234";
+	std::string parsed_container_id;
+	gvisor::syscall::Execve execve_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
+	execve_evt.set_sysno(__NR_execve);
+	execve_evt.set_pathname("/usr/bin/ls");
+	auto *context_data = execve_evt.mutable_context_data();
+	context_data->set_container_id(container_id);
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, execve_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, execve_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
 
-    parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
-    EXPECT_EQ(container_id, parsed_container_id);
+	parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
+	EXPECT_EQ(container_id, parsed_container_id);
 
-    gvisor::syscall::Fork fork_evt;
-    message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_FORK;
-    fork_evt.set_sysno(__NR_fork);
-    context_data = fork_evt.mutable_context_data();
-    container_id = "my_container_id";
-    context_data->set_container_id(container_id);
+	gvisor::syscall::Fork fork_evt;
+	message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_FORK;
+	fork_evt.set_sysno(__NR_fork);
+	context_data = fork_evt.mutable_context_data();
+	container_id = "my_container_id";
+	context_data->set_container_id(container_id);
 
-    total_size = prepare_message(message, 1024, message_type, fork_evt);
+	total_size = prepare_message(message, 1024, message_type, fork_evt);
 
-    gvisor_msg = {.buf = message, .size = total_size};
-    parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
-    EXPECT_EQ(container_id, parsed_container_id);
+	gvisor_msg = {.buf = message, .size = total_size};
+	parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
+	EXPECT_EQ(container_id, parsed_container_id);
 
-    gvisor::container::Start start_evt;
-    message_type = gvisor::common::MessageType::MESSAGE_CONTAINER_START;
-    container_id = "deadbeef";
-    start_evt.set_id(container_id);
-    start_evt.mutable_args()->Add("ls");
-    context_data = start_evt.mutable_context_data();
-    context_data->set_cwd("/root");
+	gvisor::container::Start start_evt;
+	message_type = gvisor::common::MessageType::MESSAGE_CONTAINER_START;
+	container_id = "deadbeef";
+	start_evt.set_id(container_id);
+	start_evt.mutable_args()->Add("ls");
+	context_data = start_evt.mutable_context_data();
+	context_data->set_cwd("/root");
 
-    total_size = prepare_message(message, 1024, message_type, start_evt);
+	total_size = prepare_message(message, 1024, message_type, start_evt);
 
-    gvisor_msg = {.buf = message, .size = total_size};
-    parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
-    EXPECT_EQ(container_id, parsed_container_id);
+	gvisor_msg = {.buf = message, .size = total_size};
+	parsed_container_id = scap_gvisor::parsers::parse_container_id(gvisor_msg);
+	EXPECT_EQ(container_id, parsed_container_id);
 }
 
+TEST(gvisor_parsers, parse_execve_x) {
+	char message[1024];
+	char buffer[1024];
 
-TEST(gvisor_parsers, parse_execve_x)
-{
-    char message[1024];
-    char buffer[1024];
+	gvisor::syscall::Execve gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
+	gvisor_evt.set_sysno(__NR_execve);
+	gvisor_evt.set_pathname("/usr/bin/ls");
+	gvisor_evt.mutable_argv()->Add("ls");
+	gvisor_evt.mutable_argv()->Add("a");
+	gvisor_evt.mutable_argv()->Add("b");
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
+	context_data->set_cwd("/root");
+	gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
+	exit->set_result(0);
 
-    gvisor::syscall::Execve gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
-    gvisor_evt.set_sysno(__NR_execve);
-    gvisor_evt.set_pathname("/usr/bin/ls");
-    gvisor_evt.mutable_argv()->Add("ls");
-    gvisor_evt.mutable_argv()->Add("a");
-    gvisor_evt.mutable_argv()->Add("b");
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
-    context_data->set_cwd("/root");
-    gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
-    exit->set_result(0);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 27);
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[1].buf), "/usr/bin/ls");  // exe
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[2].buf), "a");  // args[0] must be argv[1]
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[6].buf), "/root");  // cwd
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[13].buf), "ls");    // comm
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 27);
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "/usr/bin/ls"); // exe
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[2].buf), "a"); // args[0] must be argv[1]
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[6].buf), "/root"); // cwd
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[13].buf), "ls"); // comm
+	gvisor::syscall::Execve gvisor_evt2;
+	message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
+	gvisor_evt2.set_sysno(__NR_execve);
+	gvisor_evt2.set_pathname("/usr/bin/ls");
+	context_data = gvisor_evt2.mutable_context_data();
+	context_data->set_container_id("1234");
+	context_data->set_cwd("/root");
+	gvisor_evt2.mutable_exit()->set_result(0);
 
-    gvisor::syscall::Execve gvisor_evt2;
-    message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
-    gvisor_evt2.set_sysno(__NR_execve);
-    gvisor_evt2.set_pathname("/usr/bin/ls");
-    context_data = gvisor_evt2.mutable_context_data();
-    context_data->set_container_id("1234");
-    context_data->set_cwd("/root");
-    gvisor_evt2.mutable_exit()->set_result(0);
+	total_size = prepare_message(message, 1024, message_type, gvisor_evt2);
 
-    total_size = prepare_message(message, 1024, message_type, gvisor_evt2);
+	gvisor_msg = {.buf = message, .size = total_size};
+	scap_buf = {.buf = buffer, .size = 1024};
 
-    gvisor_msg = {.buf = message, .size = total_size};
-    scap_buf = {.buf = buffer, .size = 1024};
+	res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
-
-    n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 27);
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "/usr/bin/ls"); // exe
-    EXPECT_EQ(strlen(static_cast<const char*>(decoded_params[2].buf)), 0); // there must be no args
+	n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 27);
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[1].buf), "/usr/bin/ls");  // exe
+	EXPECT_EQ(strlen(static_cast<const char *>(decoded_params[2].buf)),
+	          0);  // there must be no args
 }
 
-TEST(gvisor_parsers, parse_fork_e)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_fork_e) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::Fork gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_FORK;
-    gvisor_evt.set_sysno(__NR_fork);
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
+	gvisor::syscall::Fork gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_FORK;
+	gvisor_evt.set_sysno(__NR_fork);
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_FORK_20_E);
+	EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_FORK_20_E);
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 0);
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 0);
 }
 
-TEST(gvisor_parsers, parse_fork_x)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_fork_x) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::Fork gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_FORK;
-    gvisor_evt.set_sysno(__NR_fork);
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
-    context_data->set_process_name("ls");
-    context_data->set_cwd("/root");
-    gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
-    exit->set_result(0);
+	gvisor::syscall::Fork gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_FORK;
+	gvisor_evt.set_sysno(__NR_fork);
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
+	context_data->set_process_name("ls");
+	context_data->set_cwd("/root");
+	gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
+	exit->set_result(0);
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 21);
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "ls"); // exe
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[6].buf), "/root"); // cwd
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[13].buf), "ls"); // comm
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 21);
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[1].buf), "ls");     // exe
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[6].buf), "/root");  // cwd
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[13].buf), "ls");    // comm
 }
 
-TEST(gvisor_parsers, parse_clone_e)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_clone_e) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::Clone gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_CLONE;
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
+	gvisor::syscall::Clone gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_CLONE;
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_CLONE_20_E);
+	EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_CLONE_20_E);
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 0);
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 0);
 }
 
-TEST(gvisor_parsers, parse_clone_x)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_clone_x) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::Clone gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_CLONE;
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
-    context_data->set_process_name("ls");
-    context_data->set_cwd("/root");
-    gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
-    exit->set_result(0);
+	gvisor::syscall::Clone gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_CLONE;
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
+	context_data->set_process_name("ls");
+	context_data->set_cwd("/root");
+	gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
+	exit->set_result(0);
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 21);
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[1].buf), "ls"); // exe
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[6].buf), "/root"); // cwd
-    EXPECT_STREQ(static_cast<const char*>(decoded_params[13].buf), "ls"); // comm
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 21);
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[1].buf), "ls");     // exe
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[6].buf), "/root");  // cwd
+	EXPECT_STREQ(static_cast<const char *>(decoded_params[13].buf), "ls");    // comm
 }
 
-TEST(gvisor_parsers, parse_socketpair_e)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_socketpair_e) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::SocketPair gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_SOCKETPAIR;
-    gvisor_evt.set_domain(995);
-    gvisor_evt.set_type(996);
-    gvisor_evt.set_protocol(997);
-    gvisor_evt.set_socket1(998);
-    gvisor_evt.set_socket2(999);
+	gvisor::syscall::SocketPair gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_SOCKETPAIR;
+	gvisor_evt.set_domain(995);
+	gvisor_evt.set_type(996);
+	gvisor_evt.set_protocol(997);
+	gvisor_evt.set_socket1(998);
+	gvisor_evt.set_socket2(999);
 
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_E);
+	EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_E);
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 3);
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 3);
 
-    int32_t i32_val;
+	int32_t i32_val;
 
-    EXPECT_EQ(decoded_params[0].size, 4);
-    memcpy(&i32_val, decoded_params[0].buf, sizeof(i32_val));
-    EXPECT_EQ(i32_val, 995);  // domain
+	EXPECT_EQ(decoded_params[0].size, 4);
+	memcpy(&i32_val, decoded_params[0].buf, sizeof(i32_val));
+	EXPECT_EQ(i32_val, 995);  // domain
 
-    EXPECT_EQ(decoded_params[1].size, 4);
-    memcpy(&i32_val, decoded_params[1].buf, sizeof(i32_val));
-    EXPECT_EQ(i32_val, 996);  // type
+	EXPECT_EQ(decoded_params[1].size, 4);
+	memcpy(&i32_val, decoded_params[1].buf, sizeof(i32_val));
+	EXPECT_EQ(i32_val, 996);  // type
 
-    EXPECT_EQ(decoded_params[2].size, 4);
-    memcpy(&i32_val, decoded_params[2].buf, sizeof(i32_val));
-    EXPECT_EQ(i32_val, 997);  // protocol
+	EXPECT_EQ(decoded_params[2].size, 4);
+	memcpy(&i32_val, decoded_params[2].buf, sizeof(i32_val));
+	EXPECT_EQ(i32_val, 997);  // protocol
 }
 
-TEST(gvisor_parsers, parse_socketpair_x)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_socketpair_x) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::SocketPair gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_SOCKETPAIR;
-    gvisor_evt.set_domain(995);
-    gvisor_evt.set_type(996);
-    gvisor_evt.set_protocol(997);
-    gvisor_evt.set_socket1(998);
-    gvisor_evt.set_socket2(999);
+	gvisor::syscall::SocketPair gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_SOCKETPAIR;
+	gvisor_evt.set_domain(995);
+	gvisor_evt.set_type(996);
+	gvisor_evt.set_protocol(997);
+	gvisor_evt.set_socket1(998);
+	gvisor_evt.set_socket2(999);
 
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
 
-    gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
-    exit->set_result(0);
+	gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
+	exit->set_result(0);
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ("", res.error);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ("", res.error);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 
-    EXPECT_EQ(res.scap_events.size(), 1);
+	EXPECT_EQ(res.scap_events.size(), 1);
 
-    EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_X);
+	EXPECT_EQ(res.scap_events[0]->type, PPME_SOCKET_SOCKETPAIR_X);
 
-    scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
-    EXPECT_EQ(n, 5);
+	scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+	uint32_t n = scap_event_decode_params(res.scap_events[0], decoded_params);
+	EXPECT_EQ(n, 5);
 
-    EXPECT_EQ(decoded_params[1].size, 8);
-    uint64_t u64_val;
-    memcpy(&u64_val, decoded_params[1].buf, sizeof(uint64_t));
-    EXPECT_EQ(u64_val, 998);  // fd1
+	EXPECT_EQ(decoded_params[1].size, 8);
+	uint64_t u64_val;
+	memcpy(&u64_val, decoded_params[1].buf, sizeof(uint64_t));
+	EXPECT_EQ(u64_val, 998);  // fd1
 
-    EXPECT_EQ(decoded_params[2].size, 8);
-    memcpy(&u64_val, decoded_params[2].buf, sizeof(uint64_t));
-    EXPECT_EQ(u64_val, 999);  // fd2
+	EXPECT_EQ(decoded_params[2].size, 8);
+	memcpy(&u64_val, decoded_params[2].buf, sizeof(uint64_t));
+	EXPECT_EQ(u64_val, 999);  // fd2
 }
 
-TEST(gvisor_parsers, parse_container_start)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, parse_container_start) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::container::Start gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_CONTAINER_START;
-    gvisor_evt.set_id("deadbeef");
-    gvisor_evt.mutable_args()->Add("ls");
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_cwd("/root");
+	gvisor::container::Start gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_CONTAINER_START;
+	gvisor_evt.set_id("deadbeef");
+	gvisor_evt.mutable_args()->Add("ls");
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_cwd("/root");
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
 
-    EXPECT_EQ(res.scap_events.size(), 4);
-    uint16_t type;
-    memcpy(&type, &res.scap_events[0]->type, sizeof(type));
-    EXPECT_EQ(type, PPME_SYSCALL_CLONE_20_E);
-    memcpy(&type, &res.scap_events[1]->type, sizeof(type));
-    EXPECT_EQ(type, PPME_SYSCALL_CLONE_20_X);
-    memcpy(&type, &res.scap_events[2]->type, sizeof(type));
-    EXPECT_EQ(type, PPME_SYSCALL_EXECVE_19_E);
-    memcpy(&type, &res.scap_events[3]->type, sizeof(type));
-    EXPECT_EQ(type, PPME_SYSCALL_EXECVE_19_X);
+	EXPECT_EQ(res.scap_events.size(), 4);
+	uint16_t type;
+	memcpy(&type, &res.scap_events[0]->type, sizeof(type));
+	EXPECT_EQ(type, PPME_SYSCALL_CLONE_20_E);
+	memcpy(&type, &res.scap_events[1]->type, sizeof(type));
+	EXPECT_EQ(type, PPME_SYSCALL_CLONE_20_X);
+	memcpy(&type, &res.scap_events[2]->type, sizeof(type));
+	EXPECT_EQ(type, PPME_SYSCALL_EXECVE_19_E);
+	memcpy(&type, &res.scap_events[3]->type, sizeof(type));
+	EXPECT_EQ(type, PPME_SYSCALL_EXECVE_19_X);
 }
 
-TEST(gvisor_parsers, unhandled_syscall)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, unhandled_syscall) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::Syscall gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_RAW;
-    gvisor_evt.set_sysno(999);
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
+	gvisor::syscall::Syscall gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_RAW;
+	gvisor_evt.set_sysno(999);
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_NE(res.error.find("Unhandled syscall"), std::string::npos);
-    EXPECT_EQ(res.status, SCAP_NOT_SUPPORTED);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_NE(res.error.find("Unhandled syscall"), std::string::npos);
+	EXPECT_EQ(res.status, SCAP_NOT_SUPPORTED);
 }
 
-TEST(gvisor_parsers, small_buffer)
-{
-    char message[1024];
-    char buffer[1024];
+TEST(gvisor_parsers, small_buffer) {
+	char message[1024];
+	char buffer[1024];
 
-    gvisor::syscall::Execve gvisor_evt;
-    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
-    gvisor_evt.set_sysno(__NR_execve);
-    gvisor_evt.set_pathname("/usr/bin/ls");
-    gvisor_evt.mutable_argv()->Add("ls");
-    auto *context_data = gvisor_evt.mutable_context_data();
-    context_data->set_container_id("1234");
-    context_data->set_cwd("/root");
-    gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
-    exit->set_result(0);
+	gvisor::syscall::Execve gvisor_evt;
+	uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
+	gvisor_evt.set_sysno(__NR_execve);
+	gvisor_evt.set_pathname("/usr/bin/ls");
+	gvisor_evt.mutable_argv()->Add("ls");
+	auto *context_data = gvisor_evt.mutable_context_data();
+	context_data->set_container_id("1234");
+	context_data->set_cwd("/root");
+	gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
+	exit->set_result(0);
 
-    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
+	uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
-    scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
-    scap_sized_buffer scap_buf = {.buf = buffer, .size = 1};
+	scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
+	scap_sized_buffer scap_buf = {.buf = buffer, .size = 1};
 
-    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ(res.status, SCAP_INPUT_TOO_SMALL);
-    scap_buf.size = res.size;
-    res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
+	scap_gvisor::parsers::parse_result res =
+	        scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ(res.status, SCAP_INPUT_TOO_SMALL);
+	scap_buf.size = res.size;
+	res = scap_gvisor::parsers::parse_gvisor_proto(10, gvisor_msg, scap_buf);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
 }
 
-TEST(gvisor_parsers, procfs_entry)
-{
-    std::string not_json = "not a json string";
-    uint32_t sandbox_id = 0xdeadbeef;
+TEST(gvisor_parsers, procfs_entry) {
+	std::string not_json = "not a json string";
+	uint32_t sandbox_id = 0xdeadbeef;
 
-    scap_gvisor::parsers::procfs_result res = scap_gvisor::parsers::parse_procfs_json(not_json, sandbox_id);
-    EXPECT_EQ(res.status, SCAP_FAILURE);
+	scap_gvisor::parsers::procfs_result res =
+	        scap_gvisor::parsers::parse_procfs_json(not_json, sandbox_id);
+	EXPECT_EQ(res.status, SCAP_FAILURE);
 
-    std::string json = R"(
+	std::string json = R"(
 {
   "args": [ "bash" ],
   "clone_ts": 1655473752715788585,
@@ -557,37 +558,36 @@ TEST(gvisor_parsers, procfs_entry)
 }
     )";
 
-    res = scap_gvisor::parsers::parse_procfs_json(json, sandbox_id);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
-    EXPECT_EQ(res.tinfo.vtid, 1);
-    EXPECT_STREQ(res.tinfo.comm, "bash");
-    EXPECT_STREQ(res.tinfo.exepath, "/usr/bin/bash");
-    std::string args = std::string(res.tinfo.args, res.tinfo.args_len);
-    EXPECT_TRUE(args.find("bash") != std::string::npos);
-    std::string env = std::string(res.tinfo.env, res.tinfo.env_len);
-    EXPECT_TRUE(env.find("HOSTNAME=91e91fdd849d") != std::string::npos);
-    EXPECT_TRUE(env.find("TERM=xterm") != std::string::npos);
-    EXPECT_TRUE(env.find("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin") != std::string::npos);
-    EXPECT_TRUE(env.find("HOME=/root") != std::string::npos);
+	res = scap_gvisor::parsers::parse_procfs_json(json, sandbox_id);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
+	EXPECT_EQ(res.tinfo.vtid, 1);
+	EXPECT_STREQ(res.tinfo.comm, "bash");
+	EXPECT_STREQ(res.tinfo.exepath, "/usr/bin/bash");
+	std::string args = std::string(res.tinfo.args, res.tinfo.args_len);
+	EXPECT_TRUE(args.find("bash") != std::string::npos);
+	std::string env = std::string(res.tinfo.env, res.tinfo.env_len);
+	EXPECT_TRUE(env.find("HOSTNAME=91e91fdd849d") != std::string::npos);
+	EXPECT_TRUE(env.find("TERM=xterm") != std::string::npos);
+	EXPECT_TRUE(env.find("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin") !=
+	            std::string::npos);
+	EXPECT_TRUE(env.find("HOME=/root") != std::string::npos);
 
-    std::string json_missing_fields = "{\"exe\":\"/usr/bin/bash\"}\n";
-    res = scap_gvisor::parsers::parse_procfs_json(json_missing_fields, sandbox_id);
-    EXPECT_EQ(res.status, SCAP_FAILURE);
-    EXPECT_STREQ(res.error.c_str(), "Missing json field or wrong type: cannot parse procfs entry");
+	std::string json_missing_fields = "{\"exe\":\"/usr/bin/bash\"}\n";
+	res = scap_gvisor::parsers::parse_procfs_json(json_missing_fields, sandbox_id);
+	EXPECT_EQ(res.status, SCAP_FAILURE);
+	EXPECT_STREQ(res.error.c_str(), "Missing json field or wrong type: cannot parse procfs entry");
 
-    std::string args_arr = "[ \"bash\" ]";
-    std::string args_no_arr = "\"bash\"";
-    auto pos = json.find(args_arr);
-    json.replace(pos, args_arr.size(), args_no_arr);
-    res = scap_gvisor::parsers::parse_procfs_json(json, sandbox_id);
-    EXPECT_EQ(res.status, SCAP_FAILURE);
-    EXPECT_STREQ(res.error.c_str(), "Missing json field or wrong type: cannot parse procfs entry");
-
+	std::string args_arr = "[ \"bash\" ]";
+	std::string args_no_arr = "\"bash\"";
+	auto pos = json.find(args_arr);
+	json.replace(pos, args_arr.size(), args_no_arr);
+	res = scap_gvisor::parsers::parse_procfs_json(json, sandbox_id);
+	EXPECT_EQ(res.status, SCAP_FAILURE);
+	EXPECT_STREQ(res.error.c_str(), "Missing json field or wrong type: cannot parse procfs entry");
 }
 
-TEST(gvisor_parsers, config_socket)
-{
-    std::string config = R"(
+TEST(gvisor_parsers, config_socket) {
+	std::string config = R"(
 {
     "trace_session": {
         "name": "Default",
@@ -642,9 +642,9 @@ TEST(gvisor_parsers, config_socket)
 }
     )";
 
-    scap_gvisor::parsers::config_result res;
+	scap_gvisor::parsers::config_result res;
 
-    res = scap_gvisor::parsers::parse_config(config);
-    EXPECT_EQ(res.status, SCAP_SUCCESS);
-    EXPECT_STREQ(res.socket_path.c_str(), "/tmp/gvisor.sock");
+	res = scap_gvisor::parsers::parse_config(config);
+	EXPECT_EQ(res.status, SCAP_SUCCESS);
+	EXPECT_STREQ(res.socket_path.c_str(), "/tmp/gvisor.sock");
 }

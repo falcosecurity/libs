@@ -24,18 +24,15 @@ class sinsp_threadinfo;
 #include <libsinsp/container_engine/container_engine_base.h>
 #include <libsinsp/container_engine/sinsp_container_type.h>
 
-namespace libsinsp
-{
-namespace container_engine
-{
+namespace libsinsp {
+namespace container_engine {
 /**
  * static container can be used in cases where we a-priori know that every thread comes from a
  * single container, for which there is not necessarily an accessible runtime interface, and for
  * which we already know all appropriate metadata statically. It can be used, say, for userspace
  * monitoring inside a single container
  */
-class static_container : public container_engine_base
-{
+class static_container : public container_engine_base {
 public:
 	static_container(container_cache_interface& cache,
 	                 const std::string& id,

@@ -22,29 +22,40 @@
 #include <string>
 #include <cstdint>
 
-class Base64
-{
+class Base64 {
 public:
-	template<class Out> static inline void encode(const char* input, uint64_t length, bool add_padding, Out& ret);
+	template<class Out>
+	static inline void encode(const char* input, uint64_t length, bool add_padding, Out& ret);
 
-	template<class Out> static inline bool decodeWithoutPadding(std::string_view input, Out& ret);
+	template<class Out>
+	static inline bool decodeWithoutPadding(std::string_view input, Out& ret);
 
 private:
 	template<class Out>
-	static inline bool decodeBase(const uint8_t cur_char, uint64_t pos, Out& ret,
-				      const unsigned char* const reverse_lookup_table);
+	static inline bool decodeBase(const uint8_t cur_char,
+	                              uint64_t pos,
+	                              Out& ret,
+	                              const unsigned char* const reverse_lookup_table);
 
 	template<class Out>
-	static inline bool decodeLast(const uint8_t cur_char, uint64_t pos, Out& ret,
-				      const unsigned char* const reverse_lookup_table);
+	static inline bool decodeLast(const uint8_t cur_char,
+	                              uint64_t pos,
+	                              Out& ret,
+	                              const unsigned char* const reverse_lookup_table);
 
 	template<class Out>
-	static inline void encodeBase(const uint8_t cur_char, uint64_t pos, uint8_t& next_c, Out& ret,
-				      const char* const char_table);
+	static inline void encodeBase(const uint8_t cur_char,
+	                              uint64_t pos,
+	                              uint8_t& next_c,
+	                              Out& ret,
+	                              const char* const char_table);
 
 	template<class Out>
-	static inline void encodeLast(uint64_t pos, uint8_t last_char, Out& ret, const char* const char_table,
-				      bool add_padding);
+	static inline void encodeLast(uint64_t pos,
+	                              uint8_t last_char,
+	                              Out& ret,
+	                              const char* const char_table,
+	                              bool add_padding);
 
 	// clang-format off
     static inline constexpr char CHAR_TABLE[] =
@@ -66,17 +77,17 @@ private:
 };
 
 template<class Out>
-bool Base64::decodeBase(const uint8_t cur_char, uint64_t pos, Out& ret, const unsigned char* const reverse_lookup_table)
-{
+bool Base64::decodeBase(const uint8_t cur_char,
+                        uint64_t pos,
+                        Out& ret,
+                        const unsigned char* const reverse_lookup_table) {
 	const unsigned char c = reverse_lookup_table[static_cast<uint32_t>(cur_char)];
-	if(c == 64)
-	{
+	if(c == 64) {
 		// Invalid character
 		return false;
 	}
 
-	switch(pos % 4)
-	{
+	switch(pos % 4) {
 	case 0:
 		ret.push_back(c << 2);
 		break;
@@ -96,17 +107,17 @@ bool Base64::decodeBase(const uint8_t cur_char, uint64_t pos, Out& ret, const un
 }
 
 template<class Out>
-bool Base64::decodeLast(const uint8_t cur_char, uint64_t pos, Out& ret, const unsigned char* const reverse_lookup_table)
-{
+bool Base64::decodeLast(const uint8_t cur_char,
+                        uint64_t pos,
+                        Out& ret,
+                        const unsigned char* const reverse_lookup_table) {
 	const unsigned char c = reverse_lookup_table[static_cast<uint32_t>(cur_char)];
-	if(c == 64)
-	{
+	if(c == 64) {
 		// Invalid character
 		return false;
 	}
 
-	switch(pos % 4)
-	{
+	switch(pos % 4) {
 	case 0:
 		return false;
 	case 1:
@@ -123,10 +134,12 @@ bool Base64::decodeLast(const uint8_t cur_char, uint64_t pos, Out& ret, const un
 }
 
 template<class Out>
-void Base64::encodeBase(const uint8_t cur_char, uint64_t pos, uint8_t& next_c, Out& ret, const char* const char_table)
-{
-	switch(pos % 3)
-	{
+void Base64::encodeBase(const uint8_t cur_char,
+                        uint64_t pos,
+                        uint8_t& next_c,
+                        Out& ret,
+                        const char* const char_table) {
+	switch(pos % 3) {
 	case 0:
 		ret.push_back(char_table[cur_char >> 2]);
 		next_c = (cur_char & 0x03) << 4;
@@ -144,22 +157,22 @@ void Base64::encodeBase(const uint8_t cur_char, uint64_t pos, uint8_t& next_c, O
 }
 
 template<class Out>
-void Base64::encodeLast(uint64_t pos, uint8_t last_char, Out& ret, const char* const char_table, bool add_padding)
-{
-	switch(pos % 3)
-	{
+void Base64::encodeLast(uint64_t pos,
+                        uint8_t last_char,
+                        Out& ret,
+                        const char* const char_table,
+                        bool add_padding) {
+	switch(pos % 3) {
 	case 1:
 		ret.push_back(char_table[last_char]);
-		if(add_padding)
-		{
+		if(add_padding) {
 			ret.push_back('=');
 			ret.push_back('=');
 		}
 		break;
 	case 2:
 		ret.push_back(char_table[last_char]);
-		if(add_padding)
-		{
+		if(add_padding) {
 			ret.push_back('=');
 		}
 		break;
@@ -168,8 +181,8 @@ void Base64::encodeLast(uint64_t pos, uint8_t last_char, Out& ret, const char* c
 	}
 }
 
-template<class Out> void Base64::encode(const char* input, uint64_t length, bool add_padding, Out& ret)
-{
+template<class Out>
+void Base64::encode(const char* input, uint64_t length, bool add_padding, Out& ret) {
 	uint64_t output_length = (length + 2) / 3 * 4;
 	ret.clear();
 	ret.reserve(output_length);
@@ -177,29 +190,25 @@ template<class Out> void Base64::encode(const char* input, uint64_t length, bool
 	uint64_t pos = 0;
 	uint8_t next_c = 0;
 
-	for(uint64_t i = 0; i < length; ++i)
-	{
+	for(uint64_t i = 0; i < length; ++i) {
 		encodeBase(input[i], pos++, next_c, ret, CHAR_TABLE);
 	}
 
 	encodeLast(pos, next_c, ret, CHAR_TABLE, add_padding);
 }
 
-template<class Out> bool Base64::decodeWithoutPadding(std::string_view input, Out& ret)
-{
+template<class Out>
+bool Base64::decodeWithoutPadding(std::string_view input, Out& ret) {
 	ret.clear();
-	if(input.empty())
-	{
+	if(input.empty()) {
 		return true;
 	}
 
 	// At most last two chars can be '='.
 	size_t n = input.length();
-	if(input[n - 1] == '=')
-	{
+	if(input[n - 1] == '=') {
 		n--;
-		if(n > 0 && input[n - 1] == '=')
-		{
+		if(n > 0 && input[n - 1] == '=') {
 			n--;
 		}
 	}
@@ -207,26 +216,21 @@ template<class Out> bool Base64::decodeWithoutPadding(std::string_view input, Ou
 	uint64_t last = n - 1;
 	// Determine output length.
 	size_t max_length = (n + 3) / 4 * 3;
-	if(n % 4 == 3)
-	{
+	if(n % 4 == 3) {
 		max_length -= 1;
 	}
-	if(n % 4 == 2)
-	{
+	if(n % 4 == 2) {
 		max_length -= 2;
 	}
 
 	ret.reserve(max_length);
-	for(uint64_t i = 0; i < last; ++i)
-	{
-		if(!decodeBase(input[i], i, ret, REVERSE_LOOKUP_TABLE))
-		{
+	for(uint64_t i = 0; i < last; ++i) {
+		if(!decodeBase(input[i], i, ret, REVERSE_LOOKUP_TABLE)) {
 			return false;
 		}
 	}
 
-	if(!decodeLast(input[last], last, ret, REVERSE_LOOKUP_TABLE))
-	{
+	if(!decodeLast(input[last], last, ret, REVERSE_LOOKUP_TABLE)) {
 		return false;
 	}
 

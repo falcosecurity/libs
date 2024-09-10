@@ -22,19 +22,16 @@ limitations under the License.
 #include <libsinsp/sinsp_exception.h>
 #include <libsinsp/filter_cache.h>
 
-enum filter_transformer_type: uint8_t
-{
+enum filter_transformer_type : uint8_t {
 	FTR_TOUPPER = 0,
 	FTR_TOLOWER = 1,
 	FTR_BASE64 = 2,
-	FTR_STORAGE = 3, // This transformer is only used internally
+	FTR_STORAGE = 3,  // This transformer is only used internally
 	FTR_BASENAME = 4,
 };
 
-static inline std::string filter_transformer_type_str(filter_transformer_type m)
-{
-	switch(m)
-	{
+static inline std::string filter_transformer_type_str(filter_transformer_type m) {
+	switch(m) {
 	case FTR_TOUPPER:
 		return "toupper";
 	case FTR_TOLOWER:
@@ -50,37 +47,30 @@ static inline std::string filter_transformer_type_str(filter_transformer_type m)
 	}
 }
 
-static inline filter_transformer_type filter_transformer_from_str(const std::string& str)
-{
-	if (str == "tolower")
-	{
+static inline filter_transformer_type filter_transformer_from_str(const std::string& str) {
+	if(str == "tolower") {
 		return filter_transformer_type::FTR_TOLOWER;
 	}
-	if (str == "toupper")
-	{
+	if(str == "toupper") {
 		return filter_transformer_type::FTR_TOUPPER;
 	}
-	if (str == "b64")
-	{
+	if(str == "b64") {
 		return filter_transformer_type::FTR_BASE64;
 	}
-	if (str == "storage")
-	{
+	if(str == "storage") {
 		return filter_transformer_type::FTR_STORAGE;
 	}
-	if (str == "basename")
-	{
+	if(str == "basename") {
 		return filter_transformer_type::FTR_BASENAME;
 	}
 	throw sinsp_exception("unknown field transfomer '" + str + "'");
 }
 
-class sinsp_filter_transformer
-{
+class sinsp_filter_transformer {
 public:
 	using storage_t = std::vector<uint8_t>;
 
-	sinsp_filter_transformer(filter_transformer_type t): m_type(t) { };
+	sinsp_filter_transformer(filter_transformer_type t): m_type(t) {};
 
 	bool transform_type(ppm_param_type& t) const;
 
@@ -89,7 +79,9 @@ public:
 private:
 	using str_transformer_func_t = std::function<bool(std::string_view in, storage_t& out)>;
 
-	bool string_transformer(std::vector<extract_value_t>& vec, ppm_param_type t, str_transformer_func_t mod);
+	bool string_transformer(std::vector<extract_value_t>& vec,
+	                        ppm_param_type t,
+	                        str_transformer_func_t mod);
 
 	filter_transformer_type m_type;
 	std::vector<storage_t> m_storage_values;

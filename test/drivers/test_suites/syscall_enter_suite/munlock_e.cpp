@@ -4,8 +4,7 @@
 
 #include <sys/mman.h>
 
-TEST(SyscallEnter, munlockE)
-{
+TEST(SyscallEnter, munlockE) {
 	auto evt_test = get_syscall_event_test(__NR_munlock, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, munlockE)
 
 	unsigned long mock_addr = 1;
 	size_t mock_len{1024};
-	assert_syscall_state(SYSCALL_FAILURE, "munlock", syscall(__NR_munlock, (void *)mock_addr, mock_len));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "munlock",
+	                     syscall(__NR_munlock, (void *)mock_addr, mock_len));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, munlockE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

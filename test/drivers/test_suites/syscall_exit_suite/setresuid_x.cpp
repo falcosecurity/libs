@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_setresuid
-TEST(SyscallExit, setresuidX)
-{
+TEST(SyscallExit, setresuidX) {
 	auto evt_test = get_syscall_event_test(__NR_setresuid, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,11 @@ TEST(SyscallExit, setresuidX)
 	uid_t euid = (uint32_t)-1;
 	uid_t suid = (uint32_t)-1;
 	/* If one of the arguments equals -1, the corresponding value is not changed. */
-	assert_syscall_state(SYSCALL_SUCCESS, "setresuid", syscall(__NR_setresuid, ruid, euid, suid), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "setresuid",
+	                     syscall(__NR_setresuid, ruid, euid, suid),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +24,7 @@ TEST(SyscallExit, setresuidX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -4,8 +4,7 @@
 
 #include <sys/un.h>
 
-TEST(SyscallExit, bindX_INET)
-{
+TEST(SyscallExit, bindX_INET) {
 	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -19,7 +18,12 @@ TEST(SyscallExit, bindX_INET)
 	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(
+	        SYSCALL_SUCCESS,
+	        "bind",
+	        syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)),
+	        NOT_EQUAL,
+	        -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, server_socket_fd);
@@ -30,8 +34,7 @@ TEST(SyscallExit, bindX_INET)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -52,8 +55,7 @@ TEST(SyscallExit, bindX_INET)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, bindX_INET6)
-{
+TEST(SyscallExit, bindX_INET6) {
 	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -67,7 +69,12 @@ TEST(SyscallExit, bindX_INET6)
 	sockaddr_in6 server_addr;
 	evt_test->server_fill_sockaddr_in6(&server_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(
+	        SYSCALL_SUCCESS,
+	        "bind",
+	        syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)),
+	        NOT_EQUAL,
+	        -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, server_socket_fd);
@@ -78,8 +85,7 @@ TEST(SyscallExit, bindX_INET6)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -101,8 +107,7 @@ TEST(SyscallExit, bindX_INET6)
 }
 
 #ifdef __NR_unlinkat
-TEST(SyscallExit, bindX_UNIX)
-{
+TEST(SyscallExit, bindX_UNIX) {
 	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -115,7 +120,12 @@ TEST(SyscallExit, bindX_UNIX)
 	struct sockaddr_un server_addr;
 	evt_test->server_fill_sockaddr_un(&server_addr);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "bind", syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	assert_syscall_state(
+	        SYSCALL_SUCCESS,
+	        "bind",
+	        syscall(__NR_bind, server_socket_fd, (sockaddr*)&server_addr, sizeof(server_addr)),
+	        NOT_EQUAL,
+	        -1);
 
 	/* Cleaning phase */
 	syscall(__NR_close, server_socket_fd);
@@ -127,8 +137,7 @@ TEST(SyscallExit, bindX_UNIX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -150,8 +159,7 @@ TEST(SyscallExit, bindX_UNIX)
 }
 #endif /* __NR_unlinkat */
 
-TEST(SyscallExit, bindX_failure)
-{
+TEST(SyscallExit, bindX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -170,8 +178,7 @@ TEST(SyscallExit, bindX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

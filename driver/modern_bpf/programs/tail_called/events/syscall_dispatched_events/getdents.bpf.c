@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(getdents_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(getdents_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GETDENTS_E_SIZE, PPME_SYSCALL_GETDENTS_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETDENTS_E_SIZE, PPME_SYSCALL_GETDENTS_E)) {
 		return 0;
 	}
 
@@ -41,13 +37,9 @@ int BPF_PROG(getdents_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(getdents_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(getdents_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GETDENTS_X_SIZE, PPME_SYSCALL_GETDENTS_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETDENTS_X_SIZE, PPME_SYSCALL_GETDENTS_X)) {
 		return 0;
 	}
 

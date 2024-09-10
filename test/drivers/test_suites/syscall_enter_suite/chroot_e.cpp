@@ -1,9 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_chroot
-TEST(SyscallEnter, chrootE)
-{
-
+TEST(SyscallEnter, chrootE) {
 	auto evt_test = get_syscall_event_test(__NR_chroot, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -18,8 +16,7 @@ TEST(SyscallEnter, chrootE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_setresgid
-TEST(SyscallExit, setresgidX)
-{
+TEST(SyscallExit, setresgidX) {
 	auto evt_test = get_syscall_event_test(__NR_setresgid, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,11 @@ TEST(SyscallExit, setresgidX)
 	gid_t egid = (uint32_t)-1;
 	gid_t sgid = (uint32_t)-1;
 	/* If one of the arguments equals -1, the corresponding value is not changed. */
-	assert_syscall_state(SYSCALL_SUCCESS, "setresgid", syscall(__NR_setresgid, rgid, egid, sgid), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "setresgid",
+	                     syscall(__NR_setresgid, rgid, egid, sgid),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +24,7 @@ TEST(SyscallExit, setresgidX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

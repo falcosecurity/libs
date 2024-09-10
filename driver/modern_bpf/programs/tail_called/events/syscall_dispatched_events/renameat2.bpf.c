@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(renameat2_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(renameat2_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, RENAMEAT2_E_SIZE, PPME_SYSCALL_RENAMEAT2_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, RENAMEAT2_E_SIZE, PPME_SYSCALL_RENAMEAT2_E)) {
 		return 0;
 	}
 
@@ -40,13 +36,9 @@ int BPF_PROG(renameat2_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(renameat2_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(renameat2_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -59,8 +51,7 @@ int BPF_PROG(renameat2_x,
 
 	/* Parameter 2: olddirfd (type: PT_FD) */
 	int32_t olddirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(olddirfd == AT_FDCWD)
-	{
+	if(olddirfd == AT_FDCWD) {
 		olddirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)olddirfd);
@@ -71,8 +62,7 @@ int BPF_PROG(renameat2_x,
 
 	/* Parameter 4: newdirfd (type: PT_FD) */
 	int32_t newdirfd = (int32_t)extract__syscall_argument(regs, 2);
-	if(newdirfd == AT_FDCWD)
-	{
+	if(newdirfd == AT_FDCWD) {
 		newdirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)newdirfd);

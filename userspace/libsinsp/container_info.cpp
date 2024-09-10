@@ -22,87 +22,71 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 
-std::vector<std::string> sinsp_container_info::container_health_probe::probe_type_names = {
-	"None",
-	"Healthcheck",
-	"LivenessProbe",
-	"ReadinessProbe",
-	"End"
-};
+std::vector<std::string> sinsp_container_info::container_health_probe::probe_type_names =
+        {"None", "Healthcheck", "LivenessProbe", "ReadinessProbe", "End"};
 
 // Initialize container max label length to default 100 value
 uint32_t sinsp_container_info::m_container_label_max_length = 100;
 
-sinsp_container_info::container_health_probe::container_health_probe()
-{
-}
+sinsp_container_info::container_health_probe::container_health_probe() {}
 
-sinsp_container_info::container_health_probe::container_health_probe(const probe_type ptype,
-								     const std::string &&exe,
-								     const std::vector<std::string> &&args)
-	: m_probe_type(ptype),
-	  m_health_probe_exe(exe),
-	  m_health_probe_args(args)
-{
-}
+sinsp_container_info::container_health_probe::container_health_probe(
+        const probe_type ptype,
+        const std::string &&exe,
+        const std::vector<std::string> &&args):
+        m_probe_type(ptype),
+        m_health_probe_exe(exe),
+        m_health_probe_args(args) {}
 
-sinsp_container_info::container_health_probe::~container_health_probe()
-{
-}
+sinsp_container_info::container_health_probe::~container_health_probe() {}
 
-void sinsp_container_info::container_health_probe::parse_health_probes(const Json::Value &config_obj,
-								       std::list<container_health_probe> &probes)
-{
+void sinsp_container_info::container_health_probe::parse_health_probes(
+        const Json::Value &config_obj,
+        std::list<container_health_probe> &probes) {
 	// Add any health checks described in the container config/labels.
-	for(int i=PT_NONE; i != PT_END; i++)
-	{
+	for(int i = PT_NONE; i != PT_END; i++) {
 		std::string key = probe_type_names[i];
-		const Json::Value& probe_obj = config_obj[key];
+		const Json::Value &probe_obj = config_obj[key];
 
-		if(!probe_obj.isNull() && probe_obj.isObject())
-		{
-			const Json::Value& probe_exe_obj = probe_obj["exe"];
+		if(!probe_obj.isNull() && probe_obj.isObject()) {
+			const Json::Value &probe_exe_obj = probe_obj["exe"];
 
-			if(!probe_exe_obj.isNull() && probe_exe_obj.isConvertibleTo(Json::stringValue))
-			{
-				const Json::Value& probe_args_obj = probe_obj["args"];
+			if(!probe_exe_obj.isNull() && probe_exe_obj.isConvertibleTo(Json::stringValue)) {
+				const Json::Value &probe_args_obj = probe_obj["args"];
 
 				std::string probe_exe = probe_exe_obj.asString();
 				std::vector<std::string> probe_args;
 
-				if(!probe_args_obj.isNull() && probe_args_obj.isArray())
-				{
-					for(const auto &item : probe_args_obj)
-					{
-						if(item.isConvertibleTo(Json::stringValue))
-						{
+				if(!probe_args_obj.isNull() && probe_args_obj.isArray()) {
+					for(const auto &item : probe_args_obj) {
+						if(item.isConvertibleTo(Json::stringValue)) {
 							probe_args.push_back(item.asString());
 						}
 					}
 				}
 				libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-						"add_health_probes: adding %s %s %d",
-						probe_type_names[i].c_str(),
-						probe_exe.c_str(),
-						probe_args.size());
+				                          "add_health_probes: adding %s %s %d",
+				                          probe_type_names[i].c_str(),
+				                          probe_exe.c_str(),
+				                          probe_args.size());
 
-				probes.emplace_back(static_cast<probe_type>(i), std::move(probe_exe), std::move(probe_args));
+				probes.emplace_back(static_cast<probe_type>(i),
+				                    std::move(probe_exe),
+				                    std::move(probe_args));
 			}
 		}
 	}
 }
 
-void sinsp_container_info::container_health_probe::add_health_probes(const std::list<container_health_probe> &probes,
-								     Json::Value &config_obj)
-{
-	for(auto &probe : probes)
-	{
+void sinsp_container_info::container_health_probe::add_health_probes(
+        const std::list<container_health_probe> &probes,
+        Json::Value &config_obj) {
+	for(auto &probe : probes) {
 		std::string key = probe_type_names[probe.m_probe_type];
 		Json::Value args;
 
 		config_obj[key]["exe"] = probe.m_health_probe_exe;
-		for(auto &arg : probe.m_health_probe_args)
-		{
+		for(auto &arg : probe.m_health_probe_args) {
 			args.append(arg);
 		}
 
@@ -110,23 +94,20 @@ void sinsp_container_info::container_health_probe::add_health_probes(const std::
 	}
 }
 
-const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(uint32_t idx) const
-{
-	if (idx >= m_mounts.size())
-	{
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_idx(
+        uint32_t idx) const {
+	if(idx >= m_mounts.size()) {
 		return NULL;
 	}
 
 	return &(m_mounts[idx]);
 }
 
-const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(const std::string& source) const
-{
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_source(
+        const std::string &source) const {
 	// note: linear search
-	for (auto &mntinfo :m_mounts)
-	{
-		if(sinsp_utils::glob_match(source.c_str(), mntinfo.m_source.c_str()))
-		{
+	for(auto &mntinfo : m_mounts) {
+		if(sinsp_utils::glob_match(source.c_str(), mntinfo.m_source.c_str())) {
 			return &mntinfo;
 		}
 	}
@@ -134,13 +115,11 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(const std::string& dest) const
-{
+const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by_dest(
+        const std::string &dest) const {
 	// note: linear search
-	for (auto &mntinfo :m_mounts)
-	{
-		if(sinsp_utils::glob_match(dest.c_str(), mntinfo.m_dest.c_str()))
-		{
+	for(auto &mntinfo : m_mounts) {
+		if(sinsp_utils::glob_match(dest.c_str(), mntinfo.m_dest.c_str())) {
 			return &mntinfo;
 		}
 	}
@@ -148,8 +127,7 @@ const sinsp_container_info::container_mount_info *sinsp_container_info::mount_by
 	return NULL;
 }
 
-std::unique_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspector) const
-{
+std::unique_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp *inspector) const {
 	auto tinfo = inspector->build_threadinfo();
 	tinfo->m_tid = -1;
 	tinfo->m_pid = -1;
@@ -161,29 +139,28 @@ std::unique_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspect
 	return tinfo;
 }
 
-sinsp_container_info::container_health_probe::probe_type sinsp_container_info::match_health_probe(sinsp_threadinfo *tinfo) const
-{
+sinsp_container_info::container_health_probe::probe_type sinsp_container_info::match_health_probe(
+        sinsp_threadinfo *tinfo) const {
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-			"match_health_probe (%s): %u health probes to consider",
-			m_id.c_str(), m_health_probes.size());
+	                          "match_health_probe (%s): %u health probes to consider",
+	                          m_id.c_str(),
+	                          m_health_probes.size());
 
-	auto pred = [&] (const container_health_probe &p) {
-                libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-				"match_health_probe (%s): Matching tinfo %s %d against %s %d",
-				m_id.c_str(),
-				tinfo->m_exe.c_str(), tinfo->m_args.size(),
-				p.m_health_probe_exe.c_str(), p.m_health_probe_args.size());
+	auto pred = [&](const container_health_probe &p) {
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+		                          "match_health_probe (%s): Matching tinfo %s %d against %s %d",
+		                          m_id.c_str(),
+		                          tinfo->m_exe.c_str(),
+		                          tinfo->m_args.size(),
+		                          p.m_health_probe_exe.c_str(),
+		                          p.m_health_probe_args.size());
 
-                return (p.m_health_probe_exe == tinfo->m_exe &&
-			p.m_health_probe_args == tinfo->m_args);
-        };
+		return (p.m_health_probe_exe == tinfo->m_exe && p.m_health_probe_args == tinfo->m_args);
+	};
 
-	auto match = std::find_if(m_health_probes.begin(),
-				  m_health_probes.end(),
-				  pred);
+	auto match = std::find_if(m_health_probes.begin(), m_health_probes.end(), pred);
 
-	if(match == m_health_probes.end())
-	{
+	if(match == m_health_probes.end()) {
 		return container_health_probe::PT_NONE;
 	}
 

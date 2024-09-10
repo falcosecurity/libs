@@ -4,8 +4,7 @@
 
 #include <poll.h>
 
-TEST(SyscallExit, ppollX)
-{
+TEST(SyscallExit, ppollX) {
 	auto evt_test = get_syscall_event_test(__NR_ppoll, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -19,7 +18,9 @@ TEST(SyscallExit, ppollX)
 	struct timespec* timestamp = NULL;
 	sigset_t* sigmask = NULL;
 	uint32_t nfds = 5;
-	assert_syscall_state(SYSCALL_FAILURE, "ppoll", syscall(__NR_ppoll, fds, nfds, timestamp, sigmask));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "ppoll",
+	                     syscall(__NR_ppoll, fds, nfds, timestamp, sigmask));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -28,8 +29,7 @@ TEST(SyscallExit, ppollX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -3,8 +3,7 @@
 #include <sys/types.h>
 
 #ifdef __NR_llseek
-TEST(SyscallExit, llseekX)
-{
+TEST(SyscallExit, llseekX) {
 	auto evt_test = get_syscall_event_test(__NR_llseek, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallExit, llseekX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

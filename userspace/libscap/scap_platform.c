@@ -22,36 +22,32 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <libscap/scap-int.h>
 
-int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
-{
+int32_t scap_generic_init_platform(struct scap_platform* platform,
+                                   char* lasterr,
+                                   struct scap_open_args* oargs) {
 	memset(&platform->m_machine_info, 0, sizeof(platform->m_machine_info));
 	memset(&platform->m_agent_info, 0, sizeof(platform->m_agent_info));
 
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_generic_close_platform(struct scap_platform* platform)
-{
-	if (platform->m_addrlist)
-	{
+static int32_t scap_generic_close_platform(struct scap_platform* platform) {
+	if(platform->m_addrlist) {
 		scap_free_iflist(platform->m_addrlist);
 		platform->m_addrlist = NULL;
 	}
 
-	if (platform->m_userlist)
-	{
+	if(platform->m_userlist) {
 		scap_free_userlist(platform->m_userlist);
 		platform->m_userlist = NULL;
 	}
 
-	if(platform->m_proclist.m_proclist != NULL)
-	{
+	if(platform->m_proclist.m_proclist != NULL) {
 		scap_proc_free_table(&platform->m_proclist);
 		platform->m_proclist.m_proclist = NULL;
 	}
 
-	if(platform->m_driver_procinfo != NULL)
-	{
+	if(platform->m_driver_procinfo != NULL) {
 		scap_free_proclist_info(platform->m_driver_procinfo);
 		platform->m_driver_procinfo = NULL;
 	}
@@ -59,23 +55,21 @@ static int32_t scap_generic_close_platform(struct scap_platform* platform)
 	return SCAP_SUCCESS;
 }
 
-static void scap_generic_free_platform(struct scap_platform* platform)
-{
+static void scap_generic_free_platform(struct scap_platform* platform) {
 	free(platform);
 }
 
 struct scap_platform_vtable scap_generic_platform_vtable = {
-	.init_platform = NULL,
-	.close_platform = NULL,
-	.free_platform = scap_generic_free_platform,
+        .init_platform = NULL,
+        .close_platform = NULL,
+        .free_platform = scap_generic_free_platform,
 };
 
-struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
-{
+struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callback,
+                                                  void* proc_callback_context) {
 	struct scap_platform* platform = calloc(1, sizeof(*platform));
 
-	if(platform == NULL)
-	{
+	if(platform == NULL) {
 		return NULL;
 	}
 
@@ -86,67 +80,54 @@ struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callb
 	return platform;
 }
 
-int32_t scap_platform_init(struct scap_platform *platform, char *lasterr, struct scap_engine_handle engine,
-			   struct scap_open_args *oargs)
-{
+int32_t scap_platform_init(struct scap_platform* platform,
+                           char* lasterr,
+                           struct scap_engine_handle engine,
+                           struct scap_open_args* oargs) {
 	int32_t rc;
 
-	if(!platform)
-	{
+	if(!platform) {
 		return SCAP_SUCCESS;
 	}
 
 	rc = scap_generic_init_platform(platform, lasterr, oargs);
-	if(rc != SCAP_SUCCESS)
-	{
+	if(rc != SCAP_SUCCESS) {
 		scap_platform_close(platform);
 		return rc;
 	}
 
-	if(platform->m_vtable && platform->m_vtable->init_platform)
-	{
+	if(platform->m_vtable && platform->m_vtable->init_platform) {
 		rc = platform->m_vtable->init_platform(platform, lasterr, engine, oargs);
-		if(rc != SCAP_SUCCESS)
-		{
+		if(rc != SCAP_SUCCESS) {
 			scap_platform_close(platform);
 		}
 		return rc;
-	}
-	else
-	{
+	} else {
 		return SCAP_SUCCESS;
 	}
 }
 
-int32_t scap_platform_close(struct scap_platform* platform)
-{
+int32_t scap_platform_close(struct scap_platform* platform) {
 	int32_t rc;
 
-	if(!platform)
-	{
+	if(!platform) {
 		return SCAP_SUCCESS;
 	}
 
 	rc = scap_generic_close_platform(platform);
-	if(rc != SCAP_SUCCESS)
-	{
+	if(rc != SCAP_SUCCESS) {
 		return rc;
 	}
 
-	if(platform->m_vtable && platform->m_vtable->close_platform)
-	{
+	if(platform->m_vtable && platform->m_vtable->close_platform) {
 		return platform->m_vtable->close_platform(platform);
-	}
-	else
-	{
+	} else {
 		return SCAP_SUCCESS;
 	}
 }
 
-void scap_platform_free(struct scap_platform* platform)
-{
-	if(!platform)
-	{
+void scap_platform_free(struct scap_platform* platform) {
+	if(!platform) {
 		return;
 	}
 

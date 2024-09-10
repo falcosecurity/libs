@@ -24,8 +24,7 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <driver/ppm_ringbuffer.h>
 
-int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim)
-{
+int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim) {
 	/* If you face some memory allocation issues, please remember that:
 	 *
 	 * Each data page is mapped twice to allow "virtual"
@@ -46,20 +45,24 @@ int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim)
 	 */
 
 	unsigned long page_size = sysconf(_SC_PAGESIZE);
-	if(page_size == SCAP_FAILURE)
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get the system page size: %s", strerror(errno));
+	if(page_size == SCAP_FAILURE) {
+		if(last_err != NULL) {
+			snprintf(last_err,
+			         SCAP_LASTERR_SIZE,
+			         "unable to get the system page size: %s",
+			         strerror(errno));
 		}
 		return SCAP_FAILURE;
 	}
 
-	if(!validate_buffer_bytes_dim(buf_bytes_dim, page_size))
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use a power of 2 and a multiple of the actual page_size (%lu)!", buf_bytes_dim, page_size);
+	if(!validate_buffer_bytes_dim(buf_bytes_dim, page_size)) {
+		if(last_err != NULL) {
+			snprintf(last_err,
+			         SCAP_LASTERR_SIZE,
+			         "the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use "
+			         "a power of 2 and a multiple of the actual page_size (%lu)!",
+			         buf_bytes_dim,
+			         page_size);
 		}
 		return SCAP_FAILURE;
 	}

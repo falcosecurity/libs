@@ -2,8 +2,7 @@
 
 #ifdef __NR_stat
 
-TEST(SyscallEnter, statE)
-{
+TEST(SyscallEnter, statE) {
 	auto evt_test = get_syscall_event_test(__NR_stat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallEnter, statE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -30,7 +28,6 @@ TEST(SyscallEnter, statE)
 	evt_test->assert_header();
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
-
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

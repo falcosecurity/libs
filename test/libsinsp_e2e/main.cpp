@@ -32,8 +32,7 @@ limitations under the License.
 #define MODERN_BPF_OPTION "modern-bpf"
 #define BUFFER_OPTION "buffer-dim"
 
-class EventListener : public ::testing::EmptyTestEventListener
-{
+class EventListener : public ::testing::EmptyTestEventListener {
 public:
 	EventListener(bool keep_capture_files) { m_keep_capture_files = keep_capture_files; }
 
@@ -44,12 +43,11 @@ public:
 	virtual void OnTestPartResult(const ::testing::TestPartResult& test_part_result) {}
 
 	// Called after a test ends.
-	virtual void OnTestEnd(const ::testing::TestInfo& test_info)
-	{
-		if (!m_keep_capture_files && !test_info.result()->Failed())
-		{
-			std::string dump_filename = std::string(LIBSINSP_TEST_CAPTURES_PATH) + test_info.test_case_name() + "_	" +
-			                       test_info.name() + ".scap";
+	virtual void OnTestEnd(const ::testing::TestInfo& test_info) {
+		if(!m_keep_capture_files && !test_info.result()->Failed()) {
+			std::string dump_filename = std::string(LIBSINSP_TEST_CAPTURES_PATH) +
+			                            test_info.test_case_name() + "_	" + test_info.name() +
+			                            ".scap";
 			std::remove(dump_filename.c_str());
 		}
 	}
@@ -58,31 +56,27 @@ private:
 	bool m_keep_capture_files;
 };
 
-int insert_kmod(const std::string& kmod_path)
-{
+int insert_kmod(const std::string& kmod_path) {
 	/* Here we want to insert the module if we fail we need to abort the program. */
 	int fd = open(kmod_path.c_str(), O_RDONLY);
-	if(fd < 0)
-	{
-		std::cout << "Unable to open the kmod file. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+	if(fd < 0) {
+		std::cout << "Unable to open the kmod file. Errno message: " << strerror(errno)
+		          << ", errno: " << errno << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	if(syscall(__NR_finit_module, fd, "", 0))
-	{
-		std::cerr << "Unable to inject the kmod. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+	if(syscall(__NR_finit_module, fd, "", 0)) {
+		std::cerr << "Unable to inject the kmod. Errno message: " << strerror(errno)
+		          << ", errno: " << errno << std::endl;
 		return EXIT_FAILURE;
 	}
 	close(fd);
 	return EXIT_SUCCESS;
 }
 
-int remove_kmod()
-{
-	if(syscall(__NR_delete_module, LIBSINSP_TEST_KERNEL_MODULE_NAME, O_NONBLOCK))
-	{
-		switch(errno)
-		{
+int remove_kmod() {
+	if(syscall(__NR_delete_module, LIBSINSP_TEST_KERNEL_MODULE_NAME, O_NONBLOCK)) {
+		switch(errno) {
 		case ENOENT:
 			return EXIT_SUCCESS;
 
@@ -91,11 +85,9 @@ int remove_kmod()
 		 * case we wait until the module is detached.
 		 */
 		case EWOULDBLOCK:
-			for(int i = 0; i < 4; i++)
-			{
+			for(int i = 0; i < 4; i++) {
 				int ret = syscall(__NR_delete_module, LIBSINSP_TEST_KERNEL_MODULE_NAME, O_NONBLOCK);
-				if(ret == 0 || errno == ENOENT)
-				{
+				if(ret == 0 || errno == ENOENT) {
 					return EXIT_SUCCESS;
 				}
 				sleep(1);
@@ -105,19 +97,20 @@ int remove_kmod()
 		case EBUSY:
 		case EFAULT:
 		case EPERM:
-			std::cerr << "Unable to remove kernel module. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+			std::cerr << "Unable to remove kernel module. Errno message: " << strerror(errno)
+			          << ", errno: " << errno << std::endl;
 			return EXIT_FAILURE;
 
 		default:
-			std::cerr << "Unexpected error code. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+			std::cerr << "Unexpected error code. Errno message: " << strerror(errno)
+			          << ", errno: " << errno << std::endl;
 			return EXIT_FAILURE;
 		}
 	}
 	return EXIT_SUCCESS;
 }
 
-void print_menu_and_exit()
-{
+void print_menu_and_exit() {
 	std::string usage = R"(Usage: tests [options]
 
 Overview: The goal of this binary is to run tests against libsinsp.
@@ -134,29 +127,25 @@ Options:
 	exit(EXIT_SUCCESS);
 }
 
-int open_engine(int argc, char** argv)
-{
-	static struct option long_options[] = {
-		{BPF_OPTION, optional_argument, 0, 'b'},
-		{MODERN_BPF_OPTION, no_argument, 0, 'm'},
-		{KMOD_OPTION, optional_argument, 0, 'k'},
-		{BUFFER_OPTION, required_argument, 0, 'd'},
-		{HELP_OPTION, no_argument, 0, 'h'},
-		{VERBOSE_OPTION, required_argument, 0, 'v'},
-		{0, 0, 0, 0}};
+int open_engine(int argc, char** argv) {
+	static struct option long_options[] = {{BPF_OPTION, optional_argument, 0, 'b'},
+	                                       {MODERN_BPF_OPTION, no_argument, 0, 'm'},
+	                                       {KMOD_OPTION, optional_argument, 0, 'k'},
+	                                       {BUFFER_OPTION, required_argument, 0, 'd'},
+	                                       {HELP_OPTION, no_argument, 0, 'h'},
+	                                       {VERBOSE_OPTION, required_argument, 0, 'v'},
+	                                       {0, 0, 0, 0}};
 
 	/* Remove kmod if injected, we remove it always even if we use another engine
 	 * in this way we are sure the unique driver in the system is the one we will use.
 	 */
-	if(remove_kmod())
-	{
+	if(remove_kmod()) {
 		return EXIT_FAILURE;
 	}
 
 	/* Get current cwd as a base directory for the driver path */
 	char driver_path[FILENAME_MAX];
-	if(!getcwd(driver_path, FILENAME_MAX))
-	{
+	if(!getcwd(driver_path, FILENAME_MAX)) {
 		std::cerr << "Unable to get current dir" << std::endl;
 		return EXIT_FAILURE;
 	}
@@ -164,12 +153,8 @@ int open_engine(int argc, char** argv)
 	/* Parse CLI options */
 	int op = 0;
 	int long_index = 0;
-	while((op = getopt_long(argc, argv,
-				"b::mk::d:hv:",
-				long_options, &long_index)) != -1)
-	{
-		switch(op)
-		{
+	while((op = getopt_long(argc, argv, "b::mk::d:hv:", long_options, &long_index)) != -1) {
+		switch(op) {
 		case 'b':
 #ifdef HAS_ENGINE_BPF
 			event_capture::set_engine(BPF_ENGINE, LIBSINSP_TEST_BPF_PROBE_PATH);
@@ -214,24 +199,22 @@ int open_engine(int argc, char** argv)
 	return EXIT_SUCCESS;
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 	testing::InitGoogleTest(&argc, argv);
 
 	std::string captures_dir = LIBSINSP_TEST_CAPTURES_PATH;
 
-	if(!std::filesystem::exists(captures_dir))
-	{
-		if(!std::filesystem::create_directory(captures_dir))
-		{
-			std::cerr << "Failed to create captures directory." << std::endl;;
+	if(!std::filesystem::exists(captures_dir)) {
+		if(!std::filesystem::create_directory(captures_dir)) {
+			std::cerr << "Failed to create captures directory." << std::endl;
+			;
 			return EXIT_FAILURE;
 		}
 	}
 
-	if(open_engine(argc, argv) == EXIT_FAILURE)
-	{
-		std::cerr << "Failed to open the engine." << std::endl;;
+	if(open_engine(argc, argv) == EXIT_FAILURE) {
+		std::cerr << "Failed to open the engine." << std::endl;
+		;
 		return EXIT_FAILURE;
 	}
 

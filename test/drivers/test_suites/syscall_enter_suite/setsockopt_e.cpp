@@ -4,8 +4,7 @@
 
 #include <netdb.h>
 
-TEST(SyscallEnter, setsockoptE)
-{
+TEST(SyscallEnter, setsockoptE) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -17,7 +16,10 @@ TEST(SyscallEnter, setsockoptE)
 	int option_name = 0;
 	const void* option_value = NULL;
 	socklen_t option_len = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, socket_fd, level, option_name, option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, socket_fd, level, option_name, option_value, option_len));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -25,8 +27,7 @@ TEST(SyscallEnter, setsockoptE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -29,70 +29,61 @@ limitations under the License.
 /**
  * @brief Manager for plugins loaded at runtime.
  */
-class sinsp_plugin_manager
-{
+class sinsp_plugin_manager {
 public:
 	sinsp_plugin_manager(std::vector<std::string>& event_sources):
-		m_event_sources(event_sources),
-		m_plugins(),
-		m_plugins_id_index(),
-		m_plugins_id_source_index(),
-		m_last_id_in(-1),
-		m_last_id_out(-1),
-		m_last_source_in(-1),
-		m_last_source_out(-1) { }
+	        m_event_sources(event_sources),
+	        m_plugins(),
+	        m_plugins_id_index(),
+	        m_plugins_id_source_index(),
+	        m_last_id_in(-1),
+	        m_last_id_out(-1),
+	        m_last_source_in(-1),
+	        m_last_source_out(-1) {}
 	virtual ~sinsp_plugin_manager() = default;
 	sinsp_plugin_manager(sinsp_plugin_manager&&) = default;
 	sinsp_plugin_manager(const sinsp_plugin_manager& s) = delete;
-	sinsp_plugin_manager& operator = (const sinsp_plugin_manager& s) = delete;
+	sinsp_plugin_manager& operator=(const sinsp_plugin_manager& s) = delete;
 
 	/**
 	 * @brief Adds a plugin in the manager.
 	 */
-	void add(const std::shared_ptr<sinsp_plugin>& plugin)
-	{
-		for(auto& it : m_plugins)
-		{
+	void add(const std::shared_ptr<sinsp_plugin>& plugin) {
+		for(auto& it : m_plugins) {
 			// todo(jasondellaluce): we may consider dropping this constraint in the future
-			if(it->name() == plugin->name())
-			{
-				throw sinsp_exception(
-					"found another plugin with name " + it->name() + ". Aborting.");
+			if(it->name() == plugin->name()) {
+				throw sinsp_exception("found another plugin with name " + it->name() +
+				                      ". Aborting.");
 			}
 
-			/* Every plugin with event sourcing capability requires its own unique plugin event ID unless the ID is `0`
-			 * in that case there could be multiple plugins with sourcing capabilities loaded
+			/* Every plugin with event sourcing capability requires its own unique plugin event ID
+			 * unless the ID is `0` in that case there could be multiple plugins with sourcing
+			 * capabilities loaded
 			 */
-			if (it->caps() & CAP_SOURCING
-				&& plugin->caps() & CAP_SOURCING
-				&& plugin->id() != 0
-				&& it->id() == plugin->id())
-			{
-				throw sinsp_exception(
-					"found another plugin with ID " + std::to_string(it->id()) + ". Aborting.");
+			if(it->caps() & CAP_SOURCING && plugin->caps() & CAP_SOURCING && plugin->id() != 0 &&
+			   it->id() == plugin->id()) {
+				throw sinsp_exception("found another plugin with ID " + std::to_string(it->id()) +
+				                      ". Aborting.");
 			}
 		}
-		if (plugin->caps() & CAP_SOURCING && plugin->id() != 0)
-		{
+		if(plugin->caps() & CAP_SOURCING && plugin->id() != 0) {
 			// note: we avoid duplicate entries in the evt sources list
 			bool existing = false;
 
 			/* Get the source index:
 			 * - First we search it in the array to see if it is already present
-			 * - if not present the new source position will be the first available in the `m_event_sources` array
+			 * - if not present the new source position will be the first available in the
+			 * `m_event_sources` array
 			 */
 			auto source_index = m_event_sources.size();
-			for (size_t i = 0; i < m_event_sources.size(); i++)
-			{
-				if (m_event_sources[i] == plugin->event_source())
-				{
+			for(size_t i = 0; i < m_event_sources.size(); i++) {
+				if(m_event_sources[i] == plugin->event_source()) {
 					existing = true;
 					source_index = i;
 					break;
 				}
 			}
-			if (!existing)
-			{
+			if(!existing) {
 				/* Push the source in the array if it doesn't already exist */
 				m_event_sources.push_back(plugin->event_source());
 			}
@@ -107,23 +98,17 @@ public:
 	/**
 	 * @brief Returns all the plugins in the manager.
 	 */
-	inline const std::vector<std::shared_ptr<sinsp_plugin>>& plugins() const
-	{
-		return m_plugins;
-	}
+	inline const std::vector<std::shared_ptr<sinsp_plugin>>& plugins() const { return m_plugins; }
 
 	/**
 	 * @brief Returns a plugin given its ID. The plugin is guaranteed to have
 	 * the CAP_EVENT_SOURCE capability. Returns nullptr if no plugin exists
 	 * with the given ID.
 	 */
-	inline const std::shared_ptr<sinsp_plugin>& plugin_by_id(uint32_t plugin_id) const
-	{
-		if (plugin_id != m_last_id_in)
-		{
+	inline const std::shared_ptr<sinsp_plugin>& plugin_by_id(uint32_t plugin_id) const {
+		if(plugin_id != m_last_id_in) {
 			auto it = m_plugins_id_index.find(plugin_id);
-			if(it == m_plugins_id_index.end())
-			{
+			if(it == m_plugins_id_index.end()) {
 				return m_nullptr_ret;
 			}
 			m_last_id_in = plugin_id;
@@ -136,10 +121,8 @@ public:
 	 * @brief  Returns a plugin given an event. The plugin is guaranteed to have
 	 * the CAP_EVENT_SOURCE capability.
 	 */
-	inline const std::shared_ptr<sinsp_plugin>& plugin_by_evt(sinsp_evt* evt) const
-	{
-		if(evt && evt->get_type() == PPME_PLUGINEVENT_E)
-		{
+	inline const std::shared_ptr<sinsp_plugin>& plugin_by_evt(sinsp_evt* evt) const {
+		if(evt && evt->get_type() == PPME_PLUGINEVENT_E) {
 			return plugin_by_id(evt->get_param(0)->as<int32_t>());
 		}
 		return m_nullptr_ret;
@@ -151,13 +134,10 @@ public:
 	 * with `true` if a plugin with a given ID is found in the manager,
 	 * otherwise it is filled with `false`.
 	 */
-	inline std::size_t source_idx_by_plugin_id(uint32_t plugin_id, bool& found) const
-	{
-		if (plugin_id != m_last_source_in)
-		{
+	inline std::size_t source_idx_by_plugin_id(uint32_t plugin_id, bool& found) const {
+		if(plugin_id != m_last_source_in) {
 			auto it = m_plugins_id_source_index.find(plugin_id);
-			if(it == m_plugins_id_source_index.end())
-			{
+			if(it == m_plugins_id_source_index.end()) {
 				found = false;
 				return sinsp_no_event_source_idx;
 			}
@@ -180,7 +160,8 @@ private:
 	/* The key is the plugin id the value is the index of the plugin in the `m_plugins` vector */
 	std::unordered_map<uint32_t, size_t> m_plugins_id_index;
 
-	/* The key is the plugin id the value is the index of the plugin source in the `m_event_sources` vector */
+	/* The key is the plugin id the value is the index of the plugin source in the `m_event_sources`
+	 * vector */
 	std::unordered_map<uint32_t, size_t> m_plugins_id_source_index;
 	mutable size_t m_last_id_in;
 	mutable size_t m_last_id_out;

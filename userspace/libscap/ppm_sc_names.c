@@ -38,40 +38,34 @@ limitations under the License.
 
 static char g_ppm_sc_names[PPM_SC_MAX][PPM_MAX_NAME_LEN];
 
-static void load_ppm_sc_table()
-{
+static void load_ppm_sc_table() {
 	const char *sc_names[PPM_SC_MAX] = {
 #define PPM_SC_X(name, value) [value] = #name,
-		PPM_SC_FIELDS
+	        PPM_SC_FIELDS
 #undef PPM_SC_X
 	};
 
 	/* Use `tolower` to obtain lowe case names. */
-	for(int i = 0; i < PPM_SC_MAX; i++)
-	{
-		if(!sc_names[i])
-		{
+	for(int i = 0; i < PPM_SC_MAX; i++) {
+		if(!sc_names[i]) {
 			continue;
 		}
 
 		strlcpy(g_ppm_sc_names[i], sc_names[i], PPM_MAX_NAME_LEN);
 		char *p = g_ppm_sc_names[i];
-		for(; *p; ++p)
-		{
+		for(; *p; ++p) {
 			*p = tolower(*p);
 		}
 	}
 }
 
 /* Get the name of the sc_code */
-const char *scap_get_ppm_sc_name(ppm_sc_code sc)
-{
+const char *scap_get_ppm_sc_name(ppm_sc_code sc) {
 	/* We avoid the check for perf reasons */
 	ASSERT(sc >= 0 && sc < PPM_SC_MAX);
 
 	/* Lazy loading */
-	if(g_ppm_sc_names[0][0] == '\0')
-	{
+	if(g_ppm_sc_names[0][0] == '\0') {
 		load_ppm_sc_table();
 	}
 	return g_ppm_sc_names[sc];

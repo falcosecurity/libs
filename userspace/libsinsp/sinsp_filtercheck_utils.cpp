@@ -22,40 +22,38 @@ limitations under the License.
 
 using namespace std;
 
-#define RETURN_EXTRACT_VAR(x) do {  \
-        *len = sizeof((x));         \
-        return (uint8_t*) &(x);     \
-} while(0)
+#define RETURN_EXTRACT_VAR(x)  \
+	do {                       \
+		*len = sizeof((x));    \
+		return (uint8_t*)&(x); \
+	} while(0)
 
-static const filtercheck_field_info sinsp_filter_check_utils_fields[] =
-{
-	{PT_UINT64, EPF_NONE, PF_ID, "util.cnt", "Counter", "incremental counter."},
+static const filtercheck_field_info sinsp_filter_check_utils_fields[] = {
+        {PT_UINT64, EPF_NONE, PF_ID, "util.cnt", "Counter", "incremental counter."},
 };
 
-sinsp_filter_check_utils::sinsp_filter_check_utils()
-{
+sinsp_filter_check_utils::sinsp_filter_check_utils() {
 	static const filter_check_info s_field_infos = {
-		"util",
-		"",
-		"",
-		sizeof(sinsp_filter_check_utils_fields) / sizeof(sinsp_filter_check_utils_fields[0]),
-		sinsp_filter_check_utils_fields,
-		filter_check_info::FL_HIDDEN,
+	        "util",
+	        "",
+	        "",
+	        sizeof(sinsp_filter_check_utils_fields) / sizeof(sinsp_filter_check_utils_fields[0]),
+	        sinsp_filter_check_utils_fields,
+	        filter_check_info::FL_HIDDEN,
 	};
 	m_info = &s_field_infos;
 	m_cnt = 0;
 }
 
-std::unique_ptr<sinsp_filter_check> sinsp_filter_check_utils::allocate_new()
-{
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_utils::allocate_new() {
 	return std::make_unique<sinsp_filter_check_utils>();
 }
 
-uint8_t* sinsp_filter_check_utils::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
-{
+uint8_t* sinsp_filter_check_utils::extract_single(sinsp_evt* evt,
+                                                  uint32_t* len,
+                                                  bool sanitize_strings) {
 	*len = 0;
-	switch(m_field_id)
-	{
+	switch(m_field_id) {
 	case TYPE_CNT:
 		m_cnt++;
 		RETURN_EXTRACT_VAR(m_cnt);

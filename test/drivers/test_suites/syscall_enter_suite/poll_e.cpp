@@ -6,8 +6,7 @@
 /* Right now this is our limit in the drivers */
 #define MAX_FDS 16
 
-TEST(SyscallEnter, pollE_null_pointer)
-{
+TEST(SyscallEnter, pollE_null_pointer) {
 	auto evt_test = get_syscall_event_test(__NR_poll, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -25,8 +24,7 @@ TEST(SyscallEnter, pollE_null_pointer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -48,8 +46,7 @@ TEST(SyscallEnter, pollE_null_pointer)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, pollE_empty_nfds)
-{
+TEST(SyscallEnter, pollE_empty_nfds) {
 	auto evt_test = get_syscall_event_test(__NR_poll, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -69,7 +66,11 @@ TEST(SyscallEnter, pollE_empty_nfds)
 	/* We send it empty so expect no fd in the structs to be collected */
 	uint32_t nfds = 0;
 	int timeout = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "poll", syscall(__NR_poll, fds, nfds, timeout), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "poll",
+	                     syscall(__NR_poll, fds, nfds, timeout),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -77,8 +78,7 @@ TEST(SyscallEnter, pollE_empty_nfds)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -100,8 +100,7 @@ TEST(SyscallEnter, pollE_empty_nfds)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, pollE_not_truncated)
-{
+TEST(SyscallEnter, pollE_not_truncated) {
 	auto evt_test = get_syscall_event_test(__NR_poll, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -111,7 +110,8 @@ TEST(SyscallEnter, pollE_not_truncated)
 	struct pollfd fds[2];
 
 	fds[0].fd = -1;
-	fds[0].events = POLLIN | POLLPRI | POLLOUT | POLLRDHUP | POLLERR | POLLHUP | POLLNVAL | POLLRDNORM | POLLRDBAND | POLLWRNORM | POLLWRBAND;
+	fds[0].events = POLLIN | POLLPRI | POLLOUT | POLLRDHUP | POLLERR | POLLHUP | POLLNVAL |
+	                POLLRDNORM | POLLRDBAND | POLLWRNORM | POLLWRBAND;
 	fds[0].revents = 0;
 
 	fds[1].fd = -10;
@@ -125,12 +125,18 @@ TEST(SyscallEnter, pollE_not_truncated)
 	struct fd_poll expected[2];
 
 	expected[0].fd = fds[0].fd;
-	expected[0].flags = PPM_POLLIN | PPM_POLLPRI | PPM_POLLOUT | PPM_POLLRDHUP | PPM_POLLERR | PPM_POLLHUP | PPM_POLLNVAL | PPM_POLLRDNORM | PPM_POLLRDBAND | PPM_POLLWRNORM | PPM_POLLWRBAND;
+	expected[0].flags = PPM_POLLIN | PPM_POLLPRI | PPM_POLLOUT | PPM_POLLRDHUP | PPM_POLLERR |
+	                    PPM_POLLHUP | PPM_POLLNVAL | PPM_POLLRDNORM | PPM_POLLRDBAND |
+	                    PPM_POLLWRNORM | PPM_POLLWRBAND;
 
 	expected[1].fd = fds[1].fd;
 	expected[1].flags = PPM_POLLWRBAND;
 
-	assert_syscall_state(SYSCALL_SUCCESS, "poll", syscall(__NR_poll, fds, nfds, timeout), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "poll",
+	                     syscall(__NR_poll, fds, nfds, timeout),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -138,8 +144,7 @@ TEST(SyscallEnter, pollE_not_truncated)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -160,13 +165,12 @@ TEST(SyscallEnter, pollE_not_truncated)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, pollE_truncated)
-{
+TEST(SyscallEnter, pollE_truncated) {
 	auto evt_test = get_syscall_event_test(__NR_poll, ENTER_EVENT);
 
-	if(evt_test->is_kmod_engine())
-	{
-		GTEST_SKIP() << "[POLL_E]: the kmod is not subject to params truncation like BPF drivers" << std::endl;
+	if(evt_test->is_kmod_engine()) {
+		GTEST_SKIP() << "[POLL_E]: the kmod is not subject to params truncation like BPF drivers"
+		             << std::endl;
 	}
 
 	evt_test->enable_capture();
@@ -181,7 +185,11 @@ TEST(SyscallEnter, pollE_truncated)
 	/* We expect only `MAX_FDS` structs */
 	struct fd_poll expected[MAX_FDS] = {};
 
-	assert_syscall_state(SYSCALL_SUCCESS, "poll", syscall(__NR_poll, fds, nfds, timeout), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "poll",
+	                     syscall(__NR_poll, fds, nfds, timeout),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -189,8 +197,7 @@ TEST(SyscallEnter, pollE_truncated)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

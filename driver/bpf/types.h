@@ -25,13 +25,11 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME #event)				\
-int bpf_##event(struct type *ctx)
+#define BPF_PROBE(prefix, event, type) \
+	__bpf_section(TP_NAME #event) int bpf_##event(struct type *ctx)
 #else
-#define BPF_PROBE(prefix, event, type)			\
-__bpf_section(TP_NAME prefix #event)			\
-int bpf_##event(struct type *ctx)
+#define BPF_PROBE(prefix, event, type) \
+	__bpf_section(TP_NAME prefix #event) int bpf_##event(struct type *ctx)
 #endif
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -146,15 +144,13 @@ struct sys_stash_args {
 /* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
  * Taken from `/include/trace/events/sched.h`
  */
-struct sched_process_exec_args
-{
+struct sched_process_exec_args {
 	struct task_struct *p;
 	pid_t old_pid;
 	struct linux_binprm *bprm;
 };
 #else
-struct sched_process_exec_args
-{
+struct sched_process_exec_args {
 	unsigned short common_type;
 	unsigned char common_flags;
 	unsigned char common_preempt_count;
@@ -171,10 +167,9 @@ struct sched_process_exec_args
 /* TP_PROTO(struct task_struct *parent, struct task_struct *child)
  * Taken from `/include/trace/events/sched.h`
  */
-struct sched_process_fork_raw_args
-{
+struct sched_process_fork_raw_args {
 	struct task_struct *parent;
- 	struct task_struct *child;
+	struct task_struct *child;
 };
 #endif
 
@@ -219,7 +214,6 @@ struct perf_event_sample {
 #define SCRATCH_SIZE_HALF (SCRATCH_SIZE_MAX >> 1)
 
 #endif /* __KERNEL__ */
-
 
 /* WARNING: This enum must follow the order in which BPF maps are defined in
  * `driver/bpf/maps.h`.
@@ -267,9 +261,13 @@ struct tail_context {
 
 struct scap_bpf_per_cpu_state {
 	struct tail_context tail_ctx;
-	unsigned long long n_evts;		/* Total number of kernel side events actively traced (not including events discarded due to simple consumer mode). */
-	unsigned long long n_drops_buffer;		/* Total number of kernel side drops due to full buffer, includes all categories below, likely higher than sum of syscall categories. */
-	/* Kernel side drops due to full buffer for categories of system calls. Not all system calls of interest are mapped into one of the categories. */
+	unsigned long long n_evts; /* Total number of kernel side events actively traced (not including
+	                              events discarded due to simple consumer mode). */
+	unsigned long long
+	        n_drops_buffer; /* Total number of kernel side drops due to full buffer, includes all
+	                           categories below, likely higher than sum of syscall categories. */
+	/* Kernel side drops due to full buffer for categories of system calls. Not all system calls of
+	 * interest are mapped into one of the categories. */
 	unsigned long long n_drops_buffer_clone_fork_enter;
 	unsigned long long n_drops_buffer_clone_fork_exit;
 	unsigned long long n_drops_buffer_execve_enter;
@@ -280,13 +278,18 @@ struct scap_bpf_per_cpu_state {
 	unsigned long long n_drops_buffer_open_exit;
 	unsigned long long n_drops_buffer_dir_file_enter;
 	unsigned long long n_drops_buffer_dir_file_exit;
-	unsigned long long n_drops_buffer_other_interest_enter;		/* Category of other system calls of interest, not all other system calls that did not match a category from above. */
+	unsigned long long
+	        n_drops_buffer_other_interest_enter; /* Category of other system calls of interest, not
+	                                                all other system calls that did not match a
+	                                                category from above. */
 	unsigned long long n_drops_buffer_other_interest_exit;
 	unsigned long long n_drops_buffer_close_exit;
 	unsigned long long n_drops_buffer_proc_exit;
-	unsigned long long n_drops_scratch_map;		/* Number of kernel side scratch map drops. */
-	unsigned long long n_drops_pf;		/* Number of kernel side page faults drops (invalid memory access). */
-	unsigned long long n_drops_bug;		/* Number of kernel side bug drops (invalid condition in the kernel instrumentation). */
+	unsigned long long n_drops_scratch_map; /* Number of kernel side scratch map drops. */
+	unsigned long long
+	        n_drops_pf; /* Number of kernel side page faults drops (invalid memory access). */
+	unsigned long long n_drops_bug; /* Number of kernel side bug drops (invalid condition in the
+	                                   kernel instrumentation). */
 	unsigned int hotplug_cpu;
 	bool in_use;
 } __attribute__((packed));

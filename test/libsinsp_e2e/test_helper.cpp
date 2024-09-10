@@ -52,8 +52,7 @@ limitations under the License.
 
 using namespace std;
 
-void proc_mgmt(const vector<string>& args)
-{
+void proc_mgmt(const vector<string>& args) {
 	auto filename = args.at(0).c_str();
 	static const char DATA[] = "ABCDEFGHI";
 	unlink(filename);
@@ -65,8 +64,7 @@ void proc_mgmt(const vector<string>& args)
 	unlink(filename);
 }
 
-void mmap_test(const vector<string>& args)
-{
+void mmap_test(const vector<string>& args) {
 	int errno2;
 	void* p;
 
@@ -89,40 +87,32 @@ void mmap_test(const vector<string>& args)
 	fflush(stdout);
 }
 
-bool str_to_bool(const string& s)
-{
-	if (s == "true")
-	{
+bool str_to_bool(const string& s) {
+	if(s == "true") {
 		return true;
-	}
-	else
-	{
+	} else {
 		return false;
 	}
 }
 
-void pread_pwrite(const vector<string>& args)
-{
+void pread_pwrite(const vector<string>& args) {
 	char buf[32];
 	const auto FILENAME = "test_pread_pwrite";
 	int fd = creat(FILENAME, S_IRWXU);
-	if (fd < 0)
-	{
+	if(fd < 0) {
 		cerr << "ERROR (creat)" << endl;
 		return;
 	}
 
 	auto ret = write(fd, "ABCDEFGH", sizeof("ABCDEFGH") - 1);
 	assert(ret > 0);
-	if (ret <= 0)
-	{
+	if(ret <= 0) {
 		cerr << "ERROR (write)" << endl;
 	}
 
 	ret = pwrite(fd, "QWER", sizeof("QWER") - 1, 4);
 	assert(ret > 0);
-	if (ret <= 0)
-	{
+	if(ret <= 0) {
 		cerr << "ERROR (pwrite)" << endl;
 	}
 
@@ -135,22 +125,19 @@ void pread_pwrite(const vector<string>& args)
 
 	cout << (pwrite64_succeeded ? 1 : 0) << endl;
 
-	if (pread64(fd, buf, 32, 987654321) < 0)
-	{
+	if(pread64(fd, buf, 32, 987654321) < 0) {
 		cerr << "ERROR (pread64)" << endl;
 	}
 
 	close(fd);
 
 	int fd1 = open(FILENAME, O_RDONLY);
-	if (fd1 < 0)
-	{
+	if(fd1 < 0) {
 		cerr << "ERROR (open)" << endl;
 		return;
 	}
 
-	if (pread(fd1, buf, 4, 4) < 0)
-	{
+	if(pread(fd1, buf, 4, 4) < 0) {
 		cerr << "ERROR (pread)" << endl;
 	}
 
@@ -159,8 +146,7 @@ void pread_pwrite(const vector<string>& args)
 	unlink(FILENAME);
 }
 
-void preadv_pwritev(const vector<string>& args)
-{
+void preadv_pwritev(const vector<string>& args) {
 	const auto FILENAME = "test_preadv_pwritev";
 	int wv_count;
 	char msg1[10] = "aaaaa";
@@ -170,8 +156,7 @@ void preadv_pwritev(const vector<string>& args)
 	int rres;
 	auto fd = open(FILENAME, O_CREAT | O_WRONLY, S_IRWXU);
 
-	if (write(fd, "123456789012345678901234567890", sizeof("ABCDEFGH") - 1) < 0)
-	{
+	if(write(fd, "123456789012345678901234567890", sizeof("ABCDEFGH") - 1) < 0) {
 		cerr << "ERROR (write)" << endl;
 	}
 
@@ -211,8 +196,7 @@ void preadv_pwritev(const vector<string>& args)
 	rres = preadv64(fd1, wv, wv_count, 987654321);
 
 	rres = preadv(fd1, wv, wv_count, 10);
-	if (rres <= 0)
-	{
+	if(rres <= 0) {
 		cerr << "ERROR" << endl;
 	}
 
@@ -222,8 +206,7 @@ void preadv_pwritev(const vector<string>& args)
 	cout << flush;
 }
 
-void quotactl_ko(const vector<string>& args)
-{
+void quotactl_ko(const vector<string>& args) {
 	quotactl(QCMD(Q_QUOTAON, USRQUOTA),
 	         "/dev/xxx",
 	         2,
@@ -231,15 +214,14 @@ void quotactl_ko(const vector<string>& args)
 	quotactl(QCMD(Q_QUOTAOFF, GRPQUOTA), "/dev/xxx", 0, NULL);
 }
 
-void quotactl_ok(const vector<string>& args)
-{
+void quotactl_ok(const vector<string>& args) {
 	struct dqblk mydqblk;
 	struct dqinfo mydqinfo;
 	std::string caddr = args[0] + "/aquota.user";
 	quotactl(QCMD(Q_QUOTAON, USRQUOTA),
 	         args[1].c_str(),
 	         2,
-	         (caddr_t)caddr.c_str());                       // 2 => QFMT_VFS_V0
+	         (caddr_t)caddr.c_str());  // 2 => QFMT_VFS_V0
 	quotactl(QCMD(Q_GETQUOTA, USRQUOTA), args[1].c_str(), 0, (caddr_t)&mydqblk);  // 0 => root user
 	fwrite(&mydqblk.dqb_bhardlimit, 1, sizeof(uint64_t), stdout);
 	fwrite(&mydqblk.dqb_bsoftlimit, 1, sizeof(uint64_t), stdout);
@@ -254,12 +236,10 @@ void quotactl_ok(const vector<string>& args)
 	quotactl(QCMD(Q_QUOTAOFF, USRQUOTA), args[1].c_str(), 0, NULL);
 }
 
-void poll_timeout(const vector<string>& args)
-{
+void poll_timeout(const vector<string>& args) {
 	int my_pipe[2];
 	auto ret = pipe(my_pipe);
-	if (ret != 0)
-	{
+	if(ret != 0) {
 		return;
 	}
 
@@ -277,12 +257,10 @@ void poll_timeout(const vector<string>& args)
 	fflush(stdout);
 }
 
-void ppoll_timeout(const vector<string>& args)
-{
+void ppoll_timeout(const vector<string>& args) {
 	int my_pipe[2];
 	auto ret = pipe(my_pipe);
-	if (ret != 0)
-	{
+	if(ret != 0) {
 		return;
 	}
 
@@ -308,14 +286,12 @@ void ppoll_timeout(const vector<string>& args)
 	fflush(stdout);
 }
 
-void pgid_test(const vector<string>& args)
-{
+void pgid_test(const vector<string>& args) {
 	int pgid = atoi(args[0].c_str());
 
 	// Change back to child's process group
 	int rc = setpgid(getpid(), pgid);
-	if (rc != 0)
-	{
+	if(rc != 0) {
 		fprintf(stderr, "Can't call setpgid(): %s\n", strerror(errno));
 		return;
 	}
@@ -324,22 +300,18 @@ void pgid_test(const vector<string>& args)
 	// parser to pick up the new pgid.
 	char* const exargs[] = {(char*)"/bin/echo", (char*)"-n", nullptr};
 	char* const exenv[] = {nullptr};
-	if ((rc = execve("/bin/echo", exargs, exenv)) != 0)
-	{
+	if((rc = execve("/bin/echo", exargs, exenv)) != 0) {
 		fprintf(stderr, "Can't exec \"/bin/echo -n\": %s\n", strerror(errno));
 		return;
 	}
 }
 
-bool custom_container_set_cgroup()
-{
+bool custom_container_set_cgroup() {
 	string cpu_cgroup = "/sys/fs/cgroup/cpu/custom_container_foo";
 	struct stat s;
 
-	if (stat(cpu_cgroup.c_str(), &s) < 0)
-	{
-		if (mkdir(cpu_cgroup.c_str(), 0777) < 0)
-		{
+	if(stat(cpu_cgroup.c_str(), &s) < 0) {
+		if(mkdir(cpu_cgroup.c_str(), 0777) < 0) {
 			fprintf(stderr,
 			        "Could not create cgroup directory %s: %s\n",
 			        cpu_cgroup.c_str(),
@@ -349,24 +321,21 @@ bool custom_container_set_cgroup()
 	}
 
 	auto fp = fopen((cpu_cgroup + "/cgroup.procs").c_str(), "w");
-	if (!fp)
-	{
+	if(!fp) {
 		fprintf(stderr,
 		        "Could not open cgroup.procs file in %s: %s\n",
 		        cpu_cgroup.c_str(),
 		        strerror(errno));
 		return false;
 	}
-	if (fprintf(fp, "%d\n", getpid()) < 0)
-	{
+	if(fprintf(fp, "%d\n", getpid()) < 0) {
 		fprintf(stderr,
 		        "Could not write pid to cgroup.procs file in %s: %s\n",
 		        cpu_cgroup.c_str(),
 		        strerror(errno));
 		return false;
 	}
-	if (fclose(fp) < 0)
-	{
+	if(fclose(fp) < 0) {
 		fprintf(stderr,
 		        "Could not close cgroup.procs file in %s: %s\n",
 		        cpu_cgroup.c_str(),
@@ -376,12 +345,10 @@ bool custom_container_set_cgroup()
 	return true;
 }
 
-void custom_container_simple()
-{
+void custom_container_simple() {
 	signal(SIGCHLD, SIG_IGN);
 	pid_t pid = fork();
-	switch (pid)
-	{
+	switch(pid) {
 	case 0:  // child
 	{
 		char* const exargs[] = {(char*)"/bin/echo", (char*)"-n", nullptr};
@@ -394,26 +361,22 @@ void custom_container_simple()
 	case -1:  // error
 		fprintf(stderr, "Could not fork: %s\n", strerror(errno));
 		return;
-	default:
-	{
+	default: {
 		int status;
 		waitpid(pid, &status, 0);
 	}
 	}
 }
 
-void custom_container_huge_env()
-{
+void custom_container_huge_env() {
 	signal(SIGCHLD, SIG_IGN);
 	pid_t pid = fork();
-	switch (pid)
-	{
+	switch(pid) {
 	case 0:  // child
 	{
 		string junk(100, 'x');
 		vector<string> env_vec;
-		for (auto i = 0; i < 200; ++i)
-		{
+		for(auto i = 0; i < 200; ++i) {
 			env_vec.emplace_back("VAR" + to_string(i) + "=" + junk);
 		}
 
@@ -421,8 +384,7 @@ void custom_container_huge_env()
 		int i = 0;
 		exenv[i++] = const_cast<char*>("CUSTOM_CONTAINER_NAME=custom_name");
 		exenv[i++] = const_cast<char*>("CUSTOM_CONTAINER_IMAGE=custom_image");
-		for (const auto& var : env_vec)
-		{
+		for(const auto& var : env_vec) {
 			exenv[i++] = const_cast<char*>(var.c_str());
 		}
 		exenv[i] = nullptr;
@@ -434,26 +396,22 @@ void custom_container_huge_env()
 	case -1:  // error
 		fprintf(stderr, "Could not fork: %s\n", strerror(errno));
 		return;
-	default:
-	{
+	default: {
 		int status;
 		waitpid(pid, &status, 0);
 	}
 	}
 }
 
-void custom_container_huge_env_echo()
-{
+void custom_container_huge_env_echo() {
 	signal(SIGCHLD, SIG_IGN);
 	pid_t pid = fork();
-	switch (pid)
-	{
+	switch(pid) {
 	case 0:  // child
 	{
 		string junk(100, 'x');
 		vector<string> env_vec;
-		for (auto i = 0; i < 200; ++i)
-		{
+		for(auto i = 0; i < 200; ++i) {
 			env_vec.emplace_back("VAR" + to_string(i) + "=" + junk);
 		}
 
@@ -461,8 +419,7 @@ void custom_container_huge_env_echo()
 		int i = 0;
 		exenv[i++] = const_cast<char*>("CUSTOM_CONTAINER_NAME=custom_name");
 		exenv[i++] = const_cast<char*>("CUSTOM_CONTAINER_IMAGE=custom_image");
-		for (const auto& var : env_vec)
-		{
+		for(const auto& var : env_vec) {
 			exenv[i++] = const_cast<char*>(var.c_str());
 		}
 		exenv[i] = nullptr;
@@ -474,33 +431,28 @@ void custom_container_huge_env_echo()
 	case -1:  // error
 		fprintf(stderr, "Could not fork: %s\n", strerror(errno));
 		return;
-	default:
-	{
+	default: {
 		int status;
 		waitpid(pid, &status, 0);
 	}
 	}
 }
 
-void custom_container_huge_env_at_end()
-{
+void custom_container_huge_env_at_end() {
 	signal(SIGCHLD, SIG_IGN);
 	pid_t pid = fork();
-	switch (pid)
-	{
+	switch(pid) {
 	case 0:  // child
 	{
 		string junk(100, 'x');
 		vector<string> env_vec;
-		for (auto i = 0; i < 200; ++i)
-		{
+		for(auto i = 0; i < 200; ++i) {
 			env_vec.emplace_back("VAR" + to_string(i) + "=" + junk);
 		}
 
 		char* exenv[env_vec.size() + 3];
 		int i = 0;
-		for (const auto& var : env_vec)
-		{
+		for(const auto& var : env_vec) {
 			exenv[i++] = const_cast<char*>(var.c_str());
 		}
 		exenv[i++] = const_cast<char*>("CUSTOM_CONTAINER_NAME=custom_name");
@@ -514,21 +466,18 @@ void custom_container_huge_env_at_end()
 	case -1:  // error
 		fprintf(stderr, "Could not fork: %s\n", strerror(errno));
 		return;
-	default:
-	{
+	default: {
 		int status;
 		waitpid(pid, &status, 0);
 	}
 	}
 }
 
-void custom_container_halfnhalf()
-{
+void custom_container_halfnhalf() {
 	signal(SIGCHLD, SIG_IGN);
 
 	pid_t pid = fork();
-	switch (pid)
-	{
+	switch(pid) {
 	case 0:  // child
 	{
 		char* const exargs[] = {(char*)"/bin/echo", (char*)"-n", nullptr};
@@ -539,11 +488,9 @@ void custom_container_halfnhalf()
 	case -1:  // error
 		fprintf(stderr, "Could not fork: %s\n", strerror(errno));
 		return;
-	default:
-	{
+	default: {
 		pid_t pid2 = fork();
-		switch (pid2)
-		{
+		switch(pid2) {
 		case 0:  // child
 		{
 			char* const exargs[] = {(char*)"/bin/echo", (char*)"-n", nullptr};
@@ -554,8 +501,7 @@ void custom_container_halfnhalf()
 		case -1:  // error
 			fprintf(stderr, "Could not fork: %s\n", strerror(errno));
 			return;
-		default:
-		{
+		default: {
 			int status;
 			waitpid(pid, &status, 0);
 			waitpid(pid2, &status, 0);
@@ -565,48 +511,35 @@ void custom_container_halfnhalf()
 	}
 }
 
-void custom_container(const vector<string>& args)
-{
-	if (!custom_container_set_cgroup())
-	{
+void custom_container(const vector<string>& args) {
+	if(!custom_container_set_cgroup()) {
 		return;
 	}
 
-	if (args.empty())
-	{
+	if(args.empty()) {
 		return custom_container_simple();
 	}
 
 	const auto& arg = args.at(0);
-	if (arg == "halfnhalf")
-	{
+	if(arg == "halfnhalf") {
 		return custom_container_halfnhalf();
-	}
-	else if (arg == "huge_env")
-	{
+	} else if(arg == "huge_env") {
 		return custom_container_huge_env();
-	}
-	else if (arg == "huge_env_echo")
-	{
+	} else if(arg == "huge_env_echo") {
 		return custom_container_huge_env_echo();
-	}
-	else if (arg == "huge_env_at_end")
-	{
+	} else if(arg == "huge_env_at_end") {
 		return custom_container_huge_env_at_end();
 	}
 }
 
-bool cri_container_set_cgroup()
-{
+bool cri_container_set_cgroup() {
 	string cpu_cgroup =
-	    "/sys/fs/cgroup/cpu/docker/"
-	    "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+	        "/sys/fs/cgroup/cpu/docker/"
+	        "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
 	struct stat s;
 
-	if (stat(cpu_cgroup.c_str(), &s) < 0)
-	{
-		if (mkdir(cpu_cgroup.c_str(), 0777) < 0)
-		{
+	if(stat(cpu_cgroup.c_str(), &s) < 0) {
+		if(mkdir(cpu_cgroup.c_str(), 0777) < 0) {
 			fprintf(stderr,
 			        "Could not create cgroup directory %s: %s\n",
 			        cpu_cgroup.c_str(),
@@ -616,24 +549,21 @@ bool cri_container_set_cgroup()
 	}
 
 	auto fp = fopen((cpu_cgroup + "/cgroup.procs").c_str(), "w");
-	if (!fp)
-	{
+	if(!fp) {
 		fprintf(stderr,
 		        "Could not open cgroup.procs file in %s: %s\n",
 		        cpu_cgroup.c_str(),
 		        strerror(errno));
 		return false;
 	}
-	if (fprintf(fp, "%d\n", getpid()) < 0)
-	{
+	if(fprintf(fp, "%d\n", getpid()) < 0) {
 		fprintf(stderr,
 		        "Could not write pid to cgroup.procs file in %s: %s\n",
 		        cpu_cgroup.c_str(),
 		        strerror(errno));
 		return false;
 	}
-	if (fclose(fp) < 0)
-	{
+	if(fclose(fp) < 0) {
 		fprintf(stderr,
 		        "Could not close cgroup.procs file in %s: %s\n",
 		        cpu_cgroup.c_str(),
@@ -643,12 +573,10 @@ bool cri_container_set_cgroup()
 	return true;
 }
 
-void cri_container_simple(char* const exargs[])
-{
+void cri_container_simple(char* const exargs[]) {
 	signal(SIGCHLD, SIG_IGN);
 	pid_t pid = fork();
-	switch (pid)
-	{
+	switch(pid) {
 	case 0:  // child
 	{
 		char* const exenv[] = {nullptr};
@@ -658,18 +586,15 @@ void cri_container_simple(char* const exargs[])
 	case -1:  // error
 		fprintf(stderr, "Could not fork: %s\n", strerror(errno));
 		return;
-	default:
-	{
+	default: {
 		int status;
 		waitpid(pid, &status, 0);
 	}
 	}
 }
 
-void cri_container_echo(const vector<string>& args)
-{
-	if (!cri_container_set_cgroup())
-	{
+void cri_container_echo(const vector<string>& args) {
+	if(!cri_container_set_cgroup()) {
 		return;
 	}
 
@@ -677,10 +602,8 @@ void cri_container_echo(const vector<string>& args)
 	return cri_container_simple(exargs);
 }
 
-void cri_container_sleep_gzip(const vector<string>& args)
-{
-	if (!cri_container_set_cgroup())
-	{
+void cri_container_sleep_gzip(const vector<string>& args) {
+	if(!cri_container_set_cgroup()) {
 		return;
 	}
 
@@ -691,10 +614,8 @@ void cri_container_sleep_gzip(const vector<string>& args)
 	return cri_container_simple(exargs);
 }
 
-void cri_container_sleep_bzip2(const vector<string>& args)
-{
-	if (!cri_container_set_cgroup())
-	{
+void cri_container_sleep_bzip2(const vector<string>& args) {
+	if(!cri_container_set_cgroup()) {
 		return;
 	}
 
@@ -705,10 +626,8 @@ void cri_container_sleep_bzip2(const vector<string>& args)
 	return cri_container_simple(exargs);
 }
 
-void cri_container_sleep_lzcat(const vector<string>& args)
-{
-	if (!cri_container_set_cgroup())
-	{
+void cri_container_sleep_lzcat(const vector<string>& args) {
+	if(!cri_container_set_cgroup()) {
 		return;
 	}
 
@@ -720,51 +639,47 @@ void cri_container_sleep_lzcat(const vector<string>& args)
 }
 
 const unordered_map<string, function<void(const vector<string>&)>> func_map = {
-    {"proc_mgmt", proc_mgmt},
-    {"mmap_test", mmap_test},
-	{"tcp_client",
-	 [](const vector<string>& args)
-	 {
-		 auto iot = static_cast<iotype>(stoi(args.at(1)));
-		 tcp_client client(inet_addr(args.at(0).c_str()),
-						   iot,
-						   args.at(2),
-						   str_to_bool(args.at(3)),
-						   stoi(args.at(4)),
-						   str_to_bool(args.at(5)));
-		 client.run();
-	 }},
-	{"tcp_server",
-	 [](const vector<string>& args)
-	 {
-		 auto iot = static_cast<iotype>(stoi(args.at(0)));
+        {"proc_mgmt", proc_mgmt},
+        {"mmap_test", mmap_test},
+        {"tcp_client",
+         [](const vector<string>& args) {
+	         auto iot = static_cast<iotype>(stoi(args.at(1)));
+	         tcp_client client(inet_addr(args.at(0).c_str()),
+	                           iot,
+	                           args.at(2),
+	                           str_to_bool(args.at(3)),
+	                           stoi(args.at(4)),
+	                           str_to_bool(args.at(5)));
+	         client.run();
+         }},
+        {"tcp_server",
+         [](const vector<string>& args) {
+	         auto iot = static_cast<iotype>(stoi(args.at(0)));
 
-	     tcp_server server(iot,
-	                       str_to_bool(args.at(1)),
-	                       str_to_bool(args.at(2)),
-	                       str_to_bool(args.at(3)),
-	                       stoi(args.at(4)),
-	                       str_to_bool(args.at(5)));
-	     server.run();
-		}},
-    {"pread_pwrite", pread_pwrite},
-    {"preadv_pwritev", preadv_pwritev},
-    {"quotactl_ko", quotactl_ko},
-    {"quotactl_ok", quotactl_ok},
-    {"poll_timeout", poll_timeout},
-    {"ppoll_timeout", ppoll_timeout},
-    {"pgid_test", pgid_test},
-    {"custom_container", custom_container},
-    {"cri_container_echo", cri_container_echo},
-    {"cri_container_sleep_gzip", cri_container_sleep_gzip},
-    {"cri_container_sleep_bzip2", cri_container_sleep_bzip2},
-    {"cri_container_sleep_lzcat", cri_container_sleep_lzcat}};
+	         tcp_server server(iot,
+	                           str_to_bool(args.at(1)),
+	                           str_to_bool(args.at(2)),
+	                           str_to_bool(args.at(3)),
+	                           stoi(args.at(4)),
+	                           str_to_bool(args.at(5)));
+	         server.run();
+         }},
+        {"pread_pwrite", pread_pwrite},
+        {"preadv_pwritev", preadv_pwritev},
+        {"quotactl_ko", quotactl_ko},
+        {"quotactl_ok", quotactl_ok},
+        {"poll_timeout", poll_timeout},
+        {"ppoll_timeout", ppoll_timeout},
+        {"pgid_test", pgid_test},
+        {"custom_container", custom_container},
+        {"cri_container_echo", cri_container_echo},
+        {"cri_container_sleep_gzip", cri_container_sleep_gzip},
+        {"cri_container_sleep_bzip2", cri_container_sleep_bzip2},
+        {"cri_container_sleep_lzcat", cri_container_sleep_lzcat}};
 
 // Helper to test ia32 emulation on 64bit
-int main(int argc, char** argv)
-{
-	if (argc > 1)
-	{
+int main(int argc, char** argv) {
+	if(argc > 1) {
 		bool threaded = false;
 
 		// The first argument might be "threaded", meaning
@@ -772,33 +687,25 @@ int main(int argc, char** argv)
 		// thread.
 		int j = 1;
 
-		if (strcmp(argv[j], "threaded") == 0)
-		{
+		if(strcmp(argv[j], "threaded") == 0) {
 			threaded = true;
 			j++;
 		}
 
 		vector<string> args;
-		for (; j < argc; ++j)
-		{
+		for(; j < argc; ++j) {
 			args.emplace_back(argv[j]);
 		}
 		auto cmd = args.front();
 		args.erase(args.begin());
 
-		auto do_work = [&]()
-		{
-			func_map.at(cmd)(args);
-		};
+		auto do_work = [&]() { func_map.at(cmd)(args); };
 
-		if (threaded)
-		{
+		if(threaded) {
 			std::thread t(do_work);
 
 			t.join();
-		}
-		else
-		{
+		} else {
 			do_work();
 		}
 	}

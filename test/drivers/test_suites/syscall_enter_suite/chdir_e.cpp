@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_chdir
-TEST(SyscallEnter, chdirE)
-{
+TEST(SyscallEnter, chdirE) {
 	auto evt_test = get_syscall_event_test(__NR_chdir, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -24,8 +23,7 @@ TEST(SyscallEnter, chdirE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

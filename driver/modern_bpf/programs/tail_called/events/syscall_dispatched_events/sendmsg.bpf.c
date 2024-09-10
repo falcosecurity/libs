@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(sendmsg_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(sendmsg_e, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 	auxmap__preload_event_header(auxmap, PPME_SOCKET_SENDMSG_E);
@@ -43,15 +39,12 @@ int BPF_PROG(sendmsg_e,
 	 * the `bpf_probe_read()` call we fail. Probably we have to move it
 	 * in the exit event.
 	 */
-	if(socket_fd >= 0)
-	{
+	if(socket_fd >= 0) {
 		struct sockaddr *usrsockaddr;
-		struct msghdr *msg = (struct msghdr*)msghdr_pointer;
+		struct msghdr *msg = (struct msghdr *)msghdr_pointer;
 		BPF_CORE_READ_USER_INTO(&usrsockaddr, msg, msg_name);
 		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND, usrsockaddr);
-	}
-	else
-	{
+	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 
@@ -69,13 +62,9 @@ int BPF_PROG(sendmsg_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(sendmsg_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(sendmsg_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -97,8 +86,7 @@ int BPF_PROG(sendmsg_x,
 	 */
 	uint16_t snaplen = maps__get_snaplen();
 	apply_dynamic_snaplen(regs, &snaplen, true, PPME_SOCKET_SENDMSG_X);
-	if(ret > 0 && snaplen > ret)
-	{
+	if(ret > 0 && snaplen > ret) {
 		snaplen = ret;
 	}
 

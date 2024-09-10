@@ -22,17 +22,14 @@ limitations under the License.
 
 using namespace libsinsp::procfs_utils;
 
-TEST(procfs_utils_test, get_userns_uid)
-{
+TEST(procfs_utils_test, get_userns_uid) {
 	std::string uidmap = "         0      1000         0\n         1   1000000      1000\n";
 	std::stringstream s(uidmap);
 
 	ASSERT_EQ(get_userns_root_uid(s), 1000);
 }
 
-
-TEST(procfs_utils_test, get_userns_uid_root)
-{
+TEST(procfs_utils_test, get_userns_uid_root) {
 	std::string uidmap = "         0         0         0\n";
 	std::stringstream s(uidmap);
 

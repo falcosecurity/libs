@@ -26,15 +26,14 @@ class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
-class libvirt_lxc : public container_engine_base
-{
+class libvirt_lxc : public container_engine_base {
 public:
-	libvirt_lxc(container_cache_interface &cache) : container_engine_base(cache)
-	{}
+	libvirt_lxc(container_cache_interface &cache): container_engine_base(cache) {}
 
 	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+
 protected:
-	bool match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info);
+	bool match(sinsp_threadinfo *tinfo, sinsp_container_info &container_info);
 };
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

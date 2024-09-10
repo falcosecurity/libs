@@ -25,33 +25,30 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp_container_info& container_info, std::string& rkt_podid, std::string& rkt_appname, bool query_os_for_missing_info)
-{
-	for(const auto& it : tinfo->cgroups())
-	{
+bool rkt::match(container_cache_interface* cache,
+                sinsp_threadinfo* tinfo,
+                sinsp_container_info& container_info,
+                std::string& rkt_podid,
+                std::string& rkt_appname,
+                bool query_os_for_missing_info) {
+	for(const auto& it : tinfo->cgroups()) {
 		std::string cgroup = it.second;
 
 		static const std::string COREOS_PODID_VAR = "container_uuid=";
 		static const std::string SYSTEMD_UUID_ARG = "--uuid=";
 		static const std::string SERVICE_SUFFIX = ".service";
-		if(cgroup.rfind(SERVICE_SUFFIX) == cgroup.size() - SERVICE_SUFFIX.size())
-		{
+		if(cgroup.rfind(SERVICE_SUFFIX) == cgroup.size() - SERVICE_SUFFIX.size()) {
 			// check if there is a parent with pod uuid var
-			sinsp_threadinfo::visitor_func_t visitor = [&](sinsp_threadinfo* ptinfo)
-			{
-				for(const auto& env_var : ptinfo->get_env())
-				{
+			sinsp_threadinfo::visitor_func_t visitor = [&](sinsp_threadinfo* ptinfo) {
+				for(const auto& env_var : ptinfo->get_env()) {
 					auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
-					if(container_uuid_pos == 0)
-					{
+					if(container_uuid_pos == 0) {
 						rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
 						return false;
 					}
 				}
-				for(const auto& arg : ptinfo->m_args)
-				{
-					if(arg.find(SYSTEMD_UUID_ARG) != std::string::npos)
-					{
+				for(const auto& arg : ptinfo->m_args) {
+					if(arg.find(SYSTEMD_UUID_ARG) != std::string::npos) {
 						rkt_podid = arg.substr(SYSTEMD_UUID_ARG.size());
 						return false;
 					}
@@ -60,24 +57,28 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 			};
 			tinfo->traverse_parent_state(visitor);
 
-			if(!rkt_podid.empty())
-			{
+			if(!rkt_podid.empty()) {
 				auto last_slash = cgroup.find_last_of("/");
-				rkt_appname = cgroup.substr(last_slash + 1, cgroup.size() - last_slash - SERVICE_SUFFIX.size() - 1);
+				rkt_appname = cgroup.substr(last_slash + 1,
+				                            cgroup.size() - last_slash - SERVICE_SUFFIX.size() - 1);
 
 				char image_manifest_path[SCAP_MAX_PATH_SIZE];
-				snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), rkt_podid.c_str(), rkt_appname.c_str());
+				snprintf(image_manifest_path,
+				         sizeof(image_manifest_path),
+				         "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest",
+				         scap_get_host_root(),
+				         rkt_podid.c_str(),
+				         rkt_appname.c_str());
 
-				// First lookup if the container exists in our table, otherwise only if we are live check if it has
-				// an entry in /var/lib/rkt. In capture mode only the former will be used.
-				// In live mode former will be used only if we already hit that container
-				bool is_rkt_pod_id_valid = cache->container_exists(rkt_podid + ":" + rkt_appname); // if it's already on our table
-				if(!is_rkt_pod_id_valid && query_os_for_missing_info)
-				{
+				// First lookup if the container exists in our table, otherwise only if we are live
+				// check if it has an entry in /var/lib/rkt. In capture mode only the former will be
+				// used. In live mode former will be used only if we already hit that container
+				bool is_rkt_pod_id_valid = cache->container_exists(
+				        rkt_podid + ":" + rkt_appname);  // if it's already on our table
+				if(!is_rkt_pod_id_valid && query_os_for_missing_info) {
 					is_rkt_pod_id_valid = (access(image_manifest_path, F_OK) == 0);
 				}
-				if(is_rkt_pod_id_valid)
-				{
+				if(is_rkt_pod_id_valid) {
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
 					container_info.m_name = rkt_appname;
@@ -96,22 +97,18 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 	static const std::string COREOS_PODID_VAR = "container_uuid=";
 
 	auto prefix = tinfo->m_root.find(COREOS_PREFIX);
-	if(prefix == 0)
-	{
+	if(prefix == 0) {
 		auto suffix = tinfo->m_root.find(COREOS_APP_SUFFIX, prefix);
-		if(suffix != std::string::npos)
-		{
+		if(suffix != std::string::npos) {
 			bool valid_id = false;
-			rkt_appname = tinfo->m_root.substr(prefix + COREOS_PREFIX.size(), suffix - prefix - COREOS_PREFIX.size());
+			rkt_appname = tinfo->m_root.substr(prefix + COREOS_PREFIX.size(),
+			                                   suffix - prefix - COREOS_PREFIX.size());
 			// It is a rkt pod with stage1-coreos
 
-			sinsp_threadinfo::visitor_func_t visitor = [&] (sinsp_threadinfo *ptinfo)
-			{
-				for(const auto& env_var : ptinfo->get_env())
-				{
+			sinsp_threadinfo::visitor_func_t visitor = [&](sinsp_threadinfo* ptinfo) {
+				for(const auto& env_var : ptinfo->get_env()) {
 					auto container_uuid_pos = env_var.find(COREOS_PODID_VAR);
-					if(container_uuid_pos == 0)
-					{
+					if(container_uuid_pos == 0) {
 						rkt_podid = env_var.substr(COREOS_PODID_VAR.size());
 						container_info.m_type = CT_RKT;
 						container_info.m_id = rkt_podid + ":" + rkt_appname;
@@ -125,32 +122,29 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 
 			// Try the current thread first. visitor returns true if no coreos pid
 			// info was found. In this case we traverse the parents.
-			if (visitor(tinfo))
-			{
+			if(visitor(tinfo)) {
 				tinfo->traverse_parent_state(visitor);
 			}
 			return valid_id;
 		}
-	}
-	else
-	{
+	} else {
 		// String used to detect stage1-fly pods
 		static const std::string FLY_PREFIX = "/var/lib/rkt/pods/run/";
 		static const std::string FLY_PODID_SUFFIX = "/stage1/rootfs/opt/stage2/";
 		static const std::string FLY_APP_SUFFIX = "/rootfs";
 
 		auto prefix = tinfo->m_root.find(FLY_PREFIX);
-		if(prefix == 0)
-		{
-			auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix+FLY_PREFIX.size());
-			if(podid_suffix != std::string::npos)
-			{
-				rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(), podid_suffix - prefix - FLY_PREFIX.size());
-				auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
-				if(appname_suffix != std::string::npos)
-				{
-					rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
-									   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
+		if(prefix == 0) {
+			auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix + FLY_PREFIX.size());
+			if(podid_suffix != std::string::npos) {
+				rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(),
+				                                 podid_suffix - prefix - FLY_PREFIX.size());
+				auto appname_suffix =
+				        tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix + FLY_PODID_SUFFIX.size());
+				if(appname_suffix != std::string::npos) {
+					rkt_appname = tinfo->m_root.substr(
+					        podid_suffix + FLY_PODID_SUFFIX.size(),
+					        appname_suffix - podid_suffix - FLY_PODID_SUFFIX.size());
 					container_info.m_type = CT_RKT;
 					container_info.m_id = rkt_podid + ":" + rkt_appname;
 					container_info.m_name = rkt_appname;
@@ -162,21 +156,18 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 	return false;
 }
 
-bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
-	container_cache_interface *cache = &container_cache();
+bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) {
+	container_cache_interface* cache = &container_cache();
 
 	auto container = sinsp_container_info();
 	std::string rkt_podid, rkt_appname;
 
-	if (!match(cache, tinfo, container, rkt_podid, rkt_appname, query_os_for_missing_info))
-	{
+	if(!match(cache, tinfo, container, rkt_podid, rkt_appname, query_os_for_missing_info)) {
 		return false;
 	}
 
 	tinfo->m_container_id = container.m_id;
-	if (!query_os_for_missing_info || !cache->should_lookup(container.m_id, CT_RKT))
-	{
+	if(!query_os_for_missing_info || !cache->should_lookup(container.m_id, CT_RKT)) {
 		return true;
 	}
 
@@ -186,82 +177,82 @@ bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 	bool have_rkt = true;
 #endif
 
-	if (have_rkt)
-	{
+	if(have_rkt) {
 		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		cache->add_container(std::make_shared<sinsp_container_info>(container), tinfo);
 		cache->notify_new_container(container, tinfo);
 		return true;
-	}
-	else
-	{
+	} else {
 		return false;
 	}
 }
 
-bool rkt::rkt::parse_rkt(sinsp_container_info &container, const std::string &podid, const std::string &appname)
-{
+bool rkt::rkt::parse_rkt(sinsp_container_info& container,
+                         const std::string& podid,
+                         const std::string& appname) {
 	bool ret = false;
 	Json::Reader reader;
 	Json::Value jroot;
 
 	char image_manifest_path[SCAP_MAX_PATH_SIZE];
-	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
+	snprintf(image_manifest_path,
+	         sizeof(image_manifest_path),
+	         "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest",
+	         scap_get_host_root(),
+	         podid.c_str(),
+	         appname.c_str());
 	std::ifstream image_manifest(image_manifest_path);
-	if(reader.parse(image_manifest, jroot))
-	{
+	if(reader.parse(image_manifest, jroot)) {
 		container.m_image = jroot["name"].asString();
-		for(const auto& label_entry : jroot["labels"])
-		{
+		for(const auto& label_entry : jroot["labels"]) {
 			std::string val = label_entry["value"].asString();
-			if(val.length() <= sinsp_container_info::m_container_label_max_length ) {
+			if(val.length() <= sinsp_container_info::m_container_label_max_length) {
 				container.m_labels.emplace(label_entry["name"].asString(), val);
 			}
 		}
 		auto version_label_it = container.m_labels.find("version");
-		if(version_label_it != container.m_labels.end())
-		{
+		if(version_label_it != container.m_labels.end()) {
 			container.m_image += ":" + version_label_it->second;
 		}
 		ret = true;
 	}
 
 	char net_info_path[SCAP_MAX_PATH_SIZE];
-	snprintf(net_info_path, sizeof(net_info_path), "%s/var/lib/rkt/pods/run/%s/net-info.json", scap_get_host_root(), podid.c_str());
+	snprintf(net_info_path,
+	         sizeof(net_info_path),
+	         "%s/var/lib/rkt/pods/run/%s/net-info.json",
+	         scap_get_host_root(),
+	         podid.c_str());
 	std::ifstream net_info(net_info_path);
-	if(reader.parse(net_info, jroot) && jroot.size() > 0)
-	{
+	if(reader.parse(net_info, jroot) && jroot.size() > 0) {
 		const auto& first_net = jroot[0];
-		if(inet_pton(AF_INET, first_net["ip"].asCString(), &container.m_container_ip) == -1)
-		{
+		if(inet_pton(AF_INET, first_net["ip"].asCString(), &container.m_container_ip) == -1) {
 			ASSERT(false);
 		}
 		container.m_container_ip = ntohl(container.m_container_ip);
 	}
 
 	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
-	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
+	snprintf(pod_manifest_path,
+	         sizeof(pod_manifest_path),
+	         "%s/var/lib/rkt/pods/run/%s/pod",
+	         scap_get_host_root(),
+	         podid.c_str());
 	std::ifstream pod_manifest(pod_manifest_path);
 	std::unordered_map<std::string, uint32_t> image_ports;
-	if(reader.parse(pod_manifest, jroot) && jroot.size() > 0)
-	{
-		for(const auto& japp : jroot["apps"])
-		{
-			if (japp["name"].asString() == appname)
-			{
-				for(const auto& image_port : japp["app"]["ports"])
-				{
+	if(reader.parse(pod_manifest, jroot) && jroot.size() > 0) {
+		for(const auto& japp : jroot["apps"]) {
+			if(japp["name"].asString() == appname) {
+				for(const auto& image_port : japp["app"]["ports"]) {
 					image_ports[image_port["name"].asString()] = image_port["port"].asUInt();
 				}
 				break;
 			}
 		}
-		for(const auto& jport : jroot["ports"])
-		{
+		for(const auto& jport : jroot["ports"]) {
 			auto host_port = jport["hostPort"].asUInt();
 			auto container_port_it = image_ports.find(jport["name"].asString());
-			if(host_port > 0 && container_port_it != image_ports.end())
-			{
+			if(host_port > 0 && container_port_it != image_ports.end()) {
 				sinsp_container_info::container_port_mapping port_mapping;
 				port_mapping.m_host_port = host_port;
 				port_mapping.m_container_port = container_port_it->second;

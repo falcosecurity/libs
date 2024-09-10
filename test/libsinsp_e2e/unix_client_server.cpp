@@ -51,34 +51,33 @@ limitations under the License.
 #define FALSE 0
 
 inline void parse_tuple(const std::string& tuple,
-						std::string& srcstr,
-						std::string& dststr, bool shift = false)
-{
+                        std::string& srcstr,
+                        std::string& dststr,
+                        bool shift = false) {
 	std::string token;
 	std::stringstream ss(tuple);
 	std::vector<std::string> tst;
 
-	int base = shift? 1 : 0;
+	int base = shift ? 1 : 0;
 
-	while (std::getline(ss, token, '>')) {
+	while(std::getline(ss, token, '>')) {
 		tst.push_back(token);
 	}
 
-	int size = shift? 3 : 2;
+	int size = shift ? 3 : 2;
 	EXPECT_EQ(size, (int)tst.size());
 
 	srcstr = tst[base].substr(0, tst[base].size() - 1);
-	dststr = tst[base+1];
+	dststr = tst[base + 1];
 }
 
-inline bool ends_with(const std::string& value, const std::string& ending)
-{
-	if (ending.size() > value.size()) return false;
+inline bool ends_with(const std::string& value, const std::string& ending) {
+	if(ending.size() > value.size())
+		return false;
 	return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-TEST_F(sys_call_test, unix_client_server)
-{
+TEST_F(sys_call_test, unix_client_server) {
 	int32_t callnum = 0;
 	bool first_connect_or_accept_seen = true;
 	std::string sport;
@@ -88,15 +87,12 @@ TEST_F(sys_call_test, unix_client_server)
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{
+	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* ti = evt->get_thread_info(false);
-		if (ti)
-		{
-			if (ti->get_comm() == "python2" && ti->m_args.size() >= 1)
-			{
-				return ends_with(ti->m_args[0],"unix_client_server.py") ||
-				       ends_with(ti->m_args[0],"unix_client_server.py");
+		if(ti) {
+			if(ti->get_comm() == "python2" && ti->m_args.size() >= 1) {
+				return ends_with(ti->m_args[0], "unix_client_server.py") ||
+				       ends_with(ti->m_args[0], "unix_client_server.py");
 			}
 		}
 
@@ -106,13 +102,14 @@ TEST_F(sys_call_test, unix_client_server)
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector)
-	{
-		subprocess server("python2", {LIBSINSP_TEST_RESOURCES_PATH "/unix_client_server.py", "server"});
+	run_callback_t test = [](concurrent_object_handle<sinsp> inspector) {
+		subprocess server("python2",
+		                  {LIBSINSP_TEST_RESOURCES_PATH "/unix_client_server.py", "server"});
 
 		server.wait_for_start();
 
-		subprocess client("python2", {LIBSINSP_TEST_RESOURCES_PATH "/unix_client_server.py", "client"});
+		subprocess client("python2",
+		                  {LIBSINSP_TEST_RESOURCES_PATH "/unix_client_server.py", "client"});
 		server.wait();
 		client.wait();
 	};
@@ -120,14 +117,12 @@ TEST_F(sys_call_test, unix_client_server)
 	//
 	// OUTPUT VALIDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* evt = param.m_evt;
 
-		//std::cout << evt->get_name() << std::endl;
+		// std::cout << evt->get_name() << std::endl;
 
-		if (evt->get_type() == PPME_SOCKET_CONNECT_X)
-		{
+		if(evt->get_type() == PPME_SOCKET_CONNECT_X) {
 			std::string tuple = evt->get_param_value_str("tuple");
 			std::string addrs = tuple.substr(0, tuple.find(" "));
 			std::string file = tuple.substr(tuple.find(" ") + 1);
@@ -145,23 +140,18 @@ TEST_F(sys_call_test, unix_client_server)
 			// connect() and accept() can return
 			// in a different order
 			//
-			if (first_connect_or_accept_seen)
-			{
+			if(first_connect_or_accept_seen) {
 				first_connect_or_accept_seen = false;
 				src_addr = srcstr.substr(1);
 				dest_addr = dststr;
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(src_addr, srcstr.substr(1));
 				EXPECT_EQ(dest_addr, dststr);
 			}
 
 			callnum++;
-		}
-		else if ((evt->get_type() == PPME_SOCKET_ACCEPT_5_X) ||
-		         (evt->get_type() == PPME_SOCKET_ACCEPT4_6_X))
-		{
+		} else if((evt->get_type() == PPME_SOCKET_ACCEPT_5_X) ||
+		          (evt->get_type() == PPME_SOCKET_ACCEPT4_6_X)) {
 			std::string tuple = evt->get_param_value_str("tuple");
 			std::string addrs = tuple.substr(0, tuple.find(" "));
 			std::string file = tuple.substr(tuple.find(" ") + 1);
@@ -179,14 +169,11 @@ TEST_F(sys_call_test, unix_client_server)
 			// connect() and accept() can return
 			// in a different order
 			//
-			if (first_connect_or_accept_seen)
-			{
+			if(first_connect_or_accept_seen) {
 				first_connect_or_accept_seen = false;
 				src_addr = srcstr.substr(1);
 				dest_addr = dststr;
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(src_addr, srcstr.substr(1));
 				EXPECT_EQ(dest_addr, dststr);
 			}
@@ -207,8 +194,7 @@ TEST_F(sys_call_test, unix_client_server)
 			callnum++;
 		}
 
-		if (callnum < 1)
-		{
+		if(callnum < 1) {
 			return;
 		}
 
@@ -216,13 +202,11 @@ TEST_F(sys_call_test, unix_client_server)
 		// 32bit (and s390x) uses send() and recv(), while 64bit
 		// uses sendto() and recvfrom() and sets the address to NULL
 		//
-		if (evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
-		    evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E)
-		{
-			if (((evt->get_type() == PPME_SOCKET_RECVFROM_X) ||
-			     (evt->get_type() == PPME_SOCKET_RECVFROM_X)) &&
-			    (evt->get_param_value_str("tuple") != ""))
-			{
+		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
+		   evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E) {
+			if(((evt->get_type() == PPME_SOCKET_RECVFROM_X) ||
+			    (evt->get_type() == PPME_SOCKET_RECVFROM_X)) &&
+			   (evt->get_param_value_str("tuple") != "")) {
 				EXPECT_EQ("NULL", evt->get_param_value_str("tuple"));
 			}
 
@@ -240,27 +224,23 @@ TEST_F(sys_call_test, unix_client_server)
 			EXPECT_NE("0", fddststr);
 
 			callnum++;
-		}
-		else if ((evt->get_type() == PPME_SOCKET_RECV_X) ||
-		         (evt->get_type() == PPME_SOCKET_RECVFROM_X))
-		{
-			if (evt->get_type() == PPME_SOCKET_RECVFROM_X)
-			{
-				if (callnum == 5)
- 				{
- 					std::string tuple = evt->get_param_value_str("tuple");
- 					std::string addrs = tuple.substr(0, tuple.find(" "));
- 					std::string file = tuple.substr(tuple.find(" ") + 1);
+		} else if((evt->get_type() == PPME_SOCKET_RECV_X) ||
+		          (evt->get_type() == PPME_SOCKET_RECVFROM_X)) {
+			if(evt->get_type() == PPME_SOCKET_RECVFROM_X) {
+				if(callnum == 5) {
+					std::string tuple = evt->get_param_value_str("tuple");
+					std::string addrs = tuple.substr(0, tuple.find(" "));
+					std::string file = tuple.substr(tuple.find(" ") + 1);
 
- 					EXPECT_EQ(NAME, file);
+					EXPECT_EQ(NAME, file);
 
 					std::string srcstr;
 					std::string dststr;
 					parse_tuple(tuple, srcstr, dststr);
 
- 					EXPECT_NE("0000000000000000", srcstr);
- 					EXPECT_NE("0000000000000000", dststr);
- 				}
+					EXPECT_NE("0000000000000000", srcstr);
+					EXPECT_NE("0000000000000000", dststr);
+				}
 			}
 			EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));
 
@@ -275,4 +255,3 @@ TEST_F(sys_call_test, unix_client_server)
 	EXPECT_FALSE(first_connect_or_accept_seen);
 	EXPECT_EQ(8, callnum);
 }
-

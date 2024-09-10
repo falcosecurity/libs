@@ -4,8 +4,7 @@
 
 #include <sys/ptrace.h>
 
-TEST(SyscallEnter, ptraceE)
-{
+TEST(SyscallEnter, ptraceE) {
 	auto evt_test = get_syscall_event_test(__NR_ptrace, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -24,8 +23,7 @@ TEST(SyscallEnter, ptraceE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

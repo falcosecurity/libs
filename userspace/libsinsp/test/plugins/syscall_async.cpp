@@ -35,171 +35,163 @@ namespace {
  * - Defines only one async event name
  * - Sends an async event periodically given the configured time period
  */
-struct plugin_state
-{
-    std::string lasterr;
-    uint64_t async_period;
-    uint64_t async_maxevts;
-    std::thread async_thread;
-    std::atomic<bool> async_thread_run;
-    uint8_t async_evt_buf[2048];
-    ss_plugin_event* async_evt;
-    ss_plugin_owner_t* owner;
-    ss_plugin_log_fn_t log;
+struct plugin_state {
+	std::string lasterr;
+	uint64_t async_period;
+	uint64_t async_maxevts;
+	std::thread async_thread;
+	std::atomic<bool> async_thread_run;
+	uint8_t async_evt_buf[2048];
+	ss_plugin_event* async_evt;
+	ss_plugin_owner_t* owner;
+	ss_plugin_log_fn_t log;
 };
 
-const char* plugin_get_required_api_version()
-{
-    return PLUGIN_API_VERSION_STR;
+const char* plugin_get_required_api_version() {
+	return PLUGIN_API_VERSION_STR;
 }
 
-const char* plugin_get_version()
-{
-    return "0.1.0";
+const char* plugin_get_version() {
+	return "0.1.0";
 }
 
-const char* plugin_get_name()
-{
-    return "sample_syscall_async";
+const char* plugin_get_name() {
+	return "sample_syscall_async";
 }
 
-const char* plugin_get_description()
-{
-    return "some desc";
+const char* plugin_get_description() {
+	return "some desc";
 }
 
-const char* plugin_get_contact()
-{
-    return "some contact";
+const char* plugin_get_contact() {
+	return "some contact";
 }
 
-const char* plugin_get_async_event_sources()
-{
-    return "[\"syscall\"]";
+const char* plugin_get_async_event_sources() {
+	return "[\"syscall\"]";
 }
 
-const char* plugin_get_async_events()
-{
-    return "[\"sampleticker\"]";
+const char* plugin_get_async_events() {
+	return "[\"sampleticker\"]";
 }
 
-ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
-{
-    *rc = SS_PLUGIN_SUCCESS;
-    auto ret = new plugin_state();
+ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc) {
+	*rc = SS_PLUGIN_SUCCESS;
+	auto ret = new plugin_state();
 
-    //save logger and owner in the state
-    ret->log = in->log_fn;
-    ret->owner = in->owner;
+	// save logger and owner in the state
+	ret->log = in->log_fn;
+	ret->owner = in->owner;
 
-    ret->log(ret->owner, NULL, "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
+	ret->log(ret->owner, NULL, "initializing plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
-    ret->async_evt = (ss_plugin_event*) &ret->async_evt_buf;
-    ret->async_thread_run = false;
-    if (2 != sscanf(in->config, "%ld:%ld", &ret->async_maxevts, &ret->async_period))
-    {
-        ret->async_period = 1000000;
-        ret->async_maxevts = 100;
-    }
-    return ret;
+	ret->async_evt = (ss_plugin_event*)&ret->async_evt_buf;
+	ret->async_thread_run = false;
+	if(2 != sscanf(in->config, "%ld:%ld", &ret->async_maxevts, &ret->async_period)) {
+		ret->async_period = 1000000;
+		ret->async_maxevts = 100;
+	}
+	return ret;
 }
 
-void plugin_destroy(ss_plugin_t* s)
-{
-    auto ps = reinterpret_cast<plugin_state*>(s);
-    ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
+void plugin_destroy(ss_plugin_t* s) {
+	auto ps = reinterpret_cast<plugin_state*>(s);
+	ps->log(ps->owner, NULL, "destroying plugin...", SS_PLUGIN_LOG_SEV_INFO);
 
-    // stop the async thread if it's running
-    if (ps->async_thread_run)
-    {
-        ps->async_thread_run = false;
-        if (ps->async_thread.joinable())
-        {
-            ps->async_thread.join();
-        }
-    }
+	// stop the async thread if it's running
+	if(ps->async_thread_run) {
+		ps->async_thread_run = false;
+		if(ps->async_thread.joinable()) {
+			ps->async_thread.join();
+		}
+	}
 
-    delete ps;
+	delete ps;
 }
 
-const char* plugin_get_last_error(ss_plugin_t* s)
-{
-    return ((plugin_state *) s)->lasterr.c_str();
+const char* plugin_get_last_error(ss_plugin_t* s) {
+	return ((plugin_state*)s)->lasterr.c_str();
 }
 
-ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_owner_t* owner, const ss_plugin_async_event_handler_t handler)
-{
-    auto ps = reinterpret_cast<plugin_state*>(s);
+ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s,
+                                            ss_plugin_owner_t* owner,
+                                            const ss_plugin_async_event_handler_t handler) {
+	auto ps = reinterpret_cast<plugin_state*>(s);
 
-    // stop the async thread if it's running
-    if (ps->async_thread_run)
-    {
-        ps->async_thread_run = false;
-        if (ps->async_thread.joinable())
-        {
-            ps->async_thread.join();
-        }
-    }
+	// stop the async thread if it's running
+	if(ps->async_thread_run) {
+		ps->async_thread_run = false;
+		if(ps->async_thread.joinable()) {
+			ps->async_thread.join();
+		}
+	}
 
-    // launch the async thread with the handler, if one is provided
-    if (handler)
-    {
-        ps->async_thread_run = true;
-        ps->async_thread = std::thread([ps, owner, handler]()
-        {
-            char err[PLUGIN_MAX_ERRLEN];
-            const char* name = "sampleticker";
-            const char* data = "sample ticker notification";
-            for (uint64_t i = 0; i < ps->async_maxevts && ps->async_thread_run; i++)
-            {
-                // attempt sending an event that is not in the allowed name list
-                scap_event_encode_params(scap_sized_buffer{ps->async_evt, sizeof(ps->async_evt_buf)}, nullptr, err,
-                    PPME_ASYNCEVENT_E, 3, 0, "unsupportedname", scap_const_sized_buffer{data, strlen(data) + 1});
-                ps->async_evt->tid = 1;
+	// launch the async thread with the handler, if one is provided
+	if(handler) {
+		ps->async_thread_run = true;
+		ps->async_thread = std::thread([ps, owner, handler]() {
+			char err[PLUGIN_MAX_ERRLEN];
+			const char* name = "sampleticker";
+			const char* data = "sample ticker notification";
+			for(uint64_t i = 0; i < ps->async_maxevts && ps->async_thread_run; i++) {
+				// attempt sending an event that is not in the allowed name list
+				scap_event_encode_params(
+				        scap_sized_buffer{ps->async_evt, sizeof(ps->async_evt_buf)},
+				        nullptr,
+				        err,
+				        PPME_ASYNCEVENT_E,
+				        3,
+				        0,
+				        "unsupportedname",
+				        scap_const_sized_buffer{data, strlen(data) + 1});
+				ps->async_evt->tid = 1;
 
-                if (SS_PLUGIN_SUCCESS == handler(owner, ps->async_evt, err))
-                {
-                    printf("sample_syscall_async: unexpected success in sending unsupported asynchronous event from plugin\n");
-                    exit(1);
-                }
+				if(SS_PLUGIN_SUCCESS == handler(owner, ps->async_evt, err)) {
+					printf("sample_syscall_async: unexpected success in sending unsupported "
+					       "asynchronous event from plugin\n");
+					exit(1);
+				}
 
-                // send an event in the allowed name list
-                // note: we set a tid=1 to test that async events can have
-                // either an empty (-1) or a non-empty tid value
-                scap_event_encode_params(scap_sized_buffer{ps->async_evt, sizeof(ps->async_evt_buf)}, nullptr, err,
-                    PPME_ASYNCEVENT_E, 3, 0, name, scap_const_sized_buffer{data, strlen(data) + 1});
-                ps->async_evt->tid = 1;
+				// send an event in the allowed name list
+				// note: we set a tid=1 to test that async events can have
+				// either an empty (-1) or a non-empty tid value
+				scap_event_encode_params(
+				        scap_sized_buffer{ps->async_evt, sizeof(ps->async_evt_buf)},
+				        nullptr,
+				        err,
+				        PPME_ASYNCEVENT_E,
+				        3,
+				        0,
+				        name,
+				        scap_const_sized_buffer{data, strlen(data) + 1});
+				ps->async_evt->tid = 1;
 
-                if (SS_PLUGIN_SUCCESS != handler(owner, ps->async_evt, err))
-                {
-                    printf("sample_syscall_async: unexpected failure in sending asynchronous event from plugin: %s\n", err);
-                    exit(1);
-                }
+				if(SS_PLUGIN_SUCCESS != handler(owner, ps->async_evt, err)) {
+					printf("sample_syscall_async: unexpected failure in sending asynchronous event "
+					       "from plugin: %s\n",
+					       err);
+					exit(1);
+				}
 
 				// sleep for a period
-				if(i < 2)
-				{
+				if(i < 2) {
 					// sleep for 1ms
 					std::this_thread::sleep_for(std::chrono::nanoseconds(ps->async_period));
-				}
-				else
-				{
+				} else {
 					// sleep for 1s
-					std::this_thread::sleep_for(std::chrono::nanoseconds(ps->async_period*1000));
+					std::this_thread::sleep_for(std::chrono::nanoseconds(ps->async_period * 1000));
 				}
+			}
+		});
+	}
 
-            }
-        });
-    }
-
-    return SS_PLUGIN_SUCCESS;
+	return SS_PLUGIN_SUCCESS;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
-void get_plugin_api_sample_syscall_async(plugin_api& out)
-{
-    memset(&out, 0, sizeof(plugin_api));
+void get_plugin_api_sample_syscall_async(plugin_api& out) {
+	memset(&out, 0, sizeof(plugin_api));
 	out.get_required_api_version = plugin_get_required_api_version;
 	out.get_version = plugin_get_version;
 	out.get_description = plugin_get_description;
@@ -208,7 +200,7 @@ void get_plugin_api_sample_syscall_async(plugin_api& out)
 	out.get_last_error = plugin_get_last_error;
 	out.init = plugin_init;
 	out.destroy = plugin_destroy;
-    out.get_async_event_sources = plugin_get_async_event_sources;
-    out.get_async_events = plugin_get_async_events;
-    out.set_async_event_handler = plugin_set_async_event_handler;
+	out.get_async_event_sources = plugin_get_async_event_sources;
+	out.get_async_events = plugin_get_async_events;
+	out.set_async_event_handler = plugin_set_async_event_handler;
 }

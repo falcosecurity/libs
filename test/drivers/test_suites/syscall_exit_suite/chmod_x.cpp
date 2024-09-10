@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_chmod
-TEST(SyscallExit, chmodX)
-{
+TEST(SyscallExit, chmodX) {
 	auto evt_test = get_syscall_event_test(__NR_chmod, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallExit, chmodX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

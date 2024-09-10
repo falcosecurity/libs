@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(mount_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(mount_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, MOUNT_E_SIZE, PPME_SYSCALL_MOUNT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, MOUNT_E_SIZE, PPME_SYSCALL_MOUNT_E)) {
 		return 0;
 	}
 
@@ -37,8 +33,7 @@ int BPF_PROG(mount_e,
 	 * and is ignored if specified.
 	 */
 	/* Check the magic number 0xC0ED in the top 16 bits and ignore it if specified. */
-	if((flags & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
-	{
+	if((flags & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL) {
 		flags &= ~PPM_MS_MGC_MSK;
 	}
 	ringbuf__store_u32(&ringbuf, flags);
@@ -55,13 +50,9 @@ int BPF_PROG(mount_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(mount_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(mount_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 

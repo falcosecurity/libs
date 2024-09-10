@@ -4,8 +4,7 @@
 
 #include <sys/mman.h>
 
-TEST(SyscallEnter, mmapE)
-{
+TEST(SyscallEnter, mmapE) {
 	auto evt_test = get_syscall_event_test(__NR_mmap, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -19,7 +18,15 @@ TEST(SyscallEnter, mmapE)
 	int mock_fd = -1;
 	off_t mock_offset = 1023;
 
-	assert_syscall_state(SYSCALL_FAILURE, "mmap", syscall(__NR_mmap, mock_addr, mock_length, mock_prot, mock_flags, mock_fd, mock_offset));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mmap",
+	                     syscall(__NR_mmap,
+	                             mock_addr,
+	                             mock_length,
+	                             mock_prot,
+	                             mock_flags,
+	                             mock_fd,
+	                             mock_offset));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -27,8 +34,7 @@ TEST(SyscallEnter, mmapE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -52,7 +58,7 @@ TEST(SyscallEnter, mmapE)
 
 	/* Parameter 5: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(5, (int64_t)mock_fd);
-	
+
 	/* Parameter 6: offset (type: PT_UINT64) */
 	evt_test->assert_numeric_param(6, (uint64_t)mock_offset);
 

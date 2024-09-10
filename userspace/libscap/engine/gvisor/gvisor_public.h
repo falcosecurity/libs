@@ -19,22 +19,23 @@ limitations under the License.
 #define GVISOR_ENGINE "gvisor"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-	struct scap_gvisor_engine_params
-	{
-		const char* gvisor_root_path;	///< When using gvisor, the root path used by runsc commands
-		const char* gvisor_config_path; ///< When using gvisor, the path to the configuration file
+struct scap_gvisor_engine_params {
+	const char* gvisor_root_path;    ///< When using gvisor, the root path used by runsc commands
+	const char* gvisor_config_path;  ///< When using gvisor, the path to the configuration file
 
-		bool no_events; //< Pinky swear we don't want any event from it (i.e. next will always fail, just have proc scan)
-		int gvisor_epoll_timeout;	///< When using gvisor, the timeout to wait for a new event
-		struct scap_gvisor_platform *gvisor_platform; ///< The gvisor engine and platform have a bit of shared state
-	};
+	bool no_events;  //< Pinky swear we don't want any event from it (i.e. next will always fail,
+	                 // just have proc scan)
+	int gvisor_epoll_timeout;  ///< When using gvisor, the timeout to wait for a new event
+	struct scap_gvisor_platform*
+	        gvisor_platform;  ///< The gvisor engine and platform have a bit of shared state
+};
 
-	struct scap_platform;
-	struct scap_platform* scap_gvisor_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context);
+struct scap_platform;
+struct scap_platform* scap_gvisor_alloc_platform(proc_entry_callback proc_callback,
+                                                 void* proc_callback_context);
 
 #ifdef __cplusplus
 };

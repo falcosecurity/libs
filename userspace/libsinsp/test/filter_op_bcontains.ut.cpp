@@ -21,14 +21,18 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-TEST_F(sinsp_with_test_input, bcontains_bstartswith)
-{
+TEST_F(sinsp_with_test_input, bcontains_bstartswith) {
 	add_default_init_thread();
 
 	open_inspector();
 
 	uint8_t read_buf[] = {'h', 'e', 'l', 'l', 'o'};
-	sinsp_evt * evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_READ_X, 2, (int64_t) 0, scap_const_sized_buffer{read_buf, sizeof(read_buf)});
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_READ_X,
+	                                      2,
+	                                      (int64_t)0,
+	                                      scap_const_sized_buffer{read_buf, sizeof(read_buf)});
 
 	// test filters with bcontains
 	EXPECT_FALSE(filter_compiles("evt.buffer bcontains"));

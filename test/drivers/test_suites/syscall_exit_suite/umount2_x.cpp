@@ -4,8 +4,7 @@
 
 #include <sys/mount.h>
 
-TEST(SyscallExit, umount2X)
-{
+TEST(SyscallExit, umount2X) {
 	auto evt_test = get_syscall_event_test(__NR_umount2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallExit, umount2X)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

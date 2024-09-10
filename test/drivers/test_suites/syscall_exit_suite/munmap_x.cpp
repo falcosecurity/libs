@@ -4,8 +4,7 @@
 
 #include <sys/mman.h>
 
-TEST(SyscallExit, munmapX)
-{
+TEST(SyscallExit, munmapX) {
 	auto evt_test = get_syscall_event_test(__NR_munmap, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallExit, munmapX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

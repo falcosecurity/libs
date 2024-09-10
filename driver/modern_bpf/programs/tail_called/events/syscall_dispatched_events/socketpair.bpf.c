@@ -11,17 +11,13 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(socketpair_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(socketpair_e, struct pt_regs *regs, long id) {
 	/* Collect parameters at the beginning to manage socketcalls */
 	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKETPAIR_E_SIZE, PPME_SOCKET_SOCKETPAIR_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKETPAIR_E_SIZE, PPME_SOCKET_SOCKETPAIR_E)) {
 		return 0;
 	}
 
@@ -56,13 +52,9 @@ int BPF_PROG(socketpair_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(socketpair_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(socketpair_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKETPAIR_X_SIZE, PPME_SOCKET_SOCKETPAIR_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKETPAIR_X_SIZE, PPME_SOCKET_SOCKETPAIR_X)) {
 		return 0;
 	}
 
@@ -79,8 +71,7 @@ int BPF_PROG(socketpair_x,
 	unsigned long fds_pointer = 0;
 
 	/* In case of success we have 0. */
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		/* Collect parameters at the beginning to manage socketcalls */
 		unsigned long args[4] = {0};
 		extract__network_args(args, 4, regs);
@@ -92,8 +83,7 @@ int BPF_PROG(socketpair_x,
 		/* Get source and peer. */
 		struct file *file = extract__file_struct_from_fd((int32_t)fds[0]);
 		struct socket *socket = get_sock_from_file(file);
-		if(socket != NULL)
-		{
+		if(socket != NULL) {
 			BPF_CORE_READ_INTO(&source, socket, sk);
 			struct unix_sock *us = (struct unix_sock *)source;
 			BPF_CORE_READ_INTO(&peer, us, peer);

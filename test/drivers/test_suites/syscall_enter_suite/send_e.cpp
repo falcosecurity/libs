@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_send
-TEST(SyscallEnter, sendE)
-{
+TEST(SyscallEnter, sendE) {
 	auto evt_test = get_syscall_event_test(__NR_send, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallEnter, sendE)
 	char mock_buf[8];
 	size_t mock_count = 4096;
 	int flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_send, mock_fd, (void *)(mock_buf), mock_count, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "send",
+	                     syscall(__NR_send, mock_fd, (void *)(mock_buf), mock_count, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallEnter, sendE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

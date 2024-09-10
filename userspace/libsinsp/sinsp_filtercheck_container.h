@@ -21,11 +21,9 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_container : public sinsp_filter_check
-{
+class sinsp_filter_check_container : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_CONTAINER_ID = 0,
 		TYPE_CONTAINER_FULL_CONTAINER_ID,
 		TYPE_CONTAINER_NAME,
@@ -56,7 +54,9 @@ public:
 	virtual ~sinsp_filter_check_container() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
 
 	const std::string& get_argstr() const;
 

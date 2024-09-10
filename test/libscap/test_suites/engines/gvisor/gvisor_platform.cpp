@@ -20,8 +20,7 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <libscap/engine/gvisor/gvisor.h>
 
-TEST(gvisor_platform, generate_sandbox_id)
-{
+TEST(gvisor_platform, generate_sandbox_id) {
 	char lasterr[SCAP_LASTERR_SIZE];
 
 	scap_gvisor::platform p(lasterr, "/the/root/path");
@@ -31,17 +30,20 @@ TEST(gvisor_platform, generate_sandbox_id)
 	uint32_t insertions = 0;
 
 	// insert sandboxes
-	id = p.get_numeric_sandbox_id("8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff817");
+	id = p.get_numeric_sandbox_id(
+	        "8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff817");
 	EXPECT_NE(id, 0);
 	seen_ids.insert(id);
 	EXPECT_EQ(seen_ids.size(), ++insertions);
 
-	uint32_t id_18 = p.get_numeric_sandbox_id("8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff818");
+	uint32_t id_18 = p.get_numeric_sandbox_id(
+	        "8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff818");
 	EXPECT_NE(id_18, 0);
 	seen_ids.insert(id_18);
 	EXPECT_EQ(seen_ids.size(), ++insertions);
 
-	id = p.get_numeric_sandbox_id("8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff819");
+	id = p.get_numeric_sandbox_id(
+	        "8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff819");
 	EXPECT_NE(id, 0);
 	seen_ids.insert(id);
 	EXPECT_EQ(seen_ids.size(), ++insertions);
@@ -57,12 +59,14 @@ TEST(gvisor_platform, generate_sandbox_id)
 	EXPECT_EQ(seen_ids.size(), ++insertions);
 
 	// retrieve ID
-	id = p.get_numeric_sandbox_id("8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff818");
+	id = p.get_numeric_sandbox_id(
+	        "8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff818");
 	EXPECT_NE(id, 0);
 	EXPECT_EQ(id_18, id);
 
 	// release and retrieve
 	p.release_sandbox_id("8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff818");
-	id = p.get_numeric_sandbox_id("8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff820");
+	id = p.get_numeric_sandbox_id(
+	        "8d966e94e52551866762589eecdd9d44a9d9f87f27cd85af4cf45b7d3d2ff820");
 	EXPECT_NE(id, 0);
 }

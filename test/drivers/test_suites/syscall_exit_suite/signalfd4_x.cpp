@@ -4,8 +4,7 @@
 
 #include <sys/signalfd.h>
 
-TEST(SyscallExit, signalfd4X)
-{
+TEST(SyscallExit, signalfd4X) {
 	auto evt_test = get_syscall_event_test(__NR_signalfd4, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -18,7 +17,9 @@ TEST(SyscallExit, signalfd4X)
 	size_t sizemask = 0;
 	/* Our instrumentation will convert these into `O_NONBLOCK | O_CLOEXEC` */
 	int flags = SFD_NONBLOCK | SFD_CLOEXEC;
-	assert_syscall_state(SYSCALL_FAILURE, "signalfd4", syscall(__NR_signalfd4, mock_fd, &mask, sizemask, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "signalfd4",
+	                     syscall(__NR_signalfd4, mock_fd, &mask, sizemask, flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -27,8 +28,7 @@ TEST(SyscallExit, signalfd4X)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

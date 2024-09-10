@@ -4,8 +4,7 @@
 
 #include <sys/resource.h>
 
-TEST(SyscallExit, getrlimitX_success)
-{
+TEST(SyscallExit, getrlimitX_success) {
 	auto evt_test = get_syscall_event_test(__NR_getrlimit, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,11 @@ TEST(SyscallExit, getrlimitX_success)
 
 	int resource = RLIMIT_NPROC;
 	struct rlimit rlim = {};
-	assert_syscall_state(SYSCALL_SUCCESS, "getrlimit", syscall(__NR_getrlimit, resource, &rlim), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "getrlimit",
+	                     syscall(__NR_getrlimit, resource, &rlim),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +25,7 @@ TEST(SyscallExit, getrlimitX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -47,8 +49,7 @@ TEST(SyscallExit, getrlimitX_success)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallExit, getrlimitX_wrong_resource)
-{
+TEST(SyscallExit, getrlimitX_wrong_resource) {
 	auto evt_test = get_syscall_event_test(__NR_getrlimit, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -66,8 +67,7 @@ TEST(SyscallExit, getrlimitX_wrong_resource)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -93,8 +93,7 @@ TEST(SyscallExit, getrlimitX_wrong_resource)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallExit, getrlimitX_null_rlimit_pointer)
-{
+TEST(SyscallExit, getrlimitX_null_rlimit_pointer) {
 	auto evt_test = get_syscall_event_test(__NR_getrlimit, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -111,8 +110,7 @@ TEST(SyscallExit, getrlimitX_null_rlimit_pointer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

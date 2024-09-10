@@ -16,14 +16,12 @@
 // KERNEL SYSCALL CATEGORY DROP COUNTERS
 /////////////////////////////////////////
 
-static __always_inline void compute_event_types_stats(uint16_t event_type, struct counter_map *counter)
-{
-	if(!counter)
-	{
+static __always_inline void compute_event_types_stats(uint16_t event_type,
+                                                      struct counter_map *counter) {
+	if(!counter) {
 		return;
 	}
-	switch(event_type)
-	{
+	switch(event_type) {
 	// enter
 	case PPME_SYSCALL_OPEN_E:
 	case PPME_SYSCALL_CREAT_E:
@@ -84,7 +82,7 @@ static __always_inline void compute_event_types_stats(uint16_t event_type, struc
 		break;
 	case PPME_PROCEXIT_1_E:
 		counter->n_drops_buffer_proc_exit++;
-		break;		
+		break;
 	// exit
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
@@ -145,7 +143,7 @@ static __always_inline void compute_event_types_stats(uint16_t event_type, struc
 		break;
 	case PPME_SYSCALL_CLOSE_X:
 		counter->n_drops_buffer_close_exit++;
-		break;		
+		break;
 	default:
 		break;
 	}

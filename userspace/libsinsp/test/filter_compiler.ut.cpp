@@ -9,67 +9,56 @@ using namespace std;
 
 // A mock filtercheck that returns always true or false depending on
 // the passed-in field name. The operation is ignored.
-class mock_compiler_filter_check : public sinsp_filter_check
-{
+class mock_compiler_filter_check : public sinsp_filter_check {
 public:
-	int32_t parse_field_name(std::string_view str, bool alloc_state, bool needed_for_filtering) override
-	{
-		static const std::unordered_set<std::string> s_supported_fields = {
-			"c.true", "c.false", "c.buffer", "c.doublequote", "c.singlequote"
-		};
+	int32_t parse_field_name(std::string_view str,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override {
+		static const std::unordered_set<std::string> s_supported_fields = {"c.true",
+		                                                                   "c.false",
+		                                                                   "c.buffer",
+		                                                                   "c.doublequote",
+		                                                                   "c.singlequote"};
 
 		m_name = str;
-		if (str == "c.buffer")
-		{
+		if(str == "c.buffer") {
 			m_field_info.m_type = PT_BYTEBUF;
 		}
 
-		if (s_supported_fields.find(m_name) != s_supported_fields.end())
-		{
+		if(s_supported_fields.find(m_name) != s_supported_fields.end()) {
 			return m_name.size();
 		}
 
 		return -1;
 	}
 
-	inline bool compare(sinsp_evt*) override
-	{
-		if (m_name == "c.true")
-		{
+	inline bool compare(sinsp_evt*) override {
+		if(m_name == "c.true") {
 			return true;
 		}
-		if (m_name == "c.false" || m_name == "c.buffer")
-		{
+		if(m_name == "c.false" || m_name == "c.buffer") {
 			return false;
 		}
-		if (m_name == "c.doublequote")
-		{
+		if(m_name == "c.doublequote") {
 			return m_value == "hello \"quoted\"";
 		}
-		if (m_name == "c.singlequote")
-		{
+		if(m_name == "c.singlequote") {
 			return m_value == "hello 'quoted'";
 		}
 		return false;
 	}
 
-	const filtercheck_field_info* get_field_info() const override
-	{
-		return &m_field_info;
-	}
+	const filtercheck_field_info* get_field_info() const override { return &m_field_info; }
 
-	inline void add_filter_value(const char* str, uint32_t l, uint32_t i) override
-	{
+	inline void add_filter_value(const char* str, uint32_t l, uint32_t i) override {
 		m_value = string(str, l);
 	}
 
-	inline void add_filter_value(std::unique_ptr<sinsp_filter_check> f) override
-	{
+	inline void add_filter_value(std::unique_ptr<sinsp_filter_check> f) override {
 		throw sinsp_exception("unexpected right-hand side filter comparison");
 	}
 
-	inline bool extract_nocache(sinsp_evt *e, vector<extract_value_t>& v, bool) override
-	{
+	inline bool extract_nocache(sinsp_evt* e, vector<extract_value_t>& v, bool) override {
 		return false;
 	}
 
@@ -78,62 +67,56 @@ public:
 	filtercheck_field_info m_field_info{PT_CHARBUF, 0, PF_NA, "", "", ""};
 };
 
-struct test_sinsp_filter_cache_factory: public exprstr_sinsp_filter_cache_factory
-{
+struct test_sinsp_filter_cache_factory : public exprstr_sinsp_filter_cache_factory {
 	bool docache = true;
-	const std::shared_ptr<sinsp_filter_cache_metrics> metrics = std::make_shared<sinsp_filter_cache_metrics>();
+	const std::shared_ptr<sinsp_filter_cache_metrics> metrics =
+	        std::make_shared<sinsp_filter_cache_metrics>();
 
 	virtual ~test_sinsp_filter_cache_factory() = default;
 
-	test_sinsp_filter_cache_factory(bool cached = true): docache(cached) { }
+	test_sinsp_filter_cache_factory(bool cached = true): docache(cached) {}
 
-	std::shared_ptr<sinsp_filter_extract_cache> new_extract_cache(const ast_expr_t* e, node_info_t& info) override
-    {
-		if (!docache)
-		{
+	std::shared_ptr<sinsp_filter_extract_cache> new_extract_cache(const ast_expr_t* e,
+	                                                              node_info_t& info) override {
+		if(!docache) {
 			return nullptr;
 		}
 		return exprstr_sinsp_filter_cache_factory::new_extract_cache(e, info);
-    }
+	}
 
-	std::shared_ptr<sinsp_filter_compare_cache> new_compare_cache(const ast_expr_t* e, node_info_t& info) override
-    {
-        if (!docache)
-		{
+	std::shared_ptr<sinsp_filter_compare_cache> new_compare_cache(const ast_expr_t* e,
+	                                                              node_info_t& info) override {
+		if(!docache) {
 			return nullptr;
 		}
 		return exprstr_sinsp_filter_cache_factory::new_compare_cache(e, info);
-    }
+	}
 
-	std::shared_ptr<sinsp_filter_cache_metrics> new_metrics(const ast_expr_t* e, node_info_t& info) override
-    {
-        return metrics;
-    }
+	std::shared_ptr<sinsp_filter_cache_metrics> new_metrics(const ast_expr_t* e,
+	                                                        node_info_t& info) override {
+		return metrics;
+	}
 };
 
 // A factory that creates mock filterchecks
-class mock_compiler_filter_factory: public sinsp_filter_factory
-{
+class mock_compiler_filter_factory : public sinsp_filter_factory {
 public:
-	mock_compiler_filter_factory(sinsp *inspector): sinsp_filter_factory(inspector, m_filterlist) {}
+	mock_compiler_filter_factory(sinsp* inspector): sinsp_filter_factory(inspector, m_filterlist) {}
 
-	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(std::string_view fldname) const override
-	{
-		if (mock_compiler_filter_check{}.parse_field_name(fldname, false, true) > 0)
-		{
+	inline std::unique_ptr<sinsp_filter_check> new_filtercheck(
+	        std::string_view fldname) const override {
+		if(mock_compiler_filter_check{}.parse_field_name(fldname, false, true) > 0) {
 			return std::make_unique<mock_compiler_filter_check>();
 		}
 
-		if (auto check = sinsp_filter_factory::new_filtercheck(fldname); check != nullptr)
-		{
+		if(auto check = sinsp_filter_factory::new_filtercheck(fldname); check != nullptr) {
 			return check;
 		}
 
 		return nullptr;
 	}
 
-	inline list<sinsp_filter_factory::filter_fieldclass_info> get_fields() const override
-	{
+	inline list<sinsp_filter_factory::filter_fieldclass_info> get_fields() const override {
 		return m_list;
 	}
 
@@ -144,65 +127,48 @@ public:
 // Compile a filter, pass a mock event to it, and
 // check that the result of the boolean evaluation is
 // the expected one
-void test_filter_run(bool result, string filter_str)
-{
+void test_filter_run(bool result, string filter_str) {
 	sinsp inspector;
 	auto factory = std::make_shared<mock_compiler_filter_factory>(&inspector);
 	sinsp_filter_compiler compiler(factory, filter_str);
-	try
-	{
+	try {
 		auto filter = compiler.compile();
-		if (filter->run(NULL) != result)
-		{
+		if(filter->run(NULL) != result) {
 			FAIL() << filter_str << " -> unexpected '" << (result ? "false" : "true") << "' result";
 		}
-	}
-	catch(const std::exception& e)
-	{
+	} catch(const std::exception& e) {
 		FAIL() << filter_str << " -> " << e.what();
-	}
-	catch(...)
-	{
+	} catch(...) {
 		FAIL() << filter_str << " -> " << "UNKNOWN ERROR";
 	}
 }
 
-void test_filter_compile(
-		std::shared_ptr<sinsp_filter_factory> factory,
-		string filter_str,
-		bool expect_fail=false,
-		size_t expected_warnings=0)
-{
+void test_filter_compile(std::shared_ptr<sinsp_filter_factory> factory,
+                         string filter_str,
+                         bool expect_fail = false,
+                         size_t expected_warnings = 0) {
 	sinsp_filter_compiler compiler(factory, filter_str);
-	try
-	{
+	try {
 		auto filter = compiler.compile();
-		if (expect_fail)
-		{
+		if(expect_fail) {
 			FAIL() << filter_str << " -> expected failure but compilation was successful";
 		}
-	}
-	catch(const std::exception& e)
-	{
-		if (!expect_fail)
-		{
+	} catch(const std::exception& e) {
+		if(!expect_fail) {
 			FAIL() << filter_str << " -> " << e.what();
 		}
-	}
-	catch(...)
-	{
-		if (!expect_fail)
-		{
+	} catch(...) {
+		if(!expect_fail) {
 			FAIL() << filter_str << " -> " << "UNKNOWN ERROR";
 		}
 	}
 
 	std::string warnings_fmt;
-	for (const auto& warn : compiler.get_warnings())
-	{
+	for(const auto& warn : compiler.get_warnings()) {
 		warnings_fmt.append("\n").append(warn.pos.as_string()).append(" -> ").append(warn.msg);
 	}
-	ASSERT_EQ(compiler.get_warnings().size(), expected_warnings) << "filter: " + filter_str + "\nactual warnings: " + warnings_fmt;
+	ASSERT_EQ(compiler.get_warnings().size(), expected_warnings)
+	        << "filter: " + filter_str + "\nactual warnings: " + warnings_fmt;
 }
 
 // In each of these test cases, we compile filter expression
@@ -210,44 +176,42 @@ void test_filter_compile(
 // so that we can deterministically check the result of running
 // a mock event in the compiled filters. The purpose is verifying
 // that the compiler constructs valid boolean expressions.
-TEST(sinsp_filter_compiler, boolean_evaluation)
-{
-	test_filter_run(true,  "c.true=1");
+TEST(sinsp_filter_compiler, boolean_evaluation) {
+	test_filter_run(true, "c.true=1");
 	test_filter_run(false, "c.false=1");
 	test_filter_run(false, "not c.true=1");
 	test_filter_run(false, "not(c.true=1)");
-	test_filter_run(true,  "not not c.true=1");
-	test_filter_run(true,  "not not(c.true=1)");
-	test_filter_run(true,  "not (not c.true=1)");
+	test_filter_run(true, "not not c.true=1");
+	test_filter_run(true, "not not(c.true=1)");
+	test_filter_run(true, "not (not c.true=1)");
 	test_filter_run(false, "not not not c.true=1");
 	test_filter_run(false, "not not not(c.true=1)");
 	test_filter_run(false, "not (not (not c.true=1))");
 	test_filter_run(false, "not(not(not c.true=1))");
-	test_filter_run(true,  "not not not not c.true=1");
-	test_filter_run(true,  "not not(not not c.true=1)");
-	test_filter_run(true,  "c.true=1 and c.true=1");
+	test_filter_run(true, "not not not not c.true=1");
+	test_filter_run(true, "not not(not not c.true=1)");
+	test_filter_run(true, "c.true=1 and c.true=1");
 	test_filter_run(false, "c.true=1 and c.false=1");
 	test_filter_run(false, "c.false=1 and c.true=1");
 	test_filter_run(false, "c.false=1 and c.false=1");
 	test_filter_run(false, "c.true=1 and not c.true=1");
 	test_filter_run(false, "not c.true=1 and c.true=1");
-	test_filter_run(true,  "c.true=1 or c.true=1");
-	test_filter_run(true,  "c.true=1 or c.false=1");
-	test_filter_run(true,  "c.false=1 or c.true=1");
+	test_filter_run(true, "c.true=1 or c.true=1");
+	test_filter_run(true, "c.true=1 or c.false=1");
+	test_filter_run(true, "c.false=1 or c.true=1");
 	test_filter_run(false, "c.false=1 or c.false=1");
-	test_filter_run(true,  "c.false=1 or not c.false=1");
-	test_filter_run(true,  "not c.false=1 or c.false=1");
-	test_filter_run(true,  "c.true=1 or c.true=1 and c.false=1");
+	test_filter_run(true, "c.false=1 or not c.false=1");
+	test_filter_run(true, "not c.false=1 or c.false=1");
+	test_filter_run(true, "c.true=1 or c.true=1 and c.false=1");
 	test_filter_run(false, "(c.true=1 or c.true=1) and c.false=1");
-	test_filter_run(true,  "not (not (c.true=1 or c.true=1) and c.false=1)");
+	test_filter_run(true, "not (not (c.true=1 or c.true=1) and c.false=1)");
 	test_filter_run(false, "not (c.false=1 or c.false=1 or c.true=1)");
-	test_filter_run(true,  "not (c.false=1 or c.false=1 and not c.true=1)");
+	test_filter_run(true, "not (c.false=1 or c.false=1 and not c.true=1)");
 	test_filter_run(false, "not (c.false=1 or not c.false=1 and c.true=1)");
 	test_filter_run(false, "not ((c.false=1 or not (c.false=1 and not c.true=1)) and c.true=1)");
 }
 
-TEST(sinsp_filter_compiler, str_escape)
-{
+TEST(sinsp_filter_compiler, str_escape) {
 	test_filter_run(true, "c.singlequote = 'hello \\'quoted\\''");
 	test_filter_run(true, "c.singlequote = \"hello 'quoted'\"");
 	test_filter_run(true, "c.doublequote = 'hello \"quoted\"'");
@@ -259,8 +223,7 @@ TEST(sinsp_filter_compiler, str_escape)
 	test_filter_run(false, "c.doublequote = 'hello \"\"quoted\"\"'");
 }
 
-TEST(sinsp_filter_compiler, supported_operators)
-{
+TEST(sinsp_filter_compiler, supported_operators) {
 	sinsp inspector;
 	std::shared_ptr<sinsp_filter_factory> factory(new mock_compiler_filter_factory(&inspector));
 
@@ -294,8 +257,7 @@ TEST(sinsp_filter_compiler, supported_operators)
 	test_filter_compile(factory, "c.buffer bstartswith abc_1", true);
 }
 
-TEST(sinsp_filter_compiler, operators_field_types_compatibility)
-{
+TEST(sinsp_filter_compiler, operators_field_types_compatibility) {
 	sinsp inspector;
 	sinsp_filter_check_list filterlist;
 	auto factory = std::make_shared<sinsp_filter_factory>(&inspector, filterlist);
@@ -320,7 +282,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.rawtime bstartswith 303000", true);
 	test_filter_compile(factory, "evt.rawtime iglob 1", true);
 	test_filter_compile(factory, "evt.rawtime regex '1'", true);
-	
+
 	// PT_BOOL
 	test_filter_compile(factory, "evt.is_io exists");
 	test_filter_compile(factory, "evt.is_io = true");
@@ -597,8 +559,7 @@ TEST(sinsp_filter_compiler, operators_field_types_compatibility)
 	test_filter_compile(factory, "evt.num regex '1'", true);
 }
 
-TEST(sinsp_filter_compiler, complex_filter)
-{
+TEST(sinsp_filter_compiler, complex_filter) {
 	sinsp inspector;
 	std::shared_ptr<sinsp_filter_factory> factory(new mock_compiler_filter_factory(&inspector));
 
@@ -608,34 +569,34 @@ TEST(sinsp_filter_compiler, complex_filter)
 	// The rule has been expanded with all its Falco macros, lists,
 	// and exceptions, so it makes a good integration test case.
 	string filter_str =
-		"("
-		"	(evt.type = open or evt.type = openat)"
-		"	and evt.is_open_write = true"
-		"	and fd.typechar = f"
-		"	and fd.num >= 0"
-		")"
-		"and ("
-		"	fd.filename in ("
-		"		.bashrc, .bash_profile, .bash_history, .bash_login,"
-		"		.bash_logout, .inputrc, .profile, .cshrc, .login, .logout,"
-		"		.history, .tcshrc, .cshdirs, .zshenv, .zprofile, .zshrc,"
-		"		.zlogin, .zlogout"
-		"	)"
-		"	or fd.name in (/etc/profile, /etc/bashrc, /etc/csh.cshrc, /etc/csh.login)"
-		"	or fd.directory in (/etc/zsh)"
-		")"
-		"and not proc.name in (ash, bash, csh, ksh, sh, tcsh, zsh, dash)"
-		"and not ("
-		"	proc.name = exe"
-		"	and (proc.cmdline contains \"/var/lib/docker\" or proc.cmdline contains '/var/run/docker')"
-		"	and proc.pname in (dockerd, docker, dockerd-current, docker-current)"
-		")";
+	        "("
+	        "	(evt.type = open or evt.type = openat)"
+	        "	and evt.is_open_write = true"
+	        "	and fd.typechar = f"
+	        "	and fd.num >= 0"
+	        ")"
+	        "and ("
+	        "	fd.filename in ("
+	        "		.bashrc, .bash_profile, .bash_history, .bash_login,"
+	        "		.bash_logout, .inputrc, .profile, .cshrc, .login, .logout,"
+	        "		.history, .tcshrc, .cshdirs, .zshenv, .zprofile, .zshrc,"
+	        "		.zlogin, .zlogout"
+	        "	)"
+	        "	or fd.name in (/etc/profile, /etc/bashrc, /etc/csh.cshrc, /etc/csh.login)"
+	        "	or fd.directory in (/etc/zsh)"
+	        ")"
+	        "and not proc.name in (ash, bash, csh, ksh, sh, tcsh, zsh, dash)"
+	        "and not ("
+	        "	proc.name = exe"
+	        "	and (proc.cmdline contains \"/var/lib/docker\" or proc.cmdline contains "
+	        "'/var/run/docker')"
+	        "	and proc.pname in (dockerd, docker, dockerd-current, docker-current)"
+	        ")";
 
 	test_filter_compile(factory, filter_str);
 }
 
-TEST(sinsp_filter_compiler, compilation_warnings)
-{
+TEST(sinsp_filter_compiler, compilation_warnings) {
 	sinsp inspector;
 	std::shared_ptr<sinsp_filter_factory> factory(new mock_compiler_filter_factory(&inspector));
 
@@ -671,24 +632,22 @@ TEST(sinsp_filter_compiler, compilation_warnings)
 // Test filter strings against real events.
 //////////////////////////////
 
-TEST_F(sinsp_with_test_input, filter_simple_evaluation)
-{
+TEST_F(sinsp_with_test_input, filter_simple_evaluation) {
 	// Basic case just to assert that the basic setup works
 	add_default_init_thread();
 	open_inspector();
-	sinsp_evt * evt = generate_getcwd_failed_entry_event();
+	sinsp_evt* evt = generate_getcwd_failed_entry_event();
 	ASSERT_TRUE(eval_filter(evt, "(evt.type = getcwd)"));
 	ASSERT_TRUE(eval_filter(evt, "(evt.arg.res = val(evt.arg.res))"));
 }
 
-TEST_F(sinsp_with_test_input, filter_val_transformer)
-{
+TEST_F(sinsp_with_test_input, filter_val_transformer) {
 	add_default_init_thread();
 	open_inspector();
-	// Please note that with `evt.args = evt.args` we are evaluating the field `evt.args` against the const value
-	// `evt.args`.
+	// Please note that with `evt.args = evt.args` we are evaluating the field `evt.args` against
+	// the const value `evt.args`.
 
-	sinsp_evt * evt = generate_getcwd_failed_entry_event();
+	sinsp_evt* evt = generate_getcwd_failed_entry_event();
 
 	ASSERT_FALSE(eval_filter(evt, "(evt.args = evt.args)"));
 	ASSERT_TRUE(eval_filter(evt, "(evt.args = val(evt.args))"));
@@ -703,31 +662,29 @@ TEST_F(sinsp_with_test_input, filter_val_transformer)
 	ASSERT_FALSE(filter_compiles("(syscall.type = val(syscall.type, evt.type))"));
 }
 
-TEST_F(sinsp_with_test_input, filter_transformers_combination)
-{
+TEST_F(sinsp_with_test_input, filter_transformers_combination) {
 	add_default_init_thread();
 	open_inspector();
 
-	sinsp_evt * evt = generate_getcwd_failed_entry_event();
+	sinsp_evt* evt = generate_getcwd_failed_entry_event();
 
 	ASSERT_TRUE(eval_filter(evt, "(tolower(syscall.type) = getcwd)"));
 	ASSERT_TRUE(eval_filter(evt, "(toupper(syscall.type) = GETCWD)"));
 	ASSERT_TRUE(eval_filter(evt, "(tolower(toupper(syscall.type)) = getcwd)"));
 	ASSERT_TRUE(eval_filter(evt, "(tolower(syscall.type) = tolower(syscall.type))"));
 	ASSERT_TRUE(eval_filter(evt, "(toupper(syscall.type) = toupper(syscall.type))"));
-	ASSERT_TRUE(eval_filter(evt, "(tolower(toupper(syscall.type)) = tolower(toupper(syscall.type)))"));
+	ASSERT_TRUE(
+	        eval_filter(evt, "(tolower(toupper(syscall.type)) = tolower(toupper(syscall.type)))"));
 }
 
-TEST_F(sinsp_with_test_input, filter_different_types)
-{
+TEST_F(sinsp_with_test_input, filter_different_types) {
 	add_default_init_thread();
 	open_inspector();
 
 	ASSERT_FALSE(filter_compiles("syscall.type = val(evt.is_wait)"));
 }
 
-TEST_F(sinsp_with_test_input, filter_not_supported_rhs_field)
-{
+TEST_F(sinsp_with_test_input, filter_not_supported_rhs_field) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -738,8 +695,7 @@ TEST_F(sinsp_with_test_input, filter_not_supported_rhs_field)
 	ASSERT_FALSE(filter_compiles("evt.around[1404996934793590564] = val(evt.buflen.in)"));
 }
 
-TEST_F(sinsp_with_test_input, filter_not_supported_transformers)
-{
+TEST_F(sinsp_with_test_input, filter_not_supported_transformers) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -747,8 +703,7 @@ TEST_F(sinsp_with_test_input, filter_not_supported_transformers)
 	ASSERT_FALSE(filter_compiles("toupper(evt.rawarg.res) = -1"));
 }
 
-TEST_F(sinsp_with_test_input, filter_transformers_wrong_input_type)
-{
+TEST_F(sinsp_with_test_input, filter_transformers_wrong_input_type) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -757,8 +712,7 @@ TEST_F(sinsp_with_test_input, filter_transformers_wrong_input_type)
 	ASSERT_FALSE(filter_compiles("b64(evt.rawres) = -1"));
 }
 
-TEST_F(sinsp_with_test_input, filter_cache_disabled)
-{
+TEST_F(sinsp_with_test_input, filter_cache_disabled) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -776,8 +730,7 @@ TEST_F(sinsp_with_test_input, filter_cache_disabled)
 	EXPECT_EQ(cf->metrics->m_num_extract_cache, 0);
 }
 
-TEST_F(sinsp_with_test_input, filter_cache_enabled)
-{
+TEST_F(sinsp_with_test_input, filter_cache_enabled) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -795,8 +748,7 @@ TEST_F(sinsp_with_test_input, filter_cache_enabled)
 	EXPECT_EQ(cf->metrics->m_num_extract_cache, 2);
 }
 
-TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
-{
+TEST_F(sinsp_with_test_input, filter_cache_corner_cases) {
 	sinsp_filter_check_list flist;
 
 	add_default_init_thread();
@@ -810,7 +762,7 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	ASSERT_TRUE(pl->init("", err)) << err;
 	flist.add_filter_check(m_inspector.new_generic_filtercheck());
 	flist.add_filter_check(sinsp_plugin::new_filtercheck(pl));
-	
+
 	auto ff = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
 	auto cf = std::make_shared<test_sinsp_filter_cache_factory>();
 	auto evt = generate_getcwd_failed_entry_event();
@@ -820,7 +772,8 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	ASSERT_TRUE(eval_filter(evt, "sample.is_open = 0", ff, cf));
 	EXPECT_EQ(cf->metrics->m_num_compare, 3);
 	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
-	EXPECT_EQ(cf->metrics->m_num_extract, 2); // the third extraction never happens as the check is cached
+	EXPECT_EQ(cf->metrics->m_num_extract,
+	          2);  // the third extraction never happens as the check is cached
 	EXPECT_EQ(cf->metrics->m_num_extract_cache, 1);
 	cf->metrics->reset();
 
@@ -829,7 +782,7 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	ASSERT_FALSE(eval_filter(evt, "fd.ip = 10.0.0.1", ff, cf));
 	EXPECT_EQ(cf->metrics->m_num_compare, 3);
 	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
-	EXPECT_EQ(cf->metrics->m_num_extract, 0); // special logic avoids extraction entirely :/
+	EXPECT_EQ(cf->metrics->m_num_extract, 0);  // special logic avoids extraction entirely :/
 	EXPECT_EQ(cf->metrics->m_num_extract_cache, 0);
 	cf->metrics->reset();
 
@@ -852,7 +805,8 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	cf->metrics->reset();
 
 	// fields with transformers
-	ASSERT_TRUE(eval_filter(evt, "toupper(evt.source) = SYS or toupper(evt.source) = SYSCALL", ff, cf));
+	ASSERT_TRUE(
+	        eval_filter(evt, "toupper(evt.source) = SYS or toupper(evt.source) = SYSCALL", ff, cf));
 	ASSERT_TRUE(eval_filter(evt, "toupper(evt.source) = SYSCALL", ff, cf));
 	EXPECT_EQ(cf->metrics->m_num_compare, 3);
 	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
@@ -861,7 +815,10 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	cf->metrics->reset();
 
 	// field-to-field comparisons
-	ASSERT_TRUE(eval_filter(evt, "evt.source = val(evt.plugininfo) or evt.source = val(evt.source)", ff, cf));
+	ASSERT_TRUE(eval_filter(evt,
+	                        "evt.source = val(evt.plugininfo) or evt.source = val(evt.source)",
+	                        ff,
+	                        cf));
 	ASSERT_TRUE(eval_filter(evt, "evt.source = val(evt.source)", ff, cf));
 	EXPECT_EQ(cf->metrics->m_num_compare, 3);
 	EXPECT_EQ(cf->metrics->m_num_compare_cache, 1);
@@ -870,8 +827,7 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases)
 	cf->metrics->reset();
 }
 
-TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation)
-{
+TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation) {
 	// Basic case just to assert that the basic setup works
 	add_default_init_thread();
 	open_inspector();
@@ -880,7 +836,7 @@ TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation)
 
 	// legit use case with a string
 	EXPECT_TRUE(eval_filter(evt, "evt.source regex '^[s]{1}ysca[l]{2}$'"));
-	
+
 	// respect anchors
 	EXPECT_FALSE(eval_filter(evt, "evt.source regex 'yscal.*'"));
 	EXPECT_FALSE(eval_filter(evt, "evt.source regex '.*yscal'"));

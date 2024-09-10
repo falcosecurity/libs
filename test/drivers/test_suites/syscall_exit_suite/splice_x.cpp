@@ -2,8 +2,7 @@
 
 #ifdef __NR_splice
 
-TEST(SyscallExit, spliceX)
-{
+TEST(SyscallExit, spliceX) {
 	auto evt_test = get_syscall_event_test(__NR_splice, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallExit, spliceX)
 	int fd_out = 1;
 	uint64_t size = 0x123;
 	unsigned int flags = SPLICE_F_MOVE;
-	assert_syscall_state(SYSCALL_FAILURE, "splice", syscall(__NR_splice, fd_in, 0, fd_out, 0, size, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "splice",
+	                     syscall(__NR_splice, fd_in, 0, fd_out, 0, size, flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -23,8 +24,7 @@ TEST(SyscallExit, spliceX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

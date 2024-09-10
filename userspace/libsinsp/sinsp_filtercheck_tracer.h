@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_tracer : public sinsp_filter_check
-{
+class sinsp_filter_check_tracer : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_ID = 0,
 		TYPE_TIME,
 		TYPE_NTAGS,
@@ -51,13 +49,17 @@ public:
 	virtual ~sinsp_filter_check_tracer() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
 
 protected:
 	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 
 private:
-	int32_t extract_arg(std::string_view fldname, std::string_view val, const struct ppm_param_info** parinfo);
+	int32_t extract_arg(std::string_view fldname,
+	                    std::string_view val,
+	                    const struct ppm_param_info** parinfo);
 
 	int32_t m_argid;
 	std::string m_argname;

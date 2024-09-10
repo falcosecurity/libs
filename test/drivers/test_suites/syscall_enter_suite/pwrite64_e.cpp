@@ -2,8 +2,7 @@
 
 #ifdef __NR_pwrite64
 
-TEST(SyscallEnter, pwrite64E)
-{
+TEST(SyscallEnter, pwrite64E) {
 	auto evt_test = get_syscall_event_test(__NR_pwrite64, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, pwrite64E)
 	char* mock_buf = NULL;
 	size_t mock_count = 4096;
 	off_t off = 16;
-	assert_syscall_state(SYSCALL_FAILURE, "pwrite64", syscall(__NR_pwrite64, mock_fd, (void*)(mock_buf), mock_count, off));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "pwrite64",
+	                     syscall(__NR_pwrite64, mock_fd, (void*)(mock_buf), mock_count, off));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, pwrite64E)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -19,15 +19,15 @@ limitations under the License.
 #define SOURCE_PLUGIN_ENGINE "source_plugin"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-	struct scap_source_plugin_engine_params
-	{
-		scap_source_plugin* input_plugin; ///< use this to configure a source plugin that will produce the events for this capture
-		char* input_plugin_params;	  ///< optional parameters string for the source plugin pointed by src_plugin
-	};
+struct scap_source_plugin_engine_params {
+	scap_source_plugin* input_plugin;  ///< use this to configure a source plugin that will produce
+	                                   ///< the events for this capture
+	char* input_plugin_params;  ///< optional parameters string for the source plugin pointed by
+	                            ///< src_plugin
+};
 
 #ifdef __cplusplus
 };

@@ -20,21 +20,19 @@ limitations under the License.
 
 #include <memory>
 #ifdef GRPC_INCLUDE_IS_GRPCPP
-#	include <grpcpp/grpcpp.h>
+#include <grpcpp/grpcpp.h>
 #else
-#	include <grpc++/grpc++.h>
+#include <grpc++/grpc++.h>
 #endif
 
-namespace libsinsp
-{
-class grpc_channel_registry
-{
+namespace libsinsp {
+class grpc_channel_registry {
 public:
 	// Return a (shared) grpc::Channel for the provided url.
 	static std::shared_ptr<grpc::Channel> get_channel(const std::string &url,
-		const grpc::ChannelArguments *args = nullptr);
+	                                                  const grpc::ChannelArguments *args = nullptr);
 
 private:
 	static std::map<std::string, std::weak_ptr<grpc::Channel>> s_channels;
 };
-}
+}  // namespace libsinsp

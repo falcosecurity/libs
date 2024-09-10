@@ -13,17 +13,13 @@
  *	 TP_PROTO(int sig, struct kernel_siginfo *info, struct k_sigaction *ka)
  */
 SEC("tp_btf/signal_deliver")
-int BPF_PROG(signal_deliver,
-	     int sig, struct kernel_siginfo *info, struct k_sigaction *ka)
-{
-	if(sampling_logic(ctx, PPME_SIGNALDELIVER_E, MODERN_BPF_TRACEPOINT))
-	{
+int BPF_PROG(signal_deliver, int sig, struct kernel_siginfo *info, struct k_sigaction *ka) {
+	if(sampling_logic(ctx, PPME_SIGNALDELIVER_E, MODERN_BPF_TRACEPOINT)) {
 		return 0;
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNAL_DELIVER_SIZE, PPME_SIGNALDELIVER_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNAL_DELIVER_SIZE, PPME_SIGNALDELIVER_E)) {
 		return 0;
 	}
 
@@ -34,10 +30,8 @@ int BPF_PROG(signal_deliver,
 	/* Try to find the source pid */
 	pid_t spid = 0;
 
-	if(info != NULL)
-	{
-		switch(sig)
-		{
+	if(info != NULL) {
+		switch(sig) {
 		case SIGKILL:
 			spid = info->_sifields._kill._pid;
 			break;
@@ -46,15 +40,11 @@ int BPF_PROG(signal_deliver,
 		case SIGHUP:
 		case SIGINT:
 		case SIGTSTP:
-		case SIGQUIT:
-		{
+		case SIGQUIT: {
 			int si_code = info->si_code;
-			if(si_code == SI_USER ||
-			   si_code == SI_QUEUE ||
-			   si_code <= 0)
-			{
+			if(si_code == SI_USER || si_code == SI_QUEUE || si_code <= 0) {
 				/* This is equivalent to `info->si_pid` where
-			 * `si_pid` is a macro `_sifields._kill._pid`
+				 * `si_pid` is a macro `_sifields._kill._pid`
 				 */
 				spid = info->_sifields._kill._pid;
 			}
@@ -70,8 +60,7 @@ int BPF_PROG(signal_deliver,
 			break;
 		}
 
-		if(sig >= SIGRTMIN && sig <= SIGRTMAX)
-		{
+		if(sig >= SIGRTMIN && sig <= SIGRTMAX) {
 			spid = info->_sifields._rt._pid;
 		}
 	}

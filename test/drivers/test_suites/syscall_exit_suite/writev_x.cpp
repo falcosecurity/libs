@@ -5,8 +5,7 @@
 
 #if defined(__NR_close) && defined(__NR_openat) && defined(__NR_close)
 
-TEST(SyscallExit, writevX_no_snaplen)
-{
+TEST(SyscallExit, writevX_no_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_writev, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -30,8 +29,7 @@ TEST(SyscallExit, writevX_no_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -53,8 +51,7 @@ TEST(SyscallExit, writevX_no_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writevX_snaplen)
-{
+TEST(SyscallExit, writevX_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_writev, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -74,7 +71,11 @@ TEST(SyscallExit, writevX_snaplen)
 	iov[0].iov_len = sizeof(sent_data_1);
 	iov[1].iov_len = sizeof(sent_data_2);
 	int32_t iovcnt = 2;
-	assert_syscall_state(SYSCALL_SUCCESS, "writev", syscall(__NR_writev, fd, iov, iovcnt), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "writev",
+	                     syscall(__NR_writev, fd, iov, iovcnt),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -82,8 +83,7 @@ TEST(SyscallExit, writevX_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -104,8 +104,7 @@ TEST(SyscallExit, writevX_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writevX_empty)
-{
+TEST(SyscallExit, writevX_empty) {
 	auto evt_test = get_syscall_event_test(__NR_writev, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -124,8 +123,7 @@ TEST(SyscallExit, writevX_empty)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

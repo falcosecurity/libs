@@ -20,8 +20,7 @@ limitations under the License.
 #include <helpers/threads_helpers.h>
 #include <helpers/scap_file_helpers.h>
 
-TEST(scap_file_kexec_arm64, tail_lineage)
-{
+TEST(scap_file_kexec_arm64, tail_lineage) {
 	std::string path = LIBSINSP_TEST_SCAP_FILES_DIR + std::string("kexec_arm64.scap");
 	sinsp m_inspector;
 	m_inspector.open_savefile(path);
@@ -36,23 +35,22 @@ TEST(scap_file_kexec_arm64, tail_lineage)
 
 	/* Search the tail execve event */
 	int64_t tid_tail = 141546;
-	auto evt = scap_file_test_helpers::capture_search_evt_by_type_and_tid(&m_inspector, PPME_SYSCALL_EXECVE_19_X,
-									      tid_tail);
+	auto evt = scap_file_test_helpers::capture_search_evt_by_type_and_tid(&m_inspector,
+	                                                                      PPME_SYSCALL_EXECVE_19_X,
+	                                                                      tid_tail);
 
 	std::vector<int64_t> traverse_parents;
-	sinsp_threadinfo::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt)
-	{
+	sinsp_threadinfo::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt) {
 		/* we stop when we reach the init parent */
 		traverse_parents.push_back(pt->m_tid);
-		if(pt->m_tid == INIT_TID)
-		{
+		if(pt->m_tid == INIT_TID) {
 			return false;
 		}
 		return true;
 	};
 
-	/* In this captures all runc threads are already dead when we call tail so the expected lineage is the
-	 * following:
+	/* In this captures all runc threads are already dead when we call tail so the expected lineage
+	 * is the following:
 	 *
 	 * (num_event: 274503)
 	 * v [tail] tid: 141546, pid: 141546, ptid 141446, vtid: 21, vpid: 21, reaper: 0
@@ -70,8 +68,11 @@ TEST(scap_file_kexec_arm64, tail_lineage)
 	int64_t tid_containerd_shim2 = 112962;
 	int64_t tid_systemd2 = 1;
 
-	std::vector<int64_t> expected_traverse_parents_after_execve = {tid_sh, tid_containerd_shim1, tid_systemd1,
-								       tid_containerd_shim2, tid_systemd2};
+	std::vector<int64_t> expected_traverse_parents_after_execve = {tid_sh,
+	                                                               tid_containerd_shim1,
+	                                                               tid_systemd1,
+	                                                               tid_containerd_shim2,
+	                                                               tid_systemd2};
 	traverse_parents.clear();
 	ASSERT_TRUE(evt->get_thread_info());
 	evt->get_thread_info()->traverse_parent_state(visitor);
@@ -84,8 +85,7 @@ TEST(scap_file_kexec_arm64, tail_lineage)
 	ASSERT_TRUE(containerd_shim1_tinfo->m_tginfo->is_reaper());
 }
 
-TEST(scap_file_kexec_arm64, final_thread_table_dim)
-{
+TEST(scap_file_kexec_arm64, final_thread_table_dim) {
 	std::string path = LIBSINSP_TEST_SCAP_FILES_DIR + std::string("kexec_arm64.scap");
 	sinsp m_inspector;
 	m_inspector.open_savefile(path);

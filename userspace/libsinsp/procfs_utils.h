@@ -24,21 +24,16 @@ int get_userns_root_uid(std::istream& uid_map);
 /**
  * @brief Access container data through proc
  */
-class ns_helper
-{
+class ns_helper {
 public:
 	ns_helper(const std::string& host_root);
 
-	bool can_read_host_init_ns_mnt() const
-	{
-		return !m_cannot_read_host_init_ns_mnt;
-	}
+	bool can_read_host_init_ns_mnt() const { return !m_cannot_read_host_init_ns_mnt; }
 
 	//! Return true if not in the host init mount namespace
 	bool in_own_ns_mnt(int64_t pid) const;
 
-	std::string get_pid_root(int64_t pid) const
-	{
+	std::string get_pid_root(int64_t pid) const {
 		return m_host_root + "/proc/" + std::to_string(pid) + "/root";
 	}
 
@@ -48,5 +43,5 @@ private:
 	int64_t m_host_init_root_inode{-1};
 };
 
-} // namespace procfs_utils
-} // namespace libsinsp
+}  // namespace procfs_utils
+}  // namespace libsinsp

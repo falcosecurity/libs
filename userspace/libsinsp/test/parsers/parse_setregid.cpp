@@ -19,25 +19,34 @@ limitations under the License.
 #include "driver/ppm_events_public.h"
 #include <helpers/threads_helpers.h>
 
-TEST_F(sinsp_with_test_input, SETREGID_failure)
-{
+TEST_F(sinsp_with_test_input, SETREGID_failure) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
 
-	add_event_advance_ts(increasing_ts(), p2_t2_tid, PPME_SYSCALL_SETREGID_X, 3, (uint64_t)1, (uint32_t)0, (uint32_t)0);
-
+	add_event_advance_ts(increasing_ts(),
+	                     p2_t2_tid,
+	                     PPME_SYSCALL_SETREGID_X,
+	                     3,
+	                     (uint64_t)1,
+	                     (uint32_t)0,
+	                     (uint32_t)0);
 
 	sinsp_threadinfo* ti = m_inspector.get_thread_ref(p2_t2_tid, false).get();
 	ASSERT_TRUE(ti);
 	ASSERT_TRUE(ti->m_user.gid() == 0);
 }
 
-TEST_F(sinsp_with_test_input, SETREGID_success)
-{
+TEST_F(sinsp_with_test_input, SETREGID_success) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
 
-	add_event_advance_ts(increasing_ts(), p2_t2_tid, PPME_SYSCALL_SETREGID_X, 3, (uint64_t)0, (uint32_t)1337, (uint32_t)1337);
+	add_event_advance_ts(increasing_ts(),
+	                     p2_t2_tid,
+	                     PPME_SYSCALL_SETREGID_X,
+	                     3,
+	                     (uint64_t)0,
+	                     (uint32_t)1337,
+	                     (uint32_t)1337);
 
 	sinsp_threadinfo* ti = m_inspector.get_thread_ref(p2_t2_tid, false).get();
 	ASSERT_TRUE(ti);

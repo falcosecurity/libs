@@ -4,8 +4,7 @@
 
 #include <sys/signalfd.h>
 
-TEST(SyscallExit, signalfdX)
-{
+TEST(SyscallExit, signalfdX) {
 	auto evt_test = get_syscall_event_test(__NR_signalfd, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +15,9 @@ TEST(SyscallExit, signalfdX)
 	int32_t mock_fd = -1;
 	sigset_t mask = {0};
 	size_t sizemask = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "signalfd", syscall(__NR_signalfd, mock_fd, &mask, sizemask));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "signalfd",
+	                     syscall(__NR_signalfd, mock_fd, &mask, sizemask));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -25,8 +26,7 @@ TEST(SyscallExit, signalfdX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -24,11 +24,9 @@ limitations under the License.
 
 typedef struct ppm_evt_hdr scap_evt;
 
-namespace libsinsp
-{
+namespace libsinsp {
 
-class sinsp_suppress
-{
+class sinsp_suppress {
 public:
 	sinsp_suppress() = default;
 
@@ -57,4 +55,4 @@ protected:
 	uint64_t m_num_suppressed_events = 0;
 };
 
-}
+}  // namespace libsinsp

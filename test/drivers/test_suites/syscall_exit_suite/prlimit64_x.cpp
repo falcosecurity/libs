@@ -4,8 +4,7 @@
 
 #include <sys/resource.h>
 
-TEST(SyscallExit, prlimit64X_success)
-{
+TEST(SyscallExit, prlimit64X_success) {
 	auto evt_test = get_syscall_event_test(__NR_prlimit64, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -17,14 +16,22 @@ TEST(SyscallExit, prlimit64X_success)
 	 * 2. Set them as new limits so nothing will change.
 	 */
 	struct rlimit file_rlimit;
-	assert_syscall_state(SYSCALL_SUCCESS, "getrlimit", syscall(__NR_getrlimit, RLIMIT_NOFILE, &file_rlimit), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "getrlimit",
+	                     syscall(__NR_getrlimit, RLIMIT_NOFILE, &file_rlimit),
+	                     NOT_EQUAL,
+	                     -1);
 
 	struct rlimit old_rlimit;
 	struct rlimit new_rlimit;
 	new_rlimit.rlim_cur = file_rlimit.rlim_cur;
 	new_rlimit.rlim_max = file_rlimit.rlim_max;
 	pid_t pid = ::getpid();
-	assert_syscall_state(SYSCALL_SUCCESS, "prlimit64", syscall(__NR_prlimit64, pid, RLIMIT_NOFILE, &new_rlimit, &old_rlimit), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "prlimit64",
+	                     syscall(__NR_prlimit64, pid, RLIMIT_NOFILE, &new_rlimit, &old_rlimit),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -32,8 +39,7 @@ TEST(SyscallExit, prlimit64X_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -69,8 +75,7 @@ TEST(SyscallExit, prlimit64X_success)
 	evt_test->assert_num_params_pushed(7);
 }
 
-TEST(SyscallExit, prlimit64X_failure)
-{
+TEST(SyscallExit, prlimit64X_failure) {
 	auto evt_test = get_syscall_event_test(__NR_prlimit64, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -78,7 +83,9 @@ TEST(SyscallExit, prlimit64X_failure)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	pid_t pid = -1;
-	assert_syscall_state(SYSCALL_FAILURE, "prlimit64", syscall(__NR_prlimit64, pid, RLIMIT_RSS, NULL, NULL));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "prlimit64",
+	                     syscall(__NR_prlimit64, pid, RLIMIT_RSS, NULL, NULL));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -87,8 +94,7 @@ TEST(SyscallExit, prlimit64X_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -4,8 +4,7 @@
 
 #include <linux/openat2.h> /* Definition of RESOLVE_* constants */
 
-TEST(SyscallEnter, openat2E)
-{
+TEST(SyscallEnter, openat2E) {
 	auto evt_test = get_syscall_event_test(__NR_openat2, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -23,7 +22,9 @@ TEST(SyscallEnter, openat2E)
 	how.flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	how.mode = 0;
 	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
-	assert_syscall_state(SYSCALL_FAILURE, "openat2", syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how)));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "openat2",
+	                     syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how)));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -31,8 +32,7 @@ TEST(SyscallEnter, openat2E)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -62,8 +62,7 @@ TEST(SyscallEnter, openat2E)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallEnter, openat2E_max_path)
-{
+TEST(SyscallEnter, openat2E_max_path) {
 	auto evt_test = get_syscall_event_test(__NR_openat2, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -82,7 +81,10 @@ TEST(SyscallEnter, openat2E_max_path)
 	how.flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	how.mode = 0;
 	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
-	assert_syscall_state(SYSCALL_FAILURE, "openat2", syscall(__NR_openat2, dirfd, pathname.c_str(), &how, sizeof(struct open_how)));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "openat2",
+	        syscall(__NR_openat2, dirfd, pathname.c_str(), &how, sizeof(struct open_how)));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -90,8 +92,7 @@ TEST(SyscallEnter, openat2E_max_path)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

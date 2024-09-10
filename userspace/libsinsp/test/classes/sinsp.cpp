@@ -25,8 +25,7 @@ limitations under the License.
 #define HOST_ROOT_ENV "HOST_ROOT"
 
 #ifdef HAS_ENGINE_KMOD
-TEST(sinsp, wrong_host_root)
-{
+TEST(sinsp, wrong_host_root) {
 	ASSERT_EQ(0, setenv(HOST_ROOT_ENV, "fake_hostroot", 1));
 	sinsp inspector = {};
 

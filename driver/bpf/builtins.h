@@ -28,4 +28,4 @@ or GPL2.txt for full copies of the license.
 #endif
 #define memcpy __builtin_memcpy
 
-#endif // __BUILTINS_H
+#endif  // __BUILTINS_H

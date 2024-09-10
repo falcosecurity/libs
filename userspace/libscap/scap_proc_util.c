@@ -19,28 +19,35 @@ limitations under the License.
 #include <libscap/scap_proc_util.h>
 #include <libscap/scap.h>
 
-int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint64_t n_tinfos, const scap_threadinfo *tinfos, void* ctx, get_fdinfos_fn get_fdinfos)
-{
+int32_t scap_proc_scan_vtable(char *error,
+                              struct scap_proclist *proclist,
+                              uint64_t n_tinfos,
+                              const scap_threadinfo *tinfos,
+                              void *ctx,
+                              get_fdinfos_fn get_fdinfos) {
 	scap_threadinfo *tinfo;
 	scap_threadinfo new_tinfo;
 	uint32_t res = SCAP_SUCCESS;
 	uint64_t i;
 
-	for (i = 0; i < n_tinfos; i++)
-	{
+	for(i = 0; i < n_tinfos; i++) {
 		// we need a copy because tinfos is const
 		// note: we drop the copy, so we lose the filtering information (tinfo->filtered_out)
-		// but that is only ever used when reading captures (and that code does not call this function)
+		// but that is only ever used when reading captures (and that code does not call this
+		// function)
 		new_tinfo = tinfos[i];
 
 		//
 		// Add the entry to the process table, or fire the notification callback
 		//
-		proclist->m_proc_callback(proclist->m_proc_callback_context, error, new_tinfo.tid, &new_tinfo, NULL,
-					  &tinfo);
+		proclist->m_proc_callback(proclist->m_proc_callback_context,
+		                          error,
+		                          new_tinfo.tid,
+		                          &new_tinfo,
+		                          NULL,
+		                          &tinfo);
 
-		if(tinfo->pid != tinfo->tid)
-		{
+		if(tinfo->pid != tinfo->tid) {
 			continue;
 		}
 
@@ -48,17 +55,19 @@ int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint6
 		const scap_fdinfo *fdinfos;
 
 		res = (*get_fdinfos)(ctx, &tinfos[i], &n_fdinfos, &fdinfos);
-		if(res != SCAP_SUCCESS)
-		{
+		if(res != SCAP_SUCCESS) {
 			continue;
 		}
 
 		uint64_t j;
-		for(j = 0; j < n_fdinfos; j++)
-		{
+		for(j = 0; j < n_fdinfos; j++) {
 			scap_fdinfo fdi = fdinfos[j];
-			proclist->m_proc_callback(proclist->m_proc_callback_context, error, tinfo->tid,
-						  tinfo, &fdi, NULL);
+			proclist->m_proc_callback(proclist->m_proc_callback_context,
+			                          error,
+			                          tinfo->tid,
+			                          tinfo,
+			                          &fdi,
+			                          NULL);
 		}
 	}
 

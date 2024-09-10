@@ -2,8 +2,7 @@
 
 #ifdef __NR_sendfile
 
-TEST(SyscallEnter, sendfileE_null_pointer)
-{
+TEST(SyscallEnter, sendfileE_null_pointer) {
 	auto evt_test = get_syscall_event_test(__NR_sendfile, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, sendfileE_null_pointer)
 	int in_fd = -2;
 	void* offsite = NULL;
 	unsigned long size = 37;
-	assert_syscall_state(SYSCALL_FAILURE, "sendfile", syscall(__NR_sendfile, out_fd, in_fd, offsite, size));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "sendfile",
+	                     syscall(__NR_sendfile, out_fd, in_fd, offsite, size));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, sendfileE_null_pointer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -51,8 +51,7 @@ TEST(SyscallEnter, sendfileE_null_pointer)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallEnter, sendfileE)
-{
+TEST(SyscallEnter, sendfileE) {
 	auto evt_test = get_syscall_event_test(__NR_sendfile, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -63,7 +62,9 @@ TEST(SyscallEnter, sendfileE)
 	int in_fd = -2;
 	unsigned long offsite = 24;
 	unsigned long size = 37;
-	assert_syscall_state(SYSCALL_FAILURE, "sendfile", syscall(__NR_sendfile, out_fd, in_fd, &offsite, size));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "sendfile",
+	                     syscall(__NR_sendfile, out_fd, in_fd, &offsite, size));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -71,8 +72,7 @@ TEST(SyscallEnter, sendfileE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #if defined(CAPTURE_PAGE_FAULTS) && defined(__NR_fork) && defined(__NR_wait4)
-TEST(GenericTracepoints, page_fault_user)
-{
+TEST(GenericTracepoints, page_fault_user) {
 	auto evt_test = get_generic_event_test(PPM_SC_PAGE_FAULT_USER);
 
 	evt_test->enable_capture();
@@ -10,17 +9,19 @@ TEST(GenericTracepoints, page_fault_user)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	pid_t ret_pid = syscall(__NR_fork);
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		exit(EXIT_SUCCESS);
 	}
 	assert_syscall_state(SYSCALL_SUCCESS, "fork", ret_pid, NOT_EQUAL, -1);
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Fork failed..." << std::endl;
 	}
 
@@ -30,8 +31,7 @@ TEST(GenericTracepoints, page_fault_user)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

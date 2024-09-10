@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(flock_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(flock_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_E_SIZE, PPME_SYSCALL_FLOCK_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_E_SIZE, PPME_SYSCALL_FLOCK_E)) {
 		return 0;
 	}
 
@@ -31,7 +27,7 @@ int BPF_PROG(flock_e,
 
 	/* Parameter 2: operation (type: PT_FLAGS32) */
 	unsigned long operation = extract__syscall_argument(regs, 1);
-	ringbuf__store_u32(&ringbuf, flock_flags_to_scap((int) operation));
+	ringbuf__store_u32(&ringbuf, flock_flags_to_scap((int)operation));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -45,13 +41,9 @@ int BPF_PROG(flock_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(flock_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(flock_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_X_SIZE, PPME_SYSCALL_FLOCK_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_X_SIZE, PPME_SYSCALL_FLOCK_X)) {
 		return 0;
 	}
 

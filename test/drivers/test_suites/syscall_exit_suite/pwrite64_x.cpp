@@ -5,8 +5,7 @@
 
 #if defined(__NR_close) && defined(__NR_openat) && defined(__NR_close)
 
-TEST(SyscallExit, pwrite64X_no_snaplen)
-{
+TEST(SyscallExit, pwrite64X_no_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_pwrite64, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -21,7 +20,11 @@ TEST(SyscallExit, pwrite64X_no_snaplen)
 	const unsigned data_len = DEFAULT_SNAPLEN / 2;
 	char buf[data_len] = "hello\0";
 	off_t off = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "pwrite64", syscall(__NR_pwrite64, fd, (void *)buf, data_len, off), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "pwrite64",
+	                     syscall(__NR_pwrite64, fd, (void *)buf, data_len, off),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -29,8 +32,7 @@ TEST(SyscallExit, pwrite64X_no_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -51,8 +53,7 @@ TEST(SyscallExit, pwrite64X_no_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, pwrite64X_snaplen)
-{
+TEST(SyscallExit, pwrite64X_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_pwrite64, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -62,7 +63,9 @@ TEST(SyscallExit, pwrite64X_snaplen)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "some-data";
 	off_t off = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "pwrite64", syscall(__NR_pwrite64, -1, (void *)buf, data_len, off));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "pwrite64",
+	                     syscall(__NR_pwrite64, -1, (void *)buf, data_len, off));
 	int errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -71,8 +74,7 @@ TEST(SyscallExit, pwrite64X_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -93,8 +95,7 @@ TEST(SyscallExit, pwrite64X_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, pwrite64X_fail)
-{
+TEST(SyscallExit, pwrite64X_fail) {
 	auto evt_test = get_syscall_event_test(__NR_pwrite64, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -105,7 +106,9 @@ TEST(SyscallExit, pwrite64X_fail)
 	const unsigned data_len = 64;
 	char *buf = NULL;
 	off_t off = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "pwrite64", syscall(__NR_pwrite64, -1, (void *)buf, data_len, off));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "pwrite64",
+	                     syscall(__NR_pwrite64, -1, (void *)buf, data_len, off));
 	int errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -114,8 +117,7 @@ TEST(SyscallExit, pwrite64X_fail)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

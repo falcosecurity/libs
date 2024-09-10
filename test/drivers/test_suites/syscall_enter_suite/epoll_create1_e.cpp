@@ -2,8 +2,7 @@
 #include <sys/epoll.h>
 
 #if defined(__NR_epoll_create1) && defined(__NR_close)
-TEST(SyscallEnter, epoll_create1E)
-{
+TEST(SyscallEnter, epoll_create1E) {
 	auto evt_test = get_syscall_event_test(__NR_epoll_create1, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -21,8 +20,7 @@ TEST(SyscallEnter, epoll_create1E)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

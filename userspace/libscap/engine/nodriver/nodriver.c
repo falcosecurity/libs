@@ -29,23 +29,22 @@ limitations under the License.
 #include <libscap/scap_gettimeofday.h>
 #include <libscap/scap_sleep.h>
 
-static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
-{
-	struct nodriver_engine *engine = calloc(1, sizeof(struct nodriver_engine));
-	if(engine)
-	{
+static void* alloc_handle(scap_t* main_handle, char* lasterr_ptr) {
+	struct nodriver_engine* engine = calloc(1, sizeof(struct nodriver_engine));
+	if(engine) {
 		engine->m_lasterr = lasterr_ptr;
 	}
 	return engine;
 }
 
-static int32_t init(scap_t* handle, scap_open_args *oargs)
-{
+static int32_t init(scap_t* handle, scap_open_args* oargs) {
 	return SCAP_SUCCESS;
 }
 
-static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags)
-{
+static int32_t next(struct scap_engine_handle handle,
+                    scap_evt** pevent,
+                    uint16_t* pdevid,
+                    uint32_t* pflags) {
 	static scap_evt evt;
 	evt.len = 0;
 	evt.tid = -1;
@@ -62,22 +61,22 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 }
 
 const struct scap_vtable scap_nodriver_engine = {
-	.name = NODRIVER_ENGINE,
-	.savefile_ops = NULL,
+        .name = NODRIVER_ENGINE,
+        .savefile_ops = NULL,
 
-	.alloc_handle = alloc_handle,
-	.init = init,
-	.free_handle = noop_free_handle,
-	.close = noop_close_engine,
-	.next = next,
-	.start_capture = noop_start_capture,
-	.stop_capture = noop_stop_capture,
-	.configure = noop_configure,
-	.get_stats = noop_get_stats,
-	.get_stats_v2 = noop_get_stats_v2,
-	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
-	.get_n_devs = noop_get_n_devs,
-	.get_max_buf_used = noop_get_max_buf_used,
-	.get_api_version = NULL,
-	.get_schema_version = NULL,
+        .alloc_handle = alloc_handle,
+        .init = init,
+        .free_handle = noop_free_handle,
+        .close = noop_close_engine,
+        .next = next,
+        .start_capture = noop_start_capture,
+        .stop_capture = noop_stop_capture,
+        .configure = noop_configure,
+        .get_stats = noop_get_stats,
+        .get_stats_v2 = noop_get_stats_v2,
+        .get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
+        .get_n_devs = noop_get_n_devs,
+        .get_max_buf_used = noop_get_max_buf_used,
+        .get_api_version = NULL,
+        .get_schema_version = NULL,
 };

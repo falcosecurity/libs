@@ -21,8 +21,7 @@ limitations under the License.
 #include <stdbool.h>
 #include <limits.h>
 
-typedef enum
-{
+typedef enum {
 	BPF_PROG_SYS_ENTER = 0,
 	BPF_PROG_SYS_EXIT = 1,
 	BPF_PROG_SCHED_PROC_EXIT = 2,
@@ -30,18 +29,20 @@ typedef enum
 	BPF_PROG_PAGE_FAULT_USER = 4,
 	BPF_PROG_PAGE_FAULT_KERNEL = 5,
 	BPF_PROG_SIGNAL_DELIVER = 6,
-	BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS = 7,	    /* This is only used when raw_tp are not available */
-	BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD = 8, /* This is only used on architectures where the clone/fork child event is missing. Only when we have raw_tp */
-	BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT = 9,  /* This is only used on architectures where the execve/execveat success event is missing */
+	BPF_PROG_SCHED_PROC_FORK_MOVE_ARGS = 7, /* This is only used when raw_tp are not available */
+	BPF_PROG_SCHED_PROC_FORK_MISSING_CHILD =
+	        8, /* This is only used on architectures where the clone/fork child event is missing.
+	              Only when we have raw_tp */
+	BPF_PROG_SCHED_PROC_EXEC_MISSING_EXIT = 9, /* This is only used on architectures where the
+	                                              execve/execveat success event is missing */
 	BPF_PROG_ATTACHED_MAX = 10,
 } bpf_attached_prog_codes;
 
-typedef struct bpf_attached_prog
-{
-	int fd;		     /* fd used to load/unload bpf progs */
-	int efd;	     /* fd used to attach/detach bpf progs */
+typedef struct bpf_attached_prog {
+	int fd;              /* fd used to load/unload bpf progs */
+	int efd;             /* fd used to attach/detach bpf progs */
 	char name[NAME_MAX]; /* name of the program, used to attach it into the kernel */
-	bool raw_tp;	     /* tells if a program is a raw tracepoint or not */
+	bool raw_tp;         /* tells if a program is a raw tracepoint or not */
 } bpf_attached_prog;
 
 bool is_sys_enter(const char* name);

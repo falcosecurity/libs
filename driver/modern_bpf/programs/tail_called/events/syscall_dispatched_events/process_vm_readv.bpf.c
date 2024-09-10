@@ -12,13 +12,12 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(process_vm_readv_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(process_vm_readv_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PROCESS_VM_READV_E_SIZE, PPME_SYSCALL_PROCESS_VM_READV_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf,
+	                           ctx,
+	                           PROCESS_VM_READV_E_SIZE,
+	                           PPME_SYSCALL_PROCESS_VM_READV_E)) {
 		return 0;
 	}
 
@@ -40,18 +39,13 @@ int BPF_PROG(process_vm_readv_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(process_vm_readv_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(process_vm_readv_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
 	auxmap__preload_event_header(auxmap, PPME_SYSCALL_PROCESS_VM_READV_X);
-
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -62,15 +56,13 @@ int BPF_PROG(process_vm_readv_x,
 	int64_t pid = extract__syscall_argument(regs, 0);
 	auxmap__store_s64_param(auxmap, pid);
 
-	if(ret > 0)
-	{
+	if(ret > 0) {
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
 		uint16_t snaplen = maps__get_snaplen();
 		apply_dynamic_snaplen(regs, &snaplen, true, PPME_SYSCALL_PROCESS_VM_READV_X);
-		if(snaplen > ret)
-		{
+		if(snaplen > ret) {
 			snaplen = ret;
 		}
 
@@ -79,9 +71,7 @@ int BPF_PROG(process_vm_readv_x,
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, snaplen);
-	}
-	else
-	{
+	} else {
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		auxmap__store_empty_param(auxmap);
 	}

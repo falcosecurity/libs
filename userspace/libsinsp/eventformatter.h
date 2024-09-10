@@ -35,13 +35,9 @@ limitations under the License.
   This class can be used to format an event into a string, based on an arbitrary
   format.
 */
-class SINSP_PUBLIC sinsp_evt_formatter
-{
+class SINSP_PUBLIC sinsp_evt_formatter {
 public:
-	enum output_format {
-		OF_NORMAL = 0,
-		OF_JSON   = 1
-	};
+	enum output_format { OF_NORMAL = 0, OF_JSON = 1 };
 
 	/*!
 	  \brief Constructs a formatter.
@@ -52,9 +48,11 @@ public:
 	   as the one of the output in Falco rules, so refer to the Falco
 	   documentation for details.
 	*/
-	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks);
+	sinsp_evt_formatter(sinsp *inspector, filter_check_list &available_checks);
 
-	sinsp_evt_formatter(sinsp* inspector, const std::string& fmt, filter_check_list &available_checks);
+	sinsp_evt_formatter(sinsp *inspector,
+	                    const std::string &fmt,
+	                    filter_check_list &available_checks);
 
 	virtual ~sinsp_evt_formatter() = default;
 
@@ -67,9 +65,9 @@ public:
 
 	  \return true if all the tokens can be retrieved successfully, false otherwise.
 	*/
-	bool resolve_tokens(sinsp_evt *evt, std::map<std::string,std::string>& values);
+	bool resolve_tokens(sinsp_evt *evt, std::map<std::string, std::string> &values);
 
-	virtual void set_format(output_format of, const std::string& fmt);
+	virtual void set_format(output_format of, const std::string &fmt);
 
 	// For compatibility with sinsp_filter_factory
 	// interface. It just calls resolve_tokens().
@@ -88,17 +86,15 @@ public:
 	  \return true if the string should be shown (based on the initial *),
 	   false otherwise.
 	*/
-	inline bool tostring(sinsp_evt* evt, std::string* res)
-	{
-		if (!res)
-		{
+	inline bool tostring(sinsp_evt *evt, std::string *res) {
+		if(!res) {
 			return false;
 		}
 		return tostring(evt, *res);
 	}
-	virtual bool tostring(sinsp_evt* evt, std::string &output);
+	virtual bool tostring(sinsp_evt *evt, std::string &output);
 
-	virtual bool tostring_withformat(sinsp_evt* evt, std::string &output, output_format of);
+	virtual bool tostring_withformat(sinsp_evt *evt, std::string &output, output_format of);
 
 	/**
 	 * \brief If true, when resolving tokens in key -> value mappings (e.g.
@@ -106,28 +102,23 @@ public:
 	 * will include fields with their applied transformers. The version of fields
 	 * with no transformers will be included in results in any case regardless
 	 * of this property.
-	*/
-	inline bool get_resolve_transformed_fields() const
-	{
-		return m_resolve_transformed_fields;
-	}
+	 */
+	inline bool get_resolve_transformed_fields() const { return m_resolve_transformed_fields; }
 
-	inline void set_resolve_transformed_fields(bool v)
-	{
-		m_resolve_transformed_fields = v;
-	}
+	inline void set_resolve_transformed_fields(bool v) { m_resolve_transformed_fields = v; }
 
 private:
 	using token_t = std::shared_ptr<sinsp_filter_check>;
 
-	struct resolution_token
-	{
+	struct resolution_token {
 		std::string name;
 		token_t token;
 		bool has_transformers = false;
 
-		resolution_token(const std::string& n, token_t t, bool h)
-			: name(n), token(std::move(t)), has_transformers(h) { }
+		resolution_token(const std::string &n, token_t t, bool h):
+		        name(n),
+		        token(std::move(t)),
+		        has_transformers(h) {}
 	};
 
 	output_format m_output_format;
@@ -137,7 +128,7 @@ private:
 	std::vector<token_t> m_output_tokens;
 	std::vector<uint32_t> m_output_tokenlens;
 	std::vector<resolution_token> m_resolution_tokens;
-	sinsp* m_inspector = nullptr;
+	sinsp *m_inspector = nullptr;
 	filter_check_list &m_available_checks;
 	bool m_require_all_values = false;
 	bool m_resolve_transformed_fields = false;
@@ -146,8 +137,7 @@ private:
 	Json::FastWriter m_writer;
 };
 
-class sinsp_evt_formatter_factory
-{
+class sinsp_evt_formatter_factory {
 public:
 	sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks);
 	virtual ~sinsp_evt_formatter_factory() = default;
@@ -157,7 +147,6 @@ public:
 	virtual std::shared_ptr<sinsp_evt_formatter> create_formatter(const std::string &format);
 
 protected:
-
 	// Maps from output string to formatter
 	std::map<std::string, std::shared_ptr<sinsp_evt_formatter>> m_formatters;
 

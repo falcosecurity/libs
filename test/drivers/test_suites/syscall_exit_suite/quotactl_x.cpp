@@ -4,8 +4,7 @@
 
 #include <sys/quota.h>
 
-TEST(SyscallExit, quotactlX)
-{
+TEST(SyscallExit, quotactlX) {
 	auto evt_test = get_syscall_event_test(__NR_quotactl, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +15,9 @@ TEST(SyscallExit, quotactlX)
 	const char* special = "/dev//*null";
 	int id = 1;
 	struct if_dqblk addr = {};
-	assert_syscall_state(SYSCALL_FAILURE, "quotactl", syscall(__NR_quotactl, cmd, special, id, &addr));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "quotactl",
+	                     syscall(__NR_quotactl, cmd, special, id, &addr));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -25,8 +26,7 @@ TEST(SyscallExit, quotactlX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

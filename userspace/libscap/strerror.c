@@ -37,8 +37,7 @@ limitations under the License.
 #define strerror_r(errnum, buf, size) strerror_s(buf, size, errnum)
 #endif
 
-int32_t scap_errprintf_unchecked(char *buf, int errnum, const char* fmt, ...)
-{
+int32_t scap_errprintf_unchecked(char* buf, int errnum, const char* fmt, ...) {
 	int len;
 
 	va_list va;
@@ -47,11 +46,9 @@ int32_t scap_errprintf_unchecked(char *buf, int errnum, const char* fmt, ...)
 	len = vsnprintf(buf, SCAP_LASTERR_SIZE, fmt, va);
 	va_end(va);
 
-	if (errnum > 0 && len < SCAP_LASTERR_SIZE - 1)
-	{
+	if(errnum > 0 && len < SCAP_LASTERR_SIZE - 1) {
 		char err_buf[SCAP_LASTERR_SIZE];
-		if(strerror_r(errnum, err_buf, sizeof(err_buf)) < 0)
-		{
+		if(strerror_r(errnum, err_buf, sizeof(err_buf)) < 0) {
 			snprintf(err_buf, sizeof(err_buf), "Unknown error %d", errnum);
 		}
 		snprintf(buf + len, SCAP_LASTERR_SIZE - len, ": %s", err_buf);

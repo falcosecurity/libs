@@ -39,51 +39,41 @@ using namespace std;
 
 #define DATA "ABCDEFGHI"
 
-class path_validator
-{
+class path_validator {
 public:
 	path_validator(string filename, string bcwd) { update_cwd(filename, bcwd); }
 
-	void update_cwd(string filename, string bcwd)
-	{
+	void update_cwd(string filename, string bcwd) {
 		m_callnum = 0;
 		m_filename = filename;
 
 		std::filesystem::path f(filename);
-		if(!f.is_absolute())
-		{
+		if(!f.is_absolute()) {
 			m_scat = string("<f>") + std::string(std::filesystem::absolute(f).lexically_normal());
-		}
-		else
-		{
+		} else {
 			m_scat = string("<f>") + std::string(f.lexically_normal());
 		}
 
 		m_scwd = bcwd;
 
-		if (m_scwd[m_scwd.size() != '/'])
-		{
+		if(m_scwd[m_scwd.size() != '/']) {
 			m_scwd += '/';
 		}
 	}
 
-	void validate(sinsp_evt* e)
-	{
+	void validate(sinsp_evt* e) {
 		uint16_t type = e->get_type();
 		sinsp_threadinfo* pinfo = e->get_thread_info(false);
 
-		switch (m_callnum)
-		{
+		switch(m_callnum) {
 		case 0:
-			if (type == PPME_SYSCALL_OPEN_E || type == PPME_SYSCALL_OPENAT_2_E)
-			{
+			if(type == PPME_SYSCALL_OPEN_E || type == PPME_SYSCALL_OPENAT_2_E) {
 				m_callnum++;
 			}
 
 			break;
 		case 1:
-			if (type == PPME_SYSCALL_OPEN_X || type == PPME_SYSCALL_OPENAT_2_X)
-			{
+			if(type == PPME_SYSCALL_OPEN_X || type == PPME_SYSCALL_OPENAT_2_X) {
 				EXPECT_EQ(e->get_param_value_str("name", false), m_filename);
 				EXPECT_EQ(m_scwd, pinfo->get_cwd());
 				EXPECT_EQ(m_scat, e->get_param_value_str("fd"));
@@ -93,23 +83,19 @@ public:
 
 			break;
 		case 2:
-			if (type == PPME_SYSCALL_WRITE_E)
-			{
+			if(type == PPME_SYSCALL_WRITE_E) {
 				int cfd = std::stoll(e->get_param_value_str("fd", false));
 
-				if (cfd == m_fd)
-				{
+				if(cfd == m_fd) {
 					EXPECT_EQ(m_scat, e->get_param_value_str("fd"));
-					EXPECT_EQ(std::to_string(sizeof(DATA) - 1),
-					          e->get_param_value_str("size"));
+					EXPECT_EQ(std::to_string(sizeof(DATA) - 1), e->get_param_value_str("size"));
 					m_callnum++;
 				}
 			}
 
 			break;
 		case 3:
-			if (type == PPME_SYSCALL_WRITE_X)
-			{
+			if(type == PPME_SYSCALL_WRITE_X) {
 				EXPECT_EQ(std::to_string(sizeof(DATA) - 1), e->get_param_value_str("res"));
 				EXPECT_EQ(m_scwd, pinfo->get_cwd());
 				EXPECT_EQ(DATA, e->get_param_value_str("data"));
@@ -130,8 +116,7 @@ public:
 	string m_scat;
 };
 
-void testdir(string filename, string chdirtarget = "")
-{
+void testdir(string filename, string chdirtarget = "") {
 	char bcwd[1024];
 
 	ASSERT_TRUE(getcwd(bcwd, 1024) != NULL);
@@ -141,18 +126,13 @@ void testdir(string filename, string chdirtarget = "")
 	// FILTER
 	//
 	int tid = getpid();
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{
-		return evt->get_tid() == tid;
-	};
+	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == tid; };
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
-		if (chdirtarget != "")
-		{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+		if(chdirtarget != "") {
 			char tcwd[1024];
 
 			ASSERT_TRUE(chdir(chdirtarget.c_str()) == 0);
@@ -165,13 +145,10 @@ void testdir(string filename, string chdirtarget = "")
 
 		FILE* f = fopen(vldt.m_filename.c_str(), "w+");
 
-		if (f)
-		{
+		if(f) {
 			fwrite(DATA, sizeof(DATA) - 1, 1, f);
 			fclose(f);
-		}
-		else
-		{
+		} else {
 			std::filesystem::path cwd = std::filesystem::current_path();
 			std::cout << "FAIL " << std::string(cwd) << std::endl;
 			FAIL();
@@ -179,8 +156,7 @@ void testdir(string filename, string chdirtarget = "")
 
 		unlink(vldt.m_filename.c_str());
 
-		if (chdirtarget != "")
-		{
+		if(chdirtarget != "") {
 			ASSERT_TRUE(chdir(bcwd) == 0);
 		}
 	};
@@ -188,103 +164,86 @@ void testdir(string filename, string chdirtarget = "")
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{ vldt.validate(param.m_evt); };
+	captured_event_callback_t callback = [&](const callback_param& param) {
+		vldt.validate(param.m_evt);
+	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
 	EXPECT_EQ(4, vldt.m_callnum);
 }
 
-std::string cwd()
-{
+std::string cwd() {
 	return std::filesystem::current_path().filename().string();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
 // relative path-based tests
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, dir_path_1)
-{
+TEST_F(sys_call_test, dir_path_1) {
 	testdir("./test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_2)
-{
+TEST_F(sys_call_test, dir_path_2) {
 	testdir("../test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_3)
-{
+TEST_F(sys_call_test, dir_path_3) {
 	testdir("/test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_4)
-{
+TEST_F(sys_call_test, dir_path_4) {
 	testdir("//test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_5)
-{
+TEST_F(sys_call_test, dir_path_5) {
 	testdir("///test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_6)
-{
+TEST_F(sys_call_test, dir_path_6) {
 	testdir("////test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_7)
-{
+TEST_F(sys_call_test, dir_path_7) {
 	testdir("//////////////////////////////test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_8)
-{
+TEST_F(sys_call_test, dir_path_8) {
 	testdir("../" + cwd() + "/test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_9)
-{
+TEST_F(sys_call_test, dir_path_9) {
 	testdir("../" + cwd() + "/../" + cwd() + "/../" + cwd() + "/../" + cwd() + "/test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_10)
-{
+TEST_F(sys_call_test, dir_path_10) {
 	testdir("/./test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_11)
-{
+TEST_F(sys_call_test, dir_path_11) {
 	testdir("/../test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_12)
-{
+TEST_F(sys_call_test, dir_path_12) {
 	testdir("/../../../../../../test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_13)
-{
+TEST_F(sys_call_test, dir_path_13) {
 	testdir("../../../../../../test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_14)
-{
+TEST_F(sys_call_test, dir_path_14) {
 	testdir("././././././test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_15)
-{
+TEST_F(sys_call_test, dir_path_15) {
 	testdir(".././.././.././test_tmpfile");
 }
 
-TEST_F(sys_call_test, dir_path_16)
-{
+TEST_F(sys_call_test, dir_path_16) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
 
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -293,11 +252,9 @@ TEST_F(sys_call_test, dir_path_16)
 	rmdir("./tmpdir");
 }
 
-TEST_F(sys_call_test, dir_path_17)
-{
+TEST_F(sys_call_test, dir_path_17) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -306,11 +263,9 @@ TEST_F(sys_call_test, dir_path_17)
 	rmdir("./tmpdir");
 }
 
-TEST_F(sys_call_test, dir_path_18)
-{
+TEST_F(sys_call_test, dir_path_18) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -319,11 +274,9 @@ TEST_F(sys_call_test, dir_path_18)
 	rmdir("./tmpdir");
 }
 
-TEST_F(sys_call_test, dir_path_19)
-{
+TEST_F(sys_call_test, dir_path_19) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -335,87 +288,70 @@ TEST_F(sys_call_test, dir_path_19)
 /////////////////////////////////////////////////////////////////////////////////////
 // chdir-based tests
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, dir_chdir_1)
-{
+TEST_F(sys_call_test, dir_chdir_1) {
 	testdir("test_tmpfile", "./");
 }
 
-TEST_F(sys_call_test, dir_chdir_2)
-{
+TEST_F(sys_call_test, dir_chdir_2) {
 	testdir("test_tmpfile", "../");
 }
 
-TEST_F(sys_call_test, dir_chdir_3)
-{
+TEST_F(sys_call_test, dir_chdir_3) {
 	testdir("test_tmpfile", "/");
 }
 
-TEST_F(sys_call_test, dir_chdir_4)
-{
+TEST_F(sys_call_test, dir_chdir_4) {
 	testdir("test_tmpfile", "//");
 }
 
-TEST_F(sys_call_test, dir_chdir_5)
-{
+TEST_F(sys_call_test, dir_chdir_5) {
 	testdir("test_tmpfile", "///");
 }
 
-TEST_F(sys_call_test, dir_chdir_6)
-{
+TEST_F(sys_call_test, dir_chdir_6) {
 	testdir("test_tmpfile", "////");
 }
 
-TEST_F(sys_call_test, dir_chdir_7)
-{
+TEST_F(sys_call_test, dir_chdir_7) {
 	testdir("test_tmpfile", "//////////////////////////////");
 }
 
-TEST_F(sys_call_test, dir_chdir_8)
-{
+TEST_F(sys_call_test, dir_chdir_8) {
 	testdir("test_tmpfile", "../" + cwd() + "/");
 }
 
-TEST_F(sys_call_test, dir_chdir_9)
-{
+TEST_F(sys_call_test, dir_chdir_9) {
 	testdir("test_tmpfile", "../" + cwd() + "/../" + cwd() + "/../" + cwd() + "/../" + cwd());
 }
 
-TEST_F(sys_call_test, dir_chdir_10)
-{
+TEST_F(sys_call_test, dir_chdir_10) {
 	testdir("test_tmpfile", "/./");
 }
 
-TEST_F(sys_call_test, dir_chdir_11)
-{
+TEST_F(sys_call_test, dir_chdir_11) {
 	testdir("test_tmpfile", "/..");
 }
 
-TEST_F(sys_call_test, dir_chdir_12)
-{
+TEST_F(sys_call_test, dir_chdir_12) {
 	testdir("test_tmpfile", "/../../../../../../");
 }
 
-TEST_F(sys_call_test, dir_chdir_13)
-{
+TEST_F(sys_call_test, dir_chdir_13) {
 	testdir("test_tmpfile", "../../../../../..");
 }
 
-TEST_F(sys_call_test, dir_chdir_14)
-{
+TEST_F(sys_call_test, dir_chdir_14) {
 	testdir("test_tmpfile", "././././././");
 }
 
-TEST_F(sys_call_test, dir_chdir_15)
-{
+TEST_F(sys_call_test, dir_chdir_15) {
 	testdir("test_tmpfile", ".././.././.././");
 }
 
-TEST_F(sys_call_test, dir_chdir_16)
-{
+TEST_F(sys_call_test, dir_chdir_16) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
 
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -424,11 +360,9 @@ TEST_F(sys_call_test, dir_chdir_16)
 	rmdir("./tmpdir");
 }
 
-TEST_F(sys_call_test, dir_chdir_17)
-{
+TEST_F(sys_call_test, dir_chdir_17) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -437,11 +371,9 @@ TEST_F(sys_call_test, dir_chdir_17)
 	rmdir("./tmpdir");
 }
 
-TEST_F(sys_call_test, dir_chdir_18)
-{
+TEST_F(sys_call_test, dir_chdir_18) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -450,11 +382,9 @@ TEST_F(sys_call_test, dir_chdir_18)
 	rmdir("./tmpdir");
 }
 
-TEST_F(sys_call_test, dir_chdir_19)
-{
+TEST_F(sys_call_test, dir_chdir_19) {
 	int res = mkdir("./tmpdir", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0;
-	if (res < 0 && res != EEXIST)
-	{
+	if(res < 0 && res != EEXIST) {
 		FAIL();
 	}
 
@@ -466,8 +396,7 @@ TEST_F(sys_call_test, dir_chdir_19)
 /////////////////////////////////////////////////////////////////////////////////////
 // chdir/getcwd
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, dir_getcwd)
-{
+TEST_F(sys_call_test, dir_getcwd) {
 	int callnum = 0;
 	char dir0[] = "./";
 	char dir1[] = "..";
@@ -492,8 +421,7 @@ TEST_F(sys_call_test, dir_getcwd)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
 		ASSERT_TRUE(chdir(dir0) == 0);
 		ASSERT_TRUE(getcwd(cwd0, 256) != NULL);
 
@@ -516,24 +444,19 @@ TEST_F(sys_call_test, dir_getcwd)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		sinsp_threadinfo* pinfo = e->get_thread_info(false);
 
-		if (type == PPME_SYSCALL_CHDIR_E)
-		{
+		if(type == PPME_SYSCALL_CHDIR_E) {
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_CHDIR_X)
-		{
+		} else if(type == PPME_SYSCALL_CHDIR_X) {
 			string cdir;
 			string cdir1;
 			string adir;
 
-			switch (callnum)
-			{
+			switch(callnum) {
 			case 1:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				cdir = string(cwd0);
@@ -574,12 +497,9 @@ TEST_F(sys_call_test, dir_getcwd)
 			//
 			// pinfo->get_cwd() contains a / at the end of the directory
 			//
-			if (cdir != "/")
-			{
+			if(cdir != "/") {
 				cdir1 = cdir + "/";
-			}
-			else
-			{
+			} else {
 				cdir1 = cdir;
 			}
 			EXPECT_EQ(cdir1, pinfo->get_cwd());
@@ -596,8 +516,7 @@ TEST_F(sys_call_test, dir_getcwd)
 /////////////////////////////////////////////////////////////////////////////////////
 // fchdir
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, dir_fchdir)
-{
+TEST_F(sys_call_test, dir_fchdir) {
 	int callnum = 0;
 	char dir0[] = "./";
 	char dir1[] = "..";
@@ -621,13 +540,11 @@ TEST_F(sys_call_test, dir_fchdir)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
 		int fd;
 
 		fd = open(dir0, O_RDONLY);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 		ASSERT_TRUE(fchdir(fd) == 0);
@@ -635,8 +552,7 @@ TEST_F(sys_call_test, dir_fchdir)
 		close(fd);
 
 		fd = open(dir1, O_RDONLY);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 		ASSERT_TRUE(fchdir(fd) == 0);
@@ -644,8 +560,7 @@ TEST_F(sys_call_test, dir_fchdir)
 		close(fd);
 
 		fd = open(dir2, O_RDONLY);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 		ASSERT_TRUE(fchdir(fd) == 0);
@@ -653,8 +568,7 @@ TEST_F(sys_call_test, dir_fchdir)
 		close(fd);
 
 		fd = open(dir3, O_RDONLY);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 		ASSERT_TRUE(fchdir(fd) == 0);
@@ -666,8 +580,7 @@ TEST_F(sys_call_test, dir_fchdir)
 		close(fd);
 
 		fd = open(cwd_ori, O_RDONLY);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 		ASSERT_TRUE(fchdir(fd) == 0);
@@ -678,18 +591,15 @@ TEST_F(sys_call_test, dir_fchdir)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		sinsp_threadinfo* pinfo = e->get_thread_info(false);
 
-		if (type == PPME_SYSCALL_FCHDIR_E)
-		{
+		if(type == PPME_SYSCALL_FCHDIR_E) {
 			string adir;
 
-			switch (callnum)
-			{
+			switch(callnum) {
 			case 0:
 				adir = string("<f>") + string(cwd0);
 				break;
@@ -716,14 +626,11 @@ TEST_F(sys_call_test, dir_fchdir)
 			EXPECT_EQ(adir, e->get_param_value_str("fd"));
 
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_FCHDIR_X)
-		{
+		} else if(type == PPME_SYSCALL_FCHDIR_X) {
 			string cdir;
 			string cdir1;
 
-			switch (callnum)
-			{
+			switch(callnum) {
 			case 1:
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				cdir = string(cwd0);
@@ -756,12 +663,9 @@ TEST_F(sys_call_test, dir_fchdir)
 			//
 			// pinfo->get_cwd() contains a / at the end of the directory
 			//
-			if (cdir != "/")
-			{
+			if(cdir != "/") {
 				cdir1 = cdir + "/";
-			}
-			else
-			{
+			} else {
 				cdir1 = cdir;
 			}
 

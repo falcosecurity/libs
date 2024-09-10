@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #if defined(__NR_unshare)
-TEST(Actions, drop_failed_enter)
-{
+TEST(Actions, drop_failed_enter) {
 	auto evt_test = get_syscall_event_test(__NR_unshare, ENTER_EVENT);
 
 	/* Enable drop failed feature */
@@ -21,8 +20,7 @@ TEST(Actions, drop_failed_enter)
 	evt_test->disable_capture();
 }
 
-TEST(Actions, drop_failed_exit)
-{
+TEST(Actions, drop_failed_exit) {
 	auto evt_test = get_syscall_event_test(__NR_unshare, EXIT_EVENT);
 
 	/* Enable drop failed feature */
@@ -41,8 +39,7 @@ TEST(Actions, drop_failed_exit)
 	evt_test->disable_capture();
 }
 
-TEST(Actions, drop_failed_successful)
-{
+TEST(Actions, drop_failed_successful) {
 	auto evt_test = get_syscall_event_test(__NR_unshare, EXIT_EVENT);
 
 	/* Enable drop failed feature */

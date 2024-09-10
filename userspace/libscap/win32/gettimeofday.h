@@ -21,9 +21,8 @@ limitations under the License.
 #include <Windows.h>
 #include <stdint.h>
 
-static inline uint64_t ft_to_epoch_nsec(FILETIME* ft)
-{
-	static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+static inline uint64_t ft_to_epoch_nsec(FILETIME* ft) {
+	static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
 	uint64_t ftl = (((uint64_t)ft->dwHighDateTime) << 32) + ft->dwLowDateTime;
 	ftl -= EPOCH;
 
@@ -31,11 +30,9 @@ static inline uint64_t ft_to_epoch_nsec(FILETIME* ft)
 	return ts;
 }
 
-static inline uint64_t get_timestamp_ns()
-{
+static inline uint64_t get_timestamp_ns() {
 	FILETIME ft;
 	GetSystemTimePreciseAsFileTime(&ft);
 
 	return ft_to_epoch_nsec(&ft);
 }
-

@@ -4,8 +4,7 @@
 
 #include <sys/capability.h>
 
-TEST(SyscallEnter, capsetE)
-{
+TEST(SyscallEnter, capsetE) {
 	auto evt_test = get_syscall_event_test(__NR_capset, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -25,8 +24,7 @@ TEST(SyscallEnter, capsetE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

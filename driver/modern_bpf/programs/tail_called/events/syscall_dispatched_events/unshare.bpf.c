@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(unshare_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(unshare_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, UNSHARE_E_SIZE, PPME_SYSCALL_UNSHARE_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, UNSHARE_E_SIZE, PPME_SYSCALL_UNSHARE_E)) {
 		return 0;
 	}
 
@@ -27,7 +23,7 @@ int BPF_PROG(unshare_e,
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
 	unsigned long flags = extract__syscall_argument(regs, 0);
-	ringbuf__store_u32(&ringbuf, clone_flags_to_scap((int) flags));
+	ringbuf__store_u32(&ringbuf, clone_flags_to_scap((int)flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -41,13 +37,9 @@ int BPF_PROG(unshare_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(unshare_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(unshare_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, UNSHARE_X_SIZE, PPME_SYSCALL_UNSHARE_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, UNSHARE_X_SIZE, PPME_SYSCALL_UNSHARE_X)) {
 		return 0;
 	}
 

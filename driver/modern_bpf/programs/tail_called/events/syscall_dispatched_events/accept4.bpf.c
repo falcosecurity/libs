@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(accept4_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(accept4_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, ACCEPT4_E_SIZE, PPME_SOCKET_ACCEPT4_6_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, ACCEPT4_E_SIZE, PPME_SOCKET_ACCEPT4_6_E)) {
 		return 0;
 	}
 
@@ -44,13 +40,9 @@ int BPF_PROG(accept4_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(accept4_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(accept4_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -76,8 +68,7 @@ int BPF_PROG(accept4_x,
 	uint8_t queuepct = 0;
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-	if(ret >= 0)
-	{
+	if(ret >= 0) {
 		auxmap__store_socktuple_param(auxmap, (int32_t)ret, INBOUND, NULL);
 
 		/* Collect parameters at the beginning to  manage socketcalls */
@@ -91,22 +82,17 @@ int BPF_PROG(accept4_x,
 		 */
 		struct file *file = extract__file_struct_from_fd((int32_t)socket_fd);
 		struct socket *socket = get_sock_from_file(file);
-		if(socket != NULL)
-		{
+		if(socket != NULL) {
 			struct sock *sk = BPF_CORE_READ(socket, sk);
-			if(sk != NULL)
-			{
+			if(sk != NULL) {
 				BPF_CORE_READ_INTO(&queuelen, sk, sk_ack_backlog);
 				BPF_CORE_READ_INTO(&queuemax, sk, sk_max_ack_backlog);
-				if(queuelen && queuemax)
-				{
+				if(queuelen && queuemax) {
 					queuepct = (uint8_t)((uint64_t)queuelen * 100 / queuemax);
 				}
 			}
 		}
-	}
-	else
-	{
+	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 

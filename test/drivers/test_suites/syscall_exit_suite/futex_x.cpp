@@ -5,8 +5,7 @@
 #include <sys/time.h>
 
 #ifdef __NR_futex
-TEST(SyscallEnter, futexX)
-{
+TEST(SyscallEnter, futexX) {
 	auto evt_test = get_syscall_event_test(__NR_futex, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,8 +15,10 @@ TEST(SyscallEnter, futexX)
 	uint32_t futex_word;
 	int futex_op = FUTEX_PRIVATE_FLAG;
 	uint32_t val = 7;
-	assert_syscall_state(SYSCALL_FAILURE, "futex", syscall(__NR_futex, &futex_word, futex_op, val, NULL, NULL, 0));
-    int64_t errno_value = -errno;
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "futex",
+	                     syscall(__NR_futex, &futex_word, futex_op, val, NULL, NULL, 0));
+	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -25,8 +26,7 @@ TEST(SyscallEnter, futexX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

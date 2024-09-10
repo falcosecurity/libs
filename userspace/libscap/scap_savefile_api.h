@@ -30,8 +30,7 @@ extern "C" {
 
 struct scap_platform;
 
-typedef enum ppm_dumper_type
-{
+typedef enum ppm_dumper_type {
 	DT_FILE = 0,
 	DT_MEM = 1,
 	DT_MANAGED_BUF = 2,
@@ -40,13 +39,12 @@ typedef enum ppm_dumper_type
 #define PPM_DUMPER_MANAGED_BUF_SIZE (3 * 1024 * 1024)
 #define PPM_DUMPER_MANAGED_BUF_RESIZE_FACTOR (1.25)
 
-typedef struct scap_dumper
-{
+typedef struct scap_dumper {
 	gzFile m_f;
 	ppm_dumper_type m_type;
-	uint8_t* m_targetbuf;
-	uint8_t* m_targetbufcurpos;
-	uint8_t* m_targetbufend;
+	uint8_t *m_targetbuf;
+	uint8_t *m_targetbufcurpos;
+	uint8_t *m_targetbufend;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 } scap_dumper_t;
 
@@ -57,31 +55,38 @@ struct iovec;
 /*!
   \brief Indicates the compression type used when writing a tracefile
 */
-typedef enum compression_mode
-{
+typedef enum compression_mode {
 	SCAP_COMPRESSION_NONE = 0,
 	SCAP_COMPRESSION_GZIP = 1
 } compression_mode;
 
-uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
+uint8_t *scap_get_memorydumper_curpos(scap_dumper_t *d);
 int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo);
-scap_dumper_t* scap_write_proclist_begin();
+scap_dumper_t *scap_write_proclist_begin();
 int scap_write_proclist_end(scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen);
-scap_dumper_t *scap_memory_dump_open(struct scap_platform* platform, uint8_t* targetbuf, uint64_t targetbufsize, char* lasterr);
+scap_dumper_t *scap_memory_dump_open(struct scap_platform *platform,
+                                     uint8_t *targetbuf,
+                                     uint64_t targetbufsize,
+                                     char *lasterr);
 scap_dumper_t *scap_managedbuf_dump_create();
 
 // Variant of scap_write_proclist_entry where array-backed information
 // about the thread is provided separate from the scap_threadinfo
 // struct.
-int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len,
-				       const char *comm,
-				       const char *exe,
-				       const char *exepath,
-				       const struct iovec *args, int argscnt,
-				       const struct iovec *envs, int envscnt,
-				       const char *cwd,
-				       const struct iovec *cgroups, int cgroupscnt,
-				       const char *root);
+int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d,
+                                       struct scap_threadinfo *tinfo,
+                                       uint32_t *len,
+                                       const char *comm,
+                                       const char *exe,
+                                       const char *exepath,
+                                       const struct iovec *args,
+                                       int argscnt,
+                                       const struct iovec *envs,
+                                       int envscnt,
+                                       const char *cwd,
+                                       const struct iovec *cgroups,
+                                       int cgroupscnt,
+                                       const char *root);
 
 /*!
   \brief Open a trace file for writing
@@ -91,8 +96,10 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo 
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
-scap_dumper_t *scap_dump_open(struct scap_platform *platform, const char *fname, compression_mode compress,
-			      char *lasterr);
+scap_dumper_t *scap_dump_open(struct scap_platform *platform,
+                              const char *fname,
+                              compression_mode compress,
+                              char *lasterr);
 
 /*!
   \brief Open a trace file for writing, using the provided fd.
@@ -102,7 +109,11 @@ scap_dumper_t *scap_dump_open(struct scap_platform *platform, const char *fname,
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
-scap_dumper_t* scap_dump_open_fd(struct scap_platform* platform, int fd, compression_mode compress, bool skip_proc_scan, char* lasterr);
+scap_dumper_t *scap_dump_open_fd(struct scap_platform *platform,
+                                 int fd,
+                                 compression_mode compress,
+                                 bool skip_proc_scan,
+                                 char *lasterr);
 
 /*!
   \brief Close a trace file.
@@ -147,12 +158,12 @@ void scap_dump_flush(scap_dumper_t *d);
    On Failure, SCAP_FAILURE is returned and scap_dump_getlasterr() can be used to obtain
    the cause of the error.
 */
-int32_t scap_dump(scap_dumper_t *d, scap_evt* e, uint16_t cpuid, uint32_t flags);
+int32_t scap_dump(scap_dumper_t *d, scap_evt *e, uint16_t cpuid, uint32_t flags);
 
 /*!
   \brief Return a string with the last error that happened on the given dumper.
 */
-const char* scap_dump_getlasterr(scap_dumper_t* handle);
+const char *scap_dump_getlasterr(scap_dumper_t *handle);
 
 #ifdef __cplusplus
 }

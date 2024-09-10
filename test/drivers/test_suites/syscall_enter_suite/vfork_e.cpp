@@ -31,7 +31,8 @@
 // 	assert_syscall_state(SYSCALL_SUCCESS, "vfork", ret_pid, NOT_EQUAL, -1);
 // 	int status = 0;
 // 	int options = 0;
-// 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+// 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options,
+// NULL), NOT_EQUAL, -1);
 
 // 	/*=============================== TRIGGER SYSCALL ===========================*/
 

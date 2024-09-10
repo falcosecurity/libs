@@ -20,7 +20,6 @@ limitations under the License.
 
 #include <libscap/scap_platform_impl.h>
 
-struct scap_savefile_platform
-{
+struct scap_savefile_platform {
 	struct scap_platform m_generic;
 };

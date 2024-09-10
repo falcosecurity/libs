@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_fchown
-TEST(SyscallExit, fchownX)
-{
+TEST(SyscallExit, fchownX) {
 	auto evt_test = get_syscall_event_test(__NR_fchown, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -21,8 +20,7 @@ TEST(SyscallExit, fchownX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

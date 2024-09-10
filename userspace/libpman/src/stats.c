@@ -21,8 +21,7 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <libscap/strl.h>
 
-typedef enum modern_bpf_kernel_counters_stats
-{
+typedef enum modern_bpf_kernel_counters_stats {
 	MODERN_BPF_N_EVTS = 0,
 	MODERN_BPF_N_DROPS_BUFFER_TOTAL,
 	MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER,
@@ -44,8 +43,7 @@ typedef enum modern_bpf_kernel_counters_stats
 	MODERN_BPF_MAX_KERNEL_COUNTERS_STATS
 } modern_bpf_kernel_counters_stats;
 
-typedef enum modern_bpf_libbpf_stats
-{
+typedef enum modern_bpf_libbpf_stats {
 	RUN_CNT = 0,
 	RUN_TIME_NS,
 	AVG_TIME_NS,
@@ -53,46 +51,44 @@ typedef enum modern_bpf_libbpf_stats
 } modern_bpf_libbpf_stats;
 
 const char *const modern_bpf_kernel_counters_stats_names[] = {
-	[MODERN_BPF_N_EVTS] = N_EVENTS_PREFIX,
-	[MODERN_BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-	[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
-	[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
-	[MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER] = "n_drops_buffer_execve_enter",
-	[MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT] = "n_drops_buffer_execve_exit",
-	[MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER] = "n_drops_buffer_connect_enter",
-	[MODERN_BPF_N_DROPS_BUFFER_CONNECT_EXIT] = "n_drops_buffer_connect_exit",
-	[MODERN_BPF_N_DROPS_BUFFER_OPEN_ENTER] = "n_drops_buffer_open_enter",
-	[MODERN_BPF_N_DROPS_BUFFER_OPEN_EXIT] = "n_drops_buffer_open_exit",
-	[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_ENTER] = "n_drops_buffer_dir_file_enter",
-	[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
-	[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
-	[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
-	[MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
-	[MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
-	[MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
-	[MODERN_BPF_N_DROPS] = "n_drops",
+        [MODERN_BPF_N_EVTS] = N_EVENTS_PREFIX,
+        [MODERN_BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
+        [MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
+        [MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
+        [MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER] = "n_drops_buffer_execve_enter",
+        [MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT] = "n_drops_buffer_execve_exit",
+        [MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER] = "n_drops_buffer_connect_enter",
+        [MODERN_BPF_N_DROPS_BUFFER_CONNECT_EXIT] = "n_drops_buffer_connect_exit",
+        [MODERN_BPF_N_DROPS_BUFFER_OPEN_ENTER] = "n_drops_buffer_open_enter",
+        [MODERN_BPF_N_DROPS_BUFFER_OPEN_EXIT] = "n_drops_buffer_open_exit",
+        [MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_ENTER] = "n_drops_buffer_dir_file_enter",
+        [MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
+        [MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
+        [MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
+        [MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT] = "n_drops_buffer_close_exit",
+        [MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT] = "n_drops_buffer_proc_exit",
+        [MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
+        [MODERN_BPF_N_DROPS] = "n_drops",
 };
 
 const char *const modern_bpf_libbpf_stats_names[] = {
-	[RUN_CNT] = ".run_cnt",		///< `bpf_prog_info` run_cnt.
-	[RUN_TIME_NS] = ".run_time_ns", ///<`bpf_prog_info` run_time_ns.
-	[AVG_TIME_NS] = ".avg_time_ns", ///< Average time spent in bpg program, calculation: run_time_ns / run_cnt.
+        [RUN_CNT] = ".run_cnt",          ///< `bpf_prog_info` run_cnt.
+        [RUN_TIME_NS] = ".run_time_ns",  ///<`bpf_prog_info` run_time_ns.
+        [AVG_TIME_NS] = ".avg_time_ns",  ///< Average time spent in bpg program, calculation:
+                                         ///< run_time_ns / run_cnt.
 };
 
-int pman_get_scap_stats(struct scap_stats *stats)
-{
+int pman_get_scap_stats(struct scap_stats *stats) {
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct counter_map cnt_map;
 
-	if(!stats)
-	{
+	if(!stats) {
 		pman_print_error("pointer to scap_stats is empty");
 		return errno;
 	}
 
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-	if(counter_maps_fd <= 0)
-	{
+	if(counter_maps_fd <= 0) {
 		pman_print_error("unable to get counter maps");
 		return errno;
 	}
@@ -106,11 +102,12 @@ int pman_get_scap_stats(struct scap_stats *stats)
 	/* We always take statistics from all the CPUs, even if some of them are not online.
 	 * If the CPU is not online the counter map will be empty.
 	 */
-	for(int index = 0; index < g_state.n_possible_cpus; index++)
-	{
-		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
-		{
-			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get the counter map for CPU %d", index);
+	for(int index = 0; index < g_state.n_possible_cpus; index++) {
+		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
+			snprintf(error_message,
+			         MAX_ERROR_MESSAGE_LEN,
+			         "unable to get the counter map for CPU %d",
+			         index);
 			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
@@ -140,8 +137,7 @@ clean_print_stats:
 	return errno;
 }
 
-static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val, uint32_t metric_flag)
-{
+static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val, uint32_t metric_flag) {
 	g_state.stats[pos].type = METRIC_VALUE_TYPE_U64;
 	g_state.stats[pos].flags = metric_flag;
 	g_state.stats[pos].unit = METRIC_VALUE_UNIT_COUNT;
@@ -149,36 +145,31 @@ static void set_u64_monotonic_kernel_counter(uint32_t pos, uint64_t val, uint32_
 	g_state.stats[pos].value.u64 = val;
 }
 
-struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t *rc)
-{
+struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t *rc) {
 	*rc = SCAP_FAILURE;
 	*nstats = 0;
 
 	// If it is the first time we call this function we populate the stats
-	if(g_state.stats == NULL)
-	{
+	if(g_state.stats == NULL) {
 		int nprogs_attached = 0;
-		for(int j = 0; j < MODERN_BPF_PROG_ATTACHED_MAX; j++)
-		{
-			if(g_state.attached_progs_fds[j] != -1)
-			{
+		for(int j = 0; j < MODERN_BPF_PROG_ATTACHED_MAX; j++) {
+			if(g_state.attached_progs_fds[j] != -1) {
 				nprogs_attached++;
 			}
 		}
 
 		uint32_t per_cpu_stats = 0;
-		if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU)
-		{
+		if(flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU) {
 			// At the moment for each available CPU we want:
 			// - the number of events.
 			// - the number of drops.
-			per_cpu_stats = g_state.n_possible_cpus* 2;
+			per_cpu_stats = g_state.n_possible_cpus * 2;
 		}
-		
-		g_state.nstats = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats + (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS);
+
+		g_state.nstats = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS + per_cpu_stats +
+		                 (nprogs_attached * MODERN_BPF_MAX_LIBBPF_STATS);
 		g_state.stats = (metrics_v2 *)calloc(g_state.nstats, sizeof(metrics_v2));
-		if(!g_state.stats)
-		{
+		if(!g_state.stats) {
 			g_state.nstats = 0;
 			pman_print_error("unable to allocate memory for 'metrics_v2' array");
 			return NULL;
@@ -189,20 +180,19 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	int offset = 0;
 
 	/* KERNEL COUNTER STATS */
-	if(flags & METRICS_V2_KERNEL_COUNTERS)
-	{
+	if(flags & METRICS_V2_KERNEL_COUNTERS) {
 		char error_message[MAX_ERROR_MESSAGE_LEN];
 		int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-		if(counter_maps_fd <= 0)
-		{
+		if(counter_maps_fd <= 0) {
 			pman_print_error("unable to get 'counter_maps' fd during kernel stats processing");
 			return NULL;
 		}
 
-		for(uint32_t stat = 0; stat < MODERN_BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
-		{
+		for(uint32_t stat = 0; stat < MODERN_BPF_MAX_KERNEL_COUNTERS_STATS; stat++) {
 			set_u64_monotonic_kernel_counter(stat, 0, METRICS_V2_KERNEL_COUNTERS);
-			strlcpy(g_state.stats[stat].name, (char*)modern_bpf_kernel_counters_stats_names[stat], METRIC_NAME_MAX);
+			strlcpy(g_state.stats[stat].name,
+			        (char *)modern_bpf_kernel_counters_stats_names[stat],
+			        METRIC_NAME_MAX);
 		}
 
 		/* We always take statistics from all the CPUs, even if some of them are not online.
@@ -210,44 +200,71 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 		 */
 		struct counter_map cnt_map = {};
 		uint32_t pos = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS;
-		for(uint32_t index = 0; index < g_state.n_possible_cpus; index++)
-		{
-			if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
-			{
-				snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get the counter map for CPU %d", index);
+		for(uint32_t index = 0; index < g_state.n_possible_cpus; index++) {
+			if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
+				snprintf(error_message,
+				         MAX_ERROR_MESSAGE_LEN,
+				         "unable to get the counter map for CPU %d",
+				         index);
 				pman_print_error((const char *)error_message);
 				close(counter_maps_fd);
 				return NULL;
 			}
 			g_state.stats[MODERN_BPF_N_EVTS].value.u64 += cnt_map.n_evts;
 			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_TOTAL].value.u64 += cnt_map.n_drops_buffer;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 += cnt_map.n_drops_buffer_clone_fork_enter;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 += cnt_map.n_drops_buffer_clone_fork_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER].value.u64 += cnt_map.n_drops_buffer_execve_enter;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT].value.u64 += cnt_map.n_drops_buffer_execve_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER].value.u64 += cnt_map.n_drops_buffer_connect_enter;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CONNECT_EXIT].value.u64 += cnt_map.n_drops_buffer_connect_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OPEN_ENTER].value.u64 += cnt_map.n_drops_buffer_open_enter;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OPEN_EXIT].value.u64 += cnt_map.n_drops_buffer_open_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 += cnt_map.n_drops_buffer_dir_file_enter;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += cnt_map.n_drops_buffer_dir_file_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += cnt_map.n_drops_buffer_other_interest_enter;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += cnt_map.n_drops_buffer_other_interest_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT].value.u64 += cnt_map.n_drops_buffer_close_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT].value.u64 += cnt_map.n_drops_buffer_proc_exit;
-			g_state.stats[MODERN_BPF_N_DROPS_SCRATCH_MAP].value.u64 += cnt_map.n_drops_max_event_size;
-			g_state.stats[MODERN_BPF_N_DROPS].value.u64 += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 +=
+			        cnt_map.n_drops_buffer_clone_fork_enter;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_clone_fork_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_ENTER].value.u64 +=
+			        cnt_map.n_drops_buffer_execve_enter;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_EXECVE_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_execve_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CONNECT_ENTER].value.u64 +=
+			        cnt_map.n_drops_buffer_connect_enter;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CONNECT_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_connect_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OPEN_ENTER].value.u64 +=
+			        cnt_map.n_drops_buffer_open_enter;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OPEN_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_open_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 +=
+			        cnt_map.n_drops_buffer_dir_file_enter;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_dir_file_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 +=
+			        cnt_map.n_drops_buffer_other_interest_enter;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_other_interest_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_CLOSE_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_close_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_BUFFER_PROC_EXIT].value.u64 +=
+			        cnt_map.n_drops_buffer_proc_exit;
+			g_state.stats[MODERN_BPF_N_DROPS_SCRATCH_MAP].value.u64 +=
+			        cnt_map.n_drops_max_event_size;
+			g_state.stats[MODERN_BPF_N_DROPS].value.u64 +=
+			        (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 
-			if((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU))
-			{
+			if((flags & METRICS_V2_KERNEL_COUNTERS_PER_CPU)) {
 				// We set the num events for that CPU.
-				set_u64_monotonic_kernel_counter(pos, cnt_map.n_evts, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-				snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_EVENTS_PER_CPU_PREFIX"%d", index);
+				set_u64_monotonic_kernel_counter(pos,
+				                                 cnt_map.n_evts,
+				                                 METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(g_state.stats[pos].name,
+				         METRIC_NAME_MAX,
+				         N_EVENTS_PER_CPU_PREFIX "%d",
+				         index);
 				pos++;
 
 				// We set the drops for that CPU.
-				set_u64_monotonic_kernel_counter(pos, cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size, METRICS_V2_KERNEL_COUNTERS_PER_CPU);
-				snprintf(g_state.stats[pos].name, METRIC_NAME_MAX, N_DROPS_PER_CPU_PREFIX"%d", index);
+				set_u64_monotonic_kernel_counter(
+				        pos,
+				        cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size,
+				        METRICS_V2_KERNEL_COUNTERS_PER_CPU);
+				snprintf(g_state.stats[pos].name,
+				         METRIC_NAME_MAX,
+				         N_DROPS_PER_CPU_PREFIX "%d",
+				         index);
 				pos++;
 			}
 		}
@@ -256,35 +273,29 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 
 	/* LIBBPF STATS */
 
-	/* At the time of writing (Apr 2, 2023) libbpf stats are only available on a per program granularity.
-	 * This means we cannot measure the statistics for each filler/tail-call individually.
-	 * Hopefully someone upstreams such capabilities to libbpf one day :)
-	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
+	/* At the time of writing (Apr 2, 2023) libbpf stats are only available on a per program
+	 * granularity. This means we cannot measure the statistics for each filler/tail-call
+	 * individually. Hopefully someone upstreams such capabilities to libbpf one day :) Meanwhile,
+	 * we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
 	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
 	 */
-	if((flags & METRICS_V2_LIBBPF_STATS))
-	{
+	if((flags & METRICS_V2_LIBBPF_STATS)) {
 		int fd = 0;
-		for(int bpf_prog = 0; bpf_prog < MODERN_BPF_PROG_ATTACHED_MAX; bpf_prog++)
-		{
+		for(int bpf_prog = 0; bpf_prog < MODERN_BPF_PROG_ATTACHED_MAX; bpf_prog++) {
 			fd = g_state.attached_progs_fds[bpf_prog];
-			if(fd < 0)
-			{
+			if(fd < 0) {
 				/* landing here means prog was not attached */
 				continue;
 			}
 			struct bpf_prog_info info = {};
 			__u32 len = sizeof(info);
-			if((bpf_obj_get_info_by_fd(fd, &info, &len)))
-			{
+			if((bpf_obj_get_info_by_fd(fd, &info, &len))) {
 				/* no info for that prog, it seems like a bug but we can go on */
 				continue;
 			}
 
-			for(int stat = 0; stat < MODERN_BPF_MAX_LIBBPF_STATS; stat++)
-			{
-				if(offset >= g_state.nstats)
-				{
+			for(int stat = 0; stat < MODERN_BPF_MAX_LIBBPF_STATS; stat++) {
+				if(offset >= g_state.nstats) {
 					/* This should never happen, we are doing something wrong */
 					pman_print_error("no enough space for all the stats");
 					return NULL;
@@ -292,9 +303,10 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 				g_state.stats[offset].type = METRIC_VALUE_TYPE_U64;
 				g_state.stats[offset].flags = METRICS_V2_LIBBPF_STATS;
 				strlcpy(g_state.stats[offset].name, info.name, METRIC_NAME_MAX);
-				strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[stat], sizeof(g_state.stats[offset].name));
-				switch(stat)
-				{
+				strlcat(g_state.stats[offset].name,
+				        modern_bpf_libbpf_stats_names[stat],
+				        sizeof(g_state.stats[offset].name));
+				switch(stat) {
 				case RUN_CNT:
 					g_state.stats[offset].unit = METRIC_VALUE_UNIT_COUNT;
 					g_state.stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_MONOTONIC;
@@ -307,10 +319,10 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 					break;
 				case AVG_TIME_NS:
 					g_state.stats[offset].unit = METRIC_VALUE_UNIT_TIME_NS;
-					g_state.stats[offset].metric_type = METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
+					g_state.stats[offset].metric_type =
+					        METRIC_VALUE_METRIC_TYPE_NON_MONOTONIC_CURRENT;
 					g_state.stats[offset].value.u64 = 0;
-					if(info.run_cnt > 0)
-					{
+					if(info.run_cnt > 0) {
 						g_state.stats[offset].value.u64 = info.run_time_ns / info.run_cnt;
 					}
 					break;
@@ -329,14 +341,12 @@ struct metrics_v2 *pman_get_metrics_v2(uint32_t flags, uint32_t *nstats, int32_t
 	return g_state.stats;
 }
 
-int pman_get_n_tracepoint_hit(long *n_events_per_cpu)
-{
+int pman_get_n_tracepoint_hit(long *n_events_per_cpu) {
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct counter_map cnt_map;
 
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-	if(counter_maps_fd <= 0)
-	{
+	if(counter_maps_fd <= 0) {
 		pman_print_error("unable to get counter maps");
 		return errno;
 	}
@@ -344,11 +354,12 @@ int pman_get_n_tracepoint_hit(long *n_events_per_cpu)
 	/* We always take statistics from all the CPUs, even if some of them are not online.
 	 * If the CPU is not online the counter map will be empty.
 	 */
-	for(int index = 0; index < g_state.n_possible_cpus; index++)
-	{
-		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
-		{
-			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
+	for(int index = 0; index < g_state.n_possible_cpus; index++) {
+		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0) {
+			snprintf(error_message,
+			         MAX_ERROR_MESSAGE_LEN,
+			         "unbale to get the counter map for CPU %d",
+			         index);
 			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}

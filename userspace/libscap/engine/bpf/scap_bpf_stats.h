@@ -40,7 +40,7 @@ typedef enum bpf_kernel_counters_stats {
 	BPF_N_DROPS_BUG,
 	BPF_N_DROPS,
 	BPF_MAX_KERNEL_COUNTERS_STATS
-}bpf_kernel_counters_stats;
+} bpf_kernel_counters_stats;
 
 enum bpf_libbpf_stats {
 	RUN_CNT = 0,

@@ -20,13 +20,13 @@ limitations under the License.
 
 namespace scap_gvisor {
 namespace stats {
-    enum gvisor_counters_stats {
-        GVISOR_N_EVTS = 0,
-        GVISOR_N_DROPS_BUG,
-        GVISOR_N_DROPS_BUFFER_TOTAL,
-        GVISOR_N_DROPS,
-        MAX_GVISOR_COUNTERS_STATS
-    };
+enum gvisor_counters_stats {
+	GVISOR_N_EVTS = 0,
+	GVISOR_N_DROPS_BUG,
+	GVISOR_N_DROPS_BUFFER_TOTAL,
+	GVISOR_N_DROPS,
+	MAX_GVISOR_COUNTERS_STATS
+};
 
-} // namespace stats
-} // namespace scap_gvisor
+}  // namespace stats
+}  // namespace scap_gvisor

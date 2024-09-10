@@ -20,44 +20,55 @@ limitations under the License.
 #include <libscap/linux/scap_cgroup.h>
 #include <libscap/linux/scap_cgroup.c>
 
-TEST(cgroups, path_relative)
-{
+TEST(cgroups, path_relative) {
 	char final_path[4096];
 	const char* prefix = "/1/2/3";
 	const char* path = "/../../../init.scope";
 	size_t prefix_len = 0;
 	size_t path_strip_len = 0;
 	ASSERT_EQ(scap_cgroup_prefix_path(prefix, path, &prefix_len, &path_strip_len), SCAP_SUCCESS);
-	snprintf(final_path, sizeof(final_path), "%.*s%s", (int)prefix_len, prefix, path + path_strip_len);
-	ASSERT_STREQ(final_path,"/init.scope");
+	snprintf(final_path,
+	         sizeof(final_path),
+	         "%.*s%s",
+	         (int)prefix_len,
+	         prefix,
+	         path + path_strip_len);
+	ASSERT_STREQ(final_path, "/init.scope");
 }
 
-TEST(cgroups, path_relative_with_final_slash)
-{
+TEST(cgroups, path_relative_with_final_slash) {
 	char final_path[4096];
 	const char* prefix = "/1/2/3/";
 	const char* path = "/../../../init.scope";
 	size_t prefix_len = 0;
 	size_t path_strip_len = 0;
 	ASSERT_EQ(scap_cgroup_prefix_path(prefix, path, &prefix_len, &path_strip_len), SCAP_SUCCESS);
-	snprintf(final_path, sizeof(final_path), "%.*s%s", (int)prefix_len, prefix, path + path_strip_len);
-	ASSERT_STREQ(final_path,"/1/init.scope");
+	snprintf(final_path,
+	         sizeof(final_path),
+	         "%.*s%s",
+	         (int)prefix_len,
+	         prefix,
+	         path + path_strip_len);
+	ASSERT_STREQ(final_path, "/1/init.scope");
 }
 
-TEST(cgroups, path_absolute)
-{
+TEST(cgroups, path_absolute) {
 	char final_path[4096];
 	const char* prefix = "/1/2/3";
 	const char* path = "/absolute";
 	size_t prefix_len = 0;
 	size_t path_strip_len = 0;
 	ASSERT_EQ(scap_cgroup_prefix_path(prefix, path, &prefix_len, &path_strip_len), SCAP_SUCCESS);
-	snprintf(final_path, sizeof(final_path), "%.*s%s", (int)prefix_len, prefix, path + path_strip_len);
-	ASSERT_STREQ(final_path,"/1/2/3/absolute");
+	snprintf(final_path,
+	         sizeof(final_path),
+	         "%.*s%s",
+	         (int)prefix_len,
+	         prefix,
+	         path + path_strip_len);
+	ASSERT_STREQ(final_path, "/1/2/3/absolute");
 }
 
-TEST(cgroups, prefix_empty)
-{
+TEST(cgroups, prefix_empty) {
 	const char* prefix = "";
 	const char* path = "/../../absolute";
 	size_t prefix_len = 0;
@@ -65,14 +76,18 @@ TEST(cgroups, prefix_empty)
 	ASSERT_EQ(scap_cgroup_prefix_path(prefix, path, &prefix_len, &path_strip_len), SCAP_FAILURE);
 }
 
-TEST(cgroups, path_empty)
-{
+TEST(cgroups, path_empty) {
 	char final_path[4096];
 	const char* prefix = "/1/2/3";
 	const char* path = "";
 	size_t prefix_len = 0;
 	size_t path_strip_len = 0;
 	ASSERT_EQ(scap_cgroup_prefix_path(prefix, path, &prefix_len, &path_strip_len), SCAP_SUCCESS);
-	snprintf(final_path, sizeof(final_path), "%.*s%s", (int)prefix_len, prefix, path + path_strip_len);
-	ASSERT_STREQ(final_path,"/1/2/3");
+	snprintf(final_path,
+	         sizeof(final_path),
+	         "%.*s%s",
+	         (int)prefix_len,
+	         prefix,
+	         path + path_strip_len);
+	ASSERT_STREQ(final_path, "/1/2/3");
 }

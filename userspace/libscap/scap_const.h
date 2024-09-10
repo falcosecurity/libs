@@ -37,4 +37,3 @@ limitations under the License.
 // Last error string size for `scap_open...` methods.
 //
 #define SCAP_LASTERR_SIZE 256
-

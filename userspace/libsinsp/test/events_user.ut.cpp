@@ -21,10 +21,8 @@ limitations under the License.
 #include <sinsp_with_test_input.h>
 #include "test_utils.h"
 
-
 // test user tracking with setuid
-TEST_F(sinsp_with_test_input, setuid_setgid)
-{
+TEST_F(sinsp_with_test_input, setuid_setgid) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt;
@@ -64,10 +62,8 @@ TEST_F(sinsp_with_test_input, setuid_setgid)
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
 }
 
-
 // test user tracking with setresuid
-TEST_F(sinsp_with_test_input, setresuid_setresgid)
-{
+TEST_F(sinsp_with_test_input, setresuid_setresgid) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt;

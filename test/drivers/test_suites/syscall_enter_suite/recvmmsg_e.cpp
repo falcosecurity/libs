@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_recvmmsg
-TEST(SyscallEnter, recvmmsgE)
-{
+TEST(SyscallEnter, recvmmsgE) {
 	auto evt_test = get_syscall_event_test(__NR_recvmmsg, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, recvmmsgE)
 	uint32_t vlen = 0;
 	int flags = 0;
 	struct timespec *timeout = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "recvmmsg", syscall(__NR_recvmmsg, mock_fd, msg, vlen, flags, timeout));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "recvmmsg",
+	                     syscall(__NR_recvmmsg, mock_fd, msg, vlen, flags, timeout));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, recvmmsgE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

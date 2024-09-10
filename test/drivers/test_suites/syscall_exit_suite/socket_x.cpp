@@ -5,8 +5,7 @@
 #include <linux/sched.h>
 #include <sys/socket.h>
 
-TEST(SyscallExit, socketX)
-{
+TEST(SyscallExit, socketX) {
 	auto evt_test = get_syscall_event_test(__NR_socket, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -25,15 +24,11 @@ TEST(SyscallExit, socketX)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_socket, domain, type, protocol) == -1)
-		{
+		if(syscall(__NR_socket, domain, type, protocol) == -1) {
 			exit(EXIT_SUCCESS);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -42,10 +37,13 @@ TEST(SyscallExit, socketX)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The socket call is successful while it should fail..." << std::endl;
 	}
 
@@ -58,8 +56,7 @@ TEST(SyscallExit, socketX)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

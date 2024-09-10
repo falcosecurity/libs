@@ -35,8 +35,7 @@ limitations under the License.
 
 #define BPF_MAPS_MAX 32
 
-struct bpf_engine
-{
+struct bpf_engine {
 	struct scap_device_set m_dev_set;
 	size_t m_ncpus;
 	char* m_lasterr;
@@ -51,7 +50,7 @@ struct bpf_engine
 
 	/* ELF related */
 	int program_fd;
-	Elf *elf;
+	Elf* elf;
 	GElf_Ehdr ehdr;
 
 	interesting_ppm_sc_set curr_sc_set;

@@ -37,5 +37,5 @@ or GPL2.txt for full copies of the license.
 #define SECOND_TO_NS 1000000000ULL
 
 #ifdef PAGE_SIZE
-	#define STR_STORAGE_SIZE PAGE_SIZE
+#define STR_STORAGE_SIZE PAGE_SIZE
 #endif

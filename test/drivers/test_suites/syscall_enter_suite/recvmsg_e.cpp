@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_recvmsg
-TEST(SyscallEnter, recvmsgE)
-{
+TEST(SyscallEnter, recvmsgE) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallEnter, recvmsgE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

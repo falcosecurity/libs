@@ -21,13 +21,13 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-TEST_F(sinsp_with_test_input, signed_int_compare)
-{
+TEST_F(sinsp_with_test_input, signed_int_compare) {
 	add_default_init_thread();
 
 	open_inspector();
 
-	sinsp_evt * evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (uint64_t)-22);
+	sinsp_evt* evt =
+	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (uint64_t)-22);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.cpu"), "1");
 
@@ -47,8 +47,23 @@ TEST_F(sinsp_with_test_input, signed_int_compare)
 	EXPECT_TRUE(eval_filter(evt, "evt.rawarg.res < -1"));
 	EXPECT_TRUE(eval_filter(evt, "evt.rawarg.res > -65535"));
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_NONE, 0666);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (int64_t)(-1), "/tmp/the_file", PPM_O_NONE, 0666, 123, (uint64_t)456);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_E,
+	                           3,
+	                           "/tmp/the_file",
+	                           PPM_O_NONE,
+	                           0666);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           (int64_t)(-1),
+	                           "/tmp/the_file",
+	                           PPM_O_NONE,
+	                           0666,
+	                           123,
+	                           (uint64_t)456);
 
 	EXPECT_FALSE(eval_filter(evt, "fd.num >= 0"));
 	EXPECT_FALSE(eval_filter(evt, "fd.num > 0"));

@@ -11,17 +11,13 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(socket_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(socket_e, struct pt_regs *regs, long id) {
 	/* Collect parameters at the beginning so we can easily manage socketcalls */
 	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKET_E_SIZE, PPME_SOCKET_SOCKET_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKET_E_SIZE, PPME_SOCKET_SOCKET_E)) {
 		return 0;
 	}
 
@@ -56,13 +52,9 @@ int BPF_PROG(socket_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(socket_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(socket_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKET_X_SIZE, PPME_SOCKET_SOCKET_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKET_X_SIZE, PPME_SOCKET_SOCKET_X)) {
 		return 0;
 	}
 
@@ -74,8 +66,7 @@ int BPF_PROG(socket_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Just called once by our scap process */
-	if(ret >= 0 && maps__get_socket_file_ops() == NULL)
-	{
+	if(ret >= 0 && maps__get_socket_file_ops() == NULL) {
 		struct task_struct *task = get_current_task();
 		/* Please note that in `g_settings.scap_tid` scap will put its virtual tid
 		 * if it is running inside a container. If we want to extract the same information
@@ -83,13 +74,11 @@ int BPF_PROG(socket_x,
 		 */
 		pid_t vtid = extract__task_xid_vnr(task, PIDTYPE_PID);
 		/* it means that scap is performing the calibration */
-		if(vtid == maps__get_scap_tid())
-		{
+		if(vtid == maps__get_scap_tid()) {
 			struct file *f = extract__file_struct_from_fd(ret);
-			if(f)
-			{
+			if(f) {
 				struct file_operations *f_op = (struct file_operations *)BPF_CORE_READ(f, f_op);
-				maps__set_socket_file_ops((void*)f_op);
+				maps__set_socket_file_ops((void *)f_op);
 				/* we need to rewrite the event header */
 				ringbuf__rewrite_header_for_calibration(&ringbuf, vtid);
 			}

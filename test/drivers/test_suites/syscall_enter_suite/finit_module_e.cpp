@@ -1,7 +1,6 @@
 #include "../../event_class/event_class.h"
 #if defined(__NR_finit_module)
-TEST(SyscallEnter, finit_moduleE)
-{
+TEST(SyscallEnter, finit_moduleE) {
 	auto evt_test = get_syscall_event_test(__NR_finit_module, ENTER_EVENT);
 	evt_test->enable_capture();
 
@@ -11,8 +10,9 @@ TEST(SyscallEnter, finit_moduleE)
 	char mock_buf[8];
 	int mock_flags = 0;
 
-	assert_syscall_state(SYSCALL_FAILURE, "finit_module", syscall(__NR_finit_module, mock_fd, (void *)(mock_buf), mock_flags));
-
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "finit_module",
+	                     syscall(__NR_finit_module, mock_fd, (void *)(mock_buf), mock_flags));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -20,8 +20,7 @@ TEST(SyscallEnter, finit_moduleE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -36,6 +35,5 @@ TEST(SyscallEnter, finit_moduleE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(0);
-
 }
 #endif

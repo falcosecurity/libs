@@ -24,46 +24,37 @@ limitations under the License.
 #include "test_utils.h"
 #include "plugins/test_plugins.h"
 
-static std::shared_ptr<sinsp_plugin> register_plugin_api(
-		sinsp* i,
-		plugin_api& api,
-		const std::string& initcfg = "")
-{
+static std::shared_ptr<sinsp_plugin> register_plugin_api(sinsp* i,
+                                                         plugin_api& api,
+                                                         const std::string& initcfg = "") {
 	std::string err;
 	auto pl = i->register_plugin(&api);
-	if (!pl->init(initcfg, err))
-	{
+	if(!pl->init(initcfg, err)) {
 		throw sinsp_exception(err);
 	}
 	return pl;
 }
 
-static std::shared_ptr<sinsp_plugin> register_plugin(
-		sinsp* i,
-		std::function<void(plugin_api&)> constructor,
-		const std::string& initcfg = "")
-{
+static std::shared_ptr<sinsp_plugin> register_plugin(sinsp* i,
+                                                     std::function<void(plugin_api&)> constructor,
+                                                     const std::string& initcfg = "") {
 	plugin_api api;
 	constructor(api);
 	return register_plugin_api(i, api, initcfg);
 }
 
-static void add_plugin_filterchecks(
-		sinsp* i,
-		std::shared_ptr<sinsp_plugin> p,
-		const std::string& src,
-		filter_check_list& fl)
-{
-	if (p->caps() & CAP_EXTRACTION
-		&& sinsp_plugin::is_source_compatible(p->extract_event_sources(), src))
-	{
+static void add_plugin_filterchecks(sinsp* i,
+                                    std::shared_ptr<sinsp_plugin> p,
+                                    const std::string& src,
+                                    filter_check_list& fl) {
+	if(p->caps() & CAP_EXTRACTION &&
+	   sinsp_plugin::is_source_compatible(p->extract_event_sources(), src)) {
 		fl.add_filter_check(i->new_generic_filtercheck());
 		fl.add_filter_check(sinsp_plugin::new_filtercheck(p));
 	}
 }
 
-TEST(plugins, broken_source_capability)
-{
+TEST(plugins, broken_source_capability) {
 	plugin_api api;
 
 	{
@@ -72,13 +63,13 @@ TEST(plugins, broken_source_capability)
 
 		// The example plugin has id 999 so `!= 0`. For this reason,
 		// the event source name should be different from "syscall"
-		api.get_id = [](){ return (uint32_t)999; };
-		api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
+		api.get_id = []() { return (uint32_t)999; };
+		api.get_event_source = []() { return sinsp_syscall_event_source_name; };
 		ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 
 		// `get_event_source` is implemented so also `get_id` should be implemented
 		api.get_id = NULL;
-		api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
+		api.get_event_source = []() { return sinsp_syscall_event_source_name; };
 		ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 
 		// Now both methods are NULL so we are ok!
@@ -106,8 +97,7 @@ TEST(plugins, broken_source_capability)
 	}
 }
 
-TEST(plugins, broken_extract_capability)
-{
+TEST(plugins, broken_extract_capability) {
 	plugin_api api;
 	get_plugin_api_sample_plugin_extract(api);
 	sinsp inspector;
@@ -122,8 +112,7 @@ TEST(plugins, broken_extract_capability)
 	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 }
 
-TEST(plugins, broken_parsing_capability)
-{
+TEST(plugins, broken_parsing_capability) {
 	plugin_api api;
 	get_plugin_api_sample_syscall_parse(api);
 	sinsp inspector;
@@ -133,8 +122,7 @@ TEST(plugins, broken_parsing_capability)
 	ASSERT_ANY_THROW(register_plugin_api(&inspector, api));
 }
 
-TEST(plugins, broken_async_capability)
-{
+TEST(plugins, broken_async_capability) {
 	plugin_api api;
 	get_plugin_api_sample_syscall_async(api);
 	sinsp inspector;
@@ -152,8 +140,7 @@ TEST(plugins, broken_async_capability)
 // scenario: a plugin with field extraction capability compatible with the
 // "syscall" event source should be able to extract filter values from
 // regular syscall events produced by any scap engine.
-TEST_F(sinsp_with_test_input, plugin_syscall_extract)
-{
+TEST_F(sinsp_with_test_input, plugin_syscall_extract) {
 	size_t syscall_source_idx = 0;
 	std::string syscall_source_name = sinsp_syscall_event_source_name;
 
@@ -173,8 +160,23 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	open_inspector();
 
 	// should extract legit values for non-ignored event codes
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
-	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, (uint64_t)6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPEN_X,
+	                                (uint64_t)6,
+	                                (uint64_t)3,
+	                                "/tmp/the_file",
+	                                PPM_O_RDWR,
+	                                0,
+	                                5,
+	                                (uint64_t)123);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
@@ -185,7 +187,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	// Check rhs filter checks support on plugins
-	
+
 	// Check on strings
 	ASSERT_EQ(get_field_as_string(evt, "sample.proc_name", pl_flist), "init");
 	ASSERT_TRUE(eval_filter(evt, "(sample.proc_name = init)", pl_flist));
@@ -204,11 +206,20 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(eval_filter(evt, "(toupper(sample.proc_name) = init)", pl_flist));
 	ASSERT_TRUE(eval_filter(evt, "(toupper(sample.proc_name) = INIT)", pl_flist));
 	ASSERT_TRUE(eval_filter(evt, "(tolower(toupper(sample.proc_name)) = init)", pl_flist));
-	ASSERT_TRUE(eval_filter(evt, "(tolower(toupper(sample.proc_name)) = tolower(toupper(sample.proc_name)))", pl_flist));
-	ASSERT_TRUE(eval_filter(evt, "(toupper(sample.proc_name) = toupper(sample.proc_name))", pl_flist));
+	ASSERT_TRUE(
+	        eval_filter(evt,
+	                    "(tolower(toupper(sample.proc_name)) = tolower(toupper(sample.proc_name)))",
+	                    pl_flist));
+	ASSERT_TRUE(
+	        eval_filter(evt, "(toupper(sample.proc_name) = toupper(sample.proc_name))", pl_flist));
 
 	// Here `sample.is_open` should be false
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_INOTIFY_INIT1_X,
+	                           2,
+	                           (int64_t)12,
+	                           (uint16_t)32);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_INOTIFY_INIT1_X);
@@ -220,7 +231,14 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 
 	// should extract NULL for ignored event codes
 	// `PPME_SYSCALL_OPEN_BY_HANDLE_AT_X` is an ignored event, see plugin_get_extract_event_types
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, (uint64_t)4, (uint64_t)5, PPM_O_RDWR, "/tmp/the_file.txt");
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
+	                           4,
+	                           (uint64_t)4,
+	                           (uint64_t)5,
+	                           PPM_O_RDWR,
+	                           "/tmp/the_file.txt");
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_BY_HANDLE_AT_X);
@@ -234,7 +252,12 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	const char data[2048] = "hello world";
 	/* There are no added plugins with id `1` */
 	uint32_t unknwon_plugin_id = 1;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, unknwon_plugin_id, scap_const_sized_buffer{&data, strlen(data) + 1});
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_PLUGINEVENT_E,
+	                           2,
+	                           unknwon_plugin_id,
+	                           scap_const_sized_buffer{&data, strlen(data) + 1});
 	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
 	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
@@ -247,7 +270,12 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	// should extract NULL for non-compatible event sources
 	/* This source plugin generate events with a source that we cannot extract with our plugin */
 	uint32_t source_plugin_id = 999;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, source_plugin_id, scap_const_sized_buffer{&data, strlen(data) + 1});
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_PLUGINEVENT_E,
+	                           2,
+	                           source_plugin_id,
+	                           scap_const_sized_buffer{&data, strlen(data) + 1});
 	ASSERT_EQ(evt->get_source_idx(), 1);
 	ASSERT_EQ(std::string(evt->get_source_name()), std::string("sample"));
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
@@ -261,8 +289,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 // scenario: an event sourcing plugin should produce events of "syscall"
 // event source and we should be able to extract filter values implemented
 // by both libsinsp and another plugin with field extraction capability
-TEST_F(sinsp_with_test_input, plugin_syscall_source)
-{
+TEST_F(sinsp_with_test_input, plugin_syscall_source) {
 	size_t syscall_source_idx = 0;
 	std::string syscall_source_name = sinsp_syscall_event_source_name;
 
@@ -285,7 +312,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	ASSERT_NE(evt, nullptr);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
-	ASSERT_EQ(evt->get_tid(), (uint64_t) 1);
+	ASSERT_EQ(evt->get_tid(), (uint64_t)1);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name", filterlist), "/tmp/the_file");
 	ASSERT_EQ(get_field_as_string(evt, "fd.directory", filterlist), "/tmp");
@@ -297,18 +324,16 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 
 	// We check that the plugin don't produce other events but just 1
 	size_t metaevt_count = 0;
-	evt = next_event(); // expecting a few or zero metaevts and then EOF
-	while (evt != nullptr && metaevt_count++ < 100)
-	{
-		ASSERT_TRUE(libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()));
+	evt = next_event();  // expecting a few or zero metaevts and then EOF
+	while(evt != nullptr && metaevt_count++ < 100) {
+		ASSERT_TRUE(libsinsp::events::is_metaevent((ppm_event_code)evt->get_type()));
 		evt = next_event();
 	}
 }
 
 // scenario: a plugin with field extraction capability compatible with the
 // event source of another plugin should extract values from its events
-TEST_F(sinsp_with_test_input, plugin_custom_source)
-{
+TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	sinsp_filter_check_list filterlist;
 	auto src_pl = register_plugin(&m_inspector, get_plugin_api_sample_plugin_source);
 	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_plugin_extract);
@@ -325,71 +350,75 @@ TEST_F(sinsp_with_test_input, plugin_custom_source)
 	ASSERT_NE(evt, nullptr);
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), 1);
-	ASSERT_EQ(evt->get_tid(), (uint64_t) -1);
+	ASSERT_EQ(evt->get_tid(), (uint64_t)-1);
 	ASSERT_EQ(std::string(evt->get_source_name()), src_pl->event_source());
 	ASSERT_FALSE(field_has_value(evt, "fd.name", filterlist));
 	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname", filterlist), src_pl->name());
 	ASSERT_EQ(get_field_as_string(evt, "sample.hello", filterlist), "hello world");
-	ASSERT_EQ(next_event(), nullptr); // EOF is expected
+	ASSERT_EQ(next_event(), nullptr);  // EOF is expected
 }
 
-TEST(sinsp_plugin, plugin_extract_compatibility)
-{
+TEST(sinsp_plugin, plugin_extract_compatibility) {
 	std::string tmp;
 	sinsp i;
 	plugin_api api;
 	get_plugin_api_sample_plugin_extract(api);
 
 	// compatible event sources specified, event types not specified
-	api.get_name = [](){ return "p1"; };
+	api.get_name = []() { return "p1"; };
 	auto p = i.register_plugin(&api);
 	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 1);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
-	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(),
+	                                                sinsp_syscall_event_source_name));
 	ASSERT_EQ(p->extract_event_codes().size(), 1);
-	/* The plugin doesn't declare a list of event types and for this reason, it can extract only from pluginevent_e */
+	/* The plugin doesn't declare a list of event types and for this reason, it can extract only
+	 * from pluginevent_e */
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
 	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
 
 	// compatible event sources specified, event types specified (config-altered)
-	api.get_name = [](){ return "p1-2"; };
+	api.get_name = []() { return "p1-2"; };
 	p = i.register_plugin(&api);
-	ASSERT_ANY_THROW(p->extract_event_codes()); // can't be called before init
+	ASSERT_ANY_THROW(p->extract_event_codes());  // can't be called before init
 	p->init("322,402", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 1);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
-	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(),
+	                                                sinsp_syscall_event_source_name));
 	ASSERT_EQ(p->extract_event_codes().size(), 2);
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_ASYNCEVENT_E));
 	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
 
 	// compatible event sources specified, event types specified
-	api.get_name = [](){ return "p2"; };
+	api.get_name = []() { return "p2"; };
 	api.get_extract_event_types = [](uint32_t* n, ss_plugin_t* s) {
-		static uint16_t ret[] = { PPME_SYSCALL_OPEN_E };
-    	*n = sizeof(ret) / sizeof(uint16_t);
-    	return &ret[0];
+		static uint16_t ret[] = {PPME_SYSCALL_OPEN_E};
+		*n = sizeof(ret) / sizeof(uint16_t);
+		return &ret[0];
 	};
 	p = i.register_plugin(&api);
 	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 1);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
-	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(),
+	                                                sinsp_syscall_event_source_name));
 	ASSERT_EQ(p->extract_event_codes().size(), 1);
 	ASSERT_FALSE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
 
 	// compatible event sources not specified, event types not specified
-	api.get_name = [](){ return "p3"; };
+	api.get_name = []() { return "p3"; };
 	api.get_extract_event_sources = NULL;
 	api.get_extract_event_types = NULL;
 	p = i.register_plugin(&api);
 	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 0);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
-	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(),
+	                                               sinsp_syscall_event_source_name));
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
 
@@ -397,7 +426,7 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	// event sourcing capability is detected with specific event source
 	plugin_api src_api;
 	get_plugin_api_sample_plugin_source(src_api);
-	api.get_name = [](){ return "p4"; };
+	api.get_name = []() { return "p4"; };
 	api.get_id = src_api.get_id;
 	api.get_event_source = src_api.get_event_source;
 	api.open = src_api.open;
@@ -407,7 +436,8 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	p->init("", tmp);
 	ASSERT_EQ(p->extract_event_sources().size(), 1);
 	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
-	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(),
+	                                                sinsp_syscall_event_source_name));
 	ASSERT_EQ(p->extract_event_codes().size(), 1);
 	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
 	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
@@ -419,8 +449,7 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 // any scap engine. The first is responsible of attaching an extra field to
 // the sinsp thread table (a counter), and the latter extracts a field based
 // on the value of the additional table's field.
-TEST_F(sinsp_with_test_input, plugin_syscall_parse)
-{
+TEST_F(sinsp_with_test_input, plugin_syscall_parse) {
 	// note: the "parsing" plugin will need to be loaded before the "extraction"
 	// one, otherwise the latter will not be able to access the addional
 	// plugin-defined field. Here we are also testing the loading order guarantees.
@@ -433,34 +462,76 @@ TEST_F(sinsp_with_test_input, plugin_syscall_parse)
 	open_inspector();
 
 	// should extract and parse regularly for non-ignored event codes
-	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                1,
+	                                PPME_SYSCALL_OPEN_E,
+	                                3,
+	                                "/tmp/the_file",
+	                                PPM_O_RDWR,
+	                                0);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "1");
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "1");
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           (uint64_t)3,
+	                           "/tmp/the_file",
+	                           PPM_O_RDWR,
+	                           0,
+	                           5,
+	                           (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "2");
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "1");
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_INOTIFY_INIT1_X,
+	                           2,
+	                           (int64_t)12,
+	                           (uint16_t)32);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "2");
 	// the parsing plugin filters-out this kind of event, so there should be no counter for it
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "0");
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
-	// should extract NULL for ignored event codes, but should still parse it (because the parsing plugin does not ignore it)
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, (uint64_t)4, (uint64_t)5, PPM_O_RDWR, "/tmp/the_file.txt");
+	// should extract NULL for ignored event codes, but should still parse it (because the parsing
+	// plugin does not ignore it)
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
+	                           4,
+	                           (uint64_t)4,
+	                           (uint64_t)5,
+	                           PPM_O_RDWR,
+	                           "/tmp/the_file.txt");
 	ASSERT_FALSE(field_has_value(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_has_value(evt, "sample.evt_count", pl_flist));
 	ASSERT_FALSE(field_has_value(evt, "sample.tick", pl_flist));
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_INOTIFY_INIT1_X,
+	                           2,
+	                           (int64_t)12,
+	                           (uint16_t)32);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "3");
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "0");
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)4, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           (uint64_t)4,
+	                           "/tmp/the_file",
+	                           PPM_O_RDWR,
+	                           0,
+	                           5,
+	                           (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "4");
 	// this is the second time we see this event type
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "2");
@@ -473,10 +544,9 @@ TEST_F(sinsp_with_test_input, plugin_syscall_parse)
 // the only events received are the ones coming from the async plugin.
 // note: emscripten has trouble with the nodriver engine and async events
 #if !defined(__EMSCRIPTEN__)
-TEST_F(sinsp_with_test_input, plugin_syscall_async)
-{
+TEST_F(sinsp_with_test_input, plugin_syscall_async) {
 	uint64_t max_count = 10;
-	uint64_t period_ns = 1000000; // 1ms
+	uint64_t period_ns = 1000000;  // 1ms
 	/* async plugin config */
 	std::string async_pl_cfg = std::to_string(max_count) + ":" + std::to_string(period_ns);
 	std::string srcname = sinsp_syscall_event_source_name;
@@ -487,7 +557,8 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	add_plugin_filterchecks(&m_inspector, ext_pl, srcname, filterlist);
 
 	// check that the async event name is an accepted evt.type value
-	std::unique_ptr<sinsp_filter_check> chk(filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
+	std::unique_ptr<sinsp_filter_check> chk(
+	        filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
 	ASSERT_GT(chk->parse_field_name("evt.type", true, false), 0);
 	ASSERT_NO_THROW(chk->add_filter_value("openat", strlen("openat") + 1, 0));
 	ASSERT_NO_THROW(chk->add_filter_value("sampleticker", strlen("sampleticker") + 1, 1));
@@ -496,18 +567,16 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	// we will not use the test scap engine here, but open the no-driver instead
 	uint64_t count = 0;
 	uint64_t cycles = 0;
-	uint64_t max_cycles = max_count * 8; // avoid infinite loops
-	sinsp_evt *evt = NULL;
+	uint64_t max_cycles = max_count * 8;  // avoid infinite loops
+	sinsp_evt* evt = NULL;
 	int32_t rc = SCAP_SUCCESS;
 	uint64_t last_ts = 0;
 	m_inspector.open_nodriver();
-	while (rc == SCAP_SUCCESS && cycles < max_cycles && count < max_count)
-	{
+	while(rc == SCAP_SUCCESS && cycles < max_cycles && count < max_count) {
 		cycles++;
 		rc = m_inspector.next(&evt);
 		/* The no driver engine sends only `PPME_SCAPEVENT_X` events */
-		if (rc == SCAP_TIMEOUT || evt->get_type() == PPME_SCAPEVENT_X)
-		{
+		if(rc == SCAP_TIMEOUT || evt->get_type() == PPME_SCAPEVENT_X) {
 			// wait a bit so that the plugin can fire the async event
 			std::this_thread::sleep_for(std::chrono::nanoseconds(period_ns));
 			rc = SCAP_SUCCESS;
@@ -517,13 +586,14 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 		ASSERT_NE(evt, nullptr);
 		ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
 		ASSERT_EQ(evt->get_tid(), 1);
-		ASSERT_EQ(evt->get_source_idx(), 0); // "syscall" source
+		ASSERT_EQ(evt->get_source_idx(), 0);  // "syscall" source
 		ASSERT_EQ(std::string(evt->get_source_name()), srcname);
-		if (cycles > 1)
-		{
+		if(cycles > 1) {
 			ASSERT_GE(evt->get_ts(), last_ts);
 		}
-		ASSERT_FALSE(field_has_value(evt, "evt.pluginname", filterlist)); // not available for "syscall" async events
+		ASSERT_FALSE(field_has_value(evt,
+		                             "evt.pluginname",
+		                             filterlist));  // not available for "syscall" async events
 		ASSERT_FALSE(field_has_value(evt, "evt.plugininfo", filterlist));
 		ASSERT_EQ(get_field_as_string(evt, "evt.is_async", filterlist), "true");
 		ASSERT_EQ(get_field_as_string(evt, "evt.asynctype", filterlist), "sampleticker");
@@ -534,15 +604,14 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	m_inspector.close();
 	ASSERT_EQ(count, max_count);
 }
-#endif // !defined(__EMSCRIPTEN__)
+#endif  // !defined(__EMSCRIPTEN__)
 
 // Scenario we load a plugin that parses any event and plays with the
 // thread table, by stressing all the operations supported. After that, we
 // also play with the plugin's table from the inspector C++ interface.
 // Basically, we are verifying that the sinsp <-> plugin tables access
 // is bidirectional and consistent.
-TEST_F(sinsp_with_test_input, plugin_tables)
-{
+TEST_F(sinsp_with_test_input, plugin_tables) {
 	auto& reg = m_inspector.get_table_registry();
 
 	add_default_init_thread();
@@ -557,7 +626,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_tables);
 	ASSERT_EQ(reg->tables().size(), 2);
 	ASSERT_NE(reg->tables().find("plugin_sample"), reg->tables().end());
-	ASSERT_ANY_THROW(reg->get_table<char>("plugin_sample")); // wrong key type
+	ASSERT_ANY_THROW(reg->get_table<char>("plugin_sample"));  // wrong key type
 	ASSERT_NE(reg->get_table<uint64_t>("plugin_sample"), nullptr);
 
 	// get the plugin table and check its fields and info
@@ -579,7 +648,8 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 
 	// add a new field in the plugin table
 	const auto& dfield = table->dynamic_fields()->add_field<std::string>("str_val");
-	ASSERT_NE(table->dynamic_fields()->fields().find("str_val"), table->dynamic_fields()->fields().end());
+	ASSERT_NE(table->dynamic_fields()->fields().find("str_val"),
+	          table->dynamic_fields()->fields().end());
 	ASSERT_EQ(dfield, table->dynamic_fields()->fields().find("str_val")->second);
 	ASSERT_EQ(dfield.readonly(), false);
 	ASSERT_EQ(dfield.valid(), true);
@@ -593,9 +663,15 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	const char* asyncname = "sampleasync";
 	const char* sample_plugin_evtdata = "hello world";
 	uint64_t max_iterations = 10000;
-	for (uint64_t i = 0; i < max_iterations; i++)
-	{
-		auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_ASYNCEVENT_E, 3, (uint32_t) 0, asyncname, scap_const_sized_buffer{sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1});
+	for(uint64_t i = 0; i < max_iterations; i++) {
+		auto evt = add_event_advance_ts(
+		        increasing_ts(),
+		        1,
+		        PPME_ASYNCEVENT_E,
+		        3,
+		        (uint32_t)0,
+		        asyncname,
+		        scap_const_sized_buffer{sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1});
 		ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
 		ASSERT_EQ(evt->get_source_idx(), 0);
 	}
@@ -604,8 +680,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	auto sfieldacc = sfield->second.new_accessor<uint64_t>();
 	auto dfieldacc = dfield.new_accessor<std::string>();
 
-	for (uint64_t i = 0; i < max_iterations; i++)
-	{
+	for(uint64_t i = 0; i < max_iterations; i++) {
 		ASSERT_EQ(table->entries_count(), i);
 
 		// get non-existing entry
@@ -621,7 +696,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 		ASSERT_EQ(table->entries_count(), i + 1);
 
 		// read and write from newly-created thread (existing field)
-		uint64_t tmpu64 = (uint64_t) -1;
+		uint64_t tmpu64 = (uint64_t)-1;
 		t->get_dynamic_field(sfieldacc, tmpu64);
 		ASSERT_EQ(tmpu64, 0);
 		tmpu64 = 5;
@@ -642,8 +717,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	}
 
 	// full iteration
-	auto it = [&](libsinsp::state::table_entry& e) -> bool
-	{
+	auto it = [&](libsinsp::state::table_entry& e) -> bool {
 		uint64_t tmpu64;
 		std::string tmpstr;
 		e.get_dynamic_field(sfieldacc, tmpu64);
@@ -655,16 +729,12 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	ASSERT_TRUE(table->foreach_entry(it));
 
 	// iteration with break-out
-	ASSERT_FALSE(table->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
-	{
-		return false;
-	}));
+	ASSERT_FALSE(
+	        table->foreach_entry([&](libsinsp::state::table_entry& e) -> bool { return false; }));
 
 	// iteration with error
-	ASSERT_ANY_THROW(table->foreach_entry([&](libsinsp::state::table_entry& e) -> bool
-	{
-		throw sinsp_exception("some error");
-	}));
+	ASSERT_ANY_THROW(table->foreach_entry(
+	        [&](libsinsp::state::table_entry& e) -> bool { throw sinsp_exception("some error"); }));
 
 	// erasing an unknown thread
 	ASSERT_EQ(table->erase_entry(max_iterations), false);
@@ -679,8 +749,7 @@ TEST_F(sinsp_with_test_input, plugin_tables)
 	ASSERT_EQ(table->entries_count(), 0);
 }
 
-TEST_F(sinsp_with_test_input, plugin_subtables)
-{
+TEST_F(sinsp_with_test_input, plugin_subtables) {
 	const constexpr auto num_entries_from_plugin = 1024;
 
 	auto& reg = m_inspector.get_table_registry();
@@ -737,11 +806,16 @@ TEST_F(sinsp_with_test_input, plugin_subtables)
 	open_inspector();
 
 	// step #0: the plugin should populate the fdtable
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin);
 
-	auto itt = [&](libsinsp::state::table_entry& e) -> bool
-	{
+	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		int64_t tmp;
 		std::string tmpstr;
 		e.get_static_field(sfieldacc, tmp);
@@ -753,16 +827,27 @@ TEST_F(sinsp_with_test_input, plugin_subtables)
 	ASSERT_TRUE(subtable->foreach_entry(itt));
 
 	// step #1: the plugin should remove one entry from the fdtable
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin - 1);
 
 	// step #2: the plugin should cleae the fdtable
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	ASSERT_EQ(subtable->entries_count(), 0);
 }
 
-TEST_F(sinsp_with_test_input, plugin_subtables_array)
-{
+TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	const constexpr auto num_entries_from_plugin = 10;
 
 	auto& reg = m_inspector.get_table_registry();
@@ -793,8 +878,9 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array)
 
 	// obtain a pointer to the subtable (check typing too)
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
-	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
-		entry->get_static_field(subtable_acc));
+	auto subtable =
+	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
+	                entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), "env");
 	ASSERT_EQ(subtable->entries_count(), 0);
@@ -815,11 +901,16 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array)
 	open_inspector();
 
 	// step #0: the plugin should populate the fdtable
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin);
 
-	auto itt = [&](libsinsp::state::table_entry& e) -> bool
-	{
+	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string tmpstr;
 		e.get_dynamic_field(dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
@@ -828,11 +919,23 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array)
 	ASSERT_TRUE(subtable->foreach_entry(itt));
 
 	// step #1: the plugin should remove one entry from the fdtable
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin - 1);
 
 	// step #2: the plugin should cleae the fdtable
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	ASSERT_EQ(subtable->entries_count(), 0);
 }
 
@@ -841,16 +944,16 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array)
 // We use a callback attached to the logger to assert the message.
 // When the inspector goes out of scope,
 // the plugin is automatically destroyed.
-TEST(sinsp_plugin, plugin_logging)
-{
+TEST(sinsp_plugin, plugin_logging) {
 	{
 		std::string tmp;
 		sinsp i;
 		plugin_api api;
 		get_plugin_api_sample_plugin_extract(api);
 
-		// the plugin is logging with a NULL component, so we expect the component to fallback to the plugin name
-		api.get_name = [](){ return "plugin_name"; };
+		// the plugin is logging with a NULL component, so we expect the component to fallback to
+		// the plugin name
+		api.get_name = []() { return "plugin_name"; };
 
 		libsinsp_logger()->add_callback_log([](std::string&& str, sinsp_logger::severity sev) {
 			std::string expected = "plugin_name: initializing plugin...";
@@ -872,14 +975,13 @@ TEST(sinsp_plugin, plugin_logging)
 
 // Scenario: we provide the plugin with a new configuration,
 // expecting it to log when it's notified.
-TEST(sinsp_plugin, plugin_set_config)
-{
+TEST(sinsp_plugin, plugin_set_config) {
 	std::string tmp;
 	sinsp i;
 	plugin_api api;
 	get_plugin_api_sample_plugin_extract(api);
 
-	api.get_name = [](){ return "plugin_name"; };
+	api.get_name = []() { return "plugin_name"; };
 
 	auto p = i.register_plugin(&api);
 	p->init("", tmp);
@@ -896,8 +998,7 @@ TEST(sinsp_plugin, plugin_set_config)
 
 #ifdef __linux__
 
-TEST_F(sinsp_with_test_input, plugin_metrics)
-{	
+TEST_F(sinsp_with_test_input, plugin_metrics) {
 	uint32_t test_metrics_flags = (METRICS_V2_PLUGINS);
 	libs::metrics::libs_metrics_collector libs_metrics_collector(&m_inspector, test_metrics_flags);
 
@@ -913,9 +1014,14 @@ TEST_F(sinsp_with_test_input, plugin_metrics)
 	ASSERT_EQ(metrics_snapshot.size(), 2);
 
 	int events = 256;
-	for (int i = 0; i < events; i++)
-	{
-		add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	for(int i = 0; i < events; i++) {
+		add_event_advance_ts(increasing_ts(),
+		                     0,
+		                     PPME_SYSCALL_OPEN_E,
+		                     3,
+		                     "/tmp/the_file",
+		                     PPM_O_RDWR,
+		                     0);
 	}
 
 	libs_metrics_collector.snapshot();
@@ -932,8 +1038,7 @@ TEST_F(sinsp_with_test_input, plugin_metrics)
 
 #if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
 
-TEST_F(sinsp_with_test_input, plugin_routines)
-{
+TEST_F(sinsp_with_test_input, plugin_routines) {
 	auto p = register_plugin(&m_inspector, get_plugin_api_sample_routines);
 	open_inspector();
 
@@ -946,29 +1051,56 @@ TEST_F(sinsp_with_test_input, plugin_routines)
 	ASSERT_EQ(routines_num, 1);
 
 	// step #1: the plugin subscribes another routine
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 2);
 
 	// step #2: the plugin unsubscribes the previous routine
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 1);
 
 	// step #3: the plugin subscribes another routine
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 2);
 
 	// step #4: the plugin sets a flag that causes the previous routine to be unsubscibed
-	add_event_advance_ts(increasing_ts(), 0, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
-	std::this_thread::sleep_for(std::chrono::nanoseconds(1000)); //wait for a bit to let routine finish
+	add_event_advance_ts(increasing_ts(),
+	                     0,
+	                     PPME_SYSCALL_OPEN_E,
+	                     3,
+	                     "/tmp/the_file",
+	                     PPM_O_RDWR,
+	                     0);
+	std::this_thread::sleep_for(
+	        std::chrono::nanoseconds(1000));  // wait for a bit to let routine finish
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 1);
 
-	// step: #5: the plugin doesn't unsubscribe the last routine, but the thread pool shuould unsubscribe it on capture close
+	// step: #5: the plugin doesn't unsubscribe the last routine, but the thread pool shuould
+	// unsubscribe it on capture close
 	m_inspector.close();
-	std::this_thread::sleep_for(std::chrono::nanoseconds(100)); //wait for a bit to let routine finish
+	std::this_thread::sleep_for(
+	        std::chrono::nanoseconds(100));  // wait for a bit to let routine finish
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 0);
 }

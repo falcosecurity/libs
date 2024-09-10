@@ -23,37 +23,30 @@ limitations under the License.
 
 static constexpr const char* s_not_available_str = "<NA>";
 
-sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
-					 filter_check_list &available_checks)
-	: m_inspector(inspector),
-	  m_available_checks(available_checks)
-{
-}
+sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, filter_check_list& available_checks):
+        m_inspector(inspector),
+        m_available_checks(available_checks) {}
 
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
-					 const std::string& fmt,
-					 filter_check_list &available_checks)
-	: m_inspector(inspector),
-	  m_available_checks(available_checks)
-{
+                                         const std::string& fmt,
+                                         filter_check_list& available_checks):
+        m_inspector(inspector),
+        m_available_checks(available_checks) {
 	output_format of = sinsp_evt_formatter::OF_NORMAL;
 
-	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
-	{
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON ||
+	   m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS ||
+	   m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX ||
+	   m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII ||
+	   m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64) {
 		of = sinsp_evt_formatter::OF_JSON;
 	}
 
 	set_format(of, fmt);
 }
 
-void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
-{
-	if(fmt.empty())
-	{
+void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt) {
+	if(fmt.empty()) {
 		throw sinsp_exception("empty formatting token");
 	}
 
@@ -65,13 +58,10 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 	// the string even when not all the values it specifies are set.
 	//
 	std::string lfmt(fmt);
-	if(lfmt[0] == '*')
-	{
+	if(lfmt[0] == '*') {
 		m_require_all_values = false;
 		lfmt.erase(0, 1);
-	}
-	else
-	{
+	} else {
 		m_require_all_values = true;
 	}
 
@@ -83,50 +73,42 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 	uint32_t lfmtlen = (uint32_t)lfmt.length();
 	uint32_t last_nontoken_str_start = 0;
 	uint32_t j = 0;
-	for(j = 0; j < lfmtlen; j++)
-	{
-		if(cfmt[j] == '%')
-		{
+	for(j = 0; j < lfmtlen; j++) {
+		if(cfmt[j] == '%') {
 			int toklen = 0;
 
-			if(last_nontoken_str_start != j)
-			{
-				auto newtkn = std::make_shared<rawstring_check>(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+			if(last_nontoken_str_start != j) {
+				auto newtkn = std::make_shared<rawstring_check>(
+				        lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 				m_output_tokens.emplace_back(newtkn);
 				m_output_tokenlens.push_back(0);
 			}
 
-			if(j == lfmtlen - 1)
-			{
+			if(j == lfmtlen - 1) {
 				throw sinsp_exception("invalid formatting syntax: formatting cannot end with a %");
 			}
 
 			//
-			// If the field specifier starts with a number, it means that we have a length transformer
+			// If the field specifier starts with a number, it means that we have a length
+			// transformer
 			//
-			if(isdigit(cfmt[j + 1]))
-			{
+			if(isdigit(cfmt[j + 1])) {
 				//
 				// Parse the token length
 				//
-				sscanf(cfmt+ j + 1, "%d", &toklen);
+				sscanf(cfmt + j + 1, "%d", &toklen);
 
 				//
 				// Advance until the beginning of the field name
 				//
-				while(true)
-				{
-					if(j == lfmtlen - 1)
-					{
-						throw sinsp_exception("invalid formatting syntax: formatting cannot end with a number");
-					}
-					else if(isdigit(cfmt[j + 1]))
-					{
+				while(true) {
+					if(j == lfmtlen - 1) {
+						throw sinsp_exception(
+						        "invalid formatting syntax: formatting cannot end with a number");
+					} else if(isdigit(cfmt[j + 1])) {
 						j++;
 						continue;
-					}
-					else
-					{
+					} else {
 						break;
 					}
 				}
@@ -137,33 +119,28 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 			int msize = 0;
 			const char* tstart = cfmt + j + 1;
 			std::vector<filter_transformer_type> transformers;
-			while(true)
-			{
+			while(true) {
 				auto prev_size = msize;
-				for (const auto& tr : libsinsp::filter::parser::supported_field_transformers())
-				{
-					if ((j + 1 + tr.size() + 1) < lfmtlen
-						&& tstart[msize + tr.size()] == '('
-						&& !strncmp(tstart + msize, tr.c_str(), tr.size()))
-					{
+				for(const auto& tr : libsinsp::filter::parser::supported_field_transformers()) {
+					if((j + 1 + tr.size() + 1) < lfmtlen && tstart[msize + tr.size()] == '(' &&
+					   !strncmp(tstart + msize, tr.c_str(), tr.size())) {
 						transformers.emplace_back(filter_transformer_from_str(tr));
-						msize += tr.size() + 1; // count '('
+						msize += tr.size() + 1;  // count '('
 						j += tr.size() + 1;
 					}
 				}
 				// note: no whitespace is allowed between transformers
-				if (prev_size == msize)
-				{
+				if(prev_size == msize) {
 					break;
 				}
 			}
 
 			// read field token and make sure it's a valid one
 			const char* fstart = cfmt + j + 1;
-			chk = m_available_checks.new_filter_check_from_fldname(
-				std::string_view(fstart), m_inspector, false);
-			if(chk == nullptr)
-			{
+			chk = m_available_checks.new_filter_check_from_fldname(std::string_view(fstart),
+			                                                       m_inspector,
+			                                                       false);
+			if(chk == nullptr) {
 				throw sinsp_exception("invalid formatting token " + std::string(fstart));
 			}
 			uint32_t fsize = chk->parse_field_name(fstart, true, false);
@@ -175,29 +152,25 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 
 			// if we have transformers, create a copy of the field and use it
 			// both for output substitution and for key->value resolution
-			if (!transformers.empty())
-			{
-				chk = m_available_checks.new_filter_check_from_fldname(
-					fstart, m_inspector, false);
-				if(chk == nullptr)
-				{
+			if(!transformers.empty()) {
+				chk = m_available_checks.new_filter_check_from_fldname(fstart, m_inspector, false);
+				if(chk == nullptr) {
 					throw sinsp_exception("invalid formatting token " + std::string(fstart));
 				}
 				chk->parse_field_name(fstart, true, false);
 
 				// apply all transformers and pop back their ')' enclosing token
 				// note: we apply transformers in reserve order to preserve their semantics
-				for (auto rit = transformers.rbegin(); rit != transformers.rend(); ++rit)
-				{
+				for(auto rit = transformers.rbegin(); rit != transformers.rend(); ++rit) {
 					chk->add_transformer(*rit);
 
 					// note: no whitespace is allowed between transformer enclosing
-					if (j + 1 >= lfmtlen || cfmt[j + 1] != ')')
-					{
-						throw sinsp_exception("missing closing transformer parenthesis: " + std::string(cfmt + j));
+					if(j + 1 >= lfmtlen || cfmt[j + 1] != ')') {
+						throw sinsp_exception("missing closing transformer parenthesis: " +
+						                      std::string(cfmt + j));
 					}
 					j++;
-					msize++; // count ')'
+					msize++;  // count ')'
 				}
 
 				// when requested to do so, we'll resolve the field with transformers
@@ -213,28 +186,24 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt)
 		}
 	}
 
-	if(last_nontoken_str_start != j)
-	{
-		auto chk = std::make_shared<rawstring_check>(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
+	if(last_nontoken_str_start != j) {
+		auto chk = std::make_shared<rawstring_check>(
+		        lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
 		m_output_tokens.emplace_back(chk);
 		m_output_tokenlens.push_back(0);
 	}
 }
 
-bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, std::map<std::string,std::string>& values)
-{
-	for(const auto& t : m_resolution_tokens)
-	{
-		if (t.has_transformers && !m_resolve_transformed_fields)
-		{
+bool sinsp_evt_formatter::resolve_tokens(sinsp_evt* evt,
+                                         std::map<std::string, std::string>& values) {
+	for(const auto& t : m_resolution_tokens) {
+		if(t.has_transformers && !m_resolve_transformed_fields) {
 			continue;
 		}
 
 		const char* str = t.token->tostring(evt);
-		if(str == NULL)
-		{
-			if(m_require_all_values)
-			{
+		if(str == NULL) {
+			if(m_require_all_values) {
 				return false;
 			}
 
@@ -245,42 +214,36 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, std::map<std::string,st
 	return true;
 }
 
-bool sinsp_evt_formatter::get_field_values(sinsp_evt *evt, std::map<std::string, std::string> &fields)
-{
+bool sinsp_evt_formatter::get_field_values(sinsp_evt* evt,
+                                           std::map<std::string, std::string>& fields) {
 	return resolve_tokens(evt, fields);
 }
 
-void sinsp_evt_formatter::get_field_names(std::vector<std::string> &fields)
-{
-	for(const auto& t : m_resolution_tokens)
-	{
+void sinsp_evt_formatter::get_field_names(std::vector<std::string>& fields) {
+	for(const auto& t : m_resolution_tokens) {
 		fields.emplace_back(t.name);
 	}
 }
 
-sinsp_evt_formatter::output_format sinsp_evt_formatter::get_output_format()
-{
+sinsp_evt_formatter::output_format sinsp_evt_formatter::get_output_format() {
 	return m_output_format;
 }
 
-bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt, std::string &output, output_format of)
-{
+bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt,
+                                              std::string& output,
+                                              output_format of) {
 	output.clear();
 
-	if(of == OF_JSON)
-	{
+	if(of == OF_JSON) {
 		bool retval = true;
-		for (const auto& t : m_resolution_tokens)
-		{
-			if (t.has_transformers && !m_resolve_transformed_fields)
-			{
+		for(const auto& t : m_resolution_tokens) {
+			if(t.has_transformers && !m_resolve_transformed_fields) {
 				// always skip keys with transformers here
 				// todo!: is this the desired behavior?
 				continue;
 			}
 			Json::Value json_value = t.token->tojson(evt);
-			if(json_value == Json::nullValue && m_require_all_values)
-			{
+			if(json_value == Json::nullValue && m_require_all_values) {
 				retval = false;
 				break;
 			}
@@ -292,30 +255,22 @@ bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt, std::string &outpu
 	}
 
 	ASSERT(m_output_tokenlens.size() == m_output_tokens.size());
-	for(size_t j = 0; j < m_output_tokens.size(); j++)
-	{
+	for(size_t j = 0; j < m_output_tokens.size(); j++) {
 		const char* str = m_output_tokens[j]->tostring(evt);
-		if(str == NULL)
-		{
-			if(m_require_all_values)
-			{
+		if(str == NULL) {
+			if(m_require_all_values) {
 				return false;
-			}
-			else
-			{
+			} else {
 				str = s_not_available_str;
 			}
 		}
 
 		uint32_t tks = m_output_tokenlens[j];
-		if(tks != 0)
-		{
+		if(tks != 0) {
 			std::string sstr(str);
 			sstr.resize(tks, ' ');
 			output += sstr;
-		}
-		else
-		{
+		} else {
 			output += str;
 		}
 	}
@@ -323,31 +278,27 @@ bool sinsp_evt_formatter::tostring_withformat(sinsp_evt* evt, std::string &outpu
 	return true;
 }
 
-bool sinsp_evt_formatter::tostring(sinsp_evt* evt, std::string& res)
-{
+bool sinsp_evt_formatter::tostring(sinsp_evt* evt, std::string& res) {
 	return tostring_withformat(evt, res, m_output_format);
 }
 
-sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks)
-	: m_inspector(inspector),
-	  m_available_checks(available_checks),
-	  m_output_format(sinsp_evt_formatter::OF_NORMAL)
-{
-}
+sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp* inspector,
+                                                         filter_check_list& available_checks):
+        m_inspector(inspector),
+        m_available_checks(available_checks),
+        m_output_format(sinsp_evt_formatter::OF_NORMAL) {}
 
-void sinsp_evt_formatter_factory::set_output_format(sinsp_evt_formatter::output_format of)
-{
+void sinsp_evt_formatter_factory::set_output_format(sinsp_evt_formatter::output_format of) {
 	m_formatters.clear();
 
 	m_output_format = of;
 }
 
-std::shared_ptr<sinsp_evt_formatter> sinsp_evt_formatter_factory::create_formatter(const std::string &format)
-{
+std::shared_ptr<sinsp_evt_formatter> sinsp_evt_formatter_factory::create_formatter(
+        const std::string& format) {
 	auto it = m_formatters.find(format);
 
-	if (it != m_formatters.end())
-	{
+	if(it != m_formatters.end()) {
 		return it->second;
 	}
 

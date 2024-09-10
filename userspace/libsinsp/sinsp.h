@@ -17,27 +17,27 @@ limitations under the License.
 */
 
 /*!
-	\mainpage libsinsp documentation
+    \mainpage libsinsp documentation
 
-	\section Introduction
+    \section Introduction
 
-	libsinsp is a system inspection library written in C++ and implementing high level
-	functionality like:
-	- live capture control (start/stop/pause...)
-	- event capture from file or the live OS
-	- OS state reconstruction. By parsing /proc and inspecting the live event stream,
-	libsinsp is capable of mirroring the OS process state and putting context around
-	key OS primitives like process IDs and file descriptors. That way, these primitives
-	can be treated like programs, files, connections and users.
-	- parsing of OS events and conversion of events into human-readable strings
-	- event filtering
+    libsinsp is a system inspection library written in C++ and implementing high level
+    functionality like:
+    - live capture control (start/stop/pause...)
+    - event capture from file or the live OS
+    - OS state reconstruction. By parsing /proc and inspecting the live event stream,
+    libsinsp is capable of mirroring the OS process state and putting context around
+    key OS primitives like process IDs and file descriptors. That way, these primitives
+    can be treated like programs, files, connections and users.
+    - parsing of OS events and conversion of events into human-readable strings
+    - event filtering
 
-	This manual includes the following sections:
-	- \ref inspector
-	- \ref event
-	- \ref dump
-	- \ref filter
-	- \ref state
+    This manual includes the following sections:
+    - \ref inspector
+    - \ref event
+    - \ref dump
+    - \ref filter
+    - \ref state
 */
 
 #pragma once
@@ -98,43 +98,43 @@ class sinsp_observer;
 
 #if !defined(LIBSINSP_USER_AGENT)
 #define LIBSINSP_USER_AGENT "falcosecurity-libs"
-#endif // LIBSINSP_USER_AGENT
+#endif  // LIBSINSP_USER_AGENT
 
 /*!
   \brief The default way an event is converted to string by the library
 */
-#define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
+#define DEFAULT_OUTPUT_STR \
+	"*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
 
 /*!
   \brief Sinsp possible modes
 */
-enum sinsp_mode_t
-{
+enum sinsp_mode_t {
 	/*!
-		 * Default value that mostly exists so that sinsp can have a valid value
-		 * before it is initialized.
+	 * Default value that mostly exists so that sinsp can have a valid value
+	 * before it is initialized.
 	 */
 	SINSP_MODE_NONE = 0,
 	/*!
-		 * Read system call data from a capture file.
+	 * Read system call data from a capture file.
 	 */
 	SINSP_MODE_CAPTURE,
 	/*!
-		 * Read system call data from the underlying operating system.
+	 * Read system call data from the underlying operating system.
 	 */
 	SINSP_MODE_LIVE,
 	/*!
-		 * Do not read system call data. If next is called, a dummy event is
-		 * returned.
+	 * Do not read system call data. If next is called, a dummy event is
+	 * returned.
 	 */
 	SINSP_MODE_NODRIVER,
 	/*!
-		 * Do not read system call data. Events come from the configured input plugin.
+	 * Do not read system call data. Events come from the configured input plugin.
 	 */
 	SINSP_MODE_PLUGIN,
 	/*!
-		 * Read system call and event data from the test event generator.
-		 * Do not attempt to query the underlying system.
+	 * Read system call and event data from the test event generator.
+	 * Do not attempt to query the underlying system.
 	 */
 	SINSP_MODE_TEST,
 };
@@ -142,11 +142,10 @@ enum sinsp_mode_t
 /**
  * @brief Possible platforms to use with plugins
  */
-enum class sinsp_plugin_platform
-{
-	SINSP_PLATFORM_GENERIC, //!< generic platform, no system information collected
-	SINSP_PLATFORM_HOSTINFO, //!< basic host information collected, for non-syscall source plugins
-	SINSP_PLATFORM_FULL, //!< full system information collected, for syscall source plugins
+enum class sinsp_plugin_platform {
+	SINSP_PLATFORM_GENERIC,   //!< generic platform, no system information collected
+	SINSP_PLATFORM_HOSTINFO,  //!< basic host information collected, for non-syscall source plugins
+	SINSP_PLATFORM_FULL,      //!< full system information collected, for syscall source plugins
 };
 
 /** @defgroup inspector Main library
@@ -161,35 +160,43 @@ enum class sinsp_plugin_platform
   - event retrieval
   - setting capture filters
 */
-class SINSP_PUBLIC sinsp : public capture_stats_source
-{
+class SINSP_PUBLIC sinsp : public capture_stats_source {
 public:
 	sinsp(bool with_metrics = false);
 
 	virtual ~sinsp() override;
 
 	/* Wrappers to open a specific engine. */
-	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
-	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
+	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM,
+	                       const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest = {});
+	virtual void open_bpf(const std::string& bpf_path,
+	                      unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM,
+	                      const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest = {});
 	virtual void open_nodriver(bool full_proc_scan = false);
-	virtual void open_savefile(const std::string &filename, int fd = 0);
-	virtual void open_plugin(const std::string& plugin_name, const std::string& plugin_open_params,
-				 sinsp_plugin_platform platform_type);
-	virtual void open_gvisor(const std::string &config_path, const std::string &root_path, bool no_events = false, int epoll_timeout = -1);
-	/*[EXPERIMENTAL] This API could change between releases, we are trying to find the right configuration to deploy the modern bpf probe:
-	 * `cpus_for_each_buffer` and `online_only` are the 2 experimental params. The first one allows associating more than one CPU to a single ring buffer.
-	 * The last one allows allocating ring buffers only for online CPUs and not for all system-available CPUs.
+	virtual void open_savefile(const std::string& filename, int fd = 0);
+	virtual void open_plugin(const std::string& plugin_name,
+	                         const std::string& plugin_open_params,
+	                         sinsp_plugin_platform platform_type);
+	virtual void open_gvisor(const std::string& config_path,
+	                         const std::string& root_path,
+	                         bool no_events = false,
+	                         int epoll_timeout = -1);
+	/*[EXPERIMENTAL] This API could change between releases, we are trying to find the right
+	 * configuration to deploy the modern bpf probe: `cpus_for_each_buffer` and `online_only` are
+	 * the 2 experimental params. The first one allows associating more than one CPU to a single
+	 * ring buffer. The last one allows allocating ring buffers only for online CPUs and not for all
+	 * system-available CPUs.
 	 */
-	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
+	virtual void open_modern_bpf(
+	        unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM,
+	        uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER,
+	        bool online_only = true,
+	        const libsinsp::events::set<ppm_sc_code>& ppm_sc_of_interest = {});
 	virtual void open_test_input(scap_test_input_data* data, sinsp_mode_t mode = SINSP_MODE_TEST);
 
-	void fseek(uint64_t filepos)
-	{
-		scap_fseek(m_h, filepos);
-	}
+	void fseek(uint64_t filepos) { scap_fseek(m_h, filepos); }
 
 	std::string generate_gvisor_config(const std::string& socket_path);
-
 
 	/*!
 	  \brief Ends a capture and release all resources.
@@ -211,11 +218,11 @@ public:
 	  \note: the returned event can be considered valid only until the next
 	   call to \ref)
 	*/
-	virtual int32_t next(sinsp_evt **evt);
+	virtual int32_t next(sinsp_evt** evt);
 
 	/*!
 	  \brief Get the maximum number of bytes currently in use by any CPU buffer
-     */
+	 */
 	uint64_t max_buf_used() const;
 
 	/*!
@@ -247,7 +254,7 @@ public:
 
 	/*!
 	 * \brief (Un)Set the drop failed feature of the drivers.
-		When enabled, drivers will stop sending failed syscalls (exit) events.
+	    When enabled, drivers will stop sending failed syscalls (exit) events.
 
 	 * @param dropfailed whether to enable the feature
 	 */
@@ -322,14 +329,14 @@ public:
 	/*!
 	  \brief Return the AST (wrapped in a shared pointer) for the filter set for this capture.
 
-	  \return the AST (wrapped in a shared pointer) corresponding to the filter previously set with \ref set_filter()..
+	  \return the AST (wrapped in a shared pointer) corresponding to the filter previously set with
+	  \ref set_filter()..
 	*/
-	inline const std::shared_ptr<libsinsp::filter::ast::expr>& get_filter_ast()
-	{
+	inline const std::shared_ptr<libsinsp::filter::ast::expr>& get_filter_ast() {
 		return m_internal_flt_ast;
 	}
 
-	bool run_filters_on_evt(sinsp_evt *evt);
+	bool run_filters_on_evt(sinsp_evt* evt);
 
 	/*!
 	  \brief This method can be used to specify a function to collect the library
@@ -362,17 +369,13 @@ public:
 	 * When the routine is run, then the purge interval and thread timeout
 	 * change defaults, but with no observable effect.
 	 */
-	void set_auto_threads_purging(bool enabled)
-	{
-		m_auto_threads_purging = enabled;
-	}
+	void set_auto_threads_purging(bool enabled) { m_auto_threads_purging = enabled; }
 
 	/*!
 	 * \brief Sets the interval (in seconds) at which the automatic threads
 	 * purging routine runs (if enabled).
 	 */
-	inline void set_auto_threads_purging_interval_s(uint32_t val)
-	{
+	inline void set_auto_threads_purging_interval_s(uint32_t val) {
 		m_threads_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
 	}
 
@@ -381,17 +384,13 @@ public:
 	 * thread infos from the internal state. If disabled, the client is
 	 * responsible of manually-handling the lifetime of containers.
 	 */
-	void set_auto_containers_purging(bool enabled)
-	{
-		m_auto_containers_purging = enabled;
-	}
+	void set_auto_containers_purging(bool enabled) { m_auto_containers_purging = enabled; }
 
 	/*!
 	 * \brief Sets the interval (in seconds) at which the automatic containers
 	 * purging routine runs (if enabled).
 	 */
-	inline void set_auto_containers_purging_interval_s(uint32_t val)
-	{
+	inline void set_auto_containers_purging_interval_s(uint32_t val) {
 		m_containers_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
 	}
 
@@ -400,17 +399,13 @@ public:
 	 * users and groups infos from the internal state. If disabled, the client
 	 * is responsible of manually-handling the lifetime of users and groups.
 	 */
-	void set_auto_usergroups_purging(bool enabled)
-	{
-		m_auto_usergroups_purging = enabled;
-	}
+	void set_auto_usergroups_purging(bool enabled) { m_auto_usergroups_purging = enabled; }
 
 	/*!
 	 * \brief Sets the interval (in seconds) at which the automatic
 	 * users and groups purging routine runs (if enabled).
 	 */
-	inline void set_auto_usergroups_purging_interval_s(uint32_t val)
-	{
+	inline void set_auto_usergroups_purging_interval_s(uint32_t val) {
 		m_usergroups_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
 	}
 
@@ -418,10 +413,7 @@ public:
 	 * \brief Enables or disables an automatic routine that periodically logs
 	 * the current capture stats.
 	 */
-	inline void set_auto_stats_print(bool enabled)
-	{
-		m_auto_stats_print = enabled;
-	}
+	inline void set_auto_stats_print(bool enabled) { m_auto_stats_print = enabled; }
 
 	/*!
 	 * \brief sets the amount of time after which a thread which has seen no events
@@ -459,10 +451,7 @@ public:
 	*/
 	const scap_machine_info* get_machine_info() const;
 
-	inline void set_machine_info(const scap_machine_info *v)
-	{
-		m_machine_info = v;
-	}
+	inline void set_machine_info(const scap_machine_info* v) { m_machine_info = v; }
 
 	/*!
 	  \brief Return information about the agent based on start up conditions.
@@ -472,16 +461,13 @@ public:
 	const scap_agent_info* get_agent_info() const;
 
 	/*!
-	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd state tables.
+	  \brief Return sinsp stats v2 containing continually updated counters around thread and fd
+	  state tables.
 
 	*/
-	inline const std::shared_ptr<sinsp_stats_v2>& get_sinsp_stats_v2()
-	{
-		return m_sinsp_stats_v2;
-	}
+	inline const std::shared_ptr<sinsp_stats_v2>& get_sinsp_stats_v2() { return m_sinsp_stats_v2; }
 
-	inline std::shared_ptr<const sinsp_stats_v2> get_sinsp_stats_v2() const
-	{
+	inline std::shared_ptr<const sinsp_stats_v2> get_sinsp_stats_v2() const {
 		return m_sinsp_stats_v2;
 	}
 
@@ -504,9 +490,14 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	inline const threadinfo_map_t::ptr_t& get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false)
-	{
-		return m_thread_manager->get_thread_ref(tid, query_os_if_not_found, lookup_only, main_thread);
+	inline const threadinfo_map_t::ptr_t& get_thread_ref(int64_t tid,
+	                                                     bool query_os_if_not_found = false,
+	                                                     bool lookup_only = true,
+	                                                     bool main_thread = false) {
+		return m_thread_manager->get_thread_ref(tid,
+		                                        query_os_if_not_found,
+		                                        lookup_only,
+		                                        main_thread);
 	}
 
 	/*!
@@ -530,38 +521,36 @@ public:
 
 	  \return Pointer to a \ref metrics_v2 structure filled with the statistics.
 	*/
-	const struct metrics_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const override;
+	const struct metrics_v2* get_capture_stats_v2(uint32_t flags,
+	                                              uint32_t* nstats,
+	                                              int32_t* rc) const override;
 
 	libsinsp::event_processor* m_external_event_processor;
 
-	inline std::unique_ptr<sinsp_threadinfo> build_threadinfo()
-    {
-        auto ret =  m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
-                                               : m_thread_manager->new_threadinfo();
+	inline std::unique_ptr<sinsp_threadinfo> build_threadinfo() {
+		auto ret = m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
+		                                      : m_thread_manager->new_threadinfo();
 		m_thread_manager->set_tinfo_shared_dynamic_fields(*ret);
 		return ret;
-    }
+	}
 
-	inline std::unique_ptr<sinsp_fdinfo> build_fdinfo()
-    {
-        auto ret = m_external_event_processor ? m_external_event_processor->build_fdinfo(this)
-                                              : m_thread_manager->new_fdinfo();
+	inline std::unique_ptr<sinsp_fdinfo> build_fdinfo() {
+		auto ret = m_external_event_processor ? m_external_event_processor->build_fdinfo(this)
+		                                      : m_thread_manager->new_fdinfo();
 		m_thread_manager->set_fdinfo_shared_dynamic_fields(*ret);
 		return ret;
-    }
+	}
 
 	/*!
 	  \brief registers external event processor.
 	  After this, callbacks on libsinsp::event_processor will happen at
 	  the appropriate times. This registration must happen before calling open.
 	*/
-	void register_external_event_processor(libsinsp::event_processor& processor)
-	{
+	void register_external_event_processor(libsinsp::event_processor& processor) {
 		m_external_event_processor = &processor;
 	}
 
-	libsinsp::event_processor* get_external_event_processor() const
-	{
+	libsinsp::event_processor* get_external_event_processor() const {
 		return m_external_event_processor;
 	}
 
@@ -576,10 +565,7 @@ public:
 	/*!
 	  \brief get last library error.
 	*/
-	std::string getlasterr() const
-	{
-		return m_lasterr;
-	}
+	std::string getlasterr() const { return m_lasterr; }
 
 	/*!
 	  \brief Get the list of machine network interfaces.
@@ -588,15 +574,9 @@ public:
 	*/
 	const sinsp_network_interfaces& get_ifaddr_list() const;
 
-	inline sinsp_network_interfaces& get_ifaddr_list()
-	{
-		return m_network_interfaces;
-	}
+	inline sinsp_network_interfaces& get_ifaddr_list() { return m_network_interfaces; }
 
-	inline void set_ifaddr_list(const sinsp_network_interfaces& v)
-	{
-		m_network_interfaces = v;
-	}
+	inline void set_ifaddr_list(const sinsp_network_interfaces& v) { m_network_interfaces = v; }
 
 	/*!
 	  \brief Set the format used to render event data
@@ -613,96 +593,66 @@ public:
 	/*!
 	  \brief Returns true if the current capture is happening from a scap file
 	*/
-	inline bool is_capture() const
-	{
-		return m_mode == SINSP_MODE_CAPTURE;
-	}
+	inline bool is_capture() const { return m_mode == SINSP_MODE_CAPTURE; }
 
 	/*!
 	  \brief Returns true if the current capture is offline
 	*/
-	inline bool is_offline() const
-	{
-		return is_capture() || m_mode == SINSP_MODE_TEST;
-	}
+	inline bool is_offline() const { return is_capture() || m_mode == SINSP_MODE_TEST; }
 
 	/*!
 	  \brief Returns true if the current capture is live
 	*/
-	inline bool is_live() const
-	{
-		return m_mode == SINSP_MODE_LIVE;
-	}
+	inline bool is_live() const { return m_mode == SINSP_MODE_LIVE; }
 
 	/*!
 	  \brief Returns true if the kernel module is not loaded
 	*/
-	inline bool is_nodriver() const
-	{
-		return m_mode == SINSP_MODE_NODRIVER;
-	}
+	inline bool is_nodriver() const { return m_mode == SINSP_MODE_NODRIVER; }
 
 	/*!
 	  \brief Returns true if the current capture has a plugin producing events.
 	*/
-	inline bool is_plugin() const
-	{
+	inline bool is_plugin() const {
 		return m_mode == SINSP_MODE_PLUGIN && m_input_plugin != nullptr;
 	}
 
 	/*!
 	  \brief Returns true if the current capture has a plugin producing syscall events.
 	*/
-	inline bool is_syscall_plugin() const
-	{
-		return is_plugin() && m_input_plugin->id() == 0;
-	}
+	inline bool is_syscall_plugin() const { return is_plugin() && m_input_plugin->id() == 0; }
 
 	/*!
 	  \brief Returns the framework plugin api version as a string with static storage
 	*/
-	inline const char *get_plugin_api_version() const
-	{
-		return PLUGIN_API_VERSION_STR;
-	}
+	inline const char* get_plugin_api_version() const { return PLUGIN_API_VERSION_STR; }
 
 	/*!
 	  \brief Returns the API version supported by the driver
 	*/
-	inline uint64_t get_driver_api_version() const
-	{
-		return scap_get_driver_api_version(m_h);
-	}
+	inline uint64_t get_driver_api_version() const { return scap_get_driver_api_version(m_h); }
 
 	/*!
 	  \brief Returns the minimum API version required by the userspace library
 	*/
-	inline uint64_t get_scap_api_version() const
-	{
-		return SCAP_MINIMUM_DRIVER_API_VERSION;
-	}
+	inline uint64_t get_scap_api_version() const { return SCAP_MINIMUM_DRIVER_API_VERSION; }
 
 	/*!
 	  \brief Returns the schema version supported by the driver
 	*/
-	inline uint64_t get_driver_schema_version() const
-	{
+	inline uint64_t get_driver_schema_version() const {
 		return scap_get_driver_schema_version(m_h);
 	}
 
 	/*!
 	  \brief Returns the minimum schema version required by the userspace library
 	*/
-	inline uint64_t get_scap_schema_version() const
-	{
-		return SCAP_MINIMUM_DRIVER_SCHEMA_VERSION;
-	}
+	inline uint64_t get_scap_schema_version() const { return SCAP_MINIMUM_DRIVER_SCHEMA_VERSION; }
 
 	/*!
 	  \brief Returns true if truncated environments should be loaded from /proc
 	*/
-	inline bool large_envs_enabled() const
-	{
+	inline bool large_envs_enabled() const {
 		return (is_live() || is_syscall_plugin()) && m_large_envs_enabled;
 	}
 
@@ -732,21 +682,18 @@ public:
 	*/
 	void set_fatfile_dump_mode(bool enable_fatfile);
 
-	inline bool is_fatfile_enabled() const
-	{
-		return m_isfatfile_enabled;
-	}
+	inline bool is_fatfile_enabled() const { return m_isfatfile_enabled; }
 
 	/*!
 	  \brief Set internal events mode.
 
 	  \note By default, internal events, such as events that note
-                when new containers or orchestration entities have
-                been created, are not returned in sinsp::next(). (They
-                are always written to capture files, to ensure that
-                the full state can be reconstructed when capture files
-                are read). Enabling internal events mode will result
-                in these events being returned.
+	            when new containers or orchestration entities have
+	            been created, are not returned in sinsp::next(). (They
+	            are always written to capture files, to ensure that
+	            the full state can be reconstructed when capture files
+	            are read). Enabling internal events mode will result
+	            in these events being returned.
 	*/
 	void set_internal_events_mode(bool enable_internal_events);
 
@@ -761,8 +708,7 @@ public:
 	*/
 	void set_hostname_and_port_resolution_mode(bool enable);
 
-	inline bool is_hostname_and_port_resolution_enabled() const
-	{
+	inline bool is_hostname_and_port_resolution_enabled() const {
 		return m_hostname_and_port_resolution_enabled;
 	}
 
@@ -772,15 +718,9 @@ public:
 
 	  \param flag Can be 'h', 'a', 'r', 'd', 'D' as documented in the manual.
 	*/
-	inline void set_time_output_mode(char flag)
-	{
-		m_output_time_flag = flag;
-	}
+	inline void set_time_output_mode(char flag) { m_output_time_flag = flag; }
 
-	inline char get_time_output_mode() const
-	{
-		return m_output_time_flag;
-	}
+	inline char get_time_output_mode() const { return m_output_time_flag; }
 
 	/*!
 	  \brief Sets the max length of event argument strings.
@@ -791,26 +731,17 @@ public:
 	*/
 	void set_max_evt_output_len(uint32_t len);
 
-	inline uint32_t get_max_evt_output_len() const
-	{
-		return m_max_evt_output_len;
-	}
+	inline uint32_t get_max_evt_output_len() const { return m_max_evt_output_len; }
 
 	/*!
 	  \brief Returns true if the debug mode is enabled.
 	*/
-	inline bool is_debug_enabled() const
-	{
-		return m_isdebug_enabled;
-	}
+	inline bool is_debug_enabled() const { return m_isdebug_enabled; }
 
 	/*!
 	  \brief Returns true if extended user information is collected.
 	*/
-	inline bool is_user_details_enabled()
-	{
-		return m_usergroup_manager.m_user_details_enabled;
-	}
+	inline bool is_user_details_enabled() { return m_usergroup_manager.m_user_details_enabled; }
 
 	/*!
 	  \brief Set a flag indicating if the command line requested to show container information.
@@ -819,23 +750,16 @@ public:
 	*/
 	void set_print_container_data(bool print_container_data);
 
-
 	/*!
 	  \brief Returns true if the command line argument is set to show container information.
 	*/
-	inline bool is_print_container_data() const
-	{
-		return m_print_container_data;
-	}
+	inline bool is_print_container_data() const { return m_print_container_data; }
 
 	/*!
 	  \brief If this is an offline capture, return the name of the file that is
 	   being read, otherwise return an empty string.
 	*/
-	std::string get_input_filename() const
-	{
-		return m_input_filename;
-	}
+	std::string get_input_filename() const { return m_input_filename; }
 
 	/*!
 	  \brief When reading events from a trace file or a plugin, this function
@@ -856,14 +780,10 @@ public:
 	  \brief Make the amount of data gathered for a syscall to be
 	  determined by the number of parameters.
 	*/
-	virtual int /*SCAP_X*/ dynamic_snaplen(bool enable)
-	{
-		if(enable)
-		{
+	virtual int /*SCAP_X*/ dynamic_snaplen(bool enable) {
+		if(enable) {
 			return scap_enable_dynamic_snaplen(m_h);
-		}
-		else
-		{
+		} else {
 			return scap_disable_dynamic_snaplen(m_h);
 		}
 	}
@@ -873,37 +793,35 @@ public:
 	//
 	void stop_dropping_mode();
 	void start_dropping_mode(uint32_t sampling_ratio);
-	void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo, scap_fdinfo* fdinfo);
-	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver)
-	{
+	void on_new_entry_from_proc(void* context,
+	                            int64_t tid,
+	                            scap_threadinfo* tinfo,
+	                            scap_fdinfo* fdinfo);
+	void set_get_procs_cpu_from_driver(bool get_procs_cpu_from_driver) {
 		m_get_procs_cpu_from_driver = get_procs_cpu_from_driver;
 	}
 
-	inline sinsp_parser* get_parser()
-	{
-		return m_parser.get();
-	}
+	inline sinsp_parser* get_parser() { return m_parser.get(); }
 
-	inline const sinsp_parser* get_parser() const
-	{
-		return m_parser.get();
-	}
+	inline const sinsp_parser* get_parser() const { return m_parser.get(); }
 
-	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
+	/*=============================== PPM_SC set related (ppm_sc.cpp)
+	 * ===============================*/
 
 	/*!
-		\brief Mark desired scap code as (un)interesting, enabling or disabling its collection.
-		Note that the same ppm_code can match multiple system syscalls or tracepoints.
+	    \brief Mark desired scap code as (un)interesting, enabling or disabling its collection.
+	    Note that the same ppm_code can match multiple system syscalls or tracepoints.
 
-		Please note that this method must be called when the inspector is already open to
-		modify at runtime the interesting syscall set.
+	    Please note that this method must be called when the inspector is already open to
+	    modify at runtime the interesting syscall set.
 
-		WARNING: playing with this API could break `libsinsp` state collection, this is only
-		useful in advanced cases where the client needs to know what it is doing!
+	    WARNING: playing with this API could break `libsinsp` state collection, this is only
+	    useful in advanced cases where the client needs to know what it is doing!
 	*/
 	void mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enabled = true);
 
-	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
+	/*=============================== PPM_SC set related (ppm_sc.cpp)
+	 * ===============================*/
 
 	/*=============================== Engine related ===============================*/
 
@@ -919,31 +837,27 @@ public:
 
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 
-	uint64_t get_bytes_read() const
-	{
-		return scap_ftell(m_h);
-	}
+	uint64_t get_bytes_read() const { return scap_ftell(m_h); }
 	void refresh_ifaddr_list();
-	void refresh_proc_list() {
-		scap_refresh_proc_table(get_scap_platform());
-	}
+	void refresh_proc_list() { scap_refresh_proc_table(get_scap_platform()); }
 
 	std::vector<long> get_n_tracepoint_hit() const;
 
 	static unsigned num_possible_cpus();
 
-	inline void set_container_engine_mask(uint64_t mask)
-	{
+	inline void set_container_engine_mask(uint64_t mask) {
 		m_container_manager.set_container_engine_mask(mask);
 	}
 
-	inline void set_static_container(const std::string& id, const std::string& name, const std::string& image) {
+	inline void set_static_container(const std::string& id,
+	                                 const std::string& name,
+	                                 const std::string& image) {
 		m_container_manager.set_static_container(id, name, image);
 	}
 
 	// Add comm to the list of comms for which the inspector
 	// should not return events.
-	bool suppress_events_comm(const std::string &comm);
+	bool suppress_events_comm(const std::string& comm);
 
 	bool suppress_events_tid(int64_t tid);
 
@@ -969,7 +883,7 @@ public:
 	/*!
 	  \brief Pushed a new path to the list of crio socket paths
 	*/
-	void add_cri_socket_path(const std::string &path);
+	void add_cri_socket_path(const std::string& path);
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
 
@@ -985,21 +899,16 @@ public:
 	// internally.
 	std::shared_ptr<sinsp_plugin> register_plugin(const plugin_api* api);
 
-	inline std::shared_ptr<const sinsp_plugin_manager> get_plugin_manager() const
-	{
+	inline std::shared_ptr<const sinsp_plugin_manager> get_plugin_manager() const {
 		return m_plugin_manager;
 	}
 
 	void handle_async_event(std::unique_ptr<sinsp_evt> evt);
 	void handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sinsp_evt> evt);
 
-	inline const std::vector<std::string>& event_sources() const
-	{
-		return m_event_sources;
-	}
+	inline const std::vector<std::string>& event_sources() const { return m_event_sources; }
 
-	inline const std::shared_ptr<libsinsp::state::table_registry>& get_table_registry() const
-	{
+	inline const std::shared_ptr<libsinsp::state::table_registry>& get_table_registry() const {
 		return m_table_registry;
 	}
 
@@ -1027,102 +936,56 @@ public:
 	 * \return The current time in nanoseconds if the last event timestamp is 0,
 	 * otherwise, the last event timestamp.
 	 */
-	inline uint64_t get_new_ts() const
-	{
+	inline uint64_t get_new_ts() const {
 		// m_lastevent_ts = 0 at startup when containers are
 		// being created as a part of the initial process
 		// scan.
-		return (m_lastevent_ts == 0)
-				? sinsp_utils::get_current_time_ns()
-				: m_lastevent_ts;
+		return (m_lastevent_ts == 0) ? sinsp_utils::get_current_time_ns() : m_lastevent_ts;
 	}
 
 	bool remove_inactive_threads();
 
-	inline const std::shared_ptr<sinsp_threadinfo>& add_thread(std::unique_ptr<sinsp_threadinfo> ptinfo)
-	{
+	inline const std::shared_ptr<sinsp_threadinfo>& add_thread(
+	        std::unique_ptr<sinsp_threadinfo> ptinfo) {
 		return m_thread_manager->add_thread(std::move(ptinfo), false);
 	}
 
-	void set_mode(sinsp_mode_t value)
-	{
-		m_mode = value;
-	}
+	void set_mode(sinsp_mode_t value) { m_mode = value; }
 
-	inline void remove_thread(int64_t tid)
-	{
-		m_thread_manager->remove_thread(tid);
-	}
+	inline void remove_thread(int64_t tid) { m_thread_manager->remove_thread(tid); }
 
-	inline const struct scap_platform* get_scap_platform() const
-	{
-		return m_platform;
-	}
+	inline const struct scap_platform* get_scap_platform() const { return m_platform; }
 
-	inline struct scap_platform* get_scap_platform()
-	{
-		return m_platform;
-	}
+	inline struct scap_platform* get_scap_platform() { return m_platform; }
 
-	inline const scap_t* get_scap_handle() const
-	{
-		return m_h;
-	}
+	inline const scap_t* get_scap_handle() const { return m_h; }
 
-	inline scap_t* get_scap_handle()
-	{
-		return m_h;
-	}
+	inline scap_t* get_scap_handle() { return m_h; }
 
-	inline int64_t get_tid_to_remove() const
-	{
-		return m_tid_to_remove;
-	}
+	inline int64_t get_tid_to_remove() const { return m_tid_to_remove; }
 
-	inline void set_tid_to_remove(int64_t v)
-	{
-		m_tid_to_remove = v;
-	}
+	inline void set_tid_to_remove(int64_t v) { m_tid_to_remove = v; }
 
-	inline bool is_dumping() const
-	{
-		return m_is_dumping;
-	}
+	inline bool is_dumping() const { return m_is_dumping; }
 
-	inline void set_dumping(bool v)
-	{
-		m_is_dumping = v;
-	}
+	inline void set_dumping(bool v) { m_is_dumping = v; }
 
-	inline int64_t get_tid_of_fd_to_remove() const
-	{
-		return m_tid_of_fd_to_remove;
-	}
+	inline int64_t get_tid_of_fd_to_remove() const { return m_tid_of_fd_to_remove; }
 
-	inline void set_tid_of_fd_to_remove(int64_t v)
-	{
-		m_tid_of_fd_to_remove = v;
-	}
+	inline void set_tid_of_fd_to_remove(int64_t v) { m_tid_of_fd_to_remove = v; }
 
-	inline uint32_t get_num_cpus() const
-	{
-		return m_num_cpus;
-	}
+	inline uint32_t get_num_cpus() const { return m_num_cpus; }
 
-	inline const std::vector<int64_t>& get_fds_to_remove() const
-	{
-		return m_fds_to_remove;
-	}
+	inline const std::vector<int64_t>& get_fds_to_remove() const { return m_fds_to_remove; }
 
-	inline std::vector<int64_t>& get_fds_to_remove()
-	{
-		return m_fds_to_remove;
-	}
+	inline std::vector<int64_t>& get_fds_to_remove() { return m_fds_to_remove; }
 
 private:
 	void set_input_plugin(const std::string& name, const std::string& params);
-	void open_common(scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform,
-			 sinsp_mode_t mode);
+	void open_common(scap_open_args* oargs,
+	                 const struct scap_vtable* vtable,
+	                 struct scap_platform* platform,
+	                 sinsp_mode_t mode);
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();
@@ -1137,18 +1000,16 @@ private:
 	//       just for lookup reason. In that case, m_lastaccess_ts is not updated
 	//       and m_last_tinfo is not set.
 	//
-	inline const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only)
-	{
+	inline const threadinfo_map_t::ptr_t& find_thread(int64_t tid, bool lookup_only) {
 		return m_thread_manager->find_thread(tid, lookup_only);
 	}
 
-	static int64_t get_file_size(const std::string& fname, char *error);
+	static int64_t get_file_size(const std::string& fname, char* error);
 	static std::string get_error_desc(const std::string& msg = "");
 
 	void restart_capture();
 
-	bool increased_snaplen_port_range_set() const
-	{
+	bool increased_snaplen_port_range_set() const {
 		return m_increased_snaplen_port_range.range_start > 0 &&
 		       m_increased_snaplen_port_range.range_end > 0;
 	}
@@ -1161,14 +1022,13 @@ private:
 	// regulates the logic behind event timestamp ordering.
 	// returns true if left "comes first" than right, and false otherwise.
 	// UINT64_MAX stands for max time priority -- as early as possible.
-	static inline bool compare_evt_timestamps(uint64_t left, uint64_t right)
-	{
+	static inline bool compare_evt_timestamps(uint64_t left, uint64_t right) {
 		return left == static_cast<uint64_t>(-1) || left <= right;
 	}
 
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	scap_t* m_h;
-	struct scap_platform* m_platform {};
+	struct scap_platform* m_platform{};
 	char m_platform_lasterr[SCAP_LASTERR_SIZE];
 	uint64_t m_nevts;
 	int64_t m_filesize;
@@ -1200,7 +1060,7 @@ private:
 	uint32_t m_num_cpus;
 	bool m_large_envs_enabled;
 
-	sinsp_network_interfaces m_network_interfaces {};
+	sinsp_network_interfaces m_network_interfaces{};
 
 	std::string m_host_root;
 
@@ -1234,8 +1094,7 @@ public:
 	//
 	// Saved increased capture range
 	//
-	struct
-	{
+	struct {
 		uint16_t range_start;
 		uint16_t range_end;
 	} m_increased_snaplen_port_range;
@@ -1277,10 +1136,8 @@ public:
 
 	// m_injected_evts comparator
 	using sinsp_evt_ptr = std::unique_ptr<sinsp_evt>;
-	struct state_evts_less
-	{
-		bool operator()(const sinsp_evt& l, const sinsp_evt& r)
-		{
+	struct state_evts_less {
+		bool operator()(const sinsp_evt& l, const sinsp_evt& r) {
 			// order events in reverse-order as the lowest timestamp
 			// has the highest priority
 			return !compare_evt_timestamps(l.get_ts(), r.get_ts());
@@ -1293,12 +1150,10 @@ public:
 	// predicate struct for checking the head of the async events queue.
 	// keeping a struct in the internal state makes sure that we don't do
 	// any extra allocation by creating a lambda and its closure
-	struct
-	{
+	struct {
 		uint64_t ts{0};
 
-		bool operator()(const sinsp_evt& evt) const
-		{
+		bool operator()(const sinsp_evt& evt) const {
 			return compare_evt_timestamps(evt.get_scap_evt()->ts, ts);
 		};
 	} m_async_events_checker;
@@ -1308,38 +1163,30 @@ public:
 
 	// temp storage for scap_next
 	// stores top scap_evt while qualified events from m_async_events_queue are being processed
-	struct
-	{
-		inline auto next(scap_t* h)
-		{
+	struct {
+		inline auto next(scap_t* h) {
 			auto res = scap_next(h, &m_pevt, &m_cpuid, &m_dump_flags);
-			if (res != SCAP_SUCCESS)
-			{
+			if(res != SCAP_SUCCESS) {
 				clear();
 			}
 			return res;
 		}
-		inline void move(sinsp_evt * evt)
-		{
+		inline void move(sinsp_evt* evt) {
 			evt->set_scap_evt(m_pevt);
 			evt->set_cpuid(m_cpuid);
 			evt->set_dump_flags(m_dump_flags);
 			clear();
 		}
-		inline bool empty() const
-		{
-			return m_pevt == nullptr;
-		}
-		inline void clear()
-		{
+		inline bool empty() const { return m_pevt == nullptr; }
+		inline void clear() {
 			m_pevt = nullptr;
 			m_cpuid = 0;
 			m_dump_flags = 0;
 		}
 
 		scap_evt* m_pevt{nullptr};
-		uint16_t  m_cpuid{0};
-		uint32_t  m_dump_flags;
+		uint16_t m_cpuid{0};
+		uint32_t m_dump_flags;
 	} m_delayed_scap_evt;
 
 	//
@@ -1358,7 +1205,6 @@ public:
 	static unsigned int m_num_possible_cpus;
 
 	int64_t m_self_pid;
-
 
 	//
 	// /proc scan parameters
@@ -1398,7 +1244,7 @@ public:
 	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().
 	// After using this event, sinsp::next() will set this back to NULL.
 	// This is used internally during the state initialization phase.
-	scap_evt *m_replay_scap_evt;
+	scap_evt* m_replay_scap_evt;
 	//
 	// This is related to m_replay_scap_evt, and is used to store the additional cpuid
 	// information of the replayed scap event.

@@ -24,8 +24,7 @@ limitations under the License.
 
 struct scap;
 
-struct source_plugin_engine
-{
+struct source_plugin_engine {
 	char* m_lasterr;
 
 	// Total number of events sourced by the plugin
@@ -50,5 +49,4 @@ struct source_plugin_engine
 
 	// Stats v2.
 	metrics_v2 m_stats[MAX_SOURCE_PLUGIN_COUNTERS_STATS];
-
 };

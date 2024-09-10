@@ -26,9 +26,8 @@ using namespace libsinsp::container_engine;
 static_container::static_container(container_cache_interface& cache,
                                    const std::string& id,
                                    const std::string& name,
-                                   const std::string& image)
-    : container_engine_base(cache)
-{
+                                   const std::string& image):
+        container_engine_base(cache) {
 	m_static_container_info = std::make_shared<sinsp_container_info>();
 	m_static_container_info->m_id = id;
 	m_static_container_info->m_type = CT_STATIC;
@@ -40,19 +39,17 @@ static_container::static_container(container_cache_interface& cache,
 	std::string hostname;
 	std::string port;
 	sinsp_utils::split_container_image(m_static_container_info->m_image,
-									   hostname,
-									   port,
-									   m_static_container_info->m_imagerepo,
-									   m_static_container_info->m_imagetag,
-									   m_static_container_info->m_imagedigest,
-									   false);
-
+	                                   hostname,
+	                                   port,
+	                                   m_static_container_info->m_imagerepo,
+	                                   m_static_container_info->m_imagetag,
+	                                   m_static_container_info->m_imagedigest,
+	                                   false);
 
 	cache.add_container(m_static_container_info, nullptr);
 }
 
-bool static_container::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
-{
+bool static_container::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) {
 	tinfo->m_container_id = m_static_container_info->m_id;
 	return true;
 }

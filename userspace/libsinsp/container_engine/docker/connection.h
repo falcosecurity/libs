@@ -15,31 +15,24 @@ namespace container_engine {
 
 class docker_connection {
 public:
-	enum docker_response {
-		RESP_OK = 0,
-		RESP_BAD_REQUEST = 1,
-		RESP_ERROR = 2,
-		RESP_TIMEOUT = 3
-	};
+	enum docker_response { RESP_OK = 0, RESP_BAD_REQUEST = 1, RESP_ERROR = 2, RESP_TIMEOUT = 3 };
 
 	docker_connection();
 	~docker_connection();
 
-	docker_response
-	get_docker(const docker_lookup_request& request, const std::string& req_url, std::string& json);
+	docker_response get_docker(const docker_lookup_request& request,
+	                           const std::string& req_url,
+	                           std::string& json);
 
-	void set_api_version(const std::string& api_version)
-	{
-		m_api_version = api_version;
-	}
+	void set_api_version(const std::string& api_version) { m_api_version = api_version; }
 
 private:
 	std::string m_api_version;
 
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(MINIMAL_BUILD)
-	CURLM *m_curlm;
+	CURLM* m_curlm;
 #endif
 };
 
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

@@ -8,7 +8,7 @@ or GPL2.txt for full copies of the license.
 
 */
 
-#define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/compat.h>
 #include <linux/kobject.h>
@@ -45,22 +45,20 @@ or GPL2.txt for full copies of the license.
 #define ppm_access_ok access_ok_noprefault
 #else
 #ifdef HAS_ACCESS_OK_2
-#define ppm_access_ok(type, addr, size)	access_ok(addr, size)
+#define ppm_access_ok(type, addr, size) access_ok(addr, size)
 #else
-#define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
+#define ppm_access_ok(type, addr, size) access_ok(type, addr, size)
 #endif
 #endif
 
-static void memory_dump(char *p, size_t size)
-{
+static void memory_dump(char *p, size_t size) {
 	unsigned int j;
 
-	for (j = 0; j < size; j += 8)
+	for(j = 0; j < size; j += 8)
 		pr_info("%*ph\n", 8, &p[j]);
 }
 
-static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
-{
+static inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max) {
 	return port >= min && port <= max;
 }
 
@@ -85,13 +83,12 @@ uint32_t g_http_resp_intval;
  * The risk is that if the buffer is partially paged out, we get an error.
  * Returns the number of bytes NOT read.
  */
-unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n)
-{
+unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned long n) {
 	unsigned long res = n;
 
 	pagefault_disable();
 
-	if (likely(ppm_access_ok(VERIFY_READ, from, n)))
+	if(likely(ppm_access_ok(VERIFY_READ, from, n)))
 		res = __copy_from_user_inatomic(to, from, n);
 
 	pagefault_enable();
@@ -106,11 +103,12 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
  * returns when:
  * 1. there's an error (returns `-1`).
  * 2. the terminator is found. (the `\0` is computed in the overall length)
- * 3. we have read `n` bytes. (in this case, we don't have the `\0` but it's ok we will add it in the caller)
+ * 3. we have read `n` bytes. (in this case, we don't have the `\0` but it's ok we will add it in
+ * the caller)
  */
-/// TODO: we need to change the return value to `int` and the third param from `unsigned long n` to 'uint32_t n`
-long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
-{
+/// TODO: we need to change the return value to `int` and the third param from `unsigned long n` to
+/// 'uint32_t n`
+long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n) {
 	long string_length = 0;
 	long res = -1;
 	unsigned long bytes_to_read = 4;
@@ -118,20 +116,20 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 
 	pagefault_disable();
 
-	while (n) {
+	while(n) {
 		/*
 		 * Read bytes_to_read bytes at a time, and look for the terminator. Should be fast
 		 * since the copy_from_user is optimized for the processor
 		 */
-		if (n < bytes_to_read)
+		if(n < bytes_to_read)
 			bytes_to_read = n;
 
-		if (!ppm_access_ok(VERIFY_READ, from, bytes_to_read)) {
+		if(!ppm_access_ok(VERIFY_READ, from, bytes_to_read)) {
 			res = -1;
 			goto strncpy_end;
 		}
 
-		if (__copy_from_user_inatomic(to, from, bytes_to_read)) {
+		if(__copy_from_user_inatomic(to, from, bytes_to_read)) {
 			/*
 			 * Page fault
 			 */
@@ -142,11 +140,11 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 		n -= bytes_to_read;
 		from += bytes_to_read;
 
-		for (j = 0; j < bytes_to_read; ++j) {
+		for(j = 0; j < bytes_to_read; ++j) {
 			++string_length;
 
 			/* Check if `*to` is the `\0`. */
-			if (!*to) {
+			if(!*to) {
 				res = string_length;
 				goto strncpy_end;
 			}
@@ -162,8 +160,7 @@ strncpy_end:
 	return res;
 }
 
-int32_t dpi_lookahead_init(void)
-{
+int32_t dpi_lookahead_init(void) {
 	g_http_options_intval = (*(uint32_t *)HTTP_OPTIONS_STR);
 	g_http_get_intval = (*(uint32_t *)HTTP_GET_STR);
 	g_http_head_intval = (*(uint32_t *)HTTP_HEAD_STR);
@@ -177,8 +174,7 @@ int32_t dpi_lookahead_init(void)
 	return PPM_SUCCESS;
 }
 
-inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int peer)
-{
+inline int sock_getname(struct socket *sock, struct sockaddr *sock_address, int peer) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 	/*
 	 * Avoid calling sock->ops->getname(), because in certain kernel versions,
@@ -197,18 +193,17 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 	struct sock *sk = sock->sk;
 
 	switch(sk->sk_family) {
-	case AF_INET:
-	{
+	case AF_INET: {
 		struct sockaddr_in *sin = (struct sockaddr_in *)sock_address;
 		struct inet_sock *inet = (struct inet_sock *)sk;
 
 		sin->sin_family = AF_INET;
-		if (peer) {
+		if(peer) {
 			sin->sin_port = inet->inet_dport;
 			sin->sin_addr.s_addr = inet->inet_daddr;
 		} else {
 			uint32_t addr = inet->inet_rcv_saddr;
-			if (!addr) {
+			if(!addr) {
 				addr = inet->inet_saddr;
 			}
 			sin->sin_port = inet->inet_sport;
@@ -216,19 +211,18 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 		}
 		break;
 	}
-	case AF_INET6:
-	{
+	case AF_INET6: {
 		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)sock_address;
 		struct inet_sock *inet = (struct inet_sock *)sk;
 		struct ipv6_pinfo *np = (struct ipv6_pinfo *)inet->pinet6;
 
 		sin->sin6_family = AF_INET6;
-		if (peer) {
+		if(peer) {
 			sin->sin6_port = inet->inet_dport;
 			sin->sin6_addr = sk->sk_v6_daddr;
 		} else {
 			sin->sin6_addr = sk->sk_v6_rcv_saddr;
-			if (ipv6_addr_any(&sin->sin6_addr)) {
+			if(ipv6_addr_any(&sin->sin6_addr)) {
 				sin->sin6_addr = np->saddr;
 			}
 			sin->sin6_port = inet->inet_sport;
@@ -236,27 +230,26 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 		break;
 	}
 
-	case AF_UNIX:
-	{
+	case AF_UNIX: {
 		struct sockaddr_un *sunaddr = (struct sockaddr_un *)sock_address;
 		struct unix_sock *u;
 		struct unix_address *u_addr = NULL;
 
-		if (peer) {
+		if(peer) {
 			sk = ((struct unix_sock *)sk)->peer;
-			if (!sk) {
+			if(!sk) {
 				return -ENOTCONN;
 			}
 		}
 
 		u = (struct unix_sock *)sk;
 		u_addr = u->addr;
-		if (!u_addr) {
+		if(!u_addr) {
 			sunaddr->sun_family = AF_UNIX;
 			sunaddr->sun_path[0] = 0;
 		} else {
 			unsigned int len = u_addr->len;
-			if (unlikely(len > sizeof(struct sockaddr_storage))) {
+			if(unlikely(len > sizeof(struct sockaddr_storage))) {
 				len = sizeof(struct sockaddr_storage);
 			}
 			memcpy(sunaddr, u_addr->name, len);
@@ -271,7 +264,7 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 	return 0;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
 	int ret = sock->ops->getname(sock, sock_address, peer);
-	if (ret >= 0)
+	if(ret >= 0)
 		ret = 0;
 	return ret;
 #else
@@ -302,8 +295,9 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
  *    HTTP, mongodb, and statsd.
  * 5. If none of the above apply, return args->consumer->snaplen.
  */
-inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, uint32_t lookahead_size)
-{
+inline uint32_t compute_snaplen(struct event_filler_arguments *args,
+                                char *buf,
+                                uint32_t lookahead_size) {
 	uint32_t res = args->consumer->snaplen;
 	int err = 0;
 	struct socket *sock = NULL;
@@ -326,8 +320,7 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 		goto done;
 
 	socket_family = sk->sk_family;
-	if(socket_family == AF_INET || socket_family == AF_INET6)
-	{
+	if(socket_family == AF_INET || socket_family == AF_INET6) {
 		struct inet_sock *inet = (struct inet_sock *)sk;
 		struct sockaddr *sockaddr = NULL;
 		struct sockaddr_in sockaddr_in = {};
@@ -344,8 +337,7 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 		goto done;
 #endif
 
-		switch(args->event_type)
-		{
+		switch(args->event_type) {
 		case PPME_SOCKET_SENDTO_X:
 		case PPME_SOCKET_RECVFROM_X:
 			// Reading directly from this could cause a page fault.
@@ -354,8 +346,7 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 			break;
 
 		case PPME_SOCKET_RECVMSG_X:
-		case PPME_SOCKET_SENDMSG_X:
-		{
+		case PPME_SOCKET_SENDMSG_X: {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
 			struct user_msghdr mh = {};
 #else
@@ -363,42 +354,33 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 #endif
 
 #ifdef CONFIG_COMPAT
-			if(args->compat)
-			{
+			if(args->compat) {
 				struct compat_msghdr compat_mh = {};
-				if(likely(ppm_copy_from_user(&compat_mh, (const void *)compat_ptr(args->args[1]),
-							     sizeof(compat_mh))==0))
-				{
+				if(likely(ppm_copy_from_user(&compat_mh,
+				                             (const void *)compat_ptr(args->args[1]),
+				                             sizeof(compat_mh)) == 0)) {
 					sockaddr = (struct sockaddr *)compat_ptr(compat_mh.msg_name);
 				}
 				// in any case we break the switch.
 				break;
 			}
 #endif
-			if(likely(ppm_copy_from_user(&mh, (const void *)args->args[1], sizeof(mh))==0))
-			{
-				sockaddr = (struct sockaddr*)mh.msg_name;
+			if(likely(ppm_copy_from_user(&mh, (const void *)args->args[1], sizeof(mh)) == 0)) {
+				sockaddr = (struct sockaddr *)mh.msg_name;
 			}
-		}
-		break;
+		} break;
 
 		default:
 			break;
 		}
 
-		if(port_remote == 0 && sockaddr != NULL)
-		{
-			if(socket_family == AF_INET)
-			{
-				if(ppm_copy_from_user(&sockaddr_in, sockaddr, sizeof(struct sockaddr_in)) == 0)
-				{
+		if(port_remote == 0 && sockaddr != NULL) {
+			if(socket_family == AF_INET) {
+				if(ppm_copy_from_user(&sockaddr_in, sockaddr, sizeof(struct sockaddr_in)) == 0) {
 					port_remote = ntohs(sockaddr_in.sin_port);
 				}
-			}
-			else
-			{
-				if(ppm_copy_from_user(&sockaddr_in6, sockaddr, sizeof(struct sockaddr_in6)) == 0)
-				{
+			} else {
+				if(ppm_copy_from_user(&sockaddr_in6, sockaddr, sizeof(struct sockaddr_in6)) == 0) {
 					port_remote = ntohs(sockaddr_in6.sin6_port);
 				}
 			}
@@ -407,61 +389,48 @@ inline uint32_t compute_snaplen(struct event_filler_arguments *args, char *buf, 
 
 	min_port = args->consumer->fullcapture_port_range_start;
 	max_port = args->consumer->fullcapture_port_range_end;
-	if(max_port > 0 &&
-	   (in_port_range(port_local, min_port, max_port) || in_port_range(port_remote, min_port, max_port)))
-	{
+	if(max_port > 0 && (in_port_range(port_local, min_port, max_port) ||
+	                    in_port_range(port_remote, min_port, max_port))) {
 		res = res > SNAPLEN_FULLCAPTURE_PORT ? res : SNAPLEN_FULLCAPTURE_PORT;
 		goto done;
-	}
-	else if(port_remote == args->consumer->statsd_port)
-	{
+	} else if(port_remote == args->consumer->statsd_port) {
 		res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 		goto done;
-	}
-	else if(port_remote == PPM_PORT_DNS)
-	{
+	} else if(port_remote == PPM_PORT_DNS) {
 		res = res > SNAPLEN_DNS_UDP ? res : SNAPLEN_DNS_UDP;
 		goto done;
-	}
-	else if((port_local == PPM_PORT_MYSQL || port_remote == PPM_PORT_MYSQL) && lookahead_size >= 5)
-	{
+	} else if((port_local == PPM_PORT_MYSQL || port_remote == PPM_PORT_MYSQL) &&
+	          lookahead_size >= 5) {
 		if((buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) ||
-		   (buf[2] == 0 && buf[3] == 0))
-		{
+		   (buf[2] == 0 && buf[3] == 0)) {
 			res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 			goto done;
 		}
-	}
-	else if((port_local == PPM_PORT_POSTGRES || port_remote == PPM_PORT_POSTGRES) && lookahead_size >= 7)
-	{
-		if((buf[0] == 'Q' && buf[1] == 0) ||		  /* SimpleQuery command */
-		   (buf[0] == 'P' && buf[1] == 0) ||		  /* Prepare statement command */
+	} else if((port_local == PPM_PORT_POSTGRES || port_remote == PPM_PORT_POSTGRES) &&
+	          lookahead_size >= 7) {
+		if((buf[0] == 'Q' && buf[1] == 0) ||              /* SimpleQuery command */
+		   (buf[0] == 'P' && buf[1] == 0) ||              /* Prepare statement command */
 		   (buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* startup command */
-		   (buf[0] == 'E' && buf[1] == 0)		  /* error or execute command */
-		)
-		{
+		   (buf[0] == 'E' && buf[1] == 0)                 /* error or execute command */
+		) {
 			res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 			goto done;
 		}
-	}
-	else if((port_local == PPM_PORT_MONGODB || port_remote == PPM_PORT_MONGODB) ||
-		(lookahead_size >= 16 &&
-		 (*(int32_t *)(buf + 12) == 1 || /* matches header */
-		  *(int32_t *)(buf + 12) == 2001 || *(int32_t *)(buf + 12) == 2002 || *(int32_t *)(buf + 12) == 2003 ||
-		  *(int32_t *)(buf + 12) == 2004 || *(int32_t *)(buf + 12) == 2005 || *(int32_t *)(buf + 12) == 2006 ||
-		  *(int32_t *)(buf + 12) == 2007)))
-	{
+	} else if((port_local == PPM_PORT_MONGODB || port_remote == PPM_PORT_MONGODB) ||
+	          (lookahead_size >= 16 &&
+	           (*(int32_t *)(buf + 12) == 1 || /* matches header */
+	            *(int32_t *)(buf + 12) == 2001 || *(int32_t *)(buf + 12) == 2002 ||
+	            *(int32_t *)(buf + 12) == 2003 || *(int32_t *)(buf + 12) == 2004 ||
+	            *(int32_t *)(buf + 12) == 2005 || *(int32_t *)(buf + 12) == 2006 ||
+	            *(int32_t *)(buf + 12) == 2007))) {
 		res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 		goto done;
-	}
-	else if(lookahead_size >= 5)
-	{
+	} else if(lookahead_size >= 5) {
 		if(*(uint32_t *)buf == g_http_get_intval || *(uint32_t *)buf == g_http_post_intval ||
 		   *(uint32_t *)buf == g_http_put_intval || *(uint32_t *)buf == g_http_delete_intval ||
 		   *(uint32_t *)buf == g_http_trace_intval || *(uint32_t *)buf == g_http_connect_intval ||
 		   *(uint32_t *)buf == g_http_options_intval ||
-		   ((*(uint32_t *)buf == g_http_resp_intval) && (buf[4] == '/')))
-		{
+		   ((*(uint32_t *)buf == g_http_resp_intval) && (buf[4] == '/'))) {
 			res = res > SNAPLEN_EXTENDED ? res : SNAPLEN_EXTENDED;
 			goto done;
 		}
@@ -471,19 +440,18 @@ done:
 	return res;
 }
 
-int push_empty_param(struct event_filler_arguments *args)
-{
+int push_empty_param(struct event_filler_arguments *args) {
 	uint16_t *psize = (uint16_t *)(args->buffer + args->curarg * sizeof(uint16_t));
 
-	if (unlikely(args->curarg >= args->nargs))
-	{
-		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
-			smp_processor_id(),
-			args->nevents,
-			(uint32_t)args->event_type,
-			args->curarg,
-			args->nargs,
-			current->pid);
+	if(unlikely(args->curarg >= args->nargs)) {
+		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u "
+		       "tid:%u\n",
+		       smp_processor_id(),
+		       args->nevents,
+		       (uint32_t)args->event_type,
+		       args->curarg,
+		       args->nargs,
+		       current->pid);
 		memory_dump(args->buffer - sizeof(struct ppm_evt_hdr), 32);
 		ASSERT(0);
 		return PPM_FAILURE_BUG;
@@ -503,37 +471,41 @@ int push_empty_param(struct event_filler_arguments *args)
  * - fromuser is ignored for numeric types
  * - dyn_idx is ignored for everything other than PT_DYN
  */
-int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_len, bool fromuser, uint8_t dyn_idx)
-{
+int val_to_ring(struct event_filler_arguments *args,
+                uint64_t val,
+                uint32_t val_len,
+                bool fromuser,
+                uint8_t dyn_idx) {
 	const struct ppm_param_info *param_info;
 	int len = -1;
 	uint16_t *psize = (uint16_t *)(args->buffer + args->curarg * sizeof(uint16_t));
 	uint32_t max_arg_size = args->arg_data_size;
 
-	if (unlikely(args->curarg >= args->nargs)) {
-		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
-			smp_processor_id(),
-			args->nevents,
-			(uint32_t)args->event_type,
-			args->curarg,
-			args->nargs,
-			current->pid);
+	if(unlikely(args->curarg >= args->nargs)) {
+		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u "
+		       "tid:%u\n",
+		       smp_processor_id(),
+		       args->nevents,
+		       (uint32_t)args->event_type,
+		       args->curarg,
+		       args->nargs,
+		       current->pid);
 		memory_dump(args->buffer - sizeof(struct ppm_evt_hdr), 32);
 		ASSERT(0);
 		return PPM_FAILURE_BUG;
 	}
 
-	if (unlikely(args->arg_data_size == 0))
+	if(unlikely(args->arg_data_size == 0))
 		return PPM_FAILURE_BUFFER_FULL;
 
-	if (max_arg_size > PPM_MAX_ARG_SIZE)
+	if(max_arg_size > PPM_MAX_ARG_SIZE)
 		max_arg_size = PPM_MAX_ARG_SIZE;
 
 	param_info = &(g_event_info[args->event_type].params[args->curarg]);
-	if (param_info->type == PT_DYN && param_info->info != NULL) {
+	if(param_info->type == PT_DYN && param_info->info != NULL) {
 		const struct ppm_param_info *dyn_params;
 
-		if (unlikely(dyn_idx >= param_info->ninfo)) {
+		if(unlikely(dyn_idx >= param_info->ninfo)) {
 			ASSERT(0);
 			return PPM_FAILURE_BUG;
 		}
@@ -541,7 +513,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_
 		dyn_params = (const struct ppm_param_info *)param_info->info;
 
 		param_info = &dyn_params[dyn_idx];
-		if (likely(max_arg_size >= sizeof(uint8_t)))	{
+		if(likely(max_arg_size >= sizeof(uint8_t))) {
 			*(uint8_t *)(args->buffer + args->arg_data_offset) = dyn_idx;
 			len = sizeof(uint8_t);
 		} else {
@@ -555,46 +527,43 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_
 		*psize = 0;
 	}
 
-	switch (param_info->type) {
+	switch(param_info->type) {
 	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_FSRELPATH:
-		if(unlikely(val == 0))
-		{
+		if(unlikely(val == 0)) {
 			/* Send an empty param when we have a null pointer `val==0` */
 			len = 0;
 			break;
 		}
 
-
-		if(fromuser)
-		{
+		if(fromuser) {
 			len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
-				(const char __user *)(unsigned long)val, max_arg_size);
+			                            (const char __user *)(unsigned long)val,
+			                            max_arg_size);
 
-			if(unlikely(len < 0))
-			{
+			if(unlikely(len < 0)) {
 				len = 0;
 				break;
 			}
 			/* Two possible cases here:
 			 *
-			 * 1. `len < max_arg_size`, the terminator is always there, and `len` takes it into account,
-			 *    so we need to do nothing. We just push a `\0` to an empty byte to avoid an if
-			 *    case.
+			 * 1. `len < max_arg_size`, the terminator is always there, and `len` takes it into
+			 * account, so we need to do nothing. We just push a `\0` to an empty byte to avoid an
+			 * if case.
 			 *
-			 * 2. `len == max_arg_size`, the terminator is not there but we cannot push an additional
-			 *    char for this reason we overwrite the last char and we don't increment `len`.
+			 * 2. `len == max_arg_size`, the terminator is not there but we cannot push an
+			 * additional char for this reason we overwrite the last char and we don't increment
+			 * `len`.
 			 */
 			*(char *)(args->buffer + args->arg_data_offset + max_arg_size - 1) = '\0';
-		}
-		else
-		{
+		} else {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
-			// strscpy is available since kernel 4.3.0: https://github.com/torvalds/linux/commit/30035e45753b708e7d47a98398500ca005e02b86
+			// strscpy is available since kernel 4.3.0:
+			// https://github.com/torvalds/linux/commit/30035e45753b708e7d47a98398500ca005e02b86
 			len = (int)strscpy(args->buffer + args->arg_data_offset,
-							(const char *)(unsigned long)val,
-							max_arg_size);
+			                   (const char *)(unsigned long)val,
+			                   max_arg_size);
 			/* WARNING: `strscpy` returns the length of the string it creates or -E2BIG in case
 			 * the resulting string would not fit inside the destination string.
 			 * (see https://elixir.bootlin.com/linux/latest/source/lib/string.c#L122 and
@@ -605,25 +574,23 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_
 			 *
 			 * Two possible cases here:
 			 *
-			 * 1. `len < max_arg_size`, the terminator is always there, but `len` doesn't take it into account,
-			 *    so we need to increment the `len`.
+			 * 1. `len < max_arg_size`, the terminator is always there, but `len` doesn't take it
+			 * into account, so we need to increment the `len`.
 			 *
 			 * 2. `len == -E2BIG`, the source string is >= than `max_arg_size`. `strscpy` copied
-			 *    `max_arg_size - 1` and added the `\0` at the end, so our final copied `len` is `max_arg_size`.
+			 *    `max_arg_size - 1` and added the `\0` at the end, so our final copied `len` is
+			 * `max_arg_size`.
 			 */
-			if (len == -E2BIG)
-			{
+			if(len == -E2BIG) {
 				len = max_arg_size;
-			}
-			else
-			{
+			} else {
 				len++;
 			}
 #else
 			// Use old `strlcpy`.
 			len = (int)strlcpy(args->buffer + args->arg_data_offset,
-							(const char *)(unsigned long)val,
-							max_arg_size);
+			                   (const char *)(unsigned long)val,
+			                   max_arg_size);
 			/* WARNING: `strlcpy` returns the length of the string it tries to create
 			 * so `len` could also be greater than `max_arg_size`, but please note that the copied
 			 * charbuf is at max `max_arg_size` (where the last byte is used for the `\0`).
@@ -632,16 +599,16 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_
 			 *
 			 * Two possible cases here:
 			 *
-			 * 1. `len < max_arg_size`, the terminator is always there, but `len` doesn't take it into account,
-			 *    so we need to increment the `len`. Note that if the source string has exactly `max_arg_size`
-			 *    characters the returned `len` is `max_arg_size-1` so we need to do `len++` to obtain the copied size.
+			 * 1. `len < max_arg_size`, the terminator is always there, but `len` doesn't take it
+			 * into account, so we need to increment the `len`. Note that if the source string has
+			 * exactly `max_arg_size` characters the returned `len` is `max_arg_size-1` so we need
+			 * to do `len++` to obtain the copied size.
 			 *
-			 * 2. `len >= max_arg_size`, the source string is greater than `max_arg_size`. `strlcpy` copied
-			 *    `max_arg_size - 1` and added the `\0` at the end, so our final copied `len` is `max_arg_size` we have just
-			 *    to resize it and we have done.
+			 * 2. `len >= max_arg_size`, the source string is greater than `max_arg_size`. `strlcpy`
+			 * copied `max_arg_size - 1` and added the `\0` at the end, so our final copied `len` is
+			 * `max_arg_size` we have just to resize it and we have done.
 			 */
-			if(++len >= max_arg_size)
-			{
+			if(++len >= max_arg_size) {
 				len = max_arg_size;
 			}
 #endif
@@ -649,76 +616,73 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_
 		break;
 
 	case PT_BYTEBUF:
-		if (likely(val != 0 && val_len)) {
-			if (fromuser)
-			{
+		if(likely(val != 0 && val_len)) {
+			if(fromuser) {
 				/*
 				 * Copy the lookahead portion of the buffer that we will use DPI-based
 				 * snaplen calculation
 				 */
 				uint32_t dpi_lookahead_size = DPI_LOOKAHEAD_SIZE;
 
-				if (dpi_lookahead_size > val_len)
+				if(dpi_lookahead_size > val_len)
 					dpi_lookahead_size = val_len;
 
-				if (unlikely(dpi_lookahead_size >= max_arg_size))
+				if(unlikely(dpi_lookahead_size >= max_arg_size))
 					return PPM_FAILURE_BUFFER_FULL;
 
 				/* Returns the number of bytes NOT read. */
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-						(const void __user *)(unsigned long)val,
-						dpi_lookahead_size);
+				                              (const void __user *)(unsigned long)val,
+				                              dpi_lookahead_size);
 
-				if(unlikely(len != 0))
-				{
+				if(unlikely(len != 0)) {
 					goto send_empty_bytebuf_param;
 				}
 
 				/*
 				 * Check if there's more to copy
 				 */
-				if (likely((dpi_lookahead_size != val_len))) {
+				if(likely((dpi_lookahead_size != val_len))) {
 					/*
 					 * Calculate the snaplen
 					 */
-					if (likely(args->enforce_snaplen)) {
+					if(likely(args->enforce_snaplen)) {
 						uint32_t sl = args->consumer->snaplen;
 
-						sl = compute_snaplen(args, args->buffer + args->arg_data_offset, dpi_lookahead_size);
-						if (val_len > sl)
+						sl = compute_snaplen(args,
+						                     args->buffer + args->arg_data_offset,
+						                     dpi_lookahead_size);
+						if(val_len > sl)
 							val_len = sl;
 					}
 
-					if (unlikely((val_len) >= max_arg_size))
+					if(unlikely((val_len) >= max_arg_size))
 						val_len = max_arg_size;
 
-					if (val_len > dpi_lookahead_size) {
-						len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset + dpi_lookahead_size,
-								(const uint8_t __user *)(unsigned long)val + dpi_lookahead_size,
-								val_len - dpi_lookahead_size);
+					if(val_len > dpi_lookahead_size) {
+						len = (int)ppm_copy_from_user(
+						        args->buffer + args->arg_data_offset + dpi_lookahead_size,
+						        (const uint8_t __user *)(unsigned long)val + dpi_lookahead_size,
+						        val_len - dpi_lookahead_size);
 
-						if (unlikely(len != 0))
-						{
+						if(unlikely(len != 0)) {
 							goto send_empty_bytebuf_param;
 						}
 					}
 				}
 
 				len = val_len;
-			}
-			else
-			{
-				if (likely(args->enforce_snaplen)) {
+			} else {
+				if(likely(args->enforce_snaplen)) {
 					uint32_t sl = compute_snaplen(args, (char *)(unsigned long)val, val_len);
-					if (val_len > sl)
+					if(val_len > sl)
 						val_len = sl;
 				}
 
-				if (unlikely(val_len >= max_arg_size))
+				if(unlikely(val_len >= max_arg_size))
 					return PPM_FAILURE_BUFFER_FULL;
 
-				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(unsigned long)val, val_len);
+				memcpy(args->buffer + args->arg_data_offset, (void *)(unsigned long)val, val_len);
 
 				len = val_len;
 			}
@@ -730,35 +694,29 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, uint32_t val_
 		 * - we have read `0` bytes.
 		 * - we faced an error while reading.
 		 */
-send_empty_bytebuf_param:
+	send_empty_bytebuf_param:
 		len = 0;
 		break;
 
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
-		if(likely(val != 0))
-		{
-			if (unlikely(val_len >= max_arg_size))
+		if(likely(val != 0)) {
+			if(unlikely(val_len >= max_arg_size))
 				return PPM_FAILURE_BUFFER_FULL;
 
-			if(fromuser)
-			{
+			if(fromuser) {
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
-						(const void __user *)(unsigned long)val,
-						val_len);
+				                              (const void __user *)(unsigned long)val,
+				                              val_len);
 
-				if(unlikely(len != 0))
-				{
+				if(unlikely(len != 0)) {
 					goto send_empty_sock_param;
 				}
 
 				len = val_len;
-			}
-			else
-			{
-				memcpy(args->buffer + args->arg_data_offset,
-					(void *)(unsigned long)val, val_len);
+			} else {
+				memcpy(args->buffer + args->arg_data_offset, (void *)(unsigned long)val, val_len);
 
 				len = val_len;
 			}
@@ -766,7 +724,7 @@ send_empty_bytebuf_param:
 			break;
 		}
 
-send_empty_sock_param:
+	send_empty_sock_param:
 		len = 0;
 		break;
 
@@ -774,7 +732,7 @@ send_empty_sock_param:
 	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		if (likely(max_arg_size >= sizeof(uint8_t)))	{
+		if(likely(max_arg_size >= sizeof(uint8_t))) {
 			*(uint8_t *)(args->buffer + args->arg_data_offset) = (uint8_t)val;
 			len = sizeof(uint8_t);
 		} else {
@@ -786,7 +744,7 @@ send_empty_sock_param:
 	case PT_ENUMFLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
-		if (likely(max_arg_size >= sizeof(uint16_t))) {
+		if(likely(max_arg_size >= sizeof(uint16_t))) {
 			*(uint16_t *)(args->buffer + args->arg_data_offset) = (uint16_t)val;
 			len = sizeof(uint16_t);
 		} else {
@@ -801,7 +759,7 @@ send_empty_sock_param:
 	case PT_GID:
 	case PT_SIGSET:
 	case PT_ENUMFLAGS32:
-		if (likely(max_arg_size >= sizeof(uint32_t))) {
+		if(likely(max_arg_size >= sizeof(uint32_t))) {
 			*(uint32_t *)(args->buffer + args->arg_data_offset) = (uint32_t)val;
 			len = sizeof(uint32_t);
 		} else {
@@ -812,7 +770,7 @@ send_empty_sock_param:
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		if (likely(max_arg_size >= sizeof(uint64_t))) {
+		if(likely(max_arg_size >= sizeof(uint64_t))) {
 			*(uint64_t *)(args->buffer + args->arg_data_offset) = (uint64_t)val;
 			len = sizeof(uint64_t);
 		} else {
@@ -821,7 +779,7 @@ send_empty_sock_param:
 
 		break;
 	case PT_INT8:
-		if (likely(max_arg_size >= sizeof(int8_t))) {
+		if(likely(max_arg_size >= sizeof(int8_t))) {
 			*(int8_t *)(args->buffer + args->arg_data_offset) = (int8_t)(long)val;
 			len = sizeof(int8_t);
 		} else {
@@ -830,7 +788,7 @@ send_empty_sock_param:
 
 		break;
 	case PT_INT16:
-		if (likely(max_arg_size >= sizeof(int16_t))) {
+		if(likely(max_arg_size >= sizeof(int16_t))) {
 			*(int16_t *)(args->buffer + args->arg_data_offset) = (int16_t)(long)val;
 			len = sizeof(int16_t);
 		} else {
@@ -839,7 +797,7 @@ send_empty_sock_param:
 
 		break;
 	case PT_INT32:
-		if (likely(max_arg_size >= sizeof(int32_t))) {
+		if(likely(max_arg_size >= sizeof(int32_t))) {
 			*(int32_t *)(args->buffer + args->arg_data_offset) = (int32_t)(long)val;
 			len = sizeof(int32_t);
 		} else {
@@ -851,7 +809,7 @@ send_empty_sock_param:
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		if (likely(max_arg_size >= sizeof(int64_t))) {
+		if(likely(max_arg_size >= sizeof(int64_t))) {
 			*(int64_t *)(args->buffer + args->arg_data_offset) = (int64_t)(long)val;
 			len = sizeof(int64_t);
 		} else {
@@ -861,10 +819,11 @@ send_empty_sock_param:
 		break;
 	default:
 		ASSERT(0);
-		pr_err("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters than what has been declared in nparams\n",
-			(int)g_event_info[args->event_type].params[args->curarg].type,
-			(uint32_t)args->event_type,
-			g_event_info[args->event_type].name);
+		pr_err("val_to_ring: invalid argument type %d. Event %u (%s) might have less parameters "
+		       "than what has been declared in nparams\n",
+		       (int)g_event_info[args->event_type].params[args->curarg].type,
+		       (uint32_t)args->event_type,
+		       g_event_info[args->event_type].name);
 		return PPM_FAILURE_BUG;
 	}
 
@@ -882,24 +841,23 @@ send_empty_sock_param:
 /*
 static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed)
 {
-	struct file *file;
-	struct socket *sock;
+    struct file *file;
+    struct socket *sock;
 
-	*err = -EBADF;
-	file = fget_light(fd, fput_needed);
-	if (file) {
-		sock = sock_from_file(file, err);
-		if (sock)
-			return sock;
-		fput_light(file, *fput_needed);
-	}
-	return NULL;
+    *err = -EBADF;
+    file = fget_light(fd, fput_needed);
+    if (file) {
+        sock = sock_from_file(file, err);
+        if (sock)
+            return sock;
+        fput_light(file, *fput_needed);
+    }
+    return NULL;
 }
 */
 
-static void unix_socket_path(char *dest, const char *path, size_t size)
-{
-	if (path[0] == '\0') {
+static void unix_socket_path(char *dest, const char *path, size_t size) {
+	if(path[0] == '\0') {
 		/*
 		 * Extract from: https://man7.org/linux/man-pages/man7/unix.7.html
 		 * an abstract socket address is distinguished (from a
@@ -908,15 +866,12 @@ static void unix_socket_path(char *dest, const char *path, size_t size)
 		 * the additional bytes in sun_path that are covered by the
 		 * specified length of the address structure.
 		 */
-		snprintf(dest,
-			 size,
-			 "@%s",
-			 path + 1);
+		snprintf(dest, size, "@%s", path + 1);
 	} else {
 		snprintf(dest,
-			size,
-			 "%s",
-			 path); /* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
+		         size,
+		         "%s",
+		         path); /* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
 	}
 }
 
@@ -925,10 +880,9 @@ static void unix_socket_path(char *dest, const char *path, size_t size)
  * targetbuf
  */
 uint16_t pack_addr(struct sockaddr *usrsockaddr,
-	int ulen,
-	char *targetbuf,
-	uint16_t targetbufsize)
-{
+                   int ulen,
+                   char *targetbuf,
+                   uint16_t targetbufsize) {
 	uint32_t ip;
 	uint16_t port;
 	sa_family_t family = usrsockaddr->sa_family;
@@ -938,7 +892,7 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
 	uint16_t size;
 	char *dest;
 
-	switch (family) {
+	switch(family) {
 	case AF_INET:
 		/*
 		 * Map the user-provided address to a sockaddr_in
@@ -978,9 +932,7 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
 		size = 1 + 16 + 2; /* family + ip + port */
 
 		*targetbuf = socket_family_to_scap((uint8_t)family);
-		memcpy(targetbuf + 1,
-			usrsockaddr_in6->sin6_addr.s6_addr,
-			16);
+		memcpy(targetbuf + 1, usrsockaddr_in6->sin6_addr.s6_addr, 16);
 		*(uint16_t *)(targetbuf + 17) = port;
 
 		break;
@@ -994,7 +946,7 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
 		 * Put a 0 at the end of struct sockaddr_un because
 		 * the user might not have considered it in the length
 		 */
-		if (ulen == sizeof(struct sockaddr_storage))
+		if(ulen == sizeof(struct sockaddr_storage))
 			*(((char *)usrsockaddr_un) + ulen - 1) = 0;
 		else
 			*(((char *)usrsockaddr_un) + ulen) = 0;
@@ -1025,13 +977,12 @@ uint16_t pack_addr(struct sockaddr *usrsockaddr,
  * targetbuf
  */
 uint16_t fd_to_socktuple(int fd,
-	struct sockaddr *usrsockaddr,
-	int ulen,
-	bool use_userdata,
-	bool is_inbound,
-	char *targetbuf,
-	uint16_t targetbufsize)
-{
+                         struct sockaddr *usrsockaddr,
+                         int ulen,
+                         bool use_userdata,
+                         bool is_inbound,
+                         char *targetbuf,
+                         uint16_t targetbufsize) {
 	int err = 0;
 	sa_family_t family;
 	uint32_t sip;
@@ -1058,12 +1009,12 @@ uint16_t fd_to_socktuple(int fd,
 	 */
 	sock = sockfd_lookup(fd, &err);
 
-	if (unlikely(!sock || !(sock->sk))) {
+	if(unlikely(!sock || !(sock->sk))) {
 		/*
 		 * This usually happens if the call failed without being able to establish a connection,
 		 * i.e. if it didn't return something like SE_EINPROGRESS.
 		 */
-		if (sock)
+		if(sock)
 			sockfd_put(sock);
 		return 0;
 	}
@@ -1075,21 +1026,21 @@ uint16_t fd_to_socktuple(int fd,
 	/*
 	 * Extract and pack the info, based on the family
 	 */
-	switch (family) {
+	switch(family) {
 	case AF_INET:
-		if (!use_userdata) {
+		if(!use_userdata) {
 			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
-			if (err == 0) {
-				if (is_inbound) {
-					sip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
-					sport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
-					dip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
-					dport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+			if(err == 0) {
+				if(is_inbound) {
+					sip = ((struct sockaddr_in *)&peer_address)->sin_addr.s_addr;
+					sport = ntohs(((struct sockaddr_in *)&peer_address)->sin_port);
+					dip = ((struct sockaddr_in *)&sock_address)->sin_addr.s_addr;
+					dport = ntohs(((struct sockaddr_in *)&sock_address)->sin_port);
 				} else {
-					sip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
-					sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
-					dip = ((struct sockaddr_in *) &peer_address)->sin_addr.s_addr;
-					dport = ntohs(((struct sockaddr_in *) &peer_address)->sin_port);
+					sip = ((struct sockaddr_in *)&sock_address)->sin_addr.s_addr;
+					sport = ntohs(((struct sockaddr_in *)&sock_address)->sin_port);
+					dip = ((struct sockaddr_in *)&peer_address)->sin_addr.s_addr;
+					dport = ntohs(((struct sockaddr_in *)&peer_address)->sin_port);
 				}
 			} else {
 				sip = 0;
@@ -1103,8 +1054,7 @@ uint16_t fd_to_socktuple(int fd,
 			 */
 			usrsockaddr_in = (struct sockaddr_in *)usrsockaddr;
 
-			if (is_inbound)
-			{
+			if(is_inbound) {
 				/* To take peer address info we try to use the kernel where possible.
 				 * TCP allows us to obtain the right information, while the kernel doesn't fill
 				 * `sk->__sk_common.skc_daddr` for UDP connection.
@@ -1114,22 +1064,20 @@ uint16_t fd_to_socktuple(int fd,
 				 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0)
 				sport = ntohs(sock->sk->__sk_common.skc_dport);
-				if(sport != 0)
-				{
+				if(sport != 0) {
 					/* We can read from the kernel */
 					sip = sock->sk->__sk_common.skc_daddr;
-				}
-				else
+				} else
 #endif
 				{
 					sip = usrsockaddr_in->sin_addr.s_addr;
 					sport = ntohs(usrsockaddr_in->sin_port);
 				}
-				dip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
-				dport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+				dip = ((struct sockaddr_in *)&sock_address)->sin_addr.s_addr;
+				dport = ntohs(((struct sockaddr_in *)&sock_address)->sin_port);
 			} else {
-				sip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
-				sport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
+				sip = ((struct sockaddr_in *)&sock_address)->sin_addr.s_addr;
+				sport = ntohs(((struct sockaddr_in *)&sock_address)->sin_port);
 				dip = usrsockaddr_in->sin_addr.s_addr;
 				dport = ntohs(usrsockaddr_in->sin_port);
 			}
@@ -1148,20 +1096,20 @@ uint16_t fd_to_socktuple(int fd,
 
 		break;
 	case AF_INET6:
-		if (!use_userdata) {
+		if(!use_userdata) {
 			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 			ASSERT(err == 0);
 
-			if (is_inbound) {
-				sip6 = ((struct sockaddr_in6 *) &peer_address)->sin6_addr.s6_addr;
-				sport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
-				dip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
-				dport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+			if(is_inbound) {
+				sip6 = ((struct sockaddr_in6 *)&peer_address)->sin6_addr.s6_addr;
+				sport = ntohs(((struct sockaddr_in6 *)&peer_address)->sin6_port);
+				dip6 = ((struct sockaddr_in6 *)&sock_address)->sin6_addr.s6_addr;
+				dport = ntohs(((struct sockaddr_in6 *)&sock_address)->sin6_port);
 			} else {
-				sip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
-				sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
-				dip6 = ((struct sockaddr_in6 *) &peer_address)->sin6_addr.s6_addr;
-				dport = ntohs(((struct sockaddr_in6 *) &peer_address)->sin6_port);
+				sip6 = ((struct sockaddr_in6 *)&sock_address)->sin6_addr.s6_addr;
+				sport = ntohs(((struct sockaddr_in6 *)&sock_address)->sin6_port);
+				dip6 = ((struct sockaddr_in6 *)&peer_address)->sin6_addr.s6_addr;
+				dport = ntohs(((struct sockaddr_in6 *)&peer_address)->sin6_port);
 			}
 		} else {
 			/*
@@ -1169,27 +1117,24 @@ uint16_t fd_to_socktuple(int fd,
 			 */
 			usrsockaddr_in6 = (struct sockaddr_in6 *)usrsockaddr;
 
-			if (is_inbound)
-			{
+			if(is_inbound) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0)
 				sport = ntohs(sock->sk->__sk_common.skc_dport);
-				if(sport != 0)
-				{
+				if(sport != 0) {
 					/* We can read from the kernel */
 					sip6 = sock->sk->__sk_common.skc_v6_daddr.in6_u.u6_addr8;
-				}
-				else
+				} else
 #endif
 				{
 					/* Fallback to userspace struct */
 					sip6 = usrsockaddr_in6->sin6_addr.s6_addr;
 					sport = ntohs(usrsockaddr_in6->sin6_port);
 				}
-				dip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
-				dport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+				dip6 = ((struct sockaddr_in6 *)&sock_address)->sin6_addr.s6_addr;
+				dport = ntohs(((struct sockaddr_in6 *)&sock_address)->sin6_port);
 			} else {
-				sip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
-				sport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
+				sip6 = ((struct sockaddr_in6 *)&sock_address)->sin6_addr.s6_addr;
+				sport = ntohs(((struct sockaddr_in6 *)&sock_address)->sin6_port);
 				dip6 = usrsockaddr_in6->sin6_addr.s6_addr;
 				dport = ntohs(usrsockaddr_in6->sin6_port);
 			}
@@ -1201,13 +1146,9 @@ uint16_t fd_to_socktuple(int fd,
 		size = 1 + 16 + 16 + 2 + 2; /* family + sip + dip + sport + dport */
 
 		*targetbuf = socket_family_to_scap((uint8_t)family);
-		memcpy(targetbuf + 1,
-			sip6,
-			16);
+		memcpy(targetbuf + 1, sip6, 16);
 		*(uint16_t *)(targetbuf + 17) = sport;
-		memcpy(targetbuf + 19,
-			dip6,
-			16);
+		memcpy(targetbuf + 19, dip6, 16);
 		*(uint16_t *)(targetbuf + 35) = dport;
 
 		break;
@@ -1220,7 +1161,7 @@ uint16_t fd_to_socktuple(int fd,
 
 		*targetbuf = socket_family_to_scap(family);
 
-		if (is_inbound) {
+		if(is_inbound) {
 			*(uint64_t *)(targetbuf + 1) = (uint64_t)(unsigned long)us;
 			*(uint64_t *)(targetbuf + 1 + 8) = (uint64_t)(unsigned long)speer;
 		} else {
@@ -1233,14 +1174,14 @@ uint16_t fd_to_socktuple(int fd,
 		 */
 		size = 1 + 8 + 8;
 
-		if (!use_userdata) {
-			if (is_inbound) {
-				us_name = ((struct sockaddr_un *) &sock_address)->sun_path;
+		if(!use_userdata) {
+			if(is_inbound) {
+				us_name = ((struct sockaddr_un *)&sock_address)->sun_path;
 			} else {
 				err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
 				ASSERT(err == 0);
 
-				us_name = ((struct sockaddr_un *) &peer_address)->sun_path;
+				us_name = ((struct sockaddr_un *)&peer_address)->sun_path;
 			}
 		} else {
 			/*
@@ -1252,13 +1193,13 @@ uint16_t fd_to_socktuple(int fd,
 			 * Put a 0 at the end of struct sockaddr_un because
 			 * the user might not have considered it in the length
 			 */
-			if (ulen == sizeof(struct sockaddr_storage))
+			if(ulen == sizeof(struct sockaddr_storage))
 				*(((char *)usrsockaddr_un) + ulen - 1) = 0;
 			else
 				*(((char *)usrsockaddr_un) + ulen) = 0;
 
-			if (is_inbound)
-				us_name = ((struct sockaddr_un *) &sock_address)->sun_path;
+			if(is_inbound)
+				us_name = ((struct sockaddr_un *)&sock_address)->sun_path;
 			else
 				us_name = usrsockaddr_un->sun_path;
 		}
@@ -1283,15 +1224,14 @@ uint16_t fd_to_socktuple(int fd,
 	return size;
 }
 
-int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
-{
-	if (unlikely(ulen < 0 || ulen > sizeof(struct sockaddr_storage)))
+int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr) {
+	if(unlikely(ulen < 0 || ulen > sizeof(struct sockaddr_storage)))
 		return -EINVAL;
 
-	if (unlikely(ulen == 0))
+	if(unlikely(ulen == 0))
 		return 0;
 
-	if (unlikely(ppm_copy_from_user(kaddr, uaddr, ulen)))
+	if(unlikely(ppm_copy_from_user(kaddr, uaddr, ulen)))
 		return -EFAULT;
 
 	return 0;
@@ -1301,8 +1241,11 @@ int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
  * Parses the list of buffers of a xreadv or xwritev call, and pushes the size
  * (and optionally the data) to the ring.
  */
-int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags)
-{
+int32_t parse_readv_writev_bufs(struct event_filler_arguments *args,
+                                const struct iovec __user *iovsrc,
+                                unsigned long iovcnt,
+                                int64_t retval,
+                                int flags) {
 	int32_t res;
 	const struct iovec *iov;
 	uint64_t copylen;
@@ -1317,13 +1260,13 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 	copylen = iovcnt * sizeof(struct iovec);
 
-	if (unlikely(iovcnt >= 0xffffffff))
+	if(unlikely(iovcnt >= 0xffffffff))
 		return PPM_FAILURE_BUFFER_FULL;
 
-	if (unlikely(copylen >= STR_STORAGE_SIZE))
+	if(unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
 
-	if (unlikely(ppm_copy_from_user(args->str_storage, iovsrc, copylen)))
+	if(unlikely(ppm_copy_from_user(args->str_storage, iovsrc, copylen)))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	iov = (const struct iovec *)(args->str_storage);
@@ -1334,16 +1277,16 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	/*
 	 * Size
 	 */
-	if (flags & PRB_FLAG_PUSH_SIZE) {
-		for (j = 0; j < iovcnt; j++)
+	if(flags & PRB_FLAG_PUSH_SIZE) {
+		for(j = 0; j < iovcnt; j++)
 			size += iov[j].iov_len;
 
 		/*
 		 * Size is the total size of the buffers provided by the user. The number of
 		 * received bytes can be smaller
 		 */
-		if ((flags & PRB_FLAG_IS_WRITE) == 0)
-			if (size > retval)
+		if((flags & PRB_FLAG_IS_WRITE) == 0)
+			if(size > retval)
 				size = retval;
 
 		res = val_to_ring(args, size, 0, false, 0);
@@ -1353,8 +1296,8 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	/*
 	 * data
 	 */
-	if (flags & PRB_FLAG_PUSH_DATA) {
-		if (retval > 0 && iovcnt > 0) {
+	if(flags & PRB_FLAG_PUSH_DATA) {
+		if(retval > 0 && iovcnt > 0) {
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
@@ -1366,9 +1309,9 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			 */
 			bufsize = 0;
 
-			for (j = 0; j < iovcnt; j++) {
-				if ((flags & PRB_FLAG_IS_WRITE) == 0) {
-					if (bufsize >= retval) {
+			for(j = 0; j < iovcnt; j++) {
+				if((flags & PRB_FLAG_IS_WRITE) == 0) {
+					if(bufsize >= retval) {
 						ASSERT(bufsize >= retval);
 
 						/*
@@ -1385,11 +1328,10 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 					tocopy_len = min(iov[j].iov_len, targetbuflen - bufsize - 1);
 				}
 
-				notcopied_len = (int)ppm_copy_from_user(targetbuf + bufsize,
-						iov[j].iov_base,
-						tocopy_len);
+				notcopied_len =
+				        (int)ppm_copy_from_user(targetbuf + bufsize, iov[j].iov_base, tocopy_len);
 
-				if (unlikely(notcopied_len != 0)) {
+				if(unlikely(notcopied_len != 0)) {
 					/*
 					 * This means we had a page fault. Skip this event.
 					 */
@@ -1398,7 +1340,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 				bufsize += tocopy_len;
 
-				if (tocopy_len != iov[j].iov_len) {
+				if(tocopy_len != iov[j].iov_len) {
 					/*
 					 * No space left in the args->str_storage buffer.
 					 * Copy must stop here.
@@ -1409,11 +1351,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 
 			args->enforce_snaplen = true;
 
-			res = val_to_ring(args,
-				(unsigned long)targetbuf,
-				bufsize,
-				false,
-				0);
+			res = val_to_ring(args, (unsigned long)targetbuf, bufsize, false, 0);
 			CHECK_RES(res);
 		} else {
 			res = val_to_ring(args, 0, 0, false, 0);
@@ -1424,14 +1362,16 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	return PPM_SUCCESS;
 }
 
-
 #ifdef CONFIG_COMPAT
 /*
  * Parses the list of buffers of a xreadv or xwritev call, and pushes the size
  * (and optionally the data) to the ring.
  */
-int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, const struct compat_iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags)
-{
+int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args,
+                                       const struct compat_iovec __user *iovsrc,
+                                       unsigned long iovcnt,
+                                       int64_t retval,
+                                       int flags) {
 	int32_t res;
 	const struct compat_iovec *iov;
 	uint64_t copylen;
@@ -1446,13 +1386,13 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 
 	copylen = iovcnt * sizeof(struct compat_iovec);
 
-	if (unlikely(iovcnt >= 0xffffffff))
+	if(unlikely(iovcnt >= 0xffffffff))
 		return PPM_FAILURE_BUFFER_FULL;
 
-	if (unlikely(copylen >= STR_STORAGE_SIZE))
+	if(unlikely(copylen >= STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
 
-	if (unlikely(ppm_copy_from_user(args->str_storage, iovsrc, copylen)))
+	if(unlikely(ppm_copy_from_user(args->str_storage, iovsrc, copylen)))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	iov = (const struct compat_iovec *)(args->str_storage);
@@ -1463,16 +1403,16 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	/*
 	 * Size
 	 */
-	if (flags & PRB_FLAG_PUSH_SIZE) {
-		for (j = 0; j < iovcnt; j++)
+	if(flags & PRB_FLAG_PUSH_SIZE) {
+		for(j = 0; j < iovcnt; j++)
 			size += iov[j].iov_len;
 
 		/*
 		 * Size is the total size of the buffers provided by the user. The number of
 		 * received bytes can be smaller
 		 */
-		if ((flags & PRB_FLAG_IS_WRITE) == 0)
-			if (size > retval)
+		if((flags & PRB_FLAG_IS_WRITE) == 0)
+			if(size > retval)
 				size = retval;
 
 		res = val_to_ring(args, size, 0, false, 0);
@@ -1482,8 +1422,8 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	/*
 	 * data
 	 */
-	if (flags & PRB_FLAG_PUSH_DATA) {
-		if (retval > 0 && iovcnt > 0) {
+	if(flags & PRB_FLAG_PUSH_DATA) {
+		if(retval > 0 && iovcnt > 0) {
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
@@ -1495,9 +1435,9 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 			 */
 			bufsize = 0;
 
-			for (j = 0; j < iovcnt; j++) {
-				if ((flags & PRB_FLAG_IS_WRITE) == 0) {
-					if (bufsize >= retval) {
+			for(j = 0; j < iovcnt; j++) {
+				if((flags & PRB_FLAG_IS_WRITE) == 0) {
+					if(bufsize >= retval) {
 						ASSERT(bufsize >= retval);
 
 						/*
@@ -1515,10 +1455,10 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 				}
 
 				notcopied_len = (int)ppm_copy_from_user(targetbuf + bufsize,
-									compat_ptr(iov[j].iov_base),
-						tocopy_len);
+				                                        compat_ptr(iov[j].iov_base),
+				                                        tocopy_len);
 
-				if (unlikely(notcopied_len != 0)) {
+				if(unlikely(notcopied_len != 0)) {
 					/*
 					 * This means we had a page fault. Skip this event.
 					 */
@@ -1527,7 +1467,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 
 				bufsize += tocopy_len;
 
-				if (tocopy_len != iov[j].iov_len) {
+				if(tocopy_len != iov[j].iov_len) {
 					/*
 					 * No space left in the args->str_storage buffer.
 					 * Copy must stop here.
@@ -1538,11 +1478,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 
 			args->enforce_snaplen = true;
 
-			res = val_to_ring(args,
-				(unsigned long)targetbuf,
-				bufsize,
-				false,
-				0);
+			res = val_to_ring(args, (unsigned long)targetbuf, bufsize, false, 0);
 			CHECK_RES(res);
 		} else {
 			res = val_to_ring(args, 0, 0, false, 0);
@@ -1565,8 +1501,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
  * filler function.
  * The arguments to extract are be specified in g_ppm_events.
  */
-int f_sys_autofill(struct event_filler_arguments *args)
-{
+int f_sys_autofill(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	uint32_t j;
@@ -1575,19 +1510,19 @@ int f_sys_autofill(struct event_filler_arguments *args)
 	const struct ppm_event_entry *evinfo = &g_ppm_events[args->event_type];
 	ASSERT(evinfo->n_autofill_args <= PPM_MAX_AUTOFILL_ARGS);
 
-	for (j = 0; j < evinfo->n_autofill_args; j++) {
-		if (evinfo->autofill_args[j].id >= 0) {
+	for(j = 0; j < evinfo->n_autofill_args; j++) {
+		if(evinfo->autofill_args[j].id >= 0) {
 			val = args->args[evinfo->autofill_args[j].id];
 			res = val_to_ring(args, val, 0, true, 0);
 			CHECK_RES(res);
-		} else if (evinfo->autofill_args[j].id == AF_ID_RETVAL) {
+		} else if(evinfo->autofill_args[j].id == AF_ID_RETVAL) {
 			/*
 			 * Return value
 			 */
 			retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 			res = val_to_ring(args, retval, 0, false, 0);
 			CHECK_RES(res);
-		} else if (evinfo->autofill_args[j].id == AF_ID_USEDEFAULT) {
+		} else if(evinfo->autofill_args[j].id == AF_ID_USEDEFAULT) {
 			/*
 			 * Default Value
 			 */

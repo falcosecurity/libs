@@ -39,8 +39,7 @@ limitations under the License.
 
 #define FILENAME "test_tmpfile"
 
-TEST_F(sys_call_test, forking)
-{
+TEST_F(sys_call_test, forking) {
 	//	int callnum = 0;
 
 	int ptid;          // parent tid
@@ -51,30 +50,29 @@ TEST_F(sys_call_test, forking)
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{ return evt->get_tid() == ptid || evt->get_tid() == ctid; };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return evt->get_tid() == ptid || evt->get_tid() == ctid;
+	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		pid_t childtid;
 		int status;
 		childtid = fork();
 
 		int fd = creat(FILENAME, S_IRWXU);
 
-		if (childtid >= 0)  // fork succeeded
+		if(childtid >= 0)  // fork succeeded
 		{
-			if (childtid == 0)  // fork() returns 0 to the child process
+			if(childtid == 0)  // fork() returns 0 to the child process
 			{
 				ctid = getpid();
 				usleep(100);  // sleep for 0.1 seconds
 				close(fd);
 				_exit(xstatus);  // child exits with specific return code
-			}
-			else  // fork() returns new pid to the parent process
+			} else               // fork() returns new pid to the parent process
 			{
 				ptid = getpid();
 				gptid = getppid();
@@ -84,9 +82,7 @@ TEST_F(sys_call_test, forking)
 				wait(&status);  // wait for child to exit, and store its status
 				                // Use WEXITSTATUS to validate status.
 			}
-		}
-		else
-		{
+		} else {
 			FAIL();
 		}
 	};
@@ -99,8 +95,7 @@ TEST_F(sys_call_test, forking)
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 }
 
-TEST_F(sys_call_test, forking_while_scap_stopped)
-{
+TEST_F(sys_call_test, forking_while_scap_stopped) {
 	int ptid;          // parent tid
 	int ctid;          // child tid
 	int xstatus = 33;  // child exit value
@@ -108,14 +103,14 @@ TEST_F(sys_call_test, forking_while_scap_stopped)
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{ return evt->get_tid() == ptid || evt->get_tid() == ctid; };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return evt->get_tid() == ptid || evt->get_tid() == ctid;
+	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
 		int status;
 
 		//
@@ -130,9 +125,9 @@ TEST_F(sys_call_test, forking_while_scap_stopped)
 
 		int fd = creat(FILENAME, S_IRWXU);
 
-		if (ctid >= 0)  // fork succeeded
+		if(ctid >= 0)  // fork succeeded
 		{
-			if (ctid == 0)  // fork() returns 0 to the child process
+			if(ctid == 0)  // fork() returns 0 to the child process
 			{
 				//
 				// Restart the capture.
@@ -152,19 +147,16 @@ TEST_F(sys_call_test, forking_while_scap_stopped)
 				usleep(5000000);
 				close(fd);
 				_exit(xstatus);  // child exits with specific return code
-			}
-			else  // fork() returns new pid to the parent process
+			} else               // fork() returns new pid to the parent process
 			{
 				ptid = getpid();
 
 				close(fd);
 
 				wait(&status);  // wait for child to exit, and store its status
-				// Use WEXITSTATUS to validate status.
+				                // Use WEXITSTATUS to validate status.
 			}
-		}
-		else
-		{
+		} else {
 			FAIL();
 		}
 	};
@@ -175,35 +167,29 @@ TEST_F(sys_call_test, forking_while_scap_stopped)
 	bool child_exists = false;
 	bool parent_exists = false;
 
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 
-		if (e->get_type() == PPME_SCHEDSWITCH_1_E || e->get_type() == PPME_SCHEDSWITCH_6_E ||
-		    e->get_type() == PPME_PROCINFO_E)
-		{
+		if(e->get_type() == PPME_SCHEDSWITCH_1_E || e->get_type() == PPME_SCHEDSWITCH_6_E ||
+		   e->get_type() == PPME_PROCINFO_E) {
 			return;
 		}
 
 		//
 		// In both cases, the process should exist
 		//
-		if (e->get_tid() == ptid && !parent_exists)
-		{
+		if(e->get_tid() == ptid && !parent_exists) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
-			if (ti)
-			{
+			if(ti) {
 				parent_exists = true;
 			}
 
 			EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 		}
 
-		if (e->get_tid() == ctid && !child_exists)
-		{
+		if(e->get_tid() == ctid && !child_exists) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
-			if (ti)
-			{
+			if(ti) {
 				child_exists = true;
 			}
 
@@ -217,8 +203,7 @@ TEST_F(sys_call_test, forking_while_scap_stopped)
 	EXPECT_TRUE(parent_exists);
 }
 
-TEST_F(sys_call_test, forking_process_expired)
-{
+TEST_F(sys_call_test, forking_process_expired) {
 	int ptid;  // parent tid
 	int ctid;  // child tid
 	int status;
@@ -231,18 +216,16 @@ TEST_F(sys_call_test, forking_process_expired)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		ctid = fork();
 
-		if (ctid >= 0)  // fork succeeded
+		if(ctid >= 0)  // fork succeeded
 		{
-			if (ctid == 0)  // fork() returns 0 to the child process
+			if(ctid == 0)  // fork() returns 0 to the child process
 			{
 				pause();
 				FAIL();
-			}
-			else  // fork() returns new pid to the parent process
+			} else  // fork() returns new pid to the parent process
 			{
 				ptid = getpid();
 
@@ -258,9 +241,7 @@ TEST_F(sys_call_test, forking_process_expired)
 				kill(ctid, SIGUSR1);
 				wait(&status);
 			}
-		}
-		else
-		{
+		} else {
 			FAIL();
 		}
 	};
@@ -270,22 +251,17 @@ TEST_F(sys_call_test, forking_process_expired)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 
-		if (e->get_tid() == ptid)
-		{
-			if (e->get_type() == PPME_SYSCALL_NANOSLEEP_E && !sleep_caught)
-			{
+		if(e->get_tid() == ptid) {
+			if(e->get_type() == PPME_SYSCALL_NANOSLEEP_E && !sleep_caught) {
 				//
 				// The child should exist
 				//
 				sinsp_threadinfo* ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
-			}
-			else if (e->get_type() == PPME_SYSCALL_NANOSLEEP_X && !sleep_caught)
-			{
+			} else if(e->get_type() == PPME_SYSCALL_NANOSLEEP_X && !sleep_caught) {
 				//
 				// The child should exist
 				//
@@ -293,9 +269,7 @@ TEST_F(sys_call_test, forking_process_expired)
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 				sleep_caught = true;
 			}
-		}
-		else
-		{
+		} else {
 			FAIL();
 		}
 	};
@@ -304,11 +278,11 @@ TEST_F(sys_call_test, forking_process_expired)
 		event_capture::run(test,
 		                   callback,
 		                   filter,
-						   event_capture::do_nothing,
-						   event_capture::do_nothing,
-						   event_capture::always_continue,
-						   131072,
-						   5 * ONE_SECOND_IN_NS,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   event_capture::always_continue,
+		                   131072,
+		                   5 * ONE_SECOND_IN_NS,
 		                   ONE_SECOND_IN_NS);
 	});
 
@@ -320,14 +294,12 @@ TEST_F(sys_call_test, forking_process_expired)
 ///////////////////////////////////////////////////////////////////////////////
 int ctid;  // child tid
 
-typedef struct
-{
+typedef struct {
 	int fd;
 	int signal;
 } clone_params;
 
-static int clone_callback_1(void* arg)
-{
+static int clone_callback_1(void* arg) {
 	clone_params* cp;
 
 	cp = (clone_params*)arg; /* Cast arg to true form */
@@ -352,8 +324,7 @@ static int clone_callback_1(void* arg)
  * unintended side effects.` Given that we'll disable it upon further
  * investigation.
  */
-TEST_F(sys_call_test, DISABLED_forking_clone_fs)
-{
+TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	int callnum = 0;
 	char bcwd[1024];
 	int prfd;
@@ -362,19 +333,20 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs)
 	int child_tid;
 	int parent_res;
 	int flags = CLONE_FILES | CLONE_FS | CLONE_VM | CLONE_PARENT_SETTID;
-	int drflags = PPM_CL_CLONE_FILES | PPM_CL_CLONE_FS | PPM_CL_CLONE_VM | PPM_CL_CLONE_PARENT_SETTID;
+	int drflags =
+	        PPM_CL_CLONE_FILES | PPM_CL_CLONE_FS | PPM_CL_CLONE_VM | PPM_CL_CLONE_PARENT_SETTID;
 
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{ return evt->get_tid() == ptid || evt->get_tid() == child_tid; };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return evt->get_tid() == ptid || evt->get_tid() == child_tid;
+	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -388,12 +360,12 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs)
 		   set some process attributes that will be modified by child */
 
 		cp.fd = open(FILENAME, O_CREAT | O_WRONLY, S_IRWXU); /* Child will close this fd */
-		if (cp.fd == -1)
+		if(cp.fd == -1)
 			FAIL();
 		prfd = cp.fd;
 
 		cp.signal = SIGTERM; /* Child will change disposition */
-		if (signal(cp.signal, SIG_IGN) == SIG_ERR)
+		if(signal(cp.signal, SIG_IGN) == SIG_ERR)
 			FAIL();
 
 		/* Initialize clone flags using command-line argument (if supplied) */
@@ -401,22 +373,21 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs)
 		/* Allocate stack for child */
 
 		stack = (char*)malloc(STACK_SIZE);
-		if (stack == NULL)
+		if(stack == NULL)
 			FAIL();
 		stackTop = stack + STACK_SIZE; /* Assume stack grows downward */
 
 		/* Create child; child commences execution in childFunc() */
 
-		clone_tid = clone(clone_callback_1, stackTop, flags, &cp,
-								&child_tid);
-		if (clone_tid == -1)
+		clone_tid = clone(clone_callback_1, stackTop, flags, &cp, &child_tid);
+		if(clone_tid == -1)
 			FAIL();
 
 		/* Parent falls through to here. Wait for child; __WCLONE option is
 		   required for child notifying with signal other than SIGCHLD. */
 
 		pid = waitpid(clone_tid, &status, __WCLONE);
-		if (pid == -1)
+		if(pid == -1)
 			FAIL();
 
 		close(cp.fd);
@@ -428,25 +399,19 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		if (e->get_type() == PPME_SYSCALL_CLONE_20_X && callnum == 0)
-		{
+		if(e->get_type() == PPME_SYSCALL_CLONE_20_X && callnum == 0) {
 			uint64_t res = std::stoll(e->get_param_value_str("res", false));
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (ti->get_comm() != "libsinsp_e2e_te")
-			{
+			if(ti->get_comm() != "libsinsp_e2e_te") {
 				return;
 			}
 
-			if (res == 0)
-			{
+			if(res == 0) {
 				EXPECT_EQ(child_tid, ti->m_tid);
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(ptid, ti->m_tid);
 			}
 
@@ -455,51 +420,38 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs)
 			std::string tmps = getcwd(bcwd, 1024);
 			EXPECT_EQ(tmps + "/", ti->get_cwd());
 			EXPECT_EQ("<NA>", e->get_param_value_str("cwd"));
-			if(drflags == std::stol(e->get_param_value_str("flags", false)))
-			{
+			if(drflags == std::stol(e->get_param_value_str("flags", false))) {
 				callnum++;
 			}
-		}
-		else if (e->get_type() == PPME_SYSCALL_CLOSE_E)
-		{
+		} else if(e->get_type() == PPME_SYSCALL_CLOSE_E) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (ti->m_tid == ptid || ti->m_tid == child_tid)
-			{
+			if(ti->m_tid == ptid || ti->m_tid == child_tid) {
 				int64_t clfd = std::stoll(e->get_param_value_str("fd", false));
 
-				if (clfd == prfd)
-				{
+				if(clfd == prfd) {
 					callnum++;
 				}
 			}
-		}
-		else if (e->get_type() == PPME_SYSCALL_CLOSE_X)
-		{
+		} else if(e->get_type() == PPME_SYSCALL_CLOSE_X) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (callnum < 3)
-			{
+			if(callnum < 3) {
 				return;
 			}
 
 			int64_t res = std::stoll(e->get_param_value_str("res", false));
 
-			if (ti->m_tid == ptid)
-			{
+			if(ti->m_tid == ptid) {
 				sinsp_fdinfo* fdi = ti->get_fd(prfd);
-				if(fdi && fdi->tostring_clean().find(FILENAME) != std::string::npos)
-				{
-					EXPECT_EQ(parent_res, res) << "filename: "
-											   << fdi->tostring_clean() << std::endl
-											   << "res: " << res << std::endl
-											   << "parent tid: " << ptid << std::endl
-											   << "child  tid: " << child_tid << std::endl
-											   << "clone  tid: " << clone_tid << std::endl;
+				if(fdi && fdi->tostring_clean().find(FILENAME) != std::string::npos) {
+					EXPECT_EQ(parent_res, res) << "filename: " << fdi->tostring_clean() << std::endl
+					                           << "res: " << res << std::endl
+					                           << "parent tid: " << ptid << std::endl
+					                           << "child  tid: " << child_tid << std::endl
+					                           << "clone  tid: " << clone_tid << std::endl;
 				}
-			}
-			else if (ti->m_tid == child_tid)
-			{
+			} else if(ti->m_tid == child_tid) {
 				EXPECT_EQ(0, res);
 			}
 
@@ -511,8 +463,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs)
 	EXPECT_EQ(callnum, 4);
 }
 
-TEST_F(sys_call_test, forking_clone_nofs)
-{
+TEST_F(sys_call_test, forking_clone_nofs) {
 	int callnum = 0;
 	char bcwd[1024];
 	int prfd;
@@ -523,14 +474,14 @@ TEST_F(sys_call_test, forking_clone_nofs)
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{ return evt->get_tid() == ptid || evt->get_tid() == ctid; };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return evt->get_tid() == ptid || evt->get_tid() == ctid;
+	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -544,12 +495,12 @@ TEST_F(sys_call_test, forking_clone_nofs)
 		   set some process attributes that will be modified by child */
 
 		cp.fd = open(FILENAME, O_CREAT | O_WRONLY, S_IRWXU); /* Child will close this fd */
-		if (cp.fd == -1)
+		if(cp.fd == -1)
 			FAIL();
 		prfd = cp.fd;
 
 		cp.signal = SIGTERM; /* Child will change disposition */
-		if (signal(cp.signal, SIG_IGN) == SIG_ERR)
+		if(signal(cp.signal, SIG_IGN) == SIG_ERR)
 			FAIL();
 
 		/* Initialize clone flags using command-line argument (if supplied) */
@@ -557,20 +508,20 @@ TEST_F(sys_call_test, forking_clone_nofs)
 		/* Allocate stack for child */
 
 		stack = (char*)malloc(STACK_SIZE);
-		if (stack == NULL)
+		if(stack == NULL)
 			FAIL();
 		stackTop = stack + STACK_SIZE; /* Assume stack grows downward */
 
 		/* Create child; child commences execution in childFunc() */
 
-		if (clone(clone_callback_1, stackTop, flags, &cp) == -1)
+		if(clone(clone_callback_1, stackTop, flags, &cp) == -1)
 			FAIL();
 
 		/* Parent falls through to here. Wait for child; __WCLONE option is
 		   required for child notifying with signal other than SIGCHLD. */
 
 		pid = waitpid(-1, &status, __WCLONE);
-		if (pid == -1)
+		if(pid == -1)
 			FAIL();
 
 		close(cp.fd);
@@ -582,25 +533,19 @@ TEST_F(sys_call_test, forking_clone_nofs)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		if (e->get_type() == PPME_SYSCALL_CLONE_20_X && callnum == 0)
-		{
+		if(e->get_type() == PPME_SYSCALL_CLONE_20_X && callnum == 0) {
 			uint64_t res = std::stoull(e->get_param_value_str("res", false));
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (ti->get_comm() != "libsinsp_e2e_te")
-			{
+			if(ti->get_comm() != "libsinsp_e2e_te") {
 				return;
 			}
 
-			if (res == 0)
-			{
+			if(res == 0) {
 				EXPECT_EQ(ctid, ti->m_tid);
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(ptid, ti->m_tid);
 			}
 
@@ -609,42 +554,31 @@ TEST_F(sys_call_test, forking_clone_nofs)
 			std::string tmps = getcwd(bcwd, 1024);
 			EXPECT_EQ(tmps + "/", ti->get_cwd());
 			EXPECT_EQ("<NA>", e->get_param_value_str("cwd"));
-			if(drflags == std::stol(e->get_param_value_str("flags", false)))
-			{
+			if(drflags == std::stol(e->get_param_value_str("flags", false))) {
 				callnum++;
 			}
-		}
-		else if (e->get_type() == PPME_SYSCALL_CLOSE_E)
-		{
+		} else if(e->get_type() == PPME_SYSCALL_CLOSE_E) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (ti->m_tid == ptid || ti->m_tid == ctid)
-			{
+			if(ti->m_tid == ptid || ti->m_tid == ctid) {
 				int64_t clfd = std::stoll(e->get_param_value_str("fd", false));
 
-				if (clfd == prfd)
-				{
+				if(clfd == prfd) {
 					callnum++;
 				}
 			}
-		}
-		else if (e->get_type() == PPME_SYSCALL_CLOSE_X)
-		{
+		} else if(e->get_type() == PPME_SYSCALL_CLOSE_X) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (callnum < 3)
-			{
+			if(callnum < 3) {
 				return;
 			}
 
 			int64_t res = std::stoll(e->get_param_value_str("res", false));
 
-			if (ti->m_tid == ptid)
-			{
+			if(ti->m_tid == ptid) {
 				EXPECT_EQ(0, res);
-			}
-			else if (ti->m_tid == ctid)
-			{
+			} else if(ti->m_tid == ctid) {
 				EXPECT_EQ(0, res);
 			}
 
@@ -656,12 +590,10 @@ TEST_F(sys_call_test, forking_clone_nofs)
 	EXPECT_EQ(callnum, 4);
 }
 
-static int clone_callback_2(void* arg)
-{
+static int clone_callback_2(void* arg) {
 	char bcwd[256];
 
-	if (chdir("/") != 0)
-	{
+	if(chdir("/") != 0) {
 		return -1;
 	}
 	std::string tmps = getcwd(bcwd, 256);
@@ -669,8 +601,7 @@ static int clone_callback_2(void* arg)
 	return -1;
 }
 
-TEST_F(sys_call_test, forking_clone_cwd)
-{
+TEST_F(sys_call_test, forking_clone_cwd) {
 	int callnum = 0;
 	char oriwd[1024];
 	char bcwd[256];
@@ -687,8 +618,7 @@ TEST_F(sys_call_test, forking_clone_cwd)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -701,14 +631,13 @@ TEST_F(sys_call_test, forking_clone_cwd)
 		/* Allocate stack for child */
 
 		stack = (char*)malloc(STACK_SIZE);
-		if (stack == NULL)
+		if(stack == NULL)
 			FAIL();
 		stackTop = stack + STACK_SIZE; /* Assume stack grows downward */
 
 		/* Create child; child commences execution in childFunc() */
 
-		if (clone(clone_callback_2, stackTop, flags, &cp) == -1)
-		{
+		if(clone(clone_callback_2, stackTop, flags, &cp) == -1) {
 			FAIL();
 		}
 
@@ -725,24 +654,18 @@ TEST_F(sys_call_test, forking_clone_cwd)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-		if (e->get_type() == PPME_SYSCALL_CLONE_20_X)
-		{
+		if(e->get_type() == PPME_SYSCALL_CLONE_20_X) {
 			uint64_t res = std::stoull(e->get_param_value_str("res", false));
 			sinsp_threadinfo* ti = e->get_thread_info(false);
-			if (ti->get_comm() != "libsinsp_e2e_te")
-			{
+			if(ti->get_comm() != "libsinsp_e2e_te") {
 				return;
 			}
 
-			if (res == 0)
-			{
+			if(res == 0) {
 				EXPECT_EQ(ctid, ti->m_tid);
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(ptid, ti->m_tid);
 			}
 
@@ -750,20 +673,14 @@ TEST_F(sys_call_test, forking_clone_cwd)
 			EXPECT_EQ("libsinsp_e2e_te", ti->get_comm());
 			EXPECT_EQ(drflags, std::stol(e->get_param_value_str("flags", false)));
 			callnum++;
-		}
-		else if (e->get_type() == PPME_SYSCALL_GETCWD_E)
-		{
+		} else if(e->get_type() == PPME_SYSCALL_GETCWD_E) {
 			sinsp_threadinfo* ti = e->get_thread_info(false);
 
-			if (ti->m_tid == ptid)
-			{
-				if (callnum > 1)
-				{
+			if(ti->m_tid == ptid) {
+				if(callnum > 1) {
 					EXPECT_EQ(bcwd, ti->get_cwd());
 				}
-			}
-			else if (ti->m_tid == ctid)
-			{
+			} else if(ti->m_tid == ctid) {
 				EXPECT_EQ("/", ti->get_cwd());
 			}
 
@@ -776,44 +693,35 @@ TEST_F(sys_call_test, forking_clone_cwd)
 	EXPECT_EQ(3, callnum);
 }
 
-TEST_F(sys_call_test, forking_main_thread_exit)
-{
+TEST_F(sys_call_test, forking_main_thread_exit) {
 	int evtnum = 0;
 	int callnum = 0;
 	int fd;
 	pid_t cpid;  // parent tid
 
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{
+	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* ti = evt->get_thread_info();
-		if (ti)
-		{
+		if(ti) {
 			return ti->m_pid == cpid;
-		}
-		else
-		{
+		} else {
 			return false;
 		}
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		int status;
 
 		// ptid = getpid();
 
 		cpid = fork();
 		EXPECT_NE(-1, cpid);
-		if (cpid == 0)
-		{
+		if(cpid == 0) {
 			execlp(LIBSINSP_TEST_RESOURCES_PATH "/forking_main_thread_exit",
 			       LIBSINSP_TEST_RESOURCES_PATH "/forking_main_thread_exit",
 			       NULL);
 			perror("execlp");
 			FAIL();
-		}
-		else
-		{
+		} else {
 			//
 			// Father, just wait for termination
 			//
@@ -821,35 +729,24 @@ TEST_F(sys_call_test, forking_main_thread_exit)
 		}
 	};
 
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		evtnum++;
-		if (param.m_evt->get_type() == PPME_SYSCALL_OPEN_X)
-		{
-			if (param.m_evt->get_param_value_str("name") == "/etc/passwd")
-			{
+		if(param.m_evt->get_type() == PPME_SYSCALL_OPEN_X) {
+			if(param.m_evt->get_param_value_str("name") == "/etc/passwd") {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
 				fd = *(int64_t*)param.m_evt->get_param(0)->m_val;
 				++callnum;
 			}
-		}
-		else if (param.m_evt->get_type() == PPME_SYSCALL_OPENAT_2_X)
-		{
-			if (param.m_evt->get_param_value_str("name") == "/etc/passwd")
-			{
+		} else if(param.m_evt->get_type() == PPME_SYSCALL_OPENAT_2_X) {
+			if(param.m_evt->get_param_value_str("name") == "/etc/passwd") {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
 				memcpy(&fd, (int64_t*)param.m_evt->get_param(0)->m_val, sizeof(fd));
 				++callnum;
 			}
-		}
-		else if (param.m_evt->get_type() == PPME_PROCEXIT_1_E && param.m_evt->get_tid() == cpid)
-		{
+		} else if(param.m_evt->get_type() == PPME_PROCEXIT_1_E && param.m_evt->get_tid() == cpid) {
 			++callnum;
-		}
-		else if (param.m_evt->get_type() == PPME_SYSCALL_READ_E)
-		{
-			if (memcmp(&fd, param.m_evt->get_param(0)->m_val, sizeof(fd)) == 0)
-			{
+		} else if(param.m_evt->get_type() == PPME_SYSCALL_READ_E) {
+			if(memcmp(&fd, param.m_evt->get_param(0)->m_val, sizeof(fd)) == 0) {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
 				++callnum;
 			}
@@ -878,13 +775,11 @@ TEST_F(sys_call_test, forking_main_thread_exit)
 
 // Create the initial stale process. It chdir()s to "/dev", stops the
 // inspector, and returns.
-static int stop_sinsp_and_exit(void* arg)
-{
+static int stop_sinsp_and_exit(void* arg) {
 	// Get our own, unlocked concurrent inspector handle
 	concurrent_object_handle<sinsp> inspector_handle = *(concurrent_object_handle<sinsp>*)arg;
 
-	if (chdir("/dev") != 0)
-	{
+	if(chdir("/dev") != 0) {
 		return 1;
 	}
 
@@ -902,13 +797,11 @@ static int stop_sinsp_and_exit(void* arg)
 }
 
 // Immediately return. Started by launcher.
-static int do_nothing(void* arg)
-{
+static int do_nothing(void* arg) {
 	return 0;
 }
 
-struct stale_clone_ctx
-{
+struct stale_clone_ctx {
 	std::mutex m_perform_clone_mtx;
 	std::condition_variable m_perform_clone;
 	bool m_clone_ready;
@@ -923,8 +816,7 @@ static pid_t clone_helper(int (*func)(void*),
 
 // Wait until signaled by the main test thread, start a single
 // do_nothing(), signal the main test thread, and exit.
-static int launcher(void* arg)
-{
+static int launcher(void* arg) {
 	stale_clone_ctx* ctx = (stale_clone_ctx*)arg;
 	std::unique_lock<std::mutex> lk(ctx->m_perform_clone_mtx);
 	ctx->m_perform_clone.wait(lk, [&] { return ctx->m_clone_ready; });
@@ -936,8 +828,7 @@ static int launcher(void* arg)
 	lk.unlock();
 	ctx->m_perform_clone.notify_one();
 
-	if (child == 0)
-	{
+	if(child == 0) {
 		return 1;
 	}
 
@@ -952,8 +843,7 @@ static pid_t clone_helper(int (*func)(void*),
                           void* arg,
                           int addl_clone_args,
                           bool wait_for_complete,
-                          char** stackp)
-{
+                          char** stackp) {
 	const int STACK_SIZE = 65536; /* Stack size for cloned child */
 	char* stack;                  /* Start of stack buffer area */
 	char* stackTop;               /* End of stack buffer area */
@@ -962,39 +852,32 @@ static pid_t clone_helper(int (*func)(void*),
 
 	/* Allocate stack for child */
 	stack = (char*)malloc(STACK_SIZE);
-	if (stack == NULL)
-	{
+	if(stack == NULL) {
 		return 0;
 	}
 
 	stackTop = stack + STACK_SIZE; /* Assume stack grows downward */
 
-	if ((pid = clone(func, stackTop, flags, arg)) == -1)
-	{
+	if((pid = clone(func, stackTop, flags, arg)) == -1) {
 		free(stack);
 		return 0;
 	}
 
-	if (wait_for_complete)
-	{
+	if(wait_for_complete) {
 		int status;
 
-		if (waitpid(pid, &status, 0) == -1 || status != 0)
-		{
+		if(waitpid(pid, &status, 0) == -1 || status != 0) {
 			pid = 0;
 		}
 		free(stack);
-	}
-	else
-	{
+	} else {
 		*stackp = stack;
 	}
 
 	return pid;
 }
 
-TEST_F(sys_call_test, remove_stale_thread_clone_exit)
-{
+TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 	std::atomic<uint32_t> clones_seen(0);
 	stale_clone_ctx ctx;
 	std::atomic<pid_t> recycle_pid(0);
@@ -1009,8 +892,7 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit)
 	// those cases, we print a message and trivially pass
 	// the test.
 
-	if (stat(last_pid_filename, &info) == -1 && errno == ENOENT)
-	{
+	if(stat(last_pid_filename, &info) == -1 && errno == ENOENT) {
 		fprintf(stderr, "Doing nothing as %s does not exist\n", last_pid_filename);
 		return;
 	}
@@ -1019,15 +901,13 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit)
 	// recycle_pid is only set once the first thread exits, this
 	// effectively captures the actions of the second thread that
 	// uses the recycled pid.
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{
+	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
 		pid_t rp = recycle_pid.load();
 		return (rp != 0 && tinfo && tinfo->m_tid == rp);
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
 		pid_t launcher_pid;
 		char* launcher_stack = NULL;
 
@@ -1110,17 +990,15 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit)
 	//       If any event with pid=recycled_pid has a cwd of
 	//       /dev/, the test fails.
 
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t etype = e->get_type();
 		sinsp_threadinfo* tinfo = e->get_thread_info();
 		ASSERT_TRUE((tinfo != NULL));
 
-		if ((etype == PPME_SYSCALL_CLONE_11_X || etype == PPME_SYSCALL_CLONE_16_X ||
-		     etype == PPME_SYSCALL_CLONE_17_X || etype == PPME_SYSCALL_CLONE_20_X) &&
-		    e->get_direction() == SCAP_ED_OUT)
-		{
+		if((etype == PPME_SYSCALL_CLONE_11_X || etype == PPME_SYSCALL_CLONE_16_X ||
+		    etype == PPME_SYSCALL_CLONE_17_X || etype == PPME_SYSCALL_CLONE_20_X) &&
+		   e->get_direction() == SCAP_ED_OUT) {
 			++clones_seen;
 		}
 

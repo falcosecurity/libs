@@ -2,8 +2,7 @@
 
 #if defined(__NR_inotify_init1) && defined(__NR_close)
 #include <sys/inotify.h>
-TEST(SyscallExit, inotify_init1X_success)
-{
+TEST(SyscallExit, inotify_init1X_success) {
 	auto evt_test = get_syscall_event_test(__NR_inotify_init1, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -22,8 +21,7 @@ TEST(SyscallExit, inotify_init1X_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -45,8 +43,7 @@ TEST(SyscallExit, inotify_init1X_success)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, inotify_init1X_failure)
-{
+TEST(SyscallExit, inotify_init1X_failure) {
 	auto evt_test = get_syscall_event_test(__NR_inotify_init1, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -64,8 +61,7 @@ TEST(SyscallExit, inotify_init1X_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

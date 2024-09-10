@@ -6,8 +6,7 @@
 
 /// TODO: we need a test to assert the behavior in case of success.
 
-TEST(SyscallExit, ptraceX_failure)
-{
+TEST(SyscallExit, ptraceX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_ptrace, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -27,8 +26,7 @@ TEST(SyscallExit, ptraceX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

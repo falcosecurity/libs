@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_open
-TEST(SyscallEnter, openE)
-{
+TEST(SyscallEnter, openE) {
 	auto evt_test = get_syscall_event_test(__NR_open, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -24,8 +23,7 @@ TEST(SyscallEnter, openE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -49,8 +47,7 @@ TEST(SyscallEnter, openE)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallEnter, openE_max_path)
-{
+TEST(SyscallEnter, openE_max_path) {
 	auto evt_test = get_syscall_event_test(__NR_open, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -65,7 +62,9 @@ TEST(SyscallEnter, openE_max_path)
 	pathname.insert(0, PPM_MAX_PATH_SIZE - 1, 'A');
 	int flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	mode_t mode = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "open", syscall(__NR_open, pathname.c_str(), flags, mode));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "open",
+	                     syscall(__NR_open, pathname.c_str(), flags, mode));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -73,8 +72,7 @@ TEST(SyscallEnter, openE_max_path)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

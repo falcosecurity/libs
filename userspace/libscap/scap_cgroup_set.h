@@ -21,16 +21,14 @@ limitations under the License.
 #include <libscap/scap_limits.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-	// just a sequence of NUL-terminated strings in a single buffer
-	struct scap_cgroup_set
-	{
-		int len;
-		char path[SCAP_MAX_CGROUPS_SIZE];
-	};
+// just a sequence of NUL-terminated strings in a single buffer
+struct scap_cgroup_set {
+	int len;
+	char path[SCAP_MAX_CGROUPS_SIZE];
+};
 
 #ifdef __cplusplus
 };

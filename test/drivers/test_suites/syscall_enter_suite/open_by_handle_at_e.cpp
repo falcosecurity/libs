@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_open_by_handle_at
-TEST(SyscallEnter, open_by_handle_atE)
-{
+TEST(SyscallEnter, open_by_handle_atE) {
 	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +15,9 @@ TEST(SyscallEnter, open_by_handle_atE)
 	int mount_fd = -1;
 	struct file_handle *fhp = NULL;
 	int flags = O_RDWR;
-	assert_syscall_state(SYSCALL_FAILURE, "open_by_handle_at", syscall(__NR_open_by_handle_at, mount_fd, fhp, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "open_by_handle_at",
+	                     syscall(__NR_open_by_handle_at, mount_fd, fhp, flags));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -24,8 +25,7 @@ TEST(SyscallEnter, open_by_handle_atE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		/* This could happen if:
 		 * - the syscall result state is different from the expected one.
 		 * - we are not able to find the event in the ring buffers.

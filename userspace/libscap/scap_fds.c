@@ -22,15 +22,12 @@ limitations under the License.
 #include <libscap/uthash_ext.h>
 #include <string.h>
 
-void scap_fd_free_table(scap_fdinfo **fds)
-{
+void scap_fd_free_table(scap_fdinfo **fds) {
 	struct scap_fdinfo *fdi;
 	struct scap_fdinfo *tfdi;
 
-	if(*fds)
-	{
-		HASH_ITER(hh, *fds, fdi, tfdi)
-		{
+	if(*fds) {
+		HASH_ITER(hh, *fds, fdi, tfdi) {
 			HASH_DEL(*fds, fdi);
 			free(fdi);
 		}
@@ -38,10 +35,8 @@ void scap_fd_free_table(scap_fdinfo **fds)
 	}
 }
 
-void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo)
-{
-	if(tinfo->fdlist)
-	{
+void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo) {
+	if(tinfo->fdlist) {
 		scap_fd_free_table(&tinfo->fdlist);
 	}
 }
@@ -49,12 +44,10 @@ void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo)
 //
 // Free the device table
 //
-void scap_free_device_table(scap_mountinfo* dev_list)
-{
+void scap_free_device_table(scap_mountinfo *dev_list) {
 	scap_mountinfo *dev, *tdev;
 
-	HASH_ITER(hh, dev_list, dev, tdev)
-	{
+	HASH_ITER(hh, dev_list, dev, tdev) {
 		HASH_DEL(dev_list, dev);
 		free(dev);
 	}

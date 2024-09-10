@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(prctl_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(prctl_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PRCTL_E_SIZE, PPME_SYSCALL_PRCTL_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PRCTL_E_SIZE, PPME_SYSCALL_PRCTL_E)) {
 		return 0;
 	}
 
@@ -33,8 +29,6 @@ int BPF_PROG(prctl_e,
 	ringbuf__submit_event(&ringbuf);
 
 	return 0;
-
-
 }
 
 /*=============================== ENTER EVENT ===========================*/
@@ -42,13 +36,9 @@ int BPF_PROG(prctl_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(prctl_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(prctl_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -67,28 +57,28 @@ int BPF_PROG(prctl_x,
 
 	unsigned long arg2 = extract__syscall_argument(regs, 1);
 
-	switch(option){
-		case PPM_PR_GET_NAME:
-		case PPM_PR_SET_NAME:
-			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
-			auxmap__store_charbuf_param(auxmap, arg2, MAX_PATH, USER);
-			/* Parameter 4: arg2_int (type: PT_INT64) */
-			auxmap__store_s64_param(auxmap, 0);
-			break;
-		case PPM_PR_GET_CHILD_SUBREAPER:
-			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
-			auxmap__store_empty_param(auxmap);
-			bpf_probe_read_user(&reaper_attr, sizeof(reaper_attr), (void*)arg2);
-			/* Parameter 4: arg2_int (type: PT_INT64) */
-			auxmap__store_s64_param(auxmap, (int64_t)reaper_attr);
-			break;
-		case PPM_PR_SET_CHILD_SUBREAPER:
-		default:
-			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
-			auxmap__store_empty_param(auxmap);
-			/* Parameter 4: arg2_int (type: PT_INT64) */
-			auxmap__store_s64_param(auxmap, arg2);
-			break;
+	switch(option) {
+	case PPM_PR_GET_NAME:
+	case PPM_PR_SET_NAME:
+		/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+		auxmap__store_charbuf_param(auxmap, arg2, MAX_PATH, USER);
+		/* Parameter 4: arg2_int (type: PT_INT64) */
+		auxmap__store_s64_param(auxmap, 0);
+		break;
+	case PPM_PR_GET_CHILD_SUBREAPER:
+		/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+		auxmap__store_empty_param(auxmap);
+		bpf_probe_read_user(&reaper_attr, sizeof(reaper_attr), (void *)arg2);
+		/* Parameter 4: arg2_int (type: PT_INT64) */
+		auxmap__store_s64_param(auxmap, (int64_t)reaper_attr);
+		break;
+	case PPM_PR_SET_CHILD_SUBREAPER:
+	default:
+		/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+		auxmap__store_empty_param(auxmap);
+		/* Parameter 4: arg2_int (type: PT_INT64) */
+		auxmap__store_s64_param(auxmap, arg2);
+		break;
 	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

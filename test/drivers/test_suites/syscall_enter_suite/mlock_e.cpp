@@ -4,8 +4,7 @@
 
 #include <sys/mman.h>
 
-TEST(SyscallEnter, mlockE)
-{
+TEST(SyscallEnter, mlockE) {
 	auto evt_test = get_syscall_event_test(__NR_mlock, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -22,8 +21,7 @@ TEST(SyscallEnter, mlockE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

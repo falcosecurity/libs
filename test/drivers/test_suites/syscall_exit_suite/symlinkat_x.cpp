@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_symlinkat
-TEST(SyscallExit, symlinkatX)
-{
+TEST(SyscallExit, symlinkatX) {
 	auto evt_test = get_syscall_event_test(__NR_symlinkat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,9 @@ TEST(SyscallExit, symlinkatX)
 	const char* target = "//**null-target**//";
 	int32_t mock_dirfd = AT_FDCWD;
 	const char* path = "//**null-path**//";
-	assert_syscall_state(SYSCALL_FAILURE, "symlinkat", syscall(__NR_symlinkat, target, mock_dirfd, path));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "symlinkat",
+	                     syscall(__NR_symlinkat, target, mock_dirfd, path));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -21,8 +22,7 @@ TEST(SyscallExit, symlinkatX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

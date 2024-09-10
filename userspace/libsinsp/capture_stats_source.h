@@ -32,8 +32,7 @@ struct scap_stats;
  * not add additional APIs here.  If some client of sinsp needs a different
  * set of APIs, introduce a new interface.
  */
-class SINSP_PUBLIC capture_stats_source
-{
+class SINSP_PUBLIC capture_stats_source {
 public:
 	virtual ~capture_stats_source() = default;
 
@@ -62,5 +61,7 @@ public:
 	 *
 	 * @return Pointer to a \ref metrics_v2 structure filled with the libscap stats.
 	 */
-	virtual const struct metrics_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const = 0;
+	virtual const struct metrics_v2* get_capture_stats_v2(uint32_t flags,
+	                                                      uint32_t* nstats,
+	                                                      int32_t* rc) const = 0;
 };

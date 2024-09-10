@@ -18,13 +18,11 @@ or GPL2.txt for full copies of the license.
  */
 #include <linux/net.h>
 
-static inline int socketcall_code_to_syscall_code(int socketcall_code, bool* is_syscall_return)
-{
+static inline int socketcall_code_to_syscall_code(int socketcall_code, bool* is_syscall_return) {
 	/* First we check if we can convert a valid syscall code */
 	*is_syscall_return = true;
 
-	switch(socketcall_code)
-	{
+	switch(socketcall_code) {
 #ifdef __NR_socket
 	case SYS_SOCKET:
 		return __NR_socket;
@@ -149,8 +147,7 @@ static inline int socketcall_code_to_syscall_code(int socketcall_code, bool* is_
 	 */
 	*is_syscall_return = false;
 
-	switch(socketcall_code)
-	{
+	switch(socketcall_code) {
 #ifdef SYS_SOCKET
 	case SYS_SOCKET:
 		return PPME_SOCKET_SOCKET_E;

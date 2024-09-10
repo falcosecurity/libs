@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(inotify_init1_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(inotify_init1_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, INOTIFY_INIT1_E_SIZE, PPME_SYSCALL_INOTIFY_INIT1_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, INOTIFY_INIT1_E_SIZE, PPME_SYSCALL_INOTIFY_INIT1_E)) {
 		return 0;
 	}
 
@@ -39,13 +35,9 @@ int BPF_PROG(inotify_init1_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(inotify_init1_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(inotify_init1_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, INOTIFY_INIT1_X_SIZE, PPME_SYSCALL_INOTIFY_INIT1_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, INOTIFY_INIT1_X_SIZE, PPME_SYSCALL_INOTIFY_INIT1_X)) {
 		return 0;
 	}
 

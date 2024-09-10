@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_getresuid
-TEST(SyscallEnter, getresuidE)
-{
+TEST(SyscallEnter, getresuidE) {
 	auto evt_test = get_syscall_event_test(__NR_getresuid, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,11 @@ TEST(SyscallEnter, getresuidE)
 	uid_t ruid;
 	uid_t euid;
 	uid_t suid;
-	assert_syscall_state(SYSCALL_SUCCESS, "getresuid", syscall(__NR_getresuid, &ruid, &euid, &suid), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "getresuid",
+	                     syscall(__NR_getresuid, &ruid, &euid, &suid),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -20,8 +23,7 @@ TEST(SyscallEnter, getresuidE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

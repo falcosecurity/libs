@@ -23,16 +23,18 @@ limitations under the License.
 #include <stdio.h>
 
 #define scap_log(HANDLE, sev, ...) scap_log_impl(HANDLE->m_log_fn, sev, __VA_ARGS__)
-#define scap_debug_log(HANDLE, ...) scap_log_impl(HANDLE->m_log_fn, FALCOSECURITY_LOG_SEV_DEBUG, __VA_ARGS__)
+#define scap_debug_log(HANDLE, ...) \
+	scap_log_impl(HANDLE->m_log_fn, FALCOSECURITY_LOG_SEV_DEBUG, __VA_ARGS__)
 
 /**
  * If debug_log_fn has been established in the handle, call that function
  * to log a debug message.
  */
-static inline void scap_log_impl(falcosecurity_log_fn log_fn, enum falcosecurity_log_severity sev, const char* fmt, ...)
-{
-	if(log_fn != NULL)
-	{
+static inline void scap_log_impl(falcosecurity_log_fn log_fn,
+                                 enum falcosecurity_log_severity sev,
+                                 const char* fmt,
+                                 ...) {
+	if(log_fn != NULL) {
 		char buf[256];
 		va_list ap;
 		va_start(ap, fmt);

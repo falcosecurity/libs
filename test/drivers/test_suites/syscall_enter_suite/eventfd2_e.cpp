@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #if defined(__NR_eventfd2)
-TEST(SyscallEnter, eventfd2E)
-{
+TEST(SyscallEnter, eventfd2E) {
 	auto evt_test = get_syscall_event_test(__NR_eventfd2, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -19,8 +18,7 @@ TEST(SyscallEnter, eventfd2E)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

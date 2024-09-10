@@ -7,7 +7,7 @@ This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
 
 */
-#define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/compat.h>
 #include <linux/cdev.h>
@@ -67,9 +67,8 @@ struct ovl_entry {
 
 static enum ppm_overlay ppm_get_overlay_layer(struct file *file);
 
-static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task)
-{
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
+static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task) {
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
 	return task->nsproxy->pid_ns;
 #else
 	return task->nsproxy->pid_ns_for_children;
@@ -83,29 +82,24 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
  * inode object and other file attributes.
  *
  **/
-static inline uint32_t get_exe_from_memfd(const struct file *exe_file)
-{
+static inline uint32_t get_exe_from_memfd(const struct file *exe_file) {
 #if defined(CONFIG_MEMFD_CREATE) && CONFIG_MEMFD_CREATE == 1
 	const char expected_prefix[] = "memfd:";
-	if(!(exe_file &&
-		 exe_file->f_path.dentry &&
-		 exe_file->f_path.dentry == exe_file->f_path.dentry->d_parent))
-	{
+	if(!(exe_file && exe_file->f_path.dentry &&
+	     exe_file->f_path.dentry == exe_file->f_path.dentry->d_parent)) {
 		return 0;
 	}
 
-    if(strncmp(exe_file->f_path.dentry->d_name.name, expected_prefix, sizeof(expected_prefix) - 1) == 0)
-    {
-        return PPM_EXE_FROM_MEMFD;
-
-    }
+	if(strncmp(exe_file->f_path.dentry->d_name.name,
+	           expected_prefix,
+	           sizeof(expected_prefix) - 1) == 0) {
+		return PPM_EXE_FROM_MEMFD;
+	}
 #endif
 	return 0;
 }
 
-
-int f_sys_generic(struct event_filler_arguments *args)
-{
+int f_sys_generic(struct event_filler_arguments *args) {
 	int res;
 	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
 
@@ -113,8 +107,7 @@ int f_sys_generic(struct event_filler_arguments *args)
 	 * name
 	 */
 
-	if (likely(table_index >= 0 &&
-		   table_index <  SYSCALL_TABLE_SIZE)) {
+	if(likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
 		ppm_sc_code sc_code = g_syscall_table[table_index].ppm_sc;
 
 		/*
@@ -123,7 +116,7 @@ int f_sys_generic(struct event_filler_arguments *args)
 		res = val_to_ring(args, sc_code, 0, false, 0);
 		CHECK_RES(res);
 
-		if (args->event_type == PPME_GENERIC_E) {
+		if(args->event_type == PPME_GENERIC_E) {
 			/*
 			 * nativeID
 			 */
@@ -132,20 +125,18 @@ int f_sys_generic(struct event_filler_arguments *args)
 		}
 	} else {
 		ASSERT(false);
-		res = val_to_ring(args, (uint64_t)"<out of bound>", 0, false, 0);
+		res = val_to_ring(args, (uint64_t) "<out of bound>", 0, false, 0);
 		CHECK_RES(res);
 	}
 
 	return add_sentinel(args);
 }
 
-int f_sys_empty(struct event_filler_arguments *args)
-{
+int f_sys_empty(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_single(struct event_filler_arguments *args)
-{
+int f_sys_single(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 
@@ -156,8 +147,7 @@ int f_sys_single(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_single_x(struct event_filler_arguments *args)
-{
+int f_sys_single_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
 
@@ -168,8 +158,7 @@ int f_sys_single_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fstat_e(struct event_filler_arguments *args)
-{
+int f_sys_fstat_e(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 	int32_t fd = 0;
@@ -183,31 +172,30 @@ int f_sys_fstat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline void get_ino_from_fd(int64_t fd, uint64_t* ino)
-{
+static inline void get_ino_from_fd(int64_t fd, uint64_t *ino) {
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct inode *inode;
 	struct file *file;
 
-	if (fd < 0)
+	if(fd < 0)
 		return;
 
 	files = current->files;
-	if (unlikely(!files))
+	if(unlikely(!files))
 		return;
 
 	spin_lock(&files->file_lock);
 	fdt = files_fdtable(files);
-	if (unlikely(fd > fdt->max_fds))
+	if(unlikely(fd > fdt->max_fds))
 		goto out_unlock;
 
 	file = fdt->fd[fd];
-	if (unlikely(!file))
+	if(unlikely(!file))
 		goto out_unlock;
 
 	inode = file_inode(file);
-	if (unlikely(!inode))
+	if(unlikely(!inode))
 		goto out_unlock;
 
 	*ino = inode->i_ino;
@@ -217,40 +205,42 @@ out_unlock:
 	return;
 }
 
-static inline void get_dev_ino_overlay_from_fd(int64_t fd, uint32_t* dev, uint64_t* ino, enum ppm_overlay *ol)
-{
+static inline void get_dev_ino_overlay_from_fd(int64_t fd,
+                                               uint32_t *dev,
+                                               uint64_t *ino,
+                                               enum ppm_overlay *ol) {
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct inode *inode;
 	struct super_block *sb;
 	struct file *file;
 
-	if (fd < 0)
+	if(fd < 0)
 		return;
 
 	files = current->files;
-	if (unlikely(!files))
+	if(unlikely(!files))
 		return;
 
 	spin_lock(&files->file_lock);
 	fdt = files_fdtable(files);
-	if (unlikely(fd > fdt->max_fds))
+	if(unlikely(fd > fdt->max_fds))
 		goto out_unlock;
 
 	file = fdt->fd[fd];
-	if (unlikely(!file))
+	if(unlikely(!file))
 		goto out_unlock;
 
 	*ol = ppm_get_overlay_layer(file);
 
 	inode = file_inode(file);
-	if (unlikely(!inode))
+	if(unlikely(!inode))
 		goto out_unlock;
 
 	*ino = inode->i_ino;
 
 	sb = inode->i_sb;
-	if (unlikely(!sb))
+	if(unlikely(!sb))
 		goto out_unlock;
 
 	*dev = new_encode_dev(sb->s_dev);
@@ -260,31 +250,30 @@ out_unlock:
 	return;
 }
 
-static inline void get_fd_fmode_created(int64_t fd, unsigned long* flags)
-{
+static inline void get_fd_fmode_created(int64_t fd, unsigned long *flags) {
 /* FMODE_CREATED flag was introduced in kernel 4.19 and it's not present in earlier versions */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(4, 19, 0)
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct file *file;
 
-	if (fd < 0)
+	if(fd < 0)
 		return;
 
 	files = current->files;
-	if (unlikely(!files))
+	if(unlikely(!files))
 		return;
 
 	spin_lock(&files->file_lock);
 	fdt = files_fdtable(files);
-	if (unlikely(fd > fdt->max_fds))
+	if(unlikely(fd > fdt->max_fds))
 		goto out_unlock;
 
 	file = fdt->fd[fd];
-	if (unlikely(!file))
+	if(unlikely(!file))
 		goto out_unlock;
 
-	if (file->f_mode & FMODE_CREATED)
+	if(file->f_mode & FMODE_CREATED)
 		*flags |= PPM_O_F_CREATED;
 
 out_unlock:
@@ -293,8 +282,7 @@ out_unlock:
 	return;
 }
 
-int f_sys_open_e(struct event_filler_arguments *args)
-{
+int f_sys_open_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long flags;
 	unsigned long modes;
@@ -309,7 +297,8 @@ int f_sys_open_e(struct event_filler_arguments *args)
 
 	/*
 	 * Flags
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
@@ -325,8 +314,7 @@ int f_sys_open_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_open_x(struct event_filler_arguments *args)
-{
+int f_sys_open_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long flags;
 	unsigned long scap_flags;
@@ -344,7 +332,6 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-
 	/*
 	 * name
 	 */
@@ -356,18 +343,16 @@ int f_sys_open_x(struct event_filler_arguments *args)
 
 	/*
 	 * Flags
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &flags);
 	scap_flags = open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	get_fd_fmode_created(retval, &scap_flags);
-	if (ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		scap_flags |= PPM_FD_UPPER_LAYER;
-	}
-	else if (ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		scap_flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = val_to_ring(args, scap_flags, 0, false, 0);
@@ -395,8 +380,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_read_e(struct event_filler_arguments *args)
-{
+int f_sys_read_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -415,8 +399,7 @@ int f_sys_read_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_read_x(struct event_filler_arguments *args)
-{
+int f_sys_read_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -438,7 +421,7 @@ int f_sys_read_x(struct event_filler_arguments *args)
 	/*
 	 * data
 	 */
-	if (retval < 0) {
+	if(retval < 0) {
 		/*
 		 * The operation failed, return an empty buffer
 		 */
@@ -464,8 +447,7 @@ int f_sys_read_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_write_e(struct event_filler_arguments *args)
-{
+int f_sys_write_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -484,8 +466,7 @@ int f_sys_write_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_write_x(struct event_filler_arguments *args)
-{
+int f_sys_write_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -518,8 +499,7 @@ int f_sys_write_x(struct event_filler_arguments *args)
 /*
  * get_mm_exe_file is only exported in some kernel versions
  */
-static struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
-{
+static struct file *ppm_get_mm_exe_file(struct mm_struct *mm) {
 	struct file *exe_file;
 
 	/*
@@ -532,7 +512,7 @@ static struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
 #if defined(get_file_rcu)
 	rcu_read_lock();
 	exe_file = rcu_dereference(mm->exe_file);
-	if (exe_file && !get_file_rcu(exe_file))
+	if(exe_file && !get_file_rcu(exe_file))
 		exe_file = NULL;
 	rcu_read_unlock();
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
@@ -546,7 +526,7 @@ static struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
 	 * VM_EXECUTABLE vmas */
 	down_read(&mm->mmap_sem);
 	exe_file = mm->exe_file;
-	if (exe_file)
+	if(exe_file)
 		get_file(exe_file);
 	up_read(&mm->mmap_sem);
 #endif
@@ -559,8 +539,7 @@ static struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
  * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
  * Hence the crap in these two functions
  */
-static unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
-{
+static unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member) {
 	long val = 0;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
@@ -568,28 +547,25 @@ static unsigned long ppm_get_mm_counter(struct mm_struct *mm, int member)
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	val = atomic_long_read(&mm->rss_stat.count[member]);
 
-	if (val < 0)
+	if(val < 0)
 		val = 0;
 #endif
 
 	return val;
 }
 
-static unsigned long ppm_get_mm_swap(struct mm_struct *mm)
-{
+static unsigned long ppm_get_mm_swap(struct mm_struct *mm) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	return ppm_get_mm_counter(mm, MM_SWAPENTS);
 #endif
 	return 0;
 }
 
-static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
-{
+static unsigned long ppm_get_mm_rss(struct mm_struct *mm) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 	return get_mm_rss(mm);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	return ppm_get_mm_counter(mm, MM_FILEPAGES) +
-		ppm_get_mm_counter(mm, MM_ANONPAGES);
+	return ppm_get_mm_counter(mm, MM_FILEPAGES) + ppm_get_mm_counter(mm, MM_ANONPAGES);
 #else
 	return get_mm_rss(mm);
 #endif
@@ -598,12 +574,11 @@ static unsigned long ppm_get_mm_rss(struct mm_struct *mm)
 
 #ifdef CONFIG_CGROUPS
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
-static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
-{
+static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen) {
 	char *start;
 	struct dentry *dentry = rcu_dereference(cgrp->dentry);
 
-	if (!dentry) {
+	if(!dentry) {
 		/*
 		 * Inactive subsystems have no dentry for their root
 		 * cgroup
@@ -615,20 +590,20 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 	start = buf + buflen;
 
 	*--start = '\0';
-	for (;;) {
+	for(;;) {
 		int len = dentry->d_name.len;
 
 		start -= len;
-		if (start < buf)
+		if(start < buf)
 			return -ENAMETOOLONG;
 		memcpy(start, cgrp->dentry->d_name.name, len);
 		cgrp = cgrp->parent;
-		if (!cgrp)
+		if(!cgrp)
 			break;
 		dentry = rcu_dereference(cgrp->dentry);
-		if (!cgrp->parent)
+		if(!cgrp->parent)
 			continue;
-		if (--start < buf)
+		if(--start < buf)
 			return -ENAMETOOLONG;
 		*start = '/';
 	}
@@ -637,8 +612,7 @@ static int ppm_cgroup_path(const struct cgroup *cgrp, char *buf, int buflen)
 }
 #endif
 
-static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int *available)
-{
+static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int *available) {
 	int pathlen;
 	int subsys_len;
 	char *path;
@@ -653,21 +627,22 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	struct cgroup_subsys_state *css = task_subsys_state(current, subsys_id);
 #endif
 
-	if (!css) {
+	if(!css) {
 		ASSERT(false);
 		return 1;
 	}
 
-	if (!css->cgroup) {
+	if(!css->cgroup) {
 		ASSERT(false);
 		return 1;
 	}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	// According to https://github.com/torvalds/linux/commit/4c737b41de7f4eef2a593803bad1b918dd718b10
-	// cgroup_path now returns an int again
+	// According to
+	// https://github.com/torvalds/linux/commit/4c737b41de7f4eef2a593803bad1b918dd718b10 cgroup_path
+	// now returns an int again
 	res = cgroup_path(css->cgroup, buf, *available);
-	if (res < 0) {
+	if(res < 0) {
 		ASSERT(false);
 		path = "NA";
 	} else {
@@ -675,13 +650,13 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	}
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 	path = cgroup_path(css->cgroup, buf, *available);
-	if (!path) {
+	if(!path) {
 		ASSERT(false);
 		path = "NA";
 	}
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	res = cgroup_path(css->cgroup, buf, *available);
-	if (res < 0) {
+	if(res < 0) {
 		ASSERT(false);
 		path = "NA";
 	} else {
@@ -689,7 +664,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 	}
 #else
 	res = ppm_cgroup_path(css->cgroup, buf, *available);
-	if (res < 0) {
+	if(res < 0) {
 		ASSERT(false);
 		path = "NA";
 	} else {
@@ -699,7 +674,7 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 
 	pathlen = strlen(path);
 	subsys_len = strlen(subsys_name);
-	if (subsys_len + 1 + pathlen + 1 > *available)
+	if(subsys_len + 1 + pathlen + 1 > *available)
 		return 1;
 
 	memmove(buf + subsys_len + 1, path, pathlen);
@@ -713,23 +688,35 @@ static int append_cgroup(const char *subsys_name, int subsys_id, char *buf, int 
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _cgrp_id, args->str_storage + STR_STORAGE_SIZE - available, &available))	\
-	goto cgroups_error;
+#define SUBSYS(_x)                                                     \
+	if(append_cgroup(#_x,                                              \
+	                 _x##_cgrp_id,                                     \
+	                 args->str_storage + STR_STORAGE_SIZE - available, \
+	                 &available))                                      \
+		goto cgroups_error;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 #define IS_SUBSYS_ENABLED(option) IS_BUILTIN(option)
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
-	goto cgroups_error;
+#define SUBSYS(_x)                                                     \
+	if(append_cgroup(#_x,                                              \
+	                 _x##_subsys_id,                                   \
+	                 args->str_storage + STR_STORAGE_SIZE - available, \
+	                 &available))                                      \
+		goto cgroups_error;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
 #define IS_SUBSYS_ENABLED(option) IS_ENABLED(option)
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
-	goto cgroups_error;
+#define SUBSYS(_x)                                                     \
+	if(append_cgroup(#_x,                                              \
+	                 _x##_subsys_id,                                   \
+	                 args->str_storage + STR_STORAGE_SIZE - available, \
+	                 &available))                                      \
+		goto cgroups_error;
 #else
-#define SUBSYS(_x)																						\
-if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - available, &available)) \
-	goto cgroups_error;
+#define SUBSYS(_x)                                                     \
+	if(append_cgroup(#_x,                                              \
+	                 _x##_subsys_id,                                   \
+	                 args->str_storage + STR_STORAGE_SIZE - available, \
+	                 &available))                                      \
+		goto cgroups_error;
 #endif
 
 #endif
@@ -738,31 +725,26 @@ if (append_cgroup(#_x, _x ## _subsys_id, args->str_storage + STR_STORAGE_SIZE - 
  * concatenates them to a single \0-separated string. Return the length of these
  * strings with the final '\0' included.
  */
-static int accumulate_argv_or_env(const void __user * argv, char *str_storage)
-{
+static int accumulate_argv_or_env(const void __user *argv, char *str_storage) {
 	int len = 0;
 	int ret = 0;
-	const char __user * p = NULL;
+	const char __user *p = NULL;
 
-	for (;;) {
-
-		if (argv == NULL)
+	for(;;) {
+		if(argv == NULL)
 			break;
 
-		if (unlikely(ppm_get_user(p, argv)))
-		{
+		if(unlikely(ppm_get_user(p, argv))) {
 			/* We return what we read until now */
 			break;
 		}
 
-		if (p == NULL)
+		if(p == NULL)
 			break;
 
 		/* ppm_strncpy_from_user includes the trailing \0 */
-		ret = ppm_strncpy_from_user(&str_storage[len], p,
-						       STR_STORAGE_SIZE-len);
-		if(ret < 0)
-		{
+		ret = ppm_strncpy_from_user(&str_storage[len], p, STR_STORAGE_SIZE - len);
+		if(ret < 0) {
 			/* We ignore the failed read. We will try to read from the same position in
 			 * the next iteration.
 			 */
@@ -770,8 +752,7 @@ static int accumulate_argv_or_env(const void __user * argv, char *str_storage)
 		}
 
 		len += ret;
-		if(len >= STR_STORAGE_SIZE)
-		{
+		if(len >= STR_STORAGE_SIZE) {
 			len = STR_STORAGE_SIZE;
 			break;
 		}
@@ -779,12 +760,9 @@ static int accumulate_argv_or_env(const void __user * argv, char *str_storage)
 		argv += sizeof(argv);
 	}
 
-	if(len>0)
-	{
-		str_storage[len-1] = '\0';
-	}
-	else
-	{
+	if(len > 0) {
+		str_storage[len - 1] = '\0';
+	} else {
 		str_storage[0] = '\0';
 	}
 	return len;
@@ -792,32 +770,27 @@ static int accumulate_argv_or_env(const void __user * argv, char *str_storage)
 
 #ifdef CONFIG_COMPAT
 /* compat version that deals correctly with 32bits pointers of argv */
-static int compat_accumulate_argv_or_env(compat_uptr_t argv,
-				  char *str_storage)
-{
+static int compat_accumulate_argv_or_env(compat_uptr_t argv, char *str_storage) {
 	int len = 0;
 	int ret = 0;
 	const char __user *p = NULL;
-	for (;;) {
+	for(;;) {
 		compat_uptr_t compat_p = 0;
 
-		if (compat_ptr(argv) == NULL)
+		if(compat_ptr(argv) == NULL)
 			break;
 
-		if (unlikely(ppm_get_user(compat_p, compat_ptr(argv))))
-		{
+		if(unlikely(ppm_get_user(compat_p, compat_ptr(argv)))) {
 			/* We return what we read until now */
 			break;
 		}
 		p = compat_ptr(compat_p);
-		if (p == NULL)
+		if(p == NULL)
 			break;
 
 		/* ppm_strncpy_from_user includes the trailing \0 */
-		ret = ppm_strncpy_from_user(&str_storage[len], p,
-						       STR_STORAGE_SIZE-len);
-		if(ret < 0)
-		{
+		ret = ppm_strncpy_from_user(&str_storage[len], p, STR_STORAGE_SIZE - len);
+		if(ret < 0) {
 			/* We ignore the failed read. We will try to read from the same position in
 			 * the next iteration.
 			 */
@@ -825,8 +798,7 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 		}
 
 		len += ret;
-		if(len >= STR_STORAGE_SIZE)
-		{
+		if(len >= STR_STORAGE_SIZE) {
 			len = STR_STORAGE_SIZE;
 			break;
 		}
@@ -834,20 +806,16 @@ static int compat_accumulate_argv_or_env(compat_uptr_t argv,
 		argv += sizeof(argv);
 	}
 
-	if(len>0)
-	{
-		str_storage[len-1] = '\0';
-	}
-	else
-	{
+	if(len > 0) {
+		str_storage[len - 1] = '\0';
+	} else {
 		str_storage[0] = '\0';
 	}
 	return len;
 }
 #endif
 
-static uint32_t ppm_get_tty(void)
-{
+static uint32_t ppm_get_tty(void) {
 	/* Locking of the signal structures seems too complicated across
 	 * multiple kernel versions to get it right, so simply do protected
 	 * memory accesses, and in the worst case we get some garbage,
@@ -863,28 +831,28 @@ static uint32_t ppm_get_tty(void)
 	uint32_t tty_nr = 0;
 
 	sig = current->signal;
-	if (!sig)
+	if(!sig)
 		return 0;
 
-	if (unlikely(copy_from_kernel_nofault(&tty, &sig->tty, sizeof(tty))))
+	if(unlikely(copy_from_kernel_nofault(&tty, &sig->tty, sizeof(tty))))
 		return 0;
 
-	if (!tty)
+	if(!tty)
 		return 0;
 
-	if (unlikely(copy_from_kernel_nofault(&index, &tty->index, sizeof(index))))
+	if(unlikely(copy_from_kernel_nofault(&index, &tty->index, sizeof(index))))
 		return 0;
 
-	if (unlikely(copy_from_kernel_nofault(&driver, &tty->driver, sizeof(driver))))
+	if(unlikely(copy_from_kernel_nofault(&driver, &tty->driver, sizeof(driver))))
 		return 0;
 
-	if (!driver)
+	if(!driver)
 		return 0;
 
-	if (unlikely(copy_from_kernel_nofault(&major, &driver->major, sizeof(major))))
+	if(unlikely(copy_from_kernel_nofault(&major, &driver->major, sizeof(major))))
 		return 0;
 
-	if (unlikely(copy_from_kernel_nofault(&minor_start, &driver->minor_start, sizeof(minor_start))))
+	if(unlikely(copy_from_kernel_nofault(&minor_start, &driver->minor_start, sizeof(minor_start))))
 		return 0;
 
 	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
@@ -892,54 +860,47 @@ static uint32_t ppm_get_tty(void)
 	return tty_nr;
 }
 
-static enum ppm_overlay ppm_get_overlay_layer(struct file *file)
-{
+static enum ppm_overlay ppm_get_overlay_layer(struct file *file) {
 	// 3.18 is the Kernel version where overlayfs was introduced
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 	return PPM_NOT_OVERLAY_FS;
-#else 
-	struct dentry * dentry = NULL;
-	struct super_block* sb = NULL;
+#else
+	struct dentry *dentry = NULL;
+	struct super_block *sb = NULL;
 	struct dentry *upper_dentry = NULL;
-	struct inode * upper_ino = NULL;
-	
-	if(!file)
-	{
+	struct inode *upper_ino = NULL;
+
+	if(!file) {
 		return PPM_NOT_OVERLAY_FS;
 	}
 
 	dentry = file->f_path.dentry;
-	if(!dentry)
-	{
+	if(!dentry) {
 		return PPM_NOT_OVERLAY_FS;
 	}
-	
+
 	sb = dentry->d_sb;
-	if(!sb)
-	{
+	if(!sb) {
 		return PPM_NOT_OVERLAY_FS;
 	}
-	
-	if(sb->s_magic != PPM_OVERLAYFS_SUPER_MAGIC)
-	{
+
+	if(sb->s_magic != PPM_OVERLAYFS_SUPER_MAGIC) {
 		return PPM_NOT_OVERLAY_FS;
 	}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 	// New scope to avoid `ISO C90 forbids mixed declarations and code` error
 	{
-		struct ovl_entry *oe = (struct ovl_entry*)(dentry->d_fsdata);
-		if(!oe)
-		{
+		struct ovl_entry *oe = (struct ovl_entry *)(dentry->d_fsdata);
+		if(!oe) {
 			return PPM_OVERLAY_LOWER;
 		}
 		upper_dentry = oe->__upperdentry;
 	}
 #else
 	{
-		char *vfs_inode = (char*)dentry->d_inode;
-		if(!vfs_inode)
-		{
+		char *vfs_inode = (char *)dentry->d_inode;
+		if(!vfs_inode) {
 			return PPM_OVERLAY_LOWER;
 		}
 
@@ -949,31 +910,27 @@ static enum ppm_overlay ppm_get_overlay_layer(struct file *file)
 		// todo!: this is dangerous we should find a way to check it at compile time.
 		upper_dentry = *(struct dentry **)(vfs_inode + sizeof(struct inode));
 	}
-#endif // LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-	if(!upper_dentry)
-	{
+#endif  // LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
+	if(!upper_dentry) {
 		return PPM_OVERLAY_LOWER;
 	}
 
 	upper_ino = upper_dentry->d_inode;
-	if(!upper_ino)
-	{
+	if(!upper_ino) {
 		return PPM_OVERLAY_LOWER;
 	}
-	if(upper_ino->i_ino != 0)
-	{
+	if(upper_ino->i_ino != 0) {
 		return PPM_OVERLAY_UPPER;
 	}
 	return PPM_OVERLAY_LOWER;
-#endif // LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
+#endif  // LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 }
 
-int f_proc_startupdate(struct event_filler_arguments *args)
-{
+int f_proc_startupdate(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
-	unsigned int exe_len = 0;  /* the length of the executable string */
-	int args_len = 0; /*the combined length of the arguments string + executable string */
+	unsigned int exe_len = 0; /* the length of the executable string */
+	int args_len = 0;         /*the combined length of the arguments string + executable string */
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
@@ -995,10 +952,8 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_19_X &&
-			 args->event_type != PPME_SYSCALL_EXECVEAT_X)) {
-
+	if(unlikely(retval < 0 && args->event_type != PPME_SYSCALL_EXECVE_19_X &&
+	            args->event_type != PPME_SYSCALL_EXECVEAT_X)) {
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
 		*args->str_storage = 0;
@@ -1015,21 +970,20 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 		res = val_to_ring(args, (int64_t)(long)args->str_storage, 0, false, 0);
 		CHECK_RES(res);
 	} else {
-
-		if (likely(retval >= 0)) {
+		if(likely(retval >= 0)) {
 			/*
 			 * The call succeeded. Get exe, args from the current
 			 * process; put one \0-separated exe-args string into
 			 * str_storage
 			 */
 
-			if (unlikely(!mm)) {
+			if(unlikely(!mm)) {
 				args->str_storage[0] = 0;
 				pr_info("f_proc_startupdate drop, mm=NULL\n");
 				return PPM_FAILURE_BUG;
 			}
 
-			if (unlikely(!mm->arg_end)) {
+			if(unlikely(!mm->arg_end)) {
 				args->str_storage[0] = 0;
 				pr_info("f_proc_startupdate drop, mm->arg_end=NULL\n");
 				return PPM_FAILURE_BUG;
@@ -1037,17 +991,18 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 
 			args_len = mm->arg_end - mm->arg_start;
 
-			if (args_len) {
-				if (args_len > STR_STORAGE_SIZE)
+			if(args_len) {
+				if(args_len > STR_STORAGE_SIZE)
 					args_len = STR_STORAGE_SIZE;
 
-				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
+				if(unlikely(ppm_copy_from_user(args->str_storage,
+				                               (const void __user *)mm->arg_start,
+				                               args_len)))
 					args_len = 0;
 				else
 					args->str_storage[args_len - 1] = 0;
 			}
 		} else {
-
 			/*
 			 * The execve or execveat call failed. We get exe, args from the
 			 * input args; put one \0-separated exe-args string into
@@ -1055,8 +1010,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 			 */
 			args->str_storage[0] = 0;
 
-			switch (args->event_type)
-			{
+			switch(args->event_type) {
 			case PPME_SYSCALL_EXECVE_19_X:
 				syscall_get_arguments_deprecated(args, 1, 1, &val);
 				break;
@@ -1070,21 +1024,19 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 				break;
 			}
 #ifdef CONFIG_COMPAT
-			if (unlikely(args->compat))
-				args_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
-							   args->str_storage);
+			if(unlikely(args->compat))
+				args_len = compat_accumulate_argv_or_env((compat_uptr_t)val, args->str_storage);
 			else
 #endif
-				args_len = accumulate_argv_or_env((const char __user *)val,
-							   args->str_storage);
+				args_len = accumulate_argv_or_env((const char __user *)val, args->str_storage);
 		}
 
-		if (args_len == 0)
+		if(args_len == 0)
 			*args->str_storage = 0;
 
 		exe_len = strnlen(args->str_storage, args_len);
 		// we add the `\0` terminator
-		if (exe_len < args_len)
+		if(exe_len < args_len)
 			++exe_len;
 
 		/*
@@ -1096,10 +1048,13 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 		/*
 		 * Args
 		 */
-		res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
+		res = val_to_ring(args,
+		                  (int64_t)(long)args->str_storage + exe_len,
+		                  args_len - exe_len,
+		                  false,
+		                  0);
 		CHECK_RES(res);
 	}
-
 
 	/*
 	 * tid
@@ -1117,10 +1072,10 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	 * ptid
 	 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-	if (current->real_parent)
+	if(current->real_parent)
 		ptid = current->real_parent->pid;
 #else
-	if (current->parent)
+	if(current->parent)
 		ptid = current->parent->pid;
 #endif
 	else
@@ -1158,10 +1113,10 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	res = val_to_ring(args, current->min_flt, 0, false, 0);
 	CHECK_RES(res);
 
-	if (mm) {
-		total_vm = mm->total_vm << (PAGE_SHIFT-10);
-		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
-		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+	if(mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT - 10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
 	/*
@@ -1199,14 +1154,15 @@ cgroups_error:
 	rcu_read_unlock();
 #endif
 
-	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+	res = val_to_ring(args,
+	                  (int64_t)(long)args->str_storage,
+	                  STR_STORAGE_SIZE - available,
+	                  false,
+	                  0);
 	CHECK_RES(res);
 
-	if (args->event_type == PPME_SYSCALL_CLONE_20_X ||
-		args->event_type == PPME_SYSCALL_FORK_20_X ||
-		args->event_type == PPME_SYSCALL_VFORK_20_X ||
-		args->event_type == PPME_SYSCALL_CLONE3_X)
-		{
+	if(args->event_type == PPME_SYSCALL_CLONE_20_X || args->event_type == PPME_SYSCALL_FORK_20_X ||
+	   args->event_type == PPME_SYSCALL_VFORK_20_X || args->event_type == PPME_SYSCALL_CLONE3_X) {
 		/*
 		 * clone-only parameters
 		 */
@@ -1228,8 +1184,7 @@ cgroups_error:
 		/*
 		 * flags
 		 */
-		switch (args->event_type)
-		{
+		switch(args->event_type) {
 		case PPME_SYSCALL_CLONE_20_X:
 #ifdef CONFIG_S390
 			syscall_get_arguments_deprecated(args, 1, 1, &val);
@@ -1242,12 +1197,9 @@ cgroups_error:
 #ifdef __NR_clone3
 			syscall_get_arguments_deprecated(args, 0, 1, &val);
 			res = ppm_copy_from_user(&cl_args, (void *)val, sizeof(struct clone_args));
-			if (unlikely(res != 0))
-			{
+			if(unlikely(res != 0)) {
 				val = 0;
-			}
-			else
-			{
+			} else {
 				val = cl_args.flags;
 			}
 #else
@@ -1264,7 +1216,7 @@ cgroups_error:
 		if(pidns != &init_pid_ns || pid_ns_for_children(current) != pidns)
 			in_pidns = PPM_CL_CHILD_IN_PIDNS;
 #endif
-		res = val_to_ring(args, (uint64_t)clone_flags_to_scap((int) val) | in_pidns, 0, false, 0);
+		res = val_to_ring(args, (uint64_t)clone_flags_to_scap((int)val) | in_pidns, 0, false, 0);
 		CHECK_RES(res);
 
 		/*
@@ -1309,8 +1261,7 @@ cgroups_error:
 		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
 		// only perform lookup when clone/vfork/fork returns 0 (child process / childtid)
-		if(retval == 0 && pidns && pidns->child_reaper)
-		{
+		if(retval == 0 && pidns && pidns->child_reaper) {
 			pidns_init_start_time = pidns->child_reaper->start_time;
 		}
 		res = val_to_ring(args, pidns_init_start_time, 0, false, 0);
@@ -1320,8 +1271,8 @@ cgroups_error:
 #endif
 		CHECK_RES(res);
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X ||
-			   args->event_type == PPME_SYSCALL_EXECVEAT_X) {
+	} else if(args->event_type == PPME_SYSCALL_EXECVE_19_X ||
+	          args->event_type == PPME_SYSCALL_EXECVEAT_X) {
 		/*
 		 * execve family parameters.
 		 */
@@ -1330,7 +1281,7 @@ cgroups_error:
 		bool exe_writable = false;
 		enum ppm_overlay exe_layer = PPM_NOT_OVERLAY_FS;
 		struct file *exe_file = NULL;
-		uint32_t flags = 0; // execve additional flags
+		uint32_t flags = 0;  // execve additional flags
 		unsigned long i_ino = 0;
 		unsigned long ctime = 0;
 		unsigned long mtime = 0;
@@ -1339,20 +1290,22 @@ cgroups_error:
 		uint64_t cap_permitted = 0;
 		uint64_t cap_effective = 0;
 		uint32_t euid = UINT32_MAX;
-		char* buf = (char*)args->str_storage;
+		char *buf = (char *)args->str_storage;
 		char *trusted_exepath = NULL;
 
-		if (likely(retval >= 0)) {
+		if(likely(retval >= 0)) {
 			/*
 			 * Already checked for mm validity
 			 */
 			env_len = mm->env_end - mm->env_start;
 
-			if (env_len) {
-				if (env_len > STR_STORAGE_SIZE)
+			if(env_len) {
+				if(env_len > STR_STORAGE_SIZE)
 					env_len = STR_STORAGE_SIZE;
 
-				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, env_len)))
+				if(unlikely(ppm_copy_from_user(args->str_storage,
+				                               (const void __user *)mm->env_start,
+				                               env_len)))
 					env_len = 0;
 				else
 					args->str_storage[env_len - 1] = 0;
@@ -1361,8 +1314,7 @@ cgroups_error:
 			/*
 			 * The call failed, so get the env from the arguments
 			 */
-			switch (args->event_type)
-			{
+			switch(args->event_type) {
 			case PPME_SYSCALL_EXECVE_19_X:
 				syscall_get_arguments_deprecated(args, 2, 1, &val);
 				break;
@@ -1376,16 +1328,14 @@ cgroups_error:
 				break;
 			}
 #ifdef CONFIG_COMPAT
-			if (unlikely(args->compat))
-				env_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
-							  args->str_storage);
+			if(unlikely(args->compat))
+				env_len = compat_accumulate_argv_or_env((compat_uptr_t)val, args->str_storage);
 			else
 #endif
-				env_len = accumulate_argv_or_env((const char __user *)val,
-							  args->str_storage);
+				env_len = accumulate_argv_or_env((const char __user *)val, args->str_storage);
 		}
 
-		if (env_len == 0)
+		if(env_len == 0)
 			*args->str_storage = 0;
 
 		/*
@@ -1405,15 +1355,19 @@ cgroups_error:
 		 * pgid
 		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-		res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+		res = val_to_ring(args,
+		                  (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)),
+		                  0,
+		                  false,
+		                  0);
 #else
 		res = val_to_ring(args, (int64_t)process_group(current), 0, false, 0);
 #endif
 		CHECK_RES(res);
 
 		/*
-	 	* loginuid
-	 	*/
+		 * loginuid
+		 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 		loginuid = from_kuid(current_user_ns(), audit_get_loginuid(current));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
@@ -1430,28 +1384,32 @@ cgroups_error:
 
 		exe_file = ppm_get_mm_exe_file(mm);
 
-		if (exe_file != NULL) {
+		if(exe_file != NULL) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
-			if (file_inode(exe_file) != NULL)
-			{
+			if(file_inode(exe_file) != NULL) {
 				/* Support exe_writable */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 				exe_writable |= (file_permission(exe_file, MAY_WRITE | MAY_NOT_BLOCK) == 0);
-				exe_writable |= inode_owner_or_capable(file_mnt_idmap(exe_file), file_inode(exe_file));
+				exe_writable |=
+				        inode_owner_or_capable(file_mnt_idmap(exe_file), file_inode(exe_file));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
-				exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
+				exe_writable |= (inode_permission(current_user_ns(),
+				                                  file_inode(exe_file),
+				                                  MAY_WRITE | MAY_NOT_BLOCK) == 0);
 				exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0)
-				exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
+				exe_writable |=
+				        (inode_permission(file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
 				exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
 				/*
-				 * Kernels < 3.1.0 doesn't support the exe_writable flags due to the MAY_NOT_BLOCK not being
-				 * available. This limitation is related to the fact that this function (f_sched_prog_exec)
-				 * is in a RCU critical section: this means that this function (and its callee) MUST NOT
-				 * call functions that can yield the processor (e.g. inode_permission that deep down in its
-				 * call stack calls a down_read()). This is addressed after the Kernel 3.1.0 where the
-				 * MAY_OT_BLOCK flag is introduced and avoids the processor to being yield.
+				 * Kernels < 3.1.0 doesn't support the exe_writable flags due to the MAY_NOT_BLOCK
+				 * not being available. This limitation is related to the fact that this function
+				 * (f_sched_prog_exec) is in a RCU critical section: this means that this function
+				 * (and its callee) MUST NOT call functions that can yield the processor (e.g.
+				 * inode_permission that deep down in its call stack calls a down_read()). This is
+				 * addressed after the Kernel 3.1.0 where the MAY_OT_BLOCK flag is introduced and
+				 * avoids the processor to being yield.
 				 */
 
 				/* Support exe_upper_layer and exe_lower_layer */
@@ -1464,21 +1422,22 @@ cgroups_error:
 				i_ino = file_inode(exe_file)->i_ino;
 
 				/* Support exe_file ctime
-				 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
-				 * but fields names should be always the same.
+				 * During kernel versions `i_ctime` changed from `struct timespec` to `struct
+				 * timespec64` but fields names should be always the same.
 				 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 				{
 					struct timespec64 inode_ctime;
 					inode_ctime = inode_get_ctime(file_inode(exe_file));
-					ctime = inode_ctime.tv_sec * (uint64_t) 1000000000 + inode_ctime.tv_nsec;
+					ctime = inode_ctime.tv_sec * (uint64_t)1000000000 + inode_ctime.tv_nsec;
 				}
 #else
-				ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+				ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t)1000000000 +
+				        file_inode(exe_file)->i_ctime.tv_nsec;
 #endif
 				/* Support exe_file mtime
-				 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
-				 * but fields names should be always the same.
+				 * During kernel versions `i_mtime` changed from `struct timespec` to `struct
+				 * timespec64` but fields names should be always the same.
 				 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
 				{
@@ -1487,7 +1446,8 @@ cgroups_error:
 					mtime = inode_mtime.tv_sec * (uint64_t)1000000000 + inode_mtime.tv_nsec;
 				}
 #else
-				mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+				mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t)1000000000 +
+				        file_inode(exe_file)->i_mtime.tv_nsec;
 #endif
 			}
 #endif
@@ -1500,25 +1460,22 @@ cgroups_error:
 		 * https://github.com/torvalds/linux/blob/2dde18cd1d8fac735875f2e4987f11817cc0bc2c/fs/d_path.c#L255
 		 * This is unhandy to manage in userspace, for this reason, we can remove it here
 		 */
-		if(trusted_exepath != NULL)
-		{
+		if(trusted_exepath != NULL) {
 			char deleted_suffix[] = " (deleted)";
 			int diff_len = strlen(trusted_exepath) - strlen(deleted_suffix);
 			if(diff_len > 0 &&
-				(strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0))
-			{
+			   (strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0)) {
 				trusted_exepath[diff_len] = '\0';
 			}
 		}
 
-		if (exe_writable) {
+		if(exe_writable) {
 			flags |= PPM_EXE_WRITABLE;
 		}
 
-		if (exe_layer == PPM_OVERLAY_UPPER) {
+		if(exe_layer == PPM_OVERLAY_UPPER) {
 			flags |= PPM_EXE_UPPER_LAYER;
-		}
-		else if (exe_layer == PPM_OVERLAY_LOWER) {
+		} else if(exe_layer == PPM_OVERLAY_LOWER) {
 			flags |= PPM_EXE_LOWER_LAYER;
 		}
 
@@ -1535,7 +1492,8 @@ cgroups_error:
 		 */
 		cred = get_current_cred();
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
-		cap_inheritable = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
+		cap_inheritable =
+		        ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
 		cap_permitted = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
 		cap_effective = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
 #else
@@ -1565,11 +1523,13 @@ cgroups_error:
 		res = val_to_ring(args, i_ino, 0, false, 0);
 		CHECK_RES(res);
 
-		/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+		/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
+		 * PT_ABSTIME) */
 		res = val_to_ring(args, ctime, 0, false, 0);
 		CHECK_RES(res);
 
-		/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+		/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
+		 * PT_ABSTIME) */
 		res = val_to_ring(args, mtime, 0, false, 0);
 		CHECK_RES(res);
 
@@ -1591,8 +1551,7 @@ cgroups_error:
 	return add_sentinel(args);
 }
 
-int f_sys_execve_e(struct event_filler_arguments *args)
-{
+int f_sys_execve_e(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 
@@ -1606,8 +1565,7 @@ int f_sys_execve_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_execveat_e(struct event_filler_arguments *args)
-{
+int f_sys_execveat_e(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	unsigned long flags;
@@ -1618,8 +1576,7 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
-	{
+	if(fd == AT_FDCWD) {
 		fd = PPM_AT_FDCWD;
 	}
 
@@ -1645,8 +1602,7 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_socket_bind_e(struct event_filler_arguments *args)
-{
+int f_sys_socket_bind_e(struct event_filler_arguments *args) {
 	int res = 0;
 	int32_t fd = 0;
 	unsigned long val = 0;
@@ -1661,8 +1617,7 @@ int f_sys_socket_bind_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_socket_bind_x(struct event_filler_arguments *args)
-{
+int f_sys_socket_bind_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
 	int err = 0;
@@ -1690,37 +1645,29 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 
-	if (usrsockaddr != NULL && val != 0) {
+	if(usrsockaddr != NULL && val != 0) {
 		/*
 		 * Copy the address
 		 */
 		err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-		if (likely(err >= 0)) {
+		if(likely(err >= 0)) {
 			/*
 			 * Convert the fd into socket endpoint information
 			 */
-			size = pack_addr((struct sockaddr *)&address,
-				val,
-				targetbuf,
-				STR_STORAGE_SIZE);
+			size = pack_addr((struct sockaddr *)&address, val, targetbuf, STR_STORAGE_SIZE);
 		}
 	}
 
 	/*
 	 * Copy the endpoint info into the ring
 	 */
-	res = val_to_ring(args,
-			    (uint64_t)targetbuf,
-			    size,
-			    false,
-			    0);
+	res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_connect_e(struct event_filler_arguments *args)
-{
+int f_sys_connect_e(struct event_filler_arguments *args) {
 	int res;
 	int err = 0;
 	int fd;
@@ -1736,7 +1683,7 @@ int f_sys_connect_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, fd, 0, true, 0);
 	CHECK_RES(res);
 
-	if (fd >= 0) {
+	if(fd >= 0) {
 		/*
 		 * Get the address
 		 */
@@ -1749,19 +1696,16 @@ int f_sys_connect_e(struct event_filler_arguments *args)
 		 */
 		syscall_get_arguments_deprecated(args, 2, 1, &val);
 
-		if (usrsockaddr != NULL && val != 0) {
+		if(usrsockaddr != NULL && val != 0) {
 			/*
-			* Copy the address
-			*/
+			 * Copy the address
+			 */
 			err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-			if (likely(err >= 0)) {
+			if(likely(err >= 0)) {
 				/*
-				* Convert the fd into socket endpoint information
-				*/
-				size = pack_addr((struct sockaddr *)&address,
-					val,
-					targetbuf,
-					STR_STORAGE_SIZE);
+				 * Convert the fd into socket endpoint information
+				 */
+				size = pack_addr((struct sockaddr *)&address, val, targetbuf, STR_STORAGE_SIZE);
 			}
 		}
 	}
@@ -1769,18 +1713,13 @@ int f_sys_connect_e(struct event_filler_arguments *args)
 	/*
 	 * Copy the endpoint info into the ring
 	 */
-	res = val_to_ring(args,
-			    (uint64_t)targetbuf,
-			    size,
-			    false,
-			    0);
+	res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_connect_x(struct event_filler_arguments *args)
-{
+int f_sys_connect_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
 	int err = 0;
@@ -1805,7 +1744,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int)val;
 
-	if (fd >= 0) {
+	if(fd >= 0) {
 		/*
 		 * Get the address
 		 */
@@ -1818,22 +1757,22 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 		 */
 		syscall_get_arguments_deprecated(args, 2, 1, &val);
 
-		if (usrsockaddr != NULL && val != 0) {
+		if(usrsockaddr != NULL && val != 0) {
 			/*
 			 * Copy the address
 			 */
 			err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-			if (likely(err >= 0)) {
+			if(likely(err >= 0)) {
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
 				size = fd_to_socktuple(fd,
-					(struct sockaddr *)&address,
-					val,
-					true,
-					false,
-					targetbuf,
-					STR_STORAGE_SIZE);
+				                       (struct sockaddr *)&address,
+				                       val,
+				                       true,
+				                       false,
+				                       targetbuf,
+				                       STR_STORAGE_SIZE);
 			}
 		}
 	}
@@ -1841,11 +1780,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	/*
 	 * Copy the endpoint info into the ring
 	 */
-	res = val_to_ring(args,
-			    (uint64_t)targetbuf,
-			    size,
-			    false,
-			    0);
+	res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
 	CHECK_RES(res);
 
 	res = val_to_ring(args, fd, 0, false, 0);
@@ -1854,8 +1789,7 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_socketpair_x(struct event_filler_arguments *args)
-{
+int f_sys_socketpair_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
 	unsigned long val;
@@ -1876,19 +1810,19 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 	/*
 	 * If the call was successful, copy the FDs
 	 */
-	if (likely(retval == 0)) {
+	if(likely(retval == 0)) {
 		/*
 		 * fds
 		 */
 		syscall_get_arguments_deprecated(args, 3, 1, &val);
 #ifdef CONFIG_COMPAT
-		if (!args->compat) {
+		if(!args->compat) {
 #endif
-			if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, sizeof(fds))))
+			if(unlikely(ppm_copy_from_user(fds, (const void __user *)val, sizeof(fds))))
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 #ifdef CONFIG_COMPAT
 		} else {
-			if (unlikely(ppm_copy_from_user(fds, (const void __user *)compat_ptr(val), sizeof(fds))))
+			if(unlikely(ppm_copy_from_user(fds, (const void __user *)compat_ptr(val), sizeof(fds))))
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 		}
 #endif
@@ -1901,17 +1835,17 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 
 		/* get socket source and peer address */
 		sock = sockfd_lookup(fds[0], &err);
-		if (likely(sock != NULL)) {
+		if(likely(sock != NULL)) {
 			us = unix_sk(sock->sk);
 			speer = us->peer;
 			res = val_to_ring(args, (unsigned long)us, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if(unlikely(res != PPM_SUCCESS)) {
 				sockfd_put(sock);
 				return res;
 			}
 
 			res = val_to_ring(args, (unsigned long)speer, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS)) {
+			if(unlikely(res != PPM_SUCCESS)) {
 				sockfd_put(sock);
 				return res;
 			}
@@ -1937,201 +1871,206 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int parse_sockopt(struct event_filler_arguments *args, int level, int optname, const void __user *optval, int optlen)
-{
+static int parse_sockopt(struct event_filler_arguments *args,
+                         int level,
+                         int optname,
+                         const void __user *optval,
+                         int optlen) {
 	int32_t val32 = 0;
 	uint64_t val64 = 0;
 	struct __aux_timeval tv = {0};
 
-	if(level != SOL_SOCKET)
-	{
+	if(level != SOL_SOCKET) {
 		return val_to_ring(args, (unsigned long)optval, optlen, true, PPM_SOCKOPT_IDX_UNKNOWN);
 	}
 
-	switch (optname) {
+	switch(optname) {
 #ifdef SO_ERROR
-		case SO_ERROR:
-			/* in case of failure we have to clear again the value */
-			if(unlikely(ppm_copy_from_user(&val32, optval, sizeof(val32))))
-			{
-				val32 = 0;
-			}
-			return val_to_ring(args, (int64_t)-val32, 0, false, PPM_SOCKOPT_IDX_ERRNO);
+	case SO_ERROR:
+		/* in case of failure we have to clear again the value */
+		if(unlikely(ppm_copy_from_user(&val32, optval, sizeof(val32)))) {
+			val32 = 0;
+		}
+		return val_to_ring(args, (int64_t)-val32, 0, false, PPM_SOCKOPT_IDX_ERRNO);
 #endif
 
 #ifdef SO_RCVTIMEO
-		case SO_RCVTIMEO:
+	case SO_RCVTIMEO:
 #endif
-#if (defined(SO_RCVTIMEO_OLD) && !defined(SO_RCVTIMEO)) || (defined(SO_RCVTIMEO_OLD) && (SO_RCVTIMEO_OLD != SO_RCVTIMEO))
-		case SO_RCVTIMEO_OLD:
+#if(defined(SO_RCVTIMEO_OLD) && !defined(SO_RCVTIMEO)) || \
+        (defined(SO_RCVTIMEO_OLD) && (SO_RCVTIMEO_OLD != SO_RCVTIMEO))
+	case SO_RCVTIMEO_OLD:
 #endif
-#if (defined(SO_RCVTIMEO_NEW) && !defined(SO_RCVTIMEO)) || (defined(SO_RCVTIMEO_NEW) && (SO_RCVTIMEO_NEW != SO_RCVTIMEO))
-		case SO_RCVTIMEO_NEW:
+#if(defined(SO_RCVTIMEO_NEW) && !defined(SO_RCVTIMEO)) || \
+        (defined(SO_RCVTIMEO_NEW) && (SO_RCVTIMEO_NEW != SO_RCVTIMEO))
+	case SO_RCVTIMEO_NEW:
 #endif
 #ifdef SO_SNDTIMEO
-		case SO_SNDTIMEO:
+	case SO_SNDTIMEO:
 #endif
-#if (defined(SO_SNDTIMEO_OLD) && !defined(SO_SNDTIMEO)) || (defined(SO_SNDTIMEO_OLD) && (SO_SNDTIMEO_OLD != SO_SNDTIMEO))
-		case SO_SNDTIMEO_OLD:
+#if(defined(SO_SNDTIMEO_OLD) && !defined(SO_SNDTIMEO)) || \
+        (defined(SO_SNDTIMEO_OLD) && (SO_SNDTIMEO_OLD != SO_SNDTIMEO))
+	case SO_SNDTIMEO_OLD:
 #endif
-#if (defined(SO_SNDTIMEO_NEW) && !defined(SO_SNDTIMEO)) || (defined(SO_SNDTIMEO_NEW) && (SO_SNDTIMEO_NEW != SO_SNDTIMEO))
-		case SO_SNDTIMEO_NEW:
+#if(defined(SO_SNDTIMEO_NEW) && !defined(SO_SNDTIMEO)) || \
+        (defined(SO_SNDTIMEO_NEW) && (SO_SNDTIMEO_NEW != SO_SNDTIMEO))
+	case SO_SNDTIMEO_NEW:
 #endif
-			if(unlikely(ppm_copy_from_user(&tv, optval, sizeof(tv))))
-			{
-				tv.tv_sec = 0;
-				tv.tv_usec = 0;
-			}
-			return val_to_ring(args, tv.tv_sec * SECOND_IN_NS + tv.tv_usec * USECOND_IN_NS, 0, false, PPM_SOCKOPT_IDX_TIMEVAL);
+		if(unlikely(ppm_copy_from_user(&tv, optval, sizeof(tv)))) {
+			tv.tv_sec = 0;
+			tv.tv_usec = 0;
+		}
+		return val_to_ring(args,
+		                   tv.tv_sec * SECOND_IN_NS + tv.tv_usec * USECOND_IN_NS,
+		                   0,
+		                   false,
+		                   PPM_SOCKOPT_IDX_TIMEVAL);
 
 #ifdef SO_COOKIE
-		case SO_COOKIE:
-			if(unlikely(ppm_copy_from_user(&val64, optval, sizeof(val64))))
-			{
-				val64 = 0;
-			}
-			return val_to_ring(args, val64, 0, false, PPM_SOCKOPT_IDX_UINT64);
+	case SO_COOKIE:
+		if(unlikely(ppm_copy_from_user(&val64, optval, sizeof(val64)))) {
+			val64 = 0;
+		}
+		return val_to_ring(args, val64, 0, false, PPM_SOCKOPT_IDX_UINT64);
 #endif
 
 #ifdef SO_DEBUG
-		case SO_DEBUG:
+	case SO_DEBUG:
 #endif
 #ifdef SO_REUSEADDR
-		case SO_REUSEADDR:
+	case SO_REUSEADDR:
 #endif
 #ifdef SO_TYPE
-		case SO_TYPE:
+	case SO_TYPE:
 #endif
 #ifdef SO_DONTROUTE
-		case SO_DONTROUTE:
+	case SO_DONTROUTE:
 #endif
 #ifdef SO_BROADCAST
-		case SO_BROADCAST:
+	case SO_BROADCAST:
 #endif
 #ifdef SO_SNDBUF
-		case SO_SNDBUF:
+	case SO_SNDBUF:
 #endif
 #ifdef SO_RCVBUF
-		case SO_RCVBUF:
+	case SO_RCVBUF:
 #endif
 #ifdef SO_SNDBUFFORCE
-		case SO_SNDBUFFORCE:
+	case SO_SNDBUFFORCE:
 #endif
 #ifdef SO_RCVBUFFORCE
-		case SO_RCVBUFFORCE:
+	case SO_RCVBUFFORCE:
 #endif
 #ifdef SO_KEEPALIVE
-		case SO_KEEPALIVE:
+	case SO_KEEPALIVE:
 #endif
 #ifdef SO_OOBINLINE
-		case SO_OOBINLINE:
+	case SO_OOBINLINE:
 #endif
 #ifdef SO_NO_CHECK
-		case SO_NO_CHECK:
+	case SO_NO_CHECK:
 #endif
 #ifdef SO_PRIORITY
-		case SO_PRIORITY:
+	case SO_PRIORITY:
 #endif
 #ifdef SO_BSDCOMPAT
-		case SO_BSDCOMPAT:
+	case SO_BSDCOMPAT:
 #endif
 #ifdef SO_REUSEPORT
-		case SO_REUSEPORT:
+	case SO_REUSEPORT:
 #endif
 #ifdef SO_PASSCRED
-		case SO_PASSCRED:
+	case SO_PASSCRED:
 #endif
 #ifdef SO_RCVLOWAT
-		case SO_RCVLOWAT:
+	case SO_RCVLOWAT:
 #endif
 #ifdef SO_SNDLOWAT
-		case SO_SNDLOWAT:
+	case SO_SNDLOWAT:
 #endif
 #ifdef SO_SECURITY_AUTHENTICATION
-		case SO_SECURITY_AUTHENTICATION:
+	case SO_SECURITY_AUTHENTICATION:
 #endif
 #ifdef SO_SECURITY_ENCRYPTION_TRANSPORT
-		case SO_SECURITY_ENCRYPTION_TRANSPORT:
+	case SO_SECURITY_ENCRYPTION_TRANSPORT:
 #endif
 #ifdef SO_SECURITY_ENCRYPTION_NETWORK
-		case SO_SECURITY_ENCRYPTION_NETWORK:
+	case SO_SECURITY_ENCRYPTION_NETWORK:
 #endif
 #ifdef SO_BINDTODEVICE
-		case SO_BINDTODEVICE:
+	case SO_BINDTODEVICE:
 #endif
 #ifdef SO_DETACH_FILTER
-		case SO_DETACH_FILTER:
+	case SO_DETACH_FILTER:
 #endif
 #ifdef SO_TIMESTAMP
-		case SO_TIMESTAMP:
+	case SO_TIMESTAMP:
 #endif
 #ifdef SO_ACCEPTCONN
-		case SO_ACCEPTCONN:
+	case SO_ACCEPTCONN:
 #endif
 #ifdef SO_PEERSEC
-		case SO_PEERSEC:
+	case SO_PEERSEC:
 #endif
 #ifdef SO_PASSSEC
-		case SO_PASSSEC:
+	case SO_PASSSEC:
 #endif
 #ifdef SO_TIMESTAMPNS
-		case SO_TIMESTAMPNS:
+	case SO_TIMESTAMPNS:
 #endif
 #ifdef SO_MARK
-		case SO_MARK:
+	case SO_MARK:
 #endif
 #ifdef SO_TIMESTAMPING
-		case SO_TIMESTAMPING:
+	case SO_TIMESTAMPING:
 #endif
 #ifdef SO_PROTOCOL
-		case SO_PROTOCOL:
+	case SO_PROTOCOL:
 #endif
 #ifdef SO_DOMAIN
-		case SO_DOMAIN:
+	case SO_DOMAIN:
 #endif
 #ifdef SO_RXQ_OVFL
-		case SO_RXQ_OVFL:
+	case SO_RXQ_OVFL:
 #endif
 #ifdef SO_WIFI_STATUS
-		case SO_WIFI_STATUS:
+	case SO_WIFI_STATUS:
 #endif
 #ifdef SO_PEEK_OFF
-		case SO_PEEK_OFF:
+	case SO_PEEK_OFF:
 #endif
 #ifdef SO_NOFCS
-		case SO_NOFCS:
+	case SO_NOFCS:
 #endif
 #ifdef SO_LOCK_FILTER
-		case SO_LOCK_FILTER:
+	case SO_LOCK_FILTER:
 #endif
 #ifdef SO_SELECT_ERR_QUEUE
-		case SO_SELECT_ERR_QUEUE:
+	case SO_SELECT_ERR_QUEUE:
 #endif
 #ifdef SO_BUSY_POLL
-		case SO_BUSY_POLL:
+	case SO_BUSY_POLL:
 #endif
 #ifdef SO_MAX_PACING_RATE
-		case SO_MAX_PACING_RATE:
+	case SO_MAX_PACING_RATE:
 #endif
 #ifdef SO_BPF_EXTENSIONS
-		case SO_BPF_EXTENSIONS:
+	case SO_BPF_EXTENSIONS:
 #endif
 #ifdef SO_INCOMING_CPU
-		case SO_INCOMING_CPU:
+	case SO_INCOMING_CPU:
 #endif
-			if(unlikely(ppm_copy_from_user(&val32, optval, sizeof(val32))))
-			{
-				val32 = 0;
-			}
-			return val_to_ring(args, val32, 0, false, PPM_SOCKOPT_IDX_UINT32);
+		if(unlikely(ppm_copy_from_user(&val32, optval, sizeof(val32)))) {
+			val32 = 0;
+		}
+		return val_to_ring(args, val32, 0, false, PPM_SOCKOPT_IDX_UINT32);
 
-		default:
-			return val_to_ring(args, (unsigned long)optval, optlen, true, PPM_SOCKOPT_IDX_UNKNOWN);
+	default:
+		return val_to_ring(args, (unsigned long)optval, optlen, true, PPM_SOCKOPT_IDX_UNKNOWN);
 	}
 }
 
-int f_sys_setsockopt_x(struct event_filler_arguments *args)
-{
+int f_sys_setsockopt_x(struct event_filler_arguments *args) {
 	int res = 0;
 	long retval = 0;
 	unsigned long val[5] = {0};
@@ -2159,7 +2098,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 5: optval (type: PT_DYN) */
-	res = parse_sockopt(args, val[1], val[2], (const void __user*)val[3], val[4]);
+	res = parse_sockopt(args, val[1], val[2], (const void __user *)val[3], val[4]);
 	CHECK_RES(res);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
@@ -2169,8 +2108,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_getsockopt_x(struct event_filler_arguments *args)
-{
+int f_sys_getsockopt_x(struct event_filler_arguments *args) {
 	int res = 0;
 	int64_t retval = 0;
 	uint32_t optlen = 0;
@@ -2203,13 +2141,12 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	 */
 
 	/* Extract optlen */
-	if(unlikely(ppm_copy_from_user(&optlen, (const void __user*)val[4], sizeof(optlen))))
-	{
+	if(unlikely(ppm_copy_from_user(&optlen, (const void __user *)val[4], sizeof(optlen)))) {
 		optlen = 0;
 	}
 
 	/* Parameter 5: optval (type: PT_DYN) */
-	res = parse_sockopt(args, val[1], val[2], (const void __user*)val[3], optlen);
+	res = parse_sockopt(args, val[1], val[2], (const void __user *)val[3], optlen);
 	CHECK_RES(res);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
@@ -2219,8 +2156,7 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_accept4_e(struct event_filler_arguments *args)
-{
+int f_sys_accept4_e(struct event_filler_arguments *args) {
 	int res;
 
 	/*
@@ -2234,8 +2170,7 @@ int f_sys_accept4_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_accept_x(struct event_filler_arguments *args)
-{
+int f_sys_accept_x(struct event_filler_arguments *args) {
 	int res;
 	int fd;
 	char *targetbuf = args->str_storage;
@@ -2254,18 +2189,11 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
-	if (fd >= 0)
-	{
+	if(fd >= 0) {
 		/*
 		 * Convert the fd into socket endpoint information
 		 */
-		size = fd_to_socktuple(fd,
-				NULL,
-				0,
-				false,
-				true,
-				targetbuf,
-				STR_STORAGE_SIZE);
+		size = fd_to_socktuple(fd, NULL, 0, false, true, targetbuf, STR_STORAGE_SIZE);
 		/*
 		 * queuepct
 		 */
@@ -2273,27 +2201,21 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 
 		sock = sockfd_lookup(srvskfd, &err);
 
-		if (sock && sock->sk) {
+		if(sock && sock->sk) {
 			ack_backlog = sock->sk->sk_ack_backlog;
 			max_ack_backlog = sock->sk->sk_max_ack_backlog;
 		}
 
-		if (sock)
+		if(sock)
 			sockfd_put(sock);
 
-		if (max_ack_backlog)
+		if(max_ack_backlog)
 			queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
 
 		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-		res = val_to_ring(args,
-				(uint64_t)targetbuf,
-				size,
-				false,
-				0);
+		res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
 		CHECK_RES(res);
-	}
-	else
-	{
+	} else {
 		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 		res = push_empty_param(args);
 		CHECK_RES(res);
@@ -2314,8 +2236,7 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
-{
+static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd) {
 	int res;
 	unsigned long size;
 	unsigned long val;
@@ -2342,20 +2263,18 @@ static int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	return PPM_SUCCESS;
 }
 
-int f_sys_send_e(struct event_filler_arguments *args)
-{
+int f_sys_send_e(struct event_filler_arguments *args) {
 	int res;
 	int fd;
 
 	res = f_sys_send_e_common(args, &fd);
 
-	if (likely(res == PPM_SUCCESS))
+	if(likely(res == PPM_SUCCESS))
 		return add_sentinel(args);
 	return res;
 }
 
-int f_sys_sendto_e(struct event_filler_arguments *args)
-{
+int f_sys_sendto_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	uint16_t size = 0;
@@ -2385,40 +2304,35 @@ int f_sys_sendto_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 5, 1, &val);
 
-	if (usrsockaddr != NULL && val != 0) {
+	if(usrsockaddr != NULL && val != 0) {
 		/*
 		 * Copy the address
 		 */
 		err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
-		if (likely(err >= 0)) {
+		if(likely(err >= 0)) {
 			/*
 			 * Convert the fd into socket endpoint information
 			 */
 			size = fd_to_socktuple(fd,
-				(struct sockaddr *)&address,
-				val,
-				true,
-				false,
-				targetbuf,
-				STR_STORAGE_SIZE);
+			                       (struct sockaddr *)&address,
+			                       val,
+			                       true,
+			                       false,
+			                       targetbuf,
+			                       STR_STORAGE_SIZE);
 		}
 	}
 
 	/*
 	 * Copy the endpoint info into the ring
 	 */
-	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
-			    size,
-			    false,
-			    0);
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_send_x(struct event_filler_arguments *args)
-{
+int f_sys_send_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -2451,8 +2365,7 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
-{
+static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval) {
 	int res;
 	unsigned long val;
 	unsigned long bufsize;
@@ -2474,7 +2387,7 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 	/*
 	 * data
 	 */
-	if (*retval < 0) {
+	if(*retval < 0) {
 		/*
 		 * The operation failed, return an empty buffer
 		 */
@@ -2496,20 +2409,18 @@ static int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *ret
 	return res;
 }
 
-int f_sys_recv_x(struct event_filler_arguments *args)
-{
+int f_sys_recv_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
 
 	res = f_sys_recv_x_common(args, &retval);
 
-	if (likely(res == PPM_SUCCESS))
+	if(likely(res == PPM_SUCCESS))
 		return add_sentinel(args);
 	return res;
 }
 
-int f_sys_recvfrom_e(struct event_filler_arguments *args)
-{
+int f_sys_recvfrom_e(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 	int32_t fd = 0;
@@ -2528,8 +2439,7 @@ int f_sys_recvfrom_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_recvfrom_x(struct event_filler_arguments *args)
-{
+int f_sys_recvfrom_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	uint16_t size = 0;
@@ -2547,7 +2457,7 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 	res = f_sys_recv_x_common(args, &retval);
 	CHECK_RES(res);
 
-	if (retval >= 0) {
+	if(retval >= 0) {
 		/*
 		 * Get the fd
 		 */
@@ -2564,15 +2474,18 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		 * Get the address len
 		 */
 		syscall_get_arguments_deprecated(args, 5, 1, &val);
-		if (usrsockaddr != NULL && val != 0) {
+		if(usrsockaddr != NULL && val != 0) {
 #ifdef CONFIG_COMPAT
-			if (!args->compat) {
+			if(!args->compat) {
 #endif
-				if (unlikely(ppm_copy_from_user(&addrlen, (const void __user *)val, sizeof(addrlen))))
+				if(unlikely(
+				           ppm_copy_from_user(&addrlen, (const void __user *)val, sizeof(addrlen))))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 #ifdef CONFIG_COMPAT
 			} else {
-				if (unlikely(ppm_copy_from_user(&addrlen, (const void __user *)compat_ptr(val), sizeof(addrlen))))
+				if(unlikely(ppm_copy_from_user(&addrlen,
+				                               (const void __user *)compat_ptr(val),
+				                               sizeof(addrlen))))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 			}
 #endif
@@ -2581,47 +2494,36 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 			 * Copy the address
 			 */
 			err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-			if (likely(err >= 0)) {
+			if(likely(err >= 0)) {
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
 				size = fd_to_socktuple(fd,
-					(struct sockaddr *)&address,
-					addrlen,
-					true,
-					true,
-					targetbuf,
-					STR_STORAGE_SIZE);
+				                       (struct sockaddr *)&address,
+				                       addrlen,
+				                       true,
+				                       true,
+				                       targetbuf,
+				                       STR_STORAGE_SIZE);
 			}
 		} else {
 			/*
-			* Get socket endpoint information from fd if the user-provided *sockaddr is NULL
-			*/
-			size = fd_to_socktuple(fd,
-				NULL,
-				0,
-				false,
-				true,
-				targetbuf,
-				STR_STORAGE_SIZE);
+			 * Get socket endpoint information from fd if the user-provided *sockaddr is NULL
+			 */
+			size = fd_to_socktuple(fd, NULL, 0, false, true, targetbuf, STR_STORAGE_SIZE);
 		}
 	}
 
 	/*
 	 * Copy the endpoint info into the ring
 	 */
-	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
-			    size,
-			    false,
-			    0);
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_sendmsg_e(struct event_filler_arguments *args)
-{
+int f_sys_sendmsg_e(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
@@ -2658,9 +2560,9 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
+		if(unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
@@ -2669,8 +2571,11 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 		iov = (const struct iovec __user *)mh.msg_iov;
 		iovcnt = mh.msg_iovlen;
 
-		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
-
+		res = parse_readv_writev_bufs(args,
+		                              iov,
+		                              iovcnt,
+		                              args->consumer->snaplen,
+		                              PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 
 		CHECK_RES(res);
 
@@ -2681,7 +2586,9 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 		addrlen = mh.msg_namelen;
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh))))
+		if(unlikely(ppm_copy_from_user(&compat_mh,
+		                               (const void __user *)compat_ptr(val),
+		                               sizeof(compat_mh))))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
@@ -2690,8 +2597,11 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 		compat_iov = (const struct compat_iovec __user *)compat_ptr(compat_mh.msg_iov);
 		iovcnt = compat_mh.msg_iovlen;
 
-		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
-
+		res = compat_parse_readv_writev_bufs(args,
+		                                     compat_iov,
+		                                     iovcnt,
+		                                     args->consumer->snaplen,
+		                                     PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 
 		CHECK_RES(res);
 
@@ -2703,38 +2613,33 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	}
 #endif
 
-	if (usrsockaddr != NULL && addrlen != 0) {
+	if(usrsockaddr != NULL && addrlen != 0) {
 		/*
 		 * Copy the address
 		 */
 		err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-		if (likely(err >= 0)) {
+		if(likely(err >= 0)) {
 			/*
 			 * Convert the fd into socket endpoint information
 			 */
 			size = fd_to_socktuple(fd,
-				(struct sockaddr *)&address,
-				addrlen,
-				true,
-				false,
-				targetbuf,
-				STR_STORAGE_SIZE);
+			                       (struct sockaddr *)&address,
+			                       addrlen,
+			                       true,
+			                       false,
+			                       targetbuf,
+			                       STR_STORAGE_SIZE);
 		}
 	}
 
 	/* Copy the endpoint info into the ring */
-	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
-			    size,
-			    false,
-			    0);
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_sendmsg_x(struct event_filler_arguments *args)
-{
+int f_sys_sendmsg_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	long retval;
@@ -2763,25 +2668,28 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
-		{
+		if(unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh)))) {
 			res = val_to_ring(args, 0, 0, false, 0);
 			CHECK_RES(res);
 			return add_sentinel(args);
 		}
 
-
 		iov = (const struct iovec __user *)mh.msg_iov;
 		iovcnt = mh.msg_iovlen;
 
-		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+		res = parse_readv_writev_bufs(args,
+		                              iov,
+		                              iovcnt,
+		                              args->consumer->snaplen,
+		                              PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 		CHECK_RES(res);
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh))))
-		{
+		if(unlikely(ppm_copy_from_user(&compat_mh,
+		                               (const void __user *)compat_ptr(val),
+		                               sizeof(compat_mh)))) {
 			res = val_to_ring(args, 0, 0, false, 0);
 			CHECK_RES(res);
 			return add_sentinel(args);
@@ -2790,7 +2698,11 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 		compat_iov = (const struct compat_iovec __user *)compat_ptr(compat_mh.msg_iov);
 		iovcnt = compat_mh.msg_iovlen;
 
-		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+		res = compat_parse_readv_writev_bufs(args,
+		                                     compat_iov,
+		                                     iovcnt,
+		                                     args->consumer->snaplen,
+		                                     PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 		CHECK_RES(res);
 	}
 #endif
@@ -2798,8 +2710,7 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_listen_e(struct event_filler_arguments *args)
-{
+int f_sys_listen_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -2820,8 +2731,7 @@ int f_sys_listen_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_recvmsg_e(struct event_filler_arguments *args)
-{
+int f_sys_recvmsg_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -2835,8 +2745,7 @@ int f_sys_recvmsg_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_recvmsg_x(struct event_filler_arguments *args)
-{
+int f_sys_recvmsg_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int64_t retval;
@@ -2867,8 +2776,7 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	/* If the syscall fails we are not able to collect reliable params
 	 * so we return empty ones.
 	 */
-	if(retval < 0)
-	{
+	if(retval < 0) {
 		/* Parameter 2: size (type: PT_UINT32) */
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
@@ -2894,9 +2802,9 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
+		if(unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
@@ -2908,7 +2816,9 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh))))
+		if(unlikely(ppm_copy_from_user(&compat_mh,
+		                               (const void __user *)compat_ptr(val),
+		                               sizeof(compat_mh))))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
@@ -2926,7 +2836,7 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	/*
 	 * tuple
 	 */
-	if (retval >= 0) {
+	if(retval >= 0) {
 		/*
 		 * Get the fd
 		 */
@@ -2939,44 +2849,37 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		usrsockaddr = (struct sockaddr __user *)mh.msg_name;
 		addrlen = mh.msg_namelen;
 
-		if (usrsockaddr != NULL && addrlen != 0) {
+		if(usrsockaddr != NULL && addrlen != 0) {
 			/*
 			 * Copy the address
 			 */
 			err = addr_to_kernel(usrsockaddr, addrlen, (struct sockaddr *)&address);
-			if (likely(err >= 0)) {
+			if(likely(err >= 0)) {
 				/*
 				 * Convert the fd into socket endpoint information
 				 */
 				size = fd_to_socktuple(fd,
-					(struct sockaddr *)&address,
-					addrlen,
-					true,
-					true,
-					targetbuf,
-					STR_STORAGE_SIZE);
+				                       (struct sockaddr *)&address,
+				                       addrlen,
+				                       true,
+				                       true,
+				                       targetbuf,
+				                       STR_STORAGE_SIZE);
 			}
 		}
 	}
 
 	/* Copy the endpoint info into the ring */
-	res = val_to_ring(args,
-			    (uint64_t)(unsigned long)targetbuf,
-			    size,
-			    false,
-			    0);
+	res = val_to_ring(args, (uint64_t)(unsigned long)targetbuf, size, false, 0);
 	CHECK_RES(res);
 
 	/*
-		msg_control: ancillary data.
+	    msg_control: ancillary data.
 	*/
-	if (mh.msg_control != NULL && mh.msg_controllen > 0)
-	{
+	if(mh.msg_control != NULL && mh.msg_controllen > 0) {
 		res = val_to_ring(args, (uint64_t)mh.msg_control, (uint32_t)mh.msg_controllen, true, 0);
 		CHECK_RES(res);
-	}
-	else
-	{
+	} else {
 		/* pushing empty data */
 		res = push_empty_param(args);
 		CHECK_RES(res);
@@ -2985,8 +2888,7 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_creat_e(struct event_filler_arguments *args)
-{
+int f_sys_creat_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long modes;
 	int res;
@@ -3008,8 +2910,7 @@ int f_sys_creat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_creat_x(struct event_filler_arguments *args)
-{
+int f_sys_creat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long modes;
 	uint32_t dev = 0;
@@ -3056,12 +2957,9 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	/*
 	 * creat_flags
 	 */
-	if (ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		creat_flags |= PPM_FD_UPPER_LAYER_CREAT;
-	}
-	else if (ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		creat_flags |= PPM_FD_LOWER_LAYER_CREAT;
 	}
 	res = val_to_ring(args, creat_flags, 0, false, 0);
@@ -3070,8 +2968,7 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pipe_x(struct event_filler_arguments *args)
-{
+int f_sys_pipe_x(struct event_filler_arguments *args) {
 	int res = 0;
 	int64_t retval = 0;
 	unsigned long val = 0;
@@ -3087,17 +2984,17 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)val, sizeof(pipefd))))
-		{
+		if(unlikely(ppm_copy_from_user(pipefd, (const void __user *)val, sizeof(pipefd)))) {
 			pipefd[0] = -1;
 			pipefd[1] = -1;
 		}
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)compat_ptr(val), sizeof(pipefd))))
-		{
+		if(unlikely(ppm_copy_from_user(pipefd,
+		                               (const void __user *)compat_ptr(val),
+		                               sizeof(pipefd)))) {
 			pipefd[0] = -1;
 			pipefd[1] = -1;
 		}
@@ -3113,8 +3010,7 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* On success, pipe returns `0` */
-	if(retval == 0)
-	{
+	if(retval == 0) {
 		get_ino_from_fd(pipefd[0], &ino);
 	}
 
@@ -3125,8 +3021,7 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pipe2_x(struct event_filler_arguments *args)
-{
+int f_sys_pipe2_x(struct event_filler_arguments *args) {
 	int res = 0;
 	int64_t retval = 0;
 	unsigned long val = 0;
@@ -3142,17 +3037,17 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)val, sizeof(pipefd))))
-		{
+		if(unlikely(ppm_copy_from_user(pipefd, (const void __user *)val, sizeof(pipefd)))) {
 			pipefd[0] = -1;
 			pipefd[1] = -1;
 		}
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)compat_ptr(val), sizeof(pipefd))))
-		{
+		if(unlikely(ppm_copy_from_user(pipefd,
+		                               (const void __user *)compat_ptr(val),
+		                               sizeof(pipefd)))) {
 			pipefd[0] = -1;
 			pipefd[1] = -1;
 		}
@@ -3168,8 +3063,7 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* On success, pipe returns `0` */
-	if(retval == 0)
-	{
+	if(retval == 0) {
 		get_ino_from_fd(pipefd[0], &ino);
 	}
 
@@ -3185,8 +3079,7 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_eventfd_e(struct event_filler_arguments *args)
-{
+int f_sys_eventfd_e(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 
@@ -3205,8 +3098,7 @@ int f_sys_eventfd_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_eventfd2_e(struct event_filler_arguments *args)
-{
+int f_sys_eventfd2_e(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 
@@ -3218,8 +3110,7 @@ int f_sys_eventfd2_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_eventfd2_x(struct event_filler_arguments *args)
-{
+int f_sys_eventfd2_x(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 	long retval = 0;
@@ -3237,8 +3128,7 @@ int f_sys_eventfd2_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_shutdown_e(struct event_filler_arguments *args)
-{
+int f_sys_shutdown_e(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 	int32_t fd = 0;
@@ -3259,8 +3149,7 @@ int f_sys_shutdown_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_futex_e(struct event_filler_arguments *args)
-{
+int f_sys_futex_e(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 
@@ -3288,8 +3177,7 @@ int f_sys_futex_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_lseek_e(struct event_filler_arguments *args)
-{
+int f_sys_lseek_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int32_t fd;
 	int res;
@@ -3319,8 +3207,7 @@ int f_sys_lseek_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_llseek_e(struct event_filler_arguments *args)
-{
+int f_sys_llseek_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	unsigned long oh;
@@ -3356,8 +3243,7 @@ int f_sys_llseek_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
-{
+static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event) {
 	struct pollfd *fds;
 	char *targetbuf;
 	unsigned long val;
@@ -3377,7 +3263,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	 * Check if we have enough space to store both the fd list
 	 * from user space and the temporary buffer to serialize to the ring
 	 */
-	if (unlikely(sizeof(struct pollfd) * nfds + 2 + 10 * nfds > STR_STORAGE_SIZE))
+	if(unlikely(sizeof(struct pollfd) * nfds + 2 + 10 * nfds > STR_STORAGE_SIZE))
 		return PPM_FAILURE_BUFFER_FULL;
 
 	/* Get the fds pointer */
@@ -3390,13 +3276,16 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	 * in this case `0`.
 	 */
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, nfds * sizeof(struct pollfd))))
+		if(unlikely(
+		           ppm_copy_from_user(fds, (const void __user *)val, nfds * sizeof(struct pollfd))))
 			nfds = 0;
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(fds, (const void __user *)compat_ptr(val), nfds * sizeof(struct pollfd))))
+		if(unlikely(ppm_copy_from_user(fds,
+		                               (const void __user *)compat_ptr(val),
+		                               nfds * sizeof(struct pollfd))))
 			nfds = 0;
 	}
 #endif
@@ -3405,8 +3294,8 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	targetbuf = args->str_storage + nfds * sizeof(struct pollfd);
 
 	/* Copy each fd into the temporary buffer */
-	for (j = 0; j < nfds; j++) {
-		if (enter_event) {
+	for(j = 0; j < nfds; j++) {
+		if(enter_event) {
 			flags = poll_events_to_scap(fds[j].events);
 		} else {
 			flags = poll_events_to_scap(fds[j].revents);
@@ -3422,8 +3311,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	return val_to_ring(args, (uint64_t)(unsigned long)targetbuf, pos, false, 0);
 }
 
-int f_sys_poll_e(struct event_filler_arguments *args)
-{
+int f_sys_poll_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -3440,14 +3328,13 @@ int f_sys_poll_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static int timespec_parse(struct event_filler_arguments *args, unsigned long val)
-{
+static int timespec_parse(struct event_filler_arguments *args, unsigned long val) {
 	uint64_t longtime = 0;
 	int cfulen = 0;
 	char *targetbuf = args->str_storage;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
-	struct __kernel_timespec* tts = (struct __kernel_timespec *)targetbuf;
+	struct __kernel_timespec *tts = (struct __kernel_timespec *)targetbuf;
 #else
 	struct timespec *tts = (struct timespec *)targetbuf;
 #endif
@@ -3461,18 +3348,18 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 	 * We copy the timespec structure and then convert it to a 64bit relative time
 	 */
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
 		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(*tts));
-		if(likely(cfulen == 0))
-		{
+		if(likely(cfulen == 0)) {
 			longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
 		}
 #ifdef CONFIG_COMPAT
 	} else {
-		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct compat_timespec));
-		if(likely(cfulen == 0))
-		{
+		cfulen = (int)ppm_copy_from_user(targetbuf,
+		                                 (void __user *)compat_ptr(val),
+		                                 sizeof(struct compat_timespec));
+		if(likely(cfulen == 0)) {
 			longtime = ((uint64_t)compat_tts->tv_sec) * 1000000000 + compat_tts->tv_nsec;
 		}
 	}
@@ -3481,8 +3368,7 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 	return val_to_ring(args, longtime, 0, false, 0);
 }
 
-int f_sys_ppoll_e(struct event_filler_arguments *args)
-{
+int f_sys_ppoll_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 
@@ -3497,8 +3383,7 @@ int f_sys_ppoll_e(struct event_filler_arguments *args)
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */
 	syscall_get_arguments_deprecated(args, 3, 1, &val);
-	if (val == (unsigned long)NULL || ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
-	{
+	if(val == (unsigned long)NULL || ppm_copy_from_user(&val, (void __user *)val, sizeof(val))) {
 		val = 0;
 	}
 	res = val_to_ring(args, (uint32_t)val, 0, false, 0);
@@ -3508,8 +3393,7 @@ int f_sys_ppoll_e(struct event_filler_arguments *args)
 }
 
 /* This is the same for poll() and ppoll() */
-int f_sys_poll_x(struct event_filler_arguments *args)
-{
+int f_sys_poll_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
 
@@ -3526,8 +3410,7 @@ int f_sys_poll_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mount_e(struct event_filler_arguments *args)
-{
+int f_sys_mount_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -3536,7 +3419,7 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
 	 */
 	syscall_get_arguments_deprecated(args, 3, 1, &val);
-	if ((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
+	if((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
 		val &= ~PPM_MS_MGC_MSK;
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
@@ -3544,8 +3427,7 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_openat_e(struct event_filler_arguments *args)
-{
+int f_sys_openat_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long flags;
 	unsigned long modes;
@@ -3557,7 +3439,7 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -3571,7 +3453,8 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	CHECK_RES(res);
 	/*
 	 * Flags
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
@@ -3587,8 +3470,7 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_openat_x(struct event_filler_arguments *args)
-{
+int f_sys_openat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long flags;
 	unsigned long scap_flags;
@@ -3610,7 +3492,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -3626,18 +3508,16 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	get_dev_ino_overlay_from_fd(retval, &dev, &ino, &ol);
 	/*
 	 * Flags
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &flags);
 	scap_flags = open_flags_to_scap(flags);
 	/* update scap flags if file is created */
 	get_fd_fmode_created(retval, &scap_flags);
-	if (ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		scap_flags |= PPM_FD_UPPER_LAYER;
-	}
-	else if (ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		scap_flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = val_to_ring(args, scap_flags, 0, false, 0);
@@ -3663,8 +3543,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_unlinkat_x(struct event_filler_arguments *args)
-{
+int f_sys_unlinkat_x(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	long retval = 0;
@@ -3678,8 +3557,7 @@ int f_sys_unlinkat_x(struct event_filler_arguments *args)
 	/* Parameter 2: dirfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	dirfd = (int32_t)val;
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	res = val_to_ring(args, (int64_t)dirfd, 0, false, 0);
@@ -3692,14 +3570,13 @@ int f_sys_unlinkat_x(struct event_filler_arguments *args)
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, unlinkat_flags_to_scap((int32_t) val), 0, false, 0);
+	res = val_to_ring(args, unlinkat_flags_to_scap((int32_t)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_linkat_x(struct event_filler_arguments *args)
-{
+int f_sys_linkat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long flags;
 	int res;
@@ -3714,7 +3591,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 
-	if ((int)val == AT_FDCWD)
+	if((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -3732,7 +3609,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 
-	if ((int)val == AT_FDCWD)
+	if((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, val, 0, false, 0);
@@ -3747,17 +3624,17 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 
 	/*
 	 * Flags
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	syscall_get_arguments_deprecated(args, 4, 1, &flags);
-	res = val_to_ring(args, linkat_flags_to_scap((int32_t) flags), 0, false, 0);
+	res = val_to_ring(args, linkat_flags_to_scap((int32_t)flags), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_pread64_e(struct event_filler_arguments *args)
-{
+int f_sys_pread64_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long size;
 	int res;
@@ -3783,21 +3660,21 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	 * pos
 	 */
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-{
-	unsigned long pos0;
-	unsigned long pos1;
+	{
+		unsigned long pos0;
+		unsigned long pos1;
 #if defined CONFIG_X86
-	syscall_get_arguments_deprecated(args, 3, 1, &pos0);
-	syscall_get_arguments_deprecated(args, 4, 1, &pos1);
+		syscall_get_arguments_deprecated(args, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(args, 4, 1, &pos1);
 #elif defined CONFIG_ARM && CONFIG_AEABI
-	syscall_get_arguments_deprecated(args, 4, 1, &pos0);
-	syscall_get_arguments_deprecated(args, 5, 1, &pos1);
+		syscall_get_arguments_deprecated(args, 4, 1, &pos0);
+		syscall_get_arguments_deprecated(args, 5, 1, &pos1);
 #else
- #error This architecture/abi not yet supported
+#error This architecture/abi not yet supported
 #endif
 
-	pos64 = merge_64(pos1, pos0);
-}
+		pos64 = merge_64(pos1, pos0);
+	}
 #else
 	syscall_get_arguments_deprecated(args, 3, 1, &pos64);
 #endif
@@ -3808,8 +3685,7 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pwrite64_e(struct event_filler_arguments *args)
-{
+int f_sys_pwrite64_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	unsigned long size;
 	int res;
@@ -3843,7 +3719,7 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 		syscall_get_arguments_deprecated(args, 4, 1, &pos0);
 		syscall_get_arguments_deprecated(args, 5, 1, &pos1);
 #else
-  		#error This architecture/abi not yet supported
+#error This architecture/abi not yet supported
 #endif
 		pos64 = merge_64(pos1, pos0);
 	}
@@ -3857,8 +3733,7 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_preadv_e(struct event_filler_arguments *args)
-{
+int f_sys_preadv_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int32_t fd;
@@ -3880,11 +3755,11 @@ int f_sys_preadv_e(struct event_filler_arguments *args)
 		unsigned long pos0;
 		unsigned long pos1;
 		/*
-		* Note that in preadv and pwritev have NO 64-bit arguments in the
-		* syscall (despite having one in the userspace API), so no alignment
-		* requirements apply here. For an overly-detailed discussion about
-		* this, see https://lwn.net/Articles/311630/
-		*/
+		 * Note that in preadv and pwritev have NO 64-bit arguments in the
+		 * syscall (despite having one in the userspace API), so no alignment
+		 * requirements apply here. For an overly-detailed discussion about
+		 * this, see https://lwn.net/Articles/311630/
+		 */
 		syscall_get_arguments_deprecated(args, 3, 1, &pos0);
 		syscall_get_arguments_deprecated(args, 4, 1, &pos1);
 
@@ -3900,8 +3775,7 @@ int f_sys_preadv_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_readv_e(struct event_filler_arguments *args)
-{
+int f_sys_readv_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int32_t fd;
 	int res;
@@ -3917,8 +3791,7 @@ int f_sys_readv_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_readv_preadv_x(struct event_filler_arguments *args)
-{
+int f_sys_readv_preadv_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int64_t retval;
 	int res;
@@ -3931,26 +3804,28 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	if(retval > 0)
-	{
+	if(retval > 0) {
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
-	#ifdef CONFIG_COMPAT
-		if (unlikely(args->compat)) {
-			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+#ifdef CONFIG_COMPAT
+		if(unlikely(args->compat)) {
+			const struct compat_iovec __user *compat_iov =
+			        (const struct compat_iovec __user *)compat_ptr(val);
+			res = compat_parse_readv_writev_bufs(args,
+			                                     compat_iov,
+			                                     iovcnt,
+			                                     retval,
+			                                     PRB_FLAG_PUSH_ALL);
 		} else
-	#endif
+#endif
 		{
 			const struct iovec __user *iov = (const struct iovec __user *)val;
 			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
 		}
 
 		CHECK_RES(res);
-	}
-	else
-	{
+	} else {
 		/* pushing a zero size */
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
@@ -3963,8 +3838,7 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_writev_e(struct event_filler_arguments *args)
-{
+int f_sys_writev_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int32_t fd = 0;
@@ -3984,24 +3858,29 @@ int f_sys_writev_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 #ifdef CONFIG_COMPAT
-	if (unlikely(args->compat)) {
-		const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt,
-											args->consumer->snaplen,
-											PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	if(unlikely(args->compat)) {
+		const struct compat_iovec __user *compat_iov =
+		        (const struct compat_iovec __user *)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args,
+		                                     compat_iov,
+		                                     iovcnt,
+		                                     args->consumer->snaplen,
+		                                     PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	} else
 #endif
 	{
 		const struct iovec __user *iov = (const struct iovec __user *)val;
-		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen,
-									  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+		res = parse_readv_writev_bufs(args,
+		                              iov,
+		                              iovcnt,
+		                              args->consumer->snaplen,
+		                              PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	}
 
 	/* if there was an error we send a size equal to `0`.
 	 * we can improve this in the future but at least we don't lose the whole event.
 	 */
-	if(res == PPM_FAILURE_INVALID_USER_MEMORY)
-	{
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
 		res = val_to_ring(args, 0, 0, true, 0);
 	}
 
@@ -4010,8 +3889,7 @@ int f_sys_writev_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
-{
+int f_sys_writev_pwritev_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -4029,27 +3907,34 @@ int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
-
 	/*
 	 * Copy the buffer
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 #ifdef CONFIG_COMPAT
-	if (unlikely(args->compat)) {
-		const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+	if(unlikely(args->compat)) {
+		const struct compat_iovec __user *compat_iov =
+		        (const struct compat_iovec __user *)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args,
+		                                     compat_iov,
+		                                     iovcnt,
+		                                     args->consumer->snaplen,
+		                                     PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	} else
 #endif
 	{
 		const struct iovec __user *iov = (const struct iovec __user *)val;
-		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+		res = parse_readv_writev_bufs(args,
+		                              iov,
+		                              iovcnt,
+		                              args->consumer->snaplen,
+		                              PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	}
 
 	/* if there was an error we send an empty param.
 	 * we can improve this in the future but at least we don't lose the whole event.
 	 */
-	if(res == PPM_FAILURE_INVALID_USER_MEMORY)
-	{
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
 		res = push_empty_param(args);
 	}
 
@@ -4058,8 +3943,7 @@ int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pwritev_e(struct event_filler_arguments *args)
-{
+int f_sys_pwritev_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	unsigned long pos64;
@@ -4084,25 +3968,29 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 #ifdef CONFIG_COMPAT
-	if (unlikely(args->compat))
-	{
-		const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt,
-									args->consumer->snaplen,
-									PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+	if(unlikely(args->compat)) {
+		const struct compat_iovec __user *compat_iov =
+		        (const struct compat_iovec __user *)compat_ptr(val);
+		res = compat_parse_readv_writev_bufs(args,
+		                                     compat_iov,
+		                                     iovcnt,
+		                                     args->consumer->snaplen,
+		                                     PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	} else
 #endif
 	{
 		const struct iovec __user *iov = (const struct iovec __user *)val;
-		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen,
-									  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
+		res = parse_readv_writev_bufs(args,
+		                              iov,
+		                              iovcnt,
+		                              args->consumer->snaplen,
+		                              PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	}
 
 	/* if there was an error we send a size equal to 0.
 	 * we can improve this in the future but at least we don't lose the whole event.
 	 */
-	if(res == PPM_FAILURE_INVALID_USER_MEMORY)
-	{
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY) {
 		res = val_to_ring(args, 0, 0, true, 0);
 	}
 
@@ -4114,11 +4002,11 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 		unsigned long pos0 = 0;
 		unsigned long pos1 = 0;
 		/*
-		* Note that in preadv and pwritev have NO 64-bit arguments in the
-		* syscall (despite having one in the userspace API), so no alignment
-		* requirements apply here. For an overly-detailed discussion about
-		* this, see https://lwn.net/Articles/311630/
-		*/
+		 * Note that in preadv and pwritev have NO 64-bit arguments in the
+		 * syscall (despite having one in the userspace API), so no alignment
+		 * requirements apply here. For an overly-detailed discussion about
+		 * this, see https://lwn.net/Articles/311630/
+		 */
 		syscall_get_arguments_deprecated(args, 3, 1, &pos0);
 		syscall_get_arguments_deprecated(args, 4, 1, &pos1);
 
@@ -4134,8 +4022,7 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_nanosleep_e(struct event_filler_arguments *args)
-{
+int f_sys_nanosleep_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -4146,8 +4033,7 @@ int f_sys_nanosleep_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
-{
+int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args) {
 	uint8_t ppm_resource;
 	unsigned long val;
 	int res;
@@ -4184,43 +4070,33 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	/*
 	 * Copy the user structure and extract cur and max
 	 */
-	if(retval == 0)
-	{
+	if(retval == 0) {
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
-		if(!args->compat)
-		{
+		if(!args->compat) {
 #endif
-			if(unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit))))
-			{
+			if(unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
 				cur = 0;
 				max = 0;
-			}
-			else
-			{
+			} else {
 				cur = rl.rlim_cur;
 				max = rl.rlim_max;
 			}
 #ifdef CONFIG_COMPAT
-		}
-		else
-		{
-			if(unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)compat_ptr(val), sizeof(struct compat_rlimit))))
-			{
+		} else {
+			if(unlikely(ppm_copy_from_user(&compat_rl,
+			                               (const void __user *)compat_ptr(val),
+			                               sizeof(struct compat_rlimit)))) {
 				cur = 0;
 				max = 0;
-			}
-			else
-			{
+			} else {
 				cur = compat_rl.rlim_cur;
 				max = compat_rl.rlim_max;
 			}
 		}
 #endif
-	}
-	else
-	{
+	} else {
 		cur = -1;
 		max = -1;
 	}
@@ -4236,8 +4112,7 @@ int f_sys_getrlimit_x(struct event_filler_arguments *args) {
 	return add_sentinel(args);
 }
 
-int f_sys_setrlimit_x(struct event_filler_arguments *args)
-{
+int f_sys_setrlimit_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -4259,14 +4134,16 @@ int f_sys_setrlimit_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
 		ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));
 		cur = rl.rlim_cur;
 		max = rl.rlim_max;
 #ifdef CONFIG_COMPAT
 	} else {
-		ppm_copy_from_user(&compat_rl, (const void __user *)compat_ptr(val), sizeof(struct compat_rlimit));
+		ppm_copy_from_user(&compat_rl,
+		                   (const void __user *)compat_ptr(val),
+		                   sizeof(struct compat_rlimit));
 		cur = compat_rl.rlim_cur;
 		max = compat_rl.rlim_max;
 	}
@@ -4288,8 +4165,7 @@ int f_sys_setrlimit_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_prlimit_e(struct event_filler_arguments *args)
-{
+int f_sys_prlimit_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	pid_t pid = 0;
@@ -4308,8 +4184,7 @@ int f_sys_prlimit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_prlimit_x(struct event_filler_arguments *args)
-{
+int f_sys_prlimit_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -4333,7 +4208,7 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
 		ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit));
 		newcur = rl.rlim_cur;
@@ -4354,42 +4229,33 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, newmax, 0, false, 0);
 	CHECK_RES(res);
 
-	if(retval == 0)
-	{
+	if(retval == 0) {
 		syscall_get_arguments_deprecated(args, 3, 1, &val);
 
 #ifdef CONFIG_COMPAT
-		if (!args->compat) {
+		if(!args->compat) {
 #endif
-			if (unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit))))
-			{
+			if(unlikely(ppm_copy_from_user(&rl, (const void __user *)val, sizeof(struct rlimit)))) {
 				oldcur = 0;
 				oldmax = 0;
-			}
-			else
-			{
+			} else {
 				oldcur = rl.rlim_cur;
 				oldmax = rl.rlim_max;
 			}
 #ifdef CONFIG_COMPAT
-		}
-		else
-		{
-			if (unlikely(ppm_copy_from_user(&compat_rl, (const void __user *)val, sizeof(struct compat_rlimit))))
-			{
+		} else {
+			if(unlikely(ppm_copy_from_user(&compat_rl,
+			                               (const void __user *)val,
+			                               sizeof(struct compat_rlimit)))) {
 				oldcur = 0;
 				oldmax = 0;
-			}
-			else
-			{
+			} else {
 				oldcur = compat_rl.rlim_cur;
 				oldmax = compat_rl.rlim_max;
 			}
 		}
 #endif
-	}
-	else
-	{
+	} else {
 		oldcur = -1;
 		oldmax = -1;
 	}
@@ -4418,15 +4284,14 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
 
-int f_sched_switch_e(struct event_filler_arguments *args)
-{
+int f_sched_switch_e(struct event_filler_arguments *args) {
 	int res;
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
 	struct mm_struct *mm = NULL;
 
-	if (args->sched_prev == NULL || args->sched_next == NULL) {
+	if(args->sched_prev == NULL || args->sched_next == NULL) {
 		ASSERT(false);
 		return -1;
 	}
@@ -4450,10 +4315,10 @@ int f_sched_switch_e(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	mm = args->sched_prev->mm;
-	if (mm) {
-		total_vm = mm->total_vm << (PAGE_SHIFT-10);
-		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
-		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+	if(mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT - 10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
 	/*
@@ -4487,8 +4352,7 @@ int f_sched_switch_e(struct event_filler_arguments *args)
 }
 #endif /* CAPTURE_CONTEXT_SWITCHES */
 
-int f_sched_drop(struct event_filler_arguments *args)
-{
+int f_sched_drop(struct event_filler_arguments *args) {
 	int res;
 
 	/*
@@ -4500,8 +4364,7 @@ int f_sched_drop(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fcntl_e(struct event_filler_arguments *args)
-{
+int f_sys_fcntl_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -4520,8 +4383,7 @@ int f_sys_fcntl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fcntl_x(struct event_filler_arguments *args)
-{
+int f_sys_fcntl_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	unsigned long val = 0;
 	int res = 0;
@@ -4546,14 +4408,13 @@ int f_sys_fcntl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline int parse_ptrace_addr(struct event_filler_arguments *args, uint16_t request)
-{
+static inline int parse_ptrace_addr(struct event_filler_arguments *args, uint16_t request) {
 	unsigned long val;
 	uint64_t dst;
 	uint8_t idx;
 
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	switch (request) {
+	switch(request) {
 	default:
 		idx = PPM_PTRACE_IDX_UINT64;
 		dst = (uint64_t)val;
@@ -4562,29 +4423,30 @@ static inline int parse_ptrace_addr(struct event_filler_arguments *args, uint16_
 	return val_to_ring(args, dst, 0, false, idx);
 }
 
-static inline int parse_ptrace_data(struct event_filler_arguments *args, uint16_t request)
-{
+static inline int parse_ptrace_data(struct event_filler_arguments *args, uint16_t request) {
 	unsigned long val;
 	unsigned long len;
 	uint64_t dst;
 	uint8_t idx;
 
 	syscall_get_arguments_deprecated(args, 3, 1, &val);
-	switch (request) {
+	switch(request) {
 	case PPM_PTRACE_PEEKTEXT:
 	case PPM_PTRACE_PEEKDATA:
 	case PPM_PTRACE_PEEKUSR:
 		idx = PPM_PTRACE_IDX_UINT64;
 #ifdef CONFIG_COMPAT
-		if (!args->compat) {
+		if(!args->compat) {
 #endif
 			len = ppm_copy_from_user(&dst, (const void __user *)val, sizeof(long));
 #ifdef CONFIG_COMPAT
 		} else {
-			len = ppm_copy_from_user(&dst, (const void __user *)compat_ptr(val), sizeof(compat_long_t));
+			len = ppm_copy_from_user(&dst,
+			                         (const void __user *)compat_ptr(val),
+			                         sizeof(compat_long_t));
 		}
 #endif
-		if (unlikely(len != 0))
+		if(unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		break;
@@ -4609,8 +4471,7 @@ static inline int parse_ptrace_data(struct event_filler_arguments *args, uint16_
 	return val_to_ring(args, dst, 0, false, idx);
 }
 
-int f_sys_ptrace_e(struct event_filler_arguments *args)
-{
+int f_sys_ptrace_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	pid_t pid = 0;
@@ -4629,8 +4490,7 @@ int f_sys_ptrace_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_ptrace_x(struct event_filler_arguments *args)
-{
+int f_sys_ptrace_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int64_t retval;
 	uint16_t request;
@@ -4643,7 +4503,7 @@ int f_sys_ptrace_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	if (retval < 0) {
+	if(retval < 0) {
 		res = val_to_ring(args, 0, 0, false, 0);
 		CHECK_RES(res);
 
@@ -4668,8 +4528,7 @@ int f_sys_ptrace_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
-{
+int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res = 0;
 	struct mm_struct *mm = current->mm;
@@ -4681,10 +4540,10 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	if (mm) {
-		total_vm = mm->total_vm << (PAGE_SHIFT-10);
-		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT-10);
-		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT-10);
+	if(mm) {
+		total_vm = mm->total_vm << (PAGE_SHIFT - 10);
+		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
 	/*
@@ -4708,8 +4567,7 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mmap_e(struct event_filler_arguments *args)
-{
+int f_sys_mmap_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int32_t fd = 0;
 	int res;
@@ -4760,8 +4618,7 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mprotect_e(struct event_filler_arguments *args)
-{
+int f_sys_mprotect_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -4789,8 +4646,7 @@ int f_sys_mprotect_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mprotect_x(struct event_filler_arguments *args)
-{
+int f_sys_mprotect_x(struct event_filler_arguments *args) {
 	int res;
 	int64_t retval;
 
@@ -4801,8 +4657,7 @@ int f_sys_mprotect_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_renameat_x(struct event_filler_arguments *args)
-{
+int f_sys_renameat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int32_t fd;
@@ -4817,7 +4672,7 @@ int f_sys_renameat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -4835,7 +4690,7 @@ int f_sys_renameat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -4851,8 +4706,7 @@ int f_sys_renameat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_renameat2_x(struct event_filler_arguments *args)
-{
+int f_sys_renameat2_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int32_t fd;
@@ -4867,7 +4721,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -4885,7 +4739,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -4897,7 +4751,6 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 3, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
-
 
 	/*
 	 * flags
@@ -4909,8 +4762,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_symlinkat_x(struct event_filler_arguments *args)
-{
+int f_sys_symlinkat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int32_t fd;
@@ -4932,7 +4784,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -4948,8 +4800,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_openat2_e(struct event_filler_arguments *args)
-{
+int f_sys_openat2_e(struct event_filler_arguments *args) {
 	unsigned long resolve;
 	unsigned long flags;
 	unsigned long val;
@@ -4965,7 +4816,7 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -4978,14 +4829,13 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
-
 #ifdef __NR_openat2
 	/*
 	 * how: we get the data structure, and put its fields in the buffer one by one
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = ppm_copy_from_user(&how, (void *)val, sizeof(struct open_how));
-	if (unlikely(res != 0))
+	if(unlikely(res != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	flags = open_flags_to_scap(how.flags);
@@ -4998,21 +4848,24 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 #endif
 	/*
 	 * flags (extracted from open_how structure)
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	res = val_to_ring(args, flags, 0, true, 0);
 	CHECK_RES(res);
 
 	/*
 	 * mode (extracted from open_how structure)
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	res = val_to_ring(args, mode, 0, true, 0);
 	CHECK_RES(res);
 
 	/*
 	 * resolve (extracted from open_how structure)
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	res = val_to_ring(args, resolve, 0, true, 0);
 	CHECK_RES(res);
@@ -5020,8 +4873,7 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_openat2_x(struct event_filler_arguments *args)
-{
+int f_sys_openat2_x(struct event_filler_arguments *args) {
 	unsigned long resolve;
 	unsigned long flags;
 	unsigned long val;
@@ -5045,7 +4897,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -5058,14 +4910,13 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
-
 #ifdef __NR_openat2
 	/*
 	 * how: we get the data structure, and put its fields in the buffer one by one
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = ppm_copy_from_user(&how, (void *)val, sizeof(struct open_how));
-	if (unlikely(res != 0))
+	if(unlikely(res != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	flags = open_flags_to_scap(how.flags);
@@ -5081,16 +4932,14 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 
 	/*
 	 * flags (extracted from open_how structure)
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	/* update flags if file is created */
 	get_fd_fmode_created(retval, &flags);
-	if (ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		flags |= PPM_FD_UPPER_LAYER;
-	}
-	else if (ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = val_to_ring(args, flags, 0, true, 0);
@@ -5098,14 +4947,16 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 
 	/*
 	 * mode (extracted from open_how structure)
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	res = val_to_ring(args, mode, 0, true, 0);
 	CHECK_RES(res);
 
 	/*
 	 * resolve (extracted from open_how structure)
-	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 * Note that we convert them into the ppm portable representation before pushing them to the
+	 * ring
 	 */
 	res = val_to_ring(args, resolve, 0, true, 0);
 	CHECK_RES(res);
@@ -5125,8 +4976,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_copy_file_range_e(struct event_filler_arguments *args)
-{
+int f_sys_copy_file_range_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int32_t fdin = 0;
 	unsigned long offin = 0;
@@ -5140,15 +4990,15 @@ int f_sys_copy_file_range_e(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/*
-	* offin
-	*/
+	 * offin
+	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &offin);
 	res = val_to_ring(args, offin, 0, false, 0);
 	CHECK_RES(res);
 
 	/*
-	* len
-	*/
+	 * len
+	 */
 	syscall_get_arguments_deprecated(args, 4, 1, &len);
 	res = val_to_ring(args, len, 0, false, 0);
 	CHECK_RES(res);
@@ -5156,8 +5006,7 @@ int f_sys_copy_file_range_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_copy_file_range_x(struct event_filler_arguments *args)
-{
+int f_sys_copy_file_range_x(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	unsigned long offout = 0;
 	int64_t retval = 0;
@@ -5183,8 +5032,7 @@ int f_sys_copy_file_range_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
-{
+int f_sys_open_by_handle_at_x(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	unsigned long flags = 0;
 	int res = 0;
@@ -5203,8 +5051,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	/* Parameter 2: mountfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	mountfd = (int32_t)val;
-	if(mountfd == AT_FDCWD)
-	{
+	if(mountfd == AT_FDCWD) {
 		mountfd = PPM_AT_FDCWD;
 	}
 	res = val_to_ring(args, (int64_t)mountfd, 0, false, 0);
@@ -5217,32 +5064,27 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	flags = open_flags_to_scap(val);
 	/* update flags if file is created */
 	get_fd_fmode_created(retval, &flags);
-	if (ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		flags |= PPM_FD_UPPER_LAYER;
-	}
-	else if (ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		flags |= PPM_FD_LOWER_LAYER;
 	}
 	res = val_to_ring(args, flags, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: path (type: PT_FSPATH) */
-	if (retval > 0)
-	{
+	if(retval > 0) {
 		/* String storage size is exactly one page.
 		 * PAGE_SIZE = 4096 byte like PATH_MAX in unix conventions.
 		 */
-		char* buf = (char*)args->str_storage;
+		char *buf = (char *)args->str_storage;
 
 		struct file *file;
 		file = fget(retval);
-		if(likely(file))
-		{
+		if(likely(file)) {
 			/* `pathname` will be a pointer inside the buffer `buf`
-		 	 * where the file path effectively starts.
-		 	 */
+			 * where the file path effectively starts.
+			 */
 			pathname = d_path(&file->f_path, buf, PAGE_SIZE);
 			fput(file);
 		}
@@ -5262,8 +5104,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
-{
+int f_sys_io_uring_setup_x(struct event_filler_arguments *args) {
 	int res = 0;
 	long retval = 0;
 	unsigned long val = 0;
@@ -5282,8 +5123,7 @@ int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
 	struct io_uring_params params = {0};
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	res = ppm_copy_from_user(&params, (void *)val, sizeof(struct io_uring_params));
-	if(unlikely(res != 0))
-	{
+	if(unlikely(res != 0)) {
 		memset(&params, 0, sizeof(params));
 	}
 
@@ -5339,8 +5179,7 @@ int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_io_uring_enter_x(struct event_filler_arguments *args)
-{
+int f_sys_io_uring_enter_x(struct event_filler_arguments *args) {
 	int res = 0;
 	int32_t fd = 0;
 	unsigned long val = 0;
@@ -5382,8 +5221,7 @@ int f_sys_io_uring_enter_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_io_uring_register_x (struct event_filler_arguments *args)
-{
+int f_sys_io_uring_register_x(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 	int32_t fd = 0;
@@ -5401,7 +5239,7 @@ int f_sys_io_uring_register_x (struct event_filler_arguments *args)
 
 	/* Parameter 3: opcode (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, io_uring_register_opcodes_to_scap(val) , 0 , true, 0);
+	res = val_to_ring(args, io_uring_register_opcodes_to_scap(val), 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: arg (type: PT_UINT64) */
@@ -5417,8 +5255,7 @@ int f_sys_io_uring_register_x (struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_inotify_init_e(struct event_filler_arguments *args)
-{
+int f_sys_inotify_init_e(struct event_filler_arguments *args) {
 	/* Parameter 1: flags (type: PT_UINT8) */
 	/* We have nothing to extract from the kernel here so we send `0`.
 	 * This is done to preserve the `PPME_SYSCALL_INOTIFY_INIT_E` event with 1 param.
@@ -5429,8 +5266,7 @@ int f_sys_inotify_init_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_inotify_init1_x(struct event_filler_arguments *args)
-{
+int f_sys_inotify_init1_x(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 
@@ -5447,8 +5283,7 @@ int f_sys_inotify_init1_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mlock_x(struct event_filler_arguments *args)
-{
+int f_sys_mlock_x(struct event_filler_arguments *args) {
 	unsigned long val;
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -5470,8 +5305,7 @@ int f_sys_mlock_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mlock2_x(struct event_filler_arguments *args)
-{
+int f_sys_mlock2_x(struct event_filler_arguments *args) {
 	unsigned long val;
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -5499,8 +5333,7 @@ int f_sys_mlock2_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_munlock_x(struct event_filler_arguments *args)
-{
+int f_sys_munlock_x(struct event_filler_arguments *args) {
 	unsigned long val;
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -5522,8 +5355,7 @@ int f_sys_munlock_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mlockall_x(struct event_filler_arguments *args)
-{
+int f_sys_mlockall_x(struct event_filler_arguments *args) {
 	unsigned long val;
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -5539,8 +5371,7 @@ int f_sys_mlockall_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_munlockall_x(struct event_filler_arguments *args)
-{
+int f_sys_munlockall_x(struct event_filler_arguments *args) {
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
 	int res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
@@ -5548,8 +5379,7 @@ int f_sys_munlockall_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fsconfig_x(struct event_filler_arguments *args)
-{
+int f_sys_fsconfig_x(struct event_filler_arguments *args) {
 	unsigned long res = 0;
 
 	int64_t ret = 0;
@@ -5586,8 +5416,7 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 
 	syscall_get_arguments_deprecated(args, 4, 1, &aux);
 
-	if(ret < 0)
-	{
+	if(ret < 0) {
 		/* If the syscall fails we push empty params to userspace. */
 
 		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
@@ -5597,15 +5426,13 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
 		res = val_to_ring(args, 0, 0, true, 0);
 		CHECK_RES(res);
-	}
-	else
-	{
+	} else {
 		syscall_get_arguments_deprecated(args, 3, 1, &value_pointer);
 
-		/* According to the command we need to understand what value we have to push to userspace. */
+		/* According to the command we need to understand what value we have to push to userspace.
+		 */
 		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
-		switch(scap_cmd)
-		{
+		switch(scap_cmd) {
 		case PPM_FSCONFIG_SET_FLAG:
 		case PPM_FSCONFIG_SET_FD:
 		case PPM_FSCONFIG_CMD_CREATE:
@@ -5671,8 +5498,7 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_signalfd_e(struct event_filler_arguments *args)
-{
+int f_sys_signalfd_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -5698,8 +5524,7 @@ int f_sys_signalfd_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_signalfd4_e(struct event_filler_arguments *args)
-{
+int f_sys_signalfd4_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -5718,8 +5543,7 @@ int f_sys_signalfd4_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_signalfd4_x(struct event_filler_arguments *args)
-{
+int f_sys_signalfd4_x(struct event_filler_arguments *args) {
 	int res = 0;
 	unsigned long val = 0;
 	long retval = 0;
@@ -5737,8 +5561,7 @@ int f_sys_signalfd4_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_epoll_create_e(struct event_filler_arguments *args)
-{
+int f_sys_epoll_create_e(struct event_filler_arguments *args) {
 	unsigned long size;
 	int res;
 
@@ -5752,8 +5575,7 @@ int f_sys_epoll_create_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_epoll_create_x(struct event_filler_arguments *args)
-{
+int f_sys_epoll_create_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
 
@@ -5764,8 +5586,7 @@ int f_sys_epoll_create_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_epoll_create1_e(struct event_filler_arguments *args)
-{
+int f_sys_epoll_create1_e(struct event_filler_arguments *args) {
 	unsigned long flags;
 	int res;
 
@@ -5779,8 +5600,7 @@ int f_sys_epoll_create1_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_epoll_create1_x(struct event_filler_arguments *args)
-{
+int f_sys_epoll_create1_x(struct event_filler_arguments *args) {
 	int64_t retval;
 	int res;
 
@@ -5791,8 +5611,7 @@ int f_sys_epoll_create1_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_dup_e(struct event_filler_arguments *args)
-{
+int f_sys_dup_e(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int32_t fd = 0;
@@ -5801,15 +5620,14 @@ int f_sys_dup_e(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_dup_x(struct event_filler_arguments *args)
-{
+int f_sys_dup_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int32_t fd = 0;
@@ -5822,15 +5640,14 @@ int f_sys_dup_x(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_dup2_e(struct event_filler_arguments *args)
-{
+int f_sys_dup2_e(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int32_t fd = 0;
@@ -5839,15 +5656,14 @@ int f_sys_dup2_e(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_dup2_x(struct event_filler_arguments *args)
-{
+int f_sys_dup2_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int32_t fd = 0;
@@ -5860,7 +5676,7 @@ int f_sys_dup2_x(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5868,15 +5684,14 @@ int f_sys_dup2_x(struct event_filler_arguments *args)
 	 * newfd
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int32_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_dup3_e(struct event_filler_arguments *args)
-{
+int f_sys_dup3_e(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int32_t fd = 0;
@@ -5885,15 +5700,14 @@ int f_sys_dup3_e(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_dup3_x(struct event_filler_arguments *args)
-{
+int f_sys_dup3_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val;
 	int32_t fd = 0;
@@ -5906,7 +5720,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	 * oldfd
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5914,7 +5728,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	 * newfd
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	fd = (int32_t) val;
+	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5922,7 +5736,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	 * flags
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
-	res = val_to_ring(args, dup3_flags_to_scap((int) val), 0, false, 0);
+	res = val_to_ring(args, dup3_flags_to_scap((int)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -5935,16 +5749,15 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
  */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 
-static pid_t find_alive_thread(struct task_struct *father)
-{
+static pid_t find_alive_thread(struct task_struct *father) {
 	struct task_struct *t = father;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
 	while_each_thread(father, t) {
-#else /* Kernel 3.19.0 switched to `for_each_thread` macro */
+#else  /* Kernel 3.19.0 switched to `for_each_thread` macro */
 	for_each_thread(father, t) {
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) */
 		/* We add an extra check here for `t != NULL` just to be sure */
-		if (t != NULL && (!(t->flags & PF_EXITING)))
+		if(t != NULL && (!(t->flags & PF_EXITING)))
 			return t->pid;
 	}
 	return 0;
@@ -5956,8 +5769,7 @@ static pid_t find_alive_thread(struct task_struct *father)
  *    child_subreaper for its children (like a service manager)
  * 3. give it to the init process (PID 1) in our pid namespace
  */
-static pid_t find_new_reaper_pid(struct task_struct *father)
-{
+static pid_t find_new_reaper_pid(struct task_struct *father) {
 	struct task_struct *possible_reaper;
 	/* This is the namespace level of the thread that is dying, we will
 	 * use it to check that the reaper will be always in the same namespace.
@@ -5969,8 +5781,7 @@ static pid_t find_new_reaper_pid(struct task_struct *father)
 	pid_t reaper_pid = find_alive_thread(father);
 
 	/* If `reaper_pid!=0` when we found an alive thread, that's enough */
-	if(reaper_pid != 0)
-	{
+	if(reaper_pid != 0) {
 		return reaper_pid;
 	}
 
@@ -5979,14 +5790,12 @@ static pid_t find_new_reaper_pid(struct task_struct *father)
 	 * The kernel will destroy all the processes in that namespace. We send a reaper equal to
 	 * `0` in userspace.
 	 */
-	if(child_ns_reaper == father)
-	{
+	if(child_ns_reaper == father) {
 		return 0;
 	}
 
 	/* If there are no sub reapers the reaper is the init process of that namespace */
-	if(!father->signal->has_child_subreaper)
-	{
+	if(!father->signal->has_child_subreaper) {
 		return child_ns_reaper->pid;
 	}
 
@@ -5998,26 +5807,21 @@ static pid_t find_new_reaper_pid(struct task_struct *father)
 	 * We check pid->level, this is slightly more efficient than
 	 * task_active_pid_ns(reaper) != task_active_pid_ns(father).
 	 */
-	for(possible_reaper = father->real_parent;
-		task_pid(possible_reaper)->level == father_ns_level;
-		possible_reaper = possible_reaper->real_parent)
-	{
+	for(possible_reaper = father->real_parent; task_pid(possible_reaper)->level == father_ns_level;
+	    possible_reaper = possible_reaper->real_parent) {
 		/* Here we could also check for child_ns_reaper
 		 * but the kernel checks against init_task, so we are fine.
 		 */
-		if(possible_reaper == &init_task)
-		{
+		if(possible_reaper == &init_task) {
 			return child_ns_reaper->pid;
 		}
 
-		if(!possible_reaper->signal->is_child_subreaper)
-		{
+		if(!possible_reaper->signal->is_child_subreaper) {
 			continue;
 		}
 
 		reaper_pid = find_alive_thread(possible_reaper);
-		if(reaper_pid != 0)
-		{
+		if(reaper_pid != 0) {
 			return reaper_pid;
 		}
 	}
@@ -6026,21 +5830,18 @@ static pid_t find_new_reaper_pid(struct task_struct *father)
 }
 #else
 
-static pid_t find_new_reaper_pid(struct task_struct *father)
-{
+static pid_t find_new_reaper_pid(struct task_struct *father) {
 	return -1;
 }
 
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0) */
 
-
-int f_sys_procexit_e(struct event_filler_arguments *args)
-{
+int f_sys_procexit_e(struct event_filler_arguments *args) {
 	int res;
 
 	pid_t reaper_pid = 0;
 
-	if (args->sched_prev == NULL) {
+	if(args->sched_prev == NULL) {
 		ASSERT(false);
 		return -1;
 	}
@@ -6055,8 +5856,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 
 	/* Parameter 3: sig (type: PT_SIGTYPE) */
 	/* If signaled -> signum, else 0 */
-	if (__WIFSIGNALED(args->sched_prev->exit_code))
-	{
+	if(__WIFSIGNALED(args->sched_prev->exit_code)) {
 		res = val_to_ring(args, __WTERMSIG(args->sched_prev->exit_code), 0, false, 0);
 	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -6073,8 +5873,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	 * We send `reaper_pid==0` if the userspace still has some children
 	 * it will manage them with its userspace logic.
 	 */
-	if(!list_empty(&current->children))
-	{
+	if(!list_empty(&current->children)) {
 		/* We have at least one child, so we need a reaper for it */
 		reaper_pid = find_new_reaper_pid(current);
 	}
@@ -6084,8 +5883,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_sendfile_e(struct event_filler_arguments *args)
-{
+int f_sys_sendfile_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	off_t offset = 0;
@@ -6104,13 +5902,12 @@ int f_sys_sendfile_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, (int64_t)in_fd, 0, true, 0);
 	CHECK_RES(res);
 
-
 	/* Parameter 3: offset (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 
-	if (val != 0) {
+	if(val != 0) {
 #ifdef CONFIG_COMPAT
-		if (!args->compat) {
+		if(!args->compat) {
 #endif
 			res = ppm_copy_from_user(&offset, (void *)val, sizeof(off_t));
 #ifdef CONFIG_COMPAT
@@ -6118,7 +5915,7 @@ int f_sys_sendfile_e(struct event_filler_arguments *args)
 			res = ppm_copy_from_user(&offset, (void *)compat_ptr(val), sizeof(compat_off_t));
 		}
 #endif
-		if (unlikely(res))
+		if(unlikely(res))
 			val = 0;
 		else
 			val = offset;
@@ -6135,8 +5932,7 @@ int f_sys_sendfile_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_sendfile_x(struct event_filler_arguments *args)
-{
+int f_sys_sendfile_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -6154,9 +5950,9 @@ int f_sys_sendfile_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 
-	if (val != 0) {
+	if(val != 0) {
 #ifdef CONFIG_COMPAT
-		if (!args->compat) {
+		if(!args->compat) {
 #endif
 			res = ppm_copy_from_user(&offset, (void *)val, sizeof(off_t));
 #ifdef CONFIG_COMPAT
@@ -6164,7 +5960,7 @@ int f_sys_sendfile_x(struct event_filler_arguments *args)
 			res = ppm_copy_from_user(&offset, (void *)compat_ptr(val), sizeof(compat_off_t));
 		}
 #endif
-		if (unlikely(res))
+		if(unlikely(res))
 			val = 0;
 		else
 			val = offset;
@@ -6176,8 +5972,7 @@ int f_sys_sendfile_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_quotactl_e(struct event_filler_arguments *args)
-{
+int f_sys_quotactl_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	uint32_t id = 0;
@@ -6199,24 +5994,18 @@ int f_sys_quotactl_e(struct event_filler_arguments *args)
 	/* Parameter 3: id (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	id = (uint32_t)val;
-	if ((scap_cmd != PPM_Q_GETQUOTA) &&
-		 (scap_cmd != PPM_Q_SETQUOTA) &&
-		 (scap_cmd != PPM_Q_XGETQUOTA) &&
-		 (scap_cmd != PPM_Q_XSETQLIM))
-	{
+	if((scap_cmd != PPM_Q_GETQUOTA) && (scap_cmd != PPM_Q_SETQUOTA) &&
+	   (scap_cmd != PPM_Q_XGETQUOTA) && (scap_cmd != PPM_Q_XSETQLIM)) {
 		/* In this case `id` don't represent a `userid` or a `groupid` */
 		res = val_to_ring(args, 0, 0, false, 0);
-	}
-	else
-	{
+	} else {
 		res = val_to_ring(args, id, 0, false, 0);
 	}
 	CHECK_RES(res);
 
 	/* Parameter 4: quota_fmt (type: PT_FLAGS8) */
 	quota_fmt = PPM_QFMT_NOT_USED;
-	if(scap_cmd == PPM_Q_QUOTAON)
-	{
+	if(scap_cmd == PPM_Q_QUOTAON) {
 		quota_fmt = quotactl_fmt_to_scap(id);
 	}
 	res = val_to_ring(args, quota_fmt, 0, false, 0);
@@ -6225,8 +6014,7 @@ int f_sys_quotactl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_quotactl_x(struct event_filler_arguments *args)
-{
+int f_sys_quotactl_x(struct event_filler_arguments *args) {
 	unsigned long val, len;
 	int res;
 	int64_t retval;
@@ -6263,24 +6051,23 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	/*
 	 * get quotafilepath only for QUOTAON
 	 */
-	if (cmd == PPM_Q_QUOTAON)
+	if(cmd == PPM_Q_QUOTAON)
 		res = val_to_ring(args, val, 0, true, 0);
 	else
 		res = val_to_ring(args, 0, 0, false, 0);
 
 	CHECK_RES(res);
 
-
 	/*
 	 * dqblk fields if present
 	 */
 	dqblk.dqb_valid = 0;
-	if ((cmd == PPM_Q_GETQUOTA) || (cmd == PPM_Q_SETQUOTA)) {
+	if((cmd == PPM_Q_GETQUOTA) || (cmd == PPM_Q_SETQUOTA)) {
 		len = ppm_copy_from_user(&dqblk, (void *)val, sizeof(struct if_dqblk));
-		if (unlikely(len != 0))
+		if(unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
-	if (dqblk.dqb_valid & QIF_BLIMITS) {
+	if(dqblk.dqb_valid & QIF_BLIMITS) {
 		res = val_to_ring(args, dqblk.dqb_bhardlimit, 0, false, 0);
 		CHECK_RES(res);
 		res = val_to_ring(args, dqblk.dqb_bsoftlimit, 0, false, 0);
@@ -6292,7 +6079,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 	}
 
-	if (dqblk.dqb_valid & QIF_SPACE) {
+	if(dqblk.dqb_valid & QIF_SPACE) {
 		res = val_to_ring(args, dqblk.dqb_curspace, 0, false, 0);
 		CHECK_RES(res);
 	} else {
@@ -6300,7 +6087,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 	}
 
-	if (dqblk.dqb_valid & QIF_ILIMITS) {
+	if(dqblk.dqb_valid & QIF_ILIMITS) {
 		res = val_to_ring(args, dqblk.dqb_ihardlimit, 0, false, 0);
 		CHECK_RES(res);
 		res = val_to_ring(args, dqblk.dqb_isoftlimit, 0, false, 0);
@@ -6312,7 +6099,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 	}
 
-	if (dqblk.dqb_valid & QIF_BTIME) {
+	if(dqblk.dqb_valid & QIF_BTIME) {
 		res = val_to_ring(args, dqblk.dqb_btime, 0, false, 0);
 		CHECK_RES(res);
 	} else {
@@ -6320,7 +6107,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 	}
 
-	if (dqblk.dqb_valid & QIF_ITIME) {
+	if(dqblk.dqb_valid & QIF_ITIME) {
 		res = val_to_ring(args, dqblk.dqb_itime, 0, false, 0);
 		CHECK_RES(res);
 	} else {
@@ -6332,13 +6119,13 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	 * dqinfo fields if present
 	 */
 	dqinfo.dqi_valid = 0;
-	if ((cmd == PPM_Q_GETINFO) || (cmd == PPM_Q_SETINFO)) {
+	if((cmd == PPM_Q_GETINFO) || (cmd == PPM_Q_SETINFO)) {
 		len = ppm_copy_from_user(&dqinfo, (void *)val, sizeof(struct if_dqinfo));
-		if (unlikely(len != 0))
+		if(unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
 
-	if (dqinfo.dqi_valid & IIF_BGRACE) {
+	if(dqinfo.dqi_valid & IIF_BGRACE) {
 		res = val_to_ring(args, dqinfo.dqi_bgrace, 0, false, 0);
 		CHECK_RES(res);
 	} else {
@@ -6346,7 +6133,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 	}
 
-	if (dqinfo.dqi_valid & IIF_IGRACE) {
+	if(dqinfo.dqi_valid & IIF_IGRACE) {
 		res = val_to_ring(args, dqinfo.dqi_igrace, 0, false, 0);
 		CHECK_RES(res);
 	} else {
@@ -6354,7 +6141,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 	}
 
-	if (dqinfo.dqi_valid & IIF_FLAGS) {
+	if(dqinfo.dqi_valid & IIF_FLAGS) {
 		res = val_to_ring(args, dqinfo.dqi_flags, 0, false, 0);
 		CHECK_RES(res);
 	} else {
@@ -6363,9 +6150,9 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	}
 
 	quota_fmt_out = PPM_QFMT_NOT_USED;
-	if (cmd == PPM_Q_GETFMT) {
+	if(cmd == PPM_Q_GETFMT) {
 		len = ppm_copy_from_user(&quota_fmt_out, (void *)val, sizeof(uint32_t));
-		if (unlikely(len != 0))
+		if(unlikely(len != 0))
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 		quota_fmt_out = quotactl_fmt_to_scap(quota_fmt_out);
 	}
@@ -6375,8 +6162,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_scapevent_e(struct event_filler_arguments *args)
-{
+int f_sys_scapevent_e(struct event_filler_arguments *args) {
 	int res;
 
 	/*
@@ -6394,8 +6180,7 @@ int f_sys_scapevent_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
-{
+int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args) {
 	int res;
 	unsigned long val, len;
 	uint32_t uid;
@@ -6413,7 +6198,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 #ifdef CONFIG_COMPAT
-	if (!args->compat) {
+	if(!args->compat) {
 #endif
 		len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
 #ifdef CONFIG_COMPAT
@@ -6421,7 +6206,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 		len = ppm_copy_from_user(&uid, (void *)compat_ptr(val), sizeof(uint32_t));
 	}
 #endif
-	if (unlikely(len != 0))
+	if(unlikely(len != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = val_to_ring(args, uid, 0, false, 0);
@@ -6432,7 +6217,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 	len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
-	if (unlikely(len != 0))
+	if(unlikely(len != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = val_to_ring(args, uid, 0, false, 0);
@@ -6443,7 +6228,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
-	if (unlikely(len != 0))
+	if(unlikely(len != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	res = val_to_ring(args, uid, 0, false, 0);
@@ -6452,8 +6237,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_flock_e(struct event_filler_arguments *args)
-{
+int f_sys_flock_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	uint32_t flags = 0;
@@ -6467,15 +6251,14 @@ int f_sys_flock_e(struct event_filler_arguments *args)
 
 	/* Parameter 2: operation (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	flags = flock_flags_to_scap((int) val);
+	flags = flock_flags_to_scap((int)val);
 	res = val_to_ring(args, flags, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_ioctl_e(struct event_filler_arguments *args)
-{
+int f_sys_ioctl_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -6499,8 +6282,7 @@ int f_sys_ioctl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mkdir_e(struct event_filler_arguments *args)
-{
+int f_sys_mkdir_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 
@@ -6512,8 +6294,7 @@ int f_sys_mkdir_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_setns_e(struct event_filler_arguments *args)
-{
+int f_sys_setns_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int32_t fd = 0;
@@ -6526,14 +6307,13 @@ int f_sys_setns_e(struct event_filler_arguments *args)
 
 	/* Parameter 2: nstype (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
-	res = val_to_ring(args, clone_flags_to_scap((int) val), 0, true, 0);
+	res = val_to_ring(args, clone_flags_to_scap((int)val), 0, true, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 
-int f_sys_setpgid_e(struct event_filler_arguments *args)
-{
+int f_sys_setpgid_e(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	pid_t pid = 0;
@@ -6554,8 +6334,7 @@ int f_sys_setpgid_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_unshare_e(struct event_filler_arguments *args)
-{
+int f_sys_unshare_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	uint32_t flags;
@@ -6564,7 +6343,7 @@ int f_sys_unshare_e(struct event_filler_arguments *args)
 	 * get type, parse as clone flags as it's a subset of it
 	 */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
-	flags = clone_flags_to_scap((int) val);
+	flags = clone_flags_to_scap((int)val);
 	res = val_to_ring(args, flags, 0, true, 0);
 	CHECK_RES(res);
 
@@ -6572,8 +6351,7 @@ int f_sys_unshare_e(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-int f_sys_signaldeliver_e(struct event_filler_arguments *args)
-{
+int f_sys_signaldeliver_e(struct event_filler_arguments *args) {
 	int res;
 
 	/*
@@ -6599,8 +6377,7 @@ int f_sys_signaldeliver_e(struct event_filler_arguments *args)
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-int f_sys_pagefault_e(struct event_filler_arguments *args)
-{
+int f_sys_pagefault_e(struct event_filler_arguments *args) {
 	int res;
 
 	res = val_to_ring(args, args->fault_data.address, 0, false, 0);
@@ -6616,8 +6393,7 @@ int f_sys_pagefault_e(struct event_filler_arguments *args)
 }
 #endif
 
-int f_cpu_hotplug_e(struct event_filler_arguments *args)
-{
+int f_cpu_hotplug_e(struct event_filler_arguments *args) {
 	int res;
 
 	/*
@@ -6635,9 +6411,8 @@ int f_cpu_hotplug_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_semop_x(struct event_filler_arguments *args)
-{
-	unsigned long nsops = 0 ;
+int f_sys_semop_x(struct event_filler_arguments *args) {
+	unsigned long nsops = 0;
 	int res = 0;
 	long retval = 0;
 	struct sembuf *sops_pointer = NULL;
@@ -6654,29 +6429,22 @@ int f_sys_semop_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Extract pointer to the `sembuf` struct */
-	syscall_get_arguments_deprecated(args, 1, 1, (unsigned long *) &sops_pointer);
+	syscall_get_arguments_deprecated(args, 1, 1, (unsigned long *)&sops_pointer);
 
-	if(retval != 0 || sops_pointer == 0 || nsops == 0)
-	{
+	if(retval != 0 || sops_pointer == 0 || nsops == 0) {
 		/* We send all 0 when one of these is true:
 		 * - the syscall fails (retval != 0)
 		 * - `sops_pointer` is NULL
 		 * - `nsops` is 0
 		 */
-	}
-	else if(nsops == 1)
-	{
+	} else if(nsops == 1) {
 		/* If we have just one entry the second will be empty, we don't fill it */
-		if(unlikely(ppm_copy_from_user(sops, (void *)sops_pointer, sizeof(struct sembuf))))
-		{
+		if(unlikely(ppm_copy_from_user(sops, (void *)sops_pointer, sizeof(struct sembuf)))) {
 			memset(&sops, 0, sizeof(sops));
 		}
-	}
-	else
-	{
+	} else {
 		/* If `nsops>1` we read just the first 2 entries. */
-		if(unlikely(ppm_copy_from_user(sops, (void *)sops_pointer, 2 * sizeof(struct sembuf))))
-		{
+		if(unlikely(ppm_copy_from_user(sops, (void *)sops_pointer, 2 * sizeof(struct sembuf)))) {
 			memset(&sops, 0, sizeof(sops));
 		}
 	}
@@ -6708,8 +6476,7 @@ int f_sys_semop_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_semget_e(struct event_filler_arguments *args)
-{
+int f_sys_semget_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -6737,8 +6504,7 @@ int f_sys_semget_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_semctl_e(struct event_filler_arguments *args)
-{
+int f_sys_semctl_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -6766,7 +6532,7 @@ int f_sys_semctl_e(struct event_filler_arguments *args)
 	/*
 	 * optional argument semun/val
 	 */
-	if (val == SETVAL)
+	if(val == SETVAL)
 		syscall_get_arguments_deprecated(args, 3, 1, &val);
 	else
 		val = 0;
@@ -6776,8 +6542,7 @@ int f_sys_semctl_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_access_e(struct event_filler_arguments *args)
-{
+int f_sys_access_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -6791,8 +6556,7 @@ int f_sys_access_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fchdir_e(struct event_filler_arguments *args)
-{
+int f_sys_fchdir_e(struct event_filler_arguments *args) {
 	int res = 0;
 	int32_t fd = 0;
 	unsigned long val = 0;
@@ -6805,8 +6569,7 @@ int f_sys_fchdir_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fchdir_x(struct event_filler_arguments *args)
-{
+int f_sys_fchdir_x(struct event_filler_arguments *args) {
 	int64_t res = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO)*/
@@ -6816,8 +6579,7 @@ int f_sys_fchdir_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_close_e(struct event_filler_arguments *args)
-{
+int f_sys_close_e(struct event_filler_arguments *args) {
 	int res = 0;
 	int32_t fd = 0;
 	unsigned long val = 0;
@@ -6830,8 +6592,7 @@ int f_sys_close_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_close_x(struct event_filler_arguments *args)
-{
+int f_sys_close_x(struct event_filler_arguments *args) {
 	int64_t res = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO)*/
@@ -6841,8 +6602,7 @@ int f_sys_close_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_bpf_e(struct event_filler_arguments *args)
-{
+int f_sys_bpf_e(struct event_filler_arguments *args) {
 	int res = 0;
 	int32_t cmd = 0;
 	unsigned long val = 0;
@@ -6855,8 +6615,7 @@ int f_sys_bpf_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_bpf_x(struct event_filler_arguments *args)
-{
+int f_sys_bpf_x(struct event_filler_arguments *args) {
 	int res = 0;
 	int64_t fd = 0;
 	unsigned long val = 0;
@@ -6875,8 +6634,7 @@ int f_sys_bpf_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mkdirat_x(struct event_filler_arguments *args)
-{
+int f_sys_mkdirat_x(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int64_t retval = 0;
@@ -6890,8 +6648,7 @@ int f_sys_mkdirat_x(struct event_filler_arguments *args)
 	/* Parameter 2: dirfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	dirfd = (int32_t)val;
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	res = val_to_ring(args, (int64_t)dirfd, 0, false, 0);
@@ -6910,8 +6667,7 @@ int f_sys_mkdirat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fchmodat_x(struct event_filler_arguments *args)
-{
+int f_sys_fchmodat_x(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int64_t retval = 0;
@@ -6925,8 +6681,7 @@ int f_sys_fchmodat_x(struct event_filler_arguments *args)
 	/* Parameter 2: dirfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	dirfd = (int32_t)val;
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	res = val_to_ring(args, (int64_t)dirfd, 0, false, 0);
@@ -6945,8 +6700,7 @@ int f_sys_fchmodat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_chmod_x(struct event_filler_arguments *args)
-{
+int f_sys_chmod_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -6972,8 +6726,7 @@ int f_sys_chmod_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fchmod_x(struct event_filler_arguments *args)
-{
+int f_sys_fchmod_x(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
 	int64_t retval = 0;
@@ -6998,8 +6751,7 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_chown_x(struct event_filler_arguments *args)
-{
+int f_sys_chown_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -7030,8 +6782,7 @@ int f_sys_chown_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_lchown_x(struct event_filler_arguments *args)
-{
+int f_sys_lchown_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -7062,8 +6813,7 @@ int f_sys_lchown_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fchown_x(struct event_filler_arguments *args)
-{
+int f_sys_fchown_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -7095,8 +6845,7 @@ int f_sys_fchown_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_fchownat_x(struct event_filler_arguments *args)
-{
+int f_sys_fchownat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -7111,7 +6860,7 @@ int f_sys_fchownat_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
 
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -7143,8 +6892,7 @@ int f_sys_fchownat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_capset_x(struct event_filler_arguments *args)
-{
+int f_sys_capset_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -7191,8 +6939,7 @@ out:
 	return res;
 }
 
-int f_sys_splice_e(struct event_filler_arguments *args)
-{
+int f_sys_splice_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int32_t fd_in, fd_out;
 	int res;
@@ -7222,8 +6969,7 @@ int f_sys_splice_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_umount_x(struct event_filler_arguments *args)
-{
+int f_sys_umount_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -7241,8 +6987,7 @@ int f_sys_umount_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_umount2_e(struct event_filler_arguments *args)
-{
+int f_sys_umount2_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 
@@ -7254,8 +6999,7 @@ int f_sys_umount2_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_umount2_x(struct event_filler_arguments *args)
-{
+int f_sys_umount2_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
@@ -7273,8 +7017,7 @@ int f_sys_umount2_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_getcwd_x(struct event_filler_arguments *args)
-{
+int f_sys_getcwd_x(struct event_filler_arguments *args) {
 	unsigned long val;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
@@ -7282,15 +7025,13 @@ int f_sys_getcwd_x(struct event_filler_arguments *args)
 	int res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	/* we get the path only in case of success, in case of failure we would read only userspace junk */
-	if(retval >= 0)
-	{
+	/* we get the path only in case of success, in case of failure we would read only userspace junk
+	 */
+	if(retval >= 0) {
 		/* Parameter 2: path (type: PT_CHARBUF) */
 		syscall_get_arguments_deprecated(args, 0, 1, &val);
 		res = val_to_ring(args, val, 0, true, 0);
-	}
-	else
-	{
+	} else {
 		/* Parameter 2: path (type: PT_CHARBUF) */
 		push_empty_param(args);
 	}
@@ -7300,8 +7041,7 @@ int f_sys_getcwd_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_getdents_e(struct event_filler_arguments *args)
-{
+int f_sys_getdents_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int32_t fd = 0;
 	int res;
@@ -7315,8 +7055,7 @@ int f_sys_getdents_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_getdents64_e(struct event_filler_arguments *args)
-{
+int f_sys_getdents64_e(struct event_filler_arguments *args) {
 	unsigned long val;
 	int32_t fd = 0;
 	int res;
@@ -7331,8 +7070,7 @@ int f_sys_getdents64_e(struct event_filler_arguments *args)
 }
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
-int f_sched_prog_exec(struct event_filler_arguments *args)
-{
+int f_sched_prog_exec(struct event_filler_arguments *args) {
 	int res = 0;
 	struct mm_struct *mm = current->mm;
 	int args_len = 0;
@@ -7358,7 +7096,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	uint64_t cap_permitted = 0;
 	uint64_t cap_effective = 0;
 	uint32_t euid = UINT32_MAX;
-	char* buf = (char*)args->str_storage;
+	char *buf = (char *)args->str_storage;
 	char *trusted_exepath = NULL;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
@@ -7368,19 +7106,17 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	res = val_to_ring(args, 0, 0, false, 0);
 	CHECK_RES(res);
 	/*
-	* The call always succeed so get `exe`, `args` from the current
-	* process; put one \0-separated exe-args string into
-	* str_storage
-	*/
-	if(unlikely(!mm))
-	{
+	 * The call always succeed so get `exe`, `args` from the current
+	 * process; put one \0-separated exe-args string into
+	 * str_storage
+	 */
+	if(unlikely(!mm)) {
 		args->str_storage[0] = 0;
 		pr_info("'f_sched_prog_exec' drop, mm=NULL\n");
 		return PPM_FAILURE_BUG;
 	}
 
-	if(unlikely(!mm->arg_end))
-	{
+	if(unlikely(!mm->arg_end)) {
 		args->str_storage[0] = 0;
 		pr_info("'f_sched_prog_exec' drop, mm->arg_end=NULL\n");
 		return PPM_FAILURE_BUG;
@@ -7389,26 +7125,22 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	/* the combined length of the arguments string + executable string. */
 	args_len = mm->arg_end - mm->arg_start;
 
-	if(args_len > STR_STORAGE_SIZE)
-	{
+	if(args_len > STR_STORAGE_SIZE) {
 		args_len = STR_STORAGE_SIZE;
 	}
 
-	correctly_read = ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len);
+	correctly_read =
+	        ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len);
 
-	if(args_len && correctly_read == 0)
-	{
+	if(args_len && correctly_read == 0) {
 		args->str_storage[args_len - 1] = 0;
-	}
-	else
-	{
+	} else {
 		args_len = 0;
 		*args->str_storage = 0;
 	}
 
 	exe_len = strnlen(args->str_storage, args_len);
-	if(exe_len < args_len)
-	{
+	if(exe_len < args_len) {
 		++exe_len;
 	}
 
@@ -7417,7 +7149,11 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-	res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
+	res = val_to_ring(args,
+	                  (int64_t)(long)args->str_storage + exe_len,
+	                  args_len - exe_len,
+	                  false,
+	                  0);
 	CHECK_RES(res);
 
 	/* Parameter 4: tid (type: PT_PID) */
@@ -7429,8 +7165,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	if(current->real_parent)
-	{
+	if(current->real_parent) {
 		ptid = current->real_parent->pid;
 	}
 
@@ -7456,8 +7191,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	res = val_to_ring(args, current->min_flt, 0, false, 0);
 	CHECK_RES(res);
 
-	if(mm)
-	{
+	if(mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT - 10);
 		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT - 10);
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
@@ -7488,23 +7222,24 @@ cgroups_error:
 #endif
 
 	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
-	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+	res = val_to_ring(args,
+	                  (int64_t)(long)args->str_storage,
+	                  STR_STORAGE_SIZE - available,
+	                  false,
+	                  0);
 	CHECK_RES(res);
 
 	env_len = mm->env_end - mm->env_start;
-	if(env_len > STR_STORAGE_SIZE)
-	{
+	if(env_len > STR_STORAGE_SIZE) {
 		env_len = STR_STORAGE_SIZE;
 	}
 
-	correctly_read = ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, env_len);
+	correctly_read =
+	        ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, env_len);
 
-	if(env_len && correctly_read == 0)
-	{
+	if(env_len && correctly_read == 0) {
 		args->str_storage[env_len - 1] = 0;
-	}
-	else
-	{
+	} else {
 		env_len = 0;
 		*args->str_storage = 0;
 	}
@@ -7519,7 +7254,11 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 18: pgid (type: PT_PID) */
-	res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+	res = val_to_ring(args,
+	                  (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)),
+	                  0,
+	                  false,
+	                  0);
 	CHECK_RES(res);
 
 	/* Parameter 19: loginuid (type: PT_UID) */
@@ -7533,28 +7272,30 @@ cgroups_error:
 
 	/* `exe_writable`, `exe_upper_layer` and `exe_lower_layer` flag logic */
 	exe_file = ppm_get_mm_exe_file(mm);
-	if(exe_file != NULL)
-	{
-		if(file_inode(exe_file) != NULL)
-		{
+	if(exe_file != NULL) {
+		if(file_inode(exe_file) != NULL) {
 			/* Support exe_writable */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 			exe_writable |= (file_permission(exe_file, MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(file_mnt_idmap(exe_file), file_inode(exe_file));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
-			exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
+			exe_writable |= (inode_permission(current_user_ns(),
+			                                  file_inode(exe_file),
+			                                  MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 1, 0)
-			exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
+			exe_writable |=
+			        (inode_permission(file_inode(exe_file), MAY_WRITE | MAY_NOT_BLOCK) == 0);
 			exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
 			/*
-			 * Kernels < 3.1.0 doesn't support the exe_writable flags due to the MAY_NOT_BLOCK not being
-			 * available. This limitation is related to the fact that this function (f_sched_prog_exec)
-			 * is in a RCU critical section: this means that this function (and its callee) MUST NOT
-			 * call functions that can yield the processor (e.g. inode_permission that deep down in its
-			 * call stack calls a down_read()). This is addressed after the Kernel 3.1.0 where the
-			 * MAY_OT_BLOCK flag is introduced and avoids the processor to being yield.
+			 * Kernels < 3.1.0 doesn't support the exe_writable flags due to the MAY_NOT_BLOCK not
+			 * being available. This limitation is related to the fact that this function
+			 * (f_sched_prog_exec) is in a RCU critical section: this means that this function (and
+			 * its callee) MUST NOT call functions that can yield the processor (e.g.
+			 * inode_permission that deep down in its call stack calls a down_read()). This is
+			 * addressed after the Kernel 3.1.0 where the MAY_OT_BLOCK flag is introduced and avoids
+			 * the processor to being yield.
 			 */
 
 			/* Support exe_upper_layer and exe_lower_layer */
@@ -7567,22 +7308,23 @@ cgroups_error:
 			i_ino = file_inode(exe_file)->i_ino;
 
 			/* Support exe_file ctime
-			 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
-			 * but fields names should be always the same.
+			 * During kernel versions `i_ctime` changed from `struct timespec` to `struct
+			 * timespec64` but fields names should be always the same.
 			 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 			{
 				struct timespec64 inode_ctime;
 				inode_ctime = inode_get_ctime(file_inode(exe_file));
-				ctime = inode_ctime.tv_sec * (uint64_t) 1000000000 + inode_ctime.tv_nsec;
+				ctime = inode_ctime.tv_sec * (uint64_t)1000000000 + inode_ctime.tv_nsec;
 			}
 #else
-			ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+			ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t)1000000000 +
+			        file_inode(exe_file)->i_ctime.tv_nsec;
 #endif
 
 			/* Support exe_file mtime
-			 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
-			 * but fields names should be always the same.
+			 * During kernel versions `i_mtime` changed from `struct timespec` to `struct
+			 * timespec64` but fields names should be always the same.
 			 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
 			{
@@ -7591,7 +7333,8 @@ cgroups_error:
 				mtime = inode_mtime.tv_sec * (uint64_t)1000000000 + inode_mtime.tv_nsec;
 			}
 #else
-			mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+			mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t)1000000000 +
+			        file_inode(exe_file)->i_mtime.tv_nsec;
 #endif
 		}
 		/* Before free the exefile we catch the resolved path for symlink resolution */
@@ -7603,28 +7346,22 @@ cgroups_error:
 	 * https://github.com/torvalds/linux/blob/2dde18cd1d8fac735875f2e4987f11817cc0bc2c/fs/d_path.c#L255
 	 * This is unhandy to manage in userspace, for this reason, we can remove it here
 	 */
-	if(trusted_exepath != NULL)
-	{
+	if(trusted_exepath != NULL) {
 		char deleted_suffix[] = " (deleted)";
 		int diff_len = strlen(trusted_exepath) - strlen(deleted_suffix);
 		if(diff_len > 0 &&
-			(strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0))
-		{
+		   (strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0)) {
 			trusted_exepath[diff_len] = '\0';
 		}
 	}
 
-	if(exe_writable)
-	{
+	if(exe_writable) {
 		flags |= PPM_EXE_WRITABLE;
 	}
 
-	if(exe_layer == PPM_OVERLAY_UPPER)
-	{
+	if(exe_layer == PPM_OVERLAY_UPPER) {
 		flags |= PPM_EXE_UPPER_LAYER;
-	}
-	else if(exe_layer == PPM_OVERLAY_LOWER)
-	{
+	} else if(exe_layer == PPM_OVERLAY_LOWER) {
 		flags |= PPM_EXE_LOWER_LAYER;
 	}
 
@@ -7670,11 +7407,13 @@ cgroups_error:
 	res = val_to_ring(args, i_ino, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	res = val_to_ring(args, ctime, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	res = val_to_ring(args, mtime, 0, false, 0);
 	CHECK_RES(res);
 
@@ -7697,10 +7436,8 @@ cgroups_error:
 }
 #endif
 
-
 #ifdef CAPTURE_SCHED_PROC_FORK
-int f_sched_prog_fork(struct event_filler_arguments *args)
-{
+int f_sched_prog_fork(struct event_filler_arguments *args) {
 	int res = 0;
 	struct task_struct *child = args->child;
 	struct mm_struct *mm = child->mm;
@@ -7726,19 +7463,17 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/*
-	* The call always succeed so get `exe`, `args` from the child
-	* process; put one \0-separated exe-args string into
-	* str_storage
-	*/
-	if(unlikely(!mm))
-	{
+	 * The call always succeed so get `exe`, `args` from the child
+	 * process; put one \0-separated exe-args string into
+	 * str_storage
+	 */
+	if(unlikely(!mm)) {
 		args->str_storage[0] = 0;
 		pr_info("'f_sched_prog_fork' drop, mm=NULL\n");
 		return PPM_FAILURE_BUG;
 	}
 
-	if(unlikely(!mm->arg_end))
-	{
+	if(unlikely(!mm->arg_end)) {
 		args->str_storage[0] = 0;
 		pr_info("'f_sched_prog_fork' drop, mm->arg_end=NULL\n");
 		return PPM_FAILURE_BUG;
@@ -7747,27 +7482,23 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	/* the combined length of the arguments string + executable string. */
 	args_len = mm->arg_end - mm->arg_start;
 
-	if(args_len > STR_STORAGE_SIZE)
-	{
+	if(args_len > STR_STORAGE_SIZE) {
 		args_len = STR_STORAGE_SIZE;
 	}
 
-	correctly_read = ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len);
+	correctly_read =
+	        ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len);
 
-	if(args_len && correctly_read == 0)
-	{
+	if(args_len && correctly_read == 0) {
 		args->str_storage[args_len - 1] = 0;
-	}
-	else
-	{
+	} else {
 		args_len = 0;
 		*args->str_storage = 0;
 	}
 
 	exe_len = strnlen(args->str_storage, args_len);
 	// we add the `\0` terminator
-	if(exe_len < args_len)
-	{
+	if(exe_len < args_len) {
 		++exe_len;
 	}
 
@@ -7776,7 +7507,11 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-	res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
+	res = val_to_ring(args,
+	                  (int64_t)(long)args->str_storage + exe_len,
+	                  args_len - exe_len,
+	                  false,
+	                  0);
 	CHECK_RES(res);
 
 	/* Parameter 4: tid (type: PT_PID) */
@@ -7788,8 +7523,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	if(child->real_parent)
-	{
+	if(child->real_parent) {
 		ptid = child->real_parent->pid;
 	}
 
@@ -7815,8 +7549,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	res = val_to_ring(args, child->min_flt, 0, false, 0);
 	CHECK_RES(res);
 
-	if(mm)
-	{
+	if(mm) {
 		total_vm = mm->total_vm << (PAGE_SHIFT - 10);
 		total_rss = ppm_get_mm_rss(mm) << (PAGE_SHIFT - 10);
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
@@ -7847,7 +7580,11 @@ cgroups_error:
 #endif
 
 	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
-	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
+	res = val_to_ring(args,
+	                  (int64_t)(long)args->str_storage,
+	                  STR_STORAGE_SIZE - available,
+	                  false,
+	                  0);
 	CHECK_RES(res);
 
 	/* Since Linux 2.5.35, the flags mask must also include
@@ -7856,8 +7593,7 @@ cgroups_error:
 	 * be included).
 	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
 	 */
-	if(child->pid != child->tgid)
-	{
+	if(child->pid != child->tgid) {
 		flags |= PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM;
 	}
 
@@ -7865,8 +7601,7 @@ cgroups_error:
 	 * process share the same file descriptor table.
 	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
 	 */
-	if(child->files == current->files)
-	{
+	if(child->files == current->files) {
 		flags |= PPM_CL_CLONE_FILES;
 	}
 
@@ -7874,8 +7609,7 @@ cgroups_error:
 	 * nevertheless has tid == vtid,  so we need to generate this
 	 * custom flag `PPM_CL_CHILD_IN_PIDNS`.
 	 */
-	if(pidns != &init_pid_ns)
-	{
+	if(pidns != &init_pid_ns) {
 		flags |= PPM_CL_CHILD_IN_PIDNS;
 	}
 
@@ -7911,8 +7645,7 @@ cgroups_error:
 	/* Here the father collects this info for the child.
 	 * Remember that this is the clone child event.
 	 */
-	if(pidns && pidns->child_reaper)
-	{
+	if(pidns && pidns->child_reaper) {
 		pidns_init_start_time = pidns->child_reaper->start_time;
 	}
 	res = val_to_ring(args, pidns_init_start_time, 0, false, 0);
@@ -7926,8 +7659,7 @@ cgroups_error:
 }
 #endif
 
-int f_sys_prctl_x(struct event_filler_arguments *args)
-{
+int f_sys_prctl_x(struct event_filler_arguments *args) {
 	int res;
 	int retval;
 	unsigned long option;
@@ -7951,55 +7683,51 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(args, 1, 1, &arg2);
 
-	switch(option){
-		case PPM_PR_GET_NAME:
-		case PPM_PR_SET_NAME:
-			/*
-			 * arg2_str
-			 */
-			res = val_to_ring(args, arg2, 0, true, 0);
-			CHECK_RES(res);
-			/*
-			 * arg2_int
-			 */
-			res = val_to_ring(args, 0, 0, false, 0);
-			CHECK_RES(res);
-			break;
-		case PPM_PR_GET_CHILD_SUBREAPER:
-			{
-				int reaper_attr = 0;
-				/* Parameter 3: arg2_str (type: PT_CHARBUF) */
-				res = push_empty_param(args);
-				CHECK_RES(res);
-				/* Parameter 4: arg2_int (type: PT_INT64) */
-				if(unlikely(ppm_copy_from_user(&reaper_attr, (void *)arg2, sizeof(reaper_attr))))
-				{
-					reaper_attr = 0;
-				}
-				res = val_to_ring(args, (int64_t)reaper_attr, 0, false, 0);
-				CHECK_RES(res);
-			}
-			break;
-		case PPM_PR_SET_CHILD_SUBREAPER:
-		default:
-			/*
-			 * arg2_str
-			 */
-			res = push_empty_param(args);
-			CHECK_RES(res);
-			/*
-			 * arg2_int
-			 */
-			res = val_to_ring(args, arg2, 0, false, 0);
-			CHECK_RES(res);
-			break;
+	switch(option) {
+	case PPM_PR_GET_NAME:
+	case PPM_PR_SET_NAME:
+		/*
+		 * arg2_str
+		 */
+		res = val_to_ring(args, arg2, 0, true, 0);
+		CHECK_RES(res);
+		/*
+		 * arg2_int
+		 */
+		res = val_to_ring(args, 0, 0, false, 0);
+		CHECK_RES(res);
+		break;
+	case PPM_PR_GET_CHILD_SUBREAPER: {
+		int reaper_attr = 0;
+		/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+		/* Parameter 4: arg2_int (type: PT_INT64) */
+		if(unlikely(ppm_copy_from_user(&reaper_attr, (void *)arg2, sizeof(reaper_attr)))) {
+			reaper_attr = 0;
+		}
+		res = val_to_ring(args, (int64_t)reaper_attr, 0, false, 0);
+		CHECK_RES(res);
+	} break;
+	case PPM_PR_SET_CHILD_SUBREAPER:
+	default:
+		/*
+		 * arg2_str
+		 */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+		/*
+		 * arg2_int
+		 */
+		res = val_to_ring(args, arg2, 0, false, 0);
+		CHECK_RES(res);
+		break;
 	}
 
 	return add_sentinel(args);
 }
 
-int f_sys_memfd_create_x(struct event_filler_arguments *args)
-{
+int f_sys_memfd_create_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	long retval;
@@ -8009,12 +7737,10 @@ int f_sys_memfd_create_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-
 	/* Parameter 2: name (type: PT_CHARBUF) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
-
 
 	/* Parameter 3: flags (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
@@ -8024,15 +7750,14 @@ int f_sys_memfd_create_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pidfd_getfd_x(struct event_filler_arguments *args)
-{
+int f_sys_pidfd_getfd_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	long retval;
 	int32_t fd;
 
 	/* Parameter 1: ret (type: PT_FD) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8056,15 +7781,14 @@ int f_sys_pidfd_getfd_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pidfd_open_x(struct event_filler_arguments *args)
-{
+int f_sys_pidfd_open_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	long retval;
 	int32_t fd;
 
 	/* Parameter 1: ret (type: PT_FD) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8082,15 +7806,14 @@ int f_sys_pidfd_open_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_init_module_x(struct event_filler_arguments *args)
-{
+int f_sys_init_module_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	long retval;
 	uint64_t len;
 
 	/* Parameter 1: ret (type: PT_ERRNO) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8114,15 +7837,14 @@ int f_sys_init_module_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_finit_module_x(struct event_filler_arguments *args)
-{
+int f_sys_finit_module_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	long retval;
 	int32_t fd;
 
 	/* Parameter 1: ret (type: PT_ERRNO) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8145,14 +7867,13 @@ int f_sys_finit_module_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mknod_x(struct event_filler_arguments *args)
-{
+int f_sys_mknod_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	long retval;
 
 	/* Parameter 1: ret (type: PT_ERRNO) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8174,22 +7895,21 @@ int f_sys_mknod_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_mknodat_x(struct event_filler_arguments *args)
-{
+int f_sys_mknodat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int32_t fd;
 	long retval;
 
 	/* Parameter 1: ret (type: PT_ERRNO) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 	res = val_to_ring(args, (int64_t)fd, 0, true, 0);
 	CHECK_RES(res);
@@ -8212,22 +7932,21 @@ int f_sys_mknodat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_newfstatat_x(struct event_filler_arguments *args)
-{
+int f_sys_newfstatat_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int32_t fd;
 	long retval;
 
 	/* Parameter 1: ret (type: PT_ERRNO) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	fd = (int32_t)val;
-	if (fd == AT_FDCWD)
+	if(fd == AT_FDCWD)
 		fd = PPM_AT_FDCWD;
 	res = val_to_ring(args, (int64_t)fd, 0, true, 0);
 	CHECK_RES(res);
@@ -8245,8 +7964,7 @@ int f_sys_newfstatat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_process_vm_readv_x(struct event_filler_arguments *args)
-{
+int f_sys_process_vm_readv_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	long retval;
 	int res;
@@ -8254,7 +7972,7 @@ int f_sys_process_vm_readv_x(struct event_filler_arguments *args)
 	int32_t pid;
 
 	/* Parameter 1: ret (type: PT_INT64) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, (int64_t)retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8264,28 +7982,29 @@ int f_sys_process_vm_readv_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, (int64_t)pid, 0, false, 0);
 	CHECK_RES(res);
 
-
-	if(retval > 0)
-	{
+	if(retval > 0) {
 		/* We only get the local iov */
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
-	#ifdef CONFIG_COMPAT
-		if (unlikely(args->compat)) {
-			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
+#ifdef CONFIG_COMPAT
+		if(unlikely(args->compat)) {
+			const struct compat_iovec __user *compat_iov =
+			        (const struct compat_iovec __user *)compat_ptr(val);
+			res = compat_parse_readv_writev_bufs(args,
+			                                     compat_iov,
+			                                     iovcnt,
+			                                     retval,
+			                                     PRB_FLAG_PUSH_DATA);
 		} else
-	#endif
+#endif
 		{
 			const struct iovec __user *iov = (const struct iovec __user *)val;
 			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
 		}
 
 		CHECK_RES(res);
-	}
-	else
-	{
+	} else {
 		/* pushing empty data */
 		res = push_empty_param(args);
 		CHECK_RES(res);
@@ -8294,8 +8013,7 @@ int f_sys_process_vm_readv_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
-{
+int f_sys_process_vm_writev_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	long retval;
 	int res;
@@ -8303,7 +8021,7 @@ int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
 	int32_t pid;
 
 	/* Parameter 1: ret (type: PT_INT64) */
-	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, (int64_t)retval, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8313,28 +8031,29 @@ int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, (int64_t)pid, 0, false, 0);
 	CHECK_RES(res);
 
-
-	if(retval > 0)
-	{
+	if(retval > 0) {
 		/* We only get the local iov */
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
 		syscall_get_arguments_deprecated(args, 2, 1, &iovcnt);
 
-	#ifdef CONFIG_COMPAT
-		if (unlikely(args->compat)) {
-			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
+#ifdef CONFIG_COMPAT
+		if(unlikely(args->compat)) {
+			const struct compat_iovec __user *compat_iov =
+			        (const struct compat_iovec __user *)compat_ptr(val);
+			res = compat_parse_readv_writev_bufs(args,
+			                                     compat_iov,
+			                                     iovcnt,
+			                                     retval,
+			                                     PRB_FLAG_PUSH_DATA);
 		} else
-	#endif
+#endif
 		{
 			const struct iovec __user *iov = (const struct iovec __user *)val;
 			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_DATA);
 		}
 
 		CHECK_RES(res);
-	}
-	else
-	{
+	} else {
 		/* pushing empty data */
 		res = push_empty_param(args);
 		CHECK_RES(res);
@@ -8343,15 +8062,14 @@ int f_sys_process_vm_writev_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_delete_module_x(struct event_filler_arguments *args)
-{
+int f_sys_delete_module_x(struct event_filler_arguments *args) {
 	int64_t retval = 0;
 	int64_t res = 0;
 	uint32_t flags = 0;
 	unsigned long val = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	retval = (int64_t) syscall_get_return_value(current, args->regs);
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, (int64_t)retval, 0, false, 0);
 	CHECK_RES(res);
 

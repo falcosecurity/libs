@@ -22,8 +22,7 @@ limitations under the License.
 #include <linux/bpf.h>
 
 /* Taken from libbpf: /src/ringbuf.c */
-struct ring
-{
+struct ring {
 	ring_buffer_sample_fn sample_cb;
 	void *ctx;
 	void *data;
@@ -33,8 +32,7 @@ struct ring
 	int map_fd;
 };
 
-struct ring_buffer
-{
+struct ring_buffer {
 	struct epoll_event *events;
 	struct ring **rings;
 	size_t page_size;
@@ -43,8 +41,7 @@ struct ring_buffer
 };
 
 /* This is done to write on multiples of 8 bytes. */
-static inline int roundup_len(uint32_t len)
-{
+static inline int roundup_len(uint32_t len) {
 	/* clear out top 2 bits (discard and busy, if set) */
 	len <<= 2;
 	len >>= 2;
@@ -59,18 +56,16 @@ static inline int roundup_len(uint32_t len)
 #define READ_ONCE(x) (*(volatile typeof(x) *)&x)
 #define WRITE_ONCE(x, v) (*(volatile typeof(x) *)&x) = (v)
 
-#define barrier() asm volatile("" :: \
-				       : "memory")
+#define barrier() asm volatile("" ::: "memory")
 
-#define smp_store_release(p, v)    \
-	do                         \
-	{                          \
-		barrier();         \
-		WRITE_ONCE(*p, v); \
+#define smp_store_release(p, v) \
+	do {                        \
+		barrier();              \
+		WRITE_ONCE(*p, v);      \
 	} while(0)
 
-#define smp_load_acquire(p)                      \
-	({                                       \
+#define smp_load_acquire(p)              \
+	({                                   \
 		typeof(*p) ___p = READ_ONCE(*p); \
 		barrier();                       \
 		___p;                            \

@@ -2,8 +2,7 @@
 
 #ifdef __NR_brk
 
-TEST(SyscallEnter, brkE)
-{
+TEST(SyscallEnter, brkE) {
 	auto evt_test = get_syscall_event_test(__NR_brk, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -11,8 +10,8 @@ TEST(SyscallEnter, brkE)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	unsigned long addr = 0;
-	/* brk returns the new program break on success.  On failure, the system call returns the current break,
-	 * so we cannot assert its failure
+	/* brk returns the new program break on success.  On failure, the system call returns the
+	 * current break, so we cannot assert its failure
 	 */
 	syscall(__NR_brk, addr);
 
@@ -22,8 +21,7 @@ TEST(SyscallEnter, brkE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

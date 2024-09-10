@@ -1,7 +1,6 @@
 #include "../../event_class/event_class.h"
 #if defined(__NR_prctl)
-TEST(SyscallEnter, prctlE)
-{
+TEST(SyscallEnter, prctlE) {
 	auto evt_test = get_syscall_event_test(__NR_prctl, ENTER_EVENT);
 	evt_test->enable_capture();
 
@@ -13,7 +12,9 @@ TEST(SyscallEnter, prctlE)
 	unsigned long arg4 = 0;
 	unsigned long arg5 = 0;
 
-	assert_syscall_state(SYSCALL_SUCCESS, "prctl", syscall(__NR_prctl, option, arg2, arg3, arg4, arg5));
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "prctl",
+	                     syscall(__NR_prctl, option, arg2, arg3, arg4, arg5));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallEnter, prctlE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -37,6 +37,5 @@ TEST(SyscallEnter, prctlE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(0);
-
 }
 #endif

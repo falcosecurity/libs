@@ -22,8 +22,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 
-class thread_pool
-{
+class thread_pool {
 public:
 	using routine_id_t = uintptr_t;
 
@@ -32,30 +31,30 @@ public:
 	virtual ~thread_pool() = default;
 
 	/*!
-  	* \brief Subscribes a routine to the thread pool.
-	*
-	* \param func The routine to be subscribed, represented by a function returning a bool value.
-	* Returning false causes the routine to be unsubscribed from the thread pool.
-	*
-	* \return An handle representing a specific routine.
-	* This can later be used to unsubscribe the routine.
-	*/
+	 * \brief Subscribes a routine to the thread pool.
+	 *
+	 * \param func The routine to be subscribed, represented by a function returning a bool value.
+	 * Returning false causes the routine to be unsubscribed from the thread pool.
+	 *
+	 * \return An handle representing a specific routine.
+	 * This can later be used to unsubscribe the routine.
+	 */
 	virtual routine_id_t subscribe(const std::function<bool()>& func) = 0;
 
 	/*!
-  	* \brief Unsubscribes a routine from the thread pool.
-	*
-	* \param id A routine handle.
-	*/
+	 * \brief Unsubscribes a routine from the thread pool.
+	 *
+	 * \param id A routine handle.
+	 */
 	virtual bool unsubscribe(routine_id_t id) = 0;
 
 	/*!
-  	* \brief Unsubscribes all the subscribed routines and waits for the running ones to finish.
-	*/
+	 * \brief Unsubscribes all the subscribed routines and waits for the running ones to finish.
+	 */
 	virtual void purge() = 0;
 
 	/*!
-	* \return The count of currently subscribed routines.
-	*/
+	 * \return The count of currently subscribed routines.
+	 */
 	virtual size_t routines_num() = 0;
 };

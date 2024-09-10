@@ -23,9 +23,7 @@ limitations under the License.
 #include <libscap/metrics_v2.h>
 #include <libscap/engine/kmod/scap_kmod_stats.h>
 
-
-struct kmod_engine
-{
+struct kmod_engine {
 	struct scap_device_set m_dev_set;
 	char* m_lasterr;
 	interesting_ppm_sc_set curr_sc_set;

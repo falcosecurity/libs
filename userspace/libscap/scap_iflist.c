@@ -24,17 +24,13 @@ limitations under the License.
 //
 // Free a previously allocated list of interfaces
 //
-void scap_free_iflist(scap_addrlist* ifhandle)
-{
-	if(ifhandle)
-	{
-		if(ifhandle->v6list)
-		{
+void scap_free_iflist(scap_addrlist* ifhandle) {
+	if(ifhandle) {
+		if(ifhandle->v6list) {
 			free(ifhandle->v6list);
 		}
 
-		if(ifhandle->v4list)
-		{
+		if(ifhandle->v4list) {
 			free(ifhandle->v4list);
 		}
 

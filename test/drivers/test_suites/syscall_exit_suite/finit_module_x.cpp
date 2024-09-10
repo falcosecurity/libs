@@ -3,8 +3,7 @@
 #if defined(__NR_finit_module)
 #include <linux/module.h>
 
-TEST(SyscallExit, finit_moduleX_failure)
-{
+TEST(SyscallExit, finit_moduleX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_finit_module, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -18,10 +17,10 @@ TEST(SyscallExit, finit_moduleX_failure)
 	 */
 
 	int64_t kmod_fd = -1;
-	assert_syscall_state(SYSCALL_FAILURE, "finit_module", syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "finit_module",
+	                     syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
 	int64_t errno_value = -errno;
-
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -29,8 +28,7 @@ TEST(SyscallExit, finit_moduleX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -58,8 +56,7 @@ TEST(SyscallExit, finit_moduleX_failure)
 }
 
 #ifdef MODULE_INIT_IGNORE_MODVERSIONS
-TEST(SyscallExit, finit_moduleX_failure_IGNORE_MODVERSIONS)
-{
+TEST(SyscallExit, finit_moduleX_failure_IGNORE_MODVERSIONS) {
 	auto evt_test = get_syscall_event_test(__NR_finit_module, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -73,9 +70,10 @@ TEST(SyscallExit, finit_moduleX_failure_IGNORE_MODVERSIONS)
 	 */
 
 	int64_t kmod_fd = 99;
-	assert_syscall_state(SYSCALL_FAILURE, "finit_module", syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "finit_module",
+	                     syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -83,8 +81,7 @@ TEST(SyscallExit, finit_moduleX_failure_IGNORE_MODVERSIONS)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -113,8 +110,7 @@ TEST(SyscallExit, finit_moduleX_failure_IGNORE_MODVERSIONS)
 #endif
 
 #ifdef MODULE_INIT_IGNORE_VERMAGIC
-TEST(SyscallExit, finit_moduleX_failure_IGNORE_VERMAGIC)
-{
+TEST(SyscallExit, finit_moduleX_failure_IGNORE_VERMAGIC) {
 	auto evt_test = get_syscall_event_test(__NR_finit_module, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -128,9 +124,10 @@ TEST(SyscallExit, finit_moduleX_failure_IGNORE_VERMAGIC)
 	 */
 
 	int64_t kmod_fd = 99;
-	assert_syscall_state(SYSCALL_FAILURE, "finit_module", syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "finit_module",
+	                     syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -138,8 +135,7 @@ TEST(SyscallExit, finit_moduleX_failure_IGNORE_VERMAGIC)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -168,8 +164,7 @@ TEST(SyscallExit, finit_moduleX_failure_IGNORE_VERMAGIC)
 #endif
 
 #ifdef MODULE_INIT_COMPRESSED_FILE
-TEST(SyscallExit, finit_moduleX_failure_COMPRESSED_FILE)
-{
+TEST(SyscallExit, finit_moduleX_failure_COMPRESSED_FILE) {
 	auto evt_test = get_syscall_event_test(__NR_finit_module, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -183,9 +178,10 @@ TEST(SyscallExit, finit_moduleX_failure_COMPRESSED_FILE)
 	 */
 
 	int64_t kmod_fd = 99;
-	assert_syscall_state(SYSCALL_FAILURE, "finit_module", syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "finit_module",
+	                     syscall(__NR_finit_module, kmod_fd, (void*)mock_buf, flags));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -193,8 +189,7 @@ TEST(SyscallExit, finit_moduleX_failure_COMPRESSED_FILE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

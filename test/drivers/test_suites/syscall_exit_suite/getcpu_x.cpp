@@ -2,8 +2,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_getcpu
-TEST(SyscallExit, getcpu_X)
-{
+TEST(SyscallExit, getcpu_X) {
 	auto evt_test = get_syscall_event_test(__NR_getcpu, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallExit, getcpu_X)
 	/* Retrieve events in order. */
 	evt_test->assert_event_presence(CURRENT_PID, PPME_GENERIC_X);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

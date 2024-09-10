@@ -13,13 +13,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(getrlimit_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(getrlimit_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GETRLIMIT_E_SIZE, PPME_SYSCALL_GETRLIMIT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETRLIMIT_E_SIZE, PPME_SYSCALL_GETRLIMIT_E)) {
 		return 0;
 	}
 
@@ -43,13 +39,9 @@ int BPF_PROG(getrlimit_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(getrlimit_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(getrlimit_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GETRLIMIT_X_SIZE, PPME_SYSCALL_GETRLIMIT_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETRLIMIT_X_SIZE, PPME_SYSCALL_GETRLIMIT_X)) {
 		return 0;
 	}
 
@@ -61,8 +53,7 @@ int BPF_PROG(getrlimit_x,
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* We get the kernel values only if the syscall is successful otherwise we return -1. */
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		struct rlimit rl = {0};
 		unsigned long rlimit_pointer = extract__syscall_argument(regs, 1);
 		bpf_probe_read_user((void *)&rl, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
@@ -72,9 +63,7 @@ int BPF_PROG(getrlimit_x,
 
 		/* Parameter 3: max (type: PT_INT64)*/
 		ringbuf__store_s64(&ringbuf, rl.rlim_max);
-	}
-	else
-	{
+	} else {
 		/* Parameter 2: cur (type: PT_INT64)*/
 		ringbuf__store_s64(&ringbuf, -1);
 

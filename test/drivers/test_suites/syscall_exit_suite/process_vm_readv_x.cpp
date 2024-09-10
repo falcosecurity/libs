@@ -3,12 +3,10 @@
 #ifdef __NR_process_vm_readv
 
 void signal_handler(int signum) {
-    // Do nothing
+	// Do nothing
 }
 
-
-TEST(SyscallExit, process_vm_readvX_failure)
-{
+TEST(SyscallExit, process_vm_readvX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_process_vm_readv, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +14,7 @@ TEST(SyscallExit, process_vm_readvX_failure)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	// Setting the iov to NULL will cause the failure of the syscall.
-	iovec *iov = NULL;
+	iovec* iov = NULL;
 	int32_t iovcnt = 7;
 
 	size_t res = syscall(__NR_process_vm_readv, getpid(), iov, iovcnt, iov, iovcnt, 0);
@@ -28,8 +26,7 @@ TEST(SyscallExit, process_vm_readvX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -53,8 +50,7 @@ TEST(SyscallExit, process_vm_readvX_failure)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallExit, process_vm_readvX_success)
-{
+TEST(SyscallExit, process_vm_readvX_success) {
 	auto evt_test = get_syscall_event_test(__NR_process_vm_readv, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -67,9 +63,7 @@ TEST(SyscallExit, process_vm_readvX_success)
 
 	pid_t child_pid = fork();
 
-	if(child_pid == 0)
-	{
-
+	if(child_pid == 0) {
 		char buf[10] = "QWERTYUIO";
 		struct iovec remote[1];
 		remote[0].iov_base = (void*)buf;
@@ -92,10 +86,7 @@ TEST(SyscallExit, process_vm_readvX_success)
 		pause();
 
 		exit(EXIT_SUCCESS);
-	}
-	else
-	{
-
+	} else {
 		char buffer[10];
 		struct iovec local[1];
 		local[0].iov_base = buffer;
@@ -124,8 +115,7 @@ TEST(SyscallExit, process_vm_readvX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

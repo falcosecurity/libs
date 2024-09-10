@@ -28,31 +28,26 @@ limitations under the License.
 #include <string>
 #include <iostream>
 
-static std::string pretty_print(const std::map<std::string,std::string>& in)
-{
+static std::string pretty_print(const std::map<std::string, std::string>& in) {
 	std::string ret = "(";
-	for (const auto& v : in)
-	{
-		ret.append(" {'").append(v.first)
-			.append("','").append(v.second).append("'}");
+	for(const auto& v : in) {
+		ret.append(" {'").append(v.first).append("','").append(v.second).append("'}");
 	}
 	return ret.append(" )");
 }
 
-class sinsp_formatter_test : public sinsp_with_test_input
-{
+class sinsp_formatter_test : public sinsp_with_test_input {
 public:
-	void SetUp() override
-	{
+	void SetUp() override {
 		sinsp_with_test_input::SetUp();
 		add_default_init_thread();
 		open_inspector();
 	}
 
-	void format(const std::string& fmt,
-				sinsp_evt_formatter::output_format of = sinsp_evt_formatter::output_format::OF_NORMAL,
-				bool resolve_transformers = true)
-	{
+	void format(
+	        const std::string& fmt,
+	        sinsp_evt_formatter::output_format of = sinsp_evt_formatter::output_format::OF_NORMAL,
+	        bool resolve_transformers = true) {
 		sinsp_evt_formatter f(&m_inspector, fmt, m_filter_list);
 		f.set_resolve_transformed_fields(resolve_transformers);
 		auto evt = generate_getcwd_failed_entry_event();
@@ -65,30 +60,30 @@ public:
 	bool m_last_res = false;
 	std::string m_last_output;
 	std::vector<std::string> m_last_field_names;
-	std::map<std::string,std::string> m_last_field_values;
+	std::map<std::string, std::string> m_last_field_values;
 
 	sinsp_filter_check_list m_filter_list;
 };
 
-TEST_F(sinsp_formatter_test, field_names)
-{
+TEST_F(sinsp_formatter_test, field_names) {
 	format("this is a sample output %proc.name %fd.type %proc.pid");
 	EXPECT_EQ(m_last_field_names.size(), 3);
-	EXPECT_NE(find(m_last_field_names.begin(), m_last_field_names.end(), "proc.name"), m_last_field_names.end());
-	EXPECT_NE(find(m_last_field_names.begin(), m_last_field_names.end(), "fd.type"), m_last_field_names.end());
-	EXPECT_NE(find(m_last_field_names.begin(), m_last_field_names.end(), "proc.pid"), m_last_field_names.end());
+	EXPECT_NE(find(m_last_field_names.begin(), m_last_field_names.end(), "proc.name"),
+	          m_last_field_names.end());
+	EXPECT_NE(find(m_last_field_names.begin(), m_last_field_names.end(), "fd.type"),
+	          m_last_field_names.end());
+	EXPECT_NE(find(m_last_field_names.begin(), m_last_field_names.end(), "proc.pid"),
+	          m_last_field_names.end());
 }
 
-TEST_F(sinsp_formatter_test, invalid_tokens)
-{
+TEST_F(sinsp_formatter_test, invalid_tokens) {
 	EXPECT_THROW(format("start %some.field end"), sinsp_exception);
 	EXPECT_THROW(format("start %a end"), sinsp_exception);
 	EXPECT_THROW(format("start % end"), sinsp_exception);
 	EXPECT_THROW(format("start %proc.name %"), sinsp_exception);
 }
 
-TEST_F(sinsp_formatter_test, field)
-{
+TEST_F(sinsp_formatter_test, field) {
 	format("start %proc.name end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start init end");
@@ -96,8 +91,7 @@ TEST_F(sinsp_formatter_test, field)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, field_json)
-{
+TEST_F(sinsp_formatter_test, field_json) {
 	format("start %proc.name end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "{\"proc.name\":\"init\"}");
@@ -105,8 +99,7 @@ TEST_F(sinsp_formatter_test, field_json)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, lenght_shorter)
-{
+TEST_F(sinsp_formatter_test, lenght_shorter) {
 	format("start %2proc.name end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start in end");
@@ -114,8 +107,7 @@ TEST_F(sinsp_formatter_test, lenght_shorter)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, lenght_shorter_json)
-{
+TEST_F(sinsp_formatter_test, lenght_shorter_json) {
 	format("start %2proc.name end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "{\"proc.name\":\"init\"}");
@@ -123,8 +115,7 @@ TEST_F(sinsp_formatter_test, lenght_shorter_json)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, lenght_larger)
-{
+TEST_F(sinsp_formatter_test, lenght_larger) {
 	format("start %10proc.name end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start init       end");
@@ -132,8 +123,7 @@ TEST_F(sinsp_formatter_test, lenght_larger)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, lenght_larger_json)
-{
+TEST_F(sinsp_formatter_test, lenght_larger_json) {
 	format("start %10proc.name end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "{\"proc.name\":\"init\"}");
@@ -141,8 +131,7 @@ TEST_F(sinsp_formatter_test, lenght_larger_json)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, multiple_fields)
-{
+TEST_F(sinsp_formatter_test, multiple_fields) {
 	format("start %proc.name %thread.tid end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start init 1 end");
@@ -151,8 +140,7 @@ TEST_F(sinsp_formatter_test, multiple_fields)
 	EXPECT_EQ(m_last_field_values["thread.tid"], "1");
 }
 
-TEST_F(sinsp_formatter_test, multiple_fields_json)
-{
+TEST_F(sinsp_formatter_test, multiple_fields_json) {
 	format("start %proc.name %thread.tid end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "{\"proc.name\":\"init\",\"thread.tid\":1}");
@@ -161,8 +149,7 @@ TEST_F(sinsp_formatter_test, multiple_fields_json)
 	EXPECT_EQ(m_last_field_values["thread.tid"], "1");
 }
 
-TEST_F(sinsp_formatter_test, multiple_fields_with_no_blank)
-{
+TEST_F(sinsp_formatter_test, multiple_fields_with_no_blank) {
 	format("start%proc.nameand%thread.tidend");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "startinitand1end");
@@ -171,8 +158,7 @@ TEST_F(sinsp_formatter_test, multiple_fields_with_no_blank)
 	EXPECT_EQ(m_last_field_values["thread.tid"], "1");
 }
 
-TEST_F(sinsp_formatter_test, stop_on_null)
-{
+TEST_F(sinsp_formatter_test, stop_on_null) {
 	format("start %proc.name %evt.asynctype end");
 	EXPECT_EQ(m_last_res, false);
 	EXPECT_EQ(m_last_output, "start init ");
@@ -180,8 +166,7 @@ TEST_F(sinsp_formatter_test, stop_on_null)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, stop_on_null_json)
-{
+TEST_F(sinsp_formatter_test, stop_on_null_json) {
 	format("start %proc.name %evt.asynctype end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, false);
 	EXPECT_EQ(m_last_output, "{\"proc.name\":\"init\"}");
@@ -189,8 +174,7 @@ TEST_F(sinsp_formatter_test, stop_on_null_json)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, continue_on_null)
-{
+TEST_F(sinsp_formatter_test, continue_on_null) {
 	format("*start %proc.name %evt.asynctype end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start init <NA> end");
@@ -199,8 +183,7 @@ TEST_F(sinsp_formatter_test, continue_on_null)
 	EXPECT_EQ(m_last_field_values["evt.asynctype"], "<NA>");
 }
 
-TEST_F(sinsp_formatter_test, continue_on_null_json)
-{
+TEST_F(sinsp_formatter_test, continue_on_null_json) {
 	format("*start %proc.name %evt.asynctype end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "{\"evt.asynctype\":null,\"proc.name\":\"init\"}");
@@ -209,24 +192,21 @@ TEST_F(sinsp_formatter_test, continue_on_null_json)
 	EXPECT_EQ(m_last_field_values["evt.asynctype"], "<NA>");
 }
 
-TEST_F(sinsp_formatter_test, no_fields)
-{
+TEST_F(sinsp_formatter_test, no_fields) {
 	format("start end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start end");
 	EXPECT_EQ(m_last_field_values.size(), 0) << pretty_print(m_last_field_values);
 }
 
-TEST_F(sinsp_formatter_test, no_fields_json)
-{
+TEST_F(sinsp_formatter_test, no_fields_json) {
 	format("start end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "null");
 	EXPECT_EQ(m_last_field_values.size(), 0) << pretty_print(m_last_field_values);
 }
 
-TEST_F(sinsp_formatter_test, field_with_args)
-{
+TEST_F(sinsp_formatter_test, field_with_args) {
 	format("start %proc.aname[0] end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start init end");
@@ -234,8 +214,7 @@ TEST_F(sinsp_formatter_test, field_with_args)
 	EXPECT_EQ(m_last_field_values["proc.aname[0]"], "init");
 }
 
-TEST_F(sinsp_formatter_test, field_with_args_json)
-{
+TEST_F(sinsp_formatter_test, field_with_args_json) {
 	format("start %proc.aname[0] end", sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "{\"proc.aname[0]\":\"init\"}");
@@ -243,8 +222,7 @@ TEST_F(sinsp_formatter_test, field_with_args_json)
 	EXPECT_EQ(m_last_field_values["proc.aname[0]"], "init");
 }
 
-TEST_F(sinsp_formatter_test, multiple_fields_with_args_no_blank)
-{
+TEST_F(sinsp_formatter_test, multiple_fields_with_args_no_blank) {
 	format("start%proc.aname[0]and%proc.apid[0]end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "startinitand1end");
@@ -253,8 +231,7 @@ TEST_F(sinsp_formatter_test, multiple_fields_with_args_no_blank)
 	EXPECT_EQ(m_last_field_values["proc.apid[0]"], "1");
 }
 
-TEST_F(sinsp_formatter_test, invalid_transformers)
-{
+TEST_F(sinsp_formatter_test, invalid_transformers) {
 	ASSERT_THROW(format("start %some_transformer(proc.aname) end"), sinsp_exception);
 	ASSERT_THROW(format("start %val(proc.aname) end"), sinsp_exception);
 	ASSERT_THROW(format("start %(proc.aname) end"), sinsp_exception);
@@ -266,7 +243,7 @@ TEST_F(sinsp_formatter_test, invalid_transformers)
 	ASSERT_THROW(format("start %toupper(val(proc.aname)"), sinsp_exception);
 	ASSERT_THROW(format("start %touper("), sinsp_exception);
 	ASSERT_THROW(format("start %("), sinsp_exception);
-	ASSERT_THROW(format("start %toupper(evt.num) end"), sinsp_exception); // wrong type
+	ASSERT_THROW(format("start %toupper(evt.num) end"), sinsp_exception);  // wrong type
 
 	// note: whitespaces are not allowed between transformers
 	ASSERT_THROW(format("start %toupper (proc.name) end"), sinsp_exception);
@@ -279,8 +256,7 @@ TEST_F(sinsp_formatter_test, invalid_transformers)
 	ASSERT_THROW(format("start %toupper( tolower( proc.name ) ) end"), sinsp_exception);
 }
 
-TEST_F(sinsp_formatter_test, field_with_transformer)
-{
+TEST_F(sinsp_formatter_test, field_with_transformer) {
 	format("start %toupper(proc.name) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start INIT end");
@@ -289,8 +265,7 @@ TEST_F(sinsp_formatter_test, field_with_transformer)
 	EXPECT_EQ(m_last_field_values["toupper(proc.name)"], "INIT");
 }
 
-TEST_F(sinsp_formatter_test, field_with_transformer_excluded)
-{
+TEST_F(sinsp_formatter_test, field_with_transformer_excluded) {
 	auto of = sinsp_evt_formatter::output_format::OF_NORMAL;
 	format("start %toupper(proc.name) end", of, false);
 	EXPECT_EQ(m_last_res, true);
@@ -299,8 +274,7 @@ TEST_F(sinsp_formatter_test, field_with_transformer_excluded)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, field_with_transformer_excluded_json)
-{
+TEST_F(sinsp_formatter_test, field_with_transformer_excluded_json) {
 	auto of = sinsp_evt_formatter::output_format::OF_JSON;
 	format("start %toupper(proc.name) end", of, false);
 	EXPECT_EQ(m_last_res, true);
@@ -309,8 +283,7 @@ TEST_F(sinsp_formatter_test, field_with_transformer_excluded_json)
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 }
 
-TEST_F(sinsp_formatter_test, field_with_transformer_and_arg)
-{
+TEST_F(sinsp_formatter_test, field_with_transformer_and_arg) {
 	format("start %toupper(evt.arg[1]) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start /TEST/DIR end");
@@ -319,8 +292,7 @@ TEST_F(sinsp_formatter_test, field_with_transformer_and_arg)
 	EXPECT_EQ(m_last_field_values["toupper(evt.arg[1])"], "/TEST/DIR");
 }
 
-TEST_F(sinsp_formatter_test, field_with_nested_transformer)
-{
+TEST_F(sinsp_formatter_test, field_with_nested_transformer) {
 	format("start %tolower(toupper(proc.name)) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start init end");
@@ -329,8 +301,7 @@ TEST_F(sinsp_formatter_test, field_with_nested_transformer)
 	EXPECT_EQ(m_last_field_values["tolower(toupper(proc.name))"], "init");
 }
 
-TEST_F(sinsp_formatter_test, field_with_nested_transformer_and_arg)
-{
+TEST_F(sinsp_formatter_test, field_with_nested_transformer_and_arg) {
 	format("start %tolower(toupper(evt.arg[1])) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start /test/dir end");
@@ -339,8 +310,7 @@ TEST_F(sinsp_formatter_test, field_with_nested_transformer_and_arg)
 	EXPECT_EQ(m_last_field_values["tolower(toupper(evt.arg[1]))"], "/test/dir");
 }
 
-TEST_F(sinsp_formatter_test, multiple_fields_with_transformer)
-{
+TEST_F(sinsp_formatter_test, multiple_fields_with_transformer) {
 	format("start %toupper(proc.name) %toupper(evt.arg.path) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start INIT /TEST/DIR end");
@@ -351,11 +321,13 @@ TEST_F(sinsp_formatter_test, multiple_fields_with_transformer)
 	EXPECT_EQ(m_last_field_values["toupper(evt.arg.path)"], "/TEST/DIR");
 }
 
-TEST_F(sinsp_formatter_test, multiple_fields_with_transformer_json)
-{
-	format("start %toupper(proc.name) %toupper(evt.arg.path) end", sinsp_evt_formatter::output_format::OF_JSON);
+TEST_F(sinsp_formatter_test, multiple_fields_with_transformer_json) {
+	format("start %toupper(proc.name) %toupper(evt.arg.path) end",
+	       sinsp_evt_formatter::output_format::OF_JSON);
 	EXPECT_EQ(m_last_res, true);
-	EXPECT_EQ(m_last_output, "{\"evt.arg.path\":\"/test/dir\",\"proc.name\":\"init\",\"toupper(evt.arg.path)\":\"/TEST/DIR\",\"toupper(proc.name)\":\"INIT\"}");
+	EXPECT_EQ(m_last_output,
+	          "{\"evt.arg.path\":\"/test/dir\",\"proc.name\":\"init\",\"toupper(evt.arg.path)\":\"/"
+	          "TEST/DIR\",\"toupper(proc.name)\":\"INIT\"}");
 	EXPECT_EQ(m_last_field_values.size(), 4) << pretty_print(m_last_field_values);
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 	EXPECT_EQ(m_last_field_values["evt.arg.path"], "/test/dir");
@@ -363,8 +335,7 @@ TEST_F(sinsp_formatter_test, multiple_fields_with_transformer_json)
 	EXPECT_EQ(m_last_field_values["toupper(evt.arg.path)"], "/TEST/DIR");
 }
 
-TEST_F(sinsp_formatter_test, multiple_fields_with_transformer_no_blank)
-{
+TEST_F(sinsp_formatter_test, multiple_fields_with_transformer_no_blank) {
 	format("start%toupper(proc.name)and%toupper(evt.arg.path)end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "startINITand/TEST/DIRend");
@@ -375,8 +346,7 @@ TEST_F(sinsp_formatter_test, multiple_fields_with_transformer_no_blank)
 	EXPECT_EQ(m_last_field_values["toupper(evt.arg.path)"], "/TEST/DIR");
 }
 
-TEST_F(sinsp_formatter_test, lenght_shorter_with_transformer)
-{
+TEST_F(sinsp_formatter_test, lenght_shorter_with_transformer) {
 	format("start %2toupper(proc.name) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start IN end");
@@ -385,8 +355,7 @@ TEST_F(sinsp_formatter_test, lenght_shorter_with_transformer)
 	EXPECT_EQ(m_last_field_values["toupper(proc.name)"], "INIT");
 }
 
-TEST_F(sinsp_formatter_test, lenght_larger_with_transformer)
-{
+TEST_F(sinsp_formatter_test, lenght_larger_with_transformer) {
 	format("start %10toupper(proc.name) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start INIT       end");

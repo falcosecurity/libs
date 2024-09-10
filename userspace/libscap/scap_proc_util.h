@@ -38,10 +38,18 @@ typedef struct scap_threadinfo scap_threadinfo;
  * @return SCAP_SUCCESS or a failure code
  *
  */
-typedef int32_t (*get_fdinfos_fn)(void* ctx, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
+typedef int32_t (*get_fdinfos_fn)(void *ctx,
+                                  const scap_threadinfo *tinfo,
+                                  uint64_t *n,
+                                  const scap_fdinfo **fdinfos);
 
 // Scan process information from engine vtable
-int32_t scap_proc_scan_vtable(char *error, struct scap_proclist *proclist, uint64_t n_tinfos, const scap_threadinfo *tinfos, void* ctx, get_fdinfos_fn get_fdinfos);
+int32_t scap_proc_scan_vtable(char *error,
+                              struct scap_proclist *proclist,
+                              uint64_t n_tinfos,
+                              const scap_threadinfo *tinfos,
+                              void *ctx,
+                              get_fdinfos_fn get_fdinfos);
 
 #ifdef __cplusplus
 };

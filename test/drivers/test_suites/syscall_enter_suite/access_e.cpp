@@ -2,8 +2,7 @@
 
 #ifdef __NR_access
 
-TEST(SyscallEnter, accessE)
-{
+TEST(SyscallEnter, accessE) {
 	auto evt_test = get_syscall_event_test(__NR_access, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallEnter, accessE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

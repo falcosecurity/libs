@@ -18,37 +18,30 @@ limitations under the License.
 
 #include <helpers/scap_file_helpers.h>
 
-namespace scap_file_test_helpers
-{
+namespace scap_file_test_helpers {
 
-sinsp_evt* capture_search_evt_by_num(sinsp* inspector, uint64_t evt_num)
-{
+sinsp_evt* capture_search_evt_by_num(sinsp* inspector, uint64_t evt_num) {
 	sinsp_evt* evt;
 	int ret = SCAP_SUCCESS;
-	while(ret != SCAP_EOF)
-	{
+	while(ret != SCAP_EOF) {
 		ret = inspector->next(&evt);
-		if(ret == SCAP_SUCCESS && evt->get_num() == evt_num)
-		{
+		if(ret == SCAP_SUCCESS && evt->get_num() == evt_num) {
 			return evt;
 		}
 	}
 	return NULL;
 }
 
-sinsp_evt* capture_search_evt_by_type_and_tid(sinsp* inspector, uint64_t type, int64_t tid)
-{
+sinsp_evt* capture_search_evt_by_type_and_tid(sinsp* inspector, uint64_t type, int64_t tid) {
 	sinsp_evt* evt;
 	int ret = SCAP_SUCCESS;
-	while(ret != SCAP_EOF)
-	{
+	while(ret != SCAP_EOF) {
 		ret = inspector->next(&evt);
-		if(ret == SCAP_SUCCESS && evt->get_type() == type && evt->get_tid() == tid)
-		{
+		if(ret == SCAP_SUCCESS && evt->get_type() == type && evt->get_tid() == tid) {
 			return evt;
 		}
 	}
 	return NULL;
 }
 
-} // namespace scap_file_test_helpers
+}  // namespace scap_file_test_helpers

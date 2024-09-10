@@ -32,42 +32,35 @@ limitations under the License.
 
 uint32_t get_server_address();
 
-class proc_started_filter
-{
-	public:
-		bool operator()(sinsp_evt* evt)
-		{
-			if (!m_child_ready && evt->get_type() == PPME_SYSCALL_WRITE_X)
-			{
-				auto buffer = evt->get_param_value_str("data", false);
-				if(buffer.find("SERVER UP") != std::string::npos ||
-				   buffer.find("STARTED") != std::string::npos)
-				{
-					m_child_ready = true;
-				}
+class proc_started_filter {
+public:
+	bool operator()(sinsp_evt* evt) {
+		if(!m_child_ready && evt->get_type() == PPME_SYSCALL_WRITE_X) {
+			auto buffer = evt->get_param_value_str("data", false);
+			if(buffer.find("SERVER UP") != std::string::npos ||
+			   buffer.find("STARTED") != std::string::npos) {
+				m_child_ready = true;
 			}
-			return m_child_ready;
 		}
+		return m_child_ready;
+	}
 
-	private:
-		bool m_child_ready{false};
+private:
+	bool m_child_ready{false};
 };
 
-class sys_call_test : public testing::Test
-{
+class sys_call_test : public testing::Test {
 public:
 	static void SetUpTestCase() {}
 
 	static void TearDownTestCase() {}
 
 protected:
-	void SetUp()
-	{
+	void SetUp() {
 		m_tid = getpid();
-		m_tid_filter = [this](sinsp_evt* evt)
-		{
-			if (evt->get_param_value_str("fd").find(LIBSINSP_TEST_KERNEL_MODULE_NAME) != std::string::npos)
-			{
+		m_tid_filter = [this](sinsp_evt* evt) {
+			if(evt->get_param_value_str("fd").find(LIBSINSP_TEST_KERNEL_MODULE_NAME) !=
+			   std::string::npos) {
 				return false;
 			}
 			return evt->get_tid() == m_tid;

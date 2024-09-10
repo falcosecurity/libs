@@ -22,27 +22,24 @@ limitations under the License.
 #if !defined(_GNU_SOURCE) && !defined(__APPLE__)
 #include <string.h>
 
-static inline void *memmem(const void *haystack, size_t haystacklen,
-	const void *needle, size_t needlelen)
-{
+static inline void *memmem(const void *haystack,
+                           size_t haystacklen,
+                           const void *needle,
+                           size_t needlelen) {
 	const unsigned char *ptr;
 	const unsigned char *end;
 
-	if(needlelen == 0)
-	{
+	if(needlelen == 0) {
 		return (void *)haystack;
 	}
 
-	if(haystacklen < needlelen)
-	{
+	if(haystacklen < needlelen) {
 		return NULL;
 	}
 
 	end = (const unsigned char *)haystack + haystacklen - needlelen;
-	for(ptr = (const unsigned char *)haystack; ptr <= end; ptr++)
-	{
-		if(!memcmp(ptr, needle, needlelen))
-		{
+	for(ptr = (const unsigned char *)haystack; ptr <= end; ptr++) {
+		if(!memcmp(ptr, needle, needlelen)) {
 			return (void *)ptr;
 		}
 	}

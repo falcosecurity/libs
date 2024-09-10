@@ -12,17 +12,13 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(send_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(send_e, struct pt_regs *regs, long id) {
 	/* Collect parameters at the beginning to manage socketcalls */
 	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SEND_E_SIZE, PPME_SOCKET_SEND_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SEND_E_SIZE, PPME_SOCKET_SEND_E)) {
 		return 0;
 	}
 
@@ -50,13 +46,9 @@ int BPF_PROG(send_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(send_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(send_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -74,8 +66,7 @@ int BPF_PROG(send_x,
 	int64_t bytes_to_read = ret > 0 ? ret : args[2];
 	uint16_t snaplen = maps__get_snaplen();
 	apply_dynamic_snaplen(regs, &snaplen, false, PPME_SOCKET_SEND_X);
-	if((int64_t)snaplen > bytes_to_read)
-	{
+	if((int64_t)snaplen > bytes_to_read) {
 		snaplen = bytes_to_read;
 	}
 

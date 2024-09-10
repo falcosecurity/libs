@@ -37,15 +37,14 @@ extern "C" {
           the field extraction phase
         * ability to inject events asynchronously in the event loop
 */
-typedef enum
-{
-    CAP_NONE                = 0,
-    CAP_SOURCING            = 1 << 0,
-    CAP_EXTRACTION          = 1 << 1,
-    CAP_PARSING             = 1 << 2,
-    CAP_ASYNC               = 1 << 3,
-    CAP_CAPTURE_LISTENING   = 1 << 4,
-    CAP_BROKEN              = 1 << 31, // used to report inconsistencies
+typedef enum {
+	CAP_NONE = 0,
+	CAP_SOURCING = 1 << 0,
+	CAP_EXTRACTION = 1 << 1,
+	CAP_PARSING = 1 << 2,
+	CAP_ASYNC = 1 << 3,
+	CAP_CAPTURE_LISTENING = 1 << 4,
+	CAP_BROKEN = 1 << 31,  // used to report inconsistencies
 } plugin_caps_t;
 
 /*!
@@ -53,14 +52,13 @@ typedef enum
     Pointers to this struct must be obtained through the plugin_load()
     and released through plugin_unload().
 */
-typedef struct plugin_handle_t
-{
+typedef struct plugin_handle_t {
 #ifdef _WIN32
-    HINSTANCE handle; ///< Handle of the dynamic library
+	HINSTANCE handle;  ///< Handle of the dynamic library
 #else
-    void* handle; ///< Handle of the dynamic library
+	void* handle;  ///< Handle of the dynamic library
 #endif
-    plugin_api api; ///< The vtable method of the plugin that define its API
+	plugin_api api;  ///< The vtable method of the plugin that define its API
 } plugin_handle_t;
 
 /*!
@@ -78,7 +76,7 @@ plugin_handle_t* plugin_load_api(const plugin_api* api, char* err);
 plugin_handle_t* plugin_load(const char* path, char* err);
 
 /*!
-    \brief Destroys a plugin_handle_t* previously allocated by 
+    \brief Destroys a plugin_handle_t* previously allocated by
     invoking plugin_load().
 */
 void plugin_unload(plugin_handle_t* h);

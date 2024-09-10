@@ -27,102 +27,67 @@ limitations under the License.
 #include <libsinsp/cri-v1alpha2.grpc.pb.h>
 #include <libsinsp/cri-v1.pb.h>
 #include <libsinsp/cri-v1.grpc.pb.h>
-#endif // MINIMAL_BUILD
+#endif  // MINIMAL_BUILD
 
 #include <libsinsp/container_info.h>
 #include <libsinsp/cgroup_limits.h>
 
 #ifdef GRPC_INCLUDE_IS_GRPCPP
-#	include <grpcpp/grpcpp.h>
+#include <grpcpp/grpcpp.h>
 #else
-#	include <grpc++/grpc++.h>
+#include <grpc++/grpc++.h>
 #endif
 
 namespace libsinsp {
 namespace cri {
 
-class cri_settings
-{
+class cri_settings {
 public:
 	cri_settings();
 	~cri_settings();
-	static cri_settings& get();
+	static cri_settings &get();
 
-	static const std::vector<std::string>& get_cri_unix_socket_paths()
-	{
+	static const std::vector<std::string> &get_cri_unix_socket_paths() {
 		return get().m_cri_unix_socket_paths;
 	}
 
-	static void set_cri_unix_socket_paths(const std::vector<std::string>& v)
-	{
+	static void set_cri_unix_socket_paths(const std::vector<std::string> &v) {
 		get().m_cri_unix_socket_paths = v;
 	}
 
-	static const int64_t& get_cri_timeout()
-	{
-		return get().m_cri_timeout;
-	}
+	static const int64_t &get_cri_timeout() { return get().m_cri_timeout; }
 
-	static void set_cri_timeout(const int64_t& v)
-	{
-		get().m_cri_timeout = v;
-	}
+	static void set_cri_timeout(const int64_t &v) { get().m_cri_timeout = v; }
 
-	static const int64_t& get_cri_size_timeout()
-	{
-		return get().m_cri_size_timeout;
-	}
+	static const int64_t &get_cri_size_timeout() { return get().m_cri_size_timeout; }
 
-	static void set_cri_size_timeout(const int64_t& v)
-	{
-		get().m_cri_size_timeout = v;
-	}
+	static void set_cri_size_timeout(const int64_t &v) { get().m_cri_size_timeout = v; }
 
-	static const sinsp_container_type& get_cri_runtime_type()
-	{
-		return get().m_cri_runtime_type;
-	}
+	static const sinsp_container_type &get_cri_runtime_type() { return get().m_cri_runtime_type; }
 
-	static void set_cri_runtime_type(const sinsp_container_type& v)
-	{
+	static void set_cri_runtime_type(const sinsp_container_type &v) {
 		get().m_cri_runtime_type = v;
 	}
 
-	static const std::string& get_cri_unix_socket_path()
-	{
-		return get().m_cri_unix_socket_path;
-	}
+	static const std::string &get_cri_unix_socket_path() { return get().m_cri_unix_socket_path; }
 
-	static void set_cri_unix_socket_path(const std::string& v)
-	{
-		get().m_cri_unix_socket_path = v;
-	}
+	static void set_cri_unix_socket_path(const std::string &v) { get().m_cri_unix_socket_path = v; }
 
-	static const bool& get_cri_extra_queries()
-	{
-		return get().m_cri_extra_queries;
-	}
+	static const bool &get_cri_extra_queries() { return get().m_cri_extra_queries; }
 
-	static void set_cri_extra_queries(const bool& v)
-	{
-		get().m_cri_extra_queries = v;
-	}
+	static void set_cri_extra_queries(const bool &v) { get().m_cri_extra_queries = v; }
 
-	static void add_cri_unix_socket_path(const std::string& v)
-	{
+	static void add_cri_unix_socket_path(const std::string &v) {
 		get().m_cri_unix_socket_paths.emplace_back(v);
 	}
 
-	static void clear_cri_unix_socket_paths()
-	{
-		get().m_cri_unix_socket_paths.clear();
-	}
+	static void clear_cri_unix_socket_paths() { get().m_cri_unix_socket_paths.clear(); }
 
 private:
 	static std::unique_ptr<cri_settings> s_instance;
 
-	cri_settings(const cri_settings&) = delete;
-	cri_settings& operator=(const cri_settings&) = delete;
+	cri_settings(const cri_settings &) = delete;
+	cri_settings &operator=(const cri_settings &) = delete;
 
 	std::vector<std::string> m_cri_unix_socket_paths;
 	int64_t m_cri_timeout;
@@ -132,8 +97,7 @@ private:
 	bool m_cri_extra_queries;
 };
 
-class cri_api_v1alpha2
-{
+class cri_api_v1alpha2 {
 public:
 	static constexpr const char *version = "v1alpha2";
 	using RuntimeService = runtime::v1alpha2::RuntimeService;
@@ -163,8 +127,7 @@ public:
 	using MountPropagation = runtime::v1alpha2::MountPropagation;
 };
 
-class cri_api_v1
-{
+class cri_api_v1 {
 public:
 	static constexpr const char *version = "v1";
 	using RuntimeService = runtime::v1::RuntimeService;
@@ -194,20 +157,16 @@ public:
 	using MountPropagation = runtime::v1::MountPropagation;
 };
 
-template<class api> class cri_interface
-{
+template<class api>
+class cri_interface {
 public:
-
-	cri_interface(const std::string& cri_path);
+	cri_interface(const std::string &cri_path);
 
 	/**
 	 * @brief did we manage to connect to CRI and get the runtime name/version?
 	 * @return true if successfully connected to CRI
 	 */
-	bool is_ok() const
-	{
-		return m_cri != nullptr;
-	}
+	bool is_ok() const { return m_cri != nullptr; }
 
 	/**
 	 * @brief get the detected CRI runtime type
@@ -223,26 +182,32 @@ public:
 	/**
 	 * @brief thin wrapper around CRI gRPC ContainerStatus call
 	 * @param container_id container ID
-	 * @param resp reference to the response of type api::ContainerStatusResponse (if the RPC is successful, it will be filled out)
+	 * @param resp reference to the response of type api::ContainerStatusResponse (if the RPC is
+	 * successful, it will be filled out)
 	 * @return grpc::Status, status of the gRPC call
 	 */
-	grpc::Status get_container_status_resp(const std::string &container_id, typename api::ContainerStatusResponse &resp);
+	grpc::Status get_container_status_resp(const std::string &container_id,
+	                                       typename api::ContainerStatusResponse &resp);
 
 	/**
 	 * @brief thin wrapper around CRI gRPC ContainerStats call
 	 * @param container_id container ID
-	 * @param resp reference to the response of type api::ContainerStatusResponse (if the RPC is successful, it will be filled out)
+	 * @param resp reference to the response of type api::ContainerStatusResponse (if the RPC is
+	 * successful, it will be filled out)
 	 * @return grpc::Status, status of the gRPC call
 	 */
-	grpc::Status get_container_stats_resp(const std::string &container_id, typename api::ContainerStatsResponse &resp);
+	grpc::Status get_container_stats_resp(const std::string &container_id,
+	                                      typename api::ContainerStatsResponse &resp);
 
 	/**
 	 * @brief thin wrapper around CRI gRPC PodSandboxStatus call make request
 	 * @param pod_sandbox_id pod sandbox ID
-	 * @param resp reference to the response of type api::PodSandboxStatusResponse (if the RPC is successful, it will be filled out)
+	 * @param resp reference to the response of type api::PodSandboxStatusResponse (if the RPC is
+	 * successful, it will be filled out)
 	 * @return grpc::Status, status of the gRPC call
 	 */
-	grpc::Status get_pod_sandbox_status_resp(const std::string &pod_sandbox_id, typename api::PodSandboxStatusResponse &resp);
+	grpc::Status get_pod_sandbox_status_resp(const std::string &pod_sandbox_id,
+	                                         typename api::PodSandboxStatusResponse &resp);
 
 	/**
 	 * @brief get image id info from CRI via extra API calls
@@ -269,7 +234,8 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_base(const typename api::ContainerStatus &status, sinsp_container_info &container);
+	bool parse_cri_base(const typename api::ContainerStatus &status,
+	                    sinsp_container_info &container);
 
 	/**
 	 * @brief fill out container image information based on CRI response
@@ -279,17 +245,18 @@ public:
 	 * @return true if successful
 	 */
 	bool parse_cri_image(const typename api::ContainerStatus &status,
-			     const Json::Value &root,
-			     sinsp_container_info &container);
+	                     const Json::Value &root,
+	                     sinsp_container_info &container);
 
 	/**
-	 * @brief fill out pod sandbox id, only valid when used w/ ContainerStatusResponse, not PodSandboxStatusResponse
+	 * @brief fill out pod sandbox id, only valid when used w/ ContainerStatusResponse, not
+	 * PodSandboxStatusResponse
 	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
 	bool parse_cri_pod_sandbox_id_for_container(const Json::Value &root,
-			     sinsp_container_info &container);
+	                                            sinsp_container_info &container);
 
 	/**
 	 * @brief fill out container mount information based on CRI response
@@ -297,10 +264,12 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_mounts(const typename api::ContainerStatus &status, sinsp_container_info &container);
+	bool parse_cri_mounts(const typename api::ContainerStatus &status,
+	                      sinsp_container_info &container);
 
 	/**
-	 * @brief fill out container environment variables based on CRI response, valid for containerd only
+	 * @brief fill out container environment variables based on CRI response, valid for containerd
+	 * only
 	 * @param root Json::Value of status.info() at "info" of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
@@ -343,7 +312,8 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_labels(const typename api::ContainerStatus &status, sinsp_container_info &container);
+	bool parse_cri_labels(const typename api::ContainerStatus &status,
+	                      sinsp_container_info &container);
 
 	///////////////////////////////////////////////////////////
 	// CRI response (PodSandboxStatus) parsers helpers
@@ -355,10 +325,12 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_base(const typename api::PodSandboxStatus &status, sinsp_container_info &container);
+	bool parse_cri_base(const typename api::PodSandboxStatus &status,
+	                    sinsp_container_info &container);
 
 	/**
-	 * @brief fill out pod sandbox id, only valid when used w/ PodSandboxStatus, not ContainerStatusResponse
+	 * @brief fill out pod sandbox id, only valid when used w/ PodSandboxStatus, not
+	 * ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @note effectively assigning the existing container.m_full_id as pod sandbox ID
 	 * @return true if successful
@@ -371,7 +343,8 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container);
+	bool parse_cri_labels(const typename api::PodSandboxStatus &status,
+	                      sinsp_container_info &container);
 
 	/**
 	 * @brief fill out pod sandbox labels
@@ -379,7 +352,8 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_pod_sandbox_labels(const typename api::PodSandboxStatus &status, sinsp_container_info &container);
+	bool parse_cri_pod_sandbox_labels(const typename api::PodSandboxStatus &status,
+	                                  sinsp_container_info &container);
 
 	/**
 	 * @brief fill out pod sandbox network info
@@ -389,9 +363,8 @@ public:
 	 * @return true if successful
 	 */
 	bool parse_cri_pod_sandbox_network(const typename api::PodSandboxStatus &status,
-			     const Json::Value &root,
-			     sinsp_container_info &container);
-
+	                                   const Json::Value &root,
+	                                   sinsp_container_info &container);
 
 	/////////////////////////////
 	// Generic parsers helpers
@@ -404,19 +377,20 @@ public:
 	 */
 	Json::Value get_info_jvalue(const google::protobuf::Map<std::string, std::string> &info);
 
-
 	///////////////////////////////////////////////////////////////////
 	// Main CRI parse entrypoint (make API calls and parse responses)
 	///////////////////////////////////////////////////////////////////
 
 	/**
-	 * @brief fill in container metadata using the CRI API (`containerd` and `cri-o` container runtimes). 
-	 * This is the main CRI parser calling each parse_* helper after making the respective CRI API call(s).
+	 * @brief fill in container metadata using the CRI API (`containerd` and `cri-o` container
+	 * runtimes). This is the main CRI parser calling each parse_* helper after making the
+	 * respective CRI API call(s).
 	 * @param key includes container_id, but container.m_id is used to make the CRI API calls
 	 * @param container the container info to fill
 	 * @return true on success, false on failure
 	 */
-	bool parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container);
+	bool parse(const libsinsp::cgroup_limits::cgroup_limits_key &key,
+	           sinsp_container_info &container);
 
 private:
 	std::unique_ptr<typename api::RuntimeService::Stub> m_cri;
@@ -426,5 +400,5 @@ private:
 
 using cri_interface_v1alpha2 = cri_interface<cri_api_v1alpha2>;
 using cri_interface_v1 = cri_interface<cri_api_v1>;
-}
-}
+}  // namespace cri
+}  // namespace libsinsp

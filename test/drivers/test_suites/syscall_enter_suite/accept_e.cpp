@@ -2,8 +2,7 @@
 
 #ifdef __NR_accept
 
-TEST(SyscallEnter, acceptE)
-{
+TEST(SyscallEnter, acceptE) {
 	auto evt_test = get_syscall_event_test(__NR_accept, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,7 @@ TEST(SyscallEnter, acceptE)
 
 	int32_t mock_fd = -1;
 	sockaddr* addr = NULL;
-	socklen_t *addrlen = NULL;
+	socklen_t* addrlen = NULL;
 	assert_syscall_state(SYSCALL_FAILURE, "accept", syscall(__NR_accept, mock_fd, addr, addrlen));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -21,8 +20,7 @@ TEST(SyscallEnter, acceptE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

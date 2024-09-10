@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_getdents
-TEST(SyscallExit, getdentsX)
-{
+TEST(SyscallExit, getdentsX) {
 	auto evt_test = get_syscall_event_test(__NR_getdents, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,9 @@ TEST(SyscallExit, getdentsX)
 	int32_t invalid_fd = 10;
 	void* dirp = NULL;
 	int count = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "getdents", syscall(__NR_getdents, invalid_fd, dirp, count));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "getdents",
+	                     syscall(__NR_getdents, invalid_fd, dirp, count));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -21,8 +22,7 @@ TEST(SyscallExit, getdentsX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

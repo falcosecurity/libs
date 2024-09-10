@@ -2,8 +2,7 @@
 
 #ifdef __NR_recvfrom
 
-TEST(SyscallEnter, recvfromE)
-{
+TEST(SyscallEnter, recvfromE) {
 	auto evt_test = get_syscall_event_test(__NR_recvfrom, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -15,8 +14,16 @@ TEST(SyscallEnter, recvfromE)
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t flags = 0;
 	sockaddr* src_addr = NULL;
-	socklen_t *addrlen = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "recvfrom", syscall(__NR_recvfrom, mock_fd, received_data, received_data_len, flags, src_addr, addrlen));
+	socklen_t* addrlen = NULL;
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "recvfrom",
+	                     syscall(__NR_recvfrom,
+	                             mock_fd,
+	                             received_data,
+	                             received_data_len,
+	                             flags,
+	                             src_addr,
+	                             addrlen));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -24,8 +31,7 @@ TEST(SyscallEnter, recvfromE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

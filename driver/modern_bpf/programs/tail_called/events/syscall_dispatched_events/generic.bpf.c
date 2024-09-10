@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(generic_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(generic_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GENERIC_E_SIZE, PPME_GENERIC_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GENERIC_E_SIZE, PPME_GENERIC_E)) {
 		return 0;
 	}
 
@@ -30,8 +26,7 @@ int BPF_PROG(generic_e,
 	// validated the converted 32bit->64bit syscall ID for us,
 	// otherwise the event would've been discarded.
 #if defined(__TARGET_ARCH_x86)
-	if(bpf_in_ia32_syscall())
-	{
+	if(bpf_in_ia32_syscall()) {
 		id = maps__ia32_to_64(id);
 	}
 #endif
@@ -55,13 +50,9 @@ int BPF_PROG(generic_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(generic_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(generic_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GENERIC_X_SIZE, PPME_GENERIC_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GENERIC_X_SIZE, PPME_GENERIC_X)) {
 		return 0;
 	}
 
@@ -75,8 +66,7 @@ int BPF_PROG(generic_x,
 	// validated the converted 32bit->64bit syscall ID for us,
 	// otherwise the event would've been discarded.
 #if defined(__TARGET_ARCH_x86)
-	if(bpf_in_ia32_syscall())
-	{
+	if(bpf_in_ia32_syscall()) {
 		id = maps__ia32_to_64(id);
 	}
 #endif

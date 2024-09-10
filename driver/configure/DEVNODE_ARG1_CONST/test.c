@@ -18,24 +18,18 @@ or GPL2.txt for full copies of the license.
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
 
-static char *ppm_devnode(const struct device *dev, umode_t *mode)
-{
+static char *ppm_devnode(const struct device *dev, umode_t *mode) {
 	return NULL;
 }
 
-static int devnode_dev_const_init(void)
-{
-	struct class g_ppm_class = {
-		.devnode = ppm_devnode
-	};
+static int devnode_dev_const_init(void) {
+	struct class g_ppm_class = {.devnode = ppm_devnode};
 	/* suppress unused variable warning by casting to void */
 	(void)g_ppm_class;
 	return 0;
 }
 
-static void devnode_dev_const_exit(void)
-{
-}
+static void devnode_dev_const_exit(void) {}
 
 module_init(devnode_dev_const_init);
 module_exit(devnode_dev_const_exit);

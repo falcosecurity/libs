@@ -5,8 +5,7 @@
 
 #include <linux/sched.h>
 
-TEST(SyscallExit, clone3X_father)
-{
+TEST(SyscallExit, clone3X_father) {
 	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -18,8 +17,7 @@ TEST(SyscallExit, clone3X_father)
 	 */
 	struct proc_info info = {};
 	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
+	if(!get_proc_info(pid, &info)) {
 		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
 
@@ -31,8 +29,7 @@ TEST(SyscallExit, clone3X_father)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -41,8 +38,11 @@ TEST(SyscallExit, clone3X_father)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -50,8 +50,7 @@ TEST(SyscallExit, clone3X_father)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -134,8 +133,7 @@ TEST(SyscallExit, clone3X_father)
 	evt_test->assert_num_params_pushed(21);
 }
 
-TEST(SyscallExit, clone3X_child)
-{
+TEST(SyscallExit, clone3X_child) {
 	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -145,8 +143,7 @@ TEST(SyscallExit, clone3X_child)
 	/* Here we scan the parent just to obtain some info for the child */
 	struct proc_info info = {};
 	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
+	if(!get_proc_info(pid, &info)) {
 		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
 
@@ -159,8 +156,7 @@ TEST(SyscallExit, clone3X_child)
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
 	/* Child performs assertions on itself. */
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -169,11 +165,13 @@ TEST(SyscallExit, clone3X_child)
 
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
@@ -193,8 +191,7 @@ TEST(SyscallExit, clone3X_child)
 #else
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -208,7 +205,7 @@ TEST(SyscallExit, clone3X_child)
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
-#ifndef __powerpc64__ // Page faults
+#ifndef __powerpc64__  // Page faults
 	evt_test->assert_charbuf_param(2, info.args[0]);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
@@ -237,7 +234,7 @@ TEST(SyscallExit, clone3X_child)
 	evt_test->assert_cgroup_param(15);
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
-#ifndef __powerpc64__ // Page faults
+#ifndef __powerpc64__  // Page faults
 	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_FILES);
 #endif
 
@@ -254,8 +251,7 @@ TEST(SyscallExit, clone3X_child)
  * we should also have the `set_tid` field in struct `clone_args`
  */
 #ifdef CLONE_CLEAR_SIGHAND
-TEST(SyscallExit, clone3X_create_child_with_2_threads)
-{
+TEST(SyscallExit, clone3X_create_child_with_2_threads) {
 	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -276,8 +272,7 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args_parent, sizeof(cl_args_parent));
 
 	/* Create a child process that will spawn a new thread */
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Spawn a new thread */
 		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p1_t2;
@@ -288,8 +283,7 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 		 */
 		cl_args_child.flags = CLONE_THREAD | CLONE_SIGHAND | CLONE_VM | CLONE_VFORK | CLONE_PARENT;
 		pid_t child_thread = syscall(__NR_clone3, &cl_args_child, sizeof(cl_args_child));
-		if(child_thread == 0)
-		{
+		if(child_thread == 0) {
 			exit(EXIT_SUCCESS);
 		}
 		exit(EXIT_SUCCESS);
@@ -299,11 +293,13 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -315,8 +311,7 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 #else
 	evt_test->assert_event_presence(p1_t2);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		FAIL() << "There is a fatal failure in the child";
 	}
 
@@ -344,8 +339,10 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 	evt_test->assert_numeric_param(6, (int64_t)::gettid());
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM |
-						   PPM_CL_CLONE_VFORK | PPM_CL_CLONE_PARENT);
+	evt_test->assert_numeric_param(16,
+	                               (uint32_t)PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND |
+	                                       PPM_CL_CLONE_VM | PPM_CL_CLONE_VFORK |
+	                                       PPM_CL_CLONE_PARENT);
 
 	/* Parameter 19: vtid (type: PT_PID) */
 	evt_test->assert_numeric_param(19, (int64_t)p1_t2);
@@ -359,8 +356,7 @@ TEST(SyscallExit, clone3X_create_child_with_2_threads)
 #endif
 }
 
-TEST(SyscallExit, clone3X_child_clone_parent_flag)
-{
+TEST(SyscallExit, clone3X_child_clone_parent_flag) {
 	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -380,20 +376,17 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 	cl_args_parent.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args_parent, sizeof(cl_args_parent));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p2_t1;
 		cl_args_child.set_tid_size = 1;
 		cl_args_child.flags = CLONE_PARENT;
 		cl_args_parent.exit_signal = SIGCHLD;
 		pid_t second_child = syscall(__NR_clone3, &cl_args_child, sizeof(cl_args_child));
-		if(second_child == 0)
-		{
+		if(second_child == 0) {
 			exit(EXIT_SUCCESS);
 		}
-		if(second_child == -1)
-		{
+		if(second_child == -1) {
 			exit(EXIT_FAILURE);
 		}
 		exit(EXIT_SUCCESS);
@@ -405,20 +398,25 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 	int options = 0;
 
 	/* Wait for the first child */
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the first child failed." << std::endl;
 	}
 
-	/* Since we are using the `CLONE_PARENT` flag the currect process is signaled also for the second child  */
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, p2_t1, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	/* Since we are using the `CLONE_PARENT` flag the currect process is signaled also for the
+	 * second child  */
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, p2_t1, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the second child failed." << std::endl;
 	}
 
@@ -431,8 +429,7 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 #else
 	evt_test->assert_event_presence(p2_t1);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -456,7 +453,7 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 	evt_test->assert_numeric_param(6, (int64_t)::gettid());
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
-#ifndef __powerpc64__ // Page fault
+#ifndef __powerpc64__  // Page fault
 	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_PARENT);
 #endif
 	/* Parameter 19: vtid (type: PT_PID) */
@@ -471,8 +468,7 @@ TEST(SyscallExit, clone3X_child_clone_parent_flag)
 #endif
 }
 
-TEST(SyscallExit, clone3X_child_new_namespace_from_child)
-{
+TEST(SyscallExit, clone3X_child_new_namespace_from_child) {
 	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -489,8 +485,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -499,11 +494,13 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child)
 
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
@@ -516,8 +513,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child)
 #else
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -540,7 +536,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child)
 	evt_test->assert_numeric_param(6, (int64_t)::gettid());
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
-#ifndef __powerpc64__ // Page fault
+#ifndef __powerpc64__  // Page fault
 	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS);
 #endif
 	/* Parameter 19: vtid (type: PT_PID) */
@@ -555,8 +551,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_child)
 #endif
 }
 
-TEST(SyscallExit, clone3X_child_new_namespace_from_caller)
-{
+TEST(SyscallExit, clone3X_child_new_namespace_from_caller) {
 	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -573,8 +568,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_caller)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -583,11 +577,13 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_caller)
 
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
@@ -597,8 +593,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_caller)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -632,8 +627,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_from_caller)
 	evt_test->assert_num_params_pushed(21);
 }
 
-TEST(SyscallExit, clone3X_child_new_namespace_create_thread)
-{
+TEST(SyscallExit, clone3X_child_new_namespace_create_thread) {
 	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -655,16 +649,14 @@ TEST(SyscallExit, clone3X_child_new_namespace_create_thread)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Spawn a new thread */
 		clone_args cl_args_child = {};
 		cl_args_child.set_tid = (uint64_t)&p1_t2;
 		cl_args_child.set_tid_size = 2;
 		cl_args_child.flags = CLONE_THREAD | CLONE_SIGHAND | CLONE_VM | CLONE_VFORK;
 		pid_t child_thread = syscall(__NR_clone3, &cl_args_child, sizeof(cl_args_child));
-		if(child_thread == 0)
-		{
+		if(child_thread == 0) {
 			exit(EXIT_SUCCESS);
 		}
 		exit(EXIT_SUCCESS);
@@ -674,11 +666,13 @@ TEST(SyscallExit, clone3X_child_new_namespace_create_thread)
 
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
@@ -691,8 +685,7 @@ TEST(SyscallExit, clone3X_child_new_namespace_create_thread)
 #else
 	evt_test->assert_event_presence(p1_t2[1]);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -715,8 +708,10 @@ TEST(SyscallExit, clone3X_child_new_namespace_create_thread)
 	evt_test->assert_numeric_param(6, (int64_t)::gettid());
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM |
-						   PPM_CL_CLONE_VFORK | PPM_CL_CHILD_IN_PIDNS);
+	evt_test->assert_numeric_param(16,
+	                               (uint32_t)PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND |
+	                                       PPM_CL_CLONE_VM | PPM_CL_CLONE_VFORK |
+	                                       PPM_CL_CHILD_IN_PIDNS);
 
 	/* Parameter 19: vtid (type: PT_PID) */
 	evt_test->assert_numeric_param(19, (int64_t)p1_t2[0]);

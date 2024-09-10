@@ -30,136 +30,119 @@ limitations under the License.
 #include <sys/wait.h>
 #include <ext/stdio_filebuf.h>
 
-subprocess::subprocess(std::string command, std::vector<std::string> arguments,
-                       bool start_now, int retry_attempts):
-    m_pid(-1),
-    m_retry_attemps(retry_attempts),
-    m_command(command),
-    m_args(arguments)
-{
-    if(start_now)
-    {
-        start();
-    }
+subprocess::subprocess(std::string command,
+                       std::vector<std::string> arguments,
+                       bool start_now,
+                       int retry_attempts):
+        m_pid(-1),
+        m_retry_attemps(retry_attempts),
+        m_command(command),
+        m_args(arguments) {
+	if(start_now) {
+		start();
+	}
 }
 
-subprocess::~subprocess()
-{
-    delete m_in_filebuf;
-    delete m_out_filebuf;
-    delete m_in_stream;
-    delete m_out_stream;
+subprocess::~subprocess() {
+	delete m_in_filebuf;
+	delete m_out_filebuf;
+	delete m_in_stream;
+	delete m_out_stream;
 }
 
-void subprocess::wait_for_start()
-{
-    fd_set read_set;
-    FD_ZERO(&read_set);
-    FD_SET(m_out_pipe[0], &read_set);
+void subprocess::wait_for_start() {
+	fd_set read_set;
+	FD_ZERO(&read_set);
+	FD_SET(m_out_pipe[0], &read_set);
 
-    struct timeval timeout;
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
+	struct timeval timeout;
+	timeout.tv_sec = 10;
+	timeout.tv_usec = 0;
 
-    int result = select(m_out_pipe[0] + 1, &read_set, nullptr, nullptr, &timeout);
-    int attempt = 0;
+	int result = select(m_out_pipe[0] + 1, &read_set, nullptr, nullptr, &timeout);
+	int attempt = 0;
 
-    while(attempt < m_retry_attemps)
-    {
-        switch(result)
-        {
-            case -1:
-                perror("select");
-                break;
-            case 0:
-                std::cerr << "Timeout waiting for process to start. Retry n."
-                    << (attempt + 1) << "/" << m_retry_attemps << std::endl;
-                break;
-            default:
-                if (!FD_ISSET(m_out_pipe[0], &read_set)) {
-                    std::cerr << "Unexpected error during select." << std::endl;
-                }
-                break;
-        }
-        attempt++;
-    }
-
+	while(attempt < m_retry_attemps) {
+		switch(result) {
+		case -1:
+			perror("select");
+			break;
+		case 0:
+			std::cerr << "Timeout waiting for process to start. Retry n." << (attempt + 1) << "/"
+			          << m_retry_attemps << std::endl;
+			break;
+		default:
+			if(!FD_ISSET(m_out_pipe[0], &read_set)) {
+				std::cerr << "Unexpected error during select." << std::endl;
+			}
+			break;
+		}
+		attempt++;
+	}
 }
 
-pid_t subprocess::get_pid()
-{
-    return m_pid;
+pid_t subprocess::get_pid() {
+	return m_pid;
 }
 
-std::ostream& subprocess::in()
-{
-    return *m_in_stream;
+std::ostream& subprocess::in() {
+	return *m_in_stream;
 }
 
-std::string subprocess::out()
-{
-    std::string buf;
-    std::getline(*m_out_stream, buf);
-    return buf;
+std::string subprocess::out() {
+	std::string buf;
+	std::getline(*m_out_stream, buf);
+	return buf;
 }
 
-int subprocess::wait()
-{
-    int status;
-    waitpid(get_pid(), &status, 0);
-    return status;
+int subprocess::wait() {
+	int status;
+	waitpid(get_pid(), &status, 0);
+	return status;
 }
 
-void subprocess::start()
-{
-    if (pipe(m_in_pipe)  == -1 || pipe(m_out_pipe) == -1)
-    {
-        throw std::system_error(errno, std::system_category());
-    }
+void subprocess::start() {
+	if(pipe(m_in_pipe) == -1 || pipe(m_out_pipe) == -1) {
+		throw std::system_error(errno, std::system_category());
+	}
 
-    pid_t child_pid = fork();
+	pid_t child_pid = fork();
 
-    if (child_pid == -1)
-    {
-        std::cerr << "Failed to fork." << std::endl;
-    }
-    else if (child_pid == 0)
-    {
-        // child process
-        dup2(m_in_pipe[0],  STDIN_FILENO);
-        dup2(m_out_pipe[1], STDOUT_FILENO);
+	if(child_pid == -1) {
+		std::cerr << "Failed to fork." << std::endl;
+	} else if(child_pid == 0) {
+		// child process
+		dup2(m_in_pipe[0], STDIN_FILENO);
+		dup2(m_out_pipe[1], STDOUT_FILENO);
 
-        close(m_in_pipe[0]);
-        close(m_out_pipe[1]);
-        if(m_out_pipe[0] != -1)
-            close(m_out_pipe[0]);
+		close(m_in_pipe[0]);
+		close(m_out_pipe[1]);
+		if(m_out_pipe[0] != -1)
+			close(m_out_pipe[0]);
 
-        std::vector<char*> args;
-        args.push_back(const_cast<char*>(m_command.c_str()));
-        for (const auto& arg : m_args) {
-            args.push_back(const_cast<char*>(arg.c_str()));
-        }
-        args.push_back(nullptr);
+		std::vector<char*> args;
+		args.push_back(const_cast<char*>(m_command.c_str()));
+		for(const auto& arg : m_args) {
+			args.push_back(const_cast<char*>(arg.c_str()));
+		}
+		args.push_back(nullptr);
 
-        execvp(m_command.c_str(), args.data());
-        std::cerr << "Failed to execute the process." << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    else // Parent process
-    {
-        close(m_in_pipe[0]);
-        close(m_out_pipe[1]);
+		execvp(m_command.c_str(), args.data());
+		std::cerr << "Failed to execute the process." << std::endl;
+		exit(EXIT_FAILURE);
+	} else  // Parent process
+	{
+		close(m_in_pipe[0]);
+		close(m_out_pipe[1]);
 
-        m_pid = child_pid;
+		m_pid = child_pid;
 
-        m_in_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_in_pipe[1], std::ios_base::out, 1);
-        m_in_stream  = new std::ostream(m_in_filebuf);
+		m_in_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_in_pipe[1], std::ios_base::out, 1);
+		m_in_stream = new std::ostream(m_in_filebuf);
 
-        if (m_out_pipe[0] != -1)
-        {
-            m_out_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_out_pipe[0], std::ios_base::in, 1);
-            m_out_stream  = new std::istream(m_out_filebuf);
-        }
-
-    }
+		if(m_out_pipe[0] != -1) {
+			m_out_filebuf = new __gnu_cxx::stdio_filebuf<char>(m_out_pipe[0], std::ios_base::in, 1);
+			m_out_stream = new std::istream(m_out_filebuf);
+		}
+	}
 }

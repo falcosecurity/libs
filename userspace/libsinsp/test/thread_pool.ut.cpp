@@ -20,65 +20,55 @@ limitations under the License.
 #include <sinsp_with_test_input.h>
 
 #if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
-TEST_F(sinsp_with_test_input, thread_pool)
-{
-    open_inspector();
+TEST_F(sinsp_with_test_input, thread_pool) {
+	open_inspector();
 
-    auto tp = m_inspector.get_thread_pool();
-    
-    ASSERT_NE(tp, nullptr);
-    ASSERT_EQ(tp->routines_num(), 0);
+	auto tp = m_inspector.get_thread_pool();
 
-    // subscribe a routine that keeps running until unsubscribed
-    auto r = tp->subscribe([]
-        {
-            return true;
-        });
+	ASSERT_NE(tp, nullptr);
+	ASSERT_EQ(tp->routines_num(), 0);
 
-    // check if the routine has been subscribed
-    ASSERT_NE(r, 0);
-    ASSERT_EQ(tp->routines_num(), 1);
+	// subscribe a routine that keeps running until unsubscribed
+	auto r = tp->subscribe([] { return true; });
 
-    // check if the routine has been unsubscribed
-    auto res = tp->unsubscribe(r);
-    ASSERT_EQ(tp->routines_num(), 0);
-    ASSERT_EQ(res, true);
+	// check if the routine has been subscribed
+	ASSERT_NE(r, 0);
+	ASSERT_EQ(tp->routines_num(), 1);
 
-    // unsuccessful unsubscribe
-    res = tp->unsubscribe(0);
-    ASSERT_EQ(res, false);
+	// check if the routine has been unsubscribed
+	auto res = tp->unsubscribe(r);
+	ASSERT_EQ(tp->routines_num(), 0);
+	ASSERT_EQ(res, true);
 
-    // subscribe a routine that keeps running until a condition is met (returns false)
-    std::atomic<int> count = 0;
-    std::atomic<bool> routine_exited = false;
-    r = tp->subscribe([&count, &routine_exited]
-        {
-            if(count >= 1024)
-            {
-                routine_exited = true;
-                return false;
-            }
-            count++;
-            return true;
-        });
-    ASSERT_EQ(tp->routines_num(), 1);
+	// unsuccessful unsubscribe
+	res = tp->unsubscribe(0);
+	ASSERT_EQ(res, false);
 
-    // the routine above keeps increasing a counter, until the counter reaches 1024
-    // we wait for the routine to exit, then we check if it has been unsubscribed
-    while(!routine_exited)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-    ASSERT_EQ(count, 1024);
-    ASSERT_EQ(tp->routines_num(), 0); 
+	// subscribe a routine that keeps running until a condition is met (returns false)
+	std::atomic<int> count = 0;
+	std::atomic<bool> routine_exited = false;
+	r = tp->subscribe([&count, &routine_exited] {
+		if(count >= 1024) {
+			routine_exited = true;
+			return false;
+		}
+		count++;
+		return true;
+	});
+	ASSERT_EQ(tp->routines_num(), 1);
 
-    // all the remaining routines should be unsubscribed when the inspector is closed 
-    r = tp->subscribe([]
-        {
-            return true;
-        });
-    ASSERT_EQ(tp->routines_num(), 1);
-    m_inspector.close();
-    ASSERT_EQ(tp->routines_num(), 0);
+	// the routine above keeps increasing a counter, until the counter reaches 1024
+	// we wait for the routine to exit, then we check if it has been unsubscribed
+	while(!routine_exited) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	}
+	ASSERT_EQ(count, 1024);
+	ASSERT_EQ(tp->routines_num(), 0);
+
+	// all the remaining routines should be unsubscribed when the inspector is closed
+	r = tp->subscribe([] { return true; });
+	ASSERT_EQ(tp->routines_num(), 1);
+	m_inspector.close();
+	ASSERT_EQ(tp->routines_num(), 0);
 }
 #endif

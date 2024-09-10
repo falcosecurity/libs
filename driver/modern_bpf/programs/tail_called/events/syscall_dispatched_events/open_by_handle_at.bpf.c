@@ -12,13 +12,12 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(open_by_handle_at_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(open_by_handle_at_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, OPEN_BY_HANDLE_AT_E_SIZE, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf,
+	                           ctx,
+	                           OPEN_BY_HANDLE_AT_E_SIZE,
+	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_E)) {
 		return 0;
 	}
 
@@ -40,13 +39,9 @@ int BPF_PROG(open_by_handle_at_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(open_by_handle_at_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(open_by_handle_at_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -59,8 +54,7 @@ int BPF_PROG(open_by_handle_at_x,
 
 	/* Parameter 2: mountfd (type: PT_FD) */
 	int32_t mountfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(mountfd == AT_FDCWD)
-	{
+	if(mountfd == AT_FDCWD) {
 		mountfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)mountfd);
@@ -72,15 +66,13 @@ int BPF_PROG(open_by_handle_at_x,
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
-{
+int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret) {
 	dev_t dev = 0;
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -89,40 +81,30 @@ int BPF_PROG(t1_open_by_handle_at_x, struct pt_regs *regs, long ret)
 	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
 	flags = (uint32_t)open_flags_to_scap(flags);
 	/* We collect dev, ino and overlay from the file descriptor only if it is valid */
-	if(ret > 0)
-	{
+	if(ret > 0) {
 		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
 
 		/* Parameter 3: flags (type: PT_FLAGS32) */
 		/* update flags if file is created */
 		flags |= extract__fmode_created_from_fd(ret);
-		if(ol == PPM_OVERLAY_UPPER)
-		{
+		if(ol == PPM_OVERLAY_UPPER) {
 			flags |= PPM_FD_UPPER_LAYER;
-		}
-		else if(ol == PPM_OVERLAY_LOWER)
-		{
+		} else if(ol == PPM_OVERLAY_LOWER) {
 			flags |= PPM_FD_LOWER_LAYER;
 		}
 	}
 	auxmap__store_u32_param(auxmap, flags);
 
 	/* We collect the file path from the file descriptor only if it is valid */
-	if(ret > 0)
-	{
+	if(ret > 0) {
 		/* Parameter 4: path (type: PT_FSPATH) */
 		struct file *f = extract__file_struct_from_fd(ret);
-		if(f != NULL)
-		{
+		if(f != NULL) {
 			auxmap__store_d_path_approx(auxmap, &(f->f_path));
-		}
-		else
-		{
+		} else {
 			auxmap__store_empty_param(auxmap);
 		}
-	}
-	else
-	{
+	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 

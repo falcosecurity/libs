@@ -4,8 +4,7 @@
 
 #include <sys/resource.h>
 
-TEST(SyscallExit, ugetrlimitX_success)
-{
+TEST(SyscallExit, ugetrlimitX_success) {
 	/* Please note:
 	 * the syscall `ugetrlimit` is mapped to `PPME_SYSCALL_GETRLIMIT_E` event
 	 * like `getrlimit`. The same BPF program will be used for both the syscalls.
@@ -19,7 +18,11 @@ TEST(SyscallExit, ugetrlimitX_success)
 
 	int resource = RLIMIT_NPROC;
 	struct rlimit rlim = {0};
-	assert_syscall_state(SYSCALL_SUCCESS, "ugetrlimit", syscall(__NR_ugetrlimit, resource, &rlim), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "ugetrlimit",
+	                     syscall(__NR_ugetrlimit, resource, &rlim),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -27,8 +30,7 @@ TEST(SyscallExit, ugetrlimitX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -52,8 +54,7 @@ TEST(SyscallExit, ugetrlimitX_success)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallExit, ugetrlimitX_failure)
-{
+TEST(SyscallExit, ugetrlimitX_failure) {
 	/* Please note:
 	 * the syscall `ugetrlimit` is mapped to `PPME_SYSCALL_GETRLIMIT_E` event
 	 * like `getrlimit`. The same BPF program will be used for both the syscalls.
@@ -76,8 +77,7 @@ TEST(SyscallExit, ugetrlimitX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

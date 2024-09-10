@@ -5,8 +5,7 @@
 #include <linux/sched.h>
 #include <sys/prctl.h>
 
-TEST(SyscallExit, prctlX_failure)
-{
+TEST(SyscallExit, prctlX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_prctl, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -22,7 +21,9 @@ TEST(SyscallExit, prctlX_failure)
 	 * Call the `prctl`
 	 */
 
-	assert_syscall_state(SYSCALL_FAILURE, "prctl", syscall(__NR_prctl, option, arg2, arg3, arg4, arg5));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "prctl",
+	                     syscall(__NR_prctl, option, arg2, arg3, arg4, arg5));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -31,8 +32,7 @@ TEST(SyscallExit, prctlX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -59,12 +59,15 @@ TEST(SyscallExit, prctlX_failure)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallExit, prctlX_get_child_subreaper)
-{
+TEST(SyscallExit, prctlX_get_child_subreaper) {
 	auto evt_test = get_syscall_event_test(__NR_prctl, EXIT_EVENT);
 
 	// set the subreaper attribute
-	assert_syscall_state(SYSCALL_SUCCESS, "prctl", syscall(__NR_prctl, PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0), EQUAL, 0);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "prctl",
+	                     syscall(__NR_prctl, PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0),
+	                     EQUAL,
+	                     0);
 
 	evt_test->enable_capture();
 
@@ -76,20 +79,26 @@ TEST(SyscallExit, prctlX_get_child_subreaper)
 	unsigned long arg4 = 0;
 	unsigned long arg5 = 0;
 
-	assert_syscall_state(SYSCALL_SUCCESS, "prctl", syscall(__NR_prctl, option, &arg2, arg3, arg4, arg5), EQUAL, 0);
-
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "prctl",
+	                     syscall(__NR_prctl, option, &arg2, arg3, arg4, arg5),
+	                     EQUAL,
+	                     0);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->disable_capture();
 
 	// unset the subreaper attribute
-	assert_syscall_state(SYSCALL_SUCCESS, "prctl", syscall(__NR_prctl, PR_SET_CHILD_SUBREAPER, 0, 0, 0, 0), EQUAL, 0);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "prctl",
+	                     syscall(__NR_prctl, PR_SET_CHILD_SUBREAPER, 0, 0, 0, 0),
+	                     EQUAL,
+	                     0);
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -116,8 +125,7 @@ TEST(SyscallExit, prctlX_get_child_subreaper)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallExit, prctlX_set_child_subreaper)
-{
+TEST(SyscallExit, prctlX_set_child_subreaper) {
 	auto evt_test = get_syscall_event_test(__NR_prctl, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -137,12 +145,15 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 	cl_args.exit_signal = SIGCHLD;
 
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/*
 		 * Call the `prctl`
 		 */
-		assert_syscall_state(SYSCALL_SUCCESS, "prctl", syscall(__NR_prctl, option, arg2, arg3, arg4, arg5), EQUAL, 0);
+		assert_syscall_state(SYSCALL_SUCCESS,
+		                     "prctl",
+		                     syscall(__NR_prctl, option, arg2, arg3, arg4, arg5),
+		                     EQUAL,
+		                     0);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -152,9 +163,12 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 	int status = 0;
 	int options = 0;
 
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The prctl call is successful while it should fail..." << std::endl;
 	}
 
@@ -164,8 +178,7 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -192,8 +205,7 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallExit, prctlX_set_name)
-{
+TEST(SyscallExit, prctlX_set_name) {
 	auto evt_test = get_syscall_event_test(__NR_prctl, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -201,7 +213,10 @@ TEST(SyscallExit, prctlX_set_name)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int option = PR_SET_NAME;
-	const char arg2[] = "AAABAACAADAAEAAFAAGAAHAAIAAJAAKAALAAMAANAAOAAPAAQAARAASAATAAUAAVAAWAAXAAYAAZAAaAAbAAcAAdAAeAAfAAgAAhAAiAAjAAkAAlAAmAAnAAoAApAAqAArAAsAAtAAuAAvAAwAAxAAyAAzAA1AA2AA3AA4AA5AA6AA7AA8AA9AA0ABBABCABDABEABFABGABHABIABJABKABLABMABNABOABPABQABRABSABTABUABVABWABXAB";
+	const char arg2[] =
+	        "AAABAACAADAAEAAFAAGAAHAAIAAJAAKAALAAMAANAAOAAPAAQAARAASAATAAUAAVAAWAAXAAYAAZAAaAAbAAcA"
+	        "AdAAeAAfAAgAAhAAiAAjAAkAAlAAmAAnAAoAApAAqAArAAsAAtAAuAAvAAwAAxAAyAAzAA1AA2AA3AA4AA5AA6"
+	        "AA7AA8AA9AA0ABBABCABDABEABFABGABHABIABJABKABLABMABNABOABPABQABRABSABTABUABVABWABXAB";
 	unsigned long arg3 = 0;
 	unsigned long arg4 = 0;
 	unsigned long arg5 = 0;
@@ -213,12 +228,15 @@ TEST(SyscallExit, prctlX_set_name)
 	cl_args.exit_signal = SIGCHLD;
 
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/*
 		 * Call the `prctl`
 		 */
-		assert_syscall_state(SYSCALL_SUCCESS, "prctl", syscall(__NR_prctl, option, arg2, arg3, arg4, arg5), EQUAL, 0);
+		assert_syscall_state(SYSCALL_SUCCESS,
+		                     "prctl",
+		                     syscall(__NR_prctl, option, arg2, arg3, arg4, arg5),
+		                     EQUAL,
+		                     0);
 		exit(EXIT_SUCCESS);
 	}
 
@@ -229,9 +247,12 @@ TEST(SyscallExit, prctlX_set_name)
 	int status = 0;
 	int options = 0;
 
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The prctl call is successful while it should fail..." << std::endl;
 	}
 
@@ -241,8 +262,7 @@ TEST(SyscallExit, prctlX_set_name)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

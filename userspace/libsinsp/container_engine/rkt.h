@@ -28,19 +28,23 @@ class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
-class rkt : public container_engine_base
-{
+class rkt : public container_engine_base {
 public:
-	rkt(container_cache_interface& cache) : container_engine_base(cache)
-	{}
+	rkt(container_cache_interface& cache): container_engine_base(cache) {}
 
-	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	bool resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
 
 protected:
-	bool match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp_container_info& container_info,
-		   std::string& rkt_podid, std::string& rkt_appname, bool query_os_for_missing_info);
+	bool match(container_cache_interface* cache,
+	           sinsp_threadinfo* tinfo,
+	           sinsp_container_info& container_info,
+	           std::string& rkt_podid,
+	           std::string& rkt_appname,
+	           bool query_os_for_missing_info);
 
-	bool parse_rkt(sinsp_container_info& container, const std::string& podid, const std::string& appname);
+	bool parse_rkt(sinsp_container_info& container,
+	               const std::string& podid,
+	               const std::string& appname);
 };
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

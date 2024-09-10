@@ -8,11 +8,9 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
-static __always_inline bool check_fcntl_dropping(struct pt_regs *regs)
-{
+static __always_inline bool check_fcntl_dropping(struct pt_regs *regs) {
 	int cmd = (int32_t)extract__syscall_argument(regs, 1);
-	if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC)
-	{
+	if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC) {
 		return true;
 	}
 	return false;
@@ -21,18 +19,13 @@ static __always_inline bool check_fcntl_dropping(struct pt_regs *regs)
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(fcntl_e,
-	     struct pt_regs *regs,
-	     long id)
-{
-	if(maps__get_dropping_mode() && check_fcntl_dropping(regs))
-	{
+int BPF_PROG(fcntl_e, struct pt_regs *regs, long id) {
+	if(maps__get_dropping_mode() && check_fcntl_dropping(regs)) {
 		return 0;
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FCNTL_E_SIZE, PPME_SYSCALL_FCNTL_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCNTL_E_SIZE, PPME_SYSCALL_FCNTL_E)) {
 		return 0;
 	}
 
@@ -60,18 +53,13 @@ int BPF_PROG(fcntl_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(fcntl_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
-	if(maps__get_dropping_mode() && check_fcntl_dropping(regs))
-	{
+int BPF_PROG(fcntl_x, struct pt_regs *regs, long ret) {
+	if(maps__get_dropping_mode() && check_fcntl_dropping(regs)) {
 		return 0;
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FCNTL_X_SIZE, PPME_SYSCALL_FCNTL_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCNTL_X_SIZE, PPME_SYSCALL_FCNTL_X)) {
 		return 0;
 	}
 

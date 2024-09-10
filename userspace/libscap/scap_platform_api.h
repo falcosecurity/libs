@@ -59,19 +59,27 @@ void scap_refresh_iflist(struct scap_platform* platform);
 */
 struct scap_userlist* scap_get_user_list(struct scap_platform* platform);
 
-// get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
+// get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if
+// needed
 // XXX: procdir is Linux-specific
-uint32_t scap_get_device_by_mount_id(struct scap_platform* platform, const char *procdir, unsigned long requested_mount_id);
+uint32_t scap_get_device_by_mount_id(struct scap_platform* platform,
+                                     const char* procdir,
+                                     unsigned long requested_mount_id);
 
 // Get the information about a process.
 // The returned pointer must be freed via scap_proc_free by the caller.
-int32_t scap_proc_get(struct scap_platform* platform, int64_t tid, struct scap_threadinfo* tinfo,
-		       bool scan_sockets);
+int32_t scap_proc_get(struct scap_platform* platform,
+                      int64_t tid,
+                      struct scap_threadinfo* tinfo,
+                      bool scan_sockets);
 
 int32_t scap_refresh_proc_table(struct scap_platform* platform);
 
 // Check if the given thread exists in /proc
-bool scap_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm);
+bool scap_is_thread_alive(struct scap_platform* platform,
+                          int64_t pid,
+                          int64_t tid,
+                          const char* comm);
 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(struct scap_platform* platform, int64_t* pid);

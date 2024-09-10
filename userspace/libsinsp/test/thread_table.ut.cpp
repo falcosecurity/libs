@@ -20,8 +20,7 @@ limitations under the License.
 
 /* These are a sort of e2e for the sinsp state, they assert some flows in sinsp */
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_check_default_tree)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_check_default_tree) {
 	/* This test allow us to trust the DEFAULT TREE in other tests */
 
 	/* Instantiate the default tree */
@@ -58,8 +57,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_check_default_tree)
 	ASSERT_THREAD_CHILDREN(p5_t2_tid, 1, 1, p6_t1_tid);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_missing_init_in_proc)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_missing_init_in_proc) {
 	int64_t p1_t1_tid = 2;
 	int64_t p1_t1_pid = 2;
 	int64_t p1_t1_ptid = INIT_TID;
@@ -76,8 +74,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_missing_init_in_proc)
 	ASSERT_EQ(p1_t1_tinfo->m_ptid, 0);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation) {
 	/* Right now we have only the init process here */
 	add_default_init_thread();
 	open_inspector();
@@ -97,8 +94,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_check_init_process_creation)
 	ASSERT_EQ(tinfo->m_tginfo->get_thread_list().front().lock().get(), tinfo);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_create_thread_dependencies_after_proc_scan)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_create_thread_dependencies_after_proc_scan) {
 	/* - init
 	 *  - p1_t1
 	 *   - p2_t1
@@ -180,8 +176,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_create_thread_dependencies_after_proc_s
 	ASSERT_THREAD_INFO_PIDS(init_t3_tid, init_t3_pid, init_t3_ptid);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads) {
 	DEFAULT_TREE
 
 	set_threadinfo_last_access_time(INIT_TID, 70);
@@ -205,8 +200,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads)
 	set_threadinfo_last_access_time(p2_t1_tid, 20);
 	set_threadinfo_last_access_time(p2_t3_tid, 20);
 
-	/* p2_t1 shouldn't be removed from the table since it is a leader thread and we still have some threads in that
-	 * group while p2_t3 should be removed.
+	/* p2_t1 shouldn't be removed from the table since it is a leader thread and we still have some
+	 * threads in that group while p2_t3 should be removed.
 	 */
 	remove_inactive_threads(80, 20);
 	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, m_inspector.m_thread_manager->get_thread_count());
@@ -214,8 +209,14 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads)
 
 	/* Calling PRCTL on an unknown thread should generate an invalid thread */
 	int64_t unknown_tid = 61103;
-	add_event_advance_ts(increasing_ts(), unknown_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
-			     PPM_PR_GET_CHILD_SUBREAPER, "<NA>", (int64_t)0);
+	add_event_advance_ts(increasing_ts(),
+	                     unknown_tid,
+	                     PPME_SYSCALL_PRCTL_X,
+	                     4,
+	                     (int64_t)0,
+	                     PPM_PR_GET_CHILD_SUBREAPER,
+	                     "<NA>",
+	                     (int64_t)0);
 
 	auto unknown_tinfo = m_inspector.get_thread_ref(unknown_tid, false).get();
 	ASSERT_TRUE(unknown_tinfo);
@@ -232,18 +233,15 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_inactive_threads)
 	ASSERT_EQ(DEFAULT_TREE_NUM_PROCS - 1, m_inspector.m_thread_manager->get_thread_count());
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
 
 	std::vector<int64_t> traverse_parents;
-	sinsp_threadinfo::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt)
-	{
+	sinsp_threadinfo::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt) {
 		/* we stop when we reach the init parent */
 		traverse_parents.push_back(pt->m_tid);
-		if(pt->m_tid == INIT_TID)
-		{
+		if(pt->m_tid == INIT_TID) {
 			return false;
 		}
 		return true;
@@ -267,7 +265,10 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree)
 	tinfo = m_inspector.get_thread_ref(p5_t2_tid, false).get();
 	ASSERT_TRUE(tinfo);
 
-	std::vector<int64_t> expected_p5_traverse_parents = {p5_t2_ptid, p4_t2_ptid, p3_t1_ptid, p2_t1_ptid};
+	std::vector<int64_t> expected_p5_traverse_parents = {p5_t2_ptid,
+	                                                     p4_t2_ptid,
+	                                                     p3_t1_ptid,
+	                                                     p2_t1_ptid};
 
 	traverse_parents.clear();
 	tinfo->traverse_parent_state(visitor);
@@ -334,8 +335,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_traverse_default_tree)
 	/*=============================== p6_t1 traverse ===========================*/
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_main_thread_first)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_main_thread_first) {
 	DEFAULT_TREE
 
 	/* We remove the main thread, but it is only marked as dead */
@@ -350,8 +350,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_main_thread_first)
 	ASSERT_MISSING_THREAD_INFO(p5_t2_tid, true)
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_secondary_thread_first)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_secondary_thread_first) {
 	DEFAULT_TREE
 
 	/* We remove the secondary thread */
@@ -365,8 +364,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_remove_thread_group_secondary_thread_fi
 	ASSERT_MISSING_THREAD_INFO(p5_t2_tid, true)
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_manage_proc_exit_event_lost)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_manage_proc_exit_event_lost) {
 	DEFAULT_TREE
 
 	/* Let's imagine we miss the exit event on p5_t2. At a certain point
@@ -380,8 +378,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_manage_proc_exit_event_lost)
 	ASSERT_MISSING_THREAD_INFO(p5_t2_tid, true);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_ignore_not_existent_reaper)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_ignore_not_existent_reaper) {
 	DEFAULT_TREE
 
 	/* not existent reaper, our userspace logic should be able
@@ -403,8 +400,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_ignore_not_existent_reaper)
 	ASSERT_TRUE(unknonw_repaer_tinfo->is_invalid());
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree) {
 	DEFAULT_TREE
 
 	/* p5_t1 has no children, when p5_t2 dies p5_t1 receives p6_t1 as child */
@@ -428,8 +424,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_reparenting_in_the_default_tree)
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 3, true, 3, 3);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size) {
 	m_inspector.m_thread_manager->set_max_thread_table_size(10000);
 
 	add_default_init_thread();
@@ -442,8 +437,8 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size)
 	/* Here we want to check that creating a number of threads grater
 	 * than m_max_thread_table_size doesn't cause a crash.
 	 */
-	for(uint32_t i = 1; i < (m_inspector.m_thread_manager->get_max_thread_table_size() + 1000); i++)
-	{
+	for(uint32_t i = 1; i < (m_inspector.m_thread_manager->get_max_thread_table_size() + 1000);
+	    i++) {
 		/* we change only the tid */
 		generate_clone_x_event(0, pid + i, pid, INIT_TID, PPM_CL_CLONE_THREAD);
 	}
@@ -456,8 +451,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_max_table_size)
 	ASSERT_THREAD_GROUP_INFO(pid, thread_group_size, false, thread_group_size, thread_group_size);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -466,8 +460,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group)
 	generate_clone_x_event(0, pid, pid, INIT_TID);
 
 	/* put HUGE_THREAD_NUMBER threads into the group */
-	for(auto i = 1; i < HUGE_THREAD_NUMBER; i++)
-	{
+	for(auto i = 1; i < HUGE_THREAD_NUMBER; i++) {
 		generate_clone_x_event(0, pid + i, pid, INIT_TID);
 	}
 
@@ -475,12 +468,12 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group)
 	ASSERT_THREAD_GROUP_INFO(pid, thread_group_size, false, thread_group_size, thread_group_size);
 
 	/* Only `DEFAULT_DEAD_THREADS_THRESHOLD - 1` removal, we need another one */
-	for(auto i = 0; i < (DEFAULT_DEAD_THREADS_THRESHOLD - 1); i++)
-	{
+	for(auto i = 0; i < (DEFAULT_DEAD_THREADS_THRESHOLD - 1); i++) {
 		remove_thread(pid + i, 0);
 	}
 
-	/* we have DEFAULT_DEAD_THREADS_THRESHOLD-1 dead threads so we don't try to clean the expired ones */
+	/* we have DEFAULT_DEAD_THREADS_THRESHOLD-1 dead threads so we don't try to clean the expired
+	 * ones */
 	int64_t alive_threads = thread_group_size - (DEFAULT_DEAD_THREADS_THRESHOLD - 1);
 	/* Please note that the main thread is not expired so `alive_threads+1` */
 	ASSERT_THREAD_GROUP_INFO(20, alive_threads, false, thread_group_size, alive_threads + 1);
@@ -501,8 +494,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group)
 	ASSERT_THREAD_GROUP_INFO(20, alive_threads, false, thread_group_size, alive_threads + 1);
 
 	/* remove all threads in the group */
-	for(int i = 0; i <= HUGE_THREAD_NUMBER; i++)
-	{
+	for(int i = 0; i <= HUGE_THREAD_NUMBER; i++) {
 		remove_thread(pid + i, 0);
 	}
 
@@ -512,8 +504,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_threads_in_a_group)
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -522,8 +513,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group)
 	generate_clone_x_event(0, pid, pid, INIT_TID);
 
 	/* put HUGE_THREAD_NUMBER threads into the group and remove them immediately after */
-	for(auto i = 1; i < HUGE_THREAD_NUMBER; i++)
-	{
+	for(auto i = 1; i < HUGE_THREAD_NUMBER; i++) {
 		generate_clone_x_event(0, pid + i, pid, INIT_TID);
 		remove_thread(pid + i, 0);
 	}
@@ -537,10 +527,11 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group)
 	 * - `-DEFAULT_DEAD_THREADS_THRESHOLD` is the first time we call the logic. To compensate
 	 *    this we will do `called_logic++` at the end.
 	 */
-	int called_logic =
-		(HUGE_THREAD_NUMBER - DEFAULT_DEAD_THREADS_THRESHOLD - 1) / (DEFAULT_DEAD_THREADS_THRESHOLD - 1);
+	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_DEAD_THREADS_THRESHOLD - 1) /
+	                   (DEFAULT_DEAD_THREADS_THRESHOLD - 1);
 	called_logic++;
-	int remaining_threads = HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_DEAD_THREADS_THRESHOLD - 1));
+	int remaining_threads =
+	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_DEAD_THREADS_THRESHOLD - 1));
 
 	/* we should have only the main thread alive */
 	ASSERT_THREAD_GROUP_INFO(20, 1, false, remaining_threads, 1);
@@ -549,22 +540,19 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_threads_in_a_group)
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 2);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_many_children)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_many_children) {
 	add_default_init_thread();
 	open_inspector();
 
 	int64_t tid = 20;
-	for(auto i = 0; i < HUGE_THREAD_NUMBER; i++)
-	{
+	for(auto i = 0; i < HUGE_THREAD_NUMBER; i++) {
 		generate_clone_x_event(0, tid + i, tid + i, INIT_TID);
 	}
 
 	ASSERT_THREAD_CHILDREN(INIT_TID, HUGE_THREAD_NUMBER, HUGE_THREAD_NUMBER);
 
 	/* Only `DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1` removal, we need another one */
-	for(auto i = 0; i < (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1); i++)
-	{
+	for(auto i = 0; i < (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1); i++) {
 		remove_thread(tid + i, 0);
 	}
 
@@ -586,8 +574,7 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_children)
 	ASSERT_THREAD_CHILDREN(INIT_TID, alive_children + 2, alive_children);
 
 	/* remove all threads */
-	for(int i = 0; i <= HUGE_THREAD_NUMBER; i++)
-	{
+	for(int i = 0; i <= HUGE_THREAD_NUMBER; i++) {
 		remove_thread(tid + i, 0);
 	}
 
@@ -599,32 +586,32 @@ TEST_F(sinsp_with_test_input, THRD_TABLE_many_children)
 	 * - `-DEFAULT_EXPIRED_CHILDREN_THRESHOLD` is the first time we call the logic. To compensate
 	 *    this we will do `called_logic++` at the end.
 	 */
-	int called_logic =
-		(HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) / (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
+	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) /
+	                   (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
 	called_logic++;
-	int remaining_threads = HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
+	int remaining_threads =
+	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
 
 	ASSERT_THREAD_CHILDREN(INIT_TID, remaining_threads, 0);
 	/* Only init process */
 	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 1);
 }
 
-TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_children)
-{
+TEST_F(sinsp_with_test_input, THRD_TABLE_add_and_remove_many_children) {
 	add_default_init_thread();
 	open_inspector();
 
 	int64_t tid = 20;
-	for(auto i = 0; i < HUGE_THREAD_NUMBER; i++)
-	{
+	for(auto i = 0; i < HUGE_THREAD_NUMBER; i++) {
 		generate_clone_x_event(0, tid + i, tid + i, INIT_TID);
 		remove_thread(tid + i, 0);
 	}
 
-	int called_logic =
-		(HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) / (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
+	int called_logic = (HUGE_THREAD_NUMBER - DEFAULT_EXPIRED_CHILDREN_THRESHOLD) /
+	                   (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1);
 	called_logic++;
-	int remaining_threads = HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
+	int remaining_threads =
+	        HUGE_THREAD_NUMBER - (called_logic * (DEFAULT_EXPIRED_CHILDREN_THRESHOLD - 1));
 
 	ASSERT_THREAD_CHILDREN(INIT_TID, remaining_threads, 0);
 	/* Only init process */

@@ -22,10 +22,8 @@ limitations under the License.
 #include <libsinsp/container_info.h>
 #include <chrono>
 
-namespace libsinsp
-{
-namespace container_engine
-{
+namespace libsinsp {
+namespace container_engine {
 
 class container_cache_interface;
 
@@ -35,8 +33,8 @@ class container_cache_interface;
  * @tparam key_type lookup key
  */
 template<typename key_type>
-class container_async_source : public libsinsp::async_key_value_source<key_type, sinsp_container_info>
-{
+class container_async_source
+        : public libsinsp::async_key_value_source<key_type, sinsp_container_info> {
 	using parent_type = libsinsp::async_key_value_source<key_type, sinsp_container_info>;
 	using callback_handler = typename parent_type::callback_handler;
 
@@ -47,9 +45,7 @@ public:
 	// convenience method with default callback
 	bool lookup(const key_type& key, sinsp_container_info& value);
 
-	bool lookup(const key_type& key,
-		    sinsp_container_info& value,
-		    const callback_handler& handler);
+	bool lookup(const key_type& key, sinsp_container_info& value, const callback_handler& handler);
 
 	bool lookup_sync(const key_type& key, sinsp_container_info& value);
 
@@ -69,7 +65,7 @@ private:
 	void run_impl() override;
 };
 
-} // namespace container_engine
-} // namespace libsinsp
+}  // namespace container_engine
+}  // namespace libsinsp
 
 #include <libsinsp/container_engine/container_async_source.tpp>

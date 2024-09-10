@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(finit_module_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(finit_module_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FINIT_MODULE_E_SIZE, PPME_SYSCALL_FINIT_MODULE_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FINIT_MODULE_E_SIZE, PPME_SYSCALL_FINIT_MODULE_E)) {
 		return 0;
 	}
 
@@ -33,8 +29,6 @@ int BPF_PROG(finit_module_e,
 	ringbuf__submit_event(&ringbuf);
 
 	return 0;
-
-
 }
 
 /*=============================== ENTER EVENT ===========================*/
@@ -42,13 +36,9 @@ int BPF_PROG(finit_module_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(finit_module_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(finit_module_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -70,7 +60,6 @@ int BPF_PROG(finit_module_x,
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	uint32_t flags = extract__syscall_argument(regs, 2);
 	auxmap__store_s32_param(auxmap, finit_module_flags_to_scap(flags));
-
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -24,7 +24,7 @@ limitations under the License.
 #include <unordered_set>
 #if !defined(_WIN32)
 #include <netinet/in.h>
-#endif //_WIN32
+#endif  //_WIN32
 #include <driver/event_stats.h>
 
 #define DEFAULT_IPV4_CLIENT_STRING "172.40.111.222"
@@ -47,18 +47,19 @@ limitations under the License.
 #else
 #if !defined(_WIN32)
 #include <sys/un.h>
-# endif //_WIN32
+#endif  //_WIN32
 #ifndef UNIX_PATH_MAX
 #define UNIX_PATH_MAX 108
 #endif
 #endif
 
-#define ASSERT_NAMES_EQ(a, b)                                                                                \
-	{                                                                                                        \
-		auto a1 = a;                                                                                         \
-		auto b1 = b;                                                                                         \
-		EXPECT_EQ(a1.size(), b1.size());                                                                     \
-		ASSERT_EQ(std::set<std::string>(a1.begin(), a1.end()), std::set<std::string>(b1.begin(), b1.end())); \
+#define ASSERT_NAMES_EQ(a, b)                                   \
+	{                                                           \
+		auto a1 = a;                                            \
+		auto b1 = b;                                            \
+		EXPECT_EQ(a1.size(), b1.size());                        \
+		ASSERT_EQ(std::set<std::string>(a1.begin(), a1.end()),  \
+		          std::set<std::string>(b1.begin(), b1.end())); \
 	}
 
 // `merge` requires cpp17...
@@ -67,8 +68,7 @@ limitations under the License.
 		auto a1 = a;                     \
 		auto b1 = b;                     \
 		uint32_t prev_size = a1.size();  \
-		for(const auto& val : b1)        \
-		{                                \
+		for(const auto& val : b1) {      \
 			a1.insert(val);              \
 		}                                \
 		ASSERT_EQ(prev_size, a1.size()); \
@@ -80,35 +80,36 @@ limitations under the License.
 		auto a1 = a;                                 \
 		auto b1 = b;                                 \
 		uint32_t prev_size = a1.size();              \
-		for(const auto& val : b1)                    \
-		{                                            \
+		for(const auto& val : b1) {                  \
 			a1.insert(val);                          \
 		}                                            \
 		ASSERT_EQ(prev_size + b1.size(), a1.size()); \
 	}
 
-#define ASSERT_PPM_EVENT_CODES_EQ(a, b)                                                                                                              \
-	{                                                                                                                                            \
-		auto a1 = a;                                                                                                                         \
-		auto b1 = b;                                                                                                                         \
-		EXPECT_EQ(a1.size(), b1.size());                                                                                               \
-		ASSERT_EQ(libsinsp::events::set<ppm_event_code>(a1.begin(), a1.end()), libsinsp::events::set<ppm_event_code>(b1.begin(), b1.end())); \
-		ASSERT_TRUE(a1.equals(b1));                                                                                                          \
+#define ASSERT_PPM_EVENT_CODES_EQ(a, b)                                         \
+	{                                                                           \
+		auto a1 = a;                                                            \
+		auto b1 = b;                                                            \
+		EXPECT_EQ(a1.size(), b1.size());                                        \
+		ASSERT_EQ(libsinsp::events::set<ppm_event_code>(a1.begin(), a1.end()),  \
+		          libsinsp::events::set<ppm_event_code>(b1.begin(), b1.end())); \
+		ASSERT_TRUE(a1.equals(b1));                                             \
 	}
 
-#define ASSERT_PPM_SC_CODES_EQ(a, b)                                                                                                           \
-	{                                                                                                                                      \
-		auto a1 = a;                                                                                                                   \
-		auto b1 = b;                                                                                                                   \
-		EXPECT_EQ(a1.size(), b1.size());                                                                                               \
-		ASSERT_EQ(libsinsp::events::set<ppm_sc_code>(a1.begin(), a1.end()), libsinsp::events::set<ppm_sc_code>(b1.begin(), b1.end())); \
-		ASSERT_TRUE(a1.equals(b1));                                                                                                    \
+#define ASSERT_PPM_SC_CODES_EQ(a, b)                                         \
+	{                                                                        \
+		auto a1 = a;                                                         \
+		auto b1 = b;                                                         \
+		EXPECT_EQ(a1.size(), b1.size());                                     \
+		ASSERT_EQ(libsinsp::events::set<ppm_sc_code>(a1.begin(), a1.end()),  \
+		          libsinsp::events::set<ppm_sc_code>(b1.begin(), b1.end())); \
+		ASSERT_TRUE(a1.equals(b1));                                          \
 	}
 
 namespace test_utils {
 
-// transform a list of strings into a single string where each element is delimited by a null (0) byte.
-// the last element will also be null-terminated unless the input list is empty.
+// transform a list of strings into a single string where each element is delimited by a null (0)
+// byte. the last element will also be null-terminated unless the input list is empty.
 std::string to_null_delimited(std::vector<std::string> list);
 
 // This helper is used to convert an unordered set into an ordered set.
@@ -119,13 +120,15 @@ std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set);
 struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string);
 struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string);
 struct sockaddr_un fill_sockaddr_un(const char* unix_path);
-std::vector<uint8_t> pack_sockaddr(sockaddr *sa);
-std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest);
-std::vector<uint8_t> pack_unix_socktuple(uint64_t scr_pointer, uint64_t dst_pointer, std::string unix_path);
-#endif //_WIN32
+std::vector<uint8_t> pack_sockaddr(sockaddr* sa);
+std::vector<uint8_t> pack_socktuple(sockaddr* src, sockaddr* dest);
+std::vector<uint8_t> pack_unix_socktuple(uint64_t scr_pointer,
+                                         uint64_t dst_pointer,
+                                         std::string unix_path);
+#endif  //_WIN32
 
-void print_bytes(uint8_t *buf, size_t size);
+void print_bytes(uint8_t* buf, size_t size);
 
 std::string describe_string(const char* nullable_string);
 
-} // namespace test_utils
+}  // namespace test_utils

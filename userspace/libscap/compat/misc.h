@@ -31,8 +31,8 @@ limitations under the License.
 #endif
 
 /*
-	O_TMPFILE was introduced in Linux >= 3.11 and defined as (__O_TMPFILE | O_DIRECTORY).
-	To maintain compatiblity with different build environments, the below is added.   
+    O_TMPFILE was introduced in Linux >= 3.11 and defined as (__O_TMPFILE | O_DIRECTORY).
+    To maintain compatiblity with different build environments, the below is added.
 */
 #ifndef O_TMPFILE
 #define O_TMPFILE 020200000

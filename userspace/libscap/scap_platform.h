@@ -38,15 +38,20 @@ struct scap_platform;
 // Note: every platform alloc function needs to set up the proc_callback, since
 // this needs to be called before opening the engine; otherwise the proclist callback
 // won't be set up in time (for the savefile engine)
-struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context);
+struct scap_platform* scap_generic_alloc_platform(proc_entry_callback proc_callback,
+                                                  void* proc_callback_context);
 
 // initialize the common part of the platform handle
-int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs);
+int32_t scap_generic_init_platform(struct scap_platform* platform,
+                                   char* lasterr,
+                                   struct scap_open_args* oargs);
 
 // initialize a platform handle
 // this calls `scap_generic_init_platform` and `init_platform` from the vtable
-int32_t scap_platform_init(struct scap_platform *platform, char *lasterr, struct scap_engine_handle engine,
-			   struct scap_open_args *oargs);
+int32_t scap_platform_init(struct scap_platform* platform,
+                           char* lasterr,
+                           struct scap_engine_handle engine,
+                           struct scap_open_args* oargs);
 
 // close a platform
 // this calls `close_platform` from the vtable and also

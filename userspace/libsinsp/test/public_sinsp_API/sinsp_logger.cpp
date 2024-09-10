@@ -27,8 +27,7 @@ limitations under the License.
 #include <sys/stat.h>
 #include <fcntl.h>
 
-namespace
-{
+namespace {
 
 /** Default size for read buffers, must be <= the size of a pipe. */
 const size_t BUFFER_SIZE = 4096;
@@ -36,13 +35,11 @@ const size_t BUFFER_SIZE = 4096;
 /** The default log message content. */
 const std::string DEFAULT_MESSAGE = "hello, world";
 
-class sinsp_logger_test : public testing::Test
-{
+class sinsp_logger_test : public testing::Test {
 public:
 	sinsp_logger_test() {}
 
-	void SetUp()
-	{
+	void SetUp() {
 		libsinsp_logger()->reset();
 		s_cb_output.clear();
 	}
@@ -59,8 +56,7 @@ protected:
 	 * @param[in]  substr The substring for which to search.
 	 * @param[out] count  The number of times substr was found in target.
 	 */
-	void count_substrings(const std::string& target, const std::string& substr, size_t& count)
-	{
+	void count_substrings(const std::string& target, const std::string& substr, size_t& count) {
 		size_t position = target.find(substr);
 
 		count = 0;
@@ -70,8 +66,7 @@ protected:
 
 		++count;
 
-		while ((position = target.find(substr, position + 1)) != std::string::npos)
-		{
+		while((position = target.find(substr, position + 1)) != std::string::npos) {
 			++count;
 		}
 	}
@@ -82,8 +77,7 @@ protected:
 	 * @param[in]  filename The name of the file to read.
 	 * @param[out] out      The content of the file.
 	 */
-	void read_file(const std::string& filename, std::string& out)
-	{
+	void read_file(const std::string& filename, std::string& out) {
 		test_helpers::scoped_file_descriptor fd(open(filename.c_str(), O_RDONLY));
 
 		ASSERT_TRUE(fd.is_valid());
@@ -100,8 +94,7 @@ protected:
 	 * @param[in]  fd  The file descriptor from which to read.
 	 * @param[out] str The content read from the given fd
 	 */
-	void nb_read_fd(const int fd, std::string& str)
-	{
+	void nb_read_fd(const int fd, std::string& str) {
 		char buffer[BUFFER_SIZE] = {};
 
 		set_nonblocking(fd);
@@ -131,8 +124,7 @@ protected:
 	                  std::string& std_err,
 	                  std::string& file_out,
 	                  const sinsp_logger::severity severity = sinsp_logger::SEV_INFO,
-	                  const std::string& log_filename = "")
-	{
+	                  const std::string& log_filename = "") {
 		test_helpers::scoped_pipe stdout_pipe;
 		test_helpers::scoped_pipe stderr_pipe;
 
@@ -144,7 +136,7 @@ protected:
 
 		ASSERT_TRUE(pid >= 0);
 
-		if (pid == 0)  // child
+		if(pid == 0)  // child
 		{
 			ASSERT_TRUE(dup2(stdout_pipe.write_end().get_fd(), STDOUT_FILENO) >= 0);
 			ASSERT_TRUE(dup2(stderr_pipe.write_end().get_fd(), STDERR_FILENO) >= 0);
@@ -155,8 +147,7 @@ protected:
 			libsinsp_logger()->log(message, severity);
 
 			_exit(0);
-		}
-		else  // parent
+		} else  // parent
 		{
 			int status = 0;
 
@@ -173,8 +164,7 @@ protected:
 			nb_read_fd(stderr_pipe.read_end().get_fd(), std_err);
 			stderr_pipe.read_end().close();
 
-			if (log_filename != "")
-			{
+			if(log_filename != "") {
 				read_file(log_filename.c_str(), file_out);
 			}
 		}
@@ -188,8 +178,7 @@ protected:
 	 * @param[in] str The log message
 	 * @param[in] sev The log severity
 	 */
-	static void log_callback_fn(std::string&& str, const sinsp_logger::severity sev)
-	{
+	static void log_callback_fn(std::string&& str, const sinsp_logger::severity sev) {
 		s_cb_output = std::move(str);
 	}
 
@@ -206,8 +195,7 @@ private:
 	 *
 	 * @param[in] fd The file descriptor to be placed in non-blocking mode.
 	 */
-	void set_nonblocking(const int fd)
-	{
+	void set_nonblocking(const int fd) {
 		int flags = fcntl(fd, F_GETFL);
 
 		ASSERT_TRUE(flags >= 0);
@@ -225,15 +213,13 @@ std::string sinsp_logger_test::s_cb_output;
 
 }  // end namespace
 
-TEST_F(sinsp_logger_test, constructor)
-{
+TEST_F(sinsp_logger_test, constructor) {
 	ASSERT_FALSE(libsinsp_logger()->has_output());
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_INFO);
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_NONE);
 }
 
-TEST_F(sinsp_logger_test, output_type)
-{
+TEST_F(sinsp_logger_test, output_type) {
 	ASSERT_FALSE(libsinsp_logger()->has_output());
 	libsinsp_logger()->add_stdout_log();
 	libsinsp_logger()->add_stderr_log();
@@ -247,15 +233,18 @@ TEST_F(sinsp_logger_test, output_type)
 	libsinsp_logger()->add_file_log("./xyazd");
 	close(fd);
 
-	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE | sinsp_logger::OT_CALLBACK | sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
+	ASSERT_EQ(libsinsp_logger()->get_log_output_type(),
+	          (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE |
+	           sinsp_logger::OT_CALLBACK | sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
 
 	libsinsp_logger()->remove_callback_log();
-	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE | sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
+	ASSERT_EQ(libsinsp_logger()->get_log_output_type(),
+	          (sinsp_logger::OT_STDOUT | sinsp_logger::OT_STDERR | sinsp_logger::OT_FILE |
+	           sinsp_logger::OT_NOTS | sinsp_logger::OT_ENCODE_SEV));
 	ASSERT_TRUE(libsinsp_logger()->has_output());
 }
 
-TEST_F(sinsp_logger_test, get_set_severity)
-{
+TEST_F(sinsp_logger_test, get_set_severity) {
 	libsinsp_logger()->set_severity(sinsp_logger::SEV_FATAL);
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_FATAL);
 	ASSERT_TRUE(libsinsp_logger()->is_enabled(sinsp_logger::SEV_FATAL));
@@ -266,8 +255,7 @@ TEST_F(sinsp_logger_test, get_set_severity)
 	ASSERT_TRUE(libsinsp_logger()->is_enabled(sinsp_logger::SEV_ERROR));
 }
 
-TEST_F(sinsp_logger_test, initial_state)
-{
+TEST_F(sinsp_logger_test, initial_state) {
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_NONE);
 	ASSERT_EQ(libsinsp_logger()->get_severity(), sinsp_logger::SEV_INFO);
 }
@@ -277,12 +265,10 @@ TEST_F(sinsp_logger_test, initial_state)
  * With no enabled log sinks, calls to the logging API should produce no
  * output.
  */
-TEST_F(sinsp_logger_test, log_no_output)
-{
+TEST_F(sinsp_logger_test, log_no_output) {
 	std::string out;
 	std::string err;
 	std::string file;
-
 
 	generate_log(DEFAULT_MESSAGE, out, err, file, sinsp_logger::SEV_FATAL);
 
@@ -295,8 +281,7 @@ TEST_F(sinsp_logger_test, log_no_output)
  * Ensure that if the logger's severity is higher than the logged message's
  * severity, that the message is not emitted to the log sink.
  */
-TEST_F(sinsp_logger_test, low_severity_not_logged)
-{
+TEST_F(sinsp_logger_test, low_severity_not_logged) {
 	std::string out;
 	std::string err;
 	std::string file;
@@ -318,8 +303,7 @@ TEST_F(sinsp_logger_test, low_severity_not_logged)
  * With stdout logging sink enabled, emitted logs should be written only to
  * standard output.
  */
-TEST_F(sinsp_logger_test, log_standard_output)
-{
+TEST_F(sinsp_logger_test, log_standard_output) {
 	std::string out;
 	std::string err;
 	std::string file;
@@ -339,8 +323,7 @@ TEST_F(sinsp_logger_test, log_standard_output)
  * enabled), emitted logs should be written only to standard output, and those
  * logs contain the encoded severity before the timestamp
  */
-TEST_F(sinsp_logger_test, log_standard_output_severity)
-{
+TEST_F(sinsp_logger_test, log_standard_output_severity) {
 	std::string out;
 	std::string err;
 	std::string file;
@@ -368,8 +351,7 @@ TEST_F(sinsp_logger_test, log_standard_output_severity)
  * enabled), emitted logs should be written only to standard output, and those
  * logs do not contain the timestamp.
  */
-TEST_F(sinsp_logger_test, log_standard_output_nots)
-{
+TEST_F(sinsp_logger_test, log_standard_output_nots) {
 	std::string out;
 	std::string err;
 	std::string file;
@@ -394,8 +376,7 @@ TEST_F(sinsp_logger_test, log_standard_output_nots)
  * With stderr logging sink enabled, emitted logs should be written only to
  * standard error.
  */
-TEST_F(sinsp_logger_test, log_standard_error)
-{
+TEST_F(sinsp_logger_test, log_standard_error) {
 	std::string out;
 	std::string err;
 	std::string file;
@@ -414,8 +395,7 @@ TEST_F(sinsp_logger_test, log_standard_error)
  * With file logging sink enabled, emitted logs should be written only to the
  * file.
  */
-TEST_F(sinsp_logger_test, log_file)
-{
+TEST_F(sinsp_logger_test, log_file) {
 	const std::string filename = "/tmp/ut.out";  // FIXME
 	std::string out;
 	std::string err;
@@ -435,8 +415,7 @@ TEST_F(sinsp_logger_test, log_file)
  * With a callback logging sink enabled, emitted logs should be written only to
  * the callback.
  */
-TEST_F(sinsp_logger_test, log_callback)
-{
+TEST_F(sinsp_logger_test, log_callback) {
 	libsinsp_logger()->add_callback_log(log_callback_fn);
 	ASSERT_EQ(libsinsp_logger()->get_log_output_type(), sinsp_logger::OT_CALLBACK);
 
@@ -445,8 +424,7 @@ TEST_F(sinsp_logger_test, log_callback)
 	ASSERT_NE(get_callback_output().find(DEFAULT_MESSAGE), std::string::npos);
 }
 
-TEST_F(sinsp_logger_test, log_stderr_multithreaded)
-{
+TEST_F(sinsp_logger_test, log_stderr_multithreaded) {
 	const size_t NUM_THREADS = 5;
 	const std::string message = "123456789";  // 9 characters
 	const size_t NUM_LOGS = 80;
@@ -474,34 +452,29 @@ TEST_F(sinsp_logger_test, log_stderr_multithreaded)
 
 	// Create NUM_THREADS threads, each of which will write NUM_LOGS
 	// instances of the message.
-	for (size_t i = 0; i < NUM_THREADS; ++i)
-	{
-		threads[i] = std::thread(
-		    [message]()
-		    {
-			    for (size_t i = 0; i < NUM_LOGS; ++i)
-			    {
-				    const std::string new_str =
+	for(size_t i = 0; i < NUM_THREADS; ++i) {
+		threads[i] = std::thread([message]() {
+			for(size_t i = 0; i < NUM_LOGS; ++i) {
+				const std::string new_str =
 				        libsinsp_logger()->format_and_return(sinsp_logger::SEV_FATAL,
-				                                       "%s",
-				                                       message.c_str());
+				                                             "%s",
+				                                             message.c_str());
 
-				    // Make sure that multiple threads aren't
-				    // writing to the same underlying buffer
-				    ASSERT_EQ(message, new_str);
+				// Make sure that multiple threads aren't
+				// writing to the same underlying buffer
+				ASSERT_EQ(message, new_str);
 
-				    // Normally we wouldn't want to do something
-				    // like this, but hopefully this will result
-				    // in more thread interleaving between the
-				    // threads.
-				    std::this_thread::yield();
-			    }
-		    });
+				// Normally we wouldn't want to do something
+				// like this, but hopefully this will result
+				// in more thread interleaving between the
+				// threads.
+				std::this_thread::yield();
+			}
+		});
 	}
 
 	// Wait for all the threads to finish
-	for (size_t i = 0; i < NUM_THREADS; ++i)
-	{
+	for(size_t i = 0; i < NUM_THREADS; ++i) {
 		threads[i].join();
 	}
 

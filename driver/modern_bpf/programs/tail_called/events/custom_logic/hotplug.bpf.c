@@ -9,27 +9,25 @@
 #include <helpers/interfaces/fixed_size_event.h>
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(t1_hotplug_e)
-{
+int BPF_PROG(t1_hotplug_e) {
 	/* We assume that the ring buffer for CPU 0 is always there so we send the
 	 * HOT-PLUG event through this buffer.
 	 */
 	uint32_t cpu_0 = 0;
 	struct ringbuf_map *rb = bpf_map_lookup_elem(&ringbuf_maps, &cpu_0);
-	if(!rb)
-	{
+	if(!rb) {
 		bpf_printk("unable to obtain the ring buffer for CPU 0");
 		return 0;
 	}
 
 	struct counter_map *counter = bpf_map_lookup_elem(&counter_maps, &cpu_0);
-	if(!counter)
-	{
+	if(!counter) {
 		bpf_printk("unable to obtain the counter map for CPU 0");
 		return 0;
 	}
 
-	/* This counts the event seen by the drivers even if they are dropped because the buffer is full. */
+	/* This counts the event seen by the drivers even if they are dropped because the buffer is
+	 * full. */
 	counter->n_evts++;
 
 	/* If we are not able to reserve space we stop here
@@ -39,8 +37,7 @@ int BPF_PROG(t1_hotplug_e)
 	ringbuf.reserved_event_size = HOTPLUG_E_SIZE;
 	ringbuf.event_type = PPME_CPU_HOTPLUG_E;
 	ringbuf.data = bpf_ringbuf_reserve(rb, HOTPLUG_E_SIZE, 0);
-	if(!ringbuf.data)
-	{
+	if(!ringbuf.data) {
 		counter->n_drops_buffer++;
 		return 0;
 	}

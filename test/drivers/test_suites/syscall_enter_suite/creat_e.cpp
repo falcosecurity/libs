@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_creat
-TEST(SyscallEnter, creatE)
-{
+TEST(SyscallEnter, creatE) {
 	auto evt_test = get_syscall_event_test(__NR_creat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -19,8 +18,7 @@ TEST(SyscallEnter, creatE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -41,8 +39,7 @@ TEST(SyscallEnter, creatE)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, creatE_max_path)
-{
+TEST(SyscallEnter, creatE_max_path) {
 	auto evt_test = get_syscall_event_test(__NR_creat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -60,8 +57,7 @@ TEST(SyscallEnter, creatE_max_path)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

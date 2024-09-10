@@ -21,11 +21,9 @@ limitations under the License.
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/state/dynamic_struct.h>
 
-class sinsp_filter_check_thread : public sinsp_filter_check
-{
+class sinsp_filter_check_thread : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_EXE = 0,
 		TYPE_PEXE,
 		TYPE_AEXE,
@@ -119,18 +117,24 @@ public:
 	virtual ~sinsp_filter_check_thread() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
 
 	int32_t get_argid() const;
 
 protected:
-	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
-	bool compare_nocache(sinsp_evt*) override;
+	uint8_t *extract_single(sinsp_evt *, uint32_t *len, bool sanitize_strings = true) override;
+	bool compare_nocache(sinsp_evt *) override;
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
-	int32_t extract_arg(std::string_view fldname, std::string_view val, const ppm_param_info**);
-	uint8_t* extract_thread_cpu(sinsp_evt *evt, uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
+	int32_t extract_arg(std::string_view fldname, std::string_view val, const ppm_param_info **);
+	uint8_t *extract_thread_cpu(sinsp_evt *evt,
+	                            uint32_t *len,
+	                            sinsp_threadinfo *tinfo,
+	                            bool extract_user,
+	                            bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
 	bool compare_full_aexe(sinsp_evt *evt);
@@ -148,5 +152,6 @@ private:
 		double d;
 	} m_val;
 	std::vector<uint64_t> m_last_proc_switch_times;
-	std::unique_ptr<libsinsp::state::dynamic_struct::field_accessor<uint64_t>> m_thread_dyn_field_accessor;
+	std::unique_ptr<libsinsp::state::dynamic_struct::field_accessor<uint64_t>>
+	        m_thread_dyn_field_accessor;
 };

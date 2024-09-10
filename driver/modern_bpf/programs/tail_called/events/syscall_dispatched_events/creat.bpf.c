@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(creat_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(creat_e, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -47,13 +43,9 @@ int BPF_PROG(creat_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(creat_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(creat_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -77,8 +69,7 @@ int BPF_PROG(creat_x,
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 	uint16_t creat_flags = 0;
 
-	if(ret > 0)
-	{
+	if(ret > 0) {
 		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
 	}
 
@@ -89,12 +80,9 @@ int BPF_PROG(creat_x,
 	auxmap__store_u64_param(auxmap, ino);
 
 	/* Parameter 6: creat_flags (type: PT_FLAGS16) */
-	if(ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		creat_flags |= PPM_FD_UPPER_LAYER_CREAT;
-	}
-	else if(ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		creat_flags |= PPM_FD_LOWER_LAYER_CREAT;
 	}
 	auxmap__store_u16_param(auxmap, creat_flags);

@@ -16,7 +16,7 @@
 /* Server queue length. */
 #define QUEUE_LENGTH 2
 
-/* IP ports 
+/* IP ports
  * todo!: The distinction between ipv4 and ipv6 ports is not necessary.
  * at the moment we keep them just too avoid to touch many files.
  */
@@ -76,15 +76,16 @@
 
 /*=============================== SEND/RECEIVE ===========================*/
 
-
 #define SHORT_MESSAGE "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
 #define SHORT_MESSAGE_LEN 61
 
-#define LONG_MESSAGE "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL"
+#define LONG_MESSAGE                                                                               \
+	"LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL" \
+	"LLLLLLLLLLLLLLLLLLLLLLLLLLLL"
 #define LONG_MESSAGE_LEN 121
 
-
-// todo!: These macro are used in legacy network tests. They should be removed when we cleanup all nwtwork tests.
+// todo!: These macro are used in legacy network tests. They should be removed when we cleanup all
+// nwtwork tests.
 /* we have also the null terminator because in all our messages
  * (first, second, third) we have left the last byte for the
  * null terminator.
@@ -98,9 +99,12 @@
 #define SECOND_MESSAGE_LEN 38
 #define THIRD_MESSAGE_LEN 55
 #define FULL_MESSAGE_LEN FIRST_MESSAGE_LEN + SECOND_MESSAGE_LEN + THIRD_MESSAGE_LEN
-#define FULL_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0\0hey! there is a third message here."
+#define FULL_MESSAGE                                                                              \
+	"hey! there is a first message here.\0hey! there is a second message here.\0\0hey! there is " \
+	"a third message here."
 #define NO_SNAPLEN_MESSAGE_LEN FIRST_MESSAGE_LEN + SECOND_MESSAGE_LEN
-#define NO_SNAPLEN_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0"
+#define NO_SNAPLEN_MESSAGE \
+	"hey! there is a first message here.\0hey! there is a second message here.\0"
 #define MAX_RECV_BUF_SIZE 100
 
 /*=============================== SEND/RECEIVE ===========================*/
