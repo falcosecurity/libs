@@ -2,14 +2,15 @@
 #
 # Copyright (C) 2023 The Falco Authors.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations under the License.
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
 #
 
 option(USE_BUNDLED_RE2 "Enable building of the bundled RE2" ${USE_BUNDLED_DEPS})
@@ -42,80 +43,90 @@ else()
 		set(RE2_LIB "${RE2_SRC}/lib/libre2${RE2_LIB_SUFFIX}")
 		set(RE2_LIB_PATTERN "libre2*")
 		if(CMAKE_VERSION VERSION_LESS 3.29.1)
-			ExternalProject_Add(re2
+			ExternalProject_Add(
+				re2
 				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
 				URL "${RE2_URL}"
 				URL_HASH "${RE2_URL_HASH}"
 				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 				BUILD_BYPRODUCTS ${RE2_LIB}
-				CMAKE_ARGS
-					-DCMAKE_INSTALL_LIBDIR=lib
-					-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-					-DRE2_BUILD_TESTING=OFF
-					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+				CMAKE_ARGS -DCMAKE_INSTALL_LIBDIR=lib
+						   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+						   -DRE2_BUILD_TESTING=OFF
+						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+			)
 		else()
-			# CMake 3.29.1 removed the support for the `PACKAGE_PREFIX_DIR`
-			# variable. The patch command just applies the same patch applied
-			# by re2 to solve the issue:
+			# CMake 3.29.1 removed the support for the `PACKAGE_PREFIX_DIR` variable. The patch
+			# command just applies the same patch applied by re2 to solve the issue:
 			# https://github.com/google/re2/commit/9ebe4a22cad8a025b68a9594bdff3c047a111333
-			ExternalProject_Add(re2
+			ExternalProject_Add(
+				re2
 				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
 				URL "${RE2_URL}"
 				URL_HASH "${RE2_URL_HASH}"
 				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 				BUILD_BYPRODUCTS ${RE2_LIB}
 				PATCH_COMMAND
-					COMMAND sed -i".bak" "/set_and_check/d" re2Config.cmake.in
-				CMAKE_ARGS
-					-DCMAKE_INSTALL_LIBDIR=lib
-					-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-					-DRE2_BUILD_TESTING=OFF
-					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+				COMMAND sed -i".bak" "/set_and_check/d" re2Config.cmake.in
+				CMAKE_ARGS -DCMAKE_INSTALL_LIBDIR=lib
+						   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+						   -DRE2_BUILD_TESTING=OFF
+						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+			)
 		endif()
 	else()
 		set(RE2_LIB "${RE2_SRC}/lib/re2.lib")
 		set(RE2_LIB_PATTERN "re2.lib")
 		# see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
 		if(CMAKE_VERSION VERSION_LESS 3.15.0)
-			ExternalProject_Add(re2
+			ExternalProject_Add(
+				re2
 				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
 				URL "${RE2_URL}"
 				URL_HASH "${RE2_URL_HASH}"
 				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 				BUILD_BYPRODUCTS ${RE2_LIB}
-				CMAKE_ARGS
-					-DCMAKE_CXX_FLAGS_DEBUG=${FALCOSECURITY_LIBS_DEBUG_FLAGS}
-					-DCMAKE_CXX_FLAGS_RELEASE=${FALCOSECURITY_LIBS_RELEASE_FLAGS}
-					-DCMAKE_INSTALL_LIBDIR=lib
-					-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-					-DRE2_BUILD_TESTING=OFF
-					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+				CMAKE_ARGS -DCMAKE_CXX_FLAGS_DEBUG=${FALCOSECURITY_LIBS_DEBUG_FLAGS}
+						   -DCMAKE_CXX_FLAGS_RELEASE=${FALCOSECURITY_LIBS_RELEASE_FLAGS}
+						   -DCMAKE_INSTALL_LIBDIR=lib
+						   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+						   -DRE2_BUILD_TESTING=OFF
+						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+			)
 		else()
-			ExternalProject_Add(re2
+			ExternalProject_Add(
+				re2
 				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
 				URL "${RE2_URL}"
 				URL_HASH "${RE2_URL_HASH}"
 				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 				BUILD_BYPRODUCTS ${RE2_LIB}
-				CMAKE_ARGS
-					-DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
-					-DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
-					-DCMAKE_INSTALL_LIBDIR=lib
-					-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-					-DRE2_BUILD_TESTING=OFF
-					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+				CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+						   -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
+						   -DCMAKE_INSTALL_LIBDIR=lib
+						   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+						   -DRE2_BUILD_TESTING=OFF
+						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						   -DCMAKE_INSTALL_PREFIX=${RE2_SRC}
+			)
 		endif()
 	endif()
 
-	install(DIRECTORY ${RE2_SRC}/lib/ DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
-			COMPONENT "libs-deps"
-			FILES_MATCHING PATTERN ${RE2_LIB_PATTERN})
-	install(DIRECTORY "${RE2_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
-			COMPONENT "libs-deps")
+	install(
+		DIRECTORY ${RE2_SRC}/lib/
+		DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+		COMPONENT "libs-deps"
+		FILES_MATCHING
+		PATTERN ${RE2_LIB_PATTERN}
+	)
+	install(
+		DIRECTORY "${RE2_INCLUDE}"
+		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
+		COMPONENT "libs-deps"
+	)
 endif()
 
 if(NOT TARGET re2)

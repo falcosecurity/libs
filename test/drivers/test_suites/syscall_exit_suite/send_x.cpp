@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_send
-TEST(SyscallExit, sendX_fail)
-{
+TEST(SyscallExit, sendX_fail) {
 	auto evt_test = get_syscall_event_test(__NR_send, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallExit, sendX_fail)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "some-data";
 	int flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_send, mock_fd, (void *)buf, data_len, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "send",
+	                     syscall(__NR_send, mock_fd, (void *)buf, data_len, flags));
 	int errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -22,8 +23,7 @@ TEST(SyscallExit, sendX_fail)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

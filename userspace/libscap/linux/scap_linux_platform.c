@@ -32,13 +32,11 @@ limitations under the License.
 #include <sys/time.h>
 #include <unistd.h>
 
-static int32_t scap_linux_close_platform(struct scap_platform* platform)
-{
+static int32_t scap_linux_close_platform(struct scap_platform* platform) {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 
 	// Free the device table
-	if(linux_platform->m_dev_list != NULL)
-	{
+	if(linux_platform->m_dev_list != NULL) {
 		scap_free_device_table(linux_platform->m_dev_list);
 		linux_platform->m_dev_list = NULL;
 	}
@@ -48,13 +46,14 @@ static int32_t scap_linux_close_platform(struct scap_platform* platform)
 	return SCAP_SUCCESS;
 }
 
-static void scap_linux_free_platform(struct scap_platform* platform)
-{
+static void scap_linux_free_platform(struct scap_platform* platform) {
 	free(platform);
 }
 
-int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs)
-{
+int32_t scap_linux_init_platform(struct scap_platform* platform,
+                                 char* lasterr,
+                                 struct scap_engine_handle engine,
+                                 struct scap_open_args* oargs) {
 	int rc;
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 	linux_platform->m_lasterr = lasterr;
@@ -63,33 +62,31 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 	linux_platform->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	linux_platform->m_log_fn = oargs->log_fn;
 
-	if(scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS)
-	{
+	if(scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS) {
 		return SCAP_FAILURE;
 	}
 
 	scap_os_get_agent_info(&platform->m_agent_info);
 
 	rc = scap_linux_create_iflist(platform);
-	if(rc != SCAP_SUCCESS)
-	{
+	if(rc != SCAP_SUCCESS) {
 		scap_linux_free_platform(platform);
 		return rc;
 	}
 
-	if(oargs->import_users)
-	{
+	if(oargs->import_users) {
 		rc = scap_linux_create_userlist(platform);
-		if(rc != SCAP_SUCCESS)
-		{
+		if(rc != SCAP_SUCCESS) {
 			scap_linux_free_platform(platform);
 			return rc;
 		}
 	}
 
-	rc = scap_cgroup_interface_init(&linux_platform->m_cgroups, scap_get_host_root(), lasterr, true);
-	if(rc != SCAP_SUCCESS)
-	{
+	rc = scap_cgroup_interface_init(&linux_platform->m_cgroups,
+	                                scap_get_host_root(),
+	                                lasterr,
+	                                true);
+	if(rc != SCAP_SUCCESS) {
 		scap_linux_free_platform(platform);
 		return rc;
 	}
@@ -97,9 +94,12 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 	linux_platform->m_lasterr[0] = '\0';
 	char proc_scan_err[SCAP_LASTERR_SIZE];
 	rc = scap_linux_refresh_proc_table(platform, &platform->m_proclist);
-	if(rc != SCAP_SUCCESS)
-	{
-		snprintf(linux_platform->m_lasterr, SCAP_LASTERR_SIZE, "scap_open_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
+	if(rc != SCAP_SUCCESS) {
+		snprintf(linux_platform->m_lasterr,
+		         SCAP_LASTERR_SIZE,
+		         "scap_open_live_int() error creating the process list: %s. Make sure you have "
+		         "root credentials.",
+		         proc_scan_err);
 		scap_linux_free_platform(platform);
 		return rc;
 	}
@@ -108,25 +108,24 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 }
 
 static const struct scap_platform_vtable scap_linux_platform_vtable = {
-	.init_platform = scap_linux_init_platform,
-	.refresh_addr_list = scap_linux_create_iflist,
-	.get_device_by_mount_id = scap_linux_get_device_by_mount_id,
-	.get_proc = scap_linux_proc_get,
-	.refresh_proc_table = scap_linux_refresh_proc_table,
-	.is_thread_alive = scap_linux_is_thread_alive,
-	.get_global_pid = scap_linux_getpid_global,
-	.get_threadlist = scap_linux_get_threadlist,
-	.get_fdlist = scap_linux_get_fdlist,
-	.close_platform = scap_linux_close_platform,
-	.free_platform = scap_linux_free_platform,
+        .init_platform = scap_linux_init_platform,
+        .refresh_addr_list = scap_linux_create_iflist,
+        .get_device_by_mount_id = scap_linux_get_device_by_mount_id,
+        .get_proc = scap_linux_proc_get,
+        .refresh_proc_table = scap_linux_refresh_proc_table,
+        .is_thread_alive = scap_linux_is_thread_alive,
+        .get_global_pid = scap_linux_getpid_global,
+        .get_threadlist = scap_linux_get_threadlist,
+        .get_fdlist = scap_linux_get_fdlist,
+        .close_platform = scap_linux_close_platform,
+        .free_platform = scap_linux_free_platform,
 };
 
-struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context)
-{
+struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback,
+                                                void* proc_callback_context) {
 	struct scap_linux_platform* platform = calloc(1, sizeof(*platform));
 
-	if(platform == NULL)
-	{
+	if(platform == NULL) {
 		return NULL;
 	}
 

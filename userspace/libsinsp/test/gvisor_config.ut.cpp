@@ -24,8 +24,7 @@ limitations under the License.
 #include <libsinsp/gvisor_config.h>
 #include <libscap/engine/gvisor/gvisor.h>
 
-TEST(gvisor_config, generate_parse)
-{
+TEST(gvisor_config, generate_parse) {
 	std::string socket_path = "/run/falco/gvisor.sock";
 	std::string config = gvisor_config::generate(socket_path);
 	Json::Value root;
@@ -38,6 +37,7 @@ TEST(gvisor_config, generate_parse)
 	EXPECT_TRUE(json_parse) << "Could not parse configuration file contents: " + err;
 
 	// check that the sink is defined
-	// according to https://github.com/google/gvisor/blob/master/tools/tracereplay/README.md#how-to-use-it
+	// according to
+	// https://github.com/google/gvisor/blob/master/tools/tracereplay/README.md#how-to-use-it
 	EXPECT_EQ(root["trace_session"]["sinks"][0]["config"]["endpoint"].asCString(), socket_path);
 }

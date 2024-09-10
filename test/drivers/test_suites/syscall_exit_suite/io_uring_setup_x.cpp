@@ -4,8 +4,7 @@
 
 #include <linux/io_uring.h>
 
-TEST(SyscallExit, io_uring_setupX)
-{
+TEST(SyscallExit, io_uring_setupX) {
 	auto evt_test = get_syscall_event_test(__NR_io_uring_setup, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -35,7 +34,9 @@ TEST(SyscallExit, io_uring_setupX)
 	params.features = IORING_FEAT_NODROP;
 	expected_features = PPM_IORING_FEAT_NODROP;
 #endif
-	assert_syscall_state(SYSCALL_FAILURE, "io_uring_setup", syscall(__NR_io_uring_setup, entries, &params));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "io_uring_setup",
+	                     syscall(__NR_io_uring_setup, entries, &params));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -44,8 +45,7 @@ TEST(SyscallExit, io_uring_setupX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -84,8 +84,7 @@ TEST(SyscallExit, io_uring_setupX)
 	evt_test->assert_num_params_pushed(8);
 }
 
-TEST(SyscallExit, io_uring_setupX_with_NULL_pointer)
-{
+TEST(SyscallExit, io_uring_setupX_with_NULL_pointer) {
 	auto evt_test = get_syscall_event_test(__NR_io_uring_setup, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -94,7 +93,9 @@ TEST(SyscallExit, io_uring_setupX_with_NULL_pointer)
 
 	uint32_t entries = 4;
 	struct io_uring_params* params_pointer = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "io_uring_setup", syscall(__NR_io_uring_setup, entries, params_pointer));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "io_uring_setup",
+	                     syscall(__NR_io_uring_setup, entries, params_pointer));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -103,8 +104,7 @@ TEST(SyscallExit, io_uring_setupX_with_NULL_pointer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #if defined(__NR_epoll_create) && defined(__NR_close)
-TEST(SyscallEnter, epoll_createE)
-{
+TEST(SyscallEnter, epoll_createE) {
 	auto evt_test = get_syscall_event_test(__NR_epoll_create, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallEnter, epoll_createE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

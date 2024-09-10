@@ -34,16 +34,14 @@ limitations under the License.
  * follow the temporal order with which they have been pushed.
  */
 template<typename Elm, typename Cmp, typename Mtx = std::mutex>
-class mpsc_priority_queue
-{
+class mpsc_priority_queue {
 	// limit the implementation of Elm to std::shared_ptr | std::unique_ptr
-	static_assert(
-		std::is_same<Elm, std::shared_ptr<typename Elm::element_type>>::value ||
-		std::is_same<Elm, std::unique_ptr<typename Elm::element_type>>::value,
-        "mpsc_priority_queue requires std::shared_ptr or std::unique_ptr elements");
+	static_assert(std::is_same<Elm, std::shared_ptr<typename Elm::element_type>>::value ||
+	                      std::is_same<Elm, std::unique_ptr<typename Elm::element_type>>::value,
+	              "mpsc_priority_queue requires std::shared_ptr or std::unique_ptr elements");
 
 public:
-	explicit mpsc_priority_queue(size_t capacity = 0) : m_capacity(capacity){}
+	explicit mpsc_priority_queue(size_t capacity = 0): m_capacity(capacity) {}
 
 	/**
 	 * @brief Returns true if the queue contains no elements.
@@ -54,11 +52,9 @@ public:
 	 * @brief Push an element into queue, and returns false in case the
 	 * maximum queue capacity is met.
 	 */
-	inline bool push(Elm&& e)
-	{
+	inline bool push(Elm&& e) {
 		std::scoped_lock<Mtx> lk(m_mtx);
-		if (m_capacity == 0 || m_queue.size() < m_capacity)
-		{
+		if(m_capacity == 0 || m_queue.size() < m_capacity) {
 			m_queue.push(queue_elm{std::move(e), m_elem_counter++});
 			m_queue_top = m_queue.top().elm.get();
 			return true;
@@ -70,11 +66,9 @@ public:
 	 * @brief Pops the highest priority element from the queue. Returns false
 	 * in case of empty queue.
 	 */
-	inline bool try_pop(Elm& res)
-	{
+	inline bool try_pop(Elm& res) {
 		// we check that the queue is not empty before acquiring the lock
-		if (m_queue_top == nullptr)
-		{
+		if(m_queue_top == nullptr) {
 			return false;
 		}
 
@@ -94,17 +88,14 @@ public:
 	 * a predicate before returning it. If the predicate returns false, the
 	 * element is not popped from the queue and this method returns false.
 	 */
-	template <typename Callable>
-	inline bool try_pop_if(Elm& res, const Callable& pred)
-	{
+	template<typename Callable>
+	inline bool try_pop_if(Elm& res, const Callable& pred) {
 		// we check that the queue is not empty before acquiring the lock
-		if (m_queue_top == nullptr)
-		{
+		if(m_queue_top == nullptr) {
 			return false;
 		}
 
-		while (true)
-		{
+		while(true) {
 			// we need to evaluate the top element against the predicate, but
 			// we must be careful in case other producers push a new element in
 			// the queue, which can potentially have more priority than the one
@@ -113,12 +104,10 @@ public:
 			auto should_pop = pred(*top);
 
 			// we must not pop the element
-			if (!should_pop)
-			{
+			if(!should_pop) {
 				// check that the top-priority element ha not changed since
 				// we evaluated it, otherwise keep looping
-				if (top == m_queue_top.load())
-				{
+				if(top == m_queue_top.load()) {
 					return false;
 				}
 				continue;
@@ -127,8 +116,7 @@ public:
 			// check that the top-priority elem has changed since evaluating it,
 			// otherwise keep looping. We check this before acquiring the lock
 			// as an extra concurrency optimization.
-			if (top != m_queue_top.load())
-			{
+			if(top != m_queue_top.load()) {
 				continue;
 			}
 
@@ -141,8 +129,7 @@ public:
 				// our checks, so we verify one last time that the actual
 				// top element is the one we wish to pop, otherwise release
 				// the lock and keep looping
-				if (m_queue.top().elm.get() != top)
-				{
+				if(m_queue.top().elm.get() != top) {
 					continue;
 				}
 
@@ -163,11 +150,9 @@ public:
 	 * it sets 'm_capacity' which is the valued to used to bound the queue's
 	 * size when pushing.
 	 */
-	inline bool set_capacity(size_t capacity)
-	{
+	inline bool set_capacity(size_t capacity) {
 		std::scoped_lock<Mtx> lk(m_mtx);
-		if(m_queue.size() <= capacity)
-		{
+		if(m_queue.size() <= capacity) {
 			m_capacity = capacity;
 			return true;
 		}
@@ -178,17 +163,14 @@ public:
 private:
 	using elm_ptr = typename Elm::element_type*;
 
-	struct queue_elm
-	{
-		inline bool operator < (const queue_elm& r) const
-		{
+	struct queue_elm {
+		inline bool operator<(const queue_elm& r) const {
 			// we check if this elem is less than the other. If the comparison
 			// gives the same result when inverting the operands, then we can
 			// assume them being equal.
 			Cmp c{};
 			auto res = c(*elm, *r.elm);
-			if (res == c(*r.elm, *elm))
-			{
+			if(res == c(*r.elm, *elm)) {
 				// if elements have the same priority, order them by
 				// temporal order of arrival in the queue by using an atomic
 				// logical clock (counter).

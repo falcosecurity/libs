@@ -2,8 +2,7 @@
 #include "../../helpers/file_opener.h"
 
 #if defined(__NR_dup) && defined(__NR_openat) && defined(__NR_close)
-TEST(SyscallEnter, dupE)
-{
+TEST(SyscallEnter, dupE) {
 	auto evt_test = get_syscall_event_test(__NR_dup, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -24,8 +23,7 @@ TEST(SyscallEnter, dupE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -19,29 +19,27 @@ limitations under the License.
 #include <libsinsp/thread_pool.h>
 
 namespace BS {
-	class thread_pool;
+class thread_pool;
 };
 
-class thread_pool_bs : public thread_pool
-{
+class thread_pool_bs : public thread_pool {
 public:
 	thread_pool_bs(size_t num_workers = 0);
 
-	virtual ~thread_pool_bs()
-	{
-		purge();
-	}
+	virtual ~thread_pool_bs() { purge(); }
 
 	thread_pool::routine_id_t subscribe(const std::function<bool()>& func);
 
 	bool unsubscribe(thread_pool::routine_id_t id);
 
-    void purge();
+	void purge();
 
 	size_t routines_num();
 
 private:
-	struct default_bs_tp_deleter { void operator()(BS::thread_pool* __ptr) const; };
+	struct default_bs_tp_deleter {
+		void operator()(BS::thread_pool* __ptr) const;
+	};
 
 	void run_routine(std::shared_ptr<std::function<bool()>> id);
 

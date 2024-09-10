@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(openat2_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(openat2_e, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -27,8 +23,7 @@ int BPF_PROG(openat2_e,
 
 	/* Parameter 1: dirfd (type: PT_FD) */
 	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
@@ -40,7 +35,9 @@ int BPF_PROG(openat2_e,
 	/* the `open_how` struct is defined since kernel version 5.6 */
 	unsigned long open_how_pointer = extract__syscall_argument(regs, 2);
 	struct open_how how = {0};
-	bpf_probe_read_user((void *)&how, bpf_core_type_size(struct open_how), (void *)open_how_pointer);
+	bpf_probe_read_user((void *)&how,
+	                    bpf_core_type_size(struct open_how),
+	                    (void *)open_how_pointer);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	auxmap__store_u32_param(auxmap, open_flags_to_scap(how.flags));
@@ -65,13 +62,9 @@ int BPF_PROG(openat2_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(openat2_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(openat2_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -83,8 +76,7 @@ int BPF_PROG(openat2_x,
 	uint64_t ino = 0;
 	enum ppm_overlay ol = PPM_NOT_OVERLAY_FS;
 
-	if(ret > 0)
-	{
+	if(ret > 0) {
 		extract__dev_ino_overlay_from_fd(ret, &dev, &ino, &ol);
 	}
 
@@ -93,8 +85,7 @@ int BPF_PROG(openat2_x,
 
 	/* Parameter 2: dirfd (type: PT_FD) */
 	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)dirfd);
@@ -106,18 +97,17 @@ int BPF_PROG(openat2_x,
 	/* the `open_how` struct is defined since kernel version 5.6 */
 	unsigned long open_how_pointer = extract__syscall_argument(regs, 2);
 	struct open_how how = {0};
-	bpf_probe_read_user((void *)&how, bpf_core_type_size(struct open_how), (void *)open_how_pointer);
+	bpf_probe_read_user((void *)&how,
+	                    bpf_core_type_size(struct open_how),
+	                    (void *)open_how_pointer);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	uint32_t flags = open_flags_to_scap(how.flags);
 	/* update flags if file is created */
 	flags |= extract__fmode_created_from_fd(ret);
-	if(ol == PPM_OVERLAY_UPPER)
-	{
+	if(ol == PPM_OVERLAY_UPPER) {
 		flags |= PPM_FD_UPPER_LAYER;
-	}
-	else if(ol == PPM_OVERLAY_LOWER)
-	{
+	} else if(ol == PPM_OVERLAY_LOWER) {
 		flags |= PPM_FD_LOWER_LAYER;
 	}
 

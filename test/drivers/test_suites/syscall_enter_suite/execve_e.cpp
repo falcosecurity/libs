@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_execve
-TEST(SyscallEnter, execveE)
-{
+TEST(SyscallEnter, execveE) {
 	auto evt_test = get_syscall_event_test(__NR_execve, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,9 @@ TEST(SyscallEnter, execveE)
 	char pathname[] = "//**null-file-path**//";
 	const char *newargv = NULL;
 	const char *newenviron = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "execve", syscall(__NR_execve, pathname, newargv, newenviron));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "execve",
+	                     syscall(__NR_execve, pathname, newargv, newenviron));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -20,8 +21,7 @@ TEST(SyscallEnter, execveE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

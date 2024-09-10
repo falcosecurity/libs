@@ -18,8 +18,7 @@ limitations under the License.
 
 #include <helpers/threads_helpers.h>
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create)
-{
+TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create) {
 	add_default_init_thread();
 
 	open_inspector();
@@ -28,24 +27,35 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create)
 	int64_t fd = 3;
 
 	// In the enter event we don't send the `PPM_O_F_CREATED`
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path.c_str(),
-					      (uint32_t)PPM_O_RDWR | PPM_O_CREAT, (uint32_t)0);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPEN_E,
+	                                      3,
+	                                      path.c_str(),
+	                                      (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
+	                                      (uint32_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_open_create"), "false");
 
 	// The `fdinfo` is not populated in the enter event
 	ASSERT_FALSE(evt->get_fd_info());
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, path.c_str(),
-				   (uint32_t)PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED, (uint32_t)0, (uint32_t)5,
-				   (uint64_t)123);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           fd,
+	                           path.c_str(),
+	                           (uint32_t)PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED,
+	                           (uint32_t)0,
+	                           (uint32_t)5,
+	                           (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_open_create"), "true");
 	ASSERT_TRUE(evt->get_fd_info());
 
 	ASSERT_EQ(evt->get_fd_info()->m_openflags, PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
 }
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_is_lower_layer)
-{
+TEST_F(sinsp_with_test_input, EVT_FILTER_is_lower_layer) {
 	add_default_init_thread();
 
 	open_inspector();
@@ -54,15 +64,27 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_lower_layer)
 	int64_t fd = 3;
 
 	// In the enter event we don't send the `PPM_O_F_CREATED`
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path.c_str(),
-					      (uint32_t)PPM_O_RDONLY, (uint32_t)0);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPEN_E,
+	                                      3,
+	                                      path.c_str(),
+	                                      (uint32_t)PPM_O_RDONLY,
+	                                      (uint32_t)0);
 
 	// The `fdinfo` is not populated in the enter event
 	ASSERT_FALSE(evt->get_fd_info());
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, path.c_str(),
-				   (uint32_t)PPM_O_RDONLY | PPM_FD_LOWER_LAYER, (uint32_t)0, (uint32_t)5,
-				   (uint64_t)123);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           fd,
+	                           path.c_str(),
+	                           (uint32_t)PPM_O_RDONLY | PPM_FD_LOWER_LAYER,
+	                           (uint32_t)0,
+	                           (uint32_t)5,
+	                           (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_lower_layer"), "true");
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_upper_layer"), "false");
 	ASSERT_TRUE(evt->get_fd_info());
@@ -71,8 +93,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_lower_layer)
 	ASSERT_EQ(evt->get_fd_info()->is_overlay_upper(), false);
 }
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_is_upper_layer)
-{
+TEST_F(sinsp_with_test_input, EVT_FILTER_is_upper_layer) {
 	add_default_init_thread();
 
 	open_inspector();
@@ -81,15 +102,27 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_upper_layer)
 	int64_t fd = 3;
 
 	// In the enter event we don't send the `PPM_O_F_CREATED`
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path.c_str(),
-					      (uint32_t)PPM_O_RDONLY, (uint32_t)0);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPEN_E,
+	                                      3,
+	                                      path.c_str(),
+	                                      (uint32_t)PPM_O_RDONLY,
+	                                      (uint32_t)0);
 
 	// The `fdinfo` is not populated in the enter event
 	ASSERT_FALSE(evt->get_fd_info());
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, path.c_str(),
-				   (uint32_t)PPM_O_RDONLY | PPM_FD_UPPER_LAYER, (uint32_t)0, (uint32_t)5,
-				   (uint64_t)123);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           fd,
+	                           path.c_str(),
+	                           (uint32_t)PPM_O_RDONLY | PPM_FD_UPPER_LAYER,
+	                           (uint32_t)0,
+	                           (uint32_t)5,
+	                           (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_lower_layer"), "false");
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_upper_layer"), "true");
 	ASSERT_TRUE(evt->get_fd_info());
@@ -98,18 +131,17 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_upper_layer)
 	ASSERT_EQ(evt->get_fd_info()->is_overlay_upper(), true);
 }
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_int)
-{
+TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_int) {
 	add_default_init_thread();
 
 	open_inspector();
 
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, (uint32_t)1000);
+	sinsp_evt* evt =
+	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, (uint32_t)1000);
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.uid"), "1000");
 }
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str)
-{
+TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str) {
 	add_default_init_thread();
 
 	open_inspector();
@@ -117,25 +149,33 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_str)
 	std::string path = "/home/file.txt";
 
 	// In the enter event we don't send the `PPM_O_F_CREATED`
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, path.c_str(),
-					      (uint32_t)0, (uint32_t)0);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_OPEN_E,
+	                                      3,
+	                                      path.c_str(),
+	                                      (uint32_t)0,
+	                                      (uint32_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.name"), path);
 }
 
-TEST_F(sinsp_with_test_input, EVT_FILTER_cmd_str)
-{
+TEST_F(sinsp_with_test_input, EVT_FILTER_cmd_str) {
 	add_default_init_thread();
-	
+
 	open_inspector();
 
 	uint64_t fd = 1;
 
-	sinsp_evt* evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_X, 2, fd, PPM_BPF_PROG_LOAD);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      1,
+	                                      PPME_SYSCALL_BPF_2_X,
+	                                      2,
+	                                      fd,
+	                                      PPM_BPF_PROG_LOAD);
 
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.cmd"), "BPF_PROG_LOAD");
 }
-TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid)
-{
+TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -154,7 +194,8 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid)
 	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "uid=5(<NA>)");
 
 	// we are adding a user on the host so the `pid` parameter is not considered
-	ASSERT_TRUE(m_inspector.m_usergroup_manager.add_user(container_id, 0, user_id, 6, "test", "/test", "/bin/test"));
+	ASSERT_TRUE(m_inspector.m_usergroup_manager
+	                    .add_user(container_id, 0, user_id, 6, "test", "/test", "/bin/test"));
 
 	// Now we should have the necessary info
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "test");

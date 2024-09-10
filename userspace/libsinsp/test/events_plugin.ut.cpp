@@ -21,74 +21,61 @@ limitations under the License.
 #include <sinsp_with_test_input.h>
 #include "test_utils.h"
 
-const char* mock_plugin_get_version()
-{
+const char* mock_plugin_get_version() {
 	return "0.1.0";
 }
 
-const char* mock_plugin_get_required_api_version()
-{
+const char* mock_plugin_get_required_api_version() {
 	return PLUGIN_API_VERSION_STR;
 }
 
-static const char* mock_plugin_get_name()
-{
+static const char* mock_plugin_get_name() {
 	return "sample_plugin";
 }
 
-const char* mock_plugin_get_description()
-{
+const char* mock_plugin_get_description() {
 	return "some sample plugin";
 }
 
-const char* mock_plugin_get_contact()
-{
+const char* mock_plugin_get_contact() {
 	return "some contact";
 }
 
-static uint32_t mock_plugin_get_id()
-{
+static uint32_t mock_plugin_get_id() {
 	return 999;
 }
 
-static const char* mock_plugin_get_event_source()
-{
+static const char* mock_plugin_get_event_source() {
 	return "sample_source";
 }
 
-static ss_plugin_t* mock_plugin_init(const ss_plugin_init_input *input, ss_plugin_rc *rc)
-{
+static ss_plugin_t* mock_plugin_init(const ss_plugin_init_input* input, ss_plugin_rc* rc) {
 	*rc = SS_PLUGIN_SUCCESS;
 	return NULL;
 }
 
-static void mock_plugin_destroy(ss_plugin_t* p)
-{
-}
+static void mock_plugin_destroy(ss_plugin_t* p) {}
 
-static const char* mock_plugin_get_last_error(ss_plugin_t* s)
-{
+static const char* mock_plugin_get_last_error(ss_plugin_t* s) {
 	return NULL;
 }
 
-static ss_instance_t* mock_plugin_open(ss_plugin_t* s, const char* params, ss_plugin_rc* rc)
-{
+static ss_instance_t* mock_plugin_open(ss_plugin_t* s, const char* params, ss_plugin_rc* rc) {
 	*rc = SS_PLUGIN_FAILURE;
 	return NULL;
 }
 
-static void mock_plugin_close(ss_plugin_t* s, ss_instance_t* i)
-{
-}
+static void mock_plugin_close(ss_plugin_t* s, ss_instance_t* i) {}
 
-static ss_plugin_rc mock_plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t *nevts, ss_plugin_event ***evts)
-{
+static ss_plugin_rc mock_plugin_next_batch(ss_plugin_t* s,
+                                           ss_instance_t* i,
+                                           uint32_t* nevts,
+                                           ss_plugin_event*** evts) {
 	*nevts = 0;
 	return SS_PLUGIN_EOF;
 }
 
-static void set_mock_plugin_api(plugin_api& api)
-{
+static void set_mock_plugin_api(plugin_api& api) {
 	memset(&api, 0, sizeof(plugin_api));
 	api.get_required_api_version = mock_plugin_get_required_api_version;
 	api.get_version = mock_plugin_get_version;
@@ -105,27 +92,24 @@ static void set_mock_plugin_api(plugin_api& api)
 	api.next_batch = mock_plugin_next_batch;
 }
 
-static std::shared_ptr<sinsp_plugin> register_plugin_api(
-		sinsp* i,
-		plugin_api& api,
-		const std::string& initcfg = "")
-{
+static std::shared_ptr<sinsp_plugin> register_plugin_api(sinsp* i,
+                                                         plugin_api& api,
+                                                         const std::string& initcfg = "") {
 	std::string err;
 	auto pl = i->register_plugin(&api);
-	if (!pl->init(initcfg, err))
-	{
+	if(!pl->init(initcfg, err)) {
 		throw sinsp_exception(err);
 	}
 	return pl;
 }
 
-TEST_F(sinsp_with_test_input, event_sources)
-{
+TEST_F(sinsp_with_test_input, event_sources) {
 	sinsp_evt* evt = NULL;
-	size_t syscall_source_idx = 0; // the "syscall" evt source is always the first one
+	size_t syscall_source_idx = 0;  // the "syscall" evt source is always the first one
 	std::string syscall_source_name = sinsp_syscall_event_source_name;
 	const char sample_plugin_evtdata[256] = "hello world";
-	auto plugindata = scap_const_sized_buffer{&sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1};
+	auto plugindata =
+	        scap_const_sized_buffer{&sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1};
 
 	add_default_init_thread();
 	open_inspector();
@@ -136,7 +120,16 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_NO_THROW(register_plugin_api(&m_inspector, mock_api));
 
 	// regular events have the "syscall" event source
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           (uint64_t)3,
+	                           "/tmp/the_file",
+	                           PPM_O_RDWR,
+	                           0,
+	                           5,
+	                           (uint64_t)123);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
@@ -150,7 +143,11 @@ TEST_F(sinsp_with_test_input, event_sources)
 	container->m_id = "3ad7b26ded6d";
 	container->set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	std::string container_json = m_inspector.m_container_manager.container_to_json(*container);
-	evt = add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container_json.c_str());
+	evt = add_event_advance_ts(increasing_ts(),
+	                           -1,
+	                           PPME_CONTAINER_JSON_2_E,
+	                           1,
+	                           container_json.c_str());
 	ASSERT_EQ(evt->get_type(), PPME_CONTAINER_JSON_2_E);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
@@ -159,7 +156,7 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_EQ(get_field_as_string(evt, "evt.asynctype"), "container");
 
 	// events coming from unknown plugins should have no event source
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint32_t) 1, plugindata);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint32_t)1, plugindata);
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
 	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
@@ -168,7 +165,12 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_FALSE(field_has_value(evt, "evt.asynctype"));
 
 	// events coming from registered plugins should have their event source
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint32_t) 999, plugindata);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_PLUGINEVENT_E,
+	                           2,
+	                           (uint32_t)999,
+	                           plugindata);
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx + 1);
 	ASSERT_EQ(std::string(evt->get_source_name()), std::string(mock_plugin_get_event_source()));
@@ -178,7 +180,13 @@ TEST_F(sinsp_with_test_input, event_sources)
 
 	// async events with no plugin ID should have "syscall" source
 	auto asyncname = "sampleasync";
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_ASYNCEVENT_E, 3, (uint32_t) 0, asyncname, plugindata);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_ASYNCEVENT_E,
+	                           3,
+	                           (uint32_t)0,
+	                           asyncname,
+	                           plugindata);
 	ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
@@ -188,7 +196,13 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "sampleasync");
 
 	// async events with a registered plugin ID should have the plugin's event source
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_ASYNCEVENT_E, 3, (uint32_t) 999, asyncname, plugindata);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_ASYNCEVENT_E,
+	                           3,
+	                           (uint32_t)999,
+	                           asyncname,
+	                           plugindata);
 	ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx + 1);
 	ASSERT_EQ(std::string(evt->get_source_name()), std::string(mock_plugin_get_event_source()));
@@ -199,7 +213,13 @@ TEST_F(sinsp_with_test_input, event_sources)
 
 	// async events with unknown plugin ID should have unknown event source
 	// async events with a registered plugin ID should have the plugin's event source
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_ASYNCEVENT_E, 3, (uint32_t) 1, asyncname, plugindata);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_ASYNCEVENT_E,
+	                           3,
+	                           (uint32_t)1,
+	                           asyncname,
+	                           plugindata);
 	ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
 	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);

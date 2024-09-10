@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_getsockname
-TEST(SyscallEnter, getsocknameE)
-{
+TEST(SyscallEnter, getsocknameE) {
 	auto evt_test = get_syscall_event_test(__NR_getsockname, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,9 @@ TEST(SyscallEnter, getsocknameE)
 	int32_t mock_fd = -1;
 	void* usockaddr = NULL;
 	int* usockaddr_len = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "getsockname", syscall(__NR_getsockname, mock_fd, usockaddr, usockaddr_len));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "getsockname",
+	                     syscall(__NR_getsockname, mock_fd, usockaddr, usockaddr_len));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -20,8 +21,7 @@ TEST(SyscallEnter, getsocknameE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_timerfd_create
-TEST(SyscallEnter, timerfd_createE)
-{
+TEST(SyscallEnter, timerfd_createE) {
 	auto evt_test = get_syscall_event_test(__NR_timerfd_create, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,9 @@ TEST(SyscallEnter, timerfd_createE)
 	/* `clockid` and `flags` are not caught BPF side, we always send `0` */
 	int clockid = -1;
 	int flags = -1;
-	assert_syscall_state(SYSCALL_FAILURE,"timerfd_create", syscall(__NR_timerfd_create, clockid, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "timerfd_create",
+	                     syscall(__NR_timerfd_create, clockid, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -20,8 +21,7 @@ TEST(SyscallEnter, timerfd_createE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

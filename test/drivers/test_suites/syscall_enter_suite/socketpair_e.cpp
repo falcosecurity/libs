@@ -4,8 +4,7 @@
 
 #include <sys/socket.h>
 
-TEST(SyscallEnter, socketpairE)
-{
+TEST(SyscallEnter, socketpairE) {
 	auto evt_test = get_syscall_event_test(__NR_socketpair, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +15,9 @@ TEST(SyscallEnter, socketpairE)
 	int type = SOCK_STREAM;
 	int protocol = 0;
 	int32_t* fds = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "socketpair", syscall(__NR_socketpair, domain, type, protocol, fds));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "socketpair",
+	                     syscall(__NR_socketpair, domain, type, protocol, fds));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -24,8 +25,7 @@ TEST(SyscallEnter, socketpairE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

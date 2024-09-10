@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_linkat
-TEST(SyscallEnter, linkatE)
-{
+TEST(SyscallEnter, linkatE) {
 	auto evt_test = get_syscall_event_test(__NR_linkat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, linkatE)
 	const char* old_path = NULL;
 	const char* new_path = NULL;
 	uint32_t flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "linkat", syscall(__NR_linkat, old_fd, old_path, new_fd, new_path, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "linkat",
+	                     syscall(__NR_linkat, old_fd, old_path, new_fd, new_path, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, linkatE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

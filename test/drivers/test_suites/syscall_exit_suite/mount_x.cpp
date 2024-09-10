@@ -4,8 +4,7 @@
 
 #include <sys/mount.h>
 
-TEST(SyscallExit, mountX)
-{
+TEST(SyscallExit, mountX) {
 	auto evt_test = get_syscall_event_test(__NR_mount, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -17,7 +16,9 @@ TEST(SyscallExit, mountX)
 	const char* filesystemtype = "not_supported";
 	unsigned long flags = MS_MGC_VAL | MS_RDONLY;
 	const void* data = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "mount", syscall(__NR_mount, source, target, filesystemtype, flags, data));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mount",
+	                     syscall(__NR_mount, source, target, filesystemtype, flags, data));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -26,8 +27,7 @@ TEST(SyscallExit, mountX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

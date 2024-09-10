@@ -20,8 +20,7 @@ limitations under the License.
 
 /*=============================== THREAD-GROUP-INFO ===========================*/
 
-TEST(thread_group_info, create_thread_group_info)
-{
+TEST(thread_group_info, create_thread_group_info) {
 	std::shared_ptr<sinsp_threadinfo> tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo.reset();
 
@@ -51,8 +50,7 @@ TEST(thread_group_info, create_thread_group_info)
 	EXPECT_TRUE(tginfo.is_reaper());
 }
 
-TEST(thread_group_info, populate_thread_group_info)
-{
+TEST(thread_group_info, populate_thread_group_info) {
 	auto tinfo = std::make_shared<sinsp_threadinfo>();
 	tinfo->m_tid = 23;
 	tinfo->m_pid = 23;

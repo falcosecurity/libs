@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_recv
-TEST(SyscallExit, recvX_fail)
-{
+TEST(SyscallExit, recvX_fail) {
 	auto evt_test = get_syscall_event_test(__NR_recv, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallExit, recvX_fail)
 	char* mock_buf = NULL;
 	size_t mock_count = DEFAULT_SNAPLEN;
 	int flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "recv", syscall(__NR_recv, mock_fd, (void*)(mock_buf), mock_count, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "recv",
+	                     syscall(__NR_recv, mock_fd, (void*)(mock_buf), mock_count, flags));
 	int errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -22,8 +23,7 @@ TEST(SyscallExit, recvX_fail)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

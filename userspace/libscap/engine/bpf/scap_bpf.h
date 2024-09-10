@@ -34,16 +34,17 @@ struct perf_lost_sample {
 };
 
 /* Return only the raw data of the event skipping the header and the size. */
-static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt)
-{
-	struct perf_event_sample *perf_evt = (struct perf_event_sample *) evt;
+static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt) {
+	struct perf_event_sample *perf_evt = (struct perf_event_sample *)evt;
 	ASSERT(perf_evt->header.type == PERF_RECORD_SAMPLE);
-	return (scap_evt *) perf_evt->data;
+	return (scap_evt *)perf_evt->data;
 }
 
-static inline void scap_bpf_get_buf_pointers(scap_device *dev, uint64_t *phead, uint64_t *ptail, uint64_t *pread_size)
-{
-	struct perf_event_mmap_page * header = (struct perf_event_mmap_page *) dev->m_buffer;
+static inline void scap_bpf_get_buf_pointers(scap_device *dev,
+                                             uint64_t *phead,
+                                             uint64_t *ptail,
+                                             uint64_t *pread_size) {
+	struct perf_event_mmap_page *header = (struct perf_event_mmap_page *)dev->m_buffer;
 
 	*phead = header->data_head;
 	*ptail = header->data_tail;
@@ -52,8 +53,8 @@ static inline void scap_bpf_get_buf_pointers(scap_device *dev, uint64_t *phead, 
 	asm volatile("" ::: "memory");
 	// clang-format on
 
-	uint64_t cons = *ptail % header->data_size; // consumer position
-	uint64_t prod = *phead % header->data_size; // producer position
+	uint64_t cons = *ptail % header->data_size;  // consumer position
+	uint64_t prod = *phead % header->data_size;  // producer position
 
 	/* `pread_size` is the number of bytes our consumer has to read to reach the producer.
 	 * We want to obtain this information so we know how many bytes we can read.
@@ -81,25 +82,24 @@ static inline void scap_bpf_get_buf_pointers(scap_device *dev, uint64_t *phead, 
 	 *
 	 * We want to obtain the data space so we do `p - c`.
 	 */
-	if(cons > prod)
-	{
+	if(cons > prod) {
 		*pread_size = header->data_size - cons + prod;
-	}
-	else
-	{
+	} else {
 		*pread_size = prod - cons;
 	}
 }
 
-static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev, bool skip_current,
-					      char *cur_evt, char **next_evt, uint32_t *len)
-{
+static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev,
+                                              bool skip_current,
+                                              char *cur_evt,
+                                              char **next_evt,
+                                              uint32_t *len) {
 	void *base;
 	void *begin;
 
-	struct perf_event_mmap_page *header = (struct perf_event_mmap_page *) dev->m_buffer;
+	struct perf_event_mmap_page *header = (struct perf_event_mmap_page *)dev->m_buffer;
 
-	base = ((char *) header) + header->data_offset;
+	base = ((char *)header) + header->data_offset;
 
 	/* if `skip_current` is true it means that we need to increment the position
 	 * and this `begin` points to an event that we have already read. If `false`
@@ -107,50 +107,37 @@ static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev, bool skip
 	 */
 	begin = cur_evt;
 
-	while(*len)
-	{
+	while(*len) {
 		struct perf_event_header *e = begin;
 
 		ASSERT(*len >= sizeof(*e));
 		ASSERT(*len >= e->size);
-		if(e->type == PERF_RECORD_SAMPLE)
-		{
+		if(e->type == PERF_RECORD_SAMPLE) {
 #ifdef _DEBUG
-			struct perf_event_sample *sample = (struct perf_event_sample *) e;
+			struct perf_event_sample *sample = (struct perf_event_sample *)e;
 #endif
 			ASSERT(*len >= sizeof(*sample));
 			ASSERT(*len >= sample->size);
 			ASSERT(e->size == sizeof(*e) + sizeof(sample->size) + sample->size);
-			ASSERT(((scap_evt *) sample->data)->len <= sample->size);
+			ASSERT(((scap_evt *)sample->data)->len <= sample->size);
 
-			if(skip_current)
-			{
+			if(skip_current) {
 				skip_current = false;
-			}
-			else
-			{
-				*next_evt = (char *) e;
+			} else {
+				*next_evt = (char *)e;
 				break;
 			}
-		}
-		else if(e->type != PERF_RECORD_LOST)
-		{
-			printf("Unknown event type=%d size=%d\n",
-			       e->type, e->size);
+		} else if(e->type != PERF_RECORD_LOST) {
+			printf("Unknown event type=%d size=%d\n", e->type, e->size);
 			ASSERT(false);
 		}
 
 		/* Move the pointer inside the block to the next event */
-		if(begin + e->size > base + header->data_size)
-		{
+		if(begin + e->size > base + header->data_size) {
 			begin = begin + e->size - header->data_size;
-		}
-		else if(begin + e->size == base + header->data_size)
-		{
+		} else if(begin + e->size == base + header->data_size) {
 			begin = base;
-		}
-		else
-		{
+		} else {
 			begin += e->size;
 		}
 
@@ -162,8 +149,7 @@ static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev, bool skip
 }
 
 /* This helper increments the consumer position */
-static inline void scap_bpf_advance_tail(struct scap_device *dev)
-{
+static inline void scap_bpf_advance_tail(struct scap_device *dev) {
 	struct perf_event_mmap_page *header;
 
 	header = (struct perf_event_mmap_page *)dev->m_buffer;
@@ -178,25 +164,24 @@ static inline void scap_bpf_advance_tail(struct scap_device *dev)
 	dev->m_lastreadsize = 0;
 }
 
-static inline int32_t scap_bpf_readbuf(struct scap_device *dev, char **buf, uint32_t *len)
-{
+static inline int32_t scap_bpf_readbuf(struct scap_device *dev, char **buf, uint32_t *len) {
 	struct perf_event_mmap_page *header;
 	uint64_t tail;
 	uint64_t head;
 	uint64_t read_size;
 	char *p;
 
-	header = (struct perf_event_mmap_page *) dev->m_buffer;
+	header = (struct perf_event_mmap_page *)dev->m_buffer;
 
 	ASSERT(dev->m_lastreadsize == 0);
 	scap_bpf_get_buf_pointers(dev, &head, &tail, &read_size);
 
-	/* This contains the dimension of the block and it will be used to increment 
+	/* This contains the dimension of the block and it will be used to increment
 	 * the consumer position in `scap_bpf_advance_tail`.
 	 */
 	dev->m_lastreadsize = read_size;
 	/* position of the consumer */
-	p = ((char *) header) + header->data_offset + tail % header->data_size;
+	p = ((char *)header) + header->data_offset + tail % header->data_size;
 	*len = read_size;
 
 	return scap_bpf_advance_to_evt(dev, false, p, buf, len);

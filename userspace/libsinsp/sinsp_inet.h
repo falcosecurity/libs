@@ -22,7 +22,7 @@ limitations under the License.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#    include <Ws2tcpip.h>
+#include <Ws2tcpip.h>
 #else
-#    include <arpa/inet.h>
+#include <arpa/inet.h>
 #endif

@@ -11,8 +11,7 @@
 /* Params that we need to catch from proc. There are cases
  * in which we don't need them all.
  */
-struct proc_info
-{
+struct proc_info {
 	uint32_t tty;
 	pid_t ppid; /* The PID of the parent of this process. */
 	pid_t pgid; /* The process group ID of the process. */
@@ -24,7 +23,7 @@ struct proc_info
 	uint32_t vtid;
 	struct rlimit file_rlimit;
 	uint32_t loginuid;
-	char exepath [MAX_PATH];
+	char exepath[MAX_PATH];
 };
 
 bool get_proc_info(pid_t pid, proc_info* info);

@@ -25,23 +25,21 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 inline bool parse_tuple(const std::string& tuple,
-						std::string& src_addr,
-						std::string& src_port,
-						std::string& dst_addr,
-						std::string& dst_port)
-{
+                        std::string& src_addr,
+                        std::string& src_port,
+                        std::string& dst_addr,
+                        std::string& dst_port) {
 	std::string token;
 	std::stringstream ss(tuple);
 	std::vector<std::string> tst;
 	std::string srcstr;
 	std::string dststr;
 
-	if(tuple.find("->") == std::string::npos)
-	{
+	if(tuple.find("->") == std::string::npos) {
 		return false;
 	}
 
-	while (std::getline(ss, token, '>')) {
+	while(std::getline(ss, token, '>')) {
 		tst.push_back(token);
 	}
 
@@ -51,7 +49,7 @@ inline bool parse_tuple(const std::string& tuple,
 	ss.clear();
 	ss.str(srcstr);
 	std::vector<std::string> sst;
-	while (std::getline(ss, token, ':')) {
+	while(std::getline(ss, token, ':')) {
 		sst.push_back(token);
 	}
 
@@ -62,7 +60,7 @@ inline bool parse_tuple(const std::string& tuple,
 	ss.clear();
 	ss.str(dststr);
 	std::vector<std::string> dst;
-	while (std::getline(ss, token, ':')) {
+	while(std::getline(ss, token, ':')) {
 		dst.push_back(token);
 	}
 	EXPECT_EQ(2, (int)dst.size());
@@ -72,8 +70,7 @@ inline bool parse_tuple(const std::string& tuple,
 	return true;
 }
 
-class nsenter
-{
+class nsenter {
 public:
 	nsenter(int pid, const std::string& type);
 	virtual ~nsenter();

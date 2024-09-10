@@ -20,33 +20,31 @@ limitations under the License.
 #include <libsinsp/plugin_manager.h>
 
 using namespace std;
-sinsp_filter_check_plugin::sinsp_filter_check_plugin()
-{
+sinsp_filter_check_plugin::sinsp_filter_check_plugin() {
 	static const filter_check_info s_no_plugin_fields_info = {"plugin", "", "", 0, nullptr};
 	m_info = &s_no_plugin_fields_info;
 	m_eplugin = nullptr;
 }
 
-sinsp_filter_check_plugin::sinsp_filter_check_plugin(const std::shared_ptr<sinsp_plugin>& plugin)
-{
-	if (!(plugin->caps() & CAP_EXTRACTION))
-	{
-		throw sinsp_exception("Creating a sinsp_filter_check_plugin with a non extraction-capable plugin.");
+sinsp_filter_check_plugin::sinsp_filter_check_plugin(const std::shared_ptr<sinsp_plugin>& plugin) {
+	if(!(plugin->caps() & CAP_EXTRACTION)) {
+		throw sinsp_exception(
+		        "Creating a sinsp_filter_check_plugin with a non extraction-capable plugin.");
 	}
 
 	m_info = plugin->fields_info();
 	m_eplugin = plugin;
 }
 
-sinsp_filter_check_plugin::sinsp_filter_check_plugin(const sinsp_filter_check_plugin &p)
-{
+sinsp_filter_check_plugin::sinsp_filter_check_plugin(const sinsp_filter_check_plugin& p) {
 	m_eplugin = p.m_eplugin;
 	m_info = p.m_info;
 	m_compatible_plugin_sources_bitmap = p.m_compatible_plugin_sources_bitmap;
 }
 
-int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
-{
+int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val,
+                                                    bool alloc_state,
+                                                    bool needed_for_filtering) {
 	int32_t res = sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 
 	m_arg_present = false;
@@ -55,11 +53,9 @@ int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val, bool a
 	m_argstr.clear();
 
 	// the field is parsed successfully
-	if(res != -1)
-	{
+	if(res != -1) {
 		size_t val_end = val.find_first_of(' ', 0);
-		if(val_end != string::npos)
-		{
+		if(val_end != string::npos) {
 			val = val.substr(0, val_end);
 		}
 		val = trim_sv(val);
@@ -67,44 +63,41 @@ int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val, bool a
 		// search for the field's argument
 		size_t arg_len = 0;
 		size_t arg_pos = val.find_first_of('[', 0);
-		if(arg_pos != string::npos)
-		{
-			if (res != (int32_t) arg_pos)
-			{
+		if(arg_pos != string::npos) {
+			if(res != (int32_t)arg_pos) {
 				// check that we matched the whole field string and not just its prefix
 				return -1;
 			}
 
 			// extract the argument string with proper boundary checks
 			size_t argstart = arg_pos + 1;
-			if(argstart >= val.size())
-			{
-				throw sinsp_exception("filter '" + string(val) + "': " + m_field->m_name + " terminates with incomplete argument brackets");
+			if(argstart >= val.size()) {
+				throw sinsp_exception("filter '" + string(val) + "': " + m_field->m_name +
+				                      " terminates with incomplete argument brackets");
 			}
 			m_argstr = val.substr(argstart);
 			arg_len = m_argstr.find_first_of(']', 0);
-			if(arg_len == string::npos)
-			{
-				throw sinsp_exception("filter '" + string(val) + "': " + m_field->m_name + " has unbalanced argument brackets");
+			if(arg_len == string::npos) {
+				throw sinsp_exception("filter '" + string(val) + "': " + m_field->m_name +
+				                      " has unbalanced argument brackets");
 			}
 			m_argstr = m_argstr.substr(0, arg_len);
 			m_arg_present = true;
 
 			// we have an argument, check if the field is supposed not to have one
-			if (!(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED
-					|| m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
-			{
-				throw sinsp_exception("filter '" + string(val) + "': "
-					+ m_field->m_name + " does not allow nor require an argument but one is provided: " + m_argstr);
+			if(!(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED ||
+			     m_info->m_fields[m_field_id].m_flags &
+			             filtercheck_field_flags::EPF_ARG_REQUIRED)) {
+				throw sinsp_exception(
+				        "filter '" + string(val) + "': " + m_field->m_name +
+				        " does not allow nor require an argument but one is provided: " + m_argstr);
 			}
 
 			// parse the argument content, which can either be an index or a key
-			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
-			{
+			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX) {
 				extract_arg_index(val);
 			}
-			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
-			{
+			if(m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY) {
 				extract_arg_key();
 			}
 
@@ -112,48 +105,47 @@ int32_t sinsp_filter_check_plugin::parse_field_name(std::string_view val, bool a
 			res = arg_pos + arg_len + 2;
 		}
 
-		if (!m_arg_present && (m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
-		{
-			throw sinsp_exception(string("filter '") + string(val) + string("': ") + m_field->m_name + string(" requires an argument but none provided"));
+		if(!m_arg_present &&
+		   (m_info->m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED)) {
+			throw sinsp_exception(string("filter '") + string(val) + string("': ") +
+			                      m_field->m_name +
+			                      string(" requires an argument but none provided"));
 		}
 	}
 
 	return res;
 }
 
-std::unique_ptr<sinsp_filter_check> sinsp_filter_check_plugin::allocate_new()
-{
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_plugin::allocate_new() {
 	return std::make_unique<sinsp_filter_check_plugin>(*this);
 }
 
-bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
-{
+bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt* evt,
+                                                std::vector<extract_value_t>& values,
+                                                bool sanitize_strings) {
 	// reject the event if it comes from an unknown event source
-	if (evt->get_source_idx() == sinsp_no_event_source_idx)
-	{
+	if(evt->get_source_idx() == sinsp_no_event_source_idx) {
 		return false;
 	}
 
 	// reject the event if its type is not compatible with the plugin
-	if (!m_eplugin->extract_event_codes().contains((ppm_event_code) evt->get_type()))
-	{
+	if(!m_eplugin->extract_event_codes().contains((ppm_event_code)evt->get_type())) {
 		return false;
 	}
 
 	// lazily populate the event source compatibility bitmap
-	while (m_compatible_plugin_sources_bitmap.size() <= evt->get_source_idx())
-	{
+	while(m_compatible_plugin_sources_bitmap.size() <= evt->get_source_idx()) {
 		auto src_idx = m_compatible_plugin_sources_bitmap.size();
 		m_compatible_plugin_sources_bitmap.push_back(false);
 		ASSERT(src_idx < m_inspector->event_sources().size());
 		const auto& source = m_inspector->event_sources()[src_idx];
-		auto compatible = sinsp_plugin::is_source_compatible(m_eplugin->extract_event_sources(), source);
+		auto compatible =
+		        sinsp_plugin::is_source_compatible(m_eplugin->extract_event_sources(), source);
 		m_compatible_plugin_sources_bitmap[src_idx] = compatible;
 	}
 
 	// reject the event if its event source is not compatible with the plugin
-	if (!m_compatible_plugin_sources_bitmap[evt->get_source_idx()])
-	{
+	if(!m_compatible_plugin_sources_bitmap[evt->get_source_idx()]) {
 		return false;
 	}
 
@@ -172,48 +164,42 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt *evt, std::vector<extr
 	efield.arg_present = m_arg_present;
 	efield.ftype = type;
 	efield.flist = m_info->m_fields[m_field_id].m_flags & EPF_IS_LIST;
-	if (!m_eplugin->extract_fields(evt, num_fields, &efield) || efield.res_len == 0)
-	{
+	if(!m_eplugin->extract_fields(evt, num_fields, &efield) || efield.res_len == 0) {
 		return false;
 	}
 
 	values.clear();
-	for (uint32_t i = 0; i < efield.res_len; ++i)
-	{
+	for(uint32_t i = 0; i < efield.res_len; ++i) {
 		extract_value_t res;
-		switch(type)
-		{
-			case PT_UINT64:
-			case PT_RELTIME:
-			case PT_ABSTIME:
-			{
-				res.len = sizeof(uint64_t);
-				res.ptr = (uint8_t*) &efield.res.u64[i];
-				break;
-			}
-			case PT_IPADDR:
-			case PT_IPNET:
-			{
-				res.len = (uint32_t) efield.res.buf[i].len;
-				res.ptr = (uint8_t*) efield.res.buf[i].ptr;
-				break;
-			}
-			case PT_CHARBUF:
-			{
-				res.len = strlen(efield.res.str[i]);
-				res.ptr = (uint8_t*) efield.res.str[i];
-				break;
-			}
-			case PT_BOOL:
-			{
-				res.len = sizeof(ss_plugin_bool);
-				res.ptr = (uint8_t*) &efield.res.boolean[i];
-				break;
-			}
-			default:
-				ASSERT(false);
-				throw sinsp_exception("plugin extract error: unsupported field type " + to_string(type));
-				break;
+		switch(type) {
+		case PT_UINT64:
+		case PT_RELTIME:
+		case PT_ABSTIME: {
+			res.len = sizeof(uint64_t);
+			res.ptr = (uint8_t*)&efield.res.u64[i];
+			break;
+		}
+		case PT_IPADDR:
+		case PT_IPNET: {
+			res.len = (uint32_t)efield.res.buf[i].len;
+			res.ptr = (uint8_t*)efield.res.buf[i].ptr;
+			break;
+		}
+		case PT_CHARBUF: {
+			res.len = strlen(efield.res.str[i]);
+			res.ptr = (uint8_t*)efield.res.str[i];
+			break;
+		}
+		case PT_BOOL: {
+			res.len = sizeof(ss_plugin_bool);
+			res.ptr = (uint8_t*)&efield.res.boolean[i];
+			break;
+		}
+		default:
+			ASSERT(false);
+			throw sinsp_exception("plugin extract error: unsupported field type " +
+			                      to_string(type));
+			break;
 		}
 		values.push_back(res);
 	}
@@ -221,24 +207,20 @@ bool sinsp_filter_check_plugin::extract_nocache(sinsp_evt *evt, std::vector<extr
 	return true;
 }
 
-void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_name)
-{
+void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_name) {
 	int length = m_argstr.length();
 	bool is_valid = true;
 	std::string message = "";
 
 	// Please note that numbers starting with `0` (`01`, `02`, `0003`, ...) are not indexes.
-	if(length == 0 || (length > 1 && m_argstr[0] == '0'))
-	{
+	if(length == 0 || (length > 1 && m_argstr[0] == '0')) {
 		is_valid = false;
 		message = " has an invalid index argument starting with 0: ";
 	}
 
 	// The index must be composed only by digits (0-9).
-	for(int j = 0; j < length; j++)
-	{
-		if(!isdigit(m_argstr[j]))
-		{
+	for(int j = 0; j < length; j++) {
+		if(!isdigit(m_argstr[j])) {
 			is_valid = false;
 			message = " has an invalid index argument not composed only by digits: ";
 			break;
@@ -249,25 +231,20 @@ void sinsp_filter_check_plugin::extract_arg_index(std::string_view full_field_na
 	// Please note that `stoul` alone is not enough, since it also consider as valid
 	// strings like "0123 i'm a number", converting them into '0123'. This is why in the
 	// previous step we check that every character is a digit.
-	if(is_valid)
-	{
-		try
-		{
+	if(is_valid) {
+		try {
 			m_arg_index = std::stoul(m_argstr);
 			return;
-		}
-		catch(...)
-		{
+		} catch(...) {
 			message = " has an invalid index argument not representable on 64 bit: ";
 		}
 	}
-	throw sinsp_exception(string("filter ") + string(full_field_name) + string(" ")
-									+ m_field->m_name + message + m_argstr);
+	throw sinsp_exception(string("filter ") + string(full_field_name) + string(" ") +
+	                      m_field->m_name + message + m_argstr);
 }
 
 // extract_arg_key() extracts a valid string from the argument. If we pass
 // a numeric argument, it will be converted to string.
-void sinsp_filter_check_plugin::extract_arg_key()
-{
+void sinsp_filter_check_plugin::extract_arg_key() {
 	m_arg_key = (char*)m_argstr.c_str();
 }

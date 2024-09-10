@@ -2,33 +2,32 @@
 #
 # Copyright (C) 2023 The Falco Authors.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
 #
 
-# Prior to doing anything, we make sure that we aren't trying to
-# run cmake in-tree.
+# Prior to doing anything, we make sure that we aren't trying to run cmake in-tree.
 if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
-	message(FATAL_ERROR
-		"Looks like you are trying to run CMake from the base source directory.\n"
-		"** RUNNING CMAKE FROM THE BASE DIRECTORY WILL NOT WORK **\n"
-		"To Fix:\n"
-		" 1. Remove the CMakeCache.txt file in this directory. ex: rm CMakeCache.txt\n"
-		" 2. Create a build directory from here. ex: mkdir build\n"
-		" 3. cd into that directory. ex: cd build\n"
-		" 4. Run cmake from the build directory. ex: cmake ..\n"
-		" 5. Run make from the build directory. ex: make\n"
-		"Full paste-able example:\n"
-		"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )")
+	message(
+		FATAL_ERROR
+			"Looks like you are trying to run CMake from the base source directory.\n"
+			"** RUNNING CMAKE FROM THE BASE DIRECTORY WILL NOT WORK **\n"
+			"To Fix:\n"
+			" 1. Remove the CMakeCache.txt file in this directory. ex: rm CMakeCache.txt\n"
+			" 2. Create a build directory from here. ex: mkdir build\n"
+			" 3. cd into that directory. ex: cd build\n"
+			" 4. Run cmake from the build directory. ex: cmake ..\n"
+			" 5. Run make from the build directory. ex: make\n"
+			"Full paste-able example:\n"
+			"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )"
+	)
 endif()
 
 cmake_minimum_required(VERSION 3.12)
@@ -38,8 +37,8 @@ if(POLICY CMP0042)
 	cmake_policy(SET CMP0042 NEW)
 endif()
 
-# Enable CMAKE_MSVC_RUNTIME_LIBRARY on Windows + CMake >= 3.15 and link
-# with the static (MultiThreaded) CRT unless instructed otherwise.
+# Enable CMAKE_MSVC_RUNTIME_LIBRARY on Windows + CMake >= 3.15 and link with the static
+# (MultiThreaded) CRT unless instructed otherwise.
 if(NOT (CMAKE_MSVC_RUNTIME_LIBRARY OR BUILD_SHARED_LIBS))
 	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
@@ -54,9 +53,13 @@ endif()
 project(falcosecurity-libs)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
-option(MINIMAL_BUILD "Produce a minimal build with only the essential features (no container metadata)" OFF)
+option(MINIMAL_BUILD
+	   "Produce a minimal build with only the essential features (no container metadata)" OFF
+)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
-option(USE_BUNDLED_DRIVER "Use the driver/ subdirectory in the build process (only available in Linux)" ON)
+option(USE_BUNDLED_DRIVER
+	   "Use the driver/ subdirectory in the build process (only available in Linux)" ON
+)
 option(ENABLE_DRIVERS_TESTS "Enable driver tests (bpf, kernel module, modern bpf)" OFF)
 option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
 option(ENABLE_LIBSINSP_E2E_TESTS "Enable libsinsp e2e tests" OFF)
@@ -76,8 +79,7 @@ endif()
 include(GNUInstallDirs)
 
 # Add path for custom CMake modules.
-list(APPEND CMAKE_MODULE_PATH
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 include(versions)
 
@@ -113,7 +115,7 @@ if(CREATE_TEST_TARGETS)
 	include(gtest)
 endif()
 
-if (BUILD_SHARED_LIBS)
+if(BUILD_SHARED_LIBS)
 	get_shared_libs_versions(FALCOSECURITY_SHARED_LIBS_VERSION FALCOSECURITY_SHARED_LIBS_SOVERSION)
 	message(STATUS "Shared library version: ${FALCOSECURITY_SHARED_LIBS_VERSION}")
 	message(STATUS "Shared library soversion: ${FALCOSECURITY_SHARED_LIBS_SOVERSION}")
@@ -123,12 +125,9 @@ include(libscap)
 include(libsinsp)
 
 if(CREATE_TEST_TARGETS)
-	# Add command to run all unit tests at once via the make system.
-	# This is preferred vs using ctest's add_test because it will build
-	# the code and output to stdout.
-	add_custom_target(run-unit-tests
-		COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
-	)
+	# Add command to run all unit tests at once via the make system. This is preferred vs using
+	# ctest's add_test because it will build the code and output to stdout.
+	add_custom_target(run-unit-tests COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp)
 
 	add_subdirectory(test/e2e)
 

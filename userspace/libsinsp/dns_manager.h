@@ -34,42 +34,30 @@ limitations under the License.
 #endif
 #include <libsinsp/sinsp.h>
 
-
-struct sinsp_dns_resolver
-{
-	static void refresh(uint64_t erase_timeout, uint64_t base_refresh_timeout, uint64_t max_refresh_timeout, std::future<void> f_exit);
+struct sinsp_dns_resolver {
+	static void refresh(uint64_t erase_timeout,
+	                    uint64_t base_refresh_timeout,
+	                    uint64_t max_refresh_timeout,
+	                    std::future<void> f_exit);
 };
 
-class sinsp_dns_manager
-{
+class sinsp_dns_manager {
 public:
-
 	bool match(const char *name, int af, void *addr, uint64_t ts);
 	std::string name_of(int af, void *addr, uint64_t ts);
 
 	void cleanup();
 
-	static sinsp_dns_manager& get()
-	{
+	static sinsp_dns_manager &get() {
 		static sinsp_dns_manager instance;
 		return instance;
 	};
 
-	void set_erase_timeout(uint64_t ns)
-	{
-		m_erase_timeout = ns;
-	};
-	void set_base_refresh_timeout(uint64_t ns)
-	{
-		m_base_refresh_timeout = ns;
-	};
-	void set_max_refresh_timeout(uint64_t ns)
-	{
-		m_max_refresh_timeout = ns;
-	};
+	void set_erase_timeout(uint64_t ns) { m_erase_timeout = ns; };
+	void set_base_refresh_timeout(uint64_t ns) { m_base_refresh_timeout = ns; };
+	void set_max_refresh_timeout(uint64_t ns) { m_max_refresh_timeout = ns; };
 
-	size_t size() const
-	{
+	size_t size() const {
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 		return m_cache.size();
 #else
@@ -78,31 +66,22 @@ public:
 	};
 
 private:
+	sinsp_dns_manager():
+	        m_erase_timeout(3600 * ONE_SECOND_IN_NS),
+	        m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
+	        m_max_refresh_timeout(320 * ONE_SECOND_IN_NS) {};
 
-	sinsp_dns_manager() :
-		m_erase_timeout(3600 * ONE_SECOND_IN_NS),
-		m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
-		m_max_refresh_timeout(320 * ONE_SECOND_IN_NS)
-	{};
+	~sinsp_dns_manager() { cleanup(); }
 
-	~sinsp_dns_manager() {
-		cleanup();
-	}
-
-	sinsp_dns_manager(sinsp_dns_manager const&) = delete;
-	void operator=(sinsp_dns_manager const&) = delete;
+	sinsp_dns_manager(sinsp_dns_manager const &) = delete;
+	void operator=(sinsp_dns_manager const &) = delete;
 
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
-	struct dns_info
-	{
-		bool operator==(const dns_info &other) const
-		{
+	struct dns_info {
+		bool operator==(const dns_info &other) const {
 			return m_v4_addrs == other.m_v4_addrs && m_v6_addrs == other.m_v6_addrs;
 		};
-		bool operator!=(const dns_info &other) const
-		{
-			return !operator==(other);
-		};
+		bool operator!=(const dns_info &other) const { return !operator==(other); };
 
 		uint64_t m_timeout;
 		uint64_t m_last_resolve_ts;

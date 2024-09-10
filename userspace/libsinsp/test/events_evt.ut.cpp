@@ -22,19 +22,25 @@ limitations under the License.
 #include <sinsp_errno.h>
 #include "test_utils.h"
 
-TEST_F(sinsp_with_test_input, event_category)
-{
+TEST_F(sinsp_with_test_input, event_category) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
+	sinsp_evt *evt = NULL;
 	std::string syscall_source_name = sinsp_syscall_event_source_name;
 
 	int64_t fd = 4, mountfd = 5, test_errno = 0;
 
 	/* Check that `EC_SYSCALL` category is not considered */
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, fd, mountfd, PPM_O_RDWR, "/tmp/the_file.txt");
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_BY_HANDLE_AT_X,
+	                           4,
+	                           fd,
+	                           mountfd,
+	                           PPM_O_RDWR,
+	                           "/tmp/the_file.txt");
 	ASSERT_EQ(evt->get_category(), EC_FILE);
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
@@ -42,7 +48,14 @@ TEST_F(sinsp_with_test_input, event_category)
 	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "2");
 
 	/* Check that `EC_TRACEPOINT` category is not considered */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PROCEXIT_1_E, 4, test_errno, test_errno, (uint8_t)0, (uint8_t)0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_PROCEXIT_1_E,
+	                           4,
+	                           test_errno,
+	                           test_errno,
+	                           (uint8_t)0,
+	                           (uint8_t)0);
 	ASSERT_EQ(evt->get_category(), EC_PROCESS);
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "process");
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
@@ -58,16 +71,20 @@ TEST_F(sinsp_with_test_input, event_category)
 	ASSERT_EQ(get_field_as_string(evt, "evt.num"), "4");
 }
 
-TEST_F(sinsp_with_test_input, event_res)
-{
+TEST_F(sinsp_with_test_input, event_res) {
 	add_default_init_thread();
 
 	open_inspector();
 
-	sinsp_evt * evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (uint32_t)-1);
+	sinsp_evt *evt =
+	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (uint32_t)-1);
 	EXPECT_FALSE(field_has_value(evt, "evt.res"));
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (int64_t)-SE_EINVAL);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_EPOLL_CREATE_X,
+	                           1,
+	                           (int64_t)-SE_EINVAL);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "EINVAL");
 	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "-22");
@@ -75,22 +92,52 @@ TEST_F(sinsp_with_test_input, event_res)
 	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "true");
 	EXPECT_EQ(get_field_as_string(evt, "evt.count.error"), "1");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (uint32_t) 100);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (uint64_t) 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (uint32_t)100);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, (uint64_t)0);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
 	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "0");
 	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "false");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file.txt", 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (int64_t)123, "/tmp/the_file.txt", 0, 0, 0, (uint64_t) 0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_E,
+	                           3,
+	                           "/tmp/the_file.txt",
+	                           0,
+	                           0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           (int64_t)123,
+	                           "/tmp/the_file.txt",
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
 	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), "123");
 	EXPECT_EQ(get_field_as_string(evt, "evt.failed"), "false");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file.txt", 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (int64_t)-SE_EACCES, "/tmp/the_file.txt", 0, 0, 0, (uint64_t) 0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_E,
+	                           3,
+	                           "/tmp/the_file.txt",
+	                           0,
+	                           0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           (int64_t)-SE_EACCES,
+	                           "/tmp/the_file.txt",
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
 
 	EXPECT_EQ(get_field_as_string(evt, "evt.res"), "EACCES");
 	EXPECT_EQ(get_field_as_string(evt, "evt.rawres"), std::to_string(-SE_EACCES).c_str());
@@ -99,8 +146,7 @@ TEST_F(sinsp_with_test_input, event_res)
 	EXPECT_EQ(get_field_as_string(evt, "evt.count.error.file"), "1");
 }
 
-TEST_F(sinsp_with_test_input, event_hostname)
-{
+TEST_F(sinsp_with_test_input, event_hostname) {
 #ifdef __linux__
 	/* Set temporary env variable for hostname.
 	 * libscap cmake defaults to `set(SCAP_HOSTNAME_ENV_VAR "SCAP_HOSTNAME")`
@@ -119,7 +165,16 @@ TEST_F(sinsp_with_test_input, event_hostname)
 	int64_t dirfd = 3;
 	const char *file_to_run = "/tmp/file_to_run";
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, file_to_run, 0, 0, 0, (uint64_t) 0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           dirfd,
+	                           file_to_run,
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
 
 	/* Assert correct custom hostname. */
 	ASSERT_EQ(get_field_as_string(evt, "evt.hostname"), hostname);

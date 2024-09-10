@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_uname
-TEST(SyscallEnter, genericE)
-{
+TEST(SyscallEnter, genericE) {
 	/* We use `uname` syscall because it is defined on all architectures
 	 * and is a very simple syscall.
 	 */
@@ -20,8 +19,7 @@ TEST(SyscallEnter, genericE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

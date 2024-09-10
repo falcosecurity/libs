@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(connect_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(connect_e, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 	auxmap__preload_event_header(auxmap, PPME_SOCKET_CONNECT_E);
@@ -51,13 +47,9 @@ int BPF_PROG(connect_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(connect_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(connect_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -73,12 +65,9 @@ int BPF_PROG(connect_x,
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* We need a valid sockfd to extract source data.*/
-	if(ret == 0 || ret == -EINPROGRESS)
-	{
+	if(ret == 0 || ret == -EINPROGRESS) {
 		auxmap__store_socktuple_param(auxmap, (int32_t)socket_fd, OUTBOUND, NULL);
-	}
-	else
-	{
+	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 

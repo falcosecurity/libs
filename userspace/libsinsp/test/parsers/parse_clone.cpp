@@ -20,8 +20,7 @@ limitations under the License.
 
 /*=============================== CLONE CALLER EXIT EVENT ===========================*/
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_failed)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_failed) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
@@ -42,8 +41,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_failed)
 	ASSERT_FALSE(p1_t1_tinfo);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_in_container)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_in_container) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -61,8 +59,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_in_container)
 	ASSERT_FALSE(p1_t1_tinfo);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -73,9 +70,16 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision)
 	int64_t p1_t1_pid = 24;
 	int64_t p1_t1_ptid = INIT_PID;
 
-	/* Child clone exit event, we set a comm to understand if the final thread_info is overwritten or no */
-	generate_clone_x_event(0, p1_t1_tid, p1_t1_pid, p1_t1_ptid, DEFAULT_VALUE, DEFAULT_VALUE, DEFAULT_VALUE,
-			       "old_bash");
+	/* Child clone exit event, we set a comm to understand if the final thread_info is overwritten
+	 * or no */
+	generate_clone_x_event(0,
+	                       p1_t1_tid,
+	                       p1_t1_pid,
+	                       p1_t1_ptid,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "old_bash");
 
 	sinsp_threadinfo* p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
@@ -88,8 +92,14 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision)
 	/* The parent considers the existing child entry stale and removes it.
 	 * It will populate a new thread info
 	 */
-	generate_clone_x_event(p1_t1_tid, INIT_TID, INIT_PID, INIT_PTID, DEFAULT_VALUE, DEFAULT_VALUE, DEFAULT_VALUE,
-			       "new_bash");
+	generate_clone_x_event(p1_t1_tid,
+	                       INIT_TID,
+	                       INIT_PID,
+	                       INIT_PTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "new_bash");
 
 	p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
@@ -97,8 +107,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_tid_collision)
 	ASSERT_EQ(p1_t1_tinfo->m_comm, "new_bash");
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -110,24 +119,35 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_keep_existing_child)
 	int64_t p1_t1_ptid = INIT_PID;
 
 	/* Child clone exit event */
-	generate_clone_x_event(0, p1_t1_tid, p1_t1_pid, p1_t1_ptid, DEFAULT_VALUE, DEFAULT_VALUE, DEFAULT_VALUE,
-			       "old_bash");
+	generate_clone_x_event(0,
+	                       p1_t1_tid,
+	                       p1_t1_pid,
+	                       p1_t1_ptid,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "old_bash");
 
 	sinsp_threadinfo* p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
 
 	/* Parent clone exit event */
-	generate_clone_x_event(p1_t1_tid, INIT_TID, INIT_PID, INIT_PTID, DEFAULT_VALUE, DEFAULT_VALUE, DEFAULT_VALUE,
-			       "new_bash");
+	generate_clone_x_event(p1_t1_tid,
+	                       INIT_TID,
+	                       INIT_PID,
+	                       INIT_PTID,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "new_bash");
 
 	p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false, true).get();
 	ASSERT_TRUE(p1_t1_tinfo);
 	ASSERT_EQ(p1_t1_tinfo->m_comm, "old_bash");
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_new_main_thread)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_new_main_thread) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -148,8 +168,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_new_main_thread)
 	ASSERT_THREAD_CHILDREN(INIT_TID, 1, 1, p1_t1_tid)
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_flag_CLONE_PARENT)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_flag_CLONE_PARENT) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -192,8 +211,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_flag_CLONE_PARENT)
 	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p2_t1_tid)
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_flag_CLONE_THREAD)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_flag_CLONE_THREAD) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -229,8 +247,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_flag_CLONE_THREAD)
 	ASSERT_THREAD_INFO_FLAG(p1_t2_tid, PPM_CL_CLONE_FILES, true);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_check_event_tinfo)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_check_event_tinfo) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -267,8 +284,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_check_event_tinfo)
 	ASSERT_EQ(evt->get_tinfo()->m_tid, 38);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_leader_thread)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_leader_thread) {
 	/* The schema is:
 	 * - init
 	 *  - p1_t1
@@ -287,8 +303,8 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_lead
 	generate_clone_x_event(p1_t1_tid, INIT_TID, INIT_PID, INIT_PTID);
 	ASSERT_THREAD_INFO_PIDS(p1_t1_tid, p1_t1_pid, p1_t1_ptid)
 
-	/* The process p1 creates a second process p2 but we miss both clone events (child, caller) so we know nothing
-	 * about it */
+	/* The process p1 creates a second process p2 but we miss both clone events (child, caller) so
+	 * we know nothing about it */
 	int64_t p2_t1_tid = 30;
 	int64_t p2_t1_pid = 30;
 	int64_t p2_t1_ptid = p1_t1_tid;
@@ -310,8 +326,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_lead
 	ASSERT_THREAD_CHILDREN(p1_t1_tid, 1, 1, p2_t1_tid);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_secondary_threads)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_secondary_threads) {
 	/* The schema is:
 	 * - init
 	 *  - p1_t1 (we miss this thread info)
@@ -343,8 +358,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_missing_both_clone_events_create_seco
 	ASSERT_THREAD_INFO_PIDS(p1_t2_tid, p1_t2_pid, p1_t2_ptid)
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update)
-{
+TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update) {
 	add_default_init_thread();
 
 	/* Create process p1_t1 */
@@ -357,8 +371,8 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update)
 
 	/* Now imagine that process p1 calls a prctl and changes its name... */
 
-	/* p1_t1 create a new process p2_t1. The clone caller exit event contains the new comm and should update the
-	 * comm of p1
+	/* p1_t1 create a new process p2_t1. The clone caller exit event contains the new comm and
+	 * should update the comm of p1
 	 */
 
 	int64_t p2_t1_tid = 26;
@@ -366,8 +380,14 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update)
 	[[maybe_unused]] int64_t p2_t1_ptid = p1_t1_tid;
 
 	ASSERT_THREAD_INFO_COMM(p1_t1_tid, "old-name");
-	generate_clone_x_event(p2_t1_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, DEFAULT_VALUE, DEFAULT_VALUE, DEFAULT_VALUE,
-			       "new-name");
+	generate_clone_x_event(p2_t1_tid,
+	                       p1_t1_tid,
+	                       p1_t1_pid,
+	                       p1_t1_ptid,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       DEFAULT_VALUE,
+	                       "new-name");
 	/* The caller has a new comm but we don't catch it! */
 	ASSERT_THREAD_INFO_COMM(p1_t1_tid, "old-name");
 
@@ -379,8 +399,7 @@ TEST_F(sinsp_with_test_input, CLONE_CALLER_comm_update)
 
 /*=============================== CLONE CHILD EXIT EVENT ===========================*/
 
-TEST_F(sinsp_with_test_input, CLONE_CHILD_in_container)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_in_container) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -395,15 +414,20 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_in_container)
 	/* if we use `sched_proc_fork` tracepoint `PPM_CL_CLONE_NEWPID` won't be sent so we don't
 	 * use it here, we use just `PPM_CL_CHILD_IN_PIDNS`
 	 */
-	generate_clone_x_event(0, p1_t1_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CHILD_IN_PIDNS, p1_t1_vtid, p1_t1_vpid);
+	generate_clone_x_event(0,
+	                       p1_t1_tid,
+	                       p1_t1_pid,
+	                       p1_t1_ptid,
+	                       PPM_CL_CHILD_IN_PIDNS,
+	                       p1_t1_vtid,
+	                       p1_t1_vpid);
 
 	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p1_t1_tid, p1_t1_pid, p1_t1_ptid, p1_t1_vtid, p1_t1_vpid)
 	ASSERT_THREAD_GROUP_INFO(p1_t1_pid, 1, false, 1, 1, p1_t1_tid)
 	ASSERT_THREAD_CHILDREN(INIT_TID, 1, 1, p1_t1_tid)
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CHILD_already_there)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_already_there) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -432,8 +456,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_already_there)
 	ASSERT_EQ(evt->get_thread_info()->m_pid, p1_t1_pid);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_threadinfo* tinfo = NULL;
@@ -470,8 +493,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_tid_collision)
 	ASSERT_EQ(evt->get_thread_info()->m_pid, new_pid);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CHILD_new_main_thread)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_new_main_thread) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
@@ -494,8 +516,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_new_main_thread)
 	ASSERT_EQ(p1_t1_tinfo, evt->get_thread_info());
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CHILD_flag_CLONE_PARENT)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_flag_CLONE_PARENT) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -520,15 +541,14 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_flag_CLONE_PARENT)
 	 * shouldn't need this flag to detect the real parent, so we omit it here
 	 * and see what happens.
 	 */
-	generate_clone_x_event(0, p2_t1_tid, p2_t1_pid, p2_t1_ptid); // omitted PPM_CL_CLONE_PARENT
+	generate_clone_x_event(0, p2_t1_tid, p2_t1_pid, p2_t1_ptid);  // omitted PPM_CL_CLONE_PARENT
 	ASSERT_THREAD_INFO_PIDS(p2_t1_tid, p2_t1_pid, p2_t1_ptid)
 	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p2_t1_tid)
 
 	ASSERT_THREAD_INFO_FLAG(p2_t1_tid, PPM_CL_CLONE_PARENT, false);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CHILD_flag_CLONE_THREAD)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_flag_CLONE_THREAD) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -557,8 +577,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_flag_CLONE_THREAD)
 	ASSERT_THREAD_INFO_FLAG(p1_t2_tid, PPM_CL_CLONE_FILES, true);
 }
 
-TEST_F(sinsp_with_test_input, CLONE_CHILD_check_event_tinfo)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_check_event_tinfo) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -596,8 +615,7 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_check_event_tinfo)
 }
 
 /* Here we are using the child clone exit event to reconstruct the tree */
-TEST_F(sinsp_with_test_input, CLONE_CHILD_missing_both_clone_events_create_secondary_threads)
-{
+TEST_F(sinsp_with_test_input, CLONE_CHILD_missing_both_clone_events_create_secondary_threads) {
 	/* The schema is:
 	 * - init
 	 *  - p1_t1 (we miss this thread info)

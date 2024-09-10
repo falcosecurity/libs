@@ -30,41 +30,42 @@ limitations under the License.
 
 #define SECOND_TO_NS 1000000000ULL
 
-void scap_os_get_agent_info(scap_agent_info* agent_info)
-{
+void scap_os_get_agent_info(scap_agent_info* agent_info) {
 	agent_info->start_ts_epoch = 0;
 	agent_info->start_time = 0;
 
 	/* Info 1:
 	 *
-	 * Get epoch timestamp based on procfs stat, only used for (constant) agent start time reporting.
+	 * Get epoch timestamp based on procfs stat, only used for (constant) agent start time
+	 * reporting.
 	 */
 	struct stat st = {0};
-	if(stat("/proc/self/cmdline", &st) == 0)
-	{
+	if(stat("/proc/self/cmdline", &st) == 0) {
 		agent_info->start_ts_epoch = st.st_ctim.tv_sec * SECOND_TO_NS + st.st_ctim.tv_nsec;
 	}
 
 	/* Info 2:
 	 *
-	 * Get /proc/self/stat start_time (22nd item) to calculate subsequent snapshots of the elapsed time
-	 * of the agent for CPU usage calculations, e.g. sysinfo uptime - /proc/self/stat start_time.
+	 * Get /proc/self/stat start_time (22nd item) to calculate subsequent snapshots of the elapsed
+	 * time of the agent for CPU usage calculations, e.g. sysinfo uptime - /proc/self/stat
+	 * start_time.
 	 */
 	FILE* f;
-	if((f = fopen("/proc/self/stat", "r")))
-	{
-		unsigned long long stat_start_time = 0; // unit: USER_HZ / jiffies / clock ticks
+	if((f = fopen("/proc/self/stat", "r"))) {
+		unsigned long long stat_start_time = 0;  // unit: USER_HZ / jiffies / clock ticks
 		long hz = 100;
 #ifdef _SC_CLK_TCK
-		if ((hz = sysconf(_SC_CLK_TCK)) < 0)
-		{
+		if((hz = sysconf(_SC_CLK_TCK)) < 0) {
 			hz = 100;
 			ASSERT(false);
 		}
 #endif
-		if(fscanf(f, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*u %llu", &stat_start_time))
-		{
-			agent_info->start_time = (double)stat_start_time / hz; // unit: seconds as type (double)
+		if(fscanf(f,
+		          "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d "
+		          "%*u %llu",
+		          &stat_start_time)) {
+			agent_info->start_time =
+			        (double)stat_start_time / hz;  // unit: seconds as type (double)
 		}
 		fclose(f);
 	}
@@ -79,8 +80,7 @@ void scap_os_get_agent_info(scap_agent_info* agent_info)
 	snprintf(agent_info->uname_r, sizeof(agent_info->uname_r), "%s", uts.release);
 }
 
-static uint64_t scap_linux_get_host_boot_time_ns(char* last_err)
-{
+static uint64_t scap_linux_get_host_boot_time_ns(char* last_err) {
 	uint64_t btime = 0;
 	char proc_stat[SCAP_MAX_PATH_SIZE];
 	char line[512];
@@ -105,15 +105,12 @@ static uint64_t scap_linux_get_host_boot_time_ns(char* last_err)
 	 */
 	snprintf(proc_stat, sizeof(proc_stat), "%s/proc/stat", scap_get_host_root());
 	FILE* f = fopen(proc_stat, "r");
-	if (f == NULL)
-	{
+	if(f == NULL) {
 		return 0;
 	}
 
-	while(fgets(line, sizeof(line), f) != NULL)
-	{
-		if(sscanf(line, "btime %" PRIu64, &btime) == 1)
-		{
+	while(fgets(line, sizeof(line), f) != NULL) {
+		if(sscanf(line, "btime %" PRIu64, &btime) == 1) {
 			fclose(f);
 			return btime * SECOND_TO_NS;
 		}
@@ -122,39 +119,36 @@ static uint64_t scap_linux_get_host_boot_time_ns(char* last_err)
 	return 0;
 }
 
-static void scap_gethostname(char* buf, size_t size)
-{
-	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
-	if(env_hostname != NULL)
-	{
+static void scap_gethostname(char* buf, size_t size) {
+	char* env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
+	if(env_hostname != NULL) {
 		snprintf(buf, size, "%s", env_hostname);
-	}
-	else
-	{
+	} else {
 		gethostname(buf, size);
 	}
 }
 
-int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
-{
+int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr) {
 	// Check that we can read under '/proc'.
 	// A wrong usage of the env variable 'HOST_ROOT' can be detected here.
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
-	if(snprintf(filename, sizeof(filename), "%s/proc/", scap_get_host_root()) < 0)
-	{
-		if(lasterr != NULL)
-		{
-			snprintf(lasterr, SCAP_LASTERR_SIZE, "unable to build the `/proc` path with 'snprintf'\n");
+	if(snprintf(filename, sizeof(filename), "%s/proc/", scap_get_host_root()) < 0) {
+		if(lasterr != NULL) {
+			snprintf(lasterr,
+			         SCAP_LASTERR_SIZE,
+			         "unable to build the `/proc` path with 'snprintf'\n");
 		}
 		return SCAP_FAILURE;
 	}
 
 	struct stat targetstat = {0};
-	if(stat(filename, &targetstat) != 0)
-	{
-		if(lasterr != NULL)
-		{
-			snprintf(lasterr, SCAP_LASTERR_SIZE, "the directory '%s' doesn't exist on the system. Check the usage of the 'HOST_ROOT' env variable.", filename);
+	if(stat(filename, &targetstat) != 0) {
+		if(lasterr != NULL) {
+			snprintf(lasterr,
+			         SCAP_LASTERR_SIZE,
+			         "the directory '%s' doesn't exist on the system. Check the usage of the "
+			         "'HOST_ROOT' env variable.",
+			         filename);
 		}
 		return SCAP_FAILURE;
 	}
@@ -163,8 +157,7 @@ int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
 	machine_info->memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	scap_gethostname(machine_info->hostname, sizeof(machine_info->hostname));
 	machine_info->boot_ts_epoch = scap_linux_get_host_boot_time_ns(lasterr);
-	if(machine_info->boot_ts_epoch == 0)
-	{
+	if(machine_info->boot_ts_epoch == 0) {
 		return SCAP_FAILURE;
 	}
 

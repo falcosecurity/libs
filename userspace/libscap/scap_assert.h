@@ -27,9 +27,9 @@ limitations under the License.
 
 #ifdef ASSERT
 #undef ASSERT
-#endif // ASSERT
+#endif  // ASSERT
 #ifdef _DEBUG
 #define ASSERT(X) assert(X)
-#else // _DEBUG
+#else  // _DEBUG
 #define ASSERT(X)
-#endif // _DEBUG
+#endif  // _DEBUG

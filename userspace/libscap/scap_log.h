@@ -1,7 +1,6 @@
 #pragma once
 
-enum falcosecurity_log_severity
-{
+enum falcosecurity_log_severity {
 	FALCOSECURITY_LOG_SEV_FATAL = 1,
 	FALCOSECURITY_LOG_SEV_CRITICAL = 2,
 	FALCOSECURITY_LOG_SEV_ERROR = 3,
@@ -12,4 +11,6 @@ enum falcosecurity_log_severity
 	FALCOSECURITY_LOG_SEV_TRACE = 8,
 };
 
-typedef void (*falcosecurity_log_fn)(const char* component, const char* msg, const enum falcosecurity_log_severity sev);
+typedef void (*falcosecurity_log_fn)(const char* component,
+                                     const char* msg,
+                                     const enum falcosecurity_log_severity sev);

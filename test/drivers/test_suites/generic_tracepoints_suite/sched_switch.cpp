@@ -5,8 +5,7 @@
 
 #include <linux/sched.h>
 
-TEST(GenericTracepoints, sched_switch)
-{
+TEST(GenericTracepoints, sched_switch) {
 	auto evt_test = get_generic_event_test(PPM_SC_SCHED_SWITCH);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(GenericTracepoints, sched_switch)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -30,7 +28,11 @@ TEST(GenericTracepoints, sched_switch)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -39,8 +41,7 @@ TEST(GenericTracepoints, sched_switch)
 	/* We search for a father event. */
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

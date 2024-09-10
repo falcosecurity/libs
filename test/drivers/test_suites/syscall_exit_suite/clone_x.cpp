@@ -3,8 +3,7 @@
 
 #if defined(__NR_clone) && defined(__NR_wait4)
 
-TEST(SyscallExit, cloneX_father)
-{
+TEST(SyscallExit, cloneX_father) {
 	auto evt_test = get_syscall_event_test(__NR_clone, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,8 +15,7 @@ TEST(SyscallExit, cloneX_father)
 	 */
 	struct proc_info info = {};
 	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
+	if(!get_proc_info(pid, &info)) {
 		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
 
@@ -31,30 +29,22 @@ TEST(SyscallExit, cloneX_father)
 	unsigned long tls = 0;
 	pid_t ret_pid = 0;
 
-	/* Please note: Some systems are compiled with kernel config like `CONFIG_CLONE_BACKWARDS2`, so the order of clone params
-	 * is not the same as for all architectures. `/kernel/fork.c` from kernel source tree.
+	/* Please note: Some systems are compiled with kernel config like `CONFIG_CLONE_BACKWARDS2`, so
+	 *the order of clone params is not the same as for all architectures. `/kernel/fork.c` from
+	 *kernel source tree.
 	 *
 	 *  #ifdef CONFIG_CLONE_BACKWARDS
-	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,  	  <-- `aarch64` and `riscv` systems use this.
-	 *			int __user *, parent_tidptr,
-	 *			unsigned long, tls,
-	 *			int __user *, child_tidptr)
-	 *	#elif defined(CONFIG_CLONE_BACKWARDS2)
-	 *	SYSCALL_DEFINE5(clone, unsigned long, newsp, unsigned long, clone_flags,      <-- `s390x` systems use this.
-	 *			int __user *, parent_tidptr,
-	 *			int __user *, child_tidptr,
-	 *			unsigned long, tls)
-	 *	#elif defined(CONFIG_CLONE_BACKWARDS3)
-	 *	SYSCALL_DEFINE6(clone, unsigned long, clone_flags, unsigned long, newsp,
-	 *			int, stack_size,
-	 *			int __user *, parent_tidptr,
-	 *			int __user *, child_tidptr,
+	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,  	  <-- `aarch64`
+	 *and `riscv` systems use this. int __user *, parent_tidptr, unsigned long, tls, int __user *,
+	 *child_tidptr) #elif defined(CONFIG_CLONE_BACKWARDS2) SYSCALL_DEFINE5(clone, unsigned long,
+	 *newsp, unsigned long, clone_flags,      <-- `s390x` systems use this. int __user *,
+	 *parent_tidptr, int __user *, child_tidptr, unsigned long, tls) #elif
+	 *defined(CONFIG_CLONE_BACKWARDS3) SYSCALL_DEFINE6(clone, unsigned long, clone_flags, unsigned
+	 *long, newsp, int, stack_size, int __user *, parent_tidptr, int __user *, child_tidptr,
 	 *			unsigned long, tls)
 	 *	#else
-	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,      <-- `x86_64` systems use this.
-	 *			int __user *, parent_tidptr,
-	 *			int __user *, child_tidptr,
-	 *			unsigned long, tls)
+	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,      <-- `x86_64`
+	 *systems use this. int __user *, parent_tidptr, int __user *, child_tidptr, unsigned long, tls)
 	 *	#endif
 	 *
 	 */
@@ -66,8 +56,7 @@ TEST(SyscallExit, cloneX_father)
 	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, &child_tid, tls);
 #endif
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -77,7 +66,11 @@ TEST(SyscallExit, cloneX_father)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -85,8 +78,7 @@ TEST(SyscallExit, cloneX_father)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -169,8 +161,7 @@ TEST(SyscallExit, cloneX_father)
 	evt_test->assert_num_params_pushed(21);
 }
 
-TEST(SyscallExit, cloneX_child)
-{
+TEST(SyscallExit, cloneX_child) {
 	auto evt_test = get_syscall_event_test(__NR_clone, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -180,8 +171,7 @@ TEST(SyscallExit, cloneX_child)
 	/* Here we scan the parent just to obtain some info for the child */
 	struct proc_info info = {};
 	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
+	if(!get_proc_info(pid, &info)) {
 		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
 
@@ -203,8 +193,7 @@ TEST(SyscallExit, cloneX_child)
 	ret_pid = syscall(__NR_clone, test_clone_flags, newsp, &parent_tid, &child_tid, tls);
 #endif
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -213,9 +202,12 @@ TEST(SyscallExit, cloneX_child)
 
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
@@ -225,8 +217,7 @@ TEST(SyscallExit, cloneX_child)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -240,7 +231,7 @@ TEST(SyscallExit, cloneX_child)
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
-#ifndef __powerpc64__ // Page fault
+#ifndef __powerpc64__  // Page fault
 	evt_test->assert_charbuf_param(2, info.args[0]);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */

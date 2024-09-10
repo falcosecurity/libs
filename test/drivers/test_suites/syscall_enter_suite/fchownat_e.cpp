@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_fchownat
-TEST(SyscallEnter, fchownatE)
-{
+TEST(SyscallEnter, fchownatE) {
 	auto evt_test = get_syscall_event_test(__NR_fchownat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, fchownatE)
 	uint32_t uid = 0;
 	uint32_t gid = 0;
 	uint32_t flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "fchownat", syscall(__NR_fchownat, mock_dirfd, pathname, uid, gid, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "fchownat",
+	                     syscall(__NR_fchownat, mock_dirfd, pathname, uid, gid, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, fchownatE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

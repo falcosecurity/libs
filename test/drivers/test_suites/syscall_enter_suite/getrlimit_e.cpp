@@ -4,8 +4,7 @@
 
 #include <sys/resource.h>
 
-TEST(SyscallEnter, getrlimitE)
-{
+TEST(SyscallEnter, getrlimitE) {
 	auto evt_test = get_syscall_event_test(__NR_getrlimit, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -22,8 +21,7 @@ TEST(SyscallEnter, getrlimitE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

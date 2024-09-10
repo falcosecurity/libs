@@ -20,7 +20,6 @@ limitations under the License.
 
 #include <Windows.h>
 
-static inline void sleep_ms(int ms)
-{
+static inline void sleep_ms(int ms) {
 	Sleep((DWORD)ms);
 }

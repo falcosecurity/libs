@@ -28,14 +28,11 @@ limitations under the License.
 // R_D stands for Ringbuffer Debugging
 #define R_D_MSG(...) printf(__VA_ARGS__)
 
-#define R_D_EVENT(event, ring_id)                                                                                      \
-	if(event == NULL)                                                                                              \
-	{                                                                                                              \
-		R_D_MSG("[NULL Event] buf: %d\n", ring_id);                                                            \
-	}                                                                                                              \
-	else                                                                                                           \
-	{                                                                                                              \
-		R_D_MSG("[Event] ts: %ld, buf: %d\n", (event)->ts, ring_id);                                           \
+#define R_D_EVENT(event, ring_id)                                    \
+	if(event == NULL) {                                              \
+		R_D_MSG("[NULL Event] buf: %d\n", ring_id);                  \
+	} else {                                                         \
+		R_D_MSG("[Event] ts: %ld, buf: %d\n", (event)->ts, ring_id); \
 	}
 
 #else

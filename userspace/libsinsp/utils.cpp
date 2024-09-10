@@ -30,23 +30,23 @@ limitations under the License.
 #endif
 
 #ifndef _WIN32
-	#include <climits>
-	#include <cstdlib>
-	#include <cstring>
-	#ifdef __GLIBC__
-	#include <execinfo.h>
-	#endif
-	#include <fnmatch.h>
-	#include <netdb.h>
-	#include <string>
-	#include <sys/ioctl.h>
-	#include <sys/time.h>
-	#include <unistd.h>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
+#ifdef __GLIBC__
+#include <execinfo.h>
+#endif
+#include <fnmatch.h>
+#include <netdb.h>
+#include <string>
+#include <sys/ioctl.h>
+#include <sys/time.h>
+#include <unistd.h>
 #else
-	#pragma comment(lib, "Ws2_32.lib")
-	#include <WinSock2.h>
-	#include "Shlwapi.h"
-	#pragma comment(lib,"shlwapi.lib")
+#pragma comment(lib, "Ws2_32.lib")
+#include <WinSock2.h>
+#include "Shlwapi.h"
+#pragma comment(lib, "shlwapi.lib")
 #endif
 
 #include <algorithm>
@@ -71,8 +71,7 @@ sinsp_initializer g_initializer;
 //
 // loading time initializations
 //
-sinsp_initializer::sinsp_initializer()
-{
+sinsp_initializer::sinsp_initializer() {
 	//
 	// Init the event tables
 	//
@@ -88,8 +87,8 @@ sinsp_initializer::sinsp_initializer()
 	//
 #ifdef _WIN32
 	WSADATA wsaData;
-	WORD version = MAKEWORD( 2, 0 );
-	WSAStartup( version, &wsaData );
+	WORD version = MAKEWORD(2, 0);
+	WSAStartup(version, &wsaData);
 #endif
 }
 
@@ -100,10 +99,8 @@ sinsp_initializer::sinsp_initializer()
 //
 // errno to string conversion.
 //
-const char* sinsp_utils::errno_to_str(int32_t code)
-{
-	switch(-code)
-	{
+const char* sinsp_utils::errno_to_str(int32_t code) {
+	switch(-code) {
 	case SE_EPERM:
 		return "EPERM";
 	case SE_ENOENT:
@@ -390,10 +387,8 @@ const char* sinsp_utils::errno_to_str(int32_t code)
 // signal to string conversion.
 // Only non-extremely-obscure signals are implemented
 //
-const char* sinsp_utils::signal_to_str(uint8_t code)
-{
-	switch(code)
-	{
+const char* sinsp_utils::signal_to_str(uint8_t code) {
+	switch(code) {
 	case SE_SIGHUP:
 		return "SIGHUP";
 	case SE_SIGINT:
@@ -461,16 +456,17 @@ const char* sinsp_utils::signal_to_str(uint8_t code)
 	}
 }
 
-bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, char* targetbuf, uint32_t targetbuf_size, bool resolve)
-{
-	if(stype == SCAP_FD_IPV4_SOCK)
-	{
+bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo,
+                                  scap_fd_type stype,
+                                  char* targetbuf,
+                                  uint32_t targetbuf_size,
+                                  bool resolve) {
+	if(stype == SCAP_FD_IPV4_SOCK) {
 		uint8_t* sb = (uint8_t*)&sinfo->m_ipv4info.m_fields.m_sip;
 		uint8_t* db = (uint8_t*)&sinfo->m_ipv4info.m_fields.m_dip;
 
 		if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_TCP ||
-			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP)
-		{
+		   sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_UDP) {
 			ipv4tuple addr;
 			addr.m_fields.m_sip = sinfo->m_ipv4info.m_fields.m_sip;
 			addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
@@ -478,45 +474,32 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 			addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 			addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
 			std::string straddr = ipv4tuple_to_string(&addr, resolve);
+			snprintf(targetbuf, targetbuf_size, "%s", straddr.c_str());
+		} else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
+		          sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW) {
 			snprintf(targetbuf,
-					 targetbuf_size,
-					 "%s",
-					 straddr.c_str());
+			         targetbuf_size,
+			         "%u.%u.%u.%u->%u.%u.%u.%u",
+			         (unsigned int)(uint8_t)sb[0],
+			         (unsigned int)(uint8_t)sb[1],
+			         (unsigned int)(uint8_t)sb[2],
+			         (unsigned int)(uint8_t)sb[3],
+			         (unsigned int)(uint8_t)db[0],
+			         (unsigned int)(uint8_t)db[1],
+			         (unsigned int)(uint8_t)db[2],
+			         (unsigned int)(uint8_t)db[3]);
+		} else {
+			snprintf(targetbuf, targetbuf_size, "<unknown>");
 		}
-		else if(sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_ICMP ||
-			sinfo->m_ipv4info.m_fields.m_l4proto == SCAP_L4_RAW)
-		{
-			snprintf(targetbuf,
-				targetbuf_size,
-				"%u.%u.%u.%u->%u.%u.%u.%u",
-				(unsigned int)(uint8_t)sb[0],
-				(unsigned int)(uint8_t)sb[1],
-				(unsigned int)(uint8_t)sb[2],
-				(unsigned int)(uint8_t)sb[3],
-				(unsigned int)(uint8_t)db[0],
-				(unsigned int)(uint8_t)db[1],
-				(unsigned int)(uint8_t)db[2],
-				(unsigned int)(uint8_t)db[3]);
-		}
-		else
-		{
-			snprintf(targetbuf,
-				targetbuf_size,
-				"<unknown>");
-		}
-	}
-	else if(stype == SCAP_FD_IPV6_SOCK)
-	{
+	} else if(stype == SCAP_FD_IPV6_SOCK) {
 		uint8_t* sip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_sip.m_b;
 		uint8_t* dip6 = (uint8_t*)sinfo->m_ipv6info.m_fields.m_dip.m_b;
 		uint8_t* sip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_sip.m_b)) + 12;
 		uint8_t* dip = ((uint8_t*)(sinfo->m_ipv6info.m_fields.m_dip.m_b)) + 12;
 
 		if(sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_TCP ||
-			sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_UDP)
-		{
-			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
-			{
+		   sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_UDP) {
+			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6)) {
 				ipv4tuple addr;
 				memcpy(&addr.m_fields.m_sip, sip, sizeof(uint32_t));
 				addr.m_fields.m_sport = sinfo->m_ipv4info.m_fields.m_sport;
@@ -524,70 +507,56 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 				addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
 				std::string straddr = ipv4tuple_to_string(&addr, resolve);
-				snprintf(targetbuf,
-						 targetbuf_size,
-						 "%s",
-						 straddr.c_str());
+				snprintf(targetbuf, targetbuf_size, "%s", straddr.c_str());
 				return true;
-			}
-			else
-			{
+			} else {
 				char srcstr[INET6_ADDRSTRLEN];
 				char dststr[INET6_ADDRSTRLEN];
 				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
-					inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr)))
-				{
+				   inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr))) {
 					snprintf(targetbuf,
-								targetbuf_size,
-								"%s:%s->%s:%s",
-								srcstr,
-								port_to_string(sinfo->m_ipv6info.m_fields.m_sport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str(),
-								dststr,
-								port_to_string(sinfo->m_ipv6info.m_fields.m_dport, sinfo->m_ipv6info.m_fields.m_l4proto, resolve).c_str());
+					         targetbuf_size,
+					         "%s:%s->%s:%s",
+					         srcstr,
+					         port_to_string(sinfo->m_ipv6info.m_fields.m_sport,
+					                        sinfo->m_ipv6info.m_fields.m_l4proto,
+					                        resolve)
+					                 .c_str(),
+					         dststr,
+					         port_to_string(sinfo->m_ipv6info.m_fields.m_dport,
+					                        sinfo->m_ipv6info.m_fields.m_l4proto,
+					                        resolve)
+					                 .c_str());
 					return true;
 				}
 			}
-		}
-		else if(sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_ICMP)
-		{
-			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6))
-			{
+		} else if(sinfo->m_ipv6info.m_fields.m_l4proto == SCAP_L4_ICMP) {
+			if(sinsp_utils::is_ipv4_mapped_ipv6(sip6) && sinsp_utils::is_ipv4_mapped_ipv6(dip6)) {
 				snprintf(targetbuf,
-					targetbuf_size,
-					"%u.%u.%u.%u->%u.%u.%u.%u",
-					(unsigned int)sip[0],
-					(unsigned int)sip[1],
-					(unsigned int)sip[2],
-					(unsigned int)sip[3],
-					(unsigned int)dip[0],
-					(unsigned int)dip[1],
-					(unsigned int)dip[2],
-					(unsigned int)dip[3]);
+				         targetbuf_size,
+				         "%u.%u.%u.%u->%u.%u.%u.%u",
+				         (unsigned int)sip[0],
+				         (unsigned int)sip[1],
+				         (unsigned int)sip[2],
+				         (unsigned int)sip[3],
+				         (unsigned int)dip[0],
+				         (unsigned int)dip[1],
+				         (unsigned int)dip[2],
+				         (unsigned int)dip[3]);
 
 				return true;
-			}
-			else
-			{
+			} else {
 				char srcstr[INET6_ADDRSTRLEN];
 				char dststr[INET6_ADDRSTRLEN];
 				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
-					inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr)))
-				{
-					snprintf(targetbuf,
-						targetbuf_size,
-						"%s->%s",
-						srcstr,
-						dststr);
+				   inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr))) {
+					snprintf(targetbuf, targetbuf_size, "%s->%s", srcstr, dststr);
 
 					return true;
 				}
 			}
-		}
-		else
-		{
-			snprintf(targetbuf,
-				targetbuf_size,
-				"<unknown>");
+		} else {
+			snprintf(targetbuf, targetbuf_size, "<unknown>");
 		}
 	}
 
@@ -597,18 +566,18 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 //
 // Helper function to move a directory up in a path string
 //
-static inline void rewind_to_parent_path(const char* targetbase, char** tc, const char** pc, uint32_t delta)
-{
-	if(*tc <= targetbase + 1)
-	{
+static inline void rewind_to_parent_path(const char* targetbase,
+                                         char** tc,
+                                         const char** pc,
+                                         uint32_t delta) {
+	if(*tc <= targetbase + 1) {
 		(*pc) += delta;
 		return;
 	}
 
 	(*tc)--;
 
-	while((*tc) >= targetbase + 1 && *((*tc) - 1) != '/')
-	{
+	while((*tc) >= targetbase + 1 && *((*tc) - 1) != '/') {
 		(*tc)--;
 	}
 
@@ -622,89 +591,77 @@ static inline void rewind_to_parent_path(const char* targetbase, char** tc, cons
 //                following parent directories
 //  - path: the path to copy
 //
-static inline void copy_and_sanitize_path(char* target, char* targetbase, const char *path, char separator)
-{
+static inline void copy_and_sanitize_path(char* target,
+                                          char* targetbase,
+                                          const char* path,
+                                          char separator) {
 	char* tc = target;
 	const char* pc = path;
 	g_invalidchar ic;
 	const bool empty_base = target == targetbase;
 
-	while(true)
-	{
-		if(*pc == 0)
-		{
+	while(true) {
+		if(*pc == 0) {
 			*tc = 0;
 
 			//
 			// If the path ends with a separator, remove it, as the OS does.
 			// Properly manage case where path is just "/".
 			//
-			if((tc > (targetbase + 1)) && (*(tc - 1) == separator))
-			{
+			if((tc > (targetbase + 1)) && (*(tc - 1) == separator)) {
 				*(tc - 1) = 0;
 			}
 
 			return;
 		}
 
-		if(ic(*pc))
-		{
+		if(ic(*pc)) {
 			//
 			// Invalid char, substitute with a '.'
 			//
 			*tc = '.';
 			tc++;
 			pc++;
-		}
-		else
-		{
+		} else {
 			//
 			// If path begins with '.' or '.' is the first char after a '/'
 			//
-			if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator))
-			{
+			if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator)) {
 				//
 				// '../', rewind to the previous separator
 				//
-				if(*(pc + 1) == '.' && *(pc + 2) == separator)
-				{
+				if(*(pc + 1) == '.' && *(pc + 2) == separator) {
 					rewind_to_parent_path(targetbase, &tc, &pc, 3);
 				}
 				//
 				// '..', with no separator.
 				// This is valid if we are at the end of the string, and in that case we rewind.
 				//
-				else if(*(pc + 1) == '.' && *(pc + 2) == 0)
-				{
+				else if(*(pc + 1) == '.' && *(pc + 2) == 0) {
 					rewind_to_parent_path(targetbase, &tc, &pc, 2);
 				}
 				//
 				// './', just skip it
 				//
-				else if(*(pc + 1) == separator)
-				{
+				else if(*(pc + 1) == separator) {
 					pc += 2;
 				}
 				//
 				// '.', with no separator.
 				// This is valid if we are at the end of the string, and in that case we rewind.
 				//
-				else if(*(pc + 1) == 0)
-				{
+				else if(*(pc + 1) == 0) {
 					pc++;
 				}
 				//
 				// Otherwise, we leave the string intact.
 				//
-				else
-				{
+				else {
 					*tc = *pc;
 					pc++;
 					tc++;
 				}
-			}
-			else if(*pc == separator)
-			{
+			} else if(*pc == separator) {
 				//
 				// separator:
 				// * if the last char is already a separator, skip it
@@ -713,19 +670,15 @@ static inline void copy_and_sanitize_path(char* target, char* targetbase, const 
 				//   Example: "/foo/../a" -> "/a" BUT "foo/../a" -> "a"
 				//   -> Otherwise: "foo/../a" -> "/a"
 				//
-				if((tc > targetbase && *(tc - 1) == separator) || (tc == targetbase && !empty_base))
-				{
+				if((tc > targetbase && *(tc - 1) == separator) ||
+				   (tc == targetbase && !empty_base)) {
 					pc++;
-				}
-				else
-				{
+				} else {
 					*tc = *pc;
 					tc++;
 					pc++;
 				}
-			}
-			else
-			{
+			} else {
 				//
 				// Normal char, copy it
 				//
@@ -743,79 +696,70 @@ static inline void copy_and_sanitize_path(char* target, char* targetbase, const 
  * path1 is not sanitized.
  * If path2 is absolute, we only account for it.
  */
-static inline bool concatenate_paths_(char* target, uint32_t targetlen, const char* path1, uint32_t len1,
-				      const char* path2, uint32_t len2)
-{
-	if(targetlen < (len1 + len2 + 1))
-	{
+static inline bool concatenate_paths_(char* target,
+                                      uint32_t targetlen,
+                                      const char* path1,
+                                      uint32_t len1,
+                                      const char* path2,
+                                      uint32_t len2) {
+	if(targetlen < (len1 + len2 + 1)) {
 		strlcpy(target, "/PATH_TOO_LONG", targetlen);
 		return false;
 	}
 
-	if(len2 != 0 && path2[0] != '/')
-	{
+	if(len2 != 0 && path2[0] != '/') {
 		memcpy(target, path1, len1);
 		copy_and_sanitize_path(target + len1, target, path2, '/');
 		return true;
-	}
-	else
-	{
+	} else {
 		target[0] = 0;
 		copy_and_sanitize_path(target, target, path2, '/');
 		return false;
 	}
 }
 
-std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2)
-{
+std::string sinsp_utils::concatenate_paths(std::string_view path1, std::string_view path2) {
 	char fullpath[SCAP_MAX_PATH_SIZE];
-	concatenate_paths_(fullpath, SCAP_MAX_PATH_SIZE, path1.data(), (uint32_t)path1.length(), path2.data(),
-				  path2.size());
+	concatenate_paths_(fullpath,
+	                   SCAP_MAX_PATH_SIZE,
+	                   path1.data(),
+	                   (uint32_t)path1.length(),
+	                   path2.data(),
+	                   path2.size());
 	return std::string(fullpath);
 }
 
-
-bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
-{
+bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr) {
 	if(paddr[0] == 0 && paddr[1] == 0 && paddr[2] == 0 && paddr[3] == 0 && paddr[4] == 0 &&
-		paddr[5] == 0 && paddr[6] == 0 && paddr[7] == 0 && paddr[8] == 0 && paddr[9] == 0 &&
-			(
-					( paddr[10] == 0xff && paddr[11] == 0xff) || // A real IPv4 address
-					(paddr[10] == 0 && paddr[11] == 0 && paddr[12] == 0 && paddr[13] == 0 && paddr[14] == 0 && paddr[15] == 0) // all zero address, assume IPv4 as well
-			)
-		)
-	{
+	   paddr[5] == 0 && paddr[6] == 0 && paddr[7] == 0 && paddr[8] == 0 && paddr[9] == 0 &&
+	   ((paddr[10] == 0xff && paddr[11] == 0xff) ||  // A real IPv4 address
+	    (paddr[10] == 0 && paddr[11] == 0 && paddr[12] == 0 && paddr[13] == 0 && paddr[14] == 0 &&
+	     paddr[15] == 0)  // all zero address, assume IPv4 as well
+	    )) {
 		return true;
-	}
-	else
-	{
+	} else {
 		return false;
 	}
 }
 
-const ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string_view name)
-{
+const ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string_view name) {
 	uint32_t maxlen = 0;
 	const ppm_param_info* res = nullptr;
 	const auto name_len = name.size();
 
-	for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
-	{
+	for(uint32_t j = 0; j < PPM_EVENT_MAX; j++) {
 		const ppm_event_info* ei = &g_infotables.m_event_info[j];
 
-		for(uint32_t k = 0; k < ei->nparams; k++)
-		{
+		for(uint32_t k = 0; k < ei->nparams; k++) {
 			const ppm_param_info* pi = &ei->params[k];
 			const char* an = pi->name;
 			const auto alen = strlen(an);
 
-			if (alen > name_len || alen <= maxlen)
-			{
+			if(alen > name_len || alen <= maxlen) {
 				continue;
 			}
 
-			if (name.compare(0, alen, pi->name) == 0)
-			{
+			if(name.compare(0, alen, pi->name) == 0) {
 				res = pi;
 				maxlen = alen;
 			}
@@ -825,16 +769,16 @@ const ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string_v
 	return res;
 }
 
-uint64_t sinsp_utils::get_current_time_ns()
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
+uint64_t sinsp_utils::get_current_time_ns() {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
 
-    return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+	return tv.tv_sec * (uint64_t)1000000000 + tv.tv_usec * 1000;
 }
 
-bool sinsp_utils::glob_match(const char *pattern, const char *string, const bool& case_insensitive)
-{
+bool sinsp_utils::glob_match(const char* pattern,
+                             const char* string,
+                             const bool& case_insensitive) {
 #ifdef _WIN32
 	return PathMatchSpec(string, pattern) == TRUE;
 #else
@@ -843,21 +787,21 @@ bool sinsp_utils::glob_match(const char *pattern, const char *string, const bool
 #endif
 }
 
-void sinsp_utils::split_container_image(const std::string &image,
-					std::string &hostname,
-					std::string &port,
-					std::string &name,
-					std::string &tag,
-					std::string &digest,
-					bool split_repo)
-{
-	auto split = [](const std::string &src, std::string &part1, std::string &part2, const std::string& sep)
-	{
+void sinsp_utils::split_container_image(const std::string& image,
+                                        std::string& hostname,
+                                        std::string& port,
+                                        std::string& name,
+                                        std::string& tag,
+                                        std::string& digest,
+                                        bool split_repo) {
+	auto split = [](const std::string& src,
+	                std::string& part1,
+	                std::string& part2,
+	                const std::string& sep) {
 		size_t pos = src.find(sep);
-		if(pos != std::string::npos)
-		{
+		if(pos != std::string::npos) {
 			part1 = src.substr(0, pos);
-			part2 = src.substr(pos+1);
+			part2 = src.substr(pos + 1);
 			return true;
 		}
 		return false;
@@ -867,75 +811,60 @@ void sinsp_utils::split_container_image(const std::string &image,
 
 	hostname = port = name = tag = digest = "";
 
-	if(split(image, hostport, rem, "/"))
-	{
+	if(split(image, hostport, rem, "/")) {
 		repo = hostport + "/";
-		if(!split(hostport, hostname, port, ":"))
-		{
+		if(!split(hostport, hostname, port, ":")) {
 			hostname = hostport;
 			port = "";
 		}
-	}
-	else
-	{
+	} else {
 		hostname = "";
 		port = "";
 		rem = image;
 	}
 
-	if(split(rem, rem2, digest, "@"))
-	{
-		if(!split(rem2, name, tag, ":"))
-		{
+	if(split(rem, rem2, digest, "@")) {
+		if(!split(rem2, name, tag, ":")) {
 			name = rem2;
 			tag = "";
 		}
-	}
-	else
-	{
+	} else {
 		digest = "";
-		if(!split(rem, name, tag, ":"))
-		{
+		if(!split(rem, name, tag, ":")) {
 			name = rem;
 			tag = "";
 		}
 	}
 
-	if(!split_repo)
-	{
+	if(!split_repo) {
 		name = repo + name;
 	}
 }
 
-static int32_t gmt2local(time_t t)
-{
+static int32_t gmt2local(time_t t) {
 	int dt, dir;
 	struct tm *gmt, *tmp_gmt, *loc;
 	struct tm sgmt;
 
-	if(t == 0)
-	{
+	if(t == 0) {
 		t = time(NULL);
 	}
 
 	gmt = &sgmt;
 	tmp_gmt = gmtime(&t);
-	if (tmp_gmt == NULL)
-	{
+	if(tmp_gmt == NULL) {
 		throw sinsp_exception("cannot get gmtime");
 	}
 	*gmt = *tmp_gmt;
 	loc = localtime(&t);
-	if(loc == NULL)
-	{
+	if(loc == NULL) {
 		throw sinsp_exception("cannot get localtime");
 	}
 
 	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
 
 	dir = loc->tm_year - gmt->tm_year;
-	if(dir == 0)
-	{
+	if(dir == 0) {
 		dir = loc->tm_yday - gmt->tm_yday;
 	}
 
@@ -944,9 +873,8 @@ static int32_t gmt2local(time_t t)
 	return dt;
 }
 
-void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns)
-{
-	struct tm *tm;
+void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns) {
+	struct tm* tm;
 	time_t Time;
 	uint64_t sec = ts / ONE_SECOND_IN_NS;
 	uint64_t nsec = ts % ONE_SECOND_IN_NS;
@@ -955,58 +883,53 @@ void sinsp_utils::ts_to_string(uint64_t ts, std::string* res, bool date, bool ns
 	int32_t bufsize = 0;
 	char buf[256];
 
-	if(date)
-	{
+	if(date) {
 		Time = (sec + thiszone) - s;
-		tm = gmtime (&Time);
-		if(!tm)
-		{
+		tm = gmtime(&Time);
+		if(!tm) {
 			bufsize = sprintf(buf, "<date error> ");
-		}
-		else
-		{
-			bufsize = sprintf(buf, "%04d-%02d-%02d ",
-				   tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday);
+		} else {
+			bufsize = sprintf(buf,
+			                  "%04d-%02d-%02d ",
+			                  tm->tm_year + 1900,
+			                  tm->tm_mon + 1,
+			                  tm->tm_mday);
 		}
 	}
 
-	if(ns)
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d.%09u",
-				s / 3600, (s % 3600) / 60, s % 60, (unsigned)nsec);
-	}
-	else
-	{
-		sprintf(buf + bufsize, "%02d:%02d:%02d",
-				s / 3600, (s % 3600) / 60, s % 60);
+	if(ns) {
+		sprintf(buf + bufsize,
+		        "%02d:%02d:%02d.%09u",
+		        s / 3600,
+		        (s % 3600) / 60,
+		        s % 60,
+		        (unsigned)nsec);
+	} else {
+		sprintf(buf + bufsize, "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60);
 	}
 
 	*res = buf;
 }
 
 #define TS_STR_FMT "YYYY-MM-DDTHH:MM:SS-0000"
-void sinsp_utils::ts_to_iso_8601(uint64_t ts, std::string* res)
-{
-	static const char *fmt = TS_STR_FMT;
+void sinsp_utils::ts_to_iso_8601(uint64_t ts, std::string* res) {
+	static const char* fmt = TS_STR_FMT;
 	char buf[sizeof(TS_STR_FMT)];
 	uint64_t ns = ts % ONE_SECOND_IN_NS;
 	time_t sec = ts / ONE_SECOND_IN_NS;
 
-	if(strftime(buf, sizeof(buf), "%FT%T", gmtime(&sec)) == 0)
-	{
+	if(strftime(buf, sizeof(buf), "%FT%T", gmtime(&sec)) == 0) {
 		*res = fmt;
 		return;
 	}
 
 	*res = buf;
-	if(sprintf(buf, ".%09u", (unsigned) ns) < 0)
-	{
+	if(sprintf(buf, ".%09u", (unsigned)ns) < 0) {
 		*res = fmt;
 		return;
 	}
 	*res += buf;
-	if(strftime(buf, sizeof(buf), "%z", gmtime(&sec)) == 0)
-	{
+	if(strftime(buf, sizeof(buf), "%z", gmtime(&sec)) == 0) {
 		*res = fmt;
 		return;
 	}
@@ -1017,31 +940,28 @@ void sinsp_utils::ts_to_iso_8601(uint64_t ts, std::string* res)
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////
 
-time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt)
-{
+time_t get_epoch_utc_seconds(const std::string& time_str, const std::string& fmt) {
 #ifndef _WIN32
-	if(time_str.empty() || fmt.empty())
-	{
+	if(time_str.empty() || fmt.empty()) {
 		throw sinsp_exception("get_epoch_utc_seconds(): empty time or format string.");
 	}
 	tm tm_time{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	strptime(time_str.c_str(), fmt.c_str(), &tm_time);
-	tm_time.tm_isdst = -1; // strptime does not set this, signal timegm to determine DST
+	tm_time.tm_isdst = -1;  // strptime does not set this, signal timegm to determine DST
 	return timegm(&tm_time);
 #else
 	throw sinsp_exception("get_epoch_utc_seconds() not implemented on Windows");
-#endif // _WIN32
+#endif  // _WIN32
 }
 
-time_t get_epoch_utc_seconds_now()
-{
+time_t get_epoch_utc_seconds_now() {
 #ifndef _WIN32
 	time_t rawtime;
 	time(&rawtime);
 	return timegm(gmtime(&rawtime));
 #else
 	throw sinsp_exception("get_now_seconds() not implemented on Windows");
-#endif // _WIN32
+#endif  // _WIN32
 }
 
 // gettimeofday() windows implementation
@@ -1052,15 +972,14 @@ time_t get_epoch_utc_seconds_now()
 
 const __int64 DELTA_EPOCH_IN_MICROSECS = 11644473600000000;
 
-int gettimeofday(struct timeval *tv, struct timezone2 *tz)
-{
+int gettimeofday(struct timeval* tv, struct timezone2* tz) {
 	FILETIME ft;
 	__int64 tmpres = 0;
 	TIME_ZONE_INFORMATION tz_winapi;
-	int rez=0;
+	int rez = 0;
 
-	ZeroMemory(&ft,sizeof(ft));
-	ZeroMemory(&tz_winapi,sizeof(tz_winapi));
+	ZeroMemory(&ft, sizeof(ft));
+	ZeroMemory(&tz_winapi, sizeof(tz_winapi));
 
 	GetSystemTimeAsFileTime(&ft);
 
@@ -1073,37 +992,32 @@ int gettimeofday(struct timeval *tv, struct timezone2 *tz)
 	//
 	tmpres /= 10;  // convert into microseconds
 	tmpres -= DELTA_EPOCH_IN_MICROSECS;
-	tv->tv_sec = (__int32)(tmpres*0.000001);
-	tv->tv_usec =(tmpres%1000000);
+	tv->tv_sec = (__int32)(tmpres * 0.000001);
+	tv->tv_usec = (tmpres % 1000000);
 
 	//
 	// _tzset(),don't work properly, so we use GetTimeZoneInformation
 	//
-	if(tz)
-	{
-		rez=GetTimeZoneInformation(&tz_winapi);
-		tz->tz_dsttime=(rez==2)?true:false;
-		tz->tz_minuteswest = tz_winapi.Bias + ((rez==2)?tz_winapi.DaylightBias:0);
+	if(tz) {
+		rez = GetTimeZoneInformation(&tz_winapi);
+		tz->tz_dsttime = (rez == 2) ? true : false;
+		tz->tz_minuteswest = tz_winapi.Bias + ((rez == 2) ? tz_winapi.DaylightBias : 0);
 	}
 
 	return 0;
 }
-#endif // _WIN32
+#endif  // _WIN32
 
 ///////////////////////////////////////////////////////////////////////////////
 // gethostname wrapper
 ///////////////////////////////////////////////////////////////////////////////
-std::string sinsp_gethostname()
-{
+std::string sinsp_gethostname() {
 	char hname[256];
 	int res = gethostname(hname, sizeof(hname) / sizeof(hname[0]));
 
-	if(res == 0)
-	{
+	if(res == 0) {
 		return hname;
-	}
-	else
-	{
+	} else {
 		ASSERT(false);
 		return "";
 	}
@@ -1112,57 +1026,49 @@ std::string sinsp_gethostname()
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
-{
+std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve) {
 	std::string ret = "";
-	if(resolve)
-	{
+	if(resolve) {
 		std::string proto = "";
-		if(l4proto == SCAP_L4_TCP)
-		{
+		if(l4proto == SCAP_L4_TCP) {
 			proto = "tcp";
-		}
-		else if(l4proto == SCAP_L4_UDP)
-		{
+		} else if(l4proto == SCAP_L4_UDP) {
 			proto = "udp";
 		}
 
 		// `port` is saved with network byte order
-		struct servent * res;
-		res = getservbyport(ntohs(port), (proto != "") ? proto.c_str() : NULL);	// best effort!
-		if (res)
-		{
+		struct servent* res;
+		res = getservbyport(ntohs(port), (proto != "") ? proto.c_str() : NULL);  // best effort!
+		if(res) {
 			ret = res->s_name;
-		}
-		else
-		{
+		} else {
 			ret = std::to_string(port);
 		}
-	}
-	else
-	{
+	} else {
 		ret = std::to_string(port);
 	}
 
 	return ret;
 }
 
-std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
-{
+std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve) {
 	char buf[50];
-	uint8_t *ip = (uint8_t *)&addr->m_ip;
+	uint8_t* ip = (uint8_t*)&addr->m_ip;
 
 	// IP address is in network byte order regardless of host endianness
 	snprintf(buf,
-		sizeof(buf),
-		"%d.%d.%d.%d:%s", ip[0], ip[1], ip[2], ip[3],
-		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
+	         sizeof(buf),
+	         "%d.%d.%d.%d:%s",
+	         ip[0],
+	         ip[1],
+	         ip[2],
+	         ip[3],
+	         port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 
 	return std::string(buf);
 }
 
-std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
-{
+std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve) {
 	char buf[100];
 
 	ipv4serverinfo info;
@@ -1182,51 +1088,48 @@ std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 	return std::string(buf);
 }
 
-std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
-{
+std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve) {
 	char address[100];
 	char buf[200];
 
-	if(NULL == inet_ntop(AF_INET6, addr->m_ip.m_b, address, 100))
-	{
+	if(NULL == inet_ntop(AF_INET6, addr->m_ip.m_b, address, 100)) {
 		return std::string();
 	}
 
-	snprintf(buf,200,"%s:%s",
-		address,
-		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
+	snprintf(buf,
+	         200,
+	         "%s:%s",
+	         address,
+	         port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 
 	return std::string(buf);
 }
 
-std::string ipv6tuple_to_string(ipv6tuple* tuple, bool resolve)
-{
+std::string ipv6tuple_to_string(ipv6tuple* tuple, bool resolve) {
 	char source_address[INET6_ADDRSTRLEN];
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100))
-	{
+	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100)) {
 		return std::string();
 	}
 
 	char destination_address[INET6_ADDRSTRLEN];
-	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip.m_b, destination_address, 100))
-	{
+	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip.m_b, destination_address, 100)) {
 		return std::string();
 	}
 
 	char buf[200];
-	snprintf(buf, sizeof(buf), "%s:%s->%s:%s",
-		source_address,
-		port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
-		destination_address,
-		port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
+	snprintf(buf,
+	         sizeof(buf),
+	         "%s:%s->%s:%s",
+	         source_address,
+	         port_to_string(tuple->m_fields.m_sport, tuple->m_fields.m_l4proto, resolve).c_str(),
+	         destination_address,
+	         port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
 
 	return std::string(buf);
 }
 
-const char* param_type_to_string(ppm_param_type pt)
-{
-	switch(pt)
-	{
+const char* param_type_to_string(ppm_param_type pt) {
+	switch(pt) {
 	case PT_NONE:
 		return "NONE";
 	case PT_INT8:
@@ -1323,10 +1226,8 @@ const char* param_type_to_string(ppm_param_type pt)
 	}
 }
 
-const char* print_format_to_string(ppm_print_format fmt)
-{
-	switch(fmt)
-	{
+const char* print_format_to_string(ppm_print_format fmt) {
+	switch(fmt) {
 	case PF_DEC:
 		return "DEC";
 	case PF_HEX:
@@ -1353,27 +1254,22 @@ const char* print_format_to_string(ppm_print_format fmt)
 //
 // String split
 //
-std::vector<std::string> sinsp_split(std::string_view sv, char delim)
-{
+std::vector<std::string> sinsp_split(std::string_view sv, char delim) {
 	std::vector<std::string> res;
 
-	if(sv.length() == 0)
-	{
+	if(sv.length() == 0) {
 		return {};
 	}
 
 	std::string_view::size_type start = 0;
-    	for (std::string_view::size_type i = 0; i < sv.size(); i++)
-	{
-		if (sv[i] == delim)
-		{
+	for(std::string_view::size_type i = 0; i < sv.size(); i++) {
+		if(sv[i] == delim) {
 			res.push_back(std::string(sv.substr(start, i - start)));
 			start = i + 1;
 		}
 	}
 
-	if (start <= sv.length())
-	{
+	if(start <= sv.length()) {
 		res.push_back(std::string(sv.substr(start)));
 	}
 
@@ -1383,53 +1279,49 @@ std::vector<std::string> sinsp_split(std::string_view sv, char delim)
 //
 // trim from start
 //
-std::string& ltrim(std::string &s)
-{
-	s.erase(s.begin(), find_if(s.begin(), s.end(), [](int c) {return !std::isspace(c);}));
+std::string& ltrim(std::string& s) {
+	s.erase(s.begin(), find_if(s.begin(), s.end(), [](int c) { return !std::isspace(c); }));
 	return s;
 }
 
 //
 // trim from end
 //
-std::string& rtrim(std::string &s)
-{
-	s.erase(find_if(s.rbegin(), s.rend(), [](int c) {return !std::isspace(c);}).base(), s.end());
+std::string& rtrim(std::string& s) {
+	s.erase(find_if(s.rbegin(), s.rend(), [](int c) { return !std::isspace(c); }).base(), s.end());
 	return s;
 }
 
 //
 // trim from both ends
 //
-std::string& trim(std::string &s)
-{
+std::string& trim(std::string& s) {
 	return ltrim(rtrim(s));
 }
 
-std::string_view ltrim_sv(std::string_view s)
-{
+std::string_view ltrim_sv(std::string_view s) {
+	return s.substr(std::find_if(s.begin(), s.end(), [](int c) { return !std::isspace(c); }) -
+	                s.begin());
+}
+
+std::string_view rtrim_sv(std::string_view s) {
 	return s.substr(
-	    std::find_if(s.begin(), s.end(), [](int c) { return !std::isspace(c); }) - s.begin());
+	        0,
+	        std::find_if(s.rbegin(), s.rend(), [](int c) { return !std::isspace(c); }).base() -
+	                s.begin());
 }
 
-std::string_view rtrim_sv(std::string_view s)
-{
-	return s.substr(0,
-	    std::find_if(s.rbegin(), s.rend(), [](int c) { return !std::isspace(c); }).base() - s.begin());
-}
-
-std::string_view trim_sv(std::string_view s)
-{
+std::string_view trim_sv(std::string_view s) {
 	return ltrim_sv(rtrim_sv(s));
 }
 
-std::string& replace_in_place(std::string& str, const std::string& search, const std::string& replacement)
-{
+std::string& replace_in_place(std::string& str,
+                              const std::string& search,
+                              const std::string& replacement) {
 	std::string::size_type ssz = search.length();
 	std::string::size_type rsz = replacement.length();
 	std::string::size_type pos = 0;
-	while((pos = str.find(search, pos)) != std::string::npos)
-	{
+	while((pos = str.find(search, pos)) != std::string::npos) {
 		str.replace(pos, ssz, replacement);
 		pos += rsz;
 		ASSERT(pos <= str.length());
@@ -1437,40 +1329,37 @@ std::string& replace_in_place(std::string& str, const std::string& search, const
 	return str;
 }
 
-std::string replace(const std::string& str, const std::string& search, const std::string& replacement)
-{
+std::string replace(const std::string& str,
+                    const std::string& search,
+                    const std::string& replacement) {
 	std::string s(str);
 	replace_in_place(s, search, replacement);
 	return s;
 }
 
-bool sinsp_utils::startswith(std::string_view s, std::string_view prefix)
-{
-	if(prefix.empty())
-	{
+bool sinsp_utils::startswith(std::string_view s, std::string_view prefix) {
+	if(prefix.empty()) {
 		return false;
 	}
 
 	size_t prefix_len = prefix.length();
-	if(s.length() < prefix_len)
-	{
+	if(s.length() < prefix_len) {
 		return false;
 	}
 
 	return s.compare(0, prefix_len, prefix) == 0;
 }
 
-bool sinsp_utils::unhex(std::string_view hex_chars, std::vector<char>& hex_bytes)
-{
+bool sinsp_utils::unhex(std::string_view hex_chars, std::vector<char>& hex_bytes) {
 	if(hex_chars.size() % 2 != 0 ||
-		!std::all_of(hex_chars.begin(), hex_chars.end(), [](unsigned char c){ return std::isxdigit(c); }))
-	{
+	   !std::all_of(hex_chars.begin(), hex_chars.end(), [](unsigned char c) {
+		   return std::isxdigit(c);
+	   })) {
 		return false;
 	}
 
 	std::stringstream ss;
-	for(size_t i = 0; i < hex_chars.size(); i += 2)
-	{
+	for(size_t i = 0; i < hex_chars.size(); i += 2) {
 		int byte;
 		ss << std::hex << hex_chars.at(i) << hex_chars.at(i + 1);
 		ss >> byte;
@@ -1482,247 +1371,213 @@ bool sinsp_utils::unhex(std::string_view hex_chars, std::vector<char>& hex_bytes
 	return true;
 }
 
-const std::vector<std::string> capabilities {
-	{"CAP_CHOWN"},
-	{"CAP_DAC_OVERRIDE"},
-	{"CAP_DAC_READ_SEARCH"},
-	{"CAP_FOWNER"},
-	{"CAP_FSETID"},
-	{"CAP_KILL"},
-	{"CAP_SETGID"},
-	{"CAP_SETUID"},
-	{"CAP_SETPCAP"},
-	{"CAP_LINUX_IMMUTABLE"},
-	{"CAP_NET_BIND_SERVICE"},
-	{"CAP_NET_BROADCAST"},
-	{"CAP_NET_ADMIN"},
-	{"CAP_NET_RAW"},
-	{"CAP_IPC_LOCK"},
-	{"CAP_IPC_OWNER"},
-	{"CAP_SYS_MODULE"},
-	{"CAP_SYS_RAWIO"},
-	{"CAP_SYS_CHROOT"},
-	{"CAP_SYS_PTRACE"},
-	{"CAP_SYS_PACCT"},
-	{"CAP_SYS_ADMIN"},
-	{"CAP_SYS_BOOT"},
-	{"CAP_SYS_NICE"},
-	{"CAP_SYS_RESOURCE"},
-	{"CAP_SYS_TIME"},
-	{"CAP_SYS_TTY_CONFIG"},
-	{"CAP_MKNOD"},
-	{"CAP_LEASE"},
-	{"CAP_AUDIT_WRITE"},
-	{"CAP_AUDIT_CONTROL"},
-	{"CAP_SETFCAP"},
-	{"CAP_MAC_OVERRIDE"},
-	{"CAP_MAC_ADMIN"},
-	{"CAP_SYSLOG"},
-	{"CAP_WAKE_ALARM"},
-	{"CAP_BLOCK_SUSPEND"},
-	{"CAP_AUDIT_READ"},
-	{"CAP_PERFMON"},
-	{"CAP_BPF"},
-	{"CAP_CHECKPOINT_RESTORE"},
+const std::vector<std::string> capabilities{
+        {"CAP_CHOWN"},
+        {"CAP_DAC_OVERRIDE"},
+        {"CAP_DAC_READ_SEARCH"},
+        {"CAP_FOWNER"},
+        {"CAP_FSETID"},
+        {"CAP_KILL"},
+        {"CAP_SETGID"},
+        {"CAP_SETUID"},
+        {"CAP_SETPCAP"},
+        {"CAP_LINUX_IMMUTABLE"},
+        {"CAP_NET_BIND_SERVICE"},
+        {"CAP_NET_BROADCAST"},
+        {"CAP_NET_ADMIN"},
+        {"CAP_NET_RAW"},
+        {"CAP_IPC_LOCK"},
+        {"CAP_IPC_OWNER"},
+        {"CAP_SYS_MODULE"},
+        {"CAP_SYS_RAWIO"},
+        {"CAP_SYS_CHROOT"},
+        {"CAP_SYS_PTRACE"},
+        {"CAP_SYS_PACCT"},
+        {"CAP_SYS_ADMIN"},
+        {"CAP_SYS_BOOT"},
+        {"CAP_SYS_NICE"},
+        {"CAP_SYS_RESOURCE"},
+        {"CAP_SYS_TIME"},
+        {"CAP_SYS_TTY_CONFIG"},
+        {"CAP_MKNOD"},
+        {"CAP_LEASE"},
+        {"CAP_AUDIT_WRITE"},
+        {"CAP_AUDIT_CONTROL"},
+        {"CAP_SETFCAP"},
+        {"CAP_MAC_OVERRIDE"},
+        {"CAP_MAC_ADMIN"},
+        {"CAP_SYSLOG"},
+        {"CAP_WAKE_ALARM"},
+        {"CAP_BLOCK_SUSPEND"},
+        {"CAP_AUDIT_READ"},
+        {"CAP_PERFMON"},
+        {"CAP_BPF"},
+        {"CAP_CHECKPOINT_RESTORE"},
 };
 
-std::string sinsp_utils::caps_to_string(const uint64_t caps)
-{
+std::string sinsp_utils::caps_to_string(const uint64_t caps) {
 	std::string res;
 
-	for(size_t i = 0; i < capabilities.size(); ++i)
-	{
+	for(size_t i = 0; i < capabilities.size(); ++i) {
 		uint64_t current_cap = (uint64_t)1 << i;
-		if(caps & current_cap)
-		{
+		if(caps & current_cap) {
 			res += capabilities[i];
 			res += " ";
 		}
 	}
 
-	if(res.length() > 0)
-	{
+	if(res.length() > 0) {
 		res = res.substr(0, res.length() - 1);
 	}
 
 	return res;
 }
 
-uint64_t sinsp_utils::get_max_caps()
-{
+uint64_t sinsp_utils::get_max_caps() {
 	return ((uint64_t)1 << capabilities.size()) - 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation
 ///////////////////////////////////////////////////////////////////////////////
-uint8_t sinsp_numparser::parseu8(const std::string& str)
-{
+uint8_t sinsp_numparser::parseu8(const std::string& str) {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return (uint8_t)res;
 }
 
-int8_t sinsp_numparser::parsed8(const std::string& str)
-{
+int8_t sinsp_numparser::parsed8(const std::string& str) {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return (int8_t)res;
 }
 
-uint16_t sinsp_numparser::parseu16(const std::string& str)
-{
+uint16_t sinsp_numparser::parseu16(const std::string& str) {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return (uint16_t)res;
 }
 
-int16_t sinsp_numparser::parsed16(const std::string& str)
-{
+int16_t sinsp_numparser::parsed16(const std::string& str) {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return (int16_t)res;
 }
 
-uint32_t sinsp_numparser::parseu32(const std::string& str)
-{
+uint32_t sinsp_numparser::parseu32(const std::string& str) {
 	uint32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return res;
 }
 
-int32_t sinsp_numparser::parsed32(const std::string& str)
-{
+int32_t sinsp_numparser::parsed32(const std::string& str) {
 	int32_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return res;
 }
 
-uint64_t sinsp_numparser::parseu64(const std::string& str)
-{
+uint64_t sinsp_numparser::parseu64(const std::string& str) {
 	uint64_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu64 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRIu64 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return res;
 }
 
-int64_t sinsp_numparser::parsed64(const std::string& str)
-{
+int64_t sinsp_numparser::parsed64(const std::string& str) {
 	int64_t res;
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId64 "%c", &res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRId64 "%c", &res, &temp) != 1) {
 		throw sinsp_exception(str + " is not a valid number");
 	}
 
 	return res;
 }
 
-bool sinsp_numparser::tryparseu32(const std::string& str, uint32_t* res)
-{
+bool sinsp_numparser::tryparseu32(const std::string& str, uint32_t* res) {
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRIu32 "%c", res, &temp) != 1) {
 		return false;
 	}
 
 	return true;
 }
 
-bool sinsp_numparser::tryparsed32(const std::string& str, int32_t* res)
-{
+bool sinsp_numparser::tryparsed32(const std::string& str, int32_t* res) {
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId32 "%c", res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRId32 "%c", res, &temp) != 1) {
 		return false;
 	}
 
 	return true;
 }
 
-bool sinsp_numparser::tryparseu64(const std::string& str, uint64_t* res)
-{
+bool sinsp_numparser::tryparseu64(const std::string& str, uint64_t* res) {
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRIu64 "%c", res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRIu64 "%c", res, &temp) != 1) {
 		return false;
 	}
 
 	return true;
 }
 
-bool sinsp_numparser::tryparsed64(const std::string& str, int64_t* res)
-{
+bool sinsp_numparser::tryparsed64(const std::string& str, int64_t* res) {
 	char temp;
 
-	if(std::sscanf(str.c_str(), "%" PRId64 "%c", res, &temp) != 1)
-	{
+	if(std::sscanf(str.c_str(), "%" PRId64 "%c", res, &temp) != 1) {
 		return false;
 	}
 
 	return true;
 }
 
-bool sinsp_numparser::tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res)
-{
+bool sinsp_numparser::tryparseu32_fast(const char* str, uint32_t strlen, uint32_t* res) {
 	const char* p = str;
 	const char* end = str + strlen;
 
 	*res = 0;
 
-	while(p < end)
-	{
-		if(*p >= '0' && *p <= '9')
-		{
+	while(p < end) {
+		if(*p >= '0' && *p <= '9') {
 			*res = (*res) * 10 + (*p - '0');
-		}
-		else
-		{
+		} else {
 			return false;
 		}
 
@@ -1732,21 +1587,16 @@ bool sinsp_numparser::tryparseu32_fast(const char* str, uint32_t strlen, uint32_
 	return true;
 }
 
-bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res)
-{
+bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t* res) {
 	const char* p = str;
 	const char* end = str + strlen;
 
 	*res = 0;
 
-	while(p < end)
-	{
-		if(*p >= '0' && *p <= '9')
-		{
+	while(p < end) {
+		if(*p >= '0' && *p <= '9') {
 			*res = (*res) * 10 + (*p - '0');
-		}
-		else
-		{
+		} else {
 			return false;
 		}
 
@@ -1760,35 +1610,33 @@ bool sinsp_numparser::tryparsed32_fast(const char* str, uint32_t strlen, int32_t
 // socket helpers
 ///////////////////////////////////////////////////////////////////////////////
 
-bool set_socket_blocking(int sock, bool block)
-{
+bool set_socket_blocking(int sock, bool block) {
 #ifndef _WIN32
 	int arg = block ? 0 : 1;
 	if(ioctl(sock, FIONBIO, &arg) == -1)
 #else
 	u_long arg = block ? 0 : 1;
 	if(ioctlsocket(sock, FIONBIO, &arg) == -1)
-#endif // _WIN32
+#endif  // _WIN32
 	{
 		return false;
 	}
 	return true;
 }
 
-unsigned int read_num_possible_cpus(void)
-{
-	static const char *fcpu = "/sys/devices/system/cpu/possible";
+unsigned int read_num_possible_cpus(void) {
+	static const char* fcpu = "/sys/devices/system/cpu/possible";
 	unsigned int start, end, possible_cpus = 0;
 	char buff[128];
-	FILE *fp;
+	FILE* fp;
 
 	fp = fopen(fcpu, "r");
-	if (!fp) {
+	if(!fp) {
 		return possible_cpus;
 	}
 
-	while (fgets(buff, sizeof(buff), fp)) {
-		if (sscanf(buff, "%u-%u", &start, &end) == 2) {
+	while(fgets(buff, sizeof(buff), fp)) {
+		if(sscanf(buff, "%u-%u", &start, &end) == 2) {
 			possible_cpus = start == 0 ? end + 1 : 0;
 			break;
 		}
@@ -1802,8 +1650,7 @@ unsigned int read_num_possible_cpus(void)
 ///////////////////////////////////////////////////////////////////////////////
 // Log helper
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_scap_log_fn(const char* component, const char* msg, falcosecurity_log_severity sev)
-{
+void sinsp_scap_log_fn(const char* component, const char* msg, falcosecurity_log_severity sev) {
 	std::string prefix = (component == NULL) ? "" : std::string(component) + ": ";
 	libsinsp_logger()->log(prefix + msg, (sinsp_logger::severity)sev);
 }
@@ -1814,139 +1661,140 @@ void sinsp_scap_log_fn(const char* component, const char* msg, falcosecurity_log
 
 // unordered_set_to_ordered
 template<typename T>
-std::set<T> unordered_set_to_ordered(const std::unordered_set<T>& unordered_set)
-{
+std::set<T> unordered_set_to_ordered(const std::unordered_set<T>& unordered_set) {
 	std::set<T> s;
-	for(const auto& val : unordered_set)
-	{
+	for(const auto& val : unordered_set) {
 		s.insert(val);
 	}
 	return s;
 }
-template std::set<uint32_t> unordered_set_to_ordered(const std::unordered_set<uint32_t>& unordered_set);
-template std::set<std::string> unordered_set_to_ordered(const std::unordered_set<std::string>& unordered_set);
+template std::set<uint32_t> unordered_set_to_ordered(
+        const std::unordered_set<uint32_t>& unordered_set);
+template std::set<std::string> unordered_set_to_ordered(
+        const std::unordered_set<std::string>& unordered_set);
 
 // unordered_set_difference, equivalent to SQL left_anti join operation
 template<typename T>
-std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a, const std::unordered_set<T>& b)
-{
+std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a,
+                                               const std::unordered_set<T>& b) {
 	std::unordered_set<T> s;
-	for(const auto& val : a)
-	{
-		if (b.find(val) == b.end())
-		{
+	for(const auto& val : a) {
+		if(b.find(val) == b.end()) {
 			s.insert(val);
 		}
 	}
 	return s;
 }
-template std::unordered_set<std::string> unordered_set_difference(const std::unordered_set<std::string>& a, const std::unordered_set<std::string>& b);
-template std::unordered_set<uint32_t> unordered_set_difference(const std::unordered_set<uint32_t>& a, const std::unordered_set<uint32_t>& b);
+template std::unordered_set<std::string> unordered_set_difference(
+        const std::unordered_set<std::string>& a,
+        const std::unordered_set<std::string>& b);
+template std::unordered_set<uint32_t> unordered_set_difference(
+        const std::unordered_set<uint32_t>& a,
+        const std::unordered_set<uint32_t>& b);
 
 // set_difference, equivalent to SQL left_anti join operation
 template<typename T>
-std::set<T> set_difference(const std::set<T>& a, const std::set<T>& b)
-{
+std::set<T> set_difference(const std::set<T>& a, const std::set<T>& b) {
 	std::set<T> out;
 	std::set_difference(a.begin(), a.end(), b.begin(), b.end(), std::inserter(out, out.begin()));
 	return out;
 }
-template std::set<std::string> set_difference(const std::set<std::string>& a, const std::set<std::string>& b);
-template std::set<uint32_t> set_difference(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
+template std::set<std::string> set_difference(const std::set<std::string>& a,
+                                              const std::set<std::string>& b);
+template std::set<uint32_t> set_difference(const std::set<uint32_t>& a,
+                                           const std::set<uint32_t>& b);
 
 // unordered_set_union
 template<typename T>
-std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a, const std::unordered_set<T>& b)
-{
+std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a,
+                                          const std::unordered_set<T>& b) {
 	std::unordered_set<T> s = a;
-	for(const auto& val : b)
-	{
+	for(const auto& val : b) {
 		s.insert(val);
 	}
 	return s;
 }
-template std::unordered_set<std::string> unordered_set_union(const std::unordered_set<std::string>& a, const std::unordered_set<std::string>& b);
-template std::unordered_set<uint32_t> unordered_set_union(const std::unordered_set<uint32_t>& a, const std::unordered_set<uint32_t>& b);
+template std::unordered_set<std::string> unordered_set_union(
+        const std::unordered_set<std::string>& a,
+        const std::unordered_set<std::string>& b);
+template std::unordered_set<uint32_t> unordered_set_union(const std::unordered_set<uint32_t>& a,
+                                                          const std::unordered_set<uint32_t>& b);
 
 // set_union
 template<typename T>
-std::set<T> set_union(const std::set<T>& a, const std::set<T>& b)
-{
+std::set<T> set_union(const std::set<T>& a, const std::set<T>& b) {
 	std::set<T> out;
 	std::set_union(a.begin(), a.end(), b.begin(), b.end(), std::inserter(out, out.begin()));
 	return out;
 }
-template std::set<std::string> set_union(const std::set<std::string>& a, const std::set<std::string>& b);
+template std::set<std::string> set_union(const std::set<std::string>& a,
+                                         const std::set<std::string>& b);
 template std::set<uint32_t> set_union(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
 
 // unordered_set_intersection
 template<typename T>
-std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a, const std::unordered_set<T>& b)
-{
+std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a,
+                                                 const std::unordered_set<T>& b) {
 	std::unordered_set<T> s;
-	for(const auto& val : a)
-	{
-		if (b.find(val) != b.end())
-		{
+	for(const auto& val : a) {
+		if(b.find(val) != b.end()) {
 			s.insert(val);
 		}
 	}
 	return s;
 }
-template std::unordered_set<std::string> unordered_set_intersection(const std::unordered_set<std::string>& a, const std::unordered_set<std::string>& b);
-template std::unordered_set<uint32_t> unordered_set_intersection(const std::unordered_set<uint32_t>& a, const std::unordered_set<uint32_t>& b);
+template std::unordered_set<std::string> unordered_set_intersection(
+        const std::unordered_set<std::string>& a,
+        const std::unordered_set<std::string>& b);
+template std::unordered_set<uint32_t> unordered_set_intersection(
+        const std::unordered_set<uint32_t>& a,
+        const std::unordered_set<uint32_t>& b);
 
 // set_intersection
 template<typename T>
-std::set<T> set_intersection(const std::set<T>& a, const std::set<T>& b)
-{
+std::set<T> set_intersection(const std::set<T>& a, const std::set<T>& b) {
 	std::set<T> out;
 	std::set_intersection(a.begin(), a.end(), b.begin(), b.end(), std::inserter(out, out.begin()));
 	return out;
 }
-template std::set<std::string> set_intersection(const std::set<std::string>& a, const std::set<std::string>& b);
-template std::set<uint32_t> set_intersection(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
+template std::set<std::string> set_intersection(const std::set<std::string>& a,
+                                                const std::set<std::string>& b);
+template std::set<uint32_t> set_intersection(const std::set<uint32_t>& a,
+                                             const std::set<uint32_t>& b);
 
-std::string concat_set_in_order(const std::unordered_set<std::string>& s, const std::string& delim)
-{
-	if (s.empty())
-	{
+std::string concat_set_in_order(const std::unordered_set<std::string>& s,
+                                const std::string& delim) {
+	if(s.empty()) {
 		return "";
 	}
 	std::set<std::string> s_ordered = unordered_set_to_ordered(s);
 	std::stringstream ss;
-	std::copy(s_ordered.begin(), s_ordered.end(),
-	std::ostream_iterator<std::string>(ss, delim.c_str()));
+	std::copy(s_ordered.begin(),
+	          s_ordered.end(),
+	          std::ostream_iterator<std::string>(ss, delim.c_str()));
 	std::string s_str = ss.str();
 	return s_str.substr(0, s_str.size() - delim.size());
 }
 
-std::string concat_set_in_order(const std::set<std::string>& s, const std::string& delim)
-{
-	if (s.empty())
-	{
+std::string concat_set_in_order(const std::set<std::string>& s, const std::string& delim) {
+	if(s.empty()) {
 		return "";
 	}
 	std::stringstream ss;
-	std::copy(s.begin(), s.end(),
-	std::ostream_iterator<std::string>(ss, delim.c_str()));
+	std::copy(s.begin(), s.end(), std::ostream_iterator<std::string>(ss, delim.c_str()));
 	std::string s_str = ss.str();
 	return s_str.substr(0, s_str.size() - delim.size());
 }
 
 #define SINSP_UTILS_FORMATBUF_LEN 32
 
-std::string buffer_to_multiline_hex(const char *buf, size_t size)
-{
+std::string buffer_to_multiline_hex(const char* buf, size_t size) {
 	char format_buf[SINSP_UTILS_FORMATBUF_LEN];
 	std::stringstream ss;
 
-	for(size_t i = 0; i < size; i++)
-	{
-		if (i % 16 == 0)
-		{
-			if (i != 0)
-			{
+	for(size_t i = 0; i < size; i++) {
+		if(i % 16 == 0) {
+			if(i != 0) {
 				ss << "\n";
 			}
 			snprintf(format_buf, SINSP_UTILS_FORMATBUF_LEN, "%03lx | ", i);

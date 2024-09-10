@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #if defined(__NR_fsconfig)
-TEST(SyscallEnter, fsconfigE)
-{
+TEST(SyscallEnter, fsconfigE) {
 	auto evt_test = get_syscall_event_test(__NR_fsconfig, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, fsconfigE)
 	const char* key = NULL;
 	const char* value = NULL;
 	int aux = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "fsconfig", syscall(__NR_fsconfig, fd, cmd, key, value, aux));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "fsconfig",
+	                     syscall(__NR_fsconfig, fd, cmd, key, value, aux));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, fsconfigE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

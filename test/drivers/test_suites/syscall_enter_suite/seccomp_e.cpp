@@ -4,8 +4,7 @@
 
 #include <linux/seccomp.h>
 
-TEST(SyscallEnter, seccompE)
-{
+TEST(SyscallEnter, seccompE) {
 	auto evt_test = get_syscall_event_test(__NR_seccomp, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallEnter, seccompE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

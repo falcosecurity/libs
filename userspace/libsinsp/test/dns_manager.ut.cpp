@@ -20,14 +20,13 @@ limitations under the License.
 #include <dns_manager.h>
 #include <gtest/gtest.h>
 
-TEST(sinsp_dns_manager, simple_dns_manager_invocation)
-{
-    // Simple dummy test to assert that sinsp_dns_manager is invocated correctly
-    // and not leaking memory
-    const char* name = "bogus";
-    uint64_t ts = 11111111111111;
-    uint32_t addr = 111111;
-    bool result = sinsp_dns_manager::get().match(name, AF_INET, &addr, ts);
-    ASSERT_FALSE(result);
+TEST(sinsp_dns_manager, simple_dns_manager_invocation) {
+	// Simple dummy test to assert that sinsp_dns_manager is invocated correctly
+	// and not leaking memory
+	const char* name = "bogus";
+	uint64_t ts = 11111111111111;
+	uint32_t addr = 111111;
+	bool result = sinsp_dns_manager::get().match(name, AF_INET, &addr, ts);
+	ASSERT_FALSE(result);
 }
 #endif

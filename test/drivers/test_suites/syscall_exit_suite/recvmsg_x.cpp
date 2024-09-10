@@ -2,14 +2,14 @@
 
 #ifdef __NR_recvmsg
 
-#if defined(__NR_accept4) && defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) &&                    \
-	defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) &&           \
-	defined(__NR_sendto) && defined(__NR_sendmsg)
+#if defined(__NR_accept4) && defined(__NR_connect) && defined(__NR_socket) &&         \
+        defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) &&          \
+        defined(__NR_setsockopt) && defined(__NR_shutdown) && defined(__NR_sendto) && \
+        defined(__NR_sendmsg)
 
 /*=============================== TCP ===========================*/
 
-TEST(SyscallExit, recvmsgX_ipv4_tcp_message_shorter_than_snaplen)
-{
+TEST(SyscallExit, recvmsgX_ipv4_tcp_message_shorter_than_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -17,7 +17,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_shorter_than_snaplen)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto},
-					recv_data{.syscall_num = __NR_recvmsg});
+	                                    recv_data{.syscall_num = __NR_recvmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -25,8 +25,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_shorter_than_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -46,22 +45,25 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_shorter_than_snaplen)
 	evt_test->assert_bytebuf_param(3, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
 
 	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-	if(evt_test->is_modern_bpf_engine())
-	{
-		/* The server performs a 'recvmsg` so the server is the final destination of the packet while the client
-		 * is the src. */
-		evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING,
-						  IPV4_PORT_SERVER_STRING);
-	}
-	else
-	{
-		/// todo!: If the socket is connected, the msg_name and msg_namelen members shall be ignored, but
-		/// right now we use them to send data also in TCP connections so we need to change this behavior!
+	if(evt_test->is_modern_bpf_engine()) {
+		/* The server performs a 'recvmsg` so the server is the final destination of the packet
+		 * while the client is the src. */
+		evt_test->assert_tuple_inet_param(4,
+		                                  PPM_AF_INET,
+		                                  IPV4_CLIENT,
+		                                  IPV4_SERVER,
+		                                  IPV4_PORT_CLIENT_STRING,
+		                                  IPV4_PORT_SERVER_STRING);
+	} else {
+		/// todo!: If the socket is connected, the msg_name and msg_namelen members shall be
+		/// ignored, but right now we use them to send data also in TCP connections so we need to
+		/// change this behavior!
 		evt_test->assert_empty_param(4);
 		evt_test->assert_num_params_pushed(5);
-		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple but we have all the data in the kernel to "
-				"obtain the correct tuple"
-			     << std::endl;
+		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple but we have all the data in the "
+		                "kernel to "
+		                "obtain the correct tuple"
+		             << std::endl;
 	}
 
 	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
@@ -72,16 +74,16 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_shorter_than_snaplen)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_truncated)
-{
+TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_truncated) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg});
+	evt_test->client_to_server_ipv4_tcp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -89,8 +91,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_truncated)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -114,21 +115,22 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_truncated)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fullcapture_port)
-{
+TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fullcapture_port) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
 
-	// Now the client port is in the range so we should see the full message not truncated by the snaplen.
+	// Now the client port is in the range so we should see the full message not truncated by the
+	// snaplen.
 	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg});
+	evt_test->client_to_server_ipv4_tcp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -143,8 +145,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fu
 	 */
 	evt_test->set_fullcapture_port_range(0, 0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -168,21 +169,22 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fu
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv6_tcp_message_not_truncated_fullcapture_port)
-{
+TEST(SyscallExit, recvmsgX_ipv6_tcp_message_not_truncated_fullcapture_port) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
 
-	// Now the client port is in the range so we should see the full message not truncated by the snaplen.
+	// Now the client port is in the range so we should see the full message not truncated by the
+	// snaplen.
 	evt_test->set_fullcapture_port_range(IPV6_PORT_CLIENT, IPV6_PORT_CLIENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv6_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg});
+	evt_test->client_to_server_ipv6_tcp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -197,8 +199,7 @@ TEST(SyscallExit, recvmsgX_ipv6_tcp_message_not_truncated_fullcapture_port)
 	 */
 	evt_test->set_fullcapture_port_range(0, 0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -222,16 +223,16 @@ TEST(SyscallExit, recvmsgX_ipv6_tcp_message_not_truncated_fullcapture_port)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_sockaddr)
-{
+TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_sockaddr) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
+	evt_test->client_to_server_ipv4_tcp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -239,8 +240,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_sockaddr)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -259,18 +259,19 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_sockaddr)
 	/* Parameter 3: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(3, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
-	if(evt_test->is_modern_bpf_engine())
-	{
+	if(evt_test->is_modern_bpf_engine()) {
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-		evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING,
-						  IPV4_PORT_SERVER_STRING);
-	}
-	else
-	{
+		evt_test->assert_tuple_inet_param(4,
+		                                  PPM_AF_INET,
+		                                  IPV4_CLIENT,
+		                                  IPV4_SERVER,
+		                                  IPV4_PORT_CLIENT_STRING,
+		                                  IPV4_PORT_SERVER_STRING);
+	} else {
 		evt_test->assert_empty_param(4);
-		GTEST_SKIP() << "[RECVMSG_X]: we rely on the addrlen provided by the kernel but this seems to be always 0."
-			     << "we should rely on kernel structs"
-			     << std::endl;
+		GTEST_SKIP() << "[RECVMSG_X]: we rely on the addrlen provided by the kernel but this seems "
+		                "to be always 0."
+		             << "we should rely on kernel structs" << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -278,23 +279,25 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_sockaddr)
 	evt_test->assert_num_params_pushed(5);
 }
 
-// Even if the sockaddr is NULL we can retrieve the information from the kernel socket because we have a connection
-// between client and server.
-TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fullcapture_port_NULL_sockaddr)
-{
+// Even if the sockaddr is NULL we can retrieve the information from the kernel socket because we
+// have a connection between client and server.
+TEST(SyscallExit,
+     recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fullcapture_port_NULL_sockaddr) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
 
-	// Now the client port is in the range so we should see the full message not truncated by the snaplen.
+	// Now the client port is in the range so we should see the full message not truncated by the
+	// snaplen.
 	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
+	evt_test->client_to_server_ipv4_tcp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -309,8 +312,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fu
 	 */
 	evt_test->set_fullcapture_port_range(0, 0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -334,16 +336,16 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_message_longer_than_snaplen_not_truncated_fu
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_buffer)
-{
+TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_buffer) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_tcp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg, .null_receiver_buffer = true});
+	evt_test->client_to_server_ipv4_tcp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg, .null_receiver_buffer = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -351,8 +353,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_buffer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -378,8 +379,7 @@ TEST(SyscallExit, recvmsgX_ipv4_tcp_NULL_buffer)
 
 /*=============================== UDP ===========================*/
 
-TEST(SyscallExit, recvmsgX_ipv4_udp_message_shorter_than_snaplen)
-{
+TEST(SyscallExit, recvmsgX_ipv4_udp_message_shorter_than_snaplen) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -387,7 +387,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_shorter_than_snaplen)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto},
-					recv_data{.syscall_num = __NR_recvmsg});
+	                                    recv_data{.syscall_num = __NR_recvmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -395,8 +395,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_shorter_than_snaplen)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -416,8 +415,12 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_shorter_than_snaplen)
 	evt_test->assert_bytebuf_param(3, SHORT_MESSAGE, SHORT_MESSAGE_LEN);
 
 	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-	evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING,
-					  IPV4_PORT_SERVER_STRING);
+	evt_test->assert_tuple_inet_param(4,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/* Parameter 5: msg_control (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(5);
@@ -427,16 +430,16 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_shorter_than_snaplen)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated)
-{
+TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg});
+	evt_test->client_to_server_ipv4_udp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -444,8 +447,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -469,21 +471,22 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_not_truncated_fullcapture_port)
-{
+TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_not_truncated_fullcapture_port) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
 
-	// Now the client port is in the range so we should see the full message not truncated by the snaplen.
+	// Now the client port is in the range so we should see the full message not truncated by the
+	// snaplen.
 	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg});
+	evt_test->client_to_server_ipv4_udp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -495,8 +498,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_not_truncated_fu
 
 	evt_test->set_fullcapture_port_range(0, 0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -520,16 +522,16 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_not_truncated_fu
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_sockaddr)
-{
+TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_sockaddr) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
+	evt_test->client_to_server_ipv4_udp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -537,8 +539,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_sockaddr)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -557,19 +558,20 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_sockaddr)
 	/* Parameter 3: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(3, LONG_MESSAGE, DEFAULT_SNAPLEN);
 
-	if(evt_test->is_modern_bpf_engine())
-	{
-
+	if(evt_test->is_modern_bpf_engine()) {
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-		evt_test->assert_tuple_inet_param(4, PPM_AF_INET, IPV4_EMPTY, IPV4_SERVER, IPV4_PORT_EMPTY_STRING,
-						  IPV4_PORT_SERVER_STRING);
-	}
-	else
-	{
+		evt_test->assert_tuple_inet_param(4,
+		                                  PPM_AF_INET,
+		                                  IPV4_EMPTY,
+		                                  IPV4_SERVER,
+		                                  IPV4_PORT_EMPTY_STRING,
+		                                  IPV4_PORT_SERVER_STRING);
+	} else {
 		evt_test->assert_empty_param(4);
-		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple because the pointer to sockaddr is NULL, but "
-				"we should rely on kernel structs"
-			     << std::endl;
+		GTEST_SKIP() << "[RECVMSG_X]: we receive an empty tuple because the pointer to sockaddr is "
+		                "NULL, but "
+		                "we should rely on kernel structs"
+		             << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -577,23 +579,25 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_sockaddr)
 	evt_test->assert_num_params_pushed(5);
 }
 
-// Even if the sockaddr is NULL we can retrieve the information from the kernel socket because we have a connection
-// between client and server.
-TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated_fullcapture_port_NULL_sockaddr)
-{
+// Even if the sockaddr is NULL we can retrieve the information from the kernel socket because we
+// have a connection between client and server.
+TEST(SyscallExit,
+     recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated_fullcapture_port_NULL_sockaddr) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
 
-	// Now the client port is in the range so we should see the full message not truncated by the snaplen.
+	// Now the client port is in the range so we should see the full message not truncated by the
+	// snaplen.
 	evt_test->set_fullcapture_port_range(IPV4_PORT_CLIENT, IPV4_PORT_CLIENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
+	evt_test->client_to_server_ipv4_udp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg, .null_sockaddr = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -605,8 +609,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated_fullca
 
 	evt_test->set_fullcapture_port_range(0, 0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -630,16 +633,16 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_message_longer_than_snaplen_truncated_fullca
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_buffer)
-{
+TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_buffer) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->client_to_server_ipv4_udp(send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-					recv_data{.syscall_num = __NR_recvmsg, .null_receiver_buffer = true});
+	evt_test->client_to_server_ipv4_udp(
+	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
+	        recv_data{.syscall_num = __NR_recvmsg, .null_receiver_buffer = true});
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -647,8 +650,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_buffer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -675,8 +677,7 @@ TEST(SyscallExit, recvmsgX_ipv4_udp_NULL_buffer)
 // todo!: we could add a test in which we receive a message on 2 different iovec structs
 #endif
 
-TEST(SyscallExit, recvmsgX_fail)
-{
+TEST(SyscallExit, recvmsgX_fail) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -695,8 +696,7 @@ TEST(SyscallExit, recvmsgX_fail)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -724,8 +724,7 @@ TEST(SyscallExit, recvmsgX_fail)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 }
 
-TEST(SyscallExit, recvmsg_ancillary_data)
-{
+TEST(SyscallExit, recvmsg_ancillary_data) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -736,23 +735,26 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 	int32_t server_socket_fd = 0;
 	struct sockaddr_un client_addr = {};
 	struct sockaddr_un server_addr = {};
-	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_unix_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 	int64_t received_bytes, sent_bytes, msg_controllen;
 	struct cmsghdr *cmsg;
 	char cmsg_buf[CMSG_SPACE(sizeof(int))];
 	struct iovec iov = {
-		.iov_base = (void *)LONG_MESSAGE,
-		.iov_len = LONG_MESSAGE_LEN,
+	        .iov_base = (void *)LONG_MESSAGE,
+	        .iov_len = LONG_MESSAGE_LEN,
 	};
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, NULL, NULL, 0);
 	assert_syscall_state(SYSCALL_SUCCESS, "accept (server)", connected_socket_fd, NOT_EQUAL, -1);
 
-	/* Now we can fork. We still maintain the connected_socket_fd in both parent and child processes */
+	/* Now we can fork. We still maintain the connected_socket_fd in both parent and child processes
+	 */
 	pid_t pid = fork();
-	if(pid)
-	{
+	if(pid) {
 		/* Create a socket. It is used to pass it to the child process, just for test purposes */
 		int sock = socket(AF_UNIX, SOCK_STREAM, 0);
 		msghdr msg = {};
@@ -778,9 +780,7 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 
 		syscall(__NR_shutdown, sock);
 		syscall(__NR_close, sock);
-	}
-	else
-	{
+	} else {
 		char buf[LONG_MESSAGE_LEN];
 		iov = {iov.iov_base = (void *)buf, iov.iov_len = sizeof(buf)};
 
@@ -814,8 +814,7 @@ TEST(SyscallExit, recvmsg_ancillary_data)
 
 	evt_test->assert_event_presence(pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

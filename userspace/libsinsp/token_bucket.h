@@ -23,8 +23,7 @@ limitations under the License.
 
 // A simple token bucket that accumulates tokens at a fixed rate and allows
 // for limited bursting in the form of "banked" tokens.
-class token_bucket
-{
+class token_bucket {
 public:
 	token_bucket();
 	token_bucket(std::function<uint64_t()> timer);

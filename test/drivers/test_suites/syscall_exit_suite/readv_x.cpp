@@ -2,8 +2,7 @@
 
 #ifdef __NR_readv
 
-TEST(SyscallExit, readvX_fail)
-{
+TEST(SyscallExit, readvX_fail) {
 	auto evt_test = get_syscall_event_test(__NR_readv, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallExit, readvX_fail)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -48,21 +46,22 @@ TEST(SyscallExit, readvX_fail)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallExit, readvX_success)
-{
+TEST(SyscallExit, readvX_success) {
 	auto evt_test = get_syscall_event_test(__NR_readv, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	/* Create a non blocking pipe, so that we can read and write from and to it without touching the filesystem */
+	/* Create a non blocking pipe, so that we can read and write from and to it without touching the
+	 * filesystem */
 	int pipefds[2];
 	ASSERT_EQ(pipe2(pipefds, O_NONBLOCK), 0);
 
 	/* Write a string into it */
 	const char *test_string = "this is a string used for testing purposes";
-	ASSERT_EQ(write(pipefds[1], (void *)test_string, strlen(test_string) + 1), strlen(test_string) + 1);
+	ASSERT_EQ(write(pipefds[1], (void *)test_string, strlen(test_string) + 1),
+	          strlen(test_string) + 1);
 
 	/* Try to read the string with readv using three buffers */
 	int32_t iovcnt = 3;
@@ -70,16 +69,18 @@ TEST(SyscallExit, readvX_success)
 	size_t buf_size = 15;
 	ASSERT_GT(iovcnt * buf_size, strlen(test_string) + 1);
 
-	for(int i = 0; i < iovcnt; i++)
-	{
+	for(int i = 0; i < iovcnt; i++) {
 		iov[i].iov_base = (void *)new char[buf_size];
 		iov[i].iov_len = buf_size;
 	}
 
-	assert_syscall_state(SYSCALL_SUCCESS, "readv", syscall(__NR_readv, pipefds[0], iov, iovcnt), EQUAL, strlen(test_string) + 1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "readv",
+	                     syscall(__NR_readv, pipefds[0], iov, iovcnt),
+	                     EQUAL,
+	                     strlen(test_string) + 1);
 
-	for(int i = 0; i < iovcnt; i++)
-	{
+	for(int i = 0; i < iovcnt; i++) {
 		delete(char *)iov[i].iov_base;
 	}
 
@@ -89,8 +90,7 @@ TEST(SyscallExit, readvX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

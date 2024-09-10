@@ -30,15 +30,16 @@ class sinsp;
 // Global class that stores the list of filtercheck plugins and offers
 // functions to work with it.
 //
-class filter_check_list
-{
+class filter_check_list {
 public:
 	filter_check_list() = default;
 	virtual ~filter_check_list() = default;
 
 	void add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check);
 	void get_all_fields(std::vector<const filter_check_info*>&) const;
-	std::unique_ptr<sinsp_filter_check> new_filter_check_from_fldname(std::string_view name, sinsp*, bool do_exact_check) const;
+	std::unique_ptr<sinsp_filter_check> new_filter_check_from_fldname(std::string_view name,
+	                                                                  sinsp*,
+	                                                                  bool do_exact_check) const;
 
 protected:
 	std::vector<std::unique_ptr<sinsp_filter_check>> m_check_list;
@@ -46,8 +47,7 @@ protected:
 
 //
 // This bakes in the "default" set of filterchecks that work with syscalls
-class sinsp_filter_check_list : public filter_check_list
-{
+class sinsp_filter_check_list : public filter_check_list {
 public:
 	sinsp_filter_check_list();
 	virtual ~sinsp_filter_check_list() = default;

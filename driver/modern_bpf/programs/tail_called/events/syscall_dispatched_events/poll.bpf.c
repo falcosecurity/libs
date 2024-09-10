@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(poll_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(poll_e, struct pt_regs *regs, long id) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -30,8 +26,8 @@ int BPF_PROG(poll_e,
 	uint32_t nfds = (uint32_t)extract__syscall_argument(regs, 1);
 
 	/* Parameter 1: fds (type: PT_FDLIST) */
-	/* We are in the enter event so we get the requested events, the returned events are only available
-	 * in the exit event.
+	/* We are in the enter event so we get the requested events, the returned events are only
+	 * available in the exit event.
 	 */
 	auxmap__store_fdlist_param(auxmap, fds_pointer, nfds, REQUESTED_EVENTS);
 
@@ -54,13 +50,9 @@ int BPF_PROG(poll_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(poll_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(poll_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 

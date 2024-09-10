@@ -21,18 +21,13 @@ limitations under the License.
 #include <string.h>
 #include <unistd.h>
 
-int main(int argc, char** argv)
-{
-	if (argc > 1)
-	{
-		if (execv(argv[1], argv + 1) != 0)
-		{
+int main(int argc, char** argv) {
+	if(argc > 1) {
+		if(execv(argv[1], argv + 1) != 0) {
 			fprintf(stderr, "Can't exec %s: %s\n", argv[1], strerror(errno));
 		}
 		return 1;
-	}
-	else
-	{
+	} else {
 		return 0;
 	}
 }

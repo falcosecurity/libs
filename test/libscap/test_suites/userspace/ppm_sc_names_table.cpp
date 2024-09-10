@@ -1,8 +1,7 @@
 #include <libscap/scap.h>
 #include <gtest/gtest.h>
 
-TEST(ppm_sc_names, scap_get_ppm_sc_name)
-{
+TEST(ppm_sc_names, scap_get_ppm_sc_name) {
 	/* First entry in the table */
 	ASSERT_STREQ(scap_get_ppm_sc_name(PPM_SC_UNKNOWN), "unknown");
 

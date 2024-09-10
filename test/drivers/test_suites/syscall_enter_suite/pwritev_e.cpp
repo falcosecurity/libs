@@ -2,8 +2,7 @@
 
 #ifdef __NR_pwritev
 
-TEST(SyscallEnter, pwritevE_empty_iovec)
-{
+TEST(SyscallEnter, pwritevE_empty_iovec) {
 	auto evt_test = get_syscall_event_test(__NR_pwritev, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallEnter, pwritevE_empty_iovec)
 	iovec* iov = NULL;
 	int32_t iovcnt = 7;
 	off_t off = 29;
-	assert_syscall_state(SYSCALL_FAILURE, "pwritev", syscall(__NR_pwritev, mock_fd, iov, iovcnt, off));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "pwritev",
+	                     syscall(__NR_pwritev, mock_fd, iov, iovcnt, off));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -22,8 +23,7 @@ TEST(SyscallEnter, pwritevE_empty_iovec)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -47,8 +47,7 @@ TEST(SyscallEnter, pwritevE_empty_iovec)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallEnter, pwritevE_full_iovec)
-{
+TEST(SyscallEnter, pwritevE_full_iovec) {
 	auto evt_test = get_syscall_event_test(__NR_pwritev, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -62,7 +61,9 @@ TEST(SyscallEnter, pwritevE_full_iovec)
 	iov[1].iov_len = DEFAULT_SNAPLEN + 1;
 	int32_t iovcnt = 2;
 	off_t off = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "pwritev", syscall(__NR_pwritev, mock_fd, iov, iovcnt, off));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "pwritev",
+	                     syscall(__NR_pwritev, mock_fd, iov, iovcnt, off));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -70,8 +71,7 @@ TEST(SyscallEnter, pwritevE_full_iovec)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

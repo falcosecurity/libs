@@ -3,8 +3,7 @@
 
 #if defined(__NR_write) && defined(__NR_clone3) && defined(__NR_wait4)
 #include <linux/sched.h>
-TEST(Actions, dynamic_snaplen_negative_fd)
-{
+TEST(Actions, dynamic_snaplen_negative_fd) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -25,18 +24,14 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Ensure that buf is not paged out by the kernel on some archs, like riscv */
 		char buf_child[data_len] = "HTTP/\0";
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_write, fd, (void *)buf_child, data_len) == -1)
-		{
+		if(syscall(__NR_write, fd, (void *)buf_child, data_len) == -1) {
 			/* SUCCESS because we want the call to fail */
 			exit(EXIT_SUCCESS);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -45,10 +40,13 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The write call is successful while it should fail..." << std::endl;
 	}
 
@@ -62,8 +60,7 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -85,8 +82,7 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_no_socket)
-{
+TEST(Actions, dynamic_snaplen_no_socket) {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -107,18 +103,14 @@ TEST(Actions, dynamic_snaplen_no_socket)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Ensure that buf is not paged out by the kernel on some archs, like riscv */
 		char buf_child[data_len] = "HTTP/\0";
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_write, fd, (void *)buf_child, data_len) == -1)
-		{
+		if(syscall(__NR_write, fd, (void *)buf_child, data_len) == -1) {
 			/* SUCCESS because we want the call to fail */
 			exit(EXIT_SUCCESS);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -127,10 +119,13 @@ TEST(Actions, dynamic_snaplen_no_socket)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The write call is successful while it should fail..." << std::endl;
 	}
 
@@ -144,8 +139,7 @@ TEST(Actions, dynamic_snaplen_no_socket)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -167,9 +161,9 @@ TEST(Actions, dynamic_snaplen_no_socket)
 	evt_test->assert_num_params_pushed(2);
 }
 
-#if defined(__NR_sendto) && defined(__NR_socket) && defined(__NR_shutdown) && defined(__NR_close) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_connect)
-TEST(Actions, dynamic_snaplen_HTTP)
-{
+#if defined(__NR_sendto) && defined(__NR_socket) && defined(__NR_shutdown) && \
+        defined(__NR_close) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_connect)
+TEST(Actions, dynamic_snaplen_HTTP) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -182,7 +176,10 @@ TEST(Actions, dynamic_snaplen_HTTP)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -193,15 +190,17 @@ TEST(Actions, dynamic_snaplen_HTTP)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -210,10 +209,13 @@ TEST(Actions, dynamic_snaplen_HTTP)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -231,8 +233,7 @@ TEST(Actions, dynamic_snaplen_HTTP)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -253,8 +254,7 @@ TEST(Actions, dynamic_snaplen_HTTP)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
-{
+TEST(Actions, dynamic_snaplen_partial_HTTP_OPT) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -267,7 +267,10 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -279,15 +282,17 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -296,10 +301,13 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -317,8 +325,7 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -339,8 +346,7 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_HTTP_TRACE)
-{
+TEST(Actions, dynamic_snaplen_HTTP_TRACE) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -353,7 +359,10 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -364,15 +373,17 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -381,10 +392,13 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -402,8 +416,7 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -424,8 +437,7 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_MYSQL)
-{
+TEST(Actions, dynamic_snaplen_MYSQL) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -438,7 +450,11 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_MYSQL);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr,
+	                                        PPM_PORT_MYSQL);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -451,15 +467,17 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -468,10 +486,13 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -489,8 +510,7 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -511,8 +531,7 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_not_MYSQL)
-{
+TEST(Actions, dynamic_snaplen_not_MYSQL) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -525,7 +544,11 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_MYSQL);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr,
+	                                        PPM_PORT_MYSQL);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -536,15 +559,17 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -553,10 +578,13 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -574,8 +602,7 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -596,8 +623,7 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_POSTGRES)
-{
+TEST(Actions, dynamic_snaplen_POSTGRES) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -610,7 +636,11 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_POSTGRES);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr,
+	                                        PPM_PORT_POSTGRES);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -623,15 +653,17 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -640,10 +672,13 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -661,8 +696,7 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -683,8 +717,7 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_not_POSTGRES)
-{
+TEST(Actions, dynamic_snaplen_not_POSTGRES) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -697,7 +730,11 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr, PPM_PORT_POSTGRES);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr,
+	                                        PPM_PORT_POSTGRES);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -708,15 +745,17 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -725,10 +764,13 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -746,8 +788,7 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -768,8 +809,7 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_MONGO)
-{
+TEST(Actions, dynamic_snaplen_MONGO) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -782,27 +822,32 @@ TEST(Actions, dynamic_snaplen_MONGO)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = {0};
-	*(int32_t *)(&buf[12]) = 0x01; // this 1 and it's ok
+	*(int32_t *)(&buf[12]) = 0x01;  // this 1 and it's ok
 	uint32_t sendto_flags = 0;
 
 	clone_args cl_args = {};
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -811,10 +856,13 @@ TEST(Actions, dynamic_snaplen_MONGO)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -832,8 +880,7 @@ TEST(Actions, dynamic_snaplen_MONGO)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -854,8 +901,7 @@ TEST(Actions, dynamic_snaplen_MONGO)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_not_MONGO)
-{
+TEST(Actions, dynamic_snaplen_not_MONGO) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -868,7 +914,10 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -880,15 +929,17 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -897,10 +948,13 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -918,8 +972,7 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -940,8 +993,7 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_statsd_port)
-{
+TEST(Actions, dynamic_snaplen_statsd_port) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -957,7 +1009,10 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -968,15 +1023,17 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -985,10 +1042,13 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -1011,8 +1071,7 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	 */
 	evt_test->set_statsd_port(0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -1033,8 +1092,7 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(Actions, dynamic_snaplen_no_statsd_port)
-{
+TEST(Actions, dynamic_snaplen_no_statsd_port) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->set_do_dynamic_snaplen(true);
@@ -1050,7 +1108,10 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {};
 	sockaddr_in server_addr = {};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
@@ -1061,15 +1122,17 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (sockaddr*)&server_addr, sizeof(server_addr)) == -1)
-		{
+		if(syscall(__NR_sendto,
+		           client_socket_fd,
+		           buf,
+		           data_len,
+		           sendto_flags,
+		           (sockaddr *)&server_addr,
+		           sizeof(server_addr)) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -1078,10 +1141,13 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The sendto call shouldn't fail..." << std::endl;
 	}
 
@@ -1104,8 +1170,7 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 	 */
 	evt_test->set_statsd_port(0);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

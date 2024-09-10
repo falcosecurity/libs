@@ -2,8 +2,7 @@
 
 #ifdef __NR_write
 
-TEST(SyscallEnter, writeE)
-{
+TEST(SyscallEnter, writeE) {
 	auto evt_test = get_syscall_event_test(__NR_write, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallEnter, writeE)
 	int mock_fd = -1;
 	char mock_buf[8];
 	size_t mock_count = 4096;
-	assert_syscall_state(SYSCALL_FAILURE, "write", syscall(__NR_write, mock_fd, (void *)(mock_buf), mock_count));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "write",
+	                     syscall(__NR_write, mock_fd, (void *)(mock_buf), mock_count));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallEnter, writeE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

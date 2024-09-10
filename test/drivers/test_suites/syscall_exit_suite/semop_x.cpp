@@ -4,8 +4,7 @@
 
 #include <sys/sem.h>
 
-TEST(SyscallExit, semopX_null_pointer)
-{
+TEST(SyscallExit, semopX_null_pointer) {
 	auto evt_test = get_syscall_event_test(__NR_semop, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -24,8 +23,7 @@ TEST(SyscallExit, semopX_null_pointer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -66,11 +64,10 @@ TEST(SyscallExit, semopX_null_pointer)
 
 #if defined(__NR_semget) && defined(__NR_semctl)
 
-/* This case was not managed correctly by old drivers, if we don't check for the syscall return value
- * there is the risk to send junk data to userspace when `nops` is wrong.
+/* This case was not managed correctly by old drivers, if we don't check for the syscall return
+ * value there is the risk to send junk data to userspace when `nops` is wrong.
  */
-TEST(SyscallExit, semopX_wrong_nops)
-{
+TEST(SyscallExit, semopX_wrong_nops) {
 	auto evt_test = get_syscall_event_test(__NR_semop, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -102,8 +99,7 @@ TEST(SyscallExit, semopX_wrong_nops)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -142,8 +138,7 @@ TEST(SyscallExit, semopX_wrong_nops)
 	evt_test->assert_num_params_pushed(8);
 }
 
-TEST(SyscallExit, semopX_1_operation)
-{
+TEST(SyscallExit, semopX_1_operation) {
 	auto evt_test = get_syscall_event_test(__NR_semop, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -160,7 +155,11 @@ TEST(SyscallExit, semopX_1_operation)
 	sops.sem_op = 3;
 	sops.sem_flg = SEM_UNDO;
 	size_t nsops = 1;
-	assert_syscall_state(SYSCALL_SUCCESS, "semop", syscall(__NR_semop, semid, &sops, nsops), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "semop",
+	                     syscall(__NR_semop, semid, &sops, nsops),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/* Close a semaphore */
 	syscall(__NR_semctl, semid, 0, IPC_RMID);
@@ -171,8 +170,7 @@ TEST(SyscallExit, semopX_1_operation)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -213,8 +211,7 @@ TEST(SyscallExit, semopX_1_operation)
 	evt_test->assert_num_params_pushed(8);
 }
 
-TEST(SyscallExit, semopX_2_operation)
-{
+TEST(SyscallExit, semopX_2_operation) {
 	auto evt_test = get_syscall_event_test(__NR_semop, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -234,7 +231,11 @@ TEST(SyscallExit, semopX_2_operation)
 	sops[1].sem_op = 7;
 	sops[1].sem_flg = IPC_NOWAIT;
 	size_t nsops = 2;
-	assert_syscall_state(SYSCALL_SUCCESS, "semop", syscall(__NR_semop, semid, sops, nsops), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "semop",
+	                     syscall(__NR_semop, semid, sops, nsops),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/* Close a semaphore */
 	syscall(__NR_semctl, semid, 0, IPC_RMID);
@@ -245,8 +246,7 @@ TEST(SyscallExit, semopX_2_operation)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

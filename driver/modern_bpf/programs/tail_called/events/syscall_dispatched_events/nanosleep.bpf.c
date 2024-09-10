@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(nanosleep_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(nanosleep_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, NANOSLEEP_E_SIZE, PPME_SYSCALL_NANOSLEEP_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, NANOSLEEP_E_SIZE, PPME_SYSCALL_NANOSLEEP_E)) {
 		return 0;
 	}
 
@@ -28,14 +24,11 @@ int BPF_PROG(nanosleep_e,
 	/* Parameter 1: req (type: PT_RELTIME) */
 	uint64_t nanosec = 0;
 	unsigned long ts_pointer = extract__syscall_argument(regs, 0);
-	if(bpf_core_type_exists(struct __kernel_timespec))
-	{
+	if(bpf_core_type_exists(struct __kernel_timespec)) {
 		struct __kernel_timespec ts = {0};
 		bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
 		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
-	}
-	else
-	{
+	} else {
 		struct modern_bpf__kernel_timespec ts = {0};
 		bpf_probe_read_user(&ts, sizeof(ts), (void *)ts_pointer);
 		nanosec = ((uint64_t)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec;
@@ -54,13 +47,9 @@ int BPF_PROG(nanosleep_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(nanosleep_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(nanosleep_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, NANOSLEEP_X_SIZE, PPME_SYSCALL_NANOSLEEP_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, NANOSLEEP_X_SIZE, PPME_SYSCALL_NANOSLEEP_X)) {
 		return 0;
 	}
 

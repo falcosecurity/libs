@@ -2,8 +2,7 @@
 #include "../../flags/flags_definitions.h"
 
 #ifdef __NR_capset
-TEST(SyscallExit, capsetX)
-{
+TEST(SyscallExit, capsetX) {
 	auto evt_test = get_syscall_event_test(__NR_capset, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -39,8 +38,7 @@ TEST(SyscallExit, capsetX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -54,13 +52,22 @@ TEST(SyscallExit, capsetX)
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: cap_inheritable (type: PT_UINT64) */
-	evt_test->assert_numeric_param(2, (uint64_t)capabilities_to_scap(((unsigned long)data[1].inheritable << 32) | data[0].inheritable));
+	evt_test->assert_numeric_param(
+	        2,
+	        (uint64_t)capabilities_to_scap(((unsigned long)data[1].inheritable << 32) |
+	                                       data[0].inheritable));
 
 	/* Parameter 3: cap_permitted (type: PT_UINT64) */
-	evt_test->assert_numeric_param(3, (uint64_t)capabilities_to_scap(((unsigned long)data[1].permitted << 32) | data[0].permitted));
+	evt_test->assert_numeric_param(
+	        3,
+	        (uint64_t)capabilities_to_scap(((unsigned long)data[1].permitted << 32) |
+	                                       data[0].permitted));
 
 	/* Parameter 4: cap_effective (type: PT_UINT64) */
-	evt_test->assert_numeric_param(4, (uint64_t)capabilities_to_scap(((unsigned long)data[1].effective << 32) | data[0].effective));
+	evt_test->assert_numeric_param(
+	        4,
+	        (uint64_t)capabilities_to_scap(((unsigned long)data[1].effective << 32) |
+	                                       data[0].effective));
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

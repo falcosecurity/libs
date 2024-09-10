@@ -4,8 +4,7 @@
 
 #include <fcntl.h>
 
-TEST(SyscallExit, fcntlX)
-{
+TEST(SyscallExit, fcntlX) {
 	auto evt_test = get_syscall_event_test(__NR_fcntl, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallExit, fcntlX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

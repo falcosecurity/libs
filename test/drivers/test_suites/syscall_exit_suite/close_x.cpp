@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_close
-TEST(SyscallExit, closeX)
-{
+TEST(SyscallExit, closeX) {
 	auto evt_test = get_syscall_event_test(__NR_close, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -19,8 +18,7 @@ TEST(SyscallExit, closeX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

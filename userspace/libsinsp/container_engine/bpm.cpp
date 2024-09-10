@@ -20,13 +20,11 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
-{
+bool bpm::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) {
 	sinsp_container_info container_info;
 	bool matches = false;
 
-	for(const auto& it : tinfo->cgroups())
-	{
+	for(const auto& it : tinfo->cgroups()) {
 		std::string cgroup = it.second;
 		size_t pos;
 
@@ -34,16 +32,18 @@ bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		// Non-systemd and systemd BPM
 		//
 		pos = cgroup.find("bpm-");
-		if(pos != std::string::npos)
-		{
+		if(pos != std::string::npos) {
 			auto id_start = pos + sizeof("bpm-") - 1;
 			auto id_end = cgroup.find(".scope", id_start);
 			auto id = cgroup.substr(id_start, id_end - id_start);
 
 			// As of BPM v1.0.3, the container ID is only allowed to contain the following chars
-			// see https://github.com/cloudfoundry-incubator/bpm-release/blob/v1.0.3/src/bpm/jobid/encoding.go
-			if (!id.empty() && strspn(id.c_str(), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-") == id.size())
-			{
+			// see
+			// https://github.com/cloudfoundry-incubator/bpm-release/blob/v1.0.3/src/bpm/jobid/encoding.go
+			if(!id.empty() &&
+			   strspn(id.c_str(),
+			          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-") ==
+			           id.size()) {
 				container_info.m_type = CT_BPM;
 				container_info.m_id = id;
 				matches = true;
@@ -52,17 +52,16 @@ bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		}
 	}
 
-	if (!matches)
-	{
+	if(!matches) {
 		return false;
 	}
 
 	tinfo->m_container_id = container_info.m_id;
-	if(container_cache().should_lookup(container_info.m_id, CT_BPM))
-	{
+	if(container_cache().should_lookup(container_info.m_id, CT_BPM)) {
 		container_info.m_name = container_info.m_id;
 		container_info.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
-		container_cache().add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
+		container_cache().add_container(std::make_shared<sinsp_container_info>(container_info),
+		                                tinfo);
 		container_cache().notify_new_container(container_info, tinfo);
 	}
 	return true;

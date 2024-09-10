@@ -18,15 +18,12 @@ or GPL2.txt for full copies of the license.
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
 
-static int access_ok_init(void)
-{
+static int access_ok_init(void) {
 	access_ok(0, 0);
 	return 0;
 }
 
-static void access_ok_exit(void)
-{
-}
+static void access_ok_exit(void) {}
 
 module_init(access_ok_init);
 module_exit(access_ok_exit);

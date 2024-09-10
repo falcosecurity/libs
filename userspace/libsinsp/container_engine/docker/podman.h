@@ -7,8 +7,7 @@
 namespace libsinsp {
 namespace container_engine {
 
-class podman : public docker_base
-{
+class podman : public docker_base {
 public:
 	podman(container_cache_interface& cache): docker_base(cache) {}
 
@@ -25,8 +24,8 @@ private:
 
 	// Return whether or not any possible api socket exists. (The actual socket is
 	// implement container_engine_base
-	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	bool resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
 };
 
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

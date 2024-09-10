@@ -3,15 +3,20 @@
 
 #ifdef __NR_process_vm_writev
 
-TEST(SyscallExit, process_vm_writevX_failure)
-{
+TEST(SyscallExit, process_vm_writevX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_process_vm_writev, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	size_t res = syscall(__NR_process_vm_writev, getpid(), (void*)(0x41414141), 0, (void*)(0x42424242), 0, 0);
+	size_t res = syscall(__NR_process_vm_writev,
+	                     getpid(),
+	                     (void*)(0x41414141),
+	                     0,
+	                     (void*)(0x42424242),
+	                     0,
+	                     0);
 	assert_syscall_state(SYSCALL_FAILURE, "process_vm_writev", res, EQUAL, 0);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -20,8 +25,7 @@ TEST(SyscallExit, process_vm_writevX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -45,8 +49,7 @@ TEST(SyscallExit, process_vm_writevX_failure)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallExit, process_vm_writevX_success)
-{
+TEST(SyscallExit, process_vm_writevX_success) {
 	auto evt_test = get_syscall_event_test(__NR_process_vm_writev, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -60,9 +63,7 @@ TEST(SyscallExit, process_vm_writevX_success)
 	pid_t parent_pid = getpid();
 	pid_t child_pid = fork();
 
-	if(child_pid == 0)
-	{
-
+	if(child_pid == 0) {
 		char buf[10] = "QWERTYUIO";
 		struct iovec local[1];
 		local[0].iov_base = buf;
@@ -80,10 +81,7 @@ TEST(SyscallExit, process_vm_writevX_success)
 		close(pipe_fd[0]);
 
 		exit(EXIT_SUCCESS);
-	}
-	else
-	{
-
+	} else {
 		char buf[10];
 		struct iovec local[1];
 		local[0].iov_base = (void*)buf;
@@ -107,8 +105,7 @@ TEST(SyscallExit, process_vm_writevX_success)
 
 	evt_test->assert_event_presence(child_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

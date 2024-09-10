@@ -25,8 +25,8 @@ limitations under the License.
 #include <sys/ptrace.h>
 #if !defined(__APPLE__)
 #include <sys/prctl.h>
-#endif //__APPLE__
-#endif //__EMSCRIPTEN__ _WIN32
+#endif  //__APPLE__
+#endif  //__EMSCRIPTEN__ _WIN32
 #if !defined(_WIN32)
 #include <sys/mman.h>
 #include <poll.h>
@@ -34,7 +34,7 @@ limitations under the License.
 #include <sys/resource.h>
 #include <sys/file.h>
 #include <sched.h>
-#endif //_WIN32
+#endif  //_WIN32
 
 #define ASSERT assert
 #ifndef F_CANCELLK
@@ -42,10 +42,10 @@ limitations under the License.
 #endif
 
 #ifndef QFMT_VFS_OLD
-#define	QFMT_VFS_OLD 1
-#define	QFMT_VFS_V0 2
+#define QFMT_VFS_OLD 1
+#define QFMT_VFS_V0 2
 #define QFMT_OCFS2 3
-#define	QFMT_VFS_V1 4
+#define QFMT_VFS_V1 4
 #endif
 
 #define u8 uint8_t

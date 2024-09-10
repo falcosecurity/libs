@@ -20,8 +20,7 @@ limitations under the License.
 
 /*=============================== EXECVE ===========================*/
 
-TEST_F(sinsp_with_test_input, EXECVE_from_a_not_leader_thread)
-{
+TEST_F(sinsp_with_test_input, EXECVE_from_a_not_leader_thread) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
 
@@ -36,8 +35,7 @@ TEST_F(sinsp_with_test_input, EXECVE_from_a_not_leader_thread)
 	ASSERT_MISSING_THREAD_INFO(p2_t3_tid, true);
 }
 
-TEST_F(sinsp_with_test_input, EXECVE_from_a_leader_thread)
-{
+TEST_F(sinsp_with_test_input, EXECVE_from_a_leader_thread) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
 
@@ -52,8 +50,7 @@ TEST_F(sinsp_with_test_input, EXECVE_from_a_leader_thread)
 	ASSERT_MISSING_THREAD_INFO(p2_t3_tid, true);
 }
 
-TEST_F(sinsp_with_test_input, EXECVE_from_a_not_leader_thread_with_a_child)
-{
+TEST_F(sinsp_with_test_input, EXECVE_from_a_not_leader_thread_with_a_child) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
 
@@ -82,8 +79,7 @@ TEST_F(sinsp_with_test_input, EXECVE_from_a_not_leader_thread_with_a_child)
 	ASSERT_THREAD_CHILDREN(p2_t1_tid, 2, 2, p3_t1_tid, p7_t1_tid);
 }
 
-TEST_F(sinsp_with_test_input, EXECVE_resurrect_thread)
-{
+TEST_F(sinsp_with_test_input, EXECVE_resurrect_thread) {
 	/* Instantiate the default tree */
 	DEFAULT_TREE
 
@@ -114,8 +110,7 @@ TEST_F(sinsp_with_test_input, EXECVE_resurrect_thread)
 	ASSERT_MISSING_THREAD_INFO(p2_t3_tid, true);
 }
 
-TEST_F(sinsp_with_test_input, EXECVE_missing_process_execve_repair)
-{
+TEST_F(sinsp_with_test_input, EXECVE_missing_process_execve_repair) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -138,12 +133,18 @@ TEST_F(sinsp_with_test_input, EXECVE_missing_process_execve_repair)
 	ASSERT_THREAD_CHILDREN(INIT_TID, 1, 1, p1_t1_tid);
 }
 
-TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath)
-{
+TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath) {
 	DEFAULT_TREE
 
 	/* Now we call an execve on p6_t1 */
-	generate_execve_enter_and_exit_event(0, p6_t1_tid, p6_t1_tid, p6_t1_pid, p6_t1_ptid, "/good-exe", "good-exe", "/usr/bin/bad-exe");
+	generate_execve_enter_and_exit_event(0,
+	                                     p6_t1_tid,
+	                                     p6_t1_tid,
+	                                     p6_t1_pid,
+	                                     p6_t1_ptid,
+	                                     "/good-exe",
+	                                     "good-exe",
+	                                     "/usr/bin/bad-exe");
 
 	auto p6_t1_tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
 	ASSERT_TRUE(p6_t1_tinfo);
@@ -158,7 +159,14 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath)
 	int64_t p7_t1_vtid = 20;
 	int64_t p7_t1_vpid = 20;
 
-	generate_clone_x_event(0, p7_t1_tid, p7_t1_pid, p7_t1_ptid, PPM_CL_CHILD_IN_PIDNS, p7_t1_vtid, p7_t1_vpid, "new-comm");
+	generate_clone_x_event(0,
+	                       p7_t1_tid,
+	                       p7_t1_pid,
+	                       p7_t1_ptid,
+	                       PPM_CL_CHILD_IN_PIDNS,
+	                       p7_t1_vtid,
+	                       p7_t1_vpid,
+	                       "new-comm");
 
 	auto p7_t1_tinfo = m_inspector.get_thread_ref(p7_t1_tid, false).get();
 	ASSERT_TRUE(p7_t1_tinfo);
@@ -167,8 +175,7 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_with_trusted_exepath)
 	ASSERT_EQ(p7_t1_tinfo->get_comm(), "new-comm");
 }
 
-TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath)
-{
+TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath) {
 	DEFAULT_TREE
 
 	/* Now we call an old event version of execve on p6_t1 */
@@ -185,12 +192,43 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath)
 
 	add_event_advance_ts(increasing_ts(), old_tid, PPME_SYSCALL_EXECVE_19_E, 1, pathname.c_str());
 
-	add_event_advance_ts(increasing_ts(), new_tid, PPME_SYSCALL_EXECVE_19_X, 27, retval, pathname.c_str(), empty_bytebuf, new_tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, comm.c_str(), empty_bytebuf, empty_bytebuf, not_relevant_32, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32);
+	add_event_advance_ts(increasing_ts(),
+	                     new_tid,
+	                     PPME_SYSCALL_EXECVE_19_X,
+	                     27,
+	                     retval,
+	                     pathname.c_str(),
+	                     empty_bytebuf,
+	                     new_tid,
+	                     pid,
+	                     ppid,
+	                     "",
+	                     not_relevant_64,
+	                     not_relevant_64,
+	                     not_relevant_64,
+	                     not_relevant_32,
+	                     not_relevant_32,
+	                     not_relevant_32,
+	                     comm.c_str(),
+	                     empty_bytebuf,
+	                     empty_bytebuf,
+	                     not_relevant_32,
+	                     not_relevant_64,
+	                     not_relevant_32,
+	                     not_relevant_32,
+	                     not_relevant_64,
+	                     not_relevant_64,
+	                     not_relevant_64,
+	                     not_relevant_64,
+	                     not_relevant_64,
+	                     not_relevant_64,
+	                     not_relevant_32);
 
 	auto p6_t1_tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
 	ASSERT_TRUE(p6_t1_tinfo);
 
-	/* In the old event version we will use the pathname to reconstruct the exepath through our userspace logic */
+	/* In the old event version we will use the pathname to reconstruct the exepath through our
+	 * userspace logic */
 	ASSERT_EQ(p6_t1_tinfo->get_exepath(), pathname.c_str());
 	ASSERT_EQ(p6_t1_tinfo->get_comm(), comm.c_str());
 
@@ -201,7 +239,14 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath)
 	int64_t p7_t1_vtid = 20;
 	int64_t p7_t1_vpid = 20;
 
-	generate_clone_x_event(0, p7_t1_tid, p7_t1_pid, p7_t1_ptid, PPM_CL_CHILD_IN_PIDNS, p7_t1_vtid, p7_t1_vpid, "new-comm");
+	generate_clone_x_event(0,
+	                       p7_t1_tid,
+	                       p7_t1_pid,
+	                       p7_t1_ptid,
+	                       PPM_CL_CHILD_IN_PIDNS,
+	                       p7_t1_vtid,
+	                       p7_t1_vpid,
+	                       "new-comm");
 
 	auto p7_t1_tinfo = m_inspector.get_thread_ref(p7_t1_tid, false).get();
 	ASSERT_TRUE(p7_t1_tinfo);

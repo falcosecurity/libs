@@ -63,8 +63,7 @@
 /* This enum is used to tell network helpers if the connection outbound
  * or inbound
  */
-enum connection_direction
-{
+enum connection_direction {
 	OUTBOUND = 0,
 	INBOUND = 1,
 };
@@ -72,8 +71,7 @@ enum connection_direction
 /* This enum is used to tell poll helpers if we need requested or returned
  * events.
  */
-enum poll_events_direction
-{
+enum poll_events_direction {
 	REQUESTED_EVENTS = 0,
 	RETURNED_EVENTS = 1,
 };

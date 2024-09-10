@@ -38,31 +38,23 @@ class ConstMutexGuard;
 template<typename T>
 class MutexGuard {
 public:
-	MutexGuard(std::unique_lock<std::mutex> lock, T *inner) : m_lock(std::move(lock)), m_inner(inner) {}
+	MutexGuard(std::unique_lock<std::mutex> lock, T *inner):
+	        m_lock(std::move(lock)),
+	        m_inner(inner) {}
 
 	// we cannot copy a MutexGuard, only move
 	MutexGuard(MutexGuard &rhs) = delete;
-	MutexGuard& operator=(MutexGuard &rhs) = delete;
-	MutexGuard(MutexGuard &&rhs) noexcept : m_lock(std::move(rhs.m_lock)),
-						m_inner(rhs.m_inner) {}
+	MutexGuard &operator=(MutexGuard &rhs) = delete;
+	MutexGuard(MutexGuard &&rhs) noexcept: m_lock(std::move(rhs.m_lock)), m_inner(rhs.m_inner) {}
 
-	T *operator->()
-	{
-		return m_inner;
-	}
+	T *operator->() { return m_inner; }
 
-	T &operator*()
-	{
-		return *m_inner;
-	}
+	T &operator*() { return *m_inner; }
 
 	/**
 	 * Validate that the guarded object exists.
 	 */
-	bool valid()
-	{
-		return m_inner != nullptr;
-	}
+	bool valid() { return m_inner != nullptr; }
 
 private:
 	std::unique_lock<std::mutex> m_lock;
@@ -82,38 +74,31 @@ private:
 template<typename T>
 class ConstMutexGuard {
 public:
-	ConstMutexGuard(std::unique_lock<std::mutex> lock, const T *inner) : m_lock(std::move(lock)),
-									     m_inner(inner) {
-	}
+	ConstMutexGuard(std::unique_lock<std::mutex> lock, const T *inner):
+	        m_lock(std::move(lock)),
+	        m_inner(inner) {}
 
 	// we cannot copy a ConstMutexGuard, only move
 	ConstMutexGuard(ConstMutexGuard &rhs) = delete;
-	ConstMutexGuard& operator=(ConstMutexGuard &rhs) = delete;
-	ConstMutexGuard(ConstMutexGuard &&rhs) noexcept : m_lock(std::move(rhs.m_lock)),
-							  m_inner(rhs.m_inner) {}
+	ConstMutexGuard &operator=(ConstMutexGuard &rhs) = delete;
+	ConstMutexGuard(ConstMutexGuard &&rhs) noexcept:
+	        m_lock(std::move(rhs.m_lock)),
+	        m_inner(rhs.m_inner) {}
 
 	// a writable guard can be demoted to a read-only one, but *not* the other way around
-	ConstMutexGuard(MutexGuard<T> &&rhs) noexcept : m_lock(std::move(rhs.m_lock)),
-						        m_inner(rhs.m_inner) // NOLINT(google-explicit-constructor)
+	ConstMutexGuard(MutexGuard<T> &&rhs) noexcept:
+	        m_lock(std::move(rhs.m_lock)),
+	        m_inner(rhs.m_inner)  // NOLINT(google-explicit-constructor)
 	{}
 
-	const T *operator->() const
-	{
-		return m_inner;
-	}
+	const T *operator->() const { return m_inner; }
 
-	const T &operator*() const
-	{
-		return *m_inner;
-	}
+	const T &operator*() const { return *m_inner; }
 
 	/**
 	 * Validate that the guarded object exists.
 	 */
-	bool valid()
-	{
-		return m_inner != nullptr;
-	}
+	bool valid() { return m_inner != nullptr; }
 
 private:
 	std::unique_lock<std::mutex> m_lock;
@@ -129,21 +114,19 @@ private:
  * It works by simply holding a `std::unique_lock` object that keeps the shared_mutex
  * exclusively locked while it exists, and unlocks it upon destruction
  */
-template<typename T> class SharedMutexGuard
-{
+template<typename T>
+class SharedMutexGuard {
 public:
 	SharedMutexGuard(std::unique_lock<std::shared_mutex> wlock, T *inner):
-		m_write_lock(std::move(wlock)), m_inner(inner)
-	{
-	}
+	        m_write_lock(std::move(wlock)),
+	        m_inner(inner) {}
 
 	// we cannot copy a SharedMutexGuard, only move
 	SharedMutexGuard(SharedMutexGuard &rhs) = delete;
 	SharedMutexGuard &operator=(SharedMutexGuard &rhs) = delete;
 	SharedMutexGuard(SharedMutexGuard &&rhs) noexcept:
-		m_write_lock(std::move(rhs.m_write_lock)), m_inner(rhs.m_inner)
-	{
-	}
+	        m_write_lock(std::move(rhs.m_write_lock)),
+	        m_inner(rhs.m_inner) {}
 
 	T *operator->() { return m_inner; }
 
@@ -167,21 +150,19 @@ private:
  * It works by simply holding a `std::shared_lock` object that keeps the shared_mutex
  * read locked while it exists, and unlocks it upon destruction
  */
-template<typename T> class ConstSharedMutexGuard
-{
+template<typename T>
+class ConstSharedMutexGuard {
 public:
 	ConstSharedMutexGuard(std::shared_lock<std::shared_mutex> rlock, const T *inner):
-		m_read_lock(std::move(rlock)), m_inner(inner)
-	{
-	}
+	        m_read_lock(std::move(rlock)),
+	        m_inner(inner) {}
 
 	// we cannot copy a ConstSharedMutexGuard, only move
 	ConstSharedMutexGuard(ConstSharedMutexGuard &rhs) = delete;
 	ConstSharedMutexGuard &operator=(ConstSharedMutexGuard &rhs) = delete;
 	ConstSharedMutexGuard(ConstSharedMutexGuard &&rhs) noexcept:
-		m_read_lock(std::move(rhs.m_read_lock)), m_inner(rhs.m_inner)
-	{
-	}
+	        m_read_lock(std::move(rhs.m_read_lock)),
+	        m_inner(rhs.m_inner) {}
 
 	const T *operator->() const { return m_inner; }
 
@@ -225,7 +206,7 @@ class Mutex {
 public:
 	Mutex() = default;
 
-	Mutex(T inner) : m_inner(std::move(inner)) {}
+	Mutex(T inner): m_inner(std::move(inner)) {}
 
 	/**
 	 * \brief Lock the mutex, allowing access to the stored object
@@ -234,10 +215,7 @@ public:
 	 * via operator * or -> and ensures the lock is held as long as
 	 * the guard object exists
 	 */
-	MutexGuard<T> lock()
-	{
-		return MutexGuard<T>(std::unique_lock<std::mutex>(m_lock), &m_inner);
-	}
+	MutexGuard<T> lock() { return MutexGuard<T>(std::unique_lock<std::mutex>(m_lock), &m_inner); }
 
 	/**
 	 * \brief Lock the mutex, allowing access to the stored object
@@ -248,8 +226,7 @@ public:
 	 *
 	 * `const Mutex<T>` only allows read-only access to the protected object
 	 */
-	ConstMutexGuard<T> lock() const
-	{
+	ConstMutexGuard<T> lock() const {
 		return ConstMutexGuard<T>(std::unique_lock<std::mutex>(m_lock), &m_inner);
 	}
 
@@ -259,7 +236,8 @@ private:
 };
 
 /**
- * \brief Wrap a value of type T, enforcing synchronized access while allowing for simultaneous readers
+ * \brief Wrap a value of type T, enforcing synchronized access while allowing for simultaneous
+ * readers
  *
  * @tparam T type of the wrapped value
  *
@@ -271,7 +249,8 @@ private:
  *
  * SharedMutex<std::unordered_map<int>> m_locked_map;
  *
- * Then, to exclusively access the variable for writes, call .write_lock() on the SharedMutex object:
+ * Then, to exclusively access the variable for writes, call .write_lock() on the SharedMutex
+ * object:
  *
  * SharedMutexGuard<std::unordered_map<int>> locked = m_locked_map.write_lock();
  *
@@ -285,8 +264,8 @@ private:
  * ConstSharedMutexGuard<std::unordered_map<int>> locked = m_locked_map.read_lock();
  *
  */
-template<typename T> class SharedMutex
-{
+template<typename T>
+class SharedMutex {
 public:
 	using time_type = decltype(sinsp_utils::get_current_time_ns());
 	SharedMutex() = default;
@@ -302,10 +281,11 @@ public:
 	 *
 	 * `ConstSharedMutexGuard<T>` only allows read-only access to the protected object
 	 */
-	ConstSharedMutexGuard<T> read_lock() const
-	{
+	ConstSharedMutexGuard<T> read_lock() const {
 		auto start_ns = sinsp_utils::get_current_time_ns();
-		auto mux_guard = ConstSharedMutexGuard<T>(std::shared_lock<std::shared_mutex>(m_shared_lock), &m_inner);
+		auto mux_guard =
+		        ConstSharedMutexGuard<T>(std::shared_lock<std::shared_mutex>(m_shared_lock),
+		                                 &m_inner);
 		auto end_ns = sinsp_utils::get_current_time_ns();
 		m_read_lock_wait_time += (end_ns - start_ns);
 		m_read_lock_wait_count++;
@@ -319,19 +299,23 @@ public:
 	 * via operator * or -> and ensures the lock is held as long as
 	 * the guard object exists
 	 */
-	SharedMutexGuard<T> write_lock()
-	{
+	SharedMutexGuard<T> write_lock() {
 		auto start_ns = sinsp_utils::get_current_time_ns();
-		auto mux_guard = SharedMutexGuard<T>(std::unique_lock<std::shared_mutex>(m_shared_lock), &m_inner);
+		auto mux_guard =
+		        SharedMutexGuard<T>(std::unique_lock<std::shared_mutex>(m_shared_lock), &m_inner);
 		auto end_ns = sinsp_utils::get_current_time_ns();
 		m_write_lock_wait_time += (end_ns - start_ns);
 		m_write_lock_wait_count++;
 		return mux_guard;
 	}
 
-	time_type get_avg_read_lock_wait_time() const { return (m_read_lock_wait_time / m_read_lock_wait_count); }
+	time_type get_avg_read_lock_wait_time() const {
+		return (m_read_lock_wait_time / m_read_lock_wait_count);
+	}
 
-	time_type get_avg_write_lock_wait_time() const { return (m_write_lock_wait_time / m_write_lock_wait_count); }
+	time_type get_avg_write_lock_wait_time() const {
+		return (m_write_lock_wait_time / m_write_lock_wait_count);
+	}
 
 private:
 	mutable std::shared_mutex m_shared_lock;
@@ -342,4 +326,4 @@ private:
 	mutable time_type m_write_lock_wait_count = 0;
 };
 
-} // namespace libsinsp
+}  // namespace libsinsp

@@ -53,8 +53,7 @@ limitations under the License.
 /////////////////////////////////////////////////////////////////////////////////////
 // creat/unlink
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_creat_ulink)
-{
+TEST_F(sys_call_test, fs_creat_ulink) {
 	int callnum = 0;
 	char bcwd[1024];
 
@@ -70,12 +69,10 @@ TEST_F(sys_call_test, fs_creat_ulink)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		int fd = creat(FILENAME, 0644);
 
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 
@@ -88,63 +85,49 @@ TEST_F(sys_call_test, fs_creat_ulink)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		std::string name(e->get_name());
 
-		#if defined(__x86_64__)
-		if (type == PPME_SYSCALL_CREAT_E)
-		#else
-		if (name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_IN)
-		#endif
+#if defined(__x86_64__)
+		if(type == PPME_SYSCALL_CREAT_E)
+#else
+		if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_IN)
+#endif
 		{
 			callnum++;
 		}
-		#if defined(__x86_64__)
-		else if (type == PPME_SYSCALL_CREAT_X)
-		#else
-		else if (name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT)
+#if defined(__x86_64__)
+		else if(type == PPME_SYSCALL_CREAT_X)
+#else
+		else if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT)
 #endif
 		{
-			if (callnum == 1)
-			{
+			if(callnum == 1) {
 				std::string fname = e->get_param_value_str("name", false);
-				if (fname == FILENAME)
-				{
+				if(fname == FILENAME) {
 					EXPECT_EQ("0644", e->get_param_value_str("mode"));
 				}
 
 				EXPECT_LT(0, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_UNLINK_2_E || type == PPME_SYSCALL_UNLINKAT_2_E)
-		{
-			if (callnum == 2 || callnum == 4)
-			{
+		} else if(type == PPME_SYSCALL_UNLINK_2_E || type == PPME_SYSCALL_UNLINKAT_2_E) {
+			if(callnum == 2 || callnum == 4) {
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_UNLINK_2_X || type == PPME_SYSCALL_UNLINKAT_2_X)
-		{
-			if (callnum == 3)
-			{
-				if(type == PPME_SYSCALL_UNLINK_2_X)
-				{
+		} else if(type == PPME_SYSCALL_UNLINK_2_X || type == PPME_SYSCALL_UNLINKAT_2_X) {
+			if(callnum == 3) {
+				if(type == PPME_SYSCALL_UNLINK_2_X) {
 					EXPECT_EQ(FILENAME, e->get_param_value_str("path", false));
 					EXPECT_EQ(cwd + FILENAME, e->get_param_value_str("path"));
-				}
-				else
-				{
+				} else {
 					EXPECT_EQ(FILENAME, e->get_param_value_str("name", false));
 				}
 				EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
-			}
-			else if (callnum == 5)
-			{
+			} else if(callnum == 5) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
 			}
@@ -159,8 +142,7 @@ TEST_F(sys_call_test, fs_creat_ulink)
 /////////////////////////////////////////////////////////////////////////////////////
 // mkdir/rmdir
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_mkdir_rmdir)
-{
+TEST_F(sys_call_test, fs_mkdir_rmdir) {
 	int callnum = 0;
 	char bcwd[1024];
 
@@ -176,22 +158,18 @@ TEST_F(sys_call_test, fs_mkdir_rmdir)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		mkdir(UNEXISTENT_DIRNAME, 0);
 
-		if (mkdir(DIRNAME, 0) != 0)
-		{
+		if(mkdir(DIRNAME, 0) != 0) {
 			FAIL();
 		}
 
-		if (rmdir(DIRNAME) != 0)
-		{
+		if(rmdir(DIRNAME) != 0) {
 			FAIL();
 		}
 
-		if (rmdir(DIRNAME) == 0)
-		{
+		if(rmdir(DIRNAME) == 0) {
 			FAIL();
 		}
 	};
@@ -199,85 +177,57 @@ TEST_F(sys_call_test, fs_mkdir_rmdir)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_MKDIR_2_E)
-		{
-			if (callnum == 0)
-			{
+		if(type == PPME_SYSCALL_MKDIR_2_E) {
+			if(callnum == 0) {
 				EXPECT_EQ("0", e->get_param_value_str("mode"));
 				callnum++;
-			}
-			else if (callnum == 2)
-			{
+			} else if(callnum == 2) {
 				EXPECT_EQ("0", e->get_param_value_str("mode"));
 				callnum++;
 			}
 		}
-		if (type == PPME_SYSCALL_MKDIRAT_E)
-		{
-			if (callnum == 0)
-			{
+		if(type == PPME_SYSCALL_MKDIRAT_E) {
+			if(callnum == 0) {
+				callnum++;
+			} else if(callnum == 2) {
 				callnum++;
 			}
-			else if (callnum == 2)
-			{
-				callnum++;
-			}
-		}
-		else if (type == PPME_SYSCALL_MKDIR_2_X || type == PPME_SYSCALL_MKDIRAT_X)
-		{
-			if (callnum == 1)
-			{
+		} else if(type == PPME_SYSCALL_MKDIR_2_X || type == PPME_SYSCALL_MKDIRAT_X) {
+			if(callnum == 1) {
 				EXPECT_NE("0", e->get_param_value_str("res"));
 				EXPECT_EQ(UNEXISTENT_DIRNAME, e->get_param_value_str("path"));
 				EXPECT_EQ(UNEXISTENT_DIRNAME, e->get_param_value_str("path", false));
 				callnum++;
-			}
-			else if (callnum == 3)
-			{
+			} else if(callnum == 3) {
 				EXPECT_EQ("0", e->get_param_value_str("res"));
 				EXPECT_EQ(cwd + DIRNAME, e->get_param_value_str("path"));
 				EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_RMDIR_2_E || type == PPME_SYSCALL_UNLINKAT_2_E)
-		{
-			if (callnum == 4 || callnum == 6)
-			{
+		} else if(type == PPME_SYSCALL_RMDIR_2_E || type == PPME_SYSCALL_UNLINKAT_2_E) {
+			if(callnum == 4 || callnum == 6) {
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_RMDIR_2_X || type == PPME_SYSCALL_UNLINKAT_2_X)
-		{
-			if (callnum == 5)
-			{
+		} else if(type == PPME_SYSCALL_RMDIR_2_X || type == PPME_SYSCALL_UNLINKAT_2_X) {
+			if(callnum == 5) {
 				EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
-				if (type == PPME_SYSCALL_RMDIR_2_X)
-				{
+				if(type == PPME_SYSCALL_RMDIR_2_X) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
 					EXPECT_EQ(cwd + DIRNAME, e->get_param_value_str("path"));
-				}
-				else
-				{
+				} else {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("name", false));
 				}
 				callnum++;
-			}
-			else if (callnum == 7)
-			{
+			} else if(callnum == 7) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
-				if (type == PPME_SYSCALL_RMDIR_2_X)
-				{
+				if(type == PPME_SYSCALL_RMDIR_2_X) {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("path", false));
 					EXPECT_EQ(cwd + DIRNAME, e->get_param_value_str("path"));
-				}
-				else
-				{
+				} else {
 					EXPECT_EQ(DIRNAME, e->get_param_value_str("name", false));
 				}
 				callnum++;
@@ -293,8 +243,7 @@ TEST_F(sys_call_test, fs_mkdir_rmdir)
 /////////////////////////////////////////////////////////////////////////////////////
 // openat
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_openat)
-{
+TEST_F(sys_call_test, fs_openat) {
 	int callnum = 0;
 	char bcwd[1024];
 	int dirfd;
@@ -313,11 +262,9 @@ TEST_F(sys_call_test, fs_openat)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		dirfd = open(".", O_DIRECTORY);
-		if (dirfd <= 0)
-		{
+		if(dirfd <= 0) {
 			FAIL();
 		}
 
@@ -327,8 +274,7 @@ TEST_F(sys_call_test, fs_openat)
 		//
 		std::string s = FILENAME;
 		fd1 = openat(dirfd, FILENAME, O_CREAT | O_WRONLY, S_IRWXU | S_IRWXG | S_IRWXO);
-		if (fd1 <= 0)
-		{
+		if(fd1 <= 0) {
 			FAIL();
 		}
 
@@ -340,8 +286,7 @@ TEST_F(sys_call_test, fs_openat)
 		unlink(FILENAME);
 
 		fd2 = openat(AT_FDCWD, FILENAME, O_CREAT | O_WRONLY, S_IRWXU | S_IRWXG | S_IRWXO);
-		if (fd2 <= 0)
-		{
+		if(fd2 <= 0) {
 			FAIL();
 		}
 
@@ -352,25 +297,20 @@ TEST_F(sys_call_test, fs_openat)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 		std::string filepath = cwd + FILENAME;
 
-		if (type == PPME_SYSCALL_OPENAT_2_X &&
-		    param.m_evt->get_param_value_str("name") == filepath &&
-		    (std::string("<f>") + filepath) == e->get_param_value_str("fd"))
-		{
-			if (callnum == 0)
-			{
+		if(type == PPME_SYSCALL_OPENAT_2_X &&
+		   param.m_evt->get_param_value_str("name") == filepath &&
+		   (std::string("<f>") + filepath) == e->get_param_value_str("fd")) {
+			if(callnum == 0) {
 				EXPECT_EQ(dirfd, std::stoll(e->get_param_value_str("dirfd", false)));
 				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
 				EXPECT_EQ(std::string("<d>") + bcwd, e->get_param_value_str("dirfd"));
 				callnum++;
-			}
-			else if (callnum == 1)
-			{
+			} else if(callnum == 1) {
 				EXPECT_EQ(-100, std::stoll(e->get_param_value_str("dirfd", false)));
 				EXPECT_EQ(fd2, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
@@ -386,8 +326,7 @@ TEST_F(sys_call_test, fs_openat)
 /////////////////////////////////////////////////////////////////////////////////////
 // pread/pwrite
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_pread)
-{
+TEST_F(sys_call_test, fs_pread) {
 	int callnum = 0;
 	char buf[32];
 	int fd;
@@ -402,11 +341,9 @@ TEST_F(sys_call_test, fs_pread)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		fd = creat(FILENAME, S_IRWXU);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 
@@ -423,8 +360,7 @@ TEST_F(sys_call_test, fs_pread)
 		close(fd);
 
 		fd1 = open(FILENAME, O_RDONLY);
-		if (fd1 < 0)
-		{
+		if(fd1 < 0) {
 			FAIL();
 		}
 
@@ -438,104 +374,72 @@ TEST_F(sys_call_test, fs_pread)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_WRITE_E)
-		{
-			if (std::stoll(e->get_param_value_str("fd", false)) == fd)
-			{
+		if(type == PPME_SYSCALL_WRITE_E) {
+			if(std::stoll(e->get_param_value_str("fd", false)) == fd) {
 				EXPECT_EQ((int)sizeof("QWERTYUI") - 1,
 				          std::stoll(e->get_param_value_str("size", false)));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_WRITE_X)
-		{
-			if (callnum == 1)
-			{
+		} else if(type == PPME_SYSCALL_WRITE_X) {
+			if(callnum == 1) {
 				EXPECT_EQ((int)sizeof("QWERTYUI") - 1,
 				          std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("QWERTYUI", e->get_param_value_str("data"));
 				callnum++;
 			}
 		}
-		if (type == PPME_SYSCALL_PWRITE_E)
-		{
-			if (std::stoll(e->get_param_value_str("fd", false)) == fd)
-			{
-				if (callnum == 2)
-				{
+		if(type == PPME_SYSCALL_PWRITE_E) {
+			if(std::stoll(e->get_param_value_str("fd", false)) == fd) {
+				if(callnum == 2) {
 					EXPECT_EQ((int)sizeof("ABCD") - 1,
 					          std::stoll(e->get_param_value_str("size", false)));
 					EXPECT_EQ("4", e->get_param_value_str("pos"));
 					callnum++;
-				}
-				else
-				{
+				} else {
 					EXPECT_EQ((int)sizeof("ABCD") - 1,
 					          std::stoll(e->get_param_value_str("size", false)));
 					EXPECT_EQ("987654321987654", e->get_param_value_str("pos"));
 					callnum++;
 				}
 			}
-		}
-		else if (type == PPME_SYSCALL_PWRITE_X)
-		{
-			if (callnum == 3)
-			{
-				EXPECT_EQ((int)sizeof("ABCD") - 1,
-				          std::stoi(e->get_param_value_str("res", false)));
+		} else if(type == PPME_SYSCALL_PWRITE_X) {
+			if(callnum == 3) {
+				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("ABCD", e->get_param_value_str("data"));
 				callnum++;
-			}
-			else
-			{
-				if (pwrite64_succeeded)
-				{
+			} else {
+				if(pwrite64_succeeded) {
 					EXPECT_EQ((int)sizeof("ABCD") - 1,
 					          std::stoi(e->get_param_value_str("res", false)));
-				}
-				else
-				{
+				} else {
 					EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				}
 				EXPECT_EQ("ABCD", e->get_param_value_str("data"));
 				callnum++;
 			}
 		}
-		if (type == PPME_SYSCALL_PREAD_E)
-		{
-			if (callnum == 6)
-			{
+		if(type == PPME_SYSCALL_PREAD_E) {
+			if(callnum == 6) {
 				EXPECT_EQ("32", e->get_param_value_str("size"));
 				EXPECT_EQ("1234567891234", e->get_param_value_str("pos"));
 				callnum++;
-			}
-			else if (callnum == 8)
-			{
+			} else if(callnum == 8) {
 				EXPECT_EQ("4", e->get_param_value_str("size"));
 				EXPECT_EQ("4", e->get_param_value_str("pos"));
 				callnum++;
-			}
-			else
-			{
+			} else {
 				FAIL();
 			}
-		}
-		else if (type == PPME_SYSCALL_PREAD_X)
-		{
-			if (callnum == 7)
-			{
+		} else if(type == PPME_SYSCALL_PREAD_X) {
+			if(callnum == 7) {
 				EXPECT_NE("0", e->get_param_value_str("res", false));
 				callnum++;
-			}
-			else if (callnum == 9)
-			{
-				EXPECT_EQ((int)sizeof("ABCD") - 1,
-				          std::stoi(e->get_param_value_str("res", false)));
+			} else if(callnum == 9) {
+				EXPECT_EQ((int)sizeof("ABCD") - 1, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
 			}
 		}
@@ -549,8 +453,7 @@ TEST_F(sys_call_test, fs_pread)
 /////////////////////////////////////////////////////////////////////////////////////
 // writev/readv
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_readv)
-{
+TEST_F(sys_call_test, fs_readv) {
 	int callnum = 0;
 	int fd;
 	int fd1;
@@ -564,8 +467,7 @@ TEST_F(sys_call_test, fs_readv)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		int wv_count;
 		char msg1[10] = "aaaaa";
 		char msg2[10] = "bbbbb";
@@ -584,8 +486,7 @@ TEST_F(sys_call_test, fs_readv)
 		wv_count = 3;
 
 		bytes_sent = writev(fd, wv, wv_count);
-		if (bytes_sent <= 0)
-		{
+		if(bytes_sent <= 0) {
 			FAIL();
 		}
 
@@ -598,8 +499,7 @@ TEST_F(sys_call_test, fs_readv)
 		wv[2].iov_len = sizeof(msg3);
 
 		rres = readv(fd1, wv, wv_count);
-		if (rres <= 0)
-		{
+		if(rres <= 0) {
 			FAIL();
 		}
 
@@ -611,35 +511,25 @@ TEST_F(sys_call_test, fs_readv)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_WRITEV_E)
-		{
+		if(type == PPME_SYSCALL_WRITEV_E) {
 			EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 			EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_WRITEV_X)
-		{
-			if (callnum == 1)
-			{
+		} else if(type == PPME_SYSCALL_WRITEV_X) {
+			if(callnum == 1) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_READV_E)
-		{
+		} else if(type == PPME_SYSCALL_READV_E) {
 			EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_READV_X)
-		{
-			if (callnum == 3)
-			{
+		} else if(type == PPME_SYSCALL_READV_X) {
+			if(callnum == 3) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", (e->get_param_value_str("data")).substr(0, 15));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
@@ -656,8 +546,7 @@ TEST_F(sys_call_test, fs_readv)
 /////////////////////////////////////////////////////////////////////////////////////
 // pwritev/preadv
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_preadv)
-{
+TEST_F(sys_call_test, fs_preadv) {
 	int callnum = 0;
 	int fd;
 	int fd1;
@@ -672,8 +561,7 @@ TEST_F(sys_call_test, fs_preadv)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		int wv_count;
 		char msg1[10] = "aaaaa";
 		char msg2[10] = "bbbbb";
@@ -700,8 +588,7 @@ TEST_F(sys_call_test, fs_preadv)
 		pwritev64_succeeded = bytes_sent > 0;
 
 		bytes_sent = pwritev(fd, wv, wv_count, 10);
-		if (bytes_sent <= 0)
-		{
+		if(bytes_sent <= 0) {
 			FAIL();
 		}
 
@@ -716,8 +603,7 @@ TEST_F(sys_call_test, fs_preadv)
 		rres = preadv64(fd1, wv, wv_count, 987654321098);
 
 		rres = preadv(fd1, wv, wv_count, 10);
-		if (rres <= 0)
-		{
+		if(rres <= 0) {
 			FAIL();
 		}
 
@@ -729,70 +615,49 @@ TEST_F(sys_call_test, fs_preadv)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_PWRITEV_E)
-		{
-			if (callnum == 0)
-			{
+		if(type == PPME_SYSCALL_PWRITEV_E) {
+			if(callnum == 0) {
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
 				EXPECT_EQ(132456789012345LL, std::stoll(e->get_param_value_str("pos")));
 				callnum++;
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				EXPECT_EQ(10, std::stoll(e->get_param_value_str("pos")));
 				EXPECT_EQ(15, std::stoll(e->get_param_value_str("size")));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_PWRITEV_X)
-		{
-			if (callnum == 1)
-			{
-				if (pwritev64_succeeded)
-				{
+		} else if(type == PPME_SYSCALL_PWRITEV_X) {
+			if(callnum == 1) {
+				if(pwritev64_succeeded) {
 					EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
-				}
-				else
-				{
+				} else {
 					EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				}
 
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				callnum++;
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbbccccc", e->get_param_value_str("data"));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_PREADV_E)
-		{
-			if (callnum == 4)
-			{
+		} else if(type == PPME_SYSCALL_PREADV_E) {
+			if(callnum == 4) {
 				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
 				EXPECT_EQ(987654321098, std::stoll(e->get_param_value_str("pos")));
 				callnum++;
-			}
-			else
-			{
+			} else {
 				EXPECT_EQ(fd1, std::stoll(e->get_param_value_str("fd", false)));
 				EXPECT_EQ(10, std::stoll(e->get_param_value_str("pos")));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_PREADV_X)
-		{
-			if (callnum == 3)
-			{
+		} else if(type == PPME_SYSCALL_PREADV_X) {
+			if(callnum == 3) {
 				EXPECT_EQ(15, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ("aaaaabbbbb", e->get_param_value_str("data"));
 				EXPECT_EQ(30, std::stoll(e->get_param_value_str("size")));
@@ -809,8 +674,7 @@ TEST_F(sys_call_test, fs_preadv)
 /////////////////////////////////////////////////////////////////////////////////////
 // dup
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_dup)
-{
+TEST_F(sys_call_test, fs_dup) {
 	int callnum = 0;
 	int fd;
 	int fd1;
@@ -823,21 +687,18 @@ TEST_F(sys_call_test, fs_dup)
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{
+	event_filter_t filter = [&](sinsp_evt* evt) {
 		uint16_t type = evt->get_type();
-		return m_tid_filter(evt) &&
-			(type == PPME_SYSCALL_DUP_1_E || type == PPME_SYSCALL_DUP2_E ||
-			 type == PPME_SYSCALL_DUP3_E || type == PPME_SYSCALL_DUP_E ||
-			 type == PPME_SYSCALL_DUP_1_X || type == PPME_SYSCALL_DUP2_X ||
-			 type == PPME_SYSCALL_DUP3_X || type == PPME_SYSCALL_DUP_X);
+		return m_tid_filter(evt) && (type == PPME_SYSCALL_DUP_1_E || type == PPME_SYSCALL_DUP2_E ||
+		                             type == PPME_SYSCALL_DUP3_E || type == PPME_SYSCALL_DUP_E ||
+		                             type == PPME_SYSCALL_DUP_1_X || type == PPME_SYSCALL_DUP2_X ||
+		                             type == PPME_SYSCALL_DUP3_X || type == PPME_SYSCALL_DUP_X);
 	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		fd = open(FILENAME, O_CREAT | O_WRONLY, 0);
 		fd1 = dup(fd);
 		fd2 = dup2(fd, 333);
@@ -863,97 +724,72 @@ TEST_F(sys_call_test, fs_dup)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
-		if (type == PPME_SYSCALL_DUP_1_E || type == PPME_SYSCALL_DUP2_E ||
-		    type == PPME_SYSCALL_DUP3_E || type == PPME_SYSCALL_DUP_E)
-		{
-			if (callnum == 0)
-			{
+		if(type == PPME_SYSCALL_DUP_1_E || type == PPME_SYSCALL_DUP2_E ||
+		   type == PPME_SYSCALL_DUP3_E || type == PPME_SYSCALL_DUP_E) {
+			if(callnum == 0) {
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
-			}
-			else if (callnum == 2)
-			{
+			} else if(callnum == 2) {
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
-			}
-			else if (callnum == 4)
-			{
+			} else if(callnum == 4) {
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
-			}
-			else if (callnum == 6)
-			{
+			} else if(callnum == 6) {
 				EXPECT_EQ(fd3, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
-			}
-			else if (callnum == 8)
-			{
+			} else if(callnum == 8) {
 				EXPECT_EQ("-1", e->get_param_value_str("fd", false));
 				callnum++;
-			}
-			else if (callnum == 10)
-			{
+			} else if(callnum == 10) {
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_DUP_1_X || type == PPME_SYSCALL_DUP2_X ||
-		         type == PPME_SYSCALL_DUP3_X || type == PPME_SYSCALL_DUP_X)
-		{
-			ASSERT_NE(
-			    (sinsp_threadinfo*)&*param.m_inspector->get_thread_ref(e->get_tid(), false, true),
-			    nullptr);
-			if (callnum == 1)
-			{
+		} else if(type == PPME_SYSCALL_DUP_1_X || type == PPME_SYSCALL_DUP2_X ||
+		          type == PPME_SYSCALL_DUP3_X || type == PPME_SYSCALL_DUP_X) {
+			ASSERT_NE((sinsp_threadinfo*)&*param.m_inspector->get_thread_ref(e->get_tid(),
+			                                                                 false,
+			                                                                 true),
+			          nullptr);
+			if(callnum == 1) {
 				EXPECT_EQ(fd1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*param.m_inspector
-				              ->get_thread_ref(e->get_tid(), false, true)
-				              ->get_fd(fd1));
+				                  ->get_thread_ref(e->get_tid(), false, true)
+				                  ->get_fd(fd1));
 				callnum++;
-			}
-			else if (callnum == 3)
-			{
+			} else if(callnum == 3) {
 				EXPECT_EQ(fd2, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*param.m_inspector
-				              ->get_thread_ref(e->get_tid(), false, true)
-				              ->get_fd(fd2));
+				                  ->get_thread_ref(e->get_tid(), false, true)
+				                  ->get_fd(fd2));
 				callnum++;
-			}
-			else if (callnum == 5)
-			{
+			} else if(callnum == 5) {
 				EXPECT_EQ(fd3, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*param.m_inspector
-				              ->get_thread_ref(e->get_tid(), false, true)
-				              ->get_fd(fd3));
+				                  ->get_thread_ref(e->get_tid(), false, true)
+				                  ->get_fd(fd3));
 				callnum++;
-			}
-			else if (callnum == 7)
-			{
+			} else if(callnum == 7) {
 				EXPECT_EQ(fd4, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*param.m_inspector
-				              ->get_thread_ref(e->get_tid(), false, true)
-				              ->get_fd(fd4));
+				                  ->get_thread_ref(e->get_tid(), false, true)
+				                  ->get_fd(fd4));
 				callnum++;
-			}
-			else if (callnum == 9)
-			{
+			} else if(callnum == 9) {
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*param.m_inspector
-				              ->get_thread_ref(e->get_tid(), false, true)
-				              ->get_fd(fd5));
+				                  ->get_thread_ref(e->get_tid(), false, true)
+				                  ->get_fd(fd5));
 				callnum++;
-			}
-			else if (callnum == 11)
-			{
+			} else if(callnum == 11) {
 				EXPECT_EQ(fd6, std::stoi(e->get_param_value_str("res", false)));
 				callnum++;
 			}
@@ -973,8 +809,7 @@ TEST_F(sys_call_test, fs_dup)
 /////////////////////////////////////////////////////////////////////////////////////
 // fcntl
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_fcntl)
-{
+TEST_F(sys_call_test, fs_fcntl) {
 	int callnum = 0;
 	int fd;
 	int fd1;
@@ -988,8 +823,7 @@ TEST_F(sys_call_test, fs_fcntl)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		fd = open(FILENAME, O_CREAT | O_WRONLY, 0);
 		fd1 = fcntl(fd, F_DUPFD, 0);
 		fd2 = fcntl(fd, F_DUPFD_CLOEXEC, 0);
@@ -1005,45 +839,36 @@ TEST_F(sys_call_test, fs_fcntl)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_FCNTL_E)
-		{
-			if (callnum == 0)
-			{
+		if(type == PPME_SYSCALL_FCNTL_E) {
+			if(callnum == 0) {
+				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
+				callnum++;
+			} else if(callnum == 2) {
 				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
 				callnum++;
 			}
-			else if (callnum == 2)
-			{
-				EXPECT_EQ(fd, std::stoll(e->get_param_value_str("fd", false)));
-				callnum++;
-			}
-		}
-		else if (type == PPME_SYSCALL_FCNTL_X)
-		{
-			ASSERT_NE(
-			    (sinsp_threadinfo*)&*param.m_inspector->get_thread_ref(e->get_tid(), false, true),
-			    nullptr);
-			if (callnum == 1)
-			{
+		} else if(type == PPME_SYSCALL_FCNTL_X) {
+			ASSERT_NE((sinsp_threadinfo*)&*param.m_inspector->get_thread_ref(e->get_tid(),
+			                                                                 false,
+			                                                                 true),
+			          nullptr);
+			if(callnum == 1) {
 				EXPECT_EQ(fd1, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*param.m_inspector
-				              ->get_thread_ref(e->get_tid(), false, true)
-				              ->get_fd(fd1));
+				                  ->get_thread_ref(e->get_tid(), false, true)
+				                  ->get_fd(fd1));
 				callnum++;
-			}
-			else if (callnum == 3)
-			{
+			} else if(callnum == 3) {
 				EXPECT_EQ(fd2, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_NE((sinsp_threadinfo*)NULL,
 				          (sinsp_threadinfo*)&*param.m_inspector
-				              ->get_thread_ref(e->get_tid(), false, true)
-				              ->get_fd(fd1));
+				                  ->get_thread_ref(e->get_tid(), false, true)
+				                  ->get_fd(fd1));
 				callnum++;
 			}
 		}
@@ -1057,8 +882,7 @@ TEST_F(sys_call_test, fs_fcntl)
 /////////////////////////////////////////////////////////////////////////////////////
 // sendfile
 /////////////////////////////////////////////////////////////////////////////////////
-TEST_F(sys_call_test, fs_sendfile)
-{
+TEST_F(sys_call_test, fs_sendfile) {
 	int callnum = 0;
 	int read_fd;
 	int write_fd;
@@ -1073,8 +897,7 @@ TEST_F(sys_call_test, fs_sendfile)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1096,21 +919,17 @@ TEST_F(sys_call_test, fs_sendfile)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_SENDFILE_E)
-		{
+		if(type == PPME_SYSCALL_SENDFILE_E) {
 			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
 			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
 			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_SENDFILE_X)
-		{
+		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
@@ -1122,8 +941,7 @@ TEST_F(sys_call_test, fs_sendfile)
 	EXPECT_EQ(2, callnum);
 }
 
-TEST_F(sys_call_test, fs_sendfile_nulloff)
-{
+TEST_F(sys_call_test, fs_sendfile_nulloff) {
 	int callnum = 0;
 	int read_fd;
 	int write_fd;
@@ -1137,8 +955,7 @@ TEST_F(sys_call_test, fs_sendfile_nulloff)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1160,21 +977,17 @@ TEST_F(sys_call_test, fs_sendfile_nulloff)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_SENDFILE_E)
-		{
+		if(type == PPME_SYSCALL_SENDFILE_E) {
 			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
 			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
 			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_SENDFILE_X)
-		{
+		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
@@ -1186,8 +999,7 @@ TEST_F(sys_call_test, fs_sendfile_nulloff)
 	EXPECT_EQ(2, callnum);
 }
 
-TEST_F(sys_call_test, fs_sendfile_failed)
-{
+TEST_F(sys_call_test, fs_sendfile_failed) {
 	int callnum = 0;
 	// int size;
 
@@ -1199,8 +1011,7 @@ TEST_F(sys_call_test, fs_sendfile_failed)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		int res = sendfile(-1, -2, NULL, 444);
 		EXPECT_GT(0, res);
 	};
@@ -1208,13 +1019,11 @@ TEST_F(sys_call_test, fs_sendfile_failed)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_SENDFILE_E)
-		{
+		if(type == PPME_SYSCALL_SENDFILE_E) {
 			EXPECT_NO_THROW({
 				EXPECT_EQ("-1", e->get_param_value_str("out_fd", false));
 				EXPECT_EQ("-2", e->get_param_value_str("in_fd", false));
@@ -1223,9 +1032,7 @@ TEST_F(sys_call_test, fs_sendfile_failed)
 			});
 
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_SENDFILE_X)
-		{
+		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_NO_THROW({
 				EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 				EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
@@ -1239,8 +1046,7 @@ TEST_F(sys_call_test, fs_sendfile_failed)
 	EXPECT_EQ(2, callnum);
 }
 
-TEST_F(sys_call_test, fs_sendfile_invalidoff)
-{
+TEST_F(sys_call_test, fs_sendfile_invalidoff) {
 	int callnum = 0;
 	int read_fd;
 	int write_fd;
@@ -1254,8 +1060,7 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1277,21 +1082,17 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_SENDFILE_E)
-		{
+		if(type == PPME_SYSCALL_SENDFILE_E) {
 			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
 			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
 			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_SENDFILE_X)
-		{
+		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_GT(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
@@ -1304,8 +1105,7 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff)
 }
 
 #ifdef __i386__
-TEST_F(sys_call_test, fs_sendfile64)
-{
+TEST_F(sys_call_test, fs_sendfile64) {
 	int callnum = 0;
 	int read_fd;
 	int write_fd;
@@ -1320,8 +1120,7 @@ TEST_F(sys_call_test, fs_sendfile64)
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1343,21 +1142,17 @@ TEST_F(sys_call_test, fs_sendfile64)
 	//
 	// OUTPUT VALDATION
 	//
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_SENDFILE_E)
-		{
+		if(type == PPME_SYSCALL_SENDFILE_E) {
 			EXPECT_EQ(write_fd, std::stoll(e->get_param_value_str("out_fd", false)));
 			EXPECT_EQ(read_fd, std::stoll(e->get_param_value_str("in_fd", false)));
 			EXPECT_EQ(size, std::stoll(e->get_param_value_str("size", false)));
 			EXPECT_EQ(0, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
-		}
-		else if (type == PPME_SYSCALL_SENDFILE_X)
-		{
+		} else if(type == PPME_SYSCALL_SENDFILE_X) {
 			EXPECT_LE(0, std::stoi(e->get_param_value_str("res", false)));
 			EXPECT_EQ(offset, std::stoll(e->get_param_value_str("offset", false)));
 			callnum++;
@@ -1370,8 +1165,7 @@ TEST_F(sys_call_test, fs_sendfile64)
 }
 #endif
 
-TEST_F(sys_call_test, large_read_write)
-{
+TEST_F(sys_call_test, large_read_write) {
 	const int buf_size = PPM_MAX_ARG_SIZE * 10;
 
 	std::vector<uint8_t> buf(buf_size);
@@ -1380,19 +1174,13 @@ TEST_F(sys_call_test, large_read_write)
 
 	srandom(42);
 
-	before_open_t setup = [&](sinsp* inspector)
-	{
-		inspector->set_snaplen(SNAPLEN_MAX);
-	};
+	before_open_t setup = [&](sinsp* inspector) { inspector->set_snaplen(SNAPLEN_MAX); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
-
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
 		fd1 = creat(FILENAME, S_IRWXU);
-		if (fd1 < 0)
-		{
+		if(fd1 < 0) {
 			FAIL();
 		}
 
@@ -1402,8 +1190,7 @@ TEST_F(sys_call_test, large_read_write)
 		close(fd1);
 
 		fd2 = open(FILENAME, O_RDONLY);
-		if (fd2 < 0)
-		{
+		if(fd2 < 0) {
 			FAIL();
 		}
 
@@ -1415,22 +1202,16 @@ TEST_F(sys_call_test, large_read_write)
 		unlink(FILENAME);
 	};
 
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_WRITE_E)
-		{
-			if (std::stoll(e->get_param_value_str("fd", false)) == fd1)
-			{
+		if(type == PPME_SYSCALL_WRITE_E) {
+			if(std::stoll(e->get_param_value_str("fd", false)) == fd1) {
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_WRITE_X)
-		{
-			if (callnum == 1)
-			{
+		} else if(type == PPME_SYSCALL_WRITE_X) {
+			if(callnum == 1) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 
 				EXPECT_EQ(p->m_len, SNAPLEN_MAX);
@@ -1439,17 +1220,12 @@ TEST_F(sys_call_test, large_read_write)
 				callnum++;
 			}
 		}
-		if (type == PPME_SYSCALL_READ_E)
-		{
-			if (callnum == 2)
-			{
+		if(type == PPME_SYSCALL_READ_E) {
+			if(callnum == 2) {
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_READ_X)
-		{
-			if (callnum == 3)
-			{
+		} else if(type == PPME_SYSCALL_READ_X) {
+			if(callnum == 3) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
 
 				EXPECT_EQ(p->m_len, SNAPLEN_MAX);
@@ -1460,22 +1236,28 @@ TEST_F(sys_call_test, large_read_write)
 		}
 	};
 
-	before_close_t cleanup = [&](sinsp* inspector)
-	{
-		inspector->set_snaplen(DEFAULT_SNAPLEN);
-	};
+	before_close_t cleanup = [&](sinsp* inspector) { inspector->set_snaplen(DEFAULT_SNAPLEN); };
 
 	// We don't dump events to scap files, otherwise we could stuck with modern bpf.
-	ASSERT_NO_FATAL_FAILURE({event_capture::run(test, callback, filter, setup,
-							cleanup, event_capture::always_continue, 131072,
-							(uint64_t)60 * 1000 * 1000 * 1000, (uint64_t)60 * 1000 * 1000 * 1000,
-							SINSP_MODE_LIVE, 3, false); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   setup,
+		                   cleanup,
+		                   event_capture::always_continue,
+		                   131072,
+		                   (uint64_t)60 * 1000 * 1000 * 1000,
+		                   (uint64_t)60 * 1000 * 1000 * 1000,
+		                   SINSP_MODE_LIVE,
+		                   3,
+		                   false);
+	});
 
 	EXPECT_EQ(4, callnum);
 }
 
-TEST_F(sys_call_test, large_readv_writev)
-{
+TEST_F(sys_call_test, large_readv_writev) {
 	const int buf_size = PPM_MAX_ARG_SIZE * 10;
 	const int chunks = 10;
 
@@ -1485,23 +1267,17 @@ TEST_F(sys_call_test, large_readv_writev)
 
 	srandom(42);
 
-	for (int j = 0; j < buf_size; ++j)
-	{
+	for(int j = 0; j < buf_size; ++j) {
 		buf[j] = random();
 	}
 
-	before_open_t setup = [&](sinsp* inspector)
-	{
-		inspector->set_snaplen(SNAPLEN_MAX);
-	};
+	before_open_t setup = [&](sinsp* inspector) { inspector->set_snaplen(SNAPLEN_MAX); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
 		fd = creat(FILENAME, S_IRWXU);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 
@@ -1509,8 +1285,7 @@ TEST_F(sys_call_test, large_readv_writev)
 		int chunk_size = buf_size / chunks;
 
 		int off = 0;
-		for (int j = 0; j < chunks; ++j)
-		{
+		for(int j = 0; j < chunks; ++j) {
 			iovs[j].iov_base = buf + off;
 			iovs[j].iov_len = chunk_size;
 
@@ -1523,8 +1298,7 @@ TEST_F(sys_call_test, large_readv_writev)
 		close(fd);
 
 		int fd = open(FILENAME, O_RDONLY);
-		if (fd < 0)
-		{
+		if(fd < 0) {
 			FAIL();
 		}
 
@@ -1536,37 +1310,28 @@ TEST_F(sys_call_test, large_readv_writev)
 		unlink(FILENAME);
 	};
 
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		const int max_kmod_buf = getpagesize() - sizeof(struct iovec) * chunks - 1;
 		(void)max_kmod_buf;
 
 		sinsp_evt* e = param.m_evt;
 		uint16_t type = e->get_type();
 
-		if (type == PPME_SYSCALL_WRITEV_E)
-		{
-			if (std::stoll(e->get_param_value_str("fd", false)) == fd)
-			{
+		if(type == PPME_SYSCALL_WRITEV_E) {
+			if(std::stoll(e->get_param_value_str("fd", false)) == fd) {
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_WRITEV_X)
-		{
-			if (callnum == 1)
-			{
+		} else if(type == PPME_SYSCALL_WRITEV_X) {
+			if(callnum == 1) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
-				if(event_capture::m_engine_string == KMOD_ENGINE)
-				{
+				if(event_capture::m_engine_string == KMOD_ENGINE) {
 					//
 					// The driver doesn't have the correct behavior for accumulating
 					// readv/writev, and it uses a single page as a temporary storage area
 					//
 					EXPECT_EQ(p->m_len, max_kmod_buf);
 					EXPECT_EQ(0, memcmp(buf, p->m_val, max_kmod_buf));
-				}
-				else
-				{
+				} else {
 					EXPECT_EQ(p->m_len, SNAPLEN_MAX);
 					EXPECT_EQ(0, memcmp(buf, p->m_val, SNAPLEN_MAX));
 				}
@@ -1574,25 +1339,17 @@ TEST_F(sys_call_test, large_readv_writev)
 				callnum++;
 			}
 		}
-		if (type == PPME_SYSCALL_READV_E)
-		{
-			if (callnum == 2)
-			{
+		if(type == PPME_SYSCALL_READV_E) {
+			if(callnum == 2) {
 				callnum++;
 			}
-		}
-		else if (type == PPME_SYSCALL_READV_X)
-		{
-			if (callnum == 3)
-			{
+		} else if(type == PPME_SYSCALL_READV_X) {
+			if(callnum == 3) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
-				if(event_capture::m_engine_string == KMOD_ENGINE)
-				{
+				if(event_capture::m_engine_string == KMOD_ENGINE) {
 					EXPECT_EQ(p->m_len, max_kmod_buf);
 					EXPECT_EQ(0, memcmp(buf, p->m_val, max_kmod_buf));
-				}
-				else
-				{
+				} else {
 					EXPECT_EQ(p->m_len, SNAPLEN_MAX);
 					EXPECT_EQ(0, memcmp(buf, p->m_val, SNAPLEN_MAX));
 				}
@@ -1602,22 +1359,28 @@ TEST_F(sys_call_test, large_readv_writev)
 		}
 	};
 
-	before_close_t cleanup = [&](sinsp* inspector)
-	{
-		inspector->set_snaplen(DEFAULT_SNAPLEN);
-	};
+	before_close_t cleanup = [&](sinsp* inspector) { inspector->set_snaplen(DEFAULT_SNAPLEN); };
 
 	// We don't dump events to scap files, otherwise we could stuck with modern bpf.
-	ASSERT_NO_FATAL_FAILURE({event_capture::run(test, callback, filter, setup,
-							cleanup, event_capture::always_continue, 131072,
-							(uint64_t)60 * 1000 * 1000 * 1000, (uint64_t)60 * 1000 * 1000 * 1000,
-							SINSP_MODE_LIVE, 3, false); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   setup,
+		                   cleanup,
+		                   event_capture::always_continue,
+		                   131072,
+		                   (uint64_t)60 * 1000 * 1000 * 1000,
+		                   (uint64_t)60 * 1000 * 1000 * 1000,
+		                   SINSP_MODE_LIVE,
+		                   3,
+		                   false);
+	});
 
 	EXPECT_EQ(4, callnum);
 }
 
-TEST_F(sys_call_test, large_open)
-{
+TEST_F(sys_call_test, large_open) {
 	const int buf_size = PPM_MAX_ARG_SIZE * 10;
 
 	int callnum = 0;
@@ -1625,15 +1388,13 @@ TEST_F(sys_call_test, large_open)
 	srandom(42);
 
 	std::string buf;
-	while (buf.length() < buf_size)
-	{
+	while(buf.length() < buf_size) {
 		buf.append(std::to_string(random()));
 	}
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector)
-	{
+	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
 #ifdef SYS_open
 		int fd = syscall(SYS_open, buf.c_str(), O_RDONLY);
 #else
@@ -1642,31 +1403,22 @@ TEST_F(sys_call_test, large_open)
 		EXPECT_EQ(fd, -1);
 	};
 
-	captured_event_callback_t callback = [&](const callback_param& param)
-	{
+	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
 		std::string name(e->get_name());
 
-		if (name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_IN)
-		{
+		if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_IN) {
 			callnum++;
-		}
-		else if (name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT)
-		{
+		} else if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT) {
 			const sinsp_evt_param* p = e->get_param_by_name("name");
 
-			if(event_capture::m_engine_string == KMOD_ENGINE)
-			{
+			if(event_capture::m_engine_string == KMOD_ENGINE) {
 				EXPECT_EQ(p->m_len, PPM_MAX_ARG_SIZE);
 				EXPECT_EQ(buf.substr(0, PPM_MAX_ARG_SIZE - 1), std::string(p->m_val));
-			}
-			else if(event_capture::m_engine_string == BPF_ENGINE)
-			{
+			} else if(event_capture::m_engine_string == BPF_ENGINE) {
 				EXPECT_EQ(p->m_len, SNAPLEN_MAX);
 				EXPECT_EQ(buf.substr(0, SNAPLEN_MAX - 1), std::string(p->m_val));
-			}
-			else if(event_capture::m_engine_string == MODERN_BPF_ENGINE)
-			{
+			} else if(event_capture::m_engine_string == MODERN_BPF_ENGINE) {
 				EXPECT_EQ(p->m_len, PATH_MAX);
 				EXPECT_EQ(buf.substr(0, PATH_MAX - 1), std::string(p->m_val));
 			}

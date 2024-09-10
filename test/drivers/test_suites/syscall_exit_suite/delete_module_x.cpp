@@ -3,8 +3,7 @@
 #if defined(__NR_delete_module)
 #include <linux/module.h>
 
-TEST(SyscallExit, delete_moduleX_failure)
-{
+TEST(SyscallExit, delete_moduleX_failure) {
 	const char* module_name = "test_module";
 
 	auto evt_test = get_syscall_event_test(__NR_delete_module, EXIT_EVENT);
@@ -15,7 +14,9 @@ TEST(SyscallExit, delete_moduleX_failure)
 	/*
 	 * Call the `delete_module` syscall
 	 */
-	assert_syscall_state(SYSCALL_FAILURE, "delete_module", syscall(__NR_delete_module, module_name, O_TRUNC | O_NONBLOCK));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "delete_module",
+	                     syscall(__NR_delete_module, module_name, O_TRUNC | O_NONBLOCK));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -24,8 +25,7 @@ TEST(SyscallExit, delete_moduleX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -2,15 +2,16 @@
 
 #ifdef __NR_select
 
-TEST(SyscallExit, selectX)
-{
+TEST(SyscallExit, selectX) {
 	auto evt_test = get_syscall_event_test(__NR_select, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	assert_syscall_state(SYSCALL_FAILURE, "select", syscall(__NR_select, -1, nullptr, nullptr, nullptr, nullptr));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "select",
+	                     syscall(__NR_select, -1, nullptr, nullptr, nullptr, nullptr));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -19,8 +20,7 @@ TEST(SyscallExit, selectX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

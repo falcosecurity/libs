@@ -29,31 +29,25 @@ limitations under the License.
 #include <thread>
 #include <vector>
 
-void run()
-{
-	while (true)
-	{
+void run() {
+	while(true) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
-void changer(char** argv)
-{
+void changer(char** argv) {
 	char pname[] = "sysdig";
 	memcpy((void*)argv[0], pname, sizeof(pname));
-	while (true)
-	{
+	while(true) {
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 	char pname[] = "savonarola";
 	prctl(PR_SET_NAME, (unsigned long)&pname, 0, 0, 0);
 	std::vector<std::shared_ptr<std::thread>> threads;
-	for (int j = 0; j < 20; ++j)
-	{
+	for(int j = 0; j < 20; ++j) {
 		threads.push_back(std::make_shared<std::thread>(run));
 	}
 

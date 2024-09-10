@@ -2,8 +2,7 @@
 
 #if defined(__NR_eventfd2) && defined(__NR_close)
 #include <sys/eventfd.h>
-TEST(SyscallExit, eventfd2X_success)
-{
+TEST(SyscallExit, eventfd2X_success) {
 	auto evt_test = get_syscall_event_test(__NR_eventfd2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallExit, eventfd2X_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -45,8 +43,7 @@ TEST(SyscallExit, eventfd2X_success)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, eventfd2X_failure)
-{
+TEST(SyscallExit, eventfd2X_failure) {
 	auto evt_test = get_syscall_event_test(__NR_eventfd2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -64,8 +61,7 @@ TEST(SyscallExit, eventfd2X_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

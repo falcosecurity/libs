@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_linkat
-TEST(SyscallExit, linkatX)
-{
+TEST(SyscallExit, linkatX) {
 	auto evt_test = get_syscall_event_test(__NR_linkat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallExit, linkatX)
 	const char* old_path = "/xyzk-this/is/the/old/path";
 	const char* new_path = "/xyzk-this/is/the/new/path/";
 	uint32_t flags = AT_SYMLINK_FOLLOW;
-	assert_syscall_state(SYSCALL_FAILURE, "linkat", syscall(__NR_linkat, old_fd, old_path, new_fd, new_path, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "linkat",
+	                     syscall(__NR_linkat, old_fd, old_path, new_fd, new_path, flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -23,8 +24,7 @@ TEST(SyscallExit, linkatX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

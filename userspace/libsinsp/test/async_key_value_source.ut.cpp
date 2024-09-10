@@ -30,26 +30,21 @@ limitations under the License.
 
 using namespace libsinsp;
 
-namespace
-{
+namespace {
 
 /**
  * Intermediate realization of async_key_value_source that can return pre-canned
  * results.
  */
-class precanned_metadata_source : public async_key_value_source<std::string, std::string>
-{
+class precanned_metadata_source : public async_key_value_source<std::string, std::string> {
 public:
 	const static uint64_t FOREVER_MS;
 
-	precanned_metadata_source(const uint64_t max_wait_ms, const uint64_t ttl_ms = FOREVER_MS)
-	    : async_key_value_source(max_wait_ms, ttl_ms),
-	      m_responses()
-	{
-	}
+	precanned_metadata_source(const uint64_t max_wait_ms, const uint64_t ttl_ms = FOREVER_MS):
+	        async_key_value_source(max_wait_ms, ttl_ms),
+	        m_responses() {}
 
-	void set_response(const std::string& key, const std::string& response)
-	{
+	void set_response(const std::string& key, const std::string& response) {
 		m_responses[key] = response;
 	}
 
@@ -63,23 +58,18 @@ const uint64_t precanned_metadata_source::FOREVER_MS = static_cast<uint64_t>(~0L
 /**
  * Realization of async_key_value_source that returns results without delay.
  */
-class immediate_metadata_source : public precanned_metadata_source
-{
+class immediate_metadata_source : public precanned_metadata_source {
 public:
 	const static uint64_t MAX_WAIT_TIME_MS;
 
-	immediate_metadata_source(const uint64_t max_wait_ms = MAX_WAIT_TIME_MS)
-	    : precanned_metadata_source(max_wait_ms)
-	{
-	}
+	immediate_metadata_source(const uint64_t max_wait_ms = MAX_WAIT_TIME_MS):
+	        precanned_metadata_source(max_wait_ms) {}
 
 protected:
-	virtual void run_impl() override
-	{
+	virtual void run_impl() override {
 		std::string key;
 
-		while (dequeue_next_key(key))
-		{
+		while(dequeue_next_key(key)) {
 			store_value(key, get_response(key));
 		}
 	}
@@ -90,29 +80,24 @@ const uint64_t immediate_metadata_source::MAX_WAIT_TIME_MS = 5000;
  * Realization of async_key_value_source that returns results with some
  * specified delay.
  */
-class delayed_metadata_source : public precanned_metadata_source
-{
+class delayed_metadata_source : public precanned_metadata_source {
 public:
 	const static uint64_t MAX_WAIT_TIME_MS;
 
-	delayed_metadata_source(const uint64_t delay_ms, const uint64_t ttl_ms = FOREVER_MS)
-	    : precanned_metadata_source(MAX_WAIT_TIME_MS, ttl_ms),
-	      m_delay_ms(delay_ms),
-	      m_response_available(false)
-	{
-	}
+	delayed_metadata_source(const uint64_t delay_ms, const uint64_t ttl_ms = FOREVER_MS):
+	        precanned_metadata_source(MAX_WAIT_TIME_MS, ttl_ms),
+	        m_delay_ms(delay_ms),
+	        m_response_available(false) {}
 
 	bool is_response_available() const { return m_response_available; }
 
 protected:
-	virtual void run_impl() override
-	{
+	virtual void run_impl() override {
 		std::string key;
 
 		m_response_available = false;
 
-		while (dequeue_next_key(key))
-		{
+		while(dequeue_next_key(key)) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(m_delay_ms));
 			store_value(key, get_response(key));
 			m_response_available = true;
@@ -129,8 +114,7 @@ const uint64_t delayed_metadata_source::MAX_WAIT_TIME_MS = 0;
  * Ensure that a concrete async_key_value_source is in the expected initial
  * state after construction.
  */
-TEST(async_key_value_source_test, construction)
-{
+TEST(async_key_value_source_test, construction) {
 	immediate_metadata_source source;
 
 	ASSERT_EQ(immediate_metadata_source::MAX_WAIT_TIME_MS, source.get_max_wait());
@@ -143,8 +127,7 @@ TEST(async_key_value_source_test, construction)
  * the timeout, that the lookup() method returns true, and that it returns
  * the metadata in the output parameter.
  */
-TEST(async_key_value_source_test, lookup_key_immediate_return)
-{
+TEST(async_key_value_source_test, lookup_key_immediate_return) {
 	const std::string key = "foo";
 	const std::string metadata = "bar";
 	std::string response = "response-not-set";
@@ -162,8 +145,7 @@ TEST(async_key_value_source_test, lookup_key_immediate_return)
 /**
  * Ensure that get_complete_results returns all complete results
  */
-TEST(async_key_value_source_test, get_complete_results)
-{
+TEST(async_key_value_source_test, get_complete_results) {
 	const std::string key1 = "foo1";
 	const std::string key2 = "foo2";
 	const std::string metadata = "bar";
@@ -194,8 +176,7 @@ TEST(async_key_value_source_test, get_complete_results)
  * Ensure that get_complete_results returns all complete results
  * but does *not* return results that have not yet been computed
  */
-TEST(async_key_value_source_test, get_complete_results_incomplete)
-{
+TEST(async_key_value_source_test, get_complete_results_incomplete) {
 	const std::string key1 = "foo1";
 	const std::string key2 = "foo2";
 	const std::string metadata = "bar";
@@ -227,8 +208,7 @@ TEST(async_key_value_source_test, get_complete_results_incomplete)
  * Ensure that lookup_delayed() does not return the value immediately
  * but only after the specified time
  */
-TEST(async_key_value_source_test, lookup_delayed)
-{
+TEST(async_key_value_source_test, lookup_delayed) {
 	const std::string key = "foo_delayed";
 	const std::string metadata = "bar";
 	std::string response = "response-not-set";
@@ -259,8 +239,7 @@ TEST(async_key_value_source_test, lookup_delayed)
  * before the timeout, and if the client did not provide a callback, that
  * calling lookup() after the result it available returns the value.
  */
-TEST(async_key_value_source_test, lookup_key_delayed_return_second_call)
-{
+TEST(async_key_value_source_test, lookup_key_delayed_return_second_call) {
 	const uint64_t DELAY_MS = 50;
 	const std::string key = "mykey";
 	const std::string metadata = "myvalue";
@@ -284,8 +263,7 @@ TEST(async_key_value_source_test, lookup_key_delayed_return_second_call)
 	// than 5 seconds, something went wrong.
 	std::this_thread::sleep_for(std::chrono::milliseconds(DELAY_MS));
 	const int FIVE_SECS_IN_MS = 5 * 1000;
-	for (int i = 0; !source.is_response_available() && i < FIVE_SECS_IN_MS; ++i)
-	{
+	for(int i = 0; !source.is_response_available() && i < FIVE_SECS_IN_MS; ++i) {
 		// Avoid tight busy loop
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
@@ -302,8 +280,7 @@ TEST(async_key_value_source_test, lookup_key_delayed_return_second_call)
  * before the timeout, and if the client did provide a callback, that the
  * callback is invoked with the metadata once they're avaialble.
  */
-TEST(async_key_value_source_test, look_key_delayed_async_callback)
-{
+TEST(async_key_value_source_test, look_key_delayed_async_callback) {
 	const uint64_t DELAY_MS = 50;
 	const std::string key = "mykey";
 	const std::string metadata = "myvalue";
@@ -322,15 +299,14 @@ TEST(async_key_value_source_test, look_key_delayed_async_callback)
 	source.set_response(key, metadata);
 
 	response_found =
-	    source.lookup(key,
-	                  sync_response,
-	                  [&m, &async_response, &lookup_complete](const std::string& key,
-	                                                              const std::string& value)
-	                  {
-						std::lock_guard lk(m);
-	                    async_response = value;
-	                    lookup_complete = true;
-	                  });
+	        source.lookup(key,
+	                      sync_response,
+	                      [&m, &async_response, &lookup_complete](const std::string& key,
+	                                                              const std::string& value) {
+		                      std::lock_guard lk(m);
+		                      async_response = value;
+		                      lookup_complete = true;
+	                      });
 
 	ASSERT_FALSE(response_found);
 
@@ -342,11 +318,10 @@ TEST(async_key_value_source_test, look_key_delayed_async_callback)
 	std::this_thread::sleep_for(std::chrono::milliseconds(DELAY_MS));
 	std::string response;
 	const int FIVE_SECS_IN_MS = 5 * 1000;
-	for (int i = 0; !async_response_received && i < FIVE_SECS_IN_MS; ++i)
-	{
+	for(int i = 0; !async_response_received && i < FIVE_SECS_IN_MS; ++i) {
 		{
 			std::lock_guard lk(m);
-			if (lookup_complete) {
+			if(lookup_complete) {
 				response = async_response;
 				async_response_received = true;
 			}
@@ -361,8 +336,7 @@ TEST(async_key_value_source_test, look_key_delayed_async_callback)
 /**
  * Ensure that "old" results are pruned
  */
-TEST(async_key_value_source_test, prune_old_metadata)
-{
+TEST(async_key_value_source_test, prune_old_metadata) {
 	const uint64_t DELAY_MS = 0;
 	const uint64_t TTL_MS = 20;
 
@@ -399,56 +373,43 @@ TEST(async_key_value_source_test, prune_old_metadata)
 	ASSERT_FALSE(source.lookup(key1, response));
 }
 
-struct result
-{
+struct result {
 	uint64_t val = 0;
 	int retries = 0;
 };
 
-class test_key_value_source : public libsinsp::async_key_value_source<std::string, result>
-{
+class test_key_value_source : public libsinsp::async_key_value_source<std::string, result> {
 public:
-	test_key_value_source(uint64_t delay_ms, uint64_t wait_response_ms, uint64_t ttl_ms = std::numeric_limits<uint64_t>::max(), short num_failures = 0, short backoff_ms = 10):
-		async_key_value_source<std::string, result>(wait_response_ms, ttl_ms),
-		m_delay_ms(delay_ms),
-		m_num_failures(num_failures),
-		m_backoff_ms(backoff_ms)
-	{
+	test_key_value_source(uint64_t delay_ms,
+	                      uint64_t wait_response_ms,
+	                      uint64_t ttl_ms = std::numeric_limits<uint64_t>::max(),
+	                      short num_failures = 0,
+	                      short backoff_ms = 10):
+	        async_key_value_source<std::string, result>(wait_response_ms, ttl_ms),
+	        m_delay_ms(delay_ms),
+	        m_num_failures(num_failures),
+	        m_backoff_ms(backoff_ms) {
 		assert(m_num_failures >= 0);
 		assert(backoff_ms >= 0);
 	}
 
-	virtual ~test_key_value_source()
-	{
-		stop();
-	}
+	virtual ~test_key_value_source() { stop(); }
 
-	bool next_key(std::string& key)
-	{
-		return dequeue_next_key(key);
-	}
+	bool next_key(std::string& key) { return dequeue_next_key(key); }
 
-	void run_impl()
-	{
+	void run_impl() {
 		std::string key;
 		result res;
 
-		while(dequeue_next_key(key, &res))
-		{
-			if(m_delay_ms > 0)
-			{
+		while(dequeue_next_key(key, &res)) {
+			if(m_delay_ms > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(m_delay_ms));
 			}
-			if(res.retries < m_num_failures)
-			{
+			if(res.retries < m_num_failures) {
 				res.retries++;
 				// Simulate failures, re-enqueue the key after m_backoff_ms milliseconds
-				defer_lookup(key,
-					     &res,
-					     std::chrono::milliseconds(m_backoff_ms));
-			}
-			else
-			{
+				defer_lookup(key, &res, std::chrono::milliseconds(m_backoff_ms));
+			} else {
 				res.val = (uint64_t)atoi(key.c_str());
 				store_value(key, res);
 			}
@@ -461,61 +422,51 @@ protected:
 	short m_backoff_ms;
 };
 
-TEST(async_key_value_source_test, no_lookup)
-{
+TEST(async_key_value_source_test, no_lookup) {
 	std::unique_ptr<test_key_value_source> t(new test_key_value_source(0, UINT64_MAX));
 }
 
-TEST(async_key_value_source_test, basic)
-{
+TEST(async_key_value_source_test, basic) {
 	std::unique_ptr<test_key_value_source> t(new test_key_value_source(0, UINT64_MAX));
 	result res;
 
-	while(!t->lookup("1", res))
-	{
+	while(!t->lookup("1", res)) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	ASSERT_EQ(1, res.val);
 }
 
-TEST(async_key_value_source_test, long_delay_lookups)
-{
+TEST(async_key_value_source_test, long_delay_lookups) {
 	std::unique_ptr<test_key_value_source> t(new test_key_value_source(500, UINT64_MAX));
 	result res;
 
-	while(!t->lookup("1", res))
-	{
+	while(!t->lookup("1", res)) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	ASSERT_EQ(1, res.val);
 }
 
-TEST(async_key_value_source_test, basic_nowait)
-{
+TEST(async_key_value_source_test, basic_nowait) {
 	std::unique_ptr<test_key_value_source> t(new test_key_value_source(0, 0));
 	result res;
 
-	while(!t->lookup("1", res))
-	{
+	while(!t->lookup("1", res)) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	ASSERT_EQ(1, res.val);
 }
 
-TEST(async_key_value_source_test, long_delay_lookups_nowait)
-{
+TEST(async_key_value_source_test, long_delay_lookups_nowait) {
 	std::unique_ptr<test_key_value_source> t(new test_key_value_source(500, 0));
 	result res;
 
-	while(!t->lookup("1", res))
-	{
+	while(!t->lookup("1", res)) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	ASSERT_EQ(1, res.val);
 }
 
-TEST(async_key_value_source_test, async)
-{
+TEST(async_key_value_source_test, async) {
 	uint64_t ttl_ms = std::numeric_limits<uint64_t>::max();
 	short num_failures = 3;
 	result res;
@@ -535,13 +486,12 @@ TEST(async_key_value_source_test, async)
 	});
 
 	std::unique_lock<std::mutex> lk(cv_m);
-	if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done](){ return done; })) {
+	if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done]() { return done; })) {
 		FAIL() << "Timeout expired while waiting for result";
 	}
 }
 
-TEST(async_key_value_source_test, async_ttl_expired)
-{
+TEST(async_key_value_source_test, async_ttl_expired) {
 	uint64_t ttl_ms = 10;
 	short num_failures = 3;
 	short backoff_ms = 6;
@@ -552,31 +502,28 @@ TEST(async_key_value_source_test, async_ttl_expired)
 
 	bool done = false;
 	t.lookup(
-		"1", res,
-		[&cv_m, &cv, &done](const std::string& key, const result& res)
-		{
+	        "1",
+	        res,
+	        [&cv_m, &cv, &done](const std::string& key, const result& res) {
+		        FAIL() << "unexpected callback for key: " << key;
+		        {
+			        std::lock_guard<std::mutex> lk(cv_m);
+			        done = true;
+		        }
+		        cv.notify_all();
+	        },
+	        [&cv_m, &cv, &done](const std::string& key) {
+		        ASSERT_EQ("1", key);
+		        {
+			        std::lock_guard<std::mutex> lk(cv_m);
+			        done = true;
+		        }
+		        cv.notify_all();
+	        });
 
-			FAIL() << "unexpected callback for key: " << key;
-			{
-				std::lock_guard<std::mutex> lk(cv_m);
-				done = true;
-			}
-			cv.notify_all();
-		},
-		[&cv_m, &cv, &done](const std::string& key)
-		{
-			ASSERT_EQ("1", key);
-			{
-				std::lock_guard<std::mutex> lk(cv_m);
-				done = true;
-			}
-			cv.notify_all();
-		});
-	
 	{
 		std::unique_lock<std::mutex> lk(cv_m);
-		if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done]()
-				{ return done; })) {
+		if(!cv.wait_for(lk, std::chrono::milliseconds(100), [&done]() { return done; })) {
 			FAIL() << "Timeout expired while waiting for result";
 		}
 	}
@@ -586,4 +533,4 @@ TEST(async_key_value_source_test, async_ttl_expired)
 	ASSERT_FALSE(t.next_key(key));
 }
 
-} // namespace
+}  // namespace

@@ -21,20 +21,17 @@ limitations under the License.
 #include <libscap/scap.h>
 
 /* This function should be idempotent, every time it is called it should enforce again the state */
-int pman_enforce_sc_set(bool *sc_set)
-{
+int pman_enforce_sc_set(bool *sc_set) {
 	/* If we fail at initialization time the BPF skeleton
 	 * is not initialized when we stop the capture for example
 	 */
-	if(!g_state.skel)
-	{
+	if(!g_state.skel) {
 		return SCAP_FAILURE;
 	}
 
 	/* When we want to disable the capture we receive a NULL pointer here */
 	bool empty_sc_set[PPM_SC_MAX] = {0};
-	if(!sc_set)
-	{
+	if(!sc_set) {
 		sc_set = empty_sc_set;
 	}
 
@@ -47,38 +44,28 @@ int pman_enforce_sc_set(bool *sc_set)
 	bool sched_prog_exec = false;
 
 	/* Enforce interesting syscalls */
-	for(int sc = 0; sc < PPM_SC_MAX; sc++)
-	{
+	for(int sc = 0; sc < PPM_SC_MAX; sc++) {
 		syscall_id = scap_ppm_sc_to_native_id(sc);
 		/* if `syscall_id` is -1 this is not a syscall */
-		if(syscall_id == -1)
-		{
+		if(syscall_id == -1) {
 			continue;
 		}
 
-		if(!sc_set[sc])
-		{
+		if(!sc_set[sc]) {
 			pman_mark_single_64bit_syscall(syscall_id, false);
-		}
-		else
-		{
+		} else {
 			sys_enter = true;
 			sys_exit = true;
 			pman_mark_single_64bit_syscall(syscall_id, true);
 		}
 	}
 
-	if(sc_set[PPM_SC_FORK] ||
-	   sc_set[PPM_SC_VFORK] ||
-	   sc_set[PPM_SC_CLONE] ||
-	   sc_set[PPM_SC_CLONE3])
-	{
+	if(sc_set[PPM_SC_FORK] || sc_set[PPM_SC_VFORK] || sc_set[PPM_SC_CLONE] ||
+	   sc_set[PPM_SC_CLONE3]) {
 		sched_prog_fork = true;
 	}
 
-	if(sc_set[PPM_SC_EXECVE] ||
-	   sc_set[PPM_SC_EXECVEAT])
-	{
+	if(sc_set[PPM_SC_EXECVE] || sc_set[PPM_SC_EXECVEAT]) {
 		sched_prog_exec = true;
 	}
 

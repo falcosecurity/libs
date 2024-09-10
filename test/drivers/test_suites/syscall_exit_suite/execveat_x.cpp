@@ -2,12 +2,12 @@
 #include "../../flags/flags_definitions.h"
 #include "../../helpers/proc_parsing.h"
 
-#if defined(__NR_execveat) && defined(__NR_capget) && defined(__NR_clone3) && defined(__NR_wait4) && defined(__NR_execve)
+#if defined(__NR_execveat) && defined(__NR_capget) && defined(__NR_clone3) && \
+        defined(__NR_wait4) && defined(__NR_execve)
 
 #include <linux/sched.h>
 
-TEST(SyscallExit, execveatX_failure)
-{
+TEST(SyscallExit, execveatX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_execveat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -17,8 +17,7 @@ TEST(SyscallExit, execveatX_failure)
 	/* Get all the info from proc. */
 	struct proc_info info = {};
 	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
+	if(!get_proc_info(pid, &info)) {
 		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
 
@@ -42,18 +41,30 @@ TEST(SyscallExit, execveatX_failure)
 	 */
 	int dirfd = AT_FDCWD;
 	char pathname[] = "//**null-file-path**//";
-	std::string too_long_arg (4096, 'x');
-	const char *newargv[] = {pathname, "", "first_argv", "", too_long_arg.c_str(), "second_argv", NULL};
-	std::string truncated_too_long_arg (4096 - (strlen(pathname)+1) - (strlen("first_argv")+1) - 2*(strlen("")+1) - 1, 'x');
-	const char *expected_newargv[] = {pathname, "", "first_argv", "", truncated_too_long_arg.c_str(), NULL};
+	std::string too_long_arg(4096, 'x');
+	const char *newargv[] =
+	        {pathname, "", "first_argv", "", too_long_arg.c_str(), "second_argv", NULL};
+	std::string truncated_too_long_arg(
+	        4096 - (strlen(pathname) + 1) - (strlen("first_argv") + 1) - 2 * (strlen("") + 1) - 1,
+	        'x');
+	const char *expected_newargv[] =
+	        {pathname, "", "first_argv", "", truncated_too_long_arg.c_str(), NULL};
 
-	const char *newenviron[] = {"IN_TEST=yes", "3_ARGUMENT=yes", too_long_arg.c_str(), "2_ARGUMENT=no", NULL};
-	std::string truncated_too_long_env (4096 - (strlen("IN_TEST=yes")+1) - (strlen("3_ARGUMENT=yes")+1) - 1, 'x');
-	const char *expected_newenviron[] = {"IN_TEST=yes", "3_ARGUMENT=yes", truncated_too_long_env.c_str(), NULL};
+	const char *newenviron[] = {"IN_TEST=yes",
+	                            "3_ARGUMENT=yes",
+	                            too_long_arg.c_str(),
+	                            "2_ARGUMENT=no",
+	                            NULL};
+	std::string truncated_too_long_env(
+	        4096 - (strlen("IN_TEST=yes") + 1) - (strlen("3_ARGUMENT=yes") + 1) - 1,
+	        'x');
+	const char *expected_newenviron[] = {"IN_TEST=yes",
+	                                     "3_ARGUMENT=yes",
+	                                     truncated_too_long_env.c_str(),
+	                                     NULL};
 
 	bool expect_truncated = true;
-	if(evt_test->is_kmod_engine() && getpagesize() > 4096)
-	{
+	if(evt_test->is_kmod_engine() && getpagesize() > 4096) {
 		// for kmod, the size limit is actually PAGE_SIZE;
 		// see STR_STORAGE_SIZE macro definition in driver/capture_macro.h.
 		// In case PAGE_SIZE is < 4096, expect NON-truncated args/envs
@@ -61,7 +72,9 @@ TEST(SyscallExit, execveatX_failure)
 	}
 
 	int flags = AT_SYMLINK_NOFOLLOW;
-	assert_syscall_state(SYSCALL_FAILURE, "execveat", syscall(__NR_execveat, dirfd, pathname, newargv, newenviron, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "execveat",
+	                     syscall(__NR_execveat, dirfd, pathname, newargv, newenviron, flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -70,8 +83,7 @@ TEST(SyscallExit, execveatX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -89,12 +101,9 @@ TEST(SyscallExit, execveatX_failure)
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	/* Starting from `1` because the first is `exe`. */
-	if (expect_truncated)
-	{
+	if(expect_truncated) {
 		evt_test->assert_charbuf_array_param(3, &expected_newargv[1]);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_charbuf_array_param(3, &newargv[1]);
 	}
 
@@ -139,12 +148,9 @@ TEST(SyscallExit, execveatX_failure)
 	evt_test->assert_cgroup_param(15);
 
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
-	if (expect_truncated)
-	{
+	if(expect_truncated) {
 		evt_test->assert_charbuf_array_param(16, &expected_newenviron[0]);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_charbuf_array_param(16, &newenviron[0]);
 	}
 
@@ -158,34 +164,46 @@ TEST(SyscallExit, execveatX_failure)
 	/* Parameter 19: loginuid (type: PT_UID) */
 	evt_test->assert_numeric_param(19, (uint32_t)info.loginuid);
 
-	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
-	 * file that is used to spawn it or is its owner or otherwise capable.
+	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the
+	 * executable file that is used to spawn it or is its owner or otherwise capable.
 	 */
 	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
-	evt_test->assert_numeric_param(21, (uint64_t)capabilities_to_scap(((unsigned long)data[1].inheritable << 32) | data[0].inheritable));
+	evt_test->assert_numeric_param(
+	        21,
+	        (uint64_t)capabilities_to_scap(((unsigned long)data[1].inheritable << 32) |
+	                                       data[0].inheritable));
 
 	/* Parameter 22: cap_permitted (type: PT_UINT64) */
-	evt_test->assert_numeric_param(22, (uint64_t)capabilities_to_scap(((unsigned long)data[1].permitted << 32) | data[0].permitted));
+	evt_test->assert_numeric_param(
+	        22,
+	        (uint64_t)capabilities_to_scap(((unsigned long)data[1].permitted << 32) |
+	                                       data[0].permitted));
 
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
-	evt_test->assert_numeric_param(23, (uint64_t)capabilities_to_scap(((unsigned long)data[1].effective << 32) | data[0].effective));
+	evt_test->assert_numeric_param(
+	        23,
+	        (uint64_t)capabilities_to_scap(((unsigned long)data[1].effective << 32) |
+	                                       data[0].effective));
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
 
-	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
 	/* Parameter 27: euid (type: PT_UID) */
 	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	/* Here we don't call the execveat so the result should be the full path to the drivers test executable */
+	/* Here we don't call the execveat so the result should be the full path to the drivers test
+	 * executable */
 	evt_test->assert_charbuf_param(28, info.exepath);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -197,8 +215,7 @@ TEST(SyscallExit, execveatX_failure)
  * `s390x` seems to return an `EXECVEAT_X` event also when the syscall succeeds, other
  * architectures like `x86_64` return an `EXECVE_X` event.
  */
-TEST(SyscallExit, execveatX_correct_exit)
-{
+TEST(SyscallExit, execveatX_correct_exit) {
 	auto evt_test = get_syscall_event_test(__NR_execveat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -209,13 +226,17 @@ TEST(SyscallExit, execveatX_correct_exit)
 	int dirfd = 0;
 	const char *pathname = "/usr/bin/test";
 
-	std::string too_long_arg (4096, 'x');
-	const char *newargv[] = {pathname, "", "first_argv", "", too_long_arg.c_str(), "second_argv", NULL};
-	const char *newenviron[] = {"IN_TEST=yes", "3_ARGUMENT=yes", too_long_arg.c_str(), "2_ARGUMENT=no", NULL};
+	std::string too_long_arg(4096, 'x');
+	const char *newargv[] =
+	        {pathname, "", "first_argv", "", too_long_arg.c_str(), "second_argv", NULL};
+	const char *newenviron[] = {"IN_TEST=yes",
+	                            "3_ARGUMENT=yes",
+	                            too_long_arg.c_str(),
+	                            "2_ARGUMENT=no",
+	                            NULL};
 
 	bool expect_truncated = true;
-	if(evt_test->is_kmod_engine() && getpagesize() > 4096)
-	{
+	if(evt_test->is_kmod_engine() && getpagesize() > 4096) {
 		// for kmod, the size limit is actually PAGE_SIZE;
 		// see STR_STORAGE_SIZE macro definition in driver/capture_macro.h.
 		// In case PAGE_SIZE is < 4096, expect NON-truncated args/envs
@@ -231,8 +252,7 @@ TEST(SyscallExit, execveatX_correct_exit)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		syscall(__NR_execveat, dirfd, pathname, newargv, newenviron, flags);
 		exit(EXIT_FAILURE);
 	}
@@ -242,10 +262,13 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The child execveat failed." << std::endl;
 	}
 
@@ -257,8 +280,7 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -280,15 +302,15 @@ TEST(SyscallExit, execveatX_correct_exit)
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	/* Starting from `1` because the first is `exe`. */
-	if (expect_truncated)
-	{
-		std::string truncated_too_long_arg(
-			4096 - (strlen(pathname) + 1) - (strlen("first_argv") + 1) - 2 * (strlen("") + 1) - 1, 'x');
-		const char *expected_newargv[] = {pathname, "", "first_argv", "", truncated_too_long_arg.c_str(), NULL};
+	if(expect_truncated) {
+		std::string truncated_too_long_arg(4096 - (strlen(pathname) + 1) -
+		                                           (strlen("first_argv") + 1) -
+		                                           2 * (strlen("") + 1) - 1,
+		                                   'x');
+		const char *expected_newargv[] =
+		        {pathname, "", "first_argv", "", truncated_too_long_arg.c_str(), NULL};
 		evt_test->assert_charbuf_array_param(3, &expected_newargv[1]);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_charbuf_array_param(3, &newargv[1]);
 	}
 
@@ -313,31 +335,33 @@ TEST(SyscallExit, execveatX_correct_exit)
 	evt_test->assert_cgroup_param(15);
 
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
-	if (expect_truncated)
-	{
+	if(expect_truncated) {
 		std::string truncated_too_long_env(
-			4096 - (strlen("IN_TEST=yes") + 1) - (strlen("3_ARGUMENT=yes") + 1) - 1, 'x');
-		const char *expected_newenviron[] = {"IN_TEST=yes", "3_ARGUMENT=yes", truncated_too_long_env.c_str(),
-						     NULL};
+		        4096 - (strlen("IN_TEST=yes") + 1) - (strlen("3_ARGUMENT=yes") + 1) - 1,
+		        'x');
+		const char *expected_newenviron[] = {"IN_TEST=yes",
+		                                     "3_ARGUMENT=yes",
+		                                     truncated_too_long_env.c_str(),
+		                                     NULL};
 		evt_test->assert_charbuf_array_param(16, &expected_newenviron[0]);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_charbuf_array_param(16, &newenviron[0]);
 	}
 
-	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
-	 * file that is used to spawn it or is its owner or otherwise capable.
+	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the
+	 * executable file that is used to spawn it or is its owner or otherwise capable.
 	 */
 	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
 
-	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
 	/* Parameter 27: euid (type: PT_UID) */
@@ -355,8 +379,7 @@ TEST(SyscallExit, execveatX_correct_exit)
 #endif
 }
 
-TEST(SyscallExit, execveatX_execve_exit)
-{
+TEST(SyscallExit, execveatX_execve_exit) {
 	auto evt_test = get_syscall_event_test();
 
 	evt_test->enable_capture();
@@ -378,8 +401,7 @@ TEST(SyscallExit, execveatX_execve_exit)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		syscall(__NR_execveat, dirfd, pathname, argv, envp, flags);
 		exit(EXIT_FAILURE);
 	}
@@ -389,10 +411,13 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The child execveat failed." << std::endl;
 	}
 
@@ -408,8 +433,7 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -454,18 +478,20 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	evt_test->assert_charbuf_array_param(16, &envp[0]);
 
-	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
-	 * file that is used to spawn it or is its owner or otherwise capable.
+	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the
+	 * executable file that is used to spawn it or is its owner or otherwise capable.
 	 */
 	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
 
-	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
-	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
 	/* Parameter 27: euid (type: PT_UID) */
@@ -480,8 +506,7 @@ TEST(SyscallExit, execveatX_execve_exit)
 #endif
 }
 
-TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
-{
+TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd) {
 	auto evt_test = get_syscall_event_test();
 
 	evt_test->enable_capture();
@@ -489,16 +514,17 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Prepare the execve args */
-	const char* exe_path = "/usr/bin/echo";
+	const char *exe_path = "/usr/bin/echo";
 	int dirfd = open(exe_path, O_RDONLY);
-	if(dirfd < 0)
-	{
+	if(dirfd < 0) {
 		FAIL() << "failed to open the file\n";
 	}
 
 	// We will use the `AT_EMPTY_PATH` strategy
 	const char *pathname = "";
-	const char *argv[] = {pathname, "[OUTPUT] SyscallExit.execveatX_execve_exit_comm_equal_to_fd", NULL};
+	const char *argv[] = {pathname,
+	                      "[OUTPUT] SyscallExit.execveatX_execve_exit_comm_equal_to_fd",
+	                      NULL};
 	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
 	int flags = AT_EMPTY_PATH;
 
@@ -506,8 +532,7 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		syscall(__NR_execveat, dirfd, pathname, argv, envp, flags);
 		exit(EXIT_FAILURE);
 	}
@@ -517,10 +542,13 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The child execveat failed." << std::endl;
 	}
 
@@ -536,8 +564,7 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -563,7 +590,7 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
 	// This is exactly the behavior that we obtain using the `AT_EMPTY_PATH` flag
 	// https://github.com/torvalds/linux/blob/master/fs/exec.c#L1600
 	// https://github.com/torvalds/linux/blob/master/fs/exec.c#L1425
-	std::string comm = std::to_string(dirfd);	
+	std::string comm = std::to_string(dirfd);
 	evt_test->assert_charbuf_param(14, comm.c_str());
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
@@ -575,11 +602,9 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd)
 #endif
 }
 
-
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
 #include <sys/mman.h>
-TEST(SyscallExit, execveatX_success_memfd)
-{
+TEST(SyscallExit, execveatX_success_memfd) {
 	auto evt_test = get_syscall_event_test(__NR_execveat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -591,26 +616,22 @@ TEST(SyscallExit, execveatX_success_memfd)
 
 	/* Open the executable to copy */
 	int fd_to_read = syscall(__NR_openat, 0, "/usr/bin/echo", O_RDWR);
-	if(fd_to_read < 0)
-	{
+	if(fd_to_read < 0) {
 		FAIL() << "failed to open the file to read\n";
 	}
 
 	char buf[200];
 	ssize_t bytes_read = 200;
-	while(bytes_read != 0)
-	{
+	while(bytes_read != 0) {
 		bytes_read = syscall(__NR_read, fd_to_read, buf, sizeof(buf));
-		if(bytes_read < 0)
-		{
+		if(bytes_read < 0) {
 			syscall(__NR_close, fd_to_read);
 			syscall(__NR_close, mem_fd);
 			FAIL() << "unable to read from file\n";
 		}
 
 		bytes_read = syscall(__NR_write, mem_fd, buf, bytes_read);
-		if(bytes_read < 0)
-		{
+		if(bytes_read < 0) {
 			syscall(__NR_close, fd_to_read);
 			syscall(__NR_close, mem_fd);
 			FAIL() << "unable to write to file\n";
@@ -625,8 +646,7 @@ TEST(SyscallExit, execveatX_success_memfd)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		char pathname[200];
 		snprintf(pathname, sizeof(pathname), "/proc/%d/fd/%d", getpid(), mem_fd);
 		const char *newargv[] = {pathname, "[OUTPUT] SyscallExit.execveX_success_memfd", NULL};
@@ -641,11 +661,13 @@ TEST(SyscallExit, execveatX_success_memfd)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL,
-			     -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The child execve failed." << std::endl;
 	}
 
@@ -657,8 +679,7 @@ TEST(SyscallExit, execveatX_success_memfd)
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -673,8 +694,8 @@ TEST(SyscallExit, execveatX_success_memfd)
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	evt_test->assert_numeric_param(1, (int64_t)0);
 
-	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
-	 * file that is used to spawn it or is its owner or otherwise capable.
+	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the
+	 * executable file that is used to spawn it or is its owner or otherwise capable.
 	 */
 	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE | PPM_EXE_FROM_MEMFD);
 
@@ -684,12 +705,9 @@ TEST(SyscallExit, execveatX_success_memfd)
 	 * Please note that in the kernel module, we remove the " (deleted)" suffix while
 	 * in BPF we don't add it at all.
 	 */
-	if(evt_test->is_kmod_engine())
-	{
+	if(evt_test->is_kmod_engine()) {
 		evt_test->assert_charbuf_param(28, "/memfd:malware");
-	}
-	else
-	{
+	} else {
 		/* In BPF drivers we don't have the correct result but we can reconstruct part of it */
 		evt_test->assert_charbuf_param(28, "memfd:malware");
 	}

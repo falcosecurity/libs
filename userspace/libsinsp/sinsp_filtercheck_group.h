@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_group : public sinsp_filter_check
-{
+class sinsp_filter_check_group : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_GID,
 		TYPE_NAME,
 	};
@@ -40,5 +38,4 @@ protected:
 private:
 	uint32_t m_gid;
 	std::string m_name;
-
 };

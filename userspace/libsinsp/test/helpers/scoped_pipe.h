@@ -20,8 +20,7 @@ limitations under the License.
 
 #include <memory>
 
-namespace test_helpers
-{
+namespace test_helpers {
 
 class scoped_file_descriptor;
 
@@ -29,8 +28,7 @@ class scoped_file_descriptor;
  * A scoped_pipe wraps the pipe() system call and exposes two scoped file
  * descriptors corresponding to the read- and write-ends of the pipe.
  */
-class scoped_pipe
-{
+class scoped_pipe {
 public:
 	/**
 	 * Creates a new pipe and initializes this scoped_pipe with its

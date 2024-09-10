@@ -24,37 +24,43 @@ limitations under the License.
 #include <libscap/engine/savefile/scap_reader.h>
 #include <libscap/scap_savefile.h>
 
-#define READER_BUF_SIZE (1 << 16) // UINT16_MAX + 1, ie: 65536
+#define READER_BUF_SIZE (1 << 16)  // UINT16_MAX + 1, ie: 65536
 
-#define CHECK_READ_SIZE_ERR(read_size, expected_size, error) if(read_size != expected_size) \
-	{\
-		snprintf(error,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
-			(int)expected_size,\
-			(int)read_size,\
-			__FILE__,\
-			__LINE__);\
-		return SCAP_FAILURE;\
+#define CHECK_READ_SIZE_ERR(read_size, expected_size, error)                           \
+	if(read_size != expected_size) {                                                   \
+		snprintf(error,                                                                \
+		         SCAP_LASTERR_SIZE,                                                    \
+		         "expecting %d bytes, read %d at %s, line %d. Is the file truncated?", \
+		         (int)expected_size,                                                   \
+		         (int)read_size,                                                       \
+		         __FILE__,                                                             \
+		         __LINE__);                                                            \
+		return SCAP_FAILURE;                                                           \
 	}
 
-#define CHECK_READ_SIZE(read_size, expected_size) if(read_size != expected_size) \
-	{\
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
-			(int)expected_size,\
-			(int)read_size,\
-			__FILE__,\
-			__LINE__);\
-		return SCAP_FAILURE;\
+#define CHECK_READ_SIZE(read_size, expected_size)                                      \
+	if(read_size != expected_size) {                                                   \
+		snprintf(handle->m_lasterr,                                                    \
+		         SCAP_LASTERR_SIZE,                                                    \
+		         "expecting %d bytes, read %d at %s, line %d. Is the file truncated?", \
+		         (int)expected_size,                                                   \
+		         (int)read_size,                                                       \
+		         __FILE__,                                                             \
+		         __LINE__);                                                            \
+		return SCAP_FAILURE;                                                           \
 	}
 
-#define CHECK_READ_SIZE_WITH_FREE_ERR(alloc_buffer, read_size, expected_size, error) if(read_size != expected_size) \
-    	{\
-		snprintf(error,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
-			(int)expected_size,\
-			(int)read_size,\
-			__FILE__,\
-			__LINE__);\
-		free(alloc_buffer);\
-		return SCAP_FAILURE;\
+#define CHECK_READ_SIZE_WITH_FREE_ERR(alloc_buffer, read_size, expected_size, error)   \
+	if(read_size != expected_size) {                                                   \
+		snprintf(error,                                                                \
+		         SCAP_LASTERR_SIZE,                                                    \
+		         "expecting %d bytes, read %d at %s, line %d. Is the file truncated?", \
+		         (int)expected_size,                                                   \
+		         (int)read_size,                                                       \
+		         __FILE__,                                                             \
+		         __LINE__);                                                            \
+		free(alloc_buffer);                                                            \
+		return SCAP_FAILURE;                                                           \
 	}
 
 //
@@ -70,35 +76,32 @@ limitations under the License.
 /*!
   \brief For backward compatibility only
 */
-typedef struct scap_ifinfo_ipv4_nolinkspeed
-{
+typedef struct scap_ifinfo_ipv4_nolinkspeed {
 	uint16_t type;
 	uint16_t ifnamelen;
 	uint32_t addr;
 	uint32_t netmask;
 	uint32_t bcast;
 	char ifname[SCAP_MAX_PATH_SIZE];
-}scap_ifinfo_ipv4_nolinkspeed;
+} scap_ifinfo_ipv4_nolinkspeed;
 
 /*!
   \brief For backword compatibility only
 */
-typedef struct scap_ifinfo_ipv6_nolinkspeed
-{
+typedef struct scap_ifinfo_ipv6_nolinkspeed {
 	uint16_t type;
 	uint16_t ifnamelen;
 	char addr[SCAP_IPV6_ADDR_LEN];
 	char netmask[SCAP_IPV6_ADDR_LEN];
 	char bcast[SCAP_IPV6_ADDR_LEN];
 	char ifname[SCAP_MAX_PATH_SIZE];
-}scap_ifinfo_ipv6_nolinkspeed;
+} scap_ifinfo_ipv6_nolinkspeed;
 
 #pragma pack(pop)
 
 struct scap_platform;
 
-struct savefile_engine
-{
+struct savefile_engine {
 	char* m_lasterr;
 	scap_reader_t* m_reader;
 	block_header m_last_block_header;
@@ -108,4 +111,3 @@ struct savefile_engine
 	uint32_t m_last_evt_dump_flags;
 	struct scap_platform* m_platform;
 };
-

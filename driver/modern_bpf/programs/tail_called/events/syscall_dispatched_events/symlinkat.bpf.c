@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(symlinkat_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(symlinkat_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SYMLINKAT_E_SIZE, PPME_SYSCALL_SYMLINKAT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SYMLINKAT_E_SIZE, PPME_SYSCALL_SYMLINKAT_E)) {
 		return 0;
 	}
 
@@ -40,13 +36,9 @@ int BPF_PROG(symlinkat_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(symlinkat_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(symlinkat_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -63,8 +55,7 @@ int BPF_PROG(symlinkat_x,
 
 	/* Parameter 3: linkdirfd (type: PT_FD) */
 	int32_t linkdirfd = (int32_t)extract__syscall_argument(regs, 1);
-	if(linkdirfd == AT_FDCWD)
-	{
+	if(linkdirfd == AT_FDCWD) {
 		linkdirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)linkdirfd);

@@ -4,8 +4,7 @@
 
 #include <sys/resource.h>
 
-TEST(SyscallExit, setrlimitX_null_rlimit_pointer)
-{
+TEST(SyscallExit, setrlimitX_null_rlimit_pointer) {
 	auto evt_test = get_syscall_event_test(__NR_setrlimit, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -24,8 +23,7 @@ TEST(SyscallExit, setrlimitX_null_rlimit_pointer)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -52,8 +50,7 @@ TEST(SyscallExit, setrlimitX_null_rlimit_pointer)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallExit, setrlimitX_wrong_resource)
-{
+TEST(SyscallExit, setrlimitX_wrong_resource) {
 	auto evt_test = get_syscall_event_test(__NR_setrlimit, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -75,8 +72,7 @@ TEST(SyscallExit, setrlimitX_wrong_resource)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -103,8 +99,7 @@ TEST(SyscallExit, setrlimitX_wrong_resource)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallExit, setrlimitX_success)
-{
+TEST(SyscallExit, setrlimitX_success) {
 	auto evt_test = get_syscall_event_test(__NR_setrlimit, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -126,8 +121,7 @@ TEST(SyscallExit, setrlimitX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

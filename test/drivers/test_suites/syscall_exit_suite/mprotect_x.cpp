@@ -4,8 +4,7 @@
 
 #include <sys/mman.h>
 
-TEST(SyscallExit, mprotectX)
-{
+TEST(SyscallExit, mprotectX) {
 	auto evt_test = get_syscall_event_test(__NR_mprotect, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -14,7 +13,9 @@ TEST(SyscallExit, mprotectX)
 	void *mock_addr = (void *)1;
 	size_t mock_len = 4096;
 	int mock_prot = PROT_READ | PROT_EXEC;
-	assert_syscall_state(SYSCALL_FAILURE, "mprotect", syscall(__NR_mprotect, mock_addr, mock_len, mock_prot));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mprotect",
+	                     syscall(__NR_mprotect, mock_addr, mock_len, mock_prot));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -23,8 +24,7 @@ TEST(SyscallExit, mprotectX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -18,8 +18,7 @@ limitations under the License.
 
 #include <helpers/threads_helpers.h>
 
-TEST(sinsp_thread_manager, remove_non_existing_thread)
-{
+TEST(sinsp_thread_manager, remove_non_existing_thread) {
 	sinsp_thread_manager manager(nullptr);
 
 	int64_t unknown_tid = 100;
@@ -28,8 +27,7 @@ TEST(sinsp_thread_manager, remove_non_existing_thread)
 	manager.remove_thread(unknown_tid);
 }
 
-TEST(sinsp_thread_manager, thread_group_manager)
-{
+TEST(sinsp_thread_manager, thread_group_manager) {
 	sinsp_thread_manager manager(nullptr);
 
 	/* We don't have thread group info here */
@@ -50,8 +48,7 @@ TEST(sinsp_thread_manager, thread_group_manager)
 	ASSERT_EQ(manager.get_thread_group_info(tinfo->m_pid).get(), new_tginfo.get());
 }
 
-TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer)
-{
+TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer) {
 	sinsp m_inspector;
 	scap_test_input_data data;
 	data.event_count = 0;
@@ -65,8 +62,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_null_pointer)
 	EXPECT_THROW(m_inspector.m_thread_manager->create_thread_dependencies(tinfo), sinsp_exception);
 }
 
-TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo)
-{
+TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo) {
 	sinsp m_inspector;
 	scap_test_input_data data;
 	data.event_count = 0;
@@ -83,8 +79,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_invalid_tinfo)
 	ASSERT_FALSE(tinfo->m_tginfo);
 }
 
-TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there)
-{
+TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there) {
 	sinsp m_inspector;
 	scap_test_input_data data;
 	data.event_count = 0;
@@ -104,8 +99,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_tginfo_already_there)
 	ASSERT_EQ(tinfo->m_tginfo->get_thread_count(), 1);
 }
 
-TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo)
-{
+TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo) {
 	sinsp m_inspector;
 	scap_test_input_data data;
 	data.event_count = 0;
@@ -125,8 +119,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_new_tginfo)
 	ASSERT_EQ(tinfo->m_ptid, 0);
 }
 
-TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo)
-{
+TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo) {
 	sinsp m_inspector;
 	scap_test_input_data data;
 	data.event_count = 0;
@@ -152,8 +145,7 @@ TEST(sinsp_thread_manager, create_thread_dependencies_use_existing_tginfo)
 	ASSERT_THREAD_GROUP_INFO(tinfo->m_pid, 2, false, 2, 2);
 }
 
-TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_valid_parent)
-{
+TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_valid_parent) {
 	DEFAULT_TREE
 
 	/* new thread will be a child of p6_t1 */
@@ -168,8 +160,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_valid_pare
 	ASSERT_THREAD_CHILDREN(p6_t1_tid, 1, 1);
 }
 
-TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_parent)
-{
+TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_parent) {
 	DEFAULT_TREE
 
 	/* new thread will be a child of p6_t1 */
@@ -184,14 +175,12 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_create_thread_dependencies_invalid_pa
 	ASSERT_EQ(tinfo->m_ptid, 0);
 }
 
-TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr)
-{
+TEST(sinsp_thread_manager, THRD_MANAGER_find_new_reaper_nullptr) {
 	sinsp_thread_manager manager(nullptr);
 	EXPECT_THROW(manager.find_new_reaper(nullptr), sinsp_exception);
 }
 
-TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_same_thread_group)
-{
+TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_same_thread_group) {
 	DEFAULT_TREE
 
 	/* We mark it as dead otherwise it will be chosen as a new reaper */
@@ -199,13 +188,13 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_same_thread_group)
 	ASSERT_TRUE(p5_t1_tinfo);
 	p5_t1_tinfo->set_dead();
 
-	/* Call the find reaper method, the reaper thread should be the unique thread alive in the group  */
+	/* Call the find reaper method, the reaper thread should be the unique thread alive in the group
+	 */
 	auto reaper = m_inspector.m_thread_manager->find_new_reaper(p5_t1_tinfo);
 	ASSERT_EQ(reaper->m_tid, p5_t2_tid);
 }
 
-TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_tree)
-{
+TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_tree) {
 	DEFAULT_TREE
 
 	auto p6_t1_tinfo = m_inspector.get_thread_ref(p6_t1_tid, false).get();
@@ -216,8 +205,7 @@ TEST_F(sinsp_with_test_input, THRD_MANAGER_find_reaper_in_the_tree)
 	ASSERT_EQ(reaper->m_tid, p4_t1_tid);
 }
 
-TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop)
-{
+TEST_F(sinsp_with_test_input, THRD_MANAGER_find_new_reaper_detect_loop) {
 	DEFAULT_TREE
 
 	/* If we detect a loop the new reaper will be nullptr.

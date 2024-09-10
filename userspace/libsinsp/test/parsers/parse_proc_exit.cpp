@@ -20,8 +20,7 @@ limitations under the License.
 
 /*=============================== PROC EXIT EVENT ===========================*/
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_not_existent_thread)
-{
+TEST_F(sinsp_with_test_input, PROC_EXIT_not_existent_thread) {
 	DEFAULT_TREE
 
 	/* Before this proc exit init had 5 children */
@@ -33,13 +32,13 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_not_existent_thread)
 	int64_t unknown_tid = 50000;
 	auto evt = generate_proc_exit_event(unknown_tid, INIT_TID);
 
-	/* The thread info associated with the event should be null and INIT should have the same number of children */
+	/* The thread info associated with the event should be null and INIT should have the same number
+	 * of children */
 	ASSERT_FALSE(evt->get_thread_info());
 	ASSERT_THREAD_CHILDREN(INIT_TID, 5, 5);
 }
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_no_children)
-{
+TEST_F(sinsp_with_test_input, PROC_EXIT_no_children) {
 	DEFAULT_TREE
 
 	/* Before this proc exit init had 5 children */
@@ -64,8 +63,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_no_children)
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t1_tid);
 }
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_reaper_0)
-{
+TEST_F(sinsp_with_test_input, PROC_EXIT_reaper_0) {
 	DEFAULT_TREE
 
 	/* we call the proc_exit with a reaper equal to 0
@@ -89,8 +87,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_reaper_0)
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_negative_reaper)
-{
+TEST_F(sinsp_with_test_input, PROC_EXIT_negative_reaper) {
 	DEFAULT_TREE
 
 	/* we call the proc_exit with a reaper equal to -1
@@ -112,8 +109,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_negative_reaper)
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_already_dead_thread)
-{
+TEST_F(sinsp_with_test_input, PROC_EXIT_already_dead_thread) {
 	DEFAULT_TREE
 
 	/* This should never happen a run-time but just to check it */
@@ -146,8 +142,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_already_dead_thread)
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_positive_reaper)
-{
+TEST_F(sinsp_with_test_input, PROC_EXIT_positive_reaper) {
 	DEFAULT_TREE
 
 	/* we call the proc_exit with a reaper equal to -1
@@ -169,8 +164,7 @@ TEST_F(sinsp_with_test_input, PROC_EXIT_positive_reaper)
 	ASSERT_EQ(m_inspector.get_tid_to_remove(), p5_t2_tid);
 }
 
-TEST_F(sinsp_with_test_input, PROC_EXIT_old_event_version)
-{
+TEST_F(sinsp_with_test_input, PROC_EXIT_old_event_version) {
 	DEFAULT_TREE
 
 	/* This version of proc_exit event doesn't have the reaper info */

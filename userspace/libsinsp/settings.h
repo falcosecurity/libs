@@ -53,4 +53,3 @@ limitations under the License.
 // Port range to enable larger snaplen on
 //
 #define DEFAULT_INCREASE_SNAPLEN_PORT_RANGE {0, 0}
-

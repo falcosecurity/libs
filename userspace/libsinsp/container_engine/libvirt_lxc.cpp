@@ -21,21 +21,16 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
-{
-	for(const auto& it : tinfo->cgroups())
-	{
+bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info& container_info) {
+	for(const auto& it : tinfo->cgroups()) {
 		//
 		// Non-systemd libvirt-lxc
 		//
 		const auto& cgroup = it.second;
 		size_t pos = cgroup.find(".libvirt-lxc");
-		if(pos != std::string::npos &&
-		   pos == cgroup.length() - sizeof(".libvirt-lxc") + 1)
-		{
+		if(pos != std::string::npos && pos == cgroup.length() - sizeof(".libvirt-lxc") + 1) {
 			size_t pos2 = cgroup.find_last_of("/");
-			if(pos2 != std::string::npos)
-			{
+			if(pos2 != std::string::npos) {
 				container_info.m_type = CT_LIBVIRT_LXC;
 				container_info.m_id = cgroup.substr(pos2 + 1, pos - pos2 - 1);
 				return true;
@@ -46,14 +41,12 @@ bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info &container
 		// systemd libvirt-lxc
 		//
 		pos = cgroup.find("-lxc\\x2");
-		if(pos != std::string::npos)
-		{
+		if(pos != std::string::npos) {
 			size_t pos2 = cgroup.find(".scope");
-			if(pos2 != std::string::npos &&
-			   pos2 == cgroup.length() - sizeof(".scope") + 1)
-			{
+			if(pos2 != std::string::npos && pos2 == cgroup.length() - sizeof(".scope") + 1) {
 				container_info.m_type = CT_LIBVIRT_LXC;
-				container_info.m_id = cgroup.substr(pos + sizeof("-lxc\\x2"), pos2 - pos - sizeof("-lxc\\x2"));
+				container_info.m_id =
+				        cgroup.substr(pos + sizeof("-lxc\\x2"), pos2 - pos - sizeof("-lxc\\x2"));
 				return true;
 			}
 		}
@@ -62,8 +55,7 @@ bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info &container
 		// Legacy libvirt-lxc
 		//
 		pos = cgroup.find("/libvirt/lxc/");
-		if(pos != std::string::npos)
-		{
+		if(pos != std::string::npos) {
 			container_info.m_type = CT_LIBVIRT_LXC;
 			container_info.m_id = cgroup.substr(pos + sizeof("/libvirt/lxc/") - 1);
 			return true;
@@ -72,18 +64,15 @@ bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info &container
 	return false;
 }
 
-bool libvirt_lxc::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
-{
+bool libvirt_lxc::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) {
 	auto container = sinsp_container_info();
 
-	if (!match(tinfo, container))
-	{
+	if(!match(tinfo, container)) {
 		return false;
 	}
 
 	tinfo->m_container_id = container.m_id;
-	if(container_cache().should_lookup(container.m_id, CT_LIBVIRT_LXC))
-	{
+	if(container_cache().should_lookup(container.m_id, CT_LIBVIRT_LXC)) {
 		container.m_name = container.m_id;
 		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		container_cache().add_container(std::make_shared<sinsp_container_info>(container), tinfo);

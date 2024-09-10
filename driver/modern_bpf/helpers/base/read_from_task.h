@@ -14,15 +14,12 @@
  * Where not possible it retrieves the normal pointer without BTF info
  * Kernel version required: 5.11.
  */
-static __always_inline struct task_struct *get_current_task()
-{
-	if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf)
-		&& (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf))
-	{
+static __always_inline struct task_struct *get_current_task() {
+	if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf) &&
+	   (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) ==
+	    BPF_FUNC_get_current_task_btf)) {
 		return (struct task_struct *)bpf_get_current_task_btf();
-	}
-	else
-	{
+	} else {
 		return (struct task_struct *)bpf_get_current_task();
 	}
 }
@@ -32,19 +29,17 @@ static __always_inline struct task_struct *get_current_task()
  * N.B. Only up to 9 "field accessors" are supported, which should be more
  * than enough for any practical purpose.
  */
-#define READ_TASK_FIELD(src, a, ...)                                                            \
-	({                                                                                      \
-		___type((src), a, ##__VA_ARGS__) __r;                                           \
-		if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf) \
-			&& (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf)) \
-		{                                                                               \
-			__r = ___arrow((src), a, ##__VA_ARGS__);                                \
-		}                                                                               \
-		else                                                                            \
-		{                                                                               \
-			BPF_CORE_READ_INTO(&__r, (src), a, ##__VA_ARGS__);                      \
-		}                                                                               \
-		__r;                                                                            \
+#define READ_TASK_FIELD(src, a, ...)                                                      \
+	({                                                                                    \
+		___type((src), a, ##__VA_ARGS__) __r;                                             \
+		if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf) && \
+		   (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) ==       \
+		    BPF_FUNC_get_current_task_btf)) {                                             \
+			__r = ___arrow((src), a, ##__VA_ARGS__);                                      \
+		} else {                                                                          \
+			BPF_CORE_READ_INTO(&__r, (src), a, ##__VA_ARGS__);                            \
+		}                                                                                 \
+		__r;                                                                              \
 	})
 
 /* This macro `READ_TASK_FIELD_INTO` is the equivalent of `BPF_CORE_READ_INTO`.
@@ -66,15 +61,13 @@ static __always_inline struct task_struct *get_current_task()
  * 		}
  * 		...
  */
-#define READ_TASK_FIELD_INTO(dst, src, a, ...)                                                  \
-	({                                                                                      \
-		if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf) \
-			&& (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf)) \
-		{                                                                               \
-			*dst = ___arrow((src), a, ##__VA_ARGS__);                               \
-		}                                                                               \
-		else                                                                            \
-		{                                                                               \
-			BPF_CORE_READ_INTO(dst, src, a, ##__VA_ARGS__);                         \
-		}                                                                               \
+#define READ_TASK_FIELD_INTO(dst, src, a, ...)                                            \
+	({                                                                                    \
+		if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf) && \
+		   (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) ==       \
+		    BPF_FUNC_get_current_task_btf)) {                                             \
+			*dst = ___arrow((src), a, ##__VA_ARGS__);                                     \
+		} else {                                                                          \
+			BPF_CORE_READ_INTO(dst, src, a, ##__VA_ARGS__);                               \
+		}                                                                                 \
 	})

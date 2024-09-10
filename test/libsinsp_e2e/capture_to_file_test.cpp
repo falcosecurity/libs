@@ -23,22 +23,18 @@ limitations under the License.
 
 #include <libsinsp/sinsp.h>
 
-TEST_F(sys_call_test, can_consume_a_capture_file)
-{
+TEST_F(sys_call_test, can_consume_a_capture_file) {
 	int callnum = 0;
 
-	event_filter_t filter = [&](sinsp_evt* evt)
-	{
+	event_filter_t filter = [&](sinsp_evt* evt) {
 		std::string evt_name(evt->get_name());
-		return evt_name.find("stat") != std::string::npos &&
-			m_tid_filter(evt) && evt->get_direction() == SCAP_ED_OUT;
+		return evt_name.find("stat") != std::string::npos && m_tid_filter(evt) &&
+		       evt->get_direction() == SCAP_ED_OUT;
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle)
-	{
+	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
 		struct stat sb;
-		for(int i = 0; i < 100; i++)
-		{
+		for(int i = 0; i < 100; i++) {
 			stat("/tmp", &sb);
 		}
 	};
@@ -51,19 +47,17 @@ TEST_F(sys_call_test, can_consume_a_capture_file)
 	sinsp_evt* event;
 
 	const ::testing::TestInfo* const test_info =
-		::testing::UnitTest::GetInstance()->current_test_info();
+	        ::testing::UnitTest::GetInstance()->current_test_info();
 	auto filename = std::string(LIBSINSP_TEST_CAPTURES_PATH) + test_info->test_case_name() + "_" +
-		test_info->name() + ".scap";
+	                test_info->name() + ".scap";
 	inspector.open_savefile(filename);
 	callnum = 0;
 	int32_t res;
-	while((res = inspector.next(&event)) != SCAP_EOF)
-	{
+	while((res = inspector.next(&event)) != SCAP_EOF) {
 		ASSERT_EQ(SCAP_SUCCESS, res);
 		std::string evt_name(event->get_name());
-		if(evt_name.find("stat") != std::string::npos &&
-			m_tid_filter(event) && event->get_direction() == SCAP_ED_OUT)
-		{
+		if(evt_name.find("stat") != std::string::npos && m_tid_filter(event) &&
+		   event->get_direction() == SCAP_ED_OUT) {
 			callnum++;
 		}
 	}

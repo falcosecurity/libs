@@ -26,22 +26,18 @@ limitations under the License.
 
 #include <libscap/compat/misc.h>
 
-static inline uint64_t timespec_to_nsec(const struct timespec* ts)
-{
+static inline uint64_t timespec_to_nsec(const struct timespec* ts) {
 	return ts->tv_sec * 1000000000 + ts->tv_nsec;
 }
 
-int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time)
-{
+int32_t scap_get_precise_boot_time(char* last_err, uint64_t* boot_time) {
 	struct timespec wall_ts, boot_ts;
 
-	if(clock_gettime(CLOCK_BOOTTIME, &boot_ts) < 0)
-	{
+	if(clock_gettime(CLOCK_BOOTTIME, &boot_ts) < 0) {
 		return scap_errprintf(last_err, errno, "Failed to get CLOCK_BOOTTIME");
 	}
 
-	if(clock_gettime(CLOCK_REALTIME, &wall_ts) < 0)
-	{
+	if(clock_gettime(CLOCK_REALTIME, &wall_ts) < 0) {
 		return scap_errprintf(last_err, errno, "Failed to get CLOCK_REALTIME");
 	}
 
@@ -49,14 +45,11 @@ int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time)
 	return SCAP_SUCCESS;
 }
 
-bool scap_get_bpf_stats_enabled()
-{
+bool scap_get_bpf_stats_enabled() {
 	FILE* f;
-	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
-	{
+	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r"))) {
 		uint32_t bpf_stats_enabled = 0;
-		if(fscanf(f, "%u", &bpf_stats_enabled) == 1)
-		{
+		if(fscanf(f, "%u", &bpf_stats_enabled) == 1) {
 			fclose(f);
 			return bpf_stats_enabled;
 		}
@@ -65,4 +58,3 @@ bool scap_get_bpf_stats_enabled()
 	}
 	return false;
 }
-

@@ -5,8 +5,7 @@
 #include <sys/mman.h>
 #include <asm-generic/mman-common.h>
 
-TEST(SyscallExit, mlock2X)
-{
+TEST(SyscallExit, mlock2X) {
 	auto evt_test = get_syscall_event_test(__NR_mlock2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +15,9 @@ TEST(SyscallExit, mlock2X)
 	void *mock_addr = (void *)0;
 	size_t mock_len = 4;
 	int mock_flags = MLOCK_ONFAULT;
-	assert_syscall_state(SYSCALL_FAILURE, "mlock2", syscall(__NR_mlock2, mock_addr, mock_len, mock_flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mlock2",
+	                     syscall(__NR_mlock2, mock_addr, mock_len, mock_flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -25,8 +26,7 @@ TEST(SyscallExit, mlock2X)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

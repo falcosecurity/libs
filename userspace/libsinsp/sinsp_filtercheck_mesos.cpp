@@ -22,103 +22,145 @@ limitations under the License.
 
 using namespace std;
 
-static inline bool str_match_start(std::string_view val, size_t len, const char* m)
-{
+static inline bool str_match_start(std::string_view val, size_t len, const char* m) {
 	return val.compare(0, len, m) == 0;
 }
 
-#define STR_MATCH(s) str_match_start(val, sizeof (s) -1, s)
+#define STR_MATCH(s) str_match_start(val, sizeof(s) - 1, s)
 
-static const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
-{
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.task.name", "Task Name", "Mesos task name."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.task.id", "Task ID", "Mesos task id."},
-	{PT_CHARBUF, EPF_ARG_REQUIRED|EPF_DEPRECATED, PF_NA, "mesos.task.label", "Task Label", "Mesos task label. E.g. 'mesos.task.label.foo'."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.task.labels", "Task Labels", "Mesos task comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.framework.name", "Framework Name", "Mesos framework name."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.framework.id", "Framework ID", "Mesos framework id."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.app.name", "App Name", "Marathon app name."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.app.id", "App ID", "Marathon app id."},
-	{PT_CHARBUF, EPF_ARG_REQUIRED|EPF_DEPRECATED, PF_NA, "marathon.app.label", "App Label", "Marathon app label. E.g. 'marathon.app.label.foo'."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.app.labels", "App Labels", "Marathon app comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.group.name", "Group Name", "Marathon group name."},
-	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.group.id", "Group ID", "Marathon group id."},
+static const filtercheck_field_info sinsp_filter_check_mesos_fields[] = {
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "mesos.task.name",
+         "Task Name",
+         "Mesos task name."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "mesos.task.id",
+         "Task ID",
+         "Mesos task id."},
+        {PT_CHARBUF,
+         EPF_ARG_REQUIRED | EPF_DEPRECATED,
+         PF_NA,
+         "mesos.task.label",
+         "Task Label",
+         "Mesos task label. E.g. 'mesos.task.label.foo'."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "mesos.task.labels",
+         "Task Labels",
+         "Mesos task comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "mesos.framework.name",
+         "Framework Name",
+         "Mesos framework name."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "mesos.framework.id",
+         "Framework ID",
+         "Mesos framework id."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "marathon.app.name",
+         "App Name",
+         "Marathon app name."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "marathon.app.id",
+         "App ID",
+         "Marathon app id."},
+        {PT_CHARBUF,
+         EPF_ARG_REQUIRED | EPF_DEPRECATED,
+         PF_NA,
+         "marathon.app.label",
+         "App Label",
+         "Marathon app label. E.g. 'marathon.app.label.foo'."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "marathon.app.labels",
+         "App Labels",
+         "Marathon app comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "marathon.group.name",
+         "Group Name",
+         "Marathon group name."},
+        {PT_CHARBUF,
+         EPF_NONE | EPF_DEPRECATED,
+         PF_NA,
+         "marathon.group.id",
+         "Group ID",
+         "Marathon group id."},
 };
 
-sinsp_filter_check_mesos::sinsp_filter_check_mesos()
-{
+sinsp_filter_check_mesos::sinsp_filter_check_mesos() {
 	static const filter_check_info s_field_infos = {
-		"mesos",
-		"",
-		"Mesos related context.",
-		sizeof(sinsp_filter_check_mesos_fields) / sizeof(sinsp_filter_check_mesos_fields[0]),
-		sinsp_filter_check_mesos_fields,
-		filter_check_info::FL_NONE,
+	        "mesos",
+	        "",
+	        "Mesos related context.",
+	        sizeof(sinsp_filter_check_mesos_fields) / sizeof(sinsp_filter_check_mesos_fields[0]),
+	        sinsp_filter_check_mesos_fields,
+	        filter_check_info::FL_NONE,
 	};
 	m_info = &s_field_infos;
 }
 
-std::unique_ptr<sinsp_filter_check> sinsp_filter_check_mesos::allocate_new()
-{
+std::unique_ptr<sinsp_filter_check> sinsp_filter_check_mesos::allocate_new() {
 	return std::make_unique<sinsp_filter_check_mesos>();
 }
 
-int32_t sinsp_filter_check_mesos::parse_field_name(std::string_view val, bool alloc_state, bool needed_for_filtering)
-{
-	if(STR_MATCH("mesos.task.label") &&
-		!STR_MATCH("mesos.task.labels"))
-	{
+int32_t sinsp_filter_check_mesos::parse_field_name(std::string_view val,
+                                                   bool alloc_state,
+                                                   bool needed_for_filtering) {
+	if(STR_MATCH("mesos.task.label") && !STR_MATCH("mesos.task.labels")) {
 		m_field_id = TYPE_MESOS_TASK_LABEL;
 		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("mesos.task.label", val);
-	}
-	else if(STR_MATCH("marathon.app.label") &&
-		!STR_MATCH("marathon.app.labels"))
-	{
+	} else if(STR_MATCH("marathon.app.label") && !STR_MATCH("marathon.app.labels")) {
 		m_field_id = TYPE_MARATHON_APP_LABEL;
 		m_field = &m_info->m_fields[m_field_id];
 
 		return extract_arg("marathon.app.label", val);
-	}
-	else
-	{
+	} else {
 		return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 	}
 }
 
-int32_t sinsp_filter_check_mesos::extract_arg(string_view fldname, string_view val)
-{
+int32_t sinsp_filter_check_mesos::extract_arg(string_view fldname, string_view val) {
 	int32_t parsed_len = 0;
 
-	if(val.size() > fldname.size() && val.at(fldname.size()) == '.')
-	{
+	if(val.size() > fldname.size() && val.at(fldname.size()) == '.') {
 		size_t endpos;
-		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos)
-		{
-			if(!isalnum(val.at(endpos))
-				&& val.at(endpos) != '/'
-				&& val.at(endpos) != '_'
-				&& val.at(endpos) != '-'
-				&& val.at(endpos) != '.')
-			{
+		for(endpos = fldname.size() + 1; endpos < val.length(); ++endpos) {
+			if(!isalnum(val.at(endpos)) && val.at(endpos) != '/' && val.at(endpos) != '_' &&
+			   val.at(endpos) != '-' && val.at(endpos) != '.') {
 				break;
 			}
 		}
 
 		parsed_len = (uint32_t)endpos;
 		m_argname = val.substr(fldname.size() + 1, endpos - fldname.size() - 1);
-	}
-	else
-	{
+	} else {
 		throw sinsp_exception("filter syntax error: " + string(val));
 	}
 
 	return parsed_len;
 }
 
-uint8_t* sinsp_filter_check_mesos::extract_single(sinsp_evt *evt, uint32_t* len, bool sanitize_strings)
-{
+uint8_t* sinsp_filter_check_mesos::extract_single(sinsp_evt* evt,
+                                                  uint32_t* len,
+                                                  bool sanitize_strings) {
 	// note: all mesos fields are deprecated since removing them from the codebase
 	*len = 0;
 	return NULL;

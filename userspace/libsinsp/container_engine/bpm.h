@@ -27,13 +27,11 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-class bpm : public container_engine_base
-{
+class bpm : public container_engine_base {
 public:
-	bpm(container_cache_interface& cache) : container_engine_base(cache)
-	{}
+	bpm(container_cache_interface& cache): container_engine_base(cache) {}
 
-	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
+	bool resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
 };
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

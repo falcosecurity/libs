@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_splice
-TEST(SyscallEnter, spliceE)
-{
+TEST(SyscallEnter, spliceE) {
 	auto evt_test = get_syscall_event_test(__NR_splice, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallEnter, spliceE)
 	int fd_out = 1;
 	uint64_t size = 0x123;
 	unsigned int flags = SPLICE_F_MOVE;
-	assert_syscall_state(SYSCALL_FAILURE, "splice", syscall(__NR_splice, fd_in, 0, fd_out, 0, size, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "splice",
+	                     syscall(__NR_splice, fd_in, 0, fd_out, 0, size, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallEnter, spliceE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

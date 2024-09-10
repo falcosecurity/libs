@@ -2,8 +2,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_gettimeofday
-TEST(SyscallExit, gettimeofday_X)
-{
+TEST(SyscallExit, gettimeofday_X) {
 	auto evt_test = get_syscall_event_test(__NR_gettimeofday, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallExit, gettimeofday_X)
 	/* Retrieve events in order. */
 	evt_test->assert_event_presence(CURRENT_PID, PPME_GENERIC_X);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

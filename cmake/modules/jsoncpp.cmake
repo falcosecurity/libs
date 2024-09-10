@@ -2,14 +2,15 @@
 #
 # Copyright (C) 2023 The Falco Authors.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations under the License.
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
 #
 
 option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ${USE_BUNDLED_DEPS})
@@ -44,68 +45,70 @@ else()
 		message(STATUS "Using bundled jsoncpp in '${JSONCPP_SRC}'")
 		if(NOT WIN32)
 			ExternalProject_Add(
-					jsoncpp
-					PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
-					URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
-					URL_HASH
-					"SHA256=f409856e5920c18d0c2fb85276e24ee607d2a09b5e7d5f0a371368903c275da2"
-					CMAKE_ARGS
-						-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-						-DBUILD_OBJECT_LIBS=Off
-						${JSONCPP_STATIC_OPTION}
-						-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-						-DJSONCPP_WITH_TESTS=Off
-						-DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
-						-DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
-						-DCMAKE_INSTALL_LIBDIR=lib
-					BUILD_BYPRODUCTS ${JSONCPP_LIB}
+				jsoncpp
+				PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
+				URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
+				URL_HASH "SHA256=f409856e5920c18d0c2fb85276e24ee607d2a09b5e7d5f0a371368903c275da2"
+				CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+						   -DBUILD_OBJECT_LIBS=Off
+						   ${JSONCPP_STATIC_OPTION}
+						   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						   -DJSONCPP_WITH_TESTS=Off
+						   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
+						   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
+						   -DCMAKE_INSTALL_LIBDIR=lib
+				BUILD_BYPRODUCTS ${JSONCPP_LIB}
 			)
 		else()
 			# see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
 			if(CMAKE_VERSION VERSION_LESS 3.15.0)
 				ExternalProject_Add(
-						jsoncpp
-						PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
-						URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
-						URL_HASH
+					jsoncpp
+					PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
+					URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
+					URL_HASH
 						"SHA256=f409856e5920c18d0c2fb85276e24ee607d2a09b5e7d5f0a371368903c275da2"
-						CMAKE_ARGS
-						-DCMAKE_CXX_FLAGS_DEBUG=${FALCOSECURITY_LIBS_DEBUG_FLAGS}
-						-DCMAKE_CXX_FLAGS_RELEASE=${FALCOSECURITY_LIBS_RELEASE_FLAGS}
-						-DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-						-DBUILD_OBJECT_LIBS=Off
-						${JSONCPP_STATIC_OPTION}
-						-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-						-DJSONCPP_WITH_TESTS=Off
-						-DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
-						-DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
-						-DCMAKE_INSTALL_LIBDIR=lib
+					CMAKE_ARGS -DCMAKE_CXX_FLAGS_DEBUG=${FALCOSECURITY_LIBS_DEBUG_FLAGS}
+							   -DCMAKE_CXX_FLAGS_RELEASE=${FALCOSECURITY_LIBS_RELEASE_FLAGS}
+							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
+							   -DBUILD_OBJECT_LIBS=Off
+							   ${JSONCPP_STATIC_OPTION}
+							   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+							   -DJSONCPP_WITH_TESTS=Off
+							   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
+							   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
+							   -DCMAKE_INSTALL_LIBDIR=lib
 				)
 			else()
 				ExternalProject_Add(
-						jsoncpp
-						PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
-						URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
-						URL_HASH
+					jsoncpp
+					PREFIX "${PROJECT_BINARY_DIR}/jsoncpp-prefix"
+					URL "https://github.com/open-source-parsers/jsoncpp/archive/refs/tags/1.9.5.tar.gz"
+					URL_HASH
 						"SHA256=f409856e5920c18d0c2fb85276e24ee607d2a09b5e7d5f0a371368903c275da2"
-						CMAKE_ARGS
-						-DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
-						-DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
-						-DBUILD_OBJECT_LIBS=Off
-						${JSONCPP_STATIC_OPTION}
-						-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-						-DJSONCPP_WITH_TESTS=Off
-						-DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
-						-DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
-						-DCMAKE_INSTALL_LIBDIR=lib
+					CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+							   -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY}
+							   -DBUILD_OBJECT_LIBS=Off
+							   ${JSONCPP_STATIC_OPTION}
+							   -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+							   -DJSONCPP_WITH_TESTS=Off
+							   -DJSONCPP_WITH_POST_BUILD_UNITTEST=Off
+							   -DCMAKE_INSTALL_PREFIX=${JSONCPP_SRC}
+							   -DCMAKE_INSTALL_LIBDIR=lib
 				)
 			endif()
 		endif()
 
-		install(FILES "${JSONCPP_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
-				COMPONENT "libs-deps")
-		install(DIRECTORY "${JSONCPP_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
-				COMPONENT "libs-deps")
+		install(
+			FILES "${JSONCPP_LIB}"
+			DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+			COMPONENT "libs-deps"
+		)
+		install(
+			DIRECTORY "${JSONCPP_INCLUDE}"
+			DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
+			COMPONENT "libs-deps"
+		)
 	endif()
 endif()
 

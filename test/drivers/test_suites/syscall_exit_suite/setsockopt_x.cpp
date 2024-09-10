@@ -5,8 +5,7 @@
 #include <netdb.h>
 #include <time.h>
 
-TEST(SyscallExit, setsockoptX_SO_ERROR)
-{
+TEST(SyscallExit, setsockoptX_SO_ERROR) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -18,7 +17,10 @@ TEST(SyscallExit, setsockoptX_SO_ERROR)
 	int32_t option_name = SO_ERROR;
 	int32_t option_value = 14;
 	socklen_t option_len = sizeof(int32_t);
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -27,8 +29,7 @@ TEST(SyscallExit, setsockoptX_SO_ERROR)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -63,8 +64,7 @@ TEST(SyscallExit, setsockoptX_SO_ERROR)
 	evt_test->assert_num_params_pushed(6);
 }
 
-TEST(SyscallExit, setsockoptX_SO_RCVTIMEO)
-{
+TEST(SyscallExit, setsockoptX_SO_RCVTIMEO) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -78,7 +78,10 @@ TEST(SyscallExit, setsockoptX_SO_RCVTIMEO)
 	option_value.tv_sec = 5;
 	option_value.tv_usec = 10;
 	socklen_t option_len = sizeof(struct timeval);
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -87,8 +90,7 @@ TEST(SyscallExit, setsockoptX_SO_RCVTIMEO)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -122,8 +124,7 @@ TEST(SyscallExit, setsockoptX_SO_RCVTIMEO)
 	evt_test->assert_num_params_pushed(6);
 }
 
-TEST(SyscallExit, setsockoptX_SO_COOKIE)
-{
+TEST(SyscallExit, setsockoptX_SO_COOKIE) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -135,7 +136,10 @@ TEST(SyscallExit, setsockoptX_SO_COOKIE)
 	int32_t option_name = SO_COOKIE;
 	uint64_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -144,8 +148,7 @@ TEST(SyscallExit, setsockoptX_SO_COOKIE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -178,8 +181,7 @@ TEST(SyscallExit, setsockoptX_SO_COOKIE)
 	evt_test->assert_num_params_pushed(6);
 }
 
-TEST(SyscallExit, setsockoptX_SO_PASSCRED)
-{
+TEST(SyscallExit, setsockoptX_SO_PASSCRED) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -191,7 +193,10 @@ TEST(SyscallExit, setsockoptX_SO_PASSCRED)
 	int32_t option_name = SO_PASSCRED;
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -200,8 +205,7 @@ TEST(SyscallExit, setsockoptX_SO_PASSCRED)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -234,8 +238,7 @@ TEST(SyscallExit, setsockoptX_SO_PASSCRED)
 	evt_test->assert_num_params_pushed(6);
 }
 
-TEST(SyscallExit, setsockoptX_UNKNOWN_OPTION)
-{
+TEST(SyscallExit, setsockoptX_UNKNOWN_OPTION) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -247,7 +250,10 @@ TEST(SyscallExit, setsockoptX_UNKNOWN_OPTION)
 	int32_t option_name = -1; /* this is an unknown option. */
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -256,8 +262,7 @@ TEST(SyscallExit, setsockoptX_UNKNOWN_OPTION)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -290,8 +295,7 @@ TEST(SyscallExit, setsockoptX_UNKNOWN_OPTION)
 	evt_test->assert_num_params_pushed(6);
 }
 
-TEST(SyscallExit, setsockoptX_SOL_UNKNOWN)
-{
+TEST(SyscallExit, setsockoptX_SOL_UNKNOWN) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -303,7 +307,10 @@ TEST(SyscallExit, setsockoptX_SOL_UNKNOWN)
 	int32_t option_name = SO_PASSCRED;
 	uint32_t option_value = 16;
 	socklen_t option_len = sizeof(option_value);
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -312,8 +319,7 @@ TEST(SyscallExit, setsockoptX_SOL_UNKNOWN)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -346,8 +352,7 @@ TEST(SyscallExit, setsockoptX_SOL_UNKNOWN)
 	evt_test->assert_num_params_pushed(6);
 }
 
-TEST(SyscallExit, setsockoptX_ZERO_OPTLEN)
-{
+TEST(SyscallExit, setsockoptX_ZERO_OPTLEN) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -359,7 +364,10 @@ TEST(SyscallExit, setsockoptX_ZERO_OPTLEN)
 	int32_t option_name = SO_PASSCRED;
 	uint32_t option_value = 0;
 	socklen_t option_len = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "setsockopt",
+	        syscall(__NR_setsockopt, mock_fd, level, option_name, &option_value, option_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -368,8 +376,7 @@ TEST(SyscallExit, setsockoptX_ZERO_OPTLEN)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -3,8 +3,7 @@
 #if defined(__NR_fsconfig) && defined(__NR_fspick)
 #include <linux/mount.h>
 
-TEST(SyscallExit, fsconfigX_FSCONFIG_SET_STRING)
-{
+TEST(SyscallExit, fsconfigX_FSCONFIG_SET_STRING) {
 	auto evt_test = get_syscall_event_test(__NR_fsconfig, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -29,8 +28,7 @@ TEST(SyscallExit, fsconfigX_FSCONFIG_SET_STRING)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -66,8 +64,7 @@ TEST(SyscallExit, fsconfigX_FSCONFIG_SET_STRING)
 	evt_test->assert_num_params_pushed(7);
 }
 
-TEST(SyscallExit, fsconfigX_failure)
-{
+TEST(SyscallExit, fsconfigX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_fsconfig, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -79,7 +76,9 @@ TEST(SyscallExit, fsconfigX_failure)
 	const char* key = "//**invalid-key**//";
 	const char* value = "//**invalid-value**//";
 	int aux = 100;
-	assert_syscall_state(SYSCALL_FAILURE, "fsconfig", syscall(__NR_fsconfig, fd, cmd, key, value, aux));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "fsconfig",
+	                     syscall(__NR_fsconfig, fd, cmd, key, value, aux));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -88,8 +87,7 @@ TEST(SyscallExit, fsconfigX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

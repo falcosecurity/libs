@@ -33,7 +33,7 @@ namespace container_engine {
  */
 class container_engine_base {
 public:
-	container_engine_base(container_cache_interface &cache);
+	container_engine_base(container_cache_interface& cache);
 
 	virtual ~container_engine_base() = default;
 
@@ -41,8 +41,7 @@ public:
 	 * Find a container associated with the given tinfo and add it to the
 	 * cache.
 	 */
-	virtual bool resolve(sinsp_threadinfo* tinfo,
-			     bool query_os_for_missing_info) = 0;
+	virtual bool resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) = 0;
 
 	/**
 	 * Update an existing container with the size of the container layer.
@@ -57,14 +56,10 @@ protected:
 	/**
 	 * Derived class accessor to the cache
 	 */
-	container_cache_interface& container_cache()
-	{
-		return m_cache;
-	}
+	container_cache_interface& container_cache() { return m_cache; }
 
 private:
 	container_cache_interface& m_cache;
 };
-}
-}
-
+}  // namespace container_engine
+}  // namespace libsinsp

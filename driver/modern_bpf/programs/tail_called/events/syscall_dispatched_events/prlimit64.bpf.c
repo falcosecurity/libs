@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(prlimit64_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(prlimit64_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PRLIMIT64_E_SIZE, PPME_SYSCALL_PRLIMIT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PRLIMIT64_E_SIZE, PPME_SYSCALL_PRLIMIT_E)) {
 		return 0;
 	}
 
@@ -45,13 +41,9 @@ int BPF_PROG(prlimit64_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(prlimit64_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(prlimit64_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PRLIMIT64_X_SIZE, PPME_SYSCALL_PRLIMIT_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PRLIMIT64_X_SIZE, PPME_SYSCALL_PRLIMIT_X)) {
 		return 0;
 	}
 
@@ -64,7 +56,9 @@ int BPF_PROG(prlimit64_x,
 
 	struct rlimit new_rlimit = {0};
 	unsigned long rlimit_pointer = extract__syscall_argument(regs, 2);
-	bpf_probe_read_user((void *)&new_rlimit, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
+	bpf_probe_read_user((void *)&new_rlimit,
+	                    bpf_core_type_size(struct rlimit),
+	                    (void *)rlimit_pointer);
 
 	/* Parameter 2: newcur (type: PT_INT64) */
 	ringbuf__store_s64(&ringbuf, new_rlimit.rlim_cur);
@@ -76,19 +70,18 @@ int BPF_PROG(prlimit64_x,
 	 * struct will be not filled by the kernel.
 	 */
 	struct rlimit old_rlimit = {0};
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		rlimit_pointer = extract__syscall_argument(regs, 3);
-		bpf_probe_read_user((void *)&old_rlimit, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
+		bpf_probe_read_user((void *)&old_rlimit,
+		                    bpf_core_type_size(struct rlimit),
+		                    (void *)rlimit_pointer);
 
 		/* Parameter 4: oldcur (type: PT_INT64) */
 		ringbuf__store_s64(&ringbuf, old_rlimit.rlim_cur);
 
 		/* Parameter 5: oldmax (type: PT_INT64) */
-		ringbuf__store_s64(&ringbuf, old_rlimit.rlim_max);	
-	}
-	else
-	{
+		ringbuf__store_s64(&ringbuf, old_rlimit.rlim_max);
+	} else {
 		/* Parameter 4: oldcur (type: PT_INT64) */
 		ringbuf__store_s64(&ringbuf, -1);
 

@@ -30,74 +30,74 @@ limitations under the License.
 
 // The following are needed on MacOS to be able to
 // initialize a std::(unordered)map/set<ppm_X_code>{}
-namespace std
-{
+namespace std {
 template<>
 struct hash<ppm_sc_code> {
-	size_t operator()(const ppm_sc_code &pt) const {
-		return std::hash<uint32_t>()((uint32_t)pt);
-	}
+	size_t operator()(const ppm_sc_code& pt) const { return std::hash<uint32_t>()((uint32_t)pt); }
 };
 
 template<>
 struct hash<ppm_event_code> {
-	size_t operator()(const ppm_event_code &pt) const {
+	size_t operator()(const ppm_event_code& pt) const {
 		return std::hash<uint32_t>()((uint32_t)pt);
 	}
 };
-}
+}  // namespace std
 
 namespace libsinsp {
 namespace events {
 
 template<typename T>
-class set
-{
+class set {
 private:
 	using vec_t = std::vector<uint8_t>;
 	vec_t m_types{};
 	T m_max;
 	size_t m_size;
 
-	inline void check_range(T e) const
-	{
-		if(e > m_max)
-		{
+	inline void check_range(T e) const {
+		if(e > m_max) {
 			throw sinsp_exception("invalid event type");
 		}
 	}
 
 public:
-	struct iterator
-	{
+	struct iterator {
 		using iterator_category = std::forward_iterator_tag;
-		using difference_type   = std::ptrdiff_t;
-		using value_type        = T;
-		using pointer           = T*;
-		using reference         = T&;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using pointer = T*;
+		using reference = T&;
 
-		iterator(const uint8_t* data, size_t index, size_t max)
-			: m_data(data), m_index(index), m_max(max)
-		{
+		iterator(const uint8_t* data, size_t index, size_t max):
+		        m_data(data),
+		        m_index(index),
+		        m_max(max) {
 			set_val();
 		}
 		reference operator*() { return m_val; }
 		pointer operator->() { return &m_val; }
-		iterator& operator++() { m_index++; set_val(); return *this; }
-		iterator operator++(int) { iterator i = *this; ++(*this); return i; }
-		friend bool operator== (const iterator& a, const iterator& b)
-		{
+		iterator& operator++() {
+			m_index++;
+			set_val();
+			return *this;
+		}
+		iterator operator++(int) {
+			iterator i = *this;
+			++(*this);
+			return i;
+		}
+		friend bool operator==(const iterator& a, const iterator& b) {
 			return a.m_data == b.m_data && a.m_index == b.m_index;
 		};
-		friend bool operator!= (const iterator& a, const iterator& b) { return !(a == b); };
+		friend bool operator!=(const iterator& a, const iterator& b) { return !(a == b); };
+
 	private:
-		inline void set_val()
-		{
-			while (m_index < m_max && m_data[m_index] == 0)
-			{
+		inline void set_val() {
+			while(m_index < m_max && m_data[m_index] == 0) {
 				m_index++;
 			}
-			m_val = (value_type) m_index;
+			m_val = (value_type)m_index;
 		}
 
 		const uint8_t* m_data;
@@ -113,175 +113,128 @@ public:
 	set() = delete;
 
 	template<typename InputIterator>
-	static set<T> from(InputIterator first, InputIterator last)
-	{
+	static set<T> from(InputIterator first, InputIterator last) {
 		set<T> ret;
-		for (auto i = first; i != last; i++)
-		{
+		for(auto i = first; i != last; i++) {
 			ret.insert(*i);
 		}
 		return ret;
 	}
 
 	template<typename Iterable>
-	static set<T> from(const Iterable& v)
-	{
+	static set<T> from(const Iterable& v) {
 		return from(v.begin(), v.end());
 	}
 
 	template<typename Iterable>
-	set(const Iterable& v): set(from(v)) { }
+	set(const Iterable& v): set(from(v)) {}
 
 	template<typename InputIterator>
-	set(InputIterator first, InputIterator last): set(from(first, last)) { }
+	set(InputIterator first, InputIterator last): set(from(first, last)) {}
 
-	set(std::initializer_list<T> v): set(v.begin(), v.end()) { }
+	set(std::initializer_list<T> v): set(v.begin(), v.end()) {}
 
-	inline explicit set(T maxLen):
-		m_types(maxLen + 1, 0),
-		m_max(maxLen),
-		m_size(0)
-	{
-	}
+	inline explicit set(T maxLen): m_types(maxLen + 1, 0), m_max(maxLen), m_size(0) {}
 
-	const uint8_t* data() const noexcept
-	{
-		return m_types.data();
-	}
+	const uint8_t* data() const noexcept { return m_types.data(); }
 
 	iterator begin() const { return iterator(m_types.data(), 0, m_max); }
 	iterator end() const { return iterator(m_types.data(), m_max, m_max); }
 
-	inline void insert(T e)
-	{
+	inline void insert(T e) {
 		check_range(e);
-		if (m_types[e] == 0)
-		{
+		if(m_types[e] == 0) {
 			m_size++;
 		}
 		m_types[e] = 1;
 	}
 
 	template<typename InputIterator>
-	inline void insert(InputIterator first, InputIterator last)
-	{
-		for (auto i = first; i != last; i++)
-		{
+	inline void insert(InputIterator first, InputIterator last) {
+		for(auto i = first; i != last; i++) {
 			insert(*i);
 		}
 	}
 
-	inline void remove(T e)
-	{
+	inline void remove(T e) {
 		check_range(e);
-		if (m_types[e] == 1)
-		{
+		if(m_types[e] == 1) {
 			m_size--;
 		}
 		m_types[e] = 0;
 	}
 
-	inline bool contains(T e) const
-	{
+	inline bool contains(T e) const {
 		check_range(e);
 		return m_types[e] != 0;
 	}
 
-	void clear()
-	{
-		for(auto& v : m_types)
-		{
+	void clear() {
+		for(auto& v : m_types) {
 			v = 0;
 		}
 		m_size = 0;
 	}
 
-	inline bool empty() const
-	{
-		return m_size == 0;
-	}
+	inline bool empty() const { return m_size == 0; }
 
-	inline size_t size() const
-	{
-		return m_size;
-	}
+	inline size_t size() const { return m_size; }
 
-	bool equals(const set& other) const
-	{
-		return m_types == other.m_types;
-	}
+	bool equals(const set& other) const { return m_types == other.m_types; }
 
-	set merge(const set& other) const
-	{
-		if (other.m_max != m_max)
-		{
+	set merge(const set& other) const {
+		if(other.m_max != m_max) {
 			throw sinsp_exception("cannot merge sets with different max size.");
 		}
 		set<T> ret(m_max);
-		for(size_t i = 0; i <= m_max; ++i)
-		{
-			if (m_types[i] | other.m_types[i])
-			{
+		for(size_t i = 0; i <= m_max; ++i) {
+			if(m_types[i] | other.m_types[i]) {
 				ret.insert((T)i);
 			}
 		}
 		return ret;
 	}
 
-	set diff(const set& other) const
-	{
-		if (other.m_max != m_max)
-		{
+	set diff(const set& other) const {
+		if(other.m_max != m_max) {
 			throw sinsp_exception("cannot diff sets with different max size.");
 		}
 		set<T> ret(m_max);
-		for(size_t i = 0; i <= m_max; ++i)
-		{
-			if (m_types[i] == 1 && other.m_types[i] == 0)
-			{
+		for(size_t i = 0; i <= m_max; ++i) {
+			if(m_types[i] == 1 && other.m_types[i] == 0) {
 				ret.insert((T)i);
 			}
 		}
 		return ret;
 	}
 
-	set intersect(const set& other) const
-	{
-		if (other.m_max != m_max)
-		{
+	set intersect(const set& other) const {
+		if(other.m_max != m_max) {
 			throw sinsp_exception("cannot intersect sets with different max size.");
 		}
 		set<T> ret(m_max);
-		for(size_t i = 0; i <= m_max; ++i)
-		{
-			if (m_types[i] & other.m_types[i])
-			{
+		for(size_t i = 0; i <= m_max; ++i) {
+			if(m_types[i] & other.m_types[i]) {
 				ret.insert((T)i);
 			}
 		}
 		return ret;
 	}
 
-	void for_each(const std::function<bool(T)>& consumer) const
-	{
-		for(size_t i = 0; i < m_max; ++i)
-		{
-			if(m_types[i] != 0)
-			{
-				if(!consumer((T) i))
-				{
+	void for_each(const std::function<bool(T)>& consumer) const {
+		for(size_t i = 0; i < m_max; ++i) {
+			if(m_types[i] != 0) {
+				if(!consumer((T)i)) {
 					return;
 				}
 			}
 		}
 	}
 
-	set filter(const std::function<bool(T)>& predicate) const
-	{
+	set filter(const std::function<bool(T)>& predicate) const {
 		set<T> ret;
-		for_each([&ret, &predicate](T v){
-			if(predicate(v))
-			{
+		for_each([&ret, &predicate](T v) {
+			if(predicate(v)) {
 				ret.insert(v);
 			}
 			return true;
@@ -292,38 +245,30 @@ public:
 
 // Some template specialization for useful constructors
 
-template <>
-inline set<ppm_sc_code>::set(): set(PPM_SC_MAX)
-{
-}
+template<>
+inline set<ppm_sc_code>::set(): set(PPM_SC_MAX) {}
 
 template<>
-inline set<ppm_event_code>::set(): set(PPM_EVENT_MAX)
-{
-}
+inline set<ppm_event_code>::set(): set(PPM_EVENT_MAX) {}
 
-} // events
-} // libsinsp
+}  // namespace events
+}  // namespace libsinsp
 
 template<typename T>
-inline bool operator==(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs)
-{
+inline bool operator==(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs) {
 	return lhs.equals(rhs);
 }
 
 template<typename T>
-inline bool operator!=(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs)
-{
+inline bool operator!=(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs) {
 	return !(lhs == rhs);
 }
 
 template<typename T>
-std::ostream& operator<<(std::ostream& os, const libsinsp::events::set<T>& s)
-{
+std::ostream& operator<<(std::ostream& os, const libsinsp::events::set<T>& s) {
 	os << "(";
 	auto first = true;
-	for (const auto& v : s)
-	{
+	for(const auto& v : s) {
 		os << (first ? "" : ", ") << v;
 		first = false;
 	}

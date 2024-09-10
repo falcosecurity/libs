@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_openat
-TEST(SyscallEnter, openatE)
-{
+TEST(SyscallEnter, openatE) {
 	auto evt_test = get_syscall_event_test(__NR_openat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -18,7 +17,9 @@ TEST(SyscallEnter, openatE)
 	const char* pathname = "mock_path";
 	int flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	mode_t mode = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "openat", syscall(__NR_openat, dirfd, pathname, flags, mode));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "openat",
+	                     syscall(__NR_openat, dirfd, pathname, flags, mode));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -26,8 +27,7 @@ TEST(SyscallEnter, openatE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -54,8 +54,7 @@ TEST(SyscallEnter, openatE)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallEnter, openatE_max_path)
-{
+TEST(SyscallEnter, openatE_max_path) {
 	auto evt_test = get_syscall_event_test(__NR_openat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -72,7 +71,9 @@ TEST(SyscallEnter, openatE_max_path)
 	pathname.insert(0, PPM_MAX_PATH_SIZE - 1, 'A');
 	int flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	mode_t mode = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "openat", syscall(__NR_openat, dirfd, pathname.c_str(), flags, mode));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "openat",
+	                     syscall(__NR_openat, dirfd, pathname.c_str(), flags, mode));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -80,8 +81,7 @@ TEST(SyscallEnter, openatE_max_path)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

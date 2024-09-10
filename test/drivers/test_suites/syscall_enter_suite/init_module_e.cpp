@@ -1,7 +1,6 @@
 #include "../../event_class/event_class.h"
 #if defined(__NR_init_module)
-TEST(SyscallEnter, init_moduleE)
-{
+TEST(SyscallEnter, init_moduleE) {
 	auto evt_test = get_syscall_event_test(__NR_init_module, ENTER_EVENT);
 	evt_test->enable_capture();
 
@@ -11,8 +10,9 @@ TEST(SyscallEnter, init_moduleE)
 	unsigned long len = 100;
 	char mock_buf[8];
 
-	assert_syscall_state(SYSCALL_FAILURE, "init_module", syscall(__NR_init_module, (void *)(mock_img), len, (void *)(mock_buf)));
-
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "init_module",
+	                     syscall(__NR_init_module, (void *)(mock_img), len, (void *)(mock_buf)));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -20,8 +20,7 @@ TEST(SyscallEnter, init_moduleE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -36,6 +35,5 @@ TEST(SyscallEnter, init_moduleE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(0);
-
 }
 #endif

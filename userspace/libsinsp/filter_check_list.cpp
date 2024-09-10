@@ -31,18 +31,15 @@ using namespace std;
 // sinsp_filter_check_list implementation
 ///////////////////////////////////////////////////////////////////////////////
 
-void filter_check_list::add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check)
-{
+void filter_check_list::add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check) {
 	// If a filtercheck already exists with this name and
 	// shortdesc, don't add it--this can occur when plugins are
 	// loaded and set up sinsp_filter_checks to handle plugin
 	// events.
 
-	for(const auto& chk : m_check_list)
-	{
+	for(const auto& chk : m_check_list) {
 		if(chk->get_fields()->m_name == filter_check->get_fields()->m_name &&
-		   chk->get_fields()->m_shortdesc == filter_check->get_fields()->m_shortdesc)
-		{
+		   chk->get_fields()->m_shortdesc == filter_check->get_fields()->m_shortdesc) {
 			return;
 		}
 	}
@@ -50,32 +47,25 @@ void filter_check_list::add_filter_check(std::unique_ptr<sinsp_filter_check> fil
 	m_check_list.push_back(std::move(filter_check));
 }
 
-void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& list) const
-{
-	for(const auto& chk : m_check_list)
-	{
+void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& list) const {
+	for(const auto& chk : m_check_list) {
 		list.push_back(chk->get_fields());
 	}
 }
 
 /* Craft a new filter check from the field name */
 std::unique_ptr<sinsp_filter_check> filter_check_list::new_filter_check_from_fldname(
-								     std::string_view name,
-								     sinsp* inspector,
-								     bool do_exact_check) const
-{
-	for(const auto& chk : m_check_list)
-	{
+        std::string_view name,
+        sinsp* inspector,
+        bool do_exact_check) const {
+	for(const auto& chk : m_check_list) {
 		chk->m_inspector = inspector;
 
 		int32_t fldnamelen = chk->parse_field_name(name, false, true);
 
-		if(fldnamelen != -1)
-		{
-			if(do_exact_check)
-			{
-				if((int32_t)name.size() != fldnamelen)
-				{
+		if(fldnamelen != -1) {
+			if(do_exact_check) {
+				if((int32_t)name.size() != fldnamelen) {
 					break;
 				}
 			}
@@ -94,8 +84,7 @@ std::unique_ptr<sinsp_filter_check> filter_check_list::new_filter_check_from_fld
 	return nullptr;
 }
 
-sinsp_filter_check_list::sinsp_filter_check_list()
-{
+sinsp_filter_check_list::sinsp_filter_check_list() {
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW FILTER CHECK CLASSES HERE
 	//////////////////////////////////////////////////////////////////////////////

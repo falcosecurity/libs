@@ -40,4 +40,4 @@ typedef enum kmod_kernel_counters_stats {
 	KMOD_N_DROPS,
 	KMOD_N_PREEMPTIONS,
 	KMOD_MAX_KERNEL_COUNTERS_STATS
-}kmod_kernel_counters_stats;
+} kmod_kernel_counters_stats;

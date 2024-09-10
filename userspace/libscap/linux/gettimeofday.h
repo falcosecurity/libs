@@ -21,14 +21,12 @@ limitations under the License.
 #include <sys/time.h>
 #include <stdint.h>
 
-static inline uint64_t get_timestamp_ns()
-{
+static inline uint64_t get_timestamp_ns() {
 	uint64_t ts;
 	struct timeval tv;
 
 	gettimeofday(&tv, NULL);
-	ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+	ts = tv.tv_sec * (uint64_t)1000000000 + tv.tv_usec * 1000;
 
 	return ts;
 }
-

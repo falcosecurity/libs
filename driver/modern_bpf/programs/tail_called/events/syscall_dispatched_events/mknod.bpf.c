@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(mknod_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(mknod_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, MKNOD_E_SIZE, PPME_SYSCALL_MKNOD_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, MKNOD_E_SIZE, PPME_SYSCALL_MKNOD_E)) {
 		return 0;
 	}
 
@@ -33,8 +29,6 @@ int BPF_PROG(mknod_e,
 	ringbuf__submit_event(&ringbuf);
 
 	return 0;
-
-
 }
 
 /*=============================== ENTER EVENT ===========================*/
@@ -42,13 +36,9 @@ int BPF_PROG(mknod_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(mknod_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(mknod_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -65,12 +55,11 @@ int BPF_PROG(mknod_x,
 
 	/* Parameter 3: mode (type: PT_MODE) */
 	uint32_t mode = (uint32_t)extract__syscall_argument(regs, 1);
-	auxmap__store_u32_param(auxmap,mknod_mode_to_scap(mode));
+	auxmap__store_u32_param(auxmap, mknod_mode_to_scap(mode));
 
 	/* Parameter 4: dev (type: PT_UINT32) */
 	uint32_t dev = (uint32_t)extract__syscall_argument(regs, 2);
 	auxmap__store_u32_param(auxmap, encode_dev(dev));
-
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

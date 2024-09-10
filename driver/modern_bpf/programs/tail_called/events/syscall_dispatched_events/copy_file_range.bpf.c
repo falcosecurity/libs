@@ -11,13 +11,12 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(copy_file_range_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(copy_file_range_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, COPY_FILE_RANGE_E_SIZE, PPME_SYSCALL_COPY_FILE_RANGE_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf,
+	                           ctx,
+	                           COPY_FILE_RANGE_E_SIZE,
+	                           PPME_SYSCALL_COPY_FILE_RANGE_E)) {
 		return 0;
 	}
 
@@ -49,13 +48,12 @@ int BPF_PROG(copy_file_range_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(copy_file_range_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(copy_file_range_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, COPY_FILE_RANGE_X_SIZE, PPME_SYSCALL_COPY_FILE_RANGE_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf,
+	                           ctx,
+	                           COPY_FILE_RANGE_X_SIZE,
+	                           PPME_SYSCALL_COPY_FILE_RANGE_X)) {
 		return 0;
 	}
 

@@ -24,20 +24,16 @@ limitations under the License.
 #include <string>
 #include <vector>
 
-class threadinfo_test : public testing::Test
-{
-};
+class threadinfo_test : public testing::Test {};
 
 static void check_iov(struct iovec* iov,
                       int iovcnt,
                       std::string rem,
                       std::vector<struct iovec>& expected,
-                      std::string expectedrem)
-{
+                      std::string expectedrem) {
 	ASSERT_EQ((unsigned)iovcnt, expected.size());
 
-	for (int i = 0; i < iovcnt; i++)
-	{
+	for(int i = 0; i < iovcnt; i++) {
 		ASSERT_EQ(iov[i].iov_len, expected[i].iov_len);
 		ASSERT_TRUE(memcmp(iov[i].iov_base, expected[i].iov_base, iov[i].iov_len) == 0);
 	}
@@ -45,28 +41,20 @@ static void check_iov(struct iovec* iov,
 	EXPECT_TRUE(rem == expectedrem);
 }
 
-enum test_type
-{
-	TEST_ARGS = 0,
-	TEST_ENV = 1,
-	TEST_CGROUPS = 2
-};
+enum test_type { TEST_ARGS = 0, TEST_ENV = 1, TEST_CGROUPS = 2 };
 
 static void run_test(test_type ttype,
                      std::vector<std::string>& vals,
                      std::vector<std::string>& expected,
-                     std::string expectedrem)
-{
+                     std::string expectedrem) {
 	sinsp_threadinfo ti(nullptr);
 	struct iovec* iov;
 	int iovcnt;
 	std::string rem;
 	sinsp_threadinfo::cgroups_t cg;
 
-	for (auto& val : vals)
-	{
-		switch (ttype)
-		{
+	for(auto& val : vals) {
+		switch(ttype) {
 		case TEST_ARGS:
 			ti.m_args.push_back(val.c_str());
 			break;
@@ -81,8 +69,7 @@ static void run_test(test_type ttype,
 		}
 	}
 
-	switch (ttype)
-	{
+	switch(ttype) {
 	case TEST_ARGS:
 		ti.args_to_iovec(&iov, &iovcnt, rem);
 		break;
@@ -96,15 +83,11 @@ static void run_test(test_type ttype,
 	};
 
 	std::vector<struct iovec> expected_iov;
-	for (auto& exp : expected)
-	{
-		if (ttype == TEST_ARGS || ttype == TEST_ENV)
-		{
+	for(auto& exp : expected) {
+		if(ttype == TEST_ARGS || ttype == TEST_ENV) {
 			// A trailing NULL is assumed for all values
 			expected_iov.emplace_back(iovec{(void*)exp.c_str(), exp.size() + 1});
-		}
-		else
-		{
+		} else {
 			expected_iov.emplace_back(iovec{(void*)exp.data(), exp.size()});
 		}
 	}
@@ -114,16 +97,14 @@ static void run_test(test_type ttype,
 	free(iov);
 }
 
-TEST_F(threadinfo_test, args)
-{
+TEST_F(threadinfo_test, args) {
 	std::vector<std::string> args = {"-i", "206", "--switch", "f"};
 	std::string expectedrem;
 
 	run_test(TEST_ARGS, args, args, expectedrem);
 }
 
-TEST_F(threadinfo_test, args_skip)
-{
+TEST_F(threadinfo_test, args_skip) {
 	std::string full(SCAP_MAX_ARGS_SIZE - 1, 'a');
 
 	std::vector<std::string> args = {full, "will-be-skipped"};
@@ -133,8 +114,7 @@ TEST_F(threadinfo_test, args_skip)
 	run_test(TEST_ARGS, args, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, argstrunc_single)
-{
+TEST_F(threadinfo_test, argstrunc_single) {
 	std::string full(SCAP_MAX_ARGS_SIZE, 'a');
 	std::string trunc(SCAP_MAX_ARGS_SIZE - 1, 'a');
 
@@ -145,8 +125,7 @@ TEST_F(threadinfo_test, argstrunc_single)
 	run_test(TEST_ARGS, args, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, argstrunc_multi)
-{
+TEST_F(threadinfo_test, argstrunc_multi) {
 	std::string full(SCAP_MAX_ARGS_SIZE, 'a');
 	std::string trunc(SCAP_MAX_ARGS_SIZE - 6, 'a');
 
@@ -157,16 +136,14 @@ TEST_F(threadinfo_test, argstrunc_multi)
 	run_test(TEST_ARGS, args, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, envs)
-{
+TEST_F(threadinfo_test, envs) {
 	std::vector<std::string> envs = {"-i", "206", "--switch", "f"};
 	std::string expectedrem;
 
 	run_test(TEST_ENV, envs, envs, expectedrem);
 }
 
-TEST_F(threadinfo_test, envs_skip)
-{
+TEST_F(threadinfo_test, envs_skip) {
 	std::string full(SCAP_MAX_ENV_SIZE - 1, 'a');
 
 	std::vector<std::string> envs = {full, "will-be-skipped"};
@@ -176,8 +153,7 @@ TEST_F(threadinfo_test, envs_skip)
 	run_test(TEST_ENV, envs, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, envstrunc_single)
-{
+TEST_F(threadinfo_test, envstrunc_single) {
 	std::string full(SCAP_MAX_ENV_SIZE, 'a');
 	std::string trunc(SCAP_MAX_ENV_SIZE - 1, 'a');
 
@@ -188,8 +164,7 @@ TEST_F(threadinfo_test, envstrunc_single)
 	run_test(TEST_ENV, envs, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, envstrunc_multi)
-{
+TEST_F(threadinfo_test, envstrunc_multi) {
 	std::string full(SCAP_MAX_ENV_SIZE, 'a');
 	std::string trunc(SCAP_MAX_ENV_SIZE - 6, 'a');
 
@@ -200,27 +175,26 @@ TEST_F(threadinfo_test, envstrunc_multi)
 	run_test(TEST_ENV, envs, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, cgroups)
-{
+TEST_F(threadinfo_test, cgroups) {
 	std::vector<std::string> cgroups = {
-	    "cpuset=/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
-	    "perf_event=/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
-	    "memory=/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
-	    "rdma=/"};
+	        "cpuset=/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
+	        "perf_event=/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
+	        "memory=/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
+	        "rdma=/"};
 
 	std::vector<std::string> expected = {
-	    "cpuset",
-	    "=",
-	    "/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
-	    "perf_event",
-	    "=",
-	    "/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
-	    "memory",
-	    "=",
-	    "/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
-	    "rdma",
-	    "=",
-	    "/"};
+	        "cpuset",
+	        "=",
+	        "/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
+	        "perf_event",
+	        "=",
+	        "/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
+	        "memory",
+	        "=",
+	        "/docker/875f9d8728e84761e4669b21acbf035b3a3fda62d7f6e35dd857781932cd74e8",
+	        "rdma",
+	        "=",
+	        "/"};
 
 	expected[2].push_back('\0');
 	expected[5].push_back('\0');
@@ -231,8 +205,7 @@ TEST_F(threadinfo_test, cgroups)
 	run_test(TEST_CGROUPS, cgroups, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, cgroups_skip)
-{
+TEST_F(threadinfo_test, cgroups_skip) {
 	std::string full(SCAP_MAX_CGROUPS_SIZE - 8, 'a');
 
 	std::vector<std::string> cgroups = {"cpuset=" + full, "rdma=will-be-skipped"};
@@ -243,8 +216,7 @@ TEST_F(threadinfo_test, cgroups_skip)
 	run_test(TEST_CGROUPS, cgroups, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, cgroupstrunc_single)
-{
+TEST_F(threadinfo_test, cgroupstrunc_single) {
 	std::string full(SCAP_MAX_CGROUPS_SIZE - 7, 'a');
 	std::string trunc(SCAP_MAX_CGROUPS_SIZE - 8, 'a');
 
@@ -256,8 +228,7 @@ TEST_F(threadinfo_test, cgroupstrunc_single)
 	run_test(TEST_CGROUPS, cgroups, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, cgroupstrunc_multi)
-{
+TEST_F(threadinfo_test, cgroupstrunc_multi) {
 	std::string full(SCAP_MAX_CGROUPS_SIZE, 'a');
 	std::string trunc(SCAP_MAX_CGROUPS_SIZE - 15, 'a');
 
@@ -270,8 +241,7 @@ TEST_F(threadinfo_test, cgroupstrunc_multi)
 	run_test(TEST_CGROUPS, cgroups, expected, expectedrem);
 }
 
-TEST_F(threadinfo_test, cgroupstrunc_noeq)
-{
+TEST_F(threadinfo_test, cgroupstrunc_noeq) {
 	std::string full(SCAP_MAX_CGROUPS_SIZE, 'a');
 	std::string trunc(SCAP_MAX_CGROUPS_SIZE - 10, 'a');
 

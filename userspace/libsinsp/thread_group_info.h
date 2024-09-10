@@ -31,35 +31,35 @@ class sinsp_threadinfo;
 #define DEFAULT_DEAD_THREADS_THRESHOLD 11
 
 /* New struct that keep information regarding the thread group */
-struct thread_group_info
-{
+struct thread_group_info {
 public:
-	thread_group_info(int64_t group_pid, bool reaper, std::weak_ptr<sinsp_threadinfo> current_thread):
-		m_pid(group_pid), m_reaper(reaper)
-	{
-		if(current_thread.expired())
-		{
+	thread_group_info(int64_t group_pid,
+	                  bool reaper,
+	                  std::weak_ptr<sinsp_threadinfo> current_thread):
+	        m_pid(group_pid),
+	        m_reaper(reaper) {
+		if(current_thread.expired()) {
 			throw sinsp_exception("we cannot create a thread group info from an expired thread");
 		}
 
-		/* When we create the thread group info the count is 1, because we only have the creator thread */
+		/* When we create the thread group info the count is 1, because we only have the creator
+		 * thread */
 		m_alive_count = 1;
 		m_threads.push_front(current_thread);
 	};
 
 	inline void increment_thread_count() { m_alive_count++; }
 
-	inline void decrement_thread_count()
-	{
+	inline void decrement_thread_count() {
 		m_alive_count--;
 
 		/* Clean expired threads if necessary.
 		 * Please note that this is an approximation, `m_threads.size() - m_alive_count` are not the
 		 * real expired threads, they are just the ones marked as dead. For example the main thread
-		 * of the group is marked as dead but it will be never expired until the thread group exists.
+		 * of the group is marked as dead but it will be never expired until the thread group
+		 * exists.
 		 */
-		if((m_threads.size() - m_alive_count) >= DEFAULT_DEAD_THREADS_THRESHOLD)
-		{
+		if((m_threads.size() - m_alive_count) >= DEFAULT_DEAD_THREADS_THRESHOLD) {
 			clean_expired_threads();
 		}
 	}
@@ -72,33 +72,28 @@ public:
 
 	inline int64_t get_tgroup_pid() const { return m_pid; }
 
-	inline const std::list<std::weak_ptr<sinsp_threadinfo>>& get_thread_list() const { return m_threads; }
+	inline const std::list<std::weak_ptr<sinsp_threadinfo>>& get_thread_list() const {
+		return m_threads;
+	}
 
-	inline void add_thread_to_group(const std::shared_ptr<sinsp_threadinfo>& thread, bool main)
-	{
+	inline void add_thread_to_group(const std::shared_ptr<sinsp_threadinfo>& thread, bool main) {
 		/* The main thread should always be the first element of the list, if present.
 		 * In this way we can efficiently obtain the main thread.
 		 */
-		if(main)
-		{
+		if(main) {
 			m_threads.push_front(thread);
-		}
-		else
-		{
+		} else {
 			m_threads.push_back(thread);
 		}
 		/* we are adding a thread so we increment the count */
 		increment_thread_count();
 	}
 
-	inline void clean_expired_threads()
-	{
+	inline void clean_expired_threads() {
 		auto thread = m_threads.begin();
-		while(thread != m_threads.end())
-		{
+		while(thread != m_threads.end()) {
 			/* This child is expired */
-			if(thread->expired())
-			{
+			if(thread->expired()) {
 				/* `erase` returns the pointer to the next child
 				 * no need for manual increment.
 				 */

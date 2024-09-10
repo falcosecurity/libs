@@ -36,14 +36,12 @@ std::string podman::m_user_api_sock_pattern = "/run/user/*/podman/podman.sock";
 
 namespace {
 constexpr const cgroup_layout ROOT_PODMAN_CGROUP_LAYOUT[] = {
-	{"/libpod-", ".scope"}, // podman
-	{"/libpod-", ".scope/container"}, // podman
-	{"/libpod-", ""}, // non-systemd podman, e.g. on alpine
-	{nullptr,    nullptr}
-};
+        {"/libpod-", ".scope"},            // podman
+        {"/libpod-", ".scope/container"},  // podman
+        {"/libpod-", ""},                  // non-systemd podman, e.g. on alpine
+        {nullptr, nullptr}};
 
-int get_userns_root_uid(int64_t tid)
-{
+int get_userns_root_uid(int64_t tid) {
 	std::stringstream uid_map_file;
 	uid_map_file << scap_get_host_root() << "/proc/" << tid << "/uid_map";
 
@@ -57,41 +55,34 @@ int get_userns_root_uid(int64_t tid)
 //  0 for root containers,
 //  >0 for rootless containers,
 //  NO_MATCH if the process is not in a podman container
-int get_podman_cgroup_uid(const std::string &cgroup, std::string &container_id, int64_t tid)
-{
-	if(cgroup.empty())
-	{
+int get_podman_cgroup_uid(const std::string &cgroup, std::string &container_id, int64_t tid) {
+	if(cgroup.empty()) {
 		// can't get the cgroup name
 		return libsinsp::procfs_utils::NO_MATCH;
 	}
 
 	size_t pos = cgroup.find("podman-");
-	if(pos != std::string::npos)
-	{
+	if(pos != std::string::npos) {
 		// .../podman-<pid>.scope/<container_id>
-		int podman_pid; // unused except to set the sscanf return value
-		char c;         // ^ same
-		if(sscanf(cgroup.c_str() + pos, "podman-%d.scope/%c", &podman_pid, &c) != 2)
-		{
+		int podman_pid;  // unused except to set the sscanf return value
+		char c;          // ^ same
+		if(sscanf(cgroup.c_str() + pos, "podman-%d.scope/%c", &podman_pid, &c) != 2) {
 			// cgroup doesn't match the expected pattern
 			return libsinsp::procfs_utils::NO_MATCH;
 		}
 
-		if(!match_one_container_id(cgroup, ".scope/", "", container_id))
-		{
+		if(!match_one_container_id(cgroup, ".scope/", "", container_id)) {
 			return libsinsp::procfs_utils::NO_MATCH;
 		}
 
 		int uid = get_userns_root_uid(tid);
-		if(uid == 0)
-		{
+		if(uid == 0) {
 			// root doesn't spawn rootless containers
 			return libsinsp::procfs_utils::NO_MATCH;
 		}
 
 		return uid;
-	} else
-	{
+	} else {
 		// when rootless podman containers are run as a service,
 		// there's nothing identifying podman in the cgroup as it looks like:
 		// /user.slice/user-<uid>.slice/user@<uid>.service/<unit>/<container_id>
@@ -102,19 +93,16 @@ int get_podman_cgroup_uid(const std::string &cgroup, std::string &container_id, 
 
 		// we can probably narrow the prefix down to ".service/" in the typical
 		// case but as we're already basically guessing, let's keep it generic
-		if(!match_one_container_id(cgroup, "/", "", container_id))
-		{
+		if(!match_one_container_id(cgroup, "/", "", container_id)) {
 			return libsinsp::procfs_utils::NO_MATCH;
 		}
 
 		int uid;
-		if(sscanf(cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1)
-		{
+		if(sscanf(cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1) {
 			return uid;
 		}
 		return libsinsp::procfs_utils::NO_MATCH;
 	}
-
 }
 
 // Check whether `tinfo` belongs to a podman container
@@ -123,26 +111,22 @@ int get_podman_cgroup_uid(const std::string &cgroup, std::string &container_id, 
 //  0 for root containers,
 //  >0 for rootless containers,
 //  NO_MATCH if the process is not in a podman container
-int detect_podman(const sinsp_threadinfo *tinfo, std::string &container_id)
-{
+int detect_podman(const sinsp_threadinfo *tinfo, std::string &container_id) {
 	std::string cgroup;
-	if(matches_runc_cgroups(tinfo, ROOT_PODMAN_CGROUP_LAYOUT, container_id, cgroup))
-	{
+	if(matches_runc_cgroups(tinfo, ROOT_PODMAN_CGROUP_LAYOUT, container_id, cgroup)) {
 		// User: /user.slice/user-1000.slice/user@1000.service/user.slice/libpod-$ID.scope/container
 		// Root: /machine.slice/libpod-$ID.scope/container
 		int uid;
-		if (sscanf(cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1)
-		{
+		if(sscanf(cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1) {
 			return uid;
 		}
-		return 0; // root
+		return 0;  // root
 	}
 
 	// the kernel driver does not return cgroups without subsystems (e.g. name=systemd)
 	// in the cgroups field, so we have to do a check here, and load /proc/pid/cgroups
 	// ourselves if needed
-	if(tinfo->get_cgroup("name=systemd", cgroup))
-	{
+	if(tinfo->get_cgroup("name=systemd", cgroup)) {
 		return get_podman_cgroup_uid(cgroup, container_id, tinfo->m_tid);
 	}
 
@@ -150,21 +134,18 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string &container_id)
 	proc_cgroups_tinfo.m_tid = tinfo->m_tid;
 	sinsp_cgroup::instance().lookup_cgroups(proc_cgroups_tinfo);
 
-	for(const auto& proc_cgroup: proc_cgroups_tinfo.cgroups())
-	{
+	for(const auto &proc_cgroup : proc_cgroups_tinfo.cgroups()) {
 		int ret = get_podman_cgroup_uid(proc_cgroup.second, container_id, tinfo->m_tid);
-		if(ret != libsinsp::procfs_utils::NO_MATCH)
-		{
+		if(ret != libsinsp::procfs_utils::NO_MATCH) {
 			return ret;
 		}
 	}
 
 	return libsinsp::procfs_utils::NO_MATCH;
 }
-}
+}  // namespace
 
-bool podman::can_api_sock_exist()
-{
+bool podman::can_api_sock_exist() {
 	glob_t gl;
 	int rc;
 	int glob_flags = 0;
@@ -175,8 +156,7 @@ bool podman::can_api_sock_exist()
 	std::string api_sock = scap_get_host_root() + m_api_sock;
 	std::string user_api_sock_pattern = scap_get_host_root() + m_user_api_sock_pattern;
 
-	if (access(api_sock.c_str(), R_OK|W_OK) == 0)
-	{
+	if(access(api_sock.c_str(), R_OK | W_OK) == 0) {
 		return true;
 	}
 
@@ -187,38 +167,31 @@ bool podman::can_api_sock_exist()
 	return (rc == 0);
 }
 
-bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
-{
+bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 	std::string container_id, api_sock;
 
-	if(!m_api_sock_can_exist.has_value())
-	{
-		if (query_os_for_missing_info)
-		{
+	if(!m_api_sock_can_exist.has_value()) {
+		if(query_os_for_missing_info) {
 			m_api_sock_can_exist = can_api_sock_exist();
-		}
-		else
-		{
+		} else {
 			// Short-circuit: always enable podman when running from a capture file.
 			m_api_sock_can_exist = true;
 		}
 	}
 
-	if(!m_api_sock_can_exist.value())
-	{
+	if(!m_api_sock_can_exist.value()) {
 		return false;
 	}
 
 	int uid = detect_podman(tinfo, container_id);
 
-	switch(uid)
-	{
-	case 0: // root, use the default socket
+	switch(uid) {
+	case 0:  // root, use the default socket
 		api_sock = m_api_sock;
 		break;
 	case libsinsp::procfs_utils::NO_MATCH:
 		return false;
-	default: // rootless container, use the user's socket
+	default:  // rootless container, use the user's socket
 		api_sock = "/run/user/" + std::to_string(uid) + "/podman/podman.sock";
 		break;
 	}

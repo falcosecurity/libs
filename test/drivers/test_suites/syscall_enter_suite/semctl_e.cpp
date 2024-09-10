@@ -6,8 +6,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
-TEST(SyscallEnter, semctlE)
-{
+TEST(SyscallEnter, semctlE) {
 	auto evt_test = get_syscall_event_test(__NR_semctl, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -26,8 +25,7 @@ TEST(SyscallEnter, semctlE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

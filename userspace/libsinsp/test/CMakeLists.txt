@@ -2,21 +2,19 @@
 #
 # Copyright (C) 2023 The Falco Authors.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
 #
 
 include(jsoncpp)
-if (NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN)
 	include(tbb)
 endif()
 if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
@@ -26,15 +24,17 @@ endif() # MINIMAL_BUILD
 include(zlib)
 
 if(WIN32)
-	set(CMAKE_CXX_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi /std:c++17")
+	set(CMAKE_CXX_FLAGS
+		"-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi /std:c++17"
+	)
 	set(CMAKE_CXX_FLAGS_DEBUG ${FALCOSECURITY_LIBS_DEBUG_FLAGS})
 	set(CMAKE_CXX_STANDARD 17)
 endif()
 
 # Create a libsinsp_test_var.h file with some variables used by our tests
-configure_file (
-    "${CMAKE_CURRENT_SOURCE_DIR}/libsinsp_test_var.h.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/libsinsp_test_var.h"
+configure_file(
+	"${CMAKE_CURRENT_SOURCE_DIR}/libsinsp_test_var.h.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/libsinsp_test_var.h"
 )
 
 file(GLOB_RECURSE TEST_PLUGINS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*.cpp)
@@ -46,7 +46,9 @@ if(NOT WIN32)
 
 	file(GLOB_RECURSE SINSP_FILTERCHECKS_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/filterchecks/*.cpp)
 
-	file(GLOB_RECURSE SINSP_CONTAINER_ENGINE_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/container_engine/*.cpp)
+	file(GLOB_RECURSE SINSP_CONTAINER_ENGINE_SUITE
+		 ${CMAKE_CURRENT_SOURCE_DIR}/container_engine/*.cpp
+	)
 endif()
 
 option(SCAP_FILES_SUITE_ENABLE "Enable scap-file tests in sinsp" "ON")
@@ -55,22 +57,15 @@ if((NOT ${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "s390x") AND ${SCAP_FILES_SUITE_
 	# Binary dir in which we will save all our Cmake files
 	file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/scap_files")
 	# Add here the name for new scap-files
-	set(SCAP_FILE_NAMES
-	    "kexec_arm64.scap"
-		"kexec_x86.scap"
-		"sample.scap"
-	)
-	set(SCAP_FILE_DOWNLOAD_PREFIX
-		"https://download.falco.org/fixtures/libs/scap_files"
-	)
+	set(SCAP_FILE_NAMES "kexec_arm64.scap" "kexec_x86.scap" "sample.scap")
+	set(SCAP_FILE_DOWNLOAD_PREFIX "https://download.falco.org/fixtures/libs/scap_files")
 	message(STATUS "Download all scap-files from: ${SCAP_FILE_DOWNLOAD_PREFIX}")
 	foreach(FILE_NAME ${SCAP_FILE_NAMES})
 		message(STATUS "Downloading scap-file: ${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}")
 		if(NOT EXISTS "${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}")
-			file(DOWNLOAD
-			"${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}"
-			"${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}"
-			SHOW_PROGRESS)
+			file(DOWNLOAD "${SCAP_FILE_DOWNLOAD_PREFIX}/${FILE_NAME}"
+				 "${CMAKE_BINARY_DIR}/scap_files/${FILE_NAME}" SHOW_PROGRESS
+			)
 		else()
 			message(STATUS "Skipping download, file already present")
 		endif()
@@ -134,7 +129,9 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 )
 
 if(WIN32)
-	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES
+	list(
+		REMOVE_ITEM
+		LIBSINSP_UNIT_TESTS_SOURCES
 		events_file.ut.cpp
 		events_fspath.ut.cpp
 		events_net.ut.cpp
@@ -146,10 +143,8 @@ if(WIN32)
 		public_sinsp_API/sinsp_logger.cpp
 	)
 elseif(APPLE OR EMSCRIPTEN)
-	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES
-		events_net.ut.cpp
-		filter_op_net_compare.ut.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/parsers/parse_connect.cpp
+	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES events_net.ut.cpp filter_op_net_compare.ut.cpp
+		 ${CMAKE_CURRENT_SOURCE_DIR}/parsers/parse_connect.cpp
 	)
 endif()
 
@@ -157,17 +152,20 @@ if(NOT MINIMAL_BUILD)
 	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
 endif()
 
-if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	list(
+		APPEND
+		LIBSINSP_UNIT_TESTS_SOURCES
 		async_key_value_source.ut.cpp
 		filter_ppm_codes.ut.cpp
 		public_sinsp_API/events_set.cpp
 		public_sinsp_API/interesting_syscalls.cpp
-		public_sinsp_API/ppm_sc_codes.cpp)
+		public_sinsp_API/ppm_sc_codes.cpp
+	)
 endif()
 
-# Link against additional files could be useful when testing plugins
-# `ADDITIONAL_SINSP_TESTS_SUITE` is a list of source files `;` separated
+# Link against additional files could be useful when testing plugins `ADDITIONAL_SINSP_TESTS_SUITE`
+# is a list of source files `;` separated
 if(ADDITIONAL_SINSP_TESTS_SUITE)
 	message(STATUS "- Additional sinsp source files: ${ADDITIONAL_SINSP_TESTS_SUITE}")
 	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES "${ADDITIONAL_SINSP_TESTS_SUITE}")
@@ -175,29 +173,27 @@ endif()
 
 add_executable(unit-test-libsinsp ${LIBSINSP_UNIT_TESTS_SOURCES})
 
-if (EMSCRIPTEN)
+if(EMSCRIPTEN)
 	target_compile_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
 	target_link_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
 	target_link_options(unit-test-libsinsp PRIVATE "-sALLOW_MEMORY_GROWTH=1")
-	target_link_options(unit-test-libsinsp PRIVATE "-sEXPORTED_FUNCTIONS=['_main','_htons','_ntohs']")
-	# note(jasondellaluce): since we run tests with node, we need to add this
-	# for reading from local capture files.
+	target_link_options(
+		unit-test-libsinsp PRIVATE "-sEXPORTED_FUNCTIONS=['_main','_htons','_ntohs']"
+	)
+	# note(jasondellaluce): since we run tests with node, we need to add this for reading from local
+	# capture files.
 	target_link_options(unit-test-libsinsp PRIVATE "-sNODERAWFS=1")
 endif()
 
-target_include_directories(unit-test-libsinsp
-	PRIVATE
-	${LIBS_DIR} # needed for driver/event_stats.h
-	${CMAKE_CURRENT_BINARY_DIR} # needed for libsinsp_test_var.h.in
-	${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(
+	unit-test-libsinsp
+	PRIVATE ${LIBS_DIR} # needed for driver/event_stats.h
+			${CMAKE_CURRENT_BINARY_DIR} # needed for libsinsp_test_var.h.in
+			${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(unit-test-libsinsp
-	sinsp
-	"${GTEST_LIB}"
-	"${GTEST_MAIN_LIB}"
-	"${TBB_LIB}"
-	"${JSONCPP_LIB}"
+target_link_libraries(
+	unit-test-libsinsp sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${TBB_LIB}" "${JSONCPP_LIB}"
 )
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`
@@ -207,7 +203,8 @@ if(ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS)
 	target_include_directories(unit-test-libsinsp PRIVATE ${ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS})
 endif()
 
-add_custom_target(run-unit-test-libsinsp
+add_custom_target(
+	run-unit-test-libsinsp
 	DEPENDS unit-test-libsinsp
 	COMMAND unit-test-libsinsp
 )

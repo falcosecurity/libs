@@ -26,65 +26,57 @@ limitations under the License.
  * a plugin that has event parsing capability. The parser is guaranteed to
  * process all the event of a given capture, once and only once.
  */
-class sinsp_plugin_parser
-{
+class sinsp_plugin_parser {
 public:
 	sinsp_plugin_parser(const std::shared_ptr<sinsp_plugin>& p):
-			m_plugin(p),
-			m_compatible_plugin_sources_bitmap()
-	{
-		if (!(p->caps() & CAP_PARSING))
-		{
-			throw sinsp_exception("can't create a sinsp_plugin_parser with a plugin that has no event parsing capability");
+	        m_plugin(p),
+	        m_compatible_plugin_sources_bitmap() {
+		if(!(p->caps() & CAP_PARSING)) {
+			throw sinsp_exception(
+			        "can't create a sinsp_plugin_parser with a plugin that has no event parsing "
+			        "capability");
 		}
 	}
 
-    virtual ~sinsp_plugin_parser() = default;
-    sinsp_plugin_parser(sinsp_plugin_parser&&) = default;
-    sinsp_plugin_parser& operator = (sinsp_plugin_parser&&) = default;
-    sinsp_plugin_parser(const sinsp_plugin_parser& s) = default;
-    sinsp_plugin_parser& operator = (const sinsp_plugin_parser& s) = default;
+	virtual ~sinsp_plugin_parser() = default;
+	sinsp_plugin_parser(sinsp_plugin_parser&&) = default;
+	sinsp_plugin_parser& operator=(sinsp_plugin_parser&&) = default;
+	sinsp_plugin_parser(const sinsp_plugin_parser& s) = default;
+	sinsp_plugin_parser& operator=(const sinsp_plugin_parser& s) = default;
 
-	inline bool process_event(sinsp_evt* evt, const std::vector<std::string>& evt_sources)
-	{
+	inline bool process_event(sinsp_evt* evt, const std::vector<std::string>& evt_sources) {
 		// reject the event if it comes from an unknown event source
-        if (evt->get_source_idx() == sinsp_no_event_source_idx)
-        {
-            return false;
-        }
+		if(evt->get_source_idx() == sinsp_no_event_source_idx) {
+			return false;
+		}
 
-        // reject the event if its type is not compatible with the plugin
-        if (!m_plugin->parse_event_codes().contains((ppm_event_code) evt->get_type()))
-        {
-            return false;
-        }
+		// reject the event if its type is not compatible with the plugin
+		if(!m_plugin->parse_event_codes().contains((ppm_event_code)evt->get_type())) {
+			return false;
+		}
 
-        // lazily populate the event source compatibility bitmap
-        while (m_compatible_plugin_sources_bitmap.size() <= evt->get_source_idx())
-        {
-            auto src_idx = m_compatible_plugin_sources_bitmap.size();
-            m_compatible_plugin_sources_bitmap.push_back(false);
-            ASSERT(src_idx < evt_sources.size());
-            const auto& source = evt_sources[src_idx];
-            auto compatible = sinsp_plugin::is_source_compatible(m_plugin->parse_event_sources(), source);
-            m_compatible_plugin_sources_bitmap[src_idx] = compatible;
-        }
+		// lazily populate the event source compatibility bitmap
+		while(m_compatible_plugin_sources_bitmap.size() <= evt->get_source_idx()) {
+			auto src_idx = m_compatible_plugin_sources_bitmap.size();
+			m_compatible_plugin_sources_bitmap.push_back(false);
+			ASSERT(src_idx < evt_sources.size());
+			const auto& source = evt_sources[src_idx];
+			auto compatible =
+			        sinsp_plugin::is_source_compatible(m_plugin->parse_event_sources(), source);
+			m_compatible_plugin_sources_bitmap[src_idx] = compatible;
+		}
 
-        // reject the event if its event source is not compatible with the plugin
-        if (!m_compatible_plugin_sources_bitmap[evt->get_source_idx()])
-        {
-            return false;
-        }
+		// reject the event if its event source is not compatible with the plugin
+		if(!m_compatible_plugin_sources_bitmap[evt->get_source_idx()]) {
+			return false;
+		}
 
 		return m_plugin->parse_event(evt);
 	}
 
-	inline const std::shared_ptr<sinsp_plugin>& plugin() const
-	{
-		return m_plugin;
-	}
+	inline const std::shared_ptr<sinsp_plugin>& plugin() const { return m_plugin; }
 
 private:
-    std::shared_ptr<sinsp_plugin> m_plugin;
+	std::shared_ptr<sinsp_plugin> m_plugin;
 	std::vector<bool> m_compatible_plugin_sources_bitmap;
 };

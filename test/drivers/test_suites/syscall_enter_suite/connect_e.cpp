@@ -2,8 +2,7 @@
 
 #if defined(__NR_connect)
 
-TEST(SyscallEnter, connectE_INET_failure)
-{
+TEST(SyscallEnter, connectE_INET_failure) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,10 @@ TEST(SyscallEnter, connectE_INET_failure)
 	int32_t mock_fd = -1;
 	sockaddr_in server_addr;
 	evt_test->server_fill_sockaddr_in(&server_addr);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "connect",
+	        syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +23,7 @@ TEST(SyscallEnter, connectE_INET_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -36,16 +37,16 @@ TEST(SyscallEnter, connectE_INET_failure)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
-	if(evt_test->is_modern_bpf_engine())
-	{
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
+	 */
+	if(evt_test->is_modern_bpf_engine()) {
 		evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_empty_param(2);
 		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
+		                "see the code"
+		             << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -53,8 +54,7 @@ TEST(SyscallEnter, connectE_INET_failure)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, connectE_INET6_failure)
-{
+TEST(SyscallEnter, connectE_INET6_failure) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -64,7 +64,10 @@ TEST(SyscallEnter, connectE_INET6_failure)
 	int32_t mock_fd = -1;
 	sockaddr_in6 server_addr;
 	evt_test->server_fill_sockaddr_in6(&server_addr);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "connect",
+	        syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -72,8 +75,7 @@ TEST(SyscallEnter, connectE_INET6_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -87,16 +89,19 @@ TEST(SyscallEnter, connectE_INET6_failure)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
-	if(evt_test->is_modern_bpf_engine())
-	{
-		evt_test->assert_addr_info_inet6_param(2, PPM_AF_INET6, IPV6_SERVER, IPV6_PORT_SERVER_STRING);
-	}
-	else
-	{
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
+	 */
+	if(evt_test->is_modern_bpf_engine()) {
+		evt_test->assert_addr_info_inet6_param(2,
+		                                       PPM_AF_INET6,
+		                                       IPV6_SERVER,
+		                                       IPV6_PORT_SERVER_STRING);
+	} else {
 		evt_test->assert_empty_param(2);
 		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
+		                "see the code"
+		             << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -104,8 +109,7 @@ TEST(SyscallEnter, connectE_INET6_failure)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, connectE_UNIX_failure)
-{
+TEST(SyscallEnter, connectE_UNIX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -118,7 +122,10 @@ TEST(SyscallEnter, connectE_UNIX_failure)
 	int32_t mock_fd = -1;
 	sockaddr_un server_addr;
 	evt_test->server_fill_sockaddr_un(&server_addr);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "connect",
+	        syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -126,8 +133,7 @@ TEST(SyscallEnter, connectE_UNIX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -141,16 +147,16 @@ TEST(SyscallEnter, connectE_UNIX_failure)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
-	if(evt_test->is_modern_bpf_engine())
-	{
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
+	 */
+	if(evt_test->is_modern_bpf_engine()) {
 		evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, UNIX_SERVER);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_empty_param(2);
 		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
+		                "see the code"
+		             << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -158,14 +164,17 @@ TEST(SyscallEnter, connectE_UNIX_failure)
 	evt_test->assert_num_params_pushed(2);
 }
 
-/* This is 109 chars long, so no null terminator will be put inside the `sun_path` during the socket call.
- * The BPF prog can read at most `108` chars so instead of the `*`, it will put the `\0`.
+/* This is 109 chars long, so no null terminator will be put inside the `sun_path` during the socket
+ * call. The BPF prog can read at most `108` chars so instead of the `*`, it will put the `\0`.
  */
-#define UNIX_LONG_PATH "/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/too_long/too_longgg*"
-#define EXPECTED_UNIX_LONG_PATH "/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/too_long/too_longgg"
+#define UNIX_LONG_PATH                                                                          \
+	"/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/" \
+	"too_long/too_longgg*"
+#define EXPECTED_UNIX_LONG_PATH                                                                 \
+	"/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/" \
+	"too_long/too_longgg"
 
-TEST(SyscallEnter, connectE_UNIX_max_path_failure)
-{
+TEST(SyscallEnter, connectE_UNIX_max_path_failure) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -180,7 +189,10 @@ TEST(SyscallEnter, connectE_UNIX_max_path_failure)
 	int32_t mock_fd = -1;
 	sockaddr_un server_addr;
 	evt_test->server_fill_sockaddr_un(&server_addr, UNIX_LONG_PATH);
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "connect",
+	        syscall(__NR_connect, mock_fd, (sockaddr*)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -188,8 +200,7 @@ TEST(SyscallEnter, connectE_UNIX_max_path_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -203,16 +214,16 @@ TEST(SyscallEnter, connectE_UNIX_max_path_failure)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
-	if(evt_test->is_modern_bpf_engine())
-	{
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
+	 */
+	if(evt_test->is_modern_bpf_engine()) {
 		evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, EXPECTED_UNIX_LONG_PATH);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_empty_param(2);
 		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
+		                "see the code"
+		             << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -220,8 +231,7 @@ TEST(SyscallEnter, connectE_UNIX_max_path_failure)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, connectE_null_sockaddr_failure)
-{
+TEST(SyscallEnter, connectE_null_sockaddr_failure) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -242,8 +252,7 @@ TEST(SyscallEnter, connectE_null_sockaddr_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

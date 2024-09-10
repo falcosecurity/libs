@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(clone3_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(clone3_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, CLONE3_E_SIZE, PPME_SYSCALL_CLONE3_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, CLONE3_E_SIZE, PPME_SYSCALL_CLONE3_E)) {
 		return 0;
 	}
 
@@ -40,26 +36,20 @@ int BPF_PROG(clone3_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(clone3_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
-
+int BPF_PROG(clone3_x, struct pt_regs *regs, long ret) {
 /* We already catch the clone3 child event with our `sched_process_fork` tracepoint,
  * for this reason we don't need also this instrumentation. Please note that we use
  * the aforementioned tracepoint only for the child event but we need to catch also
  * the father event or the failure case, for this reason we check the `ret==0`
  */
 #ifdef CAPTURE_SCHED_PROC_FORK
-	if(ret == 0)
-	{
+	if(ret == 0) {
 		return 0;
 	}
 #endif
 
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 	auxmap__preload_event_header(auxmap, PPME_SYSCALL_CLONE3_X);
@@ -74,8 +64,7 @@ int BPF_PROG(clone3_x,
 	/* We can extract `exe` (Parameter 2) and `args`(Parameter 3) only if the
 	 * syscall doesn't fail. Otherwise, they will send empty parameters.
 	 */
-	if(ret >= 0)
-	{
+	if(ret >= 0) {
 		unsigned long arg_start_pointer = 0;
 		unsigned long arg_end_pointer = 0;
 
@@ -87,15 +76,16 @@ int BPF_PROG(clone3_x,
 		READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
 
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
+		uint16_t exe_arg_len =
+		        auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-		auxmap__store_charbufarray_as_bytebuf(auxmap, arg_start_pointer + exe_arg_len,
-						      total_args_len - exe_arg_len, MAX_PROC_ARG_ENV - exe_arg_len);
-	}
-	else
-	{
+		auxmap__store_charbufarray_as_bytebuf(auxmap,
+		                                      arg_start_pointer + exe_arg_len,
+		                                      total_args_len - exe_arg_len,
+		                                      MAX_PROC_ARG_ENV - exe_arg_len);
+	} else {
 		/* Parameter 2: exe (type: PT_CHARBUF) */
 		auxmap__store_empty_param(auxmap);
 
@@ -165,13 +155,9 @@ int BPF_PROG(clone3_x,
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t1_clone3_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(t1_clone3_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -185,11 +171,12 @@ int BPF_PROG(t1_clone3_x,
 	/* Parameter 16: flags (type: PT_FLAGS32) */
 	/* the `clone_args` struct is defined since kernel version 5.3 */
 	unsigned long flags = 0;
-	if(bpf_core_type_exists(struct clone_args))
-	{
+	if(bpf_core_type_exists(struct clone_args)) {
 		unsigned long cl_args_pointer = extract__syscall_argument(regs, 0);
 		struct clone_args cl_args = {0};
-		bpf_probe_read_user((void *)&cl_args, bpf_core_type_size(struct clone_args), (void *)cl_args_pointer);
+		bpf_probe_read_user((void *)&cl_args,
+		                    bpf_core_type_size(struct clone_args),
+		                    (void *)cl_args_pointer);
 		flags = extract__clone_flags(task, cl_args.flags);
 	}
 	auxmap__store_u32_param(auxmap, (uint32_t)flags);
@@ -222,13 +209,9 @@ int BPF_PROG(t1_clone3_x,
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t2_clone3_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(t2_clone3_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 

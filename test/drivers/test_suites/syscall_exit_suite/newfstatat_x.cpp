@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_newfstatat
-TEST(SyscallExit, newfstatatX_success)
-{
+TEST(SyscallExit, newfstatatX_success) {
 	auto evt_test = get_syscall_event_test(__NR_newfstatat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,8 +22,7 @@ TEST(SyscallExit, newfstatatX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -51,8 +49,7 @@ TEST(SyscallExit, newfstatatX_success)
 	evt_test->assert_num_params_pushed(4);
 }
 
-TEST(SyscallExit, newfstatatX_failure)
-{
+TEST(SyscallExit, newfstatatX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_newfstatat, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -74,8 +71,7 @@ TEST(SyscallExit, newfstatatX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -24,20 +24,17 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/types.h>
 
-void* callback(void* arg)
-{
+void* callback(void* arg) {
 	return NULL;
 }
 
-int main()
-{
+int main() {
 	int ctid;
 	int cctid, cctid1, cctid2, cctid3, cctid4, cctid5;
 
 	ctid = fork();
 
-	if (ctid == 0)
-	{
+	if(ctid == 0) {
 		//
 		// CHILD PROCESS
 		//
@@ -48,8 +45,7 @@ int main()
 		usleep(100000);
 		cctid = fork();
 
-		if (cctid == 0)
-		{
+		if(cctid == 0) {
 			//
 			// CHILD PROCESS
 			//
@@ -60,8 +56,7 @@ int main()
 			usleep(100000);
 			cctid1 = fork();
 
-			if (cctid1 == 0)
-			{
+			if(cctid1 == 0) {
 				//
 				// CHILD PROCESS
 				//
@@ -72,8 +67,7 @@ int main()
 				usleep(100000);
 				cctid2 = fork();
 
-				if (cctid2 == 0)
-				{
+				if(cctid2 == 0) {
 					//
 					// CHILD PROCESS
 					//
@@ -84,8 +78,7 @@ int main()
 					usleep(100000);
 					cctid3 = fork();
 
-					if (cctid3 == 0)
-					{
+					if(cctid3 == 0) {
 						printf("*5\n");
 						//
 						// CHILD PROCESS
@@ -96,8 +89,7 @@ int main()
 						usleep(100000);
 						cctid4 = fork();
 
-						if (cctid4 == 0)
-						{
+						if(cctid4 == 0) {
 							printf("*6\n");
 							//
 							// CHILD PROCESS
@@ -108,43 +100,28 @@ int main()
 							usleep(100000);
 							cctid5 = fork();
 
-							if (cctid5 == 0)
-							{
+							if(cctid5 == 0) {
 								printf("*7\n");
 								return 0;
-							}
-							else
-							{
+							} else {
 								return 0;
 							}
-						}
-						else
-						{
+						} else {
 							return 0;
 						}
-					}
-					else
-					{
+					} else {
 						return 0;
 					}
-				}
-				else
-				{
+				} else {
 					return 0;
 				}
-			}
-			else
-			{
+			} else {
 				return 0;
 			}
-		}
-		else
-		{
+		} else {
 			return 0;
 		}
-	}
-	else
-	{
+	} else {
 		return 0;
 	}
 }

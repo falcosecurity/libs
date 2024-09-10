@@ -4,8 +4,7 @@
 
 #include <linux/io_uring.h>
 
-TEST(SyscallExit, io_uring_enterX)
-{
+TEST(SyscallExit, io_uring_enterX) {
 	auto evt_test = get_syscall_event_test(__NR_io_uring_enter, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -23,7 +22,10 @@ TEST(SyscallExit, io_uring_enterX)
 #endif
 	const void* argp = NULL;
 	size_t argsz = 7;
-	assert_syscall_state(SYSCALL_FAILURE, "io_uring_enter", syscall(__NR_io_uring_enter, fd, to_submit, min_complete, flags, argp, argsz));
+	assert_syscall_state(
+	        SYSCALL_FAILURE,
+	        "io_uring_enter",
+	        syscall(__NR_io_uring_enter, fd, to_submit, min_complete, flags, argp, argsz));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -32,8 +34,7 @@ TEST(SyscallExit, io_uring_enterX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

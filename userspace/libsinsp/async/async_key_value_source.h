@@ -28,8 +28,7 @@ limitations under the License.
 #include <unordered_map>
 #include <stdint.h>
 
-namespace libsinsp
-{
+namespace libsinsp {
 
 /**
  * Base class for classes that need to collect values asynchronously from some
@@ -71,8 +70,7 @@ namespace libsinsp
  *                    operator=().
  */
 template<typename key_type, typename value_type>
-class async_key_value_source
-{
+class async_key_value_source {
 public:
 	/**
 	 * If provided to the constructor as max_wait_ms, then lookup will
@@ -84,9 +82,7 @@ public:
 	 * A callback handler will take a key and a output reference to the
 	 * value.
 	 */
-	typedef std::function<void(const key_type& key,
-				   const value_type& value)>
-		callback_handler;
+	typedef std::function<void(const key_type& key, const value_type& value)> callback_handler;
 
 	/**
 	 * A ttl expired handler will take the expired key as argument.
@@ -172,8 +168,7 @@ public:
 	 * @returns true if this method was able to lookup and return the
 	 *          value synchronously; false otherwise.
 	 */
-	bool lookup(const key_type& key, value_type& value,
-		    const callback_handler& handler);
+	bool lookup(const key_type& key, value_type& value, const callback_handler& handler);
 
 	/**
 	 * Lookup value(s) based on the given key.  This method will block
@@ -212,9 +207,10 @@ public:
 	 * @returns true if this method was able to lookup and return the
 	 *          value synchronously; false otherwise.
 	 */
-	bool lookup(const key_type& key, value_type& value,
-		    const callback_handler& handler,
-		    const ttl_expired_handler& ttl_expired);
+	bool lookup(const key_type& key,
+	            value_type& value,
+	            const callback_handler& handler,
+	            const ttl_expired_handler& ttl_expired);
 
 	/**
 	 * Lookup a value based on the specified key, after an initial delay.
@@ -224,10 +220,10 @@ public:
 	 * @see lookup() for details
 	 */
 	bool lookup_delayed(const key_type& key,
-			    value_type& value,
-			    std::chrono::milliseconds delay,
-			    const callback_handler& handler = callback_handler(),
-			    const ttl_expired_handler& ttl_expired = ttl_expired_handler());
+	                    value_type& value,
+	                    std::chrono::milliseconds delay,
+	                    const callback_handler& handler = callback_handler(),
+	                    const ttl_expired_handler& ttl_expired = ttl_expired_handler());
 
 	/**
 	 * Determines if the async thread associated with this
@@ -319,9 +315,7 @@ protected:
 	 * If value_ptr is non-NULL, the contents will be saved and provided
 	 * to the next call of dequeue_next_key().
 	 */
-	void defer_lookup(const key_type& key,
-			  value_type* value_ptr,
-			 std::chrono::milliseconds delay);
+	void defer_lookup(const key_type& key, value_type* value_ptr, std::chrono::milliseconds delay);
 
 	/**
 	 * Concrete subclasses must override this method to perform the
@@ -350,23 +344,20 @@ private:
 	/**
 	 * Holds information associated with a single lookup() request.
 	 */
-	struct lookup_request
-	{
+	struct lookup_request {
 		lookup_request():
-			m_available(false),
-			m_value(),
-			m_available_condition(),
-			m_callback(),
-			m_start_time(std::chrono::steady_clock::now())
-		{ }
+		        m_available(false),
+		        m_value(),
+		        m_available_condition(),
+		        m_callback(),
+		        m_start_time(std::chrono::steady_clock::now()) {}
 
-		lookup_request(const lookup_request& rhs) :
-		   m_available(rhs.m_available),
-		   m_value(rhs.m_value),
-		   m_available_condition(/*not rhs*/),
-		   m_callback(rhs.m_callback),
-		   m_start_time(rhs.m_start_time)
-		{ }
+		lookup_request(const lookup_request& rhs):
+		        m_available(rhs.m_available),
+		        m_value(rhs.m_value),
+		        m_available_condition(/*not rhs*/),
+		        m_callback(rhs.m_callback),
+		        m_start_time(rhs.m_start_time) {}
 
 		/** Is the value here available? */
 		bool m_available;
@@ -388,7 +379,6 @@ private:
 		 * response notification.
 		 */
 		ttl_expired_handler m_ttl_callback;
-
 
 		/** The time at which this request was made. */
 		std::chrono::time_point<std::chrono::steady_clock> m_start_time;
@@ -427,12 +417,12 @@ private:
 	std::condition_variable m_queue_not_empty_condition;
 
 	using queue_item_t = std::pair<std::chrono::time_point<std::chrono::steady_clock>, key_type>;
-	std::priority_queue<queue_item_t, std::vector<queue_item_t>, std::greater<queue_item_t>> m_request_queue;
+	std::priority_queue<queue_item_t, std::vector<queue_item_t>, std::greater<queue_item_t>>
+	        m_request_queue;
 	std::set<key_type> m_request_set;
 	value_map m_value_map;
 };
 
-
-} // end namespace libsinsp
+}  // end namespace libsinsp
 
 #include <libsinsp/async/async_key_value_source.tpp>

@@ -23,8 +23,7 @@ limitations under the License.
 // Note:
 // 1. We don't save the type of the unix socket: datagram or stream
 // 2. Do we want to keep the tuple in this way `9c758d0f->9c758d0a /tmp/stream.sock`?
-TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket)
-{
+TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -34,8 +33,13 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket)
 	// We need the enter event because we store it and we use it in the exit one.
 	// We only store it, we don't create a fdinfo, if the enter event is missing
 	// we don't parse the exit one.
-	auto evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_SOCKET_E, 3, (uint32_t)PPM_AF_UNIX,
-					(uint32_t)SOCK_STREAM, (uint32_t)0);
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                INIT_TID,
+	                                PPME_SOCKET_SOCKET_E,
+	                                3,
+	                                (uint32_t)PPM_AF_UNIX,
+	                                (uint32_t)SOCK_STREAM,
+	                                (uint32_t)0);
 	auto fdinfo = evt->get_fd_info();
 	ASSERT_FALSE(fdinfo);
 
@@ -64,9 +68,15 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket)
 	ASSERT_EQ(fdinfo->m_name, "");
 
 	// We don't need the enter event!
-	std::vector<uint8_t> socktuple = test_utils::pack_unix_socktuple(0x9c758d0f, 0x9c758d0a, "/tmp/stream.sock");
-	evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_CONNECT_X, 3, return_value,
-				   scap_const_sized_buffer{socktuple.data(), socktuple.size()}, client_fd);
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_unix_socktuple(0x9c758d0f, 0x9c758d0a, "/tmp/stream.sock");
+	evt = add_event_advance_ts(increasing_ts(),
+	                           INIT_TID,
+	                           PPME_SOCKET_CONNECT_X,
+	                           3,
+	                           return_value,
+	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	                           client_fd);
 
 	/* FDINFO associated with the event */
 	fdinfo = evt->get_fd_info();
@@ -102,18 +112,23 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket)
 	ASSERT_EQ(fdinfo->m_name_raw, "");
 }
 
-TEST_F(sinsp_with_test_input, BIND_parse_unix_socket)
-{
+TEST_F(sinsp_with_test_input, BIND_parse_unix_socket) {
 	add_default_init_thread();
 	open_inspector();
 
 	int64_t return_value = 0;
 	std::string unix_path = "/tmp/python_unix_udp_sockets_example";
 	sockaddr_un u_sockaddr = test_utils::fill_sockaddr_un(unix_path.c_str());
-	std::vector<uint8_t> server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&u_sockaddr));
-	auto evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_BIND_X, 2, return_value,
-					scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
-	
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&u_sockaddr));
+	auto evt = add_event_advance_ts(
+	        increasing_ts(),
+	        INIT_TID,
+	        PPME_SOCKET_BIND_X,
+	        2,
+	        return_value,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+
 	// we want to check that `get_param_value_str` returns the correct unix socket path
 	ASSERT_EQ(evt->get_param_value_str("addr"), unix_path);
 }

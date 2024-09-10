@@ -30,12 +30,10 @@ limitations under the License.
 
 using namespace test_helpers;
 
-scoped_pipe::scoped_pipe()
-{
+scoped_pipe::scoped_pipe() {
 	int fds[2] = {};
 
-	if (pipe(fds) < 0)
-	{
+	if(pipe(fds) < 0) {
 		std::stringstream out;
 
 		out << "scoped_pipe: Failed to create pipe, error: " << strerror(errno);
@@ -47,18 +45,15 @@ scoped_pipe::scoped_pipe()
 	m_write_end = std::make_unique<scoped_file_descriptor>(fds[1]);
 }
 
-scoped_file_descriptor& scoped_pipe::read_end()
-{
+scoped_file_descriptor& scoped_pipe::read_end() {
 	return *m_read_end;
 }
 
-scoped_file_descriptor& scoped_pipe::write_end()
-{
+scoped_file_descriptor& scoped_pipe::write_end() {
 	return *m_write_end;
 }
 
-void scoped_pipe::close()
-{
+void scoped_pipe::close() {
 	m_read_end->close();
 	m_write_end->close();
 }

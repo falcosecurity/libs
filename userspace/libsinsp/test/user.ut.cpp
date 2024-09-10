@@ -26,14 +26,12 @@ limitations under the License.
 
 using namespace libsinsp;
 
-class usergroup_manager_test : public sinsp_with_test_input
-{
+class usergroup_manager_test : public sinsp_with_test_input {
 	// for gtest filtering convenience,
 	// add something when needed
 };
 
-TEST_F(usergroup_manager_test, add_rm)
-{
+TEST_F(usergroup_manager_test, add_rm) {
 	std::string container_id{""};
 
 	sinsp_usergroup_manager mgr(&m_inspector);
@@ -83,8 +81,7 @@ TEST_F(usergroup_manager_test, add_rm)
 
 // note(jasondellaluce): emscripten has issues with getpwuid
 #if !defined(__EMSCRIPTEN__)
-TEST_F(usergroup_manager_test, system_lookup)
-{
+TEST_F(usergroup_manager_test, system_lookup) {
 	std::string container_id{""};
 
 	sinsp_usergroup_manager mgr(&m_inspector);
@@ -120,14 +117,13 @@ TEST_F(usergroup_manager_test, system_lookup)
 }
 #endif
 
-TEST_F(usergroup_manager_test, add_no_import_users)
-{
+TEST_F(usergroup_manager_test, add_no_import_users) {
 	std::string container_id{""};
 
 	sinsp_usergroup_manager mgr(&m_inspector);
 	mgr.m_import_users = false;
 
-	auto *added_usr = mgr.add_user(container_id, -1, 37, 15, "test", "/test", "/bin/test");
+	auto* added_usr = mgr.add_user(container_id, -1, 37, 15, "test", "/test", "/bin/test");
 	ASSERT_NE(added_usr, nullptr);
 	ASSERT_EQ(added_usr->uid, 37);
 	ASSERT_EQ(added_usr->gid, 15);
@@ -138,7 +134,7 @@ TEST_F(usergroup_manager_test, add_no_import_users)
 	auto* user = mgr.get_user(container_id, 37);
 	ASSERT_EQ(user, nullptr);
 
-	auto *added_grp = mgr.add_group(container_id, -1, 15, "foo");
+	auto* added_grp = mgr.add_group(container_id, -1, 15, "foo");
 	ASSERT_NE(added_grp, nullptr);
 	ASSERT_EQ(added_grp->gid, 15);
 	ASSERT_STREQ(added_grp->name, "<NA>");
@@ -149,12 +145,10 @@ TEST_F(usergroup_manager_test, add_no_import_users)
 
 // note(jasondellaluce): emscripten has issues with fgetpwent
 // note(therealbobo): macos doesn't define fgetpwent
-#if (defined(HAVE_PWD_H) &&  defined(HAVE_GRP_H)) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
-class usergroup_manager_host_root_test : public sinsp_with_test_input
-{
+#if(defined(HAVE_PWD_H) && defined(HAVE_GRP_H)) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+class usergroup_manager_host_root_test : public sinsp_with_test_input {
 protected:
-	void SetUp() override
-	{
+	void SetUp() override {
 		char pwd_buf[SCAP_MAX_PATH_SIZE];
 		auto pwd = getcwd(pwd_buf, SCAP_MAX_PATH_SIZE);
 		ASSERT_NE(pwd, nullptr);
@@ -179,8 +173,7 @@ protected:
 		}
 	}
 
-	void TearDown() override
-	{
+	void TearDown() override {
 		unlink((m_host_root + "/etc/passwd").c_str());
 		unlink((m_host_root + "/etc/group").c_str());
 		rmdir((m_host_root + "/etc").c_str());
@@ -190,8 +183,7 @@ protected:
 	std::string m_host_root;
 };
 
-TEST_F(usergroup_manager_host_root_test, host_root_lookup)
-{
+TEST_F(usergroup_manager_host_root_test, host_root_lookup) {
 	std::string container_id{""};
 
 	sinsp_usergroup_manager mgr(&m_inspector);
@@ -212,9 +204,8 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup)
 	ASSERT_STREQ(group->name, "toor");
 }
 
-TEST_F(usergroup_manager_host_root_test, nss_user_lookup)
-{
-	std::string container_id; // empty container_id means host
+TEST_F(usergroup_manager_host_root_test, nss_user_lookup) {
+	std::string container_id;  // empty container_id means host
 
 	sinsp_usergroup_manager mgr(&m_inspector);
 	mgr.add_user(container_id, -1, 0, 0, {}, {}, {});

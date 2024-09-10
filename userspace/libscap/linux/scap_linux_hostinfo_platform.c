@@ -25,25 +25,24 @@ limitations under the License.
 #include <stdlib.h>
 #include <unistd.h>
 
-static void scap_linux_hostinfo_free_platform(struct scap_platform* platform)
-{
+static void scap_linux_hostinfo_free_platform(struct scap_platform* platform) {
 	free(platform);
 }
 
-int32_t scap_linux_hostinfo_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs)
-{
+int32_t scap_linux_hostinfo_init_platform(struct scap_platform* platform,
+                                          char* lasterr,
+                                          struct scap_engine_handle engine,
+                                          struct scap_open_args* oargs) {
 	int rc;
 
-	if(scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS)
-	{
+	if(scap_os_get_machine_info(&platform->m_machine_info, lasterr) != SCAP_SUCCESS) {
 		return SCAP_FAILURE;
 	}
 
 	scap_os_get_agent_info(&platform->m_agent_info);
 
 	rc = scap_linux_create_iflist(platform);
-	if(rc != SCAP_SUCCESS)
-	{
+	if(rc != SCAP_SUCCESS) {
 		scap_linux_hostinfo_free_platform(platform);
 		return rc;
 	}
@@ -52,17 +51,15 @@ int32_t scap_linux_hostinfo_init_platform(struct scap_platform* platform, char* 
 }
 
 static const struct scap_platform_vtable scap_linux_hostinfo_platform_vtable = {
-	.init_platform = scap_linux_hostinfo_init_platform,
-	.refresh_addr_list = scap_linux_create_iflist,
-	.free_platform = scap_linux_hostinfo_free_platform,
+        .init_platform = scap_linux_hostinfo_init_platform,
+        .refresh_addr_list = scap_linux_create_iflist,
+        .free_platform = scap_linux_hostinfo_free_platform,
 };
 
-struct scap_platform* scap_linux_hostinfo_alloc_platform()
-{
+struct scap_platform* scap_linux_hostinfo_alloc_platform() {
 	struct scap_linux_platform* platform = calloc(1, sizeof(*platform));
 
-	if(platform == NULL)
-	{
+	if(platform == NULL) {
 		return NULL;
 	}
 

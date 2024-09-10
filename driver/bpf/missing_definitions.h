@@ -13,11 +13,11 @@ or GPL2.txt for full copies of the license.
 #include <linux/mount.h>
 /* This require the inlclude `linux/mount.h` for `vfsmount` definition */
 struct mount {
-    struct hlist_node mnt_hash;
-    struct mount *mnt_parent;
-    struct dentry *mnt_mountpoint;
-    struct vfsmount mnt;
-    // ...
+	struct hlist_node mnt_hash;
+	struct mount *mnt_parent;
+	struct dentry *mnt_mountpoint;
+	struct vfsmount mnt;
+	// ...
 };
 
 #endif /*__BPF_MISSING_DEFINITIONS_H__*/

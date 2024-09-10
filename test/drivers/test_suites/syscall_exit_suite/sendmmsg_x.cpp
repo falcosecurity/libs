@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_sendmmsg
-TEST(SyscallExit, sendmmsgX)
-{
+TEST(SyscallExit, sendmmsgX) {
 	auto evt_test = get_syscall_event_test(__NR_sendmmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallExit, sendmmsgX)
 	struct msghdr *msg = NULL;
 	uint32_t vlen = 0;
 	int flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "sendmmsg", syscall(__NR_sendmmsg, mock_fd, msg, vlen, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "sendmmsg",
+	                     syscall(__NR_sendmmsg, mock_fd, msg, vlen, flags));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallExit, sendmmsgX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

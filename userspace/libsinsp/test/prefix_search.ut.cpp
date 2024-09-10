@@ -22,8 +22,7 @@ limitations under the License.
 
 using namespace std;
 
-TEST(prefix_search_test, basic)
-{
+TEST(prefix_search_test, basic) {
 	path_prefix_search tree;
 
 	tree.add_search_path("/var/run");
@@ -52,8 +51,7 @@ TEST(prefix_search_test, basic)
 	ASSERT_FALSE(found);
 }
 
-TEST(prefix_search_test, as_string)
-{
+TEST(prefix_search_test, as_string) {
 	path_prefix_search tree;
 
 	tree.add_search_path("/var/run");
@@ -69,7 +67,7 @@ TEST(prefix_search_test, as_string)
 
 	// Note: /var/run/dmesg is not included because /var/run is
 	// already added and is a prefix of /var/run/dmesg.
-	const char *expected = R"STR(root ->
+	const char* expected = R"STR(root ->
     etc ->
     lib ->
     opt ->
@@ -84,11 +82,10 @@ TEST(prefix_search_test, as_string)
         run ->
 )STR";
 
-	ASSERT_STREQ(treerep.c_str(),  expected);
+	ASSERT_STREQ(treerep.c_str(), expected);
 }
 
-TEST(prefix_search_test, glob)
-{
+TEST(prefix_search_test, glob) {
 	path_prefix_search tree;
 
 	tree.add_search_path("/opt/*/subdir");
@@ -111,8 +108,7 @@ TEST(prefix_search_test, glob)
 	ASSERT_TRUE(found);
 }
 
-TEST(prefix_search_test, subpaths)
-{
+TEST(prefix_search_test, subpaths) {
 	path_prefix_search tree;
 
 	tree.add_search_path("/var/log/messages");
@@ -165,8 +161,7 @@ TEST(prefix_search_test, subpaths)
 	ASSERT_TRUE(treerep.find("var") == string::npos);
 }
 
-TEST(prefix_search_test, root_dir_match)
-{
+TEST(prefix_search_test, root_dir_match) {
 	path_prefix_search tree;
 	tree.add_search_path("/");
 
@@ -183,8 +178,7 @@ TEST(prefix_search_test, root_dir_match)
 	ASSERT_TRUE(found);
 }
 
-TEST(prefix_search_test, maps)
-{
+TEST(prefix_search_test, maps) {
 	path_prefix_map<uint32_t> tree;
 	uint32_t val;
 	const uint32_t* match;
@@ -238,8 +232,7 @@ TEST(prefix_search_test, maps)
 	ASSERT_TRUE(*match == 5);
 }
 
-TEST(prefix_search_test, root_dir_maps)
-{
+TEST(prefix_search_test, root_dir_maps) {
 	path_prefix_map<uint32_t> tree;
 	uint32_t val;
 	const uint32_t* match;
@@ -269,8 +262,7 @@ TEST(prefix_search_test, root_dir_maps)
 	ASSERT_TRUE(*match == 2);
 }
 
-TEST(prefix_search_test, container_images)
-{
+TEST(prefix_search_test, container_images) {
 	path_prefix_map<uint32_t> tree;
 	uint32_t val;
 	const uint32_t* match;

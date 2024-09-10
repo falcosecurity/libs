@@ -2,8 +2,7 @@
 
 #ifdef __NR_writev
 
-TEST(SyscallEnter, writevE_empty_iovec)
-{
+TEST(SyscallEnter, writevE_empty_iovec) {
 	auto evt_test = get_syscall_event_test(__NR_writev, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -21,8 +20,7 @@ TEST(SyscallEnter, writevE_empty_iovec)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -43,8 +41,7 @@ TEST(SyscallEnter, writevE_empty_iovec)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, writevE_full_iovec)
-{
+TEST(SyscallEnter, writevE_full_iovec) {
 	auto evt_test = get_syscall_event_test(__NR_writev, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -65,8 +62,7 @@ TEST(SyscallEnter, writevE_full_iovec)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

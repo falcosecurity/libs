@@ -2,17 +2,15 @@
 #
 # Copyright (C) 2023 The Falco Authors.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+# in compliance with the License. You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Unless required by applicable law or agreed to in writing, software distributed under the License
+# is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+# or implied. See the License for the specific language governing permissions and limitations under
+# the License.
 #
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
@@ -35,13 +33,13 @@ include(jsoncpp)
 include(zlib)
 
 if(NOT MINIMAL_BUILD)
-	if (NOT WIN32 AND NOT EMSCRIPTEN)
+	if(NOT WIN32 AND NOT EMSCRIPTEN)
 		include(curl)
 		include(cares)
 	endif() # NOT WIN32
 endif()
 
-if(NOT WIN32 AND NOT APPLE )
+if(NOT WIN32 AND NOT APPLE)
 	if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 		include(grpc)
 		include(protobuf)
@@ -49,11 +47,12 @@ if(NOT WIN32 AND NOT APPLE )
 	endif() # NOT MINIMAL_BUILD
 endif()
 
-if (NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN)
 	include(tbb)
 endif()
 
-add_library(sinsp
+add_library(
+	sinsp
 	filter/ast.cpp
 	filter/escaping.cpp
 	filter/parser.cpp
@@ -113,11 +112,8 @@ add_library(sinsp
 	events/sinsp_events_ppm_sc.cpp
 )
 
-if (ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
-	target_sources(sinsp
-	PRIVATE
-		thread_pool_bs.cpp
-	)
+if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
+	target_sources(sinsp PRIVATE thread_pool_bs.cpp)
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
@@ -125,72 +121,57 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
-	target_sources(sinsp
-	PRIVATE
-		container_engine/docker/async_source.cpp
-		container_engine/docker/base.cpp
+	target_sources(
+		sinsp PRIVATE container_engine/docker/async_source.cpp container_engine/docker/base.cpp
 	)
 	if(NOT WIN32)
-		target_sources(sinsp
-		PRIVATE
-			container_engine/docker/docker_linux.cpp
-			container_engine/docker/connection_linux.cpp
-			container_engine/docker/podman.cpp
-			container_engine/libvirt_lxc.cpp
-			container_engine/lxc.cpp
-			container_engine/mesos.cpp
-			container_engine/rkt.cpp
-			container_engine/bpm.cpp
-			cri_settings.cpp
-			runc.cpp
+		target_sources(
+			sinsp
+			PRIVATE container_engine/docker/docker_linux.cpp
+					container_engine/docker/connection_linux.cpp
+					container_engine/docker/podman.cpp
+					container_engine/libvirt_lxc.cpp
+					container_engine/lxc.cpp
+					container_engine/mesos.cpp
+					container_engine/rkt.cpp
+					container_engine/bpm.cpp
+					cri_settings.cpp
+					runc.cpp
 		)
 	endif()
 
 	if(NOT WIN32 AND NOT APPLE)
-		target_sources(sinsp
-		PRIVATE
-			cgroup_limits.cpp
-			container_engine/cri.cpp
-			grpc_channel_registry.cpp
+		target_sources(
+			sinsp PRIVATE cgroup_limits.cpp container_engine/cri.cpp grpc_channel_registry.cpp
 		)
 	endif()
 endif()
 
-target_include_directories(sinsp
-PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-	$<BUILD_INTERFACE:${LIBS_DIR}/userspace>
-	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}>
+target_include_directories(
+	sinsp
+	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${LIBS_DIR}/userspace>
+		   $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/${LIBS_PACKAGE_NAME}>
 )
 
-if (EMSCRIPTEN)
+if(EMSCRIPTEN)
 	target_compile_options(sinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
 endif()
 
 set_sinsp_target_properties(sinsp)
 
-target_link_libraries(sinsp
-		PUBLIC scap
-		PRIVATE
-			"${CURL_LIBRARIES}"
-			"${JSONCPP_LIB}"
-			"${RE2_LIB}"
+target_link_libraries(
+	sinsp
+	PUBLIC scap
+	PRIVATE "${CURL_LIBRARIES}" "${JSONCPP_LIB}" "${RE2_LIB}"
 )
 
-set(SINSP_PKGCONFIG_LIBRARIES
-	scap
-	"${ZLIB_LIB}"
-	"${CURL_LIBRARIES}"
-	"${JSONCPP_LIB}"
-	"${RE2_LIB}"
-)
+set(SINSP_PKGCONFIG_LIBRARIES scap "${ZLIB_LIB}" "${CURL_LIBRARIES}" "${JSONCPP_LIB}" "${RE2_LIB}")
 
 if(NOT EMSCRIPTEN)
-	target_link_libraries(sinsp
-		INTERFACE
-			"${CARES_LIB}"
-		PRIVATE
-		"${TBB_LIB}"
+	target_link_libraries(
+		sinsp
+		INTERFACE "${CARES_LIB}"
+		PRIVATE "${TBB_LIB}"
 	)
 	list(APPEND SINSP_PKGCONFIG_LIBRARIES "${CARES_LIB}")
 endif()
@@ -212,25 +193,36 @@ if(ENABLE_THREAD_POOL AND USE_BUNDLED_BS_THREADPOOL)
 endif()
 
 function(prepare_cri_grpc api_version)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cri-${api_version}.proto ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto COPYONLY)
-	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc
-			${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.h
-			${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc
-			${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.h
-			COMMENT "Generate CRI grpc code for API version ${api_version}"
-			DEPENDS
-			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --cpp_out=. ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
-			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
-			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-	add_library(cri_${api_version} STATIC ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc)
-	target_include_directories(cri_${api_version}
-	PUBLIC
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+	configure_file(
+		${CMAKE_CURRENT_SOURCE_DIR}/cri-${api_version}.proto
+		${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto COPYONLY
+	)
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc
+			   ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.h
+			   ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc
+			   ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.h
+		COMMENT "Generate CRI grpc code for API version ${api_version}"
+		DEPENDS
+		COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --cpp_out=.
+				${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
+		COMMAND
+			${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=.
+			--plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+			${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	)
+	add_library(
+		cri_${api_version} STATIC ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc
+								  ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc
+	)
+	target_include_directories(
+		cri_${api_version} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 	)
 	add_dependencies(cri_${api_version} grpc)
 endfunction()
 
-if (NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN)
 	add_dependencies(sinsp tbb)
 endif()
 
@@ -248,25 +240,21 @@ if(NOT WIN32)
 			prepare_cri_grpc(v1alpha2)
 			prepare_cri_grpc(v1)
 
-			target_link_libraries(sinsp
-					PRIVATE
-						cri_v1alpha2
-						cri_v1
-					INTERFACE
-						"${GRPC_LIBRARIES}"
-						"${GRPCPP_LIB}"
-						"${GRPC_LIB}"
-						"${GPR_LIB}"
-						"${PROTOBUF_LIB}"
-						"${CARES_LIB}"
+			target_link_libraries(
+				sinsp
+				PRIVATE cri_v1alpha2 cri_v1
+				INTERFACE "${GRPC_LIBRARIES}" "${GRPCPP_LIB}" "${GRPC_LIB}" "${GPR_LIB}"
+						  "${PROTOBUF_LIB}" "${CARES_LIB}"
 			)
-			list(APPEND SINSP_PKGCONFIG_LIBRARIES
-						"${GRPC_LIBRARIES}"
-						"${GRPCPP_LIB}"
-						"${GRPC_LIB}"
-						"${GPR_LIB}"
-						"${PROTOBUF_LIB}"
-						"${CARES_LIB}"
+			list(
+				APPEND
+				SINSP_PKGCONFIG_LIBRARIES
+				"${GRPC_LIBRARIES}"
+				"${GRPCPP_LIB}"
+				"${GRPC_LIB}"
+				"${GPR_LIB}"
+				"${PROTOBUF_LIB}"
+				"${CARES_LIB}"
 			)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
@@ -292,7 +280,7 @@ if(NOT WIN32)
 	target_link_libraries(sinsp INTERFACE dl pthread)
 	list(APPEND SINSP_PKGCONFIG_LIBRARIES dl pthread)
 
-	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
 			target_link_libraries(sinsp INTERFACE stdc++fs)
 			list(APPEND SINSP_PKGCONFIG_LIBRARIES stdc++fs)
@@ -309,12 +297,12 @@ endif()
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
 if(CREATE_TEST_TARGETS)
-		# Add unit test directories
-		add_subdirectory(test)
+	# Add unit test directories
+	add_subdirectory(test)
 endif()
 
 option(BUILD_LIBSINSP_EXAMPLES "Build libsinsp examples" ON)
-if (BUILD_LIBSINSP_EXAMPLES)
+if(BUILD_LIBSINSP_EXAMPLES)
 	add_subdirectory(examples)
 	add_subdirectory(sinsp_debug)
 endif()
@@ -324,10 +312,9 @@ if(NOT DEFINED SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR)
 endif()
 add_definitions(-DSINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR="${SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR}")
 
-# Build our pkg-config "Libs:" flags. For now, loop over SINSP_PKGCONFIG_LIBRARIES. If
-# we ever start using pkg_search_module or pkg_check_modules in cmake/modules
-# we could add each module to our "Requires:" line instead. We might need to
-# expand this to use some of the techniques in
+# Build our pkg-config "Libs:" flags. For now, loop over SINSP_PKGCONFIG_LIBRARIES. If we ever start
+# using pkg_search_module or pkg_check_modules in cmake/modules we could add each module to our
+# "Requires:" line instead. We might need to expand this to use some of the techniques in
 # https://github.com/curl/curl/blob/curl-7_84_0/CMakeLists.txt#L1539
 set(SINSP_PKG_CONFIG_LIBS)
 set(SINSP_PKG_CONFIG_LIBDIRS "")
@@ -361,4 +348,6 @@ list(REMOVE_DUPLICATES SINSP_PKG_CONFIG_LIBDIRS)
 string(REPLACE ";" " " SINSP_PKG_CONFIG_LIBDIRS "${SINSP_PKG_CONFIG_LIBDIRS}")
 list(REMOVE_DUPLICATES SINSP_PKG_CONFIG_INCLUDES)
 string(REPLACE ";" " " SINSP_PKG_CONFIG_INCLUDES "${SINSP_PKG_CONFIG_INCLUDES}")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libsinsp.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libsinsp.pc @ONLY)
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/libsinsp.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libsinsp.pc @ONLY
+)

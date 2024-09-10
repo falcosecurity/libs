@@ -2,8 +2,7 @@
 
 #ifdef __NR_umount
 
-TEST(SyscallExit, umountX)
-{
+TEST(SyscallExit, umountX) {
 	auto evt_test = get_syscall_event_test(__NR_umount, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallExit, umountX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

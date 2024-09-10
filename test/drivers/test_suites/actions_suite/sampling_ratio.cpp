@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #if defined(__NR_unshare)
-TEST(Actions, sampling_ratio_UF_ALWAYS_DROP)
-{
+TEST(Actions, sampling_ratio_UF_ALWAYS_DROP) {
 	/* Here we set just one `UF_ALWAYS_DROP` syscall as interesting... this process will send
 	 * only this specific syscall and we have to check that the corresponding event is dropped when
 	 * the sampling logic is enabled and not dropped when the logic is disabled.
@@ -32,8 +31,7 @@ TEST(Actions, sampling_ratio_UF_ALWAYS_DROP)
 #endif
 
 #if defined(__NR_eventfd) && defined(__NR_close)
-TEST(Actions, sampling_ratio_UF_NEVER_DROP)
-{
+TEST(Actions, sampling_ratio_UF_NEVER_DROP) {
 	/* Here we set just one `UF_NEVER_DROP` syscall as interesting... this process will send
 	 * only this specific syscall and we have to check that the corresponding event is
 	 * not dropped when the sampling logic is enabled.
@@ -59,8 +57,7 @@ TEST(Actions, sampling_ratio_UF_NEVER_DROP)
 #endif
 
 #if defined(__NR_capset)
-TEST(Actions, sampling_ratio_NO_FLAGS)
-{
+TEST(Actions, sampling_ratio_NO_FLAGS) {
 	/* Here we set just one syscall with no flags (UF_ALWAYS_DROP/UF_NEVER_DROP)
 	 * as interesting... this process will send only this specific syscall and
 	 * we have to check that the corresponding event is not dropped when the
@@ -87,15 +84,15 @@ TEST(Actions, sampling_ratio_NO_FLAGS)
 
 #ifdef __NR_fcntl
 #include <fcntl.h>
-TEST(Actions, sampling_ratio_dropping_FCNTL_E)
-{
+TEST(Actions, sampling_ratio_dropping_FCNTL_E) {
 	auto evt_test = get_syscall_event_test(__NR_fcntl, ENTER_EVENT);
 
 	evt_test->enable_sampling_logic(1);
 
 	evt_test->enable_capture();
 
-	/* If called with `F_DUPFD_CLOEXEC` flag the fcntl event shouldn't be dropped by the dropping logic */
+	/* If called with `F_DUPFD_CLOEXEC` flag the fcntl event shouldn't be dropped by the dropping
+	 * logic */
 	int32_t invalid_fd = -1;
 	int cmd = F_DUPFD_CLOEXEC;
 	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd));
@@ -118,15 +115,15 @@ TEST(Actions, sampling_ratio_dropping_FCNTL_E)
 	evt_test->disable_capture();
 }
 
-TEST(Actions, sampling_ratio_dropping_FCNTL_X)
-{
+TEST(Actions, sampling_ratio_dropping_FCNTL_X) {
 	auto evt_test = get_syscall_event_test(__NR_fcntl, EXIT_EVENT);
 
 	evt_test->enable_sampling_logic(1);
 
 	evt_test->enable_capture();
 
-	/* If called with `F_DUPFD_CLOEXEC` flag the fcntl event shouldn't be dropped by the dropping logic */
+	/* If called with `F_DUPFD_CLOEXEC` flag the fcntl event shouldn't be dropped by the dropping
+	 * logic */
 	int32_t invalid_fd = -1;
 	int cmd = F_DUPFD_CLOEXEC;
 	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd));
@@ -151,8 +148,7 @@ TEST(Actions, sampling_ratio_dropping_FCNTL_X)
 #endif
 
 #if defined(__NR_close) && defined(__NR_socket)
-TEST(Actions, sampling_ratio_dropping_CLOSE_E_invalid_fd)
-{
+TEST(Actions, sampling_ratio_dropping_CLOSE_E_invalid_fd) {
 	auto evt_test = get_syscall_event_test(__NR_close, ENTER_EVENT);
 
 	evt_test->enable_sampling_logic(1);
@@ -175,8 +171,7 @@ TEST(Actions, sampling_ratio_dropping_CLOSE_E_invalid_fd)
 	evt_test->disable_capture();
 }
 
-TEST(Actions, sampling_ratio_dropping_CLOSE_E_max_fds)
-{
+TEST(Actions, sampling_ratio_dropping_CLOSE_E_max_fds) {
 	auto evt_test = get_syscall_event_test(__NR_close, ENTER_EVENT);
 
 	evt_test->enable_sampling_logic(1);
@@ -197,8 +192,7 @@ TEST(Actions, sampling_ratio_dropping_CLOSE_E_max_fds)
 	evt_test->disable_capture();
 }
 
-TEST(Actions, sampling_ratio_dropping_CLOSE_E_already_closed_fd)
-{
+TEST(Actions, sampling_ratio_dropping_CLOSE_E_already_closed_fd) {
 	auto evt_test = get_syscall_event_test(__NR_close, ENTER_EVENT);
 
 	evt_test->enable_sampling_logic(1);
@@ -213,7 +207,8 @@ TEST(Actions, sampling_ratio_dropping_CLOSE_E_already_closed_fd)
 
 	evt_test->assert_event_presence();
 
-	/* Now we call again the close on the already close fd and we shouldn't be able to catch the close enter event */
+	/* Now we call again the close on the already close fd and we shouldn't be able to catch the
+	 * close enter event */
 	assert_syscall_state(SYSCALL_FAILURE, "close", syscall(__NR_close, socket_fd));
 
 	evt_test->disable_sampling_logic();
@@ -228,8 +223,7 @@ TEST(Actions, sampling_ratio_dropping_CLOSE_E_already_closed_fd)
 	evt_test->disable_capture();
 }
 
-TEST(Actions, sampling_ratio_dropping_CLOSE_X)
-{
+TEST(Actions, sampling_ratio_dropping_CLOSE_X) {
 	auto evt_test = get_syscall_event_test(__NR_close, EXIT_EVENT);
 
 	evt_test->enable_sampling_logic(1);
@@ -254,8 +248,7 @@ TEST(Actions, sampling_ratio_dropping_CLOSE_X)
 #endif
 
 #ifdef __NR_bind
-TEST(Actions, sampling_ratio_dropping_BIND_X)
-{
+TEST(Actions, sampling_ratio_dropping_BIND_X) {
 	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_sampling_logic(1);
@@ -279,8 +272,7 @@ TEST(Actions, sampling_ratio_dropping_BIND_X)
 }
 #endif
 
-TEST(Actions, sampling_ratio_check_DROP_E_DROP_X)
-{
+TEST(Actions, sampling_ratio_check_DROP_E_DROP_X) {
 	/* Enable all syscalls */
 	auto evt_test = get_syscall_event_test();
 
@@ -295,31 +287,25 @@ TEST(Actions, sampling_ratio_check_DROP_E_DROP_X)
 	bool drop_x = false;
 	struct ppm_evt_hdr* evt = NULL;
 
-	while(events_processed < max_events_to_process)
-	{
+	while(events_processed < max_events_to_process) {
 		evt = evt_test->get_event_from_ringbuffer(&cpu_id);
 		events_processed++;
-		if(evt != NULL)
-		{
-			if(evt->type == PPME_DROP_E)
-			{
+		if(evt != NULL) {
+			if(evt->type == PPME_DROP_E) {
 				drop_e = true;
 			}
 
-			if(evt->type == PPME_DROP_X)
-			{
+			if(evt->type == PPME_DROP_X) {
 				drop_x = true;
 			}
 
-			if(drop_e && drop_x)
-			{
+			if(drop_e && drop_x) {
 				break;
 			}
 		}
 	}
 
-	if(events_processed >= max_events_to_process)
-	{
+	if(events_processed >= max_events_to_process) {
 		FAIL() << "Found 'drop_e' = " << drop_e << ", found 'drop_x' = " << drop_x << std::endl;
 	}
 

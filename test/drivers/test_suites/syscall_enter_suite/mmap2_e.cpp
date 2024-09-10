@@ -5,8 +5,7 @@
 
 #include <sys/mman.h>
 
-TEST(SyscallEnter, mmap2E)
-{
+TEST(SyscallEnter, mmap2E) {
 	auto evt_test = get_syscall_event_test(__NR_mmap2, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,7 +19,15 @@ TEST(SyscallEnter, mmap2E)
 	int mock_fd = -1;
 	off_t mock_offset = 1023;
 
-	assert_syscall_state(SYSCALL_FAILURE, "mmap2", syscall(__NR_mmap2, mock_addr, mock_length, mock_prot, mock_flags, mock_fd, mock_offset));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mmap2",
+	                     syscall(__NR_mmap2,
+	                             mock_addr,
+	                             mock_length,
+	                             mock_prot,
+	                             mock_flags,
+	                             mock_fd,
+	                             mock_offset));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -28,8 +35,7 @@ TEST(SyscallEnter, mmap2E)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

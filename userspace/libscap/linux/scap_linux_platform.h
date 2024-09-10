@@ -27,7 +27,7 @@ extern "C" {
 #include <libscap/engine_handle.h>
 #include <libscap/scap_log.h>
 
-	struct scap_mountinfo;
+struct scap_mountinfo;
 
 struct scap_linux_vtable {
 	/**
@@ -40,7 +40,7 @@ struct scap_linux_vtable {
 	 * `vpid` is the pid as seen by the process itself, i.e. within its
 	 * PID namespace
 	 */
-	int32_t (*get_vpid)(struct scap_engine_handle engine, uint64_t pid, int64_t *vpid);
+	int32_t (*get_vpid)(struct scap_engine_handle engine, uint64_t pid, int64_t* vpid);
 
 	/**
 	 * @brief get the vtid of a process
@@ -52,7 +52,7 @@ struct scap_linux_vtable {
 	 * `vtid` is the tid as seen by the process itself, i.e. within its
 	 * PID namespace
 	 */
-	int32_t (*get_vtid)(struct scap_engine_handle engine, uint64_t tid, int64_t *vtid);
+	int32_t (*get_vtid)(struct scap_engine_handle engine, uint64_t tid, int64_t* vtid);
 
 	/**
 	 * @brief get the current process id in the init pid namespace
@@ -74,11 +74,12 @@ struct scap_linux_vtable {
 	 * `procinfo_p` must not be NULL, but `*procinfo_p` may be; the returned
 	 * list will be (re)allocated on demand
 	 */
-	int32_t (*get_threadlist)(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
+	int32_t (*get_threadlist)(struct scap_engine_handle engine,
+	                          struct ppm_proclist_info** procinfo_p,
+	                          char* lasterr);
 };
 
-struct scap_linux_platform
-{
+struct scap_linux_platform {
 	struct scap_platform m_generic;
 
 	char* m_lasterr;
@@ -91,13 +92,14 @@ struct scap_linux_platform
 	uint64_t m_proc_scan_timeout_ms;
 	uint64_t m_proc_scan_log_interval_ms;
 
-        falcosecurity_log_fn m_log_fn;
+	falcosecurity_log_fn m_log_fn;
 
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;
 };
 
-struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback, void* proc_callback_context);
+struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callback,
+                                                void* proc_callback_context);
 
 /**
  * @brief A lightweight Linux platform that only collects static host information
@@ -108,8 +110,7 @@ struct scap_platform* scap_linux_alloc_platform(proc_entry_callback proc_callbac
  * - agent info
  * - interface list
  */
-struct scap_linux_hostinfo_platform
-{
+struct scap_linux_hostinfo_platform {
 	struct scap_platform m_generic;
 };
 

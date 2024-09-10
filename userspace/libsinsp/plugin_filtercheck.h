@@ -27,32 +27,29 @@ limitations under the License.
 #include <libsinsp/sinsp_filtercheck.h>
 
 /**
-	\brief This class implements a dynamic filter check that acts as a
-	bridge to the plugin simplified field extraction implementations
+    \brief This class implements a dynamic filter check that acts as a
+    bridge to the plugin simplified field extraction implementations
  */
-class sinsp_filter_check_plugin : public sinsp_filter_check
-{
+class sinsp_filter_check_plugin : public sinsp_filter_check {
 public:
 	sinsp_filter_check_plugin();
 
 	explicit sinsp_filter_check_plugin(const std::shared_ptr<sinsp_plugin>& plugin);
 
-	explicit sinsp_filter_check_plugin(const sinsp_filter_check_plugin &p);
+	explicit sinsp_filter_check_plugin(const sinsp_filter_check_plugin& p);
 
 	virtual ~sinsp_filter_check_plugin() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
 
-	int32_t parse_field_name(
-		std::string_view,
-		bool alloc_state,
-		bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
 
 protected:
-	bool extract_nocache(
-		sinsp_evt *evt,
-		std::vector<extract_value_t>& values,
-		bool sanitize_strings = true) override;
+	bool extract_nocache(sinsp_evt* evt,
+	                     std::vector<extract_value_t>& values,
+	                     bool sanitize_strings = true) override;
 
 private:
 	std::string m_argstr;

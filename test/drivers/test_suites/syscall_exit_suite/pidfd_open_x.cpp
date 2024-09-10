@@ -2,110 +2,104 @@
 
 #include <unistd.h>
 
-
 #ifdef __NR_pidfd_open
 
 #ifdef __NR_fork
-TEST(SyscallExit, pidfd_openX_success)
-{
-    auto evt_test = get_syscall_event_test(__NR_pidfd_open, EXIT_EVENT);
+TEST(SyscallExit, pidfd_openX_success) {
+	auto evt_test = get_syscall_event_test(__NR_pidfd_open, EXIT_EVENT);
 
-    evt_test->enable_capture();
+	evt_test->enable_capture();
 
-    /*=============================== TRIGGER SYSCALL ===========================*/
-    /*
-      PIDFD_NONBLOCK is available only on kernal versions > 5.10.0. No other flags are supported
-      See https://elixir.bootlin.com/linux/v5.10.185/source/include/uapi/linux/pidfd.h#L10
-    */
-    
-    int flags = 0;
-    pid_t pid = syscall(__NR_fork);
-    if(pid == 0)
-    { 
-        exit(EXIT_SUCCESS);
-    }
-    assert_syscall_state(SYSCALL_SUCCESS, "fork", pid, NOT_EQUAL, -1);
+	/*=============================== TRIGGER SYSCALL ===========================*/
+	/*
+	  PIDFD_NONBLOCK is available only on kernal versions > 5.10.0. No other flags are supported
+	  See https://elixir.bootlin.com/linux/v5.10.185/source/include/uapi/linux/pidfd.h#L10
+	*/
 
-    int pidfd = syscall(__NR_pidfd_open, pid, flags);
-    assert_syscall_state(SYSCALL_SUCCESS, "pidfd_open", pidfd, NOT_EQUAL, -1);
-    syscall(__NR_close);
+	int flags = 0;
+	pid_t pid = syscall(__NR_fork);
+	if(pid == 0) {
+		exit(EXIT_SUCCESS);
+	}
+	assert_syscall_state(SYSCALL_SUCCESS, "fork", pid, NOT_EQUAL, -1);
 
-     /*=============================== TRIGGER SYSCALL ===========================*/
+	int pidfd = syscall(__NR_pidfd_open, pid, flags);
+	assert_syscall_state(SYSCALL_SUCCESS, "pidfd_open", pidfd, NOT_EQUAL, -1);
+	syscall(__NR_close);
 
-    evt_test->disable_capture();
+	/*=============================== TRIGGER SYSCALL ===========================*/
 
-    evt_test->assert_event_presence();
+	evt_test->disable_capture();
 
-    if(HasFatalFailure())
-    {
-        return;
-    }
+	evt_test->assert_event_presence();
 
-    evt_test->parse_event();
+	if(HasFatalFailure()) {
+		return;
+	}
 
-    evt_test->assert_header();
+	evt_test->parse_event();
 
-    /*=============================== ASSERT PARAMETERS  ===========================*/
+	evt_test->assert_header();
 
-    /* Parameter 1: ret (type: PT_FD)*/
-    evt_test->assert_numeric_param(1, (int64_t)pidfd);
+	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-    /* Parameter 2: pid (type: PT_PID)*/
-    evt_test->assert_numeric_param(2, (int64_t)pid);
+	/* Parameter 1: ret (type: PT_FD)*/
+	evt_test->assert_numeric_param(1, (int64_t)pidfd);
 
-    /* Parameter 3: flags (type: PT_FLAGS32) */
-    evt_test->assert_numeric_param(3, (uint32_t)0);
+	/* Parameter 2: pid (type: PT_PID)*/
+	evt_test->assert_numeric_param(2, (int64_t)pid);
 
-    /*=============================== ASSERT PARAMETERS  ===========================*/
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(3, (uint32_t)0);
 
-    evt_test->assert_num_params_pushed(3);
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(3);
 }
 #endif
 
-TEST(SyscallExit, pidfd_openX_failure)
-{
-    auto evt_test = get_syscall_event_test(__NR_pidfd_open, EXIT_EVENT);
+TEST(SyscallExit, pidfd_openX_failure) {
+	auto evt_test = get_syscall_event_test(__NR_pidfd_open, EXIT_EVENT);
 
-    evt_test->enable_capture();
+	evt_test->enable_capture();
 
-    /*=============================== TRIGGER SYSCALL ===========================*/
+	/*=============================== TRIGGER SYSCALL ===========================*/
 
-    int flags = O_NONBLOCK;
+	int flags = O_NONBLOCK;
 #ifdef PIDFD_NONBLOCK
-    flags = PIDFD_NONBLOCK;
+	flags = PIDFD_NONBLOCK;
 #endif
-    pid_t pid = 0;
-    int64_t errno_value = -EINVAL;
-    assert_syscall_state(SYSCALL_FAILURE, "pidfd_open", syscall(__NR_pidfd_open, pid, flags));
+	pid_t pid = 0;
+	int64_t errno_value = -EINVAL;
+	assert_syscall_state(SYSCALL_FAILURE, "pidfd_open", syscall(__NR_pidfd_open, pid, flags));
 
-     /*=============================== TRIGGER SYSCALL ===========================*/
+	/*=============================== TRIGGER SYSCALL ===========================*/
 
-    evt_test->disable_capture();
+	evt_test->disable_capture();
 
-    evt_test->assert_event_presence();
+	evt_test->assert_event_presence();
 
-    if(HasFatalFailure())
-    {
-        return;
-    }
+	if(HasFatalFailure()) {
+		return;
+	}
 
-    evt_test->parse_event();
+	evt_test->parse_event();
 
-    evt_test->assert_header();
+	evt_test->assert_header();
 
-    /*=============================== ASSERT PARAMETERS  ===========================*/
+	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-    /* Parameter 1: ret (type: PT_FD)*/
-    evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	/* Parameter 1: ret (type: PT_FD)*/
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
-    /* Parameter 2: pid (type: PT_PID)*/
-    evt_test->assert_numeric_param(2, (int64_t)pid);
+	/* Parameter 2: pid (type: PT_PID)*/
+	evt_test->assert_numeric_param(2, (int64_t)pid);
 
-    /* Parameter 3: flags (type: PT_FLAGS32) */ 
-    evt_test->assert_numeric_param(3, (uint32_t)PPM_PIDFD_NONBLOCK);
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(3, (uint32_t)PPM_PIDFD_NONBLOCK);
 
-    /*=============================== ASSERT PARAMETERS  ===========================*/
+	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-    evt_test->assert_num_params_pushed(3);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif

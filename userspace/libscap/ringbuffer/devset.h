@@ -41,54 +41,46 @@ struct udig_ring_buffer_status;
 //
 // The device descriptor
 //
-typedef struct scap_device
-{
+typedef struct scap_device {
 	int m_fd;
-	int m_bufinfo_fd; // used by udig
+	int m_bufinfo_fd;  // used by udig
 	char* m_buffer;
 	unsigned long m_buffer_size;
-	unsigned long m_mmap_size; // generally 2 * m_buffer_size, but bpf does weird things
+	unsigned long m_mmap_size;  // generally 2 * m_buffer_size, but bpf does weird things
 	uint32_t m_lastreadsize;
-	char* m_sn_next_event; // Pointer to the next event available for scap_next
-	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-	union
-	{
+	char* m_sn_next_event;  // Pointer to the next event available for scap_next
+	uint32_t m_sn_len;      // Number of bytes available in the buffer pointed by m_sn_next_event
+	union {
 		// Anonymous struct with ppm stuff
-		struct
-		{
+		struct {
 			struct ppm_ring_buffer_info* m_bufinfo;
 			int m_bufinfo_size;
-			struct udig_ring_buffer_status* m_bufstatus; // used by udig
+			struct udig_ring_buffer_status* m_bufstatus;  // used by udig
 		};
 	};
 } scap_device;
 
-struct scap_device_set
-{
+struct scap_device_set {
 	scap_device* m_devs;
 	uint32_t m_ndevs;
 	uint64_t m_buffer_empty_wait_time_us;
 	char* m_lasterr;
 };
 
-int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr);
-void devset_close_device(struct scap_device *dev);
-void devset_free(struct scap_device_set *devset);
+int32_t devset_init(struct scap_device_set* devset, size_t num_devs, char* lasterr);
+void devset_close_device(struct scap_device* dev);
+void devset_free(struct scap_device_set* devset);
 
-static inline void devset_munmap(void* addr, size_t size)
-{
-	if(addr != INVALID_MAPPING)
-	{
+static inline void devset_munmap(void* addr, size_t size) {
+	if(addr != INVALID_MAPPING) {
 		int ret = munmap(addr, size);
 		ASSERT(ret == 0);
-		(void) ret;
+		(void)ret;
 	}
 }
 
-static inline void devset_close(int fd)
-{
-	if(fd != INVALID_FD)
-	{
+static inline void devset_close(int fd) {
+	if(fd != INVALID_FD) {
 		close(fd);
 	}
 }

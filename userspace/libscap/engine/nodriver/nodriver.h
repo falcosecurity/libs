@@ -21,7 +21,6 @@ limitations under the License.
 
 struct scap;
 
-struct nodriver_engine
-{
+struct nodriver_engine {
 	char* m_lasterr;
 };

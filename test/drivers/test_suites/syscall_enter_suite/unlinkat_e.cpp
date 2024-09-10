@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_unlinkat
-TEST(SyscallEnter, unlinkatE)
-{
+TEST(SyscallEnter, unlinkatE) {
 	auto evt_test = get_syscall_event_test(__NR_unlinkat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,9 @@ TEST(SyscallEnter, unlinkatE)
 	int32_t mock_dirfd = 0;
 	const char* path = NULL;
 	uint32_t flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "unlinkat", syscall(__NR_unlinkat, mock_dirfd, path, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "unlinkat",
+	                     syscall(__NR_unlinkat, mock_dirfd, path, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -20,8 +21,7 @@ TEST(SyscallEnter, unlinkatE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

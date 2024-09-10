@@ -4,8 +4,7 @@
 #include <sys/wait.h>
 
 #if defined(__NR_close) && defined(__NR_openat) && defined(__NR_ioctl)
-TEST(Actions, read_in_order_from_buffer)
-{
+TEST(Actions, read_in_order_from_buffer) {
 	/* Here we capture all syscalls... this process will send some
 	 * specific syscalls and we have to check that they are extracted in order
 	 * from the buffers.
@@ -18,7 +17,9 @@ TEST(Actions, read_in_order_from_buffer)
 	assert_syscall_state(SYSCALL_FAILURE, "close", syscall(__NR_close, -1));
 
 	/* 2. Generate an `openat` event pair */
-	assert_syscall_state(SYSCALL_FAILURE, "openat", syscall(__NR_openat, AT_FDCWD, "mock_path", 0, 0));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "openat",
+	                     syscall(__NR_openat, AT_FDCWD, "mock_path", 0, 0));
 
 	/* 3. Generate an `ioctl` event pair */
 	assert_syscall_state(SYSCALL_FAILURE, "ioctl", syscall(__NR_ioctl, -1, 0, NULL));

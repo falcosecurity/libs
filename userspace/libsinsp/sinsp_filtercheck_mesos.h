@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_mesos : public sinsp_filter_check
-{
+class sinsp_filter_check_mesos : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_MESOS_TASK_NAME = 0,
 		TYPE_MESOS_TASK_ID,
 		TYPE_MESOS_TASK_LABEL,
@@ -43,7 +41,9 @@ public:
 	virtual ~sinsp_filter_check_mesos() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
 
 protected:
 	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;

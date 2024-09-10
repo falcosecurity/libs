@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_execveat
-TEST(SyscallEnter, execveatE)
-{
+TEST(SyscallEnter, execveatE) {
 	auto evt_test = get_syscall_event_test(__NR_execveat, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,7 +19,9 @@ TEST(SyscallEnter, execveatE)
 	const char* newargv = NULL;
 	const char* newenviron = NULL;
 	int flags = AT_SYMLINK_NOFOLLOW;
-	assert_syscall_state(SYSCALL_FAILURE, "execveat", syscall(__NR_execveat, dirfd, pathname, newargv, newenviron, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "execveat",
+	                     syscall(__NR_execveat, dirfd, pathname, newargv, newenviron, flags));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -28,8 +29,7 @@ TEST(SyscallEnter, execveatE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

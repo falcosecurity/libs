@@ -27,28 +27,26 @@ limitations under the License.
 #include <re2/re2.h>
 
 // these follow the POSIX standard
-#define RGX_NOTBLANK            "(not[[:space:]]+)"
-#define RGX_IDENTIFIER          "([a-zA-Z]+[a-zA-Z0-9_]*)"
-#define RGX_FIELDNAME           "([a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+)"
-#define RGX_FIELDARGBARESTR     "([^][\"'[:space:]]+)"
-#define RGX_HEXNUM              "(0[xX][0-9a-zA-Z]+)"
-#define RGX_NUMBER              "([+\\-]?[0-9]+[\\.]?[0-9]*([eE][+\\-][0-9]+)?)"
-#define RGX_BARESTR             "([^()\"'[:space:]=,]+)"
+#define RGX_NOTBLANK "(not[[:space:]]+)"
+#define RGX_IDENTIFIER "([a-zA-Z]+[a-zA-Z0-9_]*)"
+#define RGX_FIELDNAME "([a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+)"
+#define RGX_FIELDARGBARESTR "([^][\"'[:space:]]+)"
+#define RGX_HEXNUM "(0[xX][0-9a-zA-Z]+)"
+#define RGX_NUMBER "([+\\-]?[0-9]+[\\.]?[0-9]*([eE][+\\-][0-9]+)?)"
+#define RGX_BARESTR "([^()\"'[:space:]=,]+)"
 
 // small utility for monitoring the depth of parser's recursion
-class depth_guard
-{
+class depth_guard {
 public:
 	inline ~depth_guard() { m_val--; }
 
-	inline depth_guard(uint32_t max, uint32_t& v): m_val(v)
-	{
+	inline depth_guard(uint32_t max, uint32_t& v): m_val(v) {
 		m_val++;
-		if (m_val >= max)
-		{
+		if(m_val >= max) {
 			throw sinsp_exception("exceeded max depth limit of " + std::to_string(max));
 		}
 	}
+
 private:
 	uint32_t& m_val;
 };
@@ -64,69 +62,68 @@ static re2::RE2 s_rgx_barestr(RGX_BARESTR, re2::RE2::POSIX);
 
 using namespace libsinsp::filter;
 
-static const std::vector<std::string> s_unary_ops =
-{ 
-	"exists"
-};
+static const std::vector<std::string> s_unary_ops = {"exists"};
 
-static const std::vector<std::string> s_binary_num_ops = 
-{ 
-	"<=", "<", ">=", ">"
-};
+static const std::vector<std::string> s_binary_num_ops = {"<=", "<", ">=", ">"};
 
 // todo(jasondellaluce): we should accept any blank after these (even line breaks)
-static const std::vector<std::string> s_binary_str_ops =
-{
-	"==", "=", "!=", "glob ", "iglob ", "contains ", "icontains ",
-	"bcontains ", "startswith ", "bstartswith ", "endswith ", "regex ",
+static const std::vector<std::string> s_binary_str_ops = {
+        "==",
+        "=",
+        "!=",
+        "glob ",
+        "iglob ",
+        "contains ",
+        "icontains ",
+        "bcontains ",
+        "startswith ",
+        "bstartswith ",
+        "endswith ",
+        "regex ",
 };
 
-static const std::vector<std::string> s_binary_list_ops =
-{
-	"intersects", "in", "pmatch",
+static const std::vector<std::string> s_binary_list_ops = {
+        "intersects",
+        "in",
+        "pmatch",
 };
 
 static constexpr const char* s_field_transformer_val = "val(";
 
-static const std::vector<std::string> s_field_transformers =
-{
-	"tolower(", "toupper(", "b64(", "basename(",
+static const std::vector<std::string> s_field_transformers = {
+        "tolower(",
+        "toupper(",
+        "b64(",
+        "basename(",
 };
 
-static inline void update_pos(const char c, ast::pos_info& pos)
-{
+static inline void update_pos(const char c, ast::pos_info& pos) {
 	pos.col++;
-	if (c == '\r' || c == '\n')
-	{
+	if(c == '\r' || c == '\n') {
 		pos.col = 1;
 		pos.line++;
 	}
 	pos.idx++;
 }
 
-static void update_pos(const std::string& s, ast::pos_info& pos)
-{
-	for (const auto &c : s)
-	{
+static void update_pos(const std::string& s, ast::pos_info& pos) {
+	for(const auto& c : s) {
 		update_pos(c, pos);
 	}
 }
 
-template<typename T> inline std::string token_list_to_str(const T& vals)
-{
+template<typename T>
+inline std::string token_list_to_str(const T& vals) {
 	std::string ret;
-	for(const auto& v : vals)
-	{
+	for(const auto& v : vals) {
 		ret += ret.empty() ? "" : ", ";
 		ret += "'" + v + "'";
 	}
 	return ret;
 }
 
-std::vector<std::string> parser::supported_operators(bool list_only)
-{
-	if (list_only)
-	{
+std::vector<std::string> parser::supported_operators(bool list_only) {
+	if(list_only) {
 		return s_binary_list_ops;
 	}
 	std::vector<std::string> ops;
@@ -138,24 +135,20 @@ std::vector<std::string> parser::supported_operators(bool list_only)
 	return ops;
 }
 
-std::vector<std::string> parser::supported_field_transformers(bool include_val)
-{
+std::vector<std::string> parser::supported_field_transformers(bool include_val) {
 	std::vector<std::string> res;
-	if (include_val)
-	{
+	if(include_val) {
 		res.push_back(s_field_transformer_val);
-		res.back().pop_back(); // remove '(' char
+		res.back().pop_back();  // remove '(' char
 	}
-	for (const auto& v : s_field_transformers)
-	{
+	for(const auto& v : s_field_transformers) {
 		res.push_back(v);
-		res.back().pop_back(); // remove '(' char
+		res.back().pop_back();  // remove '(' char
 	}
 	return res;
 }
 
-parser::parser(const std::string& input)
-{
+parser::parser(const std::string& input) {
 	m_input = input;
 	m_pos.reset();
 	m_depth = 0;
@@ -163,54 +156,46 @@ parser::parser(const std::string& input)
 	m_parse_partial = false;
 }
 
-void parser::get_pos(ast::pos_info& pos) const
-{
+void parser::get_pos(ast::pos_info& pos) const {
 	pos.idx = m_pos.idx;
 	pos.col = m_pos.col;
 	pos.line = m_pos.line;
 }
 
-ast::pos_info parser::get_pos() const
-{
+ast::pos_info parser::get_pos() const {
 	ast::pos_info info;
 	get_pos(info);
 	return info;
 }
 
-void parser::set_parse_partial(bool parse_partial)
-{
+void parser::set_parse_partial(bool parse_partial) {
 	m_parse_partial = parse_partial;
 }
 
-void parser::set_max_depth(uint32_t max_depth)
-{
+void parser::set_max_depth(uint32_t max_depth) {
 	m_max_depth = max_depth;
 }
 
-std::unique_ptr<ast::expr> parser::parse()
-{
-	if (m_input.size() == 0)
-	{
+std::unique_ptr<ast::expr> parser::parse() {
+	if(m_input.size() == 0) {
 		throw sinsp_exception("filter input string is empty");
 	}
 	m_pos.reset();
 	m_last_token = "";
 	m_depth = 0;
 	auto res = parse_or();
-	if (m_depth > 0)
-	{
+	if(m_depth > 0) {
 		ASSERT(false);
 		throw sinsp_exception("parser fatal error: recursion is unbalanced");
 	}
-	if (!m_parse_partial && m_pos.idx != m_input.size())
-	{
-		throw sinsp_exception("unexpected token after '" + m_last_token + "', expecting 'or', 'and'");
+	if(!m_parse_partial && m_pos.idx != m_input.size()) {
+		throw sinsp_exception("unexpected token after '" + m_last_token +
+		                      "', expecting 'or', 'and'");
 	}
 	return res;
 }
 
-std::unique_ptr<ast::expr> parser::parse_or()
-{
+std::unique_ptr<ast::expr> parser::parse_or() {
 	depth_guard(m_max_depth, m_depth);
 	auto pos = get_pos();
 
@@ -218,36 +203,27 @@ std::unique_ptr<ast::expr> parser::parse_or()
 	lex_blank();
 	children.push_back(parse_and());
 	lex_blank();
-	while (lex_helper_str("or"))
-	{
+	while(lex_helper_str("or")) {
 		std::unique_ptr<ast::expr> child;
-		if (!lex_blank())
-		{
-			if (lex_helper_str("("))
-			{
+		if(!lex_blank()) {
+			if(lex_helper_str("(")) {
 				child = parse_embedded_remainder();
-			}
-			else
-			{
+			} else {
 				throw sinsp_exception("expected blank or '(' after 'or'");
 			}
-		}
-		else
-		{
+		} else {
 			child = parse_and();
 		}
 		children.push_back(std::move(child));
 		lex_blank();
 	}
-	if (children.size() > 1)
-	{
+	if(children.size() > 1) {
 		return ast::or_expr::create(children, pos);
 	}
 	return std::move(children[0]);
 }
 
-std::unique_ptr<ast::expr> parser::parse_and()
-{
+std::unique_ptr<ast::expr> parser::parse_and() {
 	depth_guard(m_max_depth, m_depth);
 	auto pos = get_pos();
 
@@ -256,52 +232,39 @@ std::unique_ptr<ast::expr> parser::parse_and()
 	lex_blank();
 	children.push_back(parse_not());
 	lex_blank();
-	while (lex_helper_str("and"))
-	{
-		if (!lex_blank())
-		{
-			if (lex_helper_str("("))
-			{
+	while(lex_helper_str("and")) {
+		if(!lex_blank()) {
+			if(lex_helper_str("(")) {
 				child = parse_embedded_remainder();
-			}
-			else
-			{
+			} else {
 				throw sinsp_exception("expected blank or '(' after 'and'");
 			}
-		}
-		else
-		{
+		} else {
 			child = parse_not();
 		}
 		children.push_back(std::move(child));
 		lex_blank();
 	}
-	if (children.size() > 1)
-	{
+	if(children.size() > 1) {
 		return ast::and_expr::create(children, pos);
 	}
 	return std::move(children[0]);
 }
 
-std::unique_ptr<ast::expr> parser::parse_not()
-{
+std::unique_ptr<ast::expr> parser::parse_not() {
 	depth_guard(m_max_depth, m_depth);
 	auto pos = get_pos();
 
 	bool is_not = false;
 	std::unique_ptr<ast::expr> child;
 	lex_blank();
-	while (lex_helper_rgx(s_rgx_not_blank))
-	{
+	while(lex_helper_rgx(s_rgx_not_blank)) {
 		is_not = !is_not;
 	}
-	if (lex_helper_str("not("))
-	{
+	if(lex_helper_str("not(")) {
 		is_not = !is_not;
 		child = parse_embedded_remainder();
-	}
-	else
-	{
+	} else {
 		child = parse_check();
 	}
 	return is_not ? ast::not_expr::create(std::move(child), pos) : std::move(child);
@@ -309,73 +272,63 @@ std::unique_ptr<ast::expr> parser::parse_not()
 
 // this is an internal helper to parse the remainder of a
 // self-embedding expression right after having parsed a "("
-std::unique_ptr<ast::expr> parser::parse_embedded_remainder()
-{
+std::unique_ptr<ast::expr> parser::parse_embedded_remainder() {
 	depth_guard(m_max_depth, m_depth);
 
 	lex_blank();
 	std::unique_ptr<ast::expr> child = parse_or();
 	lex_blank();
-	if (!lex_helper_str(")"))
-	{
+	if(!lex_helper_str(")")) {
 		throw sinsp_exception("expected a ')' token");
 	}
 	return child;
 }
 
-std::unique_ptr<ast::expr> parser::parse_check()
-{
+std::unique_ptr<ast::expr> parser::parse_check() {
 	depth_guard(m_max_depth, m_depth);
 	auto pos = get_pos();
 
 	lex_blank();
-	if (lex_helper_str("("))
-	{
+	if(lex_helper_str("(")) {
 		return parse_embedded_remainder();
 	}
 
-	if (lex_field_name())
-	{
+	if(lex_field_name()) {
 		auto left = parse_field_remainder(m_last_token, pos);
 		return parse_condition(std::move(left), pos);
 	}
 
-	if (lex_field_transformer_type())
-	{
+	if(lex_field_transformer_type()) {
 		lex_blank();
-		m_last_token.pop_back(); // discard '(' character
+		m_last_token.pop_back();  // discard '(' character
 		auto left = parse_field_or_transformer_remainder(m_last_token, pos);
 		return parse_condition(std::move(left), pos);
 	}
 
-	if (lex_identifier())
-	{
+	if(lex_identifier()) {
 		return ast::identifier_expr::create(m_last_token, pos);
 	}
 
 	throw sinsp_exception("expected a '(' token, a field check, or an identifier");
 }
 
-std::unique_ptr<ast::expr> parser::parse_field_remainder(
-	std::string fieldname, const ast::pos_info& pos)
-{
+std::unique_ptr<ast::expr> parser::parse_field_remainder(std::string fieldname,
+                                                         const ast::pos_info& pos) {
 	depth_guard(m_max_depth, m_depth);
 
 	auto field = std::make_unique<ast::field_expr>();
 	field->field = fieldname;
 	field->set_pos(pos);
 
-	if(lex_helper_str("["))
-	{
-		if(!lex_quoted_str() && !lex_field_arg_bare_str())
-		{
-			throw sinsp_exception("expected a valid field argument: a quoted string or a bare string");
+	if(lex_helper_str("[")) {
+		if(!lex_quoted_str() && !lex_field_arg_bare_str()) {
+			throw sinsp_exception(
+			        "expected a valid field argument: a quoted string or a bare string");
 		}
 
 		field->arg = m_last_token;
 
-		if(!lex_helper_str("]"))
-		{
+		if(!lex_helper_str("]")) {
 			throw sinsp_exception("expected a ']' token");
 		}
 	}
@@ -384,8 +337,8 @@ std::unique_ptr<ast::expr> parser::parse_field_remainder(
 }
 
 inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
-	std::string transformer, const ast::pos_info& pos)
-{
+        std::string transformer,
+        const ast::pos_info& pos) {
 	depth_guard(m_max_depth, m_depth);
 
 	lex_blank();
@@ -393,40 +346,34 @@ inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
 	auto arg_pos = get_pos();
 	std::unique_ptr<libsinsp::filter::ast::expr> child;
 
-	if (lex_field_transformer_type())
-	{
+	if(lex_field_transformer_type()) {
 		lex_blank();
-		m_last_token.pop_back(); // discard '(' character
+		m_last_token.pop_back();  // discard '(' character
 		child = parse_field_or_transformer_remainder(m_last_token, arg_pos);
 	}
 
-	if (lex_field_name())
-	{
+	if(lex_field_name()) {
 		child = parse_field_remainder(m_last_token, arg_pos);
 	}
 
-	if (!child)
-	{
-		throw sinsp_exception("expected a field or a nested valid transformer: "
-					+ token_list_to_str(supported_field_transformers(true)));
+	if(!child) {
+		throw sinsp_exception("expected a field or a nested valid transformer: " +
+		                      token_list_to_str(supported_field_transformers(true)));
 	}
 
 	lex_blank();
-	if (!lex_helper_str(")"))
-	{
+	if(!lex_helper_str(")")) {
 		throw sinsp_exception("expected a ')' token closing the transformer");
 	}
 	return ast::field_transformer_expr::create(transformer, std::move(child), pos);
 }
 
-std::unique_ptr<ast::expr> parser::parse_condition(
-	std::unique_ptr<ast::expr> left, const ast::pos_info& pos)
-{
+std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> left,
+                                                   const ast::pos_info& pos) {
 	depth_guard(m_max_depth, m_depth);
 
 	lex_blank();
-	if(lex_unary_op())
-	{
+	if(lex_unary_op()) {
 		return ast::unary_check_expr::create(std::move(left), trim_str(m_last_token), pos);
 	}
 
@@ -435,121 +382,97 @@ std::unique_ptr<ast::expr> parser::parse_condition(
 
 	lex_blank();
 
-	if(lex_num_op())
-	{
+	if(lex_num_op()) {
 		op = m_last_token;
 		right = parse_num_value_or_transformer();
-	}
-	else if(lex_str_op())
-	{
+	} else if(lex_str_op()) {
 		op = m_last_token;
 		right = parse_str_value_or_transformer(false);
-	}
-	else if(lex_list_op())
-	{
+	} else if(lex_list_op()) {
 		op = m_last_token;
 		right = parse_list_value_or_transformer();
-	}
-	else
-	{
-		throw sinsp_exception("expected a valid check operator: one of "
-				+ token_list_to_str(supported_operators()));
+	} else {
+		throw sinsp_exception("expected a valid check operator: one of " +
+		                      token_list_to_str(supported_operators()));
 	}
 
 	return ast::binary_check_expr::create(std::move(left), trim_str(op), std::move(right), pos);
 }
 
-std::unique_ptr<ast::expr> parser::parse_num_value_or_transformer()
-{
+std::unique_ptr<ast::expr> parser::parse_num_value_or_transformer() {
 	depth_guard(m_max_depth, m_depth);
 
 	lex_blank();
 
 	auto pos = get_pos();
-	
-	if (auto res = try_parse_transformer_or_val(); res != nullptr)
-	{
+
+	if(auto res = try_parse_transformer_or_val(); res != nullptr) {
 		return res;
 	}
 
-	if (lex_hex_num() || lex_num())
-	{
+	if(lex_hex_num() || lex_num()) {
 		return ast::value_expr::create(m_last_token, pos);
 	}
 
-	throw sinsp_exception("expected a number value or a field with a valid transformer: "
-				+ token_list_to_str(supported_field_transformers(true)));
+	throw sinsp_exception("expected a number value or a field with a valid transformer: " +
+	                      token_list_to_str(supported_field_transformers(true)));
 }
 
-std::unique_ptr<ast::expr> parser::parse_str_value_or_transformer(bool no_transformer)
-{
+std::unique_ptr<ast::expr> parser::parse_str_value_or_transformer(bool no_transformer) {
 	depth_guard(m_max_depth, m_depth);
 
 	lex_blank();
 
 	auto pos = get_pos();
 
-	if (!no_transformer)
-	{
-		if (auto res = try_parse_transformer_or_val(); res != nullptr)
-		{
+	if(!no_transformer) {
+		if(auto res = try_parse_transformer_or_val(); res != nullptr) {
 			return res;
 		}
 	}
 
-	if (lex_quoted_str() || lex_bare_str())
-	{
+	if(lex_quoted_str() || lex_bare_str()) {
 		return ast::value_expr::create(m_last_token, pos);
 	}
 
-	if (no_transformer)
-	{
+	if(no_transformer) {
 		throw sinsp_exception("expected a string value");
 	}
-	throw sinsp_exception("expected a string value or a field with a valid transformer: "
-				+ token_list_to_str(supported_field_transformers(true)));
+	throw sinsp_exception("expected a string value or a field with a valid transformer: " +
+	                      token_list_to_str(supported_field_transformers(true)));
 }
 
-std::unique_ptr<ast::expr> parser::parse_list_value_or_transformer()
-{
+std::unique_ptr<ast::expr> parser::parse_list_value_or_transformer() {
 	depth_guard(m_max_depth, m_depth);
 
 	lex_blank();
 
 	auto pos = get_pos();
 
-	if (lex_helper_str("("))
-	{
+	if(lex_helper_str("(")) {
 		bool should_be_empty = false;
 		ast::value_expr* value_child = nullptr;
 		std::unique_ptr<ast::expr> child;
 		std::vector<std::string> values;
 
 		lex_blank();
-		try
-		{
+		try {
 			child = parse_str_value_or_transformer(true);
-		}
-		catch(const sinsp_exception& e)
-		{
+		} catch(const sinsp_exception& e) {
 			should_be_empty = true;
 		}
-		
-		if (!should_be_empty)
-		{
+
+		if(!should_be_empty) {
 			value_child = dynamic_cast<ast::value_expr*>(child.get());
-			if (!value_child)
-			{
+			if(!value_child) {
 				throw sinsp_exception("parser fatal error: null value expr in head of list");
 			}
 			values.push_back(value_child->value);
 			lex_blank();
-			while (lex_helper_str(","))
-			{
+			while(lex_helper_str(",")) {
 				child = parse_str_value_or_transformer(true);
 				value_child = dynamic_cast<ast::value_expr*>(child.get());
-				if (!value_child)
-				{
+				if(!value_child) {
 					throw sinsp_exception("parser fatal error: null value expr in body of list");
 				}
 				values.push_back(value_child->value);
@@ -557,63 +480,55 @@ std::unique_ptr<ast::expr> parser::parse_list_value_or_transformer()
 			}
 		}
 
-		if (!lex_helper_str(")"))
-		{
+		if(!lex_helper_str(")")) {
 			throw sinsp_exception("expected a ')' token");
 		}
 		return ast::list_expr::create(values, pos);
 	}
 
-	if (auto res = try_parse_transformer_or_val(); res != nullptr)
-	{
+	if(auto res = try_parse_transformer_or_val(); res != nullptr) {
 		return res;
 	}
 
-	if (lex_identifier())
-	{
+	if(lex_identifier()) {
 		return ast::value_expr::create(m_last_token, pos);
 	}
 
-	throw sinsp_exception("expected a list, an identifier, or a field with a valid transformer: "
-				+ token_list_to_str(supported_field_transformers(true)));
+	throw sinsp_exception("expected a list, an identifier, or a field with a valid transformer: " +
+	                      token_list_to_str(supported_field_transformers(true)));
 }
 
 // note: can return nullptr
-std::unique_ptr<ast::expr> parser::try_parse_transformer_or_val()
-{
+std::unique_ptr<ast::expr> parser::try_parse_transformer_or_val() {
 	depth_guard(m_max_depth, m_depth);
 
 	lex_blank();
 
 	auto pos = get_pos();
 
-	if (lex_field_transformer_val())
-	{
+	if(lex_field_transformer_val()) {
 		lex_blank();
 
-		m_last_token.pop_back(); // discard '(' character;
+		m_last_token.pop_back();  // discard '(' character;
 		auto transformer = m_last_token;
 		auto field_pos = get_pos();
 
-		if (!lex_field_name())
-		{
+		if(!lex_field_name()) {
 			throw sinsp_exception("expected a field within '" + transformer + "' transformer");
 		}
 
 		auto child = parse_field_remainder(m_last_token, field_pos);
 
 		lex_blank();
-		if (!lex_helper_str(")"))
-		{
+		if(!lex_helper_str(")")) {
 			throw sinsp_exception("expected a ')' token closing the transformer");
 		}
 		return ast::field_transformer_expr::create(transformer, std::move(child), pos);
 	}
 
-	if (lex_field_transformer_type())
-	{
+	if(lex_field_transformer_type()) {
 		lex_blank();
-		m_last_token.pop_back(); // discard '(' character
+		m_last_token.pop_back();  // discard '(' character
 		return parse_field_or_transformer_remainder(m_last_token, pos);
 	}
 
@@ -621,55 +536,44 @@ std::unique_ptr<ast::expr> parser::try_parse_transformer_or_val()
 }
 
 // note: lex_blank is the only lex method that does not update m_last_token.
-bool parser::lex_blank()
-{
+bool parser::lex_blank() {
 	bool found = false;
-	while(*cursor() == ' ' || *cursor() == '\t' || *cursor() == '\b'
-			|| *cursor() == '\r' || *cursor() == '\n')
-	{
+	while(*cursor() == ' ' || *cursor() == '\t' || *cursor() == '\b' || *cursor() == '\r' ||
+	      *cursor() == '\n') {
 		found = true;
 		update_pos(*cursor(), m_pos);
 	}
 	return found;
 }
 
-inline bool parser::lex_identifier()
-{
+inline bool parser::lex_identifier() {
 	return lex_helper_rgx(s_rgx_identifier);
 }
 
-inline bool parser::lex_field_name()
-{
+inline bool parser::lex_field_name() {
 	return lex_helper_rgx(s_rgx_field_name);
 }
 
-inline bool parser::lex_field_arg_bare_str()
-{
+inline bool parser::lex_field_arg_bare_str() {
 	return lex_helper_rgx(s_rgx_field_arg_barestr);
 }
 
-inline bool parser::lex_hex_num()
-{
+inline bool parser::lex_hex_num() {
 	return lex_helper_rgx(s_rgx_hex_num);
 }
 
-inline bool parser::lex_num()
-{
+inline bool parser::lex_num() {
 	return lex_helper_rgx(s_rgx_num);
 }
 
-inline bool parser::lex_quoted_str()
-{
-	if (*cursor() == '\'' || *cursor() == '\"')
-	{
+inline bool parser::lex_quoted_str() {
+	if(*cursor() == '\'' || *cursor() == '\"') {
 		char prev = '\\';
 		char delimiter = *cursor();
 		ast::pos_info pos = m_pos;
 		m_last_token = "";
-		while(*cursor() != '\0')
-		{
-			if (*cursor() == delimiter && prev != '\\')
-			{
+		while(*cursor() != '\0') {
+			if(*cursor() == delimiter && prev != '\\') {
 				update_pos(*cursor(), m_pos);
 				m_last_token += delimiter;
 				m_last_token = unescape_str(m_last_token);
@@ -684,57 +588,46 @@ inline bool parser::lex_quoted_str()
 	return false;
 }
 
-inline bool parser::lex_bare_str()
-{
+inline bool parser::lex_bare_str() {
 	return lex_helper_rgx(s_rgx_barestr);
 }
 
-inline bool parser::lex_unary_op()
-{
+inline bool parser::lex_unary_op() {
 	return lex_helper_str_list(s_unary_ops);
 }
 
-inline bool parser::lex_num_op()
-{
+inline bool parser::lex_num_op() {
 	return lex_helper_str_list(s_binary_num_ops);
 }
 
-inline bool parser::lex_str_op()
-{
+inline bool parser::lex_str_op() {
 	return lex_helper_str_list(s_binary_str_ops);
 }
 
-inline bool parser::lex_list_op()
-{
+inline bool parser::lex_list_op() {
 	return lex_helper_str_list(s_binary_list_ops);
 }
 
-inline bool parser::lex_field_transformer_val()
-{
+inline bool parser::lex_field_transformer_val() {
 	return lex_helper_str(s_field_transformer_val);
 }
 
-inline bool parser::lex_field_transformer_type()
-{
+inline bool parser::lex_field_transformer_type() {
 	return lex_helper_str_list(s_field_transformers);
 }
 
-bool parser::lex_helper_rgx(const re2::RE2& rgx)
-{
+bool parser::lex_helper_rgx(const re2::RE2& rgx) {
 	ASSERT(rgx.ok());
 	re2::StringPiece c(cursor(), m_input.size() - m_pos.idx);
-	if (re2::RE2::Consume(&c, rgx, &m_last_token))
-	{
+	if(re2::RE2::Consume(&c, rgx, &m_last_token)) {
 		update_pos(m_last_token, m_pos);
 		return true;
 	}
 	return false;
 }
 
-bool parser::lex_helper_str(const std::string& str)
-{
-	if (strncmp(cursor(), str.c_str(), str.size()) == 0)
-	{
+bool parser::lex_helper_str(const std::string& str) {
+	if(strncmp(cursor(), str.c_str(), str.size()) == 0) {
 		m_last_token = str;
 		update_pos(m_last_token, m_pos);
 		return true;
@@ -742,25 +635,20 @@ bool parser::lex_helper_str(const std::string& str)
 	return false;
 }
 
-bool parser::lex_helper_str_list(const std::vector<std::string>& list)
-{
-	for (auto &op : list)
-	{
-		if (lex_helper_str(op))
-		{
+bool parser::lex_helper_str_list(const std::vector<std::string>& list) {
+	for(auto& op : list) {
+		if(lex_helper_str(op)) {
 			return true;
 		}
 	}
 	return false;
 }
 
-inline const char* parser::cursor()
-{
+inline const char* parser::cursor() {
 	return m_input.c_str() + m_pos.idx;
 }
 
-inline std::string parser::trim_str(std::string str)
-{
+inline std::string parser::trim_str(std::string str) {
 	trim(str);
 	return str;
 }

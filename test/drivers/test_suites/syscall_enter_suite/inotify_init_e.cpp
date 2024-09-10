@@ -1,9 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #if defined(__NR_inotify_init) && defined(__NR_close)
-TEST(SyscallEnter, inotify_initE)
-{
-
+TEST(SyscallEnter, inotify_initE) {
 	auto evt_test = get_syscall_event_test(__NR_inotify_init, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +18,7 @@ TEST(SyscallEnter, inotify_initE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

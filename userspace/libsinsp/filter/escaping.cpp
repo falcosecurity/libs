@@ -22,15 +22,12 @@ limitations under the License.
 namespace libsinsp {
 namespace filter {
 
-std::string escape_str(const std::string& str)
-{
+std::string escape_str(const std::string& str) {
 	std::string res = "";
 	size_t len = str.size();
 	bool should_escape = false;
-	for (size_t i = 0; i < len; i++)
-	{
-		switch(str[i])
-		{
+	for(size_t i = 0; i < len; i++) {
+		switch(str[i]) {
 		case '\b':
 			should_escape = true;
 			res += "\\b";
@@ -72,80 +69,69 @@ std::string escape_str(const std::string& str)
 		}
 	}
 
-	if(should_escape)
-	{
+	if(should_escape) {
 		res = "\"" + res + "\"";
 	}
 
 	return res;
 }
 
-std::string unescape_str(const std::string& str)
-{
+std::string unescape_str(const std::string& str) {
 	std::string res = "";
 	size_t len = str.size() - 1;
 	bool escaped = false;
-	for (size_t i = 1; i < len; i++)
-	{
-		if (!escaped)
-		{
-			if (str[i] == '\\')
-			{
+	for(size_t i = 1; i < len; i++) {
+		if(!escaped) {
+			if(str[i] == '\\') {
 				escaped = true;
-			}
-			else
-			{
+			} else {
 				res += str[i];
 			}
-		}
-		else
-		{
-			switch(str[i])
-			{
-				case 'b':
-					res += '\b';
-					break;
-				case 'f':
-					res += '\f';
-					break;
-				case 'n':
-					res += '\n';
-					break;
-				case 'r':
-					res += '\r';
-					break;
-				case 't':
-					res += '\t';
-					break;
-				case ' ':
-					// NOTE: we may need to initially support this to not create breaking changes with
-					// some existing wrongly-escaped rules. So far, I only found one, in Falco:
-					// https://github.com/falcosecurity/falco/blob/204f9ff875be035e620ca1affdf374dd1c610a98/rules/falco_rules.yaml#L3046
-					// todo(jasondellaluce): remove this once rules are rewritten with correct escaping
-				case '\\':
-					res += '\\';
-					break;
-				case '/':
-					res += '/';
-					break;
-				case '"':
-					if (str[0] != str[i])
-					{
-						throw sinsp_exception("invalid \\\" escape in '-quoted string");
-					}
-					res += '\"';
-					break;
-				case '\'':
-					if (str[0] != str[i])
-					{
-						throw sinsp_exception("invalid \\' escape in \"-quoted string");
-					}
-					res += '\'';
-					break;
-				case 'x':
-					// todo(jasondellaluce): support hex num escaping (not needed for now)
-				default:
-					throw sinsp_exception("unsupported string escape sequence: \\" + std::string(1, str[i]));
+		} else {
+			switch(str[i]) {
+			case 'b':
+				res += '\b';
+				break;
+			case 'f':
+				res += '\f';
+				break;
+			case 'n':
+				res += '\n';
+				break;
+			case 'r':
+				res += '\r';
+				break;
+			case 't':
+				res += '\t';
+				break;
+			case ' ':
+				// NOTE: we may need to initially support this to not create breaking changes with
+				// some existing wrongly-escaped rules. So far, I only found one, in Falco:
+				// https://github.com/falcosecurity/falco/blob/204f9ff875be035e620ca1affdf374dd1c610a98/rules/falco_rules.yaml#L3046
+				// todo(jasondellaluce): remove this once rules are rewritten with correct escaping
+			case '\\':
+				res += '\\';
+				break;
+			case '/':
+				res += '/';
+				break;
+			case '"':
+				if(str[0] != str[i]) {
+					throw sinsp_exception("invalid \\\" escape in '-quoted string");
+				}
+				res += '\"';
+				break;
+			case '\'':
+				if(str[0] != str[i]) {
+					throw sinsp_exception("invalid \\' escape in \"-quoted string");
+				}
+				res += '\'';
+				break;
+			case 'x':
+				// todo(jasondellaluce): support hex num escaping (not needed for now)
+			default:
+				throw sinsp_exception("unsupported string escape sequence: \\" +
+				                      std::string(1, str[i]));
 			}
 			escaped = false;
 		}
@@ -153,5 +139,5 @@ std::string unescape_str(const std::string& str)
 	return res;
 }
 
-}
-}
+}  // namespace filter
+}  // namespace libsinsp

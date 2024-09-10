@@ -21,68 +21,58 @@ limitations under the License.
 
 using namespace libsinsp::filter;
 
-class filter_escaping_test : public testing::Test
-{
+class filter_escaping_test : public testing::Test {
 protected:
-	void unidirectional(const std::string& in, const std::string& out)
-	{
+	void unidirectional(const std::string& in, const std::string& out) {
 		ASSERT_STREQ(libsinsp::filter::escape_str(in).c_str(), out.c_str());
 	}
 
-	void bidirectional(const std::string& in)
-	{
+	void bidirectional(const std::string& in) {
 		ASSERT_STREQ(in.c_str(),
-			     libsinsp::filter::unescape_str(libsinsp::filter::escape_str(in)).c_str());
+		             libsinsp::filter::unescape_str(libsinsp::filter::escape_str(in)).c_str());
 	}
 };
 
-TEST_F(filter_escaping_test, spaces)
-{
+TEST_F(filter_escaping_test, spaces) {
 	std::string in = "some string";
 	std::string out = "\"some string\"";
 
 	unidirectional(in, out);
 }
 
-TEST_F(filter_escaping_test, spaces_bidirectional)
-{
+TEST_F(filter_escaping_test, spaces_bidirectional) {
 	std::string in = "some string";
 
 	bidirectional(in);
 }
 
-TEST_F(filter_escaping_test, ws_chars)
-{
+TEST_F(filter_escaping_test, ws_chars) {
 	std::string in = "some\\b\\f\\n\\r\\tstring";
 	std::string out = "\"some\\\\b\\\\f\\\\n\\\\r\\\\tstring\"";
 
 	unidirectional(in, out);
 }
 
-TEST_F(filter_escaping_test, ws_chars_bidirectional)
-{
+TEST_F(filter_escaping_test, ws_chars_bidirectional) {
 	std::string in = "some\\b\\f\\n\\r\\tstring";
 
 	bidirectional(in);
 }
 
-TEST_F(filter_escaping_test, double_quotes)
-{
+TEST_F(filter_escaping_test, double_quotes) {
 	std::string in = "some \"quoted string\"";
 	std::string out = "\"some \\\"quoted string\\\"\"";
 
 	unidirectional(in, out);
 }
 
-TEST_F(filter_escaping_test, double_quotes_bidirectional)
-{
+TEST_F(filter_escaping_test, double_quotes_bidirectional) {
 	std::string in = "some \"quoted string\"";
 
 	bidirectional(in);
 }
 
-TEST_F(filter_escaping_test, single_quotes)
-{
+TEST_F(filter_escaping_test, single_quotes) {
 	std::string in = "some 'quoted string'";
 	std::string out = "\"some 'quoted string'\"";
 
@@ -93,11 +83,10 @@ TEST_F(filter_escaping_test, single_quotes)
 // ensures that the unescaping can be done, although it results in a
 // different string than the original.
 
-TEST_F(filter_escaping_test, single_quotes_bidirectional)
-{
+TEST_F(filter_escaping_test, single_quotes_bidirectional) {
 	std::string in = "some 'quoted string'";
 	std::string out = "some 'quoted string'";
 
 	ASSERT_STREQ(out.c_str(),
-		     libsinsp::filter::unescape_str(libsinsp::filter::escape_str(in)).c_str());
+	             libsinsp::filter::unescape_str(libsinsp::filter::escape_str(in)).c_str());
 }

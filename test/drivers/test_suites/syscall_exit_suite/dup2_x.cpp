@@ -3,8 +3,7 @@
 #include <fcntl.h>
 
 #if defined(__NR_dup2) && defined(__NR_openat) && defined(__NR_close)
-TEST(SyscallExit, dup2X)
-{
+TEST(SyscallExit, dup2X) {
 	auto evt_test = get_syscall_event_test(__NR_dup2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -27,8 +26,7 @@ TEST(SyscallExit, dup2X)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

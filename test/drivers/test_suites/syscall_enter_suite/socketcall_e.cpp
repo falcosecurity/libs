@@ -10,8 +10,7 @@
 #if defined(__NR_clone3) && defined(__NR_wait4)
 #include <linux/sched.h>
 
-TEST(SyscallEnter, socketcall_socketE)
-{
+TEST(SyscallEnter, socketcall_socketE) {
 	auto evt_test = get_syscall_event_test(__NR_socket, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -31,15 +30,11 @@ TEST(SyscallEnter, socketcall_socketE)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* In this way in the father we know if the call was successful or not. */
-		if(syscall(__NR_socketcall, SYS_SOCKET, args) == -1)
-		{
+		if(syscall(__NR_socketcall, SYS_SOCKET, args) == -1) {
 			exit(EXIT_FAILURE);
-		}
-		else
-		{
+		} else {
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -48,10 +43,13 @@ TEST(SyscallEnter, socketcall_socketE)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "The 'socketcall socket' failed while it should be successful..." << std::endl;
 	}
 
@@ -61,8 +59,7 @@ TEST(SyscallEnter, socketcall_socketE)
 
 	evt_test->assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -87,8 +84,7 @@ TEST(SyscallEnter, socketcall_socketE)
 }
 #endif
 
-TEST(SyscallEnter, socketcall_bindE)
-{
+TEST(SyscallEnter, socketcall_bindE) {
 	auto evt_test = get_syscall_event_test(__NR_bind, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -100,7 +96,9 @@ TEST(SyscallEnter, socketcall_bindE)
 	args[1] = 0;
 	args[2] = 0;
 
-	assert_syscall_state(SYSCALL_FAILURE, "socketcall bind", syscall(__NR_socketcall, SYS_BIND, args));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "socketcall bind",
+	                     syscall(__NR_socketcall, SYS_BIND, args));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -108,8 +106,7 @@ TEST(SyscallEnter, socketcall_bindE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -127,8 +124,7 @@ TEST(SyscallEnter, socketcall_bindE)
 	evt_test->assert_num_params_pushed(1);
 }
 
-TEST(SyscallEnter, socketcall_connectE)
-{
+TEST(SyscallEnter, socketcall_connectE) {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -142,7 +138,9 @@ TEST(SyscallEnter, socketcall_connectE)
 	args[0] = mock_fd;
 	args[1] = (unsigned long)&server_addr;
 	args[2] = sizeof(server_addr);
-	assert_syscall_state(SYSCALL_FAILURE, "socketcall connect", syscall(__NR_socketcall, SYS_CONNECT, args));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "socketcall connect",
+	                     syscall(__NR_socketcall, SYS_CONNECT, args));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -150,8 +148,7 @@ TEST(SyscallEnter, socketcall_connectE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -165,16 +162,16 @@ TEST(SyscallEnter, socketcall_connectE)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
-	if(evt_test->is_modern_bpf_engine())
-	{
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param.
+	 */
+	if(evt_test->is_modern_bpf_engine()) {
 		evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
-	}
-	else
-	{
+	} else {
 		evt_test->assert_empty_param(2);
 		evt_test->assert_num_params_pushed(2);
-		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, "
+		                "see the code"
+		             << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -184,8 +181,7 @@ TEST(SyscallEnter, socketcall_connectE)
 #endif
 
 #ifdef __NR_recvmmsg
-TEST(SyscallEnter, socketcall_recvmmsgE)
-{
+TEST(SyscallEnter, socketcall_recvmmsgE) {
 	auto evt_test = get_syscall_event_test(__NR_recvmmsg, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -212,8 +208,7 @@ TEST(SyscallEnter, socketcall_recvmmsgE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -232,8 +227,7 @@ TEST(SyscallEnter, socketcall_recvmmsgE)
 #endif
 
 #ifdef __NR_sendmmsg
-TEST(SyscallEnter, socketcall_sendmmsgE)
-{
+TEST(SyscallEnter, socketcall_sendmmsgE) {
 	auto evt_test = get_syscall_event_test(__NR_sendmmsg, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -258,8 +252,7 @@ TEST(SyscallEnter, socketcall_sendmmsgE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -277,8 +270,7 @@ TEST(SyscallEnter, socketcall_sendmmsgE)
 }
 #endif
 
-TEST(SyscallEnter, socketcall_shutdownE)
-{
+TEST(SyscallEnter, socketcall_shutdownE) {
 	auto evt_test = get_syscall_event_test(__NR_shutdown, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -299,8 +291,7 @@ TEST(SyscallEnter, socketcall_shutdownE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -323,13 +314,11 @@ TEST(SyscallEnter, socketcall_shutdownE)
 
 #if defined(__NR_accept) || defined(__s390x__)
 
-TEST(SyscallEnter, socketcall_acceptE)
-{
+TEST(SyscallEnter, socketcall_acceptE) {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, ENTER_EVENT);
 	/* The kmod/bpf can correctly handle accept also on s390x */
-	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine())
-	{
+	if(evt_test->is_kmod_engine() || evt_test->is_bpf_engine()) {
 		/* we cannot set `__NR_accept` explicitly since it is not defined on s390x
 		 * we activate all syscalls.
 		 */
@@ -345,7 +334,7 @@ TEST(SyscallEnter, socketcall_acceptE)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int32_t mock_fd = -1;
-	sockaddr* addr = NULL;
+	sockaddr *addr = NULL;
 	socklen_t *addrlen = NULL;
 
 	unsigned long args[3] = {0};
@@ -360,8 +349,7 @@ TEST(SyscallEnter, socketcall_acceptE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -370,8 +358,7 @@ TEST(SyscallEnter, socketcall_acceptE)
 	evt_test->assert_header();
 
 #ifdef __s390x__
-	if(evt_test->is_modern_bpf_engine())
-	{
+	if(evt_test->is_modern_bpf_engine()) {
 		/* socketcall uses accept4 event for SYS_ACCEPT for modern BPF */
 
 		/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -400,8 +387,7 @@ TEST(SyscallEnter, socketcall_acceptE)
 
 #ifdef __NR_accept4
 
-TEST(SyscallEnter, socketcall_accept4E)
-{
+TEST(SyscallEnter, socketcall_accept4E) {
 	auto evt_test = get_syscall_event_test(__NR_accept4, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -409,7 +395,7 @@ TEST(SyscallEnter, socketcall_accept4E)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int32_t mock_fd = -1;
-	sockaddr* addr = NULL;
+	sockaddr *addr = NULL;
 	socklen_t *addrlen = NULL;
 	int flags = 0;
 
@@ -426,8 +412,7 @@ TEST(SyscallEnter, socketcall_accept4E)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -448,8 +433,7 @@ TEST(SyscallEnter, socketcall_accept4E)
 #endif
 
 #ifdef __NR_listen
-TEST(SyscallEnter, socketcall_listenE)
-{
+TEST(SyscallEnter, socketcall_listenE) {
 	auto evt_test = get_syscall_event_test(__NR_listen, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -470,8 +454,7 @@ TEST(SyscallEnter, socketcall_listenE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -495,8 +478,7 @@ TEST(SyscallEnter, socketcall_listenE)
 
 #ifdef __NR_recvfrom
 
-TEST(SyscallEnter, socketcall_recvfromE)
-{
+TEST(SyscallEnter, socketcall_recvfromE) {
 	auto evt_test = get_syscall_event_test(__NR_recvfrom, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -507,7 +489,7 @@ TEST(SyscallEnter, socketcall_recvfromE)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t flags = 0;
-	sockaddr* src_addr = NULL;
+	sockaddr *src_addr = NULL;
 	socklen_t *addrlen = NULL;
 
 	unsigned long args[6] = {0};
@@ -526,8 +508,7 @@ TEST(SyscallEnter, socketcall_recvfromE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -553,8 +534,7 @@ TEST(SyscallEnter, socketcall_recvfromE)
 
 #include <sys/socket.h>
 
-TEST(SyscallEnter, socketcall_socketpairE)
-{
+TEST(SyscallEnter, socketcall_socketpairE) {
 	auto evt_test = get_syscall_event_test(__NR_socketpair, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -571,7 +551,9 @@ TEST(SyscallEnter, socketcall_socketpairE)
 	args[1] = type;
 	args[2] = protocol;
 	args[3] = (unsigned long)fds;
-	assert_syscall_state(SYSCALL_FAILURE, "socketpair", syscall(__NR_socketcall, SYS_SOCKETPAIR, args));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "socketpair",
+	                     syscall(__NR_socketcall, SYS_SOCKETPAIR, args));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -579,8 +561,7 @@ TEST(SyscallEnter, socketcall_socketpairE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -605,10 +586,11 @@ TEST(SyscallEnter, socketcall_socketpairE)
 }
 #endif
 
-#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) && defined(__NR_sendto)
+#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && \
+        defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) &&               \
+        defined(__NR_sendto)
 
-TEST(SyscallEnter, socketcall_sendtoE)
-{
+TEST(SyscallEnter, socketcall_sendtoE) {
 	auto evt_test = get_syscall_event_test(__NR_sendto, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -619,7 +601,10 @@ TEST(SyscallEnter, socketcall_sendtoE)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {0};
 	sockaddr_in server_addr = {0};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
@@ -632,7 +617,11 @@ TEST(SyscallEnter, socketcall_sendtoE)
 	args[3] = sendto_flags;
 	args[4] = (unsigned long)&server_addr;
 	args[5] = sizeof(server_addr);
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", syscall(__NR_socketcall, SYS_SENDTO, args), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "sendto (client)",
+	                     syscall(__NR_socketcall, SYS_SENDTO, args),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -646,8 +635,7 @@ TEST(SyscallEnter, socketcall_sendtoE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -665,7 +653,12 @@ TEST(SyscallEnter, socketcall_sendtoE)
 
 	/* Parameter 3: addr (type: PT_SOCKADDR)*/
 	/* The client performs a `sendto` to the server so the src_ipv4 is the client one. */
-	evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
+	evt_test->assert_tuple_inet_param(3,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -673,10 +666,11 @@ TEST(SyscallEnter, socketcall_sendtoE)
 }
 #endif
 
-#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) && defined(__NR_sendmsg)
+#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && \
+        defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) &&               \
+        defined(__NR_sendmsg)
 
-TEST(SyscallEnter, socketcall_sendmsgE)
-{
+TEST(SyscallEnter, socketcall_sendmsgE) {
 	auto evt_test = get_syscall_event_test(__NR_sendmsg, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -687,14 +681,17 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 	int32_t server_socket_fd = 0;
 	sockaddr_in client_addr = {0};
 	sockaddr_in server_addr = {0};
-	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
+	                                        &client_addr,
+	                                        &server_socket_fd,
+	                                        &server_addr);
 
 	/* Send a message to the server */
 	struct msghdr send_msg;
 	struct iovec iov[3];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (sockaddr*)&server_addr;
+	send_msg.msg_name = (sockaddr *)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -713,7 +710,11 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 	args[0] = client_socket_fd;
 	args[1] = (unsigned long)&send_msg;
 	args[2] = sendmsg_flags;
-	assert_syscall_state(SYSCALL_SUCCESS, "sendmsg (client)", syscall(__NR_socketcall, SYS_SENDMSG, args), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "sendmsg (client)",
+	                     syscall(__NR_socketcall, SYS_SENDMSG, args),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -727,8 +728,7 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -746,7 +746,12 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 
 	/* Parameter 3: addr (type: PT_SOCKADDR)*/
 	/* The client performs a `sendmsg` to the server so the src_ipv4 is the client one. */
-	evt_test->assert_tuple_inet_param(3, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
+	evt_test->assert_tuple_inet_param(3,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -755,8 +760,7 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 #endif
 
 #ifdef __NR_recvmsg
-TEST(SyscallEnter, socketcall_recvmsgE)
-{
+TEST(SyscallEnter, socketcall_recvmsgE) {
 	auto evt_test = get_syscall_event_test(__NR_recvmsg, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -779,8 +783,7 @@ TEST(SyscallEnter, socketcall_recvmsgE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -803,8 +806,7 @@ TEST(SyscallEnter, socketcall_recvmsgE)
 
 #include <netdb.h>
 
-TEST(SyscallEnter, socketcall_getsockoptE)
-{
+TEST(SyscallEnter, socketcall_getsockoptE) {
 	auto evt_test = get_syscall_event_test(__NR_getsockopt, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -823,7 +825,9 @@ TEST(SyscallEnter, socketcall_getsockoptE)
 	args[2] = option_name;
 	args[3] = (unsigned long)&option_value;
 	args[4] = (unsigned long)&option_len;
-	assert_syscall_state(SYSCALL_FAILURE, "getsockopt", syscall(__NR_socketcall, SYS_GETSOCKOPT, args));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "getsockopt",
+	                     syscall(__NR_socketcall, SYS_GETSOCKOPT, args));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -831,8 +835,7 @@ TEST(SyscallEnter, socketcall_getsockoptE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -854,8 +857,7 @@ TEST(SyscallEnter, socketcall_getsockoptE)
 
 #include <netdb.h>
 
-TEST(SyscallEnter, socketcall_setsockoptE)
-{
+TEST(SyscallEnter, socketcall_setsockoptE) {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -874,7 +876,9 @@ TEST(SyscallEnter, socketcall_setsockoptE)
 	args[2] = option_name;
 	args[3] = (unsigned long)option_value;
 	args[4] = option_len;
-	assert_syscall_state(SYSCALL_FAILURE, "setsockopt", syscall(__NR_socketcall, SYS_SETSOCKOPT, args));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "setsockopt",
+	                     syscall(__NR_socketcall, SYS_SETSOCKOPT, args));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -882,8 +886,7 @@ TEST(SyscallEnter, socketcall_setsockoptE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -903,8 +906,7 @@ TEST(SyscallEnter, socketcall_setsockoptE)
 
 #ifdef __NR_send
 
-TEST(SyscallEnter, socketcall_sendE)
-{
+TEST(SyscallEnter, socketcall_sendE) {
 	auto evt_test = get_syscall_event_test(__NR_send, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -929,8 +931,7 @@ TEST(SyscallEnter, socketcall_sendE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -954,8 +955,7 @@ TEST(SyscallEnter, socketcall_sendE)
 
 #ifdef __NR_recv
 
-TEST(SyscallEnter, socketcall_recvE)
-{
+TEST(SyscallEnter, socketcall_recvE) {
 	auto evt_test = get_syscall_event_test(__NR_recv, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -980,8 +980,7 @@ TEST(SyscallEnter, socketcall_recvE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -1004,8 +1003,7 @@ TEST(SyscallEnter, socketcall_recvE)
 #endif
 
 #ifdef __NR_getpeername
-TEST(SyscallEnter, socketcall_getpeernameE)
-{
+TEST(SyscallEnter, socketcall_getpeernameE) {
 	auto evt_test = get_syscall_event_test(__NR_getpeername, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -1020,7 +1018,9 @@ TEST(SyscallEnter, socketcall_getpeernameE)
 	args[0] = mock_fd;
 	args[1] = (unsigned long)usockaddr;
 	args[2] = (unsigned long)usockaddr_len;
-	assert_syscall_state(SYSCALL_FAILURE, "getpeername", syscall(__NR_socketcall, SYS_GETPEERNAME, args));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "getpeername",
+	                     syscall(__NR_socketcall, SYS_GETPEERNAME, args));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -1028,8 +1028,7 @@ TEST(SyscallEnter, socketcall_getpeernameE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -1048,8 +1047,7 @@ TEST(SyscallEnter, socketcall_getpeernameE)
 #endif
 
 #ifdef __NR_getsockname
-TEST(SyscallEnter, socketcall_getsocknameE)
-{
+TEST(SyscallEnter, socketcall_getsocknameE) {
 	auto evt_test = get_syscall_event_test(__NR_getsockname, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -1064,7 +1062,9 @@ TEST(SyscallEnter, socketcall_getsocknameE)
 	args[0] = mock_fd;
 	args[1] = (unsigned long)usockaddr;
 	args[2] = (unsigned long)usockaddr_len;
-	assert_syscall_state(SYSCALL_FAILURE, "getsockname", syscall(__NR_socketcall, SYS_GETSOCKNAME, args));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "getsockname",
+	                     syscall(__NR_socketcall, SYS_GETSOCKNAME, args));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -1072,8 +1072,7 @@ TEST(SyscallEnter, socketcall_getsocknameE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -1091,8 +1090,7 @@ TEST(SyscallEnter, socketcall_getsocknameE)
 }
 #endif
 
-TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting)
-{
+TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting) {
 	// We send a wrong code so the event will be dropped
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
 
@@ -1115,8 +1113,7 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting)
 	evt_test->assert_event_absence(CURRENT_PID, PPME_GENERIC_E);
 }
 
-TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting)
-{
+TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting) {
 	// Same as the previous test
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, ENTER_EVENT);
 
@@ -1139,23 +1136,24 @@ TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting)
 	evt_test->assert_event_absence(CURRENT_PID, PPME_GENERIC_E);
 }
 
-TEST(SyscallEnter, socketcall_null_pointer)
-{
+TEST(SyscallEnter, socketcall_null_pointer) {
 	auto evt_test = get_syscall_event_test(__NR_shutdown, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	assert_syscall_state(SYSCALL_FAILURE, "socketcall", syscall(__NR_socketcall, SYS_SHUTDOWN, NULL));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "socketcall",
+	                     syscall(__NR_socketcall, SYS_SHUTDOWN, NULL));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	evt_test->disable_capture();
 
-	if(evt_test->is_kmod_engine())
-	{
-		/* with a null pointer we are not able to correctly obtain the event so right now we drop it. */
+	if(evt_test->is_kmod_engine()) {
+		/* with a null pointer we are not able to correctly obtain the event so right now we drop
+		 * it. */
 		evt_test->assert_event_absence();
 		SUCCEED();
 		return;
@@ -1166,8 +1164,7 @@ TEST(SyscallEnter, socketcall_null_pointer)
 	 */
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -1188,8 +1185,7 @@ TEST(SyscallEnter, socketcall_null_pointer)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting)
-{
+TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting) {
 	// We send a wrong code so the event will be dropped
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
 

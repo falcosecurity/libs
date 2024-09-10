@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_fd : public sinsp_filter_check
-{
+class sinsp_filter_check_fd : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_FDNUM = 0,
 		TYPE_FDTYPE = 1,
 		TYPE_FDTYPECHAR = 2,
@@ -77,23 +75,30 @@ public:
 	virtual ~sinsp_filter_check_fd() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
 
 protected:
-	bool extract_nocache(sinsp_evt*, std::vector<extract_value_t>& values, bool sanitize_strings = true) override;
+	bool extract_nocache(sinsp_evt*,
+	                     std::vector<extract_value_t>& values,
+	                     bool sanitize_strings = true) override;
 	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 	bool compare_nocache(sinsp_evt*) override;
 
 private:
 	int32_t extract_arg(std::string_view fldname, std::string_view val);
-	uint8_t* extract_from_null_fd(sinsp_evt *evt, uint32_t* len, bool sanitize_strings);
-	bool extract_fdname_from_creator(sinsp_evt *evt, uint32_t* len, bool sanitize_strings, bool fd_nameraw = false);
-	bool extract_fd(sinsp_evt *evt);
+	uint8_t* extract_from_null_fd(sinsp_evt* evt, uint32_t* len, bool sanitize_strings);
+	bool extract_fdname_from_creator(sinsp_evt* evt,
+	                                 uint32_t* len,
+	                                 bool sanitize_strings,
+	                                 bool fd_nameraw = false);
+	bool extract_fd(sinsp_evt* evt);
 
-	bool compare_ip(sinsp_evt *evt);
-	bool compare_net(sinsp_evt *evt);
-	bool compare_port(sinsp_evt *evt);
-	bool compare_domain(sinsp_evt *evt);
+	bool compare_ip(sinsp_evt* evt);
+	bool compare_net(sinsp_evt* evt);
+	bool compare_port(sinsp_evt* evt);
+	bool compare_domain(sinsp_evt* evt);
 
 	sinsp_threadinfo* m_tinfo;
 	sinsp_fdinfo* m_fdinfo;

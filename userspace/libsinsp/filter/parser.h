@@ -21,7 +21,9 @@ limitations under the License.
 #include <libsinsp/filter/ast.h>
 #include <cstdint>
 
-namespace re2 { class RE2; };
+namespace re2 {
+class RE2;
+};
 
 //
 // Context-free Grammar for Sinsp Filters
@@ -38,7 +40,7 @@ namespace re2 { class RE2; };
 //     NotExprTail         ::= 'not(' Expr ')'
 //                             | Check
 //     Check               ::= Field Condition
-//                             | FieldTransformer Condition 
+//                             | FieldTransformer Condition
 //                             | Identifier
 //                             | '(' Expr ')'
 //     FieldTransformer       ::= FieldTransformerType FieldTransformerTail
@@ -54,21 +56,21 @@ namespace re2 { class RE2; };
 //     ListValue           ::= '(' (StrValue (',' StrValue)*)* ')'
 //                             | Identifier
 //     Field               ::= FieldName('[' FieldArg ']')?
-//     FieldArg            ::= QuotedStr | FieldArgBareStr 
+//     FieldArg            ::= QuotedStr | FieldArgBareStr
 //     NumValue            ::= HexNumber | Number
 //     StrValue            ::= QuotedStr | BareStr
-// 
+//
 // Supported Check Operators (EBNF Syntax):
 //     UnaryOperator       ::= 'exists'
-//     NumOperator         ::= '<=' | '<' | '>=' | '>' 
+//     NumOperator         ::= '<=' | '<' | '>=' | '>'
 //     StrOperator         ::= '==' | '=' | '!='
 //                             | 'glob ' | 'iglob '
 //                             | 'contains ' | 'icontains ' | 'bcontains '
 //                             | 'startswith ' | 'bstartswith ' | 'endswith '
-//     ListOperator        ::= 'intersects' | 'in' | 'pmatch' 
+//     ListOperator        ::= 'intersects' | 'in' | 'pmatch'
 //     FieldTransformerVal    ::= 'val('
 //     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename('
-// 
+//
 // Tokens (Regular Expressions):
 //     Identifier          ::= [a-zA-Z]+[a-zA-Z0-9_]*
 //     FieldName           ::= [a-zA-Z]+[a-zA-Z0-9_]*(\.[a-zA-Z]+[a-zA-Z0-9_]*)+
@@ -83,62 +85,61 @@ namespace libsinsp {
 namespace filter {
 
 /*!
-	\brief This class parses a sinsp filter string with a context-free
-	formal grammar and generates an AST.
+    \brief This class parses a sinsp filter string with a context-free
+    formal grammar and generates an AST.
 */
-class SINSP_PUBLIC parser
-{
+class SINSP_PUBLIC parser {
 public:
 	/*!
-		\brief Returns the set of filtering operators supported by libsinsp
+	    \brief Returns the set of filtering operators supported by libsinsp
 	*/
-	static std::vector<std::string> supported_operators(bool list_only=false);
+	static std::vector<std::string> supported_operators(bool list_only = false);
 
 	/*!
-		\brief Returns the set of field transformers supported by libsinsp
+	    \brief Returns the set of field transformers supported by libsinsp
 	*/
-	static std::vector<std::string> supported_field_transformers(bool include_val=false);
+	static std::vector<std::string> supported_field_transformers(bool include_val = false);
 
 	/*!
-		\brief Constructs the parser with a given filter string input
-		\param input The filter string to parse.
+	    \brief Constructs the parser with a given filter string input
+	    \param input The filter string to parse.
 	*/
 	explicit parser(const std::string& input);
 
 	/*!
-		\brief Retrieves the parser position info.
-		\param pos pos_info struct in which the info is written.
+	    \brief Retrieves the parser position info.
+	    \param pos pos_info struct in which the info is written.
 	*/
 	void get_pos(ast::pos_info& pos) const;
 
 	/*!
-		\brief Retrieves the parser position info.
-		\return pos_info struct in which the info is written.
+	    \brief Retrieves the parser position info.
+	    \return pos_info struct in which the info is written.
 	*/
 	ast::pos_info get_pos() const;
 
 	/*!
-		\brief Sets the partial parsing option. Default is true.
-		\note Parsing the input partially means that the parsing can succeed
-		without reaching the end of the input. In other word, this allows
-		parsing strings that have a valid filter as their prefix.
+	    \brief Sets the partial parsing option. Default is true.
+	    \note Parsing the input partially means that the parsing can succeed
+	    without reaching the end of the input. In other word, this allows
+	    parsing strings that have a valid filter as their prefix.
 	*/
 	void set_parse_partial(bool parse_partial);
 
 	/*!
-		\brief Sets the max depth of the recursion. Default is 100.
-		\note The parser is implemented as a recursive descent parser, so the
-		depth of the recursion is capped to a max level to prevent stack abuse.
+	    \brief Sets the max depth of the recursion. Default is 100.
+	    \note The parser is implemented as a recursive descent parser, so the
+	    depth of the recursion is capped to a max level to prevent stack abuse.
 	*/
 	void set_max_depth(uint32_t max_depth);
 
 	/*!
-		\brief Parses the input and returns an AST.
-		\note Throws a sinsp_exception in case of parsing errors.
-		\return Pointer to a expr struct representing the the parsed
-		AST. The resulting pointer is owned by the caller and must be deleted
-		by it. The pointer is automatically deleted in case of exception.
-		On delete, each node of the AST deletes all its subnodes.
+	    \brief Parses the input and returns an AST.
+	    \note Throws a sinsp_exception in case of parsing errors.
+	    \return Pointer to a expr struct representing the the parsed
+	    AST. The resulting pointer is owned by the caller and must be deleted
+	    by it. The pointer is automatically deleted in case of exception.
+	    On delete, each node of the AST deletes all its subnodes.
 	*/
 	std::unique_ptr<ast::expr> parse();
 
@@ -149,15 +150,13 @@ private:
 	std::unique_ptr<ast::expr> parse_embedded_remainder();
 	std::unique_ptr<ast::expr> parse_check();
 	std::unique_ptr<ast::expr> parse_list_value();
-	std::unique_ptr<ast::expr> parse_field_remainder(
-								std::string fieldname,
-								const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_field_remainder(std::string fieldname,
+	                                                 const libsinsp::filter::ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_field_or_transformer_remainder(
-								std::string transformer,
-								const libsinsp::filter::ast::pos_info& pos);
-	std::unique_ptr<ast::expr> parse_condition(
-								std::unique_ptr<ast::expr> left,
-								const libsinsp::filter::ast::pos_info& pos);
+	        std::string transformer,
+	        const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_condition(std::unique_ptr<ast::expr> left,
+	                                           const libsinsp::filter::ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_list_value_or_transformer();
 	std::unique_ptr<ast::expr> parse_num_value_or_transformer();
 	std::unique_ptr<ast::expr> parse_str_value_or_transformer(bool no_transformer);
@@ -190,5 +189,5 @@ private:
 	std::string m_last_token;
 };
 
-}
-}
+}  // namespace filter
+}  // namespace libsinsp

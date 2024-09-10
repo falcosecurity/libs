@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_k8s : public sinsp_filter_check
-{
+class sinsp_filter_check_k8s : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_K8S_NS_NAME = 0,
 		TYPE_K8S_POD_NAME,
 		TYPE_K8S_POD_ID,
@@ -61,14 +59,17 @@ public:
 	virtual ~sinsp_filter_check_k8s() = default;
 
 	std::unique_ptr<sinsp_filter_check> allocate_new() override;
-	int32_t parse_field_name(std::string_view, bool alloc_state, bool needed_for_filtering) override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
 
 protected:
 	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 
 private:
 	int32_t extract_arg(std::string_view fldname, std::string_view val);
-	void concatenate_container_labels(const std::map<std::string, std::string>& labels, std::string* s);
+	void concatenate_container_labels(const std::map<std::string, std::string>& labels,
+	                                  std::string* s);
 	std::string m_argname;
 	std::string m_tstr;
 	uint32_t m_u32val;

@@ -2,8 +2,7 @@
 
 #ifdef __NR_read
 
-TEST(SyscallEnter, readE)
-{
+TEST(SyscallEnter, readE) {
 	auto evt_test = get_syscall_event_test(__NR_read, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -13,7 +12,9 @@ TEST(SyscallEnter, readE)
 	int32_t mock_fd = -1;
 	char mock_buf[8];
 	size_t mock_count = 4096;
-	assert_syscall_state(SYSCALL_FAILURE, "read", syscall(__NR_read, mock_fd, (void *)(mock_buf), mock_count));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "read",
+	                     syscall(__NR_read, mock_fd, (void *)(mock_buf), mock_count));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -21,8 +22,7 @@ TEST(SyscallEnter, readE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -21,13 +21,11 @@ limitations under the License.
 #include <libscap/scap_platform_impl.h>
 #include <memory>
 
-namespace scap_gvisor
-{
-	class platform;
+namespace scap_gvisor {
+class platform;
 };
 
-struct scap_gvisor_platform
-{
+struct scap_gvisor_platform {
 	struct scap_platform m_generic;
 	char* m_lasterr;
 	std::unique_ptr<scap_gvisor::platform> m_platform;

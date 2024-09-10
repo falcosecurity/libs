@@ -4,8 +4,7 @@
 
 #include <sys/socket.h>
 
-TEST(SyscallExit, socketpairX_success)
-{
+TEST(SyscallExit, socketpairX_success) {
 	auto evt_test = get_syscall_event_test(__NR_socketpair, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,7 +15,11 @@ TEST(SyscallExit, socketpairX_success)
 	int type = SOCK_STREAM;
 	int protocol = 0;
 	int32_t fd[2];
-	assert_syscall_state(SYSCALL_SUCCESS, "socketpair", syscall(__NR_socketpair, domain, type, protocol, fd), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "socketpair",
+	                     syscall(__NR_socketpair, domain, type, protocol, fd),
+	                     NOT_EQUAL,
+	                     -1);
 	syscall(__NR_close, fd[0]);
 	syscall(__NR_close, fd[1]);
 
@@ -26,8 +29,7 @@ TEST(SyscallExit, socketpairX_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -59,8 +61,7 @@ TEST(SyscallExit, socketpairX_success)
 	evt_test->assert_num_params_pushed(5);
 }
 
-TEST(SyscallExit, socketpairX_failure)
-{
+TEST(SyscallExit, socketpairX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_socketpair, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -71,7 +72,9 @@ TEST(SyscallExit, socketpairX_failure)
 	int type = SOCK_STREAM;
 	int protocol = 0;
 	int32_t* fd = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "socketpair", syscall(__NR_socketpair, domain, type, protocol, fd));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "socketpair",
+	                     syscall(__NR_socketpair, domain, type, protocol, fd));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -80,8 +83,7 @@ TEST(SyscallExit, socketpairX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

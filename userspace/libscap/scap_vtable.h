@@ -35,8 +35,8 @@ struct scap_proclist;
 
 enum scap_ppm_sc_mask_op {
 	// SCAP_PPM_SC_MASK_ZERO = 0, //< disable all syscalls - SUPPORT DROPPED
-	SCAP_PPM_SC_MASK_SET = 1, //< enable a syscall
-	SCAP_PPM_SC_MASK_UNSET = 2, //< disable a syscall
+	SCAP_PPM_SC_MASK_SET = 1,    //< enable a syscall
+	SCAP_PPM_SC_MASK_UNSET = 2,  //< disable a syscall
 };
 
 /**
@@ -113,7 +113,7 @@ struct scap_savefile_vtable {
 	int64_t (*get_readfile_offset)(struct scap_engine_handle engine);
 };
 
-#define ENGINE_FLAG_BPF_STATS_ENABLED (1<<0)
+#define ENGINE_FLAG_BPF_STATS_ENABLED (1 << 0)
 
 struct scap_vtable {
 	/**
@@ -121,7 +121,7 @@ struct scap_vtable {
 	 */
 	const char* name;
 
-	const struct scap_savefile_vtable *savefile_ops;
+	const struct scap_savefile_vtable* savefile_ops;
 
 	/**
 	 * @brief allocate an engine-specific handle
@@ -178,7 +178,10 @@ struct scap_vtable {
 	 * The memory pointed to by *pevent must be owned by the engine
 	 * and must remain valid at least until the next call to next()
 	 */
-	int32_t (*next)(struct scap_engine_handle engine, scap_evt** pevent, uint16_t* pdevid, uint32_t* pflags);
+	int32_t (*next)(struct scap_engine_handle engine,
+	                scap_evt** pevent,
+	                uint16_t* pdevid,
+	                uint32_t* pflags);
 
 	/**
 	 * @brief start a capture
@@ -203,7 +206,10 @@ struct scap_vtable {
 	 * @param arg2 setting-specific value
 	 * @return SCAP_SUCCESS or a failure code
 	 */
-	int32_t (*configure)(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2);
+	int32_t (*configure)(struct scap_engine_handle engine,
+	                     enum scap_setting setting,
+	                     unsigned long arg1,
+	                     unsigned long arg2);
 
 	/**
 	 * @brief get engine statistics
@@ -211,7 +217,7 @@ struct scap_vtable {
 	 * @param stats [out] the stats struct to be filled
 	 * @return SCAP_SUCCESS or a failure code
 	 */
-	int32_t (*get_stats)(struct scap_engine_handle engine, struct scap_stats *stats);
+	int32_t (*get_stats)(struct scap_engine_handle engine, struct scap_stats* stats);
 
 	/**
 	 * @brief get engine statistics (including counters and `bpftool prog show` like stats)
@@ -220,7 +226,10 @@ struct scap_vtable {
 	 * @param rc [out] Pointer to return code
 	 * @return Pointer to a \ref metrics_v2 structure filled with the statistics
 	 */
-	const struct metrics_v2* (*get_stats_v2)(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc);
+	const struct metrics_v2* (*get_stats_v2)(struct scap_engine_handle engine,
+	                                         uint32_t flags,
+	                                         uint32_t* nstats,
+	                                         int32_t* rc);
 
 	/**
 	 * @brief get the number of tracepoint hits
@@ -228,7 +237,7 @@ struct scap_vtable {
 	 * @param ret [out] the number of hits
 	 * @return SCAP_SUCCESS or a failure code
 	 */
-	int32_t (*get_n_tracepoint_hit)(struct scap_engine_handle engine, long *ret);
+	int32_t (*get_n_tracepoint_hit)(struct scap_engine_handle engine, long* ret);
 
 	/**
 	 * @brief get the number of used devices

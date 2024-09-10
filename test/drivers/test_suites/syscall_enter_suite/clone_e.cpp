@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_clone
-TEST(SyscallEnter, cloneE)
-{
+TEST(SyscallEnter, cloneE) {
 	auto evt_test = get_syscall_event_test(__NR_clone, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -16,19 +15,16 @@ TEST(SyscallEnter, cloneE)
 	int child_tid = -1;
 	unsigned long tls = 0;
 
-	/* Please note: Some systems are compiled with kernel config like `CONFIG_CLONE_BACKWARDS2`, so the order of clone params
-	 * is not the same as for all architectures. `/kernel/fork.c` from kernel source tree.
+	/* Please note: Some systems are compiled with kernel config like `CONFIG_CLONE_BACKWARDS2`, so
+	 *the order of clone params is not the same as for all architectures. `/kernel/fork.c` from
+	 *kernel source tree.
 	 *
 	 *  #ifdef CONFIG_CLONE_BACKWARDS
-	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,  	  <-- `aarch64` systems use this.
-	 *			int __user *, parent_tidptr,
-	 *			unsigned long, tls,
-	 *			int __user *, child_tidptr)
+	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,  	  <-- `aarch64`
+	 *systems use this. int __user *, parent_tidptr, unsigned long, tls, int __user *, child_tidptr)
 	 *	#elif defined(CONFIG_CLONE_BACKWARDS2)
-	 *	SYSCALL_DEFINE5(clone, unsigned long, newsp, unsigned long, clone_flags,      <-- `s390x` systems use this.
-	 *			int __user *, parent_tidptr,
-	 *			int __user *, child_tidptr,
-	 *			unsigned long, tls)
+	 *	SYSCALL_DEFINE5(clone, unsigned long, newsp, unsigned long, clone_flags,      <-- `s390x`
+	 *systems use this. int __user *, parent_tidptr, int __user *, child_tidptr, unsigned long, tls)
 	 *	#elif defined(CONFIG_CLONE_BACKWARDS3)
 	 *	SYSCALL_DEFINE6(clone, unsigned long, clone_flags, unsigned long, newsp,
 	 *			int, stack_size,
@@ -36,19 +32,23 @@ TEST(SyscallEnter, cloneE)
 	 *			int __user *, child_tidptr,
 	 *			unsigned long, tls)
 	 *	#else
-	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,      <-- `x86_64` systems use this.
-	 *			int __user *, parent_tidptr,
-	 *			int __user *, child_tidptr,
-	 *			unsigned long, tls)
+	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,      <-- `x86_64`
+	 *systems use this. int __user *, parent_tidptr, int __user *, child_tidptr, unsigned long, tls)
 	 *	#endif
 	 *
 	 */
 #ifdef __s390x__
-	assert_syscall_state(SYSCALL_FAILURE, "clone", syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "clone",
+	                     syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls));
 #elif defined(__aarch64__) || defined(__riscv) || defined(__loongarch64)
-	assert_syscall_state(SYSCALL_FAILURE, "clone", syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "clone",
+	                     syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid));
 #else
-	assert_syscall_state(SYSCALL_FAILURE, "clone", syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "clone",
+	                     syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls));
 #endif
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -57,8 +57,7 @@ TEST(SyscallEnter, cloneE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

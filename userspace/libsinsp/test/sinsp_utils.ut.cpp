@@ -20,8 +20,7 @@ limitations under the License.
 #include <libsinsp/utils.h>
 #include <libsinsp/sinsp_exception.h>
 
-TEST(sinsp_utils_test, concatenate_paths)
-{
+TEST(sinsp_utils_test, concatenate_paths) {
 	// Some tests were motivated by this resource:
 	// https://pubs.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap04.html#tag_04_11
 
@@ -54,7 +53,8 @@ TEST(sinsp_utils_test, concatenate_paths)
 	path1 = "a";
 	path2 = "../";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("a..", res); // since the helper does not add any "/" between path1 and path2, we end up with this.
+	EXPECT_EQ("a..", res);  // since the helper does not add any "/" between path1 and path2, we end
+	                        // up with this.
 
 	path1 = "a/";
 	path2 = "../";
@@ -69,22 +69,24 @@ TEST(sinsp_utils_test, concatenate_paths)
 	path1 = "foo/";
 	path2 = "..//a";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("a", res); // path2 has been sanitized, plus we moved up a folder because of ".."
+	EXPECT_EQ("a", res);  // path2 has been sanitized, plus we moved up a folder because of ".."
 
 	path1 = "/foo/";
 	path2 = "..//a";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/a", res); // path2 has been sanitized, plus we moved up a folder because of ".."
+	EXPECT_EQ("/a", res);  // path2 has been sanitized, plus we moved up a folder because of ".."
 
 	path1 = "heolo";
 	path2 = "w////////////..//////.////////r.|";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("r.|", res); // since the helper does not add any "/" between path1 and path2, we end up with this.
+	EXPECT_EQ("r.|", res);  // since the helper does not add any "/" between path1 and path2, we end
+	                        // up with this.
 
 	path1 = "heolo";
-	path2 = "w/////////////..//"; // heolow/////////////..// > heolow/..// -> /
+	path2 = "w/////////////..//";  // heolow/////////////..// > heolow/..// -> /
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("", res); // since the helper does not add any "/" between path1 and path2, we end up with this, ie a folder up from "heolow/"
+	EXPECT_EQ("", res);  // since the helper does not add any "/" between path1 and path2, we end up
+	                     // with this, ie a folder up from "heolow/"
 
 	path1 = "";
 	path2 = "./";
@@ -144,17 +146,20 @@ TEST(sinsp_utils_test, concatenate_paths)
 	path1 = "./app";
 	path2 = "custom/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("./appcustom/term", res); // since path1 is not '/' terminated, we expect a string concat without further path fields
+	EXPECT_EQ("./appcustom/term", res);  // since path1 is not '/' terminated, we expect a string
+	                                     // concat without further path fields
 
 	path1 = "/app";
 	path2 = "custom/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("/appcustom/term", res); // since path1 is not '/' terminated, we expect a string concat without further path fields
+	EXPECT_EQ("/appcustom/term", res);  // since path1 is not '/' terminated, we expect a string
+	                                    // concat without further path fields
 
 	path1 = "app";
 	path2 = "custom/term";
 	res = sinsp_utils::concatenate_paths(path1, path2);
-	EXPECT_EQ("appcustom/term", res); // since path1 is not '/' terminated, we expect a string concat without further path fields
+	EXPECT_EQ("appcustom/term", res);  // since path1 is not '/' terminated, we expect a string
+	                                   // concat without further path fields
 
 	path1 = "app/";
 	path2 = "custom/term";
@@ -199,8 +204,7 @@ TEST(sinsp_utils_test, concatenate_paths)
 	EXPECT_EQ("/root/c:/hello/world", res); */
 }
 
-TEST(sinsp_utils_test, sinsp_split)
-{
+TEST(sinsp_utils_test, sinsp_split) {
 	const char *in = "hello\0world\0";
 	size_t len = 11;
 	std::vector<std::string> split = sinsp_split({in, len}, '\0');
@@ -236,18 +240,18 @@ TEST(sinsp_utils_test, sinsp_split)
 	split = sinsp_split(str, ',');
 	EXPECT_EQ(split.size(), 0);
 
-	str =  "A";
+	str = "A";
 	split = sinsp_split(str, ',');
 	EXPECT_EQ(split.size(), 1);
 	EXPECT_EQ(split[0], "A");
 
-	str =  ",";
+	str = ",";
 	split = sinsp_split(str, ',');
 	EXPECT_EQ(split.size(), 2);
 	EXPECT_EQ(split[0], "");
 	EXPECT_EQ(split[1], "");
 
-	str =  ",,";
+	str = ",,";
 	split = sinsp_split(str, ',');
 	EXPECT_EQ(split.size(), 3);
 	EXPECT_EQ(split[0], "");
@@ -265,5 +269,4 @@ TEST(sinsp_utils_test, sinsp_split)
 	EXPECT_EQ(split.size(), 2);
 	EXPECT_EQ(split[0], "");
 	EXPECT_EQ(split[1], "B");
-
 }

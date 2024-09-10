@@ -12,11 +12,11 @@
 /* This header should include different definitions according to different architectures.*/
 
 #ifndef likely
-# define likely(X)		__builtin_expect(!!(X), 1)
+#define likely(X) __builtin_expect(!!(X), 1)
 #endif
 
 #ifndef unlikely
-# define unlikely(X)		__builtin_expect(!!(X), 0)
+#define unlikely(X) __builtin_expect(!!(X), 0)
 #endif
 
 /*
@@ -24,8 +24,8 @@
  */
 
 /* `/include/linux/sched.h`  from kernel source tree. */
-#define PF_EXITING		0x00000004	/* Getting shut down */
-#define PF_KTHREAD		0x00200000	/* I am a kernel thread */
+#define PF_EXITING 0x00000004 /* Getting shut down */
+#define PF_KTHREAD 0x00200000 /* I am a kernel thread */
 
 /*=============================== ARCH SPECIFIC ===========================*/
 
@@ -113,35 +113,37 @@
 
 /* `/include/uapi/linux/sched.h`  from kernel source tree. */
 
-#define CSIGNAL 0x000000ff		/* signal mask to be sent at exit */
-#define CLONE_VM 0x00000100		/* set if VM shared between processes */
-#define CLONE_FS 0x00000200		/* set if fs info shared between processes */
-#define CLONE_FILES 0x00000400		/* set if open files shared between processes */
-#define CLONE_SIGHAND 0x00000800	/* set if signal handlers and blocked signals shared */
-#define CLONE_PIDFD 0x00001000		/* set if a pidfd should be placed in parent */
-#define CLONE_PTRACE 0x00002000		/* set if we want to let tracing continue on the child too */
-#define CLONE_VFORK 0x00004000		/* set if the parent wants the child to wake it up on mm_release */
-#define CLONE_PARENT 0x00008000		/* set if we want to have the same parent as the cloner */
-#define CLONE_THREAD 0x00010000		/* Same thread group? */
-#define CLONE_NEWNS 0x00020000		/* New mount namespace group */
-#define CLONE_SYSVSEM 0x00040000	/* share system V SEM_UNDO semantics */
-#define CLONE_SETTLS 0x00080000		/* create a new TLS for the child */
-#define CLONE_PARENT_SETTID 0x00100000	/* set the TID in the parent */
+#define CSIGNAL 0x000000ff       /* signal mask to be sent at exit */
+#define CLONE_VM 0x00000100      /* set if VM shared between processes */
+#define CLONE_FS 0x00000200      /* set if fs info shared between processes */
+#define CLONE_FILES 0x00000400   /* set if open files shared between processes */
+#define CLONE_SIGHAND 0x00000800 /* set if signal handlers and blocked signals shared */
+#define CLONE_PIDFD 0x00001000   /* set if a pidfd should be placed in parent */
+#define CLONE_PTRACE 0x00002000  /* set if we want to let tracing continue on the child too */
+#define CLONE_VFORK 0x00004000   /* set if the parent wants the child to wake it up on mm_release */
+#define CLONE_PARENT 0x00008000  /* set if we want to have the same parent as the cloner */
+#define CLONE_THREAD 0x00010000  /* Same thread group? */
+#define CLONE_NEWNS 0x00020000   /* New mount namespace group */
+#define CLONE_SYSVSEM 0x00040000 /* share system V SEM_UNDO semantics */
+#define CLONE_SETTLS 0x00080000  /* create a new TLS for the child */
+#define CLONE_PARENT_SETTID 0x00100000  /* set the TID in the parent */
 #define CLONE_CHILD_CLEARTID 0x00200000 /* clear the TID in the child */
-#define CLONE_DETACHED 0x00400000	/* Unused, ignored */
-#define CLONE_UNTRACED 0x00800000	/* set if the tracing process can't force CLONE_PTRACE on this clone */
-#define CLONE_CHILD_SETTID 0x01000000	/* set the TID in the child */
-#define CLONE_NEWCGROUP 0x02000000	/* New cgroup namespace */
-#define CLONE_NEWUTS 0x04000000		/* New utsname namespace */
-#define CLONE_NEWIPC 0x08000000		/* New ipc namespace */
-#define CLONE_NEWUSER 0x10000000	/* New user namespace */
-#define CLONE_NEWPID 0x20000000		/* New pid namespace */
-#define CLONE_NEWNET 0x40000000		/* New network namespace */
-#define CLONE_IO 0x80000000		/* Clone io context */
+#define CLONE_DETACHED 0x00400000       /* Unused, ignored */
+#define CLONE_UNTRACED \
+	0x00800000 /* set if the tracing process can't force CLONE_PTRACE on this clone */
+#define CLONE_CHILD_SETTID 0x01000000 /* set the TID in the child */
+#define CLONE_NEWCGROUP 0x02000000    /* New cgroup namespace */
+#define CLONE_NEWUTS 0x04000000       /* New utsname namespace */
+#define CLONE_NEWIPC 0x08000000       /* New ipc namespace */
+#define CLONE_NEWUSER 0x10000000      /* New user namespace */
+#define CLONE_NEWPID 0x20000000       /* New pid namespace */
+#define CLONE_NEWNET 0x40000000       /* New network namespace */
+#define CLONE_IO 0x80000000           /* Clone io context */
 
 /* Flags for the clone3() syscall. */
 #define CLONE_CLEAR_SIGHAND 0x100000000ULL /* Clear any signal handler and reset to SIG_DFL. */
-#define CLONE_INTO_CGROUP 0x200000000ULL   /* Clone into a specific cgroup given the right permissions. */
+#define CLONE_INTO_CGROUP \
+	0x200000000ULL /* Clone into a specific cgroup given the right permissions. */
 
 /*
  * cloning flags intersect with CSIGNAL so can be used with unshare and clone3
@@ -160,14 +162,14 @@
 #define O_WRONLY 00000001
 #define O_RDWR 00000002
 #define O_CREAT 00000100  /* not fcntl */
-#define O_EXCL 00000200	  /* not fcntl */
+#define O_EXCL 00000200   /* not fcntl */
 #define O_NOCTTY 00000400 /* not fcntl */
 #define O_TRUNC 00001000  /* not fcntl */
 #define O_APPEND 00002000
 #define O_NONBLOCK 00004000
 #define O_NDELAY O_NONBLOCK
 #define O_DSYNC 00010000 /* used to be O_SYNC, see below */
-#define FASYNC 00020000	 /* fcntl, for BSD compatibility */
+#define FASYNC 00020000  /* fcntl, for BSD compatibility */
 
 #if defined(__TARGET_ARCH_x86) || defined(__TARGET_ARCH_s390)
 
@@ -189,10 +191,10 @@
 
 /* `/arch/powerpc/include/uapi/asm/fcntl.h` from kernel source tree. */
 
-#define O_DIRECTORY      040000	/* must be a directory */
-#define O_NOFOLLOW      0100000	/* don't follow links */
-#define O_LARGEFILE     0200000
-#define O_DIRECT	0400000	/* direct disk access hint */
+#define O_DIRECTORY 040000 /* must be a directory */
+#define O_NOFOLLOW 0100000 /* don't follow links */
+#define O_LARGEFILE 0200000
+#define O_DIRECT 0400000 /* direct disk access hint */
 
 #endif
 
@@ -216,12 +218,18 @@
 /*
  * how->resolve flags for openat2(2).
  */
-#define RESOLVE_NO_XDEV 0x01	   /* Block mount-point crossings (includes bind-mounts). */
+#define RESOLVE_NO_XDEV 0x01       /* Block mount-point crossings (includes bind-mounts). */
 #define RESOLVE_NO_MAGICLINKS 0x02 /* Block traversal through procfs-style "magic-links". */
-#define RESOLVE_NO_SYMLINKS 0x04   /* Block traversal through all symlinks (implies OEXT_NO_MAGICLINKS) */
-#define RESOLVE_BENEATH 0x08	   /* Block "lexical" trickery like "..", symlinks, and absolute paths which escape the dirfd. */
-#define RESOLVE_IN_ROOT 0x10	   /* Make all jumps to "/" and ".." be scoped inside the dirfd (similar to chroot(2)). */
-#define RESOLVE_CACHED 0x20	   /* Only complete if resolution can be completed through cached lookup. May return -EAGAIN if that's not possible. */
+#define RESOLVE_NO_SYMLINKS \
+	0x04 /* Block traversal through all symlinks (implies OEXT_NO_MAGICLINKS) */
+#define RESOLVE_BENEATH                                                                       \
+	0x08 /* Block "lexical" trickery like "..", symlinks, and absolute paths which escape the \
+	        dirfd. */
+#define RESOLVE_IN_ROOT \
+	0x10 /* Make all jumps to "/" and ".." be scoped inside the dirfd (similar to chroot(2)). */
+#define RESOLVE_CACHED                                                                             \
+	0x20 /* Only complete if resolution can be completed through cached lookup. May return -EAGAIN \
+	        if that's not possible. */
 
 //////////////////////////
 // io_uring flags
@@ -232,11 +240,11 @@
 /*
  * Io_uring_setup flags
  */
-#define IORING_SETUP_IOPOLL (1U << 0)	  /* io_context is polled */
-#define IORING_SETUP_SQPOLL (1U << 1)	  /* SQ poll thread */
-#define IORING_SETUP_SQ_AFF (1U << 2)	  /* sq_thread_cpu is valid */
-#define IORING_SETUP_CQSIZE (1U << 3)	  /* app defines CQ size */
-#define IORING_SETUP_CLAMP (1U << 4)	  /* clamp SQ/CQ ring sizes */
+#define IORING_SETUP_IOPOLL (1U << 0)     /* io_context is polled */
+#define IORING_SETUP_SQPOLL (1U << 1)     /* SQ poll thread */
+#define IORING_SETUP_SQ_AFF (1U << 2)     /* sq_thread_cpu is valid */
+#define IORING_SETUP_CQSIZE (1U << 3)     /* app defines CQ size */
+#define IORING_SETUP_CLAMP (1U << 4)      /* clamp SQ/CQ ring sizes */
 #define IORING_SETUP_ATTACH_WQ (1U << 5)  /* attach to existing wq */
 #define IORING_SETUP_R_DISABLED (1U << 6) /* start with ring disabled */
 
@@ -282,9 +290,9 @@
 #define PROT_SEM 0x8   /* page may be used for atomic ops */
 /*			0x10		   reserved for arch-specific use */
 /*			0x20		   reserved for arch-specific use */
-#define PROT_NONE 0x0		  /* page can not be accessed */
+#define PROT_NONE 0x0             /* page can not be accessed */
 #define PROT_GROWSDOWN 0x01000000 /* mprotect flag: extend change to start of growsdown vma */
-#define PROT_GROWSUP 0x02000000	  /* mprotect flag: extend change to end of growsup vma */
+#define PROT_GROWSUP 0x02000000   /* mprotect flag: extend change to end of growsup vma */
 
 /* `/arch/powerpc/include/uapi/asm/mman.h` from kernel source tree. */
 
@@ -296,16 +304,16 @@
 
 /* `/include/uapi/linux/mman.h` from kernel source tree. */
 
-#define MAP_SHARED 0x01		 /* Share changes */
-#define MAP_PRIVATE 0x02	 /* Changes are private */
+#define MAP_SHARED 0x01          /* Share changes */
+#define MAP_PRIVATE 0x02         /* Changes are private */
 #define MAP_SHARED_VALIDATE 0x03 /* share + validate extension flags */
 
 /* `/include/uapi/asm-generic/mman-common.h` from kernel source tree. */
 
-#define MAP_TYPE 0x0f	   /* Mask for type of mapping */
-#define MAP_FIXED 0x10	   /* Interpret addr exactly */
+#define MAP_TYPE 0x0f      /* Mask for type of mapping */
+#define MAP_FIXED 0x10     /* Interpret addr exactly */
 #define MAP_ANONYMOUS 0x20 /* don't use a file */
-#define MAP_FILE 0	   /* compatibility flags */
+#define MAP_FILE 0         /* compatibility flags */
 
 /* `/arch/x86/include/uapi/asm/mman.h` from kernel source tree. */
 
@@ -326,9 +334,9 @@
 #define MAP_NORESERVE 0x4000  /* don't check for reservations */
 #define MAP_POPULATE 0x8000   /* populate (prefault) pagetables */
 #define MAP_NONBLOCK 0x10000  /* do not block on IO */
-#define MAP_STACK 0x20000     /* give out an address that is best suited for process/thread stacks */
-#define MAP_HUGETLB 0x40000   /* create a huge page mapping */
-#define MAP_SYNC 0x80000      /* perform synchronous page faults for the mapping */
+#define MAP_STACK 0x20000   /* give out an address that is best suited for process/thread stacks */
+#define MAP_HUGETLB 0x40000 /* create a huge page mapping */
+#define MAP_SYNC 0x80000    /* perform synchronous page faults for the mapping */
 
 /* `/arch/sparc/include/uapi/asm/mman.h` from kernel source tree. */
 
@@ -369,9 +377,10 @@
 
 #define F_SETLEASE (F_LINUX_SPECIFIC_BASE + 0)
 #define F_GETLEASE (F_LINUX_SPECIFIC_BASE + 1)
-#define F_NOTIFY (F_LINUX_SPECIFIC_BASE + 2)	    /* Request nofications on a directory. */
-#define F_CANCELLK (F_LINUX_SPECIFIC_BASE + 5)	    /* Cancel a blocking posix lock. */
-#define F_DUPFD_CLOEXEC (F_LINUX_SPECIFIC_BASE + 6) /* Create a file descriptor with FD_CLOEXEC set. */
+#define F_NOTIFY (F_LINUX_SPECIFIC_BASE + 2)   /* Request nofications on a directory. */
+#define F_CANCELLK (F_LINUX_SPECIFIC_BASE + 5) /* Cancel a blocking posix lock. */
+#define F_DUPFD_CLOEXEC \
+	(F_LINUX_SPECIFIC_BASE + 6) /* Create a file descriptor with FD_CLOEXEC set. */
 /* Set and get of pipe page size array */
 #define F_SETPIPE_SZ (F_LINUX_SPECIFIC_BASE + 7)
 #define F_GETPIPE_SZ (F_LINUX_SPECIFIC_BASE + 8)
@@ -413,12 +422,12 @@
 #define SO_REUSEPORT 15
 /* Powerpc64 has different values for these ones. See /usr/include/asm/socket.h */
 #if defined(__TARGET_ARCH_powerpc)
-#define SO_RCVLOWAT     16
-#define SO_SNDLOWAT     17
+#define SO_RCVLOWAT 16
+#define SO_SNDLOWAT 17
 #define SO_RCVTIMEO_OLD 18
 #define SO_SNDTIMEO_OLD 19
-#define SO_PASSCRED     20
-#define SO_PEERCRED     21
+#define SO_PASSCRED 20
+#define SO_PEERCRED 21
 #else
 #define SO_PASSCRED 16
 #define SO_PEERCRED 17
@@ -509,7 +518,7 @@
 
 /* We keep names without `OLD` for compatibility with our `sockopt_optname_to_scap()`
  */
-#define SO_TIMESTAMP 29	   /* SO_TIMESTAMP_OLD */
+#define SO_TIMESTAMP 29    /* SO_TIMESTAMP_OLD */
 #define SO_TIMESTAMPNS 35  /* SO_TIMESTAMPNS_OLD */
 #define SO_TIMESTAMPING 37 /* SO_TIMESTAMPING_OLD */
 
@@ -594,10 +603,10 @@
 
 /* `include/linux/fs.h` from kernel source tree. */
 
-#define MNT_FORCE       0x00000001      /* Attempt to forcibily umount */
-#define MNT_DETACH      0x00000002      /* Just detach from the tree */
-#define MNT_EXPIRE      0x00000004      /* Mark for expiry */
-#define UMOUNT_NOFOLLOW 0x00000008      /* Don't follow symlink on umount */
+#define MNT_FORCE 0x00000001       /* Attempt to forcibily umount */
+#define MNT_DETACH 0x00000002      /* Just detach from the tree */
+#define MNT_EXPIRE 0x00000004      /* Mark for expiry */
+#define UMOUNT_NOFOLLOW 0x00000008 /* Don't follow symlink on umount */
 
 //////////////////////////
 // lseek whence
@@ -618,7 +627,7 @@
 
 /* `include/linux/fs.h` from kernel source tree. */
 
-#define FMODE_CREATED		(/*(__force fmode_t) */0x100000)
+#define FMODE_CREATED (/*(__force fmode_t) */ 0x100000)
 
 //////////////////////////
 // flock flags
@@ -648,14 +657,14 @@
 #define SUBCMDMASK 0x00ff
 #define SUBCMDSHIFT 8
 
-#define Q_SYNC 0x800001		/* sync disk copy of a filesystems quotas */
-#define Q_QUOTAON 0x800002	/* turn quotas on */
-#define Q_QUOTAOFF 0x800003	/* turn quotas off */
-#define Q_GETFMT 0x800004	/* get quota format used on given filesystem */
-#define Q_GETINFO 0x800005	/* get information about quota files */
-#define Q_SETINFO 0x800006	/* set information about quota files */
-#define Q_GETQUOTA 0x800007	/* get user quota structure */
-#define Q_SETQUOTA 0x800008	/* set user quota structure */
+#define Q_SYNC 0x800001         /* sync disk copy of a filesystems quotas */
+#define Q_QUOTAON 0x800002      /* turn quotas on */
+#define Q_QUOTAOFF 0x800003     /* turn quotas off */
+#define Q_GETFMT 0x800004       /* get quota format used on given filesystem */
+#define Q_GETINFO 0x800005      /* get information about quota files */
+#define Q_SETINFO 0x800006      /* set information about quota files */
+#define Q_GETQUOTA 0x800007     /* get user quota structure */
+#define Q_SETQUOTA 0x800008     /* set user quota structure */
 #define Q_GETNEXTQUOTA 0x800009 /* get disk limits and usage >= ID */
 
 /* Quota format type IDs */
@@ -670,7 +679,7 @@
 
 /* `/include/uapi/linux/dqblk_xfs.h` from kernel source tree. */
 
-#define XQM_CMD(x) (('X' << 8) + (x))			   /* note: forms first QCMD argument */
+#define XQM_CMD(x) (('X' << 8) + (x))                      /* note: forms first QCMD argument */
 #define XQM_COMMAND(x) (((x) & (0xff << 8)) == ('X' << 8)) /* test if for XFS */
 
 #define XQM_USRQUOTA 0 /* system call user quota type */
@@ -678,14 +687,14 @@
 #define XQM_PRJQUOTA 2 /* system call project quota type */
 #define XQM_MAXQUOTAS 3
 
-#define Q_XQUOTAON XQM_CMD(1)	   /* enable accounting/enforcement */
-#define Q_XQUOTAOFF XQM_CMD(2)	   /* disable accounting/enforcement */
-#define Q_XGETQUOTA XQM_CMD(3)	   /* get disk limits and usage */
-#define Q_XSETQLIM XQM_CMD(4)	   /* set disk limits */
-#define Q_XGETQSTAT XQM_CMD(5)	   /* get quota subsystem status */
-#define Q_XQUOTARM XQM_CMD(6)	   /* free disk space used by dquots */
-#define Q_XQUOTASYNC XQM_CMD(7)	   /* delalloc flush, updates dquots */
-#define Q_XGETQSTATV XQM_CMD(8)	   /* newer version of get quota */
+#define Q_XQUOTAON XQM_CMD(1)      /* enable accounting/enforcement */
+#define Q_XQUOTAOFF XQM_CMD(2)     /* disable accounting/enforcement */
+#define Q_XGETQUOTA XQM_CMD(3)     /* get disk limits and usage */
+#define Q_XSETQLIM XQM_CMD(4)      /* set disk limits */
+#define Q_XGETQSTAT XQM_CMD(5)     /* get quota subsystem status */
+#define Q_XQUOTARM XQM_CMD(6)      /* free disk space used by dquots */
+#define Q_XQUOTASYNC XQM_CMD(7)    /* delalloc flush, updates dquots */
+#define Q_XGETQSTATV XQM_CMD(8)    /* newer version of get quota */
 #define Q_XGETNEXTQUOTA XQM_CMD(9) /* get disk limits and usage >= ID */
 
 //////////////////////////
@@ -779,9 +788,9 @@
 //////////////////////////
 /* arch/powerpc/include/uapi/asm/mman.h from kernel source tree. */
 #if defined(__TARGET_ARCH_powerpc)
-#define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
-#define MCL_FUTURE      0x4000          /* lock all additions to address space */
-#define MCL_ONFAULT     0x8000          /* lock all pages that are faulted in */
+#define MCL_CURRENT 0x2000 /* lock all currently mapped pages */
+#define MCL_FUTURE 0x4000  /* lock all additions to address space */
+#define MCL_ONFAULT 0x8000 /* lock all pages that are faulted in */
 #else
 /* `/include/uapi/asm-generic/mman.h` from kernel source tree. */
 #define MCL_CURRENT 1 /* lock all current mappings */
@@ -792,14 +801,14 @@
 //////////////////////////
 // memfd_create flags
 //////////////////////////
-#  define MFD_CLOEXEC 1U
-#  define MFD_ALLOW_SEALING 2U
-#  define MFD_HUGETLB 4U
+#define MFD_CLOEXEC 1U
+#define MFD_ALLOW_SEALING 2U
+#define MFD_HUGETLB 4U
 
 //////////////////////////
 // pidfd_open flags
 //////////////////////////
-# define PIDFD_NONBLOCK O_NONBLOCK  
+#define PIDFD_NONBLOCK O_NONBLOCK
 
 /*=============================== FLAGS ===========================*/
 
@@ -830,36 +839,38 @@
 #define AF_KEY 15      /* PF_KEY key management API */
 #define AF_NETLINK 16
 #define AF_ROUTE AF_NETLINK /* Alias to emulate 4.4BSD */
-#define AF_PACKET 17	    /* Packet family		*/
-#define AF_ASH 18	    /* Ash				*/
-#define AF_ECONET 19	    /* Acorn Econet			*/
-#define AF_ATMSVC 20	    /* ATM SVCs			*/
-#define AF_RDS 21	    /* RDS sockets 			*/
-#define AF_SNA 22	    /* Linux SNA Project (nutters!) */
-#define AF_IRDA 23	    /* IRDA sockets			*/
-#define AF_PPPOX 24	    /* PPPoX sockets		*/
-#define AF_WANPIPE 25	    /* Wanpipe API Sockets */
-#define AF_LLC 26	    /* Linux LLC			*/
-#define AF_IB 27	    /* Native InfiniBand address	*/
-#define AF_MPLS 28	    /* MPLS */
-#define AF_CAN 29	    /* Controller Area Network      */
-#define AF_TIPC 30	    /* TIPC sockets			*/
-#define AF_BLUETOOTH 31	    /* Bluetooth sockets 		*/
-#define AF_IUCV 32	    /* IUCV sockets			*/
-#define AF_RXRPC 33	    /* RxRPC sockets 		*/
-#define AF_ISDN 34	    /* mISDN sockets 		*/
-#define AF_PHONET 35	    /* Phonet sockets		*/
+#define AF_PACKET 17        /* Packet family		*/
+#define AF_ASH 18           /* Ash				*/
+#define AF_ECONET 19        /* Acorn Econet			*/
+#define AF_ATMSVC 20        /* ATM SVCs			*/
+#define AF_RDS 21           /* RDS sockets 			*/
+#define AF_SNA 22           /* Linux SNA Project (nutters!) */
+#define AF_IRDA 23          /* IRDA sockets			*/
+#define AF_PPPOX 24         /* PPPoX sockets		*/
+#define AF_WANPIPE 25       /* Wanpipe API Sockets */
+#define AF_LLC 26           /* Linux LLC			*/
+#define AF_IB 27            /* Native InfiniBand address	*/
+#define AF_MPLS 28          /* MPLS */
+#define AF_CAN 29           /* Controller Area Network      */
+#define AF_TIPC 30          /* TIPC sockets			*/
+#define AF_BLUETOOTH 31     /* Bluetooth sockets 		*/
+#define AF_IUCV 32          /* IUCV sockets			*/
+#define AF_RXRPC 33         /* RxRPC sockets 		*/
+#define AF_ISDN 34          /* mISDN sockets 		*/
+#define AF_PHONET 35        /* Phonet sockets		*/
 #define AF_IEEE802154 36    /* IEEE802154 sockets		*/
-#define AF_CAIF 37	    /* CAIF sockets			*/
-#define AF_ALG 38	    /* Algorithm sockets		*/
-#define AF_NFC 39	    /* NFC sockets			*/
-#define AF_VSOCK 40	    /* vSockets			*/
-#define AF_KCM 41	    /* Kernel Connection Multiplexor*/
-#define AF_QIPCRTR 42	    /* Qualcomm IPC Router          */
-#define AF_SMC 43	    /* smc sockets: reserve number for PF_SMC protocol family that reuses AF_INET address family */
-#define AF_XDP 44	    /* XDP sockets */
-#define AF_MCTP 45	    /* Management component transport protocol */
-#define AF_MAX 46	    /* For now.. */
+#define AF_CAIF 37          /* CAIF sockets			*/
+#define AF_ALG 38           /* Algorithm sockets		*/
+#define AF_NFC 39           /* NFC sockets			*/
+#define AF_VSOCK 40         /* vSockets			*/
+#define AF_KCM 41           /* Kernel Connection Multiplexor*/
+#define AF_QIPCRTR 42       /* Qualcomm IPC Router          */
+#define AF_SMC                                                                               \
+	43 /* smc sockets: reserve number for PF_SMC protocol family that reuses AF_INET address \
+	      family */
+#define AF_XDP 44  /* XDP sockets */
+#define AF_MCTP 45 /* Management component transport protocol */
+#define AF_MAX 46  /* For now.. */
 
 //////////////////////////
 // Protocol families
@@ -987,8 +998,8 @@
  * Bit location of each capability (used by user-space library and kernel)
  */
 
-#define CAP_TO_INDEX(x) ((x) >> 5)	/* 1 << 5 == bits in __u32 */
-#define CAP_TO_MASK(x) (1U << ((x)&31)) /* mask for indexed __u32 */
+#define CAP_TO_INDEX(x) ((x) >> 5)        /* 1 << 5 == bits in __u32 */
+#define CAP_TO_MASK(x) (1U << ((x) & 31)) /* mask for indexed __u32 */
 
 /* In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this
    overrides the restriction of changing file ownership and group
@@ -1314,23 +1325,25 @@
 /*
  * Types of directory notifications that may be requested.
  */
-#define DN_ACCESS 0x00000001	/* File accessed */
-#define DN_MODIFY 0x00000002	/* File modified */
-#define DN_CREATE 0x00000004	/* File created */
-#define DN_DELETE 0x00000008	/* File removed */
-#define DN_RENAME 0x00000010	/* File renamed */
-#define DN_ATTRIB 0x00000020	/* File changed attibutes */
+#define DN_ACCESS 0x00000001    /* File accessed */
+#define DN_MODIFY 0x00000002    /* File modified */
+#define DN_CREATE 0x00000004    /* File created */
+#define DN_DELETE 0x00000008    /* File removed */
+#define DN_RENAME 0x00000010    /* File renamed */
+#define DN_ATTRIB 0x00000020    /* File changed attibutes */
 #define DN_MULTISHOT 0x80000000 /* Don't remove notifier */
 
-#define AT_FDCWD -100		  /* Special value used to indicate \
-				     openat should use the current  \
-				     working directory. */
+#define AT_FDCWD                                                    \
+	-100                          /* Special value used to indicate \
+	                     openat should use the current              \
+	                     working directory. */
 #define AT_SYMLINK_NOFOLLOW 0x100 /* Do not follow symbolic links.  */
-#define AT_REMOVEDIR 0x200	  /* Remove directory instead of \
-				     unlinking file.  */
-#define AT_SYMLINK_FOLLOW 0x400	  /* Follow symbolic links.  */
-#define AT_NO_AUTOMOUNT 0x800	  /* Suppress terminal automount traversal */
-#define AT_EMPTY_PATH 0x1000	  /* Allow empty relative pathname */
+#define AT_REMOVEDIR                                           \
+	0x200                       /* Remove directory instead of \
+	                   unlinking file.  */
+#define AT_SYMLINK_FOLLOW 0x400 /* Follow symbolic links.  */
+#define AT_NO_AUTOMOUNT 0x800   /* Suppress terminal automount traversal */
+#define AT_EMPTY_PATH 0x1000    /* Allow empty relative pathname */
 
 #define AT_STATX_SYNC_TYPE 0x6000    /* Type of synchronisation required from statx() */
 #define AT_STATX_SYNC_AS_STAT 0x0000 /* - Do whatever stat() does */
@@ -1346,7 +1359,7 @@
 #define MINORBITS 20
 #define MINORMASK ((1U << MINORBITS) - 1)
 #define MAJOR(dev) ((unsigned int)((dev) >> MINORBITS))
-#define MINOR(dev) ((unsigned int)((dev)&MINORMASK))
+#define MINOR(dev) ((unsigned int)((dev) & MINORMASK))
 #define MKDEV(ma, mi) (((ma) << MINORBITS) | (mi))
 #define PPM_NULL_RDEV MKDEV(1, 3)
 
@@ -1356,20 +1369,20 @@
 
 /* `/include/uapi/asm-generic/resource.h` from kernel source tree. */
 
-#define RLIMIT_CPU 0	     /* CPU time in sec */
-#define RLIMIT_FSIZE 1	     /* Maximum filesize */
-#define RLIMIT_DATA 2	     /* max data size */
-#define RLIMIT_STACK 3	     /* max stack size */
-#define RLIMIT_CORE 4	     /* max core file size */
-#define RLIMIT_RSS 5	     /* max resident set size */
-#define RLIMIT_NPROC 6	     /* max number of processes */
-#define RLIMIT_NOFILE 7	     /* max number of open files */
+#define RLIMIT_CPU 0         /* CPU time in sec */
+#define RLIMIT_FSIZE 1       /* Maximum filesize */
+#define RLIMIT_DATA 2        /* max data size */
+#define RLIMIT_STACK 3       /* max stack size */
+#define RLIMIT_CORE 4        /* max core file size */
+#define RLIMIT_RSS 5         /* max resident set size */
+#define RLIMIT_NPROC 6       /* max number of processes */
+#define RLIMIT_NOFILE 7      /* max number of open files */
 #define RLIMIT_MEMLOCK 8     /* max locked-in-memory address space */
-#define RLIMIT_AS 9	     /* address space limit */
-#define RLIMIT_LOCKS 10	     /* maximum file locks held */
+#define RLIMIT_AS 9          /* address space limit */
+#define RLIMIT_LOCKS 10      /* maximum file locks held */
 #define RLIMIT_SIGPENDING 11 /* max number of pending signals */
 #define RLIMIT_MSGQUEUE 12   /* maximum bytes in POSIX mqueues */
-#define RLIMIT_NICE 13	     /* max nice prio allowed to raise to 0-39 for nice level 19 .. -20 */
+#define RLIMIT_NICE 13       /* max nice prio allowed to raise to 0-39 for nice level 19 .. -20 */
 #define RLIMIT_RTPRIO 14     /* maximum realtime priority */
 #define RLIMIT_RTTIME 15     /* timeout for RT tasks in us */
 #define RLIM_NLIMITS 16
@@ -1379,13 +1392,12 @@
 /*=============================== HOST_TO_NETWORK_BYTE_ORDER ===========================*/
 
 /* Swap bytes in 16 bit value.  */
-#define __bswap_constant_16(x) \
-	((unsigned short int)((((x) >> 8) & 0xff) | (((x)&0xff) << 8)))
+#define __bswap_constant_16(x) ((unsigned short int)((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))
 
 /* Swap bytes in 32 bit value.  */
-#define __bswap_constant_32(x)                                \
-	((((x)&0xff000000) >> 24) | (((x)&0x00ff0000) >> 8) | \
-	 (((x)&0x0000ff00) << 8) | (((x)&0x000000ff) << 24))
+#define __bswap_constant_32(x)                                                            \
+	((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | \
+	 (((x) & 0x000000ff) << 24))
 
 #define identity(x) x
 
@@ -1443,12 +1455,12 @@
 
 /*=============================== SPLICE SYSCALL =============================*/
 
-#define SPLICE_F_MOVE	   (0x01)	
-#define SPLICE_F_NONBLOCK  (0x02) 
-#define SPLICE_F_MORE	   (0x04)	
-#define SPLICE_F_GIFT	   (0x08)	
+#define SPLICE_F_MOVE (0x01)
+#define SPLICE_F_NONBLOCK (0x02)
+#define SPLICE_F_MORE (0x04)
+#define SPLICE_F_GIFT (0x08)
 
-#define SPLICE_F_ALL (SPLICE_F_MOVE|SPLICE_F_NONBLOCK|SPLICE_F_MORE|SPLICE_F_GIFT)
+#define SPLICE_F_ALL (SPLICE_F_MOVE | SPLICE_F_NONBLOCK | SPLICE_F_MORE | SPLICE_F_GIFT)
 
 /*=============================== SPLICE SYSCALL =============================*/
 
@@ -1456,7 +1468,7 @@
 
 /* `/include/linux/fs.h` from kernel source tree. */
 
-#define SB_RDONLY 1	     /* Mount read-only */
+#define SB_RDONLY 1          /* Mount read-only */
 #define S_IMMUTABLE (1 << 3) /* Immutable file */
 
 /* `/include/uapi/linux/stat.h` from kernel source tree. */
@@ -1472,34 +1484,34 @@
 #define S_ISUID 0004000
 #define S_ISGID 0002000
 #define S_ISVTX 0001000
-#define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
-#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
-#define S_ISLNK(m) (((m)&S_IFMT) == S_IFLNK)
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#define S_ISLNK(m) (((m) & S_IFMT) == S_IFLNK)
 
 /*=============================== INODE/SUPERBLOCK FLAGS ===========================*/
 
 /*=============================== SOCKETCALL CODES ===========================*/
 
-#define SYS_SOCKET 1	  /* sys_socket(2)		*/
-#define SYS_BIND 2	  /* sys_bind(2)			*/
-#define SYS_CONNECT 3	  /* sys_connect(2)		*/
-#define SYS_LISTEN 4	  /* sys_listen(2)		*/
-#define SYS_ACCEPT 5	  /* sys_accept(2)		*/
+#define SYS_SOCKET 1      /* sys_socket(2)		*/
+#define SYS_BIND 2        /* sys_bind(2)			*/
+#define SYS_CONNECT 3     /* sys_connect(2)		*/
+#define SYS_LISTEN 4      /* sys_listen(2)		*/
+#define SYS_ACCEPT 5      /* sys_accept(2)		*/
 #define SYS_GETSOCKNAME 6 /* sys_getsockname(2)		*/
 #define SYS_GETPEERNAME 7 /* sys_getpeername(2)		*/
 #define SYS_SOCKETPAIR 8  /* sys_socketpair(2)		*/
-#define SYS_SEND 9	  /* sys_send(2)			*/
-#define SYS_RECV 10	  /* sys_recv(2)			*/
-#define SYS_SENDTO 11	  /* sys_sendto(2)		*/
-#define SYS_RECVFROM 12	  /* sys_recvfrom(2)		*/
-#define SYS_SHUTDOWN 13	  /* sys_shutdown(2)		*/
+#define SYS_SEND 9        /* sys_send(2)			*/
+#define SYS_RECV 10       /* sys_recv(2)			*/
+#define SYS_SENDTO 11     /* sys_sendto(2)		*/
+#define SYS_RECVFROM 12   /* sys_recvfrom(2)		*/
+#define SYS_SHUTDOWN 13   /* sys_shutdown(2)		*/
 #define SYS_SETSOCKOPT 14 /* sys_setsockopt(2)		*/
 #define SYS_GETSOCKOPT 15 /* sys_getsockopt(2)		*/
-#define SYS_SENDMSG 16	  /* sys_sendmsg(2)		*/
-#define SYS_RECVMSG 17	  /* sys_recvmsg(2)		*/
-#define SYS_ACCEPT4 18	  /* sys_accept4(2)		*/
-#define SYS_RECVMMSG 19	  /* sys_recvmmsg(2)		*/
-#define SYS_SENDMMSG 20	  /* sys_sendmmsg(2)		*/
+#define SYS_SENDMSG 16    /* sys_sendmsg(2)		*/
+#define SYS_RECVMSG 17    /* sys_recvmsg(2)		*/
+#define SYS_ACCEPT4 18    /* sys_accept4(2)		*/
+#define SYS_RECVMMSG 19   /* sys_recvmmsg(2)		*/
+#define SYS_SENDMMSG 20   /* sys_sendmmsg(2)		*/
 
 /*=============================== SOCKETCALL CODES ===========================*/
 
@@ -1508,32 +1520,32 @@
 /* `/include/asm-generic/bitsperlong.h` from kernel source tree. */
 
 #define BITS_PER_LONG 64
-#define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+#define BIT_WORD(nr) ((nr) / BITS_PER_LONG)
 
 /*=============================== OPENED FILE DESCRIPTORS ===========================*/
 
 /*==================================== PRCTL OPTIONS ================================*/
 
-#define PR_SET_PDEATHSIG  1
-#define PR_GET_PDEATHSIG  2
-#define PR_GET_DUMPABLE   3
-#define PR_SET_DUMPABLE   4
-#define PR_GET_UNALIGN	  5
-#define PR_SET_UNALIGN	  6
-#define PR_GET_KEEPCAPS   7
-#define PR_SET_KEEPCAPS   8
-#define PR_GET_FPEMU  9
+#define PR_SET_PDEATHSIG 1
+#define PR_GET_PDEATHSIG 2
+#define PR_GET_DUMPABLE 3
+#define PR_SET_DUMPABLE 4
+#define PR_GET_UNALIGN 5
+#define PR_SET_UNALIGN 6
+#define PR_GET_KEEPCAPS 7
+#define PR_SET_KEEPCAPS 8
+#define PR_GET_FPEMU 9
 #define PR_SET_FPEMU 10
-#define PR_GET_FPEXC	11
-#define PR_SET_FPEXC	12
-#define PR_GET_TIMING   13
-#define PR_SET_TIMING   14
-#define PR_SET_NAME    15
-#define PR_GET_NAME    16
-#define PR_GET_ENDIAN	19
-#define PR_SET_ENDIAN	20
-#define PR_GET_SECCOMP	21
-#define PR_SET_SECCOMP	22
+#define PR_GET_FPEXC 11
+#define PR_SET_FPEXC 12
+#define PR_GET_TIMING 13
+#define PR_SET_TIMING 14
+#define PR_SET_NAME 15
+#define PR_GET_NAME 16
+#define PR_GET_ENDIAN 19
+#define PR_SET_ENDIAN 20
+#define PR_GET_SECCOMP 21
+#define PR_SET_SECCOMP 22
 #define PR_CAPBSET_READ 23
 #define PR_CAPBSET_DROP 24
 #define PR_GET_TSC 25
@@ -1542,48 +1554,48 @@
 #define PR_SET_SECUREBITS 28
 #define PR_SET_TIMERSLACK 29
 #define PR_GET_TIMERSLACK 30
-#define PR_TASK_PERF_EVENTS_DISABLE		31
-#define PR_TASK_PERF_EVENTS_ENABLE		32
-#define PR_MCE_KILL	33
+#define PR_TASK_PERF_EVENTS_DISABLE 31
+#define PR_TASK_PERF_EVENTS_ENABLE 32
+#define PR_MCE_KILL 33
 #define PR_MCE_KILL_GET 34
-#define PR_SET_MM		35
+#define PR_SET_MM 35
 #define PR_SET_PTRACER 0x59616d61
-#define PR_SET_CHILD_SUBREAPER	36
-#define PR_GET_CHILD_SUBREAPER	37
-#define PR_SET_NO_NEW_PRIVS	38
-#define PR_GET_NO_NEW_PRIVS	39
-#define PR_GET_TID_ADDRESS	40
-#define PR_SET_THP_DISABLE	41
-#define PR_GET_THP_DISABLE	42
-#define PR_MPX_ENABLE_MANAGEMENT  43
+#define PR_SET_CHILD_SUBREAPER 36
+#define PR_GET_CHILD_SUBREAPER 37
+#define PR_SET_NO_NEW_PRIVS 38
+#define PR_GET_NO_NEW_PRIVS 39
+#define PR_GET_TID_ADDRESS 40
+#define PR_SET_THP_DISABLE 41
+#define PR_GET_THP_DISABLE 42
+#define PR_MPX_ENABLE_MANAGEMENT 43
 #define PR_MPX_DISABLE_MANAGEMENT 44
-#define PR_SET_FP_MODE		45
-#define PR_GET_FP_MODE		46
-#define PR_CAP_AMBIENT			47
-#define PR_SVE_SET_VL			50
-#define PR_SVE_GET_VL			51
-#define PR_GET_SPECULATION_CTRL		52
-#define PR_SET_SPECULATION_CTRL		53
-#define PR_PAC_RESET_KEYS		54
-#define PR_SET_TAGGED_ADDR_CTRL		55
-#define PR_GET_TAGGED_ADDR_CTRL		56
-#define PR_SET_IO_FLUSHER		57
-#define PR_GET_IO_FLUSHER		58
-#define PR_SET_SYSCALL_USER_DISPATCH	59
-#define PR_PAC_SET_ENABLED_KEYS		60
-#define PR_PAC_GET_ENABLED_KEYS		61
-#define PR_SCHED_CORE			62
-#define PR_SME_SET_VL			63
-#define PR_SME_GET_VL			64
-#define PR_SET_VMA		0x53564d41
+#define PR_SET_FP_MODE 45
+#define PR_GET_FP_MODE 46
+#define PR_CAP_AMBIENT 47
+#define PR_SVE_SET_VL 50
+#define PR_SVE_GET_VL 51
+#define PR_GET_SPECULATION_CTRL 52
+#define PR_SET_SPECULATION_CTRL 53
+#define PR_PAC_RESET_KEYS 54
+#define PR_SET_TAGGED_ADDR_CTRL 55
+#define PR_GET_TAGGED_ADDR_CTRL 56
+#define PR_SET_IO_FLUSHER 57
+#define PR_GET_IO_FLUSHER 58
+#define PR_SET_SYSCALL_USER_DISPATCH 59
+#define PR_PAC_SET_ENABLED_KEYS 60
+#define PR_PAC_GET_ENABLED_KEYS 61
+#define PR_SCHED_CORE 62
+#define PR_SME_SET_VL 63
+#define PR_SME_GET_VL 64
+#define PR_SET_VMA 0x53564d41
 
 /*==================================== PRCTL OPTIONS ================================*/
 
 /*==================================== FINIT   FLAGS ================================*/
 
 #define MODULE_INIT_IGNORE_MODVERSIONS 1
-#define MODULE_INIT_IGNORE_VERMAGIC    2
-#define MODULE_INIT_COMPRESSED_FILE    4
+#define MODULE_INIT_IGNORE_VERMAGIC 2
+#define MODULE_INIT_COMPRESSED_FILE 4
 /*==================================== FINIT   FLAGS ================================*/
 
 #endif /* __MISSING_DEFINITIONS_H__ */

@@ -39,8 +39,8 @@ namespace runc {
  *  (the last one must be a pair of null pointers to mark the end of the array)
  */
 struct cgroup_layout {
-	const char* prefix;
-	const char* suffix;
+	const char *prefix;
+	const char *suffix;
 };
 
 /**
@@ -52,7 +52,10 @@ struct cgroup_layout {
  * the truncated hex string (first 12 digits). Otherwise, it will remain
  * unchanged.
  */
-bool match_one_container_id(const std::string &cgroup, const std::string &prefix, const std::string &suffix, std::string &container_id);
+bool match_one_container_id(const std::string &cgroup,
+                            const std::string &prefix,
+                            const std::string &suffix,
+                            std::string &container_id);
 
 /**
  * @brief Match `cgroup` against a list of layouts using `match_one_container_id()`
@@ -66,8 +69,9 @@ bool match_one_container_id(const std::string &cgroup, const std::string &prefix
  * the truncated hex string (first 12 digits). Otherwise, it will remain
  * unchanged.
  */
-bool match_container_id(const std::string &cgroup, const libsinsp::runc::cgroup_layout *layout,
-			std::string &container_id);
+bool match_container_id(const std::string &cgroup,
+                        const libsinsp::runc::cgroup_layout *layout,
+                        std::string &container_id);
 
 /**
  * @brief Match all the cgroups of `tinfo` against a list of cgroup layouts
@@ -80,6 +84,9 @@ bool match_container_id(const std::string &cgroup, const libsinsp::runc::cgroup_
  * the truncated hex string (first 12 digits). Otherwise, it will remain
  * unchanged.
  */
-bool matches_runc_cgroups(const sinsp_threadinfo *tinfo, const cgroup_layout *layout, std::string &container_id, std::string &matching_cgroup);
-}
-}
+bool matches_runc_cgroups(const sinsp_threadinfo *tinfo,
+                          const cgroup_layout *layout,
+                          std::string &container_id,
+                          std::string &matching_cgroup);
+}  // namespace runc
+}  // namespace libsinsp

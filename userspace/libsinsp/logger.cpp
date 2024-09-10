@@ -27,91 +27,77 @@ limitations under the License.
 #endif
 #include <stdarg.h>
 
-namespace
-{
+namespace {
 
 thread_local char s_tbuf[16384];
 
 const size_t ENCODE_LEN = sizeof(uint64_t);
 
-} // end namespace
+}  // end namespace
 
 sinsp_logger sinsp_logger::s_logger;
 
-sinsp_logger* sinsp_logger::instance()
-{
+sinsp_logger* sinsp_logger::instance() {
 	return &s_logger;
 }
 
-const uint32_t sinsp_logger::OT_NONE       = 0;
-const uint32_t sinsp_logger::OT_STDOUT     = 1;
-const uint32_t sinsp_logger::OT_STDERR     = (OT_STDOUT   << 1);
-const uint32_t sinsp_logger::OT_FILE       = (OT_STDERR   << 1);
-const uint32_t sinsp_logger::OT_CALLBACK   = (OT_FILE     << 1);
-const uint32_t sinsp_logger::OT_NOTS       = (OT_CALLBACK << 1);
-const uint32_t sinsp_logger::OT_ENCODE_SEV = (OT_NOTS     << 1);
+const uint32_t sinsp_logger::OT_NONE = 0;
+const uint32_t sinsp_logger::OT_STDOUT = 1;
+const uint32_t sinsp_logger::OT_STDERR = (OT_STDOUT << 1);
+const uint32_t sinsp_logger::OT_FILE = (OT_STDERR << 1);
+const uint32_t sinsp_logger::OT_CALLBACK = (OT_FILE << 1);
+const uint32_t sinsp_logger::OT_NOTS = (OT_CALLBACK << 1);
+const uint32_t sinsp_logger::OT_ENCODE_SEV = (OT_NOTS << 1);
 
 sinsp_logger::sinsp_logger():
-	m_file(nullptr),
-	m_callback(nullptr),
-	m_flags(OT_NONE),
-	m_sev(SEV_INFO)
-{ }
+        m_file(nullptr),
+        m_callback(nullptr),
+        m_flags(OT_NONE),
+        m_sev(SEV_INFO) {}
 
-sinsp_logger::~sinsp_logger()
-{
-	if(m_file)
-	{
+sinsp_logger::~sinsp_logger() {
+	if(m_file) {
 		ASSERT(m_flags & sinsp_logger::OT_FILE);
 		fclose(m_file);
 	}
 }
 
-bool sinsp_logger::is_callback() const
-{
-	 return (m_flags & sinsp_logger::OT_CALLBACK) != 0;
+bool sinsp_logger::is_callback() const {
+	return (m_flags & sinsp_logger::OT_CALLBACK) != 0;
 }
 
-uint32_t sinsp_logger::get_log_output_type() const
-{
+uint32_t sinsp_logger::get_log_output_type() const {
 	return m_flags;
 }
 
-void sinsp_logger::add_stdout_log()
-{
+void sinsp_logger::add_stdout_log() {
 	m_flags |= sinsp_logger::OT_STDOUT;
 }
 
-void sinsp_logger::add_stderr_log()
-{
+void sinsp_logger::add_stderr_log() {
 	m_flags |= sinsp_logger::OT_STDERR;
 }
 
-void sinsp_logger::add_file_log(const std::string& filename)
-{
+void sinsp_logger::add_file_log(const std::string& filename) {
 	ASSERT(m_file == nullptr);
 
 	m_file = fopen(filename.c_str(), "w");
-	if(!m_file)
-	{
+	if(!m_file) {
 		throw sinsp_exception("Unable to open file " + filename + " for writing");
 	}
 
 	m_flags |= sinsp_logger::OT_FILE;
 }
 
-void sinsp_logger::disable_timestamps()
-{
+void sinsp_logger::disable_timestamps() {
 	m_flags |= sinsp_logger::OT_NOTS;
 }
 
-void sinsp_logger::add_encoded_severity()
-{
+void sinsp_logger::add_encoded_severity() {
 	m_flags |= sinsp_logger::OT_ENCODE_SEV;
 }
 
-void sinsp_logger::add_callback_log(const sinsp_logger_callback callback)
-{
+void sinsp_logger::add_callback_log(const sinsp_logger_callback callback) {
 	const sinsp_logger_callback old_cb = m_callback.exchange(callback);
 
 	ASSERT(old_cb == nullptr);
@@ -123,43 +109,35 @@ void sinsp_logger::add_callback_log(const sinsp_logger_callback callback)
 	m_flags |= sinsp_logger::OT_CALLBACK;
 }
 
-void sinsp_logger::remove_callback_log()
-{
+void sinsp_logger::remove_callback_log() {
 	m_callback = nullptr;
 	m_flags &= ~sinsp_logger::OT_CALLBACK;
 }
 
-void sinsp_logger::set_severity(const severity sev)
-{
-	if(sev < SEV_MIN || sev > SEV_MAX)
-	{
+void sinsp_logger::set_severity(const severity sev) {
+	if(sev < SEV_MIN || sev > SEV_MAX) {
 		throw sinsp_exception("Invalid log severity");
 	}
 
 	m_sev = sev;
 }
 
-sinsp_logger::severity sinsp_logger::get_severity() const
-{
+sinsp_logger::severity sinsp_logger::get_severity() const {
 	return m_sev;
 }
 
-void sinsp_logger::log(const std::string& m, const severity sev)
-{
+void sinsp_logger::log(const std::string& m, const severity sev) {
 	sinsp_logger_callback cb = nullptr;
 
-	if(sev > m_sev)
-	{
+	if(sev > m_sev) {
 		return;
 	}
 
 	std::string msg = m;
-	if((m_flags & sinsp_logger::OT_NOTS) == 0)
-	{
+	if((m_flags & sinsp_logger::OT_NOTS) == 0) {
 		struct timeval ts = {};
 
-		if(gettimeofday(&ts, nullptr) == 0)
-		{
+		if(gettimeofday(&ts, nullptr) == 0) {
 #ifdef _WIN32
 			tm* ti = _gmtime32((__time32_t*)&ts.tv_sec);
 #else
@@ -167,57 +145,48 @@ void sinsp_logger::log(const std::string& m, const severity sev)
 			gmtime_r(&ts.tv_sec, &time_info);
 			tm* ti = &time_info;
 #endif
-			char ts_buf[80]; // holds date/time string: "31-12 23:59:59.999999 "
-			snprintf(ts_buf, sizeof(ts_buf), "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
-				ti->tm_mon + 1,
-				ti->tm_mday,
-				ti->tm_hour,
-				ti->tm_min,
-				ti->tm_sec,
-				(int)ts.tv_usec);
+			char ts_buf[80];  // holds date/time string: "31-12 23:59:59.999999 "
+			snprintf(ts_buf,
+			         sizeof(ts_buf),
+			         "%.2d-%.2d %.2d:%.2d:%.2d.%.6d ",
+			         ti->tm_mon + 1,
+			         ti->tm_mday,
+			         ti->tm_hour,
+			         ti->tm_min,
+			         ti->tm_sec,
+			         (int)ts.tv_usec);
 
 			ts_buf[sizeof(ts_buf) - 1] = '\0';
 			msg.insert(0, ts_buf);
 		}
 	}
 
-	if(m_flags & sinsp_logger::OT_ENCODE_SEV)
-	{
+	if(m_flags & sinsp_logger::OT_ENCODE_SEV) {
 		char sev_buf[ENCODE_LEN + 1];
 		strlcpy(sev_buf, encode_severity(sev), sizeof(sev_buf));
 		msg.insert(0, sev_buf);
 	}
 
-	if(is_callback())
-	{
+	if(is_callback()) {
 		cb = m_callback;
 	}
 
-	if(cb != nullptr)
-	{
+	if(cb != nullptr) {
 		cb(std::move(msg), sev);
-	}
-	else if((m_flags & sinsp_logger::OT_FILE) && m_file)
-	{
+	} else if((m_flags & sinsp_logger::OT_FILE) && m_file) {
 		fprintf(m_file, "%s\n", msg.c_str());
 		fflush(m_file);
-	}
-	else if(m_flags & sinsp_logger::OT_STDOUT)
-	{
+	} else if(m_flags & sinsp_logger::OT_STDOUT) {
 		fprintf(stdout, "%s\n", msg.c_str());
 		fflush(stdout);
-	}
-	else if(m_flags & sinsp_logger::OT_STDERR)
-	{
+	} else if(m_flags & sinsp_logger::OT_STDERR) {
 		fprintf(stderr, "%s\n", msg.c_str());
 		fflush(stderr);
 	}
 }
 
-void sinsp_logger::format(const severity sev, const char* const fmt, ...)
-{
-	if(sev > m_sev)
-	{
+void sinsp_logger::format(const severity sev, const char* const fmt, ...) {
+	if(sev > m_sev) {
 		return;
 	}
 
@@ -230,8 +199,7 @@ void sinsp_logger::format(const severity sev, const char* const fmt, ...)
 	log(s_tbuf, sev);
 }
 
-void sinsp_logger::format(const char* const fmt, ...)
-{
+void sinsp_logger::format(const char* const fmt, ...) {
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -241,8 +209,7 @@ void sinsp_logger::format(const char* const fmt, ...)
 	log(s_tbuf, SEV_INFO);
 }
 
-const char* sinsp_logger::format_and_return(const severity sev, const char* const fmt, ...)
-{
+const char* sinsp_logger::format_and_return(const severity sev, const char* const fmt, ...) {
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -256,28 +223,24 @@ const char* sinsp_logger::format_and_return(const severity sev, const char* cons
 
 namespace {
 // All severity strings should be ENCODE_LEN chars long
-const char* SEV_LEVELS[] = {
-	"SEV_DEF ",
-	"SEV_FAT ",
-	"SEV_CRI ",
-	"SEV_ERR ",
-	"SEV_WAR ",
-	"SEV_NOT ",
-	"SEV_INF ",
-	"SEV_DEB ",
-	"SEV_TRA "
-};
+const char* SEV_LEVELS[] = {"SEV_DEF ",
+                            "SEV_FAT ",
+                            "SEV_CRI ",
+                            "SEV_ERR ",
+                            "SEV_WAR ",
+                            "SEV_NOT ",
+                            "SEV_INF ",
+                            "SEV_DEB ",
+                            "SEV_TRA "};
 
 static_assert(sizeof(SEV_LEVELS) == sizeof(*SEV_LEVELS) * ((size_t)(sinsp_logger::SEV_MAX) + 1),
-	      "severity array must have SEV_MAX+1 elements");
-}
+              "severity array must have SEV_MAX+1 elements");
+}  // namespace
 
-const char* sinsp_logger::encode_severity(const sinsp_logger::severity sev)
-{
+const char* sinsp_logger::encode_severity(const sinsp_logger::severity sev) {
 	const char* ret;
 	auto sev_int = (size_t)sev;
-	if (sev_int > SEV_MAX)
-	{
+	if(sev_int > SEV_MAX) {
 		sev_int = 0;
 	}
 
@@ -286,20 +249,16 @@ const char* sinsp_logger::encode_severity(const sinsp_logger::severity sev)
 	return ret;
 }
 
-size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
-{
-	if(str.length() < ENCODE_LEN)
-	{
+size_t sinsp_logger::decode_severity(const std::string& str, severity& sev) {
+	if(str.length() < ENCODE_LEN) {
 		return 0;
 	}
 
 	const char* msg = str.c_str();
 
 	// we don't really expect "SEV_DEF " messages so skip severity 0
-	for(size_t i = SEV_MIN; i <= SEV_MAX; ++i)
-	{
-		if(!strncmp(msg, SEV_LEVELS[i], ENCODE_LEN))
-		{
+	for(size_t i = SEV_MIN; i <= SEV_MAX; ++i) {
+		if(!strncmp(msg, SEV_LEVELS[i], ENCODE_LEN)) {
 			sev = static_cast<severity>(i);
 			return ENCODE_LEN;
 		}
@@ -308,12 +267,10 @@ size_t sinsp_logger::decode_severity(const std::string &str, severity& sev)
 	return 0;
 }
 
-void sinsp_logger::reset()
-{
+void sinsp_logger::reset() {
 	m_callback = nullptr;
 	m_sev = SEV_INFO;
-	if(m_file)
-	{
+	if(m_file) {
 		ASSERT(m_flags & sinsp_logger::OT_FILE);
 		fclose(m_file);
 		m_file = nullptr;
@@ -321,7 +278,6 @@ void sinsp_logger::reset()
 	m_flags = OT_NONE;
 }
 
-sinsp_logger* libsinsp_logger()
-{
+sinsp_logger* libsinsp_logger() {
 	return sinsp_logger::instance();
 }

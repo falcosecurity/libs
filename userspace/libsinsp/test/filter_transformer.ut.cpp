@@ -23,284 +23,261 @@ limitations under the License.
 #include <libsinsp/sinsp_filter_transformer.h>
 #include <sinsp_with_test_input.h>
 
-static std::unordered_set<ppm_param_type> all_param_types()
-{
-    std::unordered_set<ppm_param_type> ret;
-    for (auto i = PT_NONE; i < PT_MAX; i = (ppm_param_type) ((size_t) i + 1))
-    {
-        ret.insert(i);
-    }
-    return ret;
+static std::unordered_set<ppm_param_type> all_param_types() {
+	std::unordered_set<ppm_param_type> ret;
+	for(auto i = PT_NONE; i < PT_MAX; i = (ppm_param_type)((size_t)i + 1)) {
+		ret.insert(i);
+	}
+	return ret;
 }
 
-static std::string supported_type_msg(ppm_param_type t, bool support_expected)
-{
-    return "expected param type to"
-        + std::string((support_expected ? " " : " not "))
-        + "be supported: "
-        + std::string(param_type_to_string(t));
+static std::string supported_type_msg(ppm_param_type t, bool support_expected) {
+	return "expected param type to" + std::string((support_expected ? " " : " not ")) +
+	       "be supported: " + std::string(param_type_to_string(t));
 }
 
-static std::string eq_test_msg(const std::pair<std::string, std::string> &tc)
-{
-    return "expected '" 
-           + tc.first + "' (length: " + std::to_string(tc.first.length()) + ")"
-           + " to be equal to '" + tc.second + "' (length: " + std::to_string(tc.second.length()) + ")";
+static std::string eq_test_msg(const std::pair<std::string, std::string> &tc) {
+	return "expected '" + tc.first + "' (length: " + std::to_string(tc.first.length()) + ")" +
+	       " to be equal to '" + tc.second + "' (length: " + std::to_string(tc.second.length()) +
+	       ")";
 }
 
-static extract_value_t const_str_to_extract_value(const char* v)
-{
-    extract_value_t ret;
-    ret.ptr = (uint8_t*) v;
-    ret.len = strlen(v) + 1;
-    return ret;
+static extract_value_t const_str_to_extract_value(const char *v) {
+	extract_value_t ret;
+	ret.ptr = (uint8_t *)v;
+	ret.len = strlen(v) + 1;
+	return ret;
 }
 
-TEST(sinsp_filter_transformer, toupper)
-{
-    sinsp_filter_transformer tr(filter_transformer_type::FTR_TOUPPER);
+TEST(sinsp_filter_transformer, toupper) {
+	sinsp_filter_transformer tr(filter_transformer_type::FTR_TOUPPER);
 
-    auto all_types = all_param_types();
+	auto all_types = all_param_types();
 
-    auto supported_types = std::unordered_set<ppm_param_type>({
-        PT_CHARBUF, PT_FSPATH, PT_FSRELPATH });
+	auto supported_types =
+	        std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH});
 
-    auto test_cases = std::vector<std::pair<std::string, std::string>>{
-        {"hello", "HELLO"},
-        {"world", "WORLD"},
-        {"eXcItED", "EXCITED"},
-        {"", ""},
-    };
+	auto test_cases = std::vector<std::pair<std::string, std::string>>{
+	        {"hello", "HELLO"},
+	        {"world", "WORLD"},
+	        {"eXcItED", "EXCITED"},
+	        {"", ""},
+	};
 
-    std::vector<extract_value_t> sample_vals;
+	std::vector<extract_value_t> sample_vals;
 
-    for (auto& tc : test_cases)
-    {
-        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
-    }
+	for(auto &tc : test_cases) {
+		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+	}
 
-    // check for unsupported types
-    for (auto t : all_types)
-    {
-        if (supported_types.find(t) == supported_types.end())
-        {
-            auto vals = sample_vals;
-            EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-            EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-        }
-    }
+	// check for unsupported types
+	for(auto t : all_types) {
+		if(supported_types.find(t) == supported_types.end()) {
+			auto vals = sample_vals;
+			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
+			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
+		}
+	}
 
-    // check for supported types
-    for (auto t : supported_types)
-    {
-        auto original = t;
-        EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t); // note: toupper is expected not to alter the type
+	// check for supported types
+	for(auto t : supported_types) {
+		auto original = t;
+		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);  // note: toupper is expected not to alter the type
 
-        auto vals = sample_vals;
-        EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t);
-        EXPECT_EQ(vals.size(), test_cases.size());
+		auto vals = sample_vals;
+		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);
+		EXPECT_EQ(vals.size(), test_cases.size());
 
-        for (uint32_t i = 0; i < test_cases.size(); i++)
-        {
-            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
-            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
-        }
-    }
+		for(uint32_t i = 0; i < test_cases.size(); i++) {
+			EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second)
+			        << eq_test_msg(test_cases[i]);
+			EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+		}
+	}
 }
 
-TEST(sinsp_filter_transformer, tolower)
-{
-    sinsp_filter_transformer tr(filter_transformer_type::FTR_TOLOWER);
+TEST(sinsp_filter_transformer, tolower) {
+	sinsp_filter_transformer tr(filter_transformer_type::FTR_TOLOWER);
 
-    auto all_types = all_param_types();
+	auto all_types = all_param_types();
 
-    auto supported_types = std::unordered_set<ppm_param_type>({
-        PT_CHARBUF, PT_FSPATH, PT_FSRELPATH });
+	auto supported_types =
+	        std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH});
 
-    auto test_cases = std::vector<std::pair<std::string, std::string>>{
-        {"HELLO", "hello"},
-        {"world", "world"},
-        {"NoT_eXcItED", "not_excited"},
-        {"", ""},
-    };
+	auto test_cases = std::vector<std::pair<std::string, std::string>>{
+	        {"HELLO", "hello"},
+	        {"world", "world"},
+	        {"NoT_eXcItED", "not_excited"},
+	        {"", ""},
+	};
 
-    std::vector<extract_value_t> sample_vals;
+	std::vector<extract_value_t> sample_vals;
 
-    for (auto& tc : test_cases)
-    {
-        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
-    }
+	for(auto &tc : test_cases) {
+		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+	}
 
-    // check for unsupported types
-    for (auto t : all_types)
-    {
-        if (supported_types.find(t) == supported_types.end())
-        {
-            auto vals = sample_vals;
-            EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-            EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-        }
-    }
+	// check for unsupported types
+	for(auto t : all_types) {
+		if(supported_types.find(t) == supported_types.end()) {
+			auto vals = sample_vals;
+			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
+			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
+		}
+	}
 
-    // check for supported types
-    for (auto t : supported_types)
-    {
-        auto original = t;
-        EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t); // note: tolower is expected not to alter the type
+	// check for supported types
+	for(auto t : supported_types) {
+		auto original = t;
+		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);  // note: tolower is expected not to alter the type
 
-        auto vals = sample_vals;
-        EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t);
-        EXPECT_EQ(vals.size(), test_cases.size());
+		auto vals = sample_vals;
+		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);
+		EXPECT_EQ(vals.size(), test_cases.size());
 
-        for (uint32_t i = 0; i < test_cases.size(); i++)
-        {
-            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
-            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
-        }
-    }
+		for(uint32_t i = 0; i < test_cases.size(); i++) {
+			EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second)
+			        << eq_test_msg(test_cases[i]);
+			EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+		}
+	}
 }
 
-TEST(sinsp_filter_transformer, b64)
-{
-    sinsp_filter_transformer tr(filter_transformer_type::FTR_BASE64);
+TEST(sinsp_filter_transformer, b64) {
+	sinsp_filter_transformer tr(filter_transformer_type::FTR_BASE64);
 
-    auto all_types = all_param_types();
+	auto all_types = all_param_types();
 
-    auto supported_types = std::unordered_set<ppm_param_type>({
-        PT_CHARBUF, PT_BYTEBUF });
+	auto supported_types = std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_BYTEBUF});
 
-    auto test_cases = std::vector<std::pair<std::string, std::string>>{
-        {"aGVsbG8=", "hello"},
-        {"d29ybGQgIQ==", "world !"},
-        {"", ""},
-    };
+	auto test_cases = std::vector<std::pair<std::string, std::string>>{
+	        {"aGVsbG8=", "hello"},
+	        {"d29ybGQgIQ==", "world !"},
+	        {"", ""},
+	};
 
-    std::vector<std::string> invalid_test_cases {
-        "!!!"
-    };
+	std::vector<std::string> invalid_test_cases{"!!!"};
 
-    std::vector<extract_value_t> sample_vals;
-    for (auto& tc : test_cases)
-    {
-        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
-    }
+	std::vector<extract_value_t> sample_vals;
+	for(auto &tc : test_cases) {
+		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+	}
 
-    // check for unsupported types
-    for (auto t : all_types)
-    {
-        if (supported_types.find(t) == supported_types.end())
-        {
-            auto vals = sample_vals;
-            EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-            EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-        }
-    }
+	// check for unsupported types
+	for(auto t : all_types) {
+		if(supported_types.find(t) == supported_types.end()) {
+			auto vals = sample_vals;
+			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
+			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
+		}
+	}
 
-    // check for supported types
-    for (auto t : supported_types)
-    {
-        auto original = t;
-        EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t); // note: tolower is expected not to alter the type
+	// check for supported types
+	for(auto t : supported_types) {
+		auto original = t;
+		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);  // note: tolower is expected not to alter the type
 
-        auto vals = sample_vals;
-        EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t);
-        EXPECT_EQ(vals.size(), test_cases.size());
+		auto vals = sample_vals;
+		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);
+		EXPECT_EQ(vals.size(), test_cases.size());
 
-        for (uint32_t i = 0; i < test_cases.size(); i++)
-        {
-            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
-            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
-        }
-    }
+		for(uint32_t i = 0; i < test_cases.size(); i++) {
+			EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second)
+			        << eq_test_msg(test_cases[i]);
+			EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+		}
+	}
 
-    std::vector<extract_value_t> invalid_vals;
-    for (auto& tc : invalid_test_cases)
-    {
-        invalid_vals.push_back(const_str_to_extract_value(tc.c_str()));
-    }
+	std::vector<extract_value_t> invalid_vals;
+	for(auto &tc : invalid_test_cases) {
+		invalid_vals.push_back(const_str_to_extract_value(tc.c_str()));
+	}
 
-    // check invalid input being rejected
-    {
-        auto t = PT_CHARBUF;
-        EXPECT_FALSE(tr.transform_values(invalid_vals, t));
-        EXPECT_EQ(t, PT_CHARBUF);
-    }
+	// check invalid input being rejected
+	{
+		auto t = PT_CHARBUF;
+		EXPECT_FALSE(tr.transform_values(invalid_vals, t));
+		EXPECT_EQ(t, PT_CHARBUF);
+	}
 }
 
-TEST(sinsp_filter_transformer, basename)
-{
-    sinsp_filter_transformer tr(filter_transformer_type::FTR_BASENAME);
+TEST(sinsp_filter_transformer, basename) {
+	sinsp_filter_transformer tr(filter_transformer_type::FTR_BASENAME);
 
-    auto all_types = all_param_types();
+	auto all_types = all_param_types();
 
-    auto supported_types = std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH });
+	auto supported_types =
+	        std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH});
 
-    auto test_cases = std::vector<std::pair<std::string, std::string>>{
-        {"/home/ubuntu/hello.txt", "hello.txt"},
-        {"/usr/local/bin/cat", "cat"},
-        {"/", ""},
-        {"", ""},
-        {"/hello/", ""},
-        {"hello", "hello"},
-    };
+	auto test_cases = std::vector<std::pair<std::string, std::string>>{
+	        {"/home/ubuntu/hello.txt", "hello.txt"},
+	        {"/usr/local/bin/cat", "cat"},
+	        {"/", ""},
+	        {"", ""},
+	        {"/hello/", ""},
+	        {"hello", "hello"},
+	};
 
+	std::vector<extract_value_t> sample_vals;
 
-    std::vector<extract_value_t> sample_vals;
+	for(auto &tc : test_cases) {
+		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
+	}
 
-    for (auto& tc : test_cases)
-    {
-        sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
-    }
+	// check for unsupported types
+	for(auto t : all_types) {
+		if(supported_types.find(t) == supported_types.end()) {
+			auto vals = sample_vals;
+			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
+			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
+		}
+	}
 
-    // check for unsupported types
-    for (auto t : all_types)
-    {
-        if (supported_types.find(t) == supported_types.end())
-        {
-            auto vals = sample_vals;
-            EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-            EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-        }
-    }
+	// check for supported types
+	for(auto t : supported_types) {
+		auto original = t;
+		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);  // note: basename is expected not to alter the type
 
-    // check for supported types
-    for (auto t : supported_types)
-    {
-        auto original = t;
-        EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t); // note: basename is expected not to alter the type
+		auto vals = sample_vals;
+		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
+		EXPECT_EQ(original, t);
+		EXPECT_EQ(vals.size(), test_cases.size());
 
-        auto vals = sample_vals;
-        EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-        EXPECT_EQ(original, t);
-        EXPECT_EQ(vals.size(), test_cases.size());
-
-        for (uint32_t i = 0; i < test_cases.size(); i++)
-        {
-            EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second) << eq_test_msg(test_cases[i]);
-            EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
-        }
-    }
+		for(uint32_t i = 0; i < test_cases.size(); i++) {
+			EXPECT_EQ(std::string((const char *)vals[i].ptr), test_cases[i].second)
+			        << eq_test_msg(test_cases[i]);
+			EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
+		}
+	}
 }
 
-TEST_F(sinsp_with_test_input, basename_transformer)
-{
-    add_default_init_thread();
-    open_inspector();
+TEST_F(sinsp_with_test_input, basename_transformer) {
+	add_default_init_thread();
+	open_inspector();
 
-    sinsp_evt *evt;
+	sinsp_evt *evt;
 
-    int64_t dirfd = 3;
-    const char *file_to_run = "/tmp/file_to_run";
-    add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
-    evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, file_to_run, 0, 0, 0, (uint64_t) 0);
+	int64_t dirfd = 3;
+	const char *file_to_run = "/tmp/file_to_run";
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           dirfd,
+	                           file_to_run,
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
 
-    EXPECT_TRUE(eval_filter(evt, "basename(fd.name) = file_to_run"));
-    EXPECT_FALSE(eval_filter(evt, "basename(fd.name) = /tmp/file_to_run"));
+	EXPECT_TRUE(eval_filter(evt, "basename(fd.name) = file_to_run"));
+	EXPECT_FALSE(eval_filter(evt, "basename(fd.name) = /tmp/file_to_run"));
 }

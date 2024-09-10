@@ -22,8 +22,7 @@ limitations under the License.
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /**
@@ -38,7 +37,7 @@ extern "C"
  * - doesn't need wide compatibility (only needs to work on systems supporting eBPF)
  * - needs as much accuracy as we can get (otherwise eBPF event timestamps will be wrong)
  */
-int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time);
+int32_t scap_get_precise_boot_time(char* last_err, uint64_t* boot_time);
 
 bool scap_get_bpf_stats_enabled();
 

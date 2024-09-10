@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_link
-TEST(SyscallExit, linkX)
-{
+TEST(SyscallExit, linkX) {
 	auto evt_test = get_syscall_event_test(__NR_link, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -20,8 +19,7 @@ TEST(SyscallExit, linkX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

@@ -16,7 +16,8 @@ limitations under the License.
 
 */
 
-#if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
+#if !defined(MINIMAL_BUILD) and \
+        !defined(__EMSCRIPTEN__)  // MINIMAL_BUILD and emscripten don't support containers at all
 #include <gtest/gtest.h>
 #include <libsinsp/container_engine/cri.h>
 #include <libsinsp/cri.hpp>
@@ -24,14 +25,14 @@ limitations under the License.
 #include "../sinsp_with_test_input.h"
 
 /*
- * Mock container runtime socket API responses for both container and pod in the containerd CRI scenario,
- * thereby enabling us to test the parser logic.
- * Since we're not querying the socket directly, calling higher-level parsing functions isn't feasible.
- * Instead, we perform targeted step-by-step tests that closely resemble the actual code flow.
+ * Mock container runtime socket API responses for both container and pod in the containerd CRI
+ * scenario, thereby enabling us to test the parser logic. Since we're not querying the socket
+ * directly, calling higher-level parsing functions isn't feasible. Instead, we perform targeted
+ * step-by-step tests that closely resemble the actual code flow.
  *
- * Note: The container and pod status responses below are mocked and don't come from a real server, so
- * some information might need to be added later. You can use the crictl tool to obtain realistic JSONs
- * by inspecting the container and pod with their truncated IDs:
+ * Note: The container and pod status responses below are mocked and don't come from a real server,
+ * so some information might need to be added later. You can use the crictl tool to obtain realistic
+ * JSONs by inspecting the container and pod with their truncated IDs:
  *
  * https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md
  *
@@ -408,9 +409,7 @@ std::string pod_info_json = R"({
     }
 })";
 
-runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_status_resp()
-{
-
+runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_status_resp() {
 	//     "status": {
 	//     "id": "3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
 	//     "metadata": {
@@ -465,10 +464,12 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_
 
 	auto status = resp.mutable_status();
 	status->set_id("3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e");
-	status->set_state(runtime::v1alpha2::ContainerState::CONTAINER_RUNNING); // "CONTAINER_RUNNING"
-	status->set_created_at((uint64_t)1676262698000004577); // dummy
-	status->set_started_at((uint64_t)1676262698000004577); // dummy
-	status->set_image_ref("docker.io/library/busybox@sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
+	status->set_state(runtime::v1alpha2::ContainerState::CONTAINER_RUNNING);  // "CONTAINER_RUNNING"
+	status->set_created_at((uint64_t)1676262698000004577);                    // dummy
+	status->set_started_at((uint64_t)1676262698000004577);                    // dummy
+	status->set_image_ref(
+	        "docker.io/library/"
+	        "busybox@sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
 	status->mutable_image()->set_image("docker.io/library/busybox:latest");
 	auto labels = status->mutable_labels();
 	(*labels)["io.kubernetes.container.name"] = "busybox";
@@ -493,9 +494,7 @@ runtime::v1alpha2::ContainerStatusResponse get_default_cri_containerd_container_
 	return resp;
 }
 
-runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_containerd_pod_status_resp()
-{
-
+runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_containerd_pod_status_resp() {
 	//     "status": {
 	//     "id": "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
 	//     "metadata": {
@@ -540,7 +539,7 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_containerd_pod_statu
 	auto status = resp.mutable_status();
 	status->set_id("63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
 	status->set_state(runtime::v1alpha2::PodSandboxState::SANDBOX_READY);
-    status->set_created_at((uint64_t)1676262698000004577); // dummy
+	status->set_created_at((uint64_t)1676262698000004577);  // dummy
 	status->mutable_metadata()->set_name("nginx-sandbox");
 	status->mutable_network()->set_ip("10.244.0.2");
 	auto labels = status->mutable_labels();
@@ -562,22 +561,26 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_containerd_pod_statu
 	return resp;
 }
 
-TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
-{
+TEST_F(sinsp_with_test_input, container_parser_cri_containerd) {
 	std::string cri_path = "/run/containerd/containerd_mock.sock";
 	auto cri_api_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
-	ASSERT_FALSE(cri_api_v1alpha2->is_ok()); // we are not querying a container runtime socket in this mock test
+	ASSERT_FALSE(
+	        cri_api_v1alpha2
+	                ->is_ok());  // we are not querying a container runtime socket in this mock test
 
 	// Get mock responses
-	runtime::v1alpha2::ContainerStatusResponse container_status_resp = get_default_cri_containerd_container_status_resp();
-	runtime::v1alpha2::PodSandboxStatusResponse pod_sandbox_status_resp = get_default_cri_containerd_pod_status_resp();
+	runtime::v1alpha2::ContainerStatusResponse container_status_resp =
+	        get_default_cri_containerd_container_status_resp();
+	runtime::v1alpha2::PodSandboxStatusResponse pod_sandbox_status_resp =
+	        get_default_cri_containerd_pod_status_resp();
 
 	const auto &resp_container = container_status_resp.status();
 	const auto &resp_container_info = container_status_resp.info();
 	const auto root_container = cri_api_v1alpha2->get_info_jvalue(resp_container_info);
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
+	const auto root_pod_sandbox =
+	        cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	// explicit reference to mimic actual code flow and test sub parser functions
 	sinsp_container_info &container = *container_ptr;
@@ -587,7 +590,7 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	//
 
 	container.m_type = CT_CONTAINERD;
-	container.m_id = "3ad7b26ded6d"; // truncated id extracted from cgroups
+	container.m_id = "3ad7b26ded6d";  // truncated id extracted from cgroups
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_container, container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_container(root_container, container);
@@ -602,10 +605,13 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 
 	// CRI image failure resilience test for cases where it may begin with sha256
 	auto status = container_status_resp.mutable_status();
-	status->set_image_ref("sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
+	status->set_image_ref(
+	        "sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
 	status->mutable_image()->set_image("");
 	const auto &resp_container_simulate_image_recovery = container_status_resp.status();
-	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery, root_container, container);
+	res = cri_api_v1alpha2->parse_cri_image(resp_container_simulate_image_recovery,
+	                                        root_container,
+	                                        container);
 	ASSERT_TRUE(res);
 	ASSERT_EQ("docker.io/library/busybox:latest", container.m_image);
 	ASSERT_EQ("docker.io/library/busybox", container.m_imagerepo);
@@ -625,14 +631,16 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(50000, container.m_cpu_quota);
 
 	// Below retrieved from PodSandboxStatusResponse
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container,
+	                                                      root_pod_sandbox,
+	                                                      container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
 
-	// 
+	//
 	// Test sinsp filterchecks, similar to spawn_process_container test
-	// 
+	//
 
 	add_default_init_thread();
 	open_inspector();
@@ -642,28 +650,111 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
 	std::vector<std::string> cgroups = {
-		"cgroups=cpuset=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
-		"cpu=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e", "cpuacct=/",
-		"blkio=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
-		"memory=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e"};
+	        "cgroups=cpuset=/k8s.io/"
+	        "3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
+	        "cpu=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
+	        "cpuacct=/",
+	        "blkio=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e",
+	        "memory=/k8s.io/3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e"};
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
 	container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
+	add_event_advance_ts(increasing_ts(),
+	                     parent_tid,
+	                     PPME_SYSCALL_CLONE_20_X,
+	                     20,
+	                     child_tid,
+	                     "bash",
+	                     empty_bytebuf,
+	                     (uint64_t)1,
+	                     (uint64_t)1,
+	                     (uint64_t)0,
+	                     "",
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint32_t)12088,
+	                     (uint32_t)7208,
+	                     (uint32_t)0,
+	                     "bash",
+	                     scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
+	                     (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID |
+	                                PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS),
+	                     (uint32_t)1000,
+	                     (uint32_t)1000,
+	                     (uint64_t)parent_tid,
+	                     (uint64_t)parent_pid);
+	add_event_advance_ts(increasing_ts(),
+	                     child_tid,
+	                     PPME_SYSCALL_CLONE_20_X,
+	                     20,
+	                     (uint64_t)0,
+	                     "bash",
+	                     empty_bytebuf,
+	                     child_tid,
+	                     child_pid,
+	                     (uint64_t)1,
+	                     "",
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint32_t)12088,
+	                     (uint32_t)3764,
+	                     (uint32_t)0,
+	                     "bash",
+	                     scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
+	                     (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID |
+	                                PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS),
+	                     (uint32_t)1000,
+	                     (uint32_t)1000,
+	                     (uint64_t)1,
+	                     (uint64_t)1);
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container_json.c_str());
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0, "/bin/test-exe", empty_bytebuf, child_tid, child_pid, parent_tid, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)29612, (uint32_t)4, (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, empty_bytebuf, (int32_t)34818, parent_pid, (uint32_t)0, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           child_tid,
+	                           PPME_SYSCALL_EXECVE_19_X,
+	                           27,
+	                           (int64_t)0,
+	                           "/bin/test-exe",
+	                           empty_bytebuf,
+	                           child_tid,
+	                           child_pid,
+	                           parent_tid,
+	                           "",
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint32_t)29612,
+	                           (uint32_t)4,
+	                           (uint32_t)0,
+	                           "test-exe",
+	                           scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
+	                           empty_bytebuf,
+	                           (int32_t)34818,
+	                           parent_pid,
+	                           (uint32_t)0,
+	                           (int32_t)PPM_EXE_UPPER_LAYER,
+	                           parent_pid,
+	                           parent_pid,
+	                           parent_pid,
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint32_t)0);
 
 	// Check containers were added to the container cache
-	const sinsp_container_info::ptr_t container_info_check = m_inspector.m_container_manager.get_container(container.m_id);
+	const sinsp_container_info::ptr_t container_info_check =
+	        m_inspector.m_container_manager.get_container(container.m_id);
 	ASSERT_TRUE(container_info_check);
 	ASSERT_EQ("3ad7b26ded6d", container_info_check->m_id);
 
-	// Check container and k8s related filter fields that are retrieved from the container runtime socket
+	// Check container and k8s related filter fields that are retrieved from the container runtime
+	// socket
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "3ad7b26ded6d");
-	ASSERT_EQ(get_field_as_string(evt, "container.full_id"), "3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e");
+	ASSERT_EQ(get_field_as_string(evt, "container.full_id"),
+	          "3ad7b26ded6d8e7b23da7d48fe889434573036c27ae5a74837233de441c3601e");
 	ASSERT_EQ(get_field_as_string(evt, "container.name"), "busybox");
 	ASSERT_EQ(get_field_as_string(evt, "container.image"), "docker.io/library/busybox:latest");
 	ASSERT_EQ(get_field_as_string(evt, "container.image.id"), "busybox");
@@ -675,25 +766,34 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	ASSERT_EQ(get_field_as_string(evt, "container.mount.propagation[/boot]"), "private");
 	ASSERT_EQ(get_field_as_string(evt, "container.image.repository"), "docker.io/library/busybox");
 	ASSERT_EQ(get_field_as_string(evt, "container.image.tag"), "latest");
-	ASSERT_EQ(get_field_as_string(evt, "container.image.digest"), "sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
+	ASSERT_EQ(get_field_as_string(evt, "container.image.digest"),
+	          "sha256:3fbc632167424a6d997e74f52b878d7cc478225cffac6bc977eedfe51c7f4e79");
 	ASSERT_EQ(get_field_as_string(evt, "container.ip"), "10.244.0.2");
-	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
+	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"),
+	          "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0."
+	          "1\",\"IP\":\"10.244.0.2\"}]}}");
 
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "default");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "nginx-sandbox");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "hdishddjaidwnduw9a43535366368"); // legacy pod UID
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), get_field_as_string(evt, "k8s.pod.id")); // new semantically correct pod UID
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"),
+	          "hdishddjaidwnduw9a43535366368");  // legacy pod UID
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"),
+	          get_field_as_string(evt, "k8s.pod.id"));  // new semantically correct pod UID
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.sandbox_id"), "63060edc2d3a");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"), "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"),
+	          "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom_one"), "mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom_one]"), "mylabel");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"),
+	          "app:myapp, example-label/custom_one:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
-
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"),
+	          "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0."
+	          "1\",\"IP\":\"10.244.0.2\"}]}}");
 
 	//
-	// Simulate unsuccessful simultaneous PodSandboxStatusResponse lookup when processing a real container; check k8s filterchecks fallbacks
+	// Simulate unsuccessful simultaneous PodSandboxStatusResponse lookup when processing a real
+	// container; check k8s filterchecks fallbacks
 	//
 
 	container.m_pod_sandbox_cniresult.clear();
@@ -701,49 +801,64 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd)
 	container.m_pod_sandbox_labels.clear();
 	m_inspector.m_container_manager.replace_container(std::move(container_ptr));
 
-	std::shared_ptr<sinsp_container_info> sandbox_container_ptr = std::make_shared<sinsp_container_info>();
+	std::shared_ptr<sinsp_container_info> sandbox_container_ptr =
+	        std::make_shared<sinsp_container_info>();
 	sinsp_container_info &sandbox_container = *sandbox_container_ptr;
 
-    // Checking fallbacks means the k8s.pod.* fields in the filterchecks are retrieved from the cached sandbox container
-    // and not from the actual container, we deleted the fields in question from the container above
+	// Checking fallbacks means the k8s.pod.* fields in the filterchecks are retrieved from the
+	// cached sandbox container and not from the actual container, we deleted the fields in question
+	// from the container above
 	sandbox_container.m_type = CT_CONTAINERD;
-	sandbox_container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups for the sandbox container
+	sandbox_container.m_id =
+	        "63060edc2d3a";  // truncated id extracted from cgroups for the sandbox container
 	sandbox_container.m_is_pod_sandbox = true;
 	res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, sandbox_container);
 	ASSERT_TRUE(res);
-    res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_podsandbox(sandbox_container);  // not used in the assertions below, but keep for completeness
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_id_for_podsandbox(
+	        sandbox_container);  // not used in the assertions below, but keep for completeness
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, sandbox_container); // not used in the assertions below, but keep for completeness
+	res = cri_api_v1alpha2->parse_cri_labels(
+	        resp_pod_sandbox_container,
+	        sandbox_container);  // not used in the assertions below, but keep for completeness
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, sandbox_container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container,
+	                                                      root_pod_sandbox,
+	                                                      sandbox_container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, sandbox_container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container,
+	                                                     sandbox_container);
 	ASSERT_TRUE(res);
 	m_inspector.m_container_manager.add_container(std::move(sandbox_container_ptr), nullptr);
 
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom_one"), "mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom_one]"), "mylabel");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"),
+	          "app:myapp, example-label/custom_one:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"),
+	          "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0."
+	          "1\",\"IP\":\"10.244.0.2\"}]}}");
 }
 
-TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
-{
+TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container) {
 	//
 	// On ther other hand this test is solely for sandbox container processes
 	//
 
 	std::string cri_path = "/run/containerd/containerd_mock.sock";
 	auto cri_api_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
-	ASSERT_FALSE(cri_api_v1alpha2->is_ok()); // we are not querying a container runtime socket in this mock test
+	ASSERT_FALSE(
+	        cri_api_v1alpha2
+	                ->is_ok());  // we are not querying a container runtime socket in this mock test
 
 	// Get mock responses
-	runtime::v1alpha2::PodSandboxStatusResponse pod_sandbox_status_resp = get_default_cri_containerd_pod_status_resp();
+	runtime::v1alpha2::PodSandboxStatusResponse pod_sandbox_status_resp =
+	        get_default_cri_containerd_pod_status_resp();
 
 	const auto &resp_pod_sandbox_container = pod_sandbox_status_resp.status();
 	const auto &resp_pod_sandbox_container_info = pod_sandbox_status_resp.info();
-	const auto root_pod_sandbox = cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
+	const auto root_pod_sandbox =
+	        cri_api_v1alpha2->get_info_jvalue(resp_pod_sandbox_container_info);
 	std::shared_ptr<sinsp_container_info> container_ptr = std::make_shared<sinsp_container_info>();
 	sinsp_container_info &container = *container_ptr;
 
@@ -752,7 +867,8 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 	//
 
 	container.m_type = CT_CONTAINERD;
-	container.m_id = "63060edc2d3a"; // truncated id extracted from cgroups for the sandbox container
+	container.m_id =
+	        "63060edc2d3a";  // truncated id extracted from cgroups for the sandbox container
 	container.m_is_pod_sandbox = true;
 	auto res = cri_api_v1alpha2->parse_cri_base(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
@@ -760,15 +876,17 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
-	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container, root_pod_sandbox, container);
+	res = cri_api_v1alpha2->parse_cri_pod_sandbox_network(resp_pod_sandbox_container,
+	                                                      root_pod_sandbox,
+	                                                      container);
 	ASSERT_TRUE(res);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
 	ASSERT_TRUE(container.m_is_pod_sandbox);
 
-	// 
+	//
 	// Test sinsp filterchecks, similar to spawn_process_container test
-	// 
+	//
 
 	add_default_init_thread();
 	open_inspector();
@@ -778,44 +896,137 @@ TEST_F(sinsp_with_test_input, container_parser_cri_containerd_sandbox_container)
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
 	std::vector<std::string> cgroups = {
-		"cgroups=cpuset=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
-		"cpu=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a", "cpuacct=/",
-		"blkio=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
-		"memory=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a"};
+	        "cgroups=cpuset=/k8s.io/"
+	        "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
+	        "cpu=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
+	        "cpuacct=/",
+	        "blkio=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a",
+	        "memory=/k8s.io/63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a"};
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
 	container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	std::string container_json = m_inspector.m_container_manager.container_to_json(container);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t)1, (uint64_t)1, (uint64_t)0, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)7208, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)parent_tid, (uint64_t)parent_pid);
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t)0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t)1, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)12088, (uint32_t)3764, (uint32_t)0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t)1000, (uint32_t)1000, (uint64_t)1, (uint64_t)1);
+	add_event_advance_ts(increasing_ts(),
+	                     parent_tid,
+	                     PPME_SYSCALL_CLONE_20_X,
+	                     20,
+	                     child_tid,
+	                     "bash",
+	                     empty_bytebuf,
+	                     (uint64_t)1,
+	                     (uint64_t)1,
+	                     (uint64_t)0,
+	                     "",
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint32_t)12088,
+	                     (uint32_t)7208,
+	                     (uint32_t)0,
+	                     "bash",
+	                     scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
+	                     (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID |
+	                                PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS),
+	                     (uint32_t)1000,
+	                     (uint32_t)1000,
+	                     (uint64_t)parent_tid,
+	                     (uint64_t)parent_pid);
+	add_event_advance_ts(increasing_ts(),
+	                     child_tid,
+	                     PPME_SYSCALL_CLONE_20_X,
+	                     20,
+	                     (uint64_t)0,
+	                     "bash",
+	                     empty_bytebuf,
+	                     child_tid,
+	                     child_pid,
+	                     (uint64_t)1,
+	                     "",
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint64_t)0,
+	                     (uint32_t)12088,
+	                     (uint32_t)3764,
+	                     (uint32_t)0,
+	                     "bash",
+	                     scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
+	                     (uint32_t)(PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID |
+	                                PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS),
+	                     (uint32_t)1000,
+	                     (uint32_t)1000,
+	                     (uint64_t)1,
+	                     (uint64_t)1);
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container_json.c_str());
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t)0, "/bin/test-exe", empty_bytebuf, child_tid, child_pid, parent_tid, "", (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)29612, (uint32_t)4, (uint32_t)0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, empty_bytebuf, (int32_t)34818, parent_pid, (uint32_t)0, (int32_t)PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, (uint64_t)0, (uint64_t)0, (uint64_t)0, (uint32_t)0);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           child_tid,
+	                           PPME_SYSCALL_EXECVE_19_X,
+	                           27,
+	                           (int64_t)0,
+	                           "/bin/test-exe",
+	                           empty_bytebuf,
+	                           child_tid,
+	                           child_pid,
+	                           parent_tid,
+	                           "",
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint32_t)29612,
+	                           (uint32_t)4,
+	                           (uint32_t)0,
+	                           "test-exe",
+	                           scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()},
+	                           empty_bytebuf,
+	                           (int32_t)34818,
+	                           parent_pid,
+	                           (uint32_t)0,
+	                           (int32_t)PPM_EXE_UPPER_LAYER,
+	                           parent_pid,
+	                           parent_pid,
+	                           parent_pid,
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint64_t)0,
+	                           (uint32_t)0);
 
 	// Check containers were added to the container cache
-	const sinsp_container_info::ptr_t container_info_check = m_inspector.m_container_manager.get_container(container.m_id);
+	const sinsp_container_info::ptr_t container_info_check =
+	        m_inspector.m_container_manager.get_container(container.m_id);
 	ASSERT_TRUE(container_info_check);
 	ASSERT_EQ("63060edc2d3a", container_info_check->m_id);
 
-	// Check container and k8s related filter fields that are retrieved from the container runtime socket
+	// Check container and k8s related filter fields that are retrieved from the container runtime
+	// socket
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "63060edc2d3a");
-	ASSERT_EQ(get_field_as_string(evt, "container.full_id"), "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
+	ASSERT_EQ(get_field_as_string(evt, "container.full_id"),
+	          "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
 	ASSERT_EQ(get_field_as_string(evt, "container.ip"), "10.244.0.2");
-	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
+	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"),
+	          "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0."
+	          "1\",\"IP\":\"10.244.0.2\"}]}}");
 
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "default");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "nginx-sandbox");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"), "hdishddjaidwnduw9a43535366368"); // legacy pod UID
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"), get_field_as_string(evt, "k8s.pod.id")); // new semantically correct pod UID
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.id"),
+	          "hdishddjaidwnduw9a43535366368");  // legacy pod UID
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.uid"),
+	          get_field_as_string(evt, "k8s.pod.id"));  // new semantically correct pod UID
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.sandbox_id"), "63060edc2d3a");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"), "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.full_sandbox_id"),
+	          "63060edc2d3aa803ab559f2393776b151f99fc5b05035b21db66b3b62246ad6a");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label.example-label/custom_one"), "mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.label[example-label/custom_one]"), "mylabel");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"), "app:myapp, example-label/custom_one:mylabel");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.labels"),
+	          "app:myapp, example-label/custom_one:mylabel");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.ip"), "10.244.0.2");
-	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"), "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0.1\",\"IP\":\"10.244.0.2\"}]}}");
+	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.cni.json"),
+	          "{\"bridge\":{\"IPConfigs\":null},\"eth0\":{\"IPConfigs\":[{\"Gateway\":\"10.244.0."
+	          "1\",\"IP\":\"10.244.0.2\"}]}}");
 
-	// Since this is a pod sandbox container, making it clear that container ID and sandbox ID are the same
-	ASSERT_EQ(get_field_as_string(evt, "container.id"), get_field_as_string(evt, "k8s.pod.sandbox_id"));
+	// Since this is a pod sandbox container, making it clear that container ID and sandbox ID are
+	// the same
+	ASSERT_EQ(get_field_as_string(evt, "container.id"),
+	          get_field_as_string(evt, "k8s.pod.sandbox_id"));
 }
-#endif // MINIMAL_BUILD
+#endif  // MINIMAL_BUILD

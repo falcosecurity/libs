@@ -33,16 +33,13 @@ limitations under the License.
 
 typedef std::pair<uint8_t *, uint32_t> filter_value_t;
 
-struct g_hash_membuf
-{
-	size_t operator()(filter_value_t val) const
-	{
+struct g_hash_membuf {
+	size_t operator()(filter_value_t val) const {
 #if defined(__GNUC__) && !defined(__clang__)
 		return std::_Hash_impl::hash(val.first, val.second);
 #else
 		size_t hash = 5381;
-		for(uint8_t *p = val.first; (uint32_t)(p-val.first) < val.second; p++)
-		{
+		for(uint8_t *p = val.first; (uint32_t)(p - val.first) < val.second; p++) {
 			int c = *p;
 			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 		}
@@ -51,11 +48,8 @@ struct g_hash_membuf
 	}
 };
 
-struct g_equal_to_membuf
-{
-	bool operator()(filter_value_t a, filter_value_t b) const
-	{
-		return (a.second == b.second &&
-			memcmp(a.first, b.first, a.second) == 0);
+struct g_equal_to_membuf {
+	bool operator()(filter_value_t a, filter_value_t b) const {
+		return (a.second == b.second && memcmp(a.first, b.first, a.second) == 0);
 	}
 };

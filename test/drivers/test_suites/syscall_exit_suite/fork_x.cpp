@@ -3,8 +3,7 @@
 
 #if defined(__NR_fork) && defined(__NR_wait4)
 
-TEST(SyscallExit, forkX_father)
-{
+TEST(SyscallExit, forkX_father) {
 	auto evt_test = get_syscall_event_test(__NR_fork, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -16,15 +15,13 @@ TEST(SyscallExit, forkX_father)
 	 */
 	struct proc_info info = {};
 	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
+	if(!get_proc_info(pid, &info)) {
 		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
 
 	pid_t ret_pid = syscall(__NR_fork);
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -34,9 +31,12 @@ TEST(SyscallExit, forkX_father)
 	/* Catch the child before doing anything else. */
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
@@ -46,8 +46,7 @@ TEST(SyscallExit, forkX_father)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -130,8 +129,7 @@ TEST(SyscallExit, forkX_father)
 	evt_test->assert_num_params_pushed(21);
 }
 
-TEST(SyscallExit, forkX_child)
-{
+TEST(SyscallExit, forkX_child) {
 	event_test evt_test(__NR_fork, EXIT_EVENT);
 
 	evt_test.enable_capture();
@@ -141,15 +139,13 @@ TEST(SyscallExit, forkX_child)
 	/* Here we scan the parent just to obtain some info for the child */
 	struct proc_info info = {};
 	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
+	if(!get_proc_info(pid, &info)) {
 		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
 
 	pid_t ret_pid = syscall(__NR_fork);
 
-	if(ret_pid == 0)
-	{
+	if(ret_pid == 0) {
 		/* Child terminates immediately. */
 		exit(EXIT_SUCCESS);
 	}
@@ -158,9 +154,12 @@ TEST(SyscallExit, forkX_child)
 
 	int status = 0;
 	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
-	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
-	{
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "wait4",
+	                     syscall(__NR_wait4, ret_pid, &status, options, NULL),
+	                     NOT_EQUAL,
+	                     -1);
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0) {
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
@@ -178,8 +177,7 @@ TEST(SyscallExit, forkX_child)
 #else
 	evt_test.assert_event_presence(ret_pid);
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -193,7 +191,7 @@ TEST(SyscallExit, forkX_child)
 	evt_test.assert_numeric_param(1, (int64_t)0);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
-#ifndef __powerpc64__ // Page fault
+#ifndef __powerpc64__  // Page fault
 	evt_test.assert_charbuf_param(2, info.args[0]);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */

@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(chown_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(chown_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, CHOWN_E_SIZE, PPME_SYSCALL_CHOWN_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, CHOWN_E_SIZE, PPME_SYSCALL_CHOWN_E)) {
 		return 0;
 	}
 
@@ -40,13 +36,9 @@ int BPF_PROG(chown_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(chown_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(chown_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 

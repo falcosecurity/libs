@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(quotactl_e,
-	     struct pt_regs *regs,
-	     long syscall_id)
-{
+int BPF_PROG(quotactl_e, struct pt_regs *regs, long syscall_id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, QUOTACTL_E_SIZE, PPME_SYSCALL_QUOTACTL_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, QUOTACTL_E_SIZE, PPME_SYSCALL_QUOTACTL_E)) {
 		return 0;
 	}
 
@@ -36,23 +32,17 @@ int BPF_PROG(quotactl_e,
 
 	/* Parameter 3: id (type: PT_UINT32) */
 	uint32_t id = (uint32_t)extract__syscall_argument(regs, 2);
-	if(scap_cmd != PPM_Q_GETQUOTA &&
-	   scap_cmd != PPM_Q_SETQUOTA &&
-	   scap_cmd != PPM_Q_XGETQUOTA &&
-	   scap_cmd != PPM_Q_XSETQLIM)
-	{
+	if(scap_cmd != PPM_Q_GETQUOTA && scap_cmd != PPM_Q_SETQUOTA && scap_cmd != PPM_Q_XGETQUOTA &&
+	   scap_cmd != PPM_Q_XSETQLIM) {
 		/* In this case `id` don't represent a `userid` or a `groupid` */
 		ringbuf__store_u32(&ringbuf, 0);
-	}
-	else
-	{
+	} else {
 		ringbuf__store_u32(&ringbuf, id);
 	}
 
 	/* Parameter 4: quota_fmt (type: PT_FLAGS8) */
 	uint8_t quota_fmt = PPM_QFMT_NOT_USED;
-	if(scap_cmd == PPM_Q_QUOTAON)
-	{
+	if(scap_cmd == PPM_Q_QUOTAON) {
 		quota_fmt = quotactl_fmt_to_scap(id);
 	}
 	ringbuf__store_u8(&ringbuf, quota_fmt);
@@ -69,13 +59,9 @@ int BPF_PROG(quotactl_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(quotactl_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(quotactl_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -104,13 +90,10 @@ int BPF_PROG(quotactl_x,
 	unsigned long addr_pointer = extract__syscall_argument(regs, 3);
 
 	/* We get `quotafilepath` only for `QUOTAON` command. */
-	if(scap_cmd == PPM_Q_QUOTAON)
-	{
+	if(scap_cmd == PPM_Q_QUOTAON) {
 		/* Parameter 3: quotafilepath (type: PT_CHARBUF) */
 		auxmap__store_charbuf_param(auxmap, addr_pointer, MAX_PATH, USER);
-	}
-	else
-	{
+	} else {
 		/* Parameter 3: quotafilepath (type: PT_CHARBUF) */
 		auxmap__store_empty_param(auxmap);
 	}
@@ -124,38 +107,35 @@ int BPF_PROG(quotactl_x,
 	uint64_t dqb_btime = 0;
 	uint64_t dqb_itime = 0;
 
-	if(bpf_core_type_exists(struct if_dqblk) && (scap_cmd == PPM_Q_GETQUOTA || scap_cmd == PPM_Q_SETQUOTA))
-	{
+	if(bpf_core_type_exists(struct if_dqblk) &&
+	   (scap_cmd == PPM_Q_GETQUOTA || scap_cmd == PPM_Q_SETQUOTA)) {
 		struct if_dqblk dqblk = {0};
-		bpf_probe_read_user((void *)&dqblk, bpf_core_type_size(struct if_dqblk), (void *)addr_pointer);
+		bpf_probe_read_user((void *)&dqblk,
+		                    bpf_core_type_size(struct if_dqblk),
+		                    (void *)addr_pointer);
 
 		/* Please note that `dqblk` struct could be filled with values different from `0`,
 		 * even if these values are not valid, so we need to explicitly send `0`.
 		 */
-		if(dqblk.dqb_valid & QIF_BLIMITS)
-		{
+		if(dqblk.dqb_valid & QIF_BLIMITS) {
 			dqb_bhardlimit = dqblk.dqb_bhardlimit;
 			dqb_bsoftlimit = dqblk.dqb_bsoftlimit;
 		}
 
-		if(dqblk.dqb_valid & QIF_SPACE)
-		{
+		if(dqblk.dqb_valid & QIF_SPACE) {
 			dqb_curspace = dqblk.dqb_curspace;
 		}
 
-		if(dqblk.dqb_valid & QIF_ILIMITS)
-		{
+		if(dqblk.dqb_valid & QIF_ILIMITS) {
 			dqb_ihardlimit = dqblk.dqb_ihardlimit;
 			dqb_isoftlimit = dqblk.dqb_isoftlimit;
 		}
 
-		if(dqblk.dqb_valid & QIF_BTIME)
-		{
+		if(dqblk.dqb_valid & QIF_BTIME) {
 			dqb_btime = dqblk.dqb_btime;
 		}
 
-		if(dqblk.dqb_valid & QIF_ITIME)
-		{
+		if(dqblk.dqb_valid & QIF_ITIME) {
 			dqb_itime = dqblk.dqb_itime;
 		}
 	}
@@ -185,24 +165,23 @@ int BPF_PROG(quotactl_x,
 	uint64_t dqi_igrace = 0;
 	uint64_t dqi_flags = 0;
 
-	if(bpf_core_type_exists(struct if_dqinfo) && (scap_cmd == PPM_Q_GETINFO || scap_cmd == PPM_Q_SETINFO))
-	{
+	if(bpf_core_type_exists(struct if_dqinfo) &&
+	   (scap_cmd == PPM_Q_GETINFO || scap_cmd == PPM_Q_SETINFO)) {
 		struct if_dqinfo dqinfo = {0};
-		bpf_probe_read_user((void *)&dqinfo, bpf_core_type_size(struct if_dqinfo), (void *)addr_pointer);
+		bpf_probe_read_user((void *)&dqinfo,
+		                    bpf_core_type_size(struct if_dqinfo),
+		                    (void *)addr_pointer);
 
-		if(dqinfo.dqi_valid & IIF_BGRACE)
-		{
+		if(dqinfo.dqi_valid & IIF_BGRACE) {
 			dqi_bgrace = dqinfo.dqi_bgrace;
 		}
 
-		if(dqinfo.dqi_valid & IIF_IGRACE)
-		{
+		if(dqinfo.dqi_valid & IIF_IGRACE) {
 			/* Parameter 12: dqi_igrace (type: PT_RELTIME) */
 			dqi_igrace = dqinfo.dqi_igrace;
 		}
 
-		if(dqinfo.dqi_valid & IIF_FLAGS)
-		{
+		if(dqinfo.dqi_valid & IIF_FLAGS) {
 			/* Parameter 13: dqi_flags (type: PT_FLAGS8) */
 			dqi_flags = dqinfo.dqi_flags;
 		}
@@ -219,8 +198,7 @@ int BPF_PROG(quotactl_x,
 
 	/* Parameter 14: quota_fmt_out (type: PT_FLAGS8) */
 	uint32_t quota_fmt_out = PPM_QFMT_NOT_USED;
-	if(scap_cmd == PPM_Q_GETFMT)
-	{
+	if(scap_cmd == PPM_Q_GETFMT) {
 		uint32_t quota_fmt_out_tmp = 0;
 		bpf_probe_read_user(&quota_fmt_out_tmp, sizeof(quota_fmt_out_tmp), (void *)addr_pointer);
 		quota_fmt_out = quotactl_fmt_to_scap(quota_fmt_out_tmp);

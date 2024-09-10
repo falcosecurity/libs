@@ -21,14 +21,12 @@ limitations under the License.
 
 using namespace libsinsp;
 
-class sinsp_external_processor_dummy : public event_processor
-{
+class sinsp_external_processor_dummy : public event_processor {
 	void on_capture_start() override {}
 	void process_event(sinsp_evt* evt, event_return rc) override {}
 };
 
-TEST(sinsp, external_event_processor_initialization)
-{
+TEST(sinsp, external_event_processor_initialization) {
 	sinsp my_sinsp;
 	EXPECT_EQ(my_sinsp.get_external_event_processor(), nullptr);
 	sinsp_external_processor_dummy processor;

@@ -21,15 +21,22 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-
-TEST_F(sinsp_with_test_input, pmatch)
-{
+TEST_F(sinsp_with_test_input, pmatch) {
 	add_default_init_thread();
 
 	open_inspector();
 
 	int64_t fd = 1;
-	sinsp_evt * evt = add_event_advance_ts(increasing_ts(), 3, PPME_SYSCALL_OPEN_X, 6, fd, "/opt/dir/subdir/file.txt", 0, 0, 0, (uint64_t) 0);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      3,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      fd,
+	                                      "/opt/dir/subdir/file.txt",
+	                                      0,
+	                                      0,
+	                                      0,
+	                                      (uint64_t)0);
 
 	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/dir)"));
 	EXPECT_TRUE(eval_filter(evt, "fd.name pmatch (/opt/dir/subdir)"));

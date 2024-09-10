@@ -12,13 +12,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(fchmodat_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(fchmodat_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FCHMODAT_E_SIZE, PPME_SYSCALL_FCHMODAT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCHMODAT_E_SIZE, PPME_SYSCALL_FCHMODAT_E)) {
 		return 0;
 	}
 
@@ -40,13 +36,9 @@ int BPF_PROG(fchmodat_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(fchmodat_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(fchmodat_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -59,8 +51,7 @@ int BPF_PROG(fchmodat_x,
 
 	/* Parameter 2: dirfd (type: PT_FD) */
 	int32_t dirfd = (int32_t)extract__syscall_argument(regs, 0);
-	if(dirfd == AT_FDCWD)
-	{
+	if(dirfd == AT_FDCWD) {
 		dirfd = PPM_AT_FDCWD;
 	}
 	auxmap__store_s64_param(auxmap, (int64_t)dirfd);

@@ -6,20 +6,15 @@
  * or GPL2.txt for full copies of the license.
  */
 
-
 #include <helpers/interfaces/fixed_size_event.h>
 #include <helpers/interfaces/variable_size_event.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(stat_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(stat_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, STAT_E_SIZE, PPME_SYSCALL_STAT_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, STAT_E_SIZE, PPME_SYSCALL_STAT_E)) {
 		return 0;
 	}
 
@@ -41,13 +36,9 @@ int BPF_PROG(stat_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(stat_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(stat_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 

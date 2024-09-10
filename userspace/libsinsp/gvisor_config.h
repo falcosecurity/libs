@@ -20,7 +20,6 @@ limitations under the License.
 
 #include <string>
 
-namespace gvisor_config 
-{
-	std::string generate(const std::string& socket_path);
+namespace gvisor_config {
+std::string generate(const std::string& socket_path);
 }

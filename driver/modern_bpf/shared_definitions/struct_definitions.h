@@ -22,18 +22,17 @@
  * @brief General settings shared among all the CPUs.
  *
  */
-struct capture_settings
-{
-	uint64_t boot_time;		       /* boot time. */
-	uint32_t snaplen;		       /* we use it when we want to read a maximum size from an event and no more. */
-	bool dropping_mode;		       /* this flag actives the sampling logic */
-	uint32_t sampling_ratio;	       /* this config tells tracepoints when they have to drop events  */
-	bool drop_failed;		       /* whether to drop failed syscalls (exit events) */
-	bool do_dynamic_snaplen;	       /* enforce snaplen according to the event content */
+struct capture_settings {
+	uint64_t boot_time; /* boot time. */
+	uint32_t snaplen; /* we use it when we want to read a maximum size from an event and no more. */
+	bool dropping_mode;      /* this flag actives the sampling logic */
+	uint32_t sampling_ratio; /* this config tells tracepoints when they have to drop events  */
+	bool drop_failed;        /* whether to drop failed syscalls (exit events) */
+	bool do_dynamic_snaplen; /* enforce snaplen according to the event content */
 	uint16_t fullcapture_port_range_start; /* first interesting port */
 	uint16_t fullcapture_port_range_end;   /* last interesting port */
-	uint16_t statsd_port;		       /* port for statsd metrics */
-	int32_t scap_tid;		       /* tid of the scap process */
+	uint16_t statsd_port;                  /* port for statsd metrics */
+	int32_t scap_tid;                      /* tid of the scap process */
 };
 
 /**
@@ -43,12 +42,11 @@ struct capture_settings
  *
  * To have more info about the event format, please look at `helpers/base/push_data.h`
  */
-struct auxiliary_map
-{
+struct auxiliary_map {
 	uint8_t data[AUXILIARY_MAP_SIZE]; /* raw space to save our variable-size event. */
-	uint64_t payload_pos;	       /* position of the first empty byte in the `data` buf. */
-	uint8_t lengths_pos;	       /* position the first empty slot into the lengths array of the event. */
-	uint16_t event_type;	       /* event type we want to send to userspace */
+	uint64_t payload_pos;             /* position of the first empty byte in the `data` buf. */
+	uint8_t lengths_pos; /* position the first empty slot into the lengths array of the event. */
+	uint16_t event_type; /* event type we want to send to userspace */
 };
 
 /* These per-cpu maps are used to carry the number of drops and
@@ -59,11 +57,11 @@ struct auxiliary_map
  * @brief These per-cpu maps are used to carry the number of dropped and
  * processed events.
  */
-struct counter_map
-{
-	uint64_t n_evts;		 /* Number of events correctly sent to userspace. */
-	uint64_t n_drops_buffer;	 /* Number of drops due to a full ringbuf. */
-	/* Kernel side drops due to full buffer for categories of system calls. Not all system calls of interest are mapped into one of the categories. */
+struct counter_map {
+	uint64_t n_evts;         /* Number of events correctly sent to userspace. */
+	uint64_t n_drops_buffer; /* Number of drops due to a full ringbuf. */
+	/* Kernel side drops due to full buffer for categories of system calls. Not all system calls of
+	 * interest are mapped into one of the categories. */
 	uint64_t n_drops_buffer_clone_fork_enter;
 	uint64_t n_drops_buffer_clone_fork_exit;
 	uint64_t n_drops_buffer_execve_enter;
@@ -75,7 +73,9 @@ struct counter_map
 	uint64_t n_drops_buffer_dir_file_enter;
 	uint64_t n_drops_buffer_dir_file_exit;
 	uint64_t n_drops_buffer_other_interest_enter;
-	uint64_t n_drops_buffer_other_interest_exit;	 /* Category of other system calls of interest, not all other system calls that did not match a category from above. */
+	uint64_t n_drops_buffer_other_interest_exit; /* Category of other system calls of interest, not
+	                                                all other system calls that did not match a
+	                                                category from above. */
 	uint64_t n_drops_buffer_close_exit;
 	uint64_t n_drops_buffer_proc_exit;
 	uint64_t n_drops_max_event_size; /* Number of drops due to an excessive event size (>64KB). */

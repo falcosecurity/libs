@@ -23,10 +23,8 @@ limitations under the License.
 //
 // Free a previously allocated list of users
 //
-void scap_free_userlist(scap_userlist* uhandle)
-{
-	if(uhandle)
-	{
+void scap_free_userlist(scap_userlist* uhandle) {
+	if(uhandle) {
 		free(uhandle->users);
 		free(uhandle->groups);
 		free(uhandle);

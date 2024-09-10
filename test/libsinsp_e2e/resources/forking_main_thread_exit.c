@@ -26,12 +26,10 @@ limitations under the License.
 
 static int fd;
 
-void* callback(void* arg)
-{
+void* callback(void* arg) {
 	char buf[1024];
 	sleep(1);
-	if (read(fd, buf, sizeof(buf)) < 0)
-	{
+	if(read(fd, buf, sizeof(buf)) < 0) {
 		perror("read");
 	}
 	sleep(10);
@@ -42,13 +40,11 @@ void* callback(void* arg)
 // This is outside the test files because gtest doesn't like
 // pthread_exit() since it triggers an exception to unwind the stack
 //
-int main()
-{
+int main() {
 	pthread_t thread;
 
 	fd = open("/etc/passwd", O_RDONLY);
-	if (fd == -1)
-	{
+	if(fd == -1) {
 		perror("open");
 	}
 

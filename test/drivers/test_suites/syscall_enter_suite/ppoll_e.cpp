@@ -5,8 +5,7 @@
 #include <poll.h>
 #include <signal.h>
 
-TEST(SyscallEnter, ppollE_null_pointers)
-{
+TEST(SyscallEnter, ppollE_null_pointers) {
 	auto evt_test = get_syscall_event_test(__NR_ppoll, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -20,7 +19,9 @@ TEST(SyscallEnter, ppollE_null_pointers)
 	struct timespec* timestamp = NULL;
 	sigset_t* sigmask = NULL;
 	uint32_t nfds = 5;
-	assert_syscall_state(SYSCALL_FAILURE, "ppoll", syscall(__NR_ppoll, fds, nfds, timestamp, sigmask));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "ppoll",
+	                     syscall(__NR_ppoll, fds, nfds, timestamp, sigmask));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -28,8 +29,7 @@ TEST(SyscallEnter, ppollE_null_pointers)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -56,8 +56,7 @@ TEST(SyscallEnter, ppollE_null_pointers)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallEnter, ppollE_valid_pointers)
-{
+TEST(SyscallEnter, ppollE_valid_pointers) {
 	auto evt_test = get_syscall_event_test(__NR_ppoll, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -75,7 +74,9 @@ TEST(SyscallEnter, ppollE_valid_pointers)
 	sigmask.__val[0] = SIGIO;
 	sigmask.__val[1] = SIGTERM;
 	uint32_t nfds = 5;
-	assert_syscall_state(SYSCALL_FAILURE, "ppoll", syscall(__NR_ppoll, fds, nfds, &timestamp, &sigmask));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "ppoll",
+	                     syscall(__NR_ppoll, fds, nfds, &timestamp, &sigmask));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -83,8 +84,7 @@ TEST(SyscallEnter, ppollE_valid_pointers)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -100,7 +100,8 @@ TEST(SyscallEnter, ppollE_valid_pointers)
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
 	/* The pointer is NULL so we should have UINT64_MAX */
-	evt_test->assert_numeric_param(2, ((uint64_t)timestamp.tv_sec * SEC_FACTOR) + timestamp.tv_nsec);
+	evt_test->assert_numeric_param(2,
+	                               ((uint64_t)timestamp.tv_sec * SEC_FACTOR) + timestamp.tv_nsec);
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */
 	evt_test->assert_numeric_param(3, (uint32_t)SIGIO);

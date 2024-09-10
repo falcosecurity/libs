@@ -15,12 +15,13 @@
 #define MAX_HIERARCHY_TRAVERSE 60
 
 /* 3 possible cases:
- * - Looping between all threads of the current thread group we don't find a valid reaper. -> return 0
- * - We cannot loop over all threads of the group due to BPF verifier limits (MAX_THREADS_GROUPS) -> return -1
+ * - Looping between all threads of the current thread group we don't find a valid reaper. -> return
+ * 0
+ * - We cannot loop over all threads of the group due to BPF verifier limits (MAX_THREADS_GROUPS) ->
+ * return -1
  * - We find a reaper -> return its `pid`
  */
-static __always_inline pid_t find_alive_thread(struct task_struct *father)
-{
+static __always_inline pid_t find_alive_thread(struct task_struct *father) {
 	struct signal_struct *signal = BPF_CORE_READ(father, signal);
 	struct list_head *head = &(signal->thread_head);
 	struct list_head *next_thread = BPF_CORE_READ(head, next);
@@ -29,19 +30,16 @@ static __always_inline pid_t find_alive_thread(struct task_struct *father)
 
 	for(struct task_struct *t = container_of(next_thread, typeof(struct task_struct), thread_node);
 	    next_thread != (head) && cnt < MAX_THREADS_GROUPS;
-	    t = container_of(next_thread, typeof(struct task_struct), thread_node))
-	{
+	    t = container_of(next_thread, typeof(struct task_struct), thread_node)) {
 		cnt++;
-		if(!(BPF_CORE_READ(t, flags) & PF_EXITING))
-		{
+		if(!(BPF_CORE_READ(t, flags) & PF_EXITING)) {
 			return BPF_CORE_READ(t, pid);
 		}
 		next_thread = BPF_CORE_READ(t, thread_node.next);
 	}
 
 	/* We cannot loop over all threads, we cannot know the right reaper */
-	if(cnt == MAX_THREADS_GROUPS)
-	{
+	if(cnt == MAX_THREADS_GROUPS) {
 		return -1;
 	}
 
@@ -55,8 +53,7 @@ static __always_inline pid_t find_alive_thread(struct task_struct *father)
  *    child_subreaper for its children (like a service manager)
  * 3. give it to the init process (PID 1) in our pid namespace
  */
-static __always_inline pid_t find_new_reaper_pid(struct task_struct *father)
-{
+static __always_inline pid_t find_new_reaper_pid(struct task_struct *father) {
 	pid_t reaper_pid = find_alive_thread(father);
 
 	/* - If we are not able to find the reaper due to BPF
@@ -66,8 +63,7 @@ static __always_inline pid_t find_new_reaper_pid(struct task_struct *father)
 	 *
 	 * - If reaper_pid > 0 we find a valid reaper, we can return.
 	 */
-	if(reaper_pid != 0)
-	{
+	if(reaper_pid != 0) {
 		return reaper_pid;
 	}
 
@@ -83,15 +79,13 @@ static __always_inline pid_t find_new_reaper_pid(struct task_struct *father)
 	 * The kernel will destroy all the processes in that namespace. We send a reaper equal to
 	 * `0` in userspace.
 	 */
-	if(child_ns_reaper == father)
-	{
+	if(child_ns_reaper == father) {
 		return 0;
 	}
 
 	/* If there are no sub reapers the reaper is the init process of that namespace */
 	struct signal_struct *signal = READ_TASK_FIELD(father, signal);
-	if(!BPF_CORE_READ_BITFIELD_PROBED(signal, has_child_subreaper))
-	{
+	if(!BPF_CORE_READ_BITFIELD_PROBED(signal, has_child_subreaper)) {
 		return child_reaper_pid;
 	}
 
@@ -110,35 +104,31 @@ static __always_inline pid_t find_new_reaper_pid(struct task_struct *father)
 	 */
 	uint8_t cnt = 0;
 
-	for(struct task_struct *possible_reaper = READ_TASK_FIELD(father, real_parent); cnt < MAX_HIERARCHY_TRAVERSE;
-	    possible_reaper = BPF_CORE_READ(possible_reaper, real_parent))
-	{
+	for(struct task_struct *possible_reaper = READ_TASK_FIELD(father, real_parent);
+	    cnt < MAX_HIERARCHY_TRAVERSE;
+	    possible_reaper = BPF_CORE_READ(possible_reaper, real_parent)) {
 		cnt++;
 		current_ns_level = BPF_CORE_READ(possible_reaper, thread_pid, level);
 
 		/* We are crossing the namespace or we are the child_ns_reaper */
-		if(father_ns_level != current_ns_level || possible_reaper == child_ns_reaper)
-		{
+		if(father_ns_level != current_ns_level || possible_reaper == child_ns_reaper) {
 			return child_reaper_pid;
 		}
 
 		signal = BPF_CORE_READ(possible_reaper, signal);
-		if(!BPF_CORE_READ_BITFIELD_PROBED(signal, is_child_subreaper))
-		{
+		if(!BPF_CORE_READ_BITFIELD_PROBED(signal, is_child_subreaper)) {
 			continue;
 		}
 
 		/* Here again we can return -1 in case we have verifier limits issues */
 		reaper_pid = find_alive_thread(possible_reaper);
-		if(reaper_pid != 0)
-		{
+		if(reaper_pid != 0) {
 			return reaper_pid;
 		}
 	}
 
 	/* We cannot traverse all the hierarchy, we cannot know the right reaper */
-	if(cnt == MAX_HIERARCHY_TRAVERSE)
-	{
+	if(cnt == MAX_HIERARCHY_TRAVERSE) {
 		return -1;
 	}
 
@@ -149,20 +139,18 @@ static __always_inline pid_t find_new_reaper_pid(struct task_struct *father)
  * TP_PROTO(struct task_struct *p)
  */
 SEC("tp_btf/sched_process_exit")
-int BPF_PROG(sched_proc_exit, struct task_struct *task)
-{
+int BPF_PROG(sched_proc_exit, struct task_struct *task) {
 	/* NOTE: this is a fixed-size event and so we should use the `ringbuf-approach`.
 	 * Unfortunately we are hitting a sort of complexity limit in some kernel versions (<5.10)
 	 * It seems like the verifier is not able to recognize the `ringbuf` pointer as a real pointer
-	 * after a certain number of instructions but it considers it as an `invariant` causing a verifier error like:
-	 * R1 invalid mem access 'inv'
-	 * 
+	 * after a certain number of instructions but it considers it as an `invariant` causing a
+	 * verifier error like: R1 invalid mem access 'inv'
+	 *
 	 * Right now we solved it using the `auxmap-approach` but in the next future maybe we could
 	 * switch again to the `ringbuf-approach`.
 	 */
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -182,8 +170,7 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	/* Parameter 3: sig (type: PT_SIGTYPE) */
 	uint8_t sig = 0;
 	/* If the process terminates with a signal collect it. */
-	if(__WIFSIGNALED(exit_code) != 0)
-	{
+	if(__WIFSIGNALED(exit_code) != 0) {
 		sig = __WTERMSIG(exit_code);
 	}
 	auxmap__store_u8_param(auxmap, sig);
@@ -201,8 +188,7 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	int32_t reaper_pid = 0;
 	struct list_head *head = &(task->children);
 	struct list_head *next_child = BPF_CORE_READ(head, next);
-	if(next_child != head)
-	{
+	if(next_child != head) {
 		/* We have at least one child, so we need a reaper for it */
 		reaper_pid = find_new_reaper_pid(task);
 	}

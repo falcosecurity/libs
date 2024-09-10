@@ -18,30 +18,23 @@ limitations under the License.
 
 #include <libsinsp/grpc_channel_registry.h>
 
-
 std::map<std::string, std::weak_ptr<grpc::Channel>> libsinsp::grpc_channel_registry::s_channels;
 
-std::shared_ptr<grpc::Channel> libsinsp::grpc_channel_registry::get_channel(const std::string &url, const grpc::ChannelArguments *args)
-{
+std::shared_ptr<grpc::Channel> libsinsp::grpc_channel_registry::get_channel(
+        const std::string &url,
+        const grpc::ChannelArguments *args) {
 	std::shared_ptr<grpc::Channel> chan;
 	auto it = s_channels.find(url);
-	if(it != s_channels.end())
-	{
+	if(it != s_channels.end()) {
 		chan = it->second.lock();
-		if (chan != nullptr)
-		{
+		if(chan != nullptr) {
 			return chan;
 		}
 	}
-	if (args)
-	{
-		chan = grpc::CreateCustomChannel(url,
-			grpc::InsecureChannelCredentials(), *args);
-	}
-	else
-	{
-		chan = grpc::CreateChannel(url,
-			grpc::InsecureChannelCredentials());
+	if(args) {
+		chan = grpc::CreateCustomChannel(url, grpc::InsecureChannelCredentials(), *args);
+	} else {
+		chan = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
 	}
 	s_channels[url] = chan;
 

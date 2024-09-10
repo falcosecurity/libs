@@ -10,7 +10,8 @@ or GPL2.txt for full copies of the license.
 
 /*
  * Check that mm_struct's field `rss_stat` is an array.
- * See 6.2 kernel commit: https://github.com/torvalds/linux/commit/f1a7941243c102a44e8847e3b94ff4ff3ec56f25
+ * See 6.2 kernel commit:
+ * https://github.com/torvalds/linux/commit/f1a7941243c102a44e8847e3b94ff4ff3ec56f25
  */
 
 #include "../../quirks.h"
@@ -20,8 +21,7 @@ or GPL2.txt for full copies of the license.
 // struct mm_struct declaration
 #include <linux/mm_types.h>
 
-BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
-{
+BPF_PROBE("signal/", signal_deliver, signal_deliver_args) {
 	long val;
 	struct mm_struct *mm;
 	val = mm->rss_stat[0].count;

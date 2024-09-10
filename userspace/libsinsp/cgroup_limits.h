@@ -5,23 +5,17 @@
 #include <libsinsp/async/async_key_value_source.h>
 
 namespace {
-bool less_than(const std::string& lhs, const std::string& rhs, bool if_equal=false)
-{
+bool less_than(const std::string& lhs, const std::string& rhs, bool if_equal = false) {
 	int cmp = lhs.compare(rhs);
-	if(cmp < 0)
-	{
+	if(cmp < 0) {
 		return true;
-	}
-	else if(cmp > 0)
-	{
+	} else if(cmp > 0) {
 		return false;
-	}
-	else
-	{
+	} else {
 		return if_equal;
 	}
 }
-}
+}  // namespace
 
 namespace libsinsp {
 namespace cgroup_limits {
@@ -36,34 +30,30 @@ struct cgroup_limits_key {
 	cgroup_limits_key() {}
 
 	cgroup_limits_key(std::string container_id,
-			  std::string cpu_cgroup_dir,
-			  std::string mem_cgroup_dir,
-			  std::string cpuset_cgroup_dir) :
-		m_container_id(std::move(container_id)),
-		m_cpu_cgroup(std::move(cpu_cgroup_dir)),
-		m_mem_cgroup(std::move(mem_cgroup_dir)),
-		m_cpuset_cgroup(std::move(cpuset_cgroup_dir)) { }
+	                  std::string cpu_cgroup_dir,
+	                  std::string mem_cgroup_dir,
+	                  std::string cpuset_cgroup_dir):
+	        m_container_id(std::move(container_id)),
+	        m_cpu_cgroup(std::move(cpu_cgroup_dir)),
+	        m_mem_cgroup(std::move(mem_cgroup_dir)),
+	        m_cpuset_cgroup(std::move(cpuset_cgroup_dir)) {}
 
-	bool operator<(const cgroup_limits_key& rhs) const
-	{
-		return less_than(m_container_id, rhs.m_container_id,
-				 less_than(m_cpu_cgroup, rhs.m_cpu_cgroup,
-					   less_than(m_mem_cgroup, rhs.m_mem_cgroup,
-						less_than(m_cpuset_cgroup, rhs.m_cpuset_cgroup))));
+	bool operator<(const cgroup_limits_key& rhs) const {
+		return less_than(m_container_id,
+		                 rhs.m_container_id,
+		                 less_than(m_cpu_cgroup,
+		                           rhs.m_cpu_cgroup,
+		                           less_than(m_mem_cgroup,
+		                                     rhs.m_mem_cgroup,
+		                                     less_than(m_cpuset_cgroup, rhs.m_cpuset_cgroup))));
 	}
 
-	bool operator==(const cgroup_limits_key& rhs) const
-	{
-		return m_container_id == rhs.m_container_id &&
-		       m_cpu_cgroup == rhs.m_cpu_cgroup &&
-		       m_mem_cgroup == rhs.m_mem_cgroup &&
-		       m_cpuset_cgroup == rhs.m_cpuset_cgroup;
+	bool operator==(const cgroup_limits_key& rhs) const {
+		return m_container_id == rhs.m_container_id && m_cpu_cgroup == rhs.m_cpu_cgroup &&
+		       m_mem_cgroup == rhs.m_mem_cgroup && m_cpuset_cgroup == rhs.m_cpuset_cgroup;
 	}
 
-	explicit operator const std::string&() const
-	{
-		return m_container_id;
-	}
+	explicit operator const std::string&() const { return m_container_id; }
 
 	std::string m_container_id;
 	std::string m_cpu_cgroup;
@@ -77,12 +67,12 @@ struct cgroup_limits_key {
  * This contains all the cgroup values we read during the asynchronous lookup
  */
 struct cgroup_limits_value {
-	cgroup_limits_value() :
-		m_cpu_shares(0),
-		m_cpu_quota(0),
-		m_cpu_period(0),
-		m_memory_limit(0),
-		m_cpuset_cpu_count(0) {}
+	cgroup_limits_value():
+	        m_cpu_shares(0),
+	        m_cpu_quota(0),
+	        m_cpu_period(0),
+	        m_memory_limit(0),
+	        m_cpuset_cpu_count(0) {}
 
 	int64_t m_cpu_shares;
 	int64_t m_cpu_quota;
@@ -108,10 +98,12 @@ struct cgroup_limits_value {
  * in the future", while `true` means we really don't expect them to change
  * any more.
  */
-bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_value& value, bool name_check = true);
+bool get_cgroup_resource_limits(const cgroup_limits_key& key,
+                                cgroup_limits_value& value,
+                                bool name_check = true);
 
-}
-}
+}  // namespace cgroup_limits
+}  // namespace libsinsp
 
 namespace std {
 /**
@@ -119,7 +111,8 @@ namespace std {
  *
  * It allows `cgroup_limits_key` instances to be used as `unordered_map` keys
  */
-template<> struct hash<libsinsp::cgroup_limits::cgroup_limits_key> {
+template<>
+struct hash<libsinsp::cgroup_limits::cgroup_limits_key> {
 	std::size_t operator()(const libsinsp::cgroup_limits::cgroup_limits_key& h) const {
 		size_t h1 = ::std::hash<std::string>{}(h.m_container_id);
 		size_t h2 = ::std::hash<std::string>{}(h.m_cpu_cgroup);
@@ -128,4 +121,4 @@ template<> struct hash<libsinsp::cgroup_limits::cgroup_limits_key> {
 		return h1 ^ (h2 << 1u) ^ (h3 << 2u) ^ (h4 << 3u);
 	}
 };
-}
+}  // namespace std

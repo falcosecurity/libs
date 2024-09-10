@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(eventfd_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(eventfd_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, EVENTFD_E_SIZE, PPME_SYSCALL_EVENTFD_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, EVENTFD_E_SIZE, PPME_SYSCALL_EVENTFD_E)) {
 		return 0;
 	}
 
@@ -47,13 +43,9 @@ int BPF_PROG(eventfd_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(eventfd_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(eventfd_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, EVENTFD_X_SIZE, PPME_SYSCALL_EVENTFD_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, EVENTFD_X_SIZE, PPME_SYSCALL_EVENTFD_X)) {
 		return 0;
 	}
 

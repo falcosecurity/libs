@@ -26,8 +26,7 @@ extern "C" {
 
 struct scap_test_input_data;
 
-struct scap_test_input_platform
-{
+struct scap_test_input_platform {
 	struct scap_platform m_generic;
 	struct scap_test_input_data* m_data;
 	char* m_lasterr;
@@ -36,4 +35,3 @@ struct scap_test_input_platform
 #ifdef __cplusplus
 };
 #endif
-

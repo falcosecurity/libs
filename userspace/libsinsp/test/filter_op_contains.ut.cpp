@@ -21,14 +21,22 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-TEST_F(sinsp_with_test_input, contains_icontains)
-{
+TEST_F(sinsp_with_test_input, contains_icontains) {
 	add_default_init_thread();
 
 	open_inspector();
 
 	int64_t fd = 1;
-	sinsp_evt * evt = add_event_advance_ts(increasing_ts(), 3, PPME_SYSCALL_OPEN_X, 6, fd, "/opt/dir/SUBDIR/file.txt", PPM_O_RDWR | PPM_O_CREAT, 0, 0, (uint64_t) 0);
+	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
+	                                      3,
+	                                      PPME_SYSCALL_OPEN_X,
+	                                      6,
+	                                      fd,
+	                                      "/opt/dir/SUBDIR/file.txt",
+	                                      PPM_O_RDWR | PPM_O_CREAT,
+	                                      0,
+	                                      0,
+	                                      (uint64_t)0);
 
 	EXPECT_TRUE(eval_filter(evt, "evt.arg.flags contains O_CREAT"));
 	EXPECT_FALSE(eval_filter(evt, "evt.arg.flags contains O_TMPFILE"));

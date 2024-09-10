@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_getresgid
-TEST(SyscallEnter, getresgidE)
-{
+TEST(SyscallEnter, getresgidE) {
 	auto evt_test = get_syscall_event_test(__NR_getresgid, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -12,7 +11,11 @@ TEST(SyscallEnter, getresgidE)
 	gid_t rgid;
 	gid_t egid;
 	gid_t sgid;
-	assert_syscall_state(SYSCALL_SUCCESS, "getresgid", syscall(__NR_getresgid, &rgid, &egid, &sgid), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "getresgid",
+	                     syscall(__NR_getresgid, &rgid, &egid, &sgid),
+	                     NOT_EQUAL,
+	                     -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -20,8 +23,7 @@ TEST(SyscallEnter, getresgidE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

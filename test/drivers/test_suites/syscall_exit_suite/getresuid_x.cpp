@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_getresuid
-TEST(SyscallExit, getresuidX)
-{
+TEST(SyscallExit, getresuidX) {
 	auto evt_test = get_syscall_event_test(__NR_getresuid, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -22,8 +21,7 @@ TEST(SyscallExit, getresuidX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -33,8 +31,8 @@ TEST(SyscallExit, getresuidX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-        /* Parameter 1: res (type: PT_ERRNO) */
-        evt_test->assert_numeric_param(1, (int64_t)res);
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)res);
 
 	/* Parameter 2: ruid (type: PT_UID) */
 	evt_test->assert_numeric_param(2, (uint32_t)ruid);

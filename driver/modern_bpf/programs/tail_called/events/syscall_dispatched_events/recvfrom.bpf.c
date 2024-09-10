@@ -12,17 +12,13 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(recvfrom_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(recvfrom_e, struct pt_regs *regs, long id) {
 	/* Collect parameters at the beginning to  manage socketcalls */
 	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, RECVFROM_E_SIZE, PPME_SOCKET_RECVFROM_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, RECVFROM_E_SIZE, PPME_SOCKET_RECVFROM_E)) {
 		return 0;
 	}
 
@@ -50,13 +46,9 @@ int BPF_PROG(recvfrom_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(recvfrom_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(recvfrom_x, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -67,15 +59,13 @@ int BPF_PROG(recvfrom_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	if(ret >= 0)
-	{
+	if(ret >= 0) {
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
 		uint16_t snaplen = maps__get_snaplen();
 		apply_dynamic_snaplen(regs, &snaplen, false, PPME_SOCKET_RECVFROM_X);
-		if(snaplen > ret)
-		{
+		if(snaplen > ret) {
 			snaplen = ret;
 		}
 
@@ -91,9 +81,7 @@ int BPF_PROG(recvfrom_x,
 		uint32_t socket_fd = (uint32_t)args[0];
 		struct sockaddr *usrsockaddr = (struct sockaddr *)args[4];
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND, usrsockaddr);
-	}
-	else
-	{
+	} else {
 		/* Parameter 2: data (type: PT_BYTEBUF) */
 		auxmap__store_empty_param(auxmap);
 

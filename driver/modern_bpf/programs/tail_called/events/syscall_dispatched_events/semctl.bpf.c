@@ -11,13 +11,9 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(semctl_e,
-	     struct pt_regs *regs,
-	     long id)
-{
+int BPF_PROG(semctl_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_E_SIZE, PPME_SYSCALL_SEMCTL_E))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_E_SIZE, PPME_SYSCALL_SEMCTL_E)) {
 		return 0;
 	}
 
@@ -39,8 +35,7 @@ int BPF_PROG(semctl_e,
 
 	/* Parameter 4: val (type: PT_INT32) */
 	int32_t val = 0;
-	if(cmd == SETVAL)
-	{
+	if(cmd == SETVAL) {
 		val = (int32_t)extract__syscall_argument(regs, 3);
 	}
 	ringbuf__store_s32(&ringbuf, val);
@@ -53,13 +48,9 @@ int BPF_PROG(semctl_e,
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(semctl_x,
-	     struct pt_regs *regs,
-	     long ret)
-{
+int BPF_PROG(semctl_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_X_SIZE, PPME_SYSCALL_SEMCTL_X))
-	{
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_X_SIZE, PPME_SYSCALL_SEMCTL_X)) {
 		return 0;
 	}
 

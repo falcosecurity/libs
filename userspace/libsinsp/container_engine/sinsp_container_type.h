@@ -18,8 +18,7 @@ limitations under the License.
 
 #pragma once
 
-enum sinsp_container_type
-{
+enum sinsp_container_type {
 	CT_DOCKER = 0,
 	CT_LXC = 1,
 	CT_LIBVIRT_LXC = 2,

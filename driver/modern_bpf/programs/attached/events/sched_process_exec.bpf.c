@@ -15,23 +15,18 @@
 #ifdef CAPTURE_SCHED_PROC_EXEC
 /* chose a short name for bpftool debugging*/
 SEC("tp_btf/sched_process_exec")
-int BPF_PROG(sched_p_exec,
-	     struct task_struct *p, pid_t old_pid,
-	     struct linux_binprm *bprm)
-{
+int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm) {
 	struct task_struct *task = get_current_task();
 	uint32_t flags = 0;
 	READ_TASK_FIELD_INTO(&flags, task, flags);
 
 	/* We are not interested in kernel threads. */
-	if(flags & PF_KTHREAD)
-	{
+	if(flags & PF_KTHREAD) {
 		return 0;
 	}
 
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 	auxmap__preload_event_header(auxmap, PPME_SYSCALL_EXECVE_19_X);
@@ -55,12 +50,15 @@ int BPF_PROG(sched_p_exec,
 	READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
-	uint16_t exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
+	uint16_t exe_arg_len =
+	        auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
-	auxmap__store_charbufarray_as_bytebuf(auxmap, arg_start_pointer + exe_arg_len, total_args_len - exe_arg_len,
-					      MAX_PROC_ARG_ENV - exe_arg_len);
+	auxmap__store_charbufarray_as_bytebuf(auxmap,
+	                                      arg_start_pointer + exe_arg_len,
+	                                      total_args_len - exe_arg_len,
+	                                      MAX_PROC_ARG_ENV - exe_arg_len);
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
@@ -121,13 +119,9 @@ int BPF_PROG(sched_p_exec,
 }
 
 SEC("tp_btf/sched_process_exec")
-int BPF_PROG(t1_sched_p_exec,
-	     struct task_struct *p, pid_t old_pid,
-	     struct linux_binprm *bprm)
-{
+int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -145,8 +139,10 @@ int BPF_PROG(t1_sched_p_exec,
 	READ_TASK_FIELD_INTO(&env_end_pointer, task, mm, env_end);
 
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
-	auxmap__store_charbufarray_as_bytebuf(auxmap, env_start_pointer, env_end_pointer - env_start_pointer,
-					      MAX_PROC_ARG_ENV);
+	auxmap__store_charbufarray_as_bytebuf(auxmap,
+	                                      env_start_pointer,
+	                                      env_end_pointer - env_start_pointer,
+	                                      MAX_PROC_ARG_ENV);
 
 	/* Parameter 17: tty (type: PT_UINT32) */
 	uint32_t tty = exctract__tty(task);
@@ -166,21 +162,16 @@ int BPF_PROG(t1_sched_p_exec,
 	struct inode *exe_inode = extract__exe_inode_from_task(task);
 	struct file *exe_file = extract__exe_file_from_task(task);
 
-	if(extract__exe_writable(task, exe_inode))
-	{
+	if(extract__exe_writable(task, exe_inode)) {
 		flags |= PPM_EXE_WRITABLE;
 	}
 	enum ppm_overlay overlay = extract__overlay_layer(exe_file);
-	if(overlay == PPM_OVERLAY_UPPER)
-	{
+	if(overlay == PPM_OVERLAY_UPPER) {
 		flags |= PPM_EXE_UPPER_LAYER;
-	}
-	else if (overlay == PPM_OVERLAY_LOWER)
-	{
+	} else if(overlay == PPM_OVERLAY_LOWER) {
 		flags |= PPM_EXE_LOWER_LAYER;
 	}
-	if(extract__exe_from_memfd(exe_file))
-	{
+	if(extract__exe_from_memfd(exe_file)) {
 		flags |= PPM_EXE_FROM_MEMFD;
 	}
 
@@ -203,21 +194,16 @@ int BPF_PROG(t1_sched_p_exec,
 	extract__ino_from_inode(exe_inode, &ino);
 	auxmap__store_u64_param(auxmap, ino);
 
-	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	struct timespec64 time = { 0, 0 };
-	if(bpf_core_field_exists(exe_inode->i_ctime))
-	{
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
+	struct timespec64 time = {0, 0};
+	if(bpf_core_field_exists(exe_inode->i_ctime)) {
 		BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
-	}
-	else
-	{
+	} else {
 		struct inode___v6_6 *exe_inode_v6_6 = (void *)exe_inode;
-		if(bpf_core_field_exists(exe_inode_v6_6->__i_ctime))
-		{
+		if(bpf_core_field_exists(exe_inode_v6_6->__i_ctime)) {
 			BPF_CORE_READ_INTO(&time, exe_inode_v6_6, __i_ctime);
-		}
-		else
-		{
+		} else {
 			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
 			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_ctime_sec);
 			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_ctime_nsec);
@@ -225,20 +211,15 @@ int BPF_PROG(t1_sched_p_exec,
 	}
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
-	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	if(bpf_core_field_exists(exe_inode->i_mtime))
-	{
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type:
+	 * PT_ABSTIME) */
+	if(bpf_core_field_exists(exe_inode->i_mtime)) {
 		BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
-	}
-	else
-	{
+	} else {
 		struct inode___v6_7 *exe_inode_v6_7 = (void *)exe_inode;
-		if(bpf_core_field_exists(exe_inode_v6_7->__i_mtime))
-		{
+		if(bpf_core_field_exists(exe_inode_v6_7->__i_mtime)) {
 			BPF_CORE_READ_INTO(&time, exe_inode_v6_7, __i_mtime);
-		}
-		else
-		{
+		} else {
 			struct inode___v6_11 *exe_inode_v6_11 = (void *)exe_inode;
 			BPF_CORE_READ_INTO(&time.tv_sec, exe_inode_v6_11, i_mtime_sec);
 			BPF_CORE_READ_INTO(&time.tv_nsec, exe_inode_v6_11, i_mtime_nsec);
@@ -258,11 +239,9 @@ int BPF_PROG(t1_sched_p_exec,
 }
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret)
-{
+int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
+	if(!auxmap) {
 		return 0;
 	}
 
@@ -272,12 +251,9 @@ int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret)
 	struct file *exe_file = extract__exe_file_from_task(task);
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-	if(exe_file != NULL)
-	{
+	if(exe_file != NULL) {
 		auxmap__store_d_path_approx(auxmap, &(exe_file->f_path));
-	}
-	else
-	{
+	} else {
 		auxmap__store_empty_param(auxmap);
 	}
 

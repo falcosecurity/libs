@@ -38,22 +38,19 @@ limitations under the License.
  * - non-monotonic behavior of CLOCK_MONOTONIC
  * - time values that cannot be represented in uint64_t number of msec
  */
-static __always_inline uint64_t scap_get_monotonic_ts_ms(uint64_t* context)
-{
+static __always_inline uint64_t scap_get_monotonic_ts_ms(uint64_t* context) {
 	// Record previously reported time; will be 0 for first call.
 	uint64_t prev_time = ((*context) & SCAP_GET_CUR_TS_MS_CONTEXT_PREV_VALUE_MASK);
 
 	// If context indicates error already detected, just return the
 	// last reported time
-	if ((*context) & SCAP_GET_CUR_TS_MS_CONTEXT_ERROR_FLAG)
-	{
+	if((*context) & SCAP_GET_CUR_TS_MS_CONTEXT_ERROR_FLAG) {
 		return prev_time;
 	}
 
 	// Fetch current monotonic time from kernel
 	struct timespec ts;
-	if (clock_gettime(CLOCK_MONOTONIC, &ts))
-	{
+	if(clock_gettime(CLOCK_MONOTONIC, &ts)) {
 		// System call failed.
 		// Set error flag
 		*context |= SCAP_GET_CUR_TS_MS_CONTEXT_ERROR_FLAG;
@@ -66,9 +63,7 @@ static __always_inline uint64_t scap_get_monotonic_ts_ms(uint64_t* context)
 	uint64_t new_time = S_TO_MS(ts.tv_sec) + NS_TO_MS(ts.tv_nsec);
 
 	// Check for overflow or non-monotonic behavior
-	if ((new_time & SCAP_GET_CUR_TS_MS_CONTEXT_ERROR_FLAG) ||
-	    (new_time < prev_time))
-	{
+	if((new_time & SCAP_GET_CUR_TS_MS_CONTEXT_ERROR_FLAG) || (new_time < prev_time)) {
 		// System call failed.
 		// Set error flag
 		*context |= SCAP_GET_CUR_TS_MS_CONTEXT_ERROR_FLAG;

@@ -22,10 +22,9 @@ limitations under the License.
 #include <libsinsp/event.h>
 #include <libsinsp_test_var.h>
 
-namespace scap_file_test_helpers
-{
+namespace scap_file_test_helpers {
 
 sinsp_evt* capture_search_evt_by_num(sinsp* inspector, uint64_t evt_num);
 sinsp_evt* capture_search_evt_by_type_and_tid(sinsp* inspector, uint64_t type, int64_t tid);
 
-} // namespace scap_file_test_helpers
+}  // namespace scap_file_test_helpers

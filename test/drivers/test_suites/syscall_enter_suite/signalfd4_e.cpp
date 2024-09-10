@@ -4,8 +4,7 @@
 
 #include <sys/signalfd.h>
 
-TEST(SyscallEnter, signalfd4E)
-{
+TEST(SyscallEnter, signalfd4E) {
 	auto evt_test = get_syscall_event_test(__NR_signalfd4, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -17,7 +16,9 @@ TEST(SyscallEnter, signalfd4E)
 	sigset_t mask = {0};
 	size_t sizemask = 0;
 	int flags = 7;
-	assert_syscall_state(SYSCALL_FAILURE, "signalfd4", syscall(__NR_signalfd4, mock_fd, &mask, sizemask, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "signalfd4",
+	                     syscall(__NR_signalfd4, mock_fd, &mask, sizemask, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -25,8 +26,7 @@ TEST(SyscallEnter, signalfd4E)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

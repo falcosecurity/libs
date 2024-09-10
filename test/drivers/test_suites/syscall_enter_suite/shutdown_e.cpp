@@ -4,8 +4,7 @@
 
 #include <sys/socket.h>
 
-TEST(SyscallEnter, shutdownE)
-{
+TEST(SyscallEnter, shutdownE) {
 	auto evt_test = get_syscall_event_test(__NR_shutdown, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -22,8 +21,7 @@ TEST(SyscallEnter, shutdownE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

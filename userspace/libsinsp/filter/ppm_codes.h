@@ -38,6 +38,6 @@ libsinsp::events::set<ppm_event_code> ppm_event_codes(const expr* e);
 */
 libsinsp::events::set<ppm_sc_code> ppm_sc_codes(const expr* e);
 
-}
-}
-}
+}  // namespace ast
+}  // namespace filter
+}  // namespace libsinsp

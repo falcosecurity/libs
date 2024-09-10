@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_gen_event : public sinsp_filter_check
-{
+class sinsp_filter_check_gen_event : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_NUMBER = 0,
 		TYPE_TIME = 1,
 		TYPE_TIME_S = 2,

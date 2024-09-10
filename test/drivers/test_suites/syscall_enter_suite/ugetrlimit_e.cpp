@@ -4,8 +4,7 @@
 
 #include <sys/resource.h>
 
-TEST(SyscallEnter, ugetrlimitE)
-{
+TEST(SyscallEnter, ugetrlimitE) {
 	/* Please note:
 	 * the syscall `ugetrlimit` is mapped to `PPME_SYSCALL_GETRLIMIT_E` event
 	 * like `getrlimit`. The same BPF program will be used for both the syscalls.
@@ -27,8 +26,7 @@ TEST(SyscallEnter, ugetrlimitE)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

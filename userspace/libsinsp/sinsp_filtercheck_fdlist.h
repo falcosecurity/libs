@@ -20,11 +20,9 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filtercheck.h>
 
-class sinsp_filter_check_fdlist : public sinsp_filter_check
-{
+class sinsp_filter_check_fdlist : public sinsp_filter_check {
 public:
-	enum check_type
-	{
+	enum check_type {
 		TYPE_FDNUMS = 0,
 		TYPE_FDNAMES = 1,
 		TYPE_CLIENTIPS = 2,

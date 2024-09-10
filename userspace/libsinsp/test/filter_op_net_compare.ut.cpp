@@ -21,14 +21,19 @@ limitations under the License.
 
 #include <sinsp_with_test_input.h>
 
-TEST_F(sinsp_with_test_input, net_ipv4_compare)
-{
+TEST_F(sinsp_with_test_input, net_ipv4_compare) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
 	int64_t client_fd = 9;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, (uint32_t) 0);
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SOCKET_SOCKET_E,
+	                     3,
+	                     (uint32_t)PPM_AF_INET,
+	                     (uint32_t)SOCK_STREAM,
+	                     (uint32_t)0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	int64_t return_value = 0;
@@ -36,11 +41,26 @@ TEST_F(sinsp_with_test_input, net_ipv4_compare)
 	sockaddr_in client = test_utils::fill_sockaddr_in(54321, "172.40.111.222");
 	sockaddr_in server = test_utils::fill_sockaddr_in(443, "142.251.111.147");
 
-	std::vector<uint8_t> server_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, client_fd, scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	std::vector<uint8_t> server_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(
+	        increasing_ts(),
+	        1,
+	        PPME_SOCKET_CONNECT_E,
+	        2,
+	        client_fd,
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
-	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client), reinterpret_cast<sockaddr*>(&server));
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 3, return_value, scap_const_sized_buffer{socktuple.data(), socktuple.size()}, client_fd);
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+	                                   reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SOCKET_CONNECT_X,
+	                           3,
+	                           return_value,
+	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	                           client_fd);
 
 	EXPECT_TRUE(eval_filter(evt, "fd.ip == 142.251.111.147"));
 	EXPECT_TRUE(eval_filter(evt, "fd.sip == 142.251.111.147"));
@@ -64,14 +84,19 @@ TEST_F(sinsp_with_test_input, net_ipv4_compare)
 	EXPECT_FALSE(eval_filter(evt, "fd.net == 2001:db8:abcd:0012::0/64"));
 }
 
-TEST_F(sinsp_with_test_input, net_ipv6_compare)
-{
+TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
 	int64_t client_fd = 9;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET6, (uint32_t) SOCK_DGRAM, (uint32_t) 0);
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SOCKET_SOCKET_E,
+	                     3,
+	                     (uint32_t)PPM_AF_INET6,
+	                     (uint32_t)SOCK_DGRAM,
+	                     (uint32_t)0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	int64_t return_value = 0;
@@ -79,12 +104,26 @@ TEST_F(sinsp_with_test_input, net_ipv6_compare)
 	sockaddr_in6 client = test_utils::fill_sockaddr_in6(54321, "::1");
 	sockaddr_in6 server1 = test_utils::fill_sockaddr_in6(443, "2001:4860:4860::8888");
 
-	std::vector<uint8_t> server1_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server1));
+	std::vector<uint8_t> server1_sockaddr =
+	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&server1));
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, client_fd, scap_const_sized_buffer{server1_sockaddr.data(), server1_sockaddr.size()});
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SOCKET_CONNECT_E,
+	                     2,
+	                     client_fd,
+	                     scap_const_sized_buffer{server1_sockaddr.data(), server1_sockaddr.size()});
 
-	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client), reinterpret_cast<sockaddr*>(&server1));
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 3, return_value, scap_const_sized_buffer{socktuple.data(), socktuple.size()}, client_fd);
+	std::vector<uint8_t> socktuple =
+	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
+	                                   reinterpret_cast<sockaddr*>(&server1));
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SOCKET_CONNECT_X,
+	                           3,
+	                           return_value,
+	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
+	                           client_fd);
 
 	EXPECT_TRUE(eval_filter(evt, "fd.ip == 2001:4860:4860::8888"));
 	EXPECT_TRUE(eval_filter(evt, "fd.sip == 2001:4860:4860::8888"));

@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 #if defined(__NR_mknod)
 #include <sys/sysmacros.h>
-TEST(SyscallExit, mknodX_failure)
-{
+TEST(SyscallExit, mknodX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_mknod, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -12,9 +11,10 @@ TEST(SyscallExit, mknodX_failure)
 
 	uint32_t mode = 0060000 | 0666;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknod", syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknod",
+	                     syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -22,8 +22,7 @@ TEST(SyscallExit, mknodX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -48,11 +47,9 @@ TEST(SyscallExit, mknodX_failure)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
-
 }
 
-TEST(SyscallExit, mknodX_failure_S_IFREG)
-{
+TEST(SyscallExit, mknodX_failure_S_IFREG) {
 	auto evt_test = get_syscall_event_test(__NR_mknod, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -62,9 +59,10 @@ TEST(SyscallExit, mknodX_failure_S_IFREG)
 
 	mode_t mode = S_IXUSR | S_IFREG;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknod", syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknod",
+	                     syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -72,8 +70,7 @@ TEST(SyscallExit, mknodX_failure_S_IFREG)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -98,11 +95,9 @@ TEST(SyscallExit, mknodX_failure_S_IFREG)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
-
 }
 
-TEST(SyscallExit, mknodX_failure_S_IFCHR)
-{
+TEST(SyscallExit, mknodX_failure_S_IFCHR) {
 	auto evt_test = get_syscall_event_test(__NR_mknod, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -112,9 +107,10 @@ TEST(SyscallExit, mknodX_failure_S_IFCHR)
 
 	mode_t mode = S_IXUSR | S_IFCHR;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknod", syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknod",
+	                     syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -122,8 +118,7 @@ TEST(SyscallExit, mknodX_failure_S_IFCHR)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -148,11 +143,9 @@ TEST(SyscallExit, mknodX_failure_S_IFCHR)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
-
 }
 
-TEST(SyscallExit, mknodX_failure_S_IFBLK)
-{
+TEST(SyscallExit, mknodX_failure_S_IFBLK) {
 	auto evt_test = get_syscall_event_test(__NR_mknod, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -162,9 +155,10 @@ TEST(SyscallExit, mknodX_failure_S_IFBLK)
 
 	mode_t mode = S_IXUSR | S_IFBLK;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknod", syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknod",
+	                     syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -172,8 +166,7 @@ TEST(SyscallExit, mknodX_failure_S_IFBLK)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -198,11 +191,9 @@ TEST(SyscallExit, mknodX_failure_S_IFBLK)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
-
 }
 
-TEST(SyscallExit, mknodX_failure_S_IFIFO)
-{
+TEST(SyscallExit, mknodX_failure_S_IFIFO) {
 	auto evt_test = get_syscall_event_test(__NR_mknod, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -212,9 +203,10 @@ TEST(SyscallExit, mknodX_failure_S_IFIFO)
 
 	mode_t mode = S_IXUSR | S_IFIFO;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknod", syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknod",
+	                     syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -222,8 +214,7 @@ TEST(SyscallExit, mknodX_failure_S_IFIFO)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -248,11 +239,9 @@ TEST(SyscallExit, mknodX_failure_S_IFIFO)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
-
 }
 
-TEST(SyscallExit, mknodX_failure_S_IFSOCK)
-{
+TEST(SyscallExit, mknodX_failure_S_IFSOCK) {
 	auto evt_test = get_syscall_event_test(__NR_mknod, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -262,9 +251,10 @@ TEST(SyscallExit, mknodX_failure_S_IFSOCK)
 
 	mode_t mode = S_IXUSR | S_IFSOCK;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknod", syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknod",
+	                     syscall(__NR_mknod, (void *)(path), (mode_t)mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -272,8 +262,7 @@ TEST(SyscallExit, mknodX_failure_S_IFSOCK)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -298,6 +287,5 @@ TEST(SyscallExit, mknodX_failure_S_IFSOCK)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
-
 }
 #endif

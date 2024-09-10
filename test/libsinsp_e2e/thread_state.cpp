@@ -28,15 +28,12 @@ limitations under the License.
 
 using namespace std;
 
-class thread_state_test : public ::testing::Test
-{
+class thread_state_test : public ::testing::Test {
 protected:
-	virtual void SetUp()
-	{
+	virtual void SetUp() {
 		// Each entry in the vector has a parent of the previous
 		// entry. The first entry has a parent of 1.
-		for (int64_t pid = 100, i = 0; i < m_max; pid++, i++)
-		{
+		for(int64_t pid = 100, i = 0; i < m_max; pid++, i++) {
 			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid);
 			std::unique_ptr<sinsp_threadinfo> thr = m_inspector.build_threadinfo();
 			thr->init();
@@ -52,11 +49,9 @@ protected:
 
 	virtual void TearDown() {}
 
-	void reset()
-	{
+	void reset() {
 		// Reset the state
-		for (uint32_t i = 0; i < m_max; i++)
-		{
+		for(uint32_t i = 0; i < m_max; i++) {
 			int64_t ppid = (i == 0 ? 1 : m_threads[i - 1]->m_tid);
 			sinsp_threadinfo* tinfo = m_threads[i];
 			tinfo->m_lastevent_fd = 0;
@@ -65,28 +60,25 @@ protected:
 		}
 	}
 
-	void traverse_with_timeout(sinsp_threadinfo* tinfo)
-	{
+	void traverse_with_timeout(sinsp_threadinfo* tinfo) {
 		promise<bool> finished;
 		auto result = finished.get_future();
 
-		sinsp_threadinfo::visitor_func_t visitor = [](sinsp_threadinfo* tinfo)
-		{
+		sinsp_threadinfo::visitor_func_t visitor = [](sinsp_threadinfo* tinfo) {
 			tinfo->m_lastevent_fd = 1;
 			return true;
 		};
 
 		thread runner = thread(
-		    [](promise<bool> finished,
-		       sinsp_threadinfo* tinfo,
-		       sinsp_threadinfo::visitor_func_t visitor)
-		    {
-			    tinfo->traverse_parent_state(visitor);
-			    finished.set_value(true);
-		    },
-		    std::move(finished),
-		    tinfo,
-		    visitor);
+		        [](promise<bool> finished,
+		           sinsp_threadinfo* tinfo,
+		           sinsp_threadinfo::visitor_func_t visitor) {
+			        tinfo->traverse_parent_state(visitor);
+			        finished.set_value(true);
+		        },
+		        std::move(finished),
+		        tinfo,
+		        visitor);
 
 		runner.detach();
 
@@ -97,19 +89,16 @@ protected:
 	// This just verifies that the mechanism of wait_for with a
 	// timeout actually works in the face of a thread that never
 	// stops
-	void loop_almost_forever()
-	{
+	void loop_almost_forever() {
 		promise<bool> finished;
 		auto result = finished.get_future();
 
 		// This runs for 3 seconds which is greater than the 1
 		// second timeout below
-		thread runner = thread(
-		    [&finished]()
-		    {
-			    sleep(3);
-			    finished.set_value(true);
-		    });
+		thread runner = thread([&finished]() {
+			sleep(3);
+			finished.set_value(true);
+		});
 
 		runner.detach();
 
@@ -119,12 +108,10 @@ protected:
 		EXPECT_TRUE(result.wait_for(chrono::milliseconds(1000)) != future_status::timeout);
 	}
 
-	void verify(uint32_t test_idx, bool loop_detected, vector<uint32_t>& visited)
-	{
+	void verify(uint32_t test_idx, bool loop_detected, vector<uint32_t>& visited) {
 		SCOPED_TRACE("test_idx=" + to_string(test_idx));
 		EXPECT_EQ(m_threads[test_idx]->parent_loop_detected(), loop_detected);
-		for (uint32_t i = 0; i < m_max; i++)
-		{
+		for(uint32_t i = 0; i < m_max; i++) {
 			SCOPED_TRACE("i=" + to_string(i));
 			EXPECT_EQ(m_threads[i]->m_lastevent_fd, visited[i]);
 		}
@@ -135,8 +122,7 @@ protected:
 	uint32_t m_max = 5;
 };
 
-TEST_F(thread_state_test, parent_state_single)
-{
+TEST_F(thread_state_test, parent_state_single) {
 	reset();
 	traverse_with_timeout(m_threads[0]);
 
@@ -146,8 +132,7 @@ TEST_F(thread_state_test, parent_state_single)
 	verify(0, false, expected);
 }
 
-TEST_F(thread_state_test, parent_state_parent)
-{
+TEST_F(thread_state_test, parent_state_parent) {
 	reset();
 	traverse_with_timeout(m_threads[1]);
 
@@ -155,8 +140,7 @@ TEST_F(thread_state_test, parent_state_parent)
 	verify(1, false, expected);
 }
 
-TEST_F(thread_state_test, parent_state_parent_ancestors)
-{
+TEST_F(thread_state_test, parent_state_parent_ancestors) {
 	reset();
 	traverse_with_timeout(m_threads[4]);
 
@@ -164,8 +148,7 @@ TEST_F(thread_state_test, parent_state_parent_ancestors)
 	verify(4, false, expected);
 }
 
-TEST_F(thread_state_test, parent_state_single_loop)
-{
+TEST_F(thread_state_test, parent_state_single_loop) {
 	reset();
 	m_threads[0]->m_ptid = m_threads[0]->m_tid;
 	traverse_with_timeout(m_threads[0]);
@@ -176,8 +159,7 @@ TEST_F(thread_state_test, parent_state_single_loop)
 	verify(0, true, expected);
 }
 
-TEST_F(thread_state_test, parent_state_short_loop)
-{
+TEST_F(thread_state_test, parent_state_short_loop) {
 	reset();
 	m_threads[0]->m_ptid = m_threads[1]->m_tid;
 	traverse_with_timeout(m_threads[1]);
@@ -188,8 +170,7 @@ TEST_F(thread_state_test, parent_state_short_loop)
 	verify(0, false, expected);
 }
 
-TEST_F(thread_state_test, parent_state_loop)
-{
+TEST_F(thread_state_test, parent_state_loop) {
 	reset();
 	m_threads[0]->m_ptid = m_threads[4]->m_tid;
 	traverse_with_timeout(m_threads[4]);
@@ -198,8 +179,7 @@ TEST_F(thread_state_test, parent_state_loop)
 	verify(4, true, expected);
 }
 
-TEST_F(thread_state_test, parent_state_lollipop)
-{
+TEST_F(thread_state_test, parent_state_lollipop) {
 	reset();
 	m_threads[0]->m_ptid = m_threads[2]->m_tid;
 	traverse_with_timeout(m_threads[4]);
@@ -210,7 +190,6 @@ TEST_F(thread_state_test, parent_state_lollipop)
 	verify(4, true, expected);
 }
 
-TEST_F(thread_state_test, parent_state_verify_timeout)
-{
+TEST_F(thread_state_test, parent_state_verify_timeout) {
 	loop_almost_forever();
 }

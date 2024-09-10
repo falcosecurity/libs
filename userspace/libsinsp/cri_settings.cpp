@@ -18,33 +18,27 @@ limitations under the License.
 
 #include <libsinsp/cri.hpp>
 
-namespace libsinsp
-{
-namespace cri
-{
+namespace libsinsp {
+namespace cri {
 
 cri_settings::cri_settings():
-	m_cri_unix_socket_paths(),
-	m_cri_timeout(1000),
-	m_cri_size_timeout(10000),
-	m_cri_runtime_type(CT_CRI),
-	m_cri_unix_socket_path(),
-	m_cri_extra_queries(true)
-{ }
+        m_cri_unix_socket_paths(),
+        m_cri_timeout(1000),
+        m_cri_size_timeout(10000),
+        m_cri_runtime_type(CT_CRI),
+        m_cri_unix_socket_path(),
+        m_cri_extra_queries(true) {}
 
-cri_settings::~cri_settings()
-{ }
+cri_settings::~cri_settings() {}
 
 std::unique_ptr<cri_settings> cri_settings::s_instance = nullptr;
 
-cri_settings& cri_settings::get()
-{
-	if(s_instance == nullptr)
-	{
+cri_settings& cri_settings::get() {
+	if(s_instance == nullptr) {
 		s_instance = std::make_unique<cri_settings>();
 	}
 	return *s_instance;
 }
 
-} // namespace cri
-} // namespace libsinsp
+}  // namespace cri
+}  // namespace libsinsp

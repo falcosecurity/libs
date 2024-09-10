@@ -20,24 +20,24 @@ limitations under the License.
 
 #include <libsinsp/container_info.h>
 
-namespace libsinsp
-{
-namespace container_engine
-{
+namespace libsinsp {
+namespace container_engine {
 
 /**
  * Interface for a container cache for container engines.
  */
-class container_cache_interface
-{
+class container_cache_interface {
 public:
 	virtual ~container_cache_interface() = default;
 
-	virtual void notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo = nullptr) = 0;
+	virtual void notify_new_container(const sinsp_container_info& container_info,
+	                                  sinsp_threadinfo* tinfo = nullptr) = 0;
 
 	virtual bool should_lookup(const std::string& container_id, sinsp_container_type ctype) = 0;
 
-	virtual void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup::state state) = 0;
+	virtual void set_lookup_status(const std::string& container_id,
+	                               sinsp_container_type ctype,
+	                               sinsp_container_lookup::state state) = 0;
 
 	/**
 	 * Get a container from the cache.
@@ -47,7 +47,8 @@ public:
 	/**
 	 * Add a new container to the cache.
 	 */
-	virtual void add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread) = 0;
+	virtual void add_container(const sinsp_container_info::ptr_t& container_info,
+	                           sinsp_threadinfo* thread) = 0;
 
 	/**
 	 * Update a container by replacing its entry with a new one
@@ -59,9 +60,8 @@ public:
 	 */
 	virtual bool container_exists(const std::string& container_id) const = 0;
 
-
 	virtual bool async_allowed() const = 0;
 };
 
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 #if defined(__NR_mknodat)
 #include <sys/sysmacros.h>
-TEST(SyscallExit, mknodatX_failure)
-{
+TEST(SyscallExit, mknodatX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_mknodat, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -12,9 +11,10 @@ TEST(SyscallExit, mknodatX_failure)
 	char path[] = "/tmp/";
 	uint32_t mode = 0060000 | 0666;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknodat", syscall(__NR_mknodat, fd, (void *)(path), (mode_t)mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknodat",
+	                     syscall(__NR_mknodat, fd, (void *)(path), (mode_t)mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -22,8 +22,7 @@ TEST(SyscallExit, mknodatX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -51,11 +50,9 @@ TEST(SyscallExit, mknodatX_failure)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);
-
 }
 
-TEST(SyscallExit, mknodatX_failure_S_IFREG)
-{
+TEST(SyscallExit, mknodatX_failure_S_IFREG) {
 	auto evt_test = get_syscall_event_test(__NR_mknodat, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -65,9 +62,10 @@ TEST(SyscallExit, mknodatX_failure_S_IFREG)
 	char path[] = "/tmp/";
 	mode_t mode = S_IXUSR | S_IFREG;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknodat", syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknodat",
+	                     syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -75,8 +73,7 @@ TEST(SyscallExit, mknodatX_failure_S_IFREG)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -104,11 +101,9 @@ TEST(SyscallExit, mknodatX_failure_S_IFREG)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);
-
 }
 
-TEST(SyscallExit, mknodatX_failure_S_IFCHR)
-{
+TEST(SyscallExit, mknodatX_failure_S_IFCHR) {
 	auto evt_test = get_syscall_event_test(__NR_mknodat, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -118,9 +113,10 @@ TEST(SyscallExit, mknodatX_failure_S_IFCHR)
 	char path[] = "/tmp/";
 	mode_t mode = S_IXUSR | S_IFCHR;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknodat", syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknodat",
+	                     syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -128,8 +124,7 @@ TEST(SyscallExit, mknodatX_failure_S_IFCHR)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -157,11 +152,9 @@ TEST(SyscallExit, mknodatX_failure_S_IFCHR)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);
-
 }
 
-TEST(SyscallExit, mknodatX_failure_S_IFBLK)
-{
+TEST(SyscallExit, mknodatX_failure_S_IFBLK) {
 	auto evt_test = get_syscall_event_test(__NR_mknodat, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -171,9 +164,10 @@ TEST(SyscallExit, mknodatX_failure_S_IFBLK)
 	char path[] = "/tmp/";
 	mode_t mode = S_IXUSR | S_IFBLK;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknodat", syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknodat",
+	                     syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -181,8 +175,7 @@ TEST(SyscallExit, mknodatX_failure_S_IFBLK)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -210,11 +203,9 @@ TEST(SyscallExit, mknodatX_failure_S_IFBLK)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);
-
 }
 
-TEST(SyscallExit, mknodatX_failure_S_IFIFO)
-{
+TEST(SyscallExit, mknodatX_failure_S_IFIFO) {
 	auto evt_test = get_syscall_event_test(__NR_mknodat, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -224,9 +215,10 @@ TEST(SyscallExit, mknodatX_failure_S_IFIFO)
 	char path[] = "/tmp/";
 	mode_t mode = S_IXUSR | S_IFIFO;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknodat", syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknodat",
+	                     syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -234,8 +226,7 @@ TEST(SyscallExit, mknodatX_failure_S_IFIFO)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -263,11 +254,9 @@ TEST(SyscallExit, mknodatX_failure_S_IFIFO)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);
-
 }
 
-TEST(SyscallExit, mknodatX_failure_S_IFSOCK)
-{
+TEST(SyscallExit, mknodatX_failure_S_IFSOCK) {
 	auto evt_test = get_syscall_event_test(__NR_mknodat, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -277,9 +266,10 @@ TEST(SyscallExit, mknodatX_failure_S_IFSOCK)
 	char path[] = "/tmp/";
 	mode_t mode = S_IXUSR | S_IFSOCK;
 	uint32_t dev = 61440;
-	assert_syscall_state(SYSCALL_FAILURE, "mknodat", syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "mknodat",
+	                     syscall(__NR_mknodat, fd, (void *)(path), mode, (dev_t)dev));
 	int64_t errno_value = -errno;
-
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -287,8 +277,7 @@ TEST(SyscallExit, mknodatX_failure_S_IFSOCK)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -316,6 +305,5 @@ TEST(SyscallExit, mknodatX_failure_S_IFSOCK)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);
-
 }
 #endif

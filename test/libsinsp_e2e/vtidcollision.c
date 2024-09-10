@@ -63,58 +63,48 @@ limitations under the License.
  *
  */
 
-void waitall()
-{
+void waitall() {
 	int status;
-	while (wait(&status) == 0 || errno == EAGAIN)
-	{
+	while(wait(&status) == 0 || errno == EAGAIN) {
 	}
 }
 
-int child_main(int efd, int parent_efd)
-{
+int child_main(int efd, int parent_efd) {
 	char buf[64];
 	char* endptr;
 	long init_ns_pid;
 
 	unsigned long efd_counter = 0;
 
-	while (efd_counter < 2)
-	{
-		switch (fork())
-		{
+	while(efd_counter < 2) {
+		switch(fork()) {
 		case -1:
 			abort();
 
 		case 0:
-			if (readlink("/proc/self", buf, sizeof(buf)) <= 0)
-			{
+			if(readlink("/proc/self", buf, sizeof(buf)) <= 0) {
 				eventfd_write(efd, 2);
 				_exit(1);
 			}
 
 			init_ns_pid = strtoul(buf, &endptr, 10);
 
-			if (getpid() == init_ns_pid)
-			{
+			if(getpid() == init_ns_pid) {
 				int pid = getpid();
 
 				usleep(100000);
 				eventfd_write(efd, 2);
 
-				if (setuid(getpid()) != 0 || seteuid(getpid()) != 0)
-				{
+				if(setuid(getpid()) != 0 || seteuid(getpid()) != 0) {
 					_exit(1);
 				}
 
-				switch (fork())
-				{
+				switch(fork()) {
 				case -1:
 					abort();
 
 				case 0:
-					if (readlink("/proc/self", buf, sizeof(buf)) <= 0)
-					{
+					if(readlink("/proc/self", buf, sizeof(buf)) <= 0) {
 						_exit(1);
 					}
 
@@ -137,8 +127,7 @@ int child_main(int efd, int parent_efd)
 			break;
 		}
 	}
-	if (eventfd_write(parent_efd, 2) != 0)
-	{
+	if(eventfd_write(parent_efd, 2) != 0) {
 		abort();
 	}
 	waitall();
@@ -146,15 +135,12 @@ int child_main(int efd, int parent_efd)
 	return 0;
 }
 
-int parent_main(int efd)
-{
+int parent_main(int efd) {
 	unsigned long efd_counter = 0;
 	int ret;
 
-	while (efd_counter < 2)
-	{
-		switch (fork())
-		{
+	while(efd_counter < 2) {
+		switch(fork()) {
 		case -1:
 			abort();
 
@@ -163,8 +149,7 @@ int parent_main(int efd)
 
 		default:
 			ret = eventfd_read(efd, &efd_counter);
-			if (ret >= 2)
-			{
+			if(ret >= 2) {
 				abort();
 			}
 			break;
@@ -175,25 +160,21 @@ int parent_main(int efd)
 	return 0;
 }
 
-int main()
-{
+int main() {
 	printf("STARTED\n");
 	fflush(stdout);
 	signal(SIGCHLD, SIG_IGN);
 
 	int efd = eventfd(1, EFD_NONBLOCK);
 	int parent_efd = eventfd(1, EFD_NONBLOCK);
-	switch (fork())
-	{
+	switch(fork()) {
 	case -1:
 		return 1;
 	case 0:
-		if (unshare(CLONE_NEWPID) != 0)
-		{
+		if(unshare(CLONE_NEWPID) != 0) {
 			abort();
 		}
-		switch (fork())
-		{
+		switch(fork()) {
 		case -1:
 			abort();
 		case 0:

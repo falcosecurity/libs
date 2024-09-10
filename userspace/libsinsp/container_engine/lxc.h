@@ -26,13 +26,11 @@ class sinsp_threadinfo;
 
 namespace libsinsp {
 namespace container_engine {
-class lxc : public container_engine_base
-{
+class lxc : public container_engine_base {
 public:
-	lxc(container_cache_interface &cache) : container_engine_base(cache)
-	{}
+	lxc(container_cache_interface &cache): container_engine_base(cache) {}
 
 	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 };
-}
-}
+}  // namespace container_engine
+}  // namespace libsinsp

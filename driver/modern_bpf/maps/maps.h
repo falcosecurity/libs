@@ -61,7 +61,7 @@ __weak bool g_64bit_interesting_syscalls_table[SYSCALL_TABLE_SIZE];
  * @brief Given the syscall id on 64-bit-architectures returns:
  * - `UF_NEVER_DROP` if the syscall must not be dropped in the sampling logic.
  * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
- * - `UF_NONE` if we drop the syscall depends on the sampling ratio. 
+ * - `UF_NONE` if we drop the syscall depends on the sampling ratio.
  */
 __weak uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
 
@@ -69,7 +69,7 @@ __weak uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
  * @brief Given the tracepoint enum returns:
  * - `UF_NEVER_DROP` if the syscall must not be dropped in the sampling logic.
  * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
- * - `UF_NONE` if we drop the syscall depends on the sampling ratio. 
+ * - `UF_NONE` if we drop the syscall depends on the sampling ratio.
  */
 /// TOOD: we need to change the dimension! we need to create a dedicated enum for tracepoints!
 __weak uint8_t g_64bit_sampling_tracepoint_table[PPM_EVENT_MAX];
@@ -95,7 +95,7 @@ __weak bool is_dropping;
 /**
  * @brief Pointer we use to understand if we are operating on a socket.
  */
-__weak void *socket_file_ops = NULL;		   
+__weak void *socket_file_ops = NULL;
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
@@ -106,8 +106,7 @@ __weak void *socket_file_ops = NULL;
  * Given the syscall_id, it calls the right bpf program to manage
  * the syscall enter event.
  */
-struct
-{
+struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, SYSCALL_TABLE_SIZE);
 	__type(key, uint32_t);
@@ -119,8 +118,7 @@ struct
  * Given the syscall_id, it calls the right bpf program to manage
  * the syscall exit event.
  */
-struct
-{
+struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, SYSCALL_TABLE_SIZE);
 	__type(key, uint32_t);
@@ -136,8 +134,7 @@ struct
  * Given a predefined tail-code (`extra_event_prog_code`), it calls
  * the right bpf program.
  */
-struct
-{
+struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
 	__uint(max_entries, TAIL_EXTRA_EVENT_PROG_MAX);
 	__type(key, uint32_t);
@@ -165,8 +162,7 @@ struct
  * map where the event is temporally saved before being
  * pushed in the ringbuffer.
  */
-struct
-{
+struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__type(key, uint32_t);
 	__type(value, struct auxiliary_map);
@@ -177,8 +173,7 @@ struct
  * map where we store the number of events correctly pushed
  * and the number of events dropped.
  */
-struct
-{
+struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY);
 	__type(key, uint32_t);
 	__type(value, struct counter_map);
@@ -189,20 +184,19 @@ struct
 /*=============================== RINGBUF MAP ===============================*/
 
 /**
- * @brief We use this map to let the verifier understand the content of our array of maps (`ringbuf_maps`)
+ * @brief We use this map to let the verifier understand the content of our array of maps
+ * (`ringbuf_maps`)
  */
-struct ringbuf_map
-{
+struct ringbuf_map {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 };
 
 /**
  * @brief This array of maps will contain a variable number of ring buffers
  * according to the user-provided configuration. It could also contain only
- * one buffer shared between all CPUs. 
+ * one buffer shared between all CPUs.
  */
-struct
-{
+struct {
 	__uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
 	__type(key, uint32_t);
 	__type(value, uint32_t);

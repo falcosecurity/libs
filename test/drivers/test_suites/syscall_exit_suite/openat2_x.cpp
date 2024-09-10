@@ -4,8 +4,7 @@
 
 #include <linux/openat2.h> /* Definition of RESOLVE_* constants */
 
-TEST(SyscallExit, openat2X_success)
-{
+TEST(SyscallExit, openat2X_success) {
 	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -27,7 +26,11 @@ TEST(SyscallExit, openat2X_success)
 #ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
-	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "fstat",
+	                     syscall(__NR_fstat, fd, &file_stat),
+	                     NOT_EQUAL,
+	                     -1);
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
@@ -40,8 +43,7 @@ TEST(SyscallExit, openat2X_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -71,8 +73,7 @@ TEST(SyscallExit, openat2X_success)
 
 #ifdef __NR_fstat
 	/* Parameter 7: dev (type: PT_UINT32) */
-	if (is_ext4)
-	{
+	if(is_ext4) {
 		evt_test->assert_numeric_param(7, dev);
 	}
 
@@ -85,8 +86,7 @@ TEST(SyscallExit, openat2X_success)
 	evt_test->assert_num_params_pushed(8);
 }
 
-TEST(SyscallExit, openat2X_failure)
-{
+TEST(SyscallExit, openat2X_failure) {
 	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -104,7 +104,9 @@ TEST(SyscallExit, openat2X_failure)
 	how.flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	how.mode = 0;
 	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
-	assert_syscall_state(SYSCALL_FAILURE, "openat2", syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how)));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "openat2",
+	                     syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how)));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -113,8 +115,7 @@ TEST(SyscallExit, openat2X_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -149,14 +150,13 @@ TEST(SyscallExit, openat2X_failure)
 
 	/* Parameter 8: ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(8, (uint64_t)0);
-	
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(8);
 }
 
-TEST(SyscallExit, openat2X_create_success)
-{
+TEST(SyscallExit, openat2X_create_success) {
 	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -176,7 +176,11 @@ TEST(SyscallExit, openat2X_create_success)
 #ifdef __NR_fstat
 	/* Call `fstat` to retrieve the `dev` and `ino`. */
 	struct stat file_stat;
-	assert_syscall_state(SYSCALL_SUCCESS, "fstat", syscall(__NR_fstat, fd, &file_stat), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS,
+	                     "fstat",
+	                     syscall(__NR_fstat, fd, &file_stat),
+	                     NOT_EQUAL,
+	                     -1);
 	uint32_t dev = (uint32_t)file_stat.st_dev;
 	uint64_t inode = file_stat.st_ino;
 	const bool is_ext4 = event_test::is_ext4_fs(fd);
@@ -189,8 +193,7 @@ TEST(SyscallExit, openat2X_create_success)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 
@@ -220,8 +223,7 @@ TEST(SyscallExit, openat2X_create_success)
 
 #ifdef __NR_fstat
 	/* Parameter 7: dev (type: PT_UINT32) */
-	if (is_ext4)
-	{
+	if(is_ext4) {
 		evt_test->assert_numeric_param(7, dev);
 	}
 

@@ -2,8 +2,7 @@
 
 #if defined(__NR_init_module)
 
-TEST(SyscallExit, init_moduleX_failure)
-{
+TEST(SyscallExit, init_moduleX_failure) {
 	auto evt_test = get_syscall_event_test(__NR_init_module, EXIT_EVENT);
 	evt_test->enable_capture();
 
@@ -16,7 +15,9 @@ TEST(SyscallExit, init_moduleX_failure)
 	/*
 	 * Call the `init_module`
 	 */
-	assert_syscall_state(SYSCALL_FAILURE, "init_module", syscall(__NR_init_module, (void*)mock_img, data_len, (void *)mock_buf));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "init_module",
+	                     syscall(__NR_init_module, (void *)mock_img, data_len, (void *)mock_buf));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -25,8 +26,7 @@ TEST(SyscallExit, init_moduleX_failure)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

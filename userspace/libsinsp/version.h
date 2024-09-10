@@ -25,49 +25,44 @@ limitations under the License.
 #include <inttypes.h>
 
 /*!
-	\brief Represents a version number
+    \brief Represents a version number
 */
-class sinsp_version
-{
+class sinsp_version {
 public:
-	inline sinsp_version() : sinsp_version("0.0.0") { }
+	inline sinsp_version(): sinsp_version("0.0.0") {}
 
-	inline explicit sinsp_version(const std::string &version_str)
-	{
-		m_valid = sscanf(version_str.c_str(), "%" PRIu32 ".%" PRIu32 ".%" PRIu32,
-			&m_version_major, &m_version_minor, &m_version_patch) == 3;
+	inline explicit sinsp_version(const std::string& version_str) {
+		m_valid = sscanf(version_str.c_str(),
+		                 "%" PRIu32 ".%" PRIu32 ".%" PRIu32,
+		                 &m_version_major,
+		                 &m_version_minor,
+		                 &m_version_patch) == 3;
 	}
 
 	sinsp_version(sinsp_version&&) = default;
-	sinsp_version& operator = (sinsp_version&&) = default;
+	sinsp_version& operator=(sinsp_version&&) = default;
 	sinsp_version(const sinsp_version& s) = default;
-	sinsp_version& operator = (const sinsp_version& s) = default;
+	sinsp_version& operator=(const sinsp_version& s) = default;
 
 	~sinsp_version() = default;
 
-	inline std::string as_string() const
-	{
-		return std::to_string(m_version_major)
-			+ "." + std::to_string(m_version_minor)
-			+ "." + std::to_string(m_version_patch);
+	inline std::string as_string() const {
+		return std::to_string(m_version_major) + "." + std::to_string(m_version_minor) + "." +
+		       std::to_string(m_version_patch);
 	}
 
-	inline bool operator<(sinsp_version const& right) const
-	{
-		if(this->m_version_major > right.m_version_major)
-		{
+	inline bool operator<(sinsp_version const& right) const {
+		if(this->m_version_major > right.m_version_major) {
 			return false;
 		}
 
-		if(this->m_version_major == right.m_version_major)
-		{
-			if(this->m_version_minor > right.m_version_minor)
-			{
+		if(this->m_version_major == right.m_version_major) {
+			if(this->m_version_minor > right.m_version_minor) {
 				return false;
 			}
 
-			if(this->m_version_minor == right.m_version_minor && this->m_version_patch >= right.m_version_patch)
-			{
+			if(this->m_version_minor == right.m_version_minor &&
+			   this->m_version_patch >= right.m_version_patch) {
 				return false;
 			}
 		}
@@ -75,67 +70,45 @@ public:
 		return true;
 	}
 
-	inline bool operator>(sinsp_version const& right) const
-	{
+	inline bool operator>(sinsp_version const& right) const {
 		return (*this != right && !(*this < right));
 	}
 
-	inline bool operator==(sinsp_version const& right) const
-	{
-		if(this->m_version_major == right.m_version_major 
-			&& this->m_version_minor == right.m_version_minor
-			&& this->m_version_patch == right.m_version_patch)
-		{
+	inline bool operator==(sinsp_version const& right) const {
+		if(this->m_version_major == right.m_version_major &&
+		   this->m_version_minor == right.m_version_minor &&
+		   this->m_version_patch == right.m_version_patch) {
 			return true;
 		}
 
 		return false;
 	}
 
-	inline bool operator!=(sinsp_version const& right) const
-	{
-		return !(*this == right);
-	}
+	inline bool operator!=(sinsp_version const& right) const { return !(*this == right); }
 
-	inline bool operator>=(sinsp_version const& right) const
-	{
+	inline bool operator>=(sinsp_version const& right) const {
 		return ((*this == right) || (*this > right));
 	}
 
-	inline bool operator<=(sinsp_version const& right) const
-	{
+	inline bool operator<=(sinsp_version const& right) const {
 		return ((*this == right) || (*this < right));
 	}
 
-	inline bool compatible_with(const sinsp_version &requested) const
-	{
-		if(!m_valid || !requested.m_valid)
-		{
+	inline bool compatible_with(const sinsp_version& requested) const {
+		if(!m_valid || !requested.m_valid) {
 			return false;
 		}
 
 		return (this->m_version_major == requested.m_version_major) && (*this >= requested);
 	}
 
-	inline bool is_valid() const
-	{
-		return m_valid;
-	}
+	inline bool is_valid() const { return m_valid; }
 
-	inline uint32_t major() const
-	{
-		return m_version_major;
-	}
+	inline uint32_t major() const { return m_version_major; }
 
-	inline uint32_t minor() const
-	{
-		return m_version_minor;
-	}
+	inline uint32_t minor() const { return m_version_minor; }
 
-	inline uint32_t patch() const
-	{
-		return m_version_patch;
-	}
+	inline uint32_t patch() const { return m_version_patch; }
 
 private:
 	bool m_valid;

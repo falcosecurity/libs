@@ -11,27 +11,23 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(pidfd_getfd_e,
-         struct pt_regs *regs,
-         long id)
-{
-    struct ringbuf_struct ringbuf;
-    if(!ringbuf__reserve_space(&ringbuf, ctx, PIDFD_GETFD_E_SIZE, PPME_SYSCALL_PIDFD_GETFD_E))
-	{
+int BPF_PROG(pidfd_getfd_e, struct pt_regs *regs, long id) {
+	struct ringbuf_struct ringbuf;
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIDFD_GETFD_E_SIZE, PPME_SYSCALL_PIDFD_GETFD_E)) {
 		return 0;
 	}
 
-    ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-    
-    // Here we have no parameters to collect.
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-    ringbuf__submit_event(&ringbuf);
+	// Here we have no parameters to collect.
 
-    return 0;
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	ringbuf__submit_event(&ringbuf);
+
+	return 0;
 }
 
 /*=============================== ENTER EVENT ===========================*/
@@ -39,42 +35,38 @@ int BPF_PROG(pidfd_getfd_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(pidfd_getfd_x,
-         struct pt_regs *regs,
-         long ret)
+int BPF_PROG(pidfd_getfd_x, struct pt_regs *regs, long ret)
 
-{   
-   
- struct ringbuf_struct ringbuf;
-    if(!ringbuf__reserve_space(&ringbuf, ctx, PIDFD_GETFD_X_SIZE, PPME_SYSCALL_PIDFD_GETFD_X))
-	{
+{
+	struct ringbuf_struct ringbuf;
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIDFD_GETFD_X_SIZE, PPME_SYSCALL_PIDFD_GETFD_X)) {
 		return 0;
 	}
 
-    ringbuf__store_event_header(&ringbuf);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
-    
-    /* Parameter 1: ret (type: PT_FD) */
-    ringbuf__store_s64(&ringbuf, ret);
-
-    /* Parameter 2: pidfd (type: PT_FD) */
-    int32_t pidfd = (int32_t)extract__syscall_argument(regs, 0);
-    ringbuf__store_s64(&ringbuf, (int64_t)pidfd);
-
-    /* Parameter 3: targetfd (type: PT_FD) */
-    int32_t targetfd = (int32_t)extract__syscall_argument(regs, 1);
-    ringbuf__store_s64(&ringbuf, (int64_t)targetfd);
-
-    /* Parameter 4: flags (type: PT_UINT32)*/
-    uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
-    ringbuf__store_u32(&ringbuf, flags);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-    ringbuf__submit_event(&ringbuf);
+	/* Parameter 1: ret (type: PT_FD) */
+	ringbuf__store_s64(&ringbuf, ret);
 
-    return 0;
+	/* Parameter 2: pidfd (type: PT_FD) */
+	int32_t pidfd = (int32_t)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (int64_t)pidfd);
+
+	/* Parameter 3: targetfd (type: PT_FD) */
+	int32_t targetfd = (int32_t)extract__syscall_argument(regs, 1);
+	ringbuf__store_s64(&ringbuf, (int64_t)targetfd);
+
+	/* Parameter 4: flags (type: PT_UINT32)*/
+	uint32_t flags = (uint32_t)extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, flags);
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	ringbuf__submit_event(&ringbuf);
+
+	return 0;
 }
 
 /*=============================== EXIT EVENT ===========================*/

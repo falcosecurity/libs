@@ -22,59 +22,61 @@ limitations under the License.
 #pragma once
 
 /*!
-  \brief Copy up to size - 1 characters from the NUL-terminated string src to dst, NUL-terminating the result.
+  \brief Copy up to size - 1 characters from the NUL-terminated string src to dst, NUL-terminating
+  the result.
 
   \return The length of the source string.
 */
 
 #ifndef HAVE_STRLCPY
 static inline size_t strlcpy(char *dst, const char *src, size_t size) {
-    size_t srcsize = strlen(src);
-    if (size == 0) {
-        return srcsize;
-    }
+	size_t srcsize = strlen(src);
+	if(size == 0) {
+		return srcsize;
+	}
 
-    size_t copysize = srcsize;
+	size_t copysize = srcsize;
 
-    if (copysize > size - 1) {
-        copysize = size - 1;
-    }
+	if(copysize > size - 1) {
+		copysize = size - 1;
+	}
 
-    memcpy(dst, src, copysize);
-    dst[copysize] = '\0';
+	memcpy(dst, src, copysize);
+	dst[copysize] = '\0';
 
-    return srcsize;
+	return srcsize;
 }
 #endif
 
 /*!
-  \brief Append the NUL-terminated string src to the end of dst. It will append at most size − strlen(dst) − 1 bytes, NUL-terminating the result. 
+  \brief Append the NUL-terminated string src to the end of dst. It will append at most size −
+  strlen(dst) − 1 bytes, NUL-terminating the result.
 
   \return The initial length of dst plus the length of src
 */
 
 #ifndef HAVE_STRLCAT
 static inline size_t strlcat(char *dst, const char *src, size_t size) {
-    size_t srcsize = strlen(src);
-    size_t dstsize = strlen(dst);
+	size_t srcsize = strlen(src);
+	size_t dstsize = strlen(dst);
 
-    if (dstsize >= size) {
-        return size;
-    }
+	if(dstsize >= size) {
+		return size;
+	}
 
-    if (srcsize == 0) {
-        return dstsize;
-    }
+	if(srcsize == 0) {
+		return dstsize;
+	}
 
-    size_t totalsize = srcsize + dstsize;
-    if (totalsize > size - 1) {
-        totalsize = size - 1;
-    }
+	size_t totalsize = srcsize + dstsize;
+	if(totalsize > size - 1) {
+		totalsize = size - 1;
+	}
 
-    size_t copysize = totalsize - dstsize;
-    memcpy(dst + dstsize, src, copysize);
-    dst[totalsize] = '\0';
+	size_t copysize = totalsize - dstsize;
+	memcpy(dst + dstsize, src, copysize);
+	dst[totalsize] = '\0';
 
-    return dstsize + srcsize;
+	return dstsize + srcsize;
 }
 #endif

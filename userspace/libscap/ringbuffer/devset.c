@@ -25,19 +25,16 @@ limitations under the License.
 #include <libscap/scap.h>
 #include <libscap/scap_assert.h>
 
-int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr)
-{
+int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr) {
 	devset->m_ndevs = num_devs;
 
-	devset->m_devs = (scap_device*) calloc(devset->m_ndevs, sizeof(scap_device));
-	if(!devset->m_devs)
-	{
+	devset->m_devs = (scap_device *)calloc(devset->m_ndevs, sizeof(scap_device));
+	if(!devset->m_devs) {
 		strlcpy(lasterr, "error allocating the device handles", SCAP_LASTERR_SIZE);
 		return SCAP_FAILURE;
 	}
 
-	for(size_t j = 0; j < num_devs; ++j)
-	{
+	for(size_t j = 0; j < num_devs; ++j) {
 		devset->m_devs[j].m_buffer = INVALID_MAPPING;
 		devset->m_devs[j].m_bufinfo = INVALID_MAPPING;
 		devset->m_devs[j].m_bufstatus = INVALID_MAPPING;
@@ -52,24 +49,20 @@ int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *laste
 	return SCAP_SUCCESS;
 }
 
-void devset_close_device(struct scap_device *dev)
-{
+void devset_close_device(struct scap_device *dev) {
 	devset_munmap(dev->m_buffer, dev->m_mmap_size);
 	devset_munmap(dev->m_bufinfo, dev->m_bufinfo_size);
 	devset_close(dev->m_fd);
 	devset_close(dev->m_bufinfo_fd);
 }
 
-void devset_free(struct scap_device_set *devset)
-{
-	if(devset == NULL || devset->m_devs == NULL)
-	{
+void devset_free(struct scap_device_set *devset) {
+	if(devset == NULL || devset->m_devs == NULL) {
 		return;
 	}
 
 	uint32_t j;
-	for(j = 0; j < devset->m_ndevs; j++)
-	{
+	for(j = 0; j < devset->m_ndevs; j++) {
 		struct scap_device *dev = &devset->m_devs[j];
 		devset_close_device(dev);
 	}

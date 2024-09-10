@@ -1,8 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_copy_file_range
-TEST(SyscallExit, copy_file_rangeX)
-{
+TEST(SyscallExit, copy_file_rangeX) {
 	auto evt_test = get_syscall_event_test(__NR_copy_file_range, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -15,7 +14,9 @@ TEST(SyscallExit, copy_file_rangeX)
 	off64_t off_out = 300;
 	size_t len = 20;
 	uint32_t flags = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "copy_file_range", syscall(__NR_copy_file_range, fd_in, off_in, fd_out, off_out, len, flags));
+	assert_syscall_state(SYSCALL_FAILURE,
+	                     "copy_file_range",
+	                     syscall(__NR_copy_file_range, fd_in, off_in, fd_out, off_out, len, flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -24,8 +25,7 @@ TEST(SyscallExit, copy_file_rangeX)
 
 	evt_test->assert_event_presence();
 
-	if(HasFatalFailure())
-	{
+	if(HasFatalFailure()) {
 		return;
 	}
 

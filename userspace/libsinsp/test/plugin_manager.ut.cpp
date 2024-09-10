@@ -20,15 +20,13 @@ limitations under the License.
 #include <libsinsp/plugin.h>
 #include <libsinsp/plugin_manager.h>
 
-class mock_sinsp_plugin: public sinsp_plugin
-{
+class mock_sinsp_plugin : public sinsp_plugin {
 public:
-	inline mock_sinsp_plugin(
-		plugin_caps_t caps,
-		const std::string& name,
-		uint32_t id,
-		const std::string& source): sinsp_plugin(nullptr, nullptr, nullptr)
-	{
+	inline mock_sinsp_plugin(plugin_caps_t caps,
+	                         const std::string& name,
+	                         uint32_t id,
+	                         const std::string& source):
+	        sinsp_plugin(nullptr, nullptr, nullptr) {
 		m_caps = caps;
 		m_name = name;
 		m_id = id;
@@ -36,8 +34,7 @@ public:
 	}
 };
 
-TEST(sinsp_plugin_manager, add_and_queries)
-{
+TEST(sinsp_plugin_manager, add_and_queries) {
 	std::vector<std::string> sources;
 	sinsp_plugin_manager m(sources);
 
@@ -61,8 +58,8 @@ TEST(sinsp_plugin_manager, add_and_queries)
 	m.add(p5);
 	auto p6 = std::make_shared<mock_sinsp_plugin>(CAP_SOURCING, "plugin6", 0, "");
 	m.add(p6);
-	
-	ASSERT_EQ(m.plugins().size(), (std::size_t) 6);
+
+	ASSERT_EQ(m.plugins().size(), (std::size_t)6);
 	ASSERT_EQ(m.plugins()[0], p1);
 	ASSERT_EQ(m.plugins()[1], p2);
 	ASSERT_EQ(m.plugins()[2], p3);
@@ -76,7 +73,7 @@ TEST(sinsp_plugin_manager, add_and_queries)
 	ASSERT_EQ(m.plugin_by_id(3), nullptr);
 	ASSERT_EQ(m.plugin_by_id(4), p4);
 
-	ASSERT_EQ(sources.size(), (std::size_t) 3);
+	ASSERT_EQ(sources.size(), (std::size_t)3);
 	ASSERT_EQ(sources[0], "some_source");
 	ASSERT_EQ(sources[1], "source1");
 	ASSERT_EQ(sources[2], "source2");
@@ -87,23 +84,22 @@ TEST(sinsp_plugin_manager, add_and_queries)
 	ASSERT_EQ(found, false);
 	ASSERT_EQ(res, sinsp_no_event_source_idx);
 	res = m.source_idx_by_plugin_id(1, found);
-	ASSERT_EQ(res, (std::size_t) 1);
+	ASSERT_EQ(res, (std::size_t)1);
 	ASSERT_EQ(found, true);
 	res = m.source_idx_by_plugin_id(2, found);
-	ASSERT_EQ(res, (std::size_t) 2);
+	ASSERT_EQ(res, (std::size_t)2);
 	ASSERT_EQ(found, true);
 	res = m.source_idx_by_plugin_id(3, found);
 	ASSERT_EQ(res, sinsp_no_event_source_idx);
 	ASSERT_EQ(found, false);
 	res = m.source_idx_by_plugin_id(4, found);
-	ASSERT_EQ(res, (std::size_t) 1);
+	ASSERT_EQ(res, (std::size_t)1);
 	ASSERT_EQ(found, true);
 }
 
 // note(jasondellaluce): this is a design chocie, but we may drop this
 // constraint in the future
-TEST(sinsp_plugin_manager, add_conflicts)
-{
+TEST(sinsp_plugin_manager, add_conflicts) {
 	std::vector<std::string> sources;
 	sinsp_plugin_manager m(sources);
 
@@ -124,5 +120,5 @@ TEST(sinsp_plugin_manager, add_conflicts)
 	// adding with same source (should be ok, but should not produce duplicates)
 	p2 = std::make_shared<mock_sinsp_plugin>(CAP_SOURCING, "plugin2", 2, "source1");
 	EXPECT_NO_THROW(m.add(p2));
-	ASSERT_EQ(sources.size(), (std::size_t) 1);
+	ASSERT_EQ(sources.size(), (std::size_t)1);
 }

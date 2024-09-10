@@ -30,30 +30,28 @@ typedef uint32_t ss_plugin_bool;
 
 // The noncontinguous numbers are to maintain equality with underlying
 // falcosecurity libs types.
-typedef enum ss_plugin_field_type
-{
+typedef enum ss_plugin_field_type {
 	// A 64bit unsigned integer.
-	FTYPE_UINT64      = 8,
+	FTYPE_UINT64 = 8,
 	// A printable buffer of bytes, NULL terminated
-	FTYPE_STRING      = 9,
+	FTYPE_STRING = 9,
 	// A relative time. Seconds * 10^9  + nanoseconds. 64bit.
-	FTYPE_RELTIME     = 20,
+	FTYPE_RELTIME = 20,
 	// An absolute time interval. Seconds from epoch * 10^9  + nanoseconds. 64bit.
-	FTYPE_ABSTIME     = 21,
+	FTYPE_ABSTIME = 21,
 	// A boolean value, 4 bytes.
-	FTYPE_BOOL        = 25,
+	FTYPE_BOOL = 25,
 	// Either an IPv4 or IPv6 address. The length indicates which one it is.
-	FTYPE_IPADDR      = 40,
+	FTYPE_IPADDR = 40,
 	// Either an IPv4 or IPv6 network. The length indicates which one it is.
 	// The field encodes only the IP address, so this differs from FTYPE_IPADDR,
 	// from the way the framework perform runtime checks and comparisons.
-	FTYPE_IPNET       = 41,
+	FTYPE_IPNET = 41,
 } ss_plugin_field_type;
 
 // Values to return from init() / open() / next_batch() /
 // extract_fields().
-typedef enum ss_plugin_rc
-{
+typedef enum ss_plugin_rc {
 	SS_PLUGIN_SUCCESS = 0,
 	SS_PLUGIN_FAILURE = 1,
 	SS_PLUGIN_TIMEOUT = -1,
@@ -62,8 +60,7 @@ typedef enum ss_plugin_rc
 } ss_plugin_rc;
 
 // The supported schema formats for the init configuration.
-typedef enum ss_plugin_schema_type
-{
+typedef enum ss_plugin_schema_type {
 	// The schema is undefined and the init configuration
 	// is an opaque string.
 	SS_PLUGIN_SCHEMA_NONE = 0,
@@ -79,7 +76,8 @@ typedef enum ss_plugin_schema_type
 // An event is represented as a contiguous region of memory composed by
 // a header and a list of parameters appended, in the form of:
 //
-// | evt header | len param 1 (2B/4B) | ... | len param N (2B/4B) | data param 1 | ... | data param N |
+// | evt header | len param 1 (2B/4B) | ... | len param N (2B/4B) | data param 1 | ... | data param
+// N |
 //
 // The event header is composed of:
 // - ts: the event timestamp, in nanoseconds since the epoch.
@@ -103,10 +101,10 @@ struct ss_plugin_event {
 #ifdef PPM_ENABLE_SENTINEL
 	uint32_t sentinel_begin;
 #endif
-	uint64_t ts; /* timestamp, in nanoseconds from epoch */
-	uint64_t tid; /* the tid of the thread that generated this event */
-	uint32_t len; /* the event len, including the header */
-	uint16_t type; /* the event type */
+	uint64_t ts;      /* timestamp, in nanoseconds from epoch */
+	uint64_t tid;     /* the tid of the thread that generated this event */
+	uint32_t len;     /* the event len, including the header */
+	uint16_t type;    /* the event type */
 	uint32_t nparams; /* the number of parameters of the event */
 };
 #pragma pack(pop)
@@ -119,14 +117,13 @@ typedef struct ss_plugin_event ss_plugin_event;
 //   Might not be contiguous.
 // - evtsrc: The name of the event's source. Can be "syscall" or any other
 //   event source name implemented by a plugin.
-typedef struct ss_plugin_event_input
-{
+typedef struct ss_plugin_event_input {
 	const ss_plugin_event* evt;
 	uint64_t evtnum;
 	const char* evtsrc;
 } ss_plugin_event_input;
 
-typedef struct ss_plugin_byte_buffer{
+typedef struct ss_plugin_byte_buffer {
 	uint32_t len;
 	const void* ptr;
 } ss_plugin_byte_buffer;
@@ -139,16 +136,16 @@ typedef struct ss_plugin_byte_buffer{
 // arg_key: the field argument, if a 'key' argument has been specified
 //          for the field (isKey=true), otherwise it's NULL.
 //          For example:
-//          * if the field specified by the user is foo.bar[pippo], arg_key 
+//          * if the field specified by the user is foo.bar[pippo], arg_key
 //            will be the string "pippo"
 //         	* if the field specified by the user is foo.bar, arg will be NULL
 // arg_index: the field argument, if a 'index' argument has been specified
 //            for the field (isIndex=true), otherwise it's 0.
 //            For example:
-//            * if the field specified by the user is foo.bar[1], arg_index 
-//            will be the uint64_t '1'. 
+//            * if the field specified by the user is foo.bar[1], arg_index
+//            will be the uint64_t '1'.
 //            Please note the ambiguity with a 0
-//            argument which could be a real argument of just the default 
+//            argument which could be a real argument of just the default
 //            value to point out the absence. The `arg_present` field resolves
 //            this ambiguity.
 // arg_present: helps to understand if the arg is there since arg_index is
@@ -169,14 +166,12 @@ typedef struct ss_plugin_byte_buffer{
 //   If the field is a list type, then res_len can must be any value from 0 to N, depending
 //   on how many values can be extracted from a given event.
 //   Setting res_len to 0 means that no value of this field can be extracted from a given event.
-typedef struct ss_plugin_extract_field
-{
+typedef struct ss_plugin_extract_field {
 	// NOTE: For a given architecture, this has always the same size which
 	// is sizeof(uintptr_t). Adding new value types will not create breaking
 	// changes in the plugin API. However, we must make sure that each added
 	// type is always a pointer.
-	union
-	{
+	union {
 		const char** str;
 		uint64_t* u64;
 		uint32_t* u32;
@@ -211,8 +206,7 @@ typedef void ss_plugin_table_field_t;
 // The noncontinguous numbers are to maintain equality with underlying
 // falcosecurity libs types.
 // todo(jasondellaluce): should we merge this with ss_plugin_field_type?
-typedef enum ss_plugin_state_type
-{
+typedef enum ss_plugin_state_type {
 	SS_PLUGIN_ST_INT8 = 1,
 	SS_PLUGIN_ST_INT16 = 2,
 	SS_PLUGIN_ST_INT32 = 3,
@@ -228,8 +222,7 @@ typedef enum ss_plugin_state_type
 
 // Data representation of entry fields of state tables.
 // todo(jasondellaluce): should we merge this with what we have for field extraction?
-typedef union ss_plugin_state_data
-{
+typedef union ss_plugin_state_data {
 	int8_t s8;
 	int16_t s16;
 	int32_t s32;
@@ -244,15 +237,13 @@ typedef union ss_plugin_state_data
 } ss_plugin_state_data;
 
 // Info about a state table.
-typedef struct ss_plugin_table_info
-{
+typedef struct ss_plugin_table_info {
 	const char* name;
 	ss_plugin_state_type key_type;
 } ss_plugin_table_info;
 
 // Info about a data field contained in the entires of a state table.
-typedef struct ss_plugin_table_fieldinfo
-{
+typedef struct ss_plugin_table_fieldinfo {
 	const char* name;
 	ss_plugin_state_type field_type;
 	ss_plugin_bool read_only;
@@ -283,8 +274,7 @@ typedef void ss_instance_t;
 
 //
 // Severity available in the logging facility provided by the framework
-typedef enum ss_plugin_log_severity
-{
+typedef enum ss_plugin_log_severity {
 	SS_PLUGIN_LOG_SEV_FATAL = 1,
 	SS_PLUGIN_LOG_SEV_CRITICAL = 2,
 	SS_PLUGIN_LOG_SEV_ERROR = 3,
@@ -296,8 +286,7 @@ typedef enum ss_plugin_log_severity
 } ss_plugin_log_severity;
 
 // Types supported by the by the metric values
-typedef enum ss_plugin_metric_value_type
-{
+typedef enum ss_plugin_metric_value_type {
 	SS_PLUGIN_METRIC_VALUE_TYPE_U32 = 0,
 	SS_PLUGIN_METRIC_VALUE_TYPE_S32 = 1,
 	SS_PLUGIN_METRIC_VALUE_TYPE_U64 = 2,
@@ -308,8 +297,7 @@ typedef enum ss_plugin_metric_value_type
 } ss_plugin_metric_value_type;
 
 // Data representation of metric values
-typedef union ss_plugin_metric_value 
-{
+typedef union ss_plugin_metric_value {
 	uint32_t u32;
 	int32_t s32;
 	uint64_t u64;
@@ -320,16 +308,14 @@ typedef union ss_plugin_metric_value
 } ss_plugin_metric_value;
 
 // Metric types
-typedef enum ss_plugin_metric_type
-{
+typedef enum ss_plugin_metric_type {
 	SS_PLUGIN_METRIC_TYPE_MONOTONIC = 0,
 	SS_PLUGIN_METRIC_TYPE_NON_MONOTONIC = 1,
 } ss_plugin_metric_type;
 
 //
 // Struct representing a metric to be provided to the plugin framework
-typedef struct ss_plugin_metric
-{
+typedef struct ss_plugin_metric {
 	//
 	// Opaque string representing the metric name
 	const char* name;
