@@ -25,15 +25,31 @@ elseif(NOT USE_BUNDLED_LIBELF)
 	else()
 		set(LIBELF_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
 	endif()
-	find_library(LIBELF_LIB NAMES libelf${LIBELF_LIB_SUFFIX})
+	# Zig workaround: since it won't look up in /usr/lib/..., add an HINT
+	if(CMAKE_C_COMPILER MATCHES "zig")
+		find_library(
+			LIBELF_LIB
+			NAMES libelf${LIBELF_LIB_SUFFIX}
+			HINTS /usr/lib/${CMAKE_SYSTEM_PROCESSOR}-linux-gnu/
+		)
+	else()
+		find_library(LIBELF_LIB NAMES libelf${LIBELF_LIB_SUFFIX})
+	endif()
 	if(LIBELF_LIB)
+		# Zig workaround: avoid include whole /usr/include because it would include also system
+		# glibc headers breaking the build since we are targeting the build against our boostrapped
+		# zig.
+		if(CMAKE_C_COMPILER MATCHES "zig")
+			message(STATUS "Enabling zig workaround for libelf")
+			configure_file(${LIBELF_INCLUDE}/libelf.h libelf/libelf.h COPYONLY)
+			configure_file(${LIBELF_INCLUDE}/elf.h libelf/elf.h COPYONLY)
+			configure_file(${LIBELF_INCLUDE}/gelf.h libelf/gelf.h COPYONLY)
+			set(LIBELF_INCLUDE ${CMAKE_CURRENT_BINARY_DIR}/libelf)
+		endif()
 		message(STATUS "Found LIBELF: include: ${LIBELF_INCLUDE}, lib: ${LIBELF_LIB}")
 	else()
 		message(FATAL_ERROR "Couldn't find system libelf")
 	endif()
-	# We add a custom target, in this way we can always depend on `libelf` without distinguishing
-	# between "bundled" and "not-bundled" case
-	add_custom_target(libelf)
 else()
 	if(BUILD_SHARED_LIBS)
 		set(LIBELF_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
