@@ -174,6 +174,19 @@ else()
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_seed_gen_exception.a"
 		)
 
+		set(GRPC_PATCH_CMD "")
+		# Zig workaround: Add a PATCH_COMMAND to grpc cmake to fixup emitted -march by abseil-cpp
+		# cmake module, making it use a name understood by zig for arm64. See
+		# https://github.com/abseil/abseil-cpp/blob/master/absl/copts/GENERATED_AbseilCopts.cmake#L226.
+		if(CMAKE_C_COMPILER MATCHES "zig")
+			message(STATUS "Enabling zig workaround for abseil-cpp")
+			set(GRPC_PATCH_CMD
+				sh
+				-c
+				"sed -i 's/armv8-a/cortex_a57/g' ${GRPC_SRC}/third_party/abseil-cpp/absl/copts/GENERATED_AbseilCopts.cmake"
+			)
+		endif()
+
 		ExternalProject_Add(
 			grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
@@ -223,6 +236,7 @@ else()
 			# Keep installation files into the local ${GRPC_INSTALL_DIR} since here is the case when
 			# we are embedding gRPC
 			UPDATE_COMMAND ""
+			PATCH_COMMAND ${GRPC_PATCH_CMD}
 			INSTALL_COMMAND DESTDIR= ${CMAKE_MAKE_PROGRAM} install
 		)
 		install(
