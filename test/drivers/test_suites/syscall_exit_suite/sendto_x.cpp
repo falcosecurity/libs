@@ -141,7 +141,7 @@ TEST(SyscallExit, sendtoX_ipv4_tcp_message_not_truncated_DNS_snaplen) {
 	// The remote port is the DNS one so the snaplen should be increased.
 	evt_test->client_to_server_ipv4_tcp(
 	        send_data{.syscall_num = __NR_sendto, .greater_snaplen = true},
-	        recv_data{.skip_recv_phase = true},
+	        recv_data{.syscall_num = 0, .skip_recv_phase = true},
 	        IP_PORT_CLIENT,
 	        IP_PORT_DNS);
 
