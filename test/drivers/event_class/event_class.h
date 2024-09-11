@@ -36,15 +36,15 @@ struct fd_poll {
 
 struct send_data {
 	int syscall_num;
-	bool greater_snaplen;
-	bool null_sockaddr;
+	bool greater_snaplen = false;
+	bool null_sockaddr = false;
 };
 
 struct recv_data {
 	int syscall_num;
-	bool null_sockaddr;
-	bool null_receiver_buffer;
-	bool skip_recv_phase;
+	bool null_sockaddr = false;
+	bool null_receiver_buffer = false;
+	bool skip_recv_phase = false;
 };
 
 enum protocol_L4 {
@@ -387,19 +387,23 @@ public:
 
 	void client_to_server(send_data send_d, recv_data receive_d, network_config net_config);
 	void client_to_server_ipv4_tcp(send_data send_d,
-	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               recv_data receive_d = {.syscall_num = 0,
+	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,
 	                               int32_t server_port = IP_PORT_SERVER);
 	void client_to_server_ipv4_udp(send_data send_d,
-	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               recv_data receive_d = {.syscall_num = 0,
+	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,
 	                               int32_t server_port = IP_PORT_SERVER);
 	void client_to_server_ipv6_tcp(send_data send_d,
-	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               recv_data receive_d = {.syscall_num = 0,
+	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,
 	                               int32_t server_port = IP_PORT_SERVER);
 	void client_to_server_ipv6_udp(send_data send_d,
-	                               recv_data receive_d = {.skip_recv_phase = true},
+	                               recv_data receive_d = {.syscall_num = 0,
+	                                                      .skip_recv_phase = true},
 	                               int32_t client_port = IP_PORT_CLIENT,
 	                               int32_t server_port = IP_PORT_SERVER);
 
