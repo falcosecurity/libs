@@ -1,0 +1,5 @@
+Checks: ' clang-diagnostic-*, clang-analyzer-*, clang-analyzer-core.*, clang-analyzer-cplusplus.*, clang-analyzer-nullability.*, clang-analyzer-unix.*, performance-*, bugprone-use-after-move, bugprone-move-forwarding-reference, cppcoreguidelines-rvalue-reference-param-not-moved, misc-unused-parameters '
+WarningsAsErrors: 'bugprone-use-after-move'
+# UseColor true causes sarif conversion and reviewdog fail
+UseColor: false
+ExtraArgsBefore: ['-Wno-unknown-warning-option']
