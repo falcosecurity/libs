@@ -46,6 +46,10 @@ enum filtercheck_field_flags {
 	EPF_NO_TRANSFORMER = 1 << 11,  ///< this field cannot have a field transformer.
 	EPF_NO_RHS = 1 << 12,  ///< this field cannot have a right-hand side filter check, and cannot be
 	                       ///< used as a right-hand side filter check.
+	EPF_NO_PTR_STABILITY =
+	        1 << 13,  ///< data pointers extracted by this field may change across subsequent
+	                  ///< extractions (even of other fields), which makes them unsafe to be used
+	                  ///< with filter caching or field-to-field comparisons
 };
 
 /**
@@ -93,6 +97,14 @@ struct filtercheck_field_info {
 	// Returns true if this filter check can support an extraction transformer on it.
 	//
 	inline bool is_transformer_supported() const { return !(m_flags & EPF_NO_TRANSFORMER); }
+
+	//
+	// Return true if this field extracts unstable data pointers that may change
+	// at subsequent extractions (even of other fields), thus not being safe to
+	// be used with caches or field-to-field filter comparisons, unless protected
+	// through a memory buffer copy (e.g. with a FTR_STORAGE transformer)
+	//
+	inline bool is_ptr_unstable() const { return m_flags & EPF_NO_PTR_STABILITY; }
 };
 
 /**
