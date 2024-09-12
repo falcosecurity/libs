@@ -37,12 +37,6 @@ extern sinsp_evttables g_infotables;
 		return (uint8_t*)&(x); \
 	} while(0)
 
-#define RETURN_EXTRACT_PTR(x) \
-	do {                      \
-		*len = sizeof(*(x));  \
-		return (uint8_t*)(x); \
-	} while(0)
-
 #define RETURN_EXTRACT_STRING(x)      \
 	do {                              \
 		*len = (x).size();            \
@@ -162,7 +156,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "Arguments",
          "all the event arguments, aggregated into a single string."},
         {PT_CHARBUF,
-         EPF_ARG_REQUIRED,
+         EPF_ARG_REQUIRED | EPF_NO_PTR_STABILITY,
          PF_NA,
          "evt.arg",
          "Argument",
@@ -184,7 +178,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "(like writes to /dev/log) it provides higher level information coming from decoding the "
          "arguments."},
         {PT_BYTEBUF,
-         EPF_NONE,
+         EPF_NO_PTR_STABILITY,
          PF_NA,
          "evt.buffer",
          "Buffer",
@@ -198,7 +192,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] = {
          "the length of the binary data buffer for events that have one, like read(), recvfrom(), "
          "etc."},
         {PT_CHARBUF,
-         EPF_NONE,
+         EPF_NO_PTR_STABILITY,
          PF_DEC,
          "evt.res",
          "Return Value",

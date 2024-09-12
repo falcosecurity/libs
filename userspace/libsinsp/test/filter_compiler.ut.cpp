@@ -827,6 +827,19 @@ TEST_F(sinsp_with_test_input, filter_cache_corner_cases) {
 	cf->metrics->reset();
 }
 
+TEST_F(sinsp_with_test_input, filter_cache_pointer_instability) {
+	sinsp_filter_check_list flist;
+
+	add_default_init_thread();
+	open_inspector();
+
+	auto ff = std::make_shared<sinsp_filter_factory>(&m_inspector, flist);
+	auto cf = std::make_shared<test_sinsp_filter_cache_factory>();
+	auto evt = generate_proc_exit_event(2, INIT_TID);
+
+	EXPECT_FALSE(eval_filter(evt, "(evt.arg.ret = val(evt.arg.reaper_tid))"));
+}
+
 TEST_F(sinsp_with_test_input, filter_regex_operator_evaluation) {
 	// Basic case just to assert that the basic setup works
 	add_default_init_thread();
