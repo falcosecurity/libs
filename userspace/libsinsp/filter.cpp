@@ -214,7 +214,6 @@ std::unique_ptr<sinsp_filter> sinsp_filter_compiler::compile() {
 	m_filter = std::make_unique<sinsp_filter>();
 	m_last_boolop = BO_NONE;
 	m_last_node_field = nullptr;
-	m_last_node_field_is_plugin = false;
 	try {
 		m_flt_ast->accept(this);
 	} catch(const sinsp_exception& e) {
@@ -278,7 +277,6 @@ static inline void check_op_type_compatibility(sinsp_filter_check& c) {
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr* e) {
 	m_pos = e->get_pos();
 	m_last_node_field = nullptr;
-	m_last_node_field_is_plugin = false;
 	e->left->accept(this);
 	if(!m_last_node_field) {
 		throw sinsp_exception("filter error: missing field in left-hand of unary check");
@@ -320,13 +318,12 @@ static void add_filtercheck_value(sinsp_filter_check* chk, size_t idx, std::stri
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr* e) {
 	m_pos = e->get_pos();
 	m_last_node_field = nullptr;
-	m_last_node_field_is_plugin = false;
 	e->left->accept(this);
 	if(!m_last_node_field) {
 		throw sinsp_exception("filter error: missing field in left-hand of binary check");
 	}
 
-	auto left_from_plugin = m_last_node_field_is_plugin;
+	auto left_ptr_unstable = m_last_node_field->get_field_info()->is_ptr_unstable();
 	auto check = std::move(m_last_node_field);
 
 	// install cache on left-hand side extraction field
@@ -335,13 +332,13 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	check->m_cache_metrics = m_cache_factory->new_metrics(e->left.get(), node_info);
 	check->m_extract_cache = m_cache_factory->new_extract_cache(e->left.get(), node_info);
 
-	// if the extraction comes from a plugin-implemented ield, then
+	// if the extraction comes from a plugin-implemented field, then
 	// we need to add a storage transformer as the cache may end up storing a
 	// shallow copy of the value pointers that are not valid anymore. Note that
 	// this should not change the right field's eligibility for caching, as
 	// the storage transformer does not alter the field's info.
 	auto left_has_storage = false;
-	if(left_from_plugin && check->m_extract_cache) {
+	if(left_ptr_unstable && check->m_extract_cache) {
 		left_has_storage = true;
 		check->add_transformer(filter_transformer_type::FTR_STORAGE);
 	}
@@ -351,7 +348,6 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 	check_op_type_compatibility(*check);
 
 	// Read the right-hand values of the filtercheck.
-	m_last_node_field_is_plugin = false;
 	m_field_values.clear();
 	e->right->accept(this);
 
@@ -379,8 +375,8 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		//
 		// However, we may have already added a storage modifier to the left field due to issues
 		// with caching, in which case we are good already.
-		auto right_from_plugin = m_last_node_field_is_plugin;
-		if(!left_has_storage && left_from_plugin && right_from_plugin) {
+		auto right_ptr_unstable = m_last_node_field->get_field_info()->is_ptr_unstable();
+		if(!left_has_storage && left_ptr_unstable && right_ptr_unstable) {
 			check->add_transformer(filter_transformer_type::FTR_STORAGE);
 		}
 
@@ -404,7 +400,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		// similarly as above, if the right-hand side extraction comes from a
 		// plugin-implemented field, then we need to add an additional storage
 		// layer on it as well
-		if(right_from_plugin && m_last_node_field->m_extract_cache) {
+		if(right_ptr_unstable && m_last_node_field->m_extract_cache) {
 			m_last_node_field->add_transformer(filter_transformer_type::FTR_STORAGE);
 		}
 
@@ -554,8 +550,6 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_expr* e) {
 	m_pos = e->get_pos();
 	auto field_name = create_filtercheck_name(e->field, e->arg);
 	m_last_node_field = create_filtercheck(field_name);
-	m_last_node_field_is_plugin =
-	        dynamic_cast<sinsp_filter_check_plugin*>(m_last_node_field.get()) != nullptr;
 	if(m_last_node_field->parse_field_name(field_name, true, true) == -1) {
 		throw sinsp_exception("filter error: can't parse field expression '" + field_name + "'");
 	}
@@ -564,14 +558,13 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_expr* e) {
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_transformer_expr* e) {
 	m_pos = e->get_pos();
 	m_last_node_field = nullptr;
-	m_last_node_field_is_plugin = false;
 	e->value->accept(this);
 	if(!m_last_node_field) {
 		throw sinsp_exception("filter error: found null child node on '" + e->transformer +
 		                      "' transformer");
 	}
 
-	// apply transformer, ignoring the "identity one"
+	// apply transformer, ignoring the "identity one" (it's just a syntactic construct)
 	if(e->transformer != "val") {
 		m_last_node_field->add_transformer(filter_transformer_from_str(e->transformer));
 	}

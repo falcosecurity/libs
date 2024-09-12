@@ -463,7 +463,9 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 		m_fields.clear();
 		for(Json::Value::ArrayIndex j = 0; j < root.size(); j++) {
 			filtercheck_field_info tf;
-			tf.m_flags = EPF_NONE;
+
+			// plugin fields can't ever be trusted for pointer stability
+			tf.m_flags = EPF_NO_PTR_STABILITY;
 
 			const Json::Value& jvtype = root[j]["type"];
 			string ftype = jvtype.asString();
