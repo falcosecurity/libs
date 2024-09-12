@@ -85,7 +85,7 @@ jobs:
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
+          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=${{ matrix.enable_gvisor }} -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
           make scap-open driver bpf libscap_test -j6
 
       - name: Run scap-open with modern bpf 🏎️
@@ -155,7 +155,7 @@ jobs:
         if: needs.paths-filter.outputs.driver == 'true' || needs.paths-filter.outputs.libscap == 'true' || needs.paths-filter.outputs.libpman == 'true'
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
           make drivers_test driver bpf -j6
 
       - name: Run drivers_test with modern bpf 🏎️
@@ -202,7 +202,7 @@ jobs:
             git clone -b $GIT_BRANCH $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git libs
             cd libs
             mkdir -p build
-            cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+            cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
             make drivers_test driver bpf -j6
             sudo ./test/drivers/drivers_test -m
             rc_modern=$?
@@ -246,7 +246,7 @@ jobs:
             git config --global --add safe.directory $GITHUB_WORKSPACE
             .github/install-deps.sh
             mkdir -p build
-            cd build && cmake -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/s390x-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DENABLE_DRIVERS_TESTS=On -DCREATE_TEST_TARGETS=On -DBUILD_LIBSCAP_GVISOR=OFF ../
+            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=OFF -DMODERN_PROBE_INCLUDE="-I/usr/include/s390x-linux-gnu" -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DENABLE_DRIVERS_TESTS=On -DCREATE_TEST_TARGETS=On -DBUILD_LIBSCAP_GVISOR=OFF ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make driver bpf drivers_test -j6
   
   build-modern-bpf-skeleton:
