@@ -64,7 +64,7 @@
 /*=============================== UNIX ===========================*/
 
 /* Max length socket unix path. */
-#define MAX_SUN_PATH 109
+#define MAX_SUN_PATH 108
 
 /* Unix Client: the `xyzxe-` prefix is used to avoid name collisions */
 #define UNIX_CLIENT "/tmp/xyzxe-client"
