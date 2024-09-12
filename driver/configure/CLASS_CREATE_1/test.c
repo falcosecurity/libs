@@ -21,6 +21,7 @@ MODULE_AUTHOR("the Falco authors");
 
 static int class_create_test_init(void) {
 	struct class *g_ppm_class = class_create("test");
+	(void)g_ppm_class;
 	return 0;
 }
 
