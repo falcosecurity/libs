@@ -688,7 +688,8 @@ void sinsp_filter_check::add_filter_value(std::unique_ptr<sinsp_filter_check> rh
 	}
 
 	if(!rhs_chk->get_transformed_field_info()->is_rhs_field_supported()) {
-		throw sinsp_exception("field '" + std::string(get_transformed_field_info()->m_name) +
+		throw sinsp_exception("field '" +
+		                      std::string(rhs_chk->get_transformed_field_info()->m_name) +
 		                      "' can't be used as a right-hand side field");
 	}
 
