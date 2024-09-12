@@ -270,7 +270,6 @@ private:
 	libsinsp::filter::ast::pos_info m_pos;
 	boolop m_last_boolop;
 	std::unique_ptr<sinsp_filter_check> m_last_node_field;
-	bool m_last_node_field_is_plugin;
 	std::string m_flt_str;
 	std::unique_ptr<sinsp_filter> m_filter;
 	std::vector<std::string> m_field_values;

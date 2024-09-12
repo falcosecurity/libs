@@ -321,13 +321,14 @@ sinsp_evt* sinsp_with_test_input::generate_proc_exit_event(int64_t tid_to_remove
 	// Scaffolding needed to call the PPME_PROCEXIT_1_E
 	int64_t not_relevant_64 = 0;
 	uint8_t not_relevant_8 = 0;
+	int64_t ret_err_perm = -1;  // mostly non-relevant, used in few tests
 
 	return add_event_advance_ts(increasing_ts(),
 	                            tid_to_remove,
 	                            PPME_PROCEXIT_1_E,
 	                            5,
 	                            not_relevant_64,
-	                            not_relevant_64,
+	                            ret_err_perm,
 	                            not_relevant_8,
 	                            not_relevant_8,
 	                            reaper_tid);
