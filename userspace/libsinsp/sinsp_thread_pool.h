@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#pragma once
 
 #include <list>
 #include <cstdint>
@@ -22,13 +23,13 @@ limitations under the License.
 #include <functional>
 #include <memory>
 
-class thread_pool {
+class sinsp_thread_pool {
 public:
 	using routine_id_t = uintptr_t;
 
-	thread_pool() = default;
+	sinsp_thread_pool() = default;
 
-	virtual ~thread_pool() = default;
+	virtual ~sinsp_thread_pool() = default;
 
 	/*!
 	 * \brief Subscribes a routine to the thread pool.

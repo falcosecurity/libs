@@ -88,7 +88,7 @@ static void plugin_log_fn(ss_plugin_owner_t* o,
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
         const plugin_api* api,
         const std::shared_ptr<libsinsp::state::table_registry>& treg,
-        const std::shared_ptr<thread_pool>& tpool,
+        const std::shared_ptr<sinsp_thread_pool>& tpool,
         std::string& errstr) {
 	char loadererr[PLUGIN_MAX_ERRLEN];
 	auto handle = plugin_load_api(api, loadererr);
@@ -109,7 +109,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
         const std::string& filepath,
         const std::shared_ptr<libsinsp::state::table_registry>& treg,
-        const std::shared_ptr<thread_pool>& tpool,
+        const std::shared_ptr<sinsp_thread_pool>& tpool,
         std::string& errstr) {
 	char loadererr[PLUGIN_MAX_ERRLEN];
 	auto handle = plugin_load(filepath.c_str(), loadererr);
@@ -742,11 +742,11 @@ std::vector<metrics_v2> sinsp_plugin::get_metrics() const {
 	return metrics;
 }
 
-thread_pool::routine_id_t sinsp_plugin::subscribe_routine(
+sinsp_thread_pool::routine_id_t sinsp_plugin::subscribe_routine(
         ss_plugin_routine_fn_t routine_fn,
         ss_plugin_routine_state_t* routine_state) {
 	if(!m_thread_pool) {
-		return reinterpret_cast<thread_pool::routine_id_t>(nullptr);
+		return reinterpret_cast<sinsp_thread_pool::routine_id_t>(nullptr);
 	}
 
 	auto f = [this, routine_fn, routine_state]() -> bool {
@@ -756,7 +756,7 @@ thread_pool::routine_id_t sinsp_plugin::subscribe_routine(
 	return m_thread_pool->subscribe(f);
 }
 
-bool sinsp_plugin::unsubscribe_routine(thread_pool::routine_id_t routine_id) {
+bool sinsp_plugin::unsubscribe_routine(sinsp_thread_pool::routine_id_t routine_id) {
 	if(!m_thread_pool || !routine_id) {
 		return false;
 	}
@@ -775,7 +775,7 @@ ss_plugin_routine_t* plugin_subscribe_routine(ss_plugin_owner_t* o,
 
 ss_plugin_rc plugin_unsubscribe_routine(ss_plugin_owner_t* o, ss_plugin_routine_t* r) {
 	auto t = static_cast<sinsp_plugin*>(o);
-	auto id = reinterpret_cast<thread_pool::routine_id_t>(r);
+	auto id = reinterpret_cast<sinsp_thread_pool::routine_id_t>(r);
 
 	return t->unsubscribe_routine(id) ? SS_PLUGIN_SUCCESS : SS_PLUGIN_FAILURE;
 }

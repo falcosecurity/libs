@@ -927,8 +927,8 @@ public:
 	bool get_track_connection_status() const;
 	inline void set_track_connection_status(bool enabled);
 
-	std::shared_ptr<thread_pool> get_thread_pool();
-	bool set_thread_pool(std::shared_ptr<thread_pool> tpool);
+	std::shared_ptr<sinsp_thread_pool> get_thread_pool();
+	bool set_thread_pool(std::shared_ptr<sinsp_thread_pool> tpool);
 
 	/**
 	 * \brief Get a new timestamp.
@@ -1066,7 +1066,7 @@ private:
 
 	int32_t m_quantization_interval = -1;
 
-	std::shared_ptr<thread_pool> m_thread_pool;
+	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
 public:
 	std::unique_ptr<sinsp_thread_manager> m_thread_manager;
