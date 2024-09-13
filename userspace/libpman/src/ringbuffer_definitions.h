@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "state.h"
 #include <linux/bpf.h>
+#include <libscap/scap_barrier.h>
 
 /* Taken from libbpf: /src/ringbuf.c */
 struct ring {
@@ -50,23 +51,3 @@ static inline int roundup_len(uint32_t len) {
 	/* round up to 8 byte alignment */
 	return (len + 7) / 8 * 8;
 }
-
-/* Taken from libbpf: `include/linux/compiler.h` */
-
-#define READ_ONCE(x) (*(volatile typeof(x) *)&x)
-#define WRITE_ONCE(x, v) (*(volatile typeof(x) *)&x) = (v)
-
-#define barrier() asm volatile("" ::: "memory")
-
-#define smp_store_release(p, v) \
-	do {                        \
-		barrier();              \
-		WRITE_ONCE(*p, v);      \
-	} while(0)
-
-#define smp_load_acquire(p)              \
-	({                                   \
-		typeof(*p) ___p = READ_ONCE(*p); \
-		barrier();                       \
-		___p;                            \
-	})
