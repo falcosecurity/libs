@@ -25,7 +25,7 @@ TEST(SyscallExit, socketcall_socketX) {
 	/* Here we need to call the `socket` from a child because the main process throws a `socket`
 	 * syscall to calibrate the socket file options if we are using the bpf probe.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
@@ -370,8 +370,8 @@ TEST(SyscallExit, socketcall_acceptX_INET) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -458,8 +458,8 @@ TEST(SyscallExit, socketcall_acceptX_INET6) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in6 client_addr = {0};
-	sockaddr_in6 server_addr = {0};
+	sockaddr_in6 client_addr = {};
+	sockaddr_in6 server_addr = {};
 	evt_test->connect_ipv6_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -547,8 +547,8 @@ TEST(SyscallExit, socketcall_acceptX_UNIX) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_un client_addr = {0};
-	struct sockaddr_un server_addr = {0};
+	struct sockaddr_un client_addr = {};
+	struct sockaddr_un server_addr = {};
 	evt_test->connect_unix_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -693,8 +693,8 @@ TEST(SyscallExit, socketcall_accept4X_INET) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -774,8 +774,8 @@ TEST(SyscallExit, socketcall_accept4X_INET6) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in6 client_addr = {0};
-	sockaddr_in6 server_addr = {0};
+	sockaddr_in6 client_addr = {};
+	sockaddr_in6 server_addr = {};
 	evt_test->connect_ipv6_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -856,8 +856,8 @@ TEST(SyscallExit, socketcall_accept4X_UNIX) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	struct sockaddr_un client_addr = {0};
-	struct sockaddr_un server_addr = {0};
+	struct sockaddr_un client_addr = {};
+	struct sockaddr_un server_addr = {};
 	evt_test->connect_unix_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -1040,8 +1040,8 @@ TEST(SyscallExit, socketcall_recvfromX_no_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -1069,7 +1069,7 @@ TEST(SyscallExit, socketcall_recvfromX_no_snaplen) {
 	/// TODO: if we use `sockaddr_in* src_addr = NULL` kernel module and old bpf are not able to get
 	/// correct data. Fixing them means changing how we retrieve network data, so it would be quite
 	/// a big change.
-	sockaddr_in src_addr = {0};
+	sockaddr_in src_addr = {};
 	socklen_t addrlen = sizeof(src_addr);
 
 	unsigned long args[6] = {0};
@@ -1137,8 +1137,8 @@ TEST(SyscallExit, socketcall_recvfromX_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -1163,7 +1163,7 @@ TEST(SyscallExit, socketcall_recvfromX_snaplen) {
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	sockaddr_in src_addr = {0};
+	sockaddr_in src_addr = {};
 	socklen_t addrlen = sizeof(src_addr);
 
 	unsigned long args[6] = {0};
@@ -1424,8 +1424,8 @@ TEST(SyscallExit, socketcall_sendtoX_no_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -1488,8 +1488,8 @@ TEST(SyscallExit, socketcall_sendtoX_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -1664,8 +1664,8 @@ TEST(SyscallExit, socketcall_sendmsgX_no_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -1738,8 +1738,8 @@ TEST(SyscallExit, socketcall_sendmsgX_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -1814,8 +1814,8 @@ TEST(SyscallExit, socketcall_sendmsgX_fail) {
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct msghdr send_msg = {0};
-	struct iovec iov[1] = {0};
+	struct msghdr send_msg = {};
+	struct iovec iov[1] = {};
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
 	char sent_data_1[DEFAULT_SNAPLEN / 2] = "some-data";
@@ -1867,7 +1867,7 @@ TEST(SyscallExit, socketcall_sendmsgX_null_iovec) {
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct msghdr send_msg = {0};
+	struct msghdr send_msg = {};
 	memset(&send_msg, 0, sizeof(send_msg));
 	send_msg.msg_iov = NULL;
 	/* here we pass a wrong `iovlen` to check the behavior */
@@ -1980,8 +1980,8 @@ TEST(SyscallExit, socketcall_recvmsgX_no_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -2098,8 +2098,8 @@ TEST(SyscallExit, socketcall_recvmsgX_snaplen) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -2369,7 +2369,7 @@ TEST(SyscallExit, socketcall_getsockoptX_SO_RCVTIMEO) {
 	int32_t mock_fd = -1;
 	int32_t level = SOL_SOCKET;
 	int32_t option_name = SO_RCVTIMEO;
-	struct timeval option_value = {0};
+	struct timeval option_value = {};
 	option_value.tv_sec = 5;
 	option_value.tv_usec = 10;
 	socklen_t option_len = sizeof(struct timeval);
@@ -2822,7 +2822,7 @@ TEST(SyscallExit, socketcall_setsockoptX_SO_RCVTIMEO) {
 	int32_t mock_fd = -1;
 	int32_t level = SOL_SOCKET;
 	int32_t option_name = SO_RCVTIMEO;
-	struct timeval option_value = {0};
+	struct timeval option_value = {};
 	option_value.tv_sec = 5;
 	option_value.tv_usec = 10;
 	socklen_t option_len = sizeof(struct timeval);
