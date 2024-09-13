@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <libscap/compat/bpf.h>
 #include <libscap/compat/perf_event.h>
+#include <libscap/scap_barrier.h>
 
 struct perf_event_sample {
 	struct perf_event_header header;
@@ -49,9 +50,7 @@ static inline void scap_bpf_get_buf_pointers(scap_device *dev,
 	*phead = header->data_head;
 	*ptail = header->data_tail;
 
-	// clang-format off
-	asm volatile("" ::: "memory");
-	// clang-format on
+	mem_barrier();
 
 	uint64_t cons = *ptail % header->data_size;  // consumer position
 	uint64_t prod = *phead % header->data_size;  // producer position
@@ -154,9 +153,7 @@ static inline void scap_bpf_advance_tail(struct scap_device *dev) {
 
 	header = (struct perf_event_mmap_page *)dev->m_buffer;
 
-	// clang-format off
-	asm volatile("" ::: "memory");
-	// clang-format on
+	mem_barrier();
 
 	ASSERT(dev->m_lastreadsize > 0);
 	/* `header->data_tail` is the consumer position. */
