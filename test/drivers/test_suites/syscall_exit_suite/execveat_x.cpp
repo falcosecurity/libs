@@ -391,7 +391,6 @@ TEST(SyscallExit, execveatX_execve_exit) {
 	/* Prepare the execve args */
 	int dirfd = 0;
 	const char *pathname = "/usr/bin/echo";
-	const char *comm = "echo";
 	const char *argv[] = {pathname, "[OUTPUT] SyscallExit.execveatX_success test", NULL};
 	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
 	int flags = 0;
@@ -472,6 +471,7 @@ TEST(SyscallExit, execveatX_execve_exit) {
 	evt_test->assert_empty_param(7);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
+	const char *comm = "echo";
 	evt_test->assert_charbuf_param(14, comm);
 
 	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
