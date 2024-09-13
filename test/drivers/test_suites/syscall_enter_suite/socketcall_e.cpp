@@ -25,7 +25,7 @@ TEST(SyscallEnter, socketcall_socketE) {
 	/* Here we need to call the `socket` from a child because the main process throws a `socket`
 	 * syscall to calibrate the socket file options if we are using the bpf probe.
 	 */
-	clone_args cl_args = {0};
+	clone_args cl_args = {};
 	cl_args.flags = CLONE_FILES;
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
@@ -599,8 +599,8 @@ TEST(SyscallEnter, socketcall_sendtoE) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
@@ -679,8 +679,8 @@ TEST(SyscallEnter, socketcall_sendmsgE) {
 
 	int32_t client_socket_fd = 0;
 	int32_t server_socket_fd = 0;
-	sockaddr_in client_addr = {0};
-	sockaddr_in server_addr = {0};
+	sockaddr_in client_addr = {};
+	sockaddr_in server_addr = {};
 	evt_test->connect_ipv4_client_to_server(&client_socket_fd,
 	                                        &client_addr,
 	                                        &server_socket_fd,
