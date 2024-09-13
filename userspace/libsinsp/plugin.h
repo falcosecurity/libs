@@ -32,9 +32,9 @@ limitations under the License.
 #include <plugin/plugin_loader.h>
 
 #if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
-#include <libsinsp/thread_pool_bs.h>
+#include <libsinsp/sinsp_thread_pool_bs.h>
 #else
-#include <libsinsp/thread_pool.h>
+#include <libsinsp/sinsp_thread_pool.h>
 #endif
 
 /**
@@ -62,7 +62,7 @@ public:
 	static std::shared_ptr<sinsp_plugin> create(
 	        const std::string& path,
 	        const std::shared_ptr<libsinsp::state::table_registry>& treg,
-	        const std::shared_ptr<thread_pool>& tpool,
+	        const std::shared_ptr<sinsp_thread_pool>& tpool,
 	        std::string& errstr);
 
 	/**
@@ -72,7 +72,7 @@ public:
 	static std::shared_ptr<sinsp_plugin> create(
 	        const plugin_api* api,
 	        const std::shared_ptr<libsinsp::state::table_registry>& treg,
-	        const std::shared_ptr<thread_pool>& tpool,
+	        const std::shared_ptr<sinsp_thread_pool>& tpool,
 	        std::string& errstr);
 
 	/**
@@ -100,7 +100,7 @@ public:
 
 	sinsp_plugin(plugin_handle_t* handle,
 	             const std::shared_ptr<libsinsp::state::table_registry>& treg,
-	             const std::shared_ptr<thread_pool>& tpool):
+	             const std::shared_ptr<sinsp_thread_pool>& tpool):
 	        m_caps(CAP_NONE),
 	        m_name(),
 	        m_description(),
@@ -158,9 +158,9 @@ public:
 	std::vector<metrics_v2> get_metrics() const;
 	bool capture_open();
 	bool capture_close();
-	thread_pool::routine_id_t subscribe_routine(ss_plugin_routine_fn_t routine_fn,
-	                                            ss_plugin_routine_state_t* routine_state);
-	bool unsubscribe_routine(thread_pool::routine_id_t routine_id);
+	sinsp_thread_pool::routine_id_t subscribe_routine(ss_plugin_routine_fn_t routine_fn,
+	                                                  ss_plugin_routine_state_t* routine_state);
+	bool unsubscribe_routine(sinsp_thread_pool::routine_id_t routine_id);
 
 	/** Event Sourcing **/
 	inline uint32_t id() const { return m_id; }
@@ -441,7 +441,7 @@ private:
 	                                              ss_plugin_state_type key_type);
 	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t* o, const ss_plugin_table_input* in);
 
-	std::shared_ptr<thread_pool> m_thread_pool;
+	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
 	friend struct sinsp_table_wrapper;
 };
