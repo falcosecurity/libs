@@ -15,22 +15,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#pragma once
 
-#include <libsinsp/thread_pool.h>
+#include <libsinsp/sinsp_thread_pool.h>
 
 namespace BS {
 class thread_pool;
 };
 
-class thread_pool_bs : public thread_pool {
+class sinsp_thread_pool_bs : public sinsp_thread_pool {
 public:
-	thread_pool_bs(size_t num_workers = 0);
+	sinsp_thread_pool_bs(size_t num_workers = 0);
 
-	virtual ~thread_pool_bs() { purge(); }
+	virtual ~sinsp_thread_pool_bs() { purge(); }
 
-	thread_pool::routine_id_t subscribe(const std::function<bool()>& func);
+	sinsp_thread_pool::routine_id_t subscribe(const std::function<bool()>& func);
 
-	bool unsubscribe(thread_pool::routine_id_t id);
+	bool unsubscribe(sinsp_thread_pool::routine_id_t id);
 
 	void purge();
 

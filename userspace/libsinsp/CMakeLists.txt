@@ -113,7 +113,7 @@ add_library(
 )
 
 if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
-	target_sources(sinsp PRIVATE thread_pool_bs.cpp)
+	target_sources(sinsp PRIVATE sinsp_thread_pool_bs.cpp)
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
