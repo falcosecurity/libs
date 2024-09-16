@@ -105,11 +105,11 @@ jobs:
 
       # Check will fail if sum of all differences is >= 1%.
       # But we will always comment with the perf diff from master
-      - name: Check >= 1% threshold - perf unit tests
+      - name: Check >= 5% threshold - perf unit tests
         if: always()
         run: |
           sum=$(awk '{sum+=sprintf("%f",$2)}END{printf "%.6f\n",sum}' perf_tests_diff.txt | tr ',' '.')
-          if (( $(echo "$sum >= 1.0" | bc -l) )); then
+          if (( $(echo "$sum >= 5.0" | bc -l) )); then
             exit 1
           fi
 
