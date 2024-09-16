@@ -1775,7 +1775,7 @@ bool sinsp_thread_manager::remove_inactive_threads() {
 
 		m_last_flush_time_ns = m_inspector->get_lastevent_ts();
 
-		libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Flushing thread table");
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Flushing thread table");
 
 		/* Here we loop over the table in search of threads to delete. We remove:
 		 * 1. Invalid threads.

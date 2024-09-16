@@ -68,7 +68,7 @@ bool sinsp_container_manager::remove_inactive_containers() {
 
 		m_last_flush_time_ns = m_inspector->get_lastevent_ts();
 
-		libsinsp_logger()->format(sinsp_logger::SEV_INFO, "Flushing container table");
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Flushing container table");
 
 		std::set<std::string> containers_in_use;
 
