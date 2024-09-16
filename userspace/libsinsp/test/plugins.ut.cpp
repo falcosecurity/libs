@@ -1092,7 +1092,7 @@ TEST_F(sinsp_with_test_input, plugin_routines) {
 	                     PPM_O_RDWR,
 	                     0);
 	std::this_thread::sleep_for(
-	        std::chrono::nanoseconds(1000));  // wait for a bit to let routine finish
+	        std::chrono::milliseconds(100));  // wait for a bit to let routine finish
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 1);
 
@@ -1100,7 +1100,7 @@ TEST_F(sinsp_with_test_input, plugin_routines) {
 	// unsubscribe it on capture close
 	m_inspector.close();
 	std::this_thread::sleep_for(
-	        std::chrono::nanoseconds(100));  // wait for a bit to let routine finish
+	        std::chrono::milliseconds(100));  // wait for a bit to let routine finish
 	routines_num = tp->routines_num();
 	ASSERT_EQ(routines_num, 0);
 }
