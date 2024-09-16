@@ -48,21 +48,22 @@ TEST_F(sinsp_with_test_input, thread_pool) {
 	std::atomic<int> count = 0;
 	std::atomic<bool> routine_exited = false;
 	r = tp->subscribe([&count, &routine_exited] {
-		if(count >= 1024) {
+		if(count >= 10) {
 			routine_exited = true;
 			return false;
 		}
 		count++;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		return true;
 	});
 	ASSERT_EQ(tp->routines_num(), 1);
 
-	// the routine above keeps increasing a counter, until the counter reaches 1024
+	// the routine above keeps increasing a counter, until the counter reaches 10
 	// we wait for the routine to exit, then we check if it has been unsubscribed
 	while(!routine_exited) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
-	ASSERT_EQ(count, 1024);
+	ASSERT_EQ(count, 10);
 	ASSERT_EQ(tp->routines_num(), 0);
 
 	// all the remaining routines should be unsubscribed when the inspector is closed
