@@ -147,7 +147,7 @@ jobs:
 
       - name: Install deps
         run: |
-          sudo apt install -y --no-install-recommends clang gcc llvm build-essential cmake python2
+          sudo apt install -y --no-install-recommends clang gcc llvm build-essential cmake python3 quota
 
       - name: Install kernel headers (actuated)
         uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59
