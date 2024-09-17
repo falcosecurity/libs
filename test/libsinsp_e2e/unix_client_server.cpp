@@ -90,7 +90,7 @@ TEST_F(sys_call_test, unix_client_server) {
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* ti = evt->get_thread_info(false);
 		if(ti) {
-			if(ti->get_comm() == "python2" && ti->m_args.size() >= 1) {
+			if(ti->get_comm() == "python3" && ti->m_args.size() >= 1) {
 				return ends_with(ti->m_args[0], "unix_client_server.py") ||
 				       ends_with(ti->m_args[0], "unix_client_server.py");
 			}
@@ -103,12 +103,12 @@ TEST_F(sys_call_test, unix_client_server) {
 	// INITIALIZATION
 	//
 	run_callback_t test = [](concurrent_object_handle<sinsp> inspector) {
-		subprocess server("python2",
+		subprocess server("python3",
 		                  {LIBSINSP_TEST_RESOURCES_PATH "/unix_client_server.py", "server"});
 
 		server.wait_for_start();
 
-		subprocess client("python2",
+		subprocess client("python3",
 		                  {LIBSINSP_TEST_RESOURCES_PATH "/unix_client_server.py", "client"});
 		server.wait();
 		client.wait();
