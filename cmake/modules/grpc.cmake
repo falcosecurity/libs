@@ -174,13 +174,23 @@ else()
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_seed_gen_exception.a"
 		)
 
-		set(GRPC_PATCH_CMD "")
+		# Make abseil-cpp build compatible with gcc-13 See
+		# https://patchwork.yoctoproject.org/project/oe/patch/20230518093301.2938164-1-Martin.Jansa@gmail.com/
+		# TO BE DROPPED once we finally upgrade grpc...
+		set(GRPC_PATCH_CMD
+			sh
+			-c
+			"sed -i '20s/^/#include <cstdint>/' ${GRPC_SRC}/third_party/abseil-cpp/absl/strings/internal/str_format/extension.h"
+		)
+
 		# Zig workaround: Add a PATCH_COMMAND to grpc cmake to fixup emitted -march by abseil-cpp
 		# cmake module, making it use a name understood by zig for arm64. See
 		# https://github.com/abseil/abseil-cpp/blob/master/absl/copts/GENERATED_AbseilCopts.cmake#L226.
 		if(CMAKE_C_COMPILER MATCHES "zig")
 			message(STATUS "Enabling zig workaround for abseil-cpp")
 			set(GRPC_PATCH_CMD
+				${GRPC_PATCH_CMD}
+				&&
 				sh
 				-c
 				"sed -i 's/armv8-a/cortex_a57/g' ${GRPC_SRC}/third_party/abseil-cpp/absl/copts/GENERATED_AbseilCopts.cmake"
