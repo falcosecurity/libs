@@ -23,6 +23,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libscap/scap_engines.h>
 #include <libsinsp/sinsp_cycledumper.h>
+#include <string>
 #include <unistd.h>
 
 std::string event_capture::m_engine_string = KMOD_ENGINE;
@@ -31,24 +32,26 @@ unsigned long event_capture::m_buffer_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 bool event_capture::inspector_ok = false;
 
 concurrent_object_handle<sinsp> event_capture::get_inspector_handle() {
-	return {get_inspector(), m_inspector_mutex};
+	return {m_inspector.get(), m_inspector_mutex};
 }
 
 void event_capture::init_inspector() {
-	get_inspector()->m_thread_manager->set_max_thread_table_size(m_max_thread_table_size);
-	get_inspector()->m_thread_timeout_ns = m_thread_timeout_ns;
-	get_inspector()->set_auto_threads_purging_interval_s(m_inactive_thread_scan_time_ns);
-	get_inspector()->set_auto_threads_purging(false);
 
-	get_inspector()->set_get_procs_cpu_from_driver(true);
+	m_inspector = std::unique_ptr<sinsp>(new sinsp);
+	m_inspector->m_thread_manager->set_max_thread_table_size(m_max_thread_table_size);
+	m_inspector->m_thread_timeout_ns = m_thread_timeout_ns;
+	m_inspector->set_auto_threads_purging_interval_s(m_inactive_thread_scan_time_ns);
+	m_inspector->set_auto_threads_purging(false);
 
-	ASSERT_FALSE(get_inspector()->is_capture());
-	ASSERT_FALSE(get_inspector()->is_live());
-	ASSERT_FALSE(get_inspector()->is_nodriver());
+	m_inspector->set_get_procs_cpu_from_driver(true);
+
+	ASSERT_FALSE(m_inspector->is_capture());
+	ASSERT_FALSE(m_inspector->is_live());
+	ASSERT_FALSE(m_inspector->is_nodriver());
 
 	try {
 		if(m_mode == SINSP_MODE_NODRIVER) {
-			get_inspector()->open_nodriver();
+			m_inspector->open_nodriver();
 		} else {
 			open_engine(event_capture::get_engine(), {});
 		}
@@ -56,16 +59,16 @@ void event_capture::init_inspector() {
 		m_start_failed = true;
 		m_start_failure_message =
 		        "couldn't open inspector (maybe driver hasn't been loaded yet?) err=" +
-		        get_inspector()->getlasterr() + " exception=" + e.what();
+		        m_inspector->getlasterr() + " exception=" + e.what();
 		{
 			m_capture_started = true;
-			m_condition_started.notify_one();
+			m_condition_started.notify_all();
 		}
 		return;
 	}
 
-	get_inspector()->set_debug_mode(true);
-	get_inspector()->set_hostname_and_port_resolution_mode(false);
+	m_inspector->set_debug_mode(true);
+	m_inspector->set_hostname_and_port_resolution_mode(false);
 }
 
 void event_capture::capture() {
@@ -75,25 +78,21 @@ void event_capture::capture() {
 	{
 		std::scoped_lock init_lock(m_inspector_mutex, m_object_state_mutex);
 
-		if(!inspector_ok) {
-			init_inspector();
-			if(!m_start_failed) {
-				inspector_ok = true;
-			} else {
-				std::cerr << m_start_failure_message << std::endl;
-				return;
-			}
+		init_inspector();
+		if(m_start_failed) {
+			std::cerr << m_start_failure_message << std::endl;
+			return;
 		}
 
-		m_param.m_inspector = get_inspector();
+		m_param.m_inspector = m_inspector.get();
 
-		m_before_open(get_inspector());
+		m_before_open(m_inspector.get());
 
-		get_inspector()->start_capture();
+		m_inspector->start_capture();
 		if(m_mode != SINSP_MODE_NODRIVER) {
 			m_dump_filename = std::string(LIBSINSP_TEST_CAPTURES_PATH) +
 			                  test_info->test_case_name() + "_" + test_info->name() + ".scap";
-			dumper = std::make_unique<sinsp_cycledumper>(get_inspector(),
+			dumper = std::make_unique<sinsp_cycledumper>(m_inspector.get(),
 			                                             m_dump_filename.c_str(),
 			                                             0,
 			                                             0,
@@ -103,83 +102,47 @@ void event_capture::capture() {
 		}
 	}  // End init synchronized section
 
-	bool signaled_start = false;
 	sinsp_evt* event;
-	bool result = true;
 	int32_t next_result = SCAP_SUCCESS;
-	while(result && !::testing::Test::HasFatalFailure()) {
-		{
-			std::lock_guard<std::mutex> lock(m_object_state_mutex);
-			if(m_capture_stopped) {
-				break;
-			}
-		}
+	uint64_t timeouts = 0;
+
+	while(!::testing::Test::HasFatalFailure()) {
 		{
 			std::scoped_lock inspector_next_lock(m_inspector_mutex);
-			next_result = get_inspector()->next(&event);
+			next_result = m_inspector->next(&event);
 		}
-		if(SCAP_SUCCESS == next_result) {
-			result = handle_event(event);
+		if(next_result == SCAP_SUCCESS) {
+			if(!m_capture_started) {
+				m_capture_started = true;
+				m_condition_started.notify_all();
+			}
+			if((strcmp(event->get_name(), "open") == 0 || strcmp(event->get_name(), "openat") == 0)
+			   && event->get_param_by_name("name")->as<std::string>() == "/tmp/test.lock") {
+				if(event->get_direction() == SCAP_ED_OUT ) {
+					break;
+				} else {
+					continue;
+				}
+			} else {
+				handle_event(event);
+			}
 			if(m_mode != SINSP_MODE_NODRIVER && m_dump) {
 				dumper->dump(event);
-			}
-		}
-		if(!signaled_start) {
-			signaled_start = true;
-			{
-				std::lock_guard<std::mutex> lock(m_object_state_mutex);
-				m_capture_started = true;
-			}
-			m_condition_started.notify_one();
-		}
-	}
-
-	if(m_mode != SINSP_MODE_NODRIVER) {
-		uint32_t n_timeouts = 0;
-		while(result && !::testing::Test::HasFatalFailure()) {
-			{
-				std::scoped_lock inspector_next_lock(m_inspector_mutex);
-				next_result = get_inspector()->next(&event);
-			}
-			if(next_result == SCAP_TIMEOUT) {
-				n_timeouts++;
-
-				if(n_timeouts < m_max_timeouts) {
-					continue;
-				} else {
-					break;
-				}
-			}
-
-			if(next_result == SCAP_FILTERED_EVENT) {
-				continue;
-			}
-			if(next_result != SCAP_SUCCESS) {
-				break;
-			}
-			if(m_dump) {
-				dumper->dump(event);
-			}
-			result = handle_event(event);
-		}
-		{
-			std::scoped_lock inspector_next_lock(m_inspector_mutex);
-			while(SCAP_SUCCESS == get_inspector()->next(&event)) {
-				// just consume the remaining events
 			}
 		}
 	}
 
 	{  // Begin teardown synchronized section
 		std::scoped_lock teardown_lock(m_inspector_mutex, m_object_state_mutex);
-		m_before_close(get_inspector());
+		m_before_close(m_inspector.get());
 
-		get_inspector()->stop_capture();
+		m_inspector->stop_capture();
 		if(m_mode != SINSP_MODE_NODRIVER) {
 			dumper->close();
 		}
 
 		m_capture_stopped = true;
+		m_condition_stopped.notify_all();
 	}  // End teardown synchronized section
 
 	m_condition_stopped.notify_one();
@@ -188,9 +151,8 @@ void event_capture::capture() {
 void event_capture::stop_capture() {
 	{
 		std::scoped_lock init_lock(m_inspector_mutex, m_object_state_mutex);
-		get_inspector()->stop_capture();
 		m_capture_stopped = true;
-		m_condition_stopped.notify_one();
+		m_condition_stopped.notify_all();
 	}
 }
 
@@ -249,7 +211,7 @@ void event_capture::open_engine(const std::string& engine_string,
 	}
 #ifdef HAS_ENGINE_KMOD
 	else if(!engine_string.compare(KMOD_ENGINE)) {
-		get_inspector()->open_kmod(m_buffer_dim);
+		m_inspector->open_kmod(m_buffer_dim);
 	}
 #endif
 #ifdef HAS_ENGINE_BPF
@@ -259,12 +221,12 @@ void event_capture::open_engine(const std::string& engine_string,
 			          << std::endl;
 			exit(EXIT_FAILURE);
 		}
-		get_inspector()->open_bpf(event_capture::get_engine_path().c_str(), m_buffer_dim);
+		m_inspector->open_bpf(event_capture::get_engine_path().c_str(), m_buffer_dim);
 	}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
-		get_inspector()->open_modern_bpf(m_buffer_dim);
+		m_inspector->open_modern_bpf(m_buffer_dim);
 	}
 #endif
 	else {

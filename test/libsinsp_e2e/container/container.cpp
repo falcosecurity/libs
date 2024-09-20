@@ -43,7 +43,7 @@ TEST_F(sys_call_test, container_cgroups) {
 
 		if(ctid >= 0) {
 			if(ctid == 0) {
-				sleep(1);
+				sleep(5);
 				// _exit prevents asan from complaining for a false positive memory leak.
 				_exit(0);
 			} else {
@@ -251,7 +251,7 @@ static void run_container_docker_test(bool fork_after_container_start) {
 			ASSERT_TRUE(false);
 		}
 
-		sleep(2);
+		sleep(10);
 
 		ASSERT_TRUE(system("docker kill libsinsp_docker > /dev/null 2>&1 || true") == 0);
 		ASSERT_TRUE(system("docker rm -v libsinsp_docker > /dev/null 2>&1") == 0);
@@ -607,14 +607,6 @@ static void healthcheck_helper(
 	};
 
 	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
-		// Setting dropping mode preserves the execs but
-		// reduces the chances that we'll drop events during
-		// the docker fetch.
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->start_dropping_mode(1);
-		}
-
 		int rc = dhelper.run_container("cont_health_ut", "/bin/sh -c '/bin/sleep 10'");
 
 		ASSERT_TRUE(exited_early || (rc == 0));

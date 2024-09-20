@@ -739,9 +739,7 @@ TEST_F(sys_call_test, procinfo_processchild_cpuload) {
 				if(tinfo->m_tid == ctid) {
 					uint64_t tcpu;
 
-					const sinsp_evt_param* parinfo = e->get_param(0);
-					// tcpu = *(uint64_t*)parinfo->m_val;
-					memcpy(&tcpu, parinfo->m_val, sizeof(uint64_t));
+					memcpy(&tcpu, e->get_param(0)->m_val, sizeof(uint64_t));
 
 					uint64_t delta = tcpu - lastcpu;
 
@@ -812,8 +810,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload) {
 				if(tinfo->m_tid == ctid) {
 					uint64_t tcpu;
 
-					const sinsp_evt_param* parinfo = e->get_param(0);
-					tcpu = *(uint64_t*)parinfo->m_val;
+					memcpy(&tcpu, e->get_param(0)->m_val, sizeof(uint64_t));
 
 					uint64_t delta = tcpu - lastcpu;
 
@@ -828,8 +825,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload) {
 				} else if(tinfo->m_tid == ctid1) {
 					uint64_t tcpu;
 
-					const sinsp_evt_param* parinfo = e->get_param(0);
-					tcpu = *(uint64_t*)parinfo->m_val;
+					memcpy(&tcpu, e->get_param(0)->m_val, sizeof(uint64_t));
 
 					uint64_t delta = tcpu - lastcpu1;
 

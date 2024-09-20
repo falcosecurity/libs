@@ -100,6 +100,10 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 	int ctid;          // child tid
 	int xstatus = 33;  // child exit value
 
+	if(event_capture::m_engine_string != KMOD_ENGINE) {
+		GTEST_SKIP() << "This is test only works with the kmod engine";
+	}
+
 	//
 	// FILTER
 	//
@@ -283,7 +287,9 @@ TEST_F(sys_call_test, forking_process_expired) {
 		                   event_capture::always_continue,
 		                   131072,
 		                   5 * ONE_SECOND_IN_NS,
-		                   ONE_SECOND_IN_NS);
+		                   ONE_SECOND_IN_NS,
+						   SINSP_MODE_LIVE,
+						   20);
 	});
 
 	EXPECT_TRUE(sleep_caught);

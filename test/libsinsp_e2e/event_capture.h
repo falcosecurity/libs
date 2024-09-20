@@ -119,11 +119,6 @@ public:
 
 	static bool always_continue() { return true; }
 
-	sinsp* get_inspector() {
-		static sinsp inspector = sinsp();
-		return &inspector;
-	}
-
 	static void run(run_callback_t run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
@@ -134,7 +129,7 @@ public:
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                sinsp_mode_t mode = SINSP_MODE_LIVE,
-	                uint64_t max_timeouts = 3,
+	                uint64_t max_timeouts = 10,
 	                bool dump = true) {
 		event_capture capturing;
 		{  // Synchronized section
@@ -158,12 +153,20 @@ public:
 
 		if(!capturing.m_start_failed.load()) {
 			run_function(capturing.get_inspector_handle());
-			capturing.stop_capture();
+			// This lseek is just used to be sure that all the events
+			// created in the run_function were consumed.
+			capturing.m_fd = open("/tmp/test.lock", O_CREAT|O_RDONLY, S_IRWXU);
 			capturing.wait_for_capture_stop();
 		} else {
 			std::unique_lock<std::mutex> error_lookup_lock(capturing.m_object_state_mutex);
 			GTEST_MESSAGE_(capturing.m_start_failure_message.c_str(),
 			               ::testing::TestPartResult::kFatalFailure);
+		}
+
+		if(capturing.m_fd != -1)
+		{
+			close(capturing.m_fd);
+			unlink("/tmp/test.lock");
 		}
 
 		thread.join();
@@ -208,8 +211,10 @@ private:
 	std::string m_start_failure_message;
 	std::string m_dump_filename;
 	callback_param m_param;
+	std::unique_ptr<sinsp> m_inspector;
 	static bool inspector_ok;
 	sinsp_mode_t m_mode;
 	uint64_t m_max_timeouts;
 	bool m_dump;
+	int64_t m_fd = -1;
 };

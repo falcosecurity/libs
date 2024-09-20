@@ -2081,32 +2081,34 @@ TEST_F(sys_call_test, thread_lookup_static) {
 
 	before_close_t before_close = [&](sinsp* inspector) {
 		platform = (scap_linux_platform*)inspector->get_scap_platform();
+
+		ASSERT_EQ(SCAP_SUCCESS,
+				  scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
+
+		EXPECT_EQ(1, scap_tinfo.tid);
+		EXPECT_EQ(1, scap_tinfo.pid);
+		EXPECT_EQ(1, scap_tinfo.vtid);
+		EXPECT_EQ(0, scap_tinfo.ptid);
+
+		ASSERT_EQ(SCAP_SUCCESS,
+				scap_proc_read_thread(platform, proc, 62725, &scap_tinfo, err_buf, false));
+		EXPECT_EQ(62725, scap_tinfo.tid);
+		EXPECT_EQ(62725, scap_tinfo.pid);
+		EXPECT_EQ(62725, scap_tinfo.vtid);
+		EXPECT_EQ(1, scap_tinfo.ptid);
+
+		ASSERT_EQ(SCAP_SUCCESS,
+				scap_proc_read_thread(platform, proc, 62727, &scap_tinfo, err_buf, false));
+		EXPECT_EQ(62727, scap_tinfo.tid);
+		EXPECT_EQ(62725, scap_tinfo.pid);
+		EXPECT_EQ(62727, scap_tinfo.vtid);
+		EXPECT_EQ(1, scap_tinfo.ptid);
+
 	};
 
 	ASSERT_NO_FATAL_FAILURE({
 		event_capture::run(test, callback, filter, event_capture::do_nothing, before_close);
 	});
-
-	ASSERT_EQ(SCAP_SUCCESS, scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
-
-	EXPECT_EQ(1, scap_tinfo.tid);
-	EXPECT_EQ(1, scap_tinfo.pid);
-	EXPECT_EQ(1, scap_tinfo.vtid);
-	EXPECT_EQ(0, scap_tinfo.ptid);
-
-	ASSERT_EQ(SCAP_SUCCESS,
-	          scap_proc_read_thread(platform, proc, 62725, &scap_tinfo, err_buf, false));
-	EXPECT_EQ(62725, scap_tinfo.tid);
-	EXPECT_EQ(62725, scap_tinfo.pid);
-	EXPECT_EQ(62725, scap_tinfo.vtid);
-	EXPECT_EQ(1, scap_tinfo.ptid);
-
-	ASSERT_EQ(SCAP_SUCCESS,
-	          scap_proc_read_thread(platform, proc, 62727, &scap_tinfo, err_buf, false));
-	EXPECT_EQ(62727, scap_tinfo.tid);
-	EXPECT_EQ(62725, scap_tinfo.pid);
-	EXPECT_EQ(62727, scap_tinfo.vtid);
-	EXPECT_EQ(1, scap_tinfo.ptid);
 }
 
 TEST_F(sys_call_test, thread_lookup_live) {
@@ -2159,23 +2161,25 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		// close scap to maintain the num_consumers at exit == 0 assertion
 		// close_capture(scap, platform);
 		platform = (scap_linux_platform*)inspector->get_scap_platform();
+
+		ASSERT_EQ(SCAP_SUCCESS,
+				  scap_proc_read_thread(platform, proc, getpid(), &scap_tinfo, err_buf, false));
+		EXPECT_EQ(getpid(), scap_tinfo.tid);
+		EXPECT_EQ(getpid(), scap_tinfo.pid);
+		EXPECT_EQ(getpid(), scap_tinfo.vtid);
+		EXPECT_EQ(getppid(), scap_tinfo.ptid);
+
+		ASSERT_EQ(SCAP_SUCCESS, scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
+		EXPECT_EQ(1, scap_tinfo.tid);
+		EXPECT_EQ(1, scap_tinfo.pid);
+		EXPECT_EQ(1, scap_tinfo.vtid);
+		EXPECT_EQ(0, scap_tinfo.ptid);
+
 	};
+
 	ASSERT_NO_FATAL_FAILURE({
 		event_capture::run(test, callback, filter, event_capture::do_nothing, before_close);
 	});
-
-	ASSERT_EQ(SCAP_SUCCESS,
-	          scap_proc_read_thread(platform, proc, getpid(), &scap_tinfo, err_buf, false));
-	EXPECT_EQ(getpid(), scap_tinfo.tid);
-	EXPECT_EQ(getpid(), scap_tinfo.pid);
-	EXPECT_EQ(getpid(), scap_tinfo.vtid);
-	EXPECT_EQ(getppid(), scap_tinfo.ptid);
-
-	ASSERT_EQ(SCAP_SUCCESS, scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
-	EXPECT_EQ(1, scap_tinfo.tid);
-	EXPECT_EQ(1, scap_tinfo.pid);
-	EXPECT_EQ(1, scap_tinfo.vtid);
-	EXPECT_EQ(0, scap_tinfo.ptid);
 }
 
 TEST_F(sys_call_test, fd_name_max_path) {
