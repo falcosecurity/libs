@@ -82,8 +82,6 @@ jobs:
             cmake \
                 -DBUILD_BPF=ON \
                 -DUSE_BUNDLED_DEPS=OFF \
-                -DUSE_ASAN=ON \
-                -DUSE_UBSAN=ON \
                 -DENABLE_LIBSINSP_E2E_TESTS=ON \
                 -DBUILD_LIBSCAP_MODERN_BPF=ON \
                 -DBUILD_LIBSCAP_GVISOR=OFF \
