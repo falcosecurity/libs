@@ -1,0 +1,47 @@
+name: 'install-zig'
+description: 'Install zig compiler and make it available in PATH.'
+
+inputs:
+  sudo:
+    description: 'Specify a sudo command. Put it empty when sudo is not available.'
+    required: false
+    default: 'sudo'
+
+outputs:
+  zig_path:
+    description: "Path of installed zig, automatically added to GITHUB_PATH"
+    value: ${{ steps.zig.outputs.zig-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install zig
+      shell: bash
+      id: zig
+      env:
+        ZIG_VERSION: '0.14.0-dev.1588+2111f4c38'
+      run: |
+        curl -L -o zig.tar.xz https://ziglang.org/builds/zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz
+        tar -xvf zig.tar.xz
+
+        cat > zig-linux-$(uname -m)-${ZIG_VERSION}/zig-cc <<EOF
+        #!/bin/bash
+        exec zig cc -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
+        EOF
+        chmod +x zig-linux-$(uname -m)-${ZIG_VERSION}/zig-cc
+
+        cat > zig-linux-$(uname -m)-${ZIG_VERSION}/zig-c++ <<EOF
+        #!/bin/bash
+        exec zig c++ -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
+        EOF
+        chmod +x zig-linux-$(uname -m)-${ZIG_VERSION}/zig-c++
+
+        ${{ inputs.sudo }} mkdir -p /usr/local/zig/
+        ${{ inputs.sudo }} cp -R zig-linux-$(uname -m)-${ZIG_VERSION}/* /usr/local/zig/
+        echo "/usr/local/zig" >> $GITHUB_PATH
+        echo "CC=zig-cc" >> $GITHUB_ENV
+        echo "CXX=zig-c++" >> $GITHUB_ENV
+        echo "AR=zig ar" >> $GITHUB_ENV
+        echo "RANLIB=zig ranlib" >> $GITHUB_ENV
+        
+        echo "zig-path=/usr/local/zig/zig-linux-$(uname -m)-${ZIG_VERSION}" >> $GITHUB_OUTPUT
