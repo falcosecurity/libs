@@ -7,17 +7,23 @@ inputs:
     required: false
     default: 'sudo'
 
-outputs:
-  zig_path:
-    description: "Path of installed zig, automatically added to GITHUB_PATH"
-    value: ${{ steps.zig.outputs.zig-path }}
-
 runs:
   using: "composite"
   steps:
-    - name: Install zig
+    # TODO: this is only needed because we are using a development version of zig,
+    # since we need https://github.com/ziglang/zig/pull/21253 to be included.
+    # Development versions of zig are not kept alive forever, but get overridden.
+    # We cache it to keep it alive.
+    - name: Download zig (cached)
+      id: cache-zig
+      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+      with:
+        path: /usr/local/zig
+        key: zig-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Download zig
+      if: steps.cache-zig.outputs.cache-hit != 'true'
       shell: bash
-      id: zig
       env:
         ZIG_VERSION: '0.14.0-dev.1588+2111f4c38'
       run: |
@@ -38,10 +44,13 @@ runs:
 
         ${{ inputs.sudo }} mkdir -p /usr/local/zig/
         ${{ inputs.sudo }} cp -R zig-linux-$(uname -m)-${ZIG_VERSION}/* /usr/local/zig/
+
+    - name: Setup zig
+      shell: bash
+      id: zig
+      run: |
         echo "/usr/local/zig" >> $GITHUB_PATH
         echo "CC=zig-cc" >> $GITHUB_ENV
         echo "CXX=zig-c++" >> $GITHUB_ENV
         echo "AR=zig ar" >> $GITHUB_ENV
         echo "RANLIB=zig ranlib" >> $GITHUB_ENV
-        
-        echo "zig-path=/usr/local/zig/zig-linux-$(uname -m)-${ZIG_VERSION}" >> $GITHUB_OUTPUT
