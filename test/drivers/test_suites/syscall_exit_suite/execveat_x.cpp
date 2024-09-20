@@ -206,9 +206,12 @@ TEST(SyscallExit, execveatX_failure) {
 	 * executable */
 	evt_test->assert_charbuf_param(28, info.exepath);
 
+	/* Parameter 29: pgid (type: PT_PID) */
+	evt_test->assert_numeric_param(29, (int64_t)info.pgid);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(28);
+	evt_test->assert_num_params_pushed(29);
 }
 
 /* All architectures return an `EXECVEAT_X` event when the syscall fails, but only
@@ -374,7 +377,7 @@ TEST(SyscallExit, execveatX_correct_exit) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(28);
+	evt_test->assert_num_params_pushed(29);
 #else
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid);
@@ -504,7 +507,7 @@ TEST(SyscallExit, execveatX_execve_exit) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(28);
+	evt_test->assert_num_params_pushed(29);
 #endif
 }
 
@@ -600,7 +603,7 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(28);
+	evt_test->assert_num_params_pushed(29);
 #endif
 }
 
@@ -716,7 +719,7 @@ TEST(SyscallExit, execveatX_success_memfd) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(28);
+	evt_test->assert_num_params_pushed(29);
 #else
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid);

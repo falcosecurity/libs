@@ -139,7 +139,7 @@ TEST(GenericTracepoints, sched_proc_exec) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(28);
+	evt_test->assert_num_params_pushed(29);
 }
 
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
@@ -253,7 +253,7 @@ TEST(GenericTracepoints, sched_proc_exec_success_memfd) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(28);
+	evt_test->assert_num_params_pushed(29);
 }
 #endif
 #endif
