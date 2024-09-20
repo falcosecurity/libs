@@ -163,6 +163,72 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_aname) {
 	EXPECT_FALSE(eval_filter(evt, "proc.aname in (bad-exe)"));
 }
 
+TEST_F(sinsp_with_test_input, PROC_FILTER_pgid_family) {
+	DEFAULT_TREE
+
+	auto p3_t1_tinfo = m_inspector.get_thread_ref(p3_t1_tid, false).get();
+	ASSERT_TRUE(p3_t1_tinfo);
+
+	auto p1_t1_tinfo = m_inspector.get_thread_ref(p1_t1_tid, false).get();
+	ASSERT_TRUE(p1_t1_tinfo);
+
+	//
+	// Direct access in the thread table
+	//
+
+	// manually set the pgid to p1_t1
+	p3_t1_tinfo->m_pgid = p1_t1_pid;
+	// Be sure we will obtain specific values not shared by other threads
+	p1_t1_tinfo->m_comm = "p1_t1_comm";
+	p1_t1_tinfo->m_exe = "p1_t1_exe";
+	p1_t1_tinfo->m_exepath = "p1_t1_exepath";
+
+	// Generate random event to call filter-checks
+	auto evt = generate_random_event(p3_t1_tid);
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid"), std::to_string(p1_t1_pid));
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.name"), p1_t1_tinfo->get_comm());
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.exe"), p1_t1_tinfo->get_exe());
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.exepath"), p1_t1_tinfo->get_exepath());
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_pgid_leader"), "false");
+
+	//
+	// Current process is leader
+	//
+
+	p3_t1_tinfo->m_pgid = p3_t1_pid;
+	p3_t1_tinfo->m_comm = "p3_t1_comm";
+	p3_t1_tinfo->m_exe = "p3_t1_exe";
+	p3_t1_tinfo->m_exepath = "p3_t1_exepath";
+	evt = generate_random_event(p3_t1_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid"), std::to_string(p3_t1_tid));
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.name"), p3_t1_tinfo->get_comm());
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.exe"), p3_t1_tinfo->get_exe());
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.exepath"), p3_t1_tinfo->get_exepath());
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_pgid_leader"), "true");
+
+	//
+	// Missing process group find ancestor
+	//
+
+	auto p2_t1_tinfo = m_inspector.get_thread_ref(p2_t1_tid, false).get();
+	ASSERT_TRUE(p2_t1_tinfo);
+
+	int64_t random_pgid = 100000;
+	p3_t1_tinfo->m_pgid = random_pgid;
+	// p2_t1 is the last ancestor with the same pgid
+	p2_t1_tinfo->m_pgid = random_pgid;
+	p2_t1_tinfo->m_comm = "p2_t1_comm";
+	p2_t1_tinfo->m_exe = "p2_t1_exe";
+	p2_t1_tinfo->m_exepath = "p2_t1_exepath";
+	evt = generate_random_event(p3_t1_tid);
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid"), std::to_string(random_pgid));
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.name"), p2_t1_tinfo->get_comm());
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.exe"), p2_t1_tinfo->get_exe());
+	ASSERT_EQ(get_field_as_string(evt, "proc.pgid.exepath"), p2_t1_tinfo->get_exepath());
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_pgid_leader"), "false");
+}
+
 #if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
 TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	DEFAULT_TREE

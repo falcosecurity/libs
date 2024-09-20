@@ -255,4 +255,25 @@ TEST_F(sinsp_with_test_input, EXECVE_exepath_without_trusted_exepath) {
 	ASSERT_EQ(p7_t1_tinfo->get_comm(), "new-comm");
 }
 
+TEST_F(sinsp_with_test_input, EXECVE_check_pgid_population) {
+	add_default_init_thread();
+	open_inspector();
+
+	int64_t random_pgid = 100;
+	generate_execve_enter_and_exit_event(0,
+	                                     INIT_TID,
+	                                     INIT_TID,
+	                                     INIT_PID,
+	                                     INIT_PTID,
+	                                     "/usr/bin/bash",
+	                                     "init",
+	                                     "/usr/bin/bash",
+	                                     {},
+	                                     random_pgid);
+
+	auto init_tinfo = m_inspector.get_thread_ref(INIT_TID, false).get();
+	ASSERT_TRUE(init_tinfo);
+	ASSERT_EQ(init_tinfo->m_pgid, random_pgid);
+}
+
 /*=============================== EXECVE ===========================*/
