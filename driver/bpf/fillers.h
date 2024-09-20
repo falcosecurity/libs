@@ -2818,8 +2818,18 @@ FILLER(execve_extra_tail_2, true) {
 	} else {
 		res = bpf_push_empty_param(data);
 	}
+	CHECK_RES(res);
 
-	return res;
+	/* Parameter 29: pgid (type: PT_UID) */
+	pid_t pgid = 0;
+	struct signal_struct *signal = (struct signal_struct *)_READ(task->signal);
+	if(signal) {
+		struct pid *pid_struct = _READ(signal->pids[PIDTYPE_PGID]);
+		if(pid_struct) {
+			pgid = _READ(pid_struct->numbers[0].nr);
+		}
+	}
+	return bpf_push_s64_to_ring(data, (int64_t)pgid);
 }
 
 FILLER(sys_accept4_e, true) {
@@ -6595,8 +6605,18 @@ FILLER(sched_prog_exec_5, false) {
 	} else {
 		res = bpf_push_empty_param(data);
 	}
+	CHECK_RES(res);
 
-	return res;
+	/* Parameter 29: pgid (type: PT_UID) */
+	pid_t pgid = 0;
+	struct signal_struct *signal = (struct signal_struct *)_READ(task->signal);
+	if(signal) {
+		struct pid *pid_struct = _READ(signal->pids[PIDTYPE_PGID]);
+		if(pid_struct) {
+			pgid = _READ(pid_struct->numbers[0].nr);
+		}
+	}
+	return bpf_push_s64_to_ring(data, (int64_t)pgid);
 }
 
 #endif

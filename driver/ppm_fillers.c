@@ -1547,6 +1547,17 @@ cgroups_error:
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 		res = val_to_ring(args, (unsigned long)trusted_exepath, 0, false, 0);
 		CHECK_RES(res);
+
+		/* Parameter 29: pgid (type: PT_UID) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+		// task_pgrp_nr_ns has been introduced in 2.6.24
+		// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
+		res = val_to_ring(args, task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+#else
+		// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
+		res = val_to_ring(args, process_group(current), 0, false, 0);
+#endif
+		CHECK_RES(res);
 	}
 	return add_sentinel(args);
 }
@@ -7430,6 +7441,17 @@ cgroups_error:
 
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	res = val_to_ring(args, (unsigned long)trusted_exepath, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 29: pgid (type: PT_UID) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+	// task_pgrp_nr_ns has been introduced in 2.6.24
+	// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
+	res = val_to_ring(args, task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+#else
+	// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
+	res = val_to_ring(args, process_group(current), 0, false, 0);
+#endif
 	CHECK_RES(res);
 
 	return add_sentinel(args);
