@@ -88,6 +88,7 @@ int32_t scap_proc_fill_info_from_stats(char* error,
 	tinfo->ptid = (uint32_t)-1LL;
 	tinfo->sid = 0;
 	tinfo->vpgid = 0;
+	tinfo->pgid = -1;
 	tinfo->vmsize_kb = 0;
 	tinfo->vmrss_kb = 0;
 	tinfo->vmswap_kb = 0;
@@ -198,8 +199,11 @@ int32_t scap_proc_fill_info_from_stats(char* error,
 			}
 		} else if(strstr(line, "NSpgid:") == line) {
 			pidinfo_nfound++;
-			if(sscanf(line, "NSpgid: %*u %" PRIu64, &vpgid) == 1) {
+			// We are assuming that the second id in the line is the vpgid we are looking for.
+			// This is not true in case of nested pid namespaces, but i'm not sure we support them.
+			if(sscanf(line, "NSpgid: %" PRIu64 " %" PRIu64, &pgid, &vpgid) == 2) {
 				tinfo->vpgid = vpgid;
+				tinfo->pgid = pgid;
 			}
 		} else if(strstr(line, "NStgid:") == line) {
 			pidinfo_nfound++;
@@ -277,10 +281,9 @@ int32_t scap_proc_fill_info_from_stats(char* error,
 	tinfo->pfminor = pfminor;
 	tinfo->sid = (uint64_t)sid;
 
-	// If we did not find vpgid above, set it to pgid from the
-	// global namespace.
-	if(tinfo->vpgid == 0) {
-		tinfo->vpgid = pgid;
+	// If we did not find pgid above in /proc/[pid]/status, we use the one from /proc/[pid]/stat
+	if(tinfo->pgid == -1) {
+		tinfo->pgid = pgid;
 	}
 
 	tinfo->tty = tty;

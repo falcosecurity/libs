@@ -606,7 +606,8 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d,
 	                  sizeof(uint64_t) +                                 // exe_ino_ctime
 	                  sizeof(uint64_t) +                                 // exe_ino_mtime
 	                  sizeof(uint8_t) +                                  // exe_from_memfd
-	                  sizeof(uint8_t));                                  // exe_lower_layer
+	                  sizeof(uint8_t) +                                  // exe_lower_layer
+	                  sizeof(int64_t));                                  // pgid
 
 	if(scap_dump_write(d, len, sizeof(uint32_t)) != sizeof(uint32_t) ||
 	   scap_dump_write(d, &(tinfo->tid), sizeof(uint64_t)) != sizeof(uint64_t) ||
@@ -653,7 +654,8 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d,
 	   scap_dump_write(d, &(tinfo->exe_ino_ctime), sizeof(uint64_t)) != sizeof(uint64_t) ||
 	   scap_dump_write(d, &(tinfo->exe_ino_mtime), sizeof(uint64_t)) != sizeof(uint64_t) ||
 	   scap_dump_write(d, &(tinfo->exe_from_memfd), sizeof(uint8_t)) != sizeof(uint8_t) ||
-	   scap_dump_write(d, &(tinfo->exe_lower_layer), sizeof(uint8_t)) != sizeof(uint8_t)) {
+	   scap_dump_write(d, &(tinfo->exe_lower_layer), sizeof(uint8_t)) != sizeof(uint8_t) ||
+	   scap_dump_write(d, &(tinfo->pgid), sizeof(int64_t)) != sizeof(int64_t)) {
 		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 		return SCAP_FAILURE;
 	}

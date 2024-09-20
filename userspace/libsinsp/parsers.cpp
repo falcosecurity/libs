@@ -1305,6 +1305,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 
 		child_tinfo->m_vpgid = caller_tinfo->m_vpgid;
 
+		child_tinfo->m_pgid = caller_tinfo->m_pgid;
+
 		child_tinfo->m_tty = caller_tinfo->m_tty;
 
 		child_tinfo->m_loginuser = caller_tinfo->m_loginuser;
@@ -1617,6 +1619,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 		child_tinfo->m_sid = lookup_tinfo->m_sid;
 
 		child_tinfo->m_vpgid = lookup_tinfo->m_vpgid;
+
+		child_tinfo->m_pgid = lookup_tinfo->m_pgid;
 
 		child_tinfo->m_tty = lookup_tinfo->m_tty;
 
@@ -2269,6 +2273,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	// Get uid
 	if(evt->get_num_params() > 26) {
 		evt->get_tinfo()->m_user.set_uid(evt->get_param(26)->as<uint32_t>());
+	}
+
+	// Get pgid
+	if(evt->get_num_params() > 28) {
+		evt->get_tinfo()->m_pgid = evt->get_param(28)->as<int64_t>();
+	} else {
+		evt->get_tinfo()->m_pgid = -1;
 	}
 
 	//
