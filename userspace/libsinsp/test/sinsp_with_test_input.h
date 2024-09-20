@@ -186,7 +186,8 @@ protected:
 	        const std::string& pathname = "/bin/test-exe",
 	        const std::string& comm = "test-exe",
 	        const std::string& resolved_kernel_path = "/bin/test-exe",
-	        const std::vector<std::string>& cgroup_vec = {});
+	        const std::vector<std::string>& cgroup_vec = {},
+	        int64_t pgid = 0);
 	void remove_thread(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_proc_exit_event(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_random_event(int64_t tid_caller = INIT_TID);
