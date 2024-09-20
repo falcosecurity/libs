@@ -15,8 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <sys/wait.h>
 #include <unistd.h>
 #include <string>
+#include <sstream>
+#include <cstring>
 
 #include <libscap/engine/gvisor/gvisor.h>
 
@@ -26,37 +29,45 @@ namespace runsc {
 
 result runsc(char *argv[]) {
 	result res;
+	int pipefds[2];
 
-	std::string full_command;
-	int i = 0;
-	while(true) {
-		if(argv[i] == nullptr) {
-			break;
-		}
-		full_command.append(argv[i]);
-		full_command.append(" ");
-		i++;
+	int ret = pipe(pipefds);
+	if(ret) {
+		return res;
 	}
-	FILE *cmd_out = popen(full_command.c_str(), "r");
-	if(cmd_out == nullptr) {
-		res.error = -errno;
-	} else {
-		char *out = nullptr;
-		size_t len = 0;
-		ssize_t readbytes;
-		while((readbytes = getline(&out, &len, cmd_out)) >= 0) {
-			// getline() returns string comprehensive of newline char;
-			// drop it if found.
-			if(out[readbytes - 1] == '\n') {
-				out[readbytes - 1] = '\0';
-			}
-			res.output.emplace_back(out);
-		}
-		free(out);
-		int status = pclose(cmd_out);
+
+	pid_t pid = vfork();
+	if(pid > 0) {
+		int status;
+
+		close(pipefds[1]);
+		wait(&status);
 		if(!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
 			res.error = status;
+			return res;
 		}
+
+		std::string line;
+
+		char buf[512] = {0};
+		std::stringstream ss;
+		size_t len;
+
+		// Read until EOF
+		while((len = read(pipefds[0], buf, sizeof(buf) - 1)) != 0) {
+			ss << buf;
+			// Be smart: only reset first len bytes
+			memset(buf, 0, len);
+		}
+
+		while(std::getline(ss, line)) {
+			res.output.emplace_back(line);
+		}
+	} else {
+		close(pipefds[0]);
+		dup2(pipefds[1], STDOUT_FILENO);
+		execvp("runsc", argv);
+		exit(1);
 	}
 
 	return res;
