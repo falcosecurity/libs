@@ -472,6 +472,7 @@ public:
 	int64_t m_vpid;   ///< The virtual id of the process containing this thread. In single thread
 	                  ///< threads, this is equal to vtid.
 	int64_t m_vpgid;  // The virtual process group id, as seen from its pid namespace
+	int64_t m_pgid;   // Process group id, as seen from the host pid namespace
 	uint64_t m_pidns_init_start_ts;  ///< The pid_namespace init task (child_reaper) start_time ts.
 	std::string m_root;
 	size_t m_program_hash;          ///< Unique hash of the current program
@@ -619,6 +620,15 @@ public:
 	}
 
 	inline sinsp_evt::category& get_lastevent_category() { return m_lastevent_category; }
+
+	sinsp_threadinfo* get_oldest_matching_ancestor(
+	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+	        bool is_virtual_id = false);
+
+	std::string get_ancestor_field_as_string(
+	        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+	        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
+	        bool is_virtual_id = false);
 
 private:
 	sinsp_threadinfo* get_cwd_root();

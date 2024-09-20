@@ -95,6 +95,7 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	define_static_field(ret, this, m_vtid, "vtid");
 	define_static_field(ret, this, m_vpid, "vpid");
 	define_static_field(ret, this, m_vpgid, "vpgid");
+	define_static_field(ret, this, m_pgid, "pgid");
 	define_static_field(ret, this, m_pidns_init_start_ts, "pidns_init_start_ts");
 	define_static_field(ret, this, m_root, "root");
 	// m_program_hash
@@ -115,6 +116,7 @@ void sinsp_threadinfo::init() {
 	m_sid = (uint64_t)-1LL;
 	m_ptid = (uint64_t)-1LL;
 	m_vpgid = (uint64_t)-1LL;
+	m_pgid = (uint64_t)-1LL;
 	set_lastevent_data_validity(false);
 	m_reaper_tid = -1;
 	m_not_expired_children = 0;
@@ -446,6 +448,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi) {
 	m_ptid = pi->ptid;
 	m_sid = pi->sid;
 	m_vpgid = pi->vpgid;
+	m_pgid = pi->pgid;
 
 	m_comm = pi->comm;
 	m_exe = pi->exe;
@@ -893,6 +896,51 @@ uint64_t sinsp_threadinfo::get_fd_usage_pct() {
 	} else {
 		return 0;
 	}
+}
+
+sinsp_threadinfo* sinsp_threadinfo::get_oldest_matching_ancestor(
+        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+        bool is_virtual_id) {
+	int64_t id = get_thread_id(this);
+	if(id == -1) {
+		// the id is not set
+		return nullptr;
+	}
+
+	// If we are using a non virtual id or if the id is virtual but we are in the init namespace we
+	// can access the thread table directly!
+	// if is_virtual_id == false we don't care about the namespace in which we are
+	sinsp_threadinfo* leader = nullptr;
+	if(!is_virtual_id || !is_in_pid_namespace()) {
+		leader = m_inspector->get_thread_ref(id, false).get();
+		if(leader != nullptr) {
+			return leader;
+		}
+	}
+
+	// If we are in a pid_namespace we cannot use directly m_sid to access the table
+	// since it could be related to a pid namespace.
+	sinsp_threadinfo::visitor_func_t visitor = [id, &leader, get_thread_id](sinsp_threadinfo* pt) {
+		if(get_thread_id(pt) != id) {
+			return false;
+		}
+		leader = pt;
+		return true;
+	};
+
+	traverse_parent_state(visitor);
+	return leader;
+}
+
+std::string sinsp_threadinfo::get_ancestor_field_as_string(
+        const std::function<int64_t(sinsp_threadinfo*)>& get_thread_id,
+        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
+        bool is_virtual_id) {
+	auto ancestor = this->get_oldest_matching_ancestor(get_thread_id, is_virtual_id);
+	if(ancestor) {
+		return get_field_str(ancestor);
+	}
+	return "";
 }
 
 double sinsp_threadinfo::get_fd_usage_pct_d() {
@@ -1696,6 +1744,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 	sctinfo->ptid = tinfo.m_ptid;
 	sctinfo->sid = tinfo.m_sid;
 	sctinfo->vpgid = tinfo.m_vpgid;
+	sctinfo->pgid = tinfo.m_pgid;
 
 	sctinfo->flags = tinfo.m_flags;
 	sctinfo->fdlimit = tinfo.m_fdlimit;

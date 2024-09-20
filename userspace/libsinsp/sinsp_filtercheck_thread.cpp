@@ -326,6 +326,39 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "the process with proc.vpgid == proc.vpid or the eldest ancestor that has the same vpgid "
          "as the current process. The description of `proc.is_vpgid_leader` offers additional "
          "insights."},
+        {PT_INT64,
+         EPF_NONE,
+         PF_ID,
+         "proc.pgid",
+         "Process Group ID",
+         "The process group id of the process generating the event, as seen from host PID "
+         "namespace."},
+        {PT_CHARBUF,
+         EPF_NONE,
+         PF_NA,
+         "proc.pgid.name",
+         "Process Group Name",
+         "The name of the current process's process group leader. This is either the process with "
+         "proc.pgid == proc.pid or the eldest ancestor that has the same pgid as the current "
+         "process. The description of `proc.is_pgid_leader` offers additional insights."},
+        {PT_CHARBUF,
+         EPF_NONE,
+         PF_NA,
+         "proc.pgid.exe",
+         "Process Group First Argument",
+         "The first command line argument argv[0] (usually the executable name or a custom one) of "
+         "the current process's process group leader. This is either the process with proc.pgid "
+         "== proc.pid or the eldest ancestor that has the same pgid as the current process. The "
+         "description of `proc.is_pgid_leader` offers additional insights."},
+        {PT_CHARBUF,
+         EPF_NONE,
+         PF_NA,
+         "proc.pgid.exepath",
+         "Process Group Executable Path",
+         "The full executable path of the current process's process group leader. This is either "
+         "the process with proc.pgid == proc.pid or the eldest ancestor that has the same pgid "
+         "as the current process. The description of `proc.is_pgid_leader` offers additional "
+         "insights."},
         {PT_RELTIME,
          EPF_NONE,
          PF_DEC,
@@ -400,6 +433,17 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "bash history logging, `is_vpgid_leader` would be 'true') or executed as descendent "
          "process in the same process group which for example is the case when subprocesses are "
          "spawned from a script (`is_vpgid_leader` would be 'false')."},
+        {PT_BOOL,
+         EPF_NONE,
+         PF_NA,
+         "proc.is_pgid_leader",
+         "Process Is Process Group Leader",
+         "'true' if this process is the leader of the process group, proc.pgid == "
+         "proc.pid. Can help to "
+         "distinguish if the process was 'directly' executed for instance in a tty (similar to "
+         "bash history logging, `is_pgid_leader` would be 'true') or executed as descendent "
+         "process in the same process group which for example is the case when subprocesses are "
+         "spawned from a script (`is_pgid_leader` would be 'false')."},
         {PT_INT64,
          EPF_NONE,
          PF_DEC,
@@ -1946,6 +1990,26 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		m_tstr = fdinfo->m_name.c_str();
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
+	case TYPE_PGID:
+		RETURN_EXTRACT_VAR(tinfo->m_pgid);
+	case TYPE_PGID_NAME:
+		m_tstr = tinfo->get_ancestor_field_as_string(
+		        [](sinsp_threadinfo* t) { return t->m_pgid; },
+		        [](sinsp_threadinfo* t) { return t->get_comm(); });
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_PGID_EXE:
+		m_tstr = tinfo->get_ancestor_field_as_string(
+		        [](sinsp_threadinfo* t) { return t->m_pgid; },
+		        [](sinsp_threadinfo* t) { return t->get_exe(); });
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_PGID_EXEPATH:
+		m_tstr = tinfo->get_ancestor_field_as_string(
+		        [](sinsp_threadinfo* t) { return t->m_pgid; },
+		        [](sinsp_threadinfo* t) { return t->get_exepath(); });
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_IS_PGID_LEADER:
+		m_val.u32 = tinfo->m_pgid == tinfo->m_pid;
+		RETURN_EXTRACT_VAR(m_val.u32);
 	default:
 		ASSERT(false);
 		return NULL;

@@ -110,6 +110,7 @@ static int32_t scap_read_proclist(scap_reader_t *r,
 		tinfo.root[0] = 0;
 		tinfo.sid = -1;
 		tinfo.vpgid = -1;
+		tinfo.pgid = -1;
 		tinfo.clone_ts = 0;
 		tinfo.pidns_init_start_ts = 0;
 		tinfo.tty = 0;
@@ -682,6 +683,13 @@ static int32_t scap_read_proclist(scap_reader_t *r,
 		if(sub_len && (subreadsize + sizeof(uint8_t)) <= sub_len) {
 			readsize = r->read(r, &(tinfo.exe_lower_layer), sizeof(uint8_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint8_t), error);
+			subreadsize += readsize;
+		}
+
+		// pgid
+		if(sub_len && (subreadsize + sizeof(int64_t)) <= sub_len) {
+			readsize = r->read(r, &(tinfo.pgid), sizeof(int64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(int64_t), error);
 			subreadsize += readsize;
 		}
 
