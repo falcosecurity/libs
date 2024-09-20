@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [amd64, arm64]
-        name: [system_deps, bundled_deps, system_deps_minimal, sanitizers]
+        name: [system_deps, bundled_deps, system_deps_minimal, sanitizers, zig]
         include:
           - name: system_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
@@ -31,6 +31,8 @@ jobs:
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
+          - name: zig
+            cmake_opts: -DUSE_BUNDLED_DEPS=True
     container:
       image: debian:buster
     steps:
@@ -58,6 +60,12 @@ jobs:
       - name: Git safe directory
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Install zig
+        if: matrix.name == 'zig'
+        uses: ./.github/actions/install-zig
+        with:
+          sudo: ''
 
       - name: Build and test 🏗️🧪
         env:
