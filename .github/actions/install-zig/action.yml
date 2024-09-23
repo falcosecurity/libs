@@ -10,6 +10,14 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Store zig version as local output
+      shell: bash
+      id: store
+      env:
+        ZIG_VERSION: '0.14.0-dev.1632+d83a3f174'
+      run: |
+        echo "zig_version=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
+
     # TODO: this is only needed because we are using a development version of zig,
     # since we need https://github.com/ziglang/zig/pull/21253 to be included.
     # Development versions of zig are not kept alive forever, but get overridden.
@@ -19,31 +27,29 @@ runs:
       uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
       with:
         path: /usr/local/zig
-        key: zig-${{ runner.os }}-${{ runner.arch }}
+        key: zig-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.zig_version }}
 
     - name: Download zig
       if: steps.cache-zig.outputs.cache-hit != 'true'
       shell: bash
-      env:
-        ZIG_VERSION: '0.14.0-dev.1588+2111f4c38'
       run: |
-        curl -L -o zig.tar.xz https://ziglang.org/builds/zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz
+        curl -L -o zig.tar.xz https://ziglang.org/builds/zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}.tar.xz
         tar -xvf zig.tar.xz
 
-        cat > zig-linux-$(uname -m)-${ZIG_VERSION}/zig-cc <<EOF
+        cat > zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-cc <<EOF
         #!/bin/bash
         exec zig cc -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
         EOF
-        chmod +x zig-linux-$(uname -m)-${ZIG_VERSION}/zig-cc
+        chmod +x zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-cc
 
-        cat > zig-linux-$(uname -m)-${ZIG_VERSION}/zig-c++ <<EOF
+        cat > zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-c++ <<EOF
         #!/bin/bash
         exec zig c++ -target $(uname -m)-linux-gnu.2.17 -mcpu=baseline "\$@"
         EOF
-        chmod +x zig-linux-$(uname -m)-${ZIG_VERSION}/zig-c++
+        chmod +x zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-c++
 
         ${{ inputs.sudo }} mkdir -p /usr/local/zig/
-        ${{ inputs.sudo }} cp -R zig-linux-$(uname -m)-${ZIG_VERSION}/* /usr/local/zig/
+        ${{ inputs.sudo }} cp -R zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/* /usr/local/zig/
 
     - name: Setup zig
       shell: bash
