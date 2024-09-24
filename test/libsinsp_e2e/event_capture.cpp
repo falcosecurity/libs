@@ -107,7 +107,13 @@ void event_capture::capture() {
 	sinsp_evt* event;
 	bool result = true;
 	int32_t next_result = SCAP_SUCCESS;
-	while(!m_capture_stopped && result && !::testing::Test::HasFatalFailure()) {
+	while(result && !::testing::Test::HasFatalFailure()) {
+		{
+			std::lock_guard<std::mutex> lock(m_object_state_mutex);
+			if(m_capture_stopped) {
+				break;
+			}
+		}
 		{
 			std::scoped_lock inspector_next_lock(m_inspector_mutex);
 			next_result = get_inspector()->next(&event);
@@ -120,7 +126,10 @@ void event_capture::capture() {
 		}
 		if(!signaled_start) {
 			signaled_start = true;
-			m_capture_started = true;
+			{
+				std::lock_guard<std::mutex> lock(m_object_state_mutex);
+				m_capture_started = true;
+			}
 			m_condition_started.notify_one();
 		}
 	}
@@ -171,8 +180,9 @@ void event_capture::capture() {
 		}
 
 		m_capture_stopped = true;
-		m_condition_stopped.notify_one();
 	}  // End teardown synchronized section
+
+	m_condition_stopped.notify_one();
 }
 
 void event_capture::stop_capture() {
