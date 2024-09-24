@@ -178,6 +178,7 @@ void event_capture::capture() {
 void event_capture::stop_capture() {
 	{
 		std::scoped_lock init_lock(m_inspector_mutex, m_object_state_mutex);
+		get_inspector()->stop_capture();
 		m_capture_stopped = true;
 		m_condition_stopped.notify_one();
 	}
