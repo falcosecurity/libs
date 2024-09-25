@@ -422,20 +422,24 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SYSCALL_MKDIRAT_X:
 	case PPME_SYSCALL_UNLINKAT_2_X:
 	case PPME_SYSCALL_MKNODAT_X: {
-		auto res = evt->get_param(0)->as<int64_t>();
-		if(res >= 0) {
-			// Only if successful
-			auto dirfd = evt->get_param(1)->as<int64_t>();
-			evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+		if (evt->get_tinfo() != nullptr) {
+			auto res = evt->get_param(0)->as<int64_t>();
+			if(res >= 0) {
+				// Only if successful
+				auto dirfd = evt->get_param(1)->as<int64_t>();
+				evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+			}
 		}
 		break;
 	}
 	case PPME_SYSCALL_SYMLINKAT_X: {
-		auto res = evt->get_param(0)->as<int64_t>();
-		if(res >= 0) {
-			// Only if successful
-			auto dirfd = evt->get_param(2)->as<int64_t>();
-			evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+		if (evt->get_tinfo() != nullptr) {
+			auto res = evt->get_param(0)->as<int64_t>();
+			if(res >= 0) {
+				// Only if successful
+				auto dirfd = evt->get_param(2)->as<int64_t>();
+				evt->set_fd_info(evt->get_tinfo()->get_fd(dirfd));
+			}
 		}
 		break;
 	}
