@@ -110,11 +110,9 @@ void runtest(iotype iot,
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->dynamic_snaplen(true);
-		}
+	before_open_t before = [&](sinsp* inspector) { inspector->dynamic_snaplen(true); };
+
+	run_callback_t test = [&]() {
 		server_proc.start();
 		server_proc.wait_for_start();
 		server_pid = server_proc.get_pid();
@@ -275,9 +273,8 @@ void runtest(iotype iot,
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   before,
 		                   event_capture::do_nothing,
-		                   event_capture::do_nothing,
-		                   event_capture::always_continue,
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
@@ -347,7 +344,7 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts)
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		server.signal_continue();
 		client.signal_continue();
 		server_thread.join();
@@ -375,7 +372,6 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts)
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
-		                   event_capture::always_continue,
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,

@@ -469,7 +469,7 @@ TEST_F(sys_call_test, udp_client_server) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) { udps.start(); };
+	run_callback_t test = [&]() { udps.start(); };
 
 	//
 	// OUTPUT VALDATION
@@ -598,7 +598,7 @@ TEST_F(sys_call_test, udp_client_server_with_connect_by_client) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) { udps.start(); };
+	run_callback_t test = [&]() { udps.start(); };
 
 	//
 	// OUTPUT VALDATION
@@ -635,7 +635,7 @@ TEST_F(sys_call_test, udp_client_server_sendmsg) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) { udps.start(); };
+	run_callback_t test = [&]() { udps.start(); };
 
 	//
 	// OUTPUT VALDATION
@@ -691,7 +691,7 @@ TEST_F(sys_call_test, udp_client_server_sendmsg_2buf) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) { udps.start(); };
+	run_callback_t test = [&]() { udps.start(); };
 
 	//
 	// OUTPUT VALDATION
@@ -760,7 +760,7 @@ static void run_fd_name_changed_test(bool use_sendmsg,
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) { udps.start(); };
+	run_callback_t test = [&]() { udps.start(); };
 
 	//
 	// OUTPUT VALDATION
@@ -837,7 +837,7 @@ TEST_F(sys_call_test, udp_client_server_multiple_connect_name_changed) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		int sd;
 
 		sd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -904,7 +904,7 @@ TEST_F(sys_call_test, statsd_client_snaplen) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		// sendto with addr
 		udp_client client(0x0100007F, false, 8125);
 		client.m_payload = payload;
@@ -962,7 +962,7 @@ TEST_F(sys_call_test, statsd_client_no_snaplen) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		// sendto with addr
 		// Different port
 		udp_client client(0x0100007F, false, 8126);

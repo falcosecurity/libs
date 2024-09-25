@@ -95,7 +95,7 @@ TEST_F(sys_call_test, stat) {
 		return evt_name.find("stat") != std::string::npos && m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		struct stat sb;
 		stat("/tmp", &sb);
 	};
@@ -114,7 +114,7 @@ TEST_F(sys_call_test, open_close) {
 		       m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		int fd = open("/tmp", O_RDONLY);
 		close(fd);
 	};
@@ -143,7 +143,7 @@ TEST_F(sys_call_test, open_close_dropping) {
 		       m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		int fd = open("/tmp", O_RDONLY);
 		close(fd);
 	};
@@ -170,9 +170,7 @@ TEST_F(sys_call_test, fcntl_getfd) {
 		return 0 == strcmp(evt->get_name(), "fcntl") && m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
-		fcntl(0, F_GETFL);
-	};
+	run_callback_t test = []() { fcntl(0, F_GETFL); };
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
@@ -189,9 +187,7 @@ TEST_F(sys_call_test, fcntl_getfd_dropping) {
 		return 0 == strcmp(evt->get_name(), "fcntl") && m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
-		fcntl(0, F_GETFL);
-	};
+	run_callback_t test = []() { fcntl(0, F_GETFL); };
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
@@ -207,9 +203,7 @@ TEST_F(sys_call_test, bind_error) {
 		return 0 == strcmp(evt->get_name(), "bind") && m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
-		bind(0, NULL, 0);
-	};
+	run_callback_t test = []() { bind(0, NULL, 0); };
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
@@ -226,9 +220,7 @@ TEST_F(sys_call_test, bind_error_dropping) {
 		return 0 == strcmp(evt->get_name(), "bind") && m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
-		bind(0, NULL, 0);
-	};
+	run_callback_t test = []() { bind(0, NULL, 0); };
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
@@ -244,7 +236,7 @@ TEST_F(sys_call_test, close_badfd) {
 		return 0 == strcmp(evt->get_name(), "close") && m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		close(-1);
 		close(INT_MAX);
 	};
@@ -271,7 +263,7 @@ TEST_F(sys_call_test, close_badfd_dropping) {
 		return 0 == strcmp(evt->get_name(), "close") && m_tid_filter(evt);
 	};
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		close(-1);
 		close(INT_MAX);
 	};
@@ -305,7 +297,7 @@ TEST_F(sys_call_test, poll_timeout) {
 
 	std::string my_pipe[2];
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		subprocess handle(LIBSINSP_TEST_PATH "/test_helper", {"poll_timeout"});
 		std::stringstream ss;
 		ss << handle.out();
@@ -376,7 +368,7 @@ TEST_F(sys_call_test, ioctl) {
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
 	int status;
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		int fd;
 
 		fd = open("/dev/ttyS0", O_RDONLY);
@@ -413,7 +405,7 @@ TEST_F(sys_call_test, shutdown) {
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
 	int sock;
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		if((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 			FAIL() << "socket() failed";
 			return;
@@ -459,7 +451,7 @@ TEST_F(sys_call_test, timerfd) {
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
 	int fd;
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		int ret;
 		unsigned int ns;
 		unsigned int sec;
@@ -525,7 +517,7 @@ TEST_F(sys_call_test, timestamp) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		useconds_t sleep_period = 10;
 		struct timeval tv;
 		for(uint32_t j = 0; j < sizeof(timestampv) / sizeof(timestampv[0]); ++j) {
@@ -554,7 +546,7 @@ TEST_F(sys_call_test, brk) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		sbrk(1000);
 		sbrk(100000);
 	};
@@ -616,7 +608,7 @@ TEST_F(sys_call_test, mmap) {
 
 	void* p;
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		munmap((void*)0x50, 300);
 		p = mmap(0,
 		         0,
@@ -770,7 +762,7 @@ TEST_F(sys_call_test, quotactl_ko) {
 		       evt->get_type() == PPME_SYSCALL_QUOTACTL_E;
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		quotactl(QCMD(Q_QUOTAON, USRQUOTA),
 		         "/dev/xxx",
 		         2,
@@ -839,7 +831,7 @@ TEST_F(sys_call_test, quotactl_ok) {
 
 	struct dqblk mydqblk;
 	struct dqinfo mydqinfo;
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		quotactl(QCMD(Q_QUOTAON, USRQUOTA),
 		         "/dev/loop0",
 		         2,
@@ -939,7 +931,7 @@ TEST_F(sys_call_test, getsetuid_and_gid) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		auto res = setuid(0);
 		EXPECT_EQ(0, res);
 		res = setgid(test_gid);
@@ -1032,7 +1024,7 @@ TEST_F(sys_call_test32, execve_ia32_emulation) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return is_subprocess_execve->run(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		auto ret = system(LIBSINSP_TEST_RESOURCES_PATH "execve32 " LIBSINSP_TEST_RESOURCES_PATH
 		                                               "execve " LIBSINSP_TEST_RESOURCES_PATH
 		                                               "execve32");
@@ -1093,7 +1085,7 @@ TEST_F(sys_call_test32, quotactl_ko) {
 		       evt->get_type() == PPME_SYSCALL_QUOTACTL_E;
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		subprocess handle(LIBSINSP_TEST_PATH "/test_helper_32", {"quotactl_ko"});
 		handle.wait();
 	};
@@ -1140,7 +1132,7 @@ TEST_F(sys_call_test, setns_test) {
 		return m_tid_filter(evt) &&
 		       (evt->get_type() == PPME_SYSCALL_SETNS_E || evt->get_type() == PPME_SYSCALL_SETNS_X);
 	};
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		fd = open("/proc/self/ns/net", O_RDONLY);
 		ASSERT_NE(0, fd);
 		ASSERT_EQ(0, setns(fd, CLONE_NEWNET));
@@ -1171,7 +1163,7 @@ TEST_F(sys_call_test, unshare_) {
 		       (evt->get_type() == PPME_SYSCALL_UNSHARE_E ||
 		        evt->get_type() == PPME_SYSCALL_UNSHARE_X);
 	};
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		auto child = fork();
 		if(child == 0) {
 			unshare(CLONE_NEWUTS);
@@ -1203,7 +1195,7 @@ TEST_F(sys_call_test, sendmsg_recvmsg_SCM_RIGHTS) {
 		auto tinfo = evt->get_thread_info(true);
 		return tinfo->get_comm() == "libsinsp_e2e_te" && evt->get_type() == PPME_SOCKET_RECVMSG_X;
 	};
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		int server_sd, worker_sd, pair_sd[2];
 		int rc = socketpair(AF_UNIX, SOCK_DGRAM, 0, pair_sd);
 		ASSERT_GE(rc, 0);
@@ -1290,7 +1282,7 @@ TEST_F(sys_call_test, ppoll_timeout) {
 		       ti->m_comm == "test_helper";
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		subprocess handle(LIBSINSP_TEST_PATH "/test_helper", {"ppoll_timeout"});
 		handle.wait();
 	};
@@ -1373,7 +1365,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		char command[] =
 		        "useradd -u 5454 testsetresuid && "
 		        "groupadd -g 6565 testsetresgid && "
@@ -1484,7 +1476,7 @@ TEST_F(sys_call_test, failing_execve) {
 	printf("%s %s %s %s %s\n", eargv[0], eargv[1], eargv[2], eargv[3], eargv[4]);
 	printf("%s %s %s %s\n", eenvp[0], eenvp[1], eenvp[2], eenvp[3]);
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		int ret = execve(eargv[0], (char* const*)eargv, (char* const*)eenvp);
 		ASSERT_TRUE(ret < 0);
 	};
@@ -1537,7 +1529,7 @@ TEST_F(sys_call_test, large_execve) {
 		buf.append(std::to_string(random()));
 	}
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		ctid = fork();
 
 		if(ctid < 0) {
@@ -1637,7 +1629,7 @@ TEST_F(sys_call_test32, failing_execve) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		auto ret = system(LIBSINSP_TEST_RESOURCES_PATH "execve32_fail");
 		ASSERT_TRUE(ret > 0);
 		ret = system(LIBSINSP_TEST_RESOURCES_PATH "execve32 ./fail");
@@ -1732,7 +1724,7 @@ TEST_F(sys_call_test32, mmap) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		subprocess handle(LIBSINSP_TEST_PATH "/test_helper_32",
 		                  {
 		                          "mmap_test",
@@ -1889,7 +1881,7 @@ TEST_F(sys_call_test32, ppoll_timeout) {
 
 	std::string my_pipe[2];
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		subprocess handle(LIBSINSP_TEST_PATH "/test_helper_32",
 		                  {
 		                          "ppoll_timeout",
@@ -1976,7 +1968,7 @@ TEST_F(sys_call_test32, fs_preadv) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		subprocess test_proc(LIBSINSP_TEST_PATH "/test_helper_32", {"preadv_pwritev"});
 		fd = std::stoi(test_proc.out());
 		int bool_n = std::stoi(test_proc.out());
@@ -2075,38 +2067,33 @@ TEST_F(sys_call_test, thread_lookup_static) {
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return evt->get_type() != PPME_PROCEXIT_1_E && evt->get_tid() > 0;
 	};
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) { return; };
-	captured_event_callback_t callback = [&](const callback_param& param) { return; };
-	scap_linux_platform* platform;
+	run_callback_t test = [&]() { return; };
+	captured_event_callback_t callback = [&](const callback_param& param) {
+		auto* platform = (scap_linux_platform*)param.m_inspector->get_scap_platform();
+		ASSERT_EQ(SCAP_SUCCESS,
+		          scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
 
-	before_close_t before_close = [&](sinsp* inspector) {
-		platform = (scap_linux_platform*)inspector->get_scap_platform();
+		EXPECT_EQ(1, scap_tinfo.tid);
+		EXPECT_EQ(1, scap_tinfo.pid);
+		EXPECT_EQ(1, scap_tinfo.vtid);
+		EXPECT_EQ(0, scap_tinfo.ptid);
+
+		ASSERT_EQ(SCAP_SUCCESS,
+		          scap_proc_read_thread(platform, proc, 62725, &scap_tinfo, err_buf, false));
+		EXPECT_EQ(62725, scap_tinfo.tid);
+		EXPECT_EQ(62725, scap_tinfo.pid);
+		EXPECT_EQ(62725, scap_tinfo.vtid);
+		EXPECT_EQ(1, scap_tinfo.ptid);
+
+		ASSERT_EQ(SCAP_SUCCESS,
+		          scap_proc_read_thread(platform, proc, 62727, &scap_tinfo, err_buf, false));
+		EXPECT_EQ(62727, scap_tinfo.tid);
+		EXPECT_EQ(62725, scap_tinfo.pid);
+		EXPECT_EQ(62727, scap_tinfo.vtid);
+		EXPECT_EQ(1, scap_tinfo.ptid);
 	};
 
-	ASSERT_NO_FATAL_FAILURE({
-		event_capture::run(test, callback, filter, event_capture::do_nothing, before_close);
-	});
-
-	ASSERT_EQ(SCAP_SUCCESS, scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
-
-	EXPECT_EQ(1, scap_tinfo.tid);
-	EXPECT_EQ(1, scap_tinfo.pid);
-	EXPECT_EQ(1, scap_tinfo.vtid);
-	EXPECT_EQ(0, scap_tinfo.ptid);
-
-	ASSERT_EQ(SCAP_SUCCESS,
-	          scap_proc_read_thread(platform, proc, 62725, &scap_tinfo, err_buf, false));
-	EXPECT_EQ(62725, scap_tinfo.tid);
-	EXPECT_EQ(62725, scap_tinfo.pid);
-	EXPECT_EQ(62725, scap_tinfo.vtid);
-	EXPECT_EQ(1, scap_tinfo.ptid);
-
-	ASSERT_EQ(SCAP_SUCCESS,
-	          scap_proc_read_thread(platform, proc, 62727, &scap_tinfo, err_buf, false));
-	EXPECT_EQ(62727, scap_tinfo.tid);
-	EXPECT_EQ(62725, scap_tinfo.pid);
-	EXPECT_EQ(62727, scap_tinfo.vtid);
-	EXPECT_EQ(1, scap_tinfo.ptid);
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 }
 
 TEST_F(sys_call_test, thread_lookup_live) {
@@ -2119,7 +2106,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return evt->get_type() != PPME_PROCEXIT_1_E && evt->get_tid() > 0;
 	};
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		// a very short sleep to gather some events,
 		// we'll take much longer than this to process them all
 		usleep(1000);
@@ -2153,29 +2140,29 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		}
 	};
 
-	scap_linux_platform* platform;
-
 	before_close_t before_close = [&](sinsp* inspector) {
 		// close scap to maintain the num_consumers at exit == 0 assertion
 		// close_capture(scap, platform);
-		platform = (scap_linux_platform*)inspector->get_scap_platform();
+		auto platform = (scap_linux_platform*)inspector->get_scap_platform();
+
+		ASSERT_EQ(SCAP_SUCCESS,
+		          scap_proc_read_thread(platform, proc, getpid(), &scap_tinfo, err_buf, false));
+		EXPECT_EQ(getpid(), scap_tinfo.tid);
+		EXPECT_EQ(getpid(), scap_tinfo.pid);
+		EXPECT_EQ(getpid(), scap_tinfo.vtid);
+		EXPECT_EQ(getppid(), scap_tinfo.ptid);
+
+		ASSERT_EQ(SCAP_SUCCESS,
+		          scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
+		EXPECT_EQ(1, scap_tinfo.tid);
+		EXPECT_EQ(1, scap_tinfo.pid);
+		EXPECT_EQ(1, scap_tinfo.vtid);
+		EXPECT_EQ(0, scap_tinfo.ptid);
 	};
+
 	ASSERT_NO_FATAL_FAILURE({
 		event_capture::run(test, callback, filter, event_capture::do_nothing, before_close);
 	});
-
-	ASSERT_EQ(SCAP_SUCCESS,
-	          scap_proc_read_thread(platform, proc, getpid(), &scap_tinfo, err_buf, false));
-	EXPECT_EQ(getpid(), scap_tinfo.tid);
-	EXPECT_EQ(getpid(), scap_tinfo.pid);
-	EXPECT_EQ(getpid(), scap_tinfo.vtid);
-	EXPECT_EQ(getppid(), scap_tinfo.ptid);
-
-	ASSERT_EQ(SCAP_SUCCESS, scap_proc_read_thread(platform, proc, 1, &scap_tinfo, err_buf, false));
-	EXPECT_EQ(1, scap_tinfo.tid);
-	EXPECT_EQ(1, scap_tinfo.pid);
-	EXPECT_EQ(1, scap_tinfo.vtid);
-	EXPECT_EQ(0, scap_tinfo.ptid);
 }
 
 TEST_F(sys_call_test, fd_name_max_path) {
@@ -2189,9 +2176,7 @@ TEST_F(sys_call_test, fd_name_max_path) {
 		       m_tid_filter(evt);
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
-		open(pathname.c_str(), O_RDONLY);
-	};
+	run_callback_t test = [&]() { open(pathname.c_str(), O_RDONLY); };
 
 	sinsp_filter_check_list m_filterlist;
 

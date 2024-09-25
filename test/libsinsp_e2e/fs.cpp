@@ -69,7 +69,7 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		int fd = creat(FILENAME, 0644);
 
 		if(fd < 0) {
@@ -158,7 +158,7 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		mkdir(UNEXISTENT_DIRNAME, 0);
 
 		if(mkdir(DIRNAME, 0) != 0) {
@@ -262,7 +262,7 @@ TEST_F(sys_call_test, fs_openat) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		dirfd = open(".", O_DIRECTORY);
 		if(dirfd <= 0) {
 			FAIL();
@@ -341,7 +341,7 @@ TEST_F(sys_call_test, fs_pread) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		fd = creat(FILENAME, S_IRWXU);
 		if(fd < 0) {
 			FAIL();
@@ -467,7 +467,7 @@ TEST_F(sys_call_test, fs_readv) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		int wv_count;
 		char msg1[10] = "aaaaa";
 		char msg2[10] = "bbbbb";
@@ -561,7 +561,7 @@ TEST_F(sys_call_test, fs_preadv) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		int wv_count;
 		char msg1[10] = "aaaaa";
 		char msg2[10] = "bbbbb";
@@ -698,7 +698,7 @@ TEST_F(sys_call_test, fs_dup) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		fd = open(FILENAME, O_CREAT | O_WRONLY, 0);
 		fd1 = dup(fd);
 		fd2 = dup2(fd, 333);
@@ -823,7 +823,7 @@ TEST_F(sys_call_test, fs_fcntl) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		fd = open(FILENAME, O_CREAT | O_WRONLY, 0);
 		fd1 = fcntl(fd, F_DUPFD, 0);
 		fd2 = fcntl(fd, F_DUPFD_CLOEXEC, 0);
@@ -897,7 +897,7 @@ TEST_F(sys_call_test, fs_sendfile) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -955,7 +955,7 @@ TEST_F(sys_call_test, fs_sendfile_nulloff) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1011,7 +1011,7 @@ TEST_F(sys_call_test, fs_sendfile_failed) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		int res = sendfile(-1, -2, NULL, 444);
 		EXPECT_GT(0, res);
 	};
@@ -1060,7 +1060,7 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1120,7 +1120,7 @@ TEST_F(sys_call_test, fs_sendfile64) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1178,7 +1178,7 @@ TEST_F(sys_call_test, large_read_write) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		fd1 = creat(FILENAME, S_IRWXU);
 		if(fd1 < 0) {
 			FAIL();
@@ -1245,7 +1245,6 @@ TEST_F(sys_call_test, large_read_write) {
 		                   filter,
 		                   setup,
 		                   cleanup,
-		                   event_capture::always_continue,
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
@@ -1275,7 +1274,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		fd = creat(FILENAME, S_IRWXU);
 		if(fd < 0) {
 			FAIL();
@@ -1324,7 +1323,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 		} else if(type == PPME_SYSCALL_WRITEV_X) {
 			if(callnum == 1) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
-				if(event_capture::m_engine_string == KMOD_ENGINE) {
+				if(event_capture::s_engine_string == KMOD_ENGINE) {
 					//
 					// The driver doesn't have the correct behavior for accumulating
 					// readv/writev, and it uses a single page as a temporary storage area
@@ -1346,7 +1345,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 		} else if(type == PPME_SYSCALL_READV_X) {
 			if(callnum == 3) {
 				const sinsp_evt_param* p = e->get_param_by_name("data");
-				if(event_capture::m_engine_string == KMOD_ENGINE) {
+				if(event_capture::s_engine_string == KMOD_ENGINE) {
 					EXPECT_EQ(p->m_len, max_kmod_buf);
 					EXPECT_EQ(0, memcmp(buf, p->m_val, max_kmod_buf));
 				} else {
@@ -1368,7 +1367,6 @@ TEST_F(sys_call_test, large_readv_writev) {
 		                   filter,
 		                   setup,
 		                   cleanup,
-		                   event_capture::always_continue,
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
@@ -1394,7 +1392,7 @@ TEST_F(sys_call_test, large_open) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 #ifdef SYS_open
 		int fd = syscall(SYS_open, buf.c_str(), O_RDONLY);
 #else
@@ -1412,13 +1410,13 @@ TEST_F(sys_call_test, large_open) {
 		} else if(name.find("open") != std::string::npos && e->get_direction() == SCAP_ED_OUT) {
 			const sinsp_evt_param* p = e->get_param_by_name("name");
 
-			if(event_capture::m_engine_string == KMOD_ENGINE) {
+			if(event_capture::s_engine_string == KMOD_ENGINE) {
 				EXPECT_EQ(p->m_len, PPM_MAX_ARG_SIZE);
 				EXPECT_EQ(buf.substr(0, PPM_MAX_ARG_SIZE - 1), std::string(p->m_val));
-			} else if(event_capture::m_engine_string == BPF_ENGINE) {
+			} else if(event_capture::s_engine_string == BPF_ENGINE) {
 				EXPECT_EQ(p->m_len, SNAPLEN_MAX);
 				EXPECT_EQ(buf.substr(0, SNAPLEN_MAX - 1), std::string(p->m_val));
-			} else if(event_capture::m_engine_string == MODERN_BPF_ENGINE) {
+			} else if(event_capture::s_engine_string == MODERN_BPF_ENGINE) {
 				EXPECT_EQ(p->m_len, PATH_MAX);
 				EXPECT_EQ(buf.substr(0, PATH_MAX - 1), std::string(p->m_val));
 			}

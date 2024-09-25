@@ -57,7 +57,7 @@ TEST_F(sys_call_test, forking) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		pid_t childtid;
 		int status;
 		childtid = fork();
@@ -107,19 +107,18 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 		return evt->get_tid() == ptid || evt->get_tid() == ctid;
 	};
 
-	//
-	// TEST CODE
-	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
-		int status;
-
+	before_open_t before = [&](sinsp* inspector) {
 		//
 		// Stop the capture just before the fork so we lose the event.
 		//
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->stop_capture();
-		}
+		inspector->stop_capture();
+	};
+
+	//
+	// TEST CODE
+	//
+	run_callback_t test = [&]() {
+		int status;
 
 		ctid = fork();
 
@@ -138,7 +137,7 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 				// It's a simple way to make sure the capture is started
 				// after the child's clone returned.
 				//
-				inspector_handle.unsafe_ptr()->start_capture();
+				event_capture::do_request(E2E_REQ_START_CAPTURE);
 
 				//
 				// Wait for 5 seconds to make sure the process will still
@@ -197,26 +196,32 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
 
 	EXPECT_TRUE(child_exists);
 	EXPECT_TRUE(parent_exists);
 }
 
 TEST_F(sys_call_test, forking_process_expired) {
-	int ptid;  // parent tid
-	int ctid;  // child tid
+	std::atomic<int> ptid = -1;  // parent tid
+	std::atomic<int> ctid = -1;  // child tid
 	int status;
 
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == ptid; };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		if(evt->get_type() == PPME_SYSCALL_NANOSLEEP_E ||
+		   evt->get_type() == PPME_SYSCALL_NANOSLEEP_X) {
+			return evt->get_tid() == ptid.load();
+		}
+		return false;
+	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		ctid = fork();
 
 		if(ctid >= 0)  // fork succeeded
@@ -227,17 +232,16 @@ TEST_F(sys_call_test, forking_process_expired) {
 				FAIL();
 			} else  // fork() returns new pid to the parent process
 			{
-				ptid = getpid();
+				ptid = gettid();
 
 				//
 				// Wait 10 seconds. During this time, the process should NOT be removed
 				//
-				struct timespec req, rem;
-				req.tv_sec = 10;
+				struct timespec req = {0};
+				req.tv_sec = 1;
 				req.tv_nsec = 0;
 
-				syscall(__NR_nanosleep, &req, &rem);
-
+				syscall(__NR_nanosleep, &req, nullptr);
 				kill(ctid, SIGUSR1);
 				wait(&status);
 			}
@@ -253,24 +257,23 @@ TEST_F(sys_call_test, forking_process_expired) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
-
-		if(e->get_tid() == ptid) {
-			if(e->get_type() == PPME_SYSCALL_NANOSLEEP_E && !sleep_caught) {
+		if(!sleep_caught) {
+			if(e->get_type() == PPME_SYSCALL_NANOSLEEP_E) {
 				//
 				// The child should exist
 				//
-				sinsp_threadinfo* ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
+				sinsp_threadinfo* ti =
+				        param.m_inspector->get_thread_ref(ctid.load(), false, true).get();
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
-			} else if(e->get_type() == PPME_SYSCALL_NANOSLEEP_X && !sleep_caught) {
+			} else if(e->get_type() == PPME_SYSCALL_NANOSLEEP_X) {
 				//
 				// The child should exist
 				//
-				sinsp_threadinfo* ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
+				sinsp_threadinfo* ti =
+				        param.m_inspector->get_thread_ref(ctid.load(), false, true).get();
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 				sleep_caught = true;
 			}
-		} else {
-			FAIL();
 		}
 	};
 
@@ -280,7 +283,6 @@ TEST_F(sys_call_test, forking_process_expired) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
-		                   event_capture::always_continue,
 		                   131072,
 		                   5 * ONE_SECOND_IN_NS,
 		                   ONE_SECOND_IN_NS);
@@ -292,7 +294,7 @@ TEST_F(sys_call_test, forking_process_expired) {
 ///////////////////////////////////////////////////////////////////////////////
 // CLONE VARIANTS
 ///////////////////////////////////////////////////////////////////////////////
-int ctid;  // child tid
+std::atomic<int> ctid = -1;  // child tid
 
 typedef struct {
 	int fd;
@@ -328,7 +330,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	int callnum = 0;
 	char bcwd[1024];
 	int prfd;
-	int ptid;  // parent tid
+	std::atomic<int> ptid;  // parent tid
 	pid_t clone_tid;
 	int child_tid;
 	int parent_res;
@@ -340,13 +342,13 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		return evt->get_tid() == ptid || evt->get_tid() == child_tid;
+		return evt->get_tid() == ptid.load() || evt->get_tid() == child_tid;
 	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -467,7 +469,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 	int callnum = 0;
 	char bcwd[1024];
 	int prfd;
-	int ptid;  // parent tid
+	std::atomic<int> ptid = -1;  // parent tid
 	int flags = CLONE_FS | CLONE_VM;
 	int drflags = PPM_CL_CLONE_FS | PPM_CL_CLONE_VM;
 
@@ -475,13 +477,13 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		return evt->get_tid() == ptid || evt->get_tid() == ctid;
+		return evt->get_tid() == ptid.load() || evt->get_tid() == ctid;
 	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -489,7 +491,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 		int status;
 		pid_t pid;
 
-		ptid = getpid();
+		ptid = gettid();
 
 		/* Set up an argument structure to be passed to cloned child, and
 		   set some process attributes that will be modified by child */
@@ -605,7 +607,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 	int callnum = 0;
 	char oriwd[1024];
 	char bcwd[256];
-	int ptid;  // parent tid
+	std::atomic<int> ptid = -1;  // parent tid
 	int flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD;
 	int drflags = PPM_CL_CLONE_VM | PPM_CL_CLONE_FS | PPM_CL_CLONE_FILES | PPM_CL_CLONE_SIGHAND |
 	              PPM_CL_CLONE_THREAD;
@@ -613,18 +615,17 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == ptid; };
+	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == ptid.load(); };
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
-		clone_params cp;              /* Passed to child function */
 
-		ptid = getpid();
+		ptid = gettid();
 
 		ASSERT_TRUE(getcwd(oriwd, 1024) != NULL);
 
@@ -637,17 +638,16 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 
 		/* Create child; child commences execution in childFunc() */
 
-		if(clone(clone_callback_2, stackTop, flags, &cp) == -1) {
+		if(clone(clone_callback_2, stackTop, flags, nullptr) == -1) {
 			FAIL();
 		}
 
-		sleep(1);
+		usleep(500);
 
 		std::string tmps = getcwd(bcwd, 256);
 
 		ASSERT_TRUE(chdir(oriwd) == 0);
 
-		sleep(1);
 		free(stack);
 	};
 
@@ -708,7 +708,7 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 		}
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		int status;
 
 		// ptid = getpid();
@@ -776,17 +776,11 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 // Create the initial stale process. It chdir()s to "/dev", stops the
 // inspector, and returns.
 static int stop_sinsp_and_exit(void* arg) {
-	// Get our own, unlocked concurrent inspector handle
-	concurrent_object_handle<sinsp> inspector_handle = *(concurrent_object_handle<sinsp>*)arg;
-
 	if(chdir("/dev") != 0) {
 		return 1;
 	}
 
-	{
-		std::scoped_lock inspector_handle_lock(inspector_handle);
-		inspector_handle->stop_capture();
-	}
+	event_capture::do_request(E2E_REQ_STOP_CAPTURE);
 
 	// Wait 5 seconds. This ensures that the state for this
 	// process will be considered stale when the second process
@@ -907,7 +901,7 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 		return (rp != 0 && tinfo && tinfo->m_tid == rp);
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		pid_t launcher_pid;
 		char* launcher_stack = NULL;
 
@@ -924,15 +918,14 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 		// Start a thread that runs and stops the inspector_handle right
 		// before exiting. This gives us a pid we can use for the
 		// second thread.
-		recycle_pid.store(clone_helper(stop_sinsp_and_exit, &inspector_handle));
+		recycle_pid.store(clone_helper(stop_sinsp_and_exit, nullptr));
 		ASSERT_GE(recycle_pid.load(), 0);
+
+		usleep(500);
 
 		// The first thread has started, turned off the capturing, and
 		// exited, so start capturing again.
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->start_capture();
-		}
+		event_capture::do_request(E2E_REQ_START_CAPTURE);
 
 		// Arrange that the next thread/process created has
 		// pid ctx.m_desired pid by writing to

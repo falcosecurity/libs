@@ -52,8 +52,8 @@ limitations under the License.
 TEST_F(sys_call_test, process_signalfd_kill) {
 	int callnum = 0;
 
-	int ptid;          // parent tid
-	int ctid;          // child tid
+	int ptid = -1;     // parent tid
+	int ctid = -1;     // child tid
 	int gptid;         // grandparent tid
 	int xstatus = 33;  // child exit value
 	int ssfd;
@@ -68,7 +68,7 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		int status;
 		int sfd;
 		ctid = fork();
@@ -136,7 +136,7 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 				//
 				// PARENT PROCESS
 				//
-				ptid = getpid();
+				ptid = gettid();
 				gptid = getppid();
 
 				//
@@ -219,7 +219,7 @@ TEST_F(sys_call_test, DISABLED_process_usleep) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		struct timespec req;
 		req.tv_sec = 0;
 		req.tv_nsec = 123456;
@@ -271,7 +271,7 @@ TEST_F(sys_call_test, process_inotify) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		int length;
 		int wd;
 		char buffer[EVENT_BUF_LEN];
@@ -387,7 +387,7 @@ TEST_F(sys_call_test, process_rlimit) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		struct rlimit rl;
 		sleep(1);
 
@@ -498,7 +498,7 @@ TEST_F(sys_call_test, process_prlimit) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		struct rlimit newrl;
 		struct rlimit oldrl;
 
@@ -617,7 +617,7 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		usleep(1000);
 
 		int s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -715,7 +715,7 @@ TEST_F(sys_call_test, procinfo_processchild_cpuload) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		for(uint32_t j = 0; j < 5; j++) {
 			sleep(1);
 		}
@@ -786,7 +786,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		for(uint32_t j = 0; j < 5; j++) {
 			sleep(1);
 		}
