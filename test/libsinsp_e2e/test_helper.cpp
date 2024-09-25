@@ -83,7 +83,7 @@ void mmap_test(const vector<string>& args) {
 	munmap(p, 1003520);
 	printf("%d\n", errno2);
 	fflush(stdout);
-	printf("%u\n", p);
+	printf("%p\n", p);
 	fflush(stdout);
 }
 

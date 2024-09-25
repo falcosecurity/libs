@@ -27,20 +27,21 @@ limitations under the License.
 using namespace std;
 
 TEST_F(sys_call_test, container_cgroups) {
-	int ctid;
+	int ctid = -1;
 	bool done = false;
 
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == ctid; };
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return evt->get_type() == PPME_SYSCALL_CLONE_20_X && evt->get_tid() == ctid;
+	};
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		ctid = fork();
-
 		if(ctid >= 0) {
 			if(ctid == 0) {
 				sleep(1);
@@ -55,58 +56,55 @@ TEST_F(sys_call_test, container_cgroups) {
 	};
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
-		if(param.m_evt->get_type() == PPME_SYSCALL_CLONE_20_X) {
-			sinsp_threadinfo sinsp_tinfo(nullptr);
-			char buf[100];
+		sinsp_threadinfo sinsp_tinfo(nullptr);
+		char buf[100];
 
-			sinsp_threadinfo* tinfo = param.m_evt->get_thread_info();
-			ASSERT_TRUE(tinfo != NULL);
-			const auto& cgroups = tinfo->cgroups();
-			ASSERT_TRUE(cgroups.size() > 0);
+		sinsp_threadinfo* tinfo = param.m_evt->get_thread_info();
+		ASSERT_TRUE(tinfo != nullptr);
+		const auto& cgroups = tinfo->cgroups();
+		ASSERT_TRUE(!cgroups.empty());
 
-			snprintf(buf, sizeof(buf), "/proc/%d/", ctid);
+		snprintf(buf, sizeof(buf), "/proc/%d/", ctid);
 
-			sinsp_tinfo.m_tid = ctid;
-			sinsp_cgroup::instance().lookup_cgroups(sinsp_tinfo);
+		sinsp_tinfo.m_tid = ctid;
+		sinsp_cgroup::instance().lookup_cgroups(sinsp_tinfo);
 
-			const auto& sinsp_cgroups = sinsp_tinfo.cgroups();
-			ASSERT_TRUE(sinsp_cgroups.size() > 0);
+		const auto& sinsp_cgroups = sinsp_tinfo.cgroups();
+		ASSERT_TRUE(!sinsp_cgroups.empty());
 
-			map<string, string> cgroups_kernel;
-			for(uint32_t j = 0; j < cgroups.size(); ++j) {
-				cgroups_kernel.insert(pair<string, string>(cgroups[j].first, cgroups[j].second));
-			}
-
-			map<string, string> cgroups_proc;
-			for(uint32_t j = 0; j < sinsp_cgroups.size(); ++j) {
-				cgroups_proc.insert(
-				        pair<string, string>(sinsp_cgroups[j].first, sinsp_cgroups[j].second));
-			}
-
-			ASSERT_TRUE(cgroups_kernel.size() > 0);
-			ASSERT_TRUE(cgroups_proc.size() > 0);
-
-			for(const auto& [subsys, path] : cgroups_proc) {
-				printf(" proc cgroup[%s] == <%s>\n", subsys.c_str(), path.c_str());
-			}
-
-			for(const auto& [subsys, path] : cgroups_kernel) {
-				printf(" kernel cgroup[%s] == <%s>\n", subsys.c_str(), path.c_str());
-			}
-
-			for(auto& [proc_subsys, proc_path] : cgroups_proc) {
-				auto it_kernel = cgroups_kernel.find(proc_subsys);
-				if(it_kernel != cgroups_kernel.end()) {
-					EXPECT_EQ(it_kernel->first, proc_subsys);
-					EXPECT_EQ(it_kernel->second, proc_path);
-				}
-			}
-
-			done = true;
+		map<string, string> cgroups_kernel;
+		for(const auto& cgroup : cgroups) {
+			cgroups_kernel.insert(pair<string, string>(cgroup.first, cgroup.second));
 		}
+
+		map<string, string> cgroups_proc;
+		for(const auto& sinsp_cgroup : sinsp_cgroups) {
+			cgroups_proc.insert(pair<string, string>(sinsp_cgroup.first, sinsp_cgroup.second));
+		}
+
+		ASSERT_TRUE(!cgroups_kernel.empty());
+		ASSERT_TRUE(!cgroups_proc.empty());
+
+		for(const auto& [subsys, path] : cgroups_proc) {
+			printf(" proc cgroup[%s] == <%s>\n", subsys.c_str(), path.c_str());
+		}
+
+		for(const auto& [subsys, path] : cgroups_kernel) {
+			printf(" kernel cgroup[%s] == <%s>\n", subsys.c_str(), path.c_str());
+		}
+
+		for(auto& [proc_subsys, proc_path] : cgroups_proc) {
+			auto it_kernel = cgroups_kernel.find(proc_subsys);
+			if(it_kernel != cgroups_kernel.end()) {
+				ASSERT_EQ(it_kernel->first, proc_subsys);
+				ASSERT_EQ(it_kernel->second, proc_path);
+			}
+		}
+
+		done = true;
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
@@ -136,7 +134,7 @@ TEST_F(sys_call_test, container_clone_nspid) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stack_top;              /* End of stack buffer area */
@@ -206,9 +204,7 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
-		waitpid(ctid, NULL, 0);
-	};
+	run_callback_t test = [&]() { waitpid(ctid, NULL, 0); };
 
 	//
 	// OUTPUT VALDATION
@@ -238,7 +234,7 @@ static void run_container_docker_test(bool fork_after_container_start) {
 		        evt->get_type() == PPME_CONTAINER_JSON_2_E);
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		ASSERT_TRUE(system("docker kill libsinsp_docker > /dev/null 2>&1 || true") == 0);
 		ASSERT_TRUE(system("docker rm -v libsinsp_docker > /dev/null 2>&1 || true") == 0);
 
@@ -346,7 +342,7 @@ TEST_F(sys_call_test, container_docker_bad_socket) {
 		return false;
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		ASSERT_TRUE(system("docker kill libsinsp_docker > /dev/null 2>&1 || true") == 0);
 		ASSERT_TRUE(system("docker rm -v libsinsp_docker > /dev/null 2>&1 || true") == 0);
 
@@ -408,7 +404,7 @@ TEST_F(sys_call_test, container_libvirt) {
 		return false;
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = [&]() {
 		FILE* f = fopen("/tmp/conf.xml", "w");
 		ASSERT_TRUE(f != NULL);
 		fprintf(f,
@@ -597,24 +593,21 @@ static void healthcheck_helper(
 
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
-	before_open_t setup = [&](sinsp* inspector) {};
+	before_open_t setup = [&](sinsp* inspector) {
+		// Setting dropping mode preserves the execs but
+		// reduces the chances that we'll drop events during
+		// the docker fetch.
+		inspector->start_dropping_mode(1);
+	};
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
 
-		return (strcmp(evt->get_name(), "execve") == 0 && evt->get_direction() == SCAP_ED_OUT &&
-		        tinfo->m_container_id != "");
+		return (tinfo != nullptr && strcmp(evt->get_name(), "execve") == 0 &&
+		        evt->get_direction() == SCAP_ED_OUT && !tinfo->m_container_id.empty());
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
-		// Setting dropping mode preserves the execs but
-		// reduces the chances that we'll drop events during
-		// the docker fetch.
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->start_dropping_mode(1);
-		}
-
+	run_callback_t test = [&]() {
 		int rc = dhelper.run_container("cont_health_ut", "/bin/sh -c '/bin/sleep 10'");
 
 		ASSERT_TRUE(exited_early || (rc == 0));
@@ -657,7 +650,7 @@ static void healthcheck_tracefile_helper(
 	        dockerfile + " . > /dev/null 2>&1");
 	ASSERT_TRUE(system(build_cmdline.c_str()) == 0);
 
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = []() {
 		// --network=none speeds up the container setup a bit.
 		ASSERT_TRUE(
 		        (system("docker run --rm --network=none --name cont_health_ut cont_health_ut_img "
@@ -687,7 +680,7 @@ static void healthcheck_tracefile_helper(
 	inspector.open_savefile(dumpfile);
 	inspector.start_capture();
 
-	while(1) {
+	while(true) {
 		sinsp_evt* ev;
 		int32_t res = inspector.next(&ev);
 
@@ -819,17 +812,16 @@ TEST_F(sys_call_test, docker_container_large_json) {
 
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
+	before_open_t before = [&](sinsp* inspector) {
+		inspector->set_container_labels_max_len(60000);
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return evt->get_type() == PPME_CONTAINER_JSON_E ||
 		       evt->get_type() == PPME_CONTAINER_JSON_2_E;
 	};
 
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
-		// set container label max to huge value
-		{
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->set_container_labels_max_len(60000);
-		}
+	run_callback_t test = [&]() {
 		int rc = dhelper.run_container("large_container_ut", "/bin/sh -c '/bin/sleep 3'");
 
 		ASSERT_TRUE(rc == 0);
@@ -873,6 +865,6 @@ TEST_F(sys_call_test, docker_container_large_json) {
 		param.m_inspector->set_container_labels_max_len(100);
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
 	ASSERT_TRUE(saw_container_evt);
 }

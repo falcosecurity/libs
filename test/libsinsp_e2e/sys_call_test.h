@@ -57,17 +57,19 @@ public:
 
 protected:
 	void SetUp() {
-		m_tid = getpid();
-		m_tid_filter = [this](sinsp_evt* evt) {
+		m_pid = getpid();
+		// Check that the event comes from a secondary thread inside the process,
+		// since the test callback is ran on an helper thread.
+		m_tid_filter = [&](sinsp_evt* evt) {
 			if(evt->get_param_value_str("fd").find(LIBSINSP_TEST_KERNEL_MODULE_NAME) !=
 			   std::string::npos) {
 				return false;
 			}
-			return evt->get_tid() == m_tid;
+			return evt->get_tid() > m_pid;
 		};
 	};
 
-	__pid_t m_tid;
+	__pid_t m_pid;
 	event_filter_t m_tid_filter;
 };
 

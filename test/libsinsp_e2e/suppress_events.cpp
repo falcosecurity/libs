@@ -25,7 +25,6 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 	// the capture has started we let the test_helper process
 	// perform its work.
 	pid_t pid = getpid();
-	bool test_helper_done = false;
 	std::string bin = LIBSINSP_TEST_PATH "/test_helper";
 
 	if(hargs.spawn_with_bash) {
@@ -62,11 +61,10 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		if(!hargs.suppress_before) {
-			std::scoped_lock inspector_handle_lock(inspector_handle);
-			inspector_handle->suppress_events_comm(
-			        std::string((hargs.spawn_with_bash ? "test_helper.sh" : "test_helper")));
+			event_capture::do_request(hargs.spawn_with_bash ? E2E_REQ_SUPPRESS_SH
+			                                                : E2E_REQ_SUPPRESS);
 		}
 
 		if(!hargs.start_before) {
@@ -97,8 +95,6 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		case PPME_SYSCALL_QUOTACTL_X:
 			if(evt->get_tid() != pid) {
 				FAIL() << "Should not have observed any quotactl event";
-			} else {
-				test_helper_done = true;
 			}
 			break;
 		case PPME_PROCEXIT_1_E:
@@ -106,8 +102,6 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 			break;
 		}
 	};
-
-	capture_continue_t should_continue = [&]() { return (!test_helper_done); };
 
 	before_close_t before_close = [](sinsp* inspector) {
 		scap_stats st;
@@ -127,7 +121,6 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		                   filter,
 		                   before_open,
 		                   before_close,
-		                   should_continue,
 		                   131072,
 		                   6000,
 		                   6000,
@@ -250,33 +243,13 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 	parse_syscall_names(supp_syscalls, m_suppressed_syscalls);
 	parse_suppressed_types(supp_syscalls, &m_suppressed_evttypes);
 
-	//
-	// TEST CODE
-	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	before_open_t before_open = [&](sinsp* inspector) {
 		for(auto sc : m_suppressed_syscalls) {
 			bool expect_exception = (sc >= PPM_SC_MAX);
 			bool caught_exception = false;
 
 			try {
-				std::scoped_lock inspector_handle_lock(inspector_handle);
-				inspector_handle->mark_ppm_sc_of_interest(sc, false);
-			} catch(sinsp_exception& e) {
-				caught_exception = true;
-			}
-
-			ASSERT_EQ(expect_exception, caught_exception);
-		}
-
-		do_syscalls();
-
-		for(auto sc : m_suppressed_syscalls) {
-			bool expect_exception = (sc >= PPM_SC_MAX);
-			bool caught_exception = false;
-
-			try {
-				std::scoped_lock inspector_handle_lock(inspector_handle);
-				inspector_handle->mark_ppm_sc_of_interest(sc, true);
+				inspector->mark_ppm_sc_of_interest(sc, false);
 			} catch(sinsp_exception& e) {
 				caught_exception = true;
 			}
@@ -284,6 +257,26 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 			ASSERT_EQ(expect_exception, caught_exception);
 		}
 	};
+
+	before_close_t before_close = [&](sinsp* inspector) {
+		for(auto sc : m_suppressed_syscalls) {
+			bool expect_exception = (sc >= PPM_SC_MAX);
+			bool caught_exception = false;
+
+			try {
+				inspector->mark_ppm_sc_of_interest(sc, true);
+			} catch(sinsp_exception& e) {
+				caught_exception = true;
+			}
+
+			ASSERT_EQ(expect_exception, caught_exception);
+		}
+	};
+
+	//
+	// TEST CODE
+	//
+	run_callback_t test = [&]() { do_syscalls(); };
 
 	//
 	// OUTPUT VALDATION
@@ -296,7 +289,8 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, m_tid_filter); });
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, m_tid_filter, before_open, before_close); });
 	EXPECT_EQ(m_expected_calls, callnum);
 }
 

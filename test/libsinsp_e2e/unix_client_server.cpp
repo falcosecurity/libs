@@ -102,7 +102,7 @@ TEST_F(sys_call_test, unix_client_server) {
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [](concurrent_object_handle<sinsp> inspector) {
+	run_callback_t test = []() {
 		subprocess server("python3",
 		                  {LIBSINSP_TEST_RESOURCES_PATH "/unix_client_server.py", "server"});
 

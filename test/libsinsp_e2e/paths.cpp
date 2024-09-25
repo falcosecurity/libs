@@ -125,14 +125,15 @@ void testdir(string filename, string chdirtarget = "") {
 	//
 	// FILTER
 	//
-	int tid = getpid();
+	int tid = -1;
 	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == tid; };
 
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
-		if(chdirtarget != "") {
+	run_callback_t test = [&]() {
+		tid = gettid();
+		if(!chdirtarget.empty()) {
 			char tcwd[1024];
 
 			ASSERT_TRUE(chdir(chdirtarget.c_str()) == 0);
@@ -156,7 +157,7 @@ void testdir(string filename, string chdirtarget = "") {
 
 		unlink(vldt.m_filename.c_str());
 
-		if(chdirtarget != "") {
+		if(!chdirtarget.empty()) {
 			ASSERT_TRUE(chdir(bcwd) == 0);
 		}
 	};
@@ -421,7 +422,7 @@ TEST_F(sys_call_test, dir_getcwd) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		ASSERT_TRUE(chdir(dir0) == 0);
 		ASSERT_TRUE(getcwd(cwd0, 256) != NULL);
 
@@ -540,7 +541,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](concurrent_object_handle<sinsp> inspector_handle) {
+	run_callback_t test = [&]() {
 		int fd;
 
 		fd = open(dir0, O_RDONLY);
