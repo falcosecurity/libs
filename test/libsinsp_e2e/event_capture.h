@@ -33,11 +33,12 @@ limitations under the License.
 #include <mutex>
 #include <stdexcept>
 #include <utility>
+#include <sys/eventfd.h>
 
 // Just a stupid fake FD value to signal to stop capturing events from driver and exit.
 // Note: we don't use it through eventfd because we want to make sure
 // that we received all events from the driver, until this very last close(FD_SIGNAL_STOP);
-#define FD_SIGNAL_STOP 555
+#define EVENTFD_SIGNAL_STOP 1
 
 class callback_param {
 public:
@@ -60,8 +61,7 @@ typedef std::function<void()> run_callback_async_t;
 
 class event_capture {
 public:
-	event_capture(sinsp_mode_t mode,
-	              captured_event_callback_t captured_event_callback,
+	event_capture(captured_event_callback_t captured_event_callback,
 	              before_capture_t before_open,
 	              after_capture_t before_close,
 	              event_filter_t filter,
@@ -83,10 +83,8 @@ public:
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
-	                sinsp_mode_t mode = SINSP_MODE_LIVE,
 	                bool dump = true) {
-		event_capture capturing(mode,
-		                        std::move(captured_event_callback),
+		event_capture capturing(std::move(captured_event_callback),
 		                        std::move(before_open),
 		                        std::move(before_close),
 		                        std::move(filter),
@@ -98,7 +96,7 @@ public:
 
 		run_function(capturing.m_inspector.get());
 		// signal main thread to end the capture
-		close(FD_SIGNAL_STOP);
+		eventfd_write(capturing.m_eventfd, EVENTFD_SIGNAL_STOP);
 
 		capturing.capture();
 
@@ -113,10 +111,8 @@ public:
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
-	                sinsp_mode_t mode = SINSP_MODE_LIVE,
 	                bool dump = true) {
-		event_capture capturing(mode,
-		                        std::move(captured_event_callback),
+		event_capture capturing(std::move(captured_event_callback),
 		                        std::move(before_open),
 		                        std::move(before_close),
 		                        std::move(filter),
@@ -126,10 +122,10 @@ public:
 
 		capturing.start(dump);
 
-		std::thread thread([&run_function]() {
+		std::thread thread([&run_function, &capturing]() {
 			run_function();
 			// signal main thread to end the capture
-			close(FD_SIGNAL_STOP);
+			eventfd_write(capturing.m_eventfd, EVENTFD_SIGNAL_STOP);
 		});
 
 		capturing.capture();
@@ -148,6 +144,7 @@ public:
 
 private:
 	bool handle_event(sinsp_evt* event);
+	bool handle_eventfd_request();
 
 	void open_engine(const std::string& engine_string,
 	                 libsinsp::events::set<ppm_sc_code> events_sc_codes);
@@ -159,5 +156,6 @@ private:
 	before_capture_t m_before_capture;
 	after_capture_t m_after_capture;
 	callback_param m_param{};
-	sinsp_mode_t m_mode;
+	int m_eventfd;
+	bool m_leaving;
 };

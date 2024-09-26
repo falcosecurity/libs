@@ -30,20 +30,20 @@ std::string event_capture::s_engine_string = KMOD_ENGINE;
 std::string event_capture::s_engine_path;
 unsigned long event_capture::s_buffer_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 
-event_capture::event_capture(sinsp_mode_t mode,
-                             captured_event_callback_t captured_event_callback,
+event_capture::event_capture(captured_event_callback_t captured_event_callback,
                              before_capture_t before_open,
                              after_capture_t before_close,
                              event_filter_t filter,
                              uint32_t max_thread_table_size,
                              uint64_t thread_timeout_ns,
                              uint64_t inactive_thread_scan_time_ns) {
-	m_mode = mode;
-
 	m_captured_event_callback = std::move(captured_event_callback);
 	m_before_capture = std::move(before_open);
 	m_after_capture = std::move(before_close);
 	m_filter = std::move(filter);
+
+	m_eventfd = -1;
+	m_leaving = false;
 
 	m_inspector = std::make_unique<sinsp>();
 	m_inspector->m_thread_manager->set_max_thread_table_size(max_thread_table_size);
@@ -58,6 +58,7 @@ event_capture::event_capture(sinsp_mode_t mode,
 }
 
 void event_capture::start(bool dump) {
+	m_eventfd = eventfd(0, EFD_NONBLOCK);
 	open_engine(event_capture::get_engine(), {});
 
 	const ::testing::TestInfo* const test_info =
@@ -79,6 +80,7 @@ void event_capture::start(bool dump) {
 }
 
 void event_capture::stop() {
+	close(m_eventfd);
 	m_inspector->stop_capture();
 	m_after_capture(m_inspector.get());
 	if(m_dumper != nullptr) {
@@ -92,7 +94,14 @@ void event_capture::capture() {
 	bool result = true;
 	int32_t next_result = SCAP_SUCCESS;
 
+	/*
+	 * Loop until:
+	 * * test has non fatal failures
+	 * * handle_event returns true
+	 * * we weren't asked to leave from eventfd and we received !SCAP_SUCCESS
+	 */
 	while(result && !::testing::Test::HasFatalFailure()) {
+		handle_eventfd_request();
 		next_result = m_inspector->next(&event);
 		if(next_result == SCAP_FILTERED_EVENT) {
 			continue;
@@ -102,6 +111,25 @@ void event_capture::capture() {
 				m_dumper->dump(event);
 			}
 			result = handle_event(event);
+		} else if(m_leaving) {
+			break;
+		}
+	}
+
+	/*
+	 * Second loop to empty the buffers from all the generated events:
+	 * * loop until SCAP_TIMEOUT is received.
+	 */
+	result = true;
+	while(result) {
+		next_result = m_inspector->next(&event);
+		if(next_result == SCAP_SUCCESS) {
+			if(m_dumper != nullptr) {
+				m_dumper->dump(event);
+			}
+			result = handle_event(event);
+		} else if(next_result == SCAP_TIMEOUT) {
+			break;
 		}
 	}
 }
@@ -109,14 +137,8 @@ void event_capture::capture() {
 bool event_capture::handle_event(sinsp_evt* event) {
 	bool res = true;
 
-	// Signal to exit!
-	if(event->get_type() == PPME_SYSCALL_CLOSE_E &&
-	   event->get_param(0)->as<int64_t>() == FD_SIGNAL_STOP) {
-		return false;
-	}
-
 	if(::testing::Test::HasNonfatalFailure()) {
-		return true;
+		return res;
 	}
 
 	if(m_filter(event)) {
@@ -131,6 +153,24 @@ bool event_capture::handle_event(sinsp_evt* event) {
 		std::cerr << "failed on event " << event->get_num() << '\n';
 	}
 	return res;
+}
+
+// Returns true if any request has been satisfied
+bool event_capture::handle_eventfd_request() {
+	eventfd_t req;
+	int ret = eventfd_read(m_eventfd, &req);
+	if(ret == 0) {
+		// manage request
+		switch(req) {
+		case EVENTFD_SIGNAL_STOP:
+			m_inspector->stop_capture();
+			m_leaving = true;
+			return true;
+		default:
+			break;
+		}
+	}
+	return false;
 }
 
 void event_capture::open_engine(const std::string& engine_string,

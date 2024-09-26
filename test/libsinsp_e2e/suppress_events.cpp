@@ -124,8 +124,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		                   131072,
 		                   6000,
 		                   6000,
-		                   SINSP_MODE_LIVE,
-		                   1000);
+		                   true);
 	});
 }
 
