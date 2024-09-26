@@ -61,10 +61,10 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		if(!hargs.suppress_before) {
-			event_capture::do_request(hargs.spawn_with_bash ? E2E_REQ_SUPPRESS_SH
-			                                                : E2E_REQ_SUPPRESS);
+			inspector->suppress_events_comm(
+			        std::string((hargs.spawn_with_bash ? "test_helper.sh" : "test_helper")));
 		}
 
 		if(!hargs.start_before) {
@@ -276,7 +276,7 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() { do_syscalls(); };
+	run_callback_t test = [&](sinsp* inspector) { do_syscalls(); };
 
 	//
 	// OUTPUT VALDATION

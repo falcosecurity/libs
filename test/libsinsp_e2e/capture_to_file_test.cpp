@@ -32,7 +32,7 @@ TEST_F(sys_call_test, can_consume_a_capture_file) {
 		       evt->get_direction() == SCAP_ED_OUT;
 	};
 
-	run_callback_t test = []() {
+	run_callback_t test = [](sinsp* inspector) {
 		struct stat sb;
 		for(int i = 0; i < 100; i++) {
 			stat("/tmp", &sb);

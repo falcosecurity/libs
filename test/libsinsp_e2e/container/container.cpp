@@ -27,7 +27,7 @@ limitations under the License.
 using namespace std;
 
 TEST_F(sys_call_test, container_cgroups) {
-	int ctid = -1;
+	int ctid;
 	bool done = false;
 
 	//
@@ -40,7 +40,7 @@ TEST_F(sys_call_test, container_cgroups) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_async_t test = [&]() {
 		ctid = fork();
 		if(ctid >= 0) {
 			if(ctid == 0) {
@@ -134,7 +134,7 @@ TEST_F(sys_call_test, container_clone_nspid) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stack_top;              /* End of stack buffer area */
@@ -204,7 +204,7 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() { waitpid(ctid, NULL, 0); };
+	run_callback_t test = [&](sinsp* inspector) { waitpid(ctid, NULL, 0); };
 
 	//
 	// OUTPUT VALDATION
@@ -234,7 +234,7 @@ static void run_container_docker_test(bool fork_after_container_start) {
 		        evt->get_type() == PPME_CONTAINER_JSON_2_E);
 	};
 
-	run_callback_t test = [&]() {
+	run_callback_async_t test = [&]() {
 		ASSERT_TRUE(system("docker kill libsinsp_docker > /dev/null 2>&1 || true") == 0);
 		ASSERT_TRUE(system("docker rm -v libsinsp_docker > /dev/null 2>&1 || true") == 0);
 
@@ -342,7 +342,7 @@ TEST_F(sys_call_test, container_docker_bad_socket) {
 		return false;
 	};
 
-	run_callback_t test = [&]() {
+	run_callback_async_t test = []() {
 		ASSERT_TRUE(system("docker kill libsinsp_docker > /dev/null 2>&1 || true") == 0);
 		ASSERT_TRUE(system("docker rm -v libsinsp_docker > /dev/null 2>&1 || true") == 0);
 
@@ -404,7 +404,7 @@ TEST_F(sys_call_test, container_libvirt) {
 		return false;
 	};
 
-	run_callback_t test = [&]() {
+	run_callback_async_t test = [&]() {
 		FILE* f = fopen("/tmp/conf.xml", "w");
 		ASSERT_TRUE(f != NULL);
 		fprintf(f,
@@ -607,7 +607,7 @@ static void healthcheck_helper(
 		        evt->get_direction() == SCAP_ED_OUT && !tinfo->m_container_id.empty());
 	};
 
-	run_callback_t test = [&]() {
+	run_callback_async_t test = [&]() {
 		int rc = dhelper.run_container("cont_health_ut", "/bin/sh -c '/bin/sleep 10'");
 
 		ASSERT_TRUE(exited_early || (rc == 0));
@@ -650,7 +650,7 @@ static void healthcheck_tracefile_helper(
 	        dockerfile + " . > /dev/null 2>&1");
 	ASSERT_TRUE(system(build_cmdline.c_str()) == 0);
 
-	run_callback_t test = []() {
+	run_callback_t test = [](sinsp* inspector) {
 		// --network=none speeds up the container setup a bit.
 		ASSERT_TRUE(
 		        (system("docker run --rm --network=none --name cont_health_ut cont_health_ut_img "
@@ -821,7 +821,7 @@ TEST_F(sys_call_test, docker_container_large_json) {
 		       evt->get_type() == PPME_CONTAINER_JSON_2_E;
 	};
 
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int rc = dhelper.run_container("large_container_ut", "/bin/sh -c '/bin/sleep 3'");
 
 		ASSERT_TRUE(rc == 0);

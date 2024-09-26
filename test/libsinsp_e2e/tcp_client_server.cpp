@@ -112,7 +112,7 @@ void runtest(iotype iot,
 	//
 	before_open_t before = [&](sinsp* inspector) { inspector->dynamic_snaplen(true); };
 
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		server_proc.start();
 		server_proc.wait_for_start();
 		server_pid = server_proc.get_pid();
@@ -344,7 +344,7 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts)
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		server.signal_continue();
 		client.signal_continue();
 		server_thread.join();

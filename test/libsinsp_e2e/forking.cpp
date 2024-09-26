@@ -57,7 +57,7 @@ TEST_F(sys_call_test, forking) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		pid_t childtid;
 		int status;
 		childtid = fork();
@@ -107,18 +107,16 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 		return evt->get_tid() == ptid || evt->get_tid() == ctid;
 	};
 
-	before_open_t before = [&](sinsp* inspector) {
+	//
+	// TEST CODE
+	//
+	run_callback_t test = [&](sinsp* inspector) {
+		int status;
+
 		//
 		// Stop the capture just before the fork so we lose the event.
 		//
 		inspector->stop_capture();
-	};
-
-	//
-	// TEST CODE
-	//
-	run_callback_t test = [&]() {
-		int status;
 
 		ctid = fork();
 
@@ -137,7 +135,7 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 				// It's a simple way to make sure the capture is started
 				// after the child's clone returned.
 				//
-				event_capture::do_request(E2E_REQ_START_CAPTURE);
+				inspector->start_capture();
 
 				//
 				// Wait for 5 seconds to make sure the process will still
@@ -196,7 +194,7 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 
 	EXPECT_TRUE(child_exists);
 	EXPECT_TRUE(parent_exists);
@@ -221,7 +219,7 @@ TEST_F(sys_call_test, forking_process_expired) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		ctid = fork();
 
 		if(ctid >= 0)  // fork succeeded
@@ -348,7 +346,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -483,7 +481,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -620,7 +618,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
@@ -708,7 +706,7 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 		}
 	};
 
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int status;
 
 		// ptid = getpid();
@@ -780,7 +778,9 @@ static int stop_sinsp_and_exit(void* arg) {
 		return 1;
 	}
 
-	event_capture::do_request(E2E_REQ_STOP_CAPTURE);
+	sinsp* inspector = (sinsp*)arg;
+
+	inspector->stop_capture();
 
 	// Wait 5 seconds. This ensures that the state for this
 	// process will be considered stale when the second process
@@ -872,7 +872,7 @@ static pid_t clone_helper(int (*func)(void*),
 }
 
 TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
-	std::atomic<uint32_t> clones_seen(0);
+	uint32_t clones_seen = 0;
 	stale_clone_ctx ctx;
 	std::atomic<pid_t> recycle_pid(0);
 	const char* last_pid_filename = "/proc/sys/kernel/ns_last_pid";
@@ -901,7 +901,7 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 		return (rp != 0 && tinfo && tinfo->m_tid == rp);
 	};
 
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		pid_t launcher_pid;
 		char* launcher_stack = NULL;
 
@@ -921,11 +921,9 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 		recycle_pid.store(clone_helper(stop_sinsp_and_exit, nullptr));
 		ASSERT_GE(recycle_pid.load(), 0);
 
-		usleep(500);
-
 		// The first thread has started, turned off the capturing, and
 		// exited, so start capturing again.
-		event_capture::do_request(E2E_REQ_START_CAPTURE);
+		inspector->start_capture();
 
 		// Arrange that the next thread/process created has
 		// pid ctx.m_desired pid by writing to
@@ -1002,5 +1000,5 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 
 	// We must have seen one clone related to the recycled
 	// pid. Otherwise it never actually checked the cwd at all.
-	EXPECT_EQ(clones_seen.load(), 1u);
+	EXPECT_EQ(clones_seen, 1u);
 }
