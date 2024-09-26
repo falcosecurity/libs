@@ -61,8 +61,7 @@ public:
 	              event_filter_t filter,
 	              uint32_t max_thread_table_size,
 	              uint64_t thread_timeout_ns,
-	              uint64_t inactive_thread_scan_time_ns,
-	              uint64_t max_timeouts);
+	              uint64_t inactive_thread_scan_time_ns);
 
 	void start(bool dump);
 	void stop();
@@ -79,7 +78,6 @@ public:
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                sinsp_mode_t mode = SINSP_MODE_LIVE,
-	                uint64_t max_timeouts = 3,
 	                bool dump = true) {
 		event_capture capturing(mode,
 		                        std::move(captured_event_callback),
@@ -88,8 +86,7 @@ public:
 		                        std::move(filter),
 		                        max_thread_table_size,
 		                        thread_timeout_ns,
-		                        inactive_thread_scan_time_ns,
-		                        max_timeouts);
+		                        inactive_thread_scan_time_ns);
 
 		capturing.start(dump);
 
@@ -111,7 +108,6 @@ public:
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                sinsp_mode_t mode = SINSP_MODE_LIVE,
-	                uint64_t max_timeouts = 3,
 	                bool dump = true) {
 		event_capture capturing(mode,
 		                        std::move(captured_event_callback),
@@ -120,13 +116,11 @@ public:
 		                        std::move(filter),
 		                        max_thread_table_size,
 		                        thread_timeout_ns,
-		                        inactive_thread_scan_time_ns,
-		                        max_timeouts);
+		                        inactive_thread_scan_time_ns);
 
 		capturing.start(dump);
 
 		std::thread thread([&run_function]() {
-			usleep(50);
 			run_function();
 			// signal main thread to end the capture
 			close(FD_SIGNAL_STOP);
@@ -160,5 +154,4 @@ private:
 	before_close_t m_before_close;
 	callback_param m_param{};
 	sinsp_mode_t m_mode;
-	uint64_t m_max_timeouts{};
 };

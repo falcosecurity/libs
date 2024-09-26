@@ -593,7 +593,6 @@ void runtest_ipv4m(iotype iot,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   SINSP_MODE_LIVE,
-		                   3,
 		                   false);
 	});
 }
