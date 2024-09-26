@@ -327,13 +327,12 @@ TEST_F(sys_call_test, container_docker_bad_socket) {
 		return;
 	}
 
-	before_open_t setup = [&](sinsp* inspector) {
+	before_capture_t setup = [&](sinsp* inspector) {
 		inspector->set_docker_socket_path("/invalid/path");
 	};
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		if(evt->get_type() == PPME_CONTAINER_JSON_E || evt->get_type() == PPME_CONTAINER_JSON_2_E) {
-			printf("top container json\n");
 			return true;
 		}
 		auto tinfo = evt->get_thread_info();
@@ -590,7 +589,7 @@ static void healthcheck_helper(
 
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
-	before_open_t setup = [&](sinsp* inspector) {
+	before_capture_t setup = [&](sinsp* inspector) {
 		// Setting dropping mode preserves the execs but
 		// reduces the chances that we'll drop events during
 		// the docker fetch.
@@ -622,7 +621,7 @@ static void healthcheck_helper(
 		}
 	};
 
-	before_close_t cleanup = [&](sinsp* inspector) {
+	after_capture_t cleanup = [&](sinsp* inspector) {
 		capture_stats_str = capture_stats(inspector);
 	};
 
@@ -808,7 +807,7 @@ TEST_F(sys_call_test, docker_container_large_json) {
 
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
-	before_open_t before = [&](sinsp* inspector) {
+	before_capture_t before = [&](sinsp* inspector) {
 		inspector->set_container_labels_max_len(60000);
 	};
 

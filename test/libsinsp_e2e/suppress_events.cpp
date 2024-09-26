@@ -37,7 +37,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 	// Access/modify inspector before opening
 	//
 
-	before_open_t before_open = [&](sinsp* inspector) {
+	before_capture_t before_open = [&](sinsp* inspector) {
 		inspector->clear_suppress_events_comm();
 		inspector->clear_suppress_events_tid();
 
@@ -103,7 +103,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		}
 	};
 
-	before_close_t before_close = [](sinsp* inspector) {
+	after_capture_t before_close = [](sinsp* inspector) {
 		scap_stats st;
 
 		inspector->get_capture_stats(&st);
@@ -243,7 +243,7 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 	parse_syscall_names(supp_syscalls, m_suppressed_syscalls);
 	parse_suppressed_types(supp_syscalls, &m_suppressed_evttypes);
 
-	before_open_t before_open = [&](sinsp* inspector) {
+	before_capture_t before_open = [&](sinsp* inspector) {
 		for(auto sc : m_suppressed_syscalls) {
 			bool expect_exception = (sc >= PPM_SC_MAX);
 			bool caught_exception = false;
@@ -258,7 +258,7 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 		}
 	};
 
-	before_close_t before_close = [&](sinsp* inspector) {
+	after_capture_t before_close = [&](sinsp* inspector) {
 		for(auto sc : m_suppressed_syscalls) {
 			bool expect_exception = (sc >= PPM_SC_MAX);
 			bool caught_exception = false;

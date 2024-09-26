@@ -747,7 +747,7 @@ static void run_fd_name_changed_test(bool use_sendmsg,
 	uint32_t num_name_changed_evts = 0;
 
 	// INIT FILTER
-	before_open_t before_open = [&](sinsp* inspector) {
+	before_capture_t before_open = [&](sinsp* inspector) {
 		sinsp_filter_compiler compiler(inspector, "fd.name_changed=true");
 		fd_name_changed = std::move(compiler.compile());
 	};
@@ -824,7 +824,7 @@ TEST_F(sys_call_test, udp_client_server_multiple_connect_name_changed) {
 	uint32_t num_name_changed_evts = 0;
 
 	// INIT FILTER
-	before_open_t before_open = [&](sinsp* inspector) {
+	before_capture_t before_open = [&](sinsp* inspector) {
 		sinsp_filter_compiler compiler(inspector, "fd.name_changed=true");
 		fd_name_changed = std::move(compiler.compile());
 	};
@@ -891,7 +891,7 @@ TEST_F(sys_call_test, statsd_client_snaplen) {
 	        "ipsum:"
 	        "18|c";
 
-	before_open_t setup = [&](sinsp* inspector) { inspector->dynamic_snaplen(true); };
+	before_capture_t setup = [&](sinsp* inspector) { inspector->dynamic_snaplen(true); };
 
 	//
 	// FILTER

@@ -1174,7 +1174,7 @@ TEST_F(sys_call_test, large_read_write) {
 
 	srandom(42);
 
-	before_open_t setup = [&](sinsp* inspector) { inspector->set_snaplen(SNAPLEN_MAX); };
+	before_capture_t setup = [&](sinsp* inspector) { inspector->set_snaplen(SNAPLEN_MAX); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
@@ -1267,7 +1267,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 		buf[j] = random();
 	}
 
-	before_open_t setup = [&](sinsp* inspector) { inspector->set_snaplen(SNAPLEN_MAX); };
+	before_capture_t setup = [&](sinsp* inspector) { inspector->set_snaplen(SNAPLEN_MAX); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
