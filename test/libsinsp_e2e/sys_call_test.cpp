@@ -135,7 +135,7 @@ TEST_F(sys_call_test, open_close) {
 TEST_F(sys_call_test, open_close_dropping) {
 	int callnum = 0;
 
-	before_open_t setup = [&](sinsp* inspector) { inspector->start_dropping_mode(1); };
+	before_capture_t setup = [&](sinsp* inspector) { inspector->start_dropping_mode(1); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return (0 == strcmp(evt->get_name(), "open") || 0 == strcmp(evt->get_name(), "openat") ||
@@ -179,7 +179,7 @@ TEST_F(sys_call_test, fcntl_getfd) {
 TEST_F(sys_call_test, fcntl_getfd_dropping) {
 	int callnum = 0;
 
-	before_open_t setup = [](sinsp* inspector) { inspector->start_dropping_mode(1); };
+	before_capture_t setup = [](sinsp* inspector) { inspector->start_dropping_mode(1); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return 0 == strcmp(evt->get_name(), "fcntl") && m_tid_filter(evt);
@@ -210,7 +210,7 @@ TEST_F(sys_call_test, bind_error) {
 TEST_F(sys_call_test, bind_error_dropping) {
 	int callnum = 0;
 
-	before_open_t setup = [&](sinsp* inspector) { inspector->start_dropping_mode(1); };
+	before_capture_t setup = [&](sinsp* inspector) { inspector->start_dropping_mode(1); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return 0 == strcmp(evt->get_name(), "bind") && m_tid_filter(evt);
@@ -251,7 +251,7 @@ TEST_F(sys_call_test, close_badfd) {
 TEST_F(sys_call_test, close_badfd_dropping) {
 	int callnum = 0;
 
-	before_open_t setup = [&](sinsp* inspector) { inspector->start_dropping_mode(1); };
+	before_capture_t setup = [&](sinsp* inspector) { inspector->start_dropping_mode(1); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return 0 == strcmp(evt->get_name(), "close") && m_tid_filter(evt);
@@ -1008,7 +1008,7 @@ TEST_F(sys_call_test32, execve_ia32_emulation) {
 	int callnum = 0;
 
 	std::unique_ptr<sinsp_filter> is_subprocess_execve;
-	before_open_t before_open = [&](sinsp* inspector) {
+	before_capture_t before_open = [&](sinsp* inspector) {
 		sinsp_filter_compiler compiler(inspector,
 		                               "evt.type=execve and proc.apid=" + std::to_string(getpid()));
 		is_subprocess_execve = compiler.compile();
@@ -1437,7 +1437,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		}
 	};
 
-	before_close_t before_close = [&](sinsp* inspector) {
+	after_capture_t before_close = [&](sinsp* inspector) {
 		int result = 0;
 
 		result += setresuid(orig_uids[0], orig_uids[1], orig_uids[2]);
@@ -1608,7 +1608,7 @@ TEST_F(sys_call_test32, failing_execve) {
 
 	// INIT FILTER
 	std::unique_ptr<sinsp_filter> is_subprocess_execve;
-	before_open_t before_open = [&](sinsp* inspector) {
+	before_capture_t before_open = [&](sinsp* inspector) {
 		sinsp_filter_compiler compiler(inspector,
 		                               "evt.type=execve and proc.apid=" + std::to_string(getpid()));
 		is_subprocess_execve.reset(compiler.compile().release());
@@ -2133,7 +2133,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		}
 	};
 
-	before_close_t before_close = [&](sinsp* inspector) {
+	after_capture_t before_close = [&](sinsp* inspector) {
 		// close scap to maintain the num_consumers at exit == 0 assertion
 		// close_capture(scap, platform);
 		auto platform = (scap_linux_platform*)inspector->get_scap_platform();

@@ -22,7 +22,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/syscall.h>
@@ -45,9 +45,15 @@ public:
 	sinsp* m_inspector;
 };
 
-typedef std::function<void(sinsp* inspector)> before_open_t;
-typedef std::function<void(sinsp* inspector)> before_close_t;
+// Right before inspector->start_capture() gets called.
+// Engine is already opened (thus scap handle is already alive).
+typedef std::function<void(sinsp* inspector)> before_capture_t;
+// Right after inspector->stop_capture() gets called.
+// Engine is still opened (thus scap handle is still alive).
+typedef std::function<void(sinsp* inspector)> after_capture_t;
+// Only events matching the filter function are passed to the captured_event_callback_t.
 typedef std::function<bool(sinsp_evt* evt)> event_filter_t;
+// On event callback
 typedef std::function<void(const callback_param& param)> captured_event_callback_t;
 typedef std::function<void(sinsp* inspector)> run_callback_t;
 typedef std::function<void()> run_callback_async_t;
@@ -56,8 +62,8 @@ class event_capture {
 public:
 	event_capture(sinsp_mode_t mode,
 	              captured_event_callback_t captured_event_callback,
-	              before_open_t before_open,
-	              before_close_t before_close,
+	              before_capture_t before_open,
+	              after_capture_t before_close,
 	              event_filter_t filter,
 	              uint32_t max_thread_table_size,
 	              uint64_t thread_timeout_ns,
@@ -72,8 +78,8 @@ public:
 	static void run(const run_callback_t& run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
-	                before_open_t before_open = event_capture::do_nothing,
-	                before_close_t before_close = event_capture::do_nothing,
+	                before_capture_t before_open = event_capture::do_nothing,
+	                after_capture_t before_close = event_capture::do_nothing,
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
@@ -102,8 +108,8 @@ public:
 	static void run(const run_callback_async_t& run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
-	                before_open_t before_open = event_capture::do_nothing,
-	                before_close_t before_close = event_capture::do_nothing,
+	                before_capture_t before_open = event_capture::do_nothing,
+	                after_capture_t before_close = event_capture::do_nothing,
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
@@ -150,8 +156,8 @@ private:
 	std::unique_ptr<sinsp_cycledumper> m_dumper;
 	event_filter_t m_filter;
 	captured_event_callback_t m_captured_event_callback;
-	before_open_t m_before_open;
-	before_close_t m_before_close;
+	before_capture_t m_before_capture;
+	after_capture_t m_after_capture;
 	callback_param m_param{};
 	sinsp_mode_t m_mode;
 };

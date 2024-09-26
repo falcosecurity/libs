@@ -32,8 +32,8 @@ unsigned long event_capture::s_buffer_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 
 event_capture::event_capture(sinsp_mode_t mode,
                              captured_event_callback_t captured_event_callback,
-                             before_open_t before_open,
-                             before_close_t before_close,
+                             before_capture_t before_open,
+                             after_capture_t before_close,
                              event_filter_t filter,
                              uint32_t max_thread_table_size,
                              uint64_t thread_timeout_ns,
@@ -41,8 +41,8 @@ event_capture::event_capture(sinsp_mode_t mode,
 	m_mode = mode;
 
 	m_captured_event_callback = std::move(captured_event_callback);
-	m_before_open = std::move(before_open);
-	m_before_close = std::move(before_close);
+	m_before_capture = std::move(before_open);
+	m_after_capture = std::move(before_close);
 	m_filter = std::move(filter);
 
 	m_inspector = std::make_unique<sinsp>();
@@ -74,13 +74,13 @@ void event_capture::start(bool dump) {
 		                                               true);
 	}
 
-	m_before_open(m_inspector.get());
+	m_before_capture(m_inspector.get());
 	m_inspector->start_capture();
 }
 
 void event_capture::stop() {
 	m_inspector->stop_capture();
-	m_before_close(m_inspector.get());
+	m_after_capture(m_inspector.get());
 	if(m_dumper != nullptr) {
 		m_dumper->close();
 	}

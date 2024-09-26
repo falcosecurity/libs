@@ -110,7 +110,7 @@ void runtest(iotype iot,
 	//
 	// INITIALIZATION
 	//
-	before_open_t before = [&](sinsp* inspector) { inspector->dynamic_snaplen(true); };
+	before_capture_t before = [&](sinsp* inspector) { inspector->dynamic_snaplen(true); };
 
 	run_callback_t test = [&](sinsp* inspector) {
 		server_proc.start();
