@@ -386,7 +386,7 @@ void runtest_ipv4m(iotype iot,
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		server_thread = std::thread(&tcp_server_ipv4m::run, server);
 		server->wait_till_ready();
 
@@ -645,7 +645,7 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts_
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		server.signal_continue();
 		client.signal_continue();
 		server_thread.join();

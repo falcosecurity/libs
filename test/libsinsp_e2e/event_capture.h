@@ -39,14 +39,6 @@ limitations under the License.
 // that we received all events from the driver, until this very last close(FD_SIGNAL_STOP);
 #define FD_SIGNAL_STOP 555
 
-// eventfd inter-thread requests
-typedef enum : std::uint8_t {
-	E2E_REQ_STOP_CAPTURE = 1,
-	E2E_REQ_START_CAPTURE = 2,
-	E2E_REQ_SUPPRESS_SH = 3,
-	E2E_REQ_SUPPRESS = 4,
-} e2e_req_t;
-
 class callback_param {
 public:
 	sinsp_evt* m_evt;
@@ -57,8 +49,8 @@ typedef std::function<void(sinsp* inspector)> before_open_t;
 typedef std::function<void(sinsp* inspector)> before_close_t;
 typedef std::function<bool(sinsp_evt* evt)> event_filter_t;
 typedef std::function<void(const callback_param& param)> captured_event_callback_t;
-
-typedef std::function<void()> run_callback_t;
+typedef std::function<void(sinsp* inspector)> run_callback_t;
+typedef std::function<void()> run_callback_async_t;
 
 class event_capture {
 public:
@@ -71,7 +63,6 @@ public:
 	              uint64_t thread_timeout_ns,
 	              uint64_t inactive_thread_scan_time_ns,
 	              uint64_t max_timeouts);
-	~event_capture();
 
 	void start(bool dump);
 	void stop();
@@ -79,7 +70,39 @@ public:
 
 	static void do_nothing(sinsp* inspector) {}
 
-	static void run(run_callback_t run_function,
+	static void run(const run_callback_t& run_function,
+	                captured_event_callback_t captured_event_callback,
+	                event_filter_t filter,
+	                before_open_t before_open = event_capture::do_nothing,
+	                before_close_t before_close = event_capture::do_nothing,
+	                uint32_t max_thread_table_size = 131072,
+	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
+	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
+	                sinsp_mode_t mode = SINSP_MODE_LIVE,
+	                uint64_t max_timeouts = 3,
+	                bool dump = true) {
+		event_capture capturing(mode,
+		                        std::move(captured_event_callback),
+		                        std::move(before_open),
+		                        std::move(before_close),
+		                        std::move(filter),
+		                        max_thread_table_size,
+		                        thread_timeout_ns,
+		                        inactive_thread_scan_time_ns,
+		                        max_timeouts);
+
+		capturing.start(dump);
+
+		run_function(capturing.m_inspector.get());
+		// signal main thread to end the capture
+		close(FD_SIGNAL_STOP);
+
+		capturing.capture();
+
+		capturing.stop();
+	}
+
+	static void run(const run_callback_async_t& run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
 	                before_open_t before_open = event_capture::do_nothing,
@@ -115,8 +138,6 @@ public:
 		capturing.stop();
 	}
 
-	static void do_request(e2e_req_t req);
-
 	static void set_engine(const std::string& engine_string, const std::string& engine_path);
 	static const std::string& get_engine();
 	static void set_buffer_dim(const unsigned long& dim);
@@ -126,7 +147,6 @@ public:
 	static unsigned long s_buffer_dim;
 
 private:
-	bool handle_request();
 	bool handle_event(sinsp_evt* event);
 
 	void open_engine(const std::string& engine_string,
@@ -141,6 +161,4 @@ private:
 	callback_param m_param{};
 	sinsp_mode_t m_mode;
 	uint64_t m_max_timeouts{};
-
-	static int s_eventfd;
 };

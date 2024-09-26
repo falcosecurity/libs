@@ -131,7 +131,7 @@ void testdir(string filename, string chdirtarget = "") {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		tid = gettid();
 		if(!chdirtarget.empty()) {
 			char tcwd[1024];
@@ -422,7 +422,7 @@ TEST_F(sys_call_test, dir_getcwd) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		ASSERT_TRUE(chdir(dir0) == 0);
 		ASSERT_TRUE(getcwd(cwd0, 256) != NULL);
 
@@ -541,7 +541,7 @@ TEST_F(sys_call_test, dir_fchdir) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int fd;
 
 		fd = open(dir0, O_RDONLY);

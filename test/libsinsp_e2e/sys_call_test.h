@@ -65,7 +65,7 @@ protected:
 			   std::string::npos) {
 				return false;
 			}
-			return evt->get_tid() > m_pid;
+			return evt->get_tid() == m_pid;
 		};
 	};
 

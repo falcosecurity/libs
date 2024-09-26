@@ -68,7 +68,7 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int status;
 		int sfd;
 		ctid = fork();
@@ -219,7 +219,7 @@ TEST_F(sys_call_test, DISABLED_process_usleep) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = []() {
+	run_callback_t test = [](sinsp* inspector) {
 		struct timespec req;
 		req.tv_sec = 0;
 		req.tv_nsec = 123456;
@@ -271,7 +271,7 @@ TEST_F(sys_call_test, process_inotify) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int length;
 		int wd;
 		char buffer[EVENT_BUF_LEN];
@@ -288,9 +288,9 @@ TEST_F(sys_call_test, process_inotify) {
 
 		//
 		// The IN_MODIFY flag causes a notification when a file is written, which should
-		// heppen immediately in captures
+		// happen immediately under /proc/
 		//
-		wd = inotify_add_watch(fd, LIBSINSP_TEST_CAPTURES_PATH, IN_MODIFY | IN_CREATE | IN_OPEN);
+		wd = inotify_add_watch(fd, "/proc/", IN_MODIFY | IN_CREATE | IN_OPEN);
 
 		//
 		// read to determine the event changes
@@ -387,7 +387,7 @@ TEST_F(sys_call_test, process_rlimit) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = []() {
+	run_callback_t test = [](sinsp* inspector) {
 		struct rlimit rl;
 		sleep(1);
 
@@ -498,7 +498,7 @@ TEST_F(sys_call_test, process_prlimit) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		struct rlimit newrl;
 		struct rlimit oldrl;
 
@@ -617,7 +617,7 @@ TEST_F(sys_call_test, process_scap_proc_get) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = []() {
+	run_callback_t test = [](sinsp* inspector) {
 		usleep(1000);
 
 		int s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -715,7 +715,7 @@ TEST_F(sys_call_test, procinfo_processchild_cpuload) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		for(uint32_t j = 0; j < 5; j++) {
 			sleep(1);
 		}
@@ -737,11 +737,7 @@ TEST_F(sys_call_test, procinfo_processchild_cpuload) {
 
 			if(tinfo) {
 				if(tinfo->m_tid == ctid) {
-					uint64_t tcpu;
-
-					const sinsp_evt_param* parinfo = e->get_param(0);
-					// tcpu = *(uint64_t*)parinfo->m_val;
-					memcpy(&tcpu, parinfo->m_val, sizeof(uint64_t));
+					auto tcpu = e->get_param(0)->as<uint64_t>();
 
 					uint64_t delta = tcpu - lastcpu;
 
@@ -786,7 +782,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		for(uint32_t j = 0; j < 5; j++) {
 			sleep(1);
 		}
@@ -810,10 +806,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload) {
 
 			if(tinfo) {
 				if(tinfo->m_tid == ctid) {
-					uint64_t tcpu;
-
-					const sinsp_evt_param* parinfo = e->get_param(0);
-					tcpu = *(uint64_t*)parinfo->m_val;
+					auto tcpu = e->get_param(0)->as<uint64_t>();
 
 					uint64_t delta = tcpu - lastcpu;
 
@@ -826,10 +819,7 @@ TEST_F(sys_call_test, procinfo_two_processchilds_cpuload) {
 
 					callnum++;
 				} else if(tinfo->m_tid == ctid1) {
-					uint64_t tcpu;
-
-					const sinsp_evt_param* parinfo = e->get_param(0);
-					tcpu = *(uint64_t*)parinfo->m_val;
+					auto tcpu = e->get_param(0)->as<uint64_t>();
 
 					uint64_t delta = tcpu - lastcpu1;
 

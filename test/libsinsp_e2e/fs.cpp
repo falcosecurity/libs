@@ -69,7 +69,7 @@ TEST_F(sys_call_test, fs_creat_ulink) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int fd = creat(FILENAME, 0644);
 
 		if(fd < 0) {
@@ -158,7 +158,7 @@ TEST_F(sys_call_test, fs_mkdir_rmdir) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		mkdir(UNEXISTENT_DIRNAME, 0);
 
 		if(mkdir(DIRNAME, 0) != 0) {
@@ -262,7 +262,7 @@ TEST_F(sys_call_test, fs_openat) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		dirfd = open(".", O_DIRECTORY);
 		if(dirfd <= 0) {
 			FAIL();
@@ -341,7 +341,7 @@ TEST_F(sys_call_test, fs_pread) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		fd = creat(FILENAME, S_IRWXU);
 		if(fd < 0) {
 			FAIL();
@@ -467,7 +467,7 @@ TEST_F(sys_call_test, fs_readv) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int wv_count;
 		char msg1[10] = "aaaaa";
 		char msg2[10] = "bbbbb";
@@ -561,7 +561,7 @@ TEST_F(sys_call_test, fs_preadv) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int wv_count;
 		char msg1[10] = "aaaaa";
 		char msg2[10] = "bbbbb";
@@ -698,7 +698,7 @@ TEST_F(sys_call_test, fs_dup) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		fd = open(FILENAME, O_CREAT | O_WRONLY, 0);
 		fd1 = dup(fd);
 		fd2 = dup2(fd, 333);
@@ -823,7 +823,7 @@ TEST_F(sys_call_test, fs_fcntl) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		fd = open(FILENAME, O_CREAT | O_WRONLY, 0);
 		fd1 = fcntl(fd, F_DUPFD, 0);
 		fd2 = fcntl(fd, F_DUPFD_CLOEXEC, 0);
@@ -897,7 +897,7 @@ TEST_F(sys_call_test, fs_sendfile) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -955,7 +955,7 @@ TEST_F(sys_call_test, fs_sendfile_nulloff) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1011,7 +1011,7 @@ TEST_F(sys_call_test, fs_sendfile_failed) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		int res = sendfile(-1, -2, NULL, 444);
 		EXPECT_GT(0, res);
 	};
@@ -1060,7 +1060,7 @@ TEST_F(sys_call_test, fs_sendfile_invalidoff) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1120,7 +1120,7 @@ TEST_F(sys_call_test, fs_sendfile64) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		struct stat stat_buf;
 
 		read_fd = open("/etc/passwd", O_RDONLY);
@@ -1178,7 +1178,7 @@ TEST_F(sys_call_test, large_read_write) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		fd1 = creat(FILENAME, S_IRWXU);
 		if(fd1 < 0) {
 			FAIL();
@@ -1274,7 +1274,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 		fd = creat(FILENAME, S_IRWXU);
 		if(fd < 0) {
 			FAIL();
@@ -1392,7 +1392,7 @@ TEST_F(sys_call_test, large_open) {
 
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
-	run_callback_t test = [&]() {
+	run_callback_t test = [&](sinsp* inspector) {
 #ifdef SYS_open
 		int fd = syscall(SYS_open, buf.c_str(), O_RDONLY);
 #else
