@@ -20,47 +20,52 @@ limitations under the License.
 #include <benchmark/benchmark.h>
 
 static void BM_sinsp_split(benchmark::State& state) {
-	std::string str = "hello,world,";
 	for(auto _ : state) {
-		sinsp_split(str, ',');
+		std::string str = "hello,world,";
+		benchmark::DoNotOptimize(sinsp_split(str, ','));
 	}
 }
 BENCHMARK(BM_sinsp_split);
 
 static void BM_sinsp_concatenate_paths_relative_path(benchmark::State& state) {
-	std::string path1 = "/tmp/";
-	std::string path2 = "foo/bar";
 	for(auto _ : state) {
-		sinsp_utils::concatenate_paths(path1, path2);
+		std::string path1 = "/tmp/";
+		std::string path2 = "foo/bar";
+		benchmark::DoNotOptimize(sinsp_utils::concatenate_paths(path1, path2));
 	}
 }
 BENCHMARK(BM_sinsp_concatenate_paths_relative_path);
 
 static void BM_sinsp_concatenate_paths_empty_path(benchmark::State& state) {
-	std::string path1 = "/tmp/";
-	std::string path2 = "";
 	for(auto _ : state) {
-		sinsp_utils::concatenate_paths(path1, path2);
+		std::string path1 = "/tmp/";
+		std::string path2 = "";
+		benchmark::DoNotOptimize(sinsp_utils::concatenate_paths(path1, path2));
 	}
 }
 BENCHMARK(BM_sinsp_concatenate_paths_empty_path);
 
 static void BM_sinsp_concatenate_paths_absolute_path(benchmark::State& state) {
-	std::string path1 = "/tmp/";
-	std::string path2 = "/foo/bar";
 	for(auto _ : state) {
-		sinsp_utils::concatenate_paths(path1, path2);
+		std::string path1 = "/tmp/";
+		std::string path2 = "/foo/bar";
+		benchmark::DoNotOptimize(sinsp_utils::concatenate_paths(path1, path2));
 	}
 }
 BENCHMARK(BM_sinsp_concatenate_paths_absolute_path);
 
 static void BM_sinsp_split_container_image(benchmark::State& state) {
-	std::string container_image =
-	        "localhost:12345/library/"
-	        "busybox:1.27.2@sha256:da39a3ee5e6b4b0d3255bfef95601890afd80709";
-	std::string hostname, port, name, tag, digest;
 	for(auto _ : state) {
+		std::string container_image =
+		        "localhost:12345/library/"
+		        "busybox:1.27.2@sha256:da39a3ee5e6b4b0d3255bfef95601890afd80709";
+		std::string hostname, port, name, tag, digest;
 		sinsp_utils::split_container_image(container_image, hostname, port, name, tag, digest);
+		benchmark::DoNotOptimize(hostname);
+		benchmark::DoNotOptimize(port);
+		benchmark::DoNotOptimize(name);
+		benchmark::DoNotOptimize(tag);
+		benchmark::DoNotOptimize(digest);
 	}
 }
 BENCHMARK(BM_sinsp_split_container_image);
