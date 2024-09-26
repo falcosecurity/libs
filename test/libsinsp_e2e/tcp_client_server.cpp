@@ -279,7 +279,6 @@ void runtest(iotype iot,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   SINSP_MODE_LIVE,
-		                   3,
 		                   false);
 	});
 	ASSERT_GT(callnum, 0);
@@ -376,7 +375,6 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts)
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   SINSP_MODE_LIVE,
-		                   3,
 		                   false);
 	});
 	ASSERT_EQ(1, state);

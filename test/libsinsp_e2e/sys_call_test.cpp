@@ -157,9 +157,7 @@ TEST_F(sys_call_test, open_close_dropping) {
 		}
 	};
 
-	before_close_t cleanup = [&](sinsp* inspector) { inspector->stop_dropping_mode(); };
-
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
 	EXPECT_EQ(2, callnum);
 }
 
@@ -181,7 +179,7 @@ TEST_F(sys_call_test, fcntl_getfd) {
 TEST_F(sys_call_test, fcntl_getfd_dropping) {
 	int callnum = 0;
 
-	before_open_t setup = [&](sinsp* inspector) { inspector->start_dropping_mode(1); };
+	before_open_t setup = [](sinsp* inspector) { inspector->start_dropping_mode(1); };
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		return 0 == strcmp(evt->get_name(), "fcntl") && m_tid_filter(evt);
@@ -191,9 +189,7 @@ TEST_F(sys_call_test, fcntl_getfd_dropping) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
-	before_close_t cleanup = [&](sinsp* inspector) { inspector->stop_dropping_mode(); };
-
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
 	EXPECT_EQ(0, callnum);
 }
 
@@ -224,9 +220,7 @@ TEST_F(sys_call_test, bind_error_dropping) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
-	before_close_t cleanup = [&](sinsp* inspector) { inspector->stop_dropping_mode(); };
-
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
 	EXPECT_EQ(1, callnum);
 }
 
@@ -277,9 +271,7 @@ TEST_F(sys_call_test, close_badfd_dropping) {
 		}
 	};
 
-	before_close_t cleanup = [&](sinsp* inspector) { inspector->stop_dropping_mode(); };
-
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
 	EXPECT_EQ(0, callnum);
 }
 
@@ -1445,7 +1437,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		}
 	};
 
-	before_close_t cleanup = [&](sinsp* inspector) {
+	before_close_t before_close = [&](sinsp* inspector) {
 		int result = 0;
 
 		result += setresuid(orig_uids[0], orig_uids[1], orig_uids[2]);
@@ -1456,8 +1448,9 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE(
-	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test, callback, filter, event_capture::do_nothing, before_close);
+	});
 	EXPECT_EQ(8, callnum);
 }
 

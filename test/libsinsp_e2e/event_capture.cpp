@@ -37,15 +37,13 @@ event_capture::event_capture(sinsp_mode_t mode,
                              event_filter_t filter,
                              uint32_t max_thread_table_size,
                              uint64_t thread_timeout_ns,
-                             uint64_t inactive_thread_scan_time_ns,
-                             uint64_t max_timeouts) {
+                             uint64_t inactive_thread_scan_time_ns) {
 	m_mode = mode;
 
 	m_captured_event_callback = std::move(captured_event_callback);
 	m_before_open = std::move(before_open);
 	m_before_close = std::move(before_close);
 	m_filter = std::move(filter);
-	m_max_timeouts = max_timeouts;
 
 	m_inspector = std::make_unique<sinsp>();
 	m_inspector->m_thread_manager->set_max_thread_table_size(max_thread_table_size);
@@ -81,13 +79,12 @@ void event_capture::start(bool dump) {
 }
 
 void event_capture::stop() {
-	// Begin teardown synchronized section
-	m_before_close(m_inspector.get());
-
 	m_inspector->stop_capture();
+	m_before_close(m_inspector.get());
 	if(m_dumper != nullptr) {
 		m_dumper->close();
 	}
+	m_inspector->close();
 }
 
 void event_capture::capture() {
@@ -95,29 +92,17 @@ void event_capture::capture() {
 	bool result = true;
 	int32_t next_result = SCAP_SUCCESS;
 
-	uint32_t n_timeouts = 0;
 	while(result && !::testing::Test::HasFatalFailure()) {
 		next_result = m_inspector->next(&event);
-		if(next_result == SCAP_TIMEOUT) {
-			n_timeouts++;
-
-			if(n_timeouts < m_max_timeouts) {
-				continue;
-			} else {
-				break;
-			}
-		}
-
 		if(next_result == SCAP_FILTERED_EVENT) {
 			continue;
 		}
-		if(next_result != SCAP_SUCCESS) {
-			break;
+		if(next_result == SCAP_SUCCESS) {
+			if(m_dumper != nullptr) {
+				m_dumper->dump(event);
+			}
+			result = handle_event(event);
 		}
-		if(m_dumper != nullptr) {
-			m_dumper->dump(event);
-		}
-		result = handle_event(event);
 	}
 }
 
