@@ -1246,7 +1246,6 @@ TEST_F(sys_call_test, large_read_write) {
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
-		                   SINSP_MODE_LIVE,
 		                   false);
 	});
 
@@ -1365,7 +1364,6 @@ TEST_F(sys_call_test, large_readv_writev) {
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
-		                   SINSP_MODE_LIVE,
 		                   false);
 	});
 
