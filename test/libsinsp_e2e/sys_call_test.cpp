@@ -1712,7 +1712,7 @@ TEST_F(sys_call_test32, mmap) {
 		return tinfo && tinfo->m_comm == "test_helper_32" && ps_filter(evt);
 	};
 
-	uint64_t p = 0;
+	uint64_t p = -1;
 
 	//
 	// TEST CODE
@@ -1728,10 +1728,8 @@ TEST_F(sys_call_test32, mmap) {
 		errno2 = std::stoi(tmp.str());
 		tmp.clear();
 		tmp.str("");
-		tmp << handle.out();
-		p = (uint64_t)std::stoul(tmp.str());
-		tmp.clear();
-		tmp.str("");
+		tmp << std::hex << handle.out();
+		tmp >> p;
 		handle.wait();
 	};
 
@@ -1759,8 +1757,7 @@ TEST_F(sys_call_test32, mmap) {
 				EXPECT_EQ("300", e->get_param_value_str("length"));
 				break;
 			case 7: {
-				uint64_t addr = 0;
-				memcpy(&addr, e->get_param_by_name("addr")->m_val, sizeof(uint64_t));
+				auto addr = e->get_param_by_name("addr")->as<uint64_t>();
 #ifdef __LP64__
 				EXPECT_EQ((uint64_t)p, addr);
 #else
@@ -1775,8 +1772,8 @@ TEST_F(sys_call_test32, mmap) {
 		} else if(type == PPME_SYSCALL_MUNMAP_X) {
 			callnum++;
 
-			memcpy(&exit_vmsize, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
-			memcpy(&exit_vmrss, e->get_param_by_name("vm_rss")->m_val, sizeof(uint32_t));
+			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
+			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
 
@@ -1833,22 +1830,20 @@ TEST_F(sys_call_test32, mmap) {
 		} else if(type == PPME_SYSCALL_MMAP_X || type == PPME_SYSCALL_MMAP2_X) {
 			callnum++;
 
-			memcpy(&exit_vmsize, e->get_param_by_name("vm_size")->m_val, sizeof(uint32_t));
-			memcpy(&exit_vmrss, e->get_param_by_name("vm_rss")->m_val, sizeof(uint32_t));
+			exit_vmsize = e->get_param_by_name("vm_size")->as<uint32_t>();
+			exit_vmrss = e->get_param_by_name("vm_rss")->as<uint32_t>();
 			EXPECT_EQ(e->get_thread_info(false)->m_vmsize_kb, exit_vmsize);
 			EXPECT_EQ(e->get_thread_info(false)->m_vmrss_kb, exit_vmrss);
 
 			switch(callnum) {
 			case 4: {
-				uint64_t res = 0;
-				memcpy(&res, e->get_param_by_name("res")->m_val, sizeof(uint64_t));
-				EXPECT_EQ(-errno2, (int64_t)res);
+				auto res = e->get_param_by_name("res")->as<int64_t>();
+				EXPECT_EQ(-errno2, res);
 				break;
 			}
 			case 6: {
-				uint64_t res = 0;
-				memcpy(&res, e->get_param_by_name("res")->m_val, sizeof(uint64_t));
-				EXPECT_EQ((uint64_t)p, res);
+				auto res = e->get_param_by_name("res")->as<int64_t>();
+				EXPECT_EQ(p, res);
 				EXPECT_GT(exit_vmsize, enter_vmsize + 500);
 				EXPECT_GE(exit_vmrss, enter_vmrss);
 				break;

@@ -590,10 +590,13 @@ static void healthcheck_helper(
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
 	before_capture_t setup = [&](sinsp* inspector) {
-		// Setting dropping mode preserves the execs but
-		// reduces the chances that we'll drop events during
-		// the docker fetch.
-		inspector->start_dropping_mode(1);
+		// Set minimum event set to avoid drops
+		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
+		for(int i = 0; i < PPM_SC_MAX; i++) {
+			if(!state_sc_set.contains((ppm_sc_code)i)) {
+				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
+			}
+		}
 	};
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
@@ -645,7 +648,17 @@ static void healthcheck_tracefile_helper(
 	        dockerfile + " . > /dev/null 2>&1");
 	ASSERT_TRUE(system(build_cmdline.c_str()) == 0);
 
-	run_callback_t test = [](sinsp* inspector) {
+	before_capture_t before = [&](sinsp* inspector) {
+		// Set minimum event set to avoid drops
+		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
+		for(int i = 0; i < PPM_SC_MAX; i++) {
+			if(!state_sc_set.contains((ppm_sc_code)i)) {
+				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
+			}
+		}
+	};
+
+	run_callback_async_t test = []() {
 		// --network=none speeds up the container setup a bit.
 		ASSERT_TRUE(
 		        (system("docker run --rm --network=none --name cont_health_ut cont_health_ut_img "
@@ -659,7 +672,7 @@ static void healthcheck_tracefile_helper(
 
 	captured_event_callback_t callback = [&](const callback_param& param) { return; };
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
 
 	// Now reread the file we just wrote and pass it through
 	// update_container_state.
@@ -809,6 +822,13 @@ TEST_F(sys_call_test, docker_container_large_json) {
 
 	before_capture_t before = [&](sinsp* inspector) {
 		inspector->set_container_labels_max_len(60000);
+		// Set minimum event set to avoid drops
+		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
+		for(int i = 0; i < PPM_SC_MAX; i++) {
+			if(!state_sc_set.contains((ppm_sc_code)i)) {
+				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
+			}
+		}
 	};
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
@@ -816,7 +836,7 @@ TEST_F(sys_call_test, docker_container_large_json) {
 		       evt->get_type() == PPME_CONTAINER_JSON_2_E;
 	};
 
-	run_callback_t test = [&](sinsp* inspector) {
+	run_callback_async_t test = [&]() {
 		int rc = dhelper.run_container("large_container_ut", "/bin/sh -c '/bin/sleep 3'");
 
 		ASSERT_TRUE(rc == 0);
@@ -860,6 +880,11 @@ TEST_F(sys_call_test, docker_container_large_json) {
 		param.m_inspector->set_container_labels_max_len(100);
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
-	ASSERT_TRUE(saw_container_evt);
+	std::string capture_stats_str = "(Not Collected Yet)";
+	after_capture_t cleanup = [&](sinsp* inspector) {
+		capture_stats_str = capture_stats(inspector);
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before, cleanup); });
+	ASSERT_TRUE(saw_container_evt) << capture_stats_str;
 }

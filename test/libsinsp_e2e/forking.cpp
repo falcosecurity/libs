@@ -778,10 +778,6 @@ static int stop_sinsp_and_exit(void* arg) {
 		return 1;
 	}
 
-	sinsp* inspector = (sinsp*)arg;
-
-	inspector->stop_capture();
-
 	// Wait 5 seconds. This ensures that the state for this
 	// process will be considered stale when the second process
 	// with the same pid runs.
@@ -874,7 +870,7 @@ static pid_t clone_helper(int (*func)(void*),
 TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 	uint32_t clones_seen = 0;
 	stale_clone_ctx ctx;
-	std::atomic<pid_t> recycle_pid(0);
+	pid_t recycle_pid;
 	const char* last_pid_filename = "/proc/sys/kernel/ns_last_pid";
 	struct stat info;
 
@@ -897,8 +893,7 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 	// uses the recycled pid.
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
-		pid_t rp = recycle_pid.load();
-		return (rp != 0 && tinfo && tinfo->m_tid == rp);
+		return (tinfo && tinfo->m_tid == recycle_pid);
 	};
 
 	run_callback_t test = [&](sinsp* inspector) {
@@ -915,13 +910,15 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 		// This is asynchronous so wait to make sure the thread has started.
 		sleep(1);
 
-		// Start a thread that runs and stops the inspector_handle right
-		// before exiting. This gives us a pid we can use for the
-		// second thread.
-		recycle_pid.store(clone_helper(stop_sinsp_and_exit, nullptr));
-		ASSERT_GE(recycle_pid.load(), 0);
+		// Start a thread that runs, chdir to /dev/ and the exits.
+		// This gives us a pid we can use for the second thread.
+		// We don't want to capture events from this CLONE.
+		inspector->stop_capture();
 
-		// The first thread has started, turned off the capturing, and
+		recycle_pid = clone_helper(stop_sinsp_and_exit, inspector);
+		ASSERT_GE(recycle_pid, 0);
+
+		// The first thread has started, chdir to /dev, and
 		// exited, so start capturing again.
 		inspector->start_capture();
 
@@ -946,7 +943,7 @@ TEST_F(sys_call_test, remove_stale_thread_clone_exit) {
 
 			ASSERT_EQ(flock(fileno(last_pid_file), LOCK_EX), 0);
 
-			ASSERT_GT(fprintf(last_pid_file, "%d", recycle_pid.load() - 1), 0);
+			ASSERT_GT(fprintf(last_pid_file, "%d", recycle_pid - 1), 0);
 
 			fclose(last_pid_file);
 
