@@ -374,7 +374,7 @@ void runtest_ipv4m(iotype iot,
 	std::string sport;
 	int state = 0;
 	int ctid;
-	int tid = getpid();
+	int tid = -1;
 
 	//
 	// FILTER
@@ -386,7 +386,8 @@ void runtest_ipv4m(iotype iot,
 	//
 	// INITIALIZATION
 	//
-	run_callback_t test = [&](sinsp* inspector) {
+	run_callback_async_t test = [&]() {
+		tid = gettid();
 		server_thread = std::thread(&tcp_server_ipv4m::run, server);
 		server->wait_till_ready();
 
@@ -555,7 +556,7 @@ void runtest_ipv4m(iotype iot,
 		} else if(evt->get_type() == PPME_SYSCALL_READV_X) {
 			std::string ds = evt->get_param_value_str("data");
 
-			EXPECT_EQ(ds, evt->get_param_value_str("data"));
+			EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));
 
 			log_param(param);
 			callnum++;
