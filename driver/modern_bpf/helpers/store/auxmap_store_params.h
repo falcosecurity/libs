@@ -1303,7 +1303,7 @@ static __always_inline uint16_t store_cgroup_subsys(struct auxiliary_map *auxmap
 	 * at the end of the string, reading with `bpf_probe_read_str()`).
 	 *
 	 * The rationale here is to replace the string terminator '\0'
-	 * with the '/' for every path compotent, excluding the last.
+	 * with the '/' for every path component, excluding the last.
 	 *
 	 * Starting from what we have already inserted ("cpuset="),
 	 * we want to obtain as a final result:
@@ -1323,6 +1323,39 @@ static __always_inline uint16_t store_cgroup_subsys(struct auxiliary_map *auxmap
 	 *
 	 *  cpuset=/path_part1/path_part2\0
 	 */
+
+	/*
+	 *  If kernfs node is still not NULL, it means last path component retrieved
+	 *  (ie: the first one to be printed) was still not '\0' (ie: '/').
+	 *  To avoid sending a cgroup that does not start with '/', manually add it.
+	 *
+	 *  Example:
+	 *  /user.slice/user-1000.slice/user@1000.service/app.slice/app-org.gnome.Terminal.slice/vte-spawn-2f17b2eb-994e-415d-bce0-44c1447d7cd2.scope
+	 *  gets split as:
+	 *  * vte-spawn-2f17b2eb-994e-415d-bce0-44c1447d7cd2.scope\0
+	 *  * app-org.gnome.Terminal.slice\0
+	 *  * app.slice\0
+	 *  * user@1000.service\0
+	 *  * user-1000.slice\0
+	 *  * user.slice\0
+	 * Without the below fix, we would send to userspace "user.slice/user-1000.slice/..." without
+	 * leading '/'.
+	 *
+	 * Counter example with "5" components + the root:
+	 * /user.slice/user-1000.slice/user@1000.service/app.slice/app-org.gnome.Terminal.slice
+	 * gets split as:
+	 * * app-org.gnome.Terminal.slice\0
+	 * * app.slice\0
+	 * * user@1000.service\0
+	 * * user-1000.slice\0
+	 * * user.slice\0
+	 * * \0
+	 * In this case, we won't push the new character, instead we will push the correct string.
+	 */
+	if(kn) {
+		push__new_character(auxmap->data, &auxmap->payload_pos, '/');
+		total_size++;
+	}
 	for(int k = MAX_CGROUP_PATH_POINTERS - 1; k >= 0; --k) {
 		if(cgroup_path_pointers[k]) {
 			total_size += push__charbuf(auxmap->data,
