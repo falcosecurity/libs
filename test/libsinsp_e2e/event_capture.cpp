@@ -50,9 +50,9 @@ event_capture::event_capture(captured_event_callback_t captured_event_callback,
 	m_inspector->m_thread_timeout_ns = thread_timeout_ns;
 	m_inspector->set_auto_threads_purging_interval_s(inactive_thread_scan_time_ns);
 	m_inspector->set_auto_threads_purging(false);
-	m_inspector->set_get_procs_cpu_from_driver(true);
 	m_inspector->set_debug_mode(true);
 	m_inspector->set_hostname_and_port_resolution_mode(false);
+	libsinsp_logger()->add_stdout_log();
 
 	m_param.m_inspector = m_inspector.get();
 }
