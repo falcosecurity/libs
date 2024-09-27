@@ -662,8 +662,8 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts_
 	};
 
 	server_thread = std::thread(&tcp_server_ipv4m::run, &server);
-	client_thread = std::thread(&tcp_client_ipv4m::run, &client);
 	server.wait_till_ready();
+	client_thread = std::thread(&tcp_client_ipv4m::run, &client);
 	client.wait_till_ready();
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
