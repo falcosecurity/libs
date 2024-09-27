@@ -201,8 +201,8 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 }
 
 TEST_F(sys_call_test, forking_process_expired) {
-	std::atomic<int> ptid = -1;  // parent tid
-	std::atomic<int> ctid = -1;  // child tid
+	int ptid = gettid();  // parent tid
+	int ctid = -1;        // child tid
 	int status;
 
 	//
@@ -211,7 +211,7 @@ TEST_F(sys_call_test, forking_process_expired) {
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		if(evt->get_type() == PPME_SYSCALL_NANOSLEEP_E ||
 		   evt->get_type() == PPME_SYSCALL_NANOSLEEP_X) {
-			return evt->get_tid() == ptid.load();
+			return evt->get_tid() == ptid;
 		}
 		return false;
 	};
@@ -230,8 +230,6 @@ TEST_F(sys_call_test, forking_process_expired) {
 				FAIL();
 			} else  // fork() returns new pid to the parent process
 			{
-				ptid = gettid();
-
 				//
 				// Wait 10 seconds. During this time, the process should NOT be removed
 				//
@@ -260,15 +258,13 @@ TEST_F(sys_call_test, forking_process_expired) {
 				//
 				// The child should exist
 				//
-				sinsp_threadinfo* ti =
-				        param.m_inspector->get_thread_ref(ctid.load(), false, true).get();
+				sinsp_threadinfo* ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 			} else if(e->get_type() == PPME_SYSCALL_NANOSLEEP_X) {
 				//
 				// The child should exist
 				//
-				sinsp_threadinfo* ti =
-				        param.m_inspector->get_thread_ref(ctid.load(), false, true).get();
+				sinsp_threadinfo* ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
 				EXPECT_NE((sinsp_threadinfo*)NULL, ti);
 				sleep_caught = true;
 			}
@@ -314,7 +310,7 @@ static int clone_callback_1(void* arg) {
 }
 
 /*
- * The `sys_call_test.forking_clone_fs` e2e test makes the assuption
+ * The `sys_call_test.forking_clone_fs` e2e test makes the assumption
  * that, if a children closes a file descriptor, the parent trying
  * to close the same file descriptor will get an error. This seems
  * not to be always the case. As the man says `It is probably unwise
@@ -328,7 +324,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	int callnum = 0;
 	char bcwd[1024];
 	int prfd;
-	std::atomic<int> ptid;  // parent tid
+	int ptid = gettid();  // parent tid
 	pid_t clone_tid;
 	int child_tid;
 	int parent_res;
@@ -340,7 +336,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		return evt->get_tid() == ptid.load() || evt->get_tid() == child_tid;
+		return evt->get_tid() == ptid || evt->get_tid() == child_tid;
 	};
 
 	//
@@ -353,8 +349,6 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 		clone_params cp;              /* Passed to child function */
 		int status;
 		pid_t pid;
-
-		ptid = gettid();
 
 		/* Set up an argument structure to be passed to cloned child, and
 		   set some process attributes that will be modified by child */
@@ -467,7 +461,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 	int callnum = 0;
 	char bcwd[1024];
 	int prfd;
-	std::atomic<int> ptid = -1;  // parent tid
+	int ptid = gettid();  // parent tid
 	int flags = CLONE_FS | CLONE_VM;
 	int drflags = PPM_CL_CLONE_FS | PPM_CL_CLONE_VM;
 
@@ -475,7 +469,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		return evt->get_tid() == ptid.load() || evt->get_tid() == ctid;
+		return evt->get_tid() == ptid || evt->get_tid() == ctid;
 	};
 
 	//
@@ -488,8 +482,6 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 		clone_params cp;              /* Passed to child function */
 		int status;
 		pid_t pid;
-
-		ptid = gettid();
 
 		/* Set up an argument structure to be passed to cloned child, and
 		   set some process attributes that will be modified by child */
@@ -605,7 +597,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 	int callnum = 0;
 	char oriwd[1024];
 	char bcwd[256];
-	std::atomic<int> ptid = -1;  // parent tid
+	int ptid = gettid();  // parent tid
 	int flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD;
 	int drflags = PPM_CL_CLONE_VM | PPM_CL_CLONE_FS | PPM_CL_CLONE_FILES | PPM_CL_CLONE_SIGHAND |
 	              PPM_CL_CLONE_THREAD;
@@ -613,7 +605,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 	//
 	// FILTER
 	//
-	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == ptid.load(); };
+	event_filter_t filter = [&](sinsp_evt* evt) { return evt->get_tid() == ptid; };
 
 	//
 	// TEST CODE
@@ -622,8 +614,6 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 		const int STACK_SIZE = 65536; /* Stack size for cloned child */
 		char* stack;                  /* Start of stack buffer area */
 		char* stackTop;               /* End of stack buffer area */
-
-		ptid = gettid();
 
 		ASSERT_TRUE(getcwd(oriwd, 1024) != NULL);
 
