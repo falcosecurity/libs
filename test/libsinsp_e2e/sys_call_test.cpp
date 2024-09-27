@@ -507,6 +507,17 @@ TEST_F(sys_call_test, timestamp) {
 	uint64_t timestampv[20];
 	int callnum = 0;
 
+	before_capture_t setup = [&](sinsp* inspector) {
+		// Drop all but generic syscalls (since PPM_SC_GETTIMEOFDAY is generic)
+		// to avoid drops.
+		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
+		for(int i = 0; i < PPM_SC_MAX; i++) {
+			if((ppm_sc_code)i != PPM_SC_GETTIMEOFDAY) {
+				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
+			}
+		}
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt) { return m_tid_filter(evt); };
 
 	run_callback_t test = [&](sinsp* inspector) {
@@ -529,7 +540,7 @@ TEST_F(sys_call_test, timestamp) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
 	EXPECT_EQ((int)(sizeof(timestampv) / sizeof(timestampv[0])), callnum);
 }
 
