@@ -567,7 +567,7 @@ static void healthcheck_helper(
         std::vector<std::string>& labels,
         sinsp_threadinfo::command_category expected_cat = sinsp_threadinfo::CAT_HEALTHCHECK) {
 	container_state cstate;
-	bool exited_early = false;
+	std::atomic<bool> exited_early = false;
 
 	if(!dutils_check_docker()) {
 		return;
@@ -829,7 +829,6 @@ TEST_F(sys_call_test, docker_container_large_json) {
 
 	run_callback_async_t test = [&]() {
 		int rc = dhelper.run_container("large_container_ut", "/bin/sh -c '/bin/sleep 3'");
-
 		ASSERT_TRUE(rc == 0);
 	};
 
