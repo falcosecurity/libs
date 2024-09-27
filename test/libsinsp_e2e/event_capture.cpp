@@ -132,6 +132,9 @@ void event_capture::capture() {
 			break;
 		}
 	}
+
+	auto capture_stats_str = capture_stats(m_inspector.get());
+	std::cout << capture_stats_str << "\n";
 }
 
 bool event_capture::handle_event(sinsp_evt* event) {
@@ -173,6 +176,18 @@ bool event_capture::handle_eventfd_request() {
 	return false;
 }
 
+std::string event_capture::capture_stats(sinsp* inspector) {
+	scap_stats st;
+	inspector->get_capture_stats(&st);
+
+	std::stringstream ss;
+
+	ss << "capture stats: dropped=" << st.n_drops << " buf=" << st.n_drops_buffer
+	   << " pf=" << st.n_drops_pf << " bug=" << st.n_drops_bug;
+
+	return ss.str();
+}
+
 void event_capture::open_engine(const std::string& engine_string,
                                 libsinsp::events::set<ppm_sc_code> events_sc_codes) {
 	if(false) {
@@ -186,7 +201,7 @@ void event_capture::open_engine(const std::string& engine_string,
 	else if(!engine_string.compare(BPF_ENGINE)) {
 		if(event_capture::get_engine().empty()) {
 			std::cerr << "You must specify the path to the bpf probe if you use the 'bpf' engine"
-			          << std::endl;
+			          << '\n';
 			exit(EXIT_FAILURE);
 		}
 		m_inspector->open_bpf(event_capture::get_engine_path(), s_buffer_dim);

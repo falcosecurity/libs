@@ -138,6 +138,9 @@ public:
 	static const std::string& get_engine();
 	static void set_buffer_dim(const unsigned long& dim);
 	static const std::string& get_engine_path();
+
+	static std::string capture_stats(sinsp* inspector);
+
 	static std::string s_engine_string;
 	static std::string s_engine_path;
 	static unsigned long s_buffer_dim;
