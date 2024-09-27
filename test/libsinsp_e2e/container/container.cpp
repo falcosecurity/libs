@@ -379,7 +379,11 @@ TEST_F(sys_call_test, container_docker_bad_socket) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	after_capture_t cleanup = [&](sinsp* inspector) {
+		inspector->set_docker_socket_path("/var/run/docker.sock");
+	};
+
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
 	ASSERT_TRUE(done);
 }
 
