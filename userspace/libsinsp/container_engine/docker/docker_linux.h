@@ -10,7 +10,7 @@ class docker_linux : public docker_base {
 public:
 	docker_linux(container_cache_interface& cache): docker_base(cache) {}
 
-	static void set_docker_sock(std::string docker_sock) { m_docker_sock = std::move(docker_sock); }
+	static void set_docker_sock(std::string docker_sock) { s_docker_sock = std::move(docker_sock); }
 
 	// implement container_engine_base
 	bool resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
@@ -18,7 +18,7 @@ public:
 	void update_with_size(const std::string& container_id) override;
 
 private:
-	static std::string m_docker_sock;
+	static std::string s_docker_sock;
 };
 
 }  // namespace container_engine

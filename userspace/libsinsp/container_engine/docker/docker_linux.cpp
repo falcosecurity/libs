@@ -30,7 +30,7 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {{"/", ""},  // non-syste
                                                         {nullptr, nullptr}};
 }
 
-std::string docker_linux::m_docker_sock = "/var/run/docker.sock";
+std::string docker_linux::s_docker_sock = "/var/run/docker.sock";
 
 bool docker_linux::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) {
 	std::string container_id, cgroup;
@@ -40,7 +40,7 @@ bool docker_linux::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_in
 	}
 
 	return resolve_impl(tinfo,
-	                    docker_lookup_request(container_id, m_docker_sock, CT_DOCKER, 0, false),
+	                    docker_lookup_request(container_id, s_docker_sock, CT_DOCKER, 0, false),
 	                    query_os_for_missing_info);
 }
 
@@ -61,7 +61,7 @@ void docker_linux::update_with_size(const std::string& container_id) {
 
 	sinsp_container_info result;
 	docker_lookup_request instruction(container_id,
-	                                  m_docker_sock,
+	                                  s_docker_sock,
 	                                  CT_DOCKER,
 	                                  0,
 	                                  true /*request rw size*/);
