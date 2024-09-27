@@ -391,6 +391,16 @@ TEST_F(sys_call_test, container_libvirt) {
 		return;
 	}
 
+	before_capture_t setup = [&](sinsp* inspector) {
+		// Set minimum event set to avoid drops
+		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
+		for(int i = 0; i < PPM_SC_MAX; i++) {
+			if(!state_sc_set.contains((ppm_sc_code)i)) {
+				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
+			}
+		}
+	};
+
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
 		if(tinfo) {
@@ -400,7 +410,7 @@ TEST_F(sys_call_test, container_libvirt) {
 		return false;
 	};
 
-	run_callback_async_t test = [&]() {
+	run_callback_async_t test = []() {
 		FILE* f = fopen("/tmp/conf.xml", "w");
 		ASSERT_TRUE(f != NULL);
 		fprintf(f,
@@ -459,7 +469,7 @@ TEST_F(sys_call_test, container_libvirt) {
 		done = true;
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
 	ASSERT_TRUE(done);
 }
 
@@ -477,18 +487,6 @@ public:
 	bool second_cmd_seen;
 	bool healthcheck_seen;
 };
-
-static std::string capture_stats(sinsp* inspector) {
-	scap_stats st;
-	inspector->get_capture_stats(&st);
-
-	std::stringstream ss;
-
-	ss << "capture stats: dropped=" << st.n_drops << " buf=" << st.n_drops_buffer
-	   << " pf=" << st.n_drops_pf << " bug=" << st.n_drops_bug;
-
-	return ss.str();
-}
 
 static void update_container_state(sinsp* inspector,
                                    sinsp_evt* evt,
@@ -520,8 +518,7 @@ static void update_container_state(sinsp* inspector,
 			if(!cstate.root_cmd_seen) {
 				cstate.root_cmd_seen = true;
 
-				ASSERT_EQ(tinfo->m_category, sinsp_threadinfo::CAT_CONTAINER)
-				        << capture_stats(inspector);
+				ASSERT_EQ(tinfo->m_category, sinsp_threadinfo::CAT_CONTAINER);
 			} else {
 				// In some cases, it can take so long for the async fetch of container info to
 				// complete (1.5 seconds) that a healthcheck proc might be run before the container
@@ -529,7 +526,7 @@ static void update_container_state(sinsp* inspector,
 				// the container info has a health probe.
 				if(cstate.container_w_health_probe) {
 					cstate.healthcheck_seen = true;
-					ASSERT_EQ(tinfo->m_category, expected_cat) << capture_stats(inspector);
+					ASSERT_EQ(tinfo->m_category, expected_cat);
 				}
 			}
 		}
@@ -539,13 +536,12 @@ static void update_container_state(sinsp* inspector,
 		if(cmdline == "sleep 10") {
 			if(!cstate.second_cmd_seen) {
 				cstate.second_cmd_seen = true;
-				ASSERT_EQ(tinfo->m_category, sinsp_threadinfo::CAT_CONTAINER)
-				        << capture_stats(inspector);
+				ASSERT_EQ(tinfo->m_category, sinsp_threadinfo::CAT_CONTAINER);
 			} else {
 				// See above caveat about slow container info fetches
 				if(cstate.container_w_health_probe) {
 					// Should inherit container healthcheck property from parent.
-					ASSERT_EQ(tinfo->m_category, expected_cat) << capture_stats(inspector);
+					ASSERT_EQ(tinfo->m_category, expected_cat);
 				}
 			}
 		}
@@ -555,7 +551,7 @@ static void update_container_state(sinsp* inspector,
 		if(cmdline == "ut-health-check" || cmdline == "sh -c /bin/ut-health-check") {
 			cstate.healthcheck_seen = true;
 
-			ASSERT_EQ(tinfo->m_category, expected_cat) << capture_stats(inspector);
+			ASSERT_EQ(tinfo->m_category, expected_cat);
 		}
 	}
 }
@@ -572,7 +568,6 @@ static void healthcheck_helper(
         sinsp_threadinfo::command_category expected_cat = sinsp_threadinfo::CAT_HEALTHCHECK) {
 	container_state cstate;
 	bool exited_early = false;
-	std::string capture_stats_str = "(Not Collected Yet)";
 
 	if(!dutils_check_docker()) {
 		return;
@@ -624,16 +619,12 @@ static void healthcheck_helper(
 		}
 	};
 
-	after_capture_t cleanup = [&](sinsp* inspector) {
-		capture_stats_str = capture_stats(inspector);
-	};
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
-
-	ASSERT_TRUE(cstate.root_cmd_seen) << capture_stats_str;
-	ASSERT_TRUE(cstate.second_cmd_seen) << capture_stats_str;
-	ASSERT_EQ(cstate.container_w_health_probe, expect_healthcheck) << capture_stats_str;
-	ASSERT_EQ(cstate.healthcheck_seen, expect_healthcheck) << capture_stats_str;
+	ASSERT_TRUE(cstate.root_cmd_seen);
+	ASSERT_TRUE(cstate.second_cmd_seen);
+	ASSERT_EQ(cstate.container_w_health_probe, expect_healthcheck);
+	ASSERT_EQ(cstate.healthcheck_seen, expect_healthcheck);
 }
 
 static void healthcheck_tracefile_helper(
@@ -705,7 +696,7 @@ static void healthcheck_tracefile_helper(
 		update_container_state(&inspector, ev, cstate, expected_cat);
 	}
 
-	std::string capture_stats_str = capture_stats(&inspector);
+	std::string capture_stats_str = event_capture::capture_stats(&inspector);
 
 	inspector.stop_capture();
 	inspector.close();
@@ -880,11 +871,6 @@ TEST_F(sys_call_test, docker_container_large_json) {
 		param.m_inspector->set_container_labels_max_len(100);
 	};
 
-	std::string capture_stats_str = "(Not Collected Yet)";
-	after_capture_t cleanup = [&](sinsp* inspector) {
-		capture_stats_str = capture_stats(inspector);
-	};
-
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before, cleanup); });
-	ASSERT_TRUE(saw_container_evt) << capture_stats_str;
+	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
+	ASSERT_TRUE(saw_container_evt);
 }
