@@ -121,6 +121,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		                   filter,
 		                   before_open,
 		                   before_close,
+		                   {},
 		                   131072,
 		                   6000,
 		                   6000,

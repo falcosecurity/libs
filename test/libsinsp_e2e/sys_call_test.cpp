@@ -496,7 +496,14 @@ TEST_F(sys_call_test, timerfd) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::all_sc_set());
+	});
 
 	EXPECT_EQ(3, callnum);
 }

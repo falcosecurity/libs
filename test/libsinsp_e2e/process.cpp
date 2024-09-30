@@ -202,7 +202,14 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::all_sc_set());
+	});
 
 	EXPECT_EQ(7, callnum);
 }
@@ -336,7 +343,14 @@ TEST_F(sys_call_test, process_inotify) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::all_sc_set());
+	});
 
 	EXPECT_EQ(3, callnum);
 }
@@ -378,7 +392,7 @@ TEST(procinfo, process_not_existent) {
 
 TEST_F(sys_call_test, process_rlimit) {
 	int callnum = 0;
-
+	struct rlimit curr_rl;
 	//
 	// FILTER
 	//
@@ -387,21 +401,20 @@ TEST_F(sys_call_test, process_rlimit) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [](sinsp* inspector) {
-		struct rlimit rl;
-		sleep(1);
-
+	run_callback_t test = [&](sinsp* inspector) {
 		// Called directly because libc likes prlimit()
 		syscall(SYS_getrlimit, RLIMIT_NOFILE, (struct rlimit*)33);
-		syscall(SYS_getrlimit, RLIMIT_NOFILE, &rl);
-		rl.rlim_cur = 500;
-		rl.rlim_max = 1000;
-		syscall(SYS_setrlimit, RLIMIT_NOFILE, &rl);
-		syscall(SYS_getrlimit, RLIMIT_NOFILE, &rl);
+		syscall(SYS_getrlimit, RLIMIT_NOFILE, &curr_rl);
+
+		struct rlimit new_rl;
+		new_rl.rlim_cur = 5000;
+		new_rl.rlim_max = 10000;
+		syscall(SYS_setrlimit, RLIMIT_NOFILE, &new_rl);
+		syscall(SYS_getrlimit, RLIMIT_NOFILE, &new_rl);
 	};
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
@@ -419,8 +432,8 @@ TEST_F(sys_call_test, process_rlimit) {
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("res", false)));
 
 				if(callnum == 7) {
-					EXPECT_EQ((int64_t)500, std::stoll(e->get_param_value_str("cur", false)));
-					EXPECT_EQ((int64_t)1000, std::stoll(e->get_param_value_str("max", false)));
+					EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("cur", false)));
+					EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("max", false)));
 				}
 			}
 
@@ -435,8 +448,8 @@ TEST_F(sys_call_test, process_rlimit) {
 			EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("res", false)));
 
 			if(callnum == 5) {
-				EXPECT_EQ((int64_t)500, std::stoll(e->get_param_value_str("cur", false)));
-				EXPECT_EQ((int64_t)1000, std::stoll(e->get_param_value_str("max", false)));
+				EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("cur", false)));
+				EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("max", false)));
 			}
 
 			callnum++;
@@ -463,8 +476,8 @@ TEST_F(sys_call_test, process_rlimit) {
 				break;
 			case 5:
 				EXPECT_EQ(0, res);
-				EXPECT_EQ(500, newcur);
-				EXPECT_EQ(1000, newmax);
+				EXPECT_EQ(5000, newcur);
+				EXPECT_EQ(10000, newmax);
 				EXPECT_EQ(-1, oldcur);
 				EXPECT_EQ(-1, oldmax);
 				break;
@@ -472,12 +485,16 @@ TEST_F(sys_call_test, process_rlimit) {
 				EXPECT_EQ(0, res);
 				EXPECT_EQ(-1, newcur);
 				EXPECT_EQ(-1, newmax);
-				EXPECT_EQ(500, oldcur);
-				EXPECT_EQ(1000, oldmax);
+				EXPECT_EQ(5000, oldcur);
+				EXPECT_EQ(10000, oldmax);
 				break;
 			}
 			callnum++;
 		}
+	};
+
+	after_capture_t cleanup = [&](sinsp* inspector) {
+		syscall(SYS_setrlimit, RLIMIT_NOFILE, &curr_rl);
 	};
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
@@ -487,7 +504,6 @@ TEST_F(sys_call_test, process_rlimit) {
 
 TEST_F(sys_call_test, process_prlimit) {
 	int callnum = 0;
-	struct rlimit tmprl;
 	struct rlimit orirl;
 
 	//
@@ -503,8 +519,8 @@ TEST_F(sys_call_test, process_prlimit) {
 		struct rlimit oldrl;
 
 		syscall(SYS_prlimit64, getpid(), RLIMIT_NOFILE, NULL, &orirl);
-		newrl.rlim_cur = 500;
-		newrl.rlim_max = 1000;
+		newrl.rlim_cur = 5000;
+		newrl.rlim_max = 10000;
 		syscall(SYS_prlimit64, getpid(), RLIMIT_NOFILE, &newrl, &oldrl);
 		syscall(SYS_prlimit64, getpid(), RLIMIT_NOFILE, NULL, &oldrl);
 	};
@@ -532,8 +548,8 @@ TEST_F(sys_call_test, process_prlimit) {
 				EXPECT_EQ((int64_t)orirl.rlim_max,
 				          std::stoll(e->get_param_value_str("oldmax", false)));
 			} else if(callnum == 3) {
-				EXPECT_EQ((int64_t)500, std::stoll(e->get_param_value_str("newcur", false)));
-				EXPECT_EQ((int64_t)1000, std::stoll(e->get_param_value_str("newmax", false)));
+				EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("newcur", false)));
+				EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("newmax", false)));
 				EXPECT_EQ((int64_t)orirl.rlim_cur,
 				          std::stoll(e->get_param_value_str("oldcur", false)));
 				EXPECT_EQ((int64_t)orirl.rlim_max,
@@ -541,19 +557,20 @@ TEST_F(sys_call_test, process_prlimit) {
 			} else if(callnum == 5) {
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("newcur", false)));
 				EXPECT_EQ((int64_t)0, std::stoll(e->get_param_value_str("newmax", false)));
-				EXPECT_EQ((int64_t)500, std::stoll(e->get_param_value_str("oldcur", false)));
-				EXPECT_EQ((int64_t)1000, std::stoll(e->get_param_value_str("oldmax", false)));
+				EXPECT_EQ((int64_t)5000, std::stoll(e->get_param_value_str("oldcur", false)));
+				EXPECT_EQ((int64_t)10000, std::stoll(e->get_param_value_str("oldmax", false)));
 			}
 
 			callnum++;
 		}
 	};
 
-	if(syscall(SYS_prlimit64, getpid(), RLIMIT_NOFILE, NULL, &tmprl) != 0) {
-		return;
-	}
+	after_capture_t cleanup = [&](sinsp* inspector) {
+		syscall(SYS_prlimit64, getpid(), RLIMIT_NOFILE, &orirl, NULL);
+	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
 
 	EXPECT_EQ(6, callnum);
 }

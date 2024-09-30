@@ -69,17 +69,27 @@ public:
 	              uint64_t thread_timeout_ns,
 	              uint64_t inactive_thread_scan_time_ns);
 
-	void start(bool dump);
+	void start(bool dump, libsinsp::events::set<ppm_sc_code>& sc_set);
 	void stop();
 	void capture();
 
 	static void do_nothing(sinsp* inspector) {}
 
+	/*!
+	  \brief Run `run_function` synchronously, and
+	  then loop on all events calling filter on them,
+	  and, for any event that matches the filter,
+	  calls captured_event_callback.
+	  Before starting the capture, before_open is called.
+	  After closing the capture, before_close is called.
+	  The default ppm_sc_set is the whole set minus `read` and `readv`.
+	*/
 	static void run(const run_callback_t& run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
 	                before_capture_t before_open = event_capture::do_nothing,
 	                after_capture_t before_close = event_capture::do_nothing,
+	                libsinsp::events::set<ppm_sc_code> sc_set = {},
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
@@ -92,7 +102,7 @@ public:
 		                        thread_timeout_ns,
 		                        inactive_thread_scan_time_ns);
 
-		capturing.start(dump);
+		capturing.start(dump, sc_set);
 
 		run_function(capturing.m_inspector.get());
 		// signal main thread to end the capture
@@ -103,11 +113,21 @@ public:
 		capturing.stop();
 	}
 
+	/*!
+	  \brief Run `run_function` **asynchronously**, while
+	  looping on all events calling filter on them,
+	  and, for any event that matches the filter,
+	  calls captured_event_callback.
+	  Before starting the capture, before_open is called.
+	  After closing the capture, before_close is called.
+	  The default ppm_sc_set is the whole set minus `read` and `readv`.
+	*/
 	static void run(const run_callback_async_t& run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
 	                before_capture_t before_open = event_capture::do_nothing,
 	                after_capture_t before_close = event_capture::do_nothing,
+	                libsinsp::events::set<ppm_sc_code> sc_set = {},
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
 	                uint64_t inactive_thread_scan_time_ns = (uint64_t)60 * 1000 * 1000 * 1000,
@@ -120,7 +140,7 @@ public:
 		                        thread_timeout_ns,
 		                        inactive_thread_scan_time_ns);
 
-		capturing.start(dump);
+		capturing.start(dump, sc_set);
 
 		std::thread thread([&run_function, &capturing]() {
 			run_function();

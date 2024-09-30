@@ -52,14 +52,23 @@ event_capture::event_capture(captured_event_callback_t captured_event_callback,
 	m_inspector->set_auto_threads_purging(false);
 	m_inspector->set_debug_mode(true);
 	m_inspector->set_hostname_and_port_resolution_mode(false);
-	libsinsp_logger()->add_stdout_log();
 
 	m_param.m_inspector = m_inspector.get();
 }
 
-void event_capture::start(bool dump) {
+void event_capture::start(bool dump, libsinsp::events::set<ppm_sc_code>& sc_set) {
 	m_eventfd = eventfd(0, EFD_NONBLOCK);
-	open_engine(event_capture::get_engine(), {});
+
+	// To avoid back-pressure on the eventfd reads, do not attach them.
+	if(sc_set.empty()) {
+		for(int i = 0; i < PPM_SC_MAX; i++) {
+			auto sc_code = (ppm_sc_code)i;
+			if(sc_code != PPM_SC_READ && sc_code != PPM_SC_READV) {
+				sc_set.insert(sc_code);
+			}
+		}
+	}
+	open_engine(event_capture::get_engine(), sc_set);
 
 	const ::testing::TestInfo* const test_info =
 	        ::testing::UnitTest::GetInstance()->current_test_info();
@@ -194,7 +203,7 @@ void event_capture::open_engine(const std::string& engine_string,
 	}
 #ifdef HAS_ENGINE_KMOD
 	else if(!engine_string.compare(KMOD_ENGINE)) {
-		m_inspector->open_kmod(s_buffer_dim);
+		m_inspector->open_kmod(s_buffer_dim, events_sc_codes);
 	}
 #endif
 #ifdef HAS_ENGINE_BPF
@@ -204,12 +213,15 @@ void event_capture::open_engine(const std::string& engine_string,
 			          << '\n';
 			exit(EXIT_FAILURE);
 		}
-		m_inspector->open_bpf(event_capture::get_engine_path(), s_buffer_dim);
+		m_inspector->open_bpf(event_capture::get_engine_path(), s_buffer_dim, events_sc_codes);
 	}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	else if(!engine_string.compare(MODERN_BPF_ENGINE)) {
-		m_inspector->open_modern_bpf(s_buffer_dim);
+		m_inspector->open_modern_bpf(s_buffer_dim,
+		                             DEFAULT_CPU_FOR_EACH_BUFFER,
+		                             true,
+		                             events_sc_codes);
 	}
 #endif
 	else {
