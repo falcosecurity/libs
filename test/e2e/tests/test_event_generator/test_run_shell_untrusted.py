@@ -26,7 +26,7 @@ def test_run_shell_untrusted(sinsp, run_containers: dict):
     expected_events = [
         {
             "container.id": generator_id,
-            "evt.args": SinspField.regex_field(r'^res=0 exe=\/tmp\/falco-event-generator\d+\/httpd args=--loglevel.info.run.\^helper.RunShell\$. tid=\d+\(httpd\) pid=\d+\(httpd\) ptid=\d+\(event-generator\) .* tty=0 pgid=\d+\(systemd\) loginuid=-1\(\<NONE\>\) flags=9\(EXE_WRITABLE\|EXE_LOWER_LAYER\) cap_inheritable=0'),
+            "evt.args": SinspField.regex_field(r'^res=0 exe=\/tmp\/falco-event-generator\d+\/httpd args=--loglevel.info.run.\^helper.RunShell\$. tid=\d+\(httpd\) pid=\d+\(httpd\) ptid=\d+\(event-generator\) .* tty=0 vpgid=\d+\(systemd\) loginuid=-1\(\<NONE\>\) flags=9\(EXE_WRITABLE\|EXE_LOWER_LAYER\) cap_inheritable=0'),
             "evt.category": "process",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
@@ -38,7 +38,7 @@ def test_run_shell_untrusted(sinsp, run_containers: dict):
         },
         {
             "container.id": generator_id,
-            "evt.args": SinspField.regex_field(r'^res=0 exe=bash args=-c.ls > \/dev\/null. tid=\d+\(bash\) pid=\d+\(bash\) ptid=\d+\(httpd\) .* tty=0 pgid=\d+\(systemd\) loginuid=-1\(\<NONE\>\) flags=9\(EXE_WRITABLE\|EXE_LOWER_LAYER\) cap_inheritable=0'),
+            "evt.args": SinspField.regex_field(r'^res=0 exe=bash args=-c.ls > \/dev\/null. tid=\d+\(bash\) pid=\d+\(bash\) ptid=\d+\(httpd\) .* tty=0 vpgid=\d+\(systemd\) loginuid=-1\(\<NONE\>\) flags=9\(EXE_WRITABLE\|EXE_LOWER_LAYER\) cap_inheritable=0'),
             "evt.category": "process",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
