@@ -466,6 +466,10 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 	int flags = CLONE_FS | CLONE_VM;
 	int drflags = PPM_CL_CLONE_FS | PPM_CL_CLONE_VM;
 
+	const int STACK_SIZE = 65536; /* Stack size for cloned child */
+	char* stack;                  /* Start of stack buffer area */
+	char* stackTop;               /* End of stack buffer area */
+
 	//
 	// FILTER
 	//
@@ -477,10 +481,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 	// TEST CODE
 	//
 	run_callback_t test = [&](sinsp* inspector) {
-		const int STACK_SIZE = 65536; /* Stack size for cloned child */
-		char* stack;                  /* Start of stack buffer area */
-		char* stackTop;               /* End of stack buffer area */
-		clone_params cp;              /* Passed to child function */
+		clone_params cp; /* Passed to child function */
 		int status;
 		pid_t pid;
 
@@ -520,7 +521,6 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 		close(cp.fd);
 
 		sleep(1);
-		free(stack);
 	};
 
 	//
@@ -579,7 +579,10 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	after_capture_t cleanup = [&](sinsp* inspector) { free(stack); };
+
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
 	EXPECT_EQ(callnum, 4);
 }
 
@@ -603,6 +606,10 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 	int drflags = PPM_CL_CLONE_VM | PPM_CL_CLONE_FS | PPM_CL_CLONE_FILES | PPM_CL_CLONE_SIGHAND |
 	              PPM_CL_CLONE_THREAD;
 
+	const int STACK_SIZE = 65536; /* Stack size for cloned child */
+	char* stack;                  /* Start of stack buffer area */
+	char* stackTop;               /* End of stack buffer area */
+
 	//
 	// FILTER
 	//
@@ -612,10 +619,6 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 	// TEST CODE
 	//
 	run_callback_t test = [&](sinsp* inspector) {
-		const int STACK_SIZE = 65536; /* Stack size for cloned child */
-		char* stack;                  /* Start of stack buffer area */
-		char* stackTop;               /* End of stack buffer area */
-
 		ASSERT_TRUE(getcwd(oriwd, 1024) != NULL);
 
 		/* Allocate stack for child */
@@ -636,8 +639,6 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 		std::string tmps = getcwd(bcwd, 256);
 
 		ASSERT_TRUE(chdir(oriwd) == 0);
-
-		free(stack);
 	};
 
 	//
@@ -677,7 +678,10 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	after_capture_t cleanup = [&](sinsp* inspector) { free(stack); };
+
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
 
 	EXPECT_EQ(3, callnum);
 }
