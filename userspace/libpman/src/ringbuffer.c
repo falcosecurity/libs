@@ -131,6 +131,7 @@ int pman_finalize_ringbuf_array_after_loading() {
 
 	/* We don't need anymore the inner map, close it. */
 	close(g_state.inner_ringbuf_map_fd);
+	g_state.inner_ringbuf_map_fd = -1;
 
 	/* Create ring buffer maps. */
 	for(int i = 0; i < g_state.n_required_buffers; i++) {

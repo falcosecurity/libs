@@ -73,7 +73,7 @@ void pman_clear_state() {
 	g_state.ringbuf_pos = 0;
 	g_state.cons_pos = NULL;
 	g_state.prod_pos = NULL;
-	g_state.inner_ringbuf_map_fd = 0;
+	g_state.inner_ringbuf_map_fd = -1;
 	g_state.buffer_bytes_dim = 0;
 	g_state.last_ring_read = -1;
 	g_state.last_event_size = 0;
