@@ -403,10 +403,6 @@ void runtest_ipv4m(iotype iot,
 		tee(-1, -1, 0, 0);
 	};
 
-	std::function<void(const callback_param&)> log_param = [](const callback_param& param) {
-		// std::cerr << param.m_evt->get_name() << std::endl;
-	};
-
 	//
 	// OUTPUT VALIDATION
 	//
@@ -445,15 +441,12 @@ void runtest_ipv4m(iotype iot,
 			if(!exit_no_close) {
 				EXPECT_EQ(SERVER_PORT_STR, dst_port);
 			}
-			log_param(param);
 			callnum++;
 		} else if(evt->get_type() == PPME_SOCKET_LISTEN_E) {
 			EXPECT_EQ("1", evt->get_param_value_str("backlog"));
-			log_param(param);
 			callnum++;
 		} else if(evt->get_type() == PPME_SOCKET_LISTEN_X) {
 			EXPECT_EQ("0", evt->get_param_value_str("res"));
-			log_param(param);
 			callnum++;
 		} else if(evt->get_type() == PPME_SOCKET_ACCEPT4_6_E) {
 			EXPECT_EQ("0", evt->get_param_value_str("flags"));
@@ -480,7 +473,6 @@ void runtest_ipv4m(iotype iot,
 				EXPECT_EQ(SERVER_PORT_STR, dst_port);
 			}
 
-			log_param(param);
 			callnum++;
 		}
 
@@ -493,9 +485,7 @@ void runtest_ipv4m(iotype iot,
 		// recvfrom() and sets the address to NULL
 		//
 		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
-		   evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E ||
-		   evt->get_type() == PPME_SYSCALL_READ_E || evt->get_type() == PPME_SYSCALL_WRITE_E ||
-		   evt->get_type() == PPME_SYSCALL_READV_E || evt->get_type() == PPME_SYSCALL_WRITEV_E) {
+		   evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E) {
 			if(evt->get_type() == PPME_SOCKET_RECVFROM_E) {
 				if(evt->get_param_value_str("tuple") != "") {
 					EXPECT_EQ("NULL", evt->get_param_value_str("tuple"));
@@ -516,11 +506,9 @@ void runtest_ipv4m(iotype iot,
 				EXPECT_EQ(SERVER_PORT_STR, dst_port);
 			}
 
-			log_param(param);
 			callnum++;
 		} else if(evt->get_type() == PPME_SOCKET_RECV_X ||
-		          evt->get_type() == PPME_SOCKET_RECVFROM_X ||
-		          evt->get_type() == PPME_SYSCALL_READ_X) {
+		          evt->get_type() == PPME_SOCKET_RECVFROM_X) {
 			if(evt->get_type() == PPME_SOCKET_RECVFROM_X) {
 				if(!parse_tuple(evt->get_param_value_str("tuple"),
 				                src_addr,
@@ -551,14 +539,6 @@ void runtest_ipv4m(iotype iot,
 
 			EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));
 
-			log_param(param);
-			callnum++;
-		} else if(evt->get_type() == PPME_SYSCALL_READV_X) {
-			std::string ds = evt->get_param_value_str("data");
-
-			EXPECT_EQ(PAYLOAD, evt->get_param_value_str("data"));
-
-			log_param(param);
 			callnum++;
 		}
 
@@ -590,6 +570,7 @@ void runtest_ipv4m(iotype iot,
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   {},
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,

@@ -107,7 +107,14 @@ TEST_F(sys_call_test, container_cgroups) {
 		done = true;
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 	ASSERT_TRUE(done);
 }
 
@@ -172,7 +179,14 @@ TEST_F(sys_call_test, container_clone_nspid) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 	ASSERT_TRUE(done);
 }
 
@@ -216,7 +230,14 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 	free(stack);
 	ASSERT_TRUE(done);
 }
@@ -289,7 +310,14 @@ static void run_container_docker_test(bool fork_after_container_start) {
 		done = true;
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 	ASSERT_TRUE(done);
 }
 
@@ -395,26 +423,8 @@ TEST_F(sys_call_test, container_libvirt) {
 		return;
 	}
 
-	before_capture_t setup = [&](sinsp* inspector) {
-		// Set minimum event set to avoid drops
-		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
-		for(int i = 0; i < PPM_SC_MAX; i++) {
-			if(!state_sc_set.contains((ppm_sc_code)i)) {
-				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
-			}
-		}
-	};
-
-	event_filter_t filter = [&](sinsp_evt* evt) {
-		sinsp_threadinfo* tinfo = evt->get_thread_info();
-		if(tinfo) {
-			return !tinfo->m_container_id.empty() && tinfo->m_comm == "sh";
-		}
-
-		return false;
-	};
-
-	run_callback_async_t test = []() {
+	// Setup phase before capture has start, to avoid generating too many events
+	before_capture_t setup = [](sinsp* inspector) {
 		FILE* f = fopen("/tmp/conf.xml", "w");
 		ASSERT_TRUE(f != NULL);
 		fprintf(f,
@@ -440,15 +450,21 @@ TEST_F(sys_call_test, container_libvirt) {
 		if(system("virsh -c lxc:/// define /tmp/conf.xml") != 0) {
 			ASSERT_TRUE(false);
 		}
+	};
 
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		sinsp_threadinfo* tinfo = evt->get_thread_info();
+		if(tinfo) {
+			return !tinfo->m_container_id.empty() && tinfo->m_comm == "sh";
+		}
+		return false;
+	};
+
+	run_callback_async_t test = []() {
 		if(system("virsh -c lxc:/// start libvirt-container") != 0) {
 			ASSERT_TRUE(false);
 		}
-
 		sleep(2);
-
-		ASSERT_TRUE(system("virsh -c lxc:/// undefine libvirt-container > /dev/null 2>&1") == 0);
-		ASSERT_TRUE(system("virsh -c lxc:/// destroy libvirt-container > /dev/null 2>&1") == 0);
 	};
 
 	captured_event_callback_t callback = [&](const callback_param& param) {
@@ -473,7 +489,19 @@ TEST_F(sys_call_test, container_libvirt) {
 		done = true;
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	after_capture_t cleanup = [](sinsp* inspector) {
+		ASSERT_TRUE(system("virsh -c lxc:/// undefine libvirt-container > /dev/null 2>&1") == 0);
+		ASSERT_TRUE(system("virsh -c lxc:/// destroy libvirt-container > /dev/null 2>&1") == 0);
+	};
+
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   setup,
+		                   cleanup,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 	ASSERT_TRUE(done);
 }
 
@@ -588,16 +616,6 @@ static void healthcheck_helper(
 
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
-	before_capture_t setup = [&](sinsp* inspector) {
-		// Set minimum event set to avoid drops
-		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
-		for(int i = 0; i < PPM_SC_MAX; i++) {
-			if(!state_sc_set.contains((ppm_sc_code)i)) {
-				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
-			}
-		}
-	};
-
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		sinsp_threadinfo* tinfo = evt->get_thread_info();
 
@@ -623,7 +641,14 @@ static void healthcheck_helper(
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 
 	ASSERT_TRUE(cstate.root_cmd_seen);
 	ASSERT_TRUE(cstate.second_cmd_seen);
@@ -643,16 +668,6 @@ static void healthcheck_tracefile_helper(
 	        dockerfile + " . > /dev/null 2>&1");
 	ASSERT_TRUE(system(build_cmdline.c_str()) == 0);
 
-	before_capture_t before = [&](sinsp* inspector) {
-		// Set minimum event set to avoid drops
-		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
-		for(int i = 0; i < PPM_SC_MAX; i++) {
-			if(!state_sc_set.contains((ppm_sc_code)i)) {
-				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
-			}
-		}
-	};
-
 	run_callback_async_t test = []() {
 		// --network=none speeds up the container setup a bit.
 		ASSERT_TRUE(
@@ -667,7 +682,14 @@ static void healthcheck_tracefile_helper(
 
 	captured_event_callback_t callback = [&](const callback_param& param) { return; };
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 
 	// Now reread the file we just wrote and pass it through
 	// update_container_state.
@@ -817,13 +839,6 @@ TEST_F(sys_call_test, docker_container_large_json) {
 
 	before_capture_t before = [&](sinsp* inspector) {
 		inspector->set_container_labels_max_len(60000);
-		// Set minimum event set to avoid drops
-		const auto state_sc_set = libsinsp::events::sinsp_state_sc_set();
-		for(int i = 0; i < PPM_SC_MAX; i++) {
-			if(!state_sc_set.contains((ppm_sc_code)i)) {
-				inspector->mark_ppm_sc_of_interest((ppm_sc_code)i, false);
-			}
-		}
 	};
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
@@ -869,11 +884,20 @@ TEST_F(sys_call_test, docker_container_large_json) {
 		}
 
 		EXPECT_TRUE(labels.empty());
-
-		// reset the value
-		param.m_inspector->set_container_labels_max_len(100);
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before); });
+	after_capture_t cleanup = [](sinsp* inspector) {
+		// reset the value
+		inspector->set_container_labels_max_len(100);
+	};
+
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   before,
+		                   cleanup,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 	ASSERT_TRUE(saw_container_evt);
 }

@@ -538,7 +538,14 @@ TEST_F(sys_call_test, fs_readv) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::all_sc_set());
+	});
 
 	EXPECT_EQ(4, callnum);
 }
@@ -1243,6 +1250,7 @@ TEST_F(sys_call_test, large_read_write) {
 		                   filter,
 		                   setup,
 		                   event_capture::do_nothing,
+		                   libsinsp::events::all_sc_set(),
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
@@ -1361,6 +1369,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 		                   filter,
 		                   setup,
 		                   event_capture::do_nothing,
+		                   libsinsp::events::all_sc_set(),
 		                   131072,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
 		                   (uint64_t)60 * 1000 * 1000 * 1000,
