@@ -28,7 +28,7 @@ limitations under the License.
 
 std::string event_capture::s_engine_string = KMOD_ENGINE;
 std::string event_capture::s_engine_path;
-unsigned long event_capture::s_buffer_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+unsigned long event_capture::s_buffer_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM * 4;
 
 event_capture::event_capture(captured_event_callback_t captured_event_callback,
                              before_capture_t before_open,

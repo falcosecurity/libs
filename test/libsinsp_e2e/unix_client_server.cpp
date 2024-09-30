@@ -95,7 +95,6 @@ TEST_F(sys_call_test, unix_client_server) {
 				       ends_with(ti->m_args[0], "unix_client_server.py");
 			}
 		}
-
 		return false;
 	};
 
@@ -119,8 +118,6 @@ TEST_F(sys_call_test, unix_client_server) {
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* evt = param.m_evt;
-
-		// std::cout << evt->get_name() << std::endl;
 
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X) {
 			std::string tuple = evt->get_param_value_str("tuple");
@@ -251,7 +248,14 @@ TEST_F(sys_call_test, unix_client_server) {
 	//
 	// OUTPUT VALDATION
 	//
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   libsinsp::events::sinsp_state_sc_set());
+	});
 	EXPECT_FALSE(first_connect_or_accept_seen);
 	EXPECT_EQ(8, callnum);
 }
