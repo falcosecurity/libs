@@ -2384,7 +2384,7 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int
 		return "<UNKNOWN>";
 	}
 
-	if(fdinfo->m_name.back() == '/') {
+	if(fdinfo->m_name.empty() || fdinfo->m_name.back() == '/') {
 		return fdinfo->m_name;
 	}
 	return fdinfo->m_name + '/';
