@@ -12,6 +12,8 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__
 
+#include <linux/sched.h>  // TASK_COMM_LEN definition
+
 #define __bpf_section(NAME) __attribute__((section(NAME), used))
 
 #ifndef __always_inline

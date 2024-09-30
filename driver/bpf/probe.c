@@ -14,7 +14,6 @@ or GPL2.txt for full copies of the license.
 #if __has_include(<asm/rwonce.h>)
 #include <asm/rwonce.h>
 #endif
-#include <linux/sched.h>
 
 #include "driver_config.h"
 #include "ppm_events_public.h"
