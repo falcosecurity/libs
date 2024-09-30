@@ -73,6 +73,12 @@ if (BUILD_SHARED_LIBS)
     )
     set_property(TARGET scap_engine_gvisor_o PROPERTY POSITION_INDEPENDENT_CODE ON)
 
+	target_include_directories(
+		scap_engine_gvisor_o
+		PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> $<BUILD_INTERFACE:${LIBS_DIR}>
+				$<BUILD_INTERFACE:${LIBS_DIR}/userspace> $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+	)
+
     add_dependencies(scap_engine_gvisor_o uthash)
     add_dependencies(scap scap_engine_gvisor_o)
     target_sources(scap PRIVATE $<TARGET_OBJECTS:scap_engine_gvisor_o>)
