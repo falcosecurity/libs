@@ -1552,9 +1552,10 @@ cgroups_error:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		// task_pgrp_nr_ns has been introduced in 2.6.24
 		// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
-		res = val_to_ring(args, task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+		res = val_to_ring(args, task_pgrp_nr_ns(current, &init_pid_ns), 0, false, 0);
 #else
 		// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
+		// we don't have the concept of pid namespace in this kernel version
 		res = val_to_ring(args, process_group(current), 0, false, 0);
 #endif
 		CHECK_RES(res);
@@ -7447,7 +7448,7 @@ cgroups_error:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 	// task_pgrp_nr_ns has been introduced in 2.6.24
 	// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
-	res = val_to_ring(args, task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+	res = val_to_ring(args, task_pgrp_nr_ns(current, &init_pid_ns), 0, false, 0);
 #else
 	// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
 	res = val_to_ring(args, process_group(current), 0, false, 0);
