@@ -291,7 +291,7 @@ static inline std::string format_dirfd(sinsp_evt* evt) {
 		return "<UNKNOWN>";
 	}
 
-	if(fd_info_dirfd->m_name.back() == '/') {
+	if(fd_info_dirfd->m_name.empty() || fd_info_dirfd->m_name.back() == '/') {
 		return fd_info_dirfd->m_name;
 	}
 

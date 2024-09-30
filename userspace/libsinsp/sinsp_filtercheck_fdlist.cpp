@@ -233,7 +233,7 @@ uint8_t *sinsp_filter_check_fdlist::extract_single(sinsp_evt *evt,
 		pos += 10;
 	}
 
-	if(m_strval.size() != 0) {
+	if(!m_strval.empty()) {
 		if(m_strval.back() == ',') {
 			m_strval = m_strval.substr(0, m_strval.size() - 1);
 		}
