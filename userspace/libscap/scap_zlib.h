@@ -27,6 +27,10 @@ limitations under the License.
 #include <zlib.h>
 #else
 #include <stdio.h>
+
+#define Z_OK 0
+#define Z_BUF_ERROR 1
+
 #define gzFile FILE*
 #define gzflush(X, Y) fflush(X)
 #define gzopen fopen
@@ -36,9 +40,11 @@ limitations under the License.
 #define gzwrite(F, B, S) fwrite(B, 1, S, F)
 #define gzread(F, B, S) fread(B, 1, S, F)
 #define gztell(F) ftell(F)
+#define gzclearerr(F) clearerr(F)
 inline static const char *gzerror(FILE *F, int *E) {
 	*E = ferror(F);
 	return "error reading file descriptor";
 }
+
 #define gzseek fseek
 #endif
