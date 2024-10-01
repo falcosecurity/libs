@@ -392,7 +392,7 @@ TEST_F(sys_call_test, DISABLED_forking_clone_fs) {
 	};
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
@@ -519,12 +519,10 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 			FAIL();
 
 		close(cp.fd);
-
-		sleep(1);
 	};
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
@@ -583,6 +581,7 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 
 	ASSERT_NO_FATAL_FAILURE(
 	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
+
 	EXPECT_EQ(callnum, 4);
 }
 
@@ -634,15 +633,17 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 			FAIL();
 		}
 
-		usleep(500);
+		// Give new thread enough time to exit
+		sleep(1);
 
+		// The cloned child called chdir("/"); we expect to retrieve "/" here.
 		std::string tmps = getcwd(bcwd, 256);
 
 		ASSERT_TRUE(chdir(oriwd) == 0);
 	};
 
 	//
-	// OUTPUT VALDATION
+	// OUTPUT VALIDATION
 	//
 	captured_event_callback_t callback = [&](const callback_param& param) {
 		sinsp_evt* e = param.m_evt;
@@ -668,9 +669,15 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 
 			if(ti->m_tid == ptid) {
 				if(callnum > 1) {
+					// last getcwd call in the test
 					EXPECT_EQ(bcwd, ti->get_cwd());
+					EXPECT_EQ(bcwd, std::string("/"));
+				} else {
+					// first getcwd call in the test
+					EXPECT_EQ(std::string(oriwd) + "/", ti->get_cwd());
 				}
 			} else if(ti->m_tid == ctid) {
+				// getcwd call by the child
 				EXPECT_EQ("/", ti->get_cwd());
 			}
 
