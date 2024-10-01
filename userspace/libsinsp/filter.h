@@ -112,6 +112,7 @@ public:
 
 		bool is_skippable() const;
 		bool is_deprecated() const;
+		bool is_list() const;
 	};
 
 	// Describes a group of filtercheck fields ("ka")
