@@ -660,6 +660,10 @@ sinsp_filter_factory::check_infos_to_fieldclass_infos(
 				info.tags.insert("ARG_ALLOWED");
 			}
 
+			if(fld->m_flags & EPF_IS_LIST) {
+				info.tags.insert("EPF_IS_LIST");
+			}
+
 			cinfo.fields.emplace_back(std::move(info));
 		}
 
@@ -677,6 +681,10 @@ bool sinsp_filter_factory::filter_field_info::is_skippable() const {
 bool sinsp_filter_factory::filter_field_info::is_deprecated() const {
 	// Skip fields with the EPF_DEPRECATED flag.
 	return (tags.find("EPF_DEPRECATED") != tags.end());
+}
+
+bool sinsp_filter_factory::filter_field_info::is_list() const {
+	return (tags.find("EPF_IS_LIST") != tags.end());
 }
 
 uint32_t sinsp_filter_factory::filter_fieldclass_info::s_rightblock_start = 30;
@@ -740,8 +748,12 @@ std::string sinsp_filter_factory::filter_fieldclass_info::as_markdown(
 			continue;
 		}
 
-		os << "`" << fld_info.name << "` | " << fld_info.data_type << " | " << fld_info.desc
-		   << std::endl;
+		std::string data_type = fld_info.data_type;
+		if(fld_info.is_list()) {
+			data_type = "LIST(" + data_type + ")";
+		}
+
+		os << "`" << fld_info.name << "` | " << data_type << " | " << fld_info.desc << std::endl;
 	}
 
 	if(deprecated_count == fields.size()) {
