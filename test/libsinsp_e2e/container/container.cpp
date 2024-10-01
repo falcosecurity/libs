@@ -119,11 +119,6 @@ TEST_F(sys_call_test, container_cgroups) {
 }
 
 static int clone_callback(void* arg) {
-	// Here we need 2 sleeps instead of once because, for some reason,
-	// we miss the first one. This problem is *probably* related to the
-	// fact that before we created a brand new inspector for each test but
-	// not we keep the same and start/stop the capture.
-	sleep(1);
 	sleep(1);
 	return 0;
 }
@@ -195,21 +190,6 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl) {
 	int flags = CLONE_CHILD_CLEARTID | CLONE_CHILD_SETTID | SIGCHLD | CLONE_NEWPID;
 	bool done = false;
 
-	const int STACK_SIZE = 65536;
-	char* stack;
-	char* stack_top;
-
-	stack = (char*)malloc(STACK_SIZE);
-	if(stack == NULL) {
-		FAIL();
-	}
-	stack_top = stack + STACK_SIZE;
-
-	ctid = clone(clone_callback, stack_top, flags, NULL);
-	if(ctid == -1) {
-		FAIL();
-	}
-
 	//
 	// FILTER
 	//
@@ -218,7 +198,24 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl) {
 	//
 	// TEST CODE
 	//
-	run_callback_t test = [&](sinsp* inspector) { waitpid(ctid, NULL, 0); };
+	run_callback_t test = [&](sinsp* inspector) {
+		const int STACK_SIZE = 65536;
+		char* stack;
+		char* stack_top;
+
+		stack = (char*)malloc(STACK_SIZE);
+		if(stack == NULL) {
+			FAIL();
+		}
+		stack_top = stack + STACK_SIZE;
+
+		ctid = clone(clone_callback, stack_top, flags, NULL);
+		if(ctid == -1) {
+			FAIL();
+		}
+		waitpid(ctid, NULL, 0);
+		free(stack);
+	};
 
 	//
 	// OUTPUT VALDATION
@@ -238,7 +235,6 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl) {
 		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
-	free(stack);
 	ASSERT_TRUE(done);
 }
 
