@@ -141,7 +141,7 @@ TEST_F(sys_call_test, forking_while_scap_stopped) {
 				// Wait for 5 seconds to make sure the process will still
 				// exist when the sinsp will do the lookup to /proc
 				//
-				usleep(5000000);
+				sleep(5);
 				close(fd);
 				_exit(xstatus);  // child exits with specific return code
 			} else               // fork() returns new pid to the parent process
@@ -696,7 +696,7 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 TEST_F(sys_call_test, forking_main_thread_exit) {
 	int evtnum = 0;
 	int callnum = 0;
-	int fd;
+	int64_t fd;
 	pid_t cpid;  // parent tid
 
 	event_filter_t filter = [&](sinsp_evt* evt) {
@@ -734,13 +734,13 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 		if(param.m_evt->get_type() == PPME_SYSCALL_OPEN_X) {
 			if(param.m_evt->get_param_value_str("name") == "/etc/passwd") {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
-				fd = *(int64_t*)param.m_evt->get_param(0)->m_val;
+				fd = param.m_evt->get_param(0)->as<int64_t>();
 				++callnum;
 			}
 		} else if(param.m_evt->get_type() == PPME_SYSCALL_OPENAT_2_X) {
 			if(param.m_evt->get_param_value_str("name") == "/etc/passwd") {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
-				memcpy(&fd, (int64_t*)param.m_evt->get_param(0)->m_val, sizeof(fd));
+				fd = param.m_evt->get_param(0)->as<int64_t>();
 				++callnum;
 			}
 		} else if(param.m_evt->get_type() == PPME_PROCEXIT_1_E && param.m_evt->get_tid() == cpid) {
