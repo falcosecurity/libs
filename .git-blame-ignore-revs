@@ -1,3 +1,14 @@
+# These commits altered the blame only to change types
+89ec22f38ce06145a10d52fd9be2cb1b872bfd11
+4dd9c8a2517dcda5aab0fc7a26197e74bf557fd6
+9326b1dd23efd095908a723a1d94acbe91032cab
+c8b971ecbff766003c736f01c0455e73dbd0efb3
+a5730f7a18e2e81b270105c2f81cf6c6a0201feb
+56b6e591cf8bf6849c27adfccc1557835daa1529
+93240ff1106f54add1e620e861bdfe890cf99108
+5c9b3cd3eb485ff8e4a3c364383f246d79146194
+0736581e22da38f260e01b64a9c73a4d66c7c02a
+2bea7ba762ed916eaf283066b20ad989b77276a6
 # This commit formatted the libs code for the first time.
 215db2d9de0cb15061873a2e3bea33f731a54cab
 # This commit has completely rewritten the history of file `userspace/libscap/engine/savefile/scap_savefile.c`. 
