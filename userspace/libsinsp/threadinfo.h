@@ -36,6 +36,8 @@ struct iovec {
 #include <libsinsp/thread_group_info.h>
 #include <libsinsp/state/table.h>
 #include <libsinsp/state/table_adapters.h>
+#include <libsinsp/event.h>
+#include <libscap/scap_savefile_api.h>
 
 struct erase_fd_params {
 	bool m_remove_from_table;

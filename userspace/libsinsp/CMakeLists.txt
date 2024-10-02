@@ -110,6 +110,13 @@ add_library(
 	events/sinsp_events_ppm_sc.cpp
 )
 
+if(NOT WIN32
+   AND NOT APPLE
+   AND NOT EMSCRIPTEN
+)
+	target_sources(sinsp PRIVATE linux/resource_utilization.cpp)
+endif()
+
 if(ENABLE_THREAD_POOL AND NOT EMSCRIPTEN)
 	target_sources(sinsp PRIVATE sinsp_thread_pool_bs.cpp)
 endif()
