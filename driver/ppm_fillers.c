@@ -926,6 +926,18 @@ static enum ppm_overlay ppm_get_overlay_layer(struct file *file) {
 #endif  // LINUX_VERSION_CODE < KERNEL_VERSION(3, 18, 0)
 }
 
+static inline int push_pgid(struct event_filler_arguments *args) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+	// task_pgrp_nr_ns has been introduced in 2.6.24
+	// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
+	return val_to_ring(args, task_pgrp_nr_ns(current, &init_pid_ns), 0, false, 0);
+#else
+	// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
+	// we don't have the concept of pid namespace in this kernel version
+	return val_to_ring(args, process_group(current), 0, false, 0);
+#endif
+}
+
 int f_proc_startupdate(struct event_filler_arguments *args) {
 	unsigned long val = 0;
 	int res = 0;
@@ -1549,15 +1561,7 @@ cgroups_error:
 		CHECK_RES(res);
 
 		/* Parameter 29: pgid (type: PT_UID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-		// task_pgrp_nr_ns has been introduced in 2.6.24
-		// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
-		res = val_to_ring(args, task_pgrp_nr_ns(current, &init_pid_ns), 0, false, 0);
-#else
-		// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
-		// we don't have the concept of pid namespace in this kernel version
-		res = val_to_ring(args, process_group(current), 0, false, 0);
-#endif
+		res = push_pgid(args);
 		CHECK_RES(res);
 	}
 	return add_sentinel(args);
@@ -7445,14 +7449,7 @@ cgroups_error:
 	CHECK_RES(res);
 
 	/* Parameter 29: pgid (type: PT_UID) */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-	// task_pgrp_nr_ns has been introduced in 2.6.24
-	// https://elixir.bootlin.com/linux/v2.6.24/source/kernel/pid.c#L458
-	res = val_to_ring(args, task_pgrp_nr_ns(current, &init_pid_ns), 0, false, 0);
-#else
-	// https://elixir.bootlin.com/linux/v2.6.23/source/kernel/sys.c#L1543
-	res = val_to_ring(args, process_group(current), 0, false, 0);
-#endif
+	res = push_pgid(args);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

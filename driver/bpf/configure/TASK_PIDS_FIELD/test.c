@@ -18,9 +18,6 @@ or GPL2.txt for full copies of the license.
 #include "../../ppm_events_public.h"
 #include "../../types.h"
 
-// struct task_struct declaration
-#include <linux/sched.h>
-
 BPF_PROBE("signal/", signal_deliver, signal_deliver_args) {
 	struct task_struct *task = (struct task_struct *)0;
 	if(task->pids) {

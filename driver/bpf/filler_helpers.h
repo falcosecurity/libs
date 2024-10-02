@@ -1404,4 +1404,31 @@ static __always_inline int bpf_val_to_ring_type(struct filler_data *data,
 	return __bpf_val_to_ring(data, val, 0, type, -1, false, param_type_to_mem(type));
 }
 
+static __always_inline pid_t bpf_push_pgid(struct filler_data *data, struct task_struct *task) {
+	pid_t pgid = 0;
+	// this is like calling in the kernel:
+	//
+	// struct pid *grp = task_pgrp(current);
+	// int pgrp = pid_nr(grp);
+#ifdef HAS_TASK_PIDS_FIELD
+	struct task_struct *leader = (struct task_struct *)_READ(task->group_leader);
+	if(leader) {
+		struct pid_link link = _READ(leader->pids[PIDTYPE_PGID]);
+		struct pid *pid_struct = link.pid;
+		if(pid_struct) {
+			pgid = _READ(pid_struct->numbers[0].nr);
+		}
+	}
+#else
+	struct signal_struct *signal = (struct signal_struct *)_READ(task->signal);
+	if(signal) {
+		struct pid *pid_struct = _READ(signal->pids[PIDTYPE_PGID]);
+		if(pid_struct) {
+			pgid = _READ(pid_struct->numbers[0].nr);
+		}
+	}
+#endif
+	return bpf_push_s64_to_ring(data, (int64_t)pgid);
+}
+
 #endif
