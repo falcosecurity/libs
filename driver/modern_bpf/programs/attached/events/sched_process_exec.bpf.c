@@ -258,11 +258,7 @@ int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret) {
 	}
 
 	/* Parameter 29: pgid (type: PT_UID) */
-	pid_t pgid = 0;
-	struct pid *pid_struct = NULL;
-	READ_TASK_FIELD_INTO(&pid_struct, task, signal, pids[PIDTYPE_PGID]);
-	BPF_CORE_READ_INTO(&pgid, pid_struct, numbers[0].nr);
-	auxmap__store_s64_param(auxmap, (int64_t)pgid);
+	auxmap__store_pgid(auxmap, task);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

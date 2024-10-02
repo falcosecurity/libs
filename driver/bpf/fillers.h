@@ -2821,30 +2821,7 @@ FILLER(execve_extra_tail_2, true) {
 	CHECK_RES(res);
 
 	/* Parameter 29: pgid (type: PT_UID) */
-	pid_t pgid = 0;
-	// this is like calling in the kernel:
-	//
-	// struct pid *grp = task_pgrp(current);
-	// int pgrp = pid_nr(grp);
-#ifdef HAS_TASK_PIDS_FIELD
-	struct task_struct *leader = (struct task_struct *)_READ(task->group_leader);
-	if(leader) {
-		struct pid_link link = _READ(leader->pids[PIDTYPE_PGID]);
-		struct pid *pid_struct = link.pid;
-		if(pid_struct) {
-			pgid = _READ(pid_struct->numbers[0].nr);
-		}
-	}
-#else
-	struct signal_struct *signal = (struct signal_struct *)_READ(task->signal);
-	if(signal) {
-		struct pid *pid_struct = _READ(signal->pids[PIDTYPE_PGID]);
-		if(pid_struct) {
-			pgid = _READ(pid_struct->numbers[0].nr);
-		}
-	}
-#endif
-	return bpf_push_s64_to_ring(data, (int64_t)pgid);
+	return bpf_push_pgid(data, task);
 }
 
 FILLER(sys_accept4_e, true) {
@@ -6623,26 +6600,7 @@ FILLER(sched_prog_exec_5, false) {
 	CHECK_RES(res);
 
 	/* Parameter 29: pgid (type: PT_UID) */
-	pid_t pgid = 0;
-#ifdef HAS_TASK_PIDS_FIELD
-	struct task_struct *leader = (struct task_struct *)_READ(task->group_leader);
-	if(leader) {
-		struct pid_link link = _READ(leader->pids[PIDTYPE_PGID]);
-		struct pid *pid_struct = link.pid;
-		if(pid_struct) {
-			pgid = _READ(pid_struct->numbers[0].nr);
-		}
-	}
-#else
-	struct signal_struct *signal = (struct signal_struct *)_READ(task->signal);
-	if(signal) {
-		struct pid *pid_struct = _READ(signal->pids[PIDTYPE_PGID]);
-		if(pid_struct) {
-			pgid = _READ(pid_struct->numbers[0].nr);
-		}
-	}
-#endif
-	return bpf_push_s64_to_ring(data, (int64_t)pgid);
+	return bpf_push_pgid(data, task);
 }
 
 #endif
