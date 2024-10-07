@@ -330,7 +330,7 @@ void container_cri::fake_cri_test_timing(const std::string& pb_prefix,
 		       evt->get_type() == PPME_CONTAINER_JSON_2_E;
 	};
 
-	run_callback_t test = [&](sinsp* inspector)
+	run_callback_async_t test = [&]()
 	{
 		subprocess handle(LIBSINSP_TEST_PATH "/test_helper", {"cri_container_echo"});
 		handle.in() << "\n";
