@@ -1,14 +1,13 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
-# https://stackoverflow.com/questions/21650370/setting-up-an-http-server-that-listens-over-a-file-socket
-
-import SocketServer
+import socketserver
 import os
 import re
 import socket
 import sys
 import time
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
 
 DELAY = 0.0
 CONTAINER_JSON = '''{
@@ -223,18 +222,16 @@ CONTAINER_JSON = '''{
 
 CONTAINER_REQUEST = re.compile('^(?:/v1.[0-9]*)?/containers/([0-9a-f]+)/json')
 
-
 class FakeDockerHTTPHandler(BaseHTTPRequestHandler):
 
     def _send_response(self, resp):
-        self.send_header('Content-Length', len(resp))
+        resp_bytes = resp.encode('utf-8')  # Convert to bytes
+        self.send_header('Content-Length', len(resp_bytes))
         self.send_header('Connection', 'close')
         self.end_headers()
-        self.wfile.write(resp)
+        self.wfile.write(resp_bytes)
 
-    # noinspection PyPep8Naming
     def do_GET(self):
-
         matches = CONTAINER_REQUEST.match(self.path)
         if matches:
             if DELAY < 0:
@@ -256,9 +253,8 @@ class FakeDockerHTTPHandler(BaseHTTPRequestHandler):
 class UnixHTTPServer(HTTPServer):
     address_family = socket.AF_UNIX
 
-    # noinspection PyAttributeOutsideInit
     def server_bind(self):
-        SocketServer.TCPServer.server_bind(self)
+        socketserver.TCPServer.server_bind(self)
         self.server_name = 'localhost'
         self.server_port = 0
 
@@ -268,19 +264,16 @@ class UnixHTTPServer(HTTPServer):
 
 
 if __name__ == '__main__':
-    # noinspection PyBroadException
     try:
         DELAY = float(sys.argv[1])
     except Exception:
         pass
 
-    # noinspection PyBroadException
     try:
         socket_path = sys.argv[2]
     except Exception:
         socket_path = '/tmp/http.socket'
 
-    # noinspection PyBroadException
     try:
         os.unlink(socket_path)
     except Exception:
