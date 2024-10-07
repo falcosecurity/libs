@@ -58,10 +58,8 @@ bool is_cgroupv2_mounted() {
 	constexpr const char cgroup_v2_prefix[] = "cgroup2 ";
 	std::ifstream mounts_file_handle(mounts_file);
 	std::string line;
-	while (std::getline(mounts_file_handle, line))
-	{
-		if (line.rfind(cgroup_v2_prefix, 0) == 0)
-		{
+	while(std::getline(mounts_file_handle, line)) {
+		if(line.rfind(cgroup_v2_prefix, 0) == 0) {
 			return true;
 		}
 	}
@@ -324,14 +322,11 @@ void pgid_test(const vector<string>& args) {
 
 bool custom_container_set_cgroup() {
 	std::string cpu_cgroup;
- 	if (is_cgroupv2_mounted())
- 	{
- 		cpu_cgroup = "/sys/fs/cgroup/system.slice/custom_container_foo";
- 	}
- 	else
- 	{
- 		cpu_cgroup = "/sys/fs/cgroup/cpu/custom_container_foo";
- 	}
+	if(is_cgroupv2_mounted()) {
+		cpu_cgroup = "/sys/fs/cgroup/system.slice/custom_container_foo";
+	} else {
+		cpu_cgroup = "/sys/fs/cgroup/cpu/custom_container_foo";
+	}
 	struct stat s;
 
 	if(stat(cpu_cgroup.c_str(), &s) < 0) {
@@ -558,14 +553,14 @@ void custom_container(const vector<string>& args) {
 
 bool cri_container_set_cgroup() {
 	std::string cpu_cgroup;
-	if (is_cgroupv2_mounted()) {
+	if(is_cgroupv2_mounted()) {
 		cpu_cgroup =
-			"/sys/fs/cgroup/system.slice/"
-			"aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+		        "/sys/fs/cgroup/system.slice/"
+		        "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
 	} else {
 		cpu_cgroup =
-			"/sys/fs/cgroup/cpu/docker/"
-			"aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+		        "/sys/fs/cgroup/cpu/docker/"
+		        "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
 	}
 	struct stat s;
 
