@@ -1461,6 +1461,10 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		result += setresuid(orig_uids[0], orig_uids[1], orig_uids[2]);
 		result += setresgid(orig_gids[0], orig_gids[1], orig_gids[2]);
 
+		// Clean environment
+		result += system("userdel testsetresuid");
+		result += system("groupdel testsetresgid");
+
 		if(result != 0) {
 			FAIL() << "Cannot restore initial id state.";
 		}
