@@ -112,7 +112,11 @@ void container_cri::fake_cri_test(
 		inspector->set_cri_extra_queries(extra_queries);
 	};
 
-	EXPECT_NO_FATAL_FAILURE({ event_capture::run(test, cri_callback, filter, setup); });
+	after_capture_t cleanup = [&](sinsp* inspector) {
+		inspector->set_docker_socket_path(default_docker_socket);
+	};
+
+	EXPECT_NO_FATAL_FAILURE({ event_capture::run(test, cri_callback, filter, setup, cleanup); });
 
 	// The fake server had to stay running the whole time in order
 	// for the test to be succesful
