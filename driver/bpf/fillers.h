@@ -473,11 +473,11 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data, bool ent
 	nfds = bpf_syscall_get_argument(data, 1);
 	fds = (struct pollfd *)data->tmp_scratch;
 	read_size = nfds * sizeof(struct pollfd);
+
+	val = bpf_syscall_get_argument(data, 0);
 	if(read_size > SCRATCH_SIZE_MAX) {
 		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
 	}
-
-	val = bpf_syscall_get_argument(data, 0);
 	/* We don't want to discard the whole event if the pointer is null.
 	 * Setting `nfds = 0` we will just push to userspace the number of fds read,
 	 * in this case `0`.
