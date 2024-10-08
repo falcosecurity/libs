@@ -1357,13 +1357,15 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 	ret = system("groupdel testsetresgid");
 	usleep(200);
 
+	const pid_t self = getpid();
+
 	//
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
 		auto type = evt->get_type();
 		auto tinfo = evt->get_thread_info(true);
-		return tinfo->m_comm != "sudo" &&
+		return tinfo->m_comm != "sudo" && tinfo->m_pid == self &&
 		       (type == PPME_USER_ADDED_E || type == PPME_USER_ADDED_X ||
 		        type == PPME_GROUP_ADDED_E || type == PPME_GROUP_ADDED_X ||
 		        type == PPME_SYSCALL_GETRESUID_E || type == PPME_SYSCALL_GETRESUID_X ||
