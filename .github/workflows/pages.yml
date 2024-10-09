@@ -128,7 +128,7 @@ jobs:
           echo '<object data="../heaptrack_scap.svg" type="image/svg+xml" id="heaptrack_scap_file"></object>' > docs/heaptrack_scap_file.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/heaptrack_scap_file.md
 
-      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: 3.x
 
