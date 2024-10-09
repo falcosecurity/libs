@@ -337,7 +337,7 @@ jobs:
           sudo -E ../test/e2e/scripts/run_tests.sh
 
       - name: Archive test reports
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.2
         if: failure()
         with:
           name: ${{ matrix.name }}_report
