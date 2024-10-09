@@ -424,7 +424,7 @@ public:
 	void set_loginuser(uint32_t loginuid);
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
-	cgroups_t& cgroups() const;
+	const cgroups_t& cgroups() const;
 
 	//
 	// Core state
@@ -443,10 +443,10 @@ public:
 	bool m_exe_lower_layer;  ///< True if the executable file belongs to lower layer in overlayfs
 	bool m_exe_from_memfd;   ///< True if the executable is stored in fileless memory referenced by
 	                         ///< memfd
-	std::vector<std::string> m_args;       ///< Command line arguments (e.g. "-d1")
-	std::vector<std::string> m_env;        ///< Environment variables
-	std::unique_ptr<cgroups_t> m_cgroups;  ///< subsystem-cgroup pairs
-	std::string m_container_id;            ///< heuristic-based container id
+	std::vector<std::string> m_args;  ///< Command line arguments (e.g. "-d1")
+	std::vector<std::string> m_env;   ///< Environment variables
+	cgroups_t m_cgroups;              ///< subsystem-cgroup pairs
+	std::string m_container_id;       ///< heuristic-based container id
 	uint32_t m_flags;   ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	sinsp_userinfo m_user;       ///< user infos
@@ -587,6 +587,7 @@ public:
 	void set_env(const char* env, size_t len);
 	void set_cgroups(const char* cgroups, size_t len);
 	void set_cgroups(const std::vector<std::string>& cgroups);
+	void set_cgroups(const cgroups_t& cgroups);
 	bool is_lastevent_data_valid() const;
 	inline void set_lastevent_data_validity(bool isvalid) {
 		if(isvalid) {
@@ -659,6 +660,7 @@ private:
 	bool m_parent_loop_detected;
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_env)> m_env_table_adapter;
+	libsinsp::state::stl_container_table_adapter<decltype(m_cgroups)> m_cgroups_table_adapter;
 };
 
 /*@}*/

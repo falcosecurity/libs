@@ -310,6 +310,11 @@ protected:
 		const auto* buf = _access_dynamic_field(i.m_index);
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((const char**)out) = ((const std::string*)buf)->c_str();
+		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
+			auto pout = (libsinsp::state::pair_t*)out;
+			auto pval = (const libsinsp::state::pair_t*)buf;
+			pout->first = pval->first;
+			pout->second = pval->second;
 		} else {
 			memcpy(out, buf, i.info().size());
 		}
@@ -325,6 +330,11 @@ protected:
 		auto* buf = _access_dynamic_field(i.m_index);
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((std::string*)buf) = *((const char**)in);
+		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
+			auto pin = (const libsinsp::state::pair_t*)in;
+			auto pval = (libsinsp::state::pair_t*)buf;
+			pval->first = pin->first;
+			pval->second = pin->second;
 		} else {
 			memcpy(buf, in, i.info().size());
 		}
@@ -402,7 +412,7 @@ private:
 };  // namespace state
 };  // namespace libsinsp
 
-// specializations for string types
+// specializations for strings
 
 template<>
 inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string, const char*>(
@@ -438,4 +448,27 @@ inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string, std:
         const field_accessor<std::string>& a,
         const std::string& in) {
 	set_dynamic_field(a, in.c_str());
+}
+
+// specializations for stringpairs
+
+template<>
+inline void
+libsinsp::state::dynamic_struct::get_dynamic_field<libsinsp::state::pair_t, const char* [2]>(
+        const field_accessor<pair_t>& a,
+        const char* (&out)[2]) {
+	_check_defsptr(a.info(), false);
+	libsinsp::state::pair_t outpair;
+	get_dynamic_field(a.info(), reinterpret_cast<void*>(&outpair));
+	out[0] = outpair.first.c_str();
+	out[1] = outpair.second.c_str();
+}
+
+template<>
+inline void
+libsinsp::state::dynamic_struct::set_dynamic_field<libsinsp::state::pair_t, const char* [2]>(
+        const field_accessor<pair_t>& a,
+        const char* const (&in)[2]) {
+	libsinsp::state::pair_t p = std::make_pair(in[0], in[1]);
+	set_dynamic_field(a, p);
 }

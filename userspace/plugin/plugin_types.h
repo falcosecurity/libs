@@ -217,6 +217,7 @@ typedef enum ss_plugin_state_type {
 	SS_PLUGIN_ST_UINT64 = 8,
 	SS_PLUGIN_ST_STRING = 9,
 	SS_PLUGIN_ST_TABLE = 10,
+	SS_PLUGIN_ST_STRINGPAIR = 11,
 	SS_PLUGIN_ST_BOOL = 25
 } ss_plugin_state_type;
 
@@ -234,6 +235,7 @@ typedef union ss_plugin_state_data {
 	const char* str;
 	ss_plugin_bool b;
 	ss_plugin_table_t* table;
+	const char* strs[2];
 } ss_plugin_state_data;
 
 // Info about a state table.
