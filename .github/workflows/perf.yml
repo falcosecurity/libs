@@ -13,10 +13,10 @@ jobs:
     runs-on: [ "self-hosted", "linux", "X64" ]
     steps:
       - name: Checkout Libs ⤵️
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
 
       - name: Checkout Google benchmark ⤵️
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           repository: 'google/benchmark'
           ref: 'v1.9.0'
@@ -40,7 +40,7 @@ jobs:
 
       - name: Diff from master - perf scap file
         run: |
-          sudo perf diff perf_scap.data ${{ steps.perf.outputs.perf_scap }} -d sinsp-example -b -o 1 --percentage relative -q &> perf_scap_diff.txt    
+          sudo perf diff perf_scap.data ${{ steps.perf.outputs.perf_scap }} -d sinsp-example -b -o 1 --percentage relative -q &> perf_scap_diff.txt
 
       - name: Diff from master - heaptrack unit tests
         run: |
