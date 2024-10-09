@@ -92,10 +92,10 @@ protected:
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((const char**)out) = ((const std::string*)m_value)->c_str();
 		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
-			auto pout = (libsinsp::state::pair_t*)out;
+			auto ostrs = *((const char*(*)[2])out);
 			auto pval = (const libsinsp::state::pair_t*)m_value;
-			pout->first = pval->first;
-			pout->second = pval->second;
+			ostrs[0] = pval->first.c_str();
+			ostrs[1] = pval->second.c_str();
 		} else {
 			memcpy(out, (const void*)m_value, i.info().size());
 		}
@@ -111,10 +111,10 @@ protected:
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((std::string*)m_value) = *((const char**)in);
 		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
-			auto pin = (const libsinsp::state::pair_t*)in;
+			auto istrs = *((const char*(*)[2])in);
 			auto pval = (libsinsp::state::pair_t*)m_value;
-			pval->first = pin->first;
-			pval->second = pin->second;
+			pval->first = istrs[0];
+			pval->second = istrs[1];
 		} else {
 			memcpy((void*)m_value, in, i.info().size());
 		}
