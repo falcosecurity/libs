@@ -305,16 +305,17 @@ protected:
 	 * "out" points to a variable having the type of the field_info argument,
 	 * according to the type definitions supported in libsinsp::state::typeinfo.
 	 * For strings, "out" is considered of type const char**.
+	 * For stringpairs, "out" is considered a pointer to const char*[2].
 	 */
 	virtual void get_dynamic_field(const field_info& i, void* out) {
 		const auto* buf = _access_dynamic_field(i.m_index);
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((const char**)out) = ((const std::string*)buf)->c_str();
 		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
-			auto pout = (libsinsp::state::pair_t*)out;
+			auto ostrs = *((const char***)out);
 			auto pval = (const libsinsp::state::pair_t*)buf;
-			pout->first = pval->first;
-			pout->second = pval->second;
+			ostrs[0] = pval->first.c_str();
+			ostrs[1] = pval->second.c_str();
 		} else {
 			memcpy(out, buf, i.info().size());
 		}
@@ -325,16 +326,17 @@ protected:
 	 * "in" points to a variable having the type of the field_info argument,
 	 * according to the type definitions supported in libsinsp::state::typeinfo.
 	 * For strings, "in" is considered of type const char**.
+	 * For stringpairs, "in" is considered a pointer to const char*[2].
 	 */
 	virtual void set_dynamic_field(const field_info& i, const void* in) {
 		auto* buf = _access_dynamic_field(i.m_index);
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((std::string*)buf) = *((const char**)in);
 		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
-			auto pin = (const libsinsp::state::pair_t*)in;
+			auto istrs = *((const char***)in);
 			auto pval = (libsinsp::state::pair_t*)buf;
-			pval->first = pin->first;
-			pval->second = pin->second;
+			pval->first = istrs[0];
+			pval->second = istrs[1];
 		} else {
 			memcpy(buf, in, i.info().size());
 		}
@@ -453,22 +455,23 @@ inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string, std:
 // specializations for stringpairs
 
 template<>
-inline void
-libsinsp::state::dynamic_struct::get_dynamic_field<libsinsp::state::pair_t, const char* [2]>(
-        const field_accessor<pair_t>& a,
-        const char* (&out)[2]) {
-	_check_defsptr(a.info(), false);
-	libsinsp::state::pair_t outpair;
-	get_dynamic_field(a.info(), reinterpret_cast<void*>(&outpair));
-	out[0] = outpair.first.c_str();
-	out[1] = outpair.second.c_str();
+inline void libsinsp::state::dynamic_struct::get_dynamic_field<libsinsp::state::pair_t,
+                                                               libsinsp::state::pair_t>(
+        const field_accessor<libsinsp::state::pair_t>& a,
+        libsinsp::state::pair_t& out) {
+	char* strs[2];
+	get_dynamic_field(a, strs);
+	out.first = strs[0];
+	out.second = strs[1];
 }
 
 template<>
-inline void
-libsinsp::state::dynamic_struct::set_dynamic_field<libsinsp::state::pair_t, const char* [2]>(
+inline void libsinsp::state::dynamic_struct::set_dynamic_field<libsinsp::state::pair_t,
+                                                               libsinsp::state::pair_t>(
         const field_accessor<pair_t>& a,
-        const char* const (&in)[2]) {
-	libsinsp::state::pair_t p = std::make_pair(in[0], in[1]);
-	set_dynamic_field(a, p);
+        const libsinsp::state::pair_t& in) {
+	const char* strs[2];
+	strs[0] = in.first.c_str();
+	strs[1] = in.second.c_str();
+	set_dynamic_field(a, strs);
 }
