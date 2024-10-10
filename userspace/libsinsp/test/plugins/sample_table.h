@@ -111,7 +111,7 @@ public:
 		}
 
 		ss_plugin_table_fieldinfo f;
-		t->strings.emplace_back(name);
+		t->strings.push_back(name);
 		f.field_type = data_type;
 		f.read_only = false;
 		t->fields.push_back(f);
@@ -150,10 +150,6 @@ public:
 		}
 		if(t->fields[f].field_type == SS_PLUGIN_ST_STRING) {
 			out->str = e->strings[f].c_str();
-		} else if(t->fields[f].field_type == SS_PLUGIN_ST_STRINGPAIR) {
-			auto strpair = (const std::pair<std::string, std::string>*)e->data[f];
-			out->strs[0] = strpair->first.c_str();
-			out->strs[1] = strpair->second.c_str();
 		} else {
 			memcpy(out, e->data[f], sizeof(ss_plugin_state_data));
 		}
@@ -232,10 +228,6 @@ public:
 		}
 		if(t->fields[f].field_type == SS_PLUGIN_ST_STRING) {
 			e->strings[f] = in->str;
-		} else if(t->fields[f].field_type == SS_PLUGIN_ST_STRINGPAIR) {
-			auto strpair = (std::pair<std::string, std::string>*)e->data[f];
-			strpair->first = in->strs[0];
-			strpair->second = in->strs[1];
 		} else {
 			memcpy(e->data[f], in, sizeof(ss_plugin_state_data));
 		}

@@ -65,9 +65,6 @@ limitations under the License.
 		case ss_plugin_state_type::SS_PLUGIN_ST_TABLE:                              \
 			_X(libsinsp::state::base_table*, table);                                \
 			break;                                                                  \
-		case ss_plugin_state_type::SS_PLUGIN_ST_STRINGPAIR:                         \
-			_X(libsinsp::state::pair_t, strs);                                      \
-			break;                                                                  \
 		default:                                                                    \
 			throw sinsp_exception("can't convert plugin state type to typeinfo: " + \
 			                      std::to_string(_kt));                             \
@@ -98,8 +95,6 @@ static inline ss_plugin_state_type typeinfo_to_state_type(const libsinsp::state:
 		return ss_plugin_state_type::SS_PLUGIN_ST_BOOL;
 	case libsinsp::state::typeinfo::index_t::TI_TABLE:
 		return ss_plugin_state_type::SS_PLUGIN_ST_TABLE;
-	case libsinsp::state::typeinfo::index_t::TI_STRINGPAIR:
-		return ss_plugin_state_type::SS_PLUGIN_ST_STRINGPAIR;
 	default:
 		throw sinsp_exception("can't convert typeinfo to plugin state type: " +
 		                      std::to_string(i.index()));
@@ -111,7 +106,7 @@ static inline void convert_types(const From& from, To& to) {
 	to = from;
 }
 
-// specialization cases
+// special cases for strings
 template<>
 inline void convert_types(const std::string& from, const char*& to) {
 	to = from.c_str();
@@ -125,17 +120,6 @@ inline void convert_types(libsinsp::state::base_table* const& from, ss_plugin_ta
 template<>
 inline void convert_types(ss_plugin_table_t* const& from, libsinsp::state::base_table*& to) {
 	to = static_cast<libsinsp::state::base_table*>(from);
-}
-
-template<>
-inline void convert_types(const char* const (&from)[2], libsinsp::state::pair_t& to) {
-	to = std::make_pair(from[0], from[1]);
-}
-
-template<>
-inline void convert_types(const libsinsp::state::pair_t& from, const char* (&to)[2]) {
-	to[0] = from.first.c_str();
-	to[1] = from.second.c_str();
 }
 
 static void noop_release_table_entry(ss_plugin_table_t*, ss_plugin_table_entry_t*) {}
@@ -699,14 +683,6 @@ void plugin_table_wrapper<libsinsp::state::base_table*>::get_key_as_data(
         libsinsp::state::base_table* const& key,
         ss_plugin_state_data& out) {
 	out.table = static_cast<ss_plugin_table_t*>(key);
-}
-
-template<>
-void plugin_table_wrapper<libsinsp::state::pair_t>::get_key_as_data(
-        const libsinsp::state::pair_t& key,
-        ss_plugin_state_data& out) {
-	out.strs[0] = key.first.c_str();
-	out.strs[1] = key.second.c_str();
 }
 
 //

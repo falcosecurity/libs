@@ -31,7 +31,8 @@ struct plugin_state {
 	ss_plugin_table_t* thread_table;
 
 	ss_plugin_table_field_t* table_field_cgroupstable;
-	ss_plugin_table_field_t* table_field_cgroupstable_value;
+	ss_plugin_table_field_t* table_field_cgroupstable_first;
+	ss_plugin_table_field_t* table_field_cgroupstable_second;
 
 	uint8_t step = 0;
 };
@@ -118,13 +119,23 @@ ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc) {
 	auto cgroupstable = data.table;
 
 	// obtain accessor to one of the fields of file descriptor tables (name)
-	ret->table_field_cgroupstable_value =
+	ret->table_field_cgroupstable_first =
 	        in->tables->fields_ext->get_table_field(cgroupstable,
-	                                                "value",
-	                                                ss_plugin_state_type::SS_PLUGIN_ST_STRINGPAIR);
-	if(!ret->table_field_cgroupstable_value) {
+	                                                "pair.first",
+	                                                ss_plugin_state_type::SS_PLUGIN_ST_STRING);
+	if(!ret->table_field_cgroupstable_first) {
 		*rc = SS_PLUGIN_FAILURE;
-		ret->lasterr = "can't get sub-table 'value' field";
+		ret->lasterr = "can't get sub-table 'pair.first' field";
+		return ret;
+	}
+
+	ret->table_field_cgroupstable_second =
+	        in->tables->fields_ext->get_table_field(cgroupstable,
+	                                                "pair.second",
+	                                                ss_plugin_state_type::SS_PLUGIN_ST_STRING);
+	if(!ret->table_field_cgroupstable_second) {
+		*rc = SS_PLUGIN_FAILURE;
+		ret->lasterr = "can't get sub-table 'pair.second' field";
 		return ret;
 	}
 
@@ -186,33 +197,61 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t* s,
 				return SS_PLUGIN_FAILURE;
 			}
 
-			data.strs[0] = "hello";
-			data.strs[1] = "world";
+			data.str = "hello";
 			res = in->table_reader_ext->read_entry_field(cgroupstable,
 			                                             nentry,
-			                                             ps->table_field_cgroupstable_value,
+			                                             ps->table_field_cgroupstable_first,
 			                                             &data);
 			if(res != SS_PLUGIN_SUCCESS) {
-				ps->lasterr = "can't read subtable entry value field: " +
+				ps->lasterr = "can't read subtable entry pair.first field: " +
 				              std::string(in->get_owner_last_error(in->owner));
 				printf("ERR %s\n", ps->lasterr.c_str());
 				return SS_PLUGIN_FAILURE;
 			}
-			if(strcmp(data.strs[0], "") != 0) {
-				ps->lasterr = "wrong string read from subtable entry value field: " +
-				              std::string(data.strs[0]);
+			if(strcmp(data.str, "") != 0) {
+				ps->lasterr = "wrong string read from subtable entry pair.first field: " +
+				              std::string(data.str);
 				printf("ERR %s\n", ps->lasterr.c_str());
 				return SS_PLUGIN_FAILURE;
 			}
 
-			data.strs[0] = "hello";
-			data.strs[1] = "world";
+			data.str = "hello";
+			res = in->table_reader_ext->read_entry_field(cgroupstable,
+			                                             nentry,
+			                                             ps->table_field_cgroupstable_second,
+			                                             &data);
+			if(res != SS_PLUGIN_SUCCESS) {
+				ps->lasterr = "can't read subtable entry pair.second field: " +
+				              std::string(in->get_owner_last_error(in->owner));
+				printf("ERR %s\n", ps->lasterr.c_str());
+				return SS_PLUGIN_FAILURE;
+			}
+			if(strcmp(data.str, "") != 0) {
+				ps->lasterr = "wrong string read from subtable entry pair.second field: " +
+				              std::string(data.str);
+				printf("ERR %s\n", ps->lasterr.c_str());
+				return SS_PLUGIN_FAILURE;
+			}
+
+			data.str = "hello";
 			res = in->table_writer_ext->write_entry_field(cgroupstable,
 			                                              nentry,
-			                                              ps->table_field_cgroupstable_value,
+			                                              ps->table_field_cgroupstable_first,
 			                                              &data);
 			if(res != SS_PLUGIN_SUCCESS) {
-				ps->lasterr = "can't write subtable entry value field: " +
+				ps->lasterr = "can't write subtable entry pair.first field: " +
+				              std::string(in->get_owner_last_error(in->owner));
+				printf("ERR %s\n", ps->lasterr.c_str());
+				return SS_PLUGIN_FAILURE;
+			}
+
+			data.str = "world";
+			res = in->table_writer_ext->write_entry_field(cgroupstable,
+			                                              nentry,
+			                                              ps->table_field_cgroupstable_second,
+			                                              &data);
+			if(res != SS_PLUGIN_SUCCESS) {
+				ps->lasterr = "can't write subtable entry pair.second field: " +
 				              std::string(in->get_owner_last_error(in->owner));
 				printf("ERR %s\n", ps->lasterr.c_str());
 				return SS_PLUGIN_FAILURE;

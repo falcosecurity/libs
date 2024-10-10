@@ -49,6 +49,92 @@ protected:
 
 /**
  * @brief An adapter for the libsinsp::state::table_entry interface
+ * that wraps a non-owning pointer of arbitrary pair of type T. The underlying pointer
+ * can be set and unset arbitrarily, making this wrapper suitable for optimized
+ * allocations. Instances of table_entry from this adapter have no static fields,
+ * and make the wrapped value available as a single dynamic field. The dynamic
+ * fields definitions of this wrapper are fixed and immutable.
+ */
+template<typename Tfirst, typename Tsecond>
+class pair_table_entry_adapter : public libsinsp::state::table_entry {
+public:
+	// note: this dynamic definitions are fixed in size and structure,
+	// so there's no need of worrying about specific identifier checks
+	// as they should be safely interchangeable
+	static const constexpr uintptr_t s_dynamic_fields_id = 4321;
+
+	struct dynamic_fields_t : public fixed_dynamic_fields_infos {
+		using _dfi = dynamic_struct::field_info;
+
+		inline dynamic_fields_t():
+		        fixed_dynamic_fields_infos(
+		                {_dfi::build<Tfirst>("pair.first", 0, s_dynamic_fields_id),
+		                 _dfi::build<Tsecond>("pair.second", 1, s_dynamic_fields_id)}) {}
+
+		virtual ~dynamic_fields_t() = default;
+	};
+
+	inline explicit pair_table_entry_adapter(): table_entry(nullptr), m_value(nullptr) {}
+
+	virtual ~pair_table_entry_adapter() = default;
+
+	inline std::pair<Tfirst, Tsecond>* value() { return m_value; }
+	inline const std::pair<Tfirst, Tsecond>* value() const { return m_value; }
+	inline void set_value(std::pair<Tfirst, Tsecond>* v) { m_value = v; }
+
+protected:
+	virtual void get_dynamic_field(const dynamic_struct::field_info& i, void* out) override final {
+		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
+			throw sinsp_exception(
+			        "invalid field info passed to pair_table_entry_adapter::get_dynamic_field");
+		}
+		if(i.index() == 0) {
+			return get_dynamic_field(i, &m_value->first, out);
+		}
+		return get_dynamic_field(i, &m_value->second, out);
+	}
+
+	virtual void set_dynamic_field(const dynamic_struct::field_info& i,
+	                               const void* in) override final {
+		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
+			throw sinsp_exception(
+			        "invalid field info passed to pair_table_entry_adapter::set_dynamic_field");
+		}
+
+		if(i.index() == 0) {
+			return set_dynamic_field(i, &m_value->first, in);
+		}
+		return set_dynamic_field(i, &m_value->second, in);
+	}
+
+	virtual void destroy_dynamic_fields() override final {
+		// nothing to do
+	}
+
+private:
+	std::pair<Tfirst, Tsecond>* m_value;
+
+	template<typename T>
+	inline void get_dynamic_field(const dynamic_struct::field_info& i, const T* value, void* out) {
+		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+			*((const char**)out) = ((const std::string*)value)->c_str();
+		} else {
+			memcpy(out, (const void*)value, i.info().size());
+		}
+	}
+
+	template<typename T>
+	inline void set_dynamic_field(const dynamic_struct::field_info& i, T* value, const void* in) {
+		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+			*((std::string*)value) = *((const char**)in);
+		} else {
+			memcpy((void*)value, in, i.info().size());
+		}
+	}
+};
+
+/**
+ * @brief An adapter for the libsinsp::state::table_entry interface
  * that wraps a non-owning pointer of arbitrary type T. The underlying pointer
  * can be set and unset arbitrarily, making this wrapper suitable for optimized
  * allocations. Instances of table_entry from this adapter have no static fields,
@@ -91,11 +177,6 @@ protected:
 
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((const char**)out) = ((const std::string*)m_value)->c_str();
-		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
-			auto ostrs = *((const char*(*)[2])out);
-			auto pval = (const libsinsp::state::pair_t*)m_value;
-			ostrs[0] = pval->first.c_str();
-			ostrs[1] = pval->second.c_str();
 		} else {
 			memcpy(out, (const void*)m_value, i.info().size());
 		}
@@ -110,11 +191,6 @@ protected:
 
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((std::string*)m_value) = *((const char**)in);
-		} else if(i.info().index() == typeinfo::index_t::TI_STRINGPAIR) {
-			auto istrs = *((const char*(*)[2])in);
-			auto pval = (libsinsp::state::pair_t*)m_value;
-			pval->first = istrs[0];
-			pval->second = istrs[1];
 		} else {
 			memcpy((void*)m_value, in, i.info().size());
 		}

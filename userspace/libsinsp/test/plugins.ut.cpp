@@ -992,22 +992,30 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	// obtain a pointer to the subtable (check typing too)
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
 	auto subtable = dynamic_cast<libsinsp::state::stl_container_table_adapter<
-	        std::vector<std::pair<std::string, std::string>>>*>(
+	        std::vector<std::pair<std::string, std::string>>,
+	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>*>(
 	        entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_EQ(subtable->name(), "cgroups");
 	ASSERT_EQ(subtable->entries_count(), 0);
-
 	// get an accessor to a dynamic field representing the array's values
-	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 1);
-	auto dfield = subtable->dynamic_fields()->fields().find("value");
-	ASSERT_NE(dfield, subtable->dynamic_fields()->fields().end());
-	ASSERT_EQ(dfield->second.readonly(), false);
-	ASSERT_EQ(dfield->second.valid(), true);
-	ASSERT_EQ(dfield->second.name(), "value");
+	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 2);  // pair.first, pair.second
 
-	ASSERT_EQ(dfield->second.info(), libsinsp::state::typeinfo::of<libsinsp::state::pair_t>());
-	auto dfieldacc = dfield->second.new_accessor<libsinsp::state::pair_t>();
+	auto dfield_first = subtable->dynamic_fields()->fields().find("pair.first");
+	ASSERT_NE(dfield_first, subtable->dynamic_fields()->fields().end());
+	ASSERT_EQ(dfield_first->second.readonly(), false);
+	ASSERT_EQ(dfield_first->second.valid(), true);
+	ASSERT_EQ(dfield_first->second.name(), "pair.first");
+	ASSERT_EQ(dfield_first->second.info(), libsinsp::state::typeinfo::of<std::string>());
+	auto dfield_first_acc = dfield_first->second.new_accessor<std::string>();
+
+	auto dfield_second = subtable->dynamic_fields()->fields().find("pair.second");
+	ASSERT_NE(dfield_second, subtable->dynamic_fields()->fields().end());
+	ASSERT_EQ(dfield_second->second.readonly(), false);
+	ASSERT_EQ(dfield_second->second.valid(), true);
+	ASSERT_EQ(dfield_second->second.name(), "pair.second");
+	ASSERT_EQ(dfield_second->second.info(), libsinsp::state::typeinfo::of<std::string>());
+	auto dfield_second_acc = dfield_second->second.new_accessor<std::string>();
 
 	// start the event capture
 	// we coordinate with the plugin by sending open events: for each one received,
@@ -1025,10 +1033,11 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin);
 
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
-		libsinsp::state::pair_t tmppair;
-		e.get_dynamic_field(dfieldacc, tmppair);
-		EXPECT_EQ(tmppair.first, "hello");
-		EXPECT_EQ(tmppair.second, "world");
+		std::string first, second;
+		e.get_dynamic_field(dfield_first_acc, first);
+		e.get_dynamic_field(dfield_second_acc, second);
+		EXPECT_EQ(first, "hello");
+		EXPECT_EQ(second, "world");
 		return true;
 	};
 	ASSERT_TRUE(subtable->foreach_entry(itt));
