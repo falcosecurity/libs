@@ -38,7 +38,9 @@ jobs:
         architecture: [X64, ARM64]
     runs-on: [ "self-hosted", "linux", "${{matrix.architecture}}" ]
     steps:
-      - uses: falcosecurity/kernel-testing@f8f0b498e3d2b08e70b8e82f55447ff84f9c43b2 # v0.3.2
+      # We need to use v0.3.2 instead of the hash because the tagname is 
+      # used by the action to download release tagged images.
+      - uses: falcosecurity/kernel-testing@v0.3.2
         id: kernel_tests
         with:
           libsversion: ${{ inputs.libsversion }}
