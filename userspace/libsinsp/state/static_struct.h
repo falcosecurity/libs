@@ -244,14 +244,3 @@ inline void libsinsp::state::static_struct::get_static_field<std::string, const 
         const char*& out) const {
 	out = get_static_field<std::string>(a).c_str();
 }
-
-// specializations for stringpairs
-template<>
-inline void
-libsinsp::state::static_struct::get_static_field<libsinsp::state::pair_t, const char* [2]>(
-        const field_accessor<libsinsp::state::pair_t>& a,
-        const char* (&out)[2]) const {
-	auto& p = get_static_field<libsinsp::state::pair_t>(a);
-	out[0] = p.first.c_str();
-	out[1] = p.second.c_str();
-}

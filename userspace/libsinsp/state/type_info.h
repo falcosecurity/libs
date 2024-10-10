@@ -26,8 +26,6 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 
-using pair_t = std::pair<std::string, std::string>;
-
 /**
  * @brief Generic and agnostic information about a type, similar to
  * std::type_info but following a restricted and controlled enumeration of
@@ -52,7 +50,6 @@ public:
 		TI_UINT64 = 8,
 		TI_STRING = 9,
 		TI_TABLE = 10,
-		TI_STRINGPAIR = 11,
 		// note(jasondellaluce): weird value due to plugin API backward compatibility
 		TI_BOOL = 25,
 	};
@@ -196,10 +193,6 @@ inline typeinfo typeinfo::of<libsinsp::state::base_table*>() {
 template<>
 inline typeinfo typeinfo::of<const libsinsp::state::base_table*>() {
 	return _build<const libsinsp::state::base_table*>("table", TI_TABLE);
-}
-template<>
-inline typeinfo typeinfo::of<libsinsp::state::pair_t>() {
-	return _build<libsinsp::state::pair_t>("stringpair", TI_STRINGPAIR);
 }
 
 };  // namespace state

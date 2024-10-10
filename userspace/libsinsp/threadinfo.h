@@ -660,7 +660,10 @@ private:
 	bool m_parent_loop_detected;
 	libsinsp::state::stl_container_table_adapter<decltype(m_args)> m_args_table_adapter;
 	libsinsp::state::stl_container_table_adapter<decltype(m_env)> m_env_table_adapter;
-	libsinsp::state::stl_container_table_adapter<decltype(m_cgroups)> m_cgroups_table_adapter;
+	libsinsp::state::stl_container_table_adapter<
+	        decltype(m_cgroups),
+	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>
+	        m_cgroups_table_adapter;
 };
 
 /*@}*/
