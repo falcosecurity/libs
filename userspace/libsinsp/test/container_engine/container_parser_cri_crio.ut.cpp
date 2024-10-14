@@ -537,9 +537,12 @@ runtime::v1alpha2::PodSandboxStatusResponse get_default_cri_crio_pod_status_resp
 	status->set_created_at((uint64_t)1676262698000004577);  // dummy
 	status->mutable_metadata()->set_name("podsandbox1");
 	status->mutable_network()->set_ip("10.244.0.3");
-  status->mutable_linux()->mutable_namespaces()->mutable_options()->set_ipc(runtime::v1alpha2::NamespaceMode::NODE);
-  status->mutable_linux()->mutable_namespaces()->mutable_options()->set_network(runtime::v1alpha2::NamespaceMode::POD);
-  status->mutable_linux()->mutable_namespaces()->mutable_options()->set_pid(runtime::v1alpha2::NamespaceMode::NODE);
+	status->mutable_linux()->mutable_namespaces()->mutable_options()->set_ipc(
+	        runtime::v1alpha2::NamespaceMode::NODE);
+	status->mutable_linux()->mutable_namespaces()->mutable_options()->set_network(
+	        runtime::v1alpha2::NamespaceMode::POD);
+	status->mutable_linux()->mutable_namespaces()->mutable_options()->set_pid(
+	        runtime::v1alpha2::NamespaceMode::NODE);
 	auto labels = status->mutable_labels();
 	(*labels)["app"] = "myapp";
 	(*labels)["example-label/custom_one"] = "mylabel";
@@ -635,11 +638,11 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio) {
 	                                                      root_pod_sandbox,
 	                                                      container);
 	ASSERT_TRUE(res);
-  ASSERT_FALSE(container.m_host_network);
-  cri_api_v1alpha2->parse_cri_pod_sandbox_pid(resp_pod_sandbox_container, container);
-  ASSERT_TRUE(container.m_host_pid);
-  cri_api_v1alpha2->parse_cri_pod_sandbox_ipc(resp_pod_sandbox_container, container);
-  ASSERT_TRUE(container.m_host_ipc);  
+	ASSERT_FALSE(container.m_host_network);
+	cri_api_v1alpha2->parse_cri_pod_sandbox_pid(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(container.m_host_pid);
+	cri_api_v1alpha2->parse_cri_pod_sandbox_ipc(resp_pod_sandbox_container, container);
+	ASSERT_TRUE(container.m_host_ipc);
 	res = cri_api_v1alpha2->parse_cri_pod_sandbox_labels(resp_pod_sandbox_container, container);
 	ASSERT_TRUE(res);
 
@@ -784,11 +787,16 @@ TEST_F(sinsp_with_test_input, container_parser_cri_crio) {
 	          "sha256:49ecc282021562c567a8159ef424a06cdd8637efdca5953de9794eafe29adcad");
 	ASSERT_EQ(get_field_as_string(evt, "container.ip"), "10.244.0.3");
 
-	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"), "{\"cniVersion\":\"1.0.0\",\"interfaces\":[{\"name\":\"bridge\",\"mac\":\"ce:64:08:76:88:6a\"},{\"name\":\"veth71b0e931\",\"mac\":\"72:b7:4f:bc:e4:a4\"},{\"name\":\"eth0\",\"mac\":\"fe:06:00:f8:2f:4d\",\"sandbox\":\"/var/run/netns/dec735d1-0e86-44c1-94e0-a102173334a4\"}],\"ips\":[{\"interface\":2,\"address\":\"10.244.0.3/16\",\"gateway\":\"10.244.0.1\"}],\"routes\":[{\"dst\":\"0.0.0.0/0\",\"gw\":\"10.244.0.1\"}],\"dns\":{}}");
+	ASSERT_EQ(get_field_as_string(evt, "container.cni.json"),
+	          "{\"cniVersion\":\"1.0.0\",\"interfaces\":[{\"name\":\"bridge\",\"mac\":\"ce:64:08:"
+	          "76:88:6a\"},{\"name\":\"veth71b0e931\",\"mac\":\"72:b7:4f:bc:e4:a4\"},{\"name\":"
+	          "\"eth0\",\"mac\":\"fe:06:00:f8:2f:4d\",\"sandbox\":\"/var/run/netns/"
+	          "dec735d1-0e86-44c1-94e0-a102173334a4\"}],\"ips\":[{\"interface\":2,\"address\":\"10."
+	          "244.0.3/16\",\"gateway\":\"10.244.0.1\"}],\"routes\":[{\"dst\":\"0.0.0.0/"
+	          "0\",\"gw\":\"10.244.0.1\"}],\"dns\":{}}");
 	ASSERT_EQ(get_field_as_string(evt, "container.host_pid"), "true");
 	ASSERT_EQ(get_field_as_string(evt, "container.host_network"), "false");
 	ASSERT_EQ(get_field_as_string(evt, "container.host_ipc"), "true");
-
 
 	ASSERT_EQ(get_field_as_string(evt, "k8s.ns.name"), "redhat.test.crio");
 	ASSERT_EQ(get_field_as_string(evt, "k8s.pod.name"), "podsandbox1");

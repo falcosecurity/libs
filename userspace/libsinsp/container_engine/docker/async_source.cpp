@@ -824,18 +824,15 @@ bool docker_async_source::parse(const docker_lookup_request& request,
 		container.m_privileged = privileged.asBool();
 	}
 	const Json::Value& host_pid = host_config_obj["PidMode"];
-	if(!host_pid.isNull() && host_pid.isString() && host_pid.asString() == "host")
-	{
+	if(!host_pid.isNull() && host_pid.isString() && host_pid.asString() == "host") {
 		container.m_host_pid = true;
 	}
 	const Json::Value& host_net = host_config_obj["NetworkMode"];
-	if(!host_net.isNull() && host_net.isString() && host_net.asString() == "host")
-	{
+	if(!host_net.isNull() && host_net.isString() && host_net.asString() == "host") {
 		container.m_host_network = true;
 	}
 	const Json::Value& ipc_mode = host_config_obj["IpcMode"];
-	if(!ipc_mode.isNull() && ipc_mode.isString() && ipc_mode.asString() == "host")
-	{
+	if(!ipc_mode.isNull() && ipc_mode.isString() && ipc_mode.asString() == "host") {
 		container.m_host_ipc = true;
 	}
 

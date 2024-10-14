@@ -216,25 +216,23 @@ public:
 	};
 
 	sinsp_container_info(sinsp_container_lookup &&lookup = sinsp_container_lookup()):
-		m_type(CT_UNKNOWN),
-		m_container_ip(0),
-		m_privileged(false),
-		m_host_pid(false),
-		m_host_network(false),
-		m_host_ipc(false),
-		m_memory_limit(0),
-		m_swap_limit(0),
-		m_cpu_shares(1024),
-		m_cpu_quota(0),
-		m_cpu_period(100000),
-		m_cpuset_cpu_count(0),
-		m_is_pod_sandbox(false),
-		m_lookup(std::move(lookup)),
-		m_container_user("<NA>"),
-		m_metadata_deadline(0),
-		m_size_rw_bytes(-1)
-	{
-	}
+	        m_type(CT_UNKNOWN),
+	        m_container_ip(0),
+	        m_privileged(false),
+	        m_host_pid(false),
+	        m_host_network(false),
+	        m_host_ipc(false),
+	        m_memory_limit(0),
+	        m_swap_limit(0),
+	        m_cpu_shares(1024),
+	        m_cpu_quota(0),
+	        m_cpu_period(100000),
+	        m_cpuset_cpu_count(0),
+	        m_is_pod_sandbox(false),
+	        m_lookup(std::move(lookup)),
+	        m_container_user("<NA>"),
+	        m_metadata_deadline(0),
+	        m_size_rw_bytes(-1) {}
 
 	void clear() {
 		this->~sinsp_container_info();

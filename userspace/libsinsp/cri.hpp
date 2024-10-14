@@ -638,8 +638,7 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(
 	//
 	// Pod network namespace mode
 	//
-	if (status.linux().namespaces().options().network() == api::NamespaceMode::NODE)
-	{
+	if(status.linux().namespaces().options().network() == api::NamespaceMode::NODE) {
 		container.m_host_network = true;
 	}
 
@@ -715,27 +714,25 @@ inline bool cri_interface<api>::parse_cri_pod_sandbox_network(
 }
 
 template<typename api>
-inline void cri_interface<api>::parse_cri_pod_sandbox_pid(const typename api::PodSandboxStatus &status, 
-				 sinsp_container_info &container)
-{
+inline void cri_interface<api>::parse_cri_pod_sandbox_pid(
+        const typename api::PodSandboxStatus &status,
+        sinsp_container_info &container) {
 	//
 	// Pod pid namespace mode
 	//
-	if (status.linux().namespaces().options().pid() == api::NamespaceMode::NODE)
-	{
+	if(status.linux().namespaces().options().pid() == api::NamespaceMode::NODE) {
 		container.m_host_pid = true;
 	}
 }
 
 template<typename api>
-inline void cri_interface<api>::parse_cri_pod_sandbox_ipc(const typename api::PodSandboxStatus &status, 
-				 sinsp_container_info &container)
-{
+inline void cri_interface<api>::parse_cri_pod_sandbox_ipc(
+        const typename api::PodSandboxStatus &status,
+        sinsp_container_info &container) {
 	//
 	// Pod ipc namespace mode
 	//
-	if (status.linux().namespaces().options().ipc() == api::NamespaceMode::NODE)
-	{
+	if(status.linux().namespaces().options().ipc() == api::NamespaceMode::NODE) {
 		container.m_host_ipc = true;
 	}
 }
