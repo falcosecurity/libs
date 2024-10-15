@@ -242,19 +242,19 @@ static const filtercheck_field_info sinsp_filter_check_container_fields[] = {
          PF_NA,
          "container.host_pid",
          "Host PID Namespace",
-         "'true' if the process is running in the host PID namespace, 'false' otherwise."},
+         "'true' if the container is running in the host PID namespace, 'false' otherwise."},
         {PT_BOOL,
          EPF_NONE,
          PF_NA,
          "container.host_network",
          "Host Network Namespace",
-         "'true' if the process is running in the host network namespace, 'false' otherwise."},
+         "'true' if the container is running in the host network namespace, 'false' otherwise."},
         {PT_BOOL,
          EPF_NONE,
          PF_NA,
          "container.host_ipc",
          "Host IPC Namespace",
-         "'true' if the process is running in the host IPC namespace, 'false' otherwise."},
+         "'true' if the container is running in the host IPC namespace, 'false' otherwise."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container() {
@@ -522,7 +522,7 @@ uint8_t *sinsp_filter_check_container::extract_single(sinsp_evt *evt,
 	case TYPE_CONTAINER_HOST_PID:
 	case TYPE_CONTAINER_HOST_NETWORK:
 	case TYPE_CONTAINER_HOST_IPC:
-		if(tinfo->m_container_id.empty()) {
+		if(is_host) {
 			return NULL;
 		} else {
 			if(!container_info) {
@@ -531,7 +531,7 @@ uint8_t *sinsp_filter_check_container::extract_single(sinsp_evt *evt,
 
 			// Only return a true/false value for
 			// container types where we really know the
-			// host_pid status. // todo(loresuso): double check this
+			// host_pid, host_network, host_ipc status.
 			if(!is_docker_compatible(container_info->m_type)) {
 				return NULL;
 			}
