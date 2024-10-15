@@ -33,8 +33,10 @@ namespace cri {
 
 template<typename api>
 inline cri_interface<api>::cri_interface(const std::string &cri_path) {
+	grpc::ChannelArguments args;
+	args.SetInt(GRPC_ARG_ENABLE_HTTP_PROXY, 0);
 	std::shared_ptr<grpc::Channel> channel =
-	        libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
+	        libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path, &args);
 
 	m_cri = api::RuntimeService::NewStub(channel);
 
