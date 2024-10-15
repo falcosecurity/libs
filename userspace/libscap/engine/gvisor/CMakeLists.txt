@@ -56,15 +56,11 @@ add_custom_command(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if(USE_BUNDLED_JSONCPP)
-	add_dependencies(scap jsoncpp)
-endif()
-
 add_library(
 	scap_engine_gvisor ${scap_engine_gvisor_sources} ${scap_engine_gvisor_generated_sources}
 )
 
-add_dependencies(scap_engine_gvisor uthash)
+add_dependencies(scap_engine_gvisor uthash jsoncpp)
 target_link_libraries(
 	scap_engine_gvisor PUBLIC scap_platform_util scap_error ${CMAKE_THREAD_LIBS_INIT}
 							  ${PROTOBUF_LIB} ${JSONCPP_LIB}
