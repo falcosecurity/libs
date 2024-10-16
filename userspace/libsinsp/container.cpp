@@ -551,7 +551,6 @@ void sinsp_container_manager::create_engines() {
 		                                                                   m_static_name,
 		                                                                   m_static_image);
 		m_container_engines.push_back(engine);
-		m_container_engine_by_type[CT_STATIC] = engine;
 		return;
 	}
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
@@ -559,63 +558,38 @@ void sinsp_container_manager::create_engines() {
 	if(m_container_engine_mask & (1 << CT_PODMAN)) {
 		auto podman_engine = std::make_shared<container_engine::podman>(*this);
 		m_container_engines.push_back(podman_engine);
-		m_container_engine_by_type[CT_PODMAN] = podman_engine;
 	}
 	if(m_container_engine_mask & (1 << CT_DOCKER)) {
 		auto docker_engine = std::make_shared<container_engine::docker_linux>(*this);
 		m_container_engines.push_back(docker_engine);
-		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 
 	if(m_container_engine_mask & ((1 << CT_CRI) | (1 << CT_CRIO) | (1 << CT_CONTAINERD))) {
 		auto cri_engine = std::make_shared<container_engine::cri>(*this);
 		m_container_engines.push_back(cri_engine);
-		m_container_engine_by_type[CT_CRI] = cri_engine;
-		m_container_engine_by_type[CT_CRIO] = cri_engine;
-		m_container_engine_by_type[CT_CONTAINERD] = cri_engine;
 	}
 	if(m_container_engine_mask & (1 << CT_LXC)) {
 		auto lxc_engine = std::make_shared<container_engine::lxc>(*this);
 		m_container_engines.push_back(lxc_engine);
-		m_container_engine_by_type[CT_LXC] = lxc_engine;
 	}
 	if(m_container_engine_mask & (1 << CT_LIBVIRT_LXC)) {
 		auto libvirt_lxc_engine = std::make_shared<container_engine::libvirt_lxc>(*this);
 		m_container_engines.push_back(libvirt_lxc_engine);
-		m_container_engine_by_type[CT_LIBVIRT_LXC] = libvirt_lxc_engine;
 	}
 	if(m_container_engine_mask & (1 << CT_MESOS)) {
 		auto mesos_engine = std::make_shared<container_engine::mesos>(*this);
 		m_container_engines.push_back(mesos_engine);
-		m_container_engine_by_type[CT_MESOS] = mesos_engine;
 	}
 	if(m_container_engine_mask & (1 << CT_RKT)) {
 		auto rkt_engine = std::make_shared<container_engine::rkt>(*this);
 		m_container_engines.push_back(rkt_engine);
-		m_container_engine_by_type[CT_RKT] = rkt_engine;
 	}
 	if(m_container_engine_mask & (1 << CT_BPM)) {
 		auto bpm_engine = std::make_shared<container_engine::bpm>(*this);
 		m_container_engines.push_back(bpm_engine);
-		m_container_engine_by_type[CT_BPM] = bpm_engine;
 	}
 #endif  // _WIN32
 #endif  // MINIMAL_BUILD
-}
-
-void sinsp_container_manager::update_container_with_size(sinsp_container_type type,
-                                                         const std::string& container_id) {
-	auto found = m_container_engine_by_type.find(type);
-	if(found == m_container_engine_by_type.end()) {
-		libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
-		                          "Container type %d not found when requesting size for %s",
-		                          type,
-		                          container_id.c_str());
-		return;
-	}
-
-	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Request size for %s", container_id.c_str());
-	found->second->update_with_size(container_id);
 }
 
 void sinsp_container_manager::cleanup() {
