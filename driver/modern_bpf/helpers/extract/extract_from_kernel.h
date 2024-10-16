@@ -374,15 +374,15 @@ static __always_inline uint64_t extract__capability(struct task_struct *task,
 
 	switch(capability_type) {
 	case CAP_INHERITABLE:
-		READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_inheritable);
+		BPF_CORE_READ_INTO(&cap_struct, task, cred, cap_inheritable);
 		break;
 
 	case CAP_PERMITTED:
-		READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_permitted);
+		BPF_CORE_READ_INTO(&cap_struct, task, cred, cap_permitted);
 		break;
 
 	case CAP_EFFECTIVE:
-		READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
+		BPF_CORE_READ_INTO(&cap_struct, task, cred, cap_effective);
 		break;
 
 	default:
@@ -729,7 +729,7 @@ static __always_inline unsigned long extract__clone_flags(struct task_struct *ta
  */
 static __always_inline void extract__euid(struct task_struct *task, uint32_t *euid) {
 	*euid = UINT32_MAX;
-	READ_TASK_FIELD_INTO(euid, task, cred, euid.val);
+	BPF_CORE_READ_INTO(euid, task, cred, euid.val);
 }
 
 /**
@@ -739,7 +739,7 @@ static __always_inline void extract__euid(struct task_struct *task, uint32_t *eu
  * @param egid return value by reference
  */
 static __always_inline void extract__egid(struct task_struct *task, uint32_t *egid) {
-	READ_TASK_FIELD_INTO(egid, task, cred, egid.val);
+	BPF_CORE_READ_INTO(egid, task, cred, egid.val);
 }
 
 /////////////////////////
@@ -885,7 +885,7 @@ static __always_inline uint32_t bpf_map_id_up(struct uid_gid_map *map, uint32_t 
 
 static __always_inline bool groups_search(struct task_struct *task, uint32_t grp) {
 	struct group_info *group_info = NULL;
-	READ_TASK_FIELD_INTO(&group_info, task, cred, group_info);
+	BPF_CORE_READ_INTO(&group_info, task, cred, group_info);
 	if(!group_info) {
 		return false;
 	}
@@ -934,8 +934,8 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 
 	uint32_t fsuid;
 	uint32_t fsgid;
-	READ_TASK_FIELD_INTO(&fsuid, task, cred, fsuid.val);
-	READ_TASK_FIELD_INTO(&fsgid, task, cred, fsgid.val);
+	BPF_CORE_READ_INTO(&fsuid, task, cred, fsuid.val);
+	BPF_CORE_READ_INTO(&fsgid, task, cred, fsgid.val);
 
 	/* HAS_UNMAPPED_ID() */
 	if(i_uid == -1 || i_gid == -1) {
@@ -978,7 +978,7 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 	}
 
 	struct user_namespace *ns;
-	READ_TASK_FIELD_INTO(&ns, task, cred, user_ns);
+	BPF_CORE_READ_INTO(&ns, task, cred, user_ns);
 	if(ns == NULL) {
 		return false;
 	}
@@ -986,7 +986,7 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 	bool kgid_mapped = bpf_map_id_up(&ns->gid_map, i_gid) != (uint32_t)-1;
 
 	kernel_cap_t cap_struct = {0};
-	READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
+	BPF_CORE_READ_INTO(&cap_struct, task, cred, cap_effective);
 	// Kernel 6.3 changed the kernel_cap_struct type from uint32_t[2] to uint64_t.
 	// Luckily enough, it also changed field name from cap to val.
 	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap)) {
