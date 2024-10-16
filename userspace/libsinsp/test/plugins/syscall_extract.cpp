@@ -86,7 +86,8 @@ const char* plugin_get_fields() {
 	{
 		"type": "uint64",
 		"name": "sample.is_open",
-		"desc": "Value is 1 if event is of open family"
+		"desc": "Value is 1 if event is of open family",
+		"addOutput": true
 	},
 	{
 		"type": "uint64",
