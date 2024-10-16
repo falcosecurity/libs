@@ -42,14 +42,13 @@ bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info& container
 		//
 		pos = cgroup.find("-lxc\\x2");
 		if(pos != std::string::npos) {
-			std::string delimiter = ".scope";
-			size_t pos2 = cgroup.find(delimiter);
 			// For cgroups like:
 			// /machine.slice/machine-lxc\x2d2293906\x2dlibvirt\x2dcontainer.scope/libvirt,
 			// account for /libvirt below.
-			if(cgroup.find(".scope/libvirt") != std::string::npos) {
-				delimiter = ".scope/libvirt";
-			}
+			std::string delimiter = (cgroup.find(".scope/libvirt") != std::string::npos)
+			                                ? ".scope/libvirt"
+			                                : ".scope";
+			size_t pos2 = cgroup.find(delimiter);
 			if(pos2 != std::string::npos && pos2 == cgroup.length() - delimiter.length()) {
 				container_info.m_type = CT_LIBVIRT_LXC;
 				container_info.m_id =
