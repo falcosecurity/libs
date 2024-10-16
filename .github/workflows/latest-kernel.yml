@@ -11,15 +11,13 @@ on:
     - cron: '0 8 * * *' # every day at 8am
 
 jobs:
-  build-latest-kernel:
-    name: build-latest-kernel
-    runs-on: ubuntu-latest
-    container:
-      image: falcosecurity/driverkit:latest
+  compute-latest-version:
+    outputs:
+      latest_vers: ${{ steps.latest-version.latest_vers }}
+    runs-on: 'ubuntu-latest'
     steps:
       - name: Checkout Archlinux mainline package ⤵️
         run: |
-          apk update && apk add git
           git clone https://aur.archlinux.org/linux-mainline.git linux/
 
       - name: Generate driverkit config
@@ -30,7 +28,6 @@ jobs:
         run: |
           cd linux/
           echo "kernelversion: 1" > dk.yaml
-          echo "architecture: amd64" >> dk.yaml
           echo "driverversion: ${{ github.sha }}" >> dk.yaml
           echo "output:" >> dk.yaml
           echo "  module: mod.ko" >> dk.yaml
@@ -52,19 +49,67 @@ jobs:
           name: driverkit_config.yaml
           path: linux/dk.yaml
 
+  build-latest-kernel-amd64:
+    needs: 'compute-latest-version'
+    outputs:
+      build: ${{ steps.build.outcome }}
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: Download driverkit config
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: driverkit_config.yaml
+
+      - name: Download latest driverkit artifact
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11 # v6
+        with:
+          name: driverkit-amd64
+          workflow: release.yml
+          repo: falcosecurity/driverkit
+
       - name: Test drivers build
         id: build
         run: |
-          echo "Testing build of drivers against: ${{ steps.latest-version.outputs.latest_vers }}"
-          driverkit docker -c linux/dk.yaml -l debug
+          echo "Testing build of drivers against: ${{ needs.compute-latest-version.latest_vers }}"
+          chmod +x driverkit
+          ./driverkit docker -c dk.yaml -l debug
 
+  build-latest-kernel-arm64:
+    needs: 'compute-latest-version'
+    outputs:
+      build: ${{ steps.build.outcome }}
+    runs-on: 'actuated-arm64-8cpu-16gb'
+    steps:
+      - name: Download driverkit config
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: driverkit_config.yaml
+
+      - name: Download latest driverkit artifact
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11 # v6
+        with:
+          name: driverkit-arm64
+          workflow: release.yml
+          repo: falcosecurity/driverkit
+
+      - name: Test drivers build
+        id: build
+        run: |
+          echo "Testing build of drivers against: ${{ needs.compute-latest-version.latest_vers }}"
+          chmod +x driverkit
+          ./driverkit docker -c dk.yaml -l debug
+
+  badge-latest-kernel:
+    if: always() && github.event_name == 'schedule'
+    runs-on: 'ubuntu-latest'
+    needs: [compute-latest-version,build-latest-kernel-amd64,build-latest-kernel-arm64]
+    steps:
       - name: Update README badge
         uses: schneegans/dynamic-badges-action@e9a478b16159b4d31420099ba146cdc50f134483 # v1.7.0
-        if: always() && github.event_name == 'schedule'
         with:
           auth: ${{ secrets.FEDEDP_GIST_SECRET }}
           gistID: 1cbc5d42edf8e3a02fb75e76625f1072
           filename: kernel.json
           label: Drivers build
-          message: ${{ steps.latest-version.outputs.latest_vers }}
-          color: ${{ steps.build.outcome != 'success' && 'red' || 'brightgreen' }}
+          message: ${{ needs.compute-latest-version.latest_vers }}
+          color: ${{ (needs.build-latest-kernel-amd64.build != 'success' || needs.build-latest-kernel-arm64.build != 'success') && 'red' || 'brightgreen' }}
