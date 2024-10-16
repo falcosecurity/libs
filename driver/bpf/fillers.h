@@ -6553,7 +6553,7 @@ FILLER(sched_prog_exec_4, false) {
 	 * PT_ABSTIME) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
 	time.tv_sec = _READ(inode->i_ctime_sec);
-	time.tv_nsec = _READ((inode->i_ctime_nsec);
+	time.tv_nsec = _READ(inode->i_ctime_nsec);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 	time = _READ(inode->__i_ctime);
 #else
