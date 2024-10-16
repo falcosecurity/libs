@@ -29,7 +29,7 @@ extern "C" {
 //
 // todo(jasondellaluce): when/if major changes to v4, check and solve all todos
 #define PLUGIN_API_VERSION_MAJOR 3
-#define PLUGIN_API_VERSION_MINOR 7
+#define PLUGIN_API_VERSION_MINOR 8
 #define PLUGIN_API_VERSION_PATCH 0
 
 //
@@ -843,7 +843,7 @@ typedef struct {
 		//     "name": a string with a name for the field
 		//     "type": one of "string", "uint64", "bool", "reltime", "abstime",
 		//             "ipaddr", "ipnet"
-		//     "isList: (optional) If present and set to true, notes
+		//     "isList: (optional) if present and set to true, notes
 		//              that the field extracts a list of values.
 		//     "arg": (optional) if present, notes that the field can accept
 		//             an argument e.g. field[arg]. More precisely, the following
@@ -860,9 +860,11 @@ typedef struct {
 		//                display the field instead of the name. Used in tools
 		//                like wireshark.
 		//     "desc": a string with a description of the field
+		//     "addOutput": (optional) if true, suggest this field to be appended to the
+		//				  output string for compatible event sources.
 		// Example return value:
 		// [
-		//    {"type": "uint64", "name": "field1", "desc": "Describing field 1"},
+		//    {"type": "uint64", "name": "field1", "desc": "Describing field 1", "addOutput": true},
 		//    {"type": "string", "name": "field2", "arg": {"isRequired": true, "isIndex": true},
 		//    "desc": "Describing field 2"},
 		// ]
