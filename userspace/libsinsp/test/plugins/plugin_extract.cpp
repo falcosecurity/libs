@@ -64,7 +64,7 @@ const char* plugin_get_contact() {
 const char* plugin_get_fields() {
 	return "["
 	       "{\"type\": \"string\", \"name\": \"sample.hello\", \"desc\": \"A constant hello world "
-	       "string\"}"
+	       "string\", \"addOutput\": true}"
 	       "]";
 }
 
