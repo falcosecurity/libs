@@ -64,7 +64,9 @@ static void run_test(test_type ttype,
 		case TEST_CGROUPS:
 			size_t pos = val.find("=");
 			ASSERT_NE(pos, std::string::npos);
-			ti.cgroups().push_back(make_pair(val.substr(0, pos), val.substr(pos + 1)));
+			auto cgroups = ti.cgroups();
+			cgroups.emplace_back(val.substr(0, pos), val.substr(pos + 1));
+			ti.set_cgroups(cgroups);
 			break;
 		}
 	}
