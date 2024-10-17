@@ -13,7 +13,7 @@ on:
 jobs:
   compute-latest-version:
     outputs:
-      latest_vers: ${{ steps.latest-version.latest_vers }}
+      latest_vers: ${{ steps.latest-version.outputs.latest_vers }}
     runs-on: 'ubuntu-latest'
     steps:
       - name: Checkout Archlinux mainline package ⤵️
@@ -70,7 +70,7 @@ jobs:
       - name: Test drivers build
         id: build
         run: |
-          echo "Testing build of drivers against: ${{ needs.compute-latest-version.latest_vers }}"
+          echo "Testing build of drivers against: ${{ needs.compute-latest-version.outputs.latest_vers }}"
           chmod +x driverkit
           ./driverkit docker -c dk.yaml -l debug
 
@@ -95,7 +95,7 @@ jobs:
       - name: Test drivers build
         id: build
         run: |
-          echo "Testing build of drivers against: ${{ needs.compute-latest-version.latest_vers }}"
+          echo "Testing build of drivers against: ${{ needs.compute-latest-version.outputs.latest_vers }}"
           chmod +x driverkit
           ./driverkit docker -c dk.yaml -l debug
 
@@ -111,5 +111,5 @@ jobs:
           gistID: 1cbc5d42edf8e3a02fb75e76625f1072
           filename: kernel.json
           label: Drivers build
-          message: ${{ needs.compute-latest-version.latest_vers }}
-          color: ${{ (needs.build-latest-kernel-amd64.build != 'success' || needs.build-latest-kernel-arm64.build != 'success') && 'red' || 'brightgreen' }}
+          message: ${{ needs.compute-latest-version.outputs.latest_vers }}
+          color: ${{ (needs.build-latest-kernel-amd64.outputs.build != 'success' || needs.build-latest-kernel-arm64.outputs.build != 'success') && 'red' || 'brightgreen' }}
