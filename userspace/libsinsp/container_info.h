@@ -219,6 +219,9 @@ public:
 	        m_type(CT_UNKNOWN),
 	        m_container_ip(0),
 	        m_privileged(false),
+	        m_host_pid(false),
+	        m_host_network(false),
+	        m_host_ipc(false),
 	        m_memory_limit(0),
 	        m_swap_limit(0),
 	        m_cpu_shares(1024),
@@ -265,6 +268,9 @@ public:
 	std::string m_imagedigest;
 	uint32_t m_container_ip;
 	bool m_privileged;
+	bool m_host_pid;
+	bool m_host_network;
+	bool m_host_ipc;
 	std::vector<container_mount_info> m_mounts;
 	std::vector<container_port_mapping> m_port_mappings;
 	std::map<std::string, std::string> m_labels;

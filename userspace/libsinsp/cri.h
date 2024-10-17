@@ -366,6 +366,22 @@ public:
 	                                   const Json::Value &root,
 	                                   sinsp_container_info &container);
 
+	/**
+	 * @brief fill out pod sandbox network namespace mode info
+	 * @param status `status` field of the PodSandboxStatusResponse
+	 * @param container the container info to fill out
+	 */
+	void parse_cri_pod_sandbox_pid(const typename api::PodSandboxStatus &status,
+	                               sinsp_container_info &container);
+
+	/**
+	 * @brief fill out pod sandbox ipc namespace mode info
+	 * @param status `status` field of the PodSandboxStatusResponse
+	 * @param container the container info to fill out
+	 */
+	void parse_cri_pod_sandbox_ipc(const typename api::PodSandboxStatus &status,
+	                               sinsp_container_info &container);
+
 	/////////////////////////////
 	// Generic parsers helpers
 	/////////////////////////////
