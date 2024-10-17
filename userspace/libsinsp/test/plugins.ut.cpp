@@ -996,8 +996,6 @@ TEST(sinsp_plugin, plugin_set_config) {
 	libsinsp_logger()->remove_callback_log();
 }
 
-#ifdef __linux__
-
 TEST_F(sinsp_with_test_input, plugin_metrics) {
 	uint32_t test_metrics_flags = (METRICS_V2_PLUGINS);
 	libs::metrics::libs_metrics_collector libs_metrics_collector(&m_inspector, test_metrics_flags);
@@ -1033,8 +1031,6 @@ TEST_F(sinsp_with_test_input, plugin_metrics) {
 
 	ASSERT_EQ(metrics_snapshot.back().value.u64, events);
 }
-
-#endif
 
 #if defined(ENABLE_THREAD_POOL) && !defined(__EMSCRIPTEN__)
 
