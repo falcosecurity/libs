@@ -47,11 +47,11 @@ sinsp_threadinfo::sinsp_threadinfo(
         sinsp* inspector,
         const std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>& dyn_fields):
         table_entry(dyn_fields),
-        m_cgroups(new cgroups_t),
         m_inspector(inspector),
         m_fdtable(inspector),
         m_args_table_adapter("args", m_args),
-        m_env_table_adapter("env", m_env) {
+        m_env_table_adapter("env", m_env),
+        m_cgroups_table_adapter("cgroups", m_cgroups) {
 	init();
 }
 
@@ -72,7 +72,7 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	define_static_field(ret, this, m_exe_from_memfd, "exe_from_memfd");
 	define_static_field(ret, this, m_args_table_adapter.table_ptr(), "args", true);
 	define_static_field(ret, this, m_env_table_adapter.table_ptr(), "env", true);
-	// m_cgroups
+	define_static_field(ret, this, m_cgroups_table_adapter.table_ptr(), "cgroups", true);
 	define_static_field(ret, this, m_container_id, "container_id");
 	define_static_field(ret, this, m_flags, "flags");
 	define_static_field(ret, this, m_fdlimit, "fd_limit");
@@ -578,13 +578,8 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid) {
 	}
 }
 
-sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
-	if(m_cgroups) {
-		return *m_cgroups;
-	}
-
-	static cgroups_t empty;
-	return empty;
+const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
+	return m_cgroups;
 }
 
 std::string sinsp_threadinfo::get_comm() const {
@@ -719,7 +714,7 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len) {
 }
 
 void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups) {
-	auto tmp_cgroups = std::make_unique<sinsp_threadinfo::cgroups_t>();
+	cgroups_t tmp_cgroups;
 
 	for(const auto& def : cgroups) {
 		std::string::size_type eq_pos = def.find("=");
@@ -746,10 +741,14 @@ void sinsp_threadinfo::set_cgroups(const std::vector<std::string>& cgroups) {
 			subsys = "blkio";
 		}
 
-		tmp_cgroups->push_back(std::make_pair(subsys, cgroup));
+		tmp_cgroups.emplace_back(subsys, cgroup);
 	}
 
-	m_cgroups.swap(tmp_cgroups);
+	m_cgroups = tmp_cgroups;
+}
+
+void sinsp_threadinfo::set_cgroups(const cgroups_t& cgroups) {
+	m_cgroups = cgroups;
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread() {
