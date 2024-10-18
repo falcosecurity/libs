@@ -513,6 +513,18 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 				}
 			}
 
+			const Json::Value& jvoutput = root[j].get("addOutput", Json::Value::null);
+			if(!jvoutput.isNull()) {
+				if(!jvoutput.isBool()) {
+					throw sinsp_exception(string("error in plugin ") + name() + ": field " + fname +
+					                      " addOutput property is not boolean ");
+				}
+
+				if(jvoutput.asBool()) {
+					m_output_fields.emplace("%" + fname);
+				}
+			}
+
 			resolve_dylib_field_arg(root[j].get("arg", Json::Value::null), tf);
 
 			const Json::Value& jvProperties = root[j].get("properties", Json::Value::null);
