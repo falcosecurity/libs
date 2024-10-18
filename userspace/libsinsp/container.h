@@ -179,12 +179,6 @@ public:
 
 	void create_engines();
 
-	/**
-	 * Update the container_info associated with the given type and container_id
-	 * to include the size of the container layer. This is not filled in the
-	 * initial request because it can easily take seconds.
-	 */
-	void update_container_with_size(sinsp_container_type type, const std::string& container_id);
 	void cleanup();
 
 	void set_docker_socket_path(std::string socket_path);
@@ -254,9 +248,6 @@ private:
 
 	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>>
 	        m_container_engines;
-	std::map<sinsp_container_type,
-	         std::shared_ptr<libsinsp::container_engine::container_engine_base>>
-	        m_container_engine_by_type;
 
 	sinsp* m_inspector;
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
