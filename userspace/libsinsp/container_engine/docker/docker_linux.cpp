@@ -43,27 +43,3 @@ bool docker_linux::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_in
 	                    docker_lookup_request(container_id, s_docker_sock, CT_DOCKER, 0, false),
 	                    query_os_for_missing_info);
 }
-
-void docker_linux::update_with_size(const std::string& container_id) {
-	auto cb = [this](const docker_lookup_request& instruction, const sinsp_container_info& res) {
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-		                          "docker_async (%s): with size callback result=%d",
-		                          instruction.container_id.c_str(),
-		                          res.get_lookup_status());
-
-		sinsp_container_info::ptr_t updated = std::make_shared<sinsp_container_info>(res);
-		container_cache().replace_container(updated);
-	};
-
-	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-	                          "docker_async size request (%s)",
-	                          container_id.c_str());
-
-	sinsp_container_info result;
-	docker_lookup_request instruction(container_id,
-	                                  s_docker_sock,
-	                                  CT_DOCKER,
-	                                  0,
-	                                  true /*request rw size*/);
-	(void)m_docker_info_source->lookup(instruction, result, cb);
-}

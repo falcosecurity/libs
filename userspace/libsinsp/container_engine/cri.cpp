@@ -272,34 +272,6 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 	return true;
 }
 
-void cri::update_with_size(const std::string &container_id) {
-	sinsp_container_info::ptr_t existing = container_cache().get_container(container_id);
-	if(!existing) {
-		libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
-		                          "cri (%s): Failed to locate existing container data",
-		                          container_id.c_str());
-		ASSERT(false);
-		return;
-	}
-
-	std::optional<int64_t> writable_layer_size = get_writable_layer_size(existing->m_full_id);
-
-	if(!writable_layer_size.has_value()) {
-		return;
-	}
-
-	// Make a mutable copy of the existing container_info
-	shared_ptr<sinsp_container_info> updated(std::make_shared<sinsp_container_info>(*existing));
-	updated->m_size_rw_bytes = *writable_layer_size;
-
-	if(existing->m_size_rw_bytes == updated->m_size_rw_bytes) {
-		// no data has changed
-		return;
-	}
-
-	container_cache().replace_container(updated);
-}
-
 sinsp_container_type cri::get_cri_runtime_type() const {
 	if(m_cri_v1) {
 		return m_cri_v1->get_cri_runtime_type();
