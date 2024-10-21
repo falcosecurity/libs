@@ -190,13 +190,13 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract) {
 	// its value should be present in the output.
 	std::string output_fmt;
 	bool first = true;
-	for(const auto& output_field : pl->append_outputs_fields(syscall_source_name)) {
+	for(const auto& fmt : pl->suggested_output_formats(syscall_source_name)) {
 		if(!first) {
 			output_fmt += " ";
 		} else {
 			first = false;
 		}
-		output_fmt += output_field;
+		output_fmt += fmt;
 	}
 	auto formatter = sinsp_evt_formatter(&m_inspector, output_fmt, pl_flist);
 	std::string output;
@@ -381,13 +381,13 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	// its value should be present in the output.
 	std::string output_fmt;
 	bool first = true;
-	for(const auto& output_field : ext_pl->append_outputs_fields(evt_source)) {
+	for(const auto& fmt : ext_pl->suggested_output_formats(evt_source)) {
 		if(!first) {
 			output_fmt += " ";
 		} else {
 			first = false;
 		}
-		output_fmt += output_field;
+		output_fmt += fmt;
 	}
 	auto formatter = sinsp_evt_formatter(&m_inspector, output_fmt, filterlist);
 	std::string output;

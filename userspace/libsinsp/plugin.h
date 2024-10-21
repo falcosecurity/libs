@@ -116,7 +116,6 @@ public:
 	        m_scap_source_plugin(),
 	        m_fields_info(),
 	        m_fields(),
-	        m_output_fields(),
 	        m_extract_event_sources(),
 	        m_extract_event_codes(),
 	        m_parse_event_sources(),
@@ -174,12 +173,17 @@ public:
 	std::vector<open_param> list_open_params() const;
 
 	/** Field Extraction **/
-	inline const std::unordered_set<std::string>& append_outputs_fields(std::string& source) const {
-		static std::unordered_set<std::string> empty_set;
+	inline std::unordered_set<std::string> suggested_output_formats(
+	        const std::string& source) const {
+		std::unordered_set<std::string> output_fields;
 		if(m_extract_event_sources.find(source) != m_extract_event_sources.end()) {
-			return m_output_fields;
+			for(const auto& field : m_fields) {
+				if(field.is_format_suggested()) {
+					output_fields.emplace("%" + field.m_name);
+				}
+			}
 		}
-		return empty_set;
+		return output_fields;
 	}
 
 	inline const std::unordered_set<std::string>& extract_event_sources() const {
@@ -245,7 +249,6 @@ private:
 	/** Field Extraction **/
 	filter_check_info m_fields_info;
 	std::vector<filtercheck_field_info> m_fields;
-	std::unordered_set<std::string> m_output_fields;
 	std::unordered_set<std::string> m_extract_event_sources;
 	libsinsp::events::set<ppm_event_code> m_extract_event_codes;
 

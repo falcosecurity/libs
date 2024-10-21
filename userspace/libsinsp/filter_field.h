@@ -50,6 +50,7 @@ enum filtercheck_field_flags {
 	        1 << 13,  ///< data pointers extracted by this field may change across subsequent
 	                  ///< extractions (even of other fields), which makes them unsafe to be used
 	                  ///< with filter caching or field-to-field comparisons
+	EPF_FORMAT_SUGGESTED = 1 << 14,  ///< this field is suggested to be used as output field
 };
 
 /**
@@ -105,6 +106,11 @@ struct filtercheck_field_info {
 	// through a memory buffer copy (e.g. with a FTR_STORAGE transformer)
 	//
 	inline bool is_ptr_unstable() const { return m_flags & EPF_NO_PTR_STABILITY; }
+
+	//
+	// Returns true if this field is a suggested as output
+	//
+	inline bool is_format_suggested() const { return m_flags & EPF_FORMAT_SUGGESTED; }
 };
 
 /**
