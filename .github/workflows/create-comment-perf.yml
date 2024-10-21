@@ -27,7 +27,8 @@ jobs:
               return artifact.name == "pr-perf"
             });
             if (matchArtifacts == null) {
-              exit 0;
+              var process = require('process');
+              process.exit();
             }
             var matchArtifact = matchArtifacts[0];
             var download = await github.rest.actions.downloadArtifact({
@@ -53,7 +54,8 @@ jobs:
           script: |
             var fs = require('fs');
             if (!fs.existsSync('./NR')) {
-              exit 0;
+              var process = require('process');
+              process.exit();
             }
             var issue_number = Number(fs.readFileSync('./NR'));
             var comment_body = fs.readFileSync('./COMMENT');
