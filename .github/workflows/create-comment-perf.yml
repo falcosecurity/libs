@@ -26,7 +26,7 @@ jobs:
             var matchArtifacts = artifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "pr-perf"
             });
-            if (matchArtifacts == null) {
+            if (!Array.isArray(matchArtifacts) || !matchArtifacts.length) {
               var process = require('process');
               process.exit();
             }
