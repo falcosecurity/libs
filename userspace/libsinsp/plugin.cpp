@@ -521,7 +521,9 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string& errstr) {
 				}
 
 				if(jvoutput.asBool()) {
-					m_output_fields.emplace("%" + fname);
+					tf.m_flags = (filtercheck_field_flags)((int)tf.m_flags |
+					                                       (int)filtercheck_field_flags::
+					                                               EPF_FORMAT_SUGGESTED);
 				}
 			}
 
