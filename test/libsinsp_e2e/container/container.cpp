@@ -264,7 +264,7 @@ static void run_container_docker_test(bool fork_after_container_start) {
 			ASSERT_TRUE(false);
 		}
 
-		sleep(2);
+		sleep(5);
 
 		ASSERT_TRUE(system("docker kill libsinsp_docker > /dev/null 2>&1 || true") == 0);
 		ASSERT_TRUE(system("docker rm -v libsinsp_docker > /dev/null 2>&1") == 0);
