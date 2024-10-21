@@ -155,6 +155,16 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract) {
 	// This plugin tells that it can receive `syscall` events
 	add_plugin_filterchecks(&m_inspector, pl, sinsp_syscall_event_source_name, pl_flist);
 
+	// Since `%ample.is_open` field was requested by the plugin as an addOutput field,
+	// its filtercheck should have the EPF_FORMAT_SUGGESTED flag..
+	std::vector<const filter_check_info*> fields;
+	pl_flist.get_all_fields(fields);
+	for(const auto& field : fields) {
+		if(field->m_name == "sample.is_open") {
+			ASSERT_TRUE(field->m_flags & EPF_FORMAT_SUGGESTED);
+		}
+	}
+
 	// Open the inspector in test mode
 	add_default_init_thread();
 	open_inspector();
@@ -185,23 +195,6 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract) {
 	ASSERT_FALSE(field_has_value(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_has_value(evt, "sample.evt_count", pl_flist));
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
-
-	// Since `%sample.is_open` field was requested by the plugin as an addOutput field,
-	// its value should be present in the output.
-	std::string output_fmt;
-	bool first = true;
-	for(const auto& fmt : pl->suggested_output_formats(syscall_source_name)) {
-		if(!first) {
-			output_fmt += " ";
-		} else {
-			first = false;
-		}
-		output_fmt += fmt;
-	}
-	auto formatter = sinsp_evt_formatter(&m_inspector, output_fmt, pl_flist);
-	std::string output;
-	ASSERT_TRUE(formatter.tostring(evt, output));
-	ASSERT_EQ(output, "1");
 
 	// Check rhs filter checks support on plugins
 
@@ -245,9 +238,6 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract) {
 	ASSERT_FALSE(field_has_value(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_has_value(evt, "sample.evt_count", pl_flist));
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
-
-	ASSERT_TRUE(formatter.tostring(evt, output));
-	ASSERT_EQ(output, "0");
 
 	// should extract NULL for ignored event codes
 	// `PPME_SYSCALL_OPEN_BY_HANDLE_AT_X` is an ignored event, see plugin_get_extract_event_types
@@ -366,34 +356,25 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	// the GENERIC platform type does not fill in machine_info
 	ASSERT_EQ(m_inspector.get_machine_info()->num_cpus, 0);
 
-	auto evt_source = src_pl->event_source();
+	// Since `%sample.hello` field was requested by the plugin as an addOutput field,
+	// its value should be present in the output.
+	std::vector<const filter_check_info*> fields;
+	filterlist.get_all_fields(fields);
+	for(const auto& field : fields) {
+		if(field->m_name == "sample.hello") {
+			ASSERT_TRUE(field->m_flags & EPF_FORMAT_SUGGESTED);
+		}
+	}
+
 	auto evt = next_event();
 	ASSERT_NE(evt, nullptr);
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), 1);
 	ASSERT_EQ(evt->get_tid(), (uint64_t)-1);
-	ASSERT_EQ(std::string(evt->get_source_name()), evt_source);
+	ASSERT_EQ(std::string(evt->get_source_name()), src_pl->event_source());
 	ASSERT_FALSE(field_has_value(evt, "fd.name", filterlist));
 	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname", filterlist), src_pl->name());
 	ASSERT_EQ(get_field_as_string(evt, "sample.hello", filterlist), "hello world");
-
-	// Since `%sample.hello` field was requested by the plugin as an addOutput field,
-	// its value should be present in the output.
-	std::string output_fmt;
-	bool first = true;
-	for(const auto& fmt : ext_pl->suggested_output_formats(evt_source)) {
-		if(!first) {
-			output_fmt += " ";
-		} else {
-			first = false;
-		}
-		output_fmt += fmt;
-	}
-	auto formatter = sinsp_evt_formatter(&m_inspector, output_fmt, filterlist);
-	std::string output;
-	ASSERT_TRUE(formatter.tostring(evt, output));
-	ASSERT_EQ(output, "hello world");
-
 	ASSERT_EQ(next_event(), nullptr);  // EOF is expected
 }
 

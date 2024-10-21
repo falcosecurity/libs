@@ -173,19 +173,6 @@ public:
 	std::vector<open_param> list_open_params() const;
 
 	/** Field Extraction **/
-	inline std::unordered_set<std::string> suggested_output_formats(
-	        const std::string& source) const {
-		std::unordered_set<std::string> output_fields;
-		if(m_extract_event_sources.find(source) != m_extract_event_sources.end()) {
-			for(const auto& field : m_fields) {
-				if(field.is_format_suggested()) {
-					output_fields.emplace("%" + field.m_name);
-				}
-			}
-		}
-		return output_fields;
-	}
-
 	inline const std::unordered_set<std::string>& extract_event_sources() const {
 		return m_extract_event_sources;
 	}
