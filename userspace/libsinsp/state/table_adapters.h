@@ -68,8 +68,8 @@ public:
 
 		inline dynamic_fields_t():
 		        fixed_dynamic_fields_infos(
-		                {_dfi::build<Tfirst>("pair.first", 0, s_dynamic_fields_id),
-		                 _dfi::build<Tsecond>("pair.second", 1, s_dynamic_fields_id)}) {}
+		                {_dfi::build<Tfirst>("first", 0, s_dynamic_fields_id),
+		                 _dfi::build<Tsecond>("second", 1, s_dynamic_fields_id)}) {}
 
 		virtual ~dynamic_fields_t() = default;
 	};

@@ -1001,19 +1001,19 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	// get an accessor to a dynamic field representing the array's values
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 2);  // pair.first, pair.second
 
-	auto dfield_first = subtable->dynamic_fields()->fields().find("pair.first");
+	auto dfield_first = subtable->dynamic_fields()->fields().find("first");
 	ASSERT_NE(dfield_first, subtable->dynamic_fields()->fields().end());
 	ASSERT_EQ(dfield_first->second.readonly(), false);
 	ASSERT_EQ(dfield_first->second.valid(), true);
-	ASSERT_EQ(dfield_first->second.name(), "pair.first");
+	ASSERT_EQ(dfield_first->second.name(), "first");
 	ASSERT_EQ(dfield_first->second.info(), libsinsp::state::typeinfo::of<std::string>());
 	auto dfield_first_acc = dfield_first->second.new_accessor<std::string>();
 
-	auto dfield_second = subtable->dynamic_fields()->fields().find("pair.second");
+	auto dfield_second = subtable->dynamic_fields()->fields().find("second");
 	ASSERT_NE(dfield_second, subtable->dynamic_fields()->fields().end());
 	ASSERT_EQ(dfield_second->second.readonly(), false);
 	ASSERT_EQ(dfield_second->second.valid(), true);
-	ASSERT_EQ(dfield_second->second.name(), "pair.second");
+	ASSERT_EQ(dfield_second->second.name(), "second");
 	ASSERT_EQ(dfield_second->second.info(), libsinsp::state::typeinfo::of<std::string>());
 	auto dfield_second_acc = dfield_second->second.new_accessor<std::string>();
 
