@@ -72,7 +72,7 @@ jobs:
         run: |
           echo "Testing build of drivers against: ${{ needs.compute-latest-version.outputs.latest_vers }}"
           chmod +x driverkit
-          ./driverkit docker -c dk.yaml -l debug
+          ./driverkit docker -c dk.yaml -l debug --timeout 300
 
   build-latest-kernel-arm64:
     needs: 'compute-latest-version'
@@ -97,7 +97,7 @@ jobs:
         run: |
           echo "Testing build of drivers against: ${{ needs.compute-latest-version.outputs.latest_vers }}"
           chmod +x driverkit
-          ./driverkit docker -c dk.yaml -l debug
+          ./driverkit docker -c dk.yaml -l debug --timeout 300
 
   badge-latest-kernel:
     if: always() && github.event_name == 'schedule'
