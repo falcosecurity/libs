@@ -1,0 +1,28 @@
+name: Cache and Upload Zig on PR
+
+on:
+  pull_request:
+    branches:
+      - '**'  # This runs the action on any branch for a PR
+
+jobs:
+  cache-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Cache Zig binary from cache (if available)
+      - name: Cache Zig
+        uses: actions/cache@v3
+        with:
+          path: ./zig  # Path where cache will be restored to
+          key: zig-Linux-ARM64-0.14.0-dev.1632+d83a3f174  # Cache key to download
+
+      # Step 3: Upload the cached Zig binary as an artifact
+      - name: Upload Zig Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: zig-Linux-ARM64  # Artifact name
+          path: ./zig            # Path to the folder containing the cached zig binary
