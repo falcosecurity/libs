@@ -41,7 +41,7 @@ jobs:
             fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
 
       - name: 'Unpack artifact'
-        run:
+        run: |
           if [ -f pr.zip ]; then
             unzip pr.zip
           fi
