@@ -113,20 +113,14 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
 
 /**
  * @brief Copy the entire event from the auxiliary map to bpf ringbuf.
- * If the event is correctly copied in the ringbuf we increments the number
+ * If the event is correctly copied in the ringbuf we increment the number
  * of events sent to userspace, otherwise we increment the dropped events.
  *
  * @param auxmap pointer to the auxmap in which we have already written the entire event.
- * @param ctx BPF prog context
+ * @param rb pointer to the ringbuffer where the event should be published to.
  */
-static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap, void *ctx) {
-	struct ringbuf_map *rb = maps__get_ringbuf_map();
-	if(!rb) {
-		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_HOTPLUG_E);
-		bpf_printk("failed to tail call into the 'hotplug' prog");
-		return;
-	}
-
+static __always_inline void auxmap__submit_event_base(struct auxiliary_map *auxmap,
+                                                      struct ringbuf_map *rb) {
 	struct counter_map *counter = maps__get_counter_map();
 	if(!counter) {
 		return;
@@ -148,7 +142,46 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap, v
 	if(err) {
 		counter->n_drops_buffer++;
 		compute_event_types_stats(auxmap->event_type, counter);
+		return;
 	}
+	return;
+}
+
+/**
+ * @brief Try to copy the entire event from the auxiliary map to bpf ringbuf.
+ * If the event is correctly copied in the ringbuf we increment the number
+ * of events sent to userspace, otherwise we increment the dropped events.
+ *
+ * @param auxmap pointer to the auxmap in which we have already written the entire event.
+ * @returns 0 if we got the ringbuffer correctly.
+ */
+static __always_inline int auxmap__try_submit_event(struct auxiliary_map *auxmap) {
+	struct ringbuf_map *rb = maps__get_ringbuf_map();
+	if(!rb) {
+		return 1;
+	}
+
+	auxmap__submit_event_base(auxmap, rb);
+	return 0;
+}
+
+/**
+ * @brief Copy the entire event from the auxiliary map to bpf ringbuf.
+ * If the event is correctly copied in the ringbuf we increment the number
+ * of events sent to userspace, otherwise we increment the dropped events.
+ *
+ * @param auxmap pointer to the auxmap in which we have already written the entire event.
+ * @param ctx BPF prog context
+ */
+static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap, void *ctx) {
+	struct ringbuf_map *rb = maps__get_ringbuf_map();
+	if(!rb) {
+		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_HOTPLUG_E);
+		bpf_printk("failed to tail call into the 'hotplug' prog");
+		return;
+	}
+
+	auxmap__submit_event_base(auxmap, rb);
 }
 
 /////////////////////////////////

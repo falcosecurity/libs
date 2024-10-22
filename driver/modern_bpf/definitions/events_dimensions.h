@@ -206,9 +206,7 @@
 	HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) + sizeof(uint32_t) + PARAM_LEN * 4
 #define SPLICE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define RECVMMSG_E_SIZE HEADER_LEN
-#define RECVMMSG_X_SIZE HEADER_LEN
 #define SENDMMSG_E_SIZE HEADER_LEN
-#define SENDMMSG_X_SIZE HEADER_LEN
 #define SEMOP_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN
 #define SEMOP_X_SIZE                                                                               \
 	HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint16_t) * 4 + sizeof(int16_t) * 2 + \

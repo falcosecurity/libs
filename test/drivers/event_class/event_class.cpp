@@ -252,6 +252,7 @@ void event_test::parse_event() {
 	/* Insert a dummy param just to use index starting from 1 insted of 0. */
 	par.len = 0;
 	par.valptr = NULL;
+	m_event_params.clear();
 	m_event_params.push_back(par);
 
 	for(int j = 0; j < nparams; j++) {
@@ -1354,10 +1355,10 @@ void event_test::assert_fd_list(int param_num,
 
 void event_test::assert_param_boundaries(int param_num) {
 	m_current_param = param_num;
-	ASSERT_GE(m_current_param, 1) << ">>>>> The param id '" << m_current_param << "' is to low."
+	ASSERT_GE(m_current_param, 1) << ">>>>> The param id '" << m_current_param << "' is too low."
 	                              << std::endl;
 	ASSERT_LE(m_current_param, m_event_header->nparams)
-	        << ">>>>> The param id '" << m_current_param << "' is to big." << std::endl;
+	        << ">>>>> The param id '" << m_current_param << "' is too big." << std::endl;
 }
 
 void event_test::assert_param_len(uint16_t expected_size) {
