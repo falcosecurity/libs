@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build-test-e2e:
     name: build-test-e2e-${{ matrix.arch }} 😇 (bundled_deps)
-    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'github-arm64-2c-8gb') || 'ubuntu-22.04' }}
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -32,7 +32,8 @@ jobs:
             ca-certificates \
             cmake \
             build-essential \
-            clang-14 llvm-14 \
+            clang \
+            llvm \
             git \
             clang \
             ccache \
@@ -54,24 +55,18 @@ jobs:
             libgrpc++-dev \
             protobuf-compiler-grpc \
             libgtest-dev \
-            libprotobuf-dev
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
-          sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
-          sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
+            libprotobuf-dev \
+            linux-headers-$(uname -r)
           sudo .github/install-deps.sh
           git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
           cd bpftool
           git submodule update --init
           cd src && sudo make install
 
-      - name: Install kernel headers (actuated)
-        uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59 # v2
-        if: matrix.arch == 'arm64'
-
-      - name: Install kernel headers and gcc
+      - name: Install multilib compilers for ia32 tests
         if: matrix.arch == 'amd64'
         run: |
-          sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
+          sudo apt install -y --no-install-recommends gcc-multilib g++-multilib
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@9e326ebed976843c9932b3aa0e021c6f50310eb4 # v0.0.6
@@ -110,7 +105,7 @@ jobs:
   test-e2e:
     name: test-e2e-${{ matrix.arch }}-${{ matrix.driver.name }} 😇 (bundled_deps)
     needs: [build-test-e2e]
-    runs-on: ${{ (matrix.arch == 'arm64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'github-arm64-2c-8gb') || 'ubuntu-22.04' }}
     strategy:
       matrix:
         arch: [amd64, arm64]
@@ -140,23 +135,14 @@ jobs:
         run: |
           sudo apt update
 
-      - name: Install multilib
+      - name: Install multilib compilers for ia32 tests
         if: matrix.arch == 'amd64'
         run: |
           sudo apt install -y --no-install-recommends gcc-multilib g++-multilib
 
       - name: Install deps
         run: |
-          sudo apt install -y --no-install-recommends clang gcc llvm build-essential cmake python3 quota
-
-      - name: Install kernel headers (actuated)
-        uses: self-actuated/get-kernel-sources@201eed7d915ac0a6021fb402cde5be7a6b945b59 # v2
-        if: matrix.arch == 'arm64'
-
-      - name: Install kernel headers and gcc
-        if: matrix.arch == 'amd64'
-        run: |
-          sudo apt install -y --no-install-recommends linux-headers-$(uname -r) gcc-multilib g++-multilib
+          sudo apt install -y --no-install-recommends clang gcc llvm build-essential cmake python3 quota linux-headers-$(uname -r)
 
         # We have no guarantees that the kernel version is the same for the
         # different workers, so we rebuild the drivers.
@@ -177,7 +163,7 @@ jobs:
           cd build/test/libsinsp_e2e/
           sudo -E ./libsinsp_e2e_tests ${{ matrix.driver.option }}
 
-        # the actuated arm64 workers doesn't have the CONFIG_QFMT_V2 flag
+        # the arm64 workers don't have the CONFIG_QFMT_V2 flag
         # which is needed for the quotactl_ok test (cmd=QQUOTA_ON + id=QFMT_VFS_V0).
       - name: Run e2e tests with ${{ matrix.driver.name }} 🏎️
         if: matrix.arch == 'arm64'

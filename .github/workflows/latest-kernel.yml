@@ -78,7 +78,7 @@ jobs:
     needs: 'compute-latest-version'
     outputs:
       build: ${{ steps.build.outcome }}
-    runs-on: 'actuated-arm64-8cpu-16gb'
+    runs-on: 'github-arm64-2c-8gb'
     steps:
       - name: Download driverkit config
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
