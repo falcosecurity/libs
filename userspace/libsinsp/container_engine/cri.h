@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2024 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -89,8 +89,6 @@ public:
 
 private:
 	[[nodiscard]] sinsp_container_type get_cri_runtime_type() const;
-
-	std::optional<int64_t> get_writable_layer_size(const std::string& container_id);
 
 	std::unique_ptr<cri_async_source> m_async_source;
 	std::unique_ptr<::libsinsp::cri::cri_interface_v1alpha2> m_cri_v1alpha2;

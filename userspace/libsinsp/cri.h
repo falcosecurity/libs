@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2024 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -215,14 +215,6 @@ public:
 	 * @return image id if found, empty string otherwise
 	 */
 	std::string get_container_image_id(const std::string &image_ref);
-
-	/**
-	 * @brief get the size of the container's writable layer via ContainerStat API calls
-	 * @param container_id container ID
-	 * @note currently unused
-	 * @return the size of the writable layer in bytes. Returns an empty option on error
-	 */
-	std::optional<int64_t> get_writable_layer_size(const std::string &container_id);
 
 	///////////////////////////////////////////////////////////
 	// CRI response (ContainerStatusResponse) parsers helpers

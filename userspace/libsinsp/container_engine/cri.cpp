@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2024 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -279,16 +279,6 @@ sinsp_container_type cri::get_cri_runtime_type() const {
 		return m_cri_v1alpha2->get_cri_runtime_type();
 	} else {
 		return sinsp_container_type::CT_CRI;
-	}
-}
-
-std::optional<int64_t> cri::get_writable_layer_size(const string &container_id) {
-	if(m_cri_v1) {
-		return m_cri_v1->get_writable_layer_size(container_id);
-	} else if(m_cri_v1alpha2) {
-		return m_cri_v1alpha2->get_writable_layer_size(container_id);
-	} else {
-		return std::nullopt;
 	}
 }
 
