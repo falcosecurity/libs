@@ -1,12 +1,6 @@
 name: 'install-zig'
 description: 'Install zig compiler and make it available in PATH.'
 
-inputs:
-  sudo:
-    description: 'Specify a sudo command. Put it empty when sudo is not available.'
-    required: false
-    default: 'sudo'
-
 runs:
   using: "composite"
   steps:
@@ -14,9 +8,13 @@ runs:
       shell: bash
       id: store
       env:
-        ZIG_VERSION: '0.14.0-dev.1632+d83a3f174'
+        ZIG_VERSION: '0.14.0-dev.1952+9f84f7f92'
       run: |
         echo "zig_version=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
+
+    - name: Create zig install folder
+      shell: bash
+      run: mkdir /usr/local/zig
 
     # TODO: this is only needed because we are using a development version of zig,
     # since we need https://github.com/ziglang/zig/pull/21253 to be included.
@@ -48,8 +46,7 @@ runs:
         EOF
         chmod +x zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-c++
 
-        ${{ inputs.sudo }} mkdir -p /usr/local/zig/
-        ${{ inputs.sudo }} cp -R zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/* /usr/local/zig/
+        cp -R zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/* /usr/local/zig/
 
     - name: Setup zig
       shell: bash
