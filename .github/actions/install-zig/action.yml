@@ -12,10 +12,6 @@ runs:
       run: |
         echo "zig_version=${ZIG_VERSION}" >> "$GITHUB_OUTPUT"
 
-    - name: Create zig install folder
-      shell: bash
-      run: mkdir /usr/local/zig
-
     # TODO: this is only needed because we are using a development version of zig,
     # since we need https://github.com/ziglang/zig/pull/21253 to be included.
     # Development versions of zig are not kept alive forever, but get overridden.
@@ -24,7 +20,7 @@ runs:
       id: cache-zig
       uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
       with:
-        path: /usr/local/zig
+        path: zig
         key: zig-${{ runner.os }}-${{ runner.arch }}-${{ steps.store.outputs.zig_version }}
 
     - name: Download zig
@@ -46,13 +42,13 @@ runs:
         EOF
         chmod +x zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/zig-c++
 
-        cp -R zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/* /usr/local/zig/
+        mv zig-linux-$(uname -m)-${{ steps.store.outputs.zig_version }}/ zig
 
     - name: Setup zig
       shell: bash
       id: zig
       run: |
-        echo "/usr/local/zig" >> $GITHUB_PATH
+        echo "$(pwd)/zig" >> $GITHUB_PATH
         echo "CC=zig-cc" >> $GITHUB_ENV
         echo "CXX=zig-c++" >> $GITHUB_ENV
         echo "AR=zig ar" >> $GITHUB_ENV
