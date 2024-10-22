@@ -64,8 +64,6 @@ jobs:
       - name: Install zig
         if: matrix.name == 'zig'
         uses: ./.github/actions/install-zig
-        with:
-          sudo: ''
 
       - name: Build and test 🏗️🧪
         env:
