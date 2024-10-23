@@ -63,7 +63,8 @@ bool sinsp_filter_transformer::string_transformer(std::vector<extract_value_t>& 
 	return true;
 }
 
-bool sinsp_filter_transformer::transform_type(ppm_param_type& t) const {
+bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+	bool is_list = flags & EPF_IS_LIST;
 	switch(m_type) {
 	case FTR_TOUPPER: {
 		switch(t) {
@@ -71,7 +72,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t) const {
 		case PT_FSPATH:
 		case PT_FSRELPATH:
 			// for TOUPPER, the transformed type is the same as the input type
-			return true;
+			return !is_list;
 		default:
 			return false;
 		}
@@ -82,7 +83,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t) const {
 		case PT_FSPATH:
 		case PT_FSRELPATH:
 			// for TOLOWER, the transformed type is the same as the input type
-			return true;
+			return !is_list;
 		default:
 			return false;
 		}
@@ -92,7 +93,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t) const {
 		case PT_CHARBUF:
 		case PT_BYTEBUF:
 			// for BASE64, the transformed type is the same as the input type
-			return true;
+			return !is_list;
 		default:
 			return false;
 		}
@@ -107,6 +108,23 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t) const {
 		case PT_FSPATH:
 		case PT_FSRELPATH:
 			// for BASENAME, the transformed type is the same as the input type
+			return !is_list;
+		default:
+			return false;
+		}
+	}
+	case FTR_LEN: {
+		if(is_list) {
+			t = PT_UINT64;
+			flags = 0;
+			return true;
+		}
+		switch(t) {
+		case PT_CHARBUF:
+		case PT_BYTEBUF:
+		case PT_FSPATH:
+		case PT_FSRELPATH:
+			t = PT_UINT64;
 			return true;
 		default:
 			return false;
@@ -119,8 +137,11 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t) const {
 }
 
 bool sinsp_filter_transformer::transform_values(std::vector<extract_value_t>& vec,
-                                                ppm_param_type& t) {
-	if(!transform_type(t)) {
+                                                ppm_param_type& t,
+                                                uint32_t& flags) {
+	bool is_list = flags & EPF_IS_LIST;
+	ppm_param_type original_type = t;
+	if(!transform_type(t, flags)) {
 		throw_type_incompatibility_err(t, filter_transformer_type_str(m_type));
 	}
 
@@ -179,6 +200,50 @@ bool sinsp_filter_transformer::transform_values(std::vector<extract_value_t>& ve
 
 			return true;
 		});
+	}
+	case FTR_LEN: {
+		assert((void("len() type must be PT_UINT64"), t == PT_UINT64));
+		if(is_list) {
+			uint64_t len = static_cast<uint64_t>(vec.size());
+			auto stored_val = store_scalar(len);
+			vec.clear();
+			vec.push_back(stored_val);
+			return true;
+		}
+
+		// not a list: could be string or buffer
+		bool is_string = false;
+		switch(original_type) {
+		case PT_CHARBUF:
+		case PT_FSPATH:
+		case PT_FSRELPATH:
+			is_string = true;
+			break;
+		case PT_BYTEBUF:
+			is_string = false;
+			break;
+		default:
+			return false;
+		}
+
+		for(std::size_t i = 0; i < vec.size(); i++) {
+			uint64_t len;
+			if(vec[i].ptr == nullptr) {
+				vec[i] = store_scalar(0);
+				continue;
+			}
+
+			if(is_string) {
+				len = static_cast<uint64_t>(
+				        strnlen(reinterpret_cast<const char*>(vec[i].ptr), vec[i].len));
+				vec[i] = store_scalar(len);
+				continue;
+			}
+
+			len = static_cast<uint64_t>(vec[i].len);
+			vec[i] = store_scalar(len);
+		}
+		return true;
 	}
 	default:
 		throw_unsupported_err(m_type);

@@ -464,7 +464,7 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt) {
 	}
 
 	auto ftype = get_transformed_field_info()->m_type;
-	if(m_field->m_flags & EPF_IS_LIST) {
+	if(get_transformed_field_info()->m_flags & EPF_IS_LIST) {
 		std::string res = "(";
 		for(auto& val : m_extracted_values) {
 			if(res.size() > 1) {
@@ -494,7 +494,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt) {
 		}
 
 		auto ftype = get_transformed_field_info()->m_type;
-		if(m_field->m_flags & EPF_IS_LIST) {
+		if(get_transformed_field_info()->m_flags & EPF_IS_LIST) {
 			for(auto& val : m_extracted_values) {
 				jsonval.append(rawval_to_json(val.ptr, ftype, m_field->m_print_format, val.len));
 			}
@@ -1061,11 +1061,12 @@ void sinsp_filter_check::add_transformer(filter_transformer_type trtype) {
 	// apply type transformation, both as a feasibility check and
 	// as an information to be returned later on
 	sinsp_filter_transformer tr(trtype);
-	if(!tr.transform_type(m_transformed_field->m_type)) {
+	if(!tr.transform_type(m_transformed_field->m_type, m_transformed_field->m_flags)) {
 		throw sinsp_exception("can't add field transformer: type '" +
 		                      std::string(param_type_to_string(m_transformed_field->m_type)) +
 		                      "' is not supported by '" + filter_transformer_type_str(trtype) +
-		                      "' transformer applied on field '" +
+		                      "' transformer applied on " +
+		                      (m_transformed_field->is_list() ? "list " : "") + "field '" +
 		                      std::string(get_field_info()->m_name) + "'");
 	}
 
@@ -1078,9 +1079,11 @@ void sinsp_filter_check::add_transformer(filter_transformer_type trtype) {
 }
 
 bool sinsp_filter_check::apply_transformers(std::vector<extract_value_t>& values) {
-	auto type = get_field_info()->m_type;
+	const filtercheck_field_info* field_info = get_field_info();
+	auto field_type = field_info->m_type;
+	auto field_flags = field_info->m_flags;
 	for(auto& tr : m_transformers) {
-		if(!tr.transform_values(values, type)) {
+		if(!tr.transform_values(values, field_type, field_flags)) {
 			return false;
 		}
 	}

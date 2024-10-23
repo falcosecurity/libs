@@ -69,7 +69,7 @@ class RE2;
 //                             | 'startswith ' | 'bstartswith ' | 'endswith '
 //     ListOperator        ::= 'intersects' | 'in' | 'pmatch'
 //     FieldTransformerVal    ::= 'val('
-//     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename('
+//     FieldTransformerType   ::= 'tolower(' | 'toupper(' | 'b64(' | 'basename(' | 'len('
 //
 // Tokens (Regular Expressions):
 //     Identifier          ::= [a-zA-Z]+[a-zA-Z0-9_]*

@@ -28,6 +28,7 @@ enum filter_transformer_type : uint8_t {
 	FTR_BASE64 = 2,
 	FTR_STORAGE = 3,  // This transformer is only used internally
 	FTR_BASENAME = 4,
+	FTR_LEN = 5
 };
 
 static inline std::string filter_transformer_type_str(filter_transformer_type m) {
@@ -42,6 +43,8 @@ static inline std::string filter_transformer_type_str(filter_transformer_type m)
 		return "storage";
 	case FTR_BASENAME:
 		return "basename";
+	case FTR_LEN:
+		return "len";
 	default:
 		throw sinsp_exception("unknown field transfomer id " + std::to_string(m));
 	}
@@ -63,6 +66,9 @@ static inline filter_transformer_type filter_transformer_from_str(const std::str
 	if(str == "basename") {
 		return filter_transformer_type::FTR_BASENAME;
 	}
+	if(str == "len") {
+		return filter_transformer_type::FTR_LEN;
+	}
 	throw sinsp_exception("unknown field transfomer '" + str + "'");
 }
 
@@ -72,9 +78,9 @@ public:
 
 	sinsp_filter_transformer(filter_transformer_type t): m_type(t) {};
 
-	bool transform_type(ppm_param_type& t) const;
+	bool transform_type(ppm_param_type& t, uint32_t& flags) const;
 
-	bool transform_values(std::vector<extract_value_t>& vals, ppm_param_type& t);
+	bool transform_values(std::vector<extract_value_t>& vals, ppm_param_type& t, uint32_t& flags);
 
 private:
 	using str_transformer_func_t = std::function<bool(std::string_view in, storage_t& out)>;
@@ -82,6 +88,13 @@ private:
 	bool string_transformer(std::vector<extract_value_t>& vec,
 	                        ppm_param_type t,
 	                        str_transformer_func_t mod);
+
+	template<class T>
+	extract_value_t store_scalar(T value) {
+		uint8_t* bytes = reinterpret_cast<uint8_t*>(&value);
+		storage_t& stored_val = m_storage_values.emplace_back(bytes, bytes + sizeof(T));
+		return {static_cast<uint8_t*>(stored_val.data()), static_cast<uint32_t>(stored_val.size())};
+	}
 
 	filter_transformer_type m_type;
 	std::vector<storage_t> m_storage_values;
