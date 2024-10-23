@@ -210,3 +210,48 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), "<NA>");
 	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "uid=5(<NA>)");
 }
+
+// Test that for rawarg.X we are correctly retrieving the correct field type/format.
+TEST_F(sinsp_with_test_input, rawarg_madness) {
+	add_default_init_thread();
+	open_inspector();
+
+	// [PPME_SYSCALL_EPOLL_CREATE_E] = {"epoll_create", EC_WAIT | EC_SYSCALL, EF_CREATES_FD |
+	// EF_MODIFIES_STATE, 1, { {"size", PT_INT32, PF_DEC} } },
+	sinsp_evt* evt =
+	        add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, (int32_t)-22);
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.size"), "-22");
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.size < -20"));
+
+	// [PPME_SYSCALL_SIGNALFD4_X] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD |
+	// EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC}, {"flags", PT_FLAGS16, PF_HEX, file_flags}}},
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_SIGNALFD4_X,
+	                           2,
+	                           (int64_t)-1,
+	                           (uint16_t)512);
+	// 512 in hex is 200
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.flags"), "200");
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.flags < 515"));
+
+	// [PPME_SYSCALL_TIMERFD_CREATE_E] = {"timerfd_create",EC_TIME | EC_SYSCALL,EF_CREATES_FD |
+	// EF_MODIFIES_STATE,2,{{"clockid", PT_UINT8, PF_DEC},{"flags", PT_UINT8, PF_HEX}}},
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_TIMERFD_CREATE_E,
+	                           2,
+	                           (uint8_t)-1,
+	                           (uint8_t)255);
+	// 255 in hex is FF
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.flags"), "FF");
+	ASSERT_TRUE(eval_filter(evt, "evt.rawarg.flags <= 255"));
+
+	// [PPME_SYSCALL_BRK_4_E] = {"brk", EC_MEMORY | EC_SYSCALL, EF_NONE, 1, {{"addr", PT_UINT64,
+	// PF_HEX}}}
+	uint64_t addr = UINT64_MAX;
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BRK_4_E, 1, addr);
+	// UINT64_MAX is FFFFFFFFFFFFFFFF
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.addr"), "FFFFFFFFFFFFFFFF");
+	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));  // PT_SOCKADDR is not comparable
+}
