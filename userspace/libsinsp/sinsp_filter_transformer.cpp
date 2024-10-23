@@ -116,7 +116,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags
 	case FTR_LEN: {
 		if(is_list) {
 			t = PT_UINT64;
-			flags = 0;
+			flags = flags & ~EPF_IS_LIST;
 			return true;
 		}
 		switch(t) {
