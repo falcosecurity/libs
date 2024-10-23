@@ -31,7 +31,7 @@ limitations under the License.
 #define RGX_IDENTIFIER "([a-zA-Z]+[a-zA-Z0-9_]*)"
 #define RGX_FIELDNAME "([a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+)"
 #define RGX_FIELDARGBARESTR "([^][\"'[:space:]]+)"
-#define RGX_HEXNUM "(0[xX][0-9a-zA-Z]+)"
+#define RGX_HEXNUM "(0[xX][0-9a-fA-F]+)"
 #define RGX_NUMBER "([+\\-]?[0-9]+[\\.]?[0-9]*([eE][+\\-][0-9]+)?)"
 #define RGX_BARESTR "([^()\"'[:space:]=,]+)"
 
