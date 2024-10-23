@@ -139,6 +139,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 
 	case PT_L4PROTO:  // This can be resolved in the future
 	case PT_UINT8:
+	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
 		if(print_format == PF_DEC || print_format == PF_ID) {
 			return *(uint8_t*)rawval;
 		} else if(print_format == PF_OCT || print_format == PF_HEX) {
@@ -150,6 +152,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 
 	case PT_PORT:  // This can be resolved in the future
 	case PT_UINT16:
+	case PT_FLAGS16:
+	case PT_ENUMFLAGS16:
 		if(print_format == PF_DEC || print_format == PF_ID) {
 			return *(uint16_t*)rawval;
 		} else if(print_format == PF_OCT || print_format == PF_HEX) {
@@ -160,6 +164,10 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		}
 
 	case PT_UINT32:
+	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
+	case PT_UID:
+	case PT_GID:
 		if(print_format == PF_DEC || print_format == PF_ID) {
 			return *(uint32_t*)rawval;
 		} else if(print_format == PF_OCT || print_format == PF_HEX) {
@@ -292,12 +300,14 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		return m_getpropertystr_storage.data();
 	case PT_L4PROTO:  // This can be resolved in the future
 	case PT_UINT8:
+	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo8;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
 			prfmt = (char*)"%" PRIu8;
 		} else if(print_format == PF_HEX) {
-			prfmt = (char*)"%" PRIu8;
+			prfmt = (char*)"%" PRIX8;
 		} else {
 			ASSERT(false);
 			return NULL;
@@ -311,12 +321,14 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		return m_getpropertystr_storage.data();
 	case PT_PORT:  // This can be resolved in the future
 	case PT_UINT16:
+	case PT_FLAGS16:
+	case PT_ENUMFLAGS16:
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo16;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
 			prfmt = (char*)"%" PRIu16;
 		} else if(print_format == PF_HEX) {
-			prfmt = (char*)"%" PRIu16;
+			prfmt = (char*)"%" PRIX16;
 		} else {
 			ASSERT(false);
 			return NULL;
@@ -329,12 +341,16 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		         rawval_cast<uint16_t>(rawval));
 		return m_getpropertystr_storage.data();
 	case PT_UINT32:
+	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
+	case PT_UID:
+	case PT_GID:
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo32;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {
 			prfmt = (char*)"%" PRIu32;
 		} else if(print_format == PF_HEX) {
-			prfmt = (char*)"%" PRIu32;
+			prfmt = (char*)"%" PRIX32;
 		} else {
 			ASSERT(false);
 			return NULL;

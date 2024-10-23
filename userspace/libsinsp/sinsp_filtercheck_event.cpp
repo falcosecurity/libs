@@ -549,6 +549,13 @@ int32_t sinsp_filter_check_event::parse_field_name(std::string_view val,
 
 		res = extract_arg("evt.rawarg", val, &m_arginfo);
 
+		// These fields will be overridden with correct ones from the current event
+		// while extracting from event.
+		// But we also need to set them at init time to something different than `PT_DYN`
+		// to allow `eval_filter` expressions to be properly compiled.
+		// Note: even if they'll be overridden,
+		// it is safe to guess that eg: `size` param will always be a numeric type.
+		// Of course if we had a `size` param that is string, it would be troublesome.
 		m_customfield.m_type = m_arginfo->type;
 		m_customfield.m_print_format = m_arginfo->fmt;
 	} else if(STR_MATCH("evt.around")) {
@@ -650,10 +657,15 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 	}
 }
 
-uint8_t* extract_argraw(sinsp_evt* evt, uint32_t* len, const char* argname) {
-	const sinsp_evt_param* pi = evt->get_param_by_name(argname);
+uint8_t* sinsp_filter_check_event::extract_argraw(sinsp_evt* evt,
+                                                  uint32_t* len,
+                                                  const char* argname) {
+	auto pi = evt->get_param_by_name(argname);
 
 	if(pi != NULL) {
+		m_arginfo = pi->get_info();
+		m_customfield.m_type = m_arginfo->type;
+		m_customfield.m_print_format = m_arginfo->fmt;
 		*len = pi->m_len;
 		return (uint8_t*)pi->m_val;
 	} else {
@@ -1192,7 +1204,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		m_val.u16 = evt->get_cpuid();
 		RETURN_EXTRACT_VAR(m_val.u16);
 	case TYPE_ARGRAW:
-		return extract_argraw(evt, len, m_arginfo->name);
+		return extract_argraw(evt, len, m_argname.c_str());
 		break;
 	case TYPE_ARGSTR: {
 		const char* resolved_argstr;
