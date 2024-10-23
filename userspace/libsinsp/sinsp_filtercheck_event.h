@@ -110,6 +110,7 @@ private:
 	uint8_t* extract_error_count(sinsp_evt* evt, uint32_t* len);
 	uint8_t* extract_abspath(sinsp_evt* evt, uint32_t* len);
 	inline uint8_t* extract_buflen(sinsp_evt* evt, uint32_t* len);
+	uint8_t* extract_argraw(sinsp_evt* evt, uint32_t* len, const char* argname);
 
 	union {
 		uint16_t u16;
