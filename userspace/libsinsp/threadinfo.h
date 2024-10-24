@@ -631,6 +631,8 @@ public:
 	        const std::function<std::string(sinsp_threadinfo*)>& get_field_str,
 	        bool is_virtual_id = false);
 
+	void update_main_fdtable();
+
 private:
 	sinsp_threadinfo* get_cwd_root();
 	bool set_env_from_proc();
@@ -650,7 +652,9 @@ private:
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
 	//
-	sinsp_fdtable m_fdtable;    // The fd table of this thread
+	sinsp_fdtable m_fdtable;  // The fd table of this thread
+	const libsinsp::state::base_table*
+	        m_main_fdtable;     // Points to the base fd table of the current main thread
 	std::string m_cwd;          // current working directory
 	uint8_t* m_lastevent_data;  // Used by some event parsers to store the last enter event
 
