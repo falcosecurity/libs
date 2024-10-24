@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2024 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -161,53 +161,6 @@ inline std::string cri_interface<api>::get_container_image_id(const std::string 
 	}
 
 	return "";
-}
-
-template<typename api>
-inline std::optional<int64_t> cri_interface<api>::get_writable_layer_size(
-        const std::string &container_id) {
-	// Synchronously get the stats response and update the container table.
-	// Note that this needs to use the full id.
-	typename api::ContainerStatsResponse resp;
-	grpc::Status status = get_container_stats_resp(container_id, resp);
-
-	libsinsp_logger()->format(
-	        sinsp_logger::SEV_DEBUG,
-	        "cri (%s): Status from ContainerStats: (%s)",
-	        container_id.c_str(),
-	        status.error_message().empty() ? "SUCCESS" : status.error_message().c_str());
-
-	if(!status.ok()) {
-		return std::nullopt;
-	}
-
-	if(!resp.has_stats()) {
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-		                          "cri (%s): Failed to update size: stats() not found",
-		                          container_id.c_str());
-		ASSERT(false);
-		return std::nullopt;
-	}
-
-	const auto &resp_stats = resp.stats();
-
-	if(!resp_stats.has_writable_layer()) {
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-		                          "cri (%s): Failed to update size: writable_layer() not found",
-		                          container_id.c_str());
-		ASSERT(false);
-		return std::nullopt;
-	}
-
-	if(!resp_stats.writable_layer().has_used_bytes()) {
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-		                          "cri (%s): Failed to update size: used_bytes() not found",
-		                          container_id.c_str());
-		ASSERT(false);
-		return std::nullopt;
-	}
-
-	return resp_stats.writable_layer().used_bytes().value();
 }
 
 /////////////////////////////
