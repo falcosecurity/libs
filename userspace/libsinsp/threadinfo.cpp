@@ -49,6 +49,7 @@ sinsp_threadinfo::sinsp_threadinfo(
         table_entry(dyn_fields),
         m_inspector(inspector),
         m_fdtable(inspector),
+        m_main_fdtable(m_fdtable.table_ptr()),
         m_args_table_adapter("args", m_args),
         m_env_table_adapter("env", m_env),
         m_cgroups_table_adapter("cgroups", m_cgroups) {
@@ -105,7 +106,7 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	// m_clone_ts
 	// m_lastexec_ts
 	// m_latency
-	define_static_field(ret, this, m_fdtable.table_ptr(), "file_descriptors", true);
+	define_static_field(ret, this, m_main_fdtable, "file_descriptors", true);
 	define_static_field(ret, this, m_cwd, "cwd", true);
 	// m_parent_loop_detected
 	return ret;
@@ -1230,6 +1231,13 @@ void sinsp_threadinfo::strvec_to_iovec(const std::vector<std::string>& strs,
 	}
 }
 
+void sinsp_threadinfo::update_main_fdtable() {
+	auto fdtable = get_fd_table();
+	if(fdtable) {
+		m_main_fdtable = static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+	}
+}
+
 static void fd_to_scap(scap_fdinfo* dst, sinsp_fdinfo* src) {
 	dst->type = src->m_type;
 	dst->ino = src->m_ino;
@@ -1384,6 +1392,8 @@ void sinsp_thread_manager::create_thread_dependencies(
 		return;
 	}
 	parent_thread->add_child(tinfo);
+
+	tinfo->update_main_fdtable();
 }
 
 std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const {
