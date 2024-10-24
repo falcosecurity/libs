@@ -293,7 +293,7 @@ static const filtercheck_field_info sinsp_filter_check_fd_fields[] = {
          "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is "
          "kept raw with limited sanitization and without deriving the absolute path."},
         {PT_CHARBUF,
-         EPF_IS_LIST | EPF_ARG_ALLOWED | EPF_NO_RHS | EPF_NO_TRANSFORMER,
+         EPF_IS_LIST | EPF_ARG_ALLOWED | EPF_NO_RHS,
          PF_DEC,
          "fd.types",
          "FD Type",

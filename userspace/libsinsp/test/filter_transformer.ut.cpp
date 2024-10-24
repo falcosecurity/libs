@@ -18,21 +18,22 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 
-#include <unordered_set>
+#include <set>
 #include <libsinsp/utils.h>
 #include <libsinsp/sinsp_filter_transformer.h>
 #include <sinsp_with_test_input.h>
 
-static std::unordered_set<ppm_param_type> all_param_types() {
-	std::unordered_set<ppm_param_type> ret;
+static std::set<ppm_param_type> all_param_types() {
+	std::set<ppm_param_type> ret;
 	for(auto i = PT_NONE; i < PT_MAX; i = (ppm_param_type)((size_t)i + 1)) {
 		ret.insert(i);
 	}
 	return ret;
 }
 
-static std::string supported_type_msg(ppm_param_type t, bool support_expected) {
-	return "expected param type to" + std::string((support_expected ? " " : " not ")) +
+static std::string supported_type_msg(ppm_param_type t, bool flags, bool support_expected) {
+	return std::string("expected ") + (flags ? "list " : "") + "param type to" +
+	       std::string((support_expected ? " " : " not ")) +
 	       "be supported: " + std::string(param_type_to_string(t));
 }
 
@@ -49,13 +50,45 @@ static extract_value_t const_str_to_extract_value(const char *v) {
 	return ret;
 }
 
+template<class T>
+static T extract_value_to_scalar(const extract_value_t &val) {
+	T ret;
+	EXPECT_EQ(val.len, sizeof(T));
+	memcpy(&ret, val.ptr, val.len);
+	return ret;
+}
+
+static void check_unsupported_types(sinsp_filter_transformer &tr,
+                                    std::set<std::pair<ppm_param_type, bool>> &supported_types,
+                                    std::vector<extract_value_t> sample_vals) {
+	auto all_types = all_param_types();
+
+	for(auto t : all_types) {
+		uint32_t flags = EPF_IS_LIST;
+		if(supported_types.find({t, flags}) == supported_types.end()) {
+			auto vals = sample_vals;
+			EXPECT_FALSE(tr.transform_type(t, flags)) << supported_type_msg(t, flags, false);
+			EXPECT_ANY_THROW(tr.transform_values(vals, t, flags))
+			        << supported_type_msg(t, flags, false);
+		}
+
+		flags = 0;
+		if(supported_types.find({t, flags}) == supported_types.end()) {
+			auto vals = sample_vals;
+			EXPECT_FALSE(tr.transform_type(t, flags)) << supported_type_msg(t, flags, false);
+			EXPECT_ANY_THROW(tr.transform_values(vals, t, flags))
+			        << supported_type_msg(t, flags, false);
+		}
+	}
+}
+
 TEST(sinsp_filter_transformer, toupper) {
 	sinsp_filter_transformer tr(filter_transformer_type::FTR_TOUPPER);
 
 	auto all_types = all_param_types();
 
-	auto supported_types =
-	        std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH});
+	auto supported_types = std::set<std::pair<ppm_param_type, bool>>(
+	        {{PT_CHARBUF, false}, {PT_FSPATH, false}, {PT_FSRELPATH, false}});
 
 	auto test_cases = std::vector<std::pair<std::string, std::string>>{
 	        {"hello", "HELLO"},
@@ -70,24 +103,22 @@ TEST(sinsp_filter_transformer, toupper) {
 		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
 	}
 
-	// check for unsupported types
-	for(auto t : all_types) {
-		if(supported_types.find(t) == supported_types.end()) {
-			auto vals = sample_vals;
-			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-		}
-	}
+	check_unsupported_types(tr, supported_types, sample_vals);
 
 	// check for supported types
 	for(auto t : supported_types) {
-		auto original = t;
-		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);  // note: toupper is expected not to alter the type
+		auto original_type = t.first;
+		uint32_t flags = t.second ? EPF_IS_LIST : 0;
+		auto transformed_type = original_type;
+		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type,
+		          transformed_type);  // note: toupper is expected not to alter the type
 
 		auto vals = sample_vals;
-		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);
+		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type, transformed_type);
 		EXPECT_EQ(vals.size(), test_cases.size());
 
 		for(uint32_t i = 0; i < test_cases.size(); i++) {
@@ -103,8 +134,8 @@ TEST(sinsp_filter_transformer, tolower) {
 
 	auto all_types = all_param_types();
 
-	auto supported_types =
-	        std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH});
+	auto supported_types = std::set<std::pair<ppm_param_type, bool>>(
+	        {{PT_CHARBUF, false}, {PT_FSPATH, false}, {PT_FSRELPATH, false}});
 
 	auto test_cases = std::vector<std::pair<std::string, std::string>>{
 	        {"HELLO", "hello"},
@@ -119,24 +150,22 @@ TEST(sinsp_filter_transformer, tolower) {
 		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
 	}
 
-	// check for unsupported types
-	for(auto t : all_types) {
-		if(supported_types.find(t) == supported_types.end()) {
-			auto vals = sample_vals;
-			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-		}
-	}
+	check_unsupported_types(tr, supported_types, sample_vals);
 
 	// check for supported types
 	for(auto t : supported_types) {
-		auto original = t;
-		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);  // note: tolower is expected not to alter the type
+		auto original_type = t.first;
+		uint32_t flags = t.second ? EPF_IS_LIST : 0;
+		auto transformed_type = original_type;
+		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type,
+		          transformed_type);  // note: tolower is expected not to alter the type
 
 		auto vals = sample_vals;
-		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);
+		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type, transformed_type);
 		EXPECT_EQ(vals.size(), test_cases.size());
 
 		for(uint32_t i = 0; i < test_cases.size(); i++) {
@@ -152,7 +181,8 @@ TEST(sinsp_filter_transformer, b64) {
 
 	auto all_types = all_param_types();
 
-	auto supported_types = std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_BYTEBUF});
+	auto supported_types =
+	        std::set<std::pair<ppm_param_type, bool>>({{PT_CHARBUF, false}, {PT_BYTEBUF, false}});
 
 	auto test_cases = std::vector<std::pair<std::string, std::string>>{
 	        {"aGVsbG8=", "hello"},
@@ -167,24 +197,21 @@ TEST(sinsp_filter_transformer, b64) {
 		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
 	}
 
-	// check for unsupported types
-	for(auto t : all_types) {
-		if(supported_types.find(t) == supported_types.end()) {
-			auto vals = sample_vals;
-			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-		}
-	}
+	check_unsupported_types(tr, supported_types, sample_vals);
 
 	// check for supported types
 	for(auto t : supported_types) {
-		auto original = t;
-		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);  // note: tolower is expected not to alter the type
+		auto original_type = t.first;
+		uint32_t flags = t.second ? EPF_IS_LIST : 0;
+		auto transformed_type = original_type;
+		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type, transformed_type);  // note: b64 is expected not to alter the type
 
 		auto vals = sample_vals;
-		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);
+		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type, transformed_type);
 		EXPECT_EQ(vals.size(), test_cases.size());
 
 		for(uint32_t i = 0; i < test_cases.size(); i++) {
@@ -202,7 +229,8 @@ TEST(sinsp_filter_transformer, b64) {
 	// check invalid input being rejected
 	{
 		auto t = PT_CHARBUF;
-		EXPECT_FALSE(tr.transform_values(invalid_vals, t));
+		uint32_t flags = 0;
+		EXPECT_FALSE(tr.transform_values(invalid_vals, t, flags));
 		EXPECT_EQ(t, PT_CHARBUF);
 	}
 }
@@ -212,8 +240,8 @@ TEST(sinsp_filter_transformer, basename) {
 
 	auto all_types = all_param_types();
 
-	auto supported_types =
-	        std::unordered_set<ppm_param_type>({PT_CHARBUF, PT_FSPATH, PT_FSRELPATH});
+	auto supported_types = std::set<std::pair<ppm_param_type, bool>>(
+	        {{PT_CHARBUF, false}, {PT_FSPATH, false}, {PT_FSRELPATH, false}});
 
 	auto test_cases = std::vector<std::pair<std::string, std::string>>{
 	        {"/home/ubuntu/hello.txt", "hello.txt"},
@@ -230,24 +258,22 @@ TEST(sinsp_filter_transformer, basename) {
 		sample_vals.push_back(const_str_to_extract_value(tc.first.c_str()));
 	}
 
-	// check for unsupported types
-	for(auto t : all_types) {
-		if(supported_types.find(t) == supported_types.end()) {
-			auto vals = sample_vals;
-			EXPECT_FALSE(tr.transform_type(t)) << supported_type_msg(t, false);
-			EXPECT_ANY_THROW(tr.transform_values(vals, t)) << supported_type_msg(t, false);
-		}
-	}
+	check_unsupported_types(tr, supported_types, sample_vals);
 
 	// check for supported types
 	for(auto t : supported_types) {
-		auto original = t;
-		EXPECT_TRUE(tr.transform_type(t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);  // note: basename is expected not to alter the type
+		auto original_type = t.first;
+		uint32_t flags = t.second ? EPF_IS_LIST : 0;
+		auto transformed_type = original_type;
+		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type,
+		          transformed_type);  // note: basename is expected not to alter the type
 
 		auto vals = sample_vals;
-		EXPECT_TRUE(tr.transform_values(vals, t)) << supported_type_msg(original, true);
-		EXPECT_EQ(original, t);
+		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		        << supported_type_msg(original_type, t.second, true);
+		EXPECT_EQ(original_type, transformed_type);
 		EXPECT_EQ(vals.size(), test_cases.size());
 
 		for(uint32_t i = 0; i < test_cases.size(); i++) {
@@ -256,6 +282,50 @@ TEST(sinsp_filter_transformer, basename) {
 			EXPECT_EQ(vals[i].len, test_cases[i].second.length() + 1) << eq_test_msg(test_cases[i]);
 		}
 	}
+}
+
+TEST(sinsp_filter_transformer, len_list) {
+	sinsp_filter_transformer tr(filter_transformer_type::FTR_LEN);
+
+	auto all_types = all_param_types();
+
+	std::vector<std::string> list_values = {"value 1", "value 2", "value 3", "value 4"};
+	std::vector<extract_value_t> list;
+
+	for(auto &tc : list_values) {
+		list.push_back(const_str_to_extract_value(tc.c_str()));
+	}
+
+	auto original_type = PT_CHARBUF;
+	uint32_t original_flags = EPF_IS_LIST;
+	auto type = original_type;
+	auto flags = original_flags;
+	EXPECT_TRUE(tr.transform_type(type, flags)) << supported_type_msg(original_type, true, true);
+	EXPECT_EQ(type, PT_UINT64);
+	EXPECT_EQ(flags & EPF_IS_LIST, 0);
+
+	type = original_type;
+	flags = original_flags;
+	auto vals = list;
+	EXPECT_TRUE(tr.transform_values(vals, type, flags))
+	        << supported_type_msg(original_type, true, true);
+	EXPECT_EQ(type, PT_UINT64);
+	EXPECT_EQ(flags & EPF_IS_LIST, 0);
+	ASSERT_EQ(vals.size(), 1);
+
+	EXPECT_EQ(extract_value_to_scalar<uint64_t>(vals[0]), list_values.size());
+
+	std::vector<extract_value_t> empty_list;
+	type = original_type;
+	flags = original_flags;
+	vals = empty_list;
+	EXPECT_TRUE(tr.transform_values(vals, type, flags))
+	        << supported_type_msg(original_type, true, true);
+	EXPECT_EQ(type, PT_UINT64);
+	EXPECT_EQ(flags & EPF_IS_LIST, 0);
+	ASSERT_EQ(vals.size(), 1);
+
+	EXPECT_EQ(extract_value_to_scalar<uint64_t>(vals[0]), 0);
 }
 
 TEST_F(sinsp_with_test_input, basename_transformer) {
@@ -280,4 +350,45 @@ TEST_F(sinsp_with_test_input, basename_transformer) {
 
 	EXPECT_TRUE(eval_filter(evt, "basename(fd.name) = file_to_run"));
 	EXPECT_FALSE(eval_filter(evt, "basename(fd.name) = /tmp/file_to_run"));
+}
+
+TEST_F(sinsp_with_test_input, len_transformer) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_evt *evt;
+
+	int64_t dirfd = 3;
+	const char *file_to_run = "/tmp/file_to_run";
+
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           dirfd,
+	                           file_to_run,
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
+
+	// fd.types = (file)
+	EXPECT_TRUE(eval_filter(evt, "len(fd.types) = 1"));
+	EXPECT_TRUE(eval_filter(evt, "len(fd.types) > 0"));
+	EXPECT_FALSE(eval_filter(evt, "len(fd.types) = 0"));
+
+	EXPECT_TRUE(eval_filter(evt, "len(fd.name) = 16"));
+
+	int64_t client_fd = 9;
+	add_event_advance_ts(increasing_ts(),
+	                     1,
+	                     PPME_SOCKET_SOCKET_E,
+	                     3,
+	                     (uint32_t)PPM_AF_INET,
+	                     (uint32_t)SOCK_STREAM,
+	                     (uint32_t)0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
+
+	// fd.types = (ipv4,file)
+	EXPECT_TRUE(eval_filter(evt, "len(fd.types) = 2"));
 }

@@ -137,7 +137,7 @@ public:
 	//
 	// Extract the field from the event. If sanitize_strings is true, any
 	// string values are sanitized to remove nonprintable characters.
-	// By default, this fills the vector with only one value, retireved by calling the single-result
+	// By default, this fills the vector with only one value, retrieved by calling the single-result
 	// extract method.
 	// If a NULL value is returned by extract, the vector is emptied.
 	// Subclasses are meant to either override this, or the single-valued extract method.
