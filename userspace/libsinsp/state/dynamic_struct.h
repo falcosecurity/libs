@@ -96,7 +96,7 @@ public:
 		inline bool valid() const {
 			// note(jasondellaluce): for now dynamic fields of type table are
 			// not supported, so we consider them to be invalid
-			return m_index != (size_t)-1 && m_index != typeinfo::index_t::TI_TABLE;
+			return m_index != (size_t)-1 && m_info.index() != typeinfo::index_t::TI_TABLE;
 		}
 
 		/**
