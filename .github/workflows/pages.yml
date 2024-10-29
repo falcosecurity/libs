@@ -21,7 +21,7 @@ jobs:
     runs-on: [ "self-hosted", "linux", "X64" ]
     steps:
       - name: Checkout Libs ⤵️
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Run perf
         id: perf
@@ -41,7 +41,7 @@ jobs:
           if-no-files-found: error
 
       - name: Checkout Flamegraph ⤵️
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: 'brendangregg/FlameGraph'
           path: flamegraph
@@ -85,7 +85,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Download matrix X64
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -128,7 +128,7 @@ jobs:
           echo '<object data="../heaptrack_scap.svg" type="image/svg+xml" id="heaptrack_scap_file"></object>' > docs/heaptrack_scap_file.md
           sed -i '1s/^/---\nhide:\n- toc\n---\n\n/' docs/heaptrack_scap_file.md
 
-      - uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: 3.x
 
