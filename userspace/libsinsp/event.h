@@ -680,6 +680,45 @@ public:
 
 	inline std::vector<sinsp_evt_param>& get_params() { return m_params; }
 
+	inline char extract_typechar() {
+		switch(PPME_MAKE_ENTER(get_type())) {
+		case PPME_SYSCALL_OPENAT_E:
+		case PPME_SYSCALL_OPENAT_2_E:
+		case PPME_SYSCALL_OPENAT2_E:
+		case PPME_SYSCALL_CREAT_E:
+			return CHAR_FD_FILE;
+		case PPME_SOCKET_SOCKET_E:
+		case PPME_SOCKET_ACCEPT_E:
+		case PPME_SOCKET_ACCEPT_5_E:
+		case PPME_SOCKET_ACCEPT4_E:
+		case PPME_SOCKET_ACCEPT4_5_E:
+		case PPME_SOCKET_ACCEPT4_6_E:
+			//
+			// Note, this is not accurate, because it always
+			// returns IPv4 even if this could be IPv6 or unix.
+			// For the moment, I assume it's better than nothing, and doing
+			// real event parsing here would be a pain.
+			//
+			return CHAR_FD_IPV4_SOCK;
+		case PPME_SYSCALL_PIPE_E:
+		case PPME_SYSCALL_PIPE2_E:
+			return CHAR_FD_FIFO;
+		case PPME_SYSCALL_EVENTFD_E:
+		case PPME_SYSCALL_EVENTFD2_E:
+			return CHAR_FD_EVENT;
+		case PPME_SYSCALL_SIGNALFD_E:
+		case PPME_SYSCALL_SIGNALFD4_E:
+			return CHAR_FD_SIGNAL;
+		case PPME_SYSCALL_TIMERFD_CREATE_E:
+			return CHAR_FD_TIMERFD;
+		case PPME_SYSCALL_INOTIFY_INIT_E:
+		case PPME_SYSCALL_INOTIFY_INIT1_E:
+			return CHAR_FD_INOTIFY;
+		default:
+			return 'o';
+		}
+	}
+
 private:
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
