@@ -374,9 +374,9 @@ int32_t sinsp_filter_check_fd::parse_field_name(std::string_view val,
 	return sinsp_filter_check::parse_field_name(val, alloc_state, needed_for_filtering);
 }
 
-bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt,
-                                                        bool sanitize_strings,
-                                                        bool fd_nameraw) {
+bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
+                                                      bool sanitize_strings,
+                                                      bool fd_nameraw) {
 	const char *resolved_argstr;
 	uint16_t etype = evt->get_type();
 
@@ -537,7 +537,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			int64_t retval = evt->get_param(0)->as<int64_t>();
 			// this is a weird behavior, see the `net_connect_exit_event_fails` test for more info
 			if(retval < 0) {
-				if(!extract_fdname_from_creator(evt, sanitize_strings)) {
+				if(!extract_fdname_from_event(evt, sanitize_strings)) {
 					return NULL;
 				}
 				if(m_field_id == TYPE_CONTAINERNAME) {
@@ -549,7 +549,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		}
 
 		if(m_fdinfo == NULL) {
-			if(!extract_fdname_from_creator(evt, sanitize_strings)) {
+			if(!extract_fdname_from_event(evt, sanitize_strings)) {
 				return NULL;
 			}
 		} else {
@@ -578,7 +578,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY: {
 		if(m_fdinfo == NULL) {
-			if(!extract_fdname_from_creator(evt, sanitize_strings)) {
+			if(!extract_fdname_from_event(evt, sanitize_strings)) {
 				return NULL;
 			}
 		} else if(!(m_fdinfo->is_file() || m_fdinfo->is_directory())) {
@@ -1226,7 +1226,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	} break;
 	case TYPE_FDNAMERAW: {
 		if(m_fdinfo == NULL) {
-			if(!extract_fdname_from_creator(evt, sanitize_strings, true)) {
+			if(!extract_fdname_from_event(evt, sanitize_strings, true)) {
 				return NULL;
 			}
 		} else {

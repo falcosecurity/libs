@@ -401,7 +401,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 
 		if(!std::filesystem::path(m_tstr).is_absolute()) {
 			std::string sdir;  // init
-			// Compare to `sinsp_filter_check_fd::extract_fdname_from_creator` logic
+			// Compare to `sinsp_filter_check_fd::extract_fdname_from_event` logic
 			// note: no implementation for old / legacy event definitions
 			switch(evt->get_type()) {
 			// For openat, event fdinfo is already correctly expanded by parsers;
