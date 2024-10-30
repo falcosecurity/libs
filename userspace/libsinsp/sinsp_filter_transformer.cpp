@@ -72,7 +72,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags
 		case PT_FSPATH:
 		case PT_FSRELPATH:
 			// for TOUPPER, the transformed type is the same as the input type
-			return !is_list;
+			return true;
 		default:
 			return false;
 		}
@@ -83,7 +83,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags
 		case PT_FSPATH:
 		case PT_FSRELPATH:
 			// for TOLOWER, the transformed type is the same as the input type
-			return !is_list;
+			return true;
 		default:
 			return false;
 		}
@@ -93,7 +93,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags
 		case PT_CHARBUF:
 		case PT_BYTEBUF:
 			// for BASE64, the transformed type is the same as the input type
-			return !is_list;
+			return true;
 		default:
 			return false;
 		}
@@ -108,7 +108,7 @@ bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags
 		case PT_FSPATH:
 		case PT_FSRELPATH:
 			// for BASENAME, the transformed type is the same as the input type
-			return !is_list;
+			return true;
 		default:
 			return false;
 		}
@@ -226,23 +226,31 @@ bool sinsp_filter_transformer::transform_values(std::vector<extract_value_t>& ve
 			return false;
 		}
 
-		for(std::size_t i = 0; i < vec.size(); i++) {
-			uint64_t len;
-			if(vec[i].ptr == nullptr) {
-				vec[i] = store_scalar(0);
-				continue;
-			}
-
-			if(is_string) {
-				len = static_cast<uint64_t>(
-				        strnlen(reinterpret_cast<const char*>(vec[i].ptr), vec[i].len));
-				vec[i] = store_scalar(len);
-				continue;
-			}
-
-			len = static_cast<uint64_t>(vec[i].len);
-			vec[i] = store_scalar(len);
+		if(vec.size() == 0) {
+			// nothing to do
+			return true;
 		}
+
+		// we are assuming that if this is not a list then it's a single element
+		assert((void("non-list elements to transform with len() must be a vector with a single "
+		             "element"),
+		        vec.size() == 1));
+		uint64_t len;
+		if(vec[0].ptr == nullptr) {
+			vec[0] = store_scalar(0);
+			return true;
+		}
+
+		if(is_string) {
+			len = static_cast<uint64_t>(
+			        strnlen(reinterpret_cast<const char*>(vec[0].ptr), vec[0].len));
+			vec[0] = store_scalar(len);
+			return true;
+		}
+
+		// buffer
+		len = static_cast<uint64_t>(vec[0].len);
+		vec[0] = store_scalar(len);
 		return true;
 	}
 	default:
