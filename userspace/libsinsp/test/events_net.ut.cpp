@@ -596,6 +596,8 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails) {
 	 * PPME_SOCKET_CONNECT_E event so both filterchecks and internal state are aligned
 	 */
 
+	// todo!: this sounds like an incosistency, the fdinfo shouldn't be updated if the syscall fails
+	// and also the filterchecks should not see the updated fdname, keep like this for now.
 	std::string fdname = std::string(DEFAULT_IPV4_CLIENT_STRING) + ":" +
 	                     std::string(DEFAULT_CLIENT_PORT_STRING) + "->" + ipv4_server2 + ":" +
 	                     port_server2_string;
