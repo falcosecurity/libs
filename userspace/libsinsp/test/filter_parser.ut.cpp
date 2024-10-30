@@ -56,12 +56,7 @@ static void test_accept(const std::string in, ast::pos_info* out_pos = NULL) {
 
 static void test_reject(const std::string in) {
 	parser parser(in);
-	try {
-		parser.parse();
-		FAIL() << "error expected but not received -> " << in;
-	} catch(runtime_error& e) {
-		// all good
-	}
+	EXPECT_ANY_THROW(parser.parse()) << "filter: " << in;
 }
 
 TEST(pos_info, equality_assignments) {
@@ -108,7 +103,7 @@ TEST(parser, supported_operators) {
 
 TEST(parser, supported_field_transformers) {
 	std::string expected_val = "val";
-	std::vector<std::string> expected = {"tolower", "toupper", "b64", "basename", "len"};
+	std::vector<std::string> expected = {"tolower", "toupper", "b64", "basename", "len", "join"};
 
 	auto actual = parser::supported_field_transformers();
 	ASSERT_EQ(actual.size(), expected.size());
@@ -748,6 +743,11 @@ public:
 		add_pos(e->get_pos());
 	}
 
+	virtual void visit(transformer_list_expr* e) override {
+		m_str += "transformer_list";
+		add_pos(e->get_pos());
+	}
+
 	virtual void visit(unary_check_expr* e) override {
 		m_str += "unary";
 		add_pos(e->get_pos());
@@ -769,7 +769,9 @@ public:
 	virtual void visit(field_transformer_expr* e) override {
 		m_str += "transformer";
 		add_pos(e->get_pos());
-		e->value->accept(this);
+		for(auto& c : e->values) {
+			c->accept(this);
+		}
 	}
 
 	const std::string& as_string() { return m_str; };
@@ -910,7 +912,8 @@ TEST(parser, position_complex) {
 	pos_visitor pv;
 	expr->accept(&pv);
 	EXPECT_STREQ(pv.as_string().c_str(),
-	             "or0 1 1and1 1 2binary1 1 2field1 1 2value15 1 16binary25 1 26field25 1 26list37 "
+	             "or0 1 1and1 1 2binary1 1 2field1 1 2value15 1 16binary25 1 26field25 1 "
+	             "26list37 "
 	             "1 38not59 1 60unary63 1 64field63 1 64and83 1 84binary83 1 84field83 1 84value93 "
 	             "1 94binary104 1 105field104 1 105value113 1 114");
 }
@@ -928,7 +931,8 @@ TEST(parser, position_complex_multiline) {
 	pos_visitor pv;
 	expr->accept(&pv);
 	EXPECT_STREQ(pv.as_string().c_str(),
-	             "or0 1 1and2 2 2binary2 2 2field2 2 2value16 2 16binary31 3 10field31 3 10list43 "
+	             "or0 1 1and2 2 2binary2 2 2field2 2 2value16 2 16binary31 3 10field31 3 "
+	             "10list43 "
 	             "3 22not68 4 8unary72 4 12field72 4 12and95 5 8binary95 5 8field95 5 8value105 5 "
 	             "18binary123 6 12field123 6 12value132 6 21");
 }
@@ -944,4 +948,142 @@ TEST(parser, position_complex_transformers) {
 	             "or0 1 1and0 1 1unary0 1 1transformer0 1 1field4 1 5binary25 1 26transformer25 1 "
 	             "26transformer33 1 34field41 1 42transformer55 1 56field59 1 60binary74 1 "
 	             "75field74 1 75transformer84 1 85transformer88 1 89field96 1 97");
+}
+
+TEST(parser, parse_transformer_list_basic) {
+	// valid transformer list with multiple fields
+	test_accept("join(\"-\", (fd.name, fd.directory)) = /tmp/test");
+	test_accept("join(\",\", (proc.name, proc.pid)) = \"myproc,123\"");
+	test_accept("join(\":\", (evt.type, evt.dir)) contains connect");
+
+	// transformer list with quoted string separator
+	test_accept("join('-', (fd.name, fd.directory)) = /tmp/test");
+	test_accept("join('-->', (fd.name, fd.directory)) = /tmp/test");
+
+	// transformer list with single element
+	test_accept("join(\"-\", (fd.name)) = /tmp/test");
+
+	// transformer list with many elements
+	test_accept("join(\"-\", (fd.name, fd.directory, proc.name, proc.pid)) = test");
+}
+
+TEST(parser, parse_transformer_list_nested_transformers) {
+	// nested transformers within transformer list
+	test_accept("join(\"-\", (tolower(fd.name), fd.directory)) = /tmp/test");
+	test_accept("join(\"-\", (toupper(fd.name), b64(fd.directory))) = /tmp/test");
+	test_accept("join(\"-\", (tolower(toupper(fd.name)), fd.directory)) = /tmp/test");
+
+	// all elements with transformers
+	test_accept("join(\"-\", (tolower(fd.name), toupper(fd.directory))) = /tmp/test");
+}
+
+TEST(parser, parse_transformer_list_with_values) {
+	// transformer list with quoted strings
+	test_accept("join(\"-\", (\"aaa\", \"bbb\")) = aaa-bbb");
+	test_accept("join(\"-\", ('aaa', 'bbb')) = aaa-bbb");
+
+	// transformer list with mixed fields and strings
+	test_accept("join(\"-\", (fd.name, \"literal\")) = /tmp-literal");
+	test_accept("join(\"-\", (\"prefix\", fd.name, \"suffix\")) = prefix-/tmp-suffix");
+
+	// transformer list with numeric values
+	test_accept("join(\"-\", (proc.pid, 123)) contains 123");
+}
+
+TEST(parser, parse_transformer_list_with_operators) {
+	// transformer list with different operators
+	test_accept("join(\"-\", (fd.name, fd.directory)) exists");
+	test_accept("join(\"-\", (fd.name, fd.directory)) = value");
+	test_accept("join(\"-\", (fd.name, fd.directory)) == value");
+	test_accept("join(\"-\", (fd.name, fd.directory)) != value");
+	test_accept("join(\"-\", (fd.name, fd.directory)) contains value");
+	test_accept("join(\"-\", (fd.name, fd.directory)) startswith value");
+	test_accept("join(\"-\", (fd.name, fd.directory)) endswith value");
+	test_accept("join(\"-\", (fd.name, fd.directory)) glob value*");
+	test_accept("join(\"-\", (fd.name, fd.directory)) in (a, b, c)");
+}
+
+TEST(parser, parse_transformer_list_in_expressions) {
+	// transformer list in complex expressions
+	test_accept("join(\"-\", (fd.name, fd.directory)) = /tmp and proc.name = cat");
+	test_accept("join(\"-\", (fd.name, fd.directory)) = /tmp or proc.name = cat");
+	test_accept("not join(\"-\", (fd.name, fd.directory)) = /tmp");
+	test_accept("(join(\"-\", (fd.name, fd.directory)) = /tmp)");
+	test_accept("proc.name = cat and join(\"-\", (fd.name, fd.directory)) = /tmp");
+
+	// multiple transformer lists
+	test_accept(
+	        "join(\"-\", (fd.name, fd.directory)) = /tmp and join(\":\", (proc.name, proc.pid)) = "
+	        "cat:123");
+}
+
+TEST(parser, parse_transformer_list_right_hand) {
+	// nested transformers on right-hand side
+	test_accept("evt.type = tolower(join(\"-\", (fd.name, fd.directory)))");
+	test_accept("evt.type = b64(join(\"-\", (fd.name, fd.directory)))");
+}
+
+TEST(parser, parse_transformer_list_with_outer_transformer) {
+	// Apply transformers on top of multivalue transformers (left-hand side)
+	test_accept("toupper(join(\"-\", (fd.name, fd.directory))) = VALUE");
+	test_accept("tolower(join(\"-\", (fd.name, fd.directory))) = value");
+	test_accept("b64(join(\"-\", (fd.name, fd.directory))) = value");
+	test_accept("len(join(\"-\", (fd.name, fd.directory))) = 10");
+	test_accept("basename(join(\"/\", (fd.name, fd.directory))) = value");
+
+	// Chain multiple transformers
+	test_accept("toupper(tolower(join(\"-\", (fd.name, fd.directory)))) = VALUE");
+	test_accept("b64(toupper(join(\"-\", (fd.name, fd.directory)))) = VALUE");
+	test_accept("len(toupper(join(\"-\", (fd.name, fd.directory)))) = 10");
+
+	// With different operators
+	test_accept("toupper(join(\"-\", (fd.name, fd.directory))) contains VALUE");
+	test_accept("toupper(join(\"-\", (fd.name, fd.directory))) startswith VALUE");
+	test_accept("len(join(\"-\", (fd.name, fd.directory))) > 5");
+	test_accept("len(join(\"-\", (fd.name, fd.directory))) >= 5");
+
+	// In expressions
+	test_accept("toupper(join(\"-\", (fd.name, fd.directory))) = VALUE and proc.name = cat");
+	test_accept("not toupper(join(\"-\", (fd.name, fd.directory))) = VALUE");
+}
+
+TEST(parser, parse_transformer_list_with_spaces) {
+	// spaces around elements
+	test_accept("join(\"-\", ( fd.name, fd.directory )) = /tmp");
+	test_accept("join(\"-\", (fd.name , fd.directory)) = /tmp");
+	test_accept("join(\"-\", ( fd.name , fd.directory )) = /tmp");
+	test_accept("join( \"-\", (fd.name, fd.directory)) = /tmp");
+	test_accept("join(\"-\" , (fd.name, fd.directory)) = /tmp");
+}
+
+TEST(parser, parse_transformer_list_empty) {
+	// empty transformer list is valid
+	test_accept("join(\"-\", ()) = /tmp");
+}
+
+TEST(parser, parse_transformer_list_invalid) {
+	// invalid transformer list syntax
+	test_reject("join(\"-\", (fd.name, fd.directory) = /tmp");  // missing closing paren
+	test_reject("join(\"-\", fd.name, fd.directory)) = /tmp");  // missing opening paren for list
+
+	// malformed lists
+	test_reject("join(\"-\", (,)) = /tmp");                      // only comma
+	test_reject("join(\"-\", (,fd.name)) = /tmp");               // leading comma
+	test_reject("join(\"-\", (fd.name,)) = /tmp");               // trailing comma
+	test_reject("join(\"-\", (fd.name,,fd.directory)) = /tmp");  // double comma
+
+	// invalid transformer list elements
+	test_reject("join(\"-\", ((fd.name))) = /tmp");   // nested parens not allowed
+	test_reject("join(\"-\", (macro)) = /tmp");       // identifiers not allowed in list
+	test_reject("join(\"-\", (barestring)) = /tmp");  // bare strings not allowed
+}
+
+TEST(parser, position_transformer_list) {
+	parser parser("join(\"-\", (fd.name, fd.directory)) = value");
+	auto expr = parser.parse();
+	pos_visitor pv;
+	expr->accept(&pv);
+	// Verify the transformer and its children have correct positions
+	EXPECT_TRUE(pv.as_string().find("transformer0 1 1") != std::string::npos);
+	EXPECT_TRUE(pv.as_string().find("transformer_list") != std::string::npos);
 }

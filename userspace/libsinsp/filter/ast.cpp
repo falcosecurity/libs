@@ -62,8 +62,11 @@ void base_expr_visitor::visit(unary_check_expr* e) {
 }
 
 void base_expr_visitor::visit(field_transformer_expr* e) {
-	if(!m_should_stop_visit) {
-		e->value->accept(this);
+	for(auto& c : e->values) {
+		if(m_should_stop_visit) {
+			return;
+		}
+		c->accept(this);
 	}
 }
 
@@ -72,6 +75,8 @@ void base_expr_visitor::visit(identifier_expr* e) {}
 void base_expr_visitor::visit(value_expr* e) {}
 
 void base_expr_visitor::visit(list_expr* e) {}
+
+void base_expr_visitor::visit(transformer_list_expr* e) {}
 
 void base_expr_visitor::visit(field_expr* e) {}
 
@@ -115,8 +120,11 @@ void const_base_expr_visitor::visit(const unary_check_expr* e) {
 }
 
 void const_base_expr_visitor::visit(const field_transformer_expr* e) {
-	if(!m_should_stop_visit) {
-		e->value->accept(this);
+	for(auto& c : e->values) {
+		if(m_should_stop_visit) {
+			return;
+		}
+		c->accept(this);
 	}
 }
 
@@ -125,6 +133,8 @@ void const_base_expr_visitor::visit(const identifier_expr* e) {}
 void const_base_expr_visitor::visit(const value_expr* e) {}
 
 void const_base_expr_visitor::visit(const list_expr* e) {}
+
+void const_base_expr_visitor::visit(const transformer_list_expr* e) {}
 
 void const_base_expr_visitor::visit(const field_expr* e) {}
 
@@ -179,6 +189,20 @@ void string_visitor::visit(const list_expr* e) {
 	}
 	m_str += ")";
 }
+
+void string_visitor::visit(const transformer_list_expr* e) {
+	bool first = true;
+	m_str += "(";
+	for(auto& c : e->children) {
+		if(!first) {
+			m_str += ",";
+		}
+		first = false;
+		c->accept(this);
+	}
+	m_str += ")";
+}
+
 void string_visitor::visit(const unary_check_expr* e) {
 	e->left->accept(this);
 	m_str += " ";
@@ -201,9 +225,16 @@ void string_visitor::visit(const field_expr* e) {
 }
 
 void string_visitor::visit(const field_transformer_expr* e) {
+	bool first = true;
 	m_str += e->transformer;
 	m_str += "(";
-	e->value->accept(this);
+	for(auto& c : e->values) {
+		if(!first) {
+			m_str += ",";
+		}
+		first = false;
+		c->accept(this);
+	}
 	m_str += ")";
 }
 
@@ -273,15 +304,26 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(const expr* e) {
 			m_last_node = list_expr::create(e->values, e->get_pos());
 		}
 
+		void visit(const transformer_list_expr* e) override {
+			std::vector<std::unique_ptr<expr>> children;
+			for(auto& c : e->children) {
+				c->accept(this);
+				children.push_back(std::move(m_last_node));
+			}
+			m_last_node = transformer_list_expr::create(children, e->get_pos());
+		}
+
 		void visit(const field_expr* e) override {
 			m_last_node = field_expr::create(e->field, e->arg, e->get_pos());
 		}
 
 		void visit(const field_transformer_expr* e) override {
-			e->value->accept(this);
-			auto value = std::move(m_last_node);
-			m_last_node =
-			        field_transformer_expr::create(e->transformer, std::move(value), e->get_pos());
+			std::vector<std::unique_ptr<expr>> values;
+			for(auto& c : e->values) {
+				c->accept(this);
+				values.push_back(std::move(m_last_node));
+			}
+			m_last_node = field_transformer_expr::create(e->transformer, values, e->get_pos());
 		}
 	} visitor;
 

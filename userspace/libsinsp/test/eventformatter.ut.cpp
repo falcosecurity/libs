@@ -247,13 +247,13 @@ TEST_F(sinsp_formatter_test, invalid_transformers) {
 
 	// note: whitespaces are not allowed between transformers
 	ASSERT_THROW(format("start %toupper (proc.name) end"), sinsp_exception);
-	ASSERT_THROW(format("start %toupper( proc.name) end"), sinsp_exception);
-	ASSERT_THROW(format("start %toupper(proc.name ) end"), sinsp_exception);
-	ASSERT_THROW(format("start %toupper( proc.name ) end"), sinsp_exception);
-	ASSERT_THROW(format("start %toupper( tolower(proc.name)) end"), sinsp_exception);
-	ASSERT_THROW(format("start %toupper( tolower( proc.name)) end"), sinsp_exception);
-	ASSERT_THROW(format("start %toupper( tolower( proc.name )) end"), sinsp_exception);
-	ASSERT_THROW(format("start %toupper( tolower( proc.name ) ) end"), sinsp_exception);
+	ASSERT_NO_THROW(format("start %toupper( proc.name) end"));
+	ASSERT_NO_THROW(format("start %toupper(proc.name ) end"));
+	ASSERT_NO_THROW(format("start %toupper( proc.name ) end"));
+	ASSERT_NO_THROW(format("start %toupper( tolower(proc.name)) end"));
+	ASSERT_NO_THROW(format("start %toupper( tolower( proc.name)) end"));
+	ASSERT_NO_THROW(format("start %toupper( tolower( proc.name )) end"));
+	ASSERT_NO_THROW(format("start %toupper( tolower( proc.name ) ) end"));
 }
 
 TEST_F(sinsp_formatter_test, field_with_transformer) {
@@ -346,7 +346,7 @@ TEST_F(sinsp_formatter_test, multiple_fields_with_transformer_no_blank) {
 	EXPECT_EQ(m_last_field_values["toupper(evt.arg.path)"], "/TEST/DIR");
 }
 
-TEST_F(sinsp_formatter_test, lenght_shorter_with_transformer) {
+TEST_F(sinsp_formatter_test, length_shorter_with_transformer) {
 	format("start %2toupper(proc.name) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start IN end");
@@ -355,11 +355,20 @@ TEST_F(sinsp_formatter_test, lenght_shorter_with_transformer) {
 	EXPECT_EQ(m_last_field_values["toupper(proc.name)"], "INIT");
 }
 
-TEST_F(sinsp_formatter_test, lenght_larger_with_transformer) {
+TEST_F(sinsp_formatter_test, length_larger_with_transformer) {
 	format("start %10toupper(proc.name) end");
 	EXPECT_EQ(m_last_res, true);
 	EXPECT_EQ(m_last_output, "start INIT       end");
 	EXPECT_EQ(m_last_field_values.size(), 2) << pretty_print(m_last_field_values);
 	EXPECT_EQ(m_last_field_values["proc.name"], "init");
 	EXPECT_EQ(m_last_field_values["toupper(proc.name)"], "INIT");
+}
+
+TEST_F(sinsp_formatter_test, join_transformer) {
+	format("start %join(\"->\", (proc.name, evt.arg.path)) end");
+	EXPECT_EQ(m_last_res, true);
+	EXPECT_EQ(m_last_output, "start init->/test/dir end");
+	EXPECT_EQ(m_last_field_values.size(), 3) << pretty_print(m_last_field_values);
+	EXPECT_EQ(m_last_field_values["proc.name"], "init");
+	EXPECT_EQ(m_last_field_values["join(->,(proc.name,evt.arg.path))"], "init->/test/dir");
 }

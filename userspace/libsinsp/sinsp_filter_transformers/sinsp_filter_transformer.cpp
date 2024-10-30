@@ -14,7 +14,16 @@ limitations under the License.
 
 #include <libsinsp/sinsp_filter_transformers/sinsp_filter_transformer.h>
 
+static void throw_unsupported_err(filter_transformer_type t) {
+	throw sinsp_exception("transformer '" + std::to_string(t) + "' is not supported");
+}
+
 sinsp_filter_transformer::~sinsp_filter_transformer() {}
+
+bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+	throw_unsupported_err(m_type);
+	return false;
+}
 
 bool sinsp_filter_transformer::string_transformer(std::vector<extract_value_t>& vec,
                                                   ppm_param_type t,

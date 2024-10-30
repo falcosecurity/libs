@@ -34,3 +34,40 @@ public:
 private:
 	std::string m_text;
 };
+
+class rawnum_check : public sinsp_filter_check {
+public:
+	rawnum_check(std::unique_ptr<sinsp_filter_check> chk);
+	virtual ~rawnum_check() = default;
+
+	std::unique_ptr<sinsp_filter_check> allocate_new() override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
+	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
+
+private:
+	std::unique_ptr<sinsp_filter_check> m_chk;
+	std::string m_text;
+	ppm_print_format m_pf;
+	ppm_param_type m_pt;
+};
+
+class list_check : public sinsp_filter_check {
+public:
+	list_check(std::vector<std::unique_ptr<sinsp_filter_check>>&& list);
+	list_check(const std::vector<std::string>& list);
+	virtual ~list_check() = default;
+
+	std::unique_ptr<sinsp_filter_check> allocate_new() override;
+	int32_t parse_field_name(std::string_view,
+	                         bool alloc_state,
+	                         bool needed_for_filtering) override;
+	bool extract_nocache(sinsp_evt*,
+	                     std::vector<extract_value_t>& values,
+	                     std::vector<extract_offset_t>*,
+	                     bool sanitize_strings = true) override;
+
+private:
+	std::vector<std::unique_ptr<sinsp_filter_check>> m_list;
+};

@@ -116,69 +116,37 @@ void sinsp_evt_formatter::set_format(output_format of, const std::string& fmt) {
 
 			// start parsing the token, which at this point must be a valid
 			// field or a valid field transformer
-			int msize = 0;
-			const char* tstart = cfmt + j + 1;
-			std::vector<filter_transformer_type> transformers;
-			while(true) {
-				auto prev_size = msize;
-				for(const auto& tr : libsinsp::filter::parser::supported_field_transformers()) {
-					if((j + 1 + tr.size() + 1) < lfmtlen && tstart[msize + tr.size()] == '(' &&
-					   !strncmp(tstart + msize, tr.c_str(), tr.size())) {
-						transformers.emplace_back(filter_transformer_from_str(tr));
-						msize += tr.size() + 1;  // count '('
-						j += tr.size() + 1;
+
+			// first we find the atoms (aka a single field).
+
+			bool found = false;
+			uint32_t fsize = lfmt.substr(j + 1).size();
+			std::unique_ptr<libsinsp::filter::ast::expr> ast;
+			while(!found) {
+				// TODO(therealbobo): possible optimization: split the formatter by '%'
+				try {
+					libsinsp::filter::parser parser(lfmt.substr(j + 1, fsize));
+					ast = parser.parse_field_or_transformer();
+					auto factory =
+					        std::make_shared<sinsp_filter_factory>(m_inspector, m_available_checks);
+					sinsp_extractor_compiler compiler(factory, ast.get());
+					chk = compiler.compile();
+					found = true;
+					fsize = parser.get_pos().idx;
+				} catch(sinsp_exception& e) {
+					fsize--;
+					if(fsize == 0) {
+						throw sinsp_exception("unknown filter");
 					}
-				}
-				// note: no whitespace is allowed between transformers
-				if(prev_size == msize) {
-					break;
 				}
 			}
 
-			// read field token and make sure it's a valid one
-			const char* fstart = cfmt + j + 1;
-			chk = m_available_checks.new_filter_check_from_fldname(std::string_view(fstart),
-			                                                       m_inspector,
-			                                                       false);
-			if(chk == nullptr) {
-				throw sinsp_exception("invalid formatting token " + std::string(fstart));
-			}
-			uint32_t fsize = chk->parse_field_name(fstart, true, false);
+			auto factory = std::make_shared<sinsp_filter_factory>(m_inspector, m_available_checks);
+			formatter_visitor(factory, m_resolution_tokens).fill(ast.get());
+
 			j += fsize;
 			ASSERT(j <= lfmtlen);
 
-			// we always add the field with no transformers for key->value resolution
-			m_resolution_tokens.emplace_back(std::string(fstart, fsize), chk, false);
-
-			// if we have transformers, create a copy of the field and use it
-			// both for output substitution and for key->value resolution
-			if(!transformers.empty()) {
-				chk = m_available_checks.new_filter_check_from_fldname(fstart, m_inspector, false);
-				if(chk == nullptr) {
-					throw sinsp_exception("invalid formatting token " + std::string(fstart));
-				}
-				chk->parse_field_name(fstart, true, false);
-
-				// apply all transformers and pop back their ')' enclosing token
-				// note: we apply transformers in reserve order to preserve their semantics
-				for(auto rit = transformers.rbegin(); rit != transformers.rend(); ++rit) {
-					chk->add_transformer(*rit);
-
-					// note: no whitespace is allowed between transformer enclosing
-					if(j + 1 >= lfmtlen || cfmt[j + 1] != ')') {
-						throw sinsp_exception("missing closing transformer parenthesis: " +
-						                      std::string(cfmt + j));
-					}
-					j++;
-					msize++;  // count ')'
-				}
-
-				// when requested to do so, we'll resolve the field with transformers
-				// in addition to the non-transformed version
-				m_resolution_tokens.emplace_back(std::string(tstart, fsize + msize), chk, true);
-			}
-
-			// add field for output substitution
 			m_output_tokens.emplace_back(chk);
 			m_output_tokenlens.push_back(toklen);
 
@@ -308,4 +276,93 @@ std::shared_ptr<sinsp_evt_formatter> sinsp_evt_formatter_factory::create_formatt
 	m_formatters[format] = ret;
 
 	return ret;
+}
+
+formatter_visitor::formatter_visitor(const std::shared_ptr<sinsp_filter_factory>& factory,
+                                     std::vector<resolution_token>& resolution_tokens):
+        m_factory(factory),
+        m_resolution_tokens(resolution_tokens) {}
+
+void formatter_visitor::fill(const libsinsp::filter::ast::expr* ast) {
+	ast->accept(this);
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::and_expr* e) {
+	throw sinsp_exception(
+	        "formatter_visitor: unexpected 'and' expression in format string; "
+	        "event formatting only supports field expressions, not boolean logic");
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::or_expr* e) {
+	throw sinsp_exception(
+	        "formatter_visitor: unexpected 'or' expression in format string; "
+	        "event formatting only supports field expressions, not boolean logic");
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::not_expr* e) {
+	throw sinsp_exception(
+	        "formatter_visitor: unexpected 'not' expression in format string; "
+	        "event formatting only supports field expressions, not boolean logic");
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::identifier_expr* e) {
+	throw sinsp_exception(
+	        "formatter_visitor: unexpected identifier expression in format string; "
+	        "event formatting only supports field expressions, not identifiers exprs");
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::value_expr* e) {
+	m_last_field_name = libsinsp::filter::ast::as_string(e);
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::list_expr* e) {
+	throw sinsp_exception(
+	        "formatter_visitor: unexpected list expression in format string; "
+	        "event formatting does not support list literals");
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::transformer_list_expr* e) {
+	// Visit children to register inner fields
+	for(auto& c : e->children) {
+		c->accept(this);
+	}
+	m_last_field_name = libsinsp::filter::ast::as_string(e);
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::unary_check_expr* e) {
+	throw sinsp_exception(
+	        "formatter_visitor: unexpected unary check expression in format string; "
+	        "event formatting only supports field expressions, not filter checks");
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::binary_check_expr* e) {
+	throw sinsp_exception(
+	        "formatter_visitor: unexpected binary check expression in format string; "
+	        "event formatting only supports field expressions, not filter checks");
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::field_expr* e) {
+	sinsp_extractor_compiler compiler(m_factory, e);
+	m_last_field_name = libsinsp::filter::ast::as_string(e);
+	m_resolution_tokens.emplace_back(m_last_field_name, compiler.compile(), false);
+	m_is_last_transformer = false;
+}
+
+void formatter_visitor::visit(const libsinsp::filter::ast::field_transformer_expr* e) {
+	sinsp_extractor_compiler compiler(m_factory, e);
+
+	// Visit children to register inner fields/transformers
+	for(auto& c : e->values) {
+		c->accept(this);
+	}
+
+	// Use the existing as_string visitor instead of manually reconstructing
+	std::string transformer_str = libsinsp::filter::ast::as_string(e);
+
+	if(m_is_last_transformer) {
+		m_resolution_tokens.pop_back();
+	}
+	m_resolution_tokens.emplace_back(transformer_str, compiler.compile(), true);
+	m_last_field_name = transformer_str;
+	m_is_last_transformer = true;
 }
