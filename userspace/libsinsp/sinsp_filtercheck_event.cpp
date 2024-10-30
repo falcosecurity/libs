@@ -1348,26 +1348,6 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 		return NULL;
 	} break;
-	case TYPE_FAILED: {
-		m_val.u32 = 0;
-		const sinsp_evt_param* pi = evt->get_param_by_name("res");
-
-		if(pi != NULL) {
-			if(pi->as<int64_t>() < 0) {
-				m_val.u32 = 1;
-			}
-		} else if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type())) {
-			pi = evt->get_param_by_name("fd");
-
-			if(pi != NULL) {
-				if(pi->as<int64_t>() < 0) {
-					m_val.u32 = 1;
-				}
-			}
-		}
-
-		RETURN_EXTRACT_VAR(m_val.u32);
-	} break;
 	case TYPE_ISIO: {
 		ppm_event_flags eflags = evt->get_info_flags();
 		if(eflags & (EF_READS_FROM_FD | EF_WRITES_TO_FD)) {
@@ -1453,6 +1433,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 	case TYPE_COUNT:
 		m_val.u32 = 1;
 		RETURN_EXTRACT_VAR(m_val.u32);
+	case TYPE_FAILED:
 	case TYPE_COUNT_ERROR:
 		return extract_error_count(evt, len);
 	case TYPE_COUNT_ERROR_FILE: {
