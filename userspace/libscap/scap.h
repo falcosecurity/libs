@@ -855,6 +855,7 @@ int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf,
                                    ppm_event_code event_type,
                                    uint32_t n,
                                    va_list args);
+uint8_t scap_get_size_bytes_from_type(enum ppm_param_type t);
 
 /*@}*/
 
