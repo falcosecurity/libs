@@ -375,7 +375,6 @@ int32_t sinsp_filter_check_fd::parse_field_name(std::string_view val,
 }
 
 bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt,
-                                                        uint32_t *len,
                                                         bool sanitize_strings,
                                                         bool fd_nameraw) {
 	const char *resolved_argstr;
@@ -480,14 +479,14 @@ uint8_t *sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt,
 	//
 	switch(m_field_id) {
 	case TYPE_FDNAME: {
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true) {
+		if(extract_fdname_from_creator(evt, sanitize_strings) == true) {
 			RETURN_EXTRACT_STRING(m_tstr);
 		} else {
 			return NULL;
 		}
 	}
 	case TYPE_CONTAINERNAME: {
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true) {
+		if(extract_fdname_from_creator(evt, sanitize_strings) == true) {
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 			RETURN_EXTRACT_STRING(m_tstr);
 		} else {
@@ -496,7 +495,7 @@ uint8_t *sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt,
 	}
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY: {
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true) {
+		if(extract_fdname_from_creator(evt, sanitize_strings) == true) {
 			if(sanitize_strings) {
 				sanitize_string(m_tstr);
 			}
@@ -578,7 +577,7 @@ uint8_t *sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt,
 			return m_tcstr;
 		}
 	case TYPE_FDNAMERAW: {
-		if(extract_fdname_from_creator(evt, len, sanitize_strings, true) == true) {
+		if(extract_fdname_from_creator(evt, sanitize_strings, true) == true) {
 			remove_duplicate_path_separators(m_tstr);
 			RETURN_EXTRACT_STRING(m_tstr);
 		} else {
