@@ -1839,3 +1839,13 @@ void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const {
 const ppm_param_info *sinsp_evt_param::get_info() const {
 	return &(m_evt->get_info()->params[m_idx]);
 }
+
+bool sinsp_evt::has_return_value() {
+	// The event has a return value:
+	// * if it is a syscall event and it is an exit event.
+	if(libsinsp::events::is_syscall_event((ppm_event_code)get_type()) && PPME_IS_EXIT(get_type())) {
+		return true;
+	}
+
+	return false;
+}

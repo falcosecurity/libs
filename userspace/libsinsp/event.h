@@ -718,6 +718,7 @@ public:
 			return 'o';
 		}
 	}
+	bool has_return_value();
 
 private:
 	sinsp* m_inspector;
