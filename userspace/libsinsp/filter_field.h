@@ -111,6 +111,14 @@ struct filtercheck_field_info {
 	// Returns true if this field is a suggested as output
 	//
 	inline bool is_format_suggested() const { return m_flags & EPF_FORMAT_SUGGESTED; }
+
+	//
+	// Returns true if this field is numeric
+	//
+	inline bool is_numeric_type() const {
+		return m_type == ppm_param_type::PT_PID || m_type == ppm_param_type::PT_INT64 ||
+		       m_type == ppm_param_type::PT_UINT64;
+	}
 };
 
 /**

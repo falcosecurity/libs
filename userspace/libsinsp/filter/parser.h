@@ -44,9 +44,11 @@ class RE2;
 //                             | Identifier
 //                             | '(' Expr ')'
 //     FieldTransformer       ::= FieldTransformerType FieldTransformerTail
-//     FieldTransformerTail   ::= FieldTransformerArg ')'
+//     FieldTransformerTail   ::= FieldTransformerArg ( ',' FieldTransformerArg )* ')'
 //     FieldTransformerArg    ::= FieldTransformer
-//                             | Field
+//                             | Field | QuotedStr | NumValue | TransformerList
+//     TransformerList        ::= '(' ( TransformerListArg (',' TransformerListArg)* )? ')'
+//     TransformerListArg     ::= Field | FieldTransformer | QuotedStr | NumValue
 //     FieldTransformerOrVal  ::= FieldTransformer
 //                             | FieldTransformerVal Field ')'
 //     Condition           ::= UnaryOperator
@@ -148,6 +150,8 @@ public:
 	*/
 	std::unique_ptr<ast::expr> parse();
 
+	std::unique_ptr<ast::expr> parse_field_or_transformer();
+
 private:
 	std::unique_ptr<ast::expr> parse_or();
 	std::unique_ptr<ast::expr> parse_and();
@@ -160,6 +164,9 @@ private:
 	std::unique_ptr<ast::expr> parse_field_or_transformer_remainder(
 	        std::string transformer,
 	        const libsinsp::filter::ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_field_transformer_arg(const ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_transformer_list(const ast::pos_info& pos);
+	std::unique_ptr<ast::expr> parse_transformer_list_arg(const ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_condition(std::unique_ptr<ast::expr> left,
 	                                           const libsinsp::filter::ast::pos_info& pos);
 	std::unique_ptr<ast::expr> parse_list_value_or_transformer();
