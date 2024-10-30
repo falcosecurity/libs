@@ -60,7 +60,7 @@ else()
 	add_dependencies(libsinsp_e2e_tests driver)
 endif()
 
-target_link_libraries(libsinsp_e2e_tests sinsp GTest::gtest pthread)
+target_link_libraries(libsinsp_e2e_tests sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" pthread)
 
 target_include_directories(
 	libsinsp_e2e_tests PRIVATE ${PROJECT_BINARY_DIR}/driver/src "${CMAKE_CURRENT_BINARY_DIR}"
@@ -68,7 +68,7 @@ target_include_directories(
 
 add_executable(test_helper test_helper.cpp)
 target_link_libraries(test_helper pthread)
-add_dependencies(libsinsp_e2e_tests test_helper)
+add_dependencies(libsinsp_e2e_tests test_helper gtest)
 
 add_executable(vtidcollision vtidcollision.c)
 add_dependencies(libsinsp_e2e_tests vtidcollision)
