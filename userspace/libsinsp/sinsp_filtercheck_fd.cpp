@@ -534,7 +534,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	case TYPE_FDNAME:
 	case TYPE_CONTAINERNAME:
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X) {
-			int64_t retval = evt->get_param(0)->as<int64_t>();
+			int64_t retval = evt->get_syscall_return_value();
 			// this is a weird behavior, see the `net_connect_exit_event_fails` test for more info
 			if(retval < 0) {
 				if(!extract_fdname_from_event(evt, sanitize_strings)) {

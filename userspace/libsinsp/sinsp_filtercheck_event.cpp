@@ -705,7 +705,7 @@ uint8_t* sinsp_filter_check_event::extract_abspath(sinsp_evt* evt, uint32_t* len
 		//
 		// We can extract the file path only in case of a successful file opening (fd>0).
 		//
-		fd = evt->get_param(0)->as<int64_t>();
+		fd = evt->get_syscall_return_value();
 
 		if(fd > 0) {
 			//
@@ -799,7 +799,7 @@ inline uint8_t* sinsp_filter_check_event::extract_buflen(sinsp_evt* evt, uint32_
 		//
 		// Extract the return value
 		//
-		m_val.s64 = evt->get_param(0)->as<int64_t>();
+		m_val.s64 = evt->get_syscall_return_value();
 
 		if(m_val.s64 >= 0) {
 			RETURN_EXTRACT_VAR(m_val.s64);
@@ -1683,7 +1683,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 				// If PPM_O_TMPFILE is set and syscall is successful the file is created
 				if(flags & PPM_O_TMPFILE) {
-					int64_t retval = evt->get_param(0)->as<int64_t>();
+					int64_t retval = evt->get_syscall_return_value();
 
 					if(retval >= 0) {
 						m_val.u32 = 1;

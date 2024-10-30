@@ -734,13 +734,13 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 		if(param.m_evt->get_type() == PPME_SYSCALL_OPEN_X) {
 			if(param.m_evt->get_param_value_str("name") == "/etc/passwd") {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
-				fd = param.m_evt->get_param(0)->as<int64_t>();
+				fd = param.m_evt->get_syscall_return_value();
 				++callnum;
 			}
 		} else if(param.m_evt->get_type() == PPME_SYSCALL_OPENAT_2_X) {
 			if(param.m_evt->get_param_value_str("name") == "/etc/passwd") {
 				EXPECT_EQ("<f>/etc/passwd", param.m_evt->get_param_value_str("fd"));
-				fd = param.m_evt->get_param(0)->as<int64_t>();
+				fd = param.m_evt->get_syscall_return_value();
 				++callnum;
 			}
 		} else if(param.m_evt->get_type() == PPME_PROCEXIT_1_E && param.m_evt->get_tid() == cpid) {
