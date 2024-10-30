@@ -833,31 +833,17 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt* evt, uint32_t* le
 }
 
 uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt* evt, uint32_t* len) {
-	const sinsp_evt_param* pi = evt->get_param_by_name("res");
-
-	if(pi != NULL) {
-		int64_t res = pi->as<int64_t>();
-		if(res < 0) {
-			m_val.u32 = 1;
-			RETURN_EXTRACT_VAR(m_val.u32);
-		} else {
-			return NULL;
-		}
+	// todo!: we need to understand if we want to return `0` or `<NA>`.
+	// At the moment we return `<NA>`.
+	if(!evt->has_return_value()) {
+		return NULL;
 	}
 
-	if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type())) {
-		pi = evt->get_param_by_name("fd");
-
-		if(pi != NULL) {
-			int64_t res = pi->as<int64_t>();
-			if(res < 0) {
-				m_val.u32 = 1;
-				RETURN_EXTRACT_VAR(m_val.u32);
-			}
-		}
+	m_val.u32 = 0;
+	if(evt->get_syscall_return_value() < 0) {
+		m_val.u32 = 1;
 	}
-
-	return NULL;
+	RETURN_EXTRACT_VAR(m_val.u32);
 }
 
 uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
