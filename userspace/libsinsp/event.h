@@ -720,6 +720,8 @@ public:
 	}
 	bool has_return_value();
 
+	int64_t get_syscall_return_value();
+
 private:
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
