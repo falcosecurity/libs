@@ -110,7 +110,7 @@ scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts,
 
 	if(ret != SCAP_INPUT_TOO_SMALL) {
 		va_end(args2);
-		return nullptr;
+		throw std::runtime_error(std::string("cannot compute the size of the event: ") + error);
 	}
 
 	event_buf.buf = malloc(event_size);
@@ -127,7 +127,7 @@ scap_evt* sinsp_with_test_input::create_event_v(uint64_t ts,
 		free(event_buf.buf);
 		event_buf.size = 0;
 		va_end(args2);
-		return nullptr;
+		throw std::runtime_error(std::string("cannot encode the event: ") + error);
 	}
 
 	scap_evt* event = static_cast<scap_evt*>(event_buf.buf);
@@ -150,6 +150,12 @@ scap_evt* sinsp_with_test_input::add_event_v(uint64_t ts,
 	}
 
 	scap_evt* event = create_event_v(ts, tid, event_type, n, args);
+	if(event == nullptr) {
+		std::stringstream ss;
+		ss << "cannot create event type: " << event_type << ", ts: " << ts << ", tid: " << tid
+		   << ", n: " << n;
+		throw std::runtime_error(ss.str());
+	}
 
 	uint64_t evtoffset = m_events.size() - m_test_data.event_count;
 	m_events.push_back(event);
