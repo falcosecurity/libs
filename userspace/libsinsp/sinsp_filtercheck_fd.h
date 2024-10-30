@@ -88,7 +88,6 @@ protected:
 
 private:
 	int32_t extract_arg(std::string_view fldname, std::string_view val);
-	uint8_t* extract_from_null_fd(sinsp_evt* evt, uint32_t* len, bool sanitize_strings);
 	bool extract_fdname_from_creator(sinsp_evt* evt,
 	                                 bool sanitize_strings,
 	                                 bool fd_nameraw = false);
