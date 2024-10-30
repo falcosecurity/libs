@@ -70,7 +70,7 @@ class sinsp_filter_transformer {
 public:
 	using storage_t = std::vector<uint8_t>;
 
-	sinsp_filter_transformer();
+	sinsp_filter_transformer() = default;
 	virtual ~sinsp_filter_transformer();
 
 	virtual bool transform_type(ppm_param_type& t, uint32_t& flags) const;

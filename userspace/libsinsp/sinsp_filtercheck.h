@@ -250,6 +250,8 @@ protected:
 	const filter_check_info* m_info = nullptr;
 	uint32_t m_field_id = (uint32_t)-1;
 
+	inline void check_rhs_field_type_consistency() const;
+
 private:
 	//
 	// Instead of populating the filter check values with const values extracted at
@@ -258,7 +260,6 @@ private:
 	//
 	inline void populate_filter_values_with_rhs_extracted_values(
 	        const std::vector<extract_value_t>& values);
-	inline void check_rhs_field_type_consistency() const;
 
 	std::list<std::unique_ptr<sinsp_filter_transformer>> m_transformers;
 	std::unique_ptr<sinsp_filter_check> m_rhs_filter_check = nullptr;

@@ -62,6 +62,7 @@ add_library(
 	sinsp_filtercheck_fspath.cpp
 	sinsp_filtercheck_gen_event.cpp
 	sinsp_filtercheck_group.cpp
+	sinsp_filtercheck_multivalue_transformer.cpp
 	sinsp_filtercheck_rawstring.cpp
 	sinsp_filtercheck_reference.cpp
 	sinsp_filtercheck_static.cpp

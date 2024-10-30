@@ -21,6 +21,8 @@ limitations under the License.
 #include <set>
 #include <libsinsp/utils.h>
 #include <libsinsp/sinsp_filter_transformers.h>
+#include <libsinsp/sinsp_filtercheck_multivalue_transformer.h>
+#include <libsinsp/sinsp_filtercheck_rawstring.h>
 #include <sinsp_with_test_input.h>
 
 static std::set<ppm_param_type> all_param_types() {
@@ -405,4 +407,178 @@ TEST_F(sinsp_with_test_input, len_transformer) {
 	                           (uint32_t)0);
 
 	EXPECT_TRUE(eval_filter(evt, "len(evt.arg.data) == 6"));
+}
+
+TEST_F(sinsp_with_test_input, multivalue_transformer_join) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_evt* evt;
+
+	int64_t dirfd = 3;
+	const char* file_to_run = "/tmp/file_to_run";
+
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           dirfd,
+	                           file_to_run,
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
+
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        "join(fd.name, (fd.name,fd.directory)) = /tmp/file_to_run/tmp/file_to_run/tmp"));
+	EXPECT_TRUE(eval_filter(evt, "join(\"-\", (fd.name,fd.directory)) = /tmp/file_to_run-/tmp"));
+	EXPECT_TRUE(eval_filter(evt, "join(\"-\", (\"aaa\",\"bbb\")) = aaa-bbb"));
+	EXPECT_TRUE(eval_filter(evt, "join(\"->\", (\"aaa\",\"bbb\")) = aaa->bbb"));
+	EXPECT_TRUE(eval_filter(evt, "join(\"->\", (\"aaa\")) = aaa"));
+	EXPECT_TRUE(eval_filter(evt, "join(\"->\", (fd.name, \"aaa\")) = /tmp/file_to_run->aaa"));
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        "join(\"->\", (fd.name, \"aaa\", fd.directory)) = /tmp/file_to_run->aaa->/tmp"));
+	EXPECT_TRUE(
+	        eval_filter(evt, "join(\"->\", (toupper(fd.name), \"aaa\")) = /TMP/FILE_TO_RUN->aaa"));
+	EXPECT_TRUE(
+	        eval_filter(evt, "join(\"->\", ( \"aaa\", toupper(fd.name))) = aaa->/TMP/FILE_TO_RUN"));
+	EXPECT_TRUE(eval_filter(evt,
+	                        "join(\"-\", (fd.directory, join(\"->\", ( \"aaa\", "
+	                        "toupper(fd.name))))) = /tmp-aaa->/TMP/FILE_TO_RUN"));
+	EXPECT_TRUE(eval_filter(evt, "join(\",\", (\"aaa\",\"bbb\")) = \"aaa,bbb\""));
+	EXPECT_FALSE(eval_filter(evt, "join(\",\", (\"aaa\",\"bbb\")) = \"aaa-bbb\""));
+	EXPECT_TRUE(eval_filter(evt, "join(\",\", (evt.num, evt.num)) = \"1,1\""));
+
+	// Validation error tests
+	// join() requires exactly 2 arguments
+	EXPECT_THROW(eval_filter(evt, "join() = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "join(\"-\") = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "join(\"-\", \"a\", \"b\") = foo"), sinsp_exception);
+	// join() first argument (separator) must not be a list
+	EXPECT_THROW(eval_filter(evt, "join(fd.types, (\"a\", \"b\")) = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "join((\"a\", \"b\"), (\"a\", \"b\")) = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "join((\"a\", \"b\"), \"a\") = foo"), sinsp_exception);
+	EXPECT_THROW(eval_filter(evt, "join(\"a\", \"b\") = foo"), sinsp_exception);
+}
+
+TEST_F(sinsp_with_test_input, multivalue_transformer_with_outer_transformer) {
+	add_default_init_thread();
+	open_inspector();
+
+	sinsp_evt* evt;
+
+	int64_t dirfd = 3;
+	const char* file_to_run = "/tmp/file_to_run";
+
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           dirfd,
+	                           file_to_run,
+	                           0,
+	                           0,
+	                           0,
+	                           (uint64_t)0);
+
+	// Apply toupper to join result
+	EXPECT_TRUE(
+	        eval_filter(evt,
+	                    "toupper(join(\"-\", (fd.name, fd.directory))) = /TMP/FILE_TO_RUN-/TMP"));
+	EXPECT_TRUE(eval_filter(evt, "toupper(join(\"-\", (\"aaa\", \"bbb\"))) = AAA-BBB"));
+
+	// Apply tolower to join result
+	EXPECT_TRUE(
+	        eval_filter(evt,
+	                    "tolower(join(\"-\", (fd.name, fd.directory))) = /tmp/file_to_run-/tmp"));
+	EXPECT_TRUE(eval_filter(evt, "tolower(join(\"-\", (\"AAA\", \"BBB\"))) = aaa-bbb"));
+
+	// Apply len to join result
+	// fd.name = /tmp/file_to_run (16 chars), fd.directory = /tmp (4 chars), separator = - (1 char)
+	// Total = 16 + 1 + 4 = 21
+	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (fd.name, fd.directory))) = 21"));
+	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (\"aaa\", \"bbb\"))) = 7"));
+
+	// Apply b64 to join result
+	// "aaa-bbb" in base64 is "YWFhLWJiYg=="
+	EXPECT_TRUE(eval_filter(evt, "join(\"-\", (\"aaa\", \"bbb\")) = \"aaa-bbb\""));
+	EXPECT_TRUE(eval_filter(evt, "b64(join(\"W\", (\"YWFhL\", \"JiYg\"))) = \"aaa-bbb\""));
+
+	// Chain multiple transformers on join result
+	EXPECT_TRUE(eval_filter(
+	        evt,
+	        "toupper(tolower(join(\"-\", (fd.name, fd.directory)))) = /TMP/FILE_TO_RUN-/TMP"));
+
+	//// Combine with comparison operators
+	EXPECT_TRUE(eval_filter(evt, "toupper(join(\"-\", (fd.name, fd.directory))) contains /TMP"));
+	EXPECT_TRUE(eval_filter(evt, "toupper(join(\"-\", (fd.name, fd.directory))) startswith /TMP"));
+	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (fd.name, fd.directory))) > 20"));
+	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (fd.name, fd.directory))) >= 21"));
+	EXPECT_TRUE(eval_filter(evt, "len(join(\"-\", (fd.name, fd.directory))) < 22"));
+}
+
+TEST(multivalue_transformer, argument_types) {
+	// Create arguments for join: separator (string) and list
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+
+	// First argument: a single string (separator)
+	args.push_back(std::make_unique<rawstring_check>("-"));
+
+	// Second argument: a list of strings
+	std::vector<std::string> list_values = {"a", "b", "c"};
+	args.push_back(std::make_unique<list_check>(list_values));
+
+	// Create the join transformer
+	sinsp_filter_multivalue_transformer_join join_transformer(std::move(args));
+
+	// Test argument_types()
+	const auto& arg_types = join_transformer.argument_types();
+
+	ASSERT_EQ(arg_types.size(), 2);
+
+	// First argument should be PT_CHARBUF and not a list
+	EXPECT_EQ(arg_types[0].type, PT_CHARBUF);
+	EXPECT_FALSE(arg_types[0].is_list);
+
+	// Second argument should be PT_CHARBUF and a list
+	EXPECT_EQ(arg_types[1].type, PT_CHARBUF);
+	EXPECT_TRUE(arg_types[1].is_list);
+}
+
+TEST(multivalue_transformer, argument_types_with_mixed_types) {
+	// Test with numeric values in the list
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+
+	// Separator
+	args.push_back(std::make_unique<rawstring_check>(","));
+
+	// List with mixed elements (still strings at the filtercheck level)
+	std::vector<std::string> list_values = {"1", "2", "3"};
+	args.push_back(std::make_unique<list_check>(list_values));
+
+	sinsp_filter_multivalue_transformer_join join_transformer(std::move(args));
+
+	const auto& arg_types = join_transformer.argument_types();
+
+	ASSERT_EQ(arg_types.size(), 2);
+	EXPECT_EQ(arg_types[0].type, PT_CHARBUF);
+	EXPECT_FALSE(arg_types[0].is_list);
+	EXPECT_EQ(arg_types[1].type, PT_CHARBUF);
+	EXPECT_TRUE(arg_types[1].is_list);
+}
+
+TEST(multivalue_transformer, result_type) {
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+	args.push_back(std::make_unique<rawstring_check>("-"));
+	std::vector<std::string> list_values = {"a", "b"};
+	args.push_back(std::make_unique<list_check>(list_values));
+
+	sinsp_filter_multivalue_transformer_join join_transformer(std::move(args));
+
+	// join should return PT_CHARBUF and not a list
+	auto result = join_transformer.result_type();
+	EXPECT_EQ(result.type, PT_CHARBUF);
+	EXPECT_FALSE(result.is_list);
 }

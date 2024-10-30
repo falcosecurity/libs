@@ -173,6 +173,82 @@ protected:
 	filter_check_list& m_available_checks;
 };
 
+class SINSP_PUBLIC sinsp_extractor_compiler : private libsinsp::filter::ast::const_expr_visitor {
+public:
+	struct message {
+		std::string msg;
+		libsinsp::filter::ast::pos_info pos;
+	};
+
+	sinsp_extractor_compiler(
+	        sinsp* inspector,
+	        const std::string& fltstr,
+	        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
+
+	sinsp_extractor_compiler(
+	        const std::shared_ptr<sinsp_filter_factory>& factory,
+	        libsinsp::filter::ast::expr* fltast,
+	        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
+
+	sinsp_extractor_compiler(
+	        const std::shared_ptr<sinsp_filter_factory>& factory,
+	        const libsinsp::filter::ast::expr* fltast,
+	        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory = nullptr);
+
+	std::unique_ptr<sinsp_filter_check> compile();
+
+	const std::shared_ptr<libsinsp::filter::ast::expr> get_filter_ast() const {
+		return m_internal_flt_ast;
+	}
+
+	const std::shared_ptr<libsinsp::filter::ast::expr>& get_filter_ast() {
+		return m_internal_flt_ast;
+	}
+
+	const libsinsp::filter::ast::pos_info& get_pos() const { return m_pos; }
+
+	const std::vector<message>& get_warnings() const { return m_warnings; }
+
+	const std::vector<std::string>& get_field_values() const;
+
+private:
+	void visit(const libsinsp::filter::ast::and_expr*) override;
+	void visit(const libsinsp::filter::ast::or_expr*) override;
+	void visit(const libsinsp::filter::ast::not_expr*) override;
+	void visit(const libsinsp::filter::ast::identifier_expr*) override;
+	void visit(const libsinsp::filter::ast::value_expr*) override;
+	void visit(const libsinsp::filter::ast::list_expr*) override;
+	void visit(const libsinsp::filter::ast::transformer_list_expr*) override;
+	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
+	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
+	void visit(const libsinsp::filter::ast::field_expr*) override;
+	void visit(const libsinsp::filter::ast::field_transformer_expr*) override;
+	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
+	std::unique_ptr<sinsp_filter_check> create_filtercheck(std::string_view field);
+	void check_value_and_add_warnings(cmpop op,
+	                                  const libsinsp::filter::ast::pos_info& pos,
+	                                  const std::string& v);
+	void check_warnings_regex_value(const libsinsp::filter::ast::pos_info& pos,
+	                                const std::string& v);
+	void check_warnings_field_value(const libsinsp::filter::ast::pos_info& pos,
+	                                const std::string& str,
+	                                const std::string& strippedstr);
+	void check_warnings_transformer_value(const libsinsp::filter::ast::pos_info& pos,
+	                                      const std::string& str,
+	                                      const std::string& strippedstr);
+
+	libsinsp::filter::ast::pos_info m_pos;
+	std::unique_ptr<sinsp_filter_check> m_last_node_field;
+	std::string m_flt_str;
+	std::vector<std::string> m_field_values;
+	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
+	const libsinsp::filter::ast::expr* m_flt_ast = nullptr;
+	std::shared_ptr<sinsp_filter_factory> m_factory;
+	std::shared_ptr<sinsp_filter_cache_factory> m_cache_factory;
+	std::vector<message> m_warnings;
+	sinsp_filter_check_list m_default_filterlist;
+};
+
 /*!
   \brief This is the class that compiles the filters.
 */
@@ -250,6 +326,7 @@ private:
 	void visit(const libsinsp::filter::ast::identifier_expr*) override;
 	void visit(const libsinsp::filter::ast::value_expr*) override;
 	void visit(const libsinsp::filter::ast::list_expr*) override;
+	void visit(const libsinsp::filter::ast::transformer_list_expr*) override;
 	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
 	void visit(const libsinsp::filter::ast::field_expr*) override;

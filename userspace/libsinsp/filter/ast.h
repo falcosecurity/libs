@@ -36,6 +36,7 @@ struct not_expr;
 struct identifier_expr;
 struct value_expr;
 struct list_expr;
+struct transformer_list_expr;
 struct unary_check_expr;
 struct binary_check_expr;
 struct field_expr;
@@ -90,6 +91,7 @@ struct SINSP_PUBLIC expr_visitor {
 	virtual void visit(identifier_expr*) = 0;
 	virtual void visit(value_expr*) = 0;
 	virtual void visit(list_expr*) = 0;
+	virtual void visit(transformer_list_expr*) = 0;
 	virtual void visit(unary_check_expr*) = 0;
 	virtual void visit(binary_check_expr*) = 0;
 	virtual void visit(field_expr*) = 0;
@@ -107,6 +109,7 @@ struct SINSP_PUBLIC const_expr_visitor {
 	virtual void visit(const identifier_expr*) = 0;
 	virtual void visit(const value_expr*) = 0;
 	virtual void visit(const list_expr*) = 0;
+	virtual void visit(const transformer_list_expr*) = 0;
 	virtual void visit(const unary_check_expr*) = 0;
 	virtual void visit(const binary_check_expr*) = 0;
 	virtual void visit(const field_expr*) = 0;
@@ -135,6 +138,7 @@ public:
 	virtual void visit(identifier_expr*) override;
 	virtual void visit(value_expr*) override;
 	virtual void visit(list_expr*) override;
+	virtual void visit(transformer_list_expr*) override;
 	virtual void visit(unary_check_expr*) override;
 	virtual void visit(binary_check_expr*) override;
 	virtual void visit(field_expr*) override;
@@ -163,6 +167,7 @@ public:
 	virtual void visit(const identifier_expr*) override;
 	virtual void visit(const value_expr*) override;
 	virtual void visit(const list_expr*) override;
+	virtual void visit(const transformer_list_expr*) override;
 	virtual void visit(const unary_check_expr*) override;
 	virtual void visit(const binary_check_expr*) override;
 	virtual void visit(const field_expr*) override;
@@ -185,6 +190,7 @@ public:
 	virtual void visit(const identifier_expr*) override;
 	virtual void visit(const value_expr*) override;
 	virtual void visit(const list_expr*) override;
+	virtual void visit(const transformer_list_expr*) override;
 	virtual void visit(const unary_check_expr*) override;
 	virtual void visit(const binary_check_expr*) override;
 	virtual void visit(const field_expr*) override;
@@ -398,6 +404,42 @@ struct SINSP_PUBLIC list_expr : expr {
 	}
 };
 
+struct SINSP_PUBLIC transformer_list_expr : expr {
+	transformer_list_expr() = default;
+	virtual ~transformer_list_expr() = default;
+
+	explicit transformer_list_expr(std::vector<std::unique_ptr<expr>>& v): children(std::move(v)) {}
+
+	void accept(expr_visitor* v) override { v->visit(this); };
+
+	void accept(const_expr_visitor* v) const override { v->visit(this); };
+
+	bool is_equal(const expr* other) const override {
+		auto o = dynamic_cast<const transformer_list_expr*>(other);
+		if(o == nullptr || o->children.size() != children.size()) {
+			return false;
+		}
+
+		for(size_t i = 0; i < children.size(); i++) {
+			if(!compare(children[i].get(), o->children[i].get())) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	std::vector<std::unique_ptr<expr>> children;
+
+	static std::unique_ptr<transformer_list_expr> create(
+	        std::vector<std::unique_ptr<expr>>& v,
+	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
+		auto ret = std::make_unique<transformer_list_expr>(v);
+		ret->set_pos(pos);
+		return ret;
+	}
+};
+
 struct SINSP_PUBLIC unary_check_expr : expr {
 	unary_check_expr() = default;
 	virtual ~unary_check_expr() = default;
@@ -492,9 +534,9 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 	field_transformer_expr() = default;
 	virtual ~field_transformer_expr() = default;
 
-	field_transformer_expr(const std::string& t, std::unique_ptr<expr> v):
+	field_transformer_expr(const std::string& t, std::vector<std::unique_ptr<expr>>& v):
 	        transformer(t),
-	        value(std::move(v)) {}
+	        values(std::move(v)) {}
 
 	void accept(expr_visitor* v) override { v->visit(this); };
 
@@ -502,17 +544,38 @@ struct SINSP_PUBLIC field_transformer_expr : expr {
 
 	bool is_equal(const expr* other) const override {
 		auto o = dynamic_cast<const field_transformer_expr*>(other);
-		return o != nullptr && transformer == o->transformer && value->is_equal(o->value.get());
+		if(o == nullptr || o->values.size() != values.size()) {
+			return false;
+		}
+
+		for(size_t i = 0; i < values.size(); i++) {
+			if(!compare(values[i].get(), o->values[i].get())) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	std::string transformer;
-	std::unique_ptr<expr> value;
+	std::vector<std::unique_ptr<expr>> values;
+
+	static std::unique_ptr<field_transformer_expr> create(
+	        const std::string& m,
+	        std::vector<std::unique_ptr<expr>>& v,
+	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
+		auto ret = std::make_unique<field_transformer_expr>(m, v);
+		ret->set_pos(pos);
+		return ret;
+	}
 
 	static std::unique_ptr<field_transformer_expr> create(
 	        const std::string& m,
 	        std::unique_ptr<expr> v,
 	        const libsinsp::filter::ast::pos_info& pos = s_initial_pos) {
-		auto ret = std::make_unique<field_transformer_expr>(m, std::move(v));
+		std::vector<std::unique_ptr<expr>> args;
+		args.push_back(std::move(v));
+		auto ret = std::make_unique<field_transformer_expr>(m, args);
 		ret->set_pos(pos);
 		return ret;
 	}

@@ -36,6 +36,9 @@ limitations under the License.
 #include <libsinsp/filter.h>
 #include <libsinsp/filter/parser.h>
 #include <libsinsp/sinsp_filtercheck.h>
+#include <libsinsp/sinsp_filtercheck_multivalue_transformer.h>
+#include <libsinsp/sinsp_filtercheck_rawstring.h>
+#include <libsinsp/plugin_filtercheck.h>
 #include <libsinsp/filter_compare.h>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -161,6 +164,229 @@ void sinsp_filter::add_check(std::unique_ptr<sinsp_filter_check> chk) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// sinsp_extractor_compiler implementation
+///////////////////////////////////////////////////////////////////////////////
+sinsp_extractor_compiler::sinsp_extractor_compiler(
+        sinsp* inspector,
+        const std::string& fltstr,
+        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory):
+        m_flt_str(fltstr),
+        m_factory(std::make_shared<sinsp_filter_factory>(inspector, m_default_filterlist)),
+        m_cache_factory(cache_factory) {}
+
+sinsp_extractor_compiler::sinsp_extractor_compiler(
+        const std::shared_ptr<sinsp_filter_factory>& factory,
+        libsinsp::filter::ast::expr* fltast,
+        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory):
+        m_flt_ast(fltast),
+        m_factory(factory),
+        m_cache_factory(cache_factory) {}
+
+sinsp_extractor_compiler::sinsp_extractor_compiler(
+        const std::shared_ptr<sinsp_filter_factory>& factory,
+        const libsinsp::filter::ast::expr* fltast,
+        const std::shared_ptr<sinsp_filter_cache_factory>& cache_factory):
+        m_flt_ast(fltast),
+        m_factory(factory),
+        m_cache_factory(cache_factory) {}
+
+std::unique_ptr<sinsp_filter_check> sinsp_extractor_compiler::compile() {
+	m_warnings.clear();
+
+	// make sure the cache factory is all set
+	if(!m_cache_factory) {
+		// by default, use a factory that enables caching
+		m_cache_factory = std::make_shared<exprstr_sinsp_filter_cache_factory>();
+	}
+
+	m_last_node_field = nullptr;
+	m_flt_ast->accept(this);
+
+	// return compiled filter
+	return std::move(m_last_node_field);
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::and_expr* e) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: unexpected 'and' expression in extractor AST; "
+	        "extractor compilation only supports field/transformer expressions, not boolean logic");
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::or_expr* e) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: unexpected 'or' expression in extractor AST; "
+	        "extractor compilation only supports field/transformer expressions, not boolean logic");
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::not_expr* e) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: unexpected 'not' expression in extractor AST; "
+	        "extractor compilation only supports field/transformer expressions, not boolean logic");
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::unary_check_expr* e) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: unexpected unary check expression in extractor AST; "
+	        "extractor compilation only supports field/transformer expressions, not filter checks");
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::binary_check_expr* e) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: unexpected binary check expression in extractor AST; "
+	        "extractor compilation only supports field/transformer expressions, not filter checks");
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::identifier_expr* e) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: unexpected identifier expression in extractor AST; "
+	        "extractor compilation only supports field/transformer expressions, not macro "
+	        "identifiers");
+}
+
+void sinsp_extractor_compiler::check_warnings_regex_value(
+        const libsinsp::filter::ast::pos_info& pos,
+        const std::string& v) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: check_warnings_regex_value should not be called; "
+	        "extractor compilation does not emit warnings");
+}
+
+void sinsp_extractor_compiler::check_warnings_field_value(
+        const libsinsp::filter::ast::pos_info& pos,
+        const std::string& str,
+        const std::string& strippedstr) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: check_warnings_field_value should not be called; "
+	        "extractor compilation does not emit warnings");
+}
+
+void sinsp_extractor_compiler::check_warnings_transformer_value(
+        const libsinsp::filter::ast::pos_info& pos,
+        const std::string& str,
+        const std::string& strippedstr) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: check_warnings_transformer_value should not be called; "
+	        "extractor compilation does not emit warnings");
+}
+
+void sinsp_extractor_compiler::check_value_and_add_warnings(
+        cmpop op,
+        const libsinsp::filter::ast::pos_info& pos,
+        const std::string& v) {
+	throw sinsp_exception(
+	        "sinsp_extractor_compiler: check_value_and_add_warnings should not be called; "
+	        "extractor compilation does not emit warnings");
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::value_expr* e) {
+	m_pos = e->get_pos();
+	m_field_values.clear();
+	m_field_values.push_back(e->value);
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::list_expr* e) {
+	m_pos = e->get_pos();
+	m_field_values = e->values;
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::transformer_list_expr* e) {
+	m_pos = e->get_pos();
+	m_last_node_field = nullptr;
+	std::vector<std::unique_ptr<sinsp_filter_check>> elements;
+	for(auto& c : e->children) {
+		c->accept(this);
+		if(!m_last_node_field) {
+			// if the last node field is null we are on the bottom leaf and
+			// we need to check for "concrete" string/list and add the filterchecks
+			// to enable multivalue transformers.
+			if(m_field_values.size() == 0) {
+				throw sinsp_exception("fix this");
+			}
+			if(m_field_values.size() == 1) {
+				m_last_node_field = std::make_unique<rawstring_check>(m_field_values[0]);
+			} else {
+				m_last_node_field = std::make_unique<list_check>(m_field_values);
+			}
+		}
+		elements.emplace_back(std::move(m_last_node_field));
+	}
+	m_last_node_field = std::make_unique<list_check>(std::move(elements));
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::field_expr* e) {
+	m_pos = e->get_pos();
+	auto field_name = create_filtercheck_name(e->field, e->arg);
+	m_last_node_field = create_filtercheck(field_name);
+	if(m_last_node_field->parse_field_name(field_name, true, true) == -1) {
+		throw sinsp_exception("filter error: can't parse field expression '" + field_name + "'");
+	}
+}
+
+void sinsp_extractor_compiler::visit(const libsinsp::filter::ast::field_transformer_expr* e) {
+	m_pos = e->get_pos();
+	m_last_node_field = nullptr;
+	std::vector<std::unique_ptr<sinsp_filter_check>> args;
+	for(auto& c : e->values) {
+		c->accept(this);
+		if(!m_last_node_field) {
+			// if the last node field is null we are on the bottom leaf and
+			// we need to check for "concrete" string/list and add the filterchecks
+			// to enable multivalue transformers.
+			if(m_field_values.size() == 0) {
+				throw sinsp_exception("filter error: found null child node on '" + e->transformer +
+				                      "' transformer");
+			}
+			if(m_field_values.size() == 1) {
+				m_last_node_field = std::make_unique<rawstring_check>(m_field_values[0]);
+			} else {
+				m_last_node_field = std::make_unique<list_check>(m_field_values);
+			}
+		}
+		args.emplace_back(std::move(m_last_node_field));
+	}
+
+	// apply transformer, ignoring the "identity one" (it's just a syntactic construct)
+	if(e->transformer != "val") {
+		if(args.size() == 1) {
+			m_last_node_field = std::move(args[0]);
+			m_last_node_field->add_transformer(filter_transformer_from_str(e->transformer));
+		} else {
+			// multivalue
+			m_last_node_field =
+			        sinsp_filter_multivalue_transformer::create_transformer(e->transformer,
+			                                                                std::move(args));
+		}
+	} else {
+		m_last_node_field = std::move(args[0]);
+	}
+}
+
+std::string sinsp_extractor_compiler::create_filtercheck_name(const std::string& name,
+                                                              const std::string& arg) {
+	// The filtercheck factories parse the name + arg as a whole.
+	// We keep this for now, but we may want to change this in the future.
+	// todo(jasondellaluce): handle field arg parsing at compilation time
+	std::string fld = name;
+	if(arg.size() > 0) {
+		fld += "[" + arg + "]";
+	}
+	return fld;
+}
+
+std::unique_ptr<sinsp_filter_check> sinsp_extractor_compiler::create_filtercheck(
+        std::string_view field) {
+	auto chk = m_factory->new_filtercheck(field);
+	if(chk == NULL) {
+		throw sinsp_exception("filter_check called with nonexistent field " + std::string(field));
+	}
+	return chk;
+}
+
+const std::vector<std::string>& sinsp_extractor_compiler::get_field_values() const {
+	return m_field_values;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_compiler implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_filter_compiler::sinsp_filter_compiler(
@@ -275,8 +501,8 @@ static inline void check_op_type_compatibility(sinsp_filter_check& c) {
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr* e) {
 	m_pos = e->get_pos();
-	m_last_node_field = nullptr;
-	e->left->accept(this);
+	m_last_node_field =
+	        sinsp_extractor_compiler(m_factory, e->left.get(), m_cache_factory).compile();
 	if(!m_last_node_field) {
 		throw sinsp_exception("filter error: missing field in left-hand of unary check");
 	}
@@ -316,8 +542,8 @@ static void add_filtercheck_value(sinsp_filter_check* chk, size_t idx, std::stri
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr* e) {
 	m_pos = e->get_pos();
-	m_last_node_field = nullptr;
-	e->left->accept(this);
+	m_last_node_field =
+	        sinsp_extractor_compiler(m_factory, e->left.get(), m_cache_factory).compile();
 	if(!m_last_node_field) {
 		throw sinsp_exception("filter error: missing field in left-hand of binary check");
 	}
@@ -348,7 +574,8 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 
 	// Read the right-hand values of the filtercheck.
 	m_field_values.clear();
-	e->right->accept(this);
+	auto extractor = sinsp_extractor_compiler(m_factory, e->right.get(), m_cache_factory);
+	m_last_node_field = extractor.compile();
 
 	if(m_last_node_field) {
 		// When the lhs is a plugin filter check and the rhs side is again a plugin filter check
@@ -391,7 +618,7 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		           dynamic_cast<const libsinsp::filter::ast::field_transformer_expr*>(
 		                   cacheable_expr);
 		   val_transf_expr != nullptr && val_transf_expr->transformer == "val") {
-			cacheable_expr = val_transf_expr->value.get();
+			cacheable_expr = val_transf_expr->values[0].get();
 		}
 		m_last_node_field->m_extract_cache =
 		        m_cache_factory->new_extract_cache(cacheable_expr, node_info);
@@ -410,15 +637,16 @@ void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr
 		// We found another field as right-hand side of the comparison
 		check->add_filter_value(std::move(m_last_node_field));
 	} else {
+		const auto& field_values = extractor.get_field_values();
 		// We found no field as right-hand side of the comparison, so we
 		// assume to find some constant values.
 		// For list-related operators ('in', 'intersects', 'pmatch'), the vector
 		// can be filled with more than 1 value, whereas in all other cases we
 		// expect the vector to only have 1 value. We don't check this here, as
 		// the parser is trusted to apply proper grammar checks on this constraint.
-		for(size_t i = 0; i < m_field_values.size(); i++) {
-			check_value_and_add_warnings(check->m_cmpop, e->right->get_pos(), m_field_values[i]);
-			add_filtercheck_value(check.get(), i, m_field_values[i]);
+		for(size_t i = 0; i < field_values.size(); i++) {
+			check_value_and_add_warnings(check->m_cmpop, e->right->get_pos(), field_values[i]);
+			add_filtercheck_value(check.get(), i, field_values[i]);
 		}
 	}
 
@@ -535,38 +763,27 @@ void sinsp_filter_compiler::check_value_and_add_warnings(cmpop op,
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::value_expr* e) {
-	m_pos = e->get_pos();
-	m_field_values.clear();
-	m_field_values.push_back(e->value);
+	throw sinsp_exception(
+	        "sinsp_filter_compiler: unexpected standalone value expression in filter AST; "
+	        "value expressions should only appear as children of check expressions");
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::list_expr* e) {
-	m_pos = e->get_pos();
-	m_field_values = e->values;
+	throw sinsp_exception(
+	        "sinsp_filter_compiler: unexpected standalone list expression in filter AST; "
+	        "list expressions should only appear as children of check expressions");
+}
+
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::transformer_list_expr* e) {
+	m_last_node_field = sinsp_extractor_compiler(m_factory, e, m_cache_factory).compile();
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_expr* e) {
-	m_pos = e->get_pos();
-	auto field_name = create_filtercheck_name(e->field, e->arg);
-	m_last_node_field = create_filtercheck(field_name);
-	if(m_last_node_field->parse_field_name(field_name, true, true) == -1) {
-		throw sinsp_exception("filter error: can't parse field expression '" + field_name + "'");
-	}
+	m_last_node_field = sinsp_extractor_compiler(m_factory, e, m_cache_factory).compile();
 }
 
 void sinsp_filter_compiler::visit(const libsinsp::filter::ast::field_transformer_expr* e) {
-	m_pos = e->get_pos();
-	m_last_node_field = nullptr;
-	e->value->accept(this);
-	if(!m_last_node_field) {
-		throw sinsp_exception("filter error: found null child node on '" + e->transformer +
-		                      "' transformer");
-	}
-
-	// apply transformer, ignoring the "identity one" (it's just a syntactic construct)
-	if(e->transformer != "val") {
-		m_last_node_field->add_transformer(filter_transformer_from_str(e->transformer));
-	}
+	m_last_node_field = sinsp_extractor_compiler(m_factory, e, m_cache_factory).compile();
 }
 
 std::string sinsp_filter_compiler::create_filtercheck_name(const std::string& name,

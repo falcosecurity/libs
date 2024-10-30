@@ -17,7 +17,6 @@ limitations under the License.
 */
 
 #include <cstring>
-#include <iterator>
 #include <memory>
 #include <libsinsp/filter/escaping.h>
 #include <libsinsp/filter/parser.h>
@@ -91,11 +90,8 @@ static const std::vector<std::string> s_binary_list_ops = {
 
 static constexpr const char* s_field_transformer_val = "val(";
 
-static const std::vector<std::string> s_field_transformers = {"tolower(",
-                                                              "toupper(",
-                                                              "b64(",
-                                                              "basename(",
-                                                              "len("};
+static const std::vector<std::string> s_field_transformers =
+        {"tolower(", "toupper(", "b64(", "basename(", "len(", "join("};
 
 static inline void update_pos(const char c, ast::pos_info& pos) {
 	pos.col++;
@@ -192,7 +188,25 @@ std::unique_ptr<ast::expr> parser::parse() {
 		throw sinsp_exception("unexpected token after '" + m_last_token +
 		                      "', expecting 'or', 'and'");
 	}
+
 	return res;
+}
+
+std::unique_ptr<ast::expr> parser::parse_field_or_transformer() {
+	depth_guard(m_max_depth, m_depth);
+	auto pos = get_pos();
+
+	if(lex_field_name()) {
+		return parse_field_remainder(m_last_token, pos);
+	}
+
+	if(lex_field_transformer_type()) {
+		lex_blank();
+		m_last_token.pop_back();  // discard '(' character
+		return parse_field_or_transformer_remainder(m_last_token, pos);
+	}
+
+	throw sinsp_exception("unexpected token after '" + m_last_token);
 }
 
 std::unique_ptr<ast::expr> parser::parse_or() {
@@ -336,6 +350,7 @@ std::unique_ptr<ast::expr> parser::parse_field_remainder(std::string fieldname,
 	return field;
 }
 
+// FieldTransformerTail ::= FieldTransformerArg ( ',' FieldTransformerArg )* ')'
 inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
         std::string transformer,
         const ast::pos_info& pos) {
@@ -343,20 +358,14 @@ inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
 
 	lex_blank();
 
-	auto arg_pos = get_pos();
-	std::unique_ptr<libsinsp::filter::ast::expr> child;
+	std::vector<std::unique_ptr<ast::expr>> children;
 
-	if(lex_field_transformer_type()) {
+	do {
+		children.emplace_back(parse_field_transformer_arg(get_pos()));
 		lex_blank();
-		m_last_token.pop_back();  // discard '(' character
-		child = parse_field_or_transformer_remainder(m_last_token, arg_pos);
-	}
+	} while(lex_helper_str(","));
 
-	if(lex_field_name()) {
-		child = parse_field_remainder(m_last_token, arg_pos);
-	}
-
-	if(!child) {
+	if(children.size() == 0) {
 		throw sinsp_exception("expected a field or a nested valid transformer: " +
 		                      token_list_to_str(supported_field_transformers(true)));
 	}
@@ -365,7 +374,89 @@ inline std::unique_ptr<ast::expr> parser::parse_field_or_transformer_remainder(
 	if(!lex_helper_str(")")) {
 		throw sinsp_exception("expected a ')' token closing the transformer");
 	}
-	return ast::field_transformer_expr::create(transformer, std::move(child), pos);
+	return ast::field_transformer_expr::create(transformer, children, pos);
+}
+
+// FieldTransformerArg ::= FieldTransformer | Field | QuotedStr | NumValue | TransformerList
+inline std::unique_ptr<ast::expr> parser::parse_field_transformer_arg(const ast::pos_info& pos) {
+	depth_guard(m_max_depth, m_depth);
+
+	lex_blank();
+
+	if(lex_hex_num() || lex_num()) {  // NumValue
+		return ast::value_expr::create(m_last_token, pos);
+	}
+
+	if(lex_quoted_str()) {  // QuotedStr
+		return ast::value_expr::create(m_last_token, pos);
+	}
+
+	if(lex_helper_str("(")) {  // TransformerList
+		return parse_transformer_list(pos);
+	}
+
+	if(lex_field_transformer_type()) {  // FieldTransformer
+		m_last_token.pop_back();        // discard '(' character
+		return parse_field_or_transformer_remainder(m_last_token, pos);
+	}
+
+	if(lex_field_name()) {  // Field
+		return parse_field_remainder(m_last_token, pos);
+	}
+
+	throw sinsp_exception(
+	        "expected field transformer argument: "
+	        "field, transformer, quoted string, number, or transformer list");
+}
+
+// TransformerList ::= '(' ( TransformerListArg (',' TransformerListArg)* )? ')'
+// Note: Called after '(' has been consumed
+inline std::unique_ptr<ast::expr> parser::parse_transformer_list(const ast::pos_info& pos) {
+	std::vector<std::unique_ptr<ast::expr>> children;
+
+	lex_blank();
+
+	// Check for empty list
+	if(lex_helper_str(")")) {
+		return ast::transformer_list_expr::create(children, pos);
+	}
+
+	// Parse first element
+	children.emplace_back(parse_transformer_list_arg(pos));
+
+	// Parse remaining comma-separated elements
+	lex_blank();
+	while(lex_helper_str(",")) {
+		lex_blank();
+		children.emplace_back(parse_transformer_list_arg(pos));
+		lex_blank();
+	}
+
+	if(!lex_helper_str(")")) {
+		throw sinsp_exception("expected ')'");
+	}
+	return ast::transformer_list_expr::create(children, pos);
+}
+
+// TransformerListArg ::= Field | FieldTransformer | QuotedStr | NumValue
+inline std::unique_ptr<ast::expr> parser::parse_transformer_list_arg(const ast::pos_info& pos) {
+	if(lex_field_name()) {  // Field
+		return parse_field_remainder(m_last_token, pos);
+	}
+	if(lex_field_transformer_type()) {  // FieldTransformer
+		lex_blank();
+		m_last_token.pop_back();
+		return parse_field_or_transformer_remainder(m_last_token, pos);
+	}
+	if(lex_quoted_str()) {  // QuotedStr
+		return ast::value_expr::create(m_last_token, pos);
+	}
+	if(lex_hex_num() || lex_num()) {  // NumValue
+		return ast::value_expr::create(m_last_token, pos);
+	}
+	throw sinsp_exception(
+	        "expected transformer list argument: "
+	        "field, transformer, quoted string, or number");
 }
 
 std::unique_ptr<ast::expr> parser::parse_condition(std::unique_ptr<ast::expr> left,
@@ -516,14 +607,15 @@ std::unique_ptr<ast::expr> parser::try_parse_transformer_or_val() {
 		if(!lex_field_name()) {
 			throw sinsp_exception("expected a field within '" + transformer + "' transformer");
 		}
-
+		std::vector<std::unique_ptr<ast::expr>> children;
 		auto child = parse_field_remainder(m_last_token, field_pos);
+		children.push_back(std::move(child));
 
 		lex_blank();
 		if(!lex_helper_str(")")) {
 			throw sinsp_exception("expected a ')' token closing the transformer");
 		}
-		return ast::field_transformer_expr::create(transformer, std::move(child), pos);
+		return ast::field_transformer_expr::create(transformer, children, pos);
 	}
 
 	if(lex_field_transformer_type()) {
