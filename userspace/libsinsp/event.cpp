@@ -1849,3 +1849,27 @@ bool sinsp_evt::has_return_value() {
 
 	return false;
 }
+
+int64_t sinsp_evt::get_syscall_return_value() {
+	ASSERT(has_return_value());
+
+	// The return value is always the first parameter of the syscall event
+	// It could have different names depending on the event type `res`,`fd`, etc.
+	const sinsp_evt_param *p = get_param(0);
+	if(p == NULL) {
+		// We should always have the return value in the syscall
+		ASSERT(false);
+		return 0;
+	}
+
+	// the only return values should be on 32 or 64 bits
+	switch(scap_get_size_bytes_from_type(p->get_info()->type)) {
+	case 4:
+		return (int64_t)p->as<int32_t>();
+	case 8:
+		return p->as<int64_t>();
+	default:
+		ASSERT(false);
+		return 0;
+	}
+}
