@@ -313,6 +313,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 			}
 			break;
 		default:
+			ASSERT(false);
 			snprintf(error,
 			         SCAP_LASTERR_SIZE,
 			         "unexpected param %d length %zu for event with type %d",
