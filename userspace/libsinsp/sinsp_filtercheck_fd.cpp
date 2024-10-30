@@ -654,23 +654,32 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	switch(m_field_id) {
 	case TYPE_FDNAME:
 	case TYPE_CONTAINERNAME:
-		if(m_fdinfo == NULL) {
-			return extract_from_null_fd(evt, len, sanitize_strings);
-		}
-
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X) {
 			int64_t retval = evt->get_param(0)->as<int64_t>();
-
+			// this is a weird behavior, see the `net_connect_exit_event_fails` test for more info
 			if(retval < 0) {
-				return extract_from_null_fd(evt, len, sanitize_strings);
+				if(!extract_fdname_from_creator(evt, sanitize_strings)) {
+					return NULL;
+				}
+				if(m_field_id == TYPE_CONTAINERNAME) {
+					ASSERT(m_tinfo != NULL);
+					m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
+				}
+				RETURN_EXTRACT_STRING(m_tstr);
 			}
+		}
+
+		if(m_fdinfo == NULL) {
+			if(!extract_fdname_from_creator(evt, sanitize_strings)) {
+				return NULL;
+			}
+		} else {
+			m_tstr = m_fdinfo->m_name;
 		}
 
 		if(m_field_id == TYPE_CONTAINERNAME) {
 			ASSERT(m_tinfo != NULL);
-			m_tstr = m_tinfo->m_container_id + ':' + m_fdinfo->m_name;
-		} else {
-			m_tstr = m_fdinfo->m_name;
+			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 		}
 
 		if(sanitize_strings) {
@@ -690,19 +699,20 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY: {
 		if(m_fdinfo == NULL) {
-			return extract_from_null_fd(evt, len, sanitize_strings);
-		}
-
-		if(!(m_fdinfo->is_file() || m_fdinfo->is_directory())) {
+			if(!extract_fdname_from_creator(evt, sanitize_strings)) {
+				return NULL;
+			}
+		} else if(!(m_fdinfo->is_file() || m_fdinfo->is_directory())) {
 			return NULL;
+		} else {
+			m_tstr = m_fdinfo->m_name;
 		}
 
-		m_tstr = m_fdinfo->m_name;
 		if(sanitize_strings) {
 			sanitize_string(m_tstr);
 		}
 
-		if(m_fdinfo->is_file()) {
+		if(m_fdinfo != NULL && m_fdinfo->is_file()) {
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos && pos != 0) {
 				if(pos < m_tstr.size() - 1) {
@@ -721,7 +731,7 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	} break;
 	case TYPE_FILENAME: {
 		if(m_fdinfo == NULL) {
-			return extract_from_null_fd(evt, len, sanitize_strings);
+			return NULL;
 		}
 
 		if(!m_fdinfo->is_file()) {
@@ -1337,10 +1347,12 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 	} break;
 	case TYPE_FDNAMERAW: {
 		if(m_fdinfo == NULL) {
-			return extract_from_null_fd(evt, len, sanitize_strings);
+			if(!extract_fdname_from_creator(evt, sanitize_strings, true)) {
+				return NULL;
+			}
+		} else {
+			m_tstr = m_fdinfo->m_name_raw;
 		}
-
-		m_tstr = m_fdinfo->m_name_raw;
 		remove_duplicate_path_separators(m_tstr);
 		RETURN_EXTRACT_STRING(m_tstr);
 	} break;
