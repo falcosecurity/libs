@@ -755,12 +755,12 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		RETURN_EXTRACT_STRING(m_tstr);
 	} break;
 	case TYPE_FDTYPECHAR:
-		if(m_fdinfo == NULL) {
-			return extract_from_null_fd(evt, len, sanitize_strings);
-		}
-
 		*len = 1;
-		m_tcstr[0] = m_fdinfo->get_typechar();
+		if(m_fdinfo == NULL) {
+			m_tcstr[0] = evt->extract_typechar();
+		} else {
+			m_tcstr[0] = m_fdinfo->get_typechar();
+		}
 		m_tcstr[1] = 0;
 		return m_tcstr;
 	case TYPE_CNET:
