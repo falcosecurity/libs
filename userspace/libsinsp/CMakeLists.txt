@@ -32,6 +32,7 @@ include(ExternalProject)
 include(BuildPkgConfigDependencies)
 include(jsoncpp)
 include(zlib)
+include(tbb)
 
 if(NOT MINIMAL_BUILD)
 	if(NOT WIN32 AND NOT EMSCRIPTEN)
@@ -46,10 +47,6 @@ if(NOT WIN32 AND NOT APPLE)
 		include(protobuf)
 		include(openssl)
 	endif() # NOT MINIMAL_BUILD
-endif()
-
-if(NOT EMSCRIPTEN)
-	include(tbb)
 endif()
 
 add_library(

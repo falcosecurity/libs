@@ -58,15 +58,19 @@ else()
 
 	if(NOT TARGET tbb)
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
-		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.9.0.tar.gz")
+		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2022.0.0.tar.gz")
 		set(TBB_SRC_URL_HASH
-			"SHA256=1ce48f34dada7837f510735ff1172f6e2c261b09460e3bf773b49791d247d24e"
+			"SHA256=e8e89c9c345415b17b30a2db3095ba9d47647611662073f7fbf54ad48b7f3c2a"
 		)
 		set(TBB_FLAGS "")
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 			# latest TBB has issues with GCC >= 12 see:
 			# https://github.com/oneapi-src/oneTBB/issues/843#issuecomment-1152646035
 			set(TBB_FLAGS "-Wno-error=stringop-overflow")
+		endif()
+		if(EMSCRIPTEN)
+			set(TBB_FLAGS "${TBB_FLAGS} -Wno-unused-command-line-argument")
+			set(TBB_EMSCRIPTEN "ON")
 		endif()
 
 		if(NOT WIN32)
@@ -84,6 +88,7 @@ else()
 						   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
 						   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
 						   -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+						   -DEMSCRIPTEN=${TBB_EMSCRIPTEN}
 				BUILD_BYPRODUCTS ${TBB_LIB}
 				INSTALL_COMMAND ""
 			)
