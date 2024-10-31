@@ -78,7 +78,7 @@ private:
 
 class cri : public container_engine_base {
 public:
-	cri(container_cache_interface& cache);
+	cri(container_cache_interface& cache, const std::string& cri_path);
 	bool resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
 	void update_with_size(const std::string& container_id) override;
 	void cleanup() override;
