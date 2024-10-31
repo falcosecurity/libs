@@ -26,7 +26,6 @@ cri_settings::cri_settings():
         m_cri_timeout(1000),
         m_cri_size_timeout(10000),
         m_cri_runtime_type(CT_CRI),
-        m_cri_unix_socket_path(),
         m_cri_extra_queries(true) {}
 
 cri_settings::~cri_settings() {}
