@@ -203,6 +203,7 @@ bool sinsp_filter_transformer::transform_values(std::vector<extract_value_t>& ve
 	}
 	case FTR_LEN: {
 		assert((void("len() type must be PT_UINT64"), t == PT_UINT64));
+		m_storage_values.clear();
 		if(is_list) {
 			uint64_t len = static_cast<uint64_t>(vec.size());
 			auto stored_val = store_scalar(len);
@@ -227,8 +228,9 @@ bool sinsp_filter_transformer::transform_values(std::vector<extract_value_t>& ve
 		}
 
 		if(vec.size() == 0) {
-			// nothing to do
-			return true;
+			// should never happen since there is no way to
+			// call len() with no arguments
+			return false;
 		}
 
 		// we are assuming that if this is not a list then it's a single element
