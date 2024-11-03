@@ -333,7 +333,7 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0)) */
 
 #if(LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
-#include <linux/time.h>
+#include <linux/jiffies.h>
 #include <linux/param.h>
 
 /*
