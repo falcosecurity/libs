@@ -90,6 +90,7 @@ else()
 			FILES_MATCHING
 			PATTERN "*.h"
 		)
+		find_package(CURL REQUIRED)
 	endif()
 endif()
 
