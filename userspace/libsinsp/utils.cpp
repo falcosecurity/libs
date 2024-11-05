@@ -1264,13 +1264,13 @@ std::vector<std::string> sinsp_split(std::string_view sv, char delim) {
 	std::string_view::size_type start = 0;
 	for(std::string_view::size_type i = 0; i < sv.size(); i++) {
 		if(sv[i] == delim) {
-			res.push_back(std::string(sv.substr(start, i - start)));
+			res.emplace_back(sv.substr(start, i - start));
 			start = i + 1;
 		}
 	}
 
 	if(start <= sv.length()) {
-		res.push_back(std::string(sv.substr(start)));
+		res.emplace_back(sv.substr(start));
 	}
 
 	return res;
