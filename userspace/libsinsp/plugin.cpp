@@ -814,6 +814,7 @@ bool sinsp_plugin::capture_open() {
 	ss_plugin_table_writer_vtable table_writer;
 
 	in.owner = (ss_plugin_owner_t*)this;
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.table_reader_ext = &table_reader_ext;
 	in.table_writer_ext = &table_writer_ext;
 	in.routine = &routine_vtable;
@@ -844,6 +845,7 @@ bool sinsp_plugin::capture_close() {
 	ss_plugin_table_writer_vtable table_writer;
 
 	in.owner = (ss_plugin_owner_t*)this;
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.table_reader_ext = &table_reader_ext;
 	in.table_writer_ext = &table_writer_ext;
 	in.routine = &routine_vtable;

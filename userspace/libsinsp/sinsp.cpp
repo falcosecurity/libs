@@ -371,7 +371,10 @@ void sinsp::open_common(scap_open_args* oargs,
 	// notify registered plugins of capture open
 	for(auto& p : m_plugin_manager->plugins()) {
 		if(p->caps() & CAP_CAPTURE_LISTENING) {
-			p->capture_open();
+			if(!p->capture_open()) {
+				throw sinsp_exception("capture_open error for plugin '" + p->name() +
+				                      "' : " + p->get_last_error());
+			}
 		}
 	}
 }
@@ -741,7 +744,10 @@ void sinsp::close() {
 	if(m_mode != SINSP_MODE_NONE) {
 		for(auto& p : m_plugin_manager->plugins()) {
 			if(p->caps() & CAP_CAPTURE_LISTENING) {
-				p->capture_close();
+				if(!p->capture_close()) {
+					throw sinsp_exception("capture_close error for plugin '" + p->name() +
+					                      "' : " + p->get_last_error());
+				}
 			}
 		}
 	}
