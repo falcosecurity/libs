@@ -17,11 +17,6 @@ include(jsoncpp)
 if(NOT EMSCRIPTEN)
 	include(tbb)
 endif()
-if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
-	include(curl)
-endif() # MINIMAL_BUILD
-
-include(zlib)
 
 if(WIN32)
 	set(CMAKE_CXX_FLAGS
