@@ -161,6 +161,7 @@ public:
 	sinsp_thread_pool::routine_id_t subscribe_routine(ss_plugin_routine_fn_t routine_fn,
 	                                                  ss_plugin_routine_state_t* routine_state);
 	bool unsubscribe_routine(sinsp_thread_pool::routine_id_t routine_id);
+	bool dump(sinsp_dumper& dumper);
 
 	/** Event Sourcing **/
 	inline uint32_t id() const { return m_id; }

@@ -1104,6 +1104,21 @@ typedef struct {
 		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 		ss_plugin_rc (*capture_close)(ss_plugin_t* s, const ss_plugin_capture_listen_input* i);
 	};
+
+	// Events dumping capability API
+	struct {
+		//
+		// Called by the framework when a capture file dump is requested.
+		//
+		// Required: yes
+		// Arguments:
+		// - s: the plugin state, returned by init(). Can be NULL.
+		// - evts: input containing vtables for performing table operations and
+		// subscribe/unsubscribe async routines
+		//
+		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+		ss_plugin_rc (*dump)(ss_plugin_t* s, uint32_t* nevts, ss_plugin_event*** evts);
+	};
 } plugin_api;
 
 #ifdef __cplusplus

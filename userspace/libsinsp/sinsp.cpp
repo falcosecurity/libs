@@ -159,7 +159,7 @@ bool sinsp::is_initialstate_event(scap_evt* pevent) const {
 	return pevent->type == PPME_CONTAINER_E || pevent->type == PPME_CONTAINER_JSON_E ||
 	       pevent->type == PPME_CONTAINER_JSON_2_E || pevent->type == PPME_USER_ADDED_E ||
 	       pevent->type == PPME_USER_DELETED_E || pevent->type == PPME_GROUP_ADDED_E ||
-	       pevent->type == PPME_GROUP_DELETED_E;
+	       pevent->type == PPME_GROUP_DELETED_E || pevent->type == PPME_ASYNCEVENT_E;
 }
 
 void sinsp::consume_initialstate_events() {
@@ -181,7 +181,7 @@ void sinsp::consume_initialstate_events() {
 		if(res == SCAP_SUCCESS) {
 			// Setting these to non-null will make sinsp::next use them as a scap event
 			// to avoid a call to scap_next. In this way, we can avoid the state parsing phase
-			// once we reach a container-unrelated event.
+			// once we reach a non-initialstate event.
 			m_replay_scap_evt = pevent;
 			m_replay_scap_cpuid = pcpuid;
 			m_replay_scap_flags = flags;
@@ -228,9 +228,9 @@ void sinsp::init() {
 	m_fds_to_remove.clear();
 
 	//
-	// If we're reading from file, we try to pre-parse the container events before
+	// If we're reading from file, we try to pre-parse all initial state-building events before
 	// importing the thread table, so that thread table filtering will work with
-	// container filters
+	// full information.
 	//
 	if(is_capture()) {
 		consume_initialstate_events();
