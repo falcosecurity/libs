@@ -44,7 +44,7 @@ static __always_inline bool sampling_logic(void* ctx, uint32_t id) {
 			 * an iteration we will synchronize again the next time the logic is enabled.
 			 */
 			maps__set_is_dropping(true);
-			bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_DROP_E);
+			bpf_tail_call(ctx, &extra_syscall_calls, T1_DROP_E);
 			bpf_printk("unable to tail call into 'drop_e' prog");
 		}
 		return true;
@@ -52,7 +52,7 @@ static __always_inline bool sampling_logic(void* ctx, uint32_t id) {
 
 	if(maps__get_is_dropping()) {
 		maps__set_is_dropping(false);
-		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_DROP_X);
+		bpf_tail_call(ctx, &extra_syscall_calls, T1_DROP_X);
 		bpf_printk("unable to tail call into 'drop_x' prog");
 	}
 
