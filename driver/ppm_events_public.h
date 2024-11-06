@@ -1525,6 +1525,7 @@ typedef enum {
  * - `X` = means that we need this extra tail call for the exit event, `E` means enter the event.
  *
  */
+// todo!: rename this `extra_syscall_exit_calls`.
 enum extra_event_prog_code {
 	T1_EXECVE_X = 0,
 	T1_EXECVEAT_X = 1,
@@ -1532,7 +1533,6 @@ enum extra_event_prog_code {
 	T1_CLONE3_X = 3,
 	T1_FORK_X = 4,
 	T1_VFORK_X = 5,
-	T1_SCHED_PROC_EXEC = 6,
 	T1_SCHED_PROC_FORK = 7,
 	T2_SCHED_PROC_FORK = 8,
 	T2_CLONE_X = 9,
@@ -1545,7 +1545,6 @@ enum extra_event_prog_code {
 	T1_OPEN_BY_HANDLE_AT_X = 16,
 	T2_EXECVE_X = 17,
 	T2_EXECVEAT_X = 18,
-	T2_SCHED_PROC_EXEC = 19,
 	TAIL_EXTRA_EVENT_PROG_MAX = 20
 };
 
