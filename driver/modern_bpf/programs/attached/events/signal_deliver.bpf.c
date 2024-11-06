@@ -20,7 +20,7 @@ int BPF_PROG(signal_deliver, int sig, struct kernel_siginfo *info, struct k_siga
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNAL_DELIVER_SIZE, PPME_SIGNALDELIVER_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, SIGNAL_DELIVER_SIZE, PPME_SIGNALDELIVER_E)) {
 		return 0;
 	}
 

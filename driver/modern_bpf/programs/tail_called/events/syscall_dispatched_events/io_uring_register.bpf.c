@@ -14,7 +14,6 @@ SEC("tp_btf/sys_enter")
 int BPF_PROG(io_uring_register_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf,
-	                           ctx,
 	                           IO_URING_REGISTER_E_SIZE,
 	                           PPME_SYSCALL_IO_URING_REGISTER_E)) {
 		return 0;
@@ -41,7 +40,6 @@ SEC("tp_btf/sys_exit")
 int BPF_PROG(io_uring_register_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf,
-	                           ctx,
 	                           IO_URING_REGISTER_X_SIZE,
 	                           PPME_SYSCALL_IO_URING_REGISTER_X)) {
 		return 0;

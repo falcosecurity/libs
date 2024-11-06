@@ -22,7 +22,7 @@ int BPF_PROG(pf_user, unsigned long address, struct pt_regs *regs, unsigned long
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PAGE_FAULT_SIZE, PPME_PAGE_FAULT_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, PAGE_FAULT_SIZE, PPME_PAGE_FAULT_E)) {
 		return 0;
 	}
 
