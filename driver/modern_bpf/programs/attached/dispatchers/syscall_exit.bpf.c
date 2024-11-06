@@ -76,7 +76,7 @@ int BPF_PROG(sys_exit, struct pt_regs *regs, long ret) {
 	// we change our architecture we may need to update this logic.
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
-		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_HOTPLUG_E);
+		bpf_tail_call(ctx, &extra_syscall_calls, T1_HOTPLUG_E);
 		bpf_printk("failed to tail call into the 'hotplug' prog");
 		return 0;
 	}

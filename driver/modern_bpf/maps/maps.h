@@ -122,7 +122,7 @@ struct {
  * programs directly attached in the kernel (like page_faults,
  * context_switch, ...) and by syscall_events (like
  * ppme_syscall_execveat_x, ...).
- * Given a predefined tail-code (`extra_event_prog_code`), it calls
+ * Given a predefined tail-code (`extra_syscall_codes`), it calls
  * the right bpf program.
  */
 struct {
@@ -130,7 +130,7 @@ struct {
 	__uint(max_entries, TAIL_EXTRA_EVENT_PROG_MAX);
 	__type(key, uint32_t);
 	__type(value, uint32_t);
-} extra_event_prog_tail_table __weak SEC(".maps");
+} extra_syscall_calls __weak SEC(".maps");
 
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
 
