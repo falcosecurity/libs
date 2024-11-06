@@ -17,7 +17,7 @@ int BPF_PROG(shutdown_e, struct pt_regs *regs, long id) {
 	extract__network_args(args, 2, regs);
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_E_SIZE, PPME_SOCKET_SHUTDOWN_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, SHUTDOWN_E_SIZE, PPME_SOCKET_SHUTDOWN_E)) {
 		return 0;
 	}
 
@@ -47,7 +47,7 @@ int BPF_PROG(shutdown_e, struct pt_regs *regs, long id) {
 SEC("tp_btf/sys_exit")
 int BPF_PROG(shutdown_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_X_SIZE, PPME_SOCKET_SHUTDOWN_X)) {
+	if(!ringbuf__reserve_space(&ringbuf, SHUTDOWN_X_SIZE, PPME_SOCKET_SHUTDOWN_X)) {
 		return 0;
 	}
 

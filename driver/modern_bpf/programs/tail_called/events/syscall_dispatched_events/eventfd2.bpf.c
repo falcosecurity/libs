@@ -13,7 +13,7 @@
 SEC("tp_btf/sys_enter")
 int BPF_PROG(eventfd2_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, EVENTFD2_E_SIZE, PPME_SYSCALL_EVENTFD2_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, EVENTFD2_E_SIZE, PPME_SYSCALL_EVENTFD2_E)) {
 		return 0;
 	}
 
@@ -39,7 +39,7 @@ int BPF_PROG(eventfd2_e, struct pt_regs *regs, long id) {
 SEC("tp_btf/sys_exit")
 int BPF_PROG(eventfd2_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, EVENTFD2_X_SIZE, PPME_SYSCALL_EVENTFD2_X)) {
+	if(!ringbuf__reserve_space(&ringbuf, EVENTFD2_X_SIZE, PPME_SYSCALL_EVENTFD2_X)) {
 		return 0;
 	}
 

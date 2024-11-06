@@ -117,10 +117,8 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
  * of events sent to userspace, otherwise we increment the dropped events.
  *
  * @param auxmap pointer to the auxmap in which we have already written the entire event.
- * @param ctx BPF prog context
  */
-// todo!: we need to remove the context because we don't perform any tail call
-static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap, void *ctx) {
+static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap) {
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
 		// this should never happen because we check it in sys_enter/sys_exit

@@ -18,7 +18,7 @@ int BPF_PROG(send_e, struct pt_regs *regs, long id) {
 	extract__network_args(args, 3, regs);
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SEND_E_SIZE, PPME_SOCKET_SEND_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, SEND_E_SIZE, PPME_SOCKET_SEND_E)) {
 		return 0;
 	}
 
@@ -78,7 +78,7 @@ int BPF_PROG(send_x, struct pt_regs *regs, long ret) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap, ctx);
+	auxmap__submit_event(auxmap);
 
 	return 0;
 }
