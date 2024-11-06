@@ -251,18 +251,18 @@ clean_fill_syscalls_tail_table:
 
 int pman_fill_extra_syscall_calls_table() {
 	int extra_syscall_call_table_fd = bpf_map__fd(g_state.skel->maps.extra_syscall_calls);
-	const char* tail_prog_name;
-
 	if(extra_syscall_call_table_fd <= 0) {
 		pman_print_error("unable to get the extra event programs tail table");
 		return errno;
 	}
 
+	const char* tail_prog_name = NULL;
 	for(int j = 0; j < TAIL_EXTRA_EVENT_PROG_MAX; j++) {
 		tail_prog_name = extra_event_prog_names[j];
 
 		if(!tail_prog_name) {
-			continue;
+			pman_print_error("unknown entry in the extra event programs tail table");
+			return -1;
 		}
 
 		if(add_bpf_program_to_tail_table(extra_syscall_call_table_fd, tail_prog_name, j)) {
