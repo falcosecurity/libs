@@ -150,7 +150,7 @@ int BPF_PROG(clone_x, struct pt_regs *regs, long ret) {
 	/* We have to split here the bpf program, otherwise, it is too large
 	 * for the verifier (limit 1000000 instructions).
 	 */
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_CLONE_X);
+	bpf_tail_call(ctx, &extra_syscall_calls, T1_CLONE_X);
 	return 0;
 }
 
@@ -206,7 +206,7 @@ int BPF_PROG(t1_clone_x, struct pt_regs *regs, long ret) {
 	/* We have to split here the bpf program, otherwise, it is too large
 	 * for the verifier (limit 1000000 instructions).
 	 */
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T2_CLONE_X);
+	bpf_tail_call(ctx, &extra_syscall_calls, T2_CLONE_X);
 	return 0;
 }
 
