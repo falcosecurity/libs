@@ -71,6 +71,16 @@ int BPF_PROG(sys_exit, struct pt_regs *regs, long ret) {
 		return 0;
 	}
 
+	// If we cannot find a ring buffer for this CPU we probably have an hotplug event. It's ok to
+	// check only in the exit path since we will always have at least one exit syscall enabled. If
+	// we change our architecture we may need to update this logic.
+	struct ringbuf_map *rb = maps__get_ringbuf_map();
+	if(!rb) {
+		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_HOTPLUG_E);
+		bpf_printk("failed to tail call into the 'hotplug' prog");
+		return 0;
+	}
+
 	bpf_tail_call(ctx, &syscall_exit_tail_table, syscall_id);
 
 	return 0;

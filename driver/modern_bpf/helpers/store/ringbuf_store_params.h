@@ -94,14 +94,15 @@ struct ringbuf_struct {
  * @param event_size exact size of the fixed-size event
  * @return `1` in case of success, `0` in case of failure.
  */
+// todo!: we need to remove the context because we don't perform any tail call
 static __always_inline uint32_t ringbuf__reserve_space(struct ringbuf_struct *ringbuf,
                                                        void *ctx,
                                                        uint32_t event_size,
                                                        uint16_t event_type) {
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb) {
-		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_HOTPLUG_E);
-		bpf_printk("failed to tail call into the 'hotplug' prog");
+		// this should never happen because we check it in sys_enter/sys_exit
+		bpf_printk("FAILURE: unable to obtain the ring buffer");
 		return 0;
 	}
 
