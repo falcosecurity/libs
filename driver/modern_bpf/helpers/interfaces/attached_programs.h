@@ -10,17 +10,11 @@
 
 #include <helpers/base/maps_getters.h>
 
-/* This enum is used to tell if we are considering a syscall or a tracepoint */
-enum intrumentation_type {
-	MODERN_BPF_SYSCALL = 0,
-	MODERN_BPF_TRACEPOINT = 1,
-};
-
 /* The sampling logic is used by all BPF programs attached to the kernel.
  * We treat the syscalls tracepoints in a dedicated way because they could generate
  * more than one event (1 for each syscall) for this reason we need a dedicated table.
  */
-static __always_inline bool sampling_logic(void* ctx, uint32_t id, enum intrumentation_type type) {
+static __always_inline bool sampling_logic(void* ctx, uint32_t id) {
 	/* If dropping mode is not enabled we don't perform any sampling
 	 * false: means don't drop the syscall
 	 * true: means drop the syscall
@@ -29,16 +23,7 @@ static __always_inline bool sampling_logic(void* ctx, uint32_t id, enum intrumen
 		return false;
 	}
 
-	uint8_t sampling_flag = 0;
-
-	/* If we have a syscall we use the sampling_syscall_table otherwise
-	 * with tracepoints we use the sampling_tracepoint_table.
-	 */
-	if(type == MODERN_BPF_SYSCALL) {
-		sampling_flag = maps__64bit_sampling_syscall_table(id);
-	} else {
-		sampling_flag = maps__64bit_sampling_tracepoint_table(id);
-	}
+	uint8_t sampling_flag = maps__64bit_sampling_syscall_table(id);
 
 	if(sampling_flag == UF_NEVER_DROP) {
 		return false;
