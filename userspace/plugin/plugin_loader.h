@@ -44,6 +44,7 @@ typedef enum {
 	CAP_PARSING = 1 << 2,
 	CAP_ASYNC = 1 << 3,
 	CAP_CAPTURE_LISTENING = 1 << 4,
+	CAP_DUMPING = 1 << 5,
 	CAP_BROKEN = 1 << 31,  // used to report inconsistencies
 } plugin_caps_t;
 

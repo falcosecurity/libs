@@ -856,6 +856,36 @@ bool sinsp_plugin::capture_close() {
 	return m_handle->api.capture_close(m_state, &in) == SS_PLUGIN_SUCCESS;
 }
 
+bool sinsp_plugin::dump(sinsp_dumper& dumper) {
+	if(!m_inited) {
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	if(!m_handle->api.dump) {
+		return false;
+	}
+
+	uint32_t num_evts;
+	ss_plugin_event** evts;
+
+	if(m_handle->api.dump(m_state, &num_evts, &evts) != SS_PLUGIN_SUCCESS) {
+		return false;
+	}
+	for(int i = 0; i < num_evts; i++) {
+		auto e = evts[i];
+		auto evt = sinsp_evt();
+		ASSERT(evt.get_scap_evt_storage() == nullptr);
+		evt.set_scap_evt_storage(new char[e->len]);
+		memcpy(evt.get_scap_evt_storage(), e, e->len);
+		evt.set_cpuid(0);
+		evt.set_num(0);
+		evt.set_scap_evt((scap_evt*)evt.get_scap_evt_storage());
+		evt.init();
+		dumper.dump(&evt);
+	}
+	return true;
+}
+
 /** Event Source CAP **/
 
 scap_source_plugin& sinsp_plugin::as_scap_source() {

@@ -20,6 +20,8 @@ limitations under the License.
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap.h>
 #include <libsinsp/dumper.h>
+#include <libsinsp/plugin.h>
+#include <libsinsp/plugin_manager.h>
 
 sinsp_dumper::sinsp_dumper() {
 	m_dumper = NULL;
@@ -66,6 +68,16 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	inspector->m_thread_manager->dump_threads_to_file(m_dumper);
 	inspector->m_container_manager.dump_containers(*this);
 	inspector->m_usergroup_manager.dump_users_groups(*this);
+
+	// notify registered plugins of capture open
+	for(auto& p : inspector->m_plugin_manager->plugins()) {
+		if(p->caps() & CAP_DUMPING) {
+			if(!p->dump(*this)) {
+				throw sinsp_exception("dump error for plugin '" + p->name() +
+				                      "' : " + p->get_last_error());
+			}
+		}
+	}
 
 	m_nevts = 0;
 }

@@ -126,6 +126,7 @@ plugin_handle_t* plugin_load(const char* path, char* err) {
 	SYM_RESOLVE(ret, get_metrics);
 	SYM_RESOLVE(ret, capture_open);
 	SYM_RESOLVE(ret, capture_close);
+	SYM_RESOLVE(ret, dump);
 	return ret;
 }
 
@@ -279,6 +280,10 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h, char* err) {
 		           "must implement both 'plugin_capture_open' and 'plugin_capture_close' (capture "
 		           "listening)",
 		           ", ");
+	}
+
+	if(h->api.dump != NULL) {
+		caps = (plugin_caps_t)((uint32_t)caps | (uint32_t)CAP_DUMPING);
 	}
 
 	return caps;
