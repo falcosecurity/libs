@@ -14,6 +14,37 @@
  */
 
 #ifdef CAPTURE_SCHED_PROC_FORK
+
+enum extra_sched_proc_fork_codes {
+	T1_SCHED_PROC_FORK,
+	T2_SCHED_PROC_FORK,
+	// add more codes here.
+	T_SCHED_PROC_FORK_MAX,
+};
+
+/*
+ * FORWARD DECLARATIONS:
+ * See the `BPF_PROG` macro in libbpf `libbpf/src/bpf_tracing.h`
+ * #define BPF_PROG(name, args...)		\
+ *    name(unsigned long long *ctx);	\
+ */
+int t1_sched_p_fork(unsigned long long *ctx);
+int t2_sched_p_fork(unsigned long long *ctx);
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, T_SCHED_PROC_FORK_MAX);
+	__uint(key_size, sizeof(__u32));
+	__array(values, int(void *));
+} extra_sched_proc_fork_calls SEC(".maps") = {
+        .values =
+                {
+                        [T1_SCHED_PROC_FORK] = (void *)&t1_sched_p_fork,
+                        [T2_SCHED_PROC_FORK] = (void *)&t2_sched_p_fork,
+                        // add more tail calls here.
+                },
+};
+
 /* chose a short name for bpftool debugging*/
 SEC("tp_btf/sched_process_fork")
 int BPF_PROG(sched_p_fork, struct task_struct *parent, struct task_struct *child) {
@@ -128,7 +159,7 @@ int BPF_PROG(sched_p_fork, struct task_struct *parent, struct task_struct *child
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_SCHED_PROC_FORK);
+	bpf_tail_call(ctx, &extra_sched_proc_fork_calls, T1_SCHED_PROC_FORK);
 	return 0;
 }
 
@@ -206,7 +237,7 @@ int BPF_PROG(t1_sched_p_fork, struct task_struct *parent, struct task_struct *ch
 	/* We have to split here the bpf program, otherwise, it is too large
 	 * for the verifier (limit 1000000 instructions).
 	 */
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T2_SCHED_PROC_FORK);
+	bpf_tail_call(ctx, &extra_sched_proc_fork_calls, T2_SCHED_PROC_FORK);
 	return 0;
 }
 

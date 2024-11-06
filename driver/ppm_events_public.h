@@ -1533,8 +1533,6 @@ enum extra_event_prog_code {
 	T1_CLONE3_X = 3,
 	T1_FORK_X = 4,
 	T1_VFORK_X = 5,
-	T1_SCHED_PROC_FORK = 7,
-	T2_SCHED_PROC_FORK = 8,
 	T2_CLONE_X = 9,
 	T2_CLONE3_X = 10,
 	T2_FORK_X = 11,
