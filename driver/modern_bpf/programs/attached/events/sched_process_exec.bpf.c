@@ -13,6 +13,37 @@
  *		 struct linux_binprm *bprm)
  */
 #ifdef CAPTURE_SCHED_PROC_EXEC
+
+enum extra_sched_proc_exec_codes {
+	T1_SCHED_PROC_EXEC,
+	T2_SCHED_PROC_EXEC,
+	// add more codes here.
+	T_SCHED_PROC_EXEC_MAX,
+};
+
+/*
+ * FORWARD DECLARATIONS:
+ * See the `BPF_PROG` macro in libbpf `libbpf/src/bpf_tracing.h`
+ * #define BPF_PROG(name, args...)		\
+ *    name(unsigned long long *ctx);	\
+ */
+int t1_sched_p_exec(unsigned long long *ctx);
+int t2_sched_p_exec(unsigned long long *ctx);
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, T_SCHED_PROC_EXEC_MAX);
+	__uint(key_size, sizeof(__u32));
+	__array(values, int(void *));
+} extra_sched_proc_exec_calls SEC(".maps") = {
+        .values =
+                {
+                        [T1_SCHED_PROC_EXEC] = (void *)&t1_sched_p_exec,
+                        [T2_SCHED_PROC_EXEC] = (void *)&t2_sched_p_exec,
+                        // add more tail calls here.
+                },
+};
+
 /* chose a short name for bpftool debugging*/
 SEC("tp_btf/sched_process_exec")
 int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm) {
@@ -114,7 +145,7 @@ int BPF_PROG(sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux_bi
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_SCHED_PROC_EXEC);
+	bpf_tail_call(ctx, &extra_sched_proc_exec_calls, T1_SCHED_PROC_EXEC);
 	return 0;
 }
 
@@ -234,11 +265,11 @@ int BPF_PROG(t1_sched_p_exec, struct task_struct *p, pid_t old_pid, struct linux
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T2_SCHED_PROC_EXEC);
+	bpf_tail_call(ctx, &extra_sched_proc_exec_calls, T2_SCHED_PROC_EXEC);
 	return 0;
 }
 
-SEC("tp_btf/sys_exit")
+SEC("tp_btf/sched_process_exec")
 int BPF_PROG(t2_sched_p_exec, struct pt_regs *regs, long ret) {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap) {
