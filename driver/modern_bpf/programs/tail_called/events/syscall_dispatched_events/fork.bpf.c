@@ -152,7 +152,7 @@ int BPF_PROG(fork_x, struct pt_regs *regs, long ret) {
 	/* We have to split here the bpf program, otherwise, it is too large
 	 * for the verifier (limit 1000000 instructions).
 	 */
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_FORK_X);
+	bpf_tail_call(ctx, &extra_syscall_calls, T1_FORK_X);
 	return 0;
 }
 
@@ -198,7 +198,7 @@ int BPF_PROG(t1_fork_x, struct pt_regs *regs, long ret) {
 	/* We have to split here the bpf program, otherwise, it is too large
 	 * for the verifier (limit 1000000 instructions).
 	 */
-	bpf_tail_call(ctx, &extra_event_prog_tail_table, T2_FORK_X);
+	bpf_tail_call(ctx, &extra_syscall_calls, T2_FORK_X);
 	return 0;
 }
 

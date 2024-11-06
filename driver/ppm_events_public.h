@@ -1525,8 +1525,7 @@ typedef enum {
  * - `X` = means that we need this extra tail call for the exit event, `E` means enter the event.
  *
  */
-// todo!: rename this `extra_syscall_exit_calls`.
-enum extra_event_prog_code {
+enum extra_syscall_codes {
 	T1_EXECVE_X = 0,
 	T1_EXECVEAT_X = 1,
 	T1_CLONE_X = 2,

@@ -398,17 +398,17 @@ uint64_t pman_get_probe_schema_ver(void);
 /**
  * @brief Some bpf programs exceed the maximum complexity
  * so they have to tail-call other programs. To do that, they
- * need a particular tail table that we call `extra_event_prog_tail_table`.
+ * need a particular tail table that we call `extra_syscall_calls`.
  *
  * -> EXTRA EVENT PROG TAIL TABLE
- * extra_event_prog_tail_table(extra_event_prog_code, program_fd).
+ * extra_syscall_calls(extra_syscall_codes, program_fd).
  *
- * `extra_event_prog_code` is an enum defined in
+ * `extra_syscall_codes` is an enum defined in
  * `/driver/ppm_events_public.h`
  *
  * @return `0` on success, `errno` in case of error.
  */
-int pman_fill_extra_event_prog_tail_table(void);
+int pman_fill_extra_syscall_calls_table(void);
 
 /**
  * @brief The syscall dispatchers will look into these tables
