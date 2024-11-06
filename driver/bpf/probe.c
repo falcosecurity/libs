@@ -254,7 +254,7 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args) {
 
 	evt_type = PPME_SCHEDSWITCH_6_E;
 
-	call_filler(ctx, ctx, evt_type, 0, -1);
+	call_filler(ctx, ctx, evt_type, UF_ALWAYS_DROP, -1);
 	return 0;
 }
 
