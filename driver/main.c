@@ -2393,7 +2393,7 @@ TRACEPOINT_PROBE(sched_switch_probe,
 	 * handler calling printk() and potentially deadlocking the system.
 	 */
 	record_event_all_consumers(PPME_SCHEDSWITCH_6_E,
-	                           UF_USED | UF_ATOMIC,
+	                           UF_ALWAYS_DROP | UF_ATOMIC,
 	                           &event_data,
 	                           KMOD_PROG_SCHED_SWITCH);
 }
