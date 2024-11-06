@@ -14,7 +14,7 @@
 SEC("tp_btf/sys_enter")
 int BPF_PROG(chdir_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, CHDIR_E_SIZE, PPME_SYSCALL_CHDIR_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, CHDIR_E_SIZE, PPME_SYSCALL_CHDIR_E)) {
 		return 0;
 	}
 
@@ -57,7 +57,7 @@ int BPF_PROG(chdir_x, struct pt_regs *regs, long ret) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap, ctx);
+	auxmap__submit_event(auxmap);
 
 	return 0;
 }

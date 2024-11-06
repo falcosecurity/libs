@@ -201,7 +201,7 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap, ctx);
+	auxmap__submit_event(auxmap);
 
 	return 0;
 }

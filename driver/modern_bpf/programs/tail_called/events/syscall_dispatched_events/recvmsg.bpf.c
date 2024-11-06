@@ -18,7 +18,7 @@ int BPF_PROG(recvmsg_e, struct pt_regs *regs, long id) {
 	extract__network_args(&socket_fd, 1, regs);
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, RECVMSG_E_SIZE, PPME_SOCKET_RECVMSG_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, RECVMSG_E_SIZE, PPME_SOCKET_RECVMSG_E)) {
 		return 0;
 	}
 
@@ -107,7 +107,7 @@ int BPF_PROG(recvmsg_x, struct pt_regs *regs, long ret) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap, ctx);
+	auxmap__submit_event(auxmap);
 
 	return 0;
 }
