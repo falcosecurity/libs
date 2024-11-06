@@ -358,7 +358,7 @@ TEST(async_key_value_source_test, prune_old_metadata) {
 	ASSERT_FALSE(source.lookup(key1, response));
 
 	// Wait long enough for the old entry to require pruning
-	std::this_thread::sleep_for(std::chrono::milliseconds(2 * TTL_MS));
+	usleep(1000 * 2 * TTL_MS);
 
 	// Request the other key.  This should wake up the thread and actually
 	// preform the pruning.
@@ -366,7 +366,7 @@ TEST(async_key_value_source_test, prune_old_metadata) {
 
 	// Wait long enough for the async thread to get woken up and to
 	// prune the old entry
-	std::this_thread::sleep_for(std::chrono::milliseconds(TTL_MS));
+	usleep(1000 * TTL_MS);
 
 	// Since the first key should have been pruned, a second call to
 	// fetch the first key should also return false.
