@@ -14,7 +14,7 @@
 SEC("tp_btf/sys_enter")
 int BPF_PROG(clone3_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, CLONE3_E_SIZE, PPME_SYSCALL_CLONE3_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, CLONE3_E_SIZE, PPME_SYSCALL_CLONE3_E)) {
 		return 0;
 	}
 
@@ -226,7 +226,7 @@ int BPF_PROG(t2_clone3_x, struct pt_regs *regs, long ret) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap, ctx);
+	auxmap__submit_event(auxmap);
 	return 0;
 }
 

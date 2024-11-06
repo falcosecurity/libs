@@ -13,7 +13,7 @@
 SEC("tp_btf/sys_enter")
 int BPF_PROG(semctl_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_E_SIZE, PPME_SYSCALL_SEMCTL_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, SEMCTL_E_SIZE, PPME_SYSCALL_SEMCTL_E)) {
 		return 0;
 	}
 
@@ -50,7 +50,7 @@ int BPF_PROG(semctl_e, struct pt_regs *regs, long id) {
 SEC("tp_btf/sys_exit")
 int BPF_PROG(semctl_x, struct pt_regs *regs, long ret) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_X_SIZE, PPME_SYSCALL_SEMCTL_X)) {
+	if(!ringbuf__reserve_space(&ringbuf, SEMCTL_X_SIZE, PPME_SYSCALL_SEMCTL_X)) {
 		return 0;
 	}
 

@@ -52,7 +52,7 @@ int BPF_PROG(sendmsg_e, struct pt_regs *regs, long id) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap, ctx);
+	auxmap__submit_event(auxmap);
 
 	return 0;
 }
@@ -98,7 +98,7 @@ int BPF_PROG(sendmsg_x, struct pt_regs *regs, long ret) {
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap, ctx);
+	auxmap__submit_event(auxmap);
 
 	return 0;
 }
