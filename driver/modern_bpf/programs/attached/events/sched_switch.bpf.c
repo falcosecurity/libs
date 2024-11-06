@@ -9,13 +9,93 @@
 #include <helpers/interfaces/fixed_size_event.h>
 #include <helpers/interfaces/attached_programs.h>
 
+SEC("tp_btf/sched_switch")
+int BPF_PROG(t1_drop_sched_switch_e) {
+	struct ringbuf_struct ringbuf;
+	if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_E_SIZE, PPME_DROP_E)) {
+		return 0;
+	}
+
+	ringbuf__store_event_header(&ringbuf);
+
+	/*=============================== COLLECT PARAMETERS ===========================*/
+
+	ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
+
+	/*=============================== COLLECT PARAMETERS ===========================*/
+
+	ringbuf__submit_event(&ringbuf);
+	return 0;
+}
+
+SEC("tp_btf/sched_switch")
+int BPF_PROG(t1_drop_sched_switch_x) {
+	struct ringbuf_struct ringbuf;
+	if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_X_SIZE, PPME_DROP_X)) {
+		return 0;
+	}
+
+	ringbuf__store_event_header(&ringbuf);
+
+	/*=============================== COLLECT PARAMETERS ===========================*/
+
+	ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
+
+	/*=============================== COLLECT PARAMETERS ===========================*/
+
+	ringbuf__submit_event(&ringbuf);
+	return 0;
+}
+
+enum extra_sched_proc_exec_codes {
+	SCHED_SWITCH_DROP_E,
+	SCHED_SWITCH_DROP_X,
+};
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, 2);
+	__uint(key_size, sizeof(__u32));
+	__array(values, int(void *));
+} sched_switch_drop_calls SEC(".maps") = {
+        .values =
+                {
+                        [SCHED_SWITCH_DROP_E] = (void *)&t1_drop_sched_switch_e,
+                        [SCHED_SWITCH_DROP_X] = (void *)&t1_drop_sched_switch_x,
+                },
+};
+
+// todo!: probably we can remove all this logic in the future and just adapt SCHED_SWITCH to
+// other tracepoints like signal_deliver
+static __always_inline bool sched_switch_sampling_logic(void *ctx) {
+	if(!maps__get_dropping_mode()) {
+		return false;
+	}
+
+	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio())) {
+		if(!maps__get_is_dropping()) {
+			maps__set_is_dropping(true);
+			bpf_tail_call(ctx, &sched_switch_drop_calls, SCHED_SWITCH_DROP_E);
+			bpf_printk("unable to tail call into 'sched_switch_drop_e' prog");
+		}
+		return true;
+	}
+
+	if(maps__get_is_dropping()) {
+		maps__set_is_dropping(false);
+		bpf_tail_call(ctx, &sched_switch_drop_calls, SCHED_SWITCH_DROP_X);
+		bpf_printk("unable to tail call into 'sched_switch_drop_x' prog");
+	}
+	return false;
+}
+
 /* From linux tree: /include/linux/events/sched.h
  * TP_PROTO(bool preempt, struct task_struct *prev,
  *		 struct task_struct *next)
  */
 SEC("tp_btf/sched_switch")
 int BPF_PROG(sched_switch, bool preempt, struct task_struct *prev, struct task_struct *next) {
-	if(sampling_logic(ctx, PPME_SCHEDSWITCH_6_E, MODERN_BPF_TRACEPOINT)) {
+	if(sched_switch_sampling_logic(ctx)) {
 		return 0;
 	}
 

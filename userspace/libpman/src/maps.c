@@ -120,15 +120,6 @@ void pman_fill_syscall_sampling_table() {
 	}
 }
 
-void pman_fill_syscall_tracepoint_table() {
-	/* Right now these are the only 2 tracepoints involved in the dropping logic. We need to add
-	 * them here */
-	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_PROCEXIT_1_E] = UF_NEVER_DROP;
-	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_SCHEDSWITCH_6_E] = 0;
-	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_PAGE_FAULT_E] = UF_ALWAYS_DROP;
-	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_SIGNALDELIVER_E] = UF_ALWAYS_DROP;
-}
-
 void pman_fill_ia32_to_64_table() {
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++) {
 		// Note: we will map all syscalls from the upper limit of the ia32 table
@@ -339,7 +330,6 @@ int pman_finalize_maps_after_loading() {
 
 	/* We have to fill all ours tail tables. */
 	pman_fill_syscall_sampling_table();
-	pman_fill_syscall_tracepoint_table();
 	pman_fill_ia32_to_64_table();
 	err = pman_fill_syscalls_tail_table();
 	err = err ?: pman_fill_extra_event_prog_tail_table();

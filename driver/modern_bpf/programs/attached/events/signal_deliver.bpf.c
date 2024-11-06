@@ -14,7 +14,8 @@
  */
 SEC("tp_btf/signal_deliver")
 int BPF_PROG(signal_deliver, int sig, struct kernel_siginfo *info, struct k_sigaction *ka) {
-	if(sampling_logic(ctx, PPME_SIGNALDELIVER_E, MODERN_BPF_TRACEPOINT)) {
+	// In case of dropping mode we don't want this kind of events.
+	if(maps__get_dropping_mode()) {
 		return 0;
 	}
 
