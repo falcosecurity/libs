@@ -85,11 +85,6 @@ static __always_inline uint8_t maps__64bit_sampling_syscall_table(uint32_t sysca
 	return g_64bit_sampling_syscall_table[syscall_id & (SYSCALL_TABLE_SIZE - 1)];
 }
 
-static __always_inline uint8_t maps__64bit_sampling_tracepoint_table(uint32_t event_id) {
-	return g_64bit_sampling_tracepoint_table[event_id < PPM_EVENT_MAX ? event_id
-	                                                                  : PPM_EVENT_MAX - 1];
-}
-
 /*=============================== SAMPLING TABLES ===========================*/
 
 /*=============================== SYSCALL-64 INTERESTING TABLE ===========================*/

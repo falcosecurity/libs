@@ -49,7 +49,7 @@ int BPF_PROG(sys_enter, struct pt_regs *regs, long syscall_id) {
 		return 0;
 	}
 
-	if(sampling_logic(ctx, syscall_id, MODERN_BPF_SYSCALL)) {
+	if(sampling_logic(ctx, syscall_id)) {
 		return 0;
 	}
 
