@@ -148,14 +148,9 @@ sinsp::sinsp(bool with_metrics):
         m_evt(this),
         m_lastevent_ts(0),
         m_host_root(scap_get_host_root()),
-        m_container_manager(this),
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
         m_inited(false) {
 	++instance_count;
-#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-	// used by container_manager
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-#endif
 
 	m_h = NULL;
 	m_parser = NULL;
@@ -164,7 +159,6 @@ sinsp::sinsp(bool with_metrics):
 	m_thread_manager = std::make_unique<sinsp_thread_manager>(this);
 	m_usergroup_manager = std::make_unique<sinsp_usergroup_manager>(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
-	m_containers_purging_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_filter = NULL;
 	m_machine_info = NULL;
@@ -187,9 +181,6 @@ sinsp::sinsp(bool with_metrics):
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
 	m_statsd_port = -1;
 	m_platform = nullptr;
-
-	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
-	m_print_container_data = false;
 
 	m_self_pid = getpid();
 
@@ -217,8 +208,6 @@ sinsp::sinsp(bool with_metrics):
 
 sinsp::~sinsp() {
 	close();
-
-	m_container_manager.cleanup();
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	curl_global_cleanup();
@@ -1258,10 +1247,6 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 		}
 	}
 
-	if(m_auto_containers_purging && !is_offline()) {
-		m_container_manager.remove_inactive_containers();
-	}
-
 	if(m_auto_usergroups_purging && !is_offline()) {
 		m_usergroup_manager->clear_host_users_groups();
 	}
@@ -1384,38 +1369,6 @@ void sinsp::clear_suppress_events_tid() {
 
 bool sinsp::check_suppressed(int64_t tid) const {
 	return m_suppress.is_suppressed_tid(tid);
-}
-
-void sinsp::set_docker_socket_path(std::string socket_path) {
-	m_container_manager.set_docker_socket_path(std::move(socket_path));
-}
-
-void sinsp::set_query_docker_image_info(bool query_image_info) {
-	m_container_manager.set_query_docker_image_info(query_image_info);
-}
-
-void sinsp::set_cri_extra_queries(bool extra_queries) {
-	m_container_manager.set_cri_extra_queries(extra_queries);
-}
-
-void sinsp::set_cri_socket_path(const std::string& path) {
-	m_container_manager.set_cri_socket_path(path);
-}
-
-void sinsp::add_cri_socket_path(const std::string& path) {
-	m_container_manager.add_cri_socket_path(path);
-}
-
-void sinsp::set_cri_timeout(int64_t timeout_ms) {
-	m_container_manager.set_cri_timeout(timeout_ms);
-}
-
-void sinsp::set_cri_async(bool async) {
-	m_container_manager.set_cri_async(async);
-}
-
-void sinsp::set_container_labels_max_len(uint32_t max_label_len) {
-	m_container_manager.set_container_labels_max_len(max_label_len);
 }
 
 void sinsp::set_snaplen(uint32_t snaplen) {
@@ -1739,10 +1692,6 @@ void sinsp::set_large_envs(bool enable) {
 
 void sinsp::set_debug_mode(bool enable_debug) {
 	m_isdebug_enabled = enable_debug;
-}
-
-void sinsp::set_print_container_data(bool print_container_data) {
-	m_print_container_data = print_container_data;
 }
 
 void sinsp::set_fatfile_dump_mode(bool enable_fatfile) {

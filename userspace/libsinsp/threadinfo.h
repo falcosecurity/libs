@@ -405,7 +405,6 @@ public:
 	std::vector<std::string> m_args;  ///< Command line arguments (e.g. "-d1")
 	std::vector<std::string> m_env;   ///< Environment variables
 	cgroups_t m_cgroups;              ///< subsystem-cgroup pairs
-	std::string m_container_id;       ///< heuristic-based container id
 	uint32_t m_flags;   ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
 	uint32_t m_uid;     ///< uid

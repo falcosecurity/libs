@@ -733,18 +733,6 @@ public:
 	inline bool is_debug_enabled() const { return m_isdebug_enabled; }
 
 	/*!
-	  \brief Set a flag indicating if the command line requested to show container information.
-
-	  \param set true if the command line argument is set to show container information
-	*/
-	void set_print_container_data(bool print_container_data);
-
-	/*!
-	  \brief Returns true if the command line argument is set to show container information.
-	*/
-	inline bool is_print_container_data() const { return m_print_container_data; }
-
-	/*!
 	  \brief If this is an offline capture, return the name of the file that is
 	   being read, otherwise return an empty string.
 	*/
@@ -833,16 +821,6 @@ public:
 	std::vector<long> get_n_tracepoint_hit() const;
 
 	static unsigned num_possible_cpus();
-
-	inline void set_container_engine_mask(uint64_t mask) {
-		m_container_manager.set_container_engine_mask(mask);
-	}
-
-	inline void set_static_container(const std::string& id,
-	                                 const std::string& name,
-	                                 const std::string& image) {
-		m_container_manager.set_static_container(id, name, image);
-	}
 
 	// Add comm to the list of comms for which the inspector
 	// should not return events.
@@ -1059,16 +1037,7 @@ private:
 
 public:
 	std::unique_ptr<sinsp_thread_manager> m_thread_manager;
-
-	sinsp_container_manager m_container_manager;
-
 	std::unique_ptr<sinsp_usergroup_manager> m_usergroup_manager;
-
-	//
-	// True if the command line argument is set to show container information
-	// The default is false set within the constructor
-	//
-	bool m_print_container_data;
 
 	uint64_t m_firstevent_ts;
 	std::unique_ptr<sinsp_filter> m_filter;
@@ -1097,12 +1066,6 @@ public:
 	bool m_auto_threads_purging = true;
 	uint64_t m_thread_timeout_ns = (uint64_t)1800 * ONE_SECOND_IN_NS;
 	uint64_t m_threads_purging_scan_time_ns = (uint64_t)1200 * ONE_SECOND_IN_NS;
-
-	//
-	// Container limits
-	//
-	bool m_auto_containers_purging = true;
-	uint64_t m_containers_purging_scan_time_ns;
 
 	//
 	// Users/groups limits
