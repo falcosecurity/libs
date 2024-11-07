@@ -454,7 +454,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi) {
 	m_comm = pi->comm;
 	m_exe = pi->exe;
 	/* The exepath is extracted from `/proc/pid/exe`. */
-	m_exepath = pi->exepath;
+	set_exepath(std::string(pi->exepath));
 	m_exe_writable = pi->exe_writable;
 	m_exe_upper_layer = pi->exe_upper_layer;
 	m_exe_lower_layer = pi->exe_lower_layer;
@@ -1245,6 +1245,17 @@ void sinsp_threadinfo::update_main_fdtable() {
 	auto fdtable = get_fd_table();
 	if(fdtable) {
 		m_main_fdtable = static_cast<const libsinsp::state::base_table*>(fdtable->table_ptr());
+	}
+}
+
+void sinsp_threadinfo::set_exepath(std::string&& exepath) {
+	constexpr char suffix[] = " (deleted)";
+	constexpr size_t suffix_len = sizeof(suffix) - 1;  // Exclude null terminator
+
+	m_exepath = exepath;
+	if(m_exepath.size() > suffix_len &&
+	   m_exepath.compare(m_exepath.size() - suffix_len, suffix_len, suffix) == 0) {
+		m_exepath.resize(m_exepath.size() - suffix_len);
 	}
 }
 

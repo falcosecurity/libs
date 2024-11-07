@@ -67,14 +67,16 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_exepath) {
 	DEFAULT_TREE
 
 	/* Now we call an execve on p6_t1 */
-	auto evt = generate_execve_enter_and_exit_event(0,
-	                                                p6_t1_tid,
-	                                                p6_t1_tid,
-	                                                p6_t1_pid,
-	                                                p6_t1_ptid,
-	                                                "/good-exe",
-	                                                "good-exe",
-	                                                "/usr/bin/bad-exe");
+	auto evt =
+	        generate_execve_enter_and_exit_event(0,
+	                                             p6_t1_tid,
+	                                             p6_t1_tid,
+	                                             p6_t1_pid,
+	                                             p6_t1_ptid,
+	                                             "/good-exe",
+	                                             "good-exe",
+	                                             // Please note that the `deleted` will be removed.
+	                                             "/usr/bin/bad-exe (deleted)");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/usr/bin/bad-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "good-exe");
