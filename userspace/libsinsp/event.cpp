@@ -1851,7 +1851,12 @@ bool sinsp_evt::has_return_value() {
 }
 
 int64_t sinsp_evt::get_syscall_return_value() {
-	ASSERT(has_return_value());
+	if(!has_return_value()) {
+		throw sinsp_exception(
+		        "Called get_syscall_return_value() on an event that does not have a return value. "
+		        "Event type: " +
+		        std::to_string(get_type()));
+	}
 
 	// The return value is always the first parameter of the syscall event
 	// It could have different names depending on the event type `res`,`fd`, etc.
