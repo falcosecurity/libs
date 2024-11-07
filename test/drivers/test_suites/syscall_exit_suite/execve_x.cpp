@@ -912,11 +912,9 @@ TEST(SyscallExit, execveX_success_memfd) {
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	/* In the kmod, we use the "d_path" helper while in BPF we reconstruct the path
 	 * by hand so the result is a little bit different.
-	 * Please note that in the kernel module, we remove the " (deleted)" suffix while
-	 * in BPF we don't add it at all.
 	 */
 	if(evt_test->is_kmod_engine()) {
-		evt_test->assert_charbuf_param(28, "/memfd:malware");
+		evt_test->assert_charbuf_param(28, "/memfd:malware (deleted)");
 	} else {
 		/* In BPF drivers we don't have the correct result but we can reconstruct part of it */
 		evt_test->assert_charbuf_param(28, "memfd:malware");
