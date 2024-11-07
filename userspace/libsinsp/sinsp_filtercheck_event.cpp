@@ -1649,7 +1649,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 				}
 
 				// If PPM_O_TMPFILE is set and syscall is successful the file is created
-				if(flags & PPM_O_TMPFILE) {
+				if((flags & PPM_O_TMPFILE) && evt->has_return_value()) {
 					int64_t retval = evt->get_syscall_return_value();
 
 					if(retval >= 0) {

@@ -706,10 +706,12 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 		                                  (evt->get_info()->params[0].name[0] == 'f' &&
 		                                   evt->get_info()->params[0].name[1] == 'd' &&
 		                                   evt->get_info()->params[0].name[2] == '\0'))) {
-			int64_t res = evt->get_syscall_return_value();
+			if(evt->has_return_value()) {
+				int64_t res = evt->get_syscall_return_value();
 
-			if(res < 0) {
-				evt->set_errorcode(-(int32_t)res);
+				if(res < 0) {
+					evt->set_errorcode(-(int32_t)res);
+				}
 			}
 		}
 
@@ -4384,7 +4386,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt) {
 				//
 				// Extract the tid and look for its process info
 				//
-				tid = enter_evt->get_syscall_return_value();
+				tid = enter_evt->get_param(0)->as<int64_t>();
 
 				if(tid == 0) {
 					tid = evt->get_tid();
@@ -5238,7 +5240,6 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type) {
 	}
 
 	/* ret (fd) */
-	ASSERT(evt->get_param_info(0)->type == PT_FD);
 	fd = evt->get_syscall_return_value();
 
 	/* name */
@@ -5271,7 +5272,6 @@ void sinsp_parser::parse_pidfd_open_exit(sinsp_evt *evt) {
 	}
 
 	/* ret (fd) */
-	ASSERT(evt->get_param_info(0)->type == PT_FD);
 	fd = evt->get_syscall_return_value();
 
 	/* pid (fd) */
@@ -5305,7 +5305,6 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt) {
 	}
 
 	/* ret (fd) */
-	ASSERT(evt->get_param_info(0)->type == PT_FD);
 	fd = evt->get_syscall_return_value();
 
 	/* pidfd */
