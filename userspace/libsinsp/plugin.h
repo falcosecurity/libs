@@ -25,6 +25,7 @@ limitations under the License.
 #include <atomic>
 #include <libscap/engine/source_plugin/source_plugin_public.h>
 #include <libsinsp/event.h>
+#include <libsinsp/dumper.h>
 #include <libsinsp/sinsp_filtercheck.h>
 #include <libsinsp/version.h>
 #include <libsinsp/events/sinsp_events.h>

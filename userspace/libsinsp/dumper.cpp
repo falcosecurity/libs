@@ -71,7 +71,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 
 	// notify registered plugins of capture open
 	for(auto& p : inspector->m_plugin_manager->plugins()) {
-		if(p->caps() & CAP_DUMPING) {
+		if(p->caps() & CAP_ASYNC) {
 			if(!p->dump(*this)) {
 				throw sinsp_exception("dump error for plugin '" + p->name() +
 				                      "' : " + p->get_last_error());

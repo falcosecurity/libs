@@ -110,7 +110,7 @@ void sinsp_cycledumper::autodump_start(const std::string& dump_filename) {
 	std::for_each(m_open_file_callbacks.begin(), m_open_file_callbacks.end(), std::ref(*this));
 
 	m_dumper->open(m_inspector,
-	               dump_filename.c_str(),
+	               dump_filename,
 	               m_compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE);
 
 	m_inspector->set_dumping(true);

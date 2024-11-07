@@ -378,6 +378,65 @@ TEST_F(sinsp_with_test_input, plugin_custom_source) {
 	ASSERT_EQ(next_event(), nullptr);  // EOF is expected
 }
 
+class plugin_test_event_processor : public libsinsp::event_processor {
+public:
+	explicit plugin_test_event_processor(const char* ev_name) {
+		num_async_evts = 0;
+		event_name = ev_name;
+	}
+
+	void on_capture_start() override {}
+
+	void process_event(sinsp_evt* evt, libsinsp::event_return rc) override {
+		if(evt->get_type() == PPME_ASYNCEVENT_E) {
+			// Retrieve internal event name
+			auto ev_name = evt->get_param(1)->as<std::string>();
+			if(ev_name == event_name) {
+				num_async_evts++;
+			}
+		}
+	}
+
+	int num_async_evts;
+
+private:
+	std::string event_name;
+};
+
+// scenario: a plugin with dump capability is requested a dump and then the capture file is read.
+TEST_F(sinsp_with_test_input, plugin_dump) {
+	uint64_t max_count = 1;
+	uint64_t period_ns = 1000000;  // 1ms
+	std::string async_pl_cfg = std::to_string(max_count) + ":" + std::to_string(period_ns);
+	register_plugin(&m_inspector, get_plugin_api_sample_syscall_async);
+
+	// we will not use the test scap engine here, but open the src plugin instead
+	// note: we configure the plugin to just emit 1 event through its open params
+	m_inspector.open_nodriver();
+
+	auto evt = next_event();
+	ASSERT_NE(evt, nullptr);
+	ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
+
+	auto sinspdumper = sinsp_dumper();
+	sinspdumper.open(&m_inspector, "test.scap", false);
+	sinspdumper.close();
+
+	m_inspector.close();
+
+	// Here we open a replay inspector just to trigger the initstate events parsing
+	auto replay_inspector = sinsp();
+	//
+	auto processor = plugin_test_event_processor("sampleticker");
+	replay_inspector.register_external_event_processor(processor);
+	ASSERT_NO_THROW(replay_inspector.open_savefile("test.scap"));
+
+	ASSERT_EQ(processor.num_async_evts, 10);
+
+	replay_inspector.close();
+	remove("test.scap");
+}
+
 TEST(sinsp_plugin, plugin_extract_compatibility) {
 	std::string tmp;
 	sinsp i;
