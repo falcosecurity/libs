@@ -141,7 +141,7 @@ ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s,
 				        err,
 				        PPME_ASYNCEVENT_E,
 				        3,
-				        0,
+				        (uint32_t)0,
 				        "unsupportedname",
 				        scap_const_sized_buffer{data, strlen(data) + 1});
 				ps->async_evt->tid = 1;
@@ -161,7 +161,7 @@ ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s,
 				        err,
 				        PPME_ASYNCEVENT_E,
 				        3,
-				        0,
+				        (uint32_t)0,
 				        name,
 				        scap_const_sized_buffer{data, strlen(data) + 1});
 				ps->async_evt->tid = 1;
@@ -188,6 +188,33 @@ ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s,
 	return SS_PLUGIN_SUCCESS;
 }
 
+ss_plugin_rc plugin_dump(ss_plugin_t* s, uint32_t* nevts, ss_plugin_event*** evts) {
+	static uint8_t evt_buf[10][256];
+	static ss_plugin_event* evt[10];
+	const char* name = "sampleticker";
+	const char* data = "hello world";
+	for(int i = 0; i < 10; i++) {
+		evt[i] = (ss_plugin_event*)evt_buf[i];
+		char error[SCAP_LASTERR_SIZE];
+		int32_t encode_res =
+		        scap_event_encode_params(scap_sized_buffer{evt[i], sizeof(evt_buf[i])},
+		                                 nullptr,
+		                                 error,
+		                                 PPME_ASYNCEVENT_E,
+		                                 3,
+		                                 (uint32_t)0,
+		                                 name,
+		                                 scap_const_sized_buffer{(void*)data, strlen(data) + 1});
+
+		if(encode_res == SCAP_FAILURE) {
+			return SS_PLUGIN_FAILURE;
+		}
+	}
+	*evts = evt;
+	*nevts = 10;
+	return SS_PLUGIN_SUCCESS;
+}
+
 }  // anonymous namespace
 
 void get_plugin_api_sample_syscall_async(plugin_api& out) {
@@ -203,4 +230,5 @@ void get_plugin_api_sample_syscall_async(plugin_api& out) {
 	out.get_async_event_sources = plugin_get_async_event_sources;
 	out.get_async_events = plugin_get_async_events;
 	out.set_async_event_handler = plugin_set_async_event_handler;
+	out.dump = plugin_dump;
 }

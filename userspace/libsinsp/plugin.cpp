@@ -856,36 +856,6 @@ bool sinsp_plugin::capture_close() {
 	return m_handle->api.capture_close(m_state, &in) == SS_PLUGIN_SUCCESS;
 }
 
-bool sinsp_plugin::dump(sinsp_dumper& dumper) {
-	if(!m_inited) {
-		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
-	}
-
-	if(!m_handle->api.dump) {
-		return false;
-	}
-
-	uint32_t num_evts;
-	ss_plugin_event** evts;
-
-	if(m_handle->api.dump(m_state, &num_evts, &evts) != SS_PLUGIN_SUCCESS) {
-		return false;
-	}
-	for(int i = 0; i < num_evts; i++) {
-		auto e = evts[i];
-		auto evt = sinsp_evt();
-		ASSERT(evt.get_scap_evt_storage() == nullptr);
-		evt.set_scap_evt_storage(new char[e->len]);
-		memcpy(evt.get_scap_evt_storage(), e, e->len);
-		evt.set_cpuid(0);
-		evt.set_num(0);
-		evt.set_scap_evt((scap_evt*)evt.get_scap_evt_storage());
-		evt.init();
-		dumper.dump(&evt);
-	}
-	return true;
-}
-
 /** Event Source CAP **/
 
 scap_source_plugin& sinsp_plugin::as_scap_source() {
@@ -1204,4 +1174,56 @@ bool sinsp_plugin::set_async_event_handler(async_event_handler_t handler) {
 	}
 
 	return rc == SS_PLUGIN_SUCCESS;
+}
+
+bool sinsp_plugin::dump(sinsp_dumper& dumper) {
+	if(!m_inited) {
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	if(!(m_caps & CAP_ASYNC)) {
+		throw sinsp_exception("plugin " + m_name + "without async events cap used as dumper");
+	}
+
+	if(!m_handle->api.dump) {
+		// Not required.
+		return true;
+	}
+
+	uint32_t num_evts;
+	ss_plugin_event** evts;
+
+	if(m_handle->api.dump(m_state, &num_evts, &evts) != SS_PLUGIN_SUCCESS) {
+		return false;
+	}
+
+	for(uint32_t i = 0; i < num_evts; i++) {
+		auto e = evts[i];
+		if(e == nullptr) {
+			throw sinsp_exception("null async event dumped by plugin: " + m_name);
+		}
+
+		// We only support dumping of PPME_ASYNCEVENT_E events
+		if(e->type != PPME_ASYNCEVENT_E || e->nparams != 3) {
+			throw sinsp_exception("malformed async event dumped by plugin: " + m_name);
+		}
+
+		// Event name must be one of the async event names
+		auto name = (const char*)((uint8_t*)e + sizeof(ss_plugin_event) + 4 + 4 + 4 + 4);
+		if(async_event_names().find(name) == async_event_names().end()) {
+			throw sinsp_exception("incompatible async event '" + std::string(name) +
+			                      "' produced by plugin: " + m_name);
+		}
+
+		// Build the sinsp_evt
+		sinsp_evt evt;
+		evt.set_scap_evt_storage(new char[e->len]);
+		evt.set_scap_evt((scap_evt*)evt.get_scap_evt_storage());
+		memcpy(evt.get_scap_evt_storage(), e, e->len);
+		evt.set_cpuid(0);
+		evt.set_num(0);
+		evt.init();
+		dumper.dump(&evt);
+	}
+	return true;
 }
