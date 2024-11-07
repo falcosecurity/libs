@@ -404,6 +404,8 @@ private:
 };
 
 // scenario: a plugin with dump capability is requested a dump and then the capture file is read.
+// note: emscripten has trouble with the nodriver engine and async events
+#if !defined(__EMSCRIPTEN__)
 TEST_F(sinsp_with_test_input, plugin_dump) {
 	uint64_t max_count = 1;
 	uint64_t period_ns = 1000000;  // 1ms
@@ -436,6 +438,7 @@ TEST_F(sinsp_with_test_input, plugin_dump) {
 	replay_inspector.close();
 	remove("test.scap");
 }
+#endif
 
 TEST(sinsp_plugin, plugin_extract_compatibility) {
 	std::string tmp;
