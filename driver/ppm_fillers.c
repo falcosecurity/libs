@@ -1468,19 +1468,6 @@ cgroups_error:
 			fput(exe_file);
 		}
 
-		/* The trusted_exepath could end with the suffix " (deleted)".
-		 * https://github.com/torvalds/linux/blob/2dde18cd1d8fac735875f2e4987f11817cc0bc2c/fs/d_path.c#L255
-		 * This is unhandy to manage in userspace, for this reason, we can remove it here
-		 */
-		if(trusted_exepath != NULL) {
-			char deleted_suffix[] = " (deleted)";
-			int diff_len = strlen(trusted_exepath) - strlen(deleted_suffix);
-			if(diff_len > 0 &&
-			   (strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0)) {
-				trusted_exepath[diff_len] = '\0';
-			}
-		}
-
 		if(exe_writable) {
 			flags |= PPM_EXE_WRITABLE;
 		}
@@ -7356,19 +7343,6 @@ cgroups_error:
 		/* Before free the exefile we catch the resolved path for symlink resolution */
 		trusted_exepath = d_path(&exe_file->f_path, buf, PAGE_SIZE);
 		fput(exe_file);
-	}
-
-	/* The trusted_exepath could end with the suffix " (deleted)".
-	 * https://github.com/torvalds/linux/blob/2dde18cd1d8fac735875f2e4987f11817cc0bc2c/fs/d_path.c#L255
-	 * This is unhandy to manage in userspace, for this reason, we can remove it here
-	 */
-	if(trusted_exepath != NULL) {
-		char deleted_suffix[] = " (deleted)";
-		int diff_len = strlen(trusted_exepath) - strlen(deleted_suffix);
-		if(diff_len > 0 &&
-		   (strncmp(&trusted_exepath[diff_len], deleted_suffix, sizeof(deleted_suffix)) == 0)) {
-			trusted_exepath[diff_len] = '\0';
-		}
 	}
 
 	if(exe_writable) {
