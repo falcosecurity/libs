@@ -276,11 +276,11 @@ TEST(Actions, sampling_ratio_check_DROP_E_DROP_X) {
 	/* Enable all syscalls */
 	auto evt_test = get_syscall_event_test();
 
-	evt_test->enable_sampling_logic(128);
+	evt_test->enable_sampling_logic(2);
 
 	evt_test->enable_capture();
 
-	uint32_t max_events_to_process = 50000;
+	uint32_t max_events_to_process = 100000;
 	uint32_t events_processed = 0;
 	uint16_t cpu_id = 0;
 	bool drop_e = false;
