@@ -1289,7 +1289,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	/* Take some further info from the caller */
 	if(valid_caller) {
 		/* We should trust the info we obtain from the caller, if it is valid */
-		child_tinfo->m_exepath = caller_tinfo->m_exepath;
+		child_tinfo->set_exepath(std::string(caller_tinfo->m_exepath));
 
 		child_tinfo->m_exe_writable = caller_tinfo->m_exe_writable;
 
@@ -1604,7 +1604,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 		 * enrichment...
 		 */
 
-		child_tinfo->m_exepath = lookup_tinfo->m_exepath;
+		child_tinfo->set_exepath(std::string(lookup_tinfo->m_exepath));
 
 		child_tinfo->m_exe_writable = lookup_tinfo->m_exe_writable;
 
@@ -2089,8 +2089,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 		 */
 
 		/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
-		parinfo = evt->get_param(27);
-		evt->get_tinfo()->m_exepath = parinfo->m_val;
+		evt->get_tinfo()->set_exepath(evt->get_param(27)->as<std::string>());
 	} else {
 		/* ONLY VALID FOR OLD SCAP-FILES:
 		 * In older event versions we can only rely on our userspace reconstruction
@@ -2191,7 +2190,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 					fullpath = sinsp_utils::concatenate_paths(sdir, pathname);
 				}
 			}
-			evt->get_tinfo()->m_exepath = fullpath;
+			evt->get_tinfo()->set_exepath(std::move(fullpath));
 		}
 	}
 

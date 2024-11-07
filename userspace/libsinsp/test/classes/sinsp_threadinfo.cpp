@@ -128,3 +128,58 @@ TEST_F(sinsp_with_test_input, THRD_INFO_assign_children_to_a_nullptr) {
 	ASSERT_THREAD_CHILDREN(p2_t1_tid, 0, 0);
 	ASSERT_THREAD_INFO_PIDS(p3_t1_tid, p3_t1_pid, 0);
 }
+
+TEST(sinsp_threadinfo, set_exepath) {
+	auto tinfo = std::make_shared<sinsp_threadinfo>();
+
+	{
+		// Nothing changes
+		std::string path = "no_suffix (del)";
+		size_t before_len = path.size();
+		tinfo->set_exepath(std::move(path));
+		ASSERT_EQ(tinfo->get_exepath().size(), before_len);
+	}
+
+	{
+		// Truncate it
+		std::string path = "no_suffix (deleted)";
+		size_t before_len = path.size();
+		tinfo->set_exepath(std::move(path));
+		ASSERT_NE(tinfo->get_exepath().size(), before_len);
+		ASSERT_EQ(tinfo->get_exepath(), "no_suffix");
+	}
+
+	{
+		// Nothing changes (this is not possible from the kernel)
+		std::string path = "no_suffix(deleted)";
+		size_t before_len = path.size();
+		tinfo->set_exepath(std::move(path));
+		ASSERT_EQ(tinfo->get_exepath().size(), before_len);
+	}
+
+	{
+		// Nothing changes (this is not possible from the kernel)
+		std::string path = "(deleted)";
+		size_t before_len = path.size();
+		tinfo->set_exepath(std::move(path));
+		ASSERT_EQ(tinfo->get_exepath().size(), before_len);
+	}
+
+	{
+		// Nothing changes (this is not possible from the kernel)
+		std::string path = " (deleted)";
+		size_t before_len = path.size();
+		tinfo->set_exepath(std::move(path));
+		ASSERT_EQ(tinfo->get_exepath().size(), before_len);
+	}
+
+	{
+		// Truncate it, please note that a double space from the kernel is not possible but here we
+		// just want to test it.
+		std::string path = "a  (deleted)";
+		size_t before_len = path.size();
+		tinfo->set_exepath(std::move(path));
+		ASSERT_NE(tinfo->get_exepath().size(), before_len);
+		ASSERT_EQ(tinfo->get_exepath(), "a ");
+	}
+}
