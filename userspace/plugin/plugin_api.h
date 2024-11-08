@@ -1060,11 +1060,18 @@ typedef struct {
 		// Required: no
 		// Arguments:
 		// - s: the plugin state, returned by init(). Can be NULL.
-		// - nevts: number of events retrieved.
-		// - evts: events retrieved. Events MUST be of type PPME_ASYNCEVENT_E.
+		// - owner: Opaque pointer to the plugin's owner. Must be passed
+		//	 as an argument to the async event function handler.
+		// - handler: Function handler to be used for sending events to be dumped
+		//   to the plugin's owner. The handler must be invoked with
+		//   the same owner opaque pointer passed to this function, and with
+		//   an event pointer owned and controlled by the plugin. The event
+		//   pointer is not retained by the handler after it returns.
 		//
 		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
-		ss_plugin_rc (*dump)(ss_plugin_t* s, uint32_t* nevts, ss_plugin_event*** evts);
+		ss_plugin_rc (*dump)(ss_plugin_t* s,
+		                     ss_plugin_owner_t* owner,
+		                     const ss_plugin_async_event_handler_t handler);
 	};
 
 	// Sets a new plugin configuration when provided by the framework.
