@@ -718,9 +718,48 @@ public:
 			return 'o';
 		}
 	}
-	bool has_return_value();
 
-	int64_t get_syscall_return_value();
+	inline bool is_syscall_event() const { return get_info()->category & EC_SYSCALL; }
+
+	inline bool has_return_value() {
+		// The event has a return value:
+		// * if it is a syscall event and it is an exit event.
+		if(is_syscall_event() && PPME_IS_EXIT(get_type())) {
+			return true;
+		}
+
+		return false;
+	}
+
+	inline int64_t get_syscall_return_value() {
+		if(!has_return_value()) {
+			throw sinsp_exception(
+			        "Called get_syscall_return_value() on an event that does not have a return "
+			        "value. "
+			        "Event type: " +
+			        std::to_string(get_type()));
+		}
+
+		// The return value is always the first parameter of the syscall event
+		// It could have different names depending on the event type `res`,`fd`, etc.
+		const sinsp_evt_param* p = get_param(0);
+		if(p == NULL) {
+			// We should always have the return value in the syscall
+			ASSERT(false);
+			return 0;
+		}
+
+		// the only return values should be on 32 or 64 bits
+		switch(scap_get_size_bytes_from_type(p->get_info()->type)) {
+		case 4:
+			return (int64_t)p->as<int32_t>();
+		case 8:
+			return p->as<int64_t>();
+		default:
+			ASSERT(false);
+			return 0;
+		}
+	}
 
 private:
 	sinsp* m_inspector;
