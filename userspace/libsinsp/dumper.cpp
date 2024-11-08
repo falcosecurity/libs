@@ -69,7 +69,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	inspector->m_container_manager.dump_containers(*this);
 	inspector->m_usergroup_manager.dump_users_groups(*this);
 
-	// notify registered plugins of capture open
+	// ask registered ASYNC plugins for a dump of their state
 	for(auto& p : inspector->m_plugin_manager->plugins()) {
 		if(p->caps() & CAP_ASYNC) {
 			if(!p->dump(*this)) {
