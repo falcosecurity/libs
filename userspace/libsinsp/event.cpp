@@ -112,7 +112,10 @@ const char *sinsp_evt::get_name() const {
 }
 
 event_direction sinsp_evt::get_direction() const {
-	return (event_direction)(m_pevt->type & PPME_DIRECTION_FLAG);
+	if(is_enter_event()) {
+		return SCAP_ED_IN;
+	}
+	return SCAP_ED_OUT;
 }
 
 int64_t sinsp_evt::get_tid() const {

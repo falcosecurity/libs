@@ -380,7 +380,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
 	const char *resolved_argstr;
 	uint16_t etype = evt->get_type();
 
-	if(PPME_IS_ENTER(etype) && !evt->is_new_event_version()) {
+	if(evt->is_enter_event()) {
 		return false;
 	}
 

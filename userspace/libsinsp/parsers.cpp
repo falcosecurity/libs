@@ -705,7 +705,7 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 	}
 
 	// todo!: remove old logic at the end of the work
-	if(PPME_IS_ENTER(etype)) {
+	if(evt->is_enter_event()) {
 		evt->get_tinfo()->m_lastevent_fd = -1;
 		evt->get_tinfo()->set_lastevent_type(etype);
 

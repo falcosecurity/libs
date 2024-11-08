@@ -692,7 +692,7 @@ public:
 			}
 		}
 
-		switch(PPME_MAKE_ENTER(get_type())) {
+		switch(get_enter_event_type()) {
 		case PPME_SYSCALL_OPENAT_E:
 		case PPME_SYSCALL_OPENAT_2_E:
 		case PPME_SYSCALL_OPENAT2_E:
@@ -735,7 +735,7 @@ public:
 	inline bool has_return_value() {
 		// The event has a return value:
 		// * if it is a syscall event and it is an exit event.
-		if(is_syscall_event() && (PPME_IS_EXIT(get_type()) || is_new_event_version())) {
+		if(is_syscall_event() && is_exit_event()) {
 			return true;
 		}
 
@@ -783,6 +783,23 @@ public:
 	int32_t get_used_fd();
 
 	int64_t get_dirfd(uint8_t id);
+
+	// todo!: remove it at the end of the work
+	// All new event versions are exit events.
+	inline bool is_enter_event() const {
+		return !is_new_event_version() && ((get_type() & 1) == 0);
+	}
+
+	// todo!: remove it at the end of the work
+	inline bool is_exit_event() const { return !is_enter_event(); }
+
+	// todo!: remove it at the end of the work
+	// if it is an enter event it returns itself
+	inline uint16_t get_enter_event_type() const {
+		// we cannot use it on new event versions
+		ASSERT(!is_new_event_version());
+		return (get_type() & (~1));
+	}
 
 private:
 	sinsp* m_inspector;

@@ -1015,11 +1015,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 	}
 	case TYPE_DIR:
-		if(evt->is_new_event_version()) {
-			RETURN_EXTRACT_CSTR("<");
-		}
-
-		if(PPME_IS_ENTER(evt->get_type())) {
+		if(evt->is_enter_event()) {
 			RETURN_EXTRACT_CSTR(">");
 		} else {
 			RETURN_EXTRACT_CSTR("<");
@@ -1368,10 +1364,13 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_WAIT_LATENCY: {
-		ppm_event_flags eflags = evt->get_info_flags();
-		uint16_t etype = evt->get_scap_evt()->type;
+		// We don't have enter events so we can return always NULL
+		if(evt->is_new_event_version()) {
+			return NULL;
+		}
 
-		if(eflags & (EF_WAITS) && PPME_IS_EXIT(etype)) {
+		// todo!: we need to remove/rework this at the end of the work.
+		if((evt->get_info_flags() & (EF_WAITS)) && evt->is_exit_event()) {
 			if(evt->get_tinfo() != NULL) {
 				m_val.u64 = evt->get_tinfo()->m_latency;
 			} else {
@@ -1479,7 +1478,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		return NULL;
 	}
 	case TYPE_COUNT_EXIT:
-		if(PPME_IS_EXIT(evt->get_type())) {
+		if(evt->is_exit_event()) {
 			m_val.u32 = 1;
 			RETURN_EXTRACT_VAR(m_val.u32);
 		} else {
