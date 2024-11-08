@@ -1289,68 +1289,31 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 		break;
 	case TYPE_RESRAW: {
-		const sinsp_evt_param* pi = evt->get_param_by_name("res");
-
-		if(pi != NULL) {
-			*len = pi->m_len;
-			return (uint8_t*)pi->m_val;
+		if(!evt->has_return_value()) {
+			return NULL;
 		}
 
-		if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type())) {
-			pi = evt->get_param_by_name("fd");
-
-			if(pi != NULL) {
-				*len = pi->m_len;
-				return (uint8_t*)pi->m_val;
-			}
-		}
-
-		return NULL;
+		m_val.s64 = evt->get_syscall_return_value();
+		RETURN_EXTRACT_VAR(m_val.s64);
 	} break;
 	case TYPE_RESSTR: {
-		const char* resolved_argstr;
-		const char* argstr;
-
-		const sinsp_evt_param* pi = evt->get_param_by_name("res");
-
-		if(pi != NULL) {
-			int64_t res = pi->as<int64_t>();
-
-			if(res >= 0) {
-				RETURN_EXTRACT_CSTR("SUCCESS");
-			} else {
-				argstr = evt->get_param_value_str("res", &resolved_argstr);
-				ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
-
-				if(resolved_argstr != NULL && resolved_argstr[0] != 0) {
-					RETURN_EXTRACT_CSTR(resolved_argstr);
-				} else if(argstr != NULL) {
-					RETURN_EXTRACT_CSTR(argstr);
-				}
-			}
-		} else {
-			if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type())) {
-				pi = evt->get_param_by_name("fd");
-				if(pi) {
-					int64_t res = pi->as<int64_t>();
-
-					if(res >= 0) {
-						RETURN_EXTRACT_CSTR("SUCCESS");
-					} else {
-						argstr = evt->get_param_value_str("fd", &resolved_argstr);
-						ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
-
-						if(resolved_argstr != NULL && resolved_argstr[0] != 0) {
-							RETURN_EXTRACT_CSTR(resolved_argstr);
-						} else if(argstr != NULL) {
-							RETURN_EXTRACT_CSTR(argstr);
-						}
-					}
-				}
-			}
+		if(!evt->has_return_value()) {
+			return NULL;
 		}
 
-		return NULL;
+		int64_t res = evt->get_syscall_return_value();
+		if(res >= 0) {
+			RETURN_EXTRACT_CSTR("SUCCESS");
+		}
+
+		if(evt->is_new_event_version()) {
+			// todo!: we should check if a failed syscall can return something that is not an errno
+			m_strstorage = sinsp_utils::errno_to_str((int32_t)res);
+			RETURN_EXTRACT_STRING(m_strstorage);
+		}
+
+		m_strstorage = evt->get_param_value_str(0, true);
+		RETURN_EXTRACT_STRING(m_strstorage);
 	} break;
 	case TYPE_ISIO: {
 		ppm_event_flags eflags = evt->get_info_flags();
