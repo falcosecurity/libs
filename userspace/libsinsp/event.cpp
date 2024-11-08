@@ -788,8 +788,14 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 
 		snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), prfmt, param->as<int64_t>());
 		break;
+	// todo!: at the end of the work we shouldn't have params with type PT_FD
 	case PT_FD: {
 		int64_t fd = param->as<int64_t>();
+		render_fd(fd, resolved_str, fmt);
+		break;
+	}
+	case PT_FD32: {
+		int64_t fd = (int64_t)param->as<int32_t>();
 		render_fd(fd, resolved_str, fmt);
 		break;
 	}

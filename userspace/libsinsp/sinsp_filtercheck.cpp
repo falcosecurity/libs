@@ -114,6 +114,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		}
 
 	case PT_INT32:
+	case PT_FD32:
 		if(print_format == PF_DEC || print_format == PF_ID) {
 			return rawval_cast<int32_t>(rawval);
 		} else if(print_format == PF_OCT || print_format == PF_HEX) {
@@ -259,6 +260,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		         rawval_cast<int16_t>(rawval));
 		return m_getpropertystr_storage.data();
 	case PT_INT32:
+	case PT_FD32:
 		if(print_format == PF_OCT) {
 			prfmt = (char*)"%" PRIo32;
 		} else if(print_format == PF_DEC || print_format == PF_ID) {

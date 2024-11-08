@@ -101,6 +101,7 @@ protected:
 			        case PT_SIGSET:
 			        case PT_MODE:
 			        case PT_ENUMFLAGS32:
+			        case PT_FD32:
 				        if(sizeof(inputs) != 4) {
 					        throw std::runtime_error(prefix + "wrong sized argument " +
 					                                 std::to_string(i) +

@@ -1160,6 +1160,8 @@ const char* param_type_to_string(ppm_param_type pt) {
 		return "SOCKTUPLE";
 	case PT_FD:
 		return "FD";
+	case PT_FD32:
+		return "FD";
 	case PT_PID:
 		return "PID";
 	case PT_FDLIST:

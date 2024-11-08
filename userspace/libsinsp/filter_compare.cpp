@@ -360,6 +360,7 @@ bool flt_is_comparable(cmpop op, ppm_param_type t, bool is_list, std::string& er
 	case PT_UINT64:
 	case PT_ERRNO:
 	case PT_FD:
+	case PT_FD32:
 	case PT_PID:
 	case PT_SYSCALLID:
 	case PT_SIGTYPE:
@@ -615,6 +616,7 @@ bool flt_compare(cmpop op,
 		                                    flt_cast<int16_t, int64_t>(operand1),
 		                                    flt_cast<int16_t, int64_t>(operand2));
 	case PT_INT32:
+	case PT_FD32:
 		return flt_compare_numeric<int64_t>(op,
 		                                    flt_cast<int32_t, int64_t>(operand1),
 		                                    flt_cast<int32_t, int64_t>(operand2));
@@ -763,6 +765,7 @@ bool flt_compare_avg(cmpop op,
 		ASSERT(cnt2 != 0 || i642 == 0);
 		return flt_compare_numeric<int64_t>(op, i641, i642);
 	case PT_INT32:
+	case PT_FD32:
 		i641 = ((int64_t) * (int32_t*)operand1) / cnt1;
 		i642 = ((int64_t) * (int32_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || i641 == 0);

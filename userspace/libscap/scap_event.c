@@ -215,6 +215,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 		case PT_SIGSET:
 		case PT_MODE:
 		case PT_ENUMFLAGS32:
+		case PT_FD32:
 			u32_arg = va_arg(args, uint32_t);
 			param.buf = &u32_arg;
 			param.size = sizeof(uint32_t);
@@ -378,6 +379,7 @@ uint8_t scap_get_size_bytes_from_type(enum ppm_param_type t) {
 	case PT_UID:
 	case PT_GID:
 	case PT_MODE:
+	case PT_FD32:
 		return 4;
 
 	case PT_INT64:
