@@ -1513,7 +1513,8 @@ typedef enum {
 	PPME_SYSCALL_SETREUID_X = 427,
 	PPME_SYSCALL_SETREGID_E = 428,
 	PPME_SYSCALL_SETREGID_X = 429,
-	PPM_EVENT_MAX = 430
+	PPME_SYSCALL_OPEN = 430,
+	PPM_EVENT_MAX = 431
 } ppm_event_code;
 /*@}*/
 
@@ -2056,6 +2057,9 @@ enum ppm_event_flags {
 	// overhead to full event capture */ SUPPORT DROPPED
 	EF_LARGE_PAYLOAD = (1 << 11), /* This event has a large payload, ie: up to UINT32_MAX bytes. DO
 	                                 NOT USE ON syscalls-driven events!!! */
+	EF_NEW_VERSION = (1 << 12),   /* Used to temporally distiguish between new event version and old
+	                                 ones in a reliable way */
+
 };
 
 /*

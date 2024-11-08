@@ -40,6 +40,9 @@ protected:
 	uint8_t* extract_single(sinsp_evt*, uint32_t* len, bool sanitize_strings = true) override;
 
 private:
+	bool extract_old_implementation(sinsp_evt* evt);
+	bool extract_new_implementation(sinsp_evt* evt);
+
 	typedef std::map<uint16_t, std::shared_ptr<sinsp_filter_check>> filtercheck_map_t;
 
 	std::shared_ptr<sinsp_filter_check> create_event_check(const char* name,

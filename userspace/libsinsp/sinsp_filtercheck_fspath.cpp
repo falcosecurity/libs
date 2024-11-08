@@ -298,16 +298,11 @@ static inline std::string format_dirfd(sinsp_evt* evt) {
 	return fd_info_dirfd->m_name + '/';
 }
 
-uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
-                                                   uint32_t* len,
-                                                   bool sanitize_strings) {
-	*len = 0;
-	ASSERT(evt);
-
+bool sinsp_filter_check_fspath::extract_old_implementation(sinsp_evt* evt) {
 	// First check the success conditions.
 	auto it = m_success_checks->find(evt->get_type());
 	if(it == m_success_checks->end() || !it->second->compare(evt)) {
-		return NULL;
+		return false;
 	}
 
 	std::optional<std::reference_wrapper<const std::string>> enter_param;
@@ -324,7 +319,7 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 		case PPME_SYSCALL_UNLINK_X:
 			enter_param = evt->get_enter_evt_param("path");
 			if(!enter_param.has_value()) {
-				return NULL;
+				return false;
 			}
 			m_tstr = enter_param.value();
 			break;
@@ -332,13 +327,13 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 		case PPME_SYSCALL_OPENAT_X:
 			enter_param = evt->get_enter_evt_param("name");
 			if(!enter_param.has_value()) {
-				return NULL;
+				return false;
 			}
 			m_tstr = enter_param.value();
 			break;
 		default:
 			if(!extract_fspath(evt, extract_values, m_path_checks)) {
-				return NULL;
+				return false;
 			}
 			m_tstr.assign((const char*)extract_values[0].ptr,
 			              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
@@ -353,13 +348,13 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 		case PPME_SYSCALL_LINKAT_X:
 			enter_param = evt->get_enter_evt_param("newpath");
 			if(!enter_param.has_value()) {
-				return NULL;
+				return false;
 			}
 			m_tstr = enter_param.value();
 			break;
 		default:
 			if(!extract_fspath(evt, extract_values, m_source_checks)) {
-				return NULL;
+				return false;
 			}
 			m_tstr.assign((const char*)extract_values[0].ptr,
 			              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
@@ -374,20 +369,79 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 		case PPME_SYSCALL_LINKAT_X:
 			enter_param = evt->get_enter_evt_param("oldpath");
 			if(!enter_param.has_value()) {
-				return NULL;
+				return false;
 			}
 			m_tstr = enter_param.value();
 			break;
 		default:
 			if(!extract_fspath(evt, extract_values, m_target_checks)) {
-				return NULL;
+				return false;
 			}
 			m_tstr.assign((const char*)extract_values[0].ptr,
 			              strnlen((const char*)extract_values[0].ptr, extract_values[0].len));
 		};
 		break;
 	default:
-		return NULL;
+		return false;
+	}
+	return true;
+}
+
+bool sinsp_filter_check_fspath::extract_new_implementation(sinsp_evt* evt) {
+	switch(m_field_id) {
+	case TYPE_NAME:
+	case TYPE_NAMERAW:
+		switch(evt->get_type()) {
+		case PPME_SYSCALL_OPEN:
+			ASSERT(strncmp(evt->get_param_name(1), "name", 5) == 0);
+			m_tstr = evt->get_param(1)->as<std::string>();
+			break;
+
+		default:
+			return false;
+		};
+		break;
+	case TYPE_SOURCE:
+	case TYPE_SOURCERAW:
+		switch(evt->get_type()) {
+		default:
+			return false;
+		};
+		break;
+	case TYPE_TARGET:
+	case TYPE_TARGETRAW:
+		switch(evt->get_type()) {
+		default:
+			return false;
+		};
+		break;
+	default:
+		return false;
+	}
+	return true;
+}
+
+uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
+                                                   uint32_t* len,
+                                                   bool sanitize_strings) {
+	*len = 0;
+	ASSERT(evt);
+
+	// todo!: cleanup this workaround when the support will be complete
+	if(evt->is_new_event_version()) {
+		switch(evt->get_type()) {
+		case PPME_SYSCALL_OPEN:
+			if(!extract_new_implementation(evt)) {
+				return NULL;
+			}
+			break;
+		default:
+			return NULL;
+		}
+	} else {
+		if(!extract_old_implementation(evt)) {
+			return NULL;
+		}
 	}
 
 	// For the non-raw fields, if the path is not absolute,

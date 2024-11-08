@@ -679,3 +679,17 @@ sinsp_evt* sinsp_with_test_input::next_event() {
 	auto result = m_inspector.next(&evt);
 	return result == SCAP_SUCCESS ? evt : nullptr;
 }
+
+sinsp_evt* sinsp_with_test_input::generate_open_event(sinsp_test_input::open_params params,
+                                                      int64_t tid_caller) {
+	return add_event_advance_ts(increasing_ts(),
+	                            tid_caller,
+	                            PPME_SYSCALL_OPEN,
+	                            6,
+	                            params.fd,
+	                            params.path,
+	                            params.flags,
+	                            params.mode,
+	                            params.dev,
+	                            params.ino);
+}

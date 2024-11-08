@@ -686,11 +686,13 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo) {
 
 	const ppm_param_info *dir_param_info = &(m_info->params[dirfd_id]);
 	// Ensure the index points to an actual FD
-	if(dir_param_info->type != PT_FD) {
+	ASSERT(dir_param_info->type == PT_FD || dir_param_info->type == PT_FD32);
+	// todo!: We should remove this if since this is an information known at compile time
+	if(dir_param_info->type != PT_FD || dir_param_info->type != PT_FD32) {
 		return cwd;
 	}
 
-	const int64_t dirfd = get_param(dirfd_id)->as<int64_t>();
+	const int64_t dirfd = get_dirfd(dirfd_id);
 
 	// If the FD is special value PPM_AT_FDCWD, just use CWD
 	if(dirfd == PPM_AT_FDCWD) {
@@ -1684,7 +1686,8 @@ bool sinsp_evt::is_file_open_error() const {
 	       ((m_pevt->type == PPME_SYSCALL_OPEN_X) || (m_pevt->type == PPME_SYSCALL_CREAT_X) ||
 	        (m_pevt->type == PPME_SYSCALL_OPENAT_X) || (m_pevt->type == PPME_SYSCALL_OPENAT_2_X) ||
 	        (m_pevt->type == PPME_SYSCALL_OPENAT2_X) ||
-	        (m_pevt->type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X));
+	        (m_pevt->type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) ||
+	        (m_pevt->type == PPME_SYSCALL_OPEN));
 }
 
 bool sinsp_evt::is_file_error() const {
@@ -1844,4 +1847,36 @@ void sinsp_evt_param::throw_invalid_len_error(size_t requested_length) const {
 
 const ppm_param_info *sinsp_evt_param::get_info() const {
 	return &(m_evt->get_info()->params[m_idx]);
+}
+
+// we return an int32_t since it should be used only by new events.
+int32_t sinsp_evt::get_used_fd() {
+	ASSERT(is_new_event_version());
+
+	// we need to be sure that this syscall has a fd between its parameters.
+	if(!uses_fd()) {
+		throw sinsp_exception(
+		        "Called get_used_fd() on an event that does not uses an FD. "
+		        "Event type: " +
+		        std::to_string(get_type()));
+	}
+
+	// todo!: we could have the file descriptor in the same position (like the second argument)
+	// for all the events with this flag but it could increase the complexity of the conversion
+	// phase for the old events in scap-files. At the moment we find it by name and we don't
+	// rely on its position.
+	return get_param_by_name("fd")->as<int32_t>();
+}
+
+// we should return an int64_t since it used by all events (old and new)
+int64_t sinsp_evt::get_dirfd(uint8_t id) {
+	const sinsp_evt_param *p = get_param(id);
+	if(p->get_info()->type == PT_FD) {
+		return p->as<int64_t>();
+	} else if(p->get_info()->type == PT_FD32) {
+		return (int64_t)p->as<int32_t>();
+	} else {
+		ASSERT(false);
+		return 0;
+	}
 }

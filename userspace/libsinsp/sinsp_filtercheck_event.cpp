@@ -1015,6 +1015,10 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		}
 	}
 	case TYPE_DIR:
+		if(evt->is_new_event_version()) {
+			RETURN_EXTRACT_CSTR("<");
+		}
+
 		if(PPME_IS_ENTER(evt->get_type())) {
 			RETURN_EXTRACT_CSTR(">");
 		} else {
@@ -1449,7 +1453,8 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 			if(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_CREAT_X ||
 			   etype == PPME_SYSCALL_OPENAT_X || etype == PPME_SYSCALL_OPENAT_2_X ||
-			   etype == PPME_SYSCALL_OPENAT2_X || etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
+			   etype == PPME_SYSCALL_OPENAT2_X || etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X ||
+			   etype == PPME_SYSCALL_OPEN) {
 				return extract_error_count(evt, len);
 			}
 		}
@@ -1503,7 +1508,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 			     etype == PPME_SOCKET_ACCEPT_X || etype == PPME_SOCKET_ACCEPT_5_X ||
 			     etype == PPME_SOCKET_ACCEPT4_X || etype == PPME_SOCKET_ACCEPT4_5_X ||
 			     etype == PPME_SOCKET_ACCEPT4_6_X || etype == PPME_SOCKET_CONNECT_X ||
-			     evt->get_category() == EC_MEMORY)) {
+			     etype == PPME_SYSCALL_OPEN || evt->get_category() == EC_MEMORY)) {
 				return extract_error_count(evt, len);
 			}
 		}
@@ -1624,7 +1629,7 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 		if(etype == PPME_SYSCALL_OPEN_X || etype == PPME_SYSCALL_OPENAT_E ||
 		   etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X ||
-		   etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
+		   etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X || etype == PPME_SYSCALL_OPEN) {
 			bool is_new_version =
 			        etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
 			// For both OPEN_X and OPENAT_E,

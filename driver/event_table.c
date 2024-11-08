@@ -2397,6 +2397,19 @@ const struct ppm_event_info g_event_info[] = {
                                      {{"res", PT_ERRNO, PF_DEC},
                                       {"rgid", PT_UID, PF_DEC},
                                       {"egid", PT_UID, PF_DEC}}},
+        ////////////////////
+        // New exit events
+        ////////////////////
+        [PPME_SYSCALL_OPEN] = {"open",
+                               EC_FILE | EC_SYSCALL,
+                               EF_CREATES_FD | EF_MODIFIES_STATE | EF_NEW_VERSION,
+                               6,
+                               {{"fd", PT_FD32, PF_DEC},
+                                {"name", PT_FSPATH, PF_NA},
+                                {"flags", PT_FLAGS32, PF_HEX, file_flags},
+                                {"mode", PT_UINT32, PF_OCT},
+                                {"dev", PT_UINT32, PF_HEX},
+                                {"ino", PT_UINT64, PF_DEC}}},
 };
 #pragma GCC diagnostic pop
 

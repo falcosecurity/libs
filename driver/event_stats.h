@@ -10,7 +10,7 @@ or GPL2.txt for full copies of the license.
 #pragma once
 
 /* These numbers must be updated when we add new events in the event table */
-#define SYSCALL_EVENTS_NUM 382
+#define SYSCALL_EVENTS_NUM 383
 #define TRACEPOINT_EVENTS_NUM 6
 #define METAEVENTS_NUM 20
 #define PLUGIN_EVENTS_NUM 1

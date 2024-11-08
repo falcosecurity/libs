@@ -140,6 +140,8 @@ TEST(event_table, check_event_names) {
 		event_names_count[info.name]++;
 	}
 
+	// todo!: at the end of this work there should be only one event with the syscall name not 2. We
+	// need to revisit this test
 	for(const auto& evt : event_names_count) {
 		/* NA occurrences should be equal to unknown events number, so more than 2 */
 		if(evt.first.compare("NA") != 0) {

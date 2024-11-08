@@ -681,6 +681,17 @@ public:
 	inline std::vector<sinsp_evt_param>& get_params() { return m_params; }
 
 	inline char extract_typechar() {
+		// todo!: remove this at the end of the work
+		if(is_new_event_version()) {
+			switch(get_type()) {
+			case PPME_SYSCALL_OPEN:
+				return CHAR_FD_FILE;
+
+			default:
+				return 'o';
+			}
+		}
+
 		switch(PPME_MAKE_ENTER(get_type())) {
 		case PPME_SYSCALL_OPENAT_E:
 		case PPME_SYSCALL_OPENAT_2_E:
@@ -724,7 +735,7 @@ public:
 	inline bool has_return_value() {
 		// The event has a return value:
 		// * if it is a syscall event and it is an exit event.
-		if(is_syscall_event() && PPME_IS_EXIT(get_type())) {
+		if(is_syscall_event() && (PPME_IS_EXIT(get_type()) || is_new_event_version())) {
 			return true;
 		}
 
@@ -760,6 +771,18 @@ public:
 			return 0;
 		}
 	}
+
+	inline bool uses_fd() const { return get_info_flags() & EF_USES_FD; }
+
+	inline bool creates_fd() const { return get_info_flags() & EF_CREATES_FD; }
+
+	// todo!: probably we can remove it at the end of the work, just use it right now to clearly
+	// identify new event types.
+	inline bool is_new_event_version() const { return get_info_flags() & EF_NEW_VERSION; }
+
+	int32_t get_used_fd();
+
+	int64_t get_dirfd(uint8_t id);
 
 private:
 	sinsp* m_inspector;

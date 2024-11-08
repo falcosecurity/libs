@@ -894,6 +894,7 @@ void count_syscalls(scap_evt* ev) {
 		uint16_t ppm_sc_code = *(uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr) +
 		                                    ev->nparams * sizeof(uint16_t));
 
+		// todo!: revisit this counting logic at the end of the work
 		if(PPME_IS_ENTER(type)) {
 			ppm_sc_count[ppm_sc_code].counter++;
 		} else {

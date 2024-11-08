@@ -380,12 +380,13 @@ bool sinsp_filter_check_fd::extract_fdname_from_event(sinsp_evt *evt,
 	const char *resolved_argstr;
 	uint16_t etype = evt->get_type();
 
-	if(PPME_IS_ENTER(etype)) {
+	if(PPME_IS_ENTER(etype) && !evt->is_new_event_version()) {
 		return false;
 	}
 
 	switch(etype) {
 	case PPME_SYSCALL_OPEN_X:
+	case PPME_SYSCALL_OPEN:
 	case PPME_SOCKET_ACCEPT_X:
 	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
@@ -536,6 +537,8 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 		if(evt->get_type() == PPME_SOCKET_CONNECT_X) {
 			int64_t retval = evt->get_syscall_return_value();
 			// this is a weird behavior, see the `net_connect_exit_event_fails` test for more info
+			// this is not the use case, when the open fails we populate some fields like fd.name
+			// even if the syscall is failed.
 			if(retval < 0) {
 				if(!extract_fdname_from_event(evt, sanitize_strings)) {
 					return NULL;
@@ -591,7 +594,11 @@ uint8_t *sinsp_filter_check_fd::extract_single(sinsp_evt *evt,
 			sanitize_string(m_tstr);
 		}
 
-		if(m_fdinfo != NULL && m_fdinfo->is_file()) {
+		// Here we shold have the full path in `m_tstr` but we want the directory so we need to
+		// remove the last part.
+		// - If fdinfo is a dir we do nothing
+		// - If fdinfo is a file or NULL we remove the filename
+		if((m_fdinfo != NULL && m_fdinfo->is_file()) || m_fdinfo == NULL) {
 			size_t pos = m_tstr.rfind('/');
 			if(pos != string::npos && pos != 0) {
 				if(pos < m_tstr.size() - 1) {

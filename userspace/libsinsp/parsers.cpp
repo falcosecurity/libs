@@ -447,6 +447,13 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 		}
 		break;
 	}
+	/////////////////
+	// New parsers
+	/////////////////
+	case PPME_SYSCALL_OPEN:
+		parse_open_openat_creat_exit(evt);
+		break;
+
 	default:
 		break;
 	}
@@ -654,6 +661,50 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 		evt->get_tinfo()->m_flags |= PPM_CL_ACTIVE;
 	}
 
+	// Logic for new events
+	if(evt->is_syscall_event() && evt->is_new_event_version()) {
+		// todo!: check if we really need this logic, since in many other parts we check again the
+		// return value this could be a duplicate...or at least we can store it since we compute it
+		// for each event here.
+		if(evt->has_return_value()) {
+			int64_t res = evt->get_syscall_return_value();
+			if(res < 0) {
+				evt->set_errorcode(-(int32_t)res);
+			}
+		}
+
+		// The tinfo is never NULL here, we can move it outside at the end of the work
+		sinsp_threadinfo *tinfo = evt->get_tinfo();
+		ASSERT(tinfo);
+
+		if(evt->uses_fd()) {
+			// This is a strategy to save the fd even if we don't have the fdinfo available for that
+			// event. Probably we can do better and save the information in the event itself rather
+			// than in the thread. This a logic mainly used for enter and exit, not sure this would
+			// be still useful at the end of the work.
+			tinfo->m_lastevent_fd = evt->get_used_fd();
+
+			// todo!: note that `tinfo->get_fd` can return NULL if we dropped some events.
+			// if we look at many parsers we return immediately if `m_fdinfo` is NULL maybe we could
+			// return here (?)
+			evt->set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
+		}
+
+		if(evt->creates_fd()) {
+			// The fd is always the return value in this case.
+			int64_t res = evt->get_syscall_return_value();
+			if(res < 0) {
+				tinfo->m_lastevent_fd = -1;
+			} else {
+				tinfo->m_lastevent_fd = evt->get_syscall_return_value();
+			}
+
+			// we cannot set the fdinfo here since we still need to create it.
+		}
+		return true;
+	}
+
+	// todo!: remove old logic at the end of the work
 	if(PPME_IS_ENTER(etype)) {
 		evt->get_tinfo()->m_lastevent_fd = -1;
 		evt->get_tinfo()->set_lastevent_type(etype);
@@ -2403,7 +2454,6 @@ std::string sinsp_parser::parse_dirfd(sinsp_evt *evt, std::string_view name, int
 }
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
-	int64_t fd;
 	std::string_view name;
 	std::string_view enter_evt_name;
 	uint32_t flags;
@@ -2419,7 +2469,8 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
 		return;
 	}
 
-	if(etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X) {
+	// todo!: at the end of the work we need to remove all the code related to enter events.
+	if(etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X && etype != PPME_SYSCALL_OPEN) {
 		//
 		// Load the enter event so we can access its arguments
 		//
@@ -2429,7 +2480,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
 	//
 	// Check the return value
 	//
-	fd = evt->get_syscall_return_value();
+	int64_t fd = evt->get_syscall_return_value();
 
 	//
 	// Parse the parameters, based on the event type
@@ -2561,6 +2612,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt) {
 		// The driver implementation always serves an absolute path for open_by_handle_at using
 		// dpath traversal; hence there is no need to interpret the path relative to mountfd.
 		sdir = "";
+	} else if(etype == PPME_SYSCALL_OPEN) {
+		name = evt->get_param(1)->as<std::string_view>();
+		flags = evt->get_param(2)->as<uint32_t>();
+		dev = evt->get_param(4)->as<uint32_t>();
+		ino = evt->get_param(5)->as<uint64_t>();
+		sdir = evt->get_tinfo()->get_cwd();
 	} else {
 		ASSERT(false);
 		return;
