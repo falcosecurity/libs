@@ -53,6 +53,10 @@ TEST_F(sinsp_with_test_input, parse_open_success) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "f");
 
 	// Assert parameters filterchecks
+	ASSERT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawres"), std::to_string(fd));
+	ASSERT_EQ(get_field_as_string(evt, "evt.failed"), "false");
+
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"),
 	          std::string("<f>") + sinsp_test_input::open_params::default_path);
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.fd32_rename"), std::to_string(fd));
@@ -107,6 +111,10 @@ TEST_F(sinsp_with_test_input, parse_open_failure) {
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "f");
 
 	// Assert return value filterchecks
+	ASSERT_EQ(get_field_as_string(evt, "evt.res"), "ESRCH");
+	ASSERT_EQ(get_field_as_string(evt, "evt.rawres"), std::to_string(fd));
+	ASSERT_EQ(get_field_as_string(evt, "evt.failed"), "true");
+
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), "ESRCH");
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.fd32_rename"), std::to_string(fd));
 }
