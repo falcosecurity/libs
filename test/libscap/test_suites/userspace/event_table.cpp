@@ -137,6 +137,10 @@ TEST(event_table, check_event_names) {
 			continue;
 		}
 
+		if(info.flags & EF_NEW_VERSION) {
+			continue;
+		}
+
 		event_names_count[info.name]++;
 	}
 
