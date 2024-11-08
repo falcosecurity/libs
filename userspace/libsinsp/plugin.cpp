@@ -1186,44 +1186,61 @@ bool sinsp_plugin::dump(sinsp_dumper& dumper) {
 	}
 
 	if(!m_handle->api.dump) {
-		// Not required.
-		return true;
-	}
-
-	uint32_t num_evts;
-	ss_plugin_event** evts;
-
-	if(m_handle->api.dump(m_state, &num_evts, &evts) != SS_PLUGIN_SUCCESS) {
 		return false;
 	}
 
-	for(uint32_t i = 0; i < num_evts; i++) {
-		auto e = evts[i];
-		if(e == nullptr) {
-			throw sinsp_exception("null async event dumped by plugin: " + m_name);
-		}
+	m_async_dump_handler = [&dumper](auto e) { dumper.dump(e.get()); };
 
+	const auto callback =
+	        [](ss_plugin_owner_t* o, const ss_plugin_event* e, char* err) -> ss_plugin_rc {
+		auto p = static_cast<sinsp_plugin*>(o);
 		// We only support dumping of PPME_ASYNCEVENT_E events
 		if(e->type != PPME_ASYNCEVENT_E || e->nparams != 3) {
-			throw sinsp_exception("malformed async event dumped by plugin: " + m_name);
+			if(err) {
+				auto e = "malformed async event produced by plugin: " + p->name();
+				strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+			}
+			return SS_PLUGIN_FAILURE;
 		}
 
 		// Event name must be one of the async event names
 		auto name = (const char*)((uint8_t*)e + sizeof(ss_plugin_event) + 4 + 4 + 4 + 4);
-		if(async_event_names().find(name) == async_event_names().end()) {
-			throw sinsp_exception("incompatible async event '" + std::string(name) +
-			                      "' produced by plugin: " + m_name);
+		if(p->async_event_names().find(name) == p->async_event_names().end()) {
+			if(err) {
+				auto e = "incompatible async event '" + std::string(name) +
+				         "' produced by plugin: " + p->name();
+				strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+			}
+			return SS_PLUGIN_FAILURE;
 		}
 
-		// Build the sinsp_evt
-		sinsp_evt evt;
-		evt.set_scap_evt_storage(new char[e->len]);
-		evt.set_scap_evt((scap_evt*)evt.get_scap_evt_storage());
-		memcpy(evt.get_scap_evt_storage(), e, e->len);
-		evt.set_cpuid(0);
-		evt.set_num(0);
-		evt.init();
-		dumper.dump(&evt);
+		try {
+			auto evt = std::make_unique<sinsp_evt>();
+			ASSERT(evt->get_scap_evt_storage() == nullptr);
+			evt->set_scap_evt_storage(new char[e->len]);
+			memcpy(evt->get_scap_evt_storage(), e, e->len);
+			evt->set_cpuid(0);
+			evt->set_num(0);
+			evt->set_scap_evt((scap_evt*)evt->get_scap_evt_storage());
+			evt->init();
+			// note: plugin ID and timestamp will be set by the inspector
+			p->m_async_dump_handler(std::move(evt));
+		} catch(const std::exception& _e) {
+			if(err) {
+				strlcpy(err, _e.what(), PLUGIN_MAX_ERRLEN);
+			}
+			return SS_PLUGIN_FAILURE;
+		} catch(...) {
+			if(err) {
+				strlcpy(err, "unknwon error in dumping async event", PLUGIN_MAX_ERRLEN);
+			}
+			return SS_PLUGIN_FAILURE;
+		}
+		return SS_PLUGIN_SUCCESS;
+	};
+
+	if(m_handle->api.dump(m_state, this, callback) != SS_PLUGIN_SUCCESS) {
+		throw sinsp_exception("dump error for plugin '" + m_name + "' : " + m_last_owner_err);
 	}
 	return true;
 }

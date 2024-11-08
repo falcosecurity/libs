@@ -72,10 +72,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	// ask registered ASYNC plugins for a dump of their state
 	for(auto& p : inspector->m_plugin_manager->plugins()) {
 		if(p->caps() & CAP_ASYNC) {
-			if(!p->dump(*this)) {
-				throw sinsp_exception("dump error for plugin '" + p->name() +
-				                      "' : " + p->get_last_error());
-			}
+			p->dump(*this);
 		}
 	}
 

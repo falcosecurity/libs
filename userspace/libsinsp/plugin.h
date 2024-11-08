@@ -208,6 +208,8 @@ public:
 	using async_event_handler_t =
 	        std::function<void(const sinsp_plugin&, std::unique_ptr<sinsp_evt>)>;
 
+	using async_dump_handler_t = std::function<void(std::unique_ptr<sinsp_evt>)>;
+
 	bool set_async_event_handler(async_event_handler_t handler);
 
 	// note(jasondellaluce): we set these as protected in order to allow unit
@@ -250,9 +252,14 @@ private:
 	std::unordered_set<std::string> m_async_event_names;
 	std::atomic<async_event_handler_t*>
 	        m_async_evt_handler;  // note: we don't have thread-safe smart pointers
+	async_dump_handler_t m_async_dump_handler;
+
 	static ss_plugin_rc handle_plugin_async_event(ss_plugin_owner_t* o,
 	                                              const ss_plugin_event* evt,
 	                                              char* err);
+	static ss_plugin_rc handle_plugin_async_dump(ss_plugin_owner_t* o,
+	                                             const ss_plugin_event* evt,
+	                                             char* err);
 
 	/** Generic helpers **/
 	void validate_config(std::string& config);

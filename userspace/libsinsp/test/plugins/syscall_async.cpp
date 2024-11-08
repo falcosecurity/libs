@@ -188,30 +188,40 @@ ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s,
 	return SS_PLUGIN_SUCCESS;
 }
 
-ss_plugin_rc plugin_dump(ss_plugin_t* s, uint32_t* nevts, ss_plugin_event*** evts) {
-	static uint8_t evt_buf[10][256];
-	static ss_plugin_event* evt[10];
+ss_plugin_rc plugin_dump(ss_plugin_t* s,
+                         ss_plugin_owner_t* owner,
+                         const ss_plugin_async_event_handler_t handler) {
+	static uint8_t evt_buf[256];
+	static ss_plugin_event* evt;
+	char err[PLUGIN_MAX_ERRLEN];
 	const char* name = "sampleticker";
-	const char* data = "hello world";
+
 	for(int i = 0; i < 10; i++) {
-		evt[i] = (ss_plugin_event*)evt_buf[i];
+		evt = (ss_plugin_event*)evt_buf;
+
+		std::string data = "hello world #" + std::to_string(i);
+
 		char error[SCAP_LASTERR_SIZE];
-		int32_t encode_res =
-		        scap_event_encode_params(scap_sized_buffer{evt[i], sizeof(evt_buf[i])},
-		                                 nullptr,
-		                                 error,
-		                                 PPME_ASYNCEVENT_E,
-		                                 3,
-		                                 (uint32_t)0,
-		                                 name,
-		                                 scap_const_sized_buffer{(void*)data, strlen(data) + 1});
+		int32_t encode_res = scap_event_encode_params(
+		        scap_sized_buffer{evt, sizeof(evt_buf)},
+		        nullptr,
+		        error,
+		        PPME_ASYNCEVENT_E,
+		        3,
+		        (uint32_t)0,
+		        name,
+		        scap_const_sized_buffer{(void*)data.c_str(), data.length() + 1});
 
 		if(encode_res == SCAP_FAILURE) {
 			return SS_PLUGIN_FAILURE;
 		}
+		if(SS_PLUGIN_SUCCESS != handler(owner, evt, err)) {
+			printf("sample_syscall_async: unexpected failure in sending asynchronous event "
+			       "from plugin: %s\n",
+			       err);
+			exit(1);
+		}
 	}
-	*evts = evt;
-	*nevts = 10;
 	return SS_PLUGIN_SUCCESS;
 }
 
