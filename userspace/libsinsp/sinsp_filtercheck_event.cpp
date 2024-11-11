@@ -1517,30 +1517,23 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 		} else {
 			return NULL;
 		}
-	case TYPE_COUNT_PROCINFO: {
-		uint16_t etype = evt->get_type();
-
-		if(etype == PPME_PROCINFO_E) {
-			sinsp_threadinfo* tinfo = evt->get_thread_info();
-
-			if(tinfo != NULL && tinfo->is_main_thread()) {
-				m_val.u32 = 1;
-				RETURN_EXTRACT_VAR(m_val.u32);
-			}
-		}
-	}
-
-	break;
+	case TYPE_COUNT_PROCINFO:
 	case TYPE_COUNT_THREADINFO: {
-		uint16_t etype = evt->get_type();
-
-		if(etype == PPME_PROCINFO_E) {
-			m_val.u32 = 1;
+		m_val.u32 = 0;
+		if(evt->get_type() != PPME_PROCINFO_E) {
 			RETURN_EXTRACT_VAR(m_val.u32);
 		}
-	}
 
-	break;
+		if(m_field_id == TYPE_COUNT_THREADINFO) {
+			m_val.u32 = 1;
+		} else if(m_field_id == TYPE_COUNT_PROCINFO) {
+			sinsp_threadinfo* tinfo = evt->get_thread_info();
+			if(tinfo != NULL && tinfo->is_main_thread()) {
+				m_val.u32 = 1;
+			}
+		}
+		RETURN_EXTRACT_VAR(m_val.u32);
+	}
 	case TYPE_ABSPATH:
 		return extract_abspath(evt, len);
 	case TYPE_BUFLEN_IN:
