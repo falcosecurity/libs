@@ -70,13 +70,18 @@ class sinsp_filter_transformer {
 public:
 	using storage_t = std::vector<uint8_t>;
 
-	sinsp_filter_transformer(filter_transformer_type t): m_type(t) {};
+	virtual ~sinsp_filter_transformer();
 
-	bool transform_type(ppm_param_type& t, uint32_t& flags) const;
+	virtual bool transform_type(ppm_param_type& t, uint32_t& flags) const;
 
-	bool transform_values(std::vector<extract_value_t>& vals, ppm_param_type& t, uint32_t& flags);
+	virtual bool transform_values(std::vector<extract_value_t>& vals,
+	                              ppm_param_type& t,
+	                              uint32_t& flags) = 0;
 
-private:
+	static std::unique_ptr<sinsp_filter_transformer> create_transformer(
+	        filter_transformer_type trtype);
+
+protected:
 	using str_transformer_func_t = std::function<bool(std::string_view in, storage_t& out)>;
 
 	bool string_transformer(std::vector<extract_value_t>& vec,
@@ -92,4 +97,58 @@ private:
 
 	filter_transformer_type m_type;
 	std::vector<storage_t> m_storage_values;
+};
+
+class sinsp_filter_toupper_transformer : public sinsp_filter_transformer {
+public:
+	sinsp_filter_toupper_transformer();
+	bool transform_type(ppm_param_type& t, uint32_t& flags) const override;
+	bool transform_values(std::vector<extract_value_t>& vec,
+	                      ppm_param_type& t,
+	                      uint32_t& flags) override;
+};
+
+class sinsp_filter_tolower_transformer : public sinsp_filter_transformer {
+public:
+	sinsp_filter_tolower_transformer();
+	bool transform_type(ppm_param_type& t, uint32_t& flags) const override;
+	bool transform_values(std::vector<extract_value_t>& vec,
+	                      ppm_param_type& t,
+	                      uint32_t& flags) override;
+};
+
+class sinsp_filter_base64_transformer : public sinsp_filter_transformer {
+public:
+	sinsp_filter_base64_transformer();
+	bool transform_type(ppm_param_type& t, uint32_t& flags) const override;
+	bool transform_values(std::vector<extract_value_t>& vec,
+	                      ppm_param_type& t,
+	                      uint32_t& flags) override;
+};
+
+class sinsp_filter_storage_transformer : public sinsp_filter_transformer {
+public:
+	sinsp_filter_storage_transformer();
+	bool transform_type(ppm_param_type& t, uint32_t& flags) const override;
+	bool transform_values(std::vector<extract_value_t>& vec,
+	                      ppm_param_type& t,
+	                      uint32_t& flags) override;
+};
+
+class sinsp_filter_basename_transformer : public sinsp_filter_transformer {
+public:
+	sinsp_filter_basename_transformer();
+	bool transform_type(ppm_param_type& t, uint32_t& flags) const override;
+	bool transform_values(std::vector<extract_value_t>& vec,
+	                      ppm_param_type& t,
+	                      uint32_t& flags) override;
+};
+
+class sinsp_filter_len_transformer : public sinsp_filter_transformer {
+public:
+	sinsp_filter_len_transformer();
+	bool transform_type(ppm_param_type& t, uint32_t& flags) const override;
+	bool transform_values(std::vector<extract_value_t>& vec,
+	                      ppm_param_type& t,
+	                      uint32_t& flags) override;
 };
