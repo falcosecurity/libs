@@ -428,20 +428,11 @@ uint8_t* sinsp_filter_check_fspath::extract_single(sinsp_evt* evt,
 	ASSERT(evt);
 
 	// todo!: cleanup this workaround when the support will be complete
-	if(evt->is_new_event_version()) {
-		switch(evt->get_type()) {
-		case PPME_SYSCALL_OPEN:
-			if(!extract_new_implementation(evt)) {
-				return NULL;
-			}
-			break;
-		default:
-			return NULL;
-		}
-	} else {
-		if(!extract_old_implementation(evt)) {
-			return NULL;
-		}
+	bool result = evt->is_new_event_version() ? extract_new_implementation(evt)
+	                                          : extract_old_implementation(evt);
+
+	if(!result) {
+		return NULL;
 	}
 
 	// For the non-raw fields, if the path is not absolute,

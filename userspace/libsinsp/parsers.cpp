@@ -666,11 +666,11 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 		// todo!: check if we really need this logic, since in many other parts we check again the
 		// return value this could be a duplicate...or at least we can store it since we compute it
 		// for each event here.
-		if(evt->has_return_value()) {
-			int64_t res = evt->get_syscall_return_value();
-			if(res < 0) {
-				evt->set_errorcode(-(int32_t)res);
-			}
+
+		// If we are a syscall and we are a new event version we always have the return value.
+		int64_t res = evt->get_syscall_return_value();
+		if(res < 0) {
+			evt->set_errorcode(-(int32_t)res);
 		}
 
 		// The tinfo is never NULL here, we can move it outside at the end of the work
@@ -692,11 +692,10 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 
 		if(evt->creates_fd()) {
 			// The fd is always the return value in this case.
-			int64_t res = evt->get_syscall_return_value();
 			if(res < 0) {
 				tinfo->m_lastevent_fd = -1;
 			} else {
-				tinfo->m_lastevent_fd = evt->get_syscall_return_value();
+				tinfo->m_lastevent_fd = res;
 			}
 
 			// we cannot set the fdinfo here since we still need to create it.
