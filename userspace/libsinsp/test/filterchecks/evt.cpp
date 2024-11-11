@@ -212,7 +212,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 }
 
 // Test that for rawarg.X we are correctly retrieving the correct field type/format.
-TEST_F(sinsp_with_test_input, rawarg_madness) {
+TEST_F(sinsp_with_test_input, EVT_FILTER_rawarg_madness) {
 	add_default_init_thread();
 	open_inspector();
 
@@ -254,4 +254,39 @@ TEST_F(sinsp_with_test_input, rawarg_madness) {
 	// UINT64_MAX is FFFFFFFFFFFFFFFF
 	ASSERT_EQ(get_field_as_string(evt, "evt.rawarg.addr"), "FFFFFFFFFFFFFFFF");
 	ASSERT_ANY_THROW(eval_filter(evt, "evt.rawarg.addr > 0"));  // PT_SOCKADDR is not comparable
+}
+
+TEST_F(sinsp_with_test_input, EVT_FILTER_thread_proc_info) {
+	DEFAULT_TREE
+
+	// Random event on the init process (main thread) the field should be 0. This field are used
+	// only when the event is `PPME_PROCINFO_E`
+	auto evt = generate_random_event(INIT_TID);
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.procinfo"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.threadinfo"), "0");
+
+	// Same for a secondary thread
+	evt = generate_random_event(p1_t2_tid);
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.procinfo"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.threadinfo"), "0");
+
+	// Now both field shoul be 1
+	evt = add_event_advance_ts(increasing_ts(),
+	                           INIT_TID,
+	                           PPME_PROCINFO_E,
+	                           2,
+	                           (uint64_t)0,
+	                           (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.procinfo"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.threadinfo"), "1");
+
+	// Since this is not a main thread only `evt.count.threadinfo` should be 1
+	evt = add_event_advance_ts(increasing_ts(),
+	                           p1_t2_tid,
+	                           PPME_PROCINFO_E,
+	                           2,
+	                           (uint64_t)0,
+	                           (uint64_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.procinfo"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "evt.count.threadinfo"), "1");
 }
