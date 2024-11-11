@@ -1060,8 +1060,8 @@ void sinsp_filter_check::add_transformer(filter_transformer_type trtype) {
 
 	// apply type transformation, both as a feasibility check and
 	// as an information to be returned later on
-	sinsp_filter_transformer tr(trtype);
-	if(!tr.transform_type(m_transformed_field->m_type, m_transformed_field->m_flags)) {
+	auto tr = sinsp_filter_transformer::create_transformer(trtype);
+	if(!tr->transform_type(m_transformed_field->m_type, m_transformed_field->m_flags)) {
 		throw sinsp_exception("can't add field transformer: type '" +
 		                      std::string(param_type_to_string(m_transformed_field->m_type)) +
 		                      "' is not supported by '" + filter_transformer_type_str(trtype) +
@@ -1083,7 +1083,7 @@ bool sinsp_filter_check::apply_transformers(std::vector<extract_value_t>& values
 	auto field_type = field_info->m_type;
 	auto field_flags = field_info->m_flags;
 	for(auto& tr : m_transformers) {
-		if(!tr.transform_values(values, field_type, field_flags)) {
+		if(!tr->transform_values(values, field_type, field_flags)) {
 			return false;
 		}
 	}

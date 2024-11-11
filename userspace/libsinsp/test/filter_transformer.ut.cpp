@@ -86,7 +86,7 @@ struct test_case_entry {
 	std::vector<ex_value> expected;
 };
 
-static void check_unsupported_types(sinsp_filter_transformer& tr,
+static void check_unsupported_types(const std::unique_ptr<sinsp_filter_transformer>& tr,
                                     std::set<ppm_param_type>& supported_types,
                                     std::set<ppm_param_type>& supported_list_types) {
 	auto all_types = all_param_types();
@@ -94,25 +94,25 @@ static void check_unsupported_types(sinsp_filter_transformer& tr,
 	for(auto t : all_types) {
 		uint32_t flags = EPF_IS_LIST;
 		if(supported_list_types.find(t) == supported_list_types.end()) {
-			EXPECT_FALSE(tr.transform_type(t, flags)) << supported_type_msg(t, flags, false);
+			EXPECT_FALSE(tr->transform_type(t, flags)) << supported_type_msg(t, flags, false);
 			// vals is empty for simplicity, should not affect the test
 			std::vector<extract_value_t> vals{};
-			EXPECT_ANY_THROW(tr.transform_values(vals, t, flags))
+			EXPECT_ANY_THROW(tr->transform_values(vals, t, flags))
 			        << supported_type_msg(t, flags, false);
 		}
 
 		flags = 0;
 		if(supported_types.find(t) == supported_types.end()) {
-			EXPECT_FALSE(tr.transform_type(t, flags)) << supported_type_msg(t, flags, false);
+			EXPECT_FALSE(tr->transform_type(t, flags)) << supported_type_msg(t, flags, false);
 			std::vector<extract_value_t> vals{};
-			EXPECT_ANY_THROW(tr.transform_values(vals, t, flags))
+			EXPECT_ANY_THROW(tr->transform_values(vals, t, flags))
 			        << supported_type_msg(t, flags, false);
 		}
 	}
 }
 
 TEST(sinsp_filter_transformer, toupper) {
-	sinsp_filter_transformer tr(filter_transformer_type::FTR_TOUPPER);
+	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_TOUPPER);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -135,7 +135,7 @@ TEST(sinsp_filter_transformer, toupper) {
 		auto transformed_type = tc.input_type;
 		uint32_t flags = tc.flags;
 		bool is_list = flags & EPF_IS_LIST;
-		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		EXPECT_TRUE(tr->transform_type(transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(transformed_type, tc.expected_type);
 
@@ -145,7 +145,7 @@ TEST(sinsp_filter_transformer, toupper) {
 		}
 
 		transformed_type = tc.input_type;
-		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		EXPECT_TRUE(tr->transform_values(vals, transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(vals.size(), tc.expected.size());
 
@@ -159,7 +159,7 @@ TEST(sinsp_filter_transformer, toupper) {
 }
 
 TEST(sinsp_filter_transformer, tolower) {
-	sinsp_filter_transformer tr(filter_transformer_type::FTR_TOLOWER);
+	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_TOLOWER);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -183,7 +183,7 @@ TEST(sinsp_filter_transformer, tolower) {
 		uint32_t flags = tc.flags;
 		auto transformed_type = tc.input_type;
 
-		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		EXPECT_TRUE(tr->transform_type(transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(transformed_type, tc.expected_type);
 
@@ -193,7 +193,7 @@ TEST(sinsp_filter_transformer, tolower) {
 		}
 
 		transformed_type = tc.input_type;
-		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		EXPECT_TRUE(tr->transform_values(vals, transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(vals.size(), tc.expected.size());
 
@@ -207,7 +207,7 @@ TEST(sinsp_filter_transformer, tolower) {
 }
 
 TEST(sinsp_filter_transformer, b64) {
-	sinsp_filter_transformer tr(filter_transformer_type::FTR_BASE64);
+	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_BASE64);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH, PT_BYTEBUF};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -225,7 +225,7 @@ TEST(sinsp_filter_transformer, b64) {
 		uint32_t flags = tc.flags;
 		auto transformed_type = tc.input_type;
 
-		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		EXPECT_TRUE(tr->transform_type(transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(transformed_type, tc.expected_type);
 
@@ -235,7 +235,7 @@ TEST(sinsp_filter_transformer, b64) {
 		}
 
 		transformed_type = tc.input_type;
-		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		EXPECT_TRUE(tr->transform_values(vals, transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(vals.size(), tc.expected.size());
 
@@ -249,7 +249,7 @@ TEST(sinsp_filter_transformer, b64) {
 }
 
 TEST(sinsp_filter_transformer, basename) {
-	sinsp_filter_transformer tr(filter_transformer_type::FTR_BASENAME);
+	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_BASENAME);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -270,7 +270,7 @@ TEST(sinsp_filter_transformer, basename) {
 		uint32_t flags = tc.flags;
 		auto transformed_type = tc.input_type;
 
-		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		EXPECT_TRUE(tr->transform_type(transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(transformed_type, tc.expected_type);
 
@@ -280,7 +280,7 @@ TEST(sinsp_filter_transformer, basename) {
 		}
 
 		transformed_type = tc.input_type;
-		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		EXPECT_TRUE(tr->transform_values(vals, transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(vals.size(), tc.expected.size());
 
@@ -294,7 +294,7 @@ TEST(sinsp_filter_transformer, basename) {
 }
 
 TEST(sinsp_filter_transformer, len) {
-	sinsp_filter_transformer tr(filter_transformer_type::FTR_LEN);
+	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_LEN);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH, PT_BYTEBUF};
 	std::set<ppm_param_type> supported_list_types = all_param_types();
@@ -314,7 +314,7 @@ TEST(sinsp_filter_transformer, len) {
 		uint32_t flags = tc.flags;
 		auto transformed_type = tc.input_type;
 
-		EXPECT_TRUE(tr.transform_type(transformed_type, flags))
+		EXPECT_TRUE(tr->transform_type(transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(transformed_type, tc.expected_type);
 
@@ -325,7 +325,7 @@ TEST(sinsp_filter_transformer, len) {
 
 		transformed_type = tc.input_type;
 		flags = tc.flags;
-		EXPECT_TRUE(tr.transform_values(vals, transformed_type, flags))
+		EXPECT_TRUE(tr->transform_values(vals, transformed_type, flags))
 		        << supported_type_msg(tc.input_type, is_list, true);
 		EXPECT_EQ(vals.size(), tc.expected.size());
 
