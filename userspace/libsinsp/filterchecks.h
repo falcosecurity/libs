@@ -22,7 +22,6 @@ limitations under the License.
 // reasons, as all filterchecks used to be defined in this file
 
 #include <libsinsp/sinsp_filtercheck.h>
-#include <libsinsp/sinsp_filtercheck_container.h>
 #include <libsinsp/sinsp_filtercheck_event.h>
 #include <libsinsp/sinsp_filtercheck_evtin.h>
 #include <libsinsp/sinsp_filtercheck_fd.h>
@@ -30,7 +29,6 @@ limitations under the License.
 #include <libsinsp/sinsp_filtercheck_fspath.h>
 #include <libsinsp/sinsp_filtercheck_gen_event.h>
 #include <libsinsp/sinsp_filtercheck_group.h>
-#include <libsinsp/sinsp_filtercheck_k8s.h>
 #include <libsinsp/sinsp_filtercheck_mesos.h>
 #include <libsinsp/sinsp_filtercheck_rawstring.h>
 #include <libsinsp/sinsp_filtercheck_reference.h>
