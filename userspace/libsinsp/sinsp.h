@@ -45,7 +45,6 @@ limitations under the License.
 #include <libscap/scap.h>
 
 #include <libsinsp/capture_stats_source.h>
-#include <libsinsp/container.h>
 #include <libsinsp/dumper.h>
 #include <libsinsp/event.h>
 #include <libsinsp/fdinfo.h>

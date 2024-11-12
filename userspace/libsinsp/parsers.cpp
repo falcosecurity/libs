@@ -29,7 +29,6 @@ limitations under the License.
 #include <fcntl.h>
 #include <limits>
 
-#include <libsinsp/container_engine/mesos.h>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/parsers.h>
@@ -41,10 +40,6 @@ limitations under the License.
 #include <libsinsp/sinsp_observer.h>
 #include <libsinsp/sinsp_int.h>
 #include <libsinsp/user.h>
-
-#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#include <libsinsp/container_engine/docker/async_source.h>
-#endif
 
 sinsp_parser::sinsp_parser(sinsp *inspector):
         m_inspector(inspector),
@@ -4467,56 +4462,6 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt) {
 		}
 	}
 }
-
-namespace {
-std::string generate_error_message(const Json::Value &value, const char *field) {
-	std::string val_as_string = value.isConvertibleTo(Json::stringValue)
-	                                    ? value.asString().c_str()
-	                                    : "value not convertible to string";
-	std::string err_msg =
-	        "Unable to convert json value '" + val_as_string + "' for the field: '" + field + "'";
-
-	return err_msg;
-}
-
-bool check_int64_json_is_convertible(const Json::Value &value, const char *field) {
-	if(!value.isNull()) {
-		// isConvertibleTo doesn't seem to work on large 64 bit numbers
-		if(value.isInt64()) {
-			return true;
-		} else {
-			std::string err_msg = generate_error_message(value, field);
-			SINSP_DEBUG("%s", err_msg.c_str());
-		}
-	}
-	return false;
-}
-
-bool check_json_val_is_convertible(const Json::Value &value,
-                                   Json::ValueType other,
-                                   const char *field,
-                                   bool log_message = false) {
-	if(value.isNull()) {
-		return false;
-	}
-
-	if(!value.isConvertibleTo(other)) {
-		std::string err_msg;
-
-		if(log_message) {
-			err_msg = generate_error_message(value, field);
-			SINSP_WARNING("%s", err_msg.c_str());
-		} else {
-			if(libsinsp_logger()->get_severity() >= sinsp_logger::SEV_DEBUG) {
-				err_msg = generate_error_message(value, field);
-				SINSP_DEBUG("%s", err_msg.c_str());
-			}
-		}
-		return false;
-	}
-	return true;
-}
-}  // namespace
 
 void sinsp_parser::parse_user_evt(sinsp_evt *evt) {
 	uint32_t uid, gid;
