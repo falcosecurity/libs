@@ -51,8 +51,9 @@ public:
 	virtual void on_execve(sinsp_evt* evt) = 0;
 	virtual void on_clone(sinsp_evt* evt, sinsp_threadinfo* newtinfo, int64_t tid_collision) = 0;
 	virtual void on_bind(sinsp_evt* evt) = 0;
-	virtual bool on_resolve_container(sinsp_container_manager* manager,
+	// TODO
+	// virtual bool on_resolve_container(sinsp_container_manager* manager,
 	                                  sinsp_threadinfo* tinfo,
 	                                  bool query_os_for_missing_info) = 0;
-	virtual void on_socket_status_changed(sinsp_evt* evt) = 0;
+	                                  virtual void on_socket_status_changed(sinsp_evt* evt) = 0;
 };
