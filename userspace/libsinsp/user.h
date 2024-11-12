@@ -22,7 +22,6 @@ limitations under the License.
 #include <unordered_map>
 #include <string>
 #include <memory>
-#include <libsinsp/container_info.h>
 #include <libsinsp/procfs_utils.h>
 #include <libscap/scap.h>
 
@@ -179,7 +178,7 @@ private:
 	                          const std::string &container_id,
 	                          uint16_t ev_type);
 
-	void delete_container_users_groups(const sinsp_container_info &cinfo);
+	void delete_container_users_groups(const std::string &container_id);
 
 	void notify_user_changed(const scap_userinfo *user,
 	                         const std::string &container_id,
