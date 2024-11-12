@@ -141,14 +141,6 @@ public:
 	static void bt(void);
 #endif  // _WIN32
 
-	static void split_container_image(const std::string& image,
-	                                  std::string& hostname,
-	                                  std::string& port,
-	                                  std::string& name,
-	                                  std::string& tag,
-	                                  std::string& digest,
-	                                  bool split_repo = true);
-
 	/*
 	 * \param res [out] the generated string representation of the provided timestamp
 	 */
