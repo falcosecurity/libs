@@ -95,13 +95,11 @@ sinsp_filter_check_list::sinsp_filter_check_list() {
 	add_filter_check(std::make_unique<sinsp_filter_check_thread>());
 	add_filter_check(std::make_unique<sinsp_filter_check_user>());
 	add_filter_check(std::make_unique<sinsp_filter_check_group>());
-	add_filter_check(std::make_unique<sinsp_filter_check_container>());
 	add_filter_check(std::make_unique<sinsp_filter_check_fd>());
 	add_filter_check(std::make_unique<sinsp_filter_check_fspath>());
 	add_filter_check(std::make_unique<sinsp_filter_check_syslog>());
 	add_filter_check(std::make_unique<sinsp_filter_check_utils>());
 	add_filter_check(std::make_unique<sinsp_filter_check_fdlist>());
-	add_filter_check(std::make_unique<sinsp_filter_check_k8s>());
 	add_filter_check(std::make_unique<sinsp_filter_check_mesos>());
 	add_filter_check(std::make_unique<sinsp_filter_check_tracer>());
 	add_filter_check(std::make_unique<sinsp_filter_check_evtin>());
