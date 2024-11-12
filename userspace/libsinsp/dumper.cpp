@@ -96,6 +96,13 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress) {
 	inspector->m_container_manager.dump_containers(*this);
 	inspector->m_usergroup_manager.dump_users_groups(*this);
 
+	// ask registered ASYNC plugins for a dump of their state
+	for(auto& p : inspector->m_plugin_manager->plugins()) {
+		if(p->caps() & CAP_ASYNC) {
+			p->dump(*this);
+		}
+	}
+
 	m_nevts = 0;
 }
 
