@@ -66,7 +66,6 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	}
 
 	inspector->m_thread_manager->dump_threads_to_file(m_dumper);
-	inspector->m_container_manager.dump_containers(*this);
 	inspector->m_usergroup_manager.dump_users_groups(*this);
 
 	// ask registered ASYNC plugins for a dump of their state
@@ -93,7 +92,6 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress) {
 	}
 
 	inspector->m_thread_manager->dump_threads_to_file(m_dumper);
-	inspector->m_container_manager.dump_containers(*this);
 	inspector->m_usergroup_manager.dump_users_groups(*this);
 
 	// ask registered ASYNC plugins for a dump of their state

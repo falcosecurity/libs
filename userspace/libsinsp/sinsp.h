@@ -375,21 +375,6 @@ public:
 
 	/*!
 	 * \brief Enables or disables an automatic routine that periodically purges
-	 * thread infos from the internal state. If disabled, the client is
-	 * responsible of manually-handling the lifetime of containers.
-	 */
-	void set_auto_containers_purging(bool enabled) { m_auto_containers_purging = enabled; }
-
-	/*!
-	 * \brief Sets the interval (in seconds) at which the automatic containers
-	 * purging routine runs (if enabled).
-	 */
-	inline void set_auto_containers_purging_interval_s(uint32_t val) {
-		m_containers_purging_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
-	}
-
-	/*!
-	 * \brief Enables or disables an automatic routine that periodically purges
 	 * users and groups infos from the internal state. If disabled, the client
 	 * is responsible of manually-handling the lifetime of users and groups.
 	 */
