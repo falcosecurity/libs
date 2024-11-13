@@ -2180,7 +2180,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 TEST_F(sys_call_test, fd_name_max_path) {
 	int callnum = 0;
 	std::string pathname("/");
-	// Using only 1022 chars otherwise the path will be "/PATH_TOO_LONG".
+	// Using only 1022 chars otherwise the path will be "/DIR_TOO_LONG/FILENAME_TOO_LONG".
 	pathname.insert(1, 1021, 'A');
 
 	event_filter_t filter = [&](sinsp_evt* evt) {

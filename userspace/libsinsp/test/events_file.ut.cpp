@@ -207,7 +207,9 @@ TEST_F(sinsp_with_test_input, path_too_long) {
 	                           (uint32_t)0,
 	                           (uint32_t)5,
 	                           (uint64_t)123);
-	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/DIR_TOO_LONG/FILENAME_TOO_LONG");
+	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/DIR_TOO_LONG");
+	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "FILENAME_TOO_LONG");
 
 	fd = 4;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
@@ -220,8 +222,8 @@ TEST_F(sinsp_with_test_input, path_too_long) {
 	                           PPM_O_RDWR,
 	                           long_path.c_str());
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
-	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/PATH_TOO_LONG");
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/DIR_TOO_LONG/FILENAME_TOO_LONG");
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/DIR_TOO_LONG/FILENAME_TOO_LONG");
 }
 
 TEST_F(sinsp_with_test_input, creates_fd_generic) {
