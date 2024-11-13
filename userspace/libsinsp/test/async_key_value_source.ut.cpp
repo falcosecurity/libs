@@ -335,16 +335,16 @@ TEST(async_key_value_source_test, look_key_delayed_async_callback) {
 
 /**
  * Ensure that "old" results are pruned
- * This test usually fails like this when runned with sanitizers on arm64:
- *
- * pure virtual method called
- * terminate called without an active exception
- * Aborted (core dumped)
- *
- * Disabled until we can figure out how to fix it.
  */
-#if !defined(__aarch64__)
 TEST(async_key_value_source_test, prune_old_metadata) {
+#if defined(__aarch64__)
+	GTEST_SKIP() << R"(This test usually fails like this when runned with sanitizers on arm64:
+pure virtual method called
+terminate called without an active exception
+Aborted (core dumped)
+
+Disabled until we can figure out how to fix it.)";
+#endif
 	const uint64_t DELAY_MS = 0;
 	const uint64_t TTL_MS = 20;
 
@@ -380,7 +380,6 @@ TEST(async_key_value_source_test, prune_old_metadata) {
 	// fetch the first key should also return false.
 	ASSERT_FALSE(source.lookup(key1, response));
 }
-#endif
 
 struct result {
 	uint64_t val = 0;
