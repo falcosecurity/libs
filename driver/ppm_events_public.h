@@ -1049,6 +1049,7 @@ or GPL2.txt for full copies of the license.
 #endif
 
 /*
+ * ATTENTION: Please do not use these macros since they will be removed at the end of the work.
  * The list of event types
  * Enter events have even numbers while exit events have odd numbers.
  * NOTE: there can't be gaps in the numbering, because these numbers correspond
