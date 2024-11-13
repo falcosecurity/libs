@@ -14,9 +14,6 @@
 #
 
 include(jsoncpp)
-if(NOT EMSCRIPTEN)
-	include(tbb)
-endif()
 
 if(WIN32)
 	set(CMAKE_CXX_FLAGS
@@ -189,9 +186,7 @@ target_include_directories(
 			${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(
-	unit-test-libsinsp sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${TBB_LIB}" "${JSONCPP_LIB}"
-)
+target_link_libraries(unit-test-libsinsp sinsp "${GTEST_LIB}" "${GTEST_MAIN_LIB}" "${JSONCPP_LIB}")
 
 # Add some additional include directories associated with `ADDITIONAL_SINSP_TESTS_SUITE`
 # `ADDITIONAL_SINSP_TESTS_INCLUDE_FOLDERS` is a list of include paths `;` separated

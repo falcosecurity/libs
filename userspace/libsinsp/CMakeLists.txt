@@ -164,11 +164,7 @@ target_link_libraries(
 )
 
 if(NOT EMSCRIPTEN)
-	target_link_libraries(
-		sinsp
-		INTERFACE "${CARES_LIB}"
-		PRIVATE "${TBB_LIB} ${TBB_MEMPROXY_LIB}"
-	)
+	target_link_libraries(sinsp INTERFACE "${CARES_LIB}" "${TBB_LIB}" "${TBB_MEMPROXY_LIB}")
 endif()
 
 if(USE_BUNDLED_VALIJSON)
