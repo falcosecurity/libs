@@ -167,7 +167,7 @@ if(NOT EMSCRIPTEN)
 	target_link_libraries(
 		sinsp
 		INTERFACE "${CARES_LIB}"
-		PRIVATE "${TBB_LIB}"
+		PRIVATE "${TBB_LIB} ${TBB_MEMPROXY_LIB}"
 	)
 endif()
 

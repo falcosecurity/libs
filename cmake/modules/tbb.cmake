@@ -20,8 +20,11 @@ if(TBB_INCLUDE_DIR)
 elseif(NOT USE_BUNDLED_TBB)
 	find_path(TBB_INCLUDE_DIR tbb.h PATH_SUFFIXES tbb)
 	find_library(TBB_LIB NAMES tbb)
+	find_library(TBB_MEMPROXY_LIB NAMES tbbmalloc_proxy)
 	if(TBB_INCLUDE_DIR AND TBB_LIB)
-		message(STATUS "Found tbb: include: ${TBB_INCLUDE_DIR}, lib: ${TBB_LIB}")
+		message(
+			STATUS "Found tbb: include: ${TBB_INCLUDE_DIR}, lib: ${TBB_LIB}, ${TBB_MEMPROXY_LIB}"
+		)
 	else()
 		message(FATAL_ERROR "Couldn't find system tbb")
 	endif()
@@ -55,6 +58,7 @@ else()
 		endif()
 	endif()
 	set(TBB_LIB "${TBB_LIB_BASEDIR}/${TBB_LIB_PREFIX}${TBB_LIB_BASENAME}${TBB_LIB_SUFFIX}")
+	set(TBB_MEMPROXY_LIB "${TBB_LIB_BASEDIR}/${TBB_LIB_PREFIX}tbbmalloc_proxy${TBB_LIB_SUFFIX}")
 
 	if(NOT TARGET tbb)
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
@@ -89,7 +93,7 @@ else()
 						   -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
 						   -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
 						   -DEMSCRIPTEN=${TBB_EMSCRIPTEN}
-				BUILD_BYPRODUCTS ${TBB_LIB}
+				BUILD_BYPRODUCTS ${TBB_LIB} ${TBB_MEMPROXY_LIB}
 				INSTALL_COMMAND ""
 			)
 		else()
@@ -110,7 +114,7 @@ else()
 							   -DTBB_OUTPUT_DIR_BASE=lib
 							   -DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
 							   -DCMAKE_POSITION_INDEPENDENT_CODE=${ENABLE_PIC}
-					BUILD_BYPRODUCTS ${TBB_LIB}
+					BUILD_BYPRODUCTS ${TBB_LIB} ${TBB_MEMPROXY_LIB}
 					INSTALL_COMMAND ""
 				)
 			else()
