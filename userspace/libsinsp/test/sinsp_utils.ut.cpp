@@ -182,6 +182,12 @@ TEST(sinsp_utils_test, concatenate_paths) {
 	res = sinsp_utils::concatenate_paths(path1, path2);
 	EXPECT_EQ("/app", res);
 
+	// This path is too long so we should receive our predefined string.
+	path1 = std::string(1500, 'C');
+	path2 = "dir/term";
+	res = sinsp_utils::concatenate_paths(path1, path2);
+	EXPECT_EQ("/DIR_TOO_LONG/FILENAME_TOO_LONG", res);
+
 	/* No unicode support
 	path1 = "/root/";
 	path2 = "../😉";

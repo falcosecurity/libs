@@ -703,7 +703,7 @@ static inline bool concatenate_paths_(char* target,
                                       const char* path2,
                                       uint32_t len2) {
 	if(targetlen < (len1 + len2 + 1)) {
-		strlcpy(target, "/PATH_TOO_LONG", targetlen);
+		strlcpy(target, "/DIR_TOO_LONG/FILENAME_TOO_LONG", targetlen);
 		return false;
 	}
 
