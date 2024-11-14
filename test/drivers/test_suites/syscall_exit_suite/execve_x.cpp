@@ -305,9 +305,12 @@ TEST(SyscallExit, execveX_failure) {
 	/* Parameter 29: pgid (type: PT_PID) */
 	evt_test->assert_numeric_param(29, (int64_t)info.pgid);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 TEST(SyscallExit, execveX_failure_args_env_NULL) {
@@ -352,7 +355,7 @@ TEST(SyscallExit, execveX_failure_args_env_NULL) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 TEST(SyscallExit, execveX_failure_path_NULL_but_not_args) {
@@ -400,7 +403,7 @@ TEST(SyscallExit, execveX_failure_path_NULL_but_not_args) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 TEST(SyscallExit, execveX_success) {
@@ -553,9 +556,12 @@ TEST(SyscallExit, execveX_success) {
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(28, pathname);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 TEST(SyscallExit, execveX_not_upperlayer) {
@@ -681,9 +687,12 @@ TEST(SyscallExit, execveX_not_upperlayer) {
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(28, merged_exe_path);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 TEST(SyscallExit, execveX_upperlayer_success) {
@@ -808,9 +817,12 @@ TEST(SyscallExit, execveX_upperlayer_success) {
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(28, upper_exe_path);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 #if defined(__NR_memfd_create) && defined(__NR_openat) && defined(__NR_read) && defined(__NR_write)
@@ -922,7 +934,7 @@ TEST(SyscallExit, execveX_success_memfd) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 #endif
 
@@ -1015,7 +1027,7 @@ TEST(SyscallExit, execveX_symlink) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 #endif
 
@@ -1179,9 +1191,12 @@ TEST(SyscallExit, execveX_failure_empty_arg) {
 	 * executable */
 	evt_test->assert_charbuf_param(28, info.exepath);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 #endif

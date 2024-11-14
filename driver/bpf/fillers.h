@@ -2822,8 +2822,14 @@ FILLER(execve_extra_tail_2, true) {
 	}
 	CHECK_RES(res);
 
-	/* Parameter 29: pgid (type: PT_UID) */
-	return bpf_push_pgid(data, task);
+	/* Parameter 29: pgid (type: PT_PID) */
+	res = bpf_push_pgid(data, task);
+	CHECK_RES(res);
+
+	/* Parameter 30: egid (type: PT_GID) */
+	struct cred *cred = (struct cred *)_READ(task->cred);
+	kgid_t egid = _READ(cred->egid);
+	return bpf_push_u32_to_ring(data, egid.val);
 }
 
 FILLER(sys_accept4_e, true) {
@@ -6639,8 +6645,14 @@ FILLER(sched_prog_exec_5, false) {
 	}
 	CHECK_RES(res);
 
-	/* Parameter 29: pgid (type: PT_UID) */
-	return bpf_push_pgid(data, task);
+	/* Parameter 29: pgid (type: PT_PID) */
+	res = bpf_push_pgid(data, task);
+	CHECK_RES(res);
+
+	/* Parameter 30: egid (type: PT_GID) */
+	struct cred *cred = (struct cred *)_READ(task->cred);
+	kgid_t egid = _READ(cred->egid);
+	return bpf_push_u32_to_ring(data, egid.val);
 }
 
 #endif
