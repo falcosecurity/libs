@@ -2206,6 +2206,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 		evt->get_tinfo()->m_pgid = -1;
 	}
 
+	// Get gid
+	if(evt->get_num_params() > 29) {
+		evt->get_tinfo()->set_group(evt->get_param(29)->as<uint32_t>());
+	}
+
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent
