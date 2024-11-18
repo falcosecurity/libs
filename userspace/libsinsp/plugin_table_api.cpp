@@ -429,7 +429,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 			}
 		}
 
-		virtual void set_dynamic_field(const ds::field_info& i, const void* in) override {
+		virtual void set_dynamicc_field(const ds::field_info& i, const void* in) override {
 			const auto& infos = get_plugin_field_infos();
 			ss_plugin_state_data v;
 

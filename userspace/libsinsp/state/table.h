@@ -21,6 +21,7 @@ limitations under the License.
 #include <functional>
 #include <type_traits>
 #include <memory>
+#include <functional>
 
 namespace libsinsp {
 namespace state {
@@ -29,6 +30,9 @@ namespace state {
  * @brief Base class for entries of a state table.
  */
 struct table_entry : public static_struct, dynamic_struct {
+public:
+	using observer_t = std::function<void(libsinsp::state::table_entry& e)>;
+
 	table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
 	        static_struct(),
 	        dynamic_struct(dyn_fields) {}
@@ -37,6 +41,27 @@ struct table_entry : public static_struct, dynamic_struct {
 	table_entry& operator=(table_entry&&) = default;
 	table_entry(const table_entry& s) = default;
 	table_entry& operator=(const table_entry& s) = default;
+
+	inline void observe(const observer_t& cb) { m_observers.emplace_back(cb); }
+
+	template<typename T, typename Val = T>
+	inline void set_dynamic_field(const dynamic_struct::field_accessor<T>& a, const Val& in) {
+		dynamic_struct::set_dynamicc_field<T, Val>(a, in);
+		for(const auto& observer : m_observers) {
+			observer(*this);
+		}
+	}
+
+	template<typename T, typename Val = T>
+	inline void set_static_field(const static_struct::field_accessor<T>& a, const Val& in) {
+		static_struct::set_staticc_field<T, Val>(a, in);
+		for(const auto& observer : m_observers) {
+			observer(*this);
+		}
+	}
+
+private:
+	std::vector<observer_t> m_observers;
 };
 
 /**

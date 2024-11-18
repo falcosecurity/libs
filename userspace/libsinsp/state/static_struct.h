@@ -189,7 +189,7 @@ public:
 	 * An exception is thrown if the field is read-only.
 	 */
 	template<typename T, typename Val = T>
-	inline void set_static_field(const field_accessor<T>& a, const Val& in) {
+	inline void set_staticc_field(const field_accessor<T>& a, const Val& in) {
 		if(!a.info().valid()) {
 			throw sinsp_exception("can't set invalid field in static struct");
 		}

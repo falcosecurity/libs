@@ -183,18 +183,28 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t* s,
 	if(ps->step == 0) {
 		int max_iterations = 10;
 		for(int i = 0; i < max_iterations; i++) {
-			auto nentry = in->table_writer_ext->create_table_entry(cgroupstable);
-			if(!nentry) {
-				ps->lasterr = "can't create subtable entry";
-				printf("ERR %s\n", ps->lasterr.c_str());
-				return SS_PLUGIN_FAILURE;
-			}
+			ss_plugin_table_entry_t* nentry;
 			key.s64 = i;
-			nentry = in->table_writer_ext->add_table_entry(cgroupstable, &key, nentry);
-			if(!nentry) {
-				ps->lasterr = "can't add subtable entry";
-				printf("ERR %s\n", ps->lasterr.c_str());
-				return SS_PLUGIN_FAILURE;
+			if(i > 0) {
+				nentry = in->table_writer_ext->create_table_entry(cgroupstable);
+				if(!nentry) {
+					ps->lasterr = "can't create subtable entry";
+					printf("ERR %s\n", ps->lasterr.c_str());
+					return SS_PLUGIN_FAILURE;
+				}
+				nentry = in->table_writer_ext->add_table_entry(cgroupstable, &key, nentry);
+				if(!nentry) {
+					ps->lasterr = "can't add subtable entry";
+					printf("ERR %s\n", ps->lasterr.c_str());
+					return SS_PLUGIN_FAILURE;
+				}
+			} else {
+				nentry = in->table_reader_ext->get_table_entry(cgroupstable, &key);
+				if(!nentry) {
+					ps->lasterr = "can't read already created subtable entry";
+					printf("ERR %s\n", ps->lasterr.c_str());
+					return SS_PLUGIN_FAILURE;
+				}
 			}
 
 			data.str = "hello";
@@ -233,7 +243,8 @@ ss_plugin_rc plugin_parse_event(ss_plugin_t* s,
 				return SS_PLUGIN_FAILURE;
 			}
 
-			data.str = "hello";
+			std::string first_val = "hello" + std::to_string(i);
+			data.str = first_val.c_str();
 			res = in->table_writer_ext->write_entry_field(cgroupstable,
 			                                              nentry,
 			                                              ps->table_field_cgroupstable_first,

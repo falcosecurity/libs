@@ -268,12 +268,12 @@ public:
 	 * @brief Accesses a field with the given accessor and writes its value.
 	 */
 	template<typename T, typename Val = T>
-	inline void set_dynamic_field(const field_accessor<T>& a, const Val& in) {
+	inline void set_dynamicc_field(const field_accessor<T>& a, const Val& in) {
 		_check_defsptr(a.info(), true);
 		if(a.info().readonly()) {
 			throw sinsp_exception("can't set a read-only dynamic struct field: " + a.info().name());
 		}
-		set_dynamic_field(a.info(), reinterpret_cast<const void*>(&in));
+		set_dynamicc_field(a.info(), reinterpret_cast<const void*>(&in));
 	}
 
 	/**
@@ -291,7 +291,7 @@ public:
 			return;
 		}
 		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
-			throw sinsp_exception("dynamic struct defintions set twice");
+			throw sinsp_exception("dynamic struct definitions set twice");
 		}
 		if(!defs) {
 			throw sinsp_exception("dynamic struct constructed with null field definitions");
@@ -321,7 +321,7 @@ protected:
 	 * according to the type definitions supported in libsinsp::state::typeinfo.
 	 * For strings, "in" is considered of type const char**.
 	 */
-	virtual void set_dynamic_field(const field_info& i, const void* in) {
+	virtual void set_dynamicc_field(const field_info& i, const void* in) {
 		auto* buf = _access_dynamic_field(i.m_index);
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((std::string*)buf) = *((const char**)in);
@@ -391,7 +391,7 @@ private:
 			// base_table*, ...)
 			uintptr_t val = 0;
 			other.get_dynamic_field(*info, reinterpret_cast<void*>(&val));
-			set_dynamic_field(*info, &val);
+			set_dynamicc_field(*info, &val);
 		}
 	}
 
@@ -426,16 +426,8 @@ inline void libsinsp::state::dynamic_struct::get_dynamic_field<std::string, std:
 }
 
 template<>
-inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string, const char*>(
-        const field_accessor<std::string>& a,
-        const char* const& in) {
-	_check_defsptr(a.info(), true);
-	set_dynamic_field(a.info(), reinterpret_cast<const void*>(&in));
-}
-
-template<>
-inline void libsinsp::state::dynamic_struct::set_dynamic_field<std::string, std::string>(
+inline void libsinsp::state::dynamic_struct::set_dynamicc_field<std::string, std::string>(
         const field_accessor<std::string>& a,
         const std::string& in) {
-	set_dynamic_field(a, in.c_str());
+	set_dynamicc_field(a, in.c_str());
 }

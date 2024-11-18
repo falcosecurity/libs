@@ -107,7 +107,7 @@ TEST(static_struct, defs_and_access) {
 	uint32_t u32tmp = 0;
 	s.get_static_field(acc_num, u32tmp);
 	ASSERT_EQ(u32tmp, 5);
-	s.set_static_field(acc_num, (uint32_t)6);
+	s.set_staticc_field(acc_num, (uint32_t)6);
 	ASSERT_EQ(s.get_num(), 6);
 	ASSERT_EQ(s.get_static_field(acc_num), 6);
 
@@ -119,7 +119,7 @@ TEST(static_struct, defs_and_access) {
 	ASSERT_EQ(s.get_str(), str);
 	s.get_static_field(acc_str, str);
 	ASSERT_EQ(str, "hello");
-	ASSERT_ANY_THROW(s.set_static_field(acc_str, "hello"));  // readonly
+	ASSERT_ANY_THROW(s.set_staticc_field(acc_str, "hello"));  // readonly
 
 	const char* cstr = "sample";
 	s.set_str("");
@@ -129,7 +129,7 @@ TEST(static_struct, defs_and_access) {
 	s.get_static_field(acc_str, cstr);
 	ASSERT_EQ(strcmp(cstr, "hello"), 0);
 	ASSERT_EQ(cstr, s.get_str().c_str());
-	ASSERT_ANY_THROW(s.set_static_field(acc_str, cstr));  // readonly
+	ASSERT_ANY_THROW(s.set_staticc_field(acc_str, cstr));  // readonly
 
 	// illegal access from an accessor created from different definition list
 	// note: this should supposedly be checked for and throw an exception,
@@ -193,23 +193,23 @@ TEST(dynamic_struct, defs_and_access) {
 	uint64_t tmp;
 	s.get_dynamic_field(acc_num, tmp);
 	ASSERT_EQ(tmp, 0);
-	s.set_dynamic_field(acc_num, (uint64_t)6);
+	s.set_dynamicc_field(acc_num, (uint64_t)6);
 	s.get_dynamic_field(acc_num, tmp);
 	ASSERT_EQ(tmp, 6);
 
 	std::string tmpstr;
 	s.get_dynamic_field(acc_str, tmpstr);
 	ASSERT_EQ(tmpstr, std::string(""));
-	s.set_dynamic_field(acc_str, std::string("hello"));
+	s.set_dynamicc_field(acc_str, std::string("hello"));
 	s.get_dynamic_field(acc_str, tmpstr);
 	ASSERT_EQ(tmpstr, std::string("hello"));
 
-	s.set_dynamic_field(acc_str, std::string(""));
+	s.set_dynamicc_field(acc_str, std::string(""));
 	const char* ctmpstr = "sample";
 	s.get_dynamic_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, ""), 0);
 	ctmpstr = "hello";
-	s.set_dynamic_field(acc_str, ctmpstr);
+	s.set_dynamicc_field(acc_str, ctmpstr);
 	ctmpstr = "";
 	s.get_dynamic_field(acc_str, ctmpstr);
 	ASSERT_EQ(strcmp(ctmpstr, "hello"), 0);
@@ -244,12 +244,12 @@ TEST(dynamic_struct, mem_ownership) {
 	auto field_str_acc = field_str.new_accessor<std::string>();
 
 	// write same value in both structs, ensure they have two distinct copies
-	s1.set_dynamic_field(field_str_acc, std::string("hello"));
+	s1.set_dynamicc_field(field_str_acc, std::string("hello"));
 	s1.get_dynamic_field(field_str_acc, tmpstr1);
 	ASSERT_EQ(tmpstr1, std::string("hello"));
 	s2.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr2, std::string(""));  // s2 should not be influenced
-	s2.set_dynamic_field(field_str_acc, std::string("hello2"));
+	s2.set_dynamicc_field(field_str_acc, std::string("hello2"));
 	s2.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr2, tmpstr1 + "2");
 	s1.get_dynamic_field(field_str_acc, tmpstr1);  // s1 should not be influenced
@@ -261,7 +261,7 @@ TEST(dynamic_struct, mem_ownership) {
 	s1.get_dynamic_field(field_str_acc, tmpstr1);
 	s3.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
-	s3.set_dynamic_field(field_str_acc, std::string("hello3"));
+	s3.set_dynamicc_field(field_str_acc, std::string("hello3"));
 	s1.get_dynamic_field(field_str_acc, tmpstr1);  // should still be "hello" as before
 	s3.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
@@ -273,7 +273,7 @@ TEST(dynamic_struct, mem_ownership) {
 	s1.get_dynamic_field(field_str_acc, tmpstr1);
 	s4.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
-	s4.set_dynamic_field(field_str_acc, std::string("hello4"));
+	s4.set_dynamicc_field(field_str_acc, std::string("hello4"));
 	s1.get_dynamic_field(field_str_acc, tmpstr1);  // should still be "hello" as before
 	s4.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);
@@ -285,7 +285,7 @@ TEST(dynamic_struct, mem_ownership) {
 	s1.get_dynamic_field(field_str_acc, tmpstr1);
 	s5.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_EQ(tmpstr1, tmpstr2);
-	s5.set_dynamic_field(field_str_acc, std::string("hello4"));
+	s5.set_dynamicc_field(field_str_acc, std::string("hello4"));
 	s1.get_dynamic_field(field_str_acc, tmpstr1);  // should still be "hello" as before
 	s5.get_dynamic_field(field_str_acc, tmpstr2);
 	ASSERT_NE(tmpstr1, tmpstr2);

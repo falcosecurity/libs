@@ -1017,6 +1017,33 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	ASSERT_EQ(dfield_second->second.info(), libsinsp::state::typeinfo::of<std::string>());
 	auto dfield_second_acc = dfield_second->second.new_accessor<std::string>();
 
+	int num_table_observer_called = 0;
+	int num_entry_observer_called = 0;
+	subtable->observe([&](libsinsp::state::table_entry& e, bool added) {
+		std::string first, second;
+		e.get_dynamic_field(dfield_first_acc, first);
+		e.get_dynamic_field(dfield_second_acc, second);
+		printf("Added entry %s|%s\n", first.c_str(), second.c_str());
+		num_table_observer_called++;
+	});
+
+	// add an empty entry on cgroups table
+	auto e = subtable->new_entry();
+	e->observe([&](libsinsp::state::table_entry& e) {
+		num_entry_observer_called++;
+		std::string first, second;
+		e.get_dynamic_field(dfield_first_acc, first);
+		e.get_dynamic_field(dfield_second_acc, second);
+		printf("Entry changed value: %s|%s\n", first.c_str(), second.c_str());
+	});
+	ASSERT_NE(subtable->add_entry(0, std::move(e)), nullptr);
+	// FIXME not working :/
+
+	ASSERT_EQ(subtable->entries_count(), 1);
+	ASSERT_EQ(num_table_observer_called, 1);
+	// Nobody called `set_dynamic_field` yet
+	ASSERT_EQ(num_entry_observer_called, 0);
+
 	// start the event capture
 	// we coordinate with the plugin by sending open events: for each one received,
 	// the plugin will take a subsequent action on which we then assert the status
@@ -1031,13 +1058,18 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	                     PPM_O_RDWR,
 	                     0);
 	ASSERT_EQ(subtable->entries_count(), num_entries_from_plugin);
+	ASSERT_EQ(num_table_observer_called, num_entries_from_plugin);
+	// 2 `set_dynamic_field` calls for each (pair.first, pair.second)
+	ASSERT_EQ(num_entry_observer_called, 2 * num_entries_from_plugin);
 
+	int i = 0;
 	auto itt = [&](libsinsp::state::table_entry& e) -> bool {
 		std::string first, second;
 		e.get_dynamic_field(dfield_first_acc, first);
 		e.get_dynamic_field(dfield_second_acc, second);
-		EXPECT_EQ(first, "hello");
+		EXPECT_EQ(first, "hello" + std::to_string(i));
 		EXPECT_EQ(second, "world");
+		i++;
 		return true;
 	};
 	ASSERT_TRUE(subtable->foreach_entry(itt));

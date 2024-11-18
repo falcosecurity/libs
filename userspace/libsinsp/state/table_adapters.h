@@ -94,17 +94,17 @@ protected:
 		return get_dynamic_field(i, &m_value->second, out);
 	}
 
-	virtual void set_dynamic_field(const dynamic_struct::field_info& i,
-	                               const void* in) override final {
+	virtual void set_dynamicc_field(const dynamic_struct::field_info& i,
+	                                const void* in) override final {
 		if(i.index() > 1 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to pair_table_entry_adapter::set_dynamic_field");
 		}
 
 		if(i.index() == 0) {
-			return set_dynamic_field(i, &m_value->first, in);
+			return set_dynamicc_field(i, &m_value->first, in);
 		}
-		return set_dynamic_field(i, &m_value->second, in);
+		return set_dynamicc_field(i, &m_value->second, in);
 	}
 
 	virtual void destroy_dynamic_fields() override final {
@@ -124,7 +124,7 @@ private:
 	}
 
 	template<typename T>
-	inline void set_dynamic_field(const dynamic_struct::field_info& i, T* value, const void* in) {
+	inline void set_dynamicc_field(const dynamic_struct::field_info& i, T* value, const void* in) {
 		if(i.info().index() == typeinfo::index_t::TI_STRING) {
 			*((std::string*)value) = *((const char**)in);
 		} else {
@@ -182,8 +182,8 @@ protected:
 		}
 	}
 
-	virtual void set_dynamic_field(const dynamic_struct::field_info& i,
-	                               const void* in) override final {
+	virtual void set_dynamicc_field(const dynamic_struct::field_info& i,
+	                                const void* in) override final {
 		if(i.index() != 0 || i.defs_id() != s_dynamic_fields_id) {
 			throw sinsp_exception(
 			        "invalid field info passed to value_table_entry_adapter::set_dynamic_field");
@@ -219,6 +219,8 @@ template<typename T,
          typename DynFields = typename TWrap::dynamic_fields_t>
 class stl_container_table_adapter : public libsinsp::state::table<uint64_t> {
 public:
+	using observer_t = std::function<void(libsinsp::state::table_entry& e, bool added)>;
+
 	stl_container_table_adapter(const std::string& name, T& container):
 	        table(name, _static_fields()),
 	        m_container(container) {
@@ -230,6 +232,8 @@ public:
 	size_t entries_count() const override { return m_container.size(); }
 
 	void clear_entries() override { m_container.clear(); }
+
+	inline void observe(const observer_t& cb) { m_observers.emplace_back(cb); }
 
 	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
 		auto ret = std::make_unique<TWrap>();
@@ -277,12 +281,20 @@ public:
 		}
 
 		m_container.resize(key + 1);
-		return wrap_value(&m_container[key]);
+		auto e = wrap_value(&m_container[key]);
+		for(const auto& observer : m_observers) {
+			observer(*e, true);
+		}
+		return e;
 	}
 
 	bool erase_entry(const uint64_t& key) override {
 		if(key >= m_container.size()) {
 			return false;
+		}
+		auto e = get_entry(key);
+		for(const auto& observer : m_observers) {
+			observer(*e, false);
 		}
 		m_container.erase(m_container.begin() + key);
 		return true;
@@ -316,6 +328,7 @@ private:
 
 	T& m_container;
 	std::list<TWrap> m_wrappers;  // using lists for ptr stability
+	std::vector<observer_t> m_observers;
 };
 
 };  // namespace state
