@@ -1963,30 +1963,14 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid,
 		// unfortunately, sinsp owns the threade factory
 		auto newti = m_inspector->build_threadinfo();
 
-		m_n_proc_lookups++;
-
 		if(main_thread) {
 			m_n_main_thread_lookups++;
 		}
 
-		if(m_n_proc_lookups == m_max_n_proc_lookups) {
-			libsinsp_logger()->format(sinsp_logger::SEV_INFO,
-			                          "Reached max process lookup number, duration=%" PRIu64 "ms",
-			                          m_n_proc_lookups_duration_ns / 1000000);
-		}
-
-		if(m_max_n_proc_lookups < 0 || m_n_proc_lookups <= m_max_n_proc_lookups) {
+		if(m_max_n_proc_lookups < 0 || m_n_proc_lookups < m_max_n_proc_lookups) {
 			bool scan_sockets = false;
-
-			if(m_max_n_proc_socket_lookups < 0 || m_n_proc_lookups <= m_max_n_proc_socket_lookups) {
+			if(m_max_n_proc_socket_lookups < 0 || m_n_proc_lookups < m_max_n_proc_socket_lookups) {
 				scan_sockets = true;
-				if(m_n_proc_lookups == m_max_n_proc_socket_lookups) {
-					libsinsp_logger()->format(sinsp_logger::SEV_INFO,
-					                          "Reached max socket lookup number, tid=%" PRIu64
-					                          ", duration=%" PRIu64 "ms",
-					                          tid,
-					                          m_n_proc_lookups_duration_ns / 1000000);
-				}
 			}
 
 			uint64_t ts = sinsp_utils::get_current_time_ns();
@@ -1995,6 +1979,22 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid,
 				have_scap_proc = true;
 			}
 			m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
+
+			m_n_proc_lookups++;
+
+			if(m_n_proc_lookups == m_max_n_proc_lookups) {
+				libsinsp_logger()->format(sinsp_logger::SEV_INFO,
+				                          "Reached max process lookup number, duration=%" PRIu64
+				                          "ms",
+				                          m_n_proc_lookups_duration_ns / 1000000);
+			}
+			if(scan_sockets && m_n_proc_lookups == m_max_n_proc_socket_lookups) {
+				libsinsp_logger()->format(sinsp_logger::SEV_INFO,
+				                          "Reached max socket lookup number, tid=%" PRIu64
+				                          ", duration=%" PRIu64 "ms",
+				                          tid,
+				                          m_n_proc_lookups_duration_ns / 1000000);
+			}
 		}
 
 		if(have_scap_proc) {
