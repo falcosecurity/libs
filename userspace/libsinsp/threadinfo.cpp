@@ -509,9 +509,9 @@ void sinsp_threadinfo::init(scap_threadinfo* pi) {
 	        this,
 	        m_inspector->is_live() || m_inspector->is_syscall_plugin());
 
-	m_uid = pi->uid;
-	m_gid = pi->gid;
-	m_loginuid = ((uint32_t)pi->loginuid);
+	set_group(pi->gid);
+	set_user(pi->uid);
+	set_loginuser((uint32_t)pi->loginuid);
 }
 
 const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
@@ -528,6 +528,29 @@ std::string sinsp_threadinfo::get_exe() const {
 
 std::string sinsp_threadinfo::get_exepath() const {
 	return m_exepath;
+}
+
+void sinsp_threadinfo::set_user(uint32_t uid) {
+	m_uid = uid;
+	scap_userinfo* user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
+	if(!user) {
+		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		m_inspector->m_usergroup_manager
+		        .add_user(m_container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
+	}
+}
+
+void sinsp_threadinfo::set_group(uint32_t gid) {
+	m_gid = gid;
+	scap_groupinfo* group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
+	if(!group) {
+		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, {}, notify);
+	}
+}
+
+void sinsp_threadinfo::set_loginuser(uint32_t loginuid) {
+	m_loginuid = loginuid;
 }
 
 scap_userinfo* sinsp_threadinfo::get_user() const {
