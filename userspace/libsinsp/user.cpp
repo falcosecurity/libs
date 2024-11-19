@@ -135,20 +135,6 @@ void sinsp_usergroup_manager::subscribe_container_mgr() {
 		        [&](const sinsp_container_info &cinfo) -> void {
 			        delete_container_users_groups(cinfo);
 		        });
-		// Emplace container manager listener to load users/groups from new containers
-		m_inspector->m_container_manager.subscribe_on_new_container(
-		        [&](const sinsp_container_info & /*cinfo*/, sinsp_threadinfo *tinfo) -> void {
-			        const bool notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-			        add_user(tinfo->m_container_id,
-			                 tinfo->m_pid,
-			                 tinfo->m_uid,
-			                 tinfo->m_gid,
-			                 {},
-			                 {},
-			                 {},
-			                 notify);
-			        add_group(tinfo->m_container_id, tinfo->m_pid, tinfo->m_gid, {}, notify);
-		        });
 	}
 }
 

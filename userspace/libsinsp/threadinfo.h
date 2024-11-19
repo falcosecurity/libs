@@ -376,6 +376,10 @@ public:
 	 */
 	std::string get_path_for_dir_fd(int64_t dir_fd);
 
+	void set_user(uint32_t uid);
+	void set_group(uint32_t gid);
+	void set_loginuser(uint32_t loginuid);
+
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	const cgroups_t& cgroups() const;
 
