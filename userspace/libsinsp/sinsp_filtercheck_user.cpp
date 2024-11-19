@@ -100,27 +100,29 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_STRING(container_info->m_container_user);
 	}
 
+	auto user = tinfo->get_user();
+	auto loginuser = tinfo->get_loginuser();
 	switch(m_field_id) {
 	case TYPE_UID:
-		m_val.u32 = tinfo->m_user.uid();
+		m_val.u32 = tinfo->m_uid;
 		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_NAME:
-		m_strval = tinfo->m_user.name();
+		m_strval = user->name;
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_HOMEDIR:
-		m_strval = tinfo->m_user.homedir();
+		m_strval = user->homedir;
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_SHELL:
-		m_strval = tinfo->m_user.shell();
+		m_strval = user->shell;
 		RETURN_EXTRACT_STRING(m_strval);
 	case TYPE_LOGINUID:
 		m_val.s64 = (int64_t)-1;
-		if(tinfo->m_loginuser.uid() < UINT32_MAX) {
-			m_val.s64 = (int64_t)tinfo->m_loginuser.uid();
+		if(tinfo->m_loginuid < UINT32_MAX) {
+			m_val.s64 = (int64_t)tinfo->m_loginuid;
 		}
 		RETURN_EXTRACT_VAR(m_val.s64);
 	case TYPE_LOGINNAME:
-		m_strval = tinfo->m_loginuser.name();
+		m_strval = loginuser->name;
 		RETURN_EXTRACT_STRING(m_strval);
 	default:
 		ASSERT(false);

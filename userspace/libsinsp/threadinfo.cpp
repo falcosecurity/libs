@@ -118,6 +118,9 @@ void sinsp_threadinfo::init() {
 	m_ptid = (uint64_t)-1LL;
 	m_vpgid = (uint64_t)-1LL;
 	m_pgid = (uint64_t)-1LL;
+	m_uid = 0xffffffff;
+	m_gid = 0xffffffff;
+	m_loginuid = 0xffffffff;
 	set_lastevent_data_validity(false);
 	m_reaper_tid = -1;
 	m_not_expired_children = 0;
@@ -506,77 +509,9 @@ void sinsp_threadinfo::init(scap_threadinfo* pi) {
 	        this,
 	        m_inspector->is_live() || m_inspector->is_syscall_plugin());
 
-	set_group(pi->gid);
-	set_user(pi->uid);
-	set_loginuser((uint32_t)pi->loginuid);
-}
-
-void sinsp_threadinfo::set_user(uint32_t uid) {
-	scap_userinfo* user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
-	if(!user) {
-		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		user = m_inspector->m_usergroup_manager
-		               .add_user(m_container_id, m_pid, uid, m_group.gid(), {}, {}, {}, notify);
-	}
-
-	if(user) {
-		m_user.set_uid(user->uid);
-		m_user.set_gid(m_group.gid());
-
-		if(m_inspector->is_user_details_enabled()) {
-			m_user.set_name(user->name, strnlen(user->name, MAX_CREDENTIALS_STR_LEN));
-			m_user.set_homedir(user->homedir, strnlen(user->homedir, MAX_CREDENTIALS_STR_LEN));
-			m_user.set_shell(user->shell, strnlen(user->shell, MAX_CREDENTIALS_STR_LEN));
-		}
-	} else {
-		// No need to set name/homedir/shell, the default values from
-		// sinsp_userinfo are going to be used.
-		m_user.set_uid(uid);
-		m_user.set_gid(m_group.gid());
-	}
-}
-
-void sinsp_threadinfo::set_group(uint32_t gid) {
-	scap_groupinfo* group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
-	if(!group) {
-		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		group = m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, {}, notify);
-	}
-	if(group) {
-		m_group.set_gid(group->gid);
-
-		if(m_inspector->is_user_details_enabled()) {
-			m_group.set_name(group->name, strnlen(group->name, MAX_CREDENTIALS_STR_LEN));
-		}
-	} else {
-		// No need to set name/homedir/shell, the default values from
-		// sinsp_userinfo are going to be used.
-		m_group.set_gid(gid);
-	}
-	m_user.set_gid(m_group.gid());
-}
-
-void sinsp_threadinfo::set_loginuser(uint32_t loginuid) {
-	scap_userinfo* login_user = m_inspector->m_usergroup_manager.get_user(m_container_id, loginuid);
-
-	if(login_user) {
-		m_loginuser.set_uid(login_user->uid);
-		m_loginuser.set_gid(m_group.gid());
-
-		if(m_inspector->is_user_details_enabled()) {
-			m_loginuser.set_name(login_user->name,
-			                     strnlen(login_user->name, MAX_CREDENTIALS_STR_LEN));
-			m_loginuser.set_homedir(login_user->homedir,
-			                        strnlen(login_user->homedir, MAX_CREDENTIALS_STR_LEN));
-			m_loginuser.set_shell(login_user->shell,
-			                      strnlen(login_user->shell, MAX_CREDENTIALS_STR_LEN));
-		}
-	} else {
-		// No need to set name/homedir/shell, the default values from
-		// sinsp_userinfo are going to be used.
-		m_loginuser.set_uid(loginuid);
-		m_loginuser.set_gid(m_group.gid());
-	}
+	m_uid = pi->uid;
+	m_gid = pi->gid;
+	m_loginuid = ((uint32_t)pi->loginuid);
 }
 
 const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
@@ -593,6 +528,45 @@ std::string sinsp_threadinfo::get_exe() const {
 
 std::string sinsp_threadinfo::get_exepath() const {
 	return m_exepath;
+}
+
+scap_userinfo* sinsp_threadinfo::get_user() const {
+	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_uid);
+	if(user != nullptr) {
+		return user;
+	}
+	static scap_userinfo usr{};
+	usr.uid = m_uid;
+	usr.gid = m_gid;
+	strlcpy(usr.name, m_uid == 0 ? "root" : "<NA>", sizeof(usr.name));
+	strlcpy(usr.homedir, m_uid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
+	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
+	return &usr;
+}
+
+scap_groupinfo* sinsp_threadinfo::get_group() const {
+	auto group = m_inspector->m_usergroup_manager.get_group(m_container_id, m_gid);
+	if(group != nullptr) {
+		return group;
+	}
+	static scap_groupinfo grp = {};
+	grp.gid = m_gid;
+	strlcpy(grp.name, m_gid == 0 ? "root" : "<NA>", sizeof(grp.name));
+	return &grp;
+}
+
+scap_userinfo* sinsp_threadinfo::get_loginuser() const {
+	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_loginuid);
+	if(user != nullptr) {
+		return user;
+	}
+	static scap_userinfo usr{};
+	usr.uid = m_loginuid;
+	usr.gid = m_gid;
+	strlcpy(usr.name, m_loginuid == 0 ? "root" : "<NA>", sizeof(usr.name));
+	strlcpy(usr.homedir, m_loginuid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
+	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
+	return &usr;
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len) {
@@ -1778,8 +1752,8 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 
 	sctinfo->flags = tinfo.m_flags;
 	sctinfo->fdlimit = tinfo.m_fdlimit;
-	sctinfo->uid = tinfo.m_user.uid();
-	sctinfo->gid = tinfo.m_group.gid();
+	sctinfo->uid = tinfo.m_uid;
+	sctinfo->gid = tinfo.m_gid;
 	sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
 	sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
 	sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
@@ -1788,7 +1762,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, scap_threadin
 	sctinfo->vtid = tinfo.m_vtid;
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
-	sctinfo->loginuid = tinfo.m_loginuser.uid();
+	sctinfo->loginuid = tinfo.m_loginuid;
 	sctinfo->filtered_out = tinfo.m_filtered_out;
 }
 
@@ -2010,9 +1984,9 @@ const threadinfo_map_t::ptr_t& sinsp_thread_manager::get_thread_ref(int64_t tid,
 			newti->m_not_expired_children = 0;
 			newti->m_comm = "<NA>";
 			newti->m_exe = "<NA>";
-			newti->m_user.set_uid(0xffffffff);
-			newti->m_group.set_gid(0xffffffff);
-			newti->m_loginuser.set_uid(0xffffffff);
+			newti->m_uid = 0xffffffff;
+			newti->m_gid = 0xffffffff;
+			newti->m_loginuid = 0xffffffff;
 		}
 
 		//

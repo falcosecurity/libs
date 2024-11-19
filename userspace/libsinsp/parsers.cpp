@@ -1240,7 +1240,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_user(uid);
+	child_tinfo->m_uid = uid;
 
 	/* gid */
 	int32_t gid = 0;
@@ -1267,7 +1267,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_group(gid);
+	child_tinfo->m_gid = gid;
 
 	/* Set cgroups and heuristically detect container id */
 	switch(etype) {
@@ -1311,7 +1311,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 
 		child_tinfo->m_tty = caller_tinfo->m_tty;
 
-		child_tinfo->m_loginuser = caller_tinfo->m_loginuser;
+		child_tinfo->m_loginuid = caller_tinfo->m_loginuid;
 
 		child_tinfo->m_cap_permitted = caller_tinfo->m_cap_permitted;
 
@@ -1347,13 +1347,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	if(!new_child) {
 		// note: we expect the thread manager to log a warning already
 		return;
-	}
-
-	/* Refresh user / loginuser / group */
-	if(new_child->m_container_id.empty() == false) {
-		new_child->set_user(new_child->m_user.uid());
-		new_child->set_loginuser(new_child->m_loginuser.uid());
-		new_child->set_group(new_child->m_group.gid());
 	}
 
 	/* If there's a listener, invoke it */
@@ -1626,7 +1619,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 
 		child_tinfo->m_tty = lookup_tinfo->m_tty;
 
-		child_tinfo->m_loginuser = lookup_tinfo->m_loginuser;
+		child_tinfo->m_loginuid = lookup_tinfo->m_loginuid;
 
 		child_tinfo->m_cap_permitted = lookup_tinfo->m_cap_permitted;
 
@@ -1767,7 +1760,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_user(uid);
+	child_tinfo->m_uid = uid;
 
 	/* gid */
 	int32_t gid = 0;
@@ -1794,7 +1787,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	default:
 		ASSERT(false);
 	}
-	child_tinfo->set_group(gid);
+	child_tinfo->m_gid = gid;
 
 	/* Set cgroups and heuristically detect container id */
 	switch(etype) {
@@ -1839,13 +1832,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	 * callback will use updated info.
 	 */
 	evt->set_tinfo(new_child.get());
-
-	/* Refresh user / loginuser / group */
-	if(new_child->m_container_id.empty() == false) {
-		new_child->set_user(new_child->m_user.uid());
-		new_child->set_loginuser(new_child->m_loginuser.uid());
-		new_child->set_group(new_child->m_group.gid());
-	}
 
 	//
 	// If there's a listener, invoke it
@@ -2227,7 +2213,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 
 	// Get the loginuid
 	if(evt->get_num_params() > 18) {
-		evt->get_tinfo()->set_loginuser(evt->get_param(18)->as<uint32_t>());
+		evt->get_tinfo()->m_loginuid = evt->get_param(18)->as<uint32_t>();
 	}
 
 	// Get execve flags
@@ -2273,7 +2259,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 
 	// Get uid
 	if(evt->get_num_params() > 26) {
-		evt->get_tinfo()->m_user.set_uid(evt->get_param(26)->as<uint32_t>());
+		evt->get_tinfo()->m_uid = evt->get_param(26)->as<uint32_t>();
 	}
 
 	// Get pgid
@@ -2315,16 +2301,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	// Recompute the program hash
 	//
 	evt->get_tinfo()->compute_program_hash();
-
-	//
-	// Refresh user / loginuser / group
-	// if we happen to change container id
-	//
-	if(container_id != evt->get_tinfo()->m_container_id) {
-		evt->get_tinfo()->set_user(evt->get_tinfo()->m_user.uid());
-		evt->get_tinfo()->set_loginuser(evt->get_tinfo()->m_loginuser.uid());
-		evt->get_tinfo()->set_group(evt->get_tinfo()->m_group.gid());
-	}
 
 	//
 	// If there's a listener, invoke it
@@ -4517,7 +4493,7 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt) {
 		if(new_euid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_user(new_euid);
+				ti->m_uid = new_euid;
 			}
 		}
 	}
@@ -4537,7 +4513,7 @@ void sinsp_parser::parse_setreuid_exit(sinsp_evt *evt) {
 		if(new_euid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_user(new_euid);
+				ti->m_uid = new_euid;
 			}
 		}
 	}
@@ -4558,7 +4534,7 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt) {
 		if(new_egid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_group(new_egid);
+				ti->m_gid = new_egid;
 			}
 		}
 	}
@@ -4578,7 +4554,7 @@ void sinsp_parser::parse_setregid_exit(sinsp_evt *evt) {
 		if(new_egid < std::numeric_limits<uint32_t>::max()) {
 			sinsp_threadinfo *ti = evt->get_thread_info();
 			if(ti) {
-				ti->set_group(new_egid);
+				ti->m_gid = new_egid;
 			}
 		}
 	}
@@ -4597,7 +4573,7 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt) {
 		uint32_t new_euid = enter_evt->get_param(0)->as<uint32_t>();
 		sinsp_threadinfo *ti = evt->get_thread_info();
 		if(ti) {
-			ti->set_user(new_euid);
+			ti->m_uid = new_euid;
 		}
 	}
 }
@@ -4615,7 +4591,7 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt) {
 		uint32_t new_egid = enter_evt->get_param(0)->as<uint32_t>();
 		sinsp_threadinfo *ti = evt->get_thread_info();
 		if(ti) {
-			ti->set_group(new_egid);
+			ti->m_gid = new_egid;
 		}
 	}
 }
@@ -5070,15 +5046,6 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt) {
 		m_inspector->m_container_manager.resolve_container(
 		        evt->get_tinfo(),
 		        m_inspector->is_live() || m_inspector->is_syscall_plugin());
-		//
-		// Refresh user / loginuser / group
-		// if we happen to change container id
-		//
-		if(container_id != evt->get_tinfo()->m_container_id) {
-			evt->get_tinfo()->set_user(evt->get_tinfo()->m_user.uid());
-			evt->get_tinfo()->set_loginuser(evt->get_tinfo()->m_loginuser.uid());
-			evt->get_tinfo()->set_group(evt->get_tinfo()->m_group.gid());
-		}
 	}
 }
 
