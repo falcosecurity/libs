@@ -67,11 +67,13 @@ uint8_t* sinsp_filter_check_group::extract_single(sinsp_evt* evt,
 
 	switch(m_field_id) {
 	case TYPE_GID:
-		m_gid = tinfo->m_group.gid();
+		m_gid = tinfo->m_gid;
 		RETURN_EXTRACT_VAR(m_gid);
-	case TYPE_NAME:
-		m_name = tinfo->m_group.name();
+	case TYPE_NAME: {
+		auto group = tinfo->get_group();
+		m_name = group->name;
 		RETURN_EXTRACT_STRING(m_name);
+	}
 	default:
 		ASSERT(false);
 		break;

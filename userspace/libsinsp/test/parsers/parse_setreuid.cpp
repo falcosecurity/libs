@@ -33,7 +33,7 @@ TEST_F(sinsp_with_test_input, SETREUID_failure) {
 
 	sinsp_threadinfo* ti = m_inspector.get_thread_ref(p2_t2_tid, false).get();
 	ASSERT_TRUE(ti);
-	ASSERT_TRUE(ti->m_user.uid() == 0);
+	ASSERT_TRUE(ti->m_uid == 0);
 }
 
 TEST_F(sinsp_with_test_input, SETREUID_success) {
@@ -50,5 +50,5 @@ TEST_F(sinsp_with_test_input, SETREUID_success) {
 
 	sinsp_threadinfo* ti = m_inspector.get_thread_ref(p2_t2_tid, false).get();
 	ASSERT_TRUE(ti);
-	ASSERT_TRUE(ti->m_user.uid() == 1337);
+	ASSERT_TRUE(ti->m_uid == 1337);
 }
