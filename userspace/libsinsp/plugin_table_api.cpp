@@ -739,7 +739,6 @@ void sinsp_plugin::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::ta
 
 	m_table = t;
 	m_owner_plugin = p;
-	m_key_type = typeinfo_to_state_type(t->key_info());
 	m_field_list.clear();
 	m_table_plugin_owner = nullptr;
 	m_table_plugin_input = nullptr;
@@ -761,14 +760,13 @@ void sinsp_plugin::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::ta
 		input.key_type = m_table_plugin_input->key_type;
 		input.name = m_table_plugin_input->name;
 	} else {
-		input.key_type = m_key_type;
+		input.key_type = typeinfo_to_state_type(t->key_info());
 		input.name = m_table->name().c_str();
 	}
 }
 
 void sinsp_plugin::sinsp_table_wrapper::unset() {
 	m_owner_plugin = nullptr;
-	m_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 	m_table = nullptr;
 	m_field_list.clear();
 	m_table_plugin_owner = nullptr;
@@ -776,6 +774,7 @@ void sinsp_plugin::sinsp_table_wrapper::unset() {
 
 	input.name = nullptr;
 	input.table = nullptr;
+	input.key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 }
 
 bool sinsp_plugin::sinsp_table_wrapper::is_set() const {
@@ -1004,7 +1003,7 @@ ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::get_entry(
 		return NULL;                                                               \
 	}
 	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->m_key_type); });
+	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
 #undef _X
 	return NULL;
 }
@@ -1045,7 +1044,7 @@ ss_plugin_bool sinsp_plugin::sinsp_table_wrapper::iterate_entries(
 		return tt->foreach_entry(iter);                                    \
 	}
 	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->m_key_type); });
+	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
 #undef _X
 
 	return false;
@@ -1095,7 +1094,7 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::erase_entry(ss_plugin_table_t* _
 		}                                                                              \
 	}
 	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->m_key_type); });
+	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
 #undef _X
 	return SS_PLUGIN_FAILURE;
 }
@@ -1122,7 +1121,7 @@ ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::create_table_entry(
 		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);                         \
 	}
 	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->m_key_type); });
+	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
 #undef _X
 	return NULL;
 }
@@ -1145,7 +1144,7 @@ void sinsp_plugin::sinsp_table_wrapper::destroy_table_entry(ss_plugin_table_t* _
 		break;                                                                    \
 	}
 	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->m_key_type); });
+	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
 #undef _X
 }
 
@@ -1177,7 +1176,7 @@ ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::add_entry(
 		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);                  \
 	}
 	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->m_key_type); });
+	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
 #undef _X
 	return NULL;
 }
@@ -1327,7 +1326,7 @@ sinsp_plugin::sinsp_table_wrapper::sinsp_table_wrapper() {
 	// fill-up with some default values
 	input.table = nullptr;
 	input.name = nullptr;
-	input.key_type = m_key_type;
+	input.key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 }
 
 // the following table api symbols act as dispatcher for the table API
