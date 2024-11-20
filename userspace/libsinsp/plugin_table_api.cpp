@@ -1210,7 +1210,7 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::read_entry_field(ss_plugin_table
 	{                                                                        \
 		auto st = static_cast<libsinsp::state::table<_type>*>(subtable_ptr); \
 		auto& slot = t->m_owner_plugin->find_unset_ephemeral_table();        \
-		slot.wrapper.set<_type>(t->m_owner_plugin, st);                      \
+		slot.set<_type>(t->m_owner_plugin, st);                              \
 		slot.update();                                                       \
 		out->table = &slot.input;                                            \
 	};
@@ -1274,7 +1274,7 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::write_entry_field(ss_plugin_tabl
 //
 // sinsp_table_input implementation
 //
-sinsp_plugin::sinsp_table_input::sinsp_table_input() {
+sinsp_plugin::sinsp_table_wrapper::sinsp_table_wrapper() {
 	// populate vtables
 	reader_vtable.get_table_name = sinsp_plugin::sinsp_table_wrapper::get_name;
 	reader_vtable.get_table_size = sinsp_plugin::sinsp_table_wrapper::get_size;
@@ -1315,23 +1315,23 @@ sinsp_plugin::sinsp_table_input::sinsp_table_input() {
 	// fill-up with some default values
 	input.table = nullptr;
 	input.name = nullptr;
-	input.key_type = wrapper.m_key_type;
+	input.key_type = m_key_type;
 }
 
-void sinsp_plugin::sinsp_table_input::update() {
+void sinsp_plugin::sinsp_table_wrapper::update() {
 	input.name = nullptr;
 	input.table = nullptr;
-	if(!wrapper.is_set()) {
+	if(!is_set()) {
 		return;
 	}
 
-	input.table = &wrapper;
-	if(wrapper.m_table) {
-		input.key_type = wrapper.m_key_type;
-		input.name = wrapper.m_table->name().c_str();
-	} else if(wrapper.m_table_plugin_input) {
-		input.key_type = wrapper.m_table_plugin_input->key_type;
-		input.name = wrapper.m_table_plugin_input->name;
+	input.table = this;
+	if(m_table) {
+		input.key_type = m_key_type;
+		input.name = m_table->name().c_str();
+	} else if(m_table_plugin_input) {
+		input.key_type = m_table_plugin_input->key_type;
+		input.name = m_table_plugin_input->name;
 	}
 }
 
@@ -1510,7 +1510,7 @@ ss_plugin_table_t* sinsp_plugin::table_api_get_table(ss_plugin_owner_t* o,
 		if(!t) {                                                                   \
 			return NULL;                                                           \
 		}                                                                          \
-		p->m_accessed_tables[name].wrapper.set(p, t);                              \
+		p->m_accessed_tables[name].set(p, t);                                      \
 		p->m_accessed_tables[name].update();                                       \
 		return static_cast<ss_plugin_table_t*>(&p->m_accessed_tables[name].input); \
 	};
