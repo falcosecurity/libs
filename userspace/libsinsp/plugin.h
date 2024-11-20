@@ -325,7 +325,6 @@ private:
 		bool is_set() const;
 		template<typename T>
 		void set(sinsp_plugin* p, libsinsp::state::table<T>* t);
-		void update();
 
 		// static functions, will be used to populate vtable functions where
 		// ss_plugin_table_t* will be represented by a sinsp_table_wrapper*
@@ -386,7 +385,6 @@ private:
 		}
 		for(auto& et : m_ephemeral_tables) {
 			et.unset();
-			et.update();
 		}
 		m_ephemeral_tables_clear = true;
 	}
