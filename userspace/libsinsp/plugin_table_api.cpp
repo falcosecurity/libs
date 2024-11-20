@@ -754,6 +754,15 @@ void sinsp_plugin::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::ta
 		m_table_plugin_owner = pt->m_owner;
 		m_table_plugin_input = pt->m_input.get();
 	}
+
+	input.table = this;
+	if(m_table) {  // can this be ever false?
+		input.key_type = m_key_type;
+		input.name = m_table->name().c_str();
+	} else if(m_table_plugin_input) {
+		input.key_type = m_table_plugin_input->key_type;
+		input.name = m_table_plugin_input->name;
+	}
 }
 
 void sinsp_plugin::sinsp_table_wrapper::unset() {
@@ -763,6 +772,9 @@ void sinsp_plugin::sinsp_table_wrapper::unset() {
 	m_field_list.clear();
 	m_table_plugin_owner = nullptr;
 	m_table_plugin_input = nullptr;
+
+	input.name = nullptr;
+	input.table = nullptr;
 }
 
 bool sinsp_plugin::sinsp_table_wrapper::is_set() const {
@@ -1211,7 +1223,6 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::read_entry_field(ss_plugin_table
 		auto st = static_cast<libsinsp::state::table<_type>*>(subtable_ptr); \
 		auto& slot = t->m_owner_plugin->find_unset_ephemeral_table();        \
 		slot.set<_type>(t->m_owner_plugin, st);                              \
-		slot.update();                                                       \
 		out->table = &slot.input;                                            \
 	};
 	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
@@ -1316,23 +1327,6 @@ sinsp_plugin::sinsp_table_wrapper::sinsp_table_wrapper() {
 	input.table = nullptr;
 	input.name = nullptr;
 	input.key_type = m_key_type;
-}
-
-void sinsp_plugin::sinsp_table_wrapper::update() {
-	input.name = nullptr;
-	input.table = nullptr;
-	if(!is_set()) {
-		return;
-	}
-
-	input.table = this;
-	if(m_table) {
-		input.key_type = m_key_type;
-		input.name = m_table->name().c_str();
-	} else if(m_table_plugin_input) {
-		input.key_type = m_table_plugin_input->key_type;
-		input.name = m_table_plugin_input->name;
-	}
 }
 
 // the following table api symbols act as dispatcher for the table API
@@ -1511,7 +1505,6 @@ ss_plugin_table_t* sinsp_plugin::table_api_get_table(ss_plugin_owner_t* o,
 			return NULL;                                                           \
 		}                                                                          \
 		p->m_accessed_tables[name].set(p, t);                                      \
-		p->m_accessed_tables[name].update();                                       \
 		return static_cast<ss_plugin_table_t*>(&p->m_accessed_tables[name].input); \
 	};
 	__CATCH_ERR_MSG(p->m_last_owner_err, {
