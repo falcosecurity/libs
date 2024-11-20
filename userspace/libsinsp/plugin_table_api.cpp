@@ -756,12 +756,13 @@ void sinsp_plugin::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::ta
 	}
 
 	input.table = this;
-	if(m_table) {  // can this be ever false?
-		input.key_type = m_key_type;
-		input.name = m_table->name().c_str();
-	} else if(m_table_plugin_input) {
+
+	if(m_table_plugin_input) {
 		input.key_type = m_table_plugin_input->key_type;
 		input.name = m_table_plugin_input->name;
+	} else {
+		input.key_type = m_key_type;
+		input.name = m_table->name().c_str();
 	}
 }
 
