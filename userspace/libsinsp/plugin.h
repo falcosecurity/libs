@@ -310,7 +310,13 @@ private:
 		const sinsp_plugin* m_table_plugin_owner = nullptr;
 		ss_plugin_table_input* m_table_plugin_input = nullptr;
 
-		inline sinsp_table_wrapper() = default;
+		// plugin-defined vtables
+		ss_plugin_table_input input;
+		ss_plugin_table_fields_vtable_ext fields_vtable;
+		ss_plugin_table_reader_vtable_ext reader_vtable;
+		ss_plugin_table_writer_vtable_ext writer_vtable;
+
+		sinsp_table_wrapper();
 		virtual ~sinsp_table_wrapper() = default;
 		inline sinsp_table_wrapper(const sinsp_table_wrapper& s) = delete;
 		inline sinsp_table_wrapper& operator=(const sinsp_table_wrapper& s) = delete;
@@ -319,6 +325,7 @@ private:
 		bool is_set() const;
 		template<typename T>
 		void set(sinsp_plugin* p, libsinsp::state::table<T>* t);
+		void update();
 
 		// static functions, will be used to populate vtable functions where
 		// ss_plugin_table_t* will be represented by a sinsp_table_wrapper*
@@ -358,33 +365,16 @@ private:
 		;
 	};
 
-	// a wrapper around sinsp_table_wrapper (yes...) that makes it comply to the
-	// ss_plugin_table_input facade, thus being accessible through plugin API
-	struct sinsp_table_input {
-		ss_plugin_table_input input;
-		ss_plugin_table_fields_vtable_ext fields_vtable;
-		ss_plugin_table_reader_vtable_ext reader_vtable;
-		ss_plugin_table_writer_vtable_ext writer_vtable;
-		sinsp_table_wrapper wrapper;
-
-		sinsp_table_input();
-		inline ~sinsp_table_input() = default;
-		inline sinsp_table_input(const sinsp_table_input& s) = delete;
-		inline sinsp_table_input& operator=(const sinsp_table_input& s) = delete;
-
-		void update();
-	};
-
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 	std::vector<ss_plugin_table_info> m_table_infos;
 	std::unordered_map<std::string, std::unique_ptr<libsinsp::state::base_table>> m_owned_tables;
 	/* contains tables that the plugin accessed at least once */
-	std::unordered_map<std::string, sinsp_table_input> m_accessed_tables;
+	std::unordered_map<std::string, sinsp_table_wrapper> m_accessed_tables;
 	std::list<std::shared_ptr<libsinsp::state::table_entry>>
 	        m_accessed_entries;  // using lists for ptr stability
 	std::list<sinsp_field_accessor_wrapper>
 	        m_accessed_table_fields;                  // note: lists have pointer stability
-	std::list<sinsp_table_input> m_ephemeral_tables;  // note: lists have pointer stability
+	std::list<sinsp_table_wrapper> m_ephemeral_tables;  // note: lists have pointer stability
 	bool m_ephemeral_tables_clear;
 	bool m_accessed_entries_clear;
 
@@ -395,16 +385,16 @@ private:
 			return;
 		}
 		for(auto& et : m_ephemeral_tables) {
-			et.wrapper.unset();
+			et.unset();
 			et.update();
 		}
 		m_ephemeral_tables_clear = true;
 	}
 
-	inline sinsp_table_input& find_unset_ephemeral_table() {
+	inline sinsp_table_wrapper& find_unset_ephemeral_table() {
 		m_ephemeral_tables_clear = false;
 		for(auto& et : m_ephemeral_tables) {
-			if(!et.wrapper.is_set()) {
+			if(!et.is_set()) {
 				return et;
 			}
 		}
