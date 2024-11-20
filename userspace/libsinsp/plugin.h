@@ -299,7 +299,6 @@ private:
 	// wraps instances of libsinsp::state::table and help making them comply
 	// to the plugin API state tables definitions
 	struct sinsp_table_wrapper {
-		ss_plugin_state_type m_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 		sinsp_plugin* m_owner_plugin = nullptr;
 		libsinsp::state::base_table* m_table = nullptr;
 		std::vector<ss_plugin_table_fieldinfo> m_field_list;
