@@ -359,5 +359,14 @@ ss_plugin_bool libsinsp::state::built_in_table<KeyType>::iterate_entries(
 	return false;
 }
 
+template<typename KeyType>
+ss_plugin_rc libsinsp::state::built_in_table<KeyType>::clear(sinsp_plugin* owner) {
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		this->clear_entries();
+		return SS_PLUGIN_SUCCESS;
+	});
+	return SS_PLUGIN_FAILURE;
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;

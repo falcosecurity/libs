@@ -185,6 +185,8 @@ public:
 	                                       ss_plugin_table_iterator_func_t it,
 	                                       ss_plugin_table_iterator_state_t* s) = 0;
 
+	virtual ss_plugin_rc clear(sinsp_plugin* owner) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -283,6 +285,8 @@ class built_in_table : public table<KeyType> {
 	ss_plugin_bool iterate_entries(sinsp_plugin* owner,
 	                               ss_plugin_table_iterator_func_t it,
 	                               ss_plugin_table_iterator_state_t* s) override;
+
+	ss_plugin_rc clear(sinsp_plugin* owner) override;
 };
 };  // namespace state
 };  // namespace libsinsp
