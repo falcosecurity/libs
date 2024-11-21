@@ -133,7 +133,6 @@ public:
 	inline base_table(const std::string& name,
 	                  const typeinfo& key_info,
 	                  const static_struct::field_infos* static_fields):
-	        m_this_ptr(this),
 	        m_name(name),
 	        m_key_info(key_info),
 	        m_static_fields(static_fields),
@@ -144,12 +143,6 @@ public:
 	inline base_table& operator=(base_table&&) = default;
 	inline base_table(const base_table& s) = delete;
 	inline base_table& operator=(const base_table& s) = delete;
-
-	/**
-	 * @brief Returns a pointer to the area of memory in which this table
-	 * object is allocated. Here for convenience as required in other code parts.
-	 */
-	inline const base_table* const& table_ptr() const { return m_this_ptr; }
 
 	/**
 	 * @brief Returns the name of the table.
@@ -271,7 +264,6 @@ public:
 	                                       const ss_plugin_state_data* in) = 0;
 
 protected:
-	const base_table* m_this_ptr;
 	std::string m_name;
 	typeinfo m_key_info;
 	const static_struct::field_infos* m_static_fields;
@@ -342,7 +334,17 @@ private:
 
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
-	using table<KeyType>::table;
+public:
+	inline built_in_table(const std::string& name, const static_struct::field_infos* static_fields):
+	        table<KeyType>::table(name, static_fields),
+	        m_this_ptr(this) {}
+	inline built_in_table(const std::string& name): table<KeyType>::table(name) {}
+
+	/**
+	 * @brief Returns a pointer to the area of memory in which this table
+	 * object is allocated. Here for convenience as required in other code parts.
+	 */
+	inline const base_table* const& table_ptr() const { return m_this_ptr; }
 
 	std::shared_ptr<table_entry> get_entry(const KeyType& key) override = 0;
 
@@ -396,6 +398,9 @@ class built_in_table : public table<KeyType> {
 	                               ss_plugin_table_entry_t* _e,
 	                               const ss_plugin_table_field_t* f,
 	                               const ss_plugin_state_data* in) override;
+
+private:
+	const base_table* m_this_ptr;
 };
 
 class sinsp_table_owner {
