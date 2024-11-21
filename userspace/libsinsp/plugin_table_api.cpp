@@ -630,6 +630,10 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
 
+	const char* get_name(sinsp_plugin* owner) override;
+
+	uint64_t get_size(sinsp_plugin* owner) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -710,6 +714,20 @@ ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::add_field(sinsp_plugin* 
                                                                   ss_plugin_state_type data_type) {
 	auto ret = m_input->fields_ext->add_table_field(m_input->table, name, data_type);
 	if(ret == NULL) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
+}
+
+template<typename KeyType>
+const char* plugin_table_wrapper<KeyType>::get_name(sinsp_plugin* owner) {
+	return m_input->name;
+}
+
+template<typename KeyType>
+uint64_t plugin_table_wrapper<KeyType>::get_size(sinsp_plugin* owner) {
+	auto ret = m_input->reader_ext->get_table_size(m_input->table);
+	if(ret == ((uint64_t)-1)) {
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
 	return ret;
@@ -813,29 +831,12 @@ ss_plugin_table_field_t* sinsp_plugin::sinsp_table_wrapper::add_field(
 
 const char* sinsp_plugin::sinsp_table_wrapper::get_name(ss_plugin_table_t* _t) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		return t->m_table_plugin_input->name;
-	}
-
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, { return t->m_table->name().c_str(); });
-	return NULL;
+	return t->m_table->get_name(t->m_owner_plugin);
 }
 
 uint64_t sinsp_plugin::sinsp_table_wrapper::get_size(ss_plugin_table_t* _t) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->reader_ext->get_table_size(pt);
-		if(ret == ((uint64_t)-1)) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, { return t->m_table->entries_count(); });
-	return ((uint64_t)-1);
+	return t->m_table->get_size(t->m_owner_plugin);
 }
 
 ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::get_entry(

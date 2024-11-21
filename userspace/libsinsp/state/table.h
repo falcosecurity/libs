@@ -172,6 +172,10 @@ public:
 	                                           const char* name,
 	                                           ss_plugin_state_type data_type) = 0;
 
+	virtual const char* get_name(sinsp_plugin* owner) = 0;
+
+	virtual uint64_t get_size(sinsp_plugin* owner) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -245,6 +249,10 @@ private:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 	using table<KeyType>::table;
+
+	const char* get_name(sinsp_plugin* owner) override;
+
+	uint64_t get_size(sinsp_plugin* owner) override;
 
 	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
 
