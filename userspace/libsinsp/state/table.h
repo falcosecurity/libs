@@ -176,6 +176,9 @@ public:
 
 	virtual uint64_t get_size(sinsp_plugin* owner) = 0;
 
+	virtual ss_plugin_table_entry_t* get_entry(sinsp_plugin* owner,
+	                                           const ss_plugin_state_data* key) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -250,6 +253,8 @@ template<typename KeyType>
 class built_in_table : public table<KeyType> {
 	using table<KeyType>::table;
 
+	std::shared_ptr<table_entry> get_entry(const KeyType& key) override = 0;
+
 	const char* get_name(sinsp_plugin* owner) override;
 
 	uint64_t get_size(sinsp_plugin* owner) override;
@@ -263,6 +268,9 @@ class built_in_table : public table<KeyType> {
 	ss_plugin_table_field_t* add_field(sinsp_plugin* owner,
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
+
+	ss_plugin_table_entry_t* get_entry(sinsp_plugin* owner,
+	                                   const ss_plugin_state_data* key) override;
 };
 };  // namespace state
 };  // namespace libsinsp

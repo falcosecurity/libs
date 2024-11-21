@@ -38,6 +38,9 @@ limitations under the License.
 #include <libsinsp/sinsp_thread_pool.h>
 #endif
 
+namespace libsinsp::state {
+class base_table;
+}
 /**
  * @brief An object-oriented representation of a plugin.
  */
@@ -417,6 +420,7 @@ private:
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
 	friend struct sinsp_table_wrapper;
+	friend class libsinsp::state::base_table;
 	template<typename KeyType>
 	friend class libsinsp::state::built_in_table;
 };
