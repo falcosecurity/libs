@@ -645,6 +645,8 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 
 	ss_plugin_rc clear(sinsp_plugin* owner) override;
 
+	ss_plugin_rc erase_entry(sinsp_plugin* owner, const ss_plugin_state_data* key) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -770,6 +772,16 @@ ss_plugin_bool plugin_table_wrapper<KeyType>::iterate_entries(sinsp_plugin* owne
 template<typename KeyType>
 ss_plugin_rc plugin_table_wrapper<KeyType>::clear(sinsp_plugin* owner) {
 	auto ret = m_input->writer_ext->clear_table(m_input->table);
+	if(ret == SS_PLUGIN_FAILURE) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
+}
+
+template<typename KeyType>
+ss_plugin_rc plugin_table_wrapper<KeyType>::erase_entry(sinsp_plugin* owner,
+                                                        const ss_plugin_state_data* key) {
+	auto ret = m_input->writer_ext->erase_table_entry(m_input->table, key);
 	if(ret == SS_PLUGIN_FAILURE) {
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
@@ -911,31 +923,7 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::clear(ss_plugin_table_t* _t) {
 ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::erase_entry(ss_plugin_table_t* _t,
                                                             const ss_plugin_state_data* key) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->writer_ext->erase_table_entry(pt, key);
-		if(ret == SS_PLUGIN_FAILURE) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-#define _X(_type, _dtype)                                                              \
-	{                                                                                  \
-		_type kk;                                                                      \
-		convert_types(key->_dtype, kk);                                                \
-		if(static_cast<libsinsp::state::table<_type>*>(t->m_table)->erase_entry(kk)) { \
-			return SS_PLUGIN_SUCCESS;                                                  \
-		} else {                                                                       \
-			t->m_owner_plugin->m_last_owner_err = "table entry not found";             \
-			return SS_PLUGIN_FAILURE;                                                  \
-		}                                                                              \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
-#undef _X
-	return SS_PLUGIN_FAILURE;
+	return t->m_table->erase_entry(t->m_owner_plugin, key);
 }
 
 ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::create_table_entry(
