@@ -406,5 +406,23 @@ void libsinsp::state::built_in_table<KeyType>::destroy_table_entry(sinsp_plugin*
 	});
 }
 
+template<typename KeyType>
+ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::add_entry(
+        sinsp_plugin* owner,
+        const ss_plugin_state_data* key,
+        ss_plugin_table_entry_t* _e) {
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		KeyType kk;
+		extract_key(*key, kk);
+		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
+		auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e->get());
+		e->reset();
+		auto owned_ptr = owner->find_unset_accessed_table_entry();
+		*owned_ptr = this->add_entry(kk, std::move(ptr));
+		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
+	});
+	return NULL;
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
