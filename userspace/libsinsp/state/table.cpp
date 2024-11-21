@@ -267,5 +267,15 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 	return NULL;
 }
 
+template<typename KeyType>
+const char* libsinsp::state::built_in_table<KeyType>::get_name(sinsp_plugin* owner) {
+	return this->m_name.c_str();
+}
+
+template<typename KeyType>
+uint64_t libsinsp::state::built_in_table<KeyType>::get_size(sinsp_plugin* owner) {
+	return this->entries_count();
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
