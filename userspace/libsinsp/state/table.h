@@ -270,6 +270,32 @@ public:
 	inline table& operator=(table&&) = default;
 	inline table(const table& s) = delete;
 	inline table& operator=(const table& s) = delete;
+};
+
+template<typename KeyType>
+class built_in_table : public table<KeyType> {
+public:
+	inline built_in_table(const std::string& name, const static_struct::field_infos* static_fields):
+	        table<KeyType>::table(),
+	        m_this_ptr(this),
+	        m_name(name),
+	        m_static_fields(static_fields) {}
+	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
+
+	/**
+	 * @brief Returns a pointer to the area of memory in which this table
+	 * object is allocated. Here for convenience as required in other code parts.
+	 */
+	inline const base_table* const& table_ptr() const { return m_this_ptr; }
+
+	const char* name() const override { return m_name.c_str(); }
+
+	/**
+	 * @brief Returns the fields metadata list for the static fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table.
+	 */
+	virtual const static_struct::field_infos* static_fields() const { return m_static_fields; }
 
 	/**
 	 * @brief Returns a pointer to an entry present in the table at the given
@@ -304,39 +330,6 @@ public:
 	 * @return false If an entry was not present at the given key.
 	 */
 	virtual bool erase_entry(const KeyType& key) = 0;
-};
-
-template<typename KeyType>
-class built_in_table : public table<KeyType> {
-public:
-	inline built_in_table(const std::string& name, const static_struct::field_infos* static_fields):
-	        table<KeyType>::table(),
-	        m_this_ptr(this),
-	        m_name(name),
-	        m_static_fields(static_fields) {}
-	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
-
-	/**
-	 * @brief Returns a pointer to the area of memory in which this table
-	 * object is allocated. Here for convenience as required in other code parts.
-	 */
-	inline const base_table* const& table_ptr() const { return m_this_ptr; }
-
-	std::shared_ptr<table_entry> get_entry(const KeyType& key) override = 0;
-
-	bool erase_entry(const KeyType& key) override = 0;
-
-	std::shared_ptr<table_entry> add_entry(const KeyType& key,
-	                                       std::unique_ptr<table_entry> entry) override = 0;
-
-	const char* name() const override { return m_name.c_str(); }
-
-	/**
-	 * @brief Returns the fields metadata list for the static fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table.
-	 */
-	virtual const static_struct::field_infos* static_fields() const { return m_static_fields; }
 
 	uint64_t get_size(sinsp_table_owner* owner) override;
 

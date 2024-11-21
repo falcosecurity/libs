@@ -535,60 +535,6 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		return std::make_unique<plugin_table_entry>(m_owner, m_input, m_dyn_fields, res, true);
 	}
 
-	std::shared_ptr<libsinsp::state::table_entry> get_entry(const KeyType& key) override {
-		ss_plugin_state_data keydata;
-		get_key_as_data(key, keydata);
-		auto res = m_input->reader_ext->get_table_entry(m_input->table, &keydata);
-		if(res == NULL) {
-			// note: libsinsp::state::table expects nullptr to be returned
-			// instead of an error exception
-			return nullptr;
-		}
-
-		// note: this includes an allocation and can be quite costly in the
-		// critical path, however it should be used only when doing a sinsp->plugin
-		// access, which is expected to not be common. For plugin->plugin table
-		// access, we optimize for invoking the plugin's table symbol right away
-		return std::make_shared<plugin_table_entry>(m_owner, m_input, m_dyn_fields, res, false);
-	}
-
-	std::shared_ptr<libsinsp::state::table_entry> add_entry(
-	        const KeyType& key,
-	        std::unique_ptr<libsinsp::state::table_entry> e) override {
-		if(!e) {
-			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-			                      "add entry invoked with null entry");
-		}
-
-		// we have no formal way for checking for misuses in which the invoker
-		// adds an entry that has not been created buy this table (with
-		// the right sub-type). Dynamic cast would be too expensive at this
-		// level, so we just enable it in debug mode.
-		ASSERT(dynamic_cast<plugin_table_entry*>(e.get()) != nullptr);
-		plugin_table_entry* entry = static_cast<plugin_table_entry*>(e.get());
-		ASSERT(entry->m_entry != nullptr);
-
-		ss_plugin_state_data keydata;
-		get_key_as_data(key, keydata);
-		auto res = m_input->writer_ext->add_table_entry(m_input->table, &keydata, entry->m_entry);
-		if(res == NULL) {
-			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-			                      "add entry failure: " + m_owner->get_last_error());
-		}
-		entry->m_entry = res;
-		entry->m_detached = false;
-		return std::shared_ptr<libsinsp::state::table_entry>(std::move(e));
-	}
-
-	bool erase_entry(const KeyType& key) override {
-		ss_plugin_state_data keydata;
-		get_key_as_data(key, keydata);
-		auto res = m_input->writer_ext->erase_table_entry(m_input->table, &keydata);
-		// note: in case of failure, libsinsp::state::table expects false
-		// to be returned instead of an error exception
-		return res == SS_PLUGIN_SUCCESS;
-	}
-
 	const char* name() const override { return m_input->name; }
 
 	const ss_plugin_table_fieldinfo* list_fields(libsinsp::state::sinsp_table_owner* owner,
@@ -637,71 +583,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	                               ss_plugin_table_entry_t* _e,
 	                               const ss_plugin_table_field_t* f,
 	                               const ss_plugin_state_data* in) override;
-
-private:
-	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
-
-template<>
-void plugin_table_wrapper<int8_t>::get_key_as_data(const int8_t& key, ss_plugin_state_data& out) {
-	out.s8 = key;
-}
-
-template<>
-void plugin_table_wrapper<int16_t>::get_key_as_data(const int16_t& key, ss_plugin_state_data& out) {
-	out.s16 = key;
-}
-
-template<>
-void plugin_table_wrapper<int32_t>::get_key_as_data(const int32_t& key, ss_plugin_state_data& out) {
-	out.s32 = key;
-}
-
-template<>
-void plugin_table_wrapper<int64_t>::get_key_as_data(const int64_t& key, ss_plugin_state_data& out) {
-	out.s64 = key;
-}
-
-template<>
-void plugin_table_wrapper<uint8_t>::get_key_as_data(const uint8_t& key, ss_plugin_state_data& out) {
-	out.u8 = key;
-}
-
-template<>
-void plugin_table_wrapper<uint16_t>::get_key_as_data(const uint16_t& key,
-                                                     ss_plugin_state_data& out) {
-	out.u16 = key;
-}
-
-template<>
-void plugin_table_wrapper<uint32_t>::get_key_as_data(const uint32_t& key,
-                                                     ss_plugin_state_data& out) {
-	out.u32 = key;
-}
-
-template<>
-void plugin_table_wrapper<uint64_t>::get_key_as_data(const uint64_t& key,
-                                                     ss_plugin_state_data& out) {
-	out.u64 = key;
-}
-
-template<>
-void plugin_table_wrapper<std::string>::get_key_as_data(const std::string& key,
-                                                        ss_plugin_state_data& out) {
-	out.str = key.c_str();
-}
-
-template<>
-void plugin_table_wrapper<bool>::get_key_as_data(const bool& key, ss_plugin_state_data& out) {
-	out.b = key;
-}
-
-template<>
-void plugin_table_wrapper<libsinsp::state::base_table*>::get_key_as_data(
-        libsinsp::state::base_table* const& key,
-        ss_plugin_state_data& out) {
-	out.table = static_cast<ss_plugin_table_t*>(key);
-}
 
 template<typename KeyType>
 const ss_plugin_table_fieldinfo* plugin_table_wrapper<KeyType>::list_fields(
