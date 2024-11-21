@@ -637,6 +637,8 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	ss_plugin_table_entry_t* get_entry(sinsp_plugin* owner,
 	                                   const ss_plugin_state_data* key) override;
 
+	void release_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -744,6 +746,12 @@ ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::get_entry(sinsp_plugin* 
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
 	return ret;
+}
+
+template<typename KeyType>
+void plugin_table_wrapper<KeyType>::release_table_entry(sinsp_plugin* owner,
+                                                        ss_plugin_table_entry_t* _e) {
+	m_input->reader_ext->release_table_entry(m_input->table, _e);
 }
 
 template<>
@@ -862,14 +870,7 @@ ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::get_entry(
 void sinsp_plugin::sinsp_table_wrapper::release_table_entry(ss_plugin_table_t* _t,
                                                             ss_plugin_table_entry_t* _e) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		t->m_table_plugin_input->reader_ext->release_table_entry(pt, _e);
-		return;
-	}
-
-	static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e)->reset();
+	t->m_table->release_table_entry(t->m_owner_plugin, _e);
 }
 
 ss_plugin_bool sinsp_plugin::sinsp_table_wrapper::iterate_entries(
