@@ -292,7 +292,7 @@ static const auto s_fdtable_static_fields = sinsp_fdinfo().static_fields();
 // sinsp_fdtable implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_fdtable::sinsp_fdtable(sinsp* inspector):
-        table("file_descriptors", &s_fdtable_static_fields) {
+        built_in_table("file_descriptors", &s_fdtable_static_fields) {
 	m_tid = 0;
 	m_inspector = inspector;
 	if(m_inspector != nullptr) {

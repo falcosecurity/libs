@@ -217,10 +217,10 @@ private:
 template<typename T,
          typename TWrap = value_table_entry_adapter<typename T::value_type>,
          typename DynFields = typename TWrap::dynamic_fields_t>
-class stl_container_table_adapter : public libsinsp::state::table<uint64_t> {
+class stl_container_table_adapter : public libsinsp::state::built_in_table<uint64_t> {
 public:
 	stl_container_table_adapter(const std::string& name, T& container):
-	        table(name, _static_fields()),
+	        built_in_table(name, _static_fields()),
 	        m_container(container) {
 		set_dynamic_fields(std::make_shared<DynFields>());
 	}

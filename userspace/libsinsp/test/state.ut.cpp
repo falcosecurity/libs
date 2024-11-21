@@ -292,9 +292,9 @@ TEST(dynamic_struct, mem_ownership) {
 }
 
 TEST(table_registry, defs_and_access) {
-	class sample_table : public libsinsp::state::table<uint64_t> {
+	class sample_table : public libsinsp::state::built_in_table<uint64_t> {
 	public:
-		sample_table(): table("sample") {}
+		sample_table(): built_in_table("sample") {}
 
 		size_t entries_count() const override { return m_entries.size(); }
 
