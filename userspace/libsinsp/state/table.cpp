@@ -337,5 +337,11 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::get_entry(
 	return NULL;
 }
 
+template<typename KeyType>
+void libsinsp::state::built_in_table<KeyType>::release_table_entry(sinsp_plugin* owner,
+                                                                   ss_plugin_table_entry_t* _e) {
+	static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e)->reset();
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
