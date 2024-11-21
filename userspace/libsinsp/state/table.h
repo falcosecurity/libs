@@ -193,6 +193,10 @@ public:
 
 	virtual void destroy_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) = 0;
 
+	virtual ss_plugin_table_entry_t* add_entry(sinsp_plugin* owner,
+	                                           const ss_plugin_state_data* key,
+	                                           ss_plugin_table_entry_t* _e) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -271,6 +275,9 @@ class built_in_table : public table<KeyType> {
 
 	bool erase_entry(const KeyType& key) override = 0;
 
+	std::shared_ptr<table_entry> add_entry(const KeyType& key,
+	                                       std::unique_ptr<table_entry> entry) override = 0;
+
 	const char* get_name(sinsp_plugin* owner) override;
 
 	uint64_t get_size(sinsp_plugin* owner) override;
@@ -301,6 +308,10 @@ class built_in_table : public table<KeyType> {
 	ss_plugin_table_entry_t* create_table_entry(sinsp_plugin* owner) override;
 
 	void destroy_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+
+	ss_plugin_table_entry_t* add_entry(sinsp_plugin* owner,
+	                                   const ss_plugin_state_data* key,
+	                                   ss_plugin_table_entry_t* _e) override;
 };
 };  // namespace state
 };  // namespace libsinsp

@@ -651,6 +651,10 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 
 	void destroy_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
 
+	ss_plugin_table_entry_t* add_entry(sinsp_plugin* owner,
+	                                   const ss_plugin_state_data* key,
+	                                   ss_plugin_table_entry_t* _e) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -805,6 +809,17 @@ template<typename KeyType>
 void plugin_table_wrapper<KeyType>::destroy_table_entry(sinsp_plugin* owner,
                                                         ss_plugin_table_entry_t* _e) {
 	m_input->writer_ext->destroy_table_entry(m_input->table, _e);
+}
+
+template<typename KeyType>
+ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::add_entry(sinsp_plugin* owner,
+                                                                  const ss_plugin_state_data* key,
+                                                                  ss_plugin_table_entry_t* _e) {
+	auto ret = m_input->writer_ext->add_table_entry(m_input->table, key, _e);
+	if(ret == NULL) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
 }
 
 template<>
@@ -962,32 +977,7 @@ ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::add_entry(
         const ss_plugin_state_data* key,
         ss_plugin_table_entry_t* _e) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->writer_ext->add_table_entry(pt, key, _e);
-		if(ret == NULL) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-#define _X(_type, _dtype)                                                         \
-	{                                                                             \
-		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e); \
-		auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e->get());       \
-		e->reset();                                                               \
-		auto tt = static_cast<libsinsp::state::table<_type>*>(t->m_table);        \
-		_type kk;                                                                 \
-		convert_types(key->_dtype, kk);                                           \
-		auto owned_ptr = t->m_owner_plugin->find_unset_accessed_table_entry();    \
-		*owned_ptr = tt->add_entry(kk, std::move(ptr));                           \
-		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);                  \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
-#undef _X
-	return NULL;
+	return t->m_table->add_entry(t->m_owner_plugin, key, _e);
 }
 
 ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::read_entry_field(ss_plugin_table_t* _t,
