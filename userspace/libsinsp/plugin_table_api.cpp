@@ -643,6 +643,8 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	                               ss_plugin_table_iterator_func_t it,
 	                               ss_plugin_table_iterator_state_t* s) override;
 
+	ss_plugin_rc clear(sinsp_plugin* owner) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -763,6 +765,15 @@ ss_plugin_bool plugin_table_wrapper<KeyType>::iterate_entries(sinsp_plugin* owne
                                                               ss_plugin_table_iterator_func_t it,
                                                               ss_plugin_table_iterator_state_t* s) {
 	return m_input->reader_ext->iterate_entries(m_input->table, it, s);
+}
+
+template<typename KeyType>
+ss_plugin_rc plugin_table_wrapper<KeyType>::clear(sinsp_plugin* owner) {
+	auto ret = m_input->writer_ext->clear_table(m_input->table);
+	if(ret == SS_PLUGIN_FAILURE) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
 }
 
 template<>
@@ -894,21 +905,7 @@ ss_plugin_bool sinsp_plugin::sinsp_table_wrapper::iterate_entries(
 
 ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::clear(ss_plugin_table_t* _t) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->writer_ext->clear_table(pt);
-		if(ret == SS_PLUGIN_FAILURE) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-		t->m_table->clear_entries();
-		return SS_PLUGIN_SUCCESS;
-	});
-	return SS_PLUGIN_FAILURE;
+	return t->m_table->clear(t->m_owner_plugin);
 }
 
 ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::erase_entry(ss_plugin_table_t* _t,
