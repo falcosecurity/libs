@@ -473,15 +473,6 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		return m_dyn_fields_as_base_class;
 	}
 
-	size_t entries_count() const override {
-		auto res = m_input->reader_ext->get_table_size(m_input->table);
-		if(res == (uint64_t)-1) {
-			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-			                      "get size failure: " + m_owner->get_last_error());
-		}
-		return (size_t)res;
-	}
-
 	void clear_entries() override {
 		auto res = m_input->writer_ext->clear_table(m_input->table);
 		if(res != SS_PLUGIN_SUCCESS) {
