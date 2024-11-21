@@ -181,6 +181,10 @@ public:
 
 	virtual void release_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) = 0;
 
+	virtual ss_plugin_bool iterate_entries(sinsp_plugin* owner,
+	                                       ss_plugin_table_iterator_func_t it,
+	                                       ss_plugin_table_iterator_state_t* s) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -275,6 +279,10 @@ class built_in_table : public table<KeyType> {
 	                                   const ss_plugin_state_data* key) override;
 
 	void release_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+
+	ss_plugin_bool iterate_entries(sinsp_plugin* owner,
+	                               ss_plugin_table_iterator_func_t it,
+	                               ss_plugin_table_iterator_state_t* s) override;
 };
 };  // namespace state
 };  // namespace libsinsp
