@@ -384,5 +384,17 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::erase_entry(
 	return SS_PLUGIN_FAILURE;
 }
 
+template<typename KeyType>
+ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::create_table_entry(
+        sinsp_plugin* owner) {
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		auto ret = this->new_entry().release();
+		auto owned_ptr = owner->find_unset_accessed_table_entry();
+		owned_ptr->reset(ret, [](libsinsp::state::table_entry* p) { /* do nothing */ });
+		return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
+	});
+	return NULL;
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
