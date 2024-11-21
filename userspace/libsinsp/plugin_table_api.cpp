@@ -634,6 +634,9 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 
 	uint64_t get_size(sinsp_plugin* owner) override;
 
+	ss_plugin_table_entry_t* get_entry(sinsp_plugin* owner,
+	                                   const ss_plugin_state_data* key) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -728,6 +731,16 @@ template<typename KeyType>
 uint64_t plugin_table_wrapper<KeyType>::get_size(sinsp_plugin* owner) {
 	auto ret = m_input->reader_ext->get_table_size(m_input->table);
 	if(ret == ((uint64_t)-1)) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
+}
+
+template<typename KeyType>
+ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::get_entry(sinsp_plugin* owner,
+                                                                  const ss_plugin_state_data* key) {
+	auto ret = m_input->reader_ext->get_table_entry(m_input->table, key);
+	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
 	return ret;
@@ -843,39 +856,7 @@ ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::get_entry(
         ss_plugin_table_t* _t,
         const ss_plugin_state_data* key) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->reader_ext->get_table_entry(pt, key);
-		if(ret == NULL) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-// note: the C++ API returns a shared pointer, but in plugins we only
-// use raw pointers without increasing/decreasing/owning the refcount.
-// How can we do better than this?
-// todo(jasondellaluce): should we actually make plugins own some memory,
-// to guarantee that the shared_ptr returned is properly refcounted?
-#define _X(_type, _dtype)                                                          \
-	{                                                                              \
-		auto tt = static_cast<libsinsp::state::table<_type>*>(t->m_table);         \
-		_type kk;                                                                  \
-		convert_types(key->_dtype, kk);                                            \
-		auto ret = tt->get_entry(kk);                                              \
-		if(ret != nullptr) {                                                       \
-			auto owned_ptr = t->m_owner_plugin->find_unset_accessed_table_entry(); \
-			*owned_ptr = ret;                                                      \
-			return static_cast<ss_plugin_table_entry_t*>(owned_ptr);               \
-		}                                                                          \
-		throw sinsp_exception("get_entry found no element at given key");          \
-		return NULL;                                                               \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
-#undef _X
-	return NULL;
+	return t->m_table->get_entry(t->m_owner_plugin, key);
 }
 
 void sinsp_plugin::sinsp_table_wrapper::release_table_entry(ss_plugin_table_t* _t,
