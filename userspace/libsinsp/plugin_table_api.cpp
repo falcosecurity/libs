@@ -649,6 +649,8 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 
 	ss_plugin_table_entry_t* create_table_entry(sinsp_plugin* owner) override;
 
+	void destroy_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -799,6 +801,12 @@ ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::create_table_entry(sinsp
 	return ret;
 }
 
+template<typename KeyType>
+void plugin_table_wrapper<KeyType>::destroy_table_entry(sinsp_plugin* owner,
+                                                        ss_plugin_table_entry_t* _e) {
+	m_input->writer_ext->destroy_table_entry(m_input->table, _e);
+}
+
 template<>
 void plugin_table_wrapper<bool>::get_key_as_data(const bool& key, ss_plugin_state_data& out) {
 	out.b = key;
@@ -946,23 +954,7 @@ ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::create_table_entry(
 void sinsp_plugin::sinsp_table_wrapper::destroy_table_entry(ss_plugin_table_t* _t,
                                                             ss_plugin_table_entry_t* _e) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		t->m_table_plugin_input->writer_ext->destroy_table_entry(pt, _e);
-		return;
-	}
-
-#define _X(_type, _dtype)                                                         \
-	{                                                                             \
-		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e); \
-		auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e->get());       \
-		e->reset();                                                               \
-		break;                                                                    \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
-#undef _X
+	return t->m_table->destroy_table_entry(t->m_owner_plugin, _e);
 }
 
 ss_plugin_table_entry_t* sinsp_plugin::sinsp_table_wrapper::add_entry(

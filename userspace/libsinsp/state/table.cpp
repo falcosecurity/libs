@@ -394,5 +394,12 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::create_table_
 	return NULL;
 }
 
+template<typename KeyType>
+void libsinsp::state::built_in_table<KeyType>::destroy_table_entry(sinsp_plugin* owner,
+                                                                   ss_plugin_table_entry_t* _e) {
+	__CATCH_ERR_MSG(owner->m_last_owner_err,
+	                { static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e)->reset(); });
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
