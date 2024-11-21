@@ -473,14 +473,6 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		return m_dyn_fields_as_base_class;
 	}
 
-	void clear_entries() override {
-		auto res = m_input->writer_ext->clear_table(m_input->table);
-		if(res != SS_PLUGIN_SUCCESS) {
-			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-			                      "clear entries failure: " + m_owner->get_last_error());
-		}
-	}
-
 	// used only for foreach_entry below
 	struct table_iterator_state {
 		std::string err;
