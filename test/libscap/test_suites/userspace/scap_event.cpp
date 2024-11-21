@@ -167,3 +167,58 @@ TEST(scap_event, empty_buffers) {
 	EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
 	EXPECT_EQ(decoded_params[1].size, 0);
 }
+
+TEST(scap_event, test_scap_create_event) {
+	char error[SCAP_LASTERR_SIZE];
+	uint64_t ts = 12;
+	int64_t tid = 25;
+	int64_t fd = 6;
+	const char *name = "/etc/passwd";
+	uint32_t flags = 0;
+	uint32_t mode = 37;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
+	scap_evt *evt = scap_create_event(error,
+	                                  ts,
+	                                  tid,
+	                                  PPME_SYSCALL_OPEN_X,
+	                                  6,
+	                                  fd,
+	                                  name,
+	                                  flags,
+	                                  mode,
+	                                  dev,
+	                                  ino);
+	if(evt == NULL) {
+		FAIL() << "Error creating event: " << error;
+	}
+	uint16_t total_evt_len = 78;
+	// Assert header
+	ASSERT_EQ(evt->ts, ts);
+	ASSERT_EQ(evt->tid, tid);
+	ASSERT_EQ(evt->type, PPME_SYSCALL_OPEN_X);
+	ASSERT_EQ(evt->len, total_evt_len);
+	ASSERT_EQ(evt->nparams, 6);
+	// Assert len array
+	uint16_t *lens16 = (uint16_t *)((char *)evt + sizeof(scap_evt));
+	ASSERT_EQ(lens16[0], 8);
+	ASSERT_EQ(lens16[1], 12);
+	ASSERT_EQ(lens16[2], 4);
+	ASSERT_EQ(lens16[3], 4);
+	ASSERT_EQ(lens16[4], 4);
+	ASSERT_EQ(lens16[5], 8);
+	// Assert parameters
+	char *val = ((char *)evt + sizeof(scap_evt) + 6 * sizeof(uint16_t));
+	ASSERT_EQ(*(int32_t *)val, fd);
+	val += 8;
+	ASSERT_STREQ(val, name);
+	val += 12;
+	ASSERT_EQ(*(uint32_t *)val, flags);
+	val += 4;
+	ASSERT_EQ(*(uint32_t *)val, mode);
+	val += 4;
+	ASSERT_EQ(*(uint32_t *)val, dev);
+	val += 4;
+	ASSERT_EQ(*(uint64_t *)val, ino);
+	free(evt);
+}

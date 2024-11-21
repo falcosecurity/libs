@@ -409,3 +409,197 @@ uint8_t scap_get_size_bytes_from_type(enum ppm_param_type t) {
 	ASSERT(false);
 	return 0;
 }
+
+char *scap_get_default_value_from_type(enum ppm_param_type t) {
+	static uint8_t default_uint8 = 0;
+	static uint16_t default_uint16 = 0;
+	static uint32_t default_uint32 = 0;
+	static uint64_t default_uint64 = 0;
+	switch(t) {
+	case PT_INT8:
+	case PT_UINT8:
+	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
+		return (char *)&default_uint8;
+	case PT_INT16:
+	case PT_UINT16:
+	case PT_FLAGS16:
+	case PT_ENUMFLAGS16:
+	case PT_SYSCALLID:
+		return (char *)&default_uint16;
+	case PT_INT32:
+	case PT_UINT32:
+	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
+	case PT_UID:
+	case PT_GID:
+	case PT_MODE:
+		return (char *)&default_uint32;
+	case PT_INT64:
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+	case PT_ERRNO:
+	case PT_FD:
+	case PT_PID:
+		return (char *)&default_uint64;
+	// Should be ok to return NULL since the len will be 0
+	case PT_BYTEBUF:
+	case PT_CHARBUF:
+	case PT_SOCKADDR:
+	case PT_SOCKTUPLE:
+	case PT_FDLIST:
+	case PT_FSPATH:
+	case PT_CHARBUFARRAY:
+	case PT_CHARBUF_PAIR_ARRAY:
+	case PT_FSRELPATH:
+	case PT_DYN:
+		return NULL;
+	default:
+		// We forgot to handle something
+		ASSERT(false);
+		break;
+	}
+	return 0;
+}
+
+// This should be only used for testing purposes in production we should use directly `memcmp` for
+// the whole event
+bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {
+	//////////////////////////////
+	// Start comparing the header
+	//////////////////////////////
+	// `UINT64_MAX - 1` can be used to skip the comparison
+	if(expected->ts != (UINT64_MAX - 1) && curr->ts != expected->ts) {
+		snprintf(error,
+		         SCAP_LASTERR_SIZE,
+		         "Event timestamp mismatch. Current (%ld) != expected (%ld)",
+		         curr->ts,
+		         expected->ts);
+		return false;
+	}
+	if(curr->tid != expected->tid) {
+		snprintf(error,
+		         SCAP_LASTERR_SIZE,
+		         "Event tid mismatch. Current (%ld) != expected (%ld)",
+		         curr->tid,
+		         expected->tid);
+		return false;
+	}
+	if(curr->type != expected->type) {
+		snprintf(error,
+		         SCAP_LASTERR_SIZE,
+		         "Event type mismatch. Current (%d) != expected (%d)",
+		         curr->type,
+		         expected->type);
+		return false;
+	}
+	if(curr->nparams != expected->nparams) {
+		snprintf(error,
+		         SCAP_LASTERR_SIZE,
+		         "Event nparams mismatch. Current (%d) != expected (%d)",
+		         curr->nparams,
+		         expected->nparams);
+		return false;
+	}
+	if(curr->len != expected->len) {
+		snprintf(error,
+		         SCAP_LASTERR_SIZE,
+		         "Event len mismatch. Current (%d) != expected (%d)",
+		         curr->len,
+		         expected->len);
+		return false;
+	}
+	//////////////////////////////
+	// Comparing the length of the parameters
+	//////////////////////////////
+	for(int i = 0; i < curr->nparams; i++) {
+		uint16_t curr_param_len = 0;
+		uint16_t expected_param_len = 0;
+		memcpy(&curr_param_len,
+		       (char *)curr + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * i,
+		       sizeof(uint16_t));
+		memcpy(&expected_param_len,
+		       (char *)expected + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * i,
+		       sizeof(uint16_t));
+		if(curr_param_len != expected_param_len) {
+			snprintf(error,
+			         SCAP_LASTERR_SIZE,
+			         "Param %d length mismatch. Current (%d) != expected (%d)",
+			         i,
+			         curr_param_len,
+			         expected_param_len);
+			return false;
+		}
+	}
+	//////////////////////////////
+	// Comparing each parameter
+	//////////////////////////////
+	char *curr_pos = (char *)curr + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * curr->nparams;
+	char *expected_pos =
+	        (char *)expected + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * curr->nparams;
+	for(int i = 0; i < curr->nparams; i++) {
+		uint16_t curr_param_len = 0;
+		memcpy(&curr_param_len,
+		       (char *)curr + sizeof(struct ppm_evt_hdr) + sizeof(uint16_t) * i,
+		       sizeof(uint16_t));
+		// todo!: we can improve this by printing the parameter for the specific type.
+		if(memcmp(curr_pos, expected_pos, curr_param_len) != 0) {
+			snprintf(error, SCAP_LASTERR_SIZE, "Param %d mismatch. Current != expected", i);
+			return false;
+		}
+		curr_pos += curr_param_len;
+		expected_pos += curr_param_len;
+	}
+	return true;
+}
+
+scap_evt *scap_create_event_v(char *error,
+                              uint64_t ts,
+                              uint64_t tid,
+                              ppm_event_code event_type,
+                              uint32_t n,
+                              va_list args) {
+	struct scap_sized_buffer event_buf = {NULL, 0};
+	size_t event_size = 0;
+	va_list args2;
+	va_copy(args2, args);
+	int32_t ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
+	if(ret != SCAP_INPUT_TOO_SMALL) {
+		goto error;
+	}
+	event_buf.buf = malloc(event_size);
+	event_buf.size = event_size;
+	if(event_buf.buf == NULL) {
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot alloc %ld bytes.", event_size);
+		goto error;
+	}
+	ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args2);
+	if(ret != SCAP_SUCCESS) {
+		event_buf.size = 0;
+		free(event_buf.buf);
+		goto error;
+	}
+	scap_evt *event = (scap_evt *)(event_buf.buf);
+	event->ts = ts;
+	event->tid = tid;
+	va_end(args2);
+	return event;
+error:
+	va_end(args2);
+	return NULL;
+}
+
+// If this returns NULL, check the error message.
+scap_evt *scap_create_event(char *error,
+                            uint64_t ts,
+                            uint64_t tid,
+                            ppm_event_code event_type,
+                            uint32_t n,
+                            ...) {
+	va_list args;
+	va_start(args, n);
+	scap_evt *ret = scap_create_event_v(error, ts, tid, event_type, n, args);
+	va_end(args);
+	return ret;
+}
