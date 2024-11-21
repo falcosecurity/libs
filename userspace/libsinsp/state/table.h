@@ -168,6 +168,10 @@ public:
 	                                           const char* name,
 	                                           ss_plugin_state_type data_type) = 0;
 
+	virtual ss_plugin_table_field_t* add_field(sinsp_plugin* owner,
+	                                           const char* name,
+	                                           ss_plugin_state_type data_type) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -245,6 +249,10 @@ class built_in_table : public table<KeyType> {
 	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
 
 	ss_plugin_table_field_t* get_field(sinsp_plugin* owner,
+	                                   const char* name,
+	                                   ss_plugin_state_type data_type) override;
+
+	ss_plugin_table_field_t* add_field(sinsp_plugin* owner,
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
 };

@@ -626,6 +626,10 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
 
+	ss_plugin_table_field_t* add_field(sinsp_plugin* owner,
+	                                   const char* name,
+	                                   ss_plugin_state_type data_type) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -694,6 +698,17 @@ ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::get_field(sinsp_plugin* 
                                                                   const char* name,
                                                                   ss_plugin_state_type data_type) {
 	auto ret = m_input->fields_ext->get_table_field(m_input->table, name, data_type);
+	if(ret == NULL) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
+}
+
+template<typename KeyType>
+ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::add_field(sinsp_plugin* owner,
+                                                                  const char* name,
+                                                                  ss_plugin_state_type data_type) {
+	auto ret = m_input->fields_ext->add_table_field(m_input->table, name, data_type);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
@@ -793,32 +808,7 @@ ss_plugin_table_field_t* sinsp_plugin::sinsp_table_wrapper::add_field(
 		return NULL;
 	}
 
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->fields_ext->add_table_field(pt, name, data_type);
-		if(ret == NULL) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-	if(t->m_table->static_fields()->find(name) != t->m_table->static_fields()->end()) {
-		t->m_owner_plugin->m_last_owner_err =
-		        "can't add dynamic field already defined as static: " + std::string(name);
-		return NULL;
-	}
-
-#define _X(_type, _dtype)                                     \
-	{                                                         \
-		t->m_table->dynamic_fields()->add_field<_type>(name); \
-		break;                                                \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-		__PLUGIN_STATETYPE_SWITCH(data_type);
-		return get_field(_t, name, data_type);
-	});
-#undef _X
-	return NULL;
+	return t->m_table->add_field(t->m_owner_plugin, name, data_type);
 }
 
 const char* sinsp_plugin::sinsp_table_wrapper::get_name(ss_plugin_table_t* _t) {
