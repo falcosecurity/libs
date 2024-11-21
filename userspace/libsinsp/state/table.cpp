@@ -101,6 +101,42 @@ static inline ss_plugin_state_type typeinfo_to_state_type(const libsinsp::state:
 	}
 }
 
+template<typename From, typename To>
+static inline void convert_types(const From& from, To& to) {
+	to = from;
+}
+
+// special cases for strings
+template<>
+inline void convert_types(const std::string& from, const char*& to) {
+	to = from.c_str();
+}
+
+template<>
+inline void convert_types(libsinsp::state::base_table* const& from, ss_plugin_table_t*& to) {
+	to = static_cast<ss_plugin_table_t*>(from);
+}
+
+template<>
+inline void convert_types(ss_plugin_table_t* const& from, libsinsp::state::base_table*& to) {
+	to = static_cast<libsinsp::state::base_table*>(from);
+}
+
+template<typename KeyType>
+void extract_key(const ss_plugin_state_data& key, KeyType& out) {
+	throw sinsp_exception("unsupported key type");
+}
+
+template<>
+void extract_key<uint64_t>(const ss_plugin_state_data& key, uint64_t& out) {
+	out = key.u64;
+}
+
+template<>
+void extract_key<int64_t>(const ss_plugin_state_data& key, int64_t& out) {
+	out = key.u64;
+}
+
 //
 // sinsp_field_accessor_wrapper implementation
 //
@@ -275,6 +311,30 @@ const char* libsinsp::state::built_in_table<KeyType>::get_name(sinsp_plugin* own
 template<typename KeyType>
 uint64_t libsinsp::state::built_in_table<KeyType>::get_size(sinsp_plugin* owner) {
 	return this->entries_count();
+}
+
+template<typename KeyType>
+ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::get_entry(
+        sinsp_plugin* owner,
+        const ss_plugin_state_data* key) {
+	// note: the C++ API returns a shared pointer, but in plugins we only
+	// use raw pointers without increasing/decreasing/owning the refcount.
+	// How can we do better than this?
+	// todo(jasondellaluce): should we actually make plugins own some memory,
+	// to guarantee that the shared_ptr returned is properly refcounted?
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		KeyType kk;
+		extract_key(*key, kk);
+		auto ret = this->get_entry(kk);
+		if(ret != nullptr) {
+			auto owned_ptr = owner->find_unset_accessed_table_entry();
+			*owned_ptr = ret;
+			return static_cast<ss_plugin_table_entry_t*>(owned_ptr);
+		}
+		throw sinsp_exception("get_entry found no element at given key");
+		return NULL;
+	});
+	return NULL;
 }
 
 template class libsinsp::state::built_in_table<int64_t>;
