@@ -206,5 +206,9 @@ private:
 	}
 };
 
+template<typename KeyType>
+class built_in_table : public table<KeyType> {
+	using table<KeyType>::table;
+};
 };  // namespace state
 };  // namespace libsinsp
