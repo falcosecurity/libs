@@ -236,107 +236,10 @@ static const libsinsp::state::static_struct::field_infos s_empty_static_infos;
 // to the libsinsp::state::table state tables definition.
 template<typename KeyType>
 struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
-	using ss = libsinsp::state::static_struct;
-
-	using ds = libsinsp::state::dynamic_struct;
-
-	struct plugin_field_infos : public ds::field_infos {
-		plugin_field_infos(const sinsp_plugin* o, const owned_table_input_t& i):
-		        field_infos(),
-		        m_owner(o),
-		        m_input(i),
-		        m_accessors() {};
-		plugin_field_infos(plugin_field_infos&&) = default;
-		plugin_field_infos& operator=(plugin_field_infos&&) = default;
-		plugin_field_infos(const plugin_field_infos& s) = delete;
-		plugin_field_infos& operator=(const plugin_field_infos& s) = delete;
-		virtual ~plugin_field_infos() = default;
-
-		const sinsp_plugin* m_owner;
-		owned_table_input_t m_input;
-		std::vector<ss_plugin_table_field_t*> m_accessors;
-
-		virtual const std::unordered_map<std::string, ds::field_info>& fields() override {
-			// list all the fields of the plugin table
-			uint32_t nfields = 0;
-			auto res = m_input->fields_ext->list_table_fields(m_input->table, &nfields);
-			if(res == NULL) {
-				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-				                      "list fields failure: " + m_owner->get_last_error());
-			}
-
-			// if there's a different number of fields that in our local copy,
-			// we re-add all of them. Duplicate definitions will be skipped
-			// anyways. Note, we set the index of each field info to the order
-			// index of the first time we received it from the plugin. This is
-			// relevant because the plugin API does not give guarantees about
-			// order stability of the returned array of field infos.
-			if(nfields != ds::field_infos::fields().size()) {
-				for(uint32_t i = 0; i < nfields; i++) {
-					ds::field_info f;
-#define _X(_type, _dtype) \
-	{ f = ds::field_info::build<_type>(res[i].name, i, (uintptr_t)this, res[i].read_only); }
-					__PLUGIN_STATETYPE_SWITCH(res[i].field_type);
-#undef _X
-					ds::field_infos::add_field_info(f);
-				}
-			}
-
-			// at this point, our local copy of the field infos should be consistent
-			// with what's known by the plugin. So, we make sure we create an
-			// accessor for each of the field infos. Note, each field is associated
-			// an accessor that has an array position equal to the field's index.
-			// This will be used later for instant retrieval of the accessors
-			// during read-write operations.
-			const auto& ret = ds::field_infos::fields();
-			for(const auto& it : ret) {
-				const auto& f = it.second;
-				while(m_accessors.size() <= f.index()) {
-					m_accessors.push_back(nullptr);
-				}
-				if(m_accessors[f.index()] == nullptr) {
-					auto facc = m_input->fields_ext->get_table_field(m_input->table,
-					                                                 f.name().c_str(),
-					                                                 f.info().type_id());
-					if(facc == NULL) {
-						throw sinsp_exception(
-						        table_input_error_prefix(m_owner, m_input.get()) +
-						        "get table field failure: " + m_owner->get_last_error());
-					}
-					m_accessors[f.index()] = facc;
-				}
-			}
-			return ret;
-		}
-
-		virtual const ds::field_info& add_field_info(const ds::field_info& field) override {
-			auto ret = m_input->fields_ext->add_table_field(m_input->table,
-			                                                field.name().c_str(),
-			                                                field.info().type_id());
-			if(ret == NULL) {
-				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-				                      "add table field failure: " + m_owner->get_last_error());
-			}
-
-			// after adding a new field, we retrieve the whole list again
-			// to trigger the local copy updates and make sure we're in a
-			// consistent state. This is necessary because we we add a field,
-			// we have no guarantee that other components haven't added other
-			// fields too and we need to get their info as well.
-			this->fields();
-
-			// lastly, we leverage the base-class implementation to obtain
-			// a reference from our local field definitions copy.
-			return ds::field_infos::add_field_info(field);
-		}
-	};
-
 	plugin_table_wrapper(sinsp_plugin* o, const ss_plugin_table_input* i):
 	        libsinsp::state::table<KeyType>(),
 	        m_owner(o),
-	        m_input(copy_and_check_table_input(o, i)),
-	        m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input)),
-	        m_dyn_fields_as_base_class(m_dyn_fields) {
+	        m_input(copy_and_check_table_input(o, i)) {
 		auto t = libsinsp::state::typeinfo::of<KeyType>();
 		if(m_input->key_type != t.type_id()) {
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
@@ -352,12 +255,6 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 
 	sinsp_plugin* m_owner;
 	owned_table_input_t m_input;
-	std::shared_ptr<plugin_field_infos> m_dyn_fields;
-	std::shared_ptr<ds::field_infos> m_dyn_fields_as_base_class;
-
-	const std::shared_ptr<ds::field_infos>& dynamic_fields() const override {
-		return m_dyn_fields_as_base_class;
-	}
 
 	const char* name() const override { return m_input->name; }
 
