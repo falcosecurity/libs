@@ -130,9 +130,7 @@ struct table_accessor {
  */
 class base_table {
 public:
-	inline base_table(const typeinfo& key_info):
-	        m_key_info(key_info),
-	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
+	inline base_table(const typeinfo& key_info): m_key_info(key_info) {}
 
 	virtual ~base_table() = default;
 	inline base_table(base_table&&) = default;
@@ -149,31 +147,6 @@ public:
 	 * @brief Returns the non-null type info about the table's key.
 	 */
 	inline const typeinfo& key_info() const { return m_key_info; }
-
-	/**
-	 * @brief Returns the fields metadata list for the dynamic fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table. The returned metadata list can
-	 * be expended at runtime by adding new dynamic fields, which will then
-	 * be allocated and accessible for all the present and future entries
-	 * present in the table.
-	 */
-	virtual const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const {
-		return m_dynamic_fields;
-	}
-
-	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf) {
-		if(m_dynamic_fields.get() == dynf.get()) {
-			return;
-		}
-		if(!dynf) {
-			throw sinsp_exception("null definitions passed to set_dynamic_fields");
-		}
-		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
-			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
-		}
-		m_dynamic_fields = dynf;
-	}
 
 	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
 	                                                     uint32_t* nfields) = 0;
@@ -221,7 +194,6 @@ public:
 
 protected:
 	typeinfo m_key_info;
-	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
 };
 
 /**
@@ -248,8 +220,13 @@ public:
 	        table<KeyType>::table(),
 	        m_this_ptr(this),
 	        m_name(name),
-	        m_static_fields(static_fields) {}
-	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
+	        m_static_fields(static_fields),
+	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
+	inline built_in_table(const std::string& name):
+	        table<KeyType>::table(),
+	        m_this_ptr(this),
+	        m_name(name),
+	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
 
 	/**
 	 * @brief Returns a pointer to the area of memory in which this table
@@ -331,6 +308,31 @@ public:
 	 */
 	virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
 
+	/**
+	 * @brief Returns the fields metadata list for the dynamic fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table. The returned metadata list can
+	 * be expended at runtime by adding new dynamic fields, which will then
+	 * be allocated and accessible for all the present and future entries
+	 * present in the table.
+	 */
+	virtual const std::shared_ptr<dynamic_struct::field_infos>& dynamic_fields() const {
+		return m_dynamic_fields;
+	}
+
+	virtual void set_dynamic_fields(const std::shared_ptr<dynamic_struct::field_infos>& dynf) {
+		if(m_dynamic_fields.get() == dynf.get()) {
+			return;
+		}
+		if(!dynf) {
+			throw sinsp_exception("null definitions passed to set_dynamic_fields");
+		}
+		if(m_dynamic_fields && m_dynamic_fields.use_count() > 1) {
+			throw sinsp_exception("can't replace already in-use dynamic fields table definitions");
+		}
+		m_dynamic_fields = dynf;
+	}
+
 	uint64_t get_size(sinsp_table_owner* owner) override;
 
 	const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
@@ -381,6 +383,7 @@ private:
 	const static_struct::field_infos* m_static_fields;
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
+	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
 };
 
 class sinsp_table_owner {
