@@ -176,14 +176,6 @@ public:
 	}
 
 	/**
-	 * @brief Allocates and returns a new entry for the table. This is just
-	 * a factory method, the entry will not automatically added to the table.
-	 * Once a new entry is allocated with this method, users must invoke
-	 * add_entry() in order to actually insert it in the table.
-	 */
-	virtual std::unique_ptr<table_entry> new_entry() const = 0;
-
-	/**
 	 * @brief Iterates over all the entries contained in the table and invokes
 	 * the given predicate for each of them.
 	 *
@@ -301,6 +293,14 @@ public:
 	 * present in the table at the given key, and nullptr otherwise.
 	 */
 	virtual std::shared_ptr<table_entry> get_entry(const KeyType& key) = 0;
+
+	/**
+	 * @brief Allocates and returns a new entry for the table. This is just
+	 * a factory method, the entry will not automatically added to the table.
+	 * Once a new entry is allocated with this method, users must invoke
+	 * add_entry() in order to actually insert it in the table.
+	 */
+	virtual std::unique_ptr<table_entry> new_entry() const = 0;
 
 	/**
 	 * @brief Inserts a new entry in the table with the given key. If another
