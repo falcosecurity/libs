@@ -468,5 +468,42 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	return res;
 }
 
+template<typename KeyType>
+ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
+        sinsp_plugin* owner,
+        ss_plugin_table_entry_t* _e,
+        const ss_plugin_table_field_t* f,
+        const ss_plugin_state_data* in) {
+	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
+	auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
+
+	// todo(jasondellaluce): drop this check once we start supporting this
+	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
+		owner->m_last_owner_err = "writing to table fields is currently not supported";
+		return SS_PLUGIN_FAILURE;
+	}
+
+#define _X(_type, _dtype)                                                                   \
+	{                                                                                       \
+		if(a->dynamic) {                                                                    \
+			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>( \
+			        a->accessor);                                                           \
+			_type val;                                                                      \
+			convert_types(in->_dtype, val);                                                 \
+			e->get()->set_dynamic_field<_type>(*aa, val);                                   \
+		} else {                                                                            \
+			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
+			        a->accessor);                                                           \
+			_type val;                                                                      \
+			convert_types(in->_dtype, val);                                                 \
+			e->get()->set_static_field<_type>(*aa, val);                                    \
+		}                                                                                   \
+		return SS_PLUGIN_SUCCESS;                                                           \
+	}
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
+#undef _X
+	return SS_PLUGIN_FAILURE;
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;

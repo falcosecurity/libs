@@ -202,6 +202,11 @@ public:
 	                                      const ss_plugin_table_field_t* f,
 	                                      ss_plugin_state_data* out) = 0;
 
+	virtual ss_plugin_rc write_entry_field(sinsp_plugin* owner,
+	                                       ss_plugin_table_entry_t* _e,
+	                                       const ss_plugin_table_field_t* f,
+	                                       const ss_plugin_state_data* in) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -322,6 +327,11 @@ class built_in_table : public table<KeyType> {
 	                              ss_plugin_table_entry_t* _e,
 	                              const ss_plugin_table_field_t* f,
 	                              ss_plugin_state_data* out) override;
+
+	ss_plugin_rc write_entry_field(sinsp_plugin* owner,
+	                               ss_plugin_table_entry_t* _e,
+	                               const ss_plugin_table_field_t* f,
+	                               const ss_plugin_state_data* in) override;
 };
 };  // namespace state
 };  // namespace libsinsp
