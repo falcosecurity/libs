@@ -343,5 +343,21 @@ void libsinsp::state::built_in_table<KeyType>::release_table_entry(sinsp_plugin*
 	static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e)->reset();
 }
 
+template<typename KeyType>
+ss_plugin_bool libsinsp::state::built_in_table<KeyType>::iterate_entries(
+        sinsp_plugin* owner,
+        ss_plugin_table_iterator_func_t it,
+        ss_plugin_table_iterator_state_t* s) {
+	std::shared_ptr<libsinsp::state::table_entry> owned_ptr;
+	std::function<bool(libsinsp::state::table_entry&)> iter = [&owned_ptr, &it, &s](auto& e) {
+		owned_ptr.reset(&e, [](libsinsp::state::table_entry* p) {});
+		return it(s, static_cast<ss_plugin_table_entry_t*>(&owned_ptr)) != 0;
+	};
+
+	__CATCH_ERR_MSG(owner->m_last_owner_err, { return this->foreach_entry(iter); });
+
+	return false;
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
