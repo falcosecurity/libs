@@ -175,18 +175,6 @@ public:
 		m_dynamic_fields = dynf;
 	}
 
-	/**
-	 * @brief Iterates over all the entries contained in the table and invokes
-	 * the given predicate for each of them.
-	 *
-	 * @param pred The predicate to invoke for all the table's entries. The
-	 * predicate returns true if the iteration can proceed to the next entry,
-	 * and false if the iteration needs to break out.
-	 * @return true If the iteration proceeded successfully for all the entries.
-	 * @return false If the iteration broke out.
-	 */
-	virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
-
 	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
 	                                                     uint32_t* nfields) = 0;
 
@@ -330,6 +318,18 @@ public:
 	 * @return false If an entry was not present at the given key.
 	 */
 	virtual bool erase_entry(const KeyType& key) = 0;
+
+	/**
+	 * @brief Iterates over all the entries contained in the table and invokes
+	 * the given predicate for each of them.
+	 *
+	 * @param pred The predicate to invoke for all the table's entries. The
+	 * predicate returns true if the iteration can proceed to the next entry,
+	 * and false if the iteration needs to break out.
+	 * @return true If the iteration proceeded successfully for all the entries.
+	 * @return false If the iteration broke out.
+	 */
+	virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
 
 	uint64_t get_size(sinsp_table_owner* owner) override;
 
