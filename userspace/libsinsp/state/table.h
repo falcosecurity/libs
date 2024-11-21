@@ -176,11 +176,6 @@ public:
 	}
 
 	/**
-	 * @brief Returns the number of entries present in the table.
-	 */
-	virtual size_t entries_count() const = 0;
-
-	/**
 	 * @brief Erase all the entries present in the table.
 	 * After invoking this function, entries_count() will return true.
 	 */
@@ -296,6 +291,11 @@ public:
 	 * for all the entries of this table.
 	 */
 	virtual const static_struct::field_infos* static_fields() const { return m_static_fields; }
+
+	/**
+	 * @brief Returns the number of entries present in the table.
+	 */
+	virtual size_t entries_count() const = 0;
 
 	/**
 	 * @brief Returns a pointer to an entry present in the table at the given
