@@ -509,15 +509,6 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		return true;
 	}
 
-	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override {
-		auto res = m_input->writer_ext->create_table_entry(m_input->table);
-		if(res == NULL) {
-			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
-			                      "create entry failure: " + m_owner->get_last_error());
-		}
-		return std::make_unique<plugin_table_entry>(m_owner, m_input, m_dyn_fields, res, true);
-	}
-
 	const char* name() const override { return m_input->name; }
 
 	const ss_plugin_table_fieldinfo* list_fields(libsinsp::state::sinsp_table_owner* owner,
