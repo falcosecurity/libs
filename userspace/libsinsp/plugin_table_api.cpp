@@ -639,6 +639,10 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 
 	void release_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
 
+	ss_plugin_bool iterate_entries(sinsp_plugin* owner,
+	                               ss_plugin_table_iterator_func_t it,
+	                               ss_plugin_table_iterator_state_t* s) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -752,6 +756,13 @@ template<typename KeyType>
 void plugin_table_wrapper<KeyType>::release_table_entry(sinsp_plugin* owner,
                                                         ss_plugin_table_entry_t* _e) {
 	m_input->reader_ext->release_table_entry(m_input->table, _e);
+}
+
+template<typename KeyType>
+ss_plugin_bool plugin_table_wrapper<KeyType>::iterate_entries(sinsp_plugin* owner,
+                                                              ss_plugin_table_iterator_func_t it,
+                                                              ss_plugin_table_iterator_state_t* s) {
+	return m_input->reader_ext->iterate_entries(m_input->table, it, s);
 }
 
 template<>
@@ -878,28 +889,7 @@ ss_plugin_bool sinsp_plugin::sinsp_table_wrapper::iterate_entries(
         ss_plugin_table_iterator_func_t it,
         ss_plugin_table_iterator_state_t* s) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		return t->m_table_plugin_input->reader_ext->iterate_entries(pt, it, s);
-	}
-
-	std::shared_ptr<libsinsp::state::table_entry> owned_ptr;
-	std::function<bool(libsinsp::state::table_entry&)> iter = [&owned_ptr, &it, &s](auto& e) {
-		owned_ptr.reset(&e, [](libsinsp::state::table_entry* p) {});
-		return it(s, static_cast<ss_plugin_table_entry_t*>(&owned_ptr)) != 0;
-	};
-
-#define _X(_type, _dtype)                                                  \
-	{                                                                      \
-		auto tt = static_cast<libsinsp::state::table<_type>*>(t->m_table); \
-		return tt->foreach_entry(iter);                                    \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(t->input.key_type); });
-#undef _X
-
-	return false;
+	return t->m_table->iterate_entries(t->m_owner_plugin, it, s);
 }
 
 ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::clear(ss_plugin_table_t* _t) {
