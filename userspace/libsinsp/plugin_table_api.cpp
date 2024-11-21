@@ -660,6 +660,11 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	                              const ss_plugin_table_field_t* f,
 	                              ss_plugin_state_data* out) override;
 
+	ss_plugin_rc write_entry_field(sinsp_plugin* owner,
+	                               ss_plugin_table_entry_t* _e,
+	                               const ss_plugin_table_field_t* f,
+	                               const ss_plugin_state_data* in) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -839,6 +844,18 @@ ss_plugin_rc plugin_table_wrapper<KeyType>::read_entry_field(sinsp_plugin* owner
 	return ret;
 }
 
+template<typename KeyType>
+ss_plugin_rc plugin_table_wrapper<KeyType>::write_entry_field(sinsp_plugin* owner,
+                                                              ss_plugin_table_entry_t* _e,
+                                                              const ss_plugin_table_field_t* f,
+                                                              const ss_plugin_state_data* in) {
+	auto ret = m_input->writer_ext->write_entry_field(m_input->table, _e, f, in);
+	if(ret == SS_PLUGIN_FAILURE) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
+}
+
 template<>
 void plugin_table_wrapper<bool>::get_key_as_data(const bool& key, ss_plugin_state_data& out) {
 	out.b = key;
@@ -1010,46 +1027,7 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::write_entry_field(ss_plugin_tabl
                                                                   const ss_plugin_table_field_t* f,
                                                                   const ss_plugin_state_data* in) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->writer_ext->write_entry_field(pt, _e, f, in);
-		if(ret == SS_PLUGIN_FAILURE) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
-	auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
-
-	// todo(jasondellaluce): drop this check once we start supporting this
-	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
-		t->m_owner_plugin->m_last_owner_err = "writing to table fields is currently not supported";
-		return SS_PLUGIN_FAILURE;
-	}
-
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		if(a->dynamic) {                                                                    \
-			auto aa = static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>( \
-			        a->accessor);                                                           \
-			_type val;                                                                      \
-			convert_types(in->_dtype, val);                                                 \
-			e->get()->set_dynamic_field<_type>(*aa, val);                                   \
-		} else {                                                                            \
-			auto aa = static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(  \
-			        a->accessor);                                                           \
-			_type val;                                                                      \
-			convert_types(in->_dtype, val);                                                 \
-			e->get()->set_static_field<_type>(*aa, val);                                    \
-		}                                                                                   \
-		return SS_PLUGIN_SUCCESS;                                                           \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err,
-	                { __PLUGIN_STATETYPE_SWITCH(a->data_type); });
-#undef _X
-	return SS_PLUGIN_FAILURE;
+	return t->m_table->write_entry_field(t->m_owner_plugin, _e, f, in);
 }
 
 //
