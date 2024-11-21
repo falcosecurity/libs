@@ -176,12 +176,6 @@ public:
 	}
 
 	/**
-	 * @brief Erase all the entries present in the table.
-	 * After invoking this function, entries_count() will return true.
-	 */
-	virtual void clear_entries() = 0;
-
-	/**
 	 * @brief Allocates and returns a new entry for the table. This is just
 	 * a factory method, the entry will not automatically added to the table.
 	 * Once a new entry is allocated with this method, users must invoke
@@ -321,6 +315,12 @@ public:
 	 */
 	virtual std::shared_ptr<table_entry> add_entry(const KeyType& key,
 	                                               std::unique_ptr<table_entry> entry) = 0;
+
+	/**
+	 * @brief Erase all the entries present in the table.
+	 * After invoking this function, entries_count() will return true.
+	 */
+	virtual void clear_entries() = 0;
 
 	/**
 	 * @brief Removes an entry from the table with the given key.
