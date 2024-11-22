@@ -31,43 +31,37 @@ enum filter_transformer_type : uint8_t {
 	FTR_LEN = 5
 };
 
+struct filter_transformer_info {
+	// The name of the transformer
+	std::string name;
+
+	// A description of the transformer
+	std::string desc;
+};
+
+static const filter_transformer_info sinsp_filter_transformer_info[] = {
+        {"toupper", "Converts the field to uppercase"},
+        {"tolower", "Converts the field to lowercase"},
+        {"b64", "Decodes the field from base64"},
+        {"storage", "Stores the field in memory (internal only)"},
+        {"basename", "Extracts the basename from a path"},
+        {"len", "Returns the length of the field"}};
+
+constexpr static size_t filter_transformer_len =
+        sizeof(sinsp_filter_transformer_info) / sizeof(sinsp_filter_transformer_info[0]);
+
 static inline std::string filter_transformer_type_str(filter_transformer_type m) {
-	switch(m) {
-	case FTR_TOUPPER:
-		return "toupper";
-	case FTR_TOLOWER:
-		return "tolower";
-	case FTR_BASE64:
-		return "b64";
-	case FTR_STORAGE:
-		return "storage";
-	case FTR_BASENAME:
-		return "basename";
-	case FTR_LEN:
-		return "len";
-	default:
-		throw sinsp_exception("unknown field transfomer id " + std::to_string(m));
+	if((size_t)m >= filter_transformer_len) {
+		throw sinsp_exception("unknown field transformer id " + std::to_string(m));
 	}
+	return sinsp_filter_transformer_info[m].name;
 }
 
 static inline filter_transformer_type filter_transformer_from_str(const std::string& str) {
-	if(str == "tolower") {
-		return filter_transformer_type::FTR_TOLOWER;
-	}
-	if(str == "toupper") {
-		return filter_transformer_type::FTR_TOUPPER;
-	}
-	if(str == "b64") {
-		return filter_transformer_type::FTR_BASE64;
-	}
-	if(str == "storage") {
-		return filter_transformer_type::FTR_STORAGE;
-	}
-	if(str == "basename") {
-		return filter_transformer_type::FTR_BASENAME;
-	}
-	if(str == "len") {
-		return filter_transformer_type::FTR_LEN;
+	for(size_t i = 0; i < filter_transformer_len; i++) {
+		if(sinsp_filter_transformer_info[i].name == str) {
+			return (filter_transformer_type)i;
+		}
 	}
 	throw sinsp_exception("unknown field transfomer '" + str + "'");
 }
