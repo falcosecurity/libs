@@ -188,9 +188,9 @@ ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s,
 	return SS_PLUGIN_SUCCESS;
 }
 
-ss_plugin_rc plugin_dump(ss_plugin_t* s,
-                         ss_plugin_owner_t* owner,
-                         const ss_plugin_async_event_handler_t handler) {
+ss_plugin_rc plugin_dump_state(ss_plugin_t* s,
+                               ss_plugin_owner_t* owner,
+                               const ss_plugin_async_event_handler_t handler) {
 	static uint8_t evt_buf[256];
 	static ss_plugin_event* evt;
 	char err[PLUGIN_MAX_ERRLEN];
@@ -240,5 +240,5 @@ void get_plugin_api_sample_syscall_async(plugin_api& out) {
 	out.get_async_event_sources = plugin_get_async_event_sources;
 	out.get_async_events = plugin_get_async_events;
 	out.set_async_event_handler = plugin_set_async_event_handler;
-	out.dump = plugin_dump;
+	out.dump_state = plugin_dump_state;
 }

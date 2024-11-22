@@ -1069,9 +1069,9 @@ typedef struct {
 		//   pointer is not retained by the handler after it returns.
 		//
 		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
-		ss_plugin_rc (*dump)(ss_plugin_t* s,
-		                     ss_plugin_owner_t* owner,
-		                     const ss_plugin_async_event_handler_t handler);
+		ss_plugin_rc (*dump_state)(ss_plugin_t* s,
+		                           ss_plugin_owner_t* owner,
+		                           const ss_plugin_async_event_handler_t handler);
 	};
 
 	// Sets a new plugin configuration when provided by the framework.
