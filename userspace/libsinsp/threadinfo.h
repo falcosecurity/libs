@@ -502,7 +502,8 @@ public:
 		CAT_READINESS_PROBE
 	};
 
-	command_category m_category;
+	// enum command_category type; uint16_t to be easily exported to our state table API.
+	uint16_t m_category;
 
 	//
 	// State for multi-event processing
