@@ -882,36 +882,14 @@ void sinsp_plugin::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::ta
 
 	m_table = t;
 	m_owner_plugin = p;
-	m_table_plugin_owner = nullptr;
-	m_table_plugin_input = nullptr;
-
-	// note: if the we're wrapping a plugin-implemented table under the hood,
-	// we just use the plugin-provided vtables right away instead of
-	// going through the C++ wrapper. This is both faster and safer, also
-	// because the current C++ wrapper for plugin-defined tables is just
-	// a non-functional stub used only for complying to the registry interfaces.
-	auto pt = dynamic_cast<plugin_table_wrapper<T>*>(t);
-	if(pt) {
-		m_table_plugin_owner = pt->m_owner;
-		m_table_plugin_input = pt->m_input.get();
-	}
 
 	input.table = this;
-
-	if(m_table_plugin_input) {
-		input.key_type = m_table_plugin_input->key_type;
-		input.name = m_table_plugin_input->name;
-	} else {
-		input.key_type = typeinfo_to_state_type(t->key_info());
-		input.name = m_table->name().c_str();
-	}
+	input.key_type = typeinfo_to_state_type(m_table->key_info());
 }
 
 void sinsp_plugin::sinsp_table_wrapper::unset() {
 	m_owner_plugin = nullptr;
 	m_table = nullptr;
-	m_table_plugin_owner = nullptr;
-	m_table_plugin_input = nullptr;
 
 	input.name = nullptr;
 	input.table = nullptr;
@@ -919,7 +897,7 @@ void sinsp_plugin::sinsp_table_wrapper::unset() {
 }
 
 bool sinsp_plugin::sinsp_table_wrapper::is_set() const {
-	return m_table_plugin_input != nullptr || m_table != nullptr;
+	return m_table != nullptr;
 }
 
 const ss_plugin_table_fieldinfo* sinsp_plugin::sinsp_table_wrapper::list_fields(
