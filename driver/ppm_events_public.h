@@ -2051,6 +2051,8 @@ enum ppm_event_flags {
 	// overhead to full event capture */ SUPPORT DROPPED
 	EF_LARGE_PAYLOAD = (1 << 11), /* This event has a large payload, ie: up to UINT32_MAX bytes. DO
 	                                 NOT USE ON syscalls-driven events!!! */
+	EF_TMP_CONVERTER_MANAGED = (1 << 12), /* todo!: this must be removed when we will mark ENTER
+	                                     events as OLD_VERSION */
 };
 
 /*
