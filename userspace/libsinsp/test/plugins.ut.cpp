@@ -404,6 +404,14 @@ private:
 };
 
 // scenario: a plugin with dump capability is requested a dump and then the capture file is read.
+// * register a plugin with async event capability
+// * open inspector in no driver mode
+// * request a scap file dump to a temporary text file
+// * at this stage, the plugin will be requested to dump its state; in our test case, the plugin
+// will just dump 10 fake events
+// * open a replay inspector to read the generated scap file
+// * register our event processor that just counts number of PPME_ASYNC_EVENT_E
+// * remove the test scap file
 // note: emscripten has trouble with the nodriver engine and async events
 #if !defined(__EMSCRIPTEN__)
 TEST_F(sinsp_with_test_input, plugin_dump) {

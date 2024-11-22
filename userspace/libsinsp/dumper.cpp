@@ -72,7 +72,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	// ask registered ASYNC plugins for a dump of their state
 	for(auto& p : inspector->m_plugin_manager->plugins()) {
 		if(p->caps() & CAP_ASYNC) {
-			p->dump(*this);
+			p->dump_state(*this);
 		}
 	}
 
@@ -99,7 +99,7 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress) {
 	// ask registered ASYNC plugins for a dump of their state
 	for(auto& p : inspector->m_plugin_manager->plugins()) {
 		if(p->caps() & CAP_ASYNC) {
-			p->dump(*this);
+			p->dump_state(*this);
 		}
 	}
 
