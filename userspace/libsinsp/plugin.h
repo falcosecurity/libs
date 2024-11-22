@@ -285,10 +285,6 @@ private:
 		sinsp_plugin* m_owner_plugin = nullptr;
 		libsinsp::state::base_table* m_table = nullptr;
 
-		// used to optimize cases where this wraps a plugin-defined table directly
-		const sinsp_plugin* m_table_plugin_owner = nullptr;
-		ss_plugin_table_input* m_table_plugin_input = nullptr;
-
 		// plugin-defined vtables
 		ss_plugin_table_input input;
 		ss_plugin_table_fields_vtable_ext fields_vtable;
