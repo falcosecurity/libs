@@ -47,6 +47,68 @@ struct sinsp_field_accessor_wrapper {
 	sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
 };
 
+template<typename KeyType>
+class table;
+
+// wraps instances of libsinsp::state::table and help making them comply
+// to the plugin API state tables definitions
+struct sinsp_table_wrapper {
+	sinsp_plugin* m_owner_plugin = nullptr;
+	libsinsp::state::base_table* m_table = nullptr;
+
+	// plugin-defined vtables
+	ss_plugin_table_input input;
+	ss_plugin_table_fields_vtable_ext fields_vtable;
+	ss_plugin_table_reader_vtable_ext reader_vtable;
+	ss_plugin_table_writer_vtable_ext writer_vtable;
+
+	sinsp_table_wrapper();
+	virtual ~sinsp_table_wrapper() = default;
+	inline sinsp_table_wrapper(const sinsp_table_wrapper& s) = delete;
+	inline sinsp_table_wrapper& operator=(const sinsp_table_wrapper& s) = delete;
+
+	void unset();
+	bool is_set() const;
+	template<typename T>
+	void set(sinsp_plugin* p, libsinsp::state::table<T>* t);
+
+	// static functions, will be used to populate vtable functions where
+	// ss_plugin_table_t* will be represented by a sinsp_table_wrapper*
+	static inline const ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t,
+	                                                           uint32_t* nfields);
+	static inline ss_plugin_table_field_t* get_field(ss_plugin_table_t* _t,
+	                                                 const char* name,
+	                                                 ss_plugin_state_type data_type);
+	static inline ss_plugin_table_field_t* add_field(ss_plugin_table_t* _t,
+	                                                 const char* name,
+	                                                 ss_plugin_state_type data_type);
+	static inline const char* get_name(ss_plugin_table_t* _t);
+	static inline uint64_t get_size(ss_plugin_table_t* _t);
+	static inline ss_plugin_table_entry_t* get_entry(ss_plugin_table_t* _t,
+	                                                 const ss_plugin_state_data* key);
+	static inline ss_plugin_rc read_entry_field(ss_plugin_table_t* _t,
+	                                            ss_plugin_table_entry_t* _e,
+	                                            const ss_plugin_table_field_t* f,
+	                                            ss_plugin_state_data* out);
+	;
+	static inline void release_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e);
+	static inline ss_plugin_bool iterate_entries(ss_plugin_table_t* _t,
+	                                             ss_plugin_table_iterator_func_t it,
+	                                             ss_plugin_table_iterator_state_t* s);
+	static inline ss_plugin_rc clear(ss_plugin_table_t* _t);
+	static inline ss_plugin_rc erase_entry(ss_plugin_table_t* _t, const ss_plugin_state_data* key);
+	static inline ss_plugin_table_entry_t* create_table_entry(ss_plugin_table_t* _t);
+	static inline void destroy_table_entry(ss_plugin_table_t* _t, ss_plugin_table_entry_t* _e);
+	static inline ss_plugin_table_entry_t* add_entry(ss_plugin_table_t* _t,
+	                                                 const ss_plugin_state_data* key,
+	                                                 ss_plugin_table_entry_t* _e);
+	static inline ss_plugin_rc write_entry_field(ss_plugin_table_t* _t,
+	                                             ss_plugin_table_entry_t* e,
+	                                             const ss_plugin_table_field_t* f,
+	                                             const ss_plugin_state_data* in);
+	;
+};
+
 /**
  * @brief Base class for entries of a state table.
  */
