@@ -248,10 +248,16 @@ static inline owned_table_input_t copy_and_check_table_input(const sinsp_plugin*
 	return res;
 }
 
-static inline std::string table_input_error_prefix(const sinsp_plugin* o,
+static inline std::string table_input_error_prefix(const libsinsp::state::sinsp_table_owner* o,
                                                    ss_plugin_table_input* i) {
-	return "error in state table '" + std::string(i->name) + "' defined by plugin '" + o->name() +
-	       "': ";
+	auto plugin = dynamic_cast<const sinsp_plugin*>(o);
+	if(plugin) {
+		return "error in state table '" + std::string(i->name) + "' defined by plugin '" +
+		       plugin->name() + "': ";
+
+	} else {
+		return "error in state table '" + std::string(i->name) + "': ";
+	}
 }
 
 static const libsinsp::state::static_struct::field_infos s_empty_static_infos;
@@ -620,47 +626,51 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		return res == SS_PLUGIN_SUCCESS;
 	}
 
-	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
+	const ss_plugin_table_fieldinfo* list_fields(libsinsp::state::sinsp_table_owner* owner,
+	                                             uint32_t* nfields) override;
 
-	ss_plugin_table_field_t* get_field(sinsp_plugin* owner,
+	ss_plugin_table_field_t* get_field(libsinsp::state::sinsp_table_owner* owner,
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
 
-	ss_plugin_table_field_t* add_field(sinsp_plugin* owner,
+	ss_plugin_table_field_t* add_field(libsinsp::state::sinsp_table_owner* owner,
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
 
-	const char* get_name(sinsp_plugin* owner) override;
+	const char* get_name(libsinsp::state::sinsp_table_owner* owner) override;
 
-	uint64_t get_size(sinsp_plugin* owner) override;
+	uint64_t get_size(libsinsp::state::sinsp_table_owner* owner) override;
 
-	ss_plugin_table_entry_t* get_entry(sinsp_plugin* owner,
+	ss_plugin_table_entry_t* get_entry(libsinsp::state::sinsp_table_owner* owner,
 	                                   const ss_plugin_state_data* key) override;
 
-	void release_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+	void release_table_entry(libsinsp::state::sinsp_table_owner* owner,
+	                         ss_plugin_table_entry_t* _e) override;
 
-	ss_plugin_bool iterate_entries(sinsp_plugin* owner,
+	ss_plugin_bool iterate_entries(libsinsp::state::sinsp_table_owner* owner,
 	                               ss_plugin_table_iterator_func_t it,
 	                               ss_plugin_table_iterator_state_t* s) override;
 
-	ss_plugin_rc clear(sinsp_plugin* owner) override;
+	ss_plugin_rc clear(libsinsp::state::sinsp_table_owner* owner) override;
 
-	ss_plugin_rc erase_entry(sinsp_plugin* owner, const ss_plugin_state_data* key) override;
+	ss_plugin_rc erase_entry(libsinsp::state::sinsp_table_owner* owner,
+	                         const ss_plugin_state_data* key) override;
 
-	ss_plugin_table_entry_t* create_table_entry(sinsp_plugin* owner) override;
+	ss_plugin_table_entry_t* create_table_entry(libsinsp::state::sinsp_table_owner* owner) override;
 
-	void destroy_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+	void destroy_table_entry(libsinsp::state::sinsp_table_owner* owner,
+	                         ss_plugin_table_entry_t* _e) override;
 
-	ss_plugin_table_entry_t* add_entry(sinsp_plugin* owner,
+	ss_plugin_table_entry_t* add_entry(libsinsp::state::sinsp_table_owner* owner,
 	                                   const ss_plugin_state_data* key,
 	                                   ss_plugin_table_entry_t* _e) override;
 
-	ss_plugin_rc read_entry_field(sinsp_plugin* owner,
+	ss_plugin_rc read_entry_field(libsinsp::state::sinsp_table_owner* owner,
 	                              ss_plugin_table_entry_t* _e,
 	                              const ss_plugin_table_field_t* f,
 	                              ss_plugin_state_data* out) override;
 
-	ss_plugin_rc write_entry_field(sinsp_plugin* owner,
+	ss_plugin_rc write_entry_field(libsinsp::state::sinsp_table_owner* owner,
 	                               ss_plugin_table_entry_t* _e,
 	                               const ss_plugin_table_field_t* f,
 	                               const ss_plugin_state_data* in) override;
@@ -731,8 +741,9 @@ void plugin_table_wrapper<libsinsp::state::base_table*>::get_key_as_data(
 }
 
 template<typename KeyType>
-const ss_plugin_table_fieldinfo* plugin_table_wrapper<KeyType>::list_fields(sinsp_plugin* owner,
-                                                                            uint32_t* nfields) {
+const ss_plugin_table_fieldinfo* plugin_table_wrapper<KeyType>::list_fields(
+        libsinsp::state::sinsp_table_owner* owner,
+        uint32_t* nfields) {
 	auto ret = m_input->fields_ext->list_table_fields(m_input->table, nfields);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -741,9 +752,10 @@ const ss_plugin_table_fieldinfo* plugin_table_wrapper<KeyType>::list_fields(sins
 }
 
 template<typename KeyType>
-ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::get_field(sinsp_plugin* owner,
-                                                                  const char* name,
-                                                                  ss_plugin_state_type data_type) {
+ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::get_field(
+        libsinsp::state::sinsp_table_owner* owner,
+        const char* name,
+        ss_plugin_state_type data_type) {
 	auto ret = m_input->fields_ext->get_table_field(m_input->table, name, data_type);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -752,9 +764,10 @@ ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::get_field(sinsp_plugin* 
 }
 
 template<typename KeyType>
-ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::add_field(sinsp_plugin* owner,
-                                                                  const char* name,
-                                                                  ss_plugin_state_type data_type) {
+ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::add_field(
+        libsinsp::state::sinsp_table_owner* owner,
+        const char* name,
+        ss_plugin_state_type data_type) {
 	auto ret = m_input->fields_ext->add_table_field(m_input->table, name, data_type);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -763,12 +776,12 @@ ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::add_field(sinsp_plugin* 
 }
 
 template<typename KeyType>
-const char* plugin_table_wrapper<KeyType>::get_name(sinsp_plugin* owner) {
+const char* plugin_table_wrapper<KeyType>::get_name(libsinsp::state::sinsp_table_owner* owner) {
 	return m_input->name;
 }
 
 template<typename KeyType>
-uint64_t plugin_table_wrapper<KeyType>::get_size(sinsp_plugin* owner) {
+uint64_t plugin_table_wrapper<KeyType>::get_size(libsinsp::state::sinsp_table_owner* owner) {
 	auto ret = m_input->reader_ext->get_table_size(m_input->table);
 	if(ret == ((uint64_t)-1)) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -777,8 +790,9 @@ uint64_t plugin_table_wrapper<KeyType>::get_size(sinsp_plugin* owner) {
 }
 
 template<typename KeyType>
-ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::get_entry(sinsp_plugin* owner,
-                                                                  const ss_plugin_state_data* key) {
+ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::get_entry(
+        libsinsp::state::sinsp_table_owner* owner,
+        const ss_plugin_state_data* key) {
 	auto ret = m_input->reader_ext->get_table_entry(m_input->table, key);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -787,20 +801,21 @@ ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::get_entry(sinsp_plugin* 
 }
 
 template<typename KeyType>
-void plugin_table_wrapper<KeyType>::release_table_entry(sinsp_plugin* owner,
+void plugin_table_wrapper<KeyType>::release_table_entry(libsinsp::state::sinsp_table_owner* owner,
                                                         ss_plugin_table_entry_t* _e) {
 	m_input->reader_ext->release_table_entry(m_input->table, _e);
 }
 
 template<typename KeyType>
-ss_plugin_bool plugin_table_wrapper<KeyType>::iterate_entries(sinsp_plugin* owner,
-                                                              ss_plugin_table_iterator_func_t it,
-                                                              ss_plugin_table_iterator_state_t* s) {
+ss_plugin_bool plugin_table_wrapper<KeyType>::iterate_entries(
+        libsinsp::state::sinsp_table_owner* owner,
+        ss_plugin_table_iterator_func_t it,
+        ss_plugin_table_iterator_state_t* s) {
 	return m_input->reader_ext->iterate_entries(m_input->table, it, s);
 }
 
 template<typename KeyType>
-ss_plugin_rc plugin_table_wrapper<KeyType>::clear(sinsp_plugin* owner) {
+ss_plugin_rc plugin_table_wrapper<KeyType>::clear(libsinsp::state::sinsp_table_owner* owner) {
 	auto ret = m_input->writer_ext->clear_table(m_input->table);
 	if(ret == SS_PLUGIN_FAILURE) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -809,7 +824,7 @@ ss_plugin_rc plugin_table_wrapper<KeyType>::clear(sinsp_plugin* owner) {
 }
 
 template<typename KeyType>
-ss_plugin_rc plugin_table_wrapper<KeyType>::erase_entry(sinsp_plugin* owner,
+ss_plugin_rc plugin_table_wrapper<KeyType>::erase_entry(libsinsp::state::sinsp_table_owner* owner,
                                                         const ss_plugin_state_data* key) {
 	auto ret = m_input->writer_ext->erase_table_entry(m_input->table, key);
 	if(ret == SS_PLUGIN_FAILURE) {
@@ -819,7 +834,8 @@ ss_plugin_rc plugin_table_wrapper<KeyType>::erase_entry(sinsp_plugin* owner,
 }
 
 template<typename KeyType>
-ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::create_table_entry(sinsp_plugin* owner) {
+ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::create_table_entry(
+        libsinsp::state::sinsp_table_owner* owner) {
 	auto ret = m_input->writer_ext->create_table_entry(m_input->table);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -828,15 +844,16 @@ ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::create_table_entry(sinsp
 }
 
 template<typename KeyType>
-void plugin_table_wrapper<KeyType>::destroy_table_entry(sinsp_plugin* owner,
+void plugin_table_wrapper<KeyType>::destroy_table_entry(libsinsp::state::sinsp_table_owner* owner,
                                                         ss_plugin_table_entry_t* _e) {
 	m_input->writer_ext->destroy_table_entry(m_input->table, _e);
 }
 
 template<typename KeyType>
-ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::add_entry(sinsp_plugin* owner,
-                                                                  const ss_plugin_state_data* key,
-                                                                  ss_plugin_table_entry_t* _e) {
+ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::add_entry(
+        libsinsp::state::sinsp_table_owner* owner,
+        const ss_plugin_state_data* key,
+        ss_plugin_table_entry_t* _e) {
 	auto ret = m_input->writer_ext->add_table_entry(m_input->table, key, _e);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -845,10 +862,11 @@ ss_plugin_table_entry_t* plugin_table_wrapper<KeyType>::add_entry(sinsp_plugin* 
 }
 
 template<typename KeyType>
-ss_plugin_rc plugin_table_wrapper<KeyType>::read_entry_field(sinsp_plugin* owner,
-                                                             ss_plugin_table_entry_t* _e,
-                                                             const ss_plugin_table_field_t* f,
-                                                             ss_plugin_state_data* out) {
+ss_plugin_rc plugin_table_wrapper<KeyType>::read_entry_field(
+        libsinsp::state::sinsp_table_owner* owner,
+        ss_plugin_table_entry_t* _e,
+        const ss_plugin_table_field_t* f,
+        ss_plugin_state_data* out) {
 	auto ret = m_input->reader_ext->read_entry_field(m_input->table, _e, f, out);
 	if(ret == SS_PLUGIN_FAILURE) {
 		owner->m_last_owner_err = m_owner->get_last_error();
@@ -857,10 +875,11 @@ ss_plugin_rc plugin_table_wrapper<KeyType>::read_entry_field(sinsp_plugin* owner
 }
 
 template<typename KeyType>
-ss_plugin_rc plugin_table_wrapper<KeyType>::write_entry_field(sinsp_plugin* owner,
-                                                              ss_plugin_table_entry_t* _e,
-                                                              const ss_plugin_table_field_t* f,
-                                                              const ss_plugin_state_data* in) {
+ss_plugin_rc plugin_table_wrapper<KeyType>::write_entry_field(
+        libsinsp::state::sinsp_table_owner* owner,
+        ss_plugin_table_entry_t* _e,
+        const ss_plugin_table_field_t* f,
+        const ss_plugin_state_data* in) {
 	auto ret = m_input->writer_ext->write_entry_field(m_input->table, _e, f, in);
 	if(ret == SS_PLUGIN_FAILURE) {
 		owner->m_last_owner_err = m_owner->get_last_error();
