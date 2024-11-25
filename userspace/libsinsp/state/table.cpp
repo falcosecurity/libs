@@ -182,7 +182,7 @@ libsinsp::state::sinsp_field_accessor_wrapper::operator=(
 // table_accessor implementation
 //
 template<typename T>
-void libsinsp::state::table_accessor::set(sinsp_plugin* p, libsinsp::state::table<T>* t) {
+void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state::table<T>* t) {
 	if(!t) {
 		throw sinsp_exception("null table assigned to sinsp table wrapper");
 	}
@@ -366,7 +366,7 @@ libsinsp::state::table_accessor::table_accessor() {
 
 template<typename KeyType>
 const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_fields(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         uint32_t* nfields) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		this->m_field_list.clear();
@@ -392,7 +392,7 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
 
 template<typename KeyType>
 ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
 	libsinsp::state::static_struct::field_infos::const_iterator fixed_it;
@@ -467,7 +467,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 
 template<typename KeyType>
 ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         const char* name,
         ss_plugin_state_type data_type) {
 	if(this->static_fields()->find(name) != this->static_fields()->end()) {
@@ -490,18 +490,18 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 }
 
 template<typename KeyType>
-const char* libsinsp::state::built_in_table<KeyType>::get_name(sinsp_plugin* owner) {
+const char* libsinsp::state::built_in_table<KeyType>::get_name(sinsp_table_owner* owner) {
 	return this->m_name.c_str();
 }
 
 template<typename KeyType>
-uint64_t libsinsp::state::built_in_table<KeyType>::get_size(sinsp_plugin* owner) {
+uint64_t libsinsp::state::built_in_table<KeyType>::get_size(sinsp_table_owner* owner) {
 	return this->entries_count();
 }
 
 template<typename KeyType>
 ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::get_entry(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         const ss_plugin_state_data* key) {
 	// note: the C++ API returns a shared pointer, but in plugins we only
 	// use raw pointers without increasing/decreasing/owning the refcount.
@@ -524,14 +524,14 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::get_entry(
 }
 
 template<typename KeyType>
-void libsinsp::state::built_in_table<KeyType>::release_table_entry(sinsp_plugin* owner,
+void libsinsp::state::built_in_table<KeyType>::release_table_entry(sinsp_table_owner* owner,
                                                                    ss_plugin_table_entry_t* _e) {
 	static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e)->reset();
 }
 
 template<typename KeyType>
 ss_plugin_bool libsinsp::state::built_in_table<KeyType>::iterate_entries(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         ss_plugin_table_iterator_func_t it,
         ss_plugin_table_iterator_state_t* s) {
 	std::shared_ptr<libsinsp::state::table_entry> owned_ptr;
@@ -546,7 +546,7 @@ ss_plugin_bool libsinsp::state::built_in_table<KeyType>::iterate_entries(
 }
 
 template<typename KeyType>
-ss_plugin_rc libsinsp::state::built_in_table<KeyType>::clear(sinsp_plugin* owner) {
+ss_plugin_rc libsinsp::state::built_in_table<KeyType>::clear(sinsp_table_owner* owner) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		this->clear_entries();
 		return SS_PLUGIN_SUCCESS;
@@ -556,7 +556,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::clear(sinsp_plugin* owner
 
 template<typename KeyType>
 ss_plugin_rc libsinsp::state::built_in_table<KeyType>::erase_entry(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         const ss_plugin_state_data* key) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		KeyType kk;
@@ -572,7 +572,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::erase_entry(
 
 template<typename KeyType>
 ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::create_table_entry(
-        sinsp_plugin* owner) {
+        sinsp_table_owner* owner) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto ret = this->new_entry().release();
 		auto owned_ptr = owner->find_unset_accessed_table_entry();
@@ -583,7 +583,7 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::create_table_
 }
 
 template<typename KeyType>
-void libsinsp::state::built_in_table<KeyType>::destroy_table_entry(sinsp_plugin* owner,
+void libsinsp::state::built_in_table<KeyType>::destroy_table_entry(sinsp_table_owner* owner,
                                                                    ss_plugin_table_entry_t* _e) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
@@ -594,7 +594,7 @@ void libsinsp::state::built_in_table<KeyType>::destroy_table_entry(sinsp_plugin*
 
 template<typename KeyType>
 ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::add_entry(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         const ss_plugin_state_data* key,
         ss_plugin_table_entry_t* _e) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
@@ -612,7 +612,7 @@ ss_plugin_table_entry_t* libsinsp::state::built_in_table<KeyType>::add_entry(
 
 template<typename KeyType>
 ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         ss_plugin_table_entry_t* _e,
         const ss_plugin_table_field_t* f,
         ss_plugin_state_data* out) {
@@ -656,7 +656,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 
 template<typename KeyType>
 ss_plugin_rc libsinsp::state::built_in_table<KeyType>::write_entry_field(
-        sinsp_plugin* owner,
+        sinsp_table_owner* owner,
         ss_plugin_table_entry_t* _e,
         const ss_plugin_table_field_t* f,
         const ss_plugin_state_data* in) {

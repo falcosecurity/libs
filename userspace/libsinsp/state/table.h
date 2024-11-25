@@ -25,10 +25,9 @@ limitations under the License.
 #include <memory>
 #include <list>
 
-class sinsp_plugin;
-
 namespace libsinsp {
 namespace state {
+class sinsp_table_owner;
 struct sinsp_table_wrapper;
 
 // wraps instances of libsinsp::state::XXX_struct::field_accessor and
@@ -70,7 +69,7 @@ class table;
 // wraps instances of libsinsp::state::table and help making them comply
 // to the plugin API state tables definitions
 struct table_accessor {
-	sinsp_plugin* m_owner_plugin = nullptr;
+	sinsp_table_owner* m_owner_plugin = nullptr;
 	libsinsp::state::base_table* m_table = nullptr;
 
 	// plugin-defined vtables
@@ -87,7 +86,7 @@ struct table_accessor {
 	void unset();
 	bool is_set() const;
 	template<typename T>
-	void set(sinsp_plugin* p, libsinsp::state::table<T>* t);
+	void set(sinsp_table_owner* p, libsinsp::state::table<T>* t);
 
 	// static functions, will be used to populate vtable functions where
 	// ss_plugin_table_t* will point to a `table_accessor` instance
@@ -226,48 +225,48 @@ public:
 	 */
 	virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
 
-	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner,
+	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
 	                                                     uint32_t* nfields) = 0;
 
-	virtual ss_plugin_table_field_t* get_field(sinsp_plugin* owner,
+	virtual ss_plugin_table_field_t* get_field(sinsp_table_owner* owner,
 	                                           const char* name,
 	                                           ss_plugin_state_type data_type) = 0;
 
-	virtual ss_plugin_table_field_t* add_field(sinsp_plugin* owner,
+	virtual ss_plugin_table_field_t* add_field(sinsp_table_owner* owner,
 	                                           const char* name,
 	                                           ss_plugin_state_type data_type) = 0;
 
-	virtual const char* get_name(sinsp_plugin* owner) = 0;
+	virtual const char* get_name(sinsp_table_owner* owner) = 0;
 
-	virtual uint64_t get_size(sinsp_plugin* owner) = 0;
+	virtual uint64_t get_size(sinsp_table_owner* owner) = 0;
 
-	virtual ss_plugin_table_entry_t* get_entry(sinsp_plugin* owner,
+	virtual ss_plugin_table_entry_t* get_entry(sinsp_table_owner* owner,
 	                                           const ss_plugin_state_data* key) = 0;
 
-	virtual void release_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) = 0;
+	virtual void release_table_entry(sinsp_table_owner* owner, ss_plugin_table_entry_t* _e) = 0;
 
-	virtual ss_plugin_bool iterate_entries(sinsp_plugin* owner,
+	virtual ss_plugin_bool iterate_entries(sinsp_table_owner* owner,
 	                                       ss_plugin_table_iterator_func_t it,
 	                                       ss_plugin_table_iterator_state_t* s) = 0;
 
-	virtual ss_plugin_rc clear(sinsp_plugin* owner) = 0;
+	virtual ss_plugin_rc clear(sinsp_table_owner* owner) = 0;
 
-	virtual ss_plugin_rc erase_entry(sinsp_plugin* owner, const ss_plugin_state_data* key) = 0;
+	virtual ss_plugin_rc erase_entry(sinsp_table_owner* owner, const ss_plugin_state_data* key) = 0;
 
-	virtual ss_plugin_table_entry_t* create_table_entry(sinsp_plugin* owner) = 0;
+	virtual ss_plugin_table_entry_t* create_table_entry(sinsp_table_owner* owner) = 0;
 
-	virtual void destroy_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) = 0;
+	virtual void destroy_table_entry(sinsp_table_owner* owner, ss_plugin_table_entry_t* _e) = 0;
 
-	virtual ss_plugin_table_entry_t* add_entry(sinsp_plugin* owner,
+	virtual ss_plugin_table_entry_t* add_entry(sinsp_table_owner* owner,
 	                                           const ss_plugin_state_data* key,
 	                                           ss_plugin_table_entry_t* _e) = 0;
 
-	virtual ss_plugin_rc read_entry_field(sinsp_plugin* owner,
+	virtual ss_plugin_rc read_entry_field(sinsp_table_owner* owner,
 	                                      ss_plugin_table_entry_t* _e,
 	                                      const ss_plugin_table_field_t* f,
 	                                      ss_plugin_state_data* out) = 0;
 
-	virtual ss_plugin_rc write_entry_field(sinsp_plugin* owner,
+	virtual ss_plugin_rc write_entry_field(sinsp_table_owner* owner,
 	                                       ss_plugin_table_entry_t* _e,
 	                                       const ss_plugin_table_field_t* f,
 	                                       const ss_plugin_state_data* in) = 0;
@@ -353,47 +352,48 @@ class built_in_table : public table<KeyType> {
 	std::shared_ptr<table_entry> add_entry(const KeyType& key,
 	                                       std::unique_ptr<table_entry> entry) override = 0;
 
-	const char* get_name(sinsp_plugin* owner) override;
+	const char* get_name(sinsp_table_owner* owner) override;
 
-	uint64_t get_size(sinsp_plugin* owner) override;
+	uint64_t get_size(sinsp_table_owner* owner) override;
 
-	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
+	const ss_plugin_table_fieldinfo* list_fields(sinsp_table_owner* owner,
+	                                             uint32_t* nfields) override;
 
-	ss_plugin_table_field_t* get_field(sinsp_plugin* owner,
+	ss_plugin_table_field_t* get_field(sinsp_table_owner* owner,
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
 
-	ss_plugin_table_field_t* add_field(sinsp_plugin* owner,
+	ss_plugin_table_field_t* add_field(sinsp_table_owner* owner,
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
 
-	ss_plugin_table_entry_t* get_entry(sinsp_plugin* owner,
+	ss_plugin_table_entry_t* get_entry(sinsp_table_owner* owner,
 	                                   const ss_plugin_state_data* key) override;
 
-	void release_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+	void release_table_entry(sinsp_table_owner* owner, ss_plugin_table_entry_t* _e) override;
 
-	ss_plugin_bool iterate_entries(sinsp_plugin* owner,
+	ss_plugin_bool iterate_entries(sinsp_table_owner* owner,
 	                               ss_plugin_table_iterator_func_t it,
 	                               ss_plugin_table_iterator_state_t* s) override;
 
-	ss_plugin_rc clear(sinsp_plugin* owner) override;
+	ss_plugin_rc clear(sinsp_table_owner* owner) override;
 
-	ss_plugin_rc erase_entry(sinsp_plugin* owner, const ss_plugin_state_data* key) override;
+	ss_plugin_rc erase_entry(sinsp_table_owner* owner, const ss_plugin_state_data* key) override;
 
-	ss_plugin_table_entry_t* create_table_entry(sinsp_plugin* owner) override;
+	ss_plugin_table_entry_t* create_table_entry(sinsp_table_owner* owner) override;
 
-	void destroy_table_entry(sinsp_plugin* owner, ss_plugin_table_entry_t* _e) override;
+	void destroy_table_entry(sinsp_table_owner* owner, ss_plugin_table_entry_t* _e) override;
 
-	ss_plugin_table_entry_t* add_entry(sinsp_plugin* owner,
+	ss_plugin_table_entry_t* add_entry(sinsp_table_owner* owner,
 	                                   const ss_plugin_state_data* key,
 	                                   ss_plugin_table_entry_t* _e) override;
 
-	ss_plugin_rc read_entry_field(sinsp_plugin* owner,
+	ss_plugin_rc read_entry_field(sinsp_table_owner* owner,
 	                              ss_plugin_table_entry_t* _e,
 	                              const ss_plugin_table_field_t* f,
 	                              ss_plugin_state_data* out) override;
 
-	ss_plugin_rc write_entry_field(sinsp_plugin* owner,
+	ss_plugin_rc write_entry_field(sinsp_table_owner* owner,
 	                               ss_plugin_table_entry_t* _e,
 	                               const ss_plugin_table_field_t* f,
 	                               const ss_plugin_state_data* in) override;
@@ -401,6 +401,9 @@ class built_in_table : public table<KeyType> {
 
 class sinsp_table_owner {
 public:
+	sinsp_table_owner() = default;
+	virtual ~sinsp_table_owner() = default;
+
 	std::string m_last_owner_err;
 
 protected:
@@ -426,16 +429,6 @@ protected:
 		m_ephemeral_tables_clear = true;
 	}
 
-	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
-		m_ephemeral_tables_clear = false;
-		for(auto& et : m_ephemeral_tables) {
-			if(!et.is_set()) {
-				return et;
-			}
-		}
-		return m_ephemeral_tables.emplace_back();
-	}
-
 	inline void clear_accessed_entries() {
 		if(m_accessed_entries_clear) {
 			// quick break-out that prevents us from looping over the
@@ -451,6 +444,17 @@ protected:
 			};
 		}
 		m_accessed_entries_clear = true;
+	}
+
+public:
+	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
+		m_ephemeral_tables_clear = false;
+		for(auto& et : m_ephemeral_tables) {
+			if(!et.is_set()) {
+				return et;
+			}
+		}
+		return m_ephemeral_tables.emplace_back();
 	}
 
 	inline std::shared_ptr<libsinsp::state::table_entry>* find_unset_accessed_table_entry() {
