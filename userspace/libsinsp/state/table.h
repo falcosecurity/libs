@@ -14,6 +14,7 @@ limitations under the License.
 
 #pragma once
 
+#include <libscap/scap_assert.h>
 #include <libsinsp/sinsp_exception.h>
 #include <libsinsp/state/static_struct.h>
 #include <libsinsp/state/dynamic_struct.h>
@@ -22,11 +23,13 @@ limitations under the License.
 #include <functional>
 #include <type_traits>
 #include <memory>
+#include <list>
 
 class sinsp_plugin;
 
 namespace libsinsp {
 namespace state {
+struct sinsp_table_wrapper;
 
 // wraps instances of libsinsp::state::XXX_struct::field_accessor and
 // help making them comply to the plugin API state tables definitions
@@ -45,6 +48,20 @@ struct sinsp_field_accessor_wrapper {
 	inline sinsp_field_accessor_wrapper& operator=(const sinsp_field_accessor_wrapper& s) = delete;
 	sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
 	sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
+};
+
+/**
+ * @brief Base class for entries of a state table.
+ */
+struct table_entry : public static_struct, dynamic_struct {
+	table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
+	        static_struct(),
+	        dynamic_struct(dyn_fields) {}
+	virtual ~table_entry() = default;
+	table_entry(table_entry&&) = default;
+	table_entry& operator=(table_entry&&) = default;
+	table_entry(const table_entry& s) = default;
+	table_entry& operator=(const table_entry& s) = default;
 };
 
 template<typename KeyType>
@@ -107,20 +124,6 @@ struct table_accessor {
 	                                             const ss_plugin_table_field_t* f,
 	                                             const ss_plugin_state_data* in);
 	;
-};
-
-/**
- * @brief Base class for entries of a state table.
- */
-struct table_entry : public static_struct, dynamic_struct {
-	table_entry(const std::shared_ptr<dynamic_struct::field_infos>& dyn_fields):
-	        static_struct(),
-	        dynamic_struct(dyn_fields) {}
-	virtual ~table_entry() = default;
-	table_entry(table_entry&&) = default;
-	table_entry& operator=(table_entry&&) = default;
-	table_entry(const table_entry& s) = default;
-	table_entry& operator=(const table_entry& s) = default;
 };
 
 /**
@@ -395,5 +398,71 @@ class built_in_table : public table<KeyType> {
 	                               const ss_plugin_table_field_t* f,
 	                               const ss_plugin_state_data* in) override;
 };
+
+class sinsp_table_owner {
+public:
+	std::string m_last_owner_err;
+
+protected:
+	std::list<std::shared_ptr<libsinsp::state::table_entry>>
+	        m_accessed_entries;  // using lists for ptr stability
+	std::list<libsinsp::state::table_accessor>
+	        m_ephemeral_tables;  // note: lists have pointer stability
+	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
+	        m_accessed_table_fields;  // note: lists have pointer stability
+
+	bool m_ephemeral_tables_clear = false;
+	bool m_accessed_entries_clear = false;
+
+	inline void clear_ephemeral_tables() {
+		if(m_ephemeral_tables_clear) {
+			// quick break-out that prevents us from looping over the
+			// whole list in the critical path, in case of no accessed table
+			return;
+		}
+		for(auto& et : m_ephemeral_tables) {
+			et.unset();
+		}
+		m_ephemeral_tables_clear = true;
+	}
+
+	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
+		m_ephemeral_tables_clear = false;
+		for(auto& et : m_ephemeral_tables) {
+			if(!et.is_set()) {
+				return et;
+			}
+		}
+		return m_ephemeral_tables.emplace_back();
+	}
+
+	inline void clear_accessed_entries() {
+		if(m_accessed_entries_clear) {
+			// quick break-out that prevents us from looping over the
+			// whole list in the critical path
+			return;
+		}
+		for(auto& et : m_accessed_entries) {
+			if(et != nullptr) {
+				// if we get here, it means that the plugin did not
+				// release some of the entries it acquired
+				ASSERT(false);
+				et.reset();
+			};
+		}
+		m_accessed_entries_clear = true;
+	}
+
+	inline std::shared_ptr<libsinsp::state::table_entry>* find_unset_accessed_table_entry() {
+		m_accessed_entries_clear = false;
+		for(auto& et : m_accessed_entries) {
+			if(et == nullptr) {
+				return &et;
+			}
+		}
+		return &m_accessed_entries.emplace_back();
+	}
+};
+
 };  // namespace state
 };  // namespace libsinsp

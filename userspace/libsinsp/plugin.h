@@ -44,7 +44,7 @@ class base_table;
 /**
  * @brief An object-oriented representation of a plugin.
  */
-class sinsp_plugin {
+class sinsp_plugin : public libsinsp::state::sinsp_table_owner {
 public:
 	struct open_param {
 		open_param() = default;
@@ -130,11 +130,6 @@ public:
 	        m_table_infos(),
 	        m_owned_tables(),
 	        m_accessed_tables(),
-	        m_accessed_entries(),
-	        m_accessed_table_fields(),
-	        m_ephemeral_tables(),
-	        m_ephemeral_tables_clear(false),
-	        m_accessed_entries_clear(false),
 	        m_thread_pool(tpool) {}
 	virtual ~sinsp_plugin();
 	sinsp_plugin(const sinsp_plugin& s) = delete;
@@ -214,8 +209,6 @@ public:
 
 	bool set_async_event_handler(async_event_handler_t handler);
 
-	std::string m_last_owner_err;
-
 	// note(jasondellaluce): we set these as protected in order to allow unit
 	// testing mocking these values, without having to declare their accessors
 	// as virtual (thus avoiding performance loss in some hot paths).
@@ -284,64 +277,6 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<libsinsp::state::base_table>> m_owned_tables;
 	/* contains tables that the plugin accessed at least once */
 	std::unordered_map<std::string, libsinsp::state::table_accessor> m_accessed_tables;
-	std::list<std::shared_ptr<libsinsp::state::table_entry>>
-	        m_accessed_entries;  // using lists for ptr stability
-	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
-	        m_accessed_table_fields;                    // note: lists have pointer stability
-	std::list<libsinsp::state::table_accessor>
-	        m_ephemeral_tables;  // note: lists have pointer stability
-	bool m_ephemeral_tables_clear;
-	bool m_accessed_entries_clear;
-
-	inline void clear_ephemeral_tables() {
-		if(m_ephemeral_tables_clear) {
-			// quick break-out that prevents us from looping over the
-			// whole list in the critical path, in case of no accessed table
-			return;
-		}
-		for(auto& et : m_ephemeral_tables) {
-			et.unset();
-		}
-		m_ephemeral_tables_clear = true;
-	}
-
-	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
-		m_ephemeral_tables_clear = false;
-		for(auto& et : m_ephemeral_tables) {
-			if(!et.is_set()) {
-				return et;
-			}
-		}
-		return m_ephemeral_tables.emplace_back();
-	}
-
-	inline void clear_accessed_entries() {
-		if(m_accessed_entries_clear) {
-			// quick break-out that prevents us from looping over the
-			// whole list in the critical path
-			return;
-		}
-		for(auto& et : m_accessed_entries) {
-			if(et != nullptr) {
-				// if we get here, it means that the plugin did not
-				// release some of the entries it acquired
-				ASSERT(false);
-				et.reset();
-			};
-		}
-		m_accessed_entries_clear = true;
-	}
-
-	inline std::shared_ptr<libsinsp::state::table_entry>* find_unset_accessed_table_entry() {
-		m_accessed_entries_clear = false;
-		for(auto& et : m_accessed_entries) {
-			if(et == nullptr) {
-				return &et;
-			}
-		}
-		return &m_accessed_entries.emplace_back();
-	}
-
 	static void table_field_api(ss_plugin_table_fields_vtable& out,
 	                            ss_plugin_table_fields_vtable_ext& extout);
 	static void table_read_api(ss_plugin_table_reader_vtable& out,
