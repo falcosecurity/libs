@@ -120,12 +120,13 @@ int32_t libsinsp::sinsp_suppress::process_event(scap_evt *e) {
 	case PPME_PROCEXIT_1_E: {
 		auto it = m_suppressed_tids.find(tid);
 		if(it != m_suppressed_tids.end()) {
+			// Given that the process is exiting, we remove the
+			// tid from the suppressed tids.
 			m_suppressed_tids.erase(it);
-			m_num_suppressed_events++;
-			return SCAP_FILTERED_EVENT;
-		} else {
-			return SCAP_SUCCESS;
 		}
+		// We don't filter out procexit event otherwise
+		// we'll keep stale threadinfo in the threadtable.
+		return SCAP_SUCCESS;
 	}
 
 	default:
