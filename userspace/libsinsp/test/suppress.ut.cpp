@@ -77,16 +77,18 @@ TEST_F(sinsp_with_test_input, suppress_comm) {
 
 	add_event_advance_ts(increasing_ts(), pid, PPME_SYSCALL_EXECVE_19_E, 1, file_to_run);
 
+	// Whenever we try to add an event to sinsp_with_test_input, if
+	// the event is suppressed we get an exception.
 	EXPECT_ANY_THROW(generate_execve_x(pid, file_to_run, "sh"));
+
+	EXPECT_NE(m_inspector.get_thread_ref(pid), nullptr);
 
 	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
 
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_RENAME_E, 0);
 
-	auto tinfo = m_inspector.get_thread_ref(pid);
-
-	EXPECT_EQ(tinfo, nullptr);
+	EXPECT_EQ(m_inspector.get_thread_ref(pid), nullptr);
 
 	scap_stats st;
 	m_inspector.get_capture_stats(&st);
@@ -117,6 +119,9 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 
 	const char* file_to_run = "/bin/sh";
 	add_event_advance_ts(increasing_ts(), pid, PPME_SYSCALL_EXECVE_19_E, 1, file_to_run);
+
+	// Whenever we try to add an event to sinsp_with_test_input, if
+	// the event is suppressed we get an exception.
 	EXPECT_ANY_THROW(generate_execve_x(pid, file_to_run, "sh"));
 
 	EXPECT_ANY_THROW(add_event_advance_ts(increasing_ts(),
@@ -126,14 +131,14 @@ TEST_F(sinsp_with_test_input, suppress_comm_execve) {
 	                                      "/bin/test-exe"));
 	EXPECT_ANY_THROW(generate_execve_x(pid, "/bin/test-exe", "test-exe"));
 
+	EXPECT_NE(m_inspector.get_thread_ref(pid), nullptr);
+
 	add_event_advance_ts(increasing_ts(), pid, PPME_PROCEXIT_1_E, 0);
 
 	// dummy event to actually delete the thread from the threadtable.
 	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_RENAME_E, 0);
 
-	auto tinfo = m_inspector.get_thread_ref(pid);
-
-	EXPECT_EQ(tinfo, nullptr);
+	EXPECT_EQ(m_inspector.get_thread_ref(pid), nullptr);
 
 	scap_stats st;
 	m_inspector.get_capture_stats(&st);
