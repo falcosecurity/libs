@@ -19,6 +19,16 @@ option(ENABLE_PIC "Build position independent libraries and executables" ${BUILD
 if(ENABLE_PIC)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
+option(ENABLE_LTO "Build with Link Time Optmization enabled" ON)
+if(ENABLE_LTO)
+	include(CheckIPOSupported)
+	check_ipo_supported(RESULT result OUTPUT output)
+	if(result)
+		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+	else()
+		message(WARNING "LTO is not supported: ${output}")
+	endif()
+endif()
 
 # NOTE: do not add `add_definition` in this file because consumers project won't import it.
 
