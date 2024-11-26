@@ -95,7 +95,11 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils bpftool clang
+          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm
+          git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
+          cd bpftool
+          git submodule update --init
+          cd src && make install
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
