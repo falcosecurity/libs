@@ -8,7 +8,6 @@
 
 #include <helpers/interfaces/variable_size_event.h>
 #include <driver/systype_compat.h>
-#include <helpers/interfaces/attached_programs.h>
 
 /* The instruction limit is 1000000, so we shouldn't have issues */
 #define MAX_THREADS_GROUPS 30

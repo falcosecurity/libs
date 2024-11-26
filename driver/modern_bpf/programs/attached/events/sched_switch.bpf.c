@@ -7,7 +7,6 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: /include/linux/events/sched.h
  * TP_PROTO(bool preempt, struct task_struct *prev,
