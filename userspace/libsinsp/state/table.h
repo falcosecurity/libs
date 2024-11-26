@@ -130,9 +130,8 @@ struct table_accessor {
  */
 class base_table {
 public:
-	inline base_table(const typeinfo& key_info, const static_struct::field_infos* static_fields):
+	inline base_table(const typeinfo& key_info):
 	        m_key_info(key_info),
-	        m_static_fields(static_fields),
 	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
 
 	virtual ~base_table() = default;
@@ -150,13 +149,6 @@ public:
 	 * @brief Returns the non-null type info about the table's key.
 	 */
 	inline const typeinfo& key_info() const { return m_key_info; }
-
-	/**
-	 * @brief Returns the fields metadata list for the static fields defined
-	 * for the value data type of this table. This fields will be accessible
-	 * for all the entries of this table.
-	 */
-	virtual const static_struct::field_infos* static_fields() const { return m_static_fields; }
 
 	/**
 	 * @brief Returns the fields metadata list for the dynamic fields defined
@@ -260,11 +252,7 @@ public:
 
 protected:
 	typeinfo m_key_info;
-	const static_struct::field_infos* m_static_fields;
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
-
-	std::vector<ss_plugin_table_fieldinfo> m_field_list;
-	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
 };
 
 /**
@@ -276,9 +264,7 @@ class table : public base_table {
 	              "table key types must have a default constructor");
 
 public:
-	inline table(const static_struct::field_infos* static_fields):
-	        base_table(typeinfo::of<KeyType>(), static_fields) {}
-	inline table(): table(_static_fields()) {}
+	inline table(): base_table(typeinfo::of<KeyType>()) {}
 	virtual ~table() = default;
 	inline table(table&&) = default;
 	inline table& operator=(table&&) = default;
@@ -318,21 +304,16 @@ public:
 	 * @return false If an entry was not present at the given key.
 	 */
 	virtual bool erase_entry(const KeyType& key) = 0;
-
-private:
-	static inline const static_struct::field_infos* _static_fields() {
-		static const static_struct::field_infos s_fields{};
-		return &s_fields;
-	}
 };
 
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
 	inline built_in_table(const std::string& name, const static_struct::field_infos* static_fields):
-	        table<KeyType>::table(static_fields),
+	        table<KeyType>::table(),
 	        m_this_ptr(this),
-	        m_name(name) {}
+	        m_name(name),
+	        m_static_fields(static_fields) {}
 	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
 
 	/**
@@ -349,6 +330,13 @@ public:
 	                                       std::unique_ptr<table_entry> entry) override = 0;
 
 	const char* name() const override { return m_name.c_str(); }
+
+	/**
+	 * @brief Returns the fields metadata list for the static fields defined
+	 * for the value data type of this table. This fields will be accessible
+	 * for all the entries of this table.
+	 */
+	virtual const static_struct::field_infos* static_fields() const { return m_static_fields; }
 
 	uint64_t get_size(sinsp_table_owner* owner) override;
 
@@ -397,6 +385,9 @@ public:
 private:
 	const base_table* m_this_ptr;
 	std::string m_name;
+	const static_struct::field_infos* m_static_fields;
+	std::vector<ss_plugin_table_fieldinfo> m_field_list;
+	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
 };
 
 class sinsp_table_owner {
@@ -466,6 +457,9 @@ public:
 		}
 		return &m_accessed_entries.emplace_back();
 	}
+
+	template<typename KeyType>
+	friend class libsinsp::state::built_in_table;
 };
 
 };  // namespace state
