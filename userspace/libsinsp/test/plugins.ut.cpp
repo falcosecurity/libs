@@ -839,7 +839,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_subtables);
 
-	auto table = reg->get_table<int64_t>("threads");
+	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	        reg->get_table<int64_t>("threads"));
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
@@ -937,7 +938,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_subtables_array);
 
-	auto table = reg->get_table<int64_t>("threads");
+	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	        reg->get_table<int64_t>("threads"));
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
@@ -1029,7 +1031,8 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 
 	register_plugin(&m_inspector, get_plugin_api_sample_syscall_subtables_array_pair);
 
-	auto table = reg->get_table<int64_t>("threads");
+	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	        reg->get_table<int64_t>("threads"));
 	ASSERT_NE(table, nullptr);
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);

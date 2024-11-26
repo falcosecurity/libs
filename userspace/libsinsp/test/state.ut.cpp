@@ -355,7 +355,8 @@ TEST(thread_manager, table_access) {
 	static const int s_threadinfo_static_fields_count = 33;
 
 	sinsp inspector;
-	auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
+	auto table = static_cast<libsinsp::state::built_in_table<int64_t>*>(
+	        inspector.m_thread_manager.get());
 
 	// empty table state and info
 	ASSERT_EQ(table->name(), std::string("threads"));
@@ -448,7 +449,8 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_EQ(reg->tables().size(), 1);
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
-	auto table = reg->get_table<int64_t>("threads");
+	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	        reg->get_table<int64_t>("threads"));
 	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
@@ -593,7 +595,8 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_EQ(reg->tables().size(), 1);
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
-	auto table = reg->get_table<int64_t>("threads");
+	auto table = dynamic_cast<libsinsp::state::built_in_table<int64_t>*>(
+	        reg->get_table<int64_t>("threads"));
 	EXPECT_EQ(table->name(), std::string("threads"));
 	EXPECT_EQ(table->entries_count(), 0);
 	EXPECT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
