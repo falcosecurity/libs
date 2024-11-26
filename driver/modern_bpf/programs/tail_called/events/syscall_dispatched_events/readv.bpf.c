@@ -58,8 +58,12 @@ int BPF_PROG(readv_x, struct pt_regs *regs, long ret) {
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
+		dynamic_snaplen_args snaplen_args = {
+		        .only_port_range = true,
+		        .evt_type = PPME_SYSCALL_READV_X,
+		};
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, true, PPME_SYSCALL_READV_X);
+		apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
 		if(snaplen > ret) {
 			snaplen = ret;
 		}

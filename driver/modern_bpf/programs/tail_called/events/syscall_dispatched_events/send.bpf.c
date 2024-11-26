@@ -65,9 +65,13 @@ int BPF_PROG(send_x, struct pt_regs *regs, long ret) {
 	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
+	dynamic_snaplen_args snaplen_args = {
+	        .only_port_range = false,
+	        .evt_type = PPME_SOCKET_SEND_X,
+	};
 	int64_t bytes_to_read = ret > 0 ? ret : args[2];
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, false, PPME_SOCKET_SEND_X);
+	apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
 	if((int64_t)snaplen > bytes_to_read) {
 		snaplen = bytes_to_read;
 	}

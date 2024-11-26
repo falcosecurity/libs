@@ -66,8 +66,12 @@ int BPF_PROG(recv_x, struct pt_regs *regs, long ret) {
 		unsigned long args[2] = {0};
 		extract__network_args(args, 2, regs);
 
+		dynamic_snaplen_args snaplen_args = {
+		        .only_port_range = false,
+		        .evt_type = PPME_SOCKET_RECV_X,
+		};
 		uint16_t snaplen = maps__get_snaplen();
-		apply_dynamic_snaplen(regs, &snaplen, false, PPME_SOCKET_RECV_X);
+		apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
 		if(snaplen > ret) {
 			snaplen = ret;
 		}
