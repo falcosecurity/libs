@@ -85,7 +85,11 @@ int BPF_PROG(sendmsg_x, struct pt_regs *regs, long ret) {
 	 * the return value if the syscall is successful.
 	 */
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, true, PPME_SOCKET_SENDMSG_X);
+	dynamic_snaplen_args snaplen_args = {
+	        .only_port_range = true,
+	        .evt_type = PPME_SOCKET_SENDMSG_X,
+	};
+	apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
 	if(ret > 0 && snaplen > ret) {
 		snaplen = ret;
 	}
