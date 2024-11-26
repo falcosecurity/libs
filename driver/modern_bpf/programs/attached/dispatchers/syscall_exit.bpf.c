@@ -7,8 +7,52 @@
  */
 
 #include <helpers/interfaces/syscalls_dispatcher.h>
-#include <helpers/interfaces/attached_programs.h>
 #include <bpf/bpf_helpers.h>
+
+static __always_inline bool sampling_logic_exit(void *ctx, uint32_t id) {
+	/* If dropping mode is not enabled we don't perform any sampling
+	 * false: means don't drop the syscall
+	 * true: means drop the syscall
+	 */
+	if(!maps__get_dropping_mode()) {
+		return false;
+	}
+
+	uint8_t sampling_flag = maps__64bit_sampling_syscall_table(id);
+
+	if(sampling_flag == UF_NEVER_DROP) {
+		return false;
+	}
+
+	if(sampling_flag == UF_ALWAYS_DROP) {
+		return true;
+	}
+
+	if((bpf_ktime_get_boot_ns() % SECOND_TO_NS) >= (SECOND_TO_NS / maps__get_sampling_ratio())) {
+		/* If we are starting the dropping phase we need to notify the userspace, otherwise, we
+		 * simply drop our event.
+		 * PLEASE NOTE: this logic is not per-CPU so it is best effort!
+		 */
+		if(!maps__get_is_dropping()) {
+			/* Here we are not sure we can send the drop_e event to userspace
+			 * if the buffer is full, but this is not essential even if we lose
+			 * an iteration we will synchronize again the next time the logic is enabled.
+			 */
+			maps__set_is_dropping(true);
+			bpf_tail_call(ctx, &extra_syscall_calls, T1_DROP_E);
+			bpf_printk("unable to tail call into 'drop_e' prog");
+		}
+		return true;
+	}
+
+	if(maps__get_is_dropping()) {
+		maps__set_is_dropping(false);
+		bpf_tail_call(ctx, &extra_syscall_calls, T1_DROP_X);
+		bpf_printk("unable to tail call into 'drop_x' prog");
+	}
+
+	return false;
+}
 
 #define X86_64_NR_EXECVE 59
 #define X86_64_NR_EXECVEAT 322
@@ -63,7 +107,7 @@ int BPF_PROG(sys_exit, struct pt_regs *regs, long ret) {
 		return 0;
 	}
 
-	if(sampling_logic(ctx, syscall_id)) {
+	if(sampling_logic_exit(ctx, syscall_id)) {
 		return 0;
 	}
 
