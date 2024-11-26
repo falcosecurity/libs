@@ -7,7 +7,6 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: `/arch/x86/include/asm/trace/exceptions.h`
  *	 TP_PROTO(unsigned long address, struct pt_regs *regs,

@@ -7,7 +7,6 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: `/include/trace/events/signal.h`
  *	 TP_PROTO(int sig, struct kernel_siginfo *info, struct k_sigaction *ka)
