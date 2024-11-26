@@ -396,19 +396,18 @@ uint64_t pman_get_probe_api_ver(void);
 uint64_t pman_get_probe_schema_ver(void);
 
 /**
- * @brief Some bpf programs exceed the maximum complexity
+ * @brief Some sys exit bpf programs exceed the maximum complexity
  * so they have to tail-call other programs. To do that, they
- * need a particular tail table that we call `extra_syscall_calls`.
+ * need a particular tail table that we call `syscall_exit_extra_tail_table`.
  *
- * -> EXTRA EVENT PROG TAIL TABLE
- * extra_syscall_calls(extra_syscall_codes, program_fd).
+ * syscall_exit_extra_tail_table(sys_exit_extra_code, program_fd).
  *
- * `extra_syscall_codes` is an enum defined in
+ * `sys_exit_extra_code` is an enum defined in
  * `/driver/ppm_events_public.h`
  *
  * @return `0` on success, `errno` in case of error.
  */
-int pman_fill_extra_syscall_calls_table(void);
+int pman_fill_syscall_exit_extra_tail_table(void);
 
 /**
  * @brief The syscall dispatchers will look into these tables

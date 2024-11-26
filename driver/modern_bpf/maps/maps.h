@@ -117,20 +117,17 @@ struct {
 } syscall_exit_tail_table __weak SEC(".maps");
 
 /**
- * @brief This tail table is used when a bpf program needs another program
- * to complete its execution flow. This table could be used both by
- * programs directly attached in the kernel (like page_faults,
- * context_switch, ...) and by syscall_events (like
- * ppme_syscall_execveat_x, ...).
- * Given a predefined tail-code (`extra_syscall_codes`), it calls
+ * @brief This tail table is used when a sys exit bpf program needs another program
+ * to complete its execution flow.
+ * Given a predefined tail-code (`sys_exit_extra_code`), it calls
  * the right bpf program.
  */
 struct {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, TAIL_EXTRA_EVENT_PROG_MAX);
+	__uint(max_entries, SYS_EXIT_EXTRA_CODE_MAX);
 	__type(key, uint32_t);
 	__type(value, uint32_t);
-} extra_syscall_calls __weak SEC(".maps");
+} syscall_exit_extra_tail_table __weak SEC(".maps");
 
 /*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
 

@@ -1521,11 +1521,9 @@ typedef enum {
  * "Tx_" stands for "extra tail call number x for the event after '_'".
  * For example "T1_EXECVE_X" stands for:
  * - `T1` = extra tail call number 1.
- * - `EXECVE` = name of the syscall for which we need an extra tail call.
- * - `X` = means that we need this extra tail call for the exit event, `E` means enter the event.
- *
+ * - `EXECVE_X` = name of the syscall for which we need an extra tail call.
  */
-enum extra_syscall_codes {
+enum sys_exit_extra_code {
 	T1_EXECVE_X,
 	T1_EXECVEAT_X,
 	T1_CLONE_X,
@@ -1540,7 +1538,7 @@ enum extra_syscall_codes {
 	T2_EXECVE_X,
 	T2_EXECVEAT_X,
 	// Add new codes here...
-	TAIL_EXTRA_EVENT_PROG_MAX,
+	SYS_EXIT_EXTRA_CODE_MAX,
 };
 
 /*

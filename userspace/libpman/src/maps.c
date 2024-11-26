@@ -249,24 +249,25 @@ clean_fill_syscalls_tail_table:
 	return errno;
 }
 
-int pman_fill_extra_syscall_calls_table() {
-	int extra_syscall_call_table_fd = bpf_map__fd(g_state.skel->maps.extra_syscall_calls);
-	if(extra_syscall_call_table_fd <= 0) {
-		pman_print_error("unable to get the extra event programs tail table");
+int pman_fill_syscall_exit_extra_tail_table() {
+	int extra_sys_exit_tail_table_fd =
+	        bpf_map__fd(g_state.skel->maps.syscall_exit_extra_tail_table);
+	if(extra_sys_exit_tail_table_fd <= 0) {
+		pman_print_error("unable to get the extra sys exit tail table");
 		return errno;
 	}
 
 	const char* tail_prog_name = NULL;
-	for(int j = 0; j < TAIL_EXTRA_EVENT_PROG_MAX; j++) {
-		tail_prog_name = extra_event_prog_names[j];
+	for(int j = 0; j < SYS_EXIT_EXTRA_CODE_MAX; j++) {
+		tail_prog_name = sys_exit_extra_event_names[j];
 
 		if(!tail_prog_name) {
-			pman_print_error("unknown entry in the extra event programs tail table");
+			pman_print_error("unknown entry in the extra sys exit tail table");
 			return -1;
 		}
 
-		if(add_bpf_program_to_tail_table(extra_syscall_call_table_fd, tail_prog_name, j)) {
-			close(extra_syscall_call_table_fd);
+		if(add_bpf_program_to_tail_table(extra_sys_exit_tail_table_fd, tail_prog_name, j)) {
+			close(extra_sys_exit_tail_table_fd);
 			return errno;
 		}
 	}
@@ -331,6 +332,6 @@ int pman_finalize_maps_after_loading() {
 	pman_fill_syscall_sampling_table();
 	pman_fill_ia32_to_64_table();
 	err = pman_fill_syscalls_tail_table();
-	err = err ?: pman_fill_extra_syscall_calls_table();
+	err = err ?: pman_fill_syscall_exit_extra_tail_table();
 	return err;
 }

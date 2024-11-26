@@ -341,8 +341,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
         [PPME_SYSCALL_SETREGID_X] = "setregid_x",
 };
 
-/* Some events can require more than one bpf program to collect all the data. */
-static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
+/* Some exit events can require more than one bpf program to collect all the data. */
+static const char* sys_exit_extra_event_names[SYS_EXIT_EXTRA_CODE_MAX] = {
         [T1_EXECVE_X] = "t1_execve_x",
         [T1_EXECVEAT_X] = "t1_execveat_x",
         [T1_CLONE_X] = "t1_clone_x",
