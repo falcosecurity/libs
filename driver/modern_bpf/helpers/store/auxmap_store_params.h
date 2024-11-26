@@ -1499,10 +1499,15 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 	                sizeof(uint16_t) + (num_pairs * (sizeof(int64_t) + sizeof(int16_t))));
 }
 
+typedef struct {
+	bool only_port_range;
+	ppm_event_code evt_type;
+	long mmsg_index;
+} dynamic_snaplen_args;
+
 static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
                                                   uint16_t *snaplen,
-                                                  bool only_port_range,
-                                                  ppm_event_code evt_type) {
+                                                  const dynamic_snaplen_args *input_args) {
 	if(!maps__get_do_dynamic_snaplen()) {
 		return;
 	}
@@ -1519,7 +1524,9 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 *  - writev
 	 *  - pwritev
 	 *  - recvmsg
+	 *  - recvmmsg
 	 *  - sendmsg
+	 *  - sendmmsg
 	 *  - send
 	 *  - recv
 	 *  - recvfrom
@@ -1539,12 +1546,14 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	 *  - writev
 	 *  - pwritev
 	 *  - recvmsg
+	 *  - recvmmsg
 	 *  - sendmsg
+	 *  - sendmmsg
 	 */
 	unsigned long args[5] = {0};
 	struct sockaddr *sockaddr = NULL;
 
-	switch(evt_type) {
+	switch(input_args->evt_type) {
 	case PPME_SOCKET_SENDTO_X:
 	case PPME_SOCKET_RECVFROM_X:
 		extract__network_args(args, 5, regs);
@@ -1568,6 +1577,30 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 		struct user_msghdr mh = {};
 		if(bpf_probe_read_user(&mh, bpf_core_type_size(struct user_msghdr), (void *)args[1]) == 0) {
 			sockaddr = (struct sockaddr *)mh.msg_name;
+		}
+	} break;
+
+	case PPME_SOCKET_RECVMMSG_X:
+	case PPME_SOCKET_SENDMMSG_X: {
+		extract__network_args(args, 3, regs);
+		if(bpf_in_ia32_syscall()) {
+			struct compat_mmsghdr compat_mmh = {};
+			struct compat_mmsghdr *mmh_ptr = (struct compat_mmsghdr *)args[1];
+			if(likely(bpf_probe_read_user(&compat_mmh,
+			                              bpf_core_type_size(struct compat_mmsghdr),
+			                              (void *)(mmh_ptr + input_args->mmsg_index)) == 0)) {
+				sockaddr = (struct sockaddr *)(unsigned long)(compat_mmh.msg_hdr.msg_name);
+			}
+			// in any case we break the switch.
+			break;
+		}
+
+		struct mmsghdr mmh = {};
+		struct mmsghdr *mmh_ptr = (struct mmsghdr *)args[1];
+		if(bpf_probe_read_user(&mmh,
+		                       bpf_core_type_size(struct mmsghdr),
+		                       (void *)(mmh_ptr + input_args->mmsg_index)) == 0) {
+			sockaddr = (struct sockaddr *)mmh.msg_hdr.msg_name;
 		}
 	} break;
 
@@ -1639,7 +1672,7 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs,
 	}
 
 	/* If we check only port range without reading syscall data we can stop here */
-	if(only_port_range) {
+	if(input_args->only_port_range) {
 		return;
 	}
 

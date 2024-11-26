@@ -62,8 +62,12 @@ int BPF_PROG(writev_x, struct pt_regs *regs, long ret) {
 	 * otherwise we need to extract it now and it has a cost. Here we check just
 	 * the return value if the syscall is successful.
 	 */
+	dynamic_snaplen_args snaplen_args = {
+	        .only_port_range = true,
+	        .evt_type = PPME_SYSCALL_WRITEV_X,
+	};
 	uint16_t snaplen = maps__get_snaplen();
-	apply_dynamic_snaplen(regs, &snaplen, true, PPME_SYSCALL_WRITEV_X);
+	apply_dynamic_snaplen(regs, &snaplen, &snaplen_args);
 	if(ret > 0 && snaplen > ret) {
 		snaplen = ret;
 	}
