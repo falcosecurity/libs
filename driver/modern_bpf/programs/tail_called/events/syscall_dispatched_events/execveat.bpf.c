@@ -168,7 +168,7 @@ int BPF_PROG(execveat_x, struct pt_regs *regs, long ret) {
 	/* We have to split here the bpf program, otherwise it is too large
 	 * for the verifier (limit 1000000 instructions).
 	 */
-	bpf_tail_call(ctx, &extra_syscall_calls, T1_EXECVEAT_X);
+	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T1_EXECVEAT_X);
 	return 0;
 }
 
@@ -296,7 +296,7 @@ int BPF_PROG(t1_execveat_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	bpf_tail_call(ctx, &extra_syscall_calls, T2_EXECVEAT_X);
+	bpf_tail_call(ctx, &syscall_exit_extra_tail_table, T2_EXECVEAT_X);
 	return 0;
 }
 
