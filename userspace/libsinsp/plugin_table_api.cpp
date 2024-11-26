@@ -446,7 +446,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	};
 
 	plugin_table_wrapper(sinsp_plugin* o, const ss_plugin_table_input* i):
-	        libsinsp::state::table<KeyType>(&s_empty_static_infos),
+	        libsinsp::state::table<KeyType>(),
 	        m_owner(o),
 	        m_input(copy_and_check_table_input(o, i)),
 	        m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input)),
@@ -468,12 +468,6 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	owned_table_input_t m_input;
 	std::shared_ptr<plugin_field_infos> m_dyn_fields;
 	std::shared_ptr<ds::field_infos> m_dyn_fields_as_base_class;
-
-	const libsinsp::state::static_struct::field_infos* static_fields() const override {
-		// note: always empty, plugin-defined table have no "static" fields,
-		// all of them are dynamically-discovered at runtime
-		return &s_empty_static_infos;
-	}
 
 	const std::shared_ptr<ds::field_infos>& dynamic_fields() const override {
 		return m_dyn_fields_as_base_class;
