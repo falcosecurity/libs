@@ -1311,7 +1311,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 
 		child_tinfo->m_tty = caller_tinfo->m_tty;
 
-		child_tinfo->set_loginuser(caller_tinfo->m_loginuid);
+		child_tinfo->set_loginuid(caller_tinfo->m_loginuid);
 
 		child_tinfo->m_cap_permitted = caller_tinfo->m_cap_permitted;
 
@@ -1349,11 +1349,10 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 		return;
 	}
 
-	/* Refresh user / loginuser / group */
+	/* Refresh user / group */
 	if(new_child->m_container_id.empty() == false) {
 		new_child->set_group(new_child->m_gid);
 		new_child->set_user(new_child->m_uid);
-		new_child->set_loginuser(new_child->m_loginuid);
 	}
 
 	/* If there's a listener, invoke it */
@@ -1626,7 +1625,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 
 		child_tinfo->m_tty = lookup_tinfo->m_tty;
 
-		child_tinfo->set_loginuser(lookup_tinfo->m_loginuid);
+		child_tinfo->set_loginuid(lookup_tinfo->m_loginuid);
 
 		child_tinfo->m_cap_permitted = lookup_tinfo->m_cap_permitted;
 
@@ -1840,11 +1839,10 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	 */
 	evt->set_tinfo(new_child.get());
 
-	/* Refresh user / loginuser / group */
+	/* Refresh user / group */
 	if(new_child->m_container_id.empty() == false) {
 		new_child->set_group(new_child->m_gid);
 		new_child->set_user(new_child->m_uid);
-		new_child->set_loginuser(new_child->m_loginuid);
 	}
 
 	//
@@ -2227,7 +2225,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 
 	// Get the loginuid
 	if(evt->get_num_params() > 18) {
-		evt->get_tinfo()->set_loginuser(evt->get_param(18)->as<uint32_t>());
+		evt->get_tinfo()->set_loginuid(evt->get_param(18)->as<uint32_t>());
 	}
 
 	// Get execve flags
@@ -2317,13 +2315,12 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	evt->get_tinfo()->compute_program_hash();
 
 	//
-	// Refresh user / loginuser / group
+	// Refresh user / group
 	// if we happen to change container id
 	//
 	if(container_id != evt->get_tinfo()->m_container_id) {
 		evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
 		evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
-		evt->get_tinfo()->set_loginuser(evt->get_tinfo()->m_loginuid);
 	}
 
 	//
@@ -5071,13 +5068,12 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt) {
 		        evt->get_tinfo(),
 		        m_inspector->is_live() || m_inspector->is_syscall_plugin());
 		//
-		// Refresh user / loginuser / group
+		// Refresh user / group
 		// if we happen to change container id
 		//
 		if(container_id != evt->get_tinfo()->m_container_id) {
 			evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
 			evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
-			evt->get_tinfo()->set_loginuser(evt->get_tinfo()->m_loginuid);
 		}
 	}
 }
