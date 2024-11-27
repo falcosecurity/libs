@@ -16,9 +16,8 @@ limitations under the License.
 
 */
 
-#pragma once
+#include <libscap/scap_const.h>
+#include <driver/ppm_events_public.h>
+#include <converter/table.h>
 
-#include <converter/types.h>
-#include <unordered_map>
-
-extern const std::unordered_map<conversion_key, conversion_info> g_conversion_table;
+const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {};

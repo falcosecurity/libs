@@ -17,14 +17,12 @@ limitations under the License.
 */
 
 #include <driver/ppm_events_public.h>
-#include <converter/types.h>
-#include <converter/results.h>
 #include <converter/table.h>
+#include <converter/results.h>
 #include <converter/debug_macro.h>
 #include <stdarg.h>
 #include <cstdio>
 #include <cassert>
-#include <unordered_map>
 #include <string>
 #include <stdexcept>
 #include <memory>
@@ -124,7 +122,6 @@ static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8
 	// Otherwise we will access the wrong entry in the event table.
 	const struct ppm_event_info *event_info = &(g_event_info[evt->type]);
 	uint16_t len = scap_get_size_bytes_from_type(event_info->params[param_num].type);
-	char *ptr = scap_get_default_value_from_type(event_info->params[param_num].type);
 	uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
 
 	PRINT_MESSAGE(
@@ -136,8 +133,11 @@ static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8
 	        *params_offset,
 	        lens_offset);
 
-	// If value is NULL, the len should be 0
-	memcpy((char *)evt + *params_offset, ptr, len);
+	// The default param will be always 0 so we just need to copy the right number of 0 bytes.
+	// `uint64_t` should be enough for all the types considering that types like CHARBUF, BYTEBUF
+	// have `len==0`
+	uint64_t val = 0;
+	memcpy((char *)evt + *params_offset, (char *)&val, len);
 	*params_offset += len;
 	memcpy((char *)evt + lens_offset, &len, sizeof(uint16_t));
 }
@@ -242,7 +242,7 @@ extern "C" void scap_clear_converter_storage() {
 
 static conversion_result convert_event(scap_evt *new_evt,
                                        scap_evt *evt_to_convert,
-                                       const conversion_info *ci,
+                                       const conversion_info &ci,
                                        char *error) {
 	/////////////////////////////
 	// Dispatch the action
@@ -251,7 +251,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 	uint16_t params_offset = 0;
 	int param_to_populate = 0;
 
-	switch(ci->action) {
+	switch(ci.action) {
 	case C_ACTION_SKIP:
 		return CONVERSION_SKIP;
 
@@ -262,7 +262,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 	case C_ACTION_ADD_PARAMS:
 		memcpy(new_evt, evt_to_convert, sizeof(scap_evt));
 		// The new number of params is the previous one plus the number of conversion instructions.
-		new_evt->nparams = evt_to_convert->nparams + ci->instr.size();
+		new_evt->nparams = evt_to_convert->nparams + ci.instr.size();
 		params_offset = copy_old_params(new_evt, evt_to_convert);
 		param_to_populate = evt_to_convert->nparams;
 		break;
@@ -270,14 +270,14 @@ static conversion_result convert_event(scap_evt *new_evt,
 	case C_ACTION_CHANGE_TYPE:
 		memcpy(new_evt, evt_to_convert, sizeof(scap_evt));
 		// The new number of params is the number of conversion instructions.
-		new_evt->nparams = ci->instr.size();
-		new_evt->type = ci->desired_type;
+		new_evt->nparams = ci.instr.size();
+		new_evt->type = ci.desired_type;
 		params_offset = sizeof(scap_evt) + new_evt->nparams * sizeof(uint16_t);
 		param_to_populate = 0;
 		break;
 
 	default:
-		snprintf(error, SCAP_LASTERR_SIZE, "Unhandled conversion action '%d'.", ci->action);
+		snprintf(error, SCAP_LASTERR_SIZE, "Unhandled conversion action '%d'.", ci.action);
 		return CONVERSION_ERROR;
 	}
 
@@ -293,10 +293,10 @@ static conversion_result convert_event(scap_evt *new_evt,
 	bool used_enter_event = false;
 
 	// We iterate over the instructions
-	for(int i = 0; i < ci->instr.size(); i++, param_to_populate++) {
+	for(int i = 0; i < ci.instr.size(); i++, param_to_populate++) {
 		PRINT_MESSAGE("Instruction n° %d. Param to populate: %d\n", i, param_to_populate);
 
-		switch(ci->instr[i].flags) {
+		switch(ci.instr[i].flags) {
 		case C_INSTR_FROM_DEFAULT:
 			tmp_evt = NULL;
 			break;
@@ -329,14 +329,14 @@ static conversion_result convert_event(scap_evt *new_evt,
 
 		case C_INSTR_FROM_OLD:
 			tmp_evt = evt_to_convert;
-			if(tmp_evt->nparams <= ci->instr[i].param_num) {
+			if(tmp_evt->nparams <= ci.instr[i].param_num) {
 				// todo!: this sounds like an error but let's see in the future. At the moment we
 				// fail
 				snprintf(error,
 				         SCAP_LASTERR_SIZE,
 				         "We want to take parameter '%d' from event '%d' but this event has only "
 				         "'%d' parameters!",
-				         ci->instr[i].param_num,
+				         ci.instr[i].param_num,
 				         tmp_evt->type,
 				         tmp_evt->nparams);
 				return CONVERSION_ERROR;
@@ -347,8 +347,8 @@ static conversion_result convert_event(scap_evt *new_evt,
 			snprintf(error,
 			         SCAP_LASTERR_SIZE,
 			         "Unknown instruction (flags: %d, param_num: %d).",
-			         ci->instr[i].flags,
-			         ci->instr[i].param_num);
+			         ci.instr[i].flags,
+			         ci.instr[i].param_num);
 			return CONVERSION_ERROR;
 		}
 
@@ -359,7 +359,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 			               tmp_evt,
 			               &params_offset,
 			               param_to_populate,
-			               ci->instr[i].param_num);
+			               ci.instr[i].param_num);
 		}
 	}
 
@@ -400,5 +400,5 @@ extern "C" conversion_result scap_convert_event(scap_evt *new_evt,
 	}
 
 	// If we reached this point we have for sure an entry in the conversion table.
-	return convert_event(new_evt, evt_to_convert, &g_conversion_table[conv_key], error);
+	return convert_event(new_evt, evt_to_convert, g_conversion_table.at(conv_key), error);
 }

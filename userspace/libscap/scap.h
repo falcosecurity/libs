@@ -856,7 +856,6 @@ int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf,
                                    uint32_t n,
                                    va_list args);
 uint8_t scap_get_size_bytes_from_type(enum ppm_param_type t);
-char* scap_get_default_value_from_type(enum ppm_param_type t);
 bool scap_compare_events(scap_evt* curr, scap_evt* expected, char* error);
 scap_evt* scap_create_event_v(char* error,
                               uint64_t ts,
