@@ -378,7 +378,7 @@ public:
 
 	void set_user(uint32_t uid);
 	void set_group(uint32_t gid);
-	void set_loginuser(uint32_t loginuid);
+	void set_loginuid(uint32_t loginuid);
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	const cgroups_t& cgroups() const;
@@ -607,6 +607,8 @@ private:
 	                  struct iovec& iov,
 	                  uint32_t& alen,
 	                  std::string& rem) const;
+
+	scap_userinfo* get_user(uint32_t id) const;
 
 	//
 	// Parameters that can't be accessed directly because they could be in the

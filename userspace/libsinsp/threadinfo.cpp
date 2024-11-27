@@ -511,7 +511,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi) {
 
 	set_group(pi->gid);
 	set_user(pi->uid);
-	set_loginuser((uint32_t)pi->loginuid);
+	set_loginuid((uint32_t)pi->loginuid);
 }
 
 const sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const {
@@ -549,22 +549,26 @@ void sinsp_threadinfo::set_group(uint32_t gid) {
 	}
 }
 
-void sinsp_threadinfo::set_loginuser(uint32_t loginuid) {
+void sinsp_threadinfo::set_loginuid(uint32_t loginuid) {
 	m_loginuid = loginuid;
 }
 
-scap_userinfo* sinsp_threadinfo::get_user() const {
-	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_uid);
+scap_userinfo* sinsp_threadinfo::get_user(uint32_t id) const {
+	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, id);
 	if(user != nullptr) {
 		return user;
 	}
 	static scap_userinfo usr{};
-	usr.uid = m_uid;
+	usr.uid = id;
 	usr.gid = m_gid;
-	strlcpy(usr.name, m_uid == 0 ? "root" : "<NA>", sizeof(usr.name));
-	strlcpy(usr.homedir, m_uid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
+	strlcpy(usr.name, id == 0 ? "root" : "<NA>", sizeof(usr.name));
+	strlcpy(usr.homedir, id == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
 	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
 	return &usr;
+}
+
+scap_userinfo* sinsp_threadinfo::get_user() const {
+	return get_user(m_uid);
 }
 
 scap_groupinfo* sinsp_threadinfo::get_group() const {
@@ -579,17 +583,7 @@ scap_groupinfo* sinsp_threadinfo::get_group() const {
 }
 
 scap_userinfo* sinsp_threadinfo::get_loginuser() const {
-	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_loginuid);
-	if(user != nullptr) {
-		return user;
-	}
-	static scap_userinfo usr{};
-	usr.uid = m_loginuid;
-	usr.gid = m_gid;
-	strlcpy(usr.name, m_loginuid == 0 ? "root" : "<NA>", sizeof(usr.name));
-	strlcpy(usr.homedir, m_loginuid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
-	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
-	return &usr;
+	return get_user(m_loginuid);
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len) {
