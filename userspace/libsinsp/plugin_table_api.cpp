@@ -718,6 +718,18 @@ void plugin_table_wrapper<std::string>::get_key_as_data(const std::string& key,
 	out.str = key.c_str();
 }
 
+template<>
+void plugin_table_wrapper<bool>::get_key_as_data(const bool& key, ss_plugin_state_data& out) {
+	out.b = key;
+}
+
+template<>
+void plugin_table_wrapper<libsinsp::state::base_table*>::get_key_as_data(
+        libsinsp::state::base_table* const& key,
+        ss_plugin_state_data& out) {
+	out.table = static_cast<ss_plugin_table_t*>(key);
+}
+
 template<typename KeyType>
 const ss_plugin_table_fieldinfo* plugin_table_wrapper<KeyType>::list_fields(sinsp_plugin* owner,
                                                                             uint32_t* nfields) {
@@ -854,18 +866,6 @@ ss_plugin_rc plugin_table_wrapper<KeyType>::write_entry_field(sinsp_plugin* owne
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
 	return ret;
-}
-
-template<>
-void plugin_table_wrapper<bool>::get_key_as_data(const bool& key, ss_plugin_state_data& out) {
-	out.b = key;
-}
-
-template<>
-void plugin_table_wrapper<libsinsp::state::base_table*>::get_key_as_data(
-        libsinsp::state::base_table* const& key,
-        ss_plugin_state_data& out) {
-	out.table = static_cast<ss_plugin_table_t*>(key);
 }
 
 //
