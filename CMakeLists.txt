@@ -121,6 +121,8 @@ if(BUILD_SHARED_LIBS)
 	message(STATUS "Shared library soversion: ${FALCOSECURITY_SHARED_LIBS_SOVERSION}")
 endif()
 
+add_subdirectory(contrib/elftoolchain)
+
 include(libscap)
 include(libsinsp)
 
