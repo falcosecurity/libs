@@ -38,7 +38,6 @@ if(NOT HAVE_LIBSINSP)
 	   AND NOT EMSCRIPTEN
 	)
 		include(cares)
-		include(curl)
 	endif()
 	include(jsoncpp)
 	include(valijson)
@@ -56,15 +55,6 @@ if(NOT HAVE_LIBSINSP)
 
 	if(NOT USE_BUNDLED_JSONCPP)
 		list(APPEND LIBSINSP_INCLUDE_DIRS ${JSONCPP_INCLUDE})
-	endif()
-
-	if(NOT USE_BUNDLED_CURL
-	   AND NOT WIN32
-	   AND NOT APPLE
-	   AND NOT MINIMAL_BUILD
-	   AND NOT EMSCRIPTEN
-	)
-		list(APPEND LIBSINSP_INCLUDE_DIRS ${CURL_INCLUDE_DIRS})
 	endif()
 
 	function(set_sinsp_target_properties target)
