@@ -31,10 +31,6 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/scap-int.h>
 
-#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-#include <curl/curl.h>
-#endif
-
 #ifndef _WIN32
 #include <unistd.h>
 #include <poll.h>
@@ -210,7 +206,6 @@ sinsp::~sinsp() {
 	close();
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
-	curl_global_cleanup();
 	if(--instance_count == 0) {
 		sinsp_dns_manager::get().cleanup();
 	}

@@ -47,7 +47,6 @@ jobs:
             libc-ares-dev \
             libbpf-dev \
             libcap-dev \
-            libcurl4-openssl-dev \
             libssl-dev \
             libtbb-dev \
             libjq-dev \
