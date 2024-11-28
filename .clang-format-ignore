@@ -12,3 +12,5 @@ driver/syscall_compat_s390x.h
 driver/syscall_compat_x86_64.h
 driver/syscall_ia32_64_map.c
 driver/syscall_table.c
+# All third party code is not formatted
+./contrib
