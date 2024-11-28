@@ -36,7 +36,6 @@ include(tbb)
 
 if(NOT MINIMAL_BUILD)
 	if(NOT WIN32 AND NOT EMSCRIPTEN)
-		include(curl)
 		include(cares)
 	endif() # NOT WIN32
 endif()
@@ -127,7 +126,7 @@ set_sinsp_target_properties(sinsp)
 target_link_libraries(
 	sinsp
 	PUBLIC scap
-	PRIVATE "${CURL_LIBRARIES}" "${JSONCPP_LIB}" "${RE2_LIB}"
+	PRIVATE "${JSONCPP_LIB}" "${RE2_LIB}"
 )
 
 if(NOT EMSCRIPTEN)
@@ -161,7 +160,7 @@ endif()
 if(NOT WIN32)
 	if(NOT MINIMAL_BUILD)
 		if(NOT EMSCRIPTEN)
-			add_dependencies(sinsp openssl curl)
+			add_dependencies(sinsp openssl)
 		endif()
 	endif()
 
