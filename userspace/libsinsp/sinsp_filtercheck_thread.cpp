@@ -506,24 +506,6 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "thread.cap_effective",
          "Effective capabilities",
          "The effective capabilities set"},
-        {PT_BOOL,
-         EPF_NONE,
-         PF_NA,
-         "proc.is_container_healthcheck",
-         "Process Is Container Healthcheck",
-         "'true' if this process is running as a part of the container's health check."},
-        {PT_BOOL,
-         EPF_NONE,
-         PF_NA,
-         "proc.is_container_liveness_probe",
-         "Process Is Container Liveness",
-         "'true' if this process is running as a part of the container's liveness probe."},
-        {PT_BOOL,
-         EPF_NONE,
-         PF_NA,
-         "proc.is_container_readiness_probe",
-         "Process Is Container Readiness",
-         "'true' if this process is running as a part of the container's readiness probe."},
         {PT_UINT64,
          EPF_NONE,
          PF_DEC,
@@ -1658,15 +1640,6 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 	case TYPE_NAMETID:
 		m_tstr = tinfo->get_comm() + to_string(evt->get_tid());
 		RETURN_EXTRACT_STRING(m_tstr);
-	case TYPE_IS_CONTAINER_HEALTHCHECK:
-		m_val.u32 = (tinfo->m_category == sinsp_threadinfo::CAT_HEALTHCHECK);
-		RETURN_EXTRACT_VAR(m_val.u32);
-	case TYPE_IS_CONTAINER_LIVENESS_PROBE:
-		m_val.u32 = (tinfo->m_category == sinsp_threadinfo::CAT_LIVENESS_PROBE);
-		RETURN_EXTRACT_VAR(m_val.u32);
-	case TYPE_IS_CONTAINER_READINESS_PROBE:
-		m_val.u32 = (tinfo->m_category == sinsp_threadinfo::CAT_READINESS_PROBE);
-		RETURN_EXTRACT_VAR(m_val.u32);
 	case TYPE_IS_EXE_WRITABLE:
 		m_val.u32 = tinfo->m_exe_writable;
 		RETURN_EXTRACT_VAR(m_val.u32);
