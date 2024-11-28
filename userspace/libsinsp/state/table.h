@@ -52,7 +52,7 @@ class table;
 
 // wraps instances of libsinsp::state::table and help making them comply
 // to the plugin API state tables definitions
-struct sinsp_table_wrapper {
+struct table_accessor {
 	sinsp_plugin* m_owner_plugin = nullptr;
 	libsinsp::state::base_table* m_table = nullptr;
 
@@ -62,10 +62,10 @@ struct sinsp_table_wrapper {
 	ss_plugin_table_reader_vtable_ext reader_vtable;
 	ss_plugin_table_writer_vtable_ext writer_vtable;
 
-	sinsp_table_wrapper();
-	virtual ~sinsp_table_wrapper() = default;
-	inline sinsp_table_wrapper(const sinsp_table_wrapper& s) = delete;
-	inline sinsp_table_wrapper& operator=(const sinsp_table_wrapper& s) = delete;
+	table_accessor();
+	virtual ~table_accessor() = default;
+	inline table_accessor(const table_accessor& s) = delete;
+	inline table_accessor& operator=(const table_accessor& s) = delete;
 
 	void unset();
 	bool is_set() const;
@@ -73,7 +73,7 @@ struct sinsp_table_wrapper {
 	void set(sinsp_plugin* p, libsinsp::state::table<T>* t);
 
 	// static functions, will be used to populate vtable functions where
-	// ss_plugin_table_t* will be represented by a sinsp_table_wrapper*
+	// ss_plugin_table_t* will point to a `table_accessor` instance
 	static inline const ss_plugin_table_fieldinfo* list_fields(ss_plugin_table_t* _t,
 	                                                           uint32_t* nfields);
 	static inline ss_plugin_table_field_t* get_field(ss_plugin_table_t* _t,

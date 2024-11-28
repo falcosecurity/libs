@@ -179,10 +179,10 @@ libsinsp::state::sinsp_field_accessor_wrapper::operator=(
 }
 
 //
-// sinsp_table_wrapper implementation
+// table_accessor implementation
 //
 template<typename T>
-void libsinsp::state::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::table<T>* t) {
+void libsinsp::state::table_accessor::set(sinsp_plugin* p, libsinsp::state::table<T>* t) {
 	if(!t) {
 		throw sinsp_exception("null table assigned to sinsp table wrapper");
 	}
@@ -198,7 +198,7 @@ void libsinsp::state::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state:
 	input.key_type = typeinfo_to_state_type(m_table->key_info());
 }
 
-void libsinsp::state::sinsp_table_wrapper::unset() {
+void libsinsp::state::table_accessor::unset() {
 	m_owner_plugin = nullptr;
 	m_table = nullptr;
 
@@ -207,30 +207,29 @@ void libsinsp::state::sinsp_table_wrapper::unset() {
 	input.key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
 }
 
-bool libsinsp::state::sinsp_table_wrapper::is_set() const {
+bool libsinsp::state::table_accessor::is_set() const {
 	return m_table != nullptr;
 }
 
-const ss_plugin_table_fieldinfo* libsinsp::state::sinsp_table_wrapper::list_fields(
-        ss_plugin_table_t* _t,
-        uint32_t* nfields) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+const ss_plugin_table_fieldinfo* libsinsp::state::table_accessor::list_fields(ss_plugin_table_t* _t,
+                                                                              uint32_t* nfields) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->list_fields(t->m_owner_plugin, nfields);
 }
 
-ss_plugin_table_field_t* libsinsp::state::sinsp_table_wrapper::get_field(
+ss_plugin_table_field_t* libsinsp::state::table_accessor::get_field(
         ss_plugin_table_t* _t,
         const char* name,
         ss_plugin_state_type data_type) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->get_field(t->m_owner_plugin, name, data_type);
 }
 
-ss_plugin_table_field_t* libsinsp::state::sinsp_table_wrapper::add_field(
+ss_plugin_table_field_t* libsinsp::state::table_accessor::add_field(
         ss_plugin_table_t* _t,
         const char* name,
         ss_plugin_state_type data_type) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+	auto t = static_cast<table_accessor*>(_t);
 
 	if(data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
 		t->m_owner_plugin->m_last_owner_err =
@@ -241,106 +240,103 @@ ss_plugin_table_field_t* libsinsp::state::sinsp_table_wrapper::add_field(
 	return t->m_table->add_field(t->m_owner_plugin, name, data_type);
 }
 
-const char* libsinsp::state::sinsp_table_wrapper::get_name(ss_plugin_table_t* _t) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+const char* libsinsp::state::table_accessor::get_name(ss_plugin_table_t* _t) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->name().c_str();
 }
 
-uint64_t libsinsp::state::sinsp_table_wrapper::get_size(ss_plugin_table_t* _t) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+uint64_t libsinsp::state::table_accessor::get_size(ss_plugin_table_t* _t) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->get_size(t->m_owner_plugin);
 }
 
-ss_plugin_table_entry_t* libsinsp::state::sinsp_table_wrapper::get_entry(
+ss_plugin_table_entry_t* libsinsp::state::table_accessor::get_entry(
         ss_plugin_table_t* _t,
         const ss_plugin_state_data* key) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->get_entry(t->m_owner_plugin, key);
 }
 
-void libsinsp::state::sinsp_table_wrapper::release_table_entry(ss_plugin_table_t* _t,
-                                                               ss_plugin_table_entry_t* _e) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+void libsinsp::state::table_accessor::release_table_entry(ss_plugin_table_t* _t,
+                                                          ss_plugin_table_entry_t* _e) {
+	auto t = static_cast<table_accessor*>(_t);
 	t->m_table->release_table_entry(t->m_owner_plugin, _e);
 }
 
-ss_plugin_bool libsinsp::state::sinsp_table_wrapper::iterate_entries(
+ss_plugin_bool libsinsp::state::table_accessor::iterate_entries(
         ss_plugin_table_t* _t,
         ss_plugin_table_iterator_func_t it,
         ss_plugin_table_iterator_state_t* s) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->iterate_entries(t->m_owner_plugin, it, s);
 }
 
-ss_plugin_rc libsinsp::state::sinsp_table_wrapper::clear(ss_plugin_table_t* _t) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+ss_plugin_rc libsinsp::state::table_accessor::clear(ss_plugin_table_t* _t) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->clear(t->m_owner_plugin);
 }
 
-ss_plugin_rc libsinsp::state::sinsp_table_wrapper::erase_entry(ss_plugin_table_t* _t,
-                                                               const ss_plugin_state_data* key) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+ss_plugin_rc libsinsp::state::table_accessor::erase_entry(ss_plugin_table_t* _t,
+                                                          const ss_plugin_state_data* key) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->erase_entry(t->m_owner_plugin, key);
 }
 
-ss_plugin_table_entry_t* libsinsp::state::sinsp_table_wrapper::create_table_entry(
+ss_plugin_table_entry_t* libsinsp::state::table_accessor::create_table_entry(
         ss_plugin_table_t* _t) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->create_table_entry(t->m_owner_plugin);
 }
 
-void libsinsp::state::sinsp_table_wrapper::destroy_table_entry(ss_plugin_table_t* _t,
-                                                               ss_plugin_table_entry_t* _e) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+void libsinsp::state::table_accessor::destroy_table_entry(ss_plugin_table_t* _t,
+                                                          ss_plugin_table_entry_t* _e) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->destroy_table_entry(t->m_owner_plugin, _e);
 }
 
-ss_plugin_table_entry_t* libsinsp::state::sinsp_table_wrapper::add_entry(
-        ss_plugin_table_t* _t,
-        const ss_plugin_state_data* key,
-        ss_plugin_table_entry_t* _e) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+ss_plugin_table_entry_t* libsinsp::state::table_accessor::add_entry(ss_plugin_table_t* _t,
+                                                                    const ss_plugin_state_data* key,
+                                                                    ss_plugin_table_entry_t* _e) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->add_entry(t->m_owner_plugin, key, _e);
 }
 
-ss_plugin_rc libsinsp::state::sinsp_table_wrapper::read_entry_field(
-        ss_plugin_table_t* _t,
-        ss_plugin_table_entry_t* _e,
-        const ss_plugin_table_field_t* f,
-        ss_plugin_state_data* out) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+ss_plugin_rc libsinsp::state::table_accessor::read_entry_field(ss_plugin_table_t* _t,
+                                                               ss_plugin_table_entry_t* _e,
+                                                               const ss_plugin_table_field_t* f,
+                                                               ss_plugin_state_data* out) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->read_entry_field(t->m_owner_plugin, _e, f, out);
 }
 
-ss_plugin_rc libsinsp::state::sinsp_table_wrapper::write_entry_field(
-        ss_plugin_table_t* _t,
-        ss_plugin_table_entry_t* _e,
-        const ss_plugin_table_field_t* f,
-        const ss_plugin_state_data* in) {
-	auto t = static_cast<sinsp_table_wrapper*>(_t);
+ss_plugin_rc libsinsp::state::table_accessor::write_entry_field(ss_plugin_table_t* _t,
+                                                                ss_plugin_table_entry_t* _e,
+                                                                const ss_plugin_table_field_t* f,
+                                                                const ss_plugin_state_data* in) {
+	auto t = static_cast<table_accessor*>(_t);
 	return t->m_table->write_entry_field(t->m_owner_plugin, _e, f, in);
 }
 
 //
 // sinsp_table_input implementation
 //
-libsinsp::state::sinsp_table_wrapper::sinsp_table_wrapper() {
+libsinsp::state::table_accessor::table_accessor() {
 	// populate vtables
-	reader_vtable.get_table_name = libsinsp::state::sinsp_table_wrapper::get_name;
-	reader_vtable.get_table_size = libsinsp::state::sinsp_table_wrapper::get_size;
-	reader_vtable.get_table_entry = libsinsp::state::sinsp_table_wrapper::get_entry;
-	reader_vtable.read_entry_field = libsinsp::state::sinsp_table_wrapper::read_entry_field;
-	reader_vtable.release_table_entry = libsinsp::state::sinsp_table_wrapper::release_table_entry;
-	reader_vtable.iterate_entries = libsinsp::state::sinsp_table_wrapper::iterate_entries;
-	writer_vtable.clear_table = libsinsp::state::sinsp_table_wrapper::clear;
-	writer_vtable.erase_table_entry = libsinsp::state::sinsp_table_wrapper::erase_entry;
-	writer_vtable.create_table_entry = libsinsp::state::sinsp_table_wrapper::create_table_entry;
-	writer_vtable.destroy_table_entry = libsinsp::state::sinsp_table_wrapper::destroy_table_entry;
-	writer_vtable.add_table_entry = libsinsp::state::sinsp_table_wrapper::add_entry;
-	writer_vtable.write_entry_field = libsinsp::state::sinsp_table_wrapper::write_entry_field;
-	fields_vtable.list_table_fields = libsinsp::state::sinsp_table_wrapper::list_fields;
-	fields_vtable.add_table_field = libsinsp::state::sinsp_table_wrapper::add_field;
-	fields_vtable.get_table_field = libsinsp::state::sinsp_table_wrapper::get_field;
+	reader_vtable.get_table_name = libsinsp::state::table_accessor::get_name;
+	reader_vtable.get_table_size = libsinsp::state::table_accessor::get_size;
+	reader_vtable.get_table_entry = libsinsp::state::table_accessor::get_entry;
+	reader_vtable.read_entry_field = libsinsp::state::table_accessor::read_entry_field;
+	reader_vtable.release_table_entry = libsinsp::state::table_accessor::release_table_entry;
+	reader_vtable.iterate_entries = libsinsp::state::table_accessor::iterate_entries;
+	writer_vtable.clear_table = libsinsp::state::table_accessor::clear;
+	writer_vtable.erase_table_entry = libsinsp::state::table_accessor::erase_entry;
+	writer_vtable.create_table_entry = libsinsp::state::table_accessor::create_table_entry;
+	writer_vtable.destroy_table_entry = libsinsp::state::table_accessor::destroy_table_entry;
+	writer_vtable.add_table_entry = libsinsp::state::table_accessor::add_entry;
+	writer_vtable.write_entry_field = libsinsp::state::table_accessor::write_entry_field;
+	fields_vtable.list_table_fields = libsinsp::state::table_accessor::list_fields;
+	fields_vtable.add_table_field = libsinsp::state::table_accessor::add_field;
+	fields_vtable.get_table_field = libsinsp::state::table_accessor::get_field;
 
 	// fill-up input's legacy vtables for backward compatibility
 	input.reader.get_table_name = reader_vtable.get_table_name;
