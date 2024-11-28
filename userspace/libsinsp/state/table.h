@@ -28,7 +28,6 @@ limitations under the License.
 namespace libsinsp {
 namespace state {
 class sinsp_table_owner;
-struct sinsp_table_wrapper;
 
 // wraps instances of libsinsp::state::XXX_struct::field_accessor and
 // help making them comply to the plugin API state tables definitions

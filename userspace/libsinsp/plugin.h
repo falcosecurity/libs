@@ -291,8 +291,8 @@ private:
 
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
-	friend struct sinsp_table_wrapper;
 	friend class libsinsp::state::base_table;
 	template<typename KeyType>
 	friend class libsinsp::state::built_in_table;
 };
+  
