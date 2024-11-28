@@ -43,6 +43,7 @@ typedef Elf64_Dyn	GElf_Dyn;	/* ".dynamic" section entries */
 typedef Elf64_Ehdr	GElf_Ehdr;	/* ELF header */
 typedef Elf64_Phdr	GElf_Phdr;	/* Program header */
 typedef Elf64_Shdr	GElf_Shdr;	/* Section header */
+typedef Elf64_Nhdr	GElf_Nhdr;	/* Note header */
 typedef Elf64_Sym	GElf_Sym;	/* Symbol table entries */
 typedef Elf64_Rel	GElf_Rel;	/* Relocation entries */
 typedef Elf64_Rela	GElf_Rela;	/* Relocation entries with addend */
@@ -50,6 +51,11 @@ typedef Elf64_Rela	GElf_Rela;	/* Relocation entries with addend */
 typedef	Elf64_Cap	GElf_Cap;	/* SW/HW capabilities */
 typedef Elf64_Move	GElf_Move;	/* Move entries */
 typedef Elf64_Syminfo	GElf_Syminfo;	/* Symbol information */
+
+/* Version symbol information.  */
+typedef Elf64_Versym	GElf_Versym;
+typedef Elf64_Verdaux	GElf_Verdaux;
+typedef Elf64_Verdef	GElf_Verdef;
 
 #define	GELF_M_INFO			ELF64_M_INFO
 #define	GELF_M_SIZE			ELF64_M_SIZE
@@ -103,6 +109,12 @@ GElf_Syminfo	*gelf_getsyminfo(Elf_Data *_src, int _index, GElf_Syminfo *_dst);
 int		gelf_update_cap(Elf_Data *_dst, int _index, GElf_Cap *_src);
 int		gelf_update_move(Elf_Data *_dst, int _index, GElf_Move *_src);
 int		gelf_update_syminfo(Elf_Data *_dst, int _index, GElf_Syminfo *_src);
+
+/* Added for compatibility with libbpf */
+size_t	gelf_getnote(Elf_Data *__data, size_t __offset, GElf_Nhdr *__result, size_t *__name_offset, size_t *__desc_offset);
+GElf_Versym	*gelf_getversym (Elf_Data *data, int ndx, GElf_Versym *dst);
+GElf_Verdef	*gelf_getverdef (Elf_Data *data, int offset, GElf_Verdef *dst);
+GElf_Verdaux	*gelf_getverdaux (Elf_Data *data, int offset, GElf_Verdaux *dst);
 #ifdef __cplusplus
 }
 #endif

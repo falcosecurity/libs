@@ -77,6 +77,11 @@ add_library(elf
 	libelf_fsize.c
 	libelf_msize.c
 	libelf_convert.c
+
+	# custom files for compatibility
+
+	gelf_getnote.c
+	gelf_versym.c	
 )
 
 target_compile_options(elf PRIVATE -Wno-unused-but-set-variable)

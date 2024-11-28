@@ -217,7 +217,7 @@ Elf_Data	*elf_newdata(Elf_Scn *_scn);
 Elf_Scn		*elf_newscn(Elf *_elf);
 Elf_Scn		*elf_nextscn(Elf *_elf, Elf_Scn *_scn);
 Elf_Cmd		elf_next(Elf *_elf);
-Elf		*elf_open(int _fd);
+/* Elf		*elf_open(int _fd); */ /* removed due to incompatibility with libbpf */
 Elf		*elf_openmemory(char *_image, size_t _size);
 off_t		elf_rand(Elf *_elf, off_t _off);
 Elf_Data	*elf_rawdata(Elf_Scn *_scn, Elf_Data *_data);
