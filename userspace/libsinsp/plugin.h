@@ -283,12 +283,12 @@ private:
 	std::vector<ss_plugin_table_info> m_table_infos;
 	std::unordered_map<std::string, std::unique_ptr<libsinsp::state::base_table>> m_owned_tables;
 	/* contains tables that the plugin accessed at least once */
-	std::unordered_map<std::string, libsinsp::state::sinsp_table_wrapper> m_accessed_tables;
+	std::unordered_map<std::string, libsinsp::state::table_accessor> m_accessed_tables;
 	std::list<std::shared_ptr<libsinsp::state::table_entry>>
 	        m_accessed_entries;  // using lists for ptr stability
 	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
 	        m_accessed_table_fields;                    // note: lists have pointer stability
-	std::list<libsinsp::state::sinsp_table_wrapper>
+	std::list<libsinsp::state::table_accessor>
 	        m_ephemeral_tables;  // note: lists have pointer stability
 	bool m_ephemeral_tables_clear;
 	bool m_accessed_entries_clear;
@@ -305,7 +305,7 @@ private:
 		m_ephemeral_tables_clear = true;
 	}
 
-	inline libsinsp::state::sinsp_table_wrapper& find_unset_ephemeral_table() {
+	inline libsinsp::state::table_accessor& find_unset_ephemeral_table() {
 		m_ephemeral_tables_clear = false;
 		for(auto& et : m_ephemeral_tables) {
 			if(!et.is_set()) {
