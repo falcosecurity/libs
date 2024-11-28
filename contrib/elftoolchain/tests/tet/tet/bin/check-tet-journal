@@ -1,0 +1,125 @@
+#!/bin/sh
+#
+# $Id$
+#
+# This script examines a TET journal for test invocations that did not
+# report a 'PASS' test status.
+#
+# Unresolved test invocations cause a warning to be issued. Failed
+# test invocations cause the script to return with a non-zero exit
+# code.
+#
+# The script will use the most recent journal found under the test suite
+# directory specified by the '-t' option.
+#
+# A specific journal may also be specified, by using the '-j' option.
+
+usage()
+{
+    if [ ${#} -ne 0 ]; then
+	echo ERROR: $*
+    fi
+    echo Usage: `basename $0`: "[options]"
+    echo
+    echo "    -t DIR    Look for the most recent journal under directory DIR."
+    echo "    -j FILE   Use the specified journal file."
+}
+
+args=`getopt j:t: $*`
+set -- ${args}
+for arg
+do
+    case "${arg}" in
+    -t )
+	ts_root=${2}
+	shift; shift;;
+    -j )
+	journal=${2}
+	shift; shift;;
+    -- )
+	shift; break;;
+    esac
+done
+
+if [ ${#} -ne 0 ]; then
+    usage
+    exit 2
+fi
+
+if [ -n "${ts_root}" -a -n "${journal}" ]; then
+    usage "Only one of -t or -j should be specified."
+    exit 1
+fi
+
+if [ -n "${ts_root}" -a ! -d "${ts_root}/results" ]; then
+    usage "No 'results' directory in test suite root \"${ts_root}\"."
+    exit 1
+fi
+
+# Determine the latest journal file to use, if one was not explicitly
+# specified.
+if [ -z "${journal}" ]; then
+    journal=`find "${ts_root}/results" -name journal | sort | tail -1`
+    if [ -z "${journal}" ]; then
+	usage "Could not find a TET journal under \"${ts_root}\"."
+	exit 1
+    fi
+fi
+
+awk -F'|' -v journal="${journal}" < "${journal}" '
+BEGIN { nErrors = 0; nWarnings = 0 }
+
+# Clear the accumulated message when a test purpose starts.
+$1 == "200" { msg = "" }
+
+# Accumulate messages from the test purpose.
+$1 == "520" {
+   split($2, fields, " "); # Field $2 has fields: ACT# TP# CTXT BLK# SEQ#.
+   msg = (msg ? msg "\n" : "") fields[1] " " fields[2] " " $3;
+}
+
+# Handle the end of the test.
+$1 == "220" {
+   # Test passes are unexceptional.
+   if ($3 == "PASS") { next; }
+
+   # Record messages from test failures.
+   if ($3 == "FAIL") {
+      errors[nErrors] = msg;
+      nErrors++;
+      next;
+   }
+
+   # Record messages for other test statuses as warnings.
+   warnings[nWarnings] = msg;
+   nWarnings++;
+}
+
+# Catch exec failures.
+$1 == "50" {
+  errors[nErrors] = $3;
+  nErrors++;
+  next;
+}
+
+# Print out warnings and errors.
+END {
+    if (nWarnings > 0 || nErrors > 0)
+       printf(":: JOURNAL \"%s\"\n", journal);
+
+    if (nWarnings > 0) {
+       print ":: TEST SUITE WARNINGS"
+       for (w = 0; w < nWarnings; w++) {
+           print warnings[w];
+       }
+    }
+
+    if (nErrors > 0) {
+       print ":: TEST SUITE FAILURES"
+       for (e = 0; e < nErrors; e++) {
+           print errors[e];
+       }
+    }
+
+    exit (nErrors != 0);
+}'

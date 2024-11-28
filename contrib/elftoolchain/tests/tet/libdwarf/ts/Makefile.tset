@@ -1,0 +1,56 @@
+# $Id: Makefile.tset 3290 2016-01-03 21:02:06Z jkoshy $
+
+# libdwarf test suite uses libdwarf in /usr/local (i.e. SGI libdwarf),
+# if TCGEN is defined.
+.if defined(TCGEN)
+DWARF_INC?=	/usr/local/include
+DWARF_LIBS?=	/usr/local/lib
+CFLAGS+=	-DTCGEN -I${DWARF_INC}
+LDADD+=		-L${DWARF_LIBS}
+.endif
+LDADD+=		-ldwarf
+
+DPADD+=		${LIBELF}
+LDADD+=		-lelf
+
+# Test cases do not have manual pages.
+NOMAN=		noman
+
+.include "${TOP}/mk/elftoolchain.os.mk"
+
+# Determine the location of the XML handling library.
+.if ${OS_HOST} == FreeBSD
+LDADD+=		-lbsdxml
+.else
+.if ${OS_HOST} == DragonFly || ${OS_HOST} == NetBSD
+CFLAGS+=	-I/usr/pkg/include
+LDADD+=		-L/usr/pkg/lib
+.endif
+LDADD+=		-lexpat
+.endif
+
+.if !defined(TCGEN)
+TS_SRCS+=	${.OBJDIR}/ic_count.c
+${.OBJDIR}/ic_count.c:
+	${TS_ROOT}/bin/count-ic ${.OBJDIR}
+CLEANFILES+=	 ${.OBJDIR}/ic_count.c
+.endif
+
+.for f in ${TS_DATA}
+CLEANFILES+=	${f}.xml
+.endfor
+
+# Copy test objects(binaries) to the build directory.
+.for f in ${TS_DATA}
+.if !exists(${f:R})
+${f}:	${TS_OBJROOT}/common/object/${f}.gz
+	cp ${.ALLSRC} ${.TARGET}.gz
+	gunzip ${.TARGET}.gz
+.endif
+.endfor
+
+# TET 3.8's headers do not compile with -Wstrict-prototypes, so restrict the
+# OSes for which we use a non-zero WARNS value.
+.if ${OS_HOST} == FreeBSD || ${OS_HOST} == DragonFly || ${OS_HOST} == Minix
+WARNS?=		2
+.endif

@@ -1,0 +1,13 @@
+: $Id: configure.patch 3721 2019-03-23 09:04:45Z jkoshy $
+
+--- tet3.8/configure--	Sat Mar 23 10:36:51 2019
++++ tet3.8/configure	Sat Mar 23 10:38:03 2019
+@@ -317,7 +317,7 @@ CRAY*)
+ *-sgi-irix*)
+ 	fname=irix.mk
+ 	;;
+-*-freebsd)
++*-freebsd | *-netbsd | *-dragonfly | *-openbsd)	#Use FreeBSD's configuration.
+ 	fname=freebsd.mk
+ 	;;
+ *-bsdi)

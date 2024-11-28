@@ -1,0 +1,18 @@
+# $Id: Makefile.ardiff 4029 2024-01-15 16:16:49Z jkoshy $
+
+TOP=	../../../..
+
+PROG=	ardiff
+
+NOMAN=	noman
+
+WARNS?=	6
+
+DPADD=	${LIBARCHIVE}
+LDADD=	-larchive
+
+.include "${TOP}/mk/elftoolchain.prog.mk"
+
+.if ${OS_HOST} == "DragonFly"
+LDADD+=	-lbz2
+.endif

@@ -1,0 +1,185 @@
+#!/bin/sh
+
+tp1()
+{
+    run "@G%note_sections"
+}
+
+tp2()
+{
+    run "@G@e%note_sections"
+}
+
+tp3()
+{
+    run "@S@G%note_sections"
+}
+
+tp4()
+{
+    run "@S@c@s%note_sections"
+}
+
+tp5()
+{
+    run "@S@d%note_sections"
+}
+
+tp6()
+{
+    run "@S@e%note_sections"
+}
+
+tp7()
+{
+    run "@S@e@p%note_sections"
+}
+
+tp8()
+{
+    run "@S@h%note_sections"
+}
+
+tp9()
+{
+    run "@S@k%note_sections"
+}
+
+tp10()
+{
+    run "@S@n%note_sections"
+}
+
+tp11()
+{
+    run "@S@r%note_sections"
+}
+
+tp12()
+{
+    run "@S@r@N%.rela.dyn%note_sections"
+}
+
+tp13()
+{
+    run "@S@s@N%.symtab%note_sections"
+}
+
+tp14()
+{
+    run "@S@v%note_sections"
+}
+
+tp15()
+{
+    run "@c%note_sections"
+}
+
+tp16()
+{
+    run "@d%note_sections"
+}
+
+tp17()
+{
+    run "@c@p@n%note_sections"
+}
+
+tp18()
+{
+    run "@c@s%note_sections"
+}
+
+tp19()
+{
+    run "@e%note_sections"
+}
+
+tp20()
+{
+    run "@e@d%note_sections"
+}
+
+tp21()
+{
+    run "@e@i%note_sections"
+}
+
+tp22()
+{
+    run "@e@p%note_sections"
+}
+
+tp23()
+{
+    run "@e@p@c@d%note_sections"
+}
+
+tp24()
+{
+    run "@h%note_sections"
+}
+
+tp25()
+{
+    run "@n%note_sections"
+}
+
+tp26()
+{
+    run "@p@e%note_sections"
+}
+
+tp27()
+{
+    run "@p@n%note_sections"
+}
+
+tp28()
+{
+    run "@p@s%note_sections"
+}
+
+tp29()
+{
+    run "@r%note_sections"
+}
+
+
+tet_startup=""
+tet_cleanup="cleanup"
+
+iclist="ic1 ic2 ic3 ic4 ic5 ic6 ic7 ic8 ic9 ic10 ic11 ic12 ic13 ic14 ic15 ic16 ic17 ic18 ic19 ic20 ic21 ic22 ic23 ic24 ic25 ic26 ic27 ic28 ic29"
+
+ic1="tp1"
+ic2="tp2"
+ic3="tp3"
+ic4="tp4"
+ic5="tp5"
+ic6="tp6"
+ic7="tp7"
+ic8="tp8"
+ic9="tp9"
+ic10="tp10"
+ic11="tp11"
+ic12="tp12"
+ic13="tp13"
+ic14="tp14"
+ic15="tp15"
+ic16="tp16"
+ic17="tp17"
+ic18="tp18"
+ic19="tp19"
+ic20="tp20"
+ic21="tp21"
+ic22="tp22"
+ic23="tp23"
+ic24="tp24"
+ic25="tp25"
+ic26="tp26"
+ic27="tp27"
+ic28="tp28"
+ic29="tp29"
+
+. $TET_SUITE_ROOT/ts/common/func.sh
+. $TET_ROOT/lib/xpg3sh/tcm.sh

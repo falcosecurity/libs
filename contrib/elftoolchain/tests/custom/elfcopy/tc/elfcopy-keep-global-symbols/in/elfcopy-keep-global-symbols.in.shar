@@ -1,0 +1,209 @@
+#!/bin/sh
+# This is a shell archive (produced by GNU sharutils 4.15.2).
+# To extract the files from this archive, save it to some FILE, remove
+# everything before the '#!/bin/sh' line above, then type 'sh FILE'.
+#
+lock_dir=_sh01381
+# Made on 2022-04-23 10:58 UTC by <jkoshy@ubuntu-2004>.
+# Source directory was '/home/jkoshy/Work/elftoolchain/sourceforge/trunk/test/elfcopy/tc/elfcopy-keep-global-symbols/in'.
+#
+# Existing files will *not* be overwritten, unless '-c' is specified.
+#
+# This shar contains:
+# length mode       name
+# ------ ---------- ------------------------------------------
+#   2030 -rw-rw-r-- a.o.uu
+#      4 -rw-rw-r-- syms
+#
+MD5SUM=${MD5SUM-md5sum}
+f=`${MD5SUM} --version | egrep '^md5sum .*(core|text)utils'`
+test -n "${f}" && md5check=true || md5check=false
+${md5check} || \
+  echo 'Note: not verifying md5sums.  Consider installing GNU coreutils.'
+if test "X$1" = "X-c"
+then keep_file=''
+else keep_file=true
+fi
+echo=echo
+save_IFS="${IFS}"
+IFS="${IFS}:"
+gettext_dir=
+locale_dir=
+set_echo=false
+
+for dir in $PATH
+do
+  if test -f $dir/gettext \
+     && ($dir/gettext --version >/dev/null 2>&1)
+  then
+    case `$dir/gettext --version 2>&1 | sed 1q` in
+      *GNU*) gettext_dir=$dir
+      set_echo=true
+      break ;;
+    esac
+  fi
+done
+
+if ${set_echo}
+then
+  set_echo=false
+  for dir in $PATH
+  do
+    if test -f $dir/shar \
+       && ($dir/shar --print-text-domain-dir >/dev/null 2>&1)
+    then
+      locale_dir=`$dir/shar --print-text-domain-dir`
+      set_echo=true
+      break
+    fi
+  done
+
+  if ${set_echo}
+  then
+    TEXTDOMAINDIR=$locale_dir
+    export TEXTDOMAINDIR
+    TEXTDOMAIN=sharutils
+    export TEXTDOMAIN
+    echo="$gettext_dir/gettext -s"
+  fi
+fi
+IFS="$save_IFS"
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null
+then if (echo -n test; echo 1,2,3) | grep n >/dev/null
+     then shar_n= shar_c='
+'
+     else shar_n=-n shar_c= ; fi
+else shar_n= shar_c='\c' ; fi
+f=shar-touch.$$
+st1=200112312359.59
+st2=123123592001.59
+st2tr=123123592001.5 # old SysV 14-char limit
+st3=1231235901
+
+if   touch -am -t ${st1} ${f} >/dev/null 2>&1 && \
+     test ! -f ${st1} && test -f ${f}; then
+  shar_touch='touch -am -t $1$2$3$4$5$6.$7 "$8"'
+
+elif touch -am ${st2} ${f} >/dev/null 2>&1 && \
+     test ! -f ${st2} && test ! -f ${st2tr} && test -f ${f}; then
+  shar_touch='touch -am $3$4$5$6$1$2.$7 "$8"'
+
+elif touch -am ${st3} ${f} >/dev/null 2>&1 && \
+     test ! -f ${st3} && test -f ${f}; then
+  shar_touch='touch -am $3$4$5$6$2 "$8"'
+
+else
+  shar_touch=:
+  echo
+  ${echo} 'WARNING: not restoring timestamps.  Consider getting and
+installing GNU '\''touch'\'', distributed in GNU coreutils...'
+  echo
+fi
+rm -f ${st1} ${st2} ${st2tr} ${st3} ${f}
+#
+if test ! -d ${lock_dir} ; then :
+else ${echo} "lock directory ${lock_dir} exists"
+     exit 1
+fi
+if mkdir ${lock_dir}
+then ${echo} "x - created lock directory ${lock_dir}."
+else ${echo} "x - failed to create lock directory ${lock_dir}."
+     exit 1
+fi
+# ============= a.o.uu ==============
+if test -n "${keep_file}" && test -f 'a.o.uu'
+then
+${echo} "x - SKIPPING a.o.uu (file already exists)"
+
+else
+${echo} "x - extracting a.o.uu (text)"
+  sed 's/^X//' << 'SHAR_EOF' > 'a.o.uu' &&
+begin 664 a.o
+M?T5,1@(!`0````````````$`/@`!`````````````````````````+`"````
+M`````````$```````$``#``+`/,/'OI52(GED%W#\P\>^E5(B>607<,`1T-#
+M.B`H56)U;G1U(#DN-"XP+3%U8G5N='4Q?C(P+C`T+C$I(#DN-"XP````````
+M``0````0````!0```$=.50`"``#`!`````,`````````%``````````!>E(`
+M`7@0`1L,!PB0`0``'````!P`````````"P````!%#A"&`D,-!D(,!P@````<
+M````/``````````+`````$4.$(8"0PT&0@P'"```````````````````````
+M```````````````````$`/'_```````````````````````````#``$`````
+M```````````````````````#``(````````````````````````````#``,`
+M```````````````````````````#``4````````````````````````````#
+M``8````````````````````````````#``<`````````````````````````
+M```#``0```````````````````````$````2``$````````````+````````
+M``4````2``$`"P`````````+``````````!A8F,`>'EZ```````````@````
+M``````(````"``````````````!```````````(````"````"P``````````
+M+G-Y;71A8@`N<W1R=&%B`"YS:'-T<G1A8@`N=&5X=``N9&%T80`N8G-S`"YC
+M;VUM96YT`"YN;W1E+D=.52US=&%C:P`N;F]T92YG;G4N<')O<&5R='D`+G)E
+M;&$N96A?9G)A;64`````````````````````````````````````````````
+M```````````````````````````````````````````;`````0````8`````
+M``````````````!``````````!8````````````````````!````````````
+M````````(0````$````#````````````````````5@``````````````````
+M`````````````0```````````````````"<````(`````P``````````````
+M`````%8```````````````````````````````$````````````````````L
+M`````0```#````````````````````!6`````````"P`````````````````
+M```!``````````$`````````-0````$`````````````````````````@@``
+M`````````````````````````````0```````````````````$4````'````
+M`@```````````````````(@`````````(`````````````````````@`````
+M``````````````!=`````0````(```````````````````"H`````````%@`
+M```````````````````(````````````````````6`````0```!`````````
+M````````````&`(````````P``````````D````'````"``````````8````
+M``````$````"```````````````````````````!````````"`$````````*
+M````"0````@`````````&``````````)`````P``````````````````````
+M```(`@````````D````````````````````!````````````````````$0``
+M``,`````````````````````````2`(```````!G````````````````````
+0`0``````````````````````
+`
+end
+SHAR_EOF
+  (set 20 22 04 23 10 55 32 'a.o.uu'
+   eval "${shar_touch}") && \
+  chmod 0664 'a.o.uu'
+if test $? -ne 0
+then ${echo} "restore of a.o.uu failed"
+fi
+  if ${md5check}
+  then (
+       ${MD5SUM} -c >/dev/null 2>&1 || ${echo} 'a.o.uu': 'MD5 check failed'
+       ) << \SHAR_EOF
+0716a4cd35629c864d49d2a262b2ec61  a.o.uu
+SHAR_EOF
+
+else
+test `LC_ALL=C wc -c < 'a.o.uu'` -ne 2030 && \
+  ${echo} "restoration warning:  size of 'a.o.uu' is not 2030"
+  fi
+fi
+# ============= syms ==============
+if test -n "${keep_file}" && test -f 'syms'
+then
+${echo} "x - SKIPPING syms (file already exists)"
+
+else
+${echo} "x - extracting syms (text)"
+  sed 's/^X//' << 'SHAR_EOF' > 'syms' &&
+xyz
+SHAR_EOF
+  (set 20 22 04 23 10 52 43 'syms'
+   eval "${shar_touch}") && \
+  chmod 0664 'syms'
+if test $? -ne 0
+then ${echo} "restore of syms failed"
+fi
+  if ${md5check}
+  then (
+       ${MD5SUM} -c >/dev/null 2>&1 || ${echo} 'syms': 'MD5 check failed'
+       ) << \SHAR_EOF
+b6273b589df2dfdbd8fe35b1011e3183  syms
+SHAR_EOF
+
+else
+test `LC_ALL=C wc -c < 'syms'` -ne 4 && \
+  ${echo} "restoration warning:  size of 'syms' is not 4"
+  fi
+fi
+if rm -fr ${lock_dir}
+then ${echo} "x - removed lock directory ${lock_dir}."
+else ${echo} "x - failed to remove lock directory ${lock_dir}."
+     exit 1
+fi
+exit 0
