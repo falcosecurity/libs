@@ -444,24 +444,6 @@ public:
 	bool m_filtered_out;  ///< True if this thread is filtered out by the inspector filter from
 	                      ///< saving to a capture
 
-	// In some cases, a threadinfo has a category that identifies
-	// why it was run. Descriptions:
-	// CAT_NONE: no specific category
-	// CAT_CONTAINER: a process run in a container and *not* any
-	//                of the following more specific categories.
-	// CAT_HEALTHCHECK: part of a container healthcheck
-	// CAT_LIVENESS_PROBE: part of a k8s liveness probe
-	// CAT_READINESS_PROBE: part of a k8s readiness probe
-	enum command_category {
-		CAT_NONE = 0,
-		CAT_CONTAINER,
-		CAT_HEALTHCHECK,
-		CAT_LIVENESS_PROBE,
-		CAT_READINESS_PROBE
-	};
-
-	command_category m_category;
-
 	//
 	// State for multi-event processing
 	//
