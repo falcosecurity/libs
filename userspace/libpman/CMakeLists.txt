@@ -15,6 +15,7 @@
 
 add_compile_options(${FALCOSECURITY_LIBS_USERSPACE_COMPILE_FLAGS})
 add_link_options(${FALCOSECURITY_LIBS_USERSPACE_LINK_FLAGS})
+include(libbpf)
 
 add_library(
 	pman
@@ -35,21 +36,13 @@ target_include_directories(
 			$<BUILD_INTERFACE:${LIBS_DIR}> # ppm_enum and tables
 			$<BUILD_INTERFACE:${LIBS_DIR}/userspace> # scap-stats struct
 			${ZLIB_INCLUDE}
-			${LIBBPF_INCLUDE}
 			${MODERN_BPF_SKEL_DIR}
-			${LIBELF_INCLUDE}
 )
 
-target_link_libraries(
-	pman PUBLIC scap_event_schema scap_platform ${LIBBPF_LIB} ${LIBELF_LIB} ${ZLIB_LIB}
-)
+target_link_libraries(pman PUBLIC scap_event_schema scap_platform lbpf ${ZLIB_LIB})
 
 if(TARGET ProbeSkeleton)
 	add_dependencies(pman ProbeSkeleton)
-endif()
-
-if(USE_BUNDLED_LIBBPF)
-	add_dependencies(pman libbpf)
 endif()
 
 install(
