@@ -20,4 +20,19 @@ limitations under the License.
 #include <driver/ppm_events_public.h>
 #include <converter/table.h>
 
-const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {};
+const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
+        ////////////////////////////
+        // READ
+        ////////////////////////////
+        {{PPME_SYSCALL_READ_E, 2}, {.action = C_ACTION_STORE}},
+        {{PPME_SYSCALL_READ_X, 2},
+         {.action = C_ACTION_ADD_PARAMS,
+          .instr = {{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}}}},
+        ////////////////////////////
+        // PREAD
+        ////////////////////////////
+        {{PPME_SYSCALL_PREAD_E, 3}, {.action = C_ACTION_STORE}},
+        {{PPME_SYSCALL_PREAD_X, 2},
+         {.action = C_ACTION_ADD_PARAMS,
+          .instr = {{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}, {C_INSTR_FROM_ENTER, 2}}}},
+};
