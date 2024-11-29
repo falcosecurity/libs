@@ -403,45 +403,34 @@ int f_sys_read_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	int res;
 	int64_t retval;
-	unsigned long bufsize;
 
-	/*
-	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
-	 */
+	// Retrieve the FD. It will be used for dynamic snaplen calculation.
 	syscall_get_arguments_deprecated(args, 0, 1, &val);
 	args->fd = (int)val;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	/*
-	 * data
-	 */
-	if(retval < 0) {
-		/*
-		 * The operation failed, return an empty buffer
-		 */
-		val = 0;
-		bufsize = 0;
-	} else {
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	if(retval > 0) {
+		// val now contains the pointer to the buffer
 		syscall_get_arguments_deprecated(args, 1, 1, &val);
-
-		/*
-		 * The return value can be lower than the value provided by the user,
-		 * and we take that into account.
-		 */
-		bufsize = retval;
+		args->enforce_snaplen = true;
+		res = val_to_ring(args, val, retval, true, 0);
+	} else {
+		res = push_empty_param(args);
 	}
+	CHECK_RES(res);
 
-	/*
-	 * Copy the buffer
-	 */
-	args->enforce_snaplen = true;
-	res = val_to_ring(args, val, bufsize, true, 0);
+	/* Parameter 3: fd (type: PT_FD) */
+	res = val_to_ring(args, (int64_t)args->fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
@@ -3662,6 +3651,68 @@ int f_sys_pread64_e(struct event_filler_arguments *args) {
 	/*
 	 * pos
 	 */
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+	{
+		unsigned long pos0;
+		unsigned long pos1;
+#if defined CONFIG_X86
+		syscall_get_arguments_deprecated(args, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(args, 4, 1, &pos1);
+#elif defined CONFIG_ARM && CONFIG_AEABI
+		syscall_get_arguments_deprecated(args, 4, 1, &pos0);
+		syscall_get_arguments_deprecated(args, 5, 1, &pos1);
+#else
+#error This architecture/abi not yet supported
+#endif
+
+		pos64 = merge_64(pos1, pos0);
+	}
+#else
+	syscall_get_arguments_deprecated(args, 3, 1, &pos64);
+#endif
+
+	res = val_to_ring(args, pos64, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_pread64_x(struct event_filler_arguments *args) {
+	unsigned long val;
+	int res;
+	int64_t retval;
+	unsigned long pos64;
+
+	// Retrieve the FD. It will be used for dynamic snaplen calculation.
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	args->fd = (int)val;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	if(retval > 0) {
+		// val now contains the pointer to the buffer
+		syscall_get_arguments_deprecated(args, 1, 1, &val);
+		args->enforce_snaplen = true;
+		res = val_to_ring(args, val, retval, true, 0);
+	} else {
+		res = push_empty_param(args);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = val_to_ring(args, (int64_t)args->fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(args, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 	{
 		unsigned long pos0;

@@ -63,17 +63,18 @@ static int32_t check_api_compatibility_impl(uint64_t current_version,
                                             const char* label,
                                             char* error) {
 	if(!scap_is_api_compatible(current_version, minimum_version)) {
-		return scap_errprintf(error,
-		                      0,
-		                      "Driver supports %s version %llu.%llu.%llu, but running version "
-		                      "needs %llu.%llu.%llu",
-		                      label,
-		                      PPM_API_VERSION_MAJOR(current_version),
-		                      PPM_API_VERSION_MINOR(current_version),
-		                      PPM_API_VERSION_PATCH(current_version),
-		                      PPM_API_VERSION_MAJOR(minimum_version),
-		                      PPM_API_VERSION_MINOR(minimum_version),
-		                      PPM_API_VERSION_PATCH(minimum_version));
+		return scap_errprintf(
+		        error,
+		        0,
+		        "Minimum %s version supported by scap: %llu.%llu.%llu, but the running "
+		        "driver uses %llu.%llu.%llu",
+		        label,
+		        PPM_API_VERSION_MAJOR(current_version),
+		        PPM_API_VERSION_MINOR(current_version),
+		        PPM_API_VERSION_PATCH(current_version),
+		        PPM_API_VERSION_MAJOR(minimum_version),
+		        PPM_API_VERSION_MINOR(minimum_version),
+		        PPM_API_VERSION_PATCH(minimum_version));
 	}
 	return SCAP_SUCCESS;
 }

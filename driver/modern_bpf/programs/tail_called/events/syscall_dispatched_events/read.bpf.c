@@ -55,6 +55,7 @@ int BPF_PROG(read_x, struct pt_regs *regs, long ret) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	if(ret > 0) {
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
@@ -65,13 +66,19 @@ int BPF_PROG(read_x, struct pt_regs *regs, long ret) {
 			snaplen = ret;
 		}
 
-		/* Parameter 2: data (type: PT_BYTEBUF) */
 		unsigned long data_pointer = extract__syscall_argument(regs, 1);
 		auxmap__store_bytebuf_param(auxmap, data_pointer, snaplen, USER);
 	} else {
-		/* Parameter 2: data (type: PT_BYTEBUF) */
 		auxmap__store_empty_param(auxmap);
 	}
+
+	/* Parameter 3: fd (type: PT_FD) */
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
+	auxmap__store_s64_param(auxmap, (int64_t)fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	uint32_t size = (uint32_t)extract__syscall_argument(regs, 2);
+	auxmap__store_u32_param(auxmap, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
