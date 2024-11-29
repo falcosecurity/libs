@@ -30,9 +30,11 @@ TEST_F(sinsp_with_test_input, bcontains_bstartswith) {
 	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
 	                                      1,
 	                                      PPME_SYSCALL_READ_X,
-	                                      2,
+	                                      4,
 	                                      (int64_t)0,
-	                                      scap_const_sized_buffer{read_buf, sizeof(read_buf)});
+	                                      scap_const_sized_buffer{read_buf, sizeof(read_buf)},
+	                                      (int64_t)0,
+	                                      (uint32_t)0);
 
 	// test filters with bcontains
 	EXPECT_FALSE(filter_compiles("evt.buffer bcontains"));
