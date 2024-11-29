@@ -95,7 +95,7 @@ jobs:
     steps:
       - name: Install deps ⛓️
         run: |
-          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm
+          apk add g++ gcc cmake make git bash perl linux-headers autoconf automake m4 libtool elfutils-dev libelf-static patch binutils clang llvm bsd-compat-headers
           git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
           cd bpftool
           git submodule update --init
@@ -345,7 +345,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r) emscripten
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libcap-dev linux-headers-$(uname -r) emscripten libc6-dev
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
