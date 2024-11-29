@@ -209,9 +209,12 @@ TEST(SyscallExit, execveatX_failure) {
 	/* Parameter 29: pgid (type: PT_PID) */
 	evt_test->assert_numeric_param(29, (int64_t)info.pgid);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 }
 
 /* All architectures return an `EXECVEAT_X` event when the syscall fails, but only
@@ -375,9 +378,12 @@ TEST(SyscallExit, execveatX_correct_exit) {
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(28, pathname);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 #else
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid);
@@ -505,9 +511,12 @@ TEST(SyscallExit, execveatX_execve_exit) {
 	/* Parameter 28: trusted_exepath (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(28, pathname);
 
+	/* Parameter 30: egid (type: PT_GID) */
+	evt_test->assert_numeric_param(30, (uint32_t)getegid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 #endif
 }
 
@@ -603,7 +612,7 @@ TEST(SyscallExit, execveatX_execve_exit_comm_equal_to_fd) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 #endif
 }
 
@@ -717,7 +726,7 @@ TEST(SyscallExit, execveatX_success_memfd) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(29);
+	evt_test->assert_num_params_pushed(30);
 #else
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid);

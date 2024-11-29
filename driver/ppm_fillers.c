@@ -1302,6 +1302,7 @@ cgroups_error:
 		uint64_t cap_permitted = 0;
 		uint64_t cap_effective = 0;
 		uint32_t euid = UINT32_MAX;
+		uint32_t egid = UINT32_MAX;
 		char *buf = (char *)args->str_storage;
 		char *trusted_exepath = NULL;
 
@@ -1547,8 +1548,19 @@ cgroups_error:
 		res = val_to_ring(args, (unsigned long)trusted_exepath, 0, false, 0);
 		CHECK_RES(res);
 
-		/* Parameter 29: pgid (type: PT_UID) */
+		/* Parameter 29: pgid (type: PT_PID) */
 		res = push_pgid(args);
+		CHECK_RES(res);
+
+		/* Parameter 30: egid (type: PT_GID) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+		egid = from_kgid_munged(current_user_ns(), current_egid());
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		egid = current_egid();
+#else
+		egid = current->egid;
+#endif
+		res = val_to_ring(args, egid, 0, false, 0);
 		CHECK_RES(res);
 	}
 	return add_sentinel(args);
@@ -7099,6 +7111,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args) {
 	uint64_t cap_permitted = 0;
 	uint64_t cap_effective = 0;
 	uint32_t euid = UINT32_MAX;
+	uint32_t egid = UINT32_MAX;
 	char *buf = (char *)args->str_storage;
 	char *trusted_exepath = NULL;
 
@@ -7422,8 +7435,19 @@ cgroups_error:
 	res = val_to_ring(args, (unsigned long)trusted_exepath, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 29: pgid (type: PT_UID) */
+	/* Parameter 29: pgid (type: PT_PID) */
 	res = push_pgid(args);
+	CHECK_RES(res);
+
+	/* Parameter 30: egid (type: PT_GID) */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+	egid = from_kgid_munged(current_user_ns(), current_egid());
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	egid = current_egid();
+#else
+	egid = current->egid;
+#endif
+	res = val_to_ring(args, egid, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

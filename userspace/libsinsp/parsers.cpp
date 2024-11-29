@@ -2273,7 +2273,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 
 	// Get uid
 	if(evt->get_num_params() > 26) {
-		evt->get_tinfo()->m_user.set_uid(evt->get_param(26)->as<uint32_t>());
+		evt->get_tinfo()->set_user(evt->get_param(26)->as<uint32_t>());
 	}
 
 	// Get pgid
@@ -2281,6 +2281,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 		evt->get_tinfo()->m_pgid = evt->get_param(28)->as<int64_t>();
 	} else {
 		evt->get_tinfo()->m_pgid = -1;
+	}
+
+	// Get gid
+	if(evt->get_num_params() > 29) {
+		evt->get_tinfo()->set_group(evt->get_param(29)->as<uint32_t>());
 	}
 
 	//
