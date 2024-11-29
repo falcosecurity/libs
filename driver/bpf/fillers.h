@@ -407,28 +407,30 @@ FILLER(sys_read_e, true) {
 }
 
 FILLER(sys_read_x, true) {
-	unsigned long bufsize;
-	unsigned long val;
-	long retval;
-	int res;
-
 	/* Parameter 1: res (type: PT_ERRNO) */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
 	CHECK_RES(res);
 
-	if(retval < 0) {
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		return bpf_push_empty_param(data);
-	}
-
-	val = bpf_syscall_get_argument(data, 1);
-	bufsize = retval;
+	// We will use it for dynamic snaplen calculation and we will push it also to the buffer.
+	data->fd = bpf_syscall_get_argument(data, 0);
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
-	data->fd = bpf_syscall_get_argument(data, 0);
-	return __bpf_val_to_ring(data, val, bufsize, PT_BYTEBUF, -1, true, USER);
-	;
+	if(retval > 0) {
+		unsigned long val = bpf_syscall_get_argument(data, 1);
+		res = __bpf_val_to_ring(data, val, retval, PT_BYTEBUF, -1, true, USER);
+	} else {
+		res = bpf_push_empty_param(data);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, (int64_t)data->fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	size_t size = bpf_syscall_get_argument(data, 2);
+	return bpf_push_u32_to_ring(data, size);
 }
 
 FILLER(sys_write_e, true) {
@@ -4749,6 +4751,44 @@ FILLER(sys_pread64_e, true) {
 	/*
 	 * pos
 	 */
+	val = bpf_syscall_get_argument(data, 3);
+	return bpf_push_u64_to_ring(data, val);
+}
+
+FILLER(sys_pread64_x, true) {
+// This is due to the `pos` parameter
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+#error Implement this
+#endif
+	unsigned long val = 0;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	// We will use it for dynamic snaplen calculation and we will push it also to the buffer.
+	data->fd = bpf_syscall_get_argument(data, 0);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	if(retval > 0) {
+		val = bpf_syscall_get_argument(data, 1);
+		res = __bpf_val_to_ring(data, val, retval, PT_BYTEBUF, -1, true, USER);
+	} else {
+		res = bpf_push_empty_param(data);
+	}
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, (int64_t)data->fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	size_t size = bpf_syscall_get_argument(data, 2);
+	res = bpf_push_u32_to_ring(data, size);
+	CHECK_RES(res);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
 	val = bpf_syscall_get_argument(data, 3);
 	return bpf_push_u64_to_ring(data, val);
 }

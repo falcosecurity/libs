@@ -46,9 +46,15 @@ TEST(SyscallExit, readX_no_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, read_bytes);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)fd);
+
+	/* Parameter 4: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readX_snaplen) {
@@ -93,9 +99,15 @@ TEST(SyscallExit, readX_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)fd);
+
+	/* Parameter 4: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readXfail) {
@@ -134,9 +146,15 @@ TEST(SyscallExit, readXfail) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(2);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)-1);
+
+	/* Parameter 4: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readX_ipv4_tcp_message_truncated_by_snaplen) {
@@ -174,7 +192,7 @@ TEST(SyscallExit, readX_ipv4_tcp_message_truncated_by_snaplen) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readX_ipv4_tcp_message_not_truncated_fullcapture_port) {
@@ -225,7 +243,7 @@ TEST(SyscallExit, readX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readX_ipv4_udp_message_truncated_by_snaplen) {
@@ -263,7 +281,7 @@ TEST(SyscallExit, readX_ipv4_udp_message_truncated_by_snaplen) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readX_ipv4_udp_message_truncated_fullcapture_client_port) {
@@ -314,7 +332,7 @@ TEST(SyscallExit, readX_ipv4_udp_message_truncated_fullcapture_client_port) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, readX_ipv4_udp_message_not_truncated_fullcapture_server_port) {
@@ -365,7 +383,7 @@ TEST(SyscallExit, readX_ipv4_udp_message_not_truncated_fullcapture_server_port) 
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 #endif

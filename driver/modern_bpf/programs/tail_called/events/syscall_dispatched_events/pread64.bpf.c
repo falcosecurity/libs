@@ -77,6 +77,18 @@ int BPF_PROG(pread64_x, struct pt_regs *regs, long ret) {
 		auxmap__store_empty_param(auxmap);
 	}
 
+	/* Parameter 3: fd (type: PT_FD) */
+	int32_t fd = (int32_t)extract__syscall_argument(regs, 0);
+	auxmap__store_s64_param(auxmap, (int64_t)fd);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	uint32_t size = (uint32_t)extract__syscall_argument(regs, 2);
+	auxmap__store_u32_param(auxmap, (uint32_t)size);
+
+	/* Parameter 5: pos (type: PT_UINT64) */
+	uint64_t pos = (uint64_t)extract__syscall_argument(regs, 3);
+	auxmap__store_u64_param(auxmap, pos);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

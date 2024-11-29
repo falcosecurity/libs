@@ -191,6 +191,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_process_vm_readv_x)           \
 	FN(sys_process_vm_writev_x)          \
 	FN(sys_delete_module_x)              \
+	FN(sys_pread64_x)                    \
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
