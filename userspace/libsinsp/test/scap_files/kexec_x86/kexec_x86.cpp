@@ -17,27 +17,23 @@ limitations under the License.
 
 */
 
-#include <helpers/threads_helpers.h>
-#include <helpers/scap_file_helpers.h>
+#include <scap_files/scap_file_test.h>
+#include <sinsp_with_test_input.h>
 
-TEST(scap_file_kexec_x86, tail_lineage) {
-	std::string path = LIBSINSP_TEST_SCAP_FILES_DIR + std::string("kexec_x86.scap");
-	sinsp m_inspector;
-	m_inspector.open_savefile(path);
+TEST_F(scap_file_test, kexec_x86_tail_lineage) {
+	open_filename("kexec_x86.scap");
 
 	/* Check that containerd_shim main at the beginning is not a reaper since we cannot recover
 	 * that info from proc scan.
 	 */
-	auto containerd_shim1_tinfo = m_inspector.get_thread_ref(107196);
+	auto containerd_shim1_tinfo = m_inspector->get_thread_ref(107196);
 	ASSERT_TRUE(containerd_shim1_tinfo);
 	ASSERT_TRUE(containerd_shim1_tinfo->m_tginfo);
 	ASSERT_FALSE(containerd_shim1_tinfo->m_tginfo->is_reaper());
 
 	/* Search the tail execve event */
 	int64_t tid_tail = 107370;
-	auto evt = scap_file_test_helpers::capture_search_evt_by_type_and_tid(&m_inspector,
-	                                                                      PPME_SYSCALL_EXECVE_19_X,
-	                                                                      tid_tail);
+	auto evt = capture_search_evt_by_type_and_tid(PPME_SYSCALL_EXECVE_19_X, tid_tail);
 
 	std::vector<int64_t> traverse_parents;
 	sinsp_threadinfo::visitor_func_t visitor = [&traverse_parents](sinsp_threadinfo* pt) {
@@ -82,8 +78,10 @@ TEST(scap_file_kexec_x86, tail_lineage) {
 	evt->get_thread_info()->traverse_parent_state(visitor);
 	ASSERT_EQ(traverse_parents, expected_traverse_parents_after_execve);
 
-	/* At event num `161343` all runc threads are dead */
-	evt = scap_file_test_helpers::capture_search_evt_by_num(&m_inspector, 161343);
+	/* We search the event immediately after the proc_exit of last `runc` thread.
+	 * It is a WRITE made by tid 107370.
+	 */
+	evt = capture_search_evt_by_type_and_tid(PPME_SYSCALL_WRITE_X, 107370);
 
 	/* This should be the new father of [sh](107364) since it is a reaper */
 	tid_containerd_shim1 = 107196;
@@ -110,18 +108,15 @@ TEST(scap_file_kexec_x86, tail_lineage) {
 	ASSERT_EQ(traverse_parents, expected_traverse_parents_after_remove);
 
 	/* At the beninning of the capture containerd_shim1 was not a reaper */
-	containerd_shim1_tinfo = m_inspector.get_thread_ref(tid_containerd_shim1);
+	containerd_shim1_tinfo = m_inspector->get_thread_ref(tid_containerd_shim1);
 	ASSERT_TRUE(containerd_shim1_tinfo);
 	ASSERT_TRUE(containerd_shim1_tinfo->m_tginfo);
 	ASSERT_TRUE(containerd_shim1_tinfo->m_tginfo->is_reaper());
 }
 
-TEST(scap_file_kexec_x86, final_thread_table_dim) {
-	std::string path = LIBSINSP_TEST_SCAP_FILES_DIR + std::string("kexec_x86.scap");
-	sinsp m_inspector;
-	m_inspector.open_savefile(path);
-
-	/* Get the final event of the capture and check the thread_table dim */
-	scap_file_test_helpers::capture_search_evt_by_num(&m_inspector, 523413);
-	ASSERT_EQ(m_inspector.m_thread_manager->get_thread_count(), 558);
+TEST_F(scap_file_test, kexec_x86_final_thread_table_dim) {
+	open_filename("kexec_x86.scap");
+	read_until_EOF();
+	/* Check the thread_table dim at the end of the capture */
+	ASSERT_EQ(m_inspector->m_thread_manager->get_thread_count(), 558);
 }
