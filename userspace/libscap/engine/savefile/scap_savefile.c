@@ -30,6 +30,7 @@ struct iovec {
 #endif
 
 #define HANDLE(engine) ((struct savefile_engine *)(engine.m_handle))
+#define MAX_EVENT_SIZE 64 * 1024
 
 #include <libscap/engine/savefile/savefile.h>
 #include <libscap/scap.h>
@@ -39,8 +40,8 @@ struct iovec {
 #include <libscap/engine/savefile/savefile_platform.h>
 #include <libscap/engine/savefile/scap_reader.h>
 #include <libscap/engine/noop/noop.h>
-
 #include <libscap/strl.h>
+#include <libscap/engine/savefile/converter/converter.h>
 
 //
 // Read the section header block
@@ -1811,14 +1812,10 @@ static int32_t scap_read_init(struct savefile_engine *handle,
 	return SCAP_SUCCESS;
 }
 
-//
-// Read an event from disk
-//
-static int32_t next(struct scap_engine_handle engine,
-                    scap_evt **pevent,
-                    uint16_t *pdevid,
-                    uint32_t *pflags) {
-	struct savefile_engine *handle = engine.m_handle;
+static int32_t next_event_from_file(struct savefile_engine *handle,
+                                    scap_evt **pevent,
+                                    uint16_t *pdevid,
+                                    uint32_t *pflags) {
 	block_header bh;
 	size_t readsize;
 	uint32_t readlen;
@@ -2022,6 +2019,86 @@ static int32_t next(struct scap_engine_handle engine,
 	return SCAP_SUCCESS;
 }
 
+//
+// Read an event from disk
+//
+static int32_t next(struct scap_engine_handle engine,
+                    scap_evt **pevent,
+                    uint16_t *pdevid,
+                    uint32_t *pflags) {
+	struct savefile_engine *handle = engine.m_handle;
+read_event:
+	int32_t res = next_event_from_file(handle, pevent, pdevid, pflags);
+	// If we fail we don't convert the event.
+	if(res != SCAP_SUCCESS) {
+		return res;
+	}
+
+	// If we don't need a conversion terminate here.
+	if(!is_conversion_needed((*pevent))) {
+		return SCAP_SUCCESS;
+	}
+
+	// We do it only the first time if at least one conversion is needed.
+	if(!handle->m_new_evt) {
+		handle->m_new_evt = calloc(1, MAX_EVENT_SIZE);
+	}
+	if(!handle->m_to_convert_evt) {
+		handle->m_to_convert_evt = calloc(1, MAX_EVENT_SIZE);
+	}
+
+	// Start the conversion loop.
+	int conv_num = 0;
+	conversion_result conv_res = CONVERSION_CONTINUE;
+	for(conv_num = 0; conv_num < MAX_CONVERSION_BOUNDARY && conv_res == CONVERSION_CONTINUE;
+	    conv_num++) {
+		// Before each conversion we move the current event into the storage
+		memcpy(handle->m_to_convert_evt, *pevent, (*pevent)->len);
+		conv_res = scap_convert_event((scap_evt *)handle->m_new_evt,
+		                              (scap_evt *)handle->m_to_convert_evt,
+		                              handle->m_lasterr);
+		// At the end of the conversion in any case we swith to the new event pointer
+		*pevent = (scap_evt *)handle->m_new_evt;
+	}
+
+	switch(conv_res) {
+	case CONVERSION_ERROR:
+		return SCAP_FAILURE;
+
+	case CONVERSION_SKIP:
+		// Probably an enter event that we don't want to consider. So we read another event.
+		goto read_event;
+
+	case CONVERSION_COMPLETED:
+	case CONVERSION_CONTINUE:
+	default:
+		break;
+	}
+
+	if(conv_num == MAX_CONVERSION_BOUNDARY) {
+		if(conv_res == CONVERSION_COMPLETED) {
+			// We reached the max conversion boundary with a correct conversion
+			// we need to bump `MAX_CONVERSION_BOUNDARY` in the code.
+			snprintf(handle->m_lasterr,
+			         SCAP_LASTERR_SIZE,
+			         "reached '%d' with a correct resolution. Bump it in the code.",
+			         MAX_CONVERSION_BOUNDARY);
+		} else if(conv_res == CONVERSION_CONTINUE) {
+			// We forgot to end the conversion somewhere
+			snprintf(handle->m_lasterr,
+			         SCAP_LASTERR_SIZE,
+			         "reached '%d' conversions with evt (%d) without reaching an end",
+			         MAX_CONVERSION_BOUNDARY,
+			         (*pevent)->type);
+		} else {
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Unknown error");
+		}
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 uint64_t scap_savefile_ftell(struct scap_engine_handle engine) {
 	scap_reader_t *reader = HANDLE(engine)->m_reader;
 	return reader->tell(reader);
@@ -2182,6 +2259,16 @@ static int32_t scap_savefile_close(struct scap_engine_handle engine) {
 	if(handle->m_reader_evt_buf) {
 		free(handle->m_reader_evt_buf);
 		handle->m_reader_evt_buf = NULL;
+	}
+
+	if(handle->m_new_evt) {
+		free(handle->m_new_evt);
+		handle->m_new_evt = NULL;
+	}
+
+	if(handle->m_to_convert_evt) {
+		free(handle->m_to_convert_evt);
+		handle->m_to_convert_evt = NULL;
 	}
 
 	return SCAP_SUCCESS;

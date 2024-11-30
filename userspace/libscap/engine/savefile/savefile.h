@@ -110,4 +110,7 @@ struct savefile_engine {
 	size_t m_reader_evt_buf_size;
 	uint32_t m_last_evt_dump_flags;
 	struct scap_platform* m_platform;
+	// Used by the scap-file converter
+	char* m_new_evt;
+	char* m_to_convert_evt;
 };
