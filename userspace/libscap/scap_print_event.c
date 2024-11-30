@@ -210,15 +210,15 @@ static void print_parameter(int16_t num_param, scap_evt *ev, uint16_t offset) {
 
 	case PT_CHARBUF:
 	case PT_FSPATH:
+	case PT_FSRELPATH:
 		printf("PARAM %d: %s\n", num_param, valptr);
 		break;
 
 	case PT_BYTEBUF:
 	case PT_CHARBUFARRAY:
-	case PT_FSRELPATH:
-		printf("PARAM %d: ", num_param);
+		printf("PARAM %d\n: ", num_param);
 		for(int j = 0; j < len; j++) {
-			printf("%c", *(char *)(valptr + j));
+			printf("%c(%x)\n", *(char *)(valptr + j), *(char *)(valptr + j));
 		}
 		printf("\n");
 		break;
