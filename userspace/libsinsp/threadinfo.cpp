@@ -535,14 +535,14 @@ void sinsp_threadinfo::set_user(uint32_t uid) {
 	scap_userinfo* user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
 	if(!user) {
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		std::string name, home;
 		// For uid 0 force set root related infos
 		if(uid == 0) {
-			name = "root";
-			home = "/root";
+			m_inspector->m_usergroup_manager
+			        .add_user(m_container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
+		} else {
+			m_inspector->m_usergroup_manager
+			        .add_user(m_container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
 		}
-		m_inspector->m_usergroup_manager
-		        .add_user(m_container_id, m_pid, uid, m_gid, name, home, {}, notify);
 	}
 }
 
@@ -551,12 +551,12 @@ void sinsp_threadinfo::set_group(uint32_t gid) {
 	scap_groupinfo* group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
 	if(!group) {
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		// For uid 0 force set root related infos
-		std::string name;
+		// For gid 0 force set root related info
 		if(gid == 0) {
-			name = "root";
+			m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, "root", notify);
+		} else {
+			m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, {}, notify);
 		}
-		m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, name, notify);
 	}
 }
 
@@ -564,22 +564,18 @@ void sinsp_threadinfo::set_loginuid(uint32_t loginuid) {
 	m_loginuid = loginuid;
 }
 
-scap_userinfo* sinsp_threadinfo::get_user(uint32_t id) const {
-	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, id);
+scap_userinfo* sinsp_threadinfo::get_user() const {
+	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_uid);
 	if(user != nullptr) {
 		return user;
 	}
 	static scap_userinfo usr{};
-	usr.uid = id;
+	usr.uid = m_uid;
 	usr.gid = m_gid;
-	strlcpy(usr.name, id == 0 ? "root" : "<NA>", sizeof(usr.name));
-	strlcpy(usr.homedir, id == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
+	strlcpy(usr.name, m_uid == 0 ? "root" : "<NA>", sizeof(usr.name));
+	strlcpy(usr.homedir, m_uid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
 	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
 	return &usr;
-}
-
-scap_userinfo* sinsp_threadinfo::get_user() const {
-	return get_user(m_uid);
 }
 
 scap_groupinfo* sinsp_threadinfo::get_group() const {
@@ -594,7 +590,17 @@ scap_groupinfo* sinsp_threadinfo::get_group() const {
 }
 
 scap_userinfo* sinsp_threadinfo::get_loginuser() const {
-	return get_user(m_loginuid);
+	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_loginuid);
+	if(user != nullptr) {
+		return user;
+	}
+	static scap_userinfo usr{};
+	usr.uid = m_loginuid;
+	usr.gid = m_gid;
+	strlcpy(usr.name, m_loginuid == 0 ? "root" : "<NA>", sizeof(usr.name));
+	strlcpy(usr.homedir, m_loginuid == 0 ? "/root" : "<NA>", sizeof(usr.homedir));
+	strlcpy(usr.shell, "<NA>", sizeof(usr.shell));
+	return &usr;
 }
 
 void sinsp_threadinfo::set_args(const char* args, size_t len) {

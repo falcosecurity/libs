@@ -28,7 +28,7 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry) {
 
 	open_inspector();
 
-	m_inspector.m_usergroup_manager.add_user("", INIT_TID, 1000, 1000, "foo", "/bar", "/bin/bash");
+	m_inspector.m_usergroup_manager.add_user("", INIT_TID, 1000, 1000, "foo", "/foo", "/bin/bash");
 
 	std::string path = "/home/file.txt";
 	int64_t fd = 3;
@@ -43,13 +43,33 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry) {
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "1000");
 	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "user.name"), "foo");
+	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "/foo");
+	ASSERT_EQ(get_field_as_string(evt, "user.shell"), "/bin/bash");
+	// Loginname default at root for 0 uid without an user entry in user group manager.
+	ASSERT_EQ(get_field_as_string(evt, "user.loginname"), "root");
+
+	// Now remove the user
+	m_inspector.m_usergroup_manager.rm_user("", 1000);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "1000");
+	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "user.name"), "<NA>");
+	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "<NA>");
+	ASSERT_EQ(get_field_as_string(evt, "user.shell"), "<NA>");
+	// Loginname default at root for 0 uid without an user entry in user group manager.
+	ASSERT_EQ(get_field_as_string(evt, "user.loginname"), "root");
+
+	// Add back a new user
+	m_inspector.m_usergroup_manager.add_user("", INIT_TID, 1000, 1000, "bar", "/bar", "/bin/bash");
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "1000");
+	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "user.name"), "bar");
 	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "/bar");
 	ASSERT_EQ(get_field_as_string(evt, "user.shell"), "/bin/bash");
 	// Loginname default at root for 0 uid without an user entry in user group manager.
 	ASSERT_EQ(get_field_as_string(evt, "user.loginname"), "root");
 }
 
-TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_unexistent_user_entry) {
+TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_default_user_entry) {
 	add_default_init_thread();
 
 	open_inspector();
@@ -57,6 +77,10 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_unexistent_user_entry) {
 	// The entry gets created when the inspector is opened and its threadtable created.
 	// Since default thread uid is 0, the entry is created with "root" name and "/root" homedir.
 	ASSERT_NE(m_inspector.m_usergroup_manager.get_user("", 0), nullptr);
+
+	// remove the loaded "root" user to test defaults for uid 0
+	m_inspector.m_usergroup_manager.rm_user("", 0);
+	ASSERT_EQ(m_inspector.m_usergroup_manager.get_user("", 0), nullptr);
 
 	std::string path = "/home/file.txt";
 	int64_t fd = 3;
@@ -74,6 +98,7 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_unexistent_user_entry) {
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "user.name"), "root");
 	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "/root");
+	ASSERT_EQ(get_field_as_string(evt, "user.shell"), "<NA>");
 }
 
 TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry_without_metadata) {
@@ -83,7 +108,7 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry_witho
 
 	// Creating the entry in the user group manager will override
 	// the one created by the inspector threadtable initial load.
-	// Since we set empty metadata, we don't expect any metadata in the output fields.
+	// Since we set "" metadatas, we don't expect any metadata in the output fields.
 	m_inspector.m_usergroup_manager.add_user("", INIT_TID, 0, 0, "", "", "");
 
 	std::string path = "/home/file.txt";
@@ -99,4 +124,30 @@ TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_existent_user_entry_witho
 	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "user.name"), "");
 	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "");
+	ASSERT_EQ(get_field_as_string(evt, "user.shell"), "");
+}
+
+TEST_F(sinsp_with_test_input, USER_FILTER_extract_from_loaded_user_entry) {
+	add_default_init_thread();
+
+	open_inspector();
+
+	// Creating the entry in the user group manager will override
+	// the one created by the inspector threadtable initial load.
+	// Since we set **empty** metadata, we expect metadata to be loaded from the system.
+	m_inspector.m_usergroup_manager.add_user("", INIT_TID, 0, 0, {}, {}, {});
+
+	std::string path = "/home/file.txt";
+	int64_t fd = 3;
+
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                INIT_TID,
+	                                PPME_SYSCALL_OPEN_E,
+	                                fd,
+	                                path.c_str(),
+	                                (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
+	                                (uint32_t)0);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "user.name"), "root");
+	ASSERT_EQ(get_field_as_string(evt, "user.homedir"), "/root");
 }
