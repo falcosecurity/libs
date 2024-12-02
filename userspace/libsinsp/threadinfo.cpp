@@ -551,6 +551,7 @@ void sinsp_threadinfo::set_group(uint32_t gid) {
 	scap_groupinfo* group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
 	if(!group) {
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		// For uid 0 force set root related infos
 		std::string name;
 		if(gid == 0) {
 			name = "root";
