@@ -26,6 +26,7 @@ limitations under the License.
 #include <string>
 #include <stdexcept>
 #include <memory>
+#include <libscap/scap-int.h>
 
 typedef std::shared_ptr<scap_evt> safe_scap_evt_t;
 
@@ -35,8 +36,6 @@ static inline safe_scap_evt_t safe_scap_evt(scap_evt *evt) {
 
 // use a shared pointer to store the events
 static std::unordered_map<uint64_t, safe_scap_evt_t> evt_storage = {};
-
-extern const struct ppm_event_info g_event_info[];
 
 static const char *get_event_name(ppm_event_code event_type) {
 	const struct ppm_event_info *event_info = &g_event_info[event_type];
