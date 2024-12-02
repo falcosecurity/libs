@@ -271,18 +271,12 @@ public:
 	  creating them can increase the startup time. Moreover, they contain
 	  information that could be privacy sensitive.
 
-	  \param user_details if set to false, no extended user information will be
-	  stored in sinsp_threadinfo, only user id/group id will be available. By
-	  default thread information is enriched with the full set of user
-	  information, i.e. name, homedir, shell, group name. The parameter
-	  controls this behavior, an can be used to reduce memory footprint.
-
 	  \note default behavior is import_users=true, user_details=true
 
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void set_import_users(bool import_users, bool user_details = true);
+	void set_import_users(bool import_users);
 
 	/*!
 	  \brief temporarily pauses event capture.
@@ -737,11 +731,6 @@ public:
 	  \brief Returns true if the debug mode is enabled.
 	*/
 	inline bool is_debug_enabled() const { return m_isdebug_enabled; }
-
-	/*!
-	  \brief Returns true if extended user information is collected.
-	*/
-	inline bool is_user_details_enabled() { return m_usergroup_manager.m_user_details_enabled; }
 
 	/*!
 	  \brief Set a flag indicating if the command line requested to show container information.

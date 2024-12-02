@@ -152,8 +152,6 @@ public:
 	//
 	bool m_import_users;
 
-	bool m_user_details_enabled;
-
 private:
 	scap_userinfo *add_host_user(uint32_t uid,
 	                             uint32_t gid,
