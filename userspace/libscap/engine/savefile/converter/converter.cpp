@@ -305,7 +305,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 	uint16_t params_offset = 0;
 	int param_to_populate = 0;
 
-	switch(ci.action) {
+	switch(ci.m_action) {
 	case C_ACTION_SKIP:
 		return CONVERSION_SKIP;
 
@@ -316,7 +316,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 	case C_ACTION_ADD_PARAMS:
 		memcpy(new_evt, evt_to_convert, sizeof(scap_evt));
 		// The new number of params is the previous one plus the number of conversion instructions.
-		new_evt->nparams = evt_to_convert->nparams + ci.instr.size();
+		new_evt->nparams = evt_to_convert->nparams + ci.m_instrs.size();
 		params_offset = copy_old_params(new_evt, evt_to_convert);
 		param_to_populate = evt_to_convert->nparams;
 		break;
@@ -324,14 +324,14 @@ static conversion_result convert_event(scap_evt *new_evt,
 	case C_ACTION_CHANGE_TYPE:
 		memcpy(new_evt, evt_to_convert, sizeof(scap_evt));
 		// The new number of params is the number of conversion instructions.
-		new_evt->nparams = ci.instr.size();
-		new_evt->type = ci.desired_type;
+		new_evt->nparams = ci.m_instrs.size();
+		new_evt->type = ci.m_desired_type;
 		params_offset = sizeof(scap_evt) + new_evt->nparams * sizeof(uint16_t);
 		param_to_populate = 0;
 		break;
 
 	default:
-		snprintf(error, SCAP_LASTERR_SIZE, "Unhandled conversion action '%d'.", ci.action);
+		snprintf(error, SCAP_LASTERR_SIZE, "Unhandled conversion action '%d'.", ci.m_action);
 		return CONVERSION_ERROR;
 	}
 
@@ -347,10 +347,10 @@ static conversion_result convert_event(scap_evt *new_evt,
 	bool used_enter_event = false;
 
 	// We iterate over the instructions
-	for(int i = 0; i < ci.instr.size(); i++, param_to_populate++) {
+	for(int i = 0; i < ci.m_instrs.size(); i++, param_to_populate++) {
 		PRINT_MESSAGE("Instruction n° %d. Param to populate: %d\n", i, param_to_populate);
 
-		switch(ci.instr[i].flags) {
+		switch(ci.m_instrs[i].flags) {
 		case C_INSTR_FROM_DEFAULT:
 			tmp_evt = NULL;
 			break;
@@ -383,14 +383,14 @@ static conversion_result convert_event(scap_evt *new_evt,
 
 		case C_INSTR_FROM_OLD:
 			tmp_evt = evt_to_convert;
-			if(tmp_evt->nparams <= ci.instr[i].param_num) {
+			if(tmp_evt->nparams <= ci.m_instrs[i].param_num) {
 				// todo!: this sounds like an error but let's see in the future. At the moment we
 				// fail
 				snprintf(error,
 				         SCAP_LASTERR_SIZE,
 				         "We want to take parameter '%d' from event '%d' but this event has only "
 				         "'%d' parameters!",
-				         ci.instr[i].param_num,
+				         ci.m_instrs[i].param_num,
 				         tmp_evt->type,
 				         tmp_evt->nparams);
 				return CONVERSION_ERROR;
@@ -401,8 +401,8 @@ static conversion_result convert_event(scap_evt *new_evt,
 			snprintf(error,
 			         SCAP_LASTERR_SIZE,
 			         "Unknown instruction (flags: %d, param_num: %d).",
-			         ci.instr[i].flags,
-			         ci.instr[i].param_num);
+			         ci.m_instrs[i].flags,
+			         ci.m_instrs[i].param_num);
 			return CONVERSION_ERROR;
 		}
 
@@ -413,7 +413,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 			               tmp_evt,
 			               &params_offset,
 			               param_to_populate,
-			               ci.instr[i].param_num);
+			               ci.m_instrs[i].param_num);
 		}
 	}
 

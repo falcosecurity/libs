@@ -62,7 +62,22 @@ struct hash<conversion_key> {
 }  // namespace std
 
 struct conversion_info {
-	uint8_t action = 0;
-	uint16_t desired_type = 0;  // Needed only when action is `C_ACTION_CHANGE_TYPE`
-	std::vector<conversion_instruction> instr = {};
+	uint8_t m_action = 0;
+	uint16_t m_desired_type = 0;  // Needed only when action is `C_ACTION_CHANGE_TYPE`
+	std::vector<conversion_instruction> m_instrs = {};
+
+	conversion_info& action(conversion_action a) {
+		m_action = (uint8_t)a;
+		return *this;
+	};
+
+	conversion_info& desired_type(uint16_t t) {
+		m_desired_type = t;
+		return *this;
+	};
+
+	conversion_info& instrs(std::vector<conversion_instruction> i) {
+		m_instrs = i;
+		return *this;
+	};
 };

@@ -20,21 +20,20 @@ limitations under the License.
 #include <driver/ppm_events_public.h>
 #include <converter/table.h>
 
+// We cannot use designated initializers, we need c++20
 const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
-        ////////////////////////////
-        // READ
-        ////////////////////////////
-        {conversion_key{PPME_SYSCALL_READ_E, 2}, conversion_info{.action = C_ACTION_STORE}},
+        /*====================== READ ======================*/
+        {conversion_key{PPME_SYSCALL_READ_E, 2}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_READ_X, 2},
-         conversion_info{.action = C_ACTION_ADD_PARAMS,
-                         .instr = {{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}}}},
-        ////////////////////////////
-        // PREAD
-        ////////////////////////////
-        {conversion_key{PPME_SYSCALL_PREAD_E, 3}, conversion_info{.action = C_ACTION_STORE}},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
+        /*====================== PREAD ======================*/
+        {conversion_key{PPME_SYSCALL_PREAD_E, 3}, conversion_info().action(C_ACTION_STORE)},
         {conversion_key{PPME_SYSCALL_PREAD_X, 2},
-         conversion_info{.action = C_ACTION_ADD_PARAMS,
-                         .instr = {{C_INSTR_FROM_ENTER, 0},
-                                   {C_INSTR_FROM_ENTER, 1},
-                                   {C_INSTR_FROM_ENTER, 2}}}},
+         conversion_info()
+                 .action(C_ACTION_ADD_PARAMS)
+                 .instrs({{C_INSTR_FROM_ENTER, 0},
+                          {C_INSTR_FROM_ENTER, 1},
+                          {C_INSTR_FROM_ENTER, 2}})},
 };
