@@ -116,12 +116,66 @@ static char *get_param_ptr(scap_evt *evt, uint8_t num_param) {
 	return ptr + ptr_off;
 }
 
+static inline uint8_t get_size_bytes_from_type(enum ppm_param_type t) {
+	switch(t) {
+	case PT_INT8:
+	case PT_UINT8:
+	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
+		return 1;
+
+	case PT_INT16:
+	case PT_UINT16:
+	case PT_FLAGS16:
+	case PT_ENUMFLAGS16:
+	case PT_SYSCALLID:
+		return 2;
+
+	case PT_INT32:
+	case PT_UINT32:
+	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
+	case PT_UID:
+	case PT_GID:
+	case PT_MODE:
+		return 4;
+
+	case PT_INT64:
+	case PT_UINT64:
+	case PT_RELTIME:
+	case PT_ABSTIME:
+	case PT_ERRNO:
+	case PT_FD:
+	case PT_PID:
+		return 8;
+
+	case PT_BYTEBUF:
+	case PT_CHARBUF:
+	case PT_SOCKADDR:
+	case PT_SOCKTUPLE:
+	case PT_FDLIST:
+	case PT_FSPATH:
+	case PT_CHARBUFARRAY:
+	case PT_CHARBUF_PAIR_ARRAY:
+	case PT_FSRELPATH:
+	case PT_DYN:
+		return 0;
+
+	default:
+		// We forgot to handle something
+		assert(false);
+		break;
+	}
+	assert(false);
+	return 0;
+}
+
 // This writes len + the param
 static void push_default_parameter(scap_evt *evt, uint16_t *params_offset, uint8_t param_num) {
 	// Please ensure that `new_evt->type` is already the final type you want to obtain.
 	// Otherwise we will access the wrong entry in the event table.
 	const struct ppm_event_info *event_info = &(g_event_info[evt->type]);
-	uint16_t len = scap_get_size_bytes_from_type(event_info->params[param_num].type);
+	uint16_t len = get_size_bytes_from_type(event_info->params[param_num].type);
 	uint16_t lens_offset = sizeof(scap_evt) + param_num * sizeof(uint16_t);
 
 	PRINT_MESSAGE(
