@@ -356,60 +356,6 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf,
 	return SCAP_SUCCESS;
 }
 
-uint8_t scap_get_size_bytes_from_type(enum ppm_param_type t) {
-	switch(t) {
-	case PT_INT8:
-	case PT_UINT8:
-	case PT_FLAGS8:
-	case PT_ENUMFLAGS8:
-		return 1;
-
-	case PT_INT16:
-	case PT_UINT16:
-	case PT_FLAGS16:
-	case PT_ENUMFLAGS16:
-	case PT_SYSCALLID:
-		return 2;
-
-	case PT_INT32:
-	case PT_UINT32:
-	case PT_FLAGS32:
-	case PT_ENUMFLAGS32:
-	case PT_UID:
-	case PT_GID:
-	case PT_MODE:
-		return 4;
-
-	case PT_INT64:
-	case PT_UINT64:
-	case PT_RELTIME:
-	case PT_ABSTIME:
-	case PT_ERRNO:
-	case PT_FD:
-	case PT_PID:
-		return 8;
-
-	case PT_BYTEBUF:
-	case PT_CHARBUF:
-	case PT_SOCKADDR:
-	case PT_SOCKTUPLE:
-	case PT_FDLIST:
-	case PT_FSPATH:
-	case PT_CHARBUFARRAY:
-	case PT_CHARBUF_PAIR_ARRAY:
-	case PT_FSRELPATH:
-	case PT_DYN:
-		return 0;
-
-	default:
-		// We forgot to handle something
-		ASSERT(false);
-		break;
-	}
-	ASSERT(false);
-	return 0;
-}
-
 // This should be only used for testing purposes in production we should use directly `memcmp` for
 // the whole event
 bool scap_compare_events(scap_evt *curr, scap_evt *expected, char *error) {

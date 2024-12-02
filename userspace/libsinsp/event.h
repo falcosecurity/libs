@@ -750,10 +750,10 @@ public:
 		}
 
 		// the only return values should be on 32 or 64 bits
-		switch(scap_get_size_bytes_from_type(p->get_info()->type)) {
-		case 4:
+		switch(p->m_len) {
+		case sizeof(int32_t):
 			return (int64_t)p->as<int32_t>();
-		case 8:
+		case sizeof(int64_t):
 			return p->as<int64_t>();
 		default:
 			ASSERT(false);
