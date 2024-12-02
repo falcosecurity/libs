@@ -535,8 +535,14 @@ void sinsp_threadinfo::set_user(uint32_t uid) {
 	scap_userinfo* user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
 	if(!user) {
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		std::string name, home;
+		// For uid 0 force set root related infos
+		if(uid == 0) {
+			name = "root";
+			home = "/root";
+		}
 		m_inspector->m_usergroup_manager
-		        .add_user(m_container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
+		        .add_user(m_container_id, m_pid, uid, m_gid, name, home, {}, notify);
 	}
 }
 
@@ -545,7 +551,11 @@ void sinsp_threadinfo::set_group(uint32_t gid) {
 	scap_groupinfo* group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
 	if(!group) {
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-		m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, {}, notify);
+		std::string name;
+		if(gid == 0) {
+			name = "root";
+		}
+		m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, name, notify);
 	}
 }
 
