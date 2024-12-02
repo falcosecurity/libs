@@ -608,8 +608,6 @@ private:
 	                  uint32_t& alen,
 	                  std::string& rem) const;
 
-	scap_userinfo* get_user(uint32_t id) const;
-
 	//
 	// Parameters that can't be accessed directly because they could be in the
 	// parent thread info
