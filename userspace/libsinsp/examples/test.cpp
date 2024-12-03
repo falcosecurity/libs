@@ -55,13 +55,16 @@ static bool ppm_sc_modifies_state = false;
 static bool ppm_sc_repair_state = false;
 static bool ppm_sc_state_remove_io_sc = false;
 static bool enable_glogger = false;
-static string engine_string = KMOD_ENGINE; /* Default for backward compatibility. */
+static string engine_string;
 static string filter_string = "";
 static string file_path = "";
 static string bpf_path = "";
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint64_t max_events = UINT64_MAX;
-static sinsp_filter_check_list s_filterlist;
+static std::shared_ptr<sinsp_plugin> plugin;
+static std::string open_params;  // for source plugins, its open params
+static std::unique_ptr<filter_check_list> filter_list;
+static std::shared_ptr<sinsp_filter_factory> filter_factory;
 
 sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error);
 
@@ -74,6 +77,8 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 #define PROCESS_DEFAULTS \
 	EVENT_HEADER "ppid=%proc.ppid exe=%proc.exe args=[%proc.cmdline] " EVENT_TRAILER
 
+#define PLUGIN_DEFAULTS "%evt.num %evt.time [%evt.pluginname] %evt.plugininfo"
+
 #define JSON_PROCESS_DEFAULTS                                                                   \
 	"*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe " \
 	"%proc.cmdline %evt.args"
@@ -81,10 +86,12 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 std::string default_output = EVENT_DEFAULTS;
 std::string process_output = PROCESS_DEFAULTS;
 std::string net_output = PROCESS_DEFAULTS " %fd.name";
+std::string plugin_output = PLUGIN_DEFAULTS;
 
 static std::unique_ptr<sinsp_evt_formatter> default_formatter = nullptr;
 static std::unique_ptr<sinsp_evt_formatter> process_formatter = nullptr;
 static std::unique_ptr<sinsp_evt_formatter> net_formatter = nullptr;
+static std::unique_ptr<sinsp_evt_formatter> plugin_evt_formatter = nullptr;
 
 static void sigint_handler(int signum) {
 	g_interrupted = true;
@@ -104,6 +111,7 @@ Options:
   -m, --modern_bpf                           modern BPF probe.
   -k, --kmod                                 Kernel module
   -s <path>, --scap_file <path>              Scap file
+  -p <path>, --plugin <path>                 Plugin. Path can follow the pattern "filepath.so|init_cfg|open_params".
   -d <dim>, --buffer_dim <dim>               Dimension in bytes that every per-CPU buffer will have.
   -o <fields>, --output-fields <fields>      Output fields string (see <filter> for supported display fields) that overwrites default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
   -E, --exclude-users                        Don't create the user/group tables
@@ -117,6 +125,15 @@ Options:
 	cout << usage << endl;
 }
 
+static void select_engine(const char* select) {
+	if(!engine_string.empty()) {
+		std::cerr << "While selecting " << select
+		          << ": another engine was previously selected: " << engine_string << endl;
+		exit(EXIT_FAILURE);
+	}
+	engine_string = select;
+}
+
 #ifndef _WIN32
 // Parse CLI options.
 void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
@@ -128,6 +145,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	                                       {"modern_bpf", no_argument, 0, 'm'},
 	                                       {"kmod", no_argument, 0, 'k'},
 	                                       {"scap_file", required_argument, 0, 's'},
+	                                       {"plugin", required_argument, 0, 'p'},
 	                                       {"buffer_dim", required_argument, 0, 'd'},
 	                                       {"output-fields", required_argument, 0, 'o'},
 	                                       {"exclude-users", no_argument, 0, 'E'},
@@ -142,7 +160,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 	bool format_set = false;
 	int op;
 	int long_index = 0;
-	while((op = getopt_long(argc, argv, "hf:jab:mks:d:o:En:zxqgr", long_options, &long_index)) !=
+	while((op = getopt_long(argc, argv, "hf:jab:mks:p:d:o:En:zxqgr", long_options, &long_index)) !=
 	      -1) {
 		switch(op) {
 		case 'h':
@@ -157,6 +175,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 				default_output = DEFAULT_OUTPUT_STR;
 				process_output = JSON_PROCESS_DEFAULTS;
 				net_output = JSON_PROCESS_DEFAULTS " %fd.name";
+				plugin_output = PLUGIN_DEFAULTS;
 			}
 			inspector.set_buffer_format(sinsp_evt::PF_JSON);
 			break;
@@ -164,19 +183,47 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			g_all_threads = true;
 			break;
 		case 'b':
-			engine_string = BPF_ENGINE;
+			select_engine(BPF_ENGINE);
 			bpf_path = optarg;
 			break;
 		case 'm':
-			engine_string = MODERN_BPF_ENGINE;
+			select_engine(MODERN_BPF_ENGINE);
 			break;
 		case 'k':
-			engine_string = KMOD_ENGINE;
+			select_engine(KMOD_ENGINE);
 			break;
 		case 's':
-			engine_string = SAVEFILE_ENGINE;
+			select_engine(SAVEFILE_ENGINE);
 			file_path = optarg;
 			break;
+		case 'p': {
+			std::string pluginpath = optarg;
+			size_t cpos = pluginpath.find('|');
+			std::string init_config;
+			// Extract init config from string if present
+			if(cpos != std::string::npos) {
+				init_config = pluginpath.substr(cpos + 1);
+				pluginpath = pluginpath.substr(0, cpos);
+			}
+			cpos = init_config.find('|');
+			if(cpos != std::string::npos) {
+				open_params = init_config.substr(cpos + 1);
+				init_config = init_config.substr(0, cpos);
+			}
+			plugin = inspector.register_plugin(pluginpath);
+			if(std::string err; !plugin->init(init_config, err)) {
+				std::cerr << "Error while initing plugin: " << err << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			if(plugin->caps() & CAP_SOURCING) {
+				select_engine(SOURCE_PLUGIN_ENGINE);
+				filter_list->add_filter_check(inspector.new_generic_filtercheck());
+			}
+			if(plugin->caps() & CAP_EXTRACTION) {
+				filter_list->add_filter_check(sinsp_plugin::new_filtercheck(plugin));
+			}
+			break;
+		}
 		case 'd':
 			buffer_bytes_dim = strtoul(optarg, NULL, 10);
 			break;
@@ -184,6 +231,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv) {
 			default_output = optarg;
 			process_output = optarg;
 			net_output = optarg;
+			plugin_output = optarg;
 			format_set = true;
 			break;
 		case 'E':
@@ -294,6 +342,14 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 		inspector.open_modern_bpf(buffer_bytes_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true, ppm_sc);
 	}
 #endif
+#ifdef HAS_ENGINE_SOURCE_PLUGIN
+	else if(!engine_string.compare(SOURCE_PLUGIN_ENGINE)) {
+		inspector.open_plugin(plugin->name(),
+		                      "",
+		                      plugin->id() == 0 ? sinsp_plugin_platform::SINSP_PLATFORM_FULL
+		                                        : sinsp_plugin_platform::SINSP_PLATFORM_HOSTINFO);
+	}
+#endif
 	else {
 		std::cerr << "Unknown engine" << std::endl;
 		exit(EXIT_FAILURE);
@@ -357,8 +413,15 @@ error:
 int main(int argc, char** argv) {
 	sinsp inspector;
 
+	filter_list.reset(new sinsp_filter_check_list());
+	filter_factory.reset(new sinsp_filter_factory(&inspector, *filter_list.get()));
+
 #ifndef _WIN32
 	parse_CLI_options(inspector, argc, argv);
+	if(engine_string.empty()) {
+		// Default for backward compat
+		select_engine(KMOD_ENGINE);
+	}
 
 #ifdef __linux__
 	// Try inserting the kernel module
@@ -382,7 +445,9 @@ int main(int argc, char** argv) {
 
 	if(!filter_string.empty()) {
 		try {
-			inspector.set_filter(filter_string);
+			sinsp_filter_compiler compiler(filter_factory, filter_string);
+			std::unique_ptr<sinsp_filter> s = compiler.compile();
+			inspector.set_filter(std::move(s), filter_string);
 		} catch(const sinsp_exception& e) {
 			cerr << "[ERROR] Unable to set filter: " << e.what() << endl;
 		}
@@ -403,10 +468,13 @@ int main(int argc, char** argv) {
 	inspector.start_capture();
 
 	default_formatter =
-	        std::make_unique<sinsp_evt_formatter>(&inspector, default_output, s_filterlist);
+	        std::make_unique<sinsp_evt_formatter>(&inspector, default_output, *filter_list.get());
 	process_formatter =
-	        std::make_unique<sinsp_evt_formatter>(&inspector, process_output, s_filterlist);
-	net_formatter = std::make_unique<sinsp_evt_formatter>(&inspector, net_output, s_filterlist);
+	        std::make_unique<sinsp_evt_formatter>(&inspector, process_output, *filter_list.get());
+	net_formatter =
+	        std::make_unique<sinsp_evt_formatter>(&inspector, net_output, *filter_list.get());
+	plugin_evt_formatter =
+	        std::make_unique<sinsp_evt_formatter>(&inspector, plugin_output, *filter_list.get());
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	uint64_t num_events = 0;
@@ -467,6 +535,8 @@ void formatted_dump(sinsp&, sinsp_evt* ev) {
 	} else if(ev->get_category() == EC_NET || ev->get_category() == EC_IO_READ ||
 	          ev->get_category() == EC_IO_WRITE) {
 		net_formatter->tostring(ev, output);
+	} else if(ev->get_info()->category & EC_PLUGIN) {
+		plugin_evt_formatter->tostring(ev, output);
 	} else {
 		default_formatter->tostring(ev, output);
 	}
