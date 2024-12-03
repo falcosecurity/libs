@@ -13,6 +13,19 @@ limitations under the License.
 */
 #include "convert_event_test.h"
 
+TEST_F(convert_event_test, conversion_not_needed) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+	const char data[] = "hello world";
+
+	auto evt = create_safe_scap_event(ts,
+	                                  tid,
+	                                  PPME_CONTAINER_JSON_2_E,
+	                                  1,
+	                                  scap_const_sized_buffer{&data, strlen(data) + 1});
+	assert_single_conversion_failure(evt);
+}
+
 ////////////////////////////
 // READ
 ////////////////////////////

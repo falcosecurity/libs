@@ -253,6 +253,10 @@ static uint16_t copy_old_params(scap_evt *new_evt, scap_evt *evt_to_convert) {
 	return new_evt_offset + size_to_copy;
 }
 
+static bool is_large_payload(scap_evt *evt_to_convert) {
+	return g_event_info[evt_to_convert->type].flags & EF_LARGE_PAYLOAD;
+}
+
 extern "C" bool is_conversion_needed(scap_evt *evt_to_convert) {
 	assert(evt_to_convert->type < PPM_EVENT_MAX);
 	const struct ppm_event_info *event_info = &(g_event_info[evt_to_convert->type]);
@@ -297,6 +301,15 @@ static conversion_result convert_event(scap_evt *new_evt,
                                        scap_evt *evt_to_convert,
                                        const conversion_info &ci,
                                        char *error) {
+	// todo!: add the support for large payload events if we need to handle at least one of them.
+	if(is_large_payload(evt_to_convert)) {
+		snprintf(error,
+		         SCAP_LASTERR_SIZE,
+		         "The event '%d' has a large payload. We don't support it yet.",
+		         evt_to_convert->type);
+		return CONVERSION_ERROR;
+	}
+
 	/////////////////////////////
 	// Dispatch the action
 	/////////////////////////////
