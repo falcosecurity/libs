@@ -359,6 +359,20 @@ sinsp_evt* sinsp_with_test_input::generate_getcwd_failed_entry_event(int64_t tid
 	                            path.c_str());
 }
 
+sinsp_evt* sinsp_with_test_input::generate_open_x_event(sinsp_test_input::open_params params,
+                                                        int64_t tid_caller) {
+	return add_event_advance_ts(increasing_ts(),
+	                            tid_caller,
+	                            PPME_SYSCALL_OPEN_X,
+	                            6,
+	                            params.fd,
+	                            params.path,
+	                            params.flags,
+	                            params.mode,
+	                            params.dev,
+	                            params.ino);
+}
+
 //=============================== PROCESS GENERATION ===========================
 
 void sinsp_with_test_input::add_thread(const scap_threadinfo& tinfo,

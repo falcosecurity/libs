@@ -34,6 +34,23 @@ limitations under the License.
 #define INIT_PID INIT_TID
 #define INIT_PTID 0
 
+namespace sinsp_test_input {
+struct open_params {
+	static constexpr int32_t default_fd = 4;
+	static constexpr const char* default_path = "/home/file.txt";
+	// Used for some filter checks
+	static constexpr const char* default_directory = "/home";
+	static constexpr const char* default_filename = "file.txt";
+
+	int32_t fd = default_fd;
+	const char* path = default_path;
+	uint32_t flags = 0;
+	uint32_t mode = 0;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
+};
+}  // namespace sinsp_test_input
+
 class sinsp_with_test_input : public ::testing::Test {
 protected:
 	sinsp_with_test_input();
@@ -192,6 +209,8 @@ protected:
 	sinsp_evt* generate_proc_exit_event(int64_t tid_to_remove, int64_t reaper_tid);
 	sinsp_evt* generate_random_event(int64_t tid_caller = INIT_TID);
 	sinsp_evt* generate_getcwd_failed_entry_event(int64_t tid_caller = INIT_TID);
+	sinsp_evt* generate_open_x_event(sinsp_test_input::open_params params = {},
+	                                 int64_t tid_caller = INIT_TID);
 
 	//=============================== PROCESS GENERATION ===========================
 
