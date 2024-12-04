@@ -178,6 +178,7 @@ private:
 	inline bool lex_helper_rgx(const re2::RE2& rgx);
 	inline bool lex_helper_str(const std::string& str);
 	inline bool lex_helper_str_list(const std::vector<std::string>& list);
+	inline bool lex_helper_operator_list(const std::vector<std::string>& list);
 	inline const char* cursor();
 	inline std::string trim_str(std::string str);
 
