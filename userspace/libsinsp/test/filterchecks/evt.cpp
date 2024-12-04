@@ -23,12 +23,15 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create) {
 
 	open_inspector();
 
+	std::string path = "/home/file.txt";
+	int64_t fd = 3;
+
 	// In the enter event we don't send the `PPM_O_F_CREATED`
 	sinsp_evt* evt = add_event_advance_ts(increasing_ts(),
 	                                      1,
 	                                      PPME_SYSCALL_OPEN_E,
 	                                      3,
-	                                      sinsp_test_input::open_params::default_path,
+	                                      path.c_str(),
 	                                      (uint32_t)PPM_O_RDWR | PPM_O_CREAT,
 	                                      (uint32_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_open_create"), "false");
@@ -36,12 +39,20 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_is_open_create) {
 	// The `fdinfo` is not populated in the enter event
 	ASSERT_FALSE(evt->get_fd_info());
 
-	uint32_t flags = PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED;
-	evt = generate_open_x_event(sinsp_test_input::open_params{.flags = flags});
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_OPEN_X,
+	                           6,
+	                           fd,
+	                           path.c_str(),
+	                           (uint32_t)PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED,
+	                           (uint32_t)0,
+	                           (uint32_t)5,
+	                           (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "evt.is_open_create"), "true");
 	ASSERT_TRUE(evt->get_fd_info());
 
-	ASSERT_EQ(evt->get_fd_info()->m_openflags, flags);
+	ASSERT_EQ(evt->get_fd_info()->m_openflags, PPM_O_RDWR | PPM_O_CREAT | PPM_O_F_CREATED);
 }
 
 TEST_F(sinsp_with_test_input, EVT_FILTER_is_lower_layer) {
