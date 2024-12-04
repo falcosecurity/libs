@@ -20,7 +20,7 @@ static void test_equal_ast(const string& in, expr* ast) {
 	}
 };
 
-static void test_accept(string in, ast::pos_info* out_pos = NULL) {
+static void do_test_accept(const std::string& in, ast::pos_info* out_pos = NULL) {
 	parser parser(in);
 	try {
 		parser.parse();
@@ -33,7 +33,28 @@ static void test_accept(string in, ast::pos_info* out_pos = NULL) {
 	}
 }
 
-static void test_reject(string in) {
+// if out_pos is not set, this will also play with whitespace combinations
+// to make sure the parser is resilient to line breaks, tabs, etc...
+static void test_accept(const std::string in, ast::pos_info* out_pos = NULL) {
+	do_test_accept(in, out_pos);
+	if(out_pos) {
+		return;
+	}
+
+	// add front and back spaces
+	auto new_input = " " + in + " ";
+	do_test_accept(new_input, out_pos);
+
+	// change all spaces to line breaks
+	std::replace(new_input.begin(), new_input.end(), ' ', '\n');
+	do_test_accept(new_input, out_pos);
+
+	// change all spaces to tabs
+	std::replace(new_input.begin(), new_input.end(), '\n', '\t');
+	do_test_accept(new_input, out_pos);
+}
+
+static void test_reject(const std::string in) {
 	parser parser(in);
 	try {
 		parser.parse();
@@ -207,6 +228,8 @@ TEST(parser, parse_smoke_test) {
 }
 
 TEST(parser, parse_str) {
+	ast::pos_info tmp_pos{};
+
 	// valid bare strings
 	test_accept("test.str = testval");
 	test_accept("test.str = 0a!@#456:/\\.;!$%^&*[]{}|");
@@ -234,8 +257,8 @@ TEST(parser, parse_str) {
 	test_accept("test.str = 'multiple escape single quote \\' \\\\''");
 	test_accept("test.str = 'mixed \"'");
 	test_accept("test.str = \"mixed '\"");
-	test_accept("test.str = \"bad escape \\ \" ");  // todo(jasondellaluce): reject this case in the
-	                                                // future
+	test_accept("test.str = \"bad escape \\ \" ", &tmp_pos);  // todo(jasondellaluce): reject this
+	                                                          // case in the future
 
 	// invalid bare strings
 	test_reject("test.str = a,");
@@ -331,8 +354,11 @@ TEST(parser, parse_operators) {
 	test_accept("test.op exists and macro");
 	test_accept("test.op exists");
 	test_accept("test.op = value");
+	test_accept("test.op =value");
 	test_accept("test.op == value");
+	test_accept("test.op ==value");
 	test_accept("test.op != value");
+	test_accept("test.op !=value");
 	test_accept("test.op glob value");
 	test_accept("test.op iglob value");
 	test_accept("test.op contains value");
@@ -342,20 +368,28 @@ TEST(parser, parse_operators) {
 	test_accept("test.op bstartswith 12ab001fc5");
 	test_accept("test.op endswith value");
 	test_accept("test.op > 1");
+	test_accept("test.op >1");
 	test_accept("test.op < 1");
+	test_accept("test.op <1");
 	test_accept("test.op >= 1");
+	test_accept("test.op >=1");
 	test_accept("test.op <= 1");
+	test_accept("test.op <=1");
 	test_accept("test.op in ()");
-	test_accept("test.op intersects ()");
-	test_accept("test.op pmatch ()");
 	test_accept("test.op in()");
+	test_accept("test.op intersects ()");
+	test_accept("test.op intersects()");
+	test_accept("test.op pmatch ()");
+	test_accept("test.op pmatch()");
 
 	// invalid operators
 	test_accept("test.op existsand macro");
 	test_reject("test.op ExIsTs");
 	test_reject("test.op exists something");
 	test_reject("test.op ===");
+	test_reject("test.op === value");
 	test_reject("test.op !==");
+	test_reject("test.op !== value");
 	test_reject("test.op startswithvalue");
 	test_reject("test.op bstartswithvalue");
 	test_reject("test.op endswithvalue");
@@ -364,6 +398,13 @@ TEST(parser, parse_operators) {
 	test_reject("test.op bcontainsvalue");
 	test_reject("test.op globvalue");
 	test_reject("test.op iglobvalue");
+	test_reject("test.op >");
+	test_reject("test.op <");
+	test_reject("test.op >=");
+	test_reject("test.op <=");
+	test_reject("test.op in");
+	test_reject("test.op intersects");
+	test_reject("test.op pmatch");
 }
 
 TEST(parser, parse_transformers_left_hand) {
@@ -391,22 +432,15 @@ TEST(parser, parse_transformers_left_hand) {
 	// valid uses of left-hand transformers (mixed, nested, with spaces)
 	test_accept("b64(toupper(test.field)) exists");
 	test_accept("toupper(b64(test.field)) exists");
-	test_accept(" b64(test.field) exists");
-	test_accept("\nb64(test.field) exists");
 	test_accept("b64( test.field) exists");
-	test_accept("b64(\ntest.field) exists");
 	test_accept("b64(test.field ) exists");
-	test_accept("b64(test.field\n) exists");
-	test_accept("b64(test.field)\n exists");
+	test_accept("b64(test.field)  exists");
 	test_accept("b64(b64(test.field)) exists");
 	test_accept("b64( b64(test.field)) exists");
-	test_accept("b64(\nb64(test.field)) exists");
 	test_accept("b64(b64( test.field)) exists");
-	test_accept("b64(b64(\ntest.field)) exists");
 	test_accept("b64(b64(test.field )) exists");
-	test_accept("b64(b64(test.field\n)) exists");
-	test_accept("b64(b64(test.field)\n) exists");
-	test_accept("b64(b64(test.field))\n exists");
+	test_accept("b64(b64(test.field) ) exists");
+	test_accept("b64(b64(test.field))  exists");
 
 	// invalid use of "val" left-hand transformers (can't be used in left-hand fields)
 	test_reject("val(test.field) exists");
@@ -504,19 +538,13 @@ TEST(parser, parse_transformers_right_hand) {
 	test_accept("some.field = b64(toupper(test.field))");
 	test_accept("some.field = toupper(b64(test.field))");
 	test_accept("some.field = b64( test.field)");
-	test_accept("some.field = b64(\ntest.field)");
 	test_accept("some.field = b64(test.field )");
-	test_accept("some.field = b64(test.field\n)");
-	test_accept("some.field = b64(test.field)\n");
+	test_accept("some.field = b64(test.field)");
 	test_accept("some.field = b64(b64(test.field))");
 	test_accept("some.field = b64( b64(test.field))");
-	test_accept("some.field = b64(\nb64(test.field))");
 	test_accept("some.field = b64(b64( test.field))");
-	test_accept("some.field = b64(b64(\ntest.field))");
 	test_accept("some.field = b64(b64(test.field ))");
-	test_accept("some.field = b64(b64(test.field\n))");
-	test_accept("some.field = b64(b64(test.field)\n)");
-	test_accept("some.field = b64(b64(test.field))\n");
+	test_accept("some.field = b64(b64(test.field) )");
 
 	// testing left-hand transformers together with right-hand transformers
 	test_accept("tolower(some.field) = b64(test.field)");
