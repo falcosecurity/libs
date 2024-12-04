@@ -56,6 +56,79 @@ limitations under the License.
  */
 #define DEFAULT_ASYNC_EVENT_QUEUE_SIZE 1000
 
+// Small sinsp event filter wrapper logic
+// that uses RAII to eventually filter out events.
+struct sinsp_evt_filter {
+	bool do_filter_later;
+	sinsp_evt* evt;
+
+	explicit sinsp_evt_filter(sinsp_evt* e): do_filter_later(false), evt(e) {
+		//
+		// Filtering
+		//
+		const auto inspector = evt->get_inspector();
+		const bool is_live = inspector->is_live() || inspector->is_syscall_plugin();
+		const uint16_t etype = evt->get_type();
+
+		evt->set_filtered_out(false);
+
+		//
+		// When debug mode is not enabled, filter out events about itself
+		//
+		if(is_live && !inspector->is_debug_enabled()) {
+			if(evt->get_tid() == inspector->m_self_pid && etype != PPME_SCHEDSWITCH_1_E &&
+			   etype != PPME_SCHEDSWITCH_6_E && etype != PPME_DROP_E && etype != PPME_DROP_X &&
+			   etype != PPME_SCAPEVENT_E && etype != PPME_PROCINFO_E &&
+			   etype != PPME_CPU_HOTPLUG_E && inspector->m_self_pid) {
+				evt->set_filtered_out(true);
+				return;
+			}
+		}
+
+		if(inspector->m_filter) {
+			ppm_event_flags eflags = evt->get_info_flags();
+			if(eflags & EF_MODIFIES_STATE) {
+				do_filter_later = true;
+			} else {
+				if(!inspector->run_filters_on_evt(evt)) {
+					if(evt->get_tinfo() != NULL) {
+						if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E)) {
+							evt->get_tinfo()->set_lastevent_type(PPM_EVENT_MAX);
+						}
+					}
+					evt->set_filtered_out(true);
+				}
+			}
+		}
+	}
+
+	~sinsp_evt_filter() {
+		//
+		// With some state-changing events like clone, execve and open, we do the
+		// filtering after having updated the state
+		//
+		const auto inspector = evt->get_inspector();
+		if(do_filter_later) {
+			if(!inspector->run_filters_on_evt(evt)) {
+				evt->set_filtered_out(true);
+				return;
+			}
+			evt->set_filtered_out(false);
+		}
+
+		//
+		// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
+		// supposed to go through the engine, but they must be filtered out before
+		// reaching the user.
+		//
+		if(inspector->is_capture()) {
+			if(evt->get_dump_flags() & SCAP_DF_STATE_ONLY) {
+				evt->set_filtered_out(true);
+			}
+		}
+	}
+};
+
 int32_t on_new_entry_from_proc(void* context,
                                char* error,
                                int64_t tid,
