@@ -1216,19 +1216,32 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	}
 
 	//
-	// Run the state engine
+	// Cleanup the event-related state
 	//
-	m_parser->process_event(evt);
+	m_parser->reset(evt);
 
-	// run plugin-implemented parsers
-	// note: we run the parsers even if the event has been filtered out,
-	// because we have no guarantee that the plugin parsers will not use a given
-	// event for state updates. Sinsp understands this through the
-	// EF_MODIFIES_STATE flag, which however is only relevant in the context of
-	// the internal implementation of libsinsp.
-	for(auto& pp : m_plugin_parsers) {
-		// todo(jason): should we log parsing errors here?
-		pp.process_event(evt, m_event_sources);
+	// Since evt_filter object below uses RAII, create a new scope.
+	{
+		// Object that uses RAII to enable event filtered out flag
+		sinsp_evt_filter evt_filter(evt);
+
+		if(!evt->is_filtered_out()) {
+			//
+			// Run the state engine
+			//
+			m_parser->process_event(evt);
+		}
+
+		// run plugin-implemented parsers
+		// note: we run the parsers even if the event has been filtered out,
+		// because we have no guarantee that the plugin parsers will not use a given
+		// event for state updates. Sinsp understands this through the
+		// EF_MODIFIES_STATE flag, which however is only relevant in the context of
+		// the internal implementation of libsinsp.
+		for(auto& pp : m_plugin_parsers) {
+			// todo(jason): should we log parsing errors here?
+			pp.process_event(evt, m_event_sources);
+		}
 	}
 
 	// Finally set output evt;
@@ -1536,7 +1549,7 @@ std::string sinsp::get_filter() const {
 	return m_filterstring;
 }
 
-bool sinsp::run_filters_on_evt(sinsp_evt* evt) {
+bool sinsp::run_filters_on_evt(sinsp_evt* evt) const {
 	//
 	// First run the global filter, if there is one.
 	//
