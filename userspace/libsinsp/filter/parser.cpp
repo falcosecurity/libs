@@ -66,7 +66,8 @@ static const std::vector<std::string> s_unary_ops = {"exists"};
 
 static const std::vector<std::string> s_binary_num_ops = {"<=", "<", ">=", ">"};
 
-// todo(jasondellaluce): we should accept any blank after these (even line breaks)
+// note: by convention, we put a space at the end of operators requiring
+// a blank character after them (i.e. whitespace, line break, ...)
 static const std::vector<std::string> s_binary_str_ops = {
         "==",
         "=",
@@ -592,19 +593,19 @@ inline bool parser::lex_bare_str() {
 }
 
 inline bool parser::lex_unary_op() {
-	return lex_helper_str_list(s_unary_ops);
+	return lex_helper_operator_list(s_unary_ops);
 }
 
 inline bool parser::lex_num_op() {
-	return lex_helper_str_list(s_binary_num_ops);
+	return lex_helper_operator_list(s_binary_num_ops);
 }
 
 inline bool parser::lex_str_op() {
-	return lex_helper_str_list(s_binary_str_ops);
+	return lex_helper_operator_list(s_binary_str_ops);
 }
 
 inline bool parser::lex_list_op() {
-	return lex_helper_str_list(s_binary_list_ops);
+	return lex_helper_operator_list(s_binary_list_ops);
 }
 
 inline bool parser::lex_field_transformer_val() {
@@ -638,6 +639,25 @@ bool parser::lex_helper_str_list(const std::vector<std::string>& list) {
 	for(auto& op : list) {
 		if(lex_helper_str(op)) {
 			return true;
+		}
+	}
+	return false;
+}
+
+bool parser::lex_helper_operator_list(const std::vector<std::string>& list) {
+	for(auto& op : list) {
+		// if there's no ending whitespace, just parse the operator as-is
+		if(op.back() != ' ') {
+			if(lex_helper_str(op)) {
+				return true;
+			}
+			continue;
+		}
+
+		// if there's an ending whitespace, we need to make sure there's
+		// a blank after the operator (as long as we have an operator lexer match)
+		if(lex_helper_str(trim_str(op))) {
+			return lex_blank();
 		}
 	}
 	return false;
