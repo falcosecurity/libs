@@ -106,6 +106,10 @@ struct event_data_t {
 		struct {
 			struct pt_regs *regs;
 			long id;
+			struct {
+				long index;
+				long count;
+			} mmsg;
 		} syscall_data;
 
 		struct {
@@ -1788,6 +1792,10 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		if(unlikely(preload_params(&args, event_datap->extract_socketcall_params) == -1)) {
 			return res;
 		}
+
+		if(event_type == PPME_SOCKET_SENDMMSG_X || event_type == PPME_SOCKET_RECVMMSG_X) {
+			args.mmsg.index = event_datap->event_info.syscall_data.mmsg.index;
+		}
 	}
 
 	if(event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
@@ -2005,6 +2013,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 				       args.nargs);
 				ASSERT(0);
 			}
+		}
+
+		if(event_datap->category == PPMC_SYSCALL &&
+		   (event_type == PPME_SOCKET_SENDMMSG_X || event_type == PPME_SOCKET_RECVMMSG_X)) {
+			// Communicate the number of total messages to the caller
+			event_datap->event_info.syscall_data.mmsg.count = args.mmsg.count;
 		}
 	}
 
@@ -2316,6 +2330,27 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret) {
 	if(kmod_drop_syscall_exit_events(ret, event_pair->exit_event_type))
 		return;
 #endif
+
+	if(event_pair->exit_event_type == PPME_SOCKET_SENDMMSG_X ||
+	   event_pair->exit_event_type == PPME_SOCKET_RECVMMSG_X) {
+		int i;
+
+		// We don't know how many messages the syscall actually handled until
+		// we call the filler the first time, so we set it to the max for the
+		// first call.
+		//
+		// If the syscall failed, the count value will be negative, so we
+		// immediately exit after sending a failure event.
+		event_data.event_info.syscall_data.mmsg.count = 1024;
+
+		for(i = 0; i < event_data.event_info.syscall_data.mmsg.count; i++) {
+			event_data.event_info.syscall_data.mmsg.index = i;
+			record_event_all_consumers(event_pair->exit_event_type,
+			                           event_pair->flags,
+			                           &event_data,
+			                           KMOD_PROG_SYS_EXIT);
+		}
+	}
 
 	if(event_pair->flags & UF_USED)
 		record_event_all_consumers(event_pair->exit_event_type,
