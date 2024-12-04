@@ -36,6 +36,7 @@ public:
 	void process_event(sinsp_evt* evt);
 	void event_cleanup(sinsp_evt* evt);
 
+	bool reset(sinsp_evt* evt);
 	void erase_fd(erase_fd_params* params);
 
 	//
@@ -57,7 +58,6 @@ private:
 	//
 	// Helpers
 	//
-	bool reset(sinsp_evt* evt);
 	inline void store_event(sinsp_evt* evt);
 
 	//

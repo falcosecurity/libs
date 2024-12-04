@@ -73,52 +73,7 @@ void sinsp_parser::set_track_connection_status(bool enabled) {
 // PROCESSING ENTRY POINT
 ///////////////////////////////////////////////////////////////////////////////
 void sinsp_parser::process_event(sinsp_evt *evt) {
-	uint16_t etype = evt->get_scap_evt()->type;
-	bool is_live = m_inspector->is_live() || m_inspector->is_syscall_plugin();
-
-	//
-	// Cleanup the event-related state
-	//
-	reset(evt);
-
-	//
-	// When debug mode is not enabled, filter out events about itself
-	//
-	if(is_live && !m_inspector->is_debug_enabled()) {
-		if(evt->get_tid() == m_inspector->m_self_pid && etype != PPME_SCHEDSWITCH_1_E &&
-		   etype != PPME_SCHEDSWITCH_6_E && etype != PPME_DROP_E && etype != PPME_DROP_X &&
-		   etype != PPME_SCAPEVENT_E && etype != PPME_PROCINFO_E && etype != PPME_CPU_HOTPLUG_E &&
-		   m_inspector->m_self_pid) {
-			evt->set_filtered_out(true);
-			return;
-		}
-	}
-
-	//
-	// Filtering
-	//
-	bool do_filter_later = false;
-
-	if(m_inspector->m_filter) {
-		ppm_event_flags eflags = evt->get_info_flags();
-
-		if(eflags & EF_MODIFIES_STATE) {
-			do_filter_later = true;
-		} else {
-			if(m_inspector->run_filters_on_evt(evt) == false) {
-				if(evt->get_tinfo() != NULL) {
-					if(!(eflags & EF_SKIPPARSERESET || etype == PPME_SCHEDSWITCH_6_E)) {
-						evt->get_tinfo()->set_lastevent_type(PPM_EVENT_MAX);
-					}
-				}
-
-				evt->set_filtered_out(true);
-				return;
-			}
-		}
-	}
-
-	evt->set_filtered_out(false);
+	const uint16_t etype = evt->get_scap_evt()->type;
 
 	//
 	// Route the event to the proper function
@@ -449,28 +404,6 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	}
 	default:
 		break;
-	}
-
-	//
-	// With some state-changing events like clone, execve and open, we do the
-	// filtering after having updated the state
-	//
-	if(do_filter_later) {
-		if(!m_inspector->run_filters_on_evt(evt)) {
-			evt->set_filtered_out(true);
-			return;
-		}
-		evt->set_filtered_out(false);
-	}
-	//
-	// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
-	// supposed to go through the engine, but they must be filtered out before
-	// reaching the user.
-	//
-	if(m_inspector->is_capture()) {
-		if(evt->get_dump_flags() & SCAP_DF_STATE_ONLY) {
-			evt->set_filtered_out(true);
-		}
 	}
 
 	// Check to see if the name changed as a side-effect of
