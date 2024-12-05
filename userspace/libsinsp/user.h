@@ -209,8 +209,7 @@ private:
 // RAII struct to manage threadinfos automatic user/group refresh
 // upon container_id updates.
 struct user_group_updater {
-	explicit user_group_updater(sinsp_evt *evt) {
-		m_check_cleanup = false;
+	explicit user_group_updater(sinsp_evt *evt): m_check_cleanup(false), m_evt(nullptr) {
 		switch(evt->get_type()) {
 		case PPME_PROCEXIT_E:
 		case PPME_PROCEXIT_1_E:
@@ -239,29 +238,29 @@ struct user_group_updater {
 		case PPME_SYSCALL_CHROOT_X:
 			m_evt = evt;
 			if(m_evt->get_tinfo() != nullptr) {
-				m_container_id = m_evt->get_tinfo()->m_container_id;
+				m_container_id = m_evt->get_tinfo()->get_container_id();
 			}
 			break;
 		default:
-			m_evt = nullptr;
 			break;
 		}
 	}
 
 	~user_group_updater() {
 		if(m_evt != nullptr && m_evt->get_tinfo() != nullptr) {
-			auto tinfo = m_evt->get_tinfo();
-			if(tinfo->m_container_id != m_container_id) {
+			const auto tinfo = m_evt->get_tinfo();
+			const auto container_id = tinfo->get_container_id();
+			if(container_id != m_container_id) {
 				// Refresh user/group
 				tinfo->set_group(tinfo->m_gid);
 				tinfo->set_user(tinfo->m_uid);
-			} else if(m_check_cleanup && !tinfo->m_container_id.empty()) {
+			} else if(m_check_cleanup && !container_id.empty()) {
 				if(tinfo->m_vtid == tinfo->m_vpid && tinfo->m_vpid == 1) {
 					// main container process left, clean up user and groups for the container
 					const auto inspector = m_evt->get_inspector();
 					if(inspector->m_usergroup_manager->m_import_users &&
 					   (inspector->is_live() || inspector->is_syscall_plugin())) {
-						inspector->m_usergroup_manager->delete_container(tinfo->m_container_id);
+						inspector->m_usergroup_manager->delete_container(container_id);
 					}
 				}
 			}
