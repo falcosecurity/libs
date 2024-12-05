@@ -722,9 +722,17 @@ public:
 	inline bool is_syscall_event() const { return get_info()->category & EC_SYSCALL; }
 
 	inline bool has_return_value() {
-		// The event has a return value:
-		// * if it is a syscall event and it is an exit event.
-		if(is_syscall_event() && PPME_IS_EXIT(get_type())) {
+		// This event does not have a return value
+		if(get_type() == PPME_GENERIC_X) {
+			return false;
+		}
+
+		// The event has a return value if:
+		// * it is a syscall event.
+		// * it is an exit event.
+		// * it has at least one parameter. Some exit events are not instrumented, see
+		// `PPME_SOCKET_GETSOCKNAME_X`
+		if(is_syscall_event() && PPME_IS_EXIT(get_type()) && get_num_params() > 0) {
 			return true;
 		}
 

@@ -632,19 +632,11 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 		//
 		// Error detection logic
 		//
-		if(evt->get_num_params() != 0 && ((evt->get_info()->params[0].name[0] == 'r' &&
-		                                   evt->get_info()->params[0].name[1] == 'e' &&
-		                                   evt->get_info()->params[0].name[2] == 's' &&
-		                                   evt->get_info()->params[0].name[3] == '\0') ||
-		                                  (evt->get_info()->params[0].name[0] == 'f' &&
-		                                   evt->get_info()->params[0].name[1] == 'd' &&
-		                                   evt->get_info()->params[0].name[2] == '\0'))) {
-			if(evt->has_return_value()) {
-				int64_t res = evt->get_syscall_return_value();
+		if(evt->has_return_value()) {
+			int64_t res = evt->get_syscall_return_value();
 
-				if(res < 0) {
-					evt->set_errorcode(-(int32_t)res);
-				}
+			if(res < 0) {
+				evt->set_errorcode(-(int32_t)res);
 			}
 		}
 

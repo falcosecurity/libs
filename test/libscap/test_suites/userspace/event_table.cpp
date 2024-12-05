@@ -167,3 +167,26 @@ TEST(event_table, check_usage_of_EC_UNKNOWN_flag) {
 		}
 	}
 }
+
+TEST(event_table, check_exit_param_names) {
+	// We should use only res/fd but we have all these other variants
+	std::set<std::string> valid_names = {"res", "fd", "uid", "gid", "res_or_fd", "euid", "egid"};
+	for(int evt = 0; evt < PPM_EVENT_MAX; evt++) {
+		auto evt_info = scap_get_event_info_table()[evt];
+
+		// Generic is an exit event but it does not have the return code.
+		if(evt == PPME_GENERIC_X) {
+			continue;
+		}
+
+		if((evt_info.category & EC_SYSCALL) && PPME_IS_EXIT(evt) && evt_info.nparams > 0) {
+			const char* name = evt_info.params[0].name;
+			if(valid_names.find(name) != valid_names.end()) {
+				continue;
+			} else {
+				FAIL() << "Evt: '" << evt_info.name
+				       << "' has a first param name not allowed: " << name;
+			}
+		}
+	}
+}
