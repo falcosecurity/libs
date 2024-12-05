@@ -60,10 +60,10 @@ add_library(
 	scap_engine_gvisor ${scap_engine_gvisor_sources} ${scap_engine_gvisor_generated_sources}
 )
 
-add_dependencies(scap_engine_gvisor uthash jsoncpp)
+add_dependencies(scap_engine_gvisor uthash jsoncpp scap_event_schema)
 target_link_libraries(
 	scap_engine_gvisor PUBLIC scap_platform_util scap_error ${CMAKE_THREAD_LIBS_INIT}
-							  ${PROTOBUF_LIB} ${JSONCPP_LIB}
+							  ${PROTOBUF_LIB} ${JSONCPP_LIB} scap_event_schema
 )
 
 target_include_directories(scap_engine_gvisor PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
