@@ -818,27 +818,9 @@ public:
 
 	bool check_suppressed(int64_t tid) const;
 
-	void set_docker_socket_path(std::string socket_path);
-	void set_query_docker_image_info(bool query_image_info);
-
-	void set_cri_extra_queries(bool extra_queries);
-
 	void set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
 
 	void set_statsd_port(uint16_t port);
-
-	/*!
-	  \brief Reset list of crio socket paths currently stored, and set path as the only path.
-	*/
-	void set_cri_socket_path(const std::string& path);
-	/*!
-	  \brief Pushed a new path to the list of crio socket paths
-	*/
-	void add_cri_socket_path(const std::string& path);
-	void set_cri_timeout(int64_t timeout_ms);
-	void set_cri_async(bool async);
-
-	void set_container_labels_max_len(uint32_t max_label_len);
 
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
@@ -1063,9 +1045,6 @@ public:
 	sinsp_evt::param_fmt m_buffer_format;
 
 	// A queue of pending internal state events:
-	// * 	container events. Written from async
-	// 	callbacks that occur after looking up container
-	// 	information, read from sinsp::next().
 	// *	user added/removed events
 	// * 	group added/removed events
 	// *    async events produced by sinsp or plugins
