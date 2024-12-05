@@ -30,6 +30,7 @@ limitations under the License.
 #include <libsinsp/filter/ppm_codes.h>
 #include <unordered_set>
 #include <memory>
+#include <thread>
 
 #ifndef _WIN32
 extern "C" {
@@ -69,8 +70,8 @@ static std::shared_ptr<sinsp_filter_factory> filter_factory;
 
 sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error);
 
-#define EVENT_HEADER                                                \
-	"%evt.num %evt.time cat=%evt.category container=%container.id " \
+#define EVENT_HEADER                        \
+	"%evt.num %evt.time cat=%evt.category " \
 	"proc=%proc.name(%proc.pid.%thread.tid) "
 #define EVENT_TRAILER "%evt.dir %evt.type %evt.args"
 
@@ -80,8 +81,8 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 
 #define PLUGIN_DEFAULTS "%evt.num %evt.time [%evt.pluginname] %evt.plugininfo"
 
-#define JSON_PROCESS_DEFAULTS                                                                   \
-	"*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe " \
+#define JSON_PROCESS_DEFAULTS                                                     \
+	"*%evt.num %evt.time %evt.category %proc.ppid %proc.pid %evt.type %proc.exe " \
 	"%proc.cmdline %evt.args"
 
 std::string default_output = EVENT_DEFAULTS;
@@ -421,6 +422,18 @@ error:
 }
 #endif  // __linux__
 
+static std::string format_suggested_field(const filtercheck_field_info* info) {
+	std::ostringstream out;
+
+	// Replace "foo.bar" with "foo_bar"
+	auto name = info->m_name;
+	std::replace(name.begin(), name.end(), '.', '_');
+
+	// foo_bar=%foo.bar
+	out << name << "=%" << info->m_name;
+	return out.str();
+}
+
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
@@ -476,6 +489,21 @@ int main(int argc, char** argv) {
 		printf("-- Filter AST (%ld) ppm sc names: %s\n",
 		       events_sc_codes.size(),
 		       concat_set_in_order(events_sc_names).c_str());
+	}
+
+	std::vector<const filter_check_info*> fields;
+	filter_list->get_all_fields(fields);
+	for(const auto& fld : fields) {
+		for(int i = 0; i < fld->m_nfields; i++) {
+			const auto fldinfo = fld->m_fields[i];
+			if(fldinfo.is_format_suggested()) {
+				auto fmt = format_suggested_field(&fldinfo);
+				default_output += " " + fmt;
+				process_output += " " + fmt;
+				net_output += " " + fmt;
+				plugin_output += " " + fmt;
+			}
+		}
 	}
 
 	open_engine(inspector, events_sc_codes);
