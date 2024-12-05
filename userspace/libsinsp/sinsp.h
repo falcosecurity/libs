@@ -509,6 +509,7 @@ public:
 		auto ret = m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
 		                                      : m_thread_manager->new_threadinfo();
 		m_thread_manager->set_tinfo_shared_dynamic_fields(*ret);
+		m_thread_manager->set_tinfo_field_accessors(*ret);
 		return ret;
 	}
 
