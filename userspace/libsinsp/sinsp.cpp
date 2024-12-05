@@ -361,10 +361,6 @@ void sinsp::open_common(scap_open_args* oargs,
 	m_mode = mode;
 
 	oargs->import_users = m_usergroup_manager.m_import_users;
-	// We need to subscribe to container manager notifiers before
-	// scap starts scanning proc.
-	m_usergroup_manager.subscribe_container_mgr();
-
 	oargs->log_fn = &sinsp_scap_log_fn;
 	oargs->proc_scan_timeout_ms = m_proc_scan_timeout_ms;
 	oargs->proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;

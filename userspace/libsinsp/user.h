@@ -70,10 +70,6 @@ public:
 	explicit sinsp_usergroup_manager(sinsp *inspector);
 	~sinsp_usergroup_manager() = default;
 
-	// Do not call subscribe_container_mgr() in capture mode, because
-	// events shall not be sent as they will be loaded from capture file.
-	void subscribe_container_mgr();
-
 	void dump_users_groups(sinsp_dumper &dumper);
 
 	/*!
@@ -146,6 +142,8 @@ public:
 
 	bool clear_host_users_groups();
 
+	void delete_container(const std::string &container_id);
+
 	//
 	// User and group tables
 	//
@@ -177,8 +175,6 @@ private:
 	                          sinsp_evt *evt,
 	                          const std::string &container_id,
 	                          uint16_t ev_type);
-
-	void delete_container_users_groups(const std::string &container_id);
 
 	void notify_user_changed(const scap_userinfo *user,
 	                         const std::string &container_id,

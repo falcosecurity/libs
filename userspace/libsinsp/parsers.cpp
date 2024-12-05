@@ -390,6 +390,9 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 		}
 		break;
 	}
+	case PPME_ASYNCEVENT_E:
+		parse_async_event(evt);
+		break;
 	default:
 		break;
 	}
@@ -1237,10 +1240,8 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	}
 
 	/* Refresh user / group */
-	if(new_child->m_container_id.empty() == false) {
-		new_child->set_group(new_child->m_gid);
-		new_child->set_user(new_child->m_uid);
-	}
+	new_child->set_group(new_child->m_gid);
+	new_child->set_user(new_child->m_uid);
 
 	/* If there's a listener, invoke it */
 	if(m_inspector->get_observer()) {
@@ -1725,10 +1726,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	evt->set_tinfo(new_child.get());
 
 	/* Refresh user / group */
-	if(new_child->m_container_id.empty() == false) {
-		new_child->set_group(new_child->m_gid);
-		new_child->set_user(new_child->m_uid);
-	}
+	new_child->set_group(new_child->m_gid);
+	new_child->set_user(new_child->m_uid);
 
 	//
 	// If there's a listener, invoke it
@@ -1820,8 +1819,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	parinfo = evt->get_param(1);
 	evt->get_tinfo()->m_exe = parinfo->m_val;
 	evt->get_tinfo()->m_lastexec_ts = evt->get_ts();
-
-	auto container_id = evt->get_tinfo()->m_container_id;
 
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
@@ -2189,10 +2186,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	// Refresh user / group
 	// if we happen to change container id
 	//
-	if(container_id != evt->get_tinfo()->m_container_id) {
-		evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
-		evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
-	}
+	evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
+	evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
 
 	//
 	// If there's a listener, invoke it
@@ -4529,6 +4524,29 @@ void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt) {
 	}
 }
 
+void sinsp_parser::parse_async_event(sinsp_evt *evt) {
+	if(!m_inspector->m_usergroup_manager.m_import_users ||
+	   (!m_inspector->is_live() && !m_inspector->is_syscall_plugin())) {
+		// Don't do anything when either import users is false,
+		// or we are not in live mode.
+		return;
+	}
+	const auto name = evt->get_param(1)->as<std::string>();
+	if(name == "container_removed") {
+		const auto json = evt->get_param(2)->as<std::string>();
+		Json::Value root;
+		if(!Json::Reader().parse(json, root)) {
+			auto errstr = Json::Reader().getFormattedErrorMessages();
+			throw sinsp_exception("Invalid JSON encountered while parsing container info: " + json +
+			                      "error=" + errstr);
+		}
+		const auto container_id = root["container"]["id"].asString();
+		if(!container_id.empty()) {
+			m_inspector->m_usergroup_manager.delete_container(container_id);
+		}
+	}
+}
+
 void sinsp_parser::parse_prctl_exit_event(sinsp_evt *evt) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	int64_t retval = evt->get_syscall_return_value();
@@ -4595,17 +4613,13 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt) {
 		} else {
 			evt->get_tinfo()->m_root = resolved_path;
 		}
-		// Root change, let's detect if we are on a container
 
-		auto container_id = evt->get_tinfo()->m_container_id;
 		//
 		// Refresh user / group
 		// if we happen to change container id
 		//
-		if(container_id != evt->get_tinfo()->m_container_id) {
-			evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
-			evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
-		}
+		evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
+		evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
 	}
 }
 
