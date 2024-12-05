@@ -1311,7 +1311,8 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			sinsp_threadinfo *tinfo = get_thread_info();
 			scap_userinfo *user_info = NULL;
 			if(tinfo) {
-				user_info = m_inspector->m_usergroup_manager->get_user(tinfo->m_container_id, val);
+				user_info =
+				        m_inspector->m_usergroup_manager->get_user(tinfo->get_container_id(), val);
 			}
 			if(user_info != NULL) {
 				strcpy_sanitized(&m_resolved_paramstr_storage[0],
@@ -1341,7 +1342,7 @@ const char *sinsp_evt::get_param_as_str(uint32_t id,
 			scap_groupinfo *group_info = NULL;
 			if(tinfo) {
 				group_info =
-				        m_inspector->m_usergroup_manager->get_group(tinfo->m_container_id, val);
+				        m_inspector->m_usergroup_manager->get_group(tinfo->get_container_id(), val);
 			}
 			if(group_info != NULL) {
 				strcpy_sanitized(&m_resolved_paramstr_storage[0],
