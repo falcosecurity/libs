@@ -79,7 +79,7 @@ TEST(Actions, dynamic_snaplen_negative_fd) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(Actions, dynamic_snaplen_no_socket) {
@@ -158,7 +158,7 @@ TEST(Actions, dynamic_snaplen_no_socket) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 #if defined(__NR_sendto) && defined(__NR_socket) && defined(__NR_shutdown) && \

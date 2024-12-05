@@ -1415,14 +1415,18 @@ int32_t fill_event_write_e(scap_sized_buffer scap_buf,
 int32_t fill_event_write_x(scap_sized_buffer scap_buf,
                            size_t* event_size,
                            char* scap_err,
-                           int64_t res) {
+                           int64_t res,
+                           int64_t fd,
+                           uint32_t size) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_WRITE_X,
-	                                2,
+	                                4,
 	                                res,
-	                                scap_const_sized_buffer{NULL, 0});  // data -- INVALID
+	                                scap_const_sized_buffer{NULL, 0},
+	                                fd,
+	                                size);  // data -- INVALID
 }
 
 // PPME_SYSCALL_PWRITE_E
@@ -1450,14 +1454,20 @@ int32_t fill_event_pwrite_e(scap_sized_buffer scap_buf,
 int32_t fill_event_pwrite_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
-                            int64_t res) {
+                            int64_t res,
+                            int64_t fd,
+                            uint32_t size,
+                            uint64_t pos) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SYSCALL_PWRITE_X,
-	                                2,
+	                                5,
 	                                res,
-	                                scap_const_sized_buffer{NULL, 0});  // data -- INVALID
+	                                scap_const_sized_buffer{NULL, 0},
+	                                fd,
+	                                size,
+	                                pos);  // data -- INVALID
 }
 
 // PPME_SYSCALL_WRITEV_E

@@ -199,3 +199,49 @@ TEST_F(scap_file_test, listen_x_check_final_converted_event) {
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 3, res, fd, backlog));
 }
+
+////////////////////////////
+// WRITE
+////////////////////////////
+
+TEST_F(scap_file_test, write_x_check_final_converted_event) {
+	open_filename("scap_2013.scap");
+
+	// Inside the scap-file the event `511534` is the following:
+	// - type=PPME_SYSCALL_WRITE_X
+	// - ts=1380933088286397273
+	// - tid=44106
+	// - args=res=77 data=GET / HTTP/1.0..Host: 127.0.0.1..User-Agent: ApacheBench/2.3..Accept:
+	// */*...
+	//
+	// And its corresponding enter event `511520` is the following:
+	// - type=PPME_SYSCALL_WRITE_E
+	// - ts=1380933088286362703
+	// - tid=44106,
+	// - args=fd=13(<4t>127.0.0.1:38904->127.0.0.1:80) size=77
+	//
+	uint64_t ts = 1380933088286397273;
+	int64_t tid = 44106;
+	int64_t res = 77;
+	// this is NULL termiinated so we have 81 bytes but in the scap-file we want only 80 bytes
+	// without the NULL terminator
+	char buf[] = {
+	        "GET / HTTP/1.0\r\nHost: 127.0.0.1\r\nUser-Agent: ApacheBench/2.3\r\nAccept: "
+	        "*/*\r\n\r\n"};
+	int64_t fd = 13;
+	uint32_t size = 77;
+	assert_event_presence(create_safe_scap_event(ts,
+	                                             tid,
+	                                             PPME_SYSCALL_WRITE_X,
+	                                             4,
+	                                             res,
+	                                             scap_const_sized_buffer{buf, sizeof(buf) - 1},
+	                                             fd,
+	                                             size));
+}
+
+////////////////////////////
+// PWRITE
+////////////////////////////
+
+// We don't have scap-files with PWRITE events. Add it if we face a failure.

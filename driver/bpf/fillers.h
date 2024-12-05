@@ -454,10 +454,19 @@ FILLER(sys_write_x, true) {
 	/* If the syscall doesn't fail we use the return value as `size`
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	unsigned long bytes_to_read = retval > 0 ? retval : bpf_syscall_get_argument(data, 2);
+	size_t size = bpf_syscall_get_argument(data, 2);
+	unsigned long bytes_to_read = retval > 0 ? retval : size;
 	unsigned long sent_data_pointer = bpf_syscall_get_argument(data, 1);
-	data->fd = bpf_syscall_get_argument(data, 0);
-	return __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
+	data->fd = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, (int64_t)data->fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	return bpf_push_u32_to_ring(data, (uint32_t)size);
 }
 
 #define POLL_MAXFDS 16
@@ -5071,6 +5080,39 @@ FILLER(sys_pwrite64_e, true) {
 	/* Parameter 2: size (type: PT_UINT32) */
 	size_t size = bpf_syscall_get_argument(data, 2);
 	res = bpf_push_u32_to_ring(data, size);
+	CHECK_RES(res);
+
+	/* Parameter 3: pos (type: PT_UINT64) */
+	uint64_t pos = (uint64_t)bpf_syscall_get_argument(data, 3);
+	return bpf_push_u64_to_ring(data, pos);
+}
+
+FILLER(sys_pwrite64_x, true) {
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+#error Implement this
+#endif
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user.
+	 */
+	size_t size = bpf_syscall_get_argument(data, 2);
+	unsigned long bytes_to_read = retval > 0 ? retval : size;
+	unsigned long sent_data_pointer = bpf_syscall_get_argument(data, 1);
+	data->fd = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	res = bpf_push_s64_to_ring(data, (int64_t)data->fd);
+	CHECK_RES(res);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	res = bpf_push_u32_to_ring(data, (uint32_t)size);
 	CHECK_RES(res);
 
 	/* Parameter 3: pos (type: PT_UINT64) */
