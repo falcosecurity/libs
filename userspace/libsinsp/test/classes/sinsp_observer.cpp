@@ -83,12 +83,6 @@ public:
 
 	void on_bind(sinsp_evt* evt) override {}
 
-	bool on_resolve_container(sinsp_container_manager* manager,
-	                          sinsp_threadinfo* tinfo,
-	                          bool query_os_for_missing_info) override {
-		return true;
-	}
-
 	void on_socket_status_changed(sinsp_evt* evt) override {}
 
 	int get_clone_counter() const { return m_clone_ctr; }
