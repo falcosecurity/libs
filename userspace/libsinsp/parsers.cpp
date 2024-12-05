@@ -117,12 +117,6 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SYSCALL_EXECVEAT_E:
 		store_event(evt);
 		break;
-	case PPME_SYSCALL_WRITE_E:
-		if(!m_inspector->is_dumping() && evt->get_tinfo() != nullptr) {
-			// note(jasondellaluce): this may be useless now that we removed tracers support
-			evt->set_fd_info(evt->get_tinfo()->get_fd(evt->get_tinfo()->m_lastevent_fd));
-		}
-		break;
 	case PPME_SYSCALL_MKDIR_X:
 	case PPME_SYSCALL_RMDIR_X:
 	case PPME_SYSCALL_LINK_X:
@@ -587,18 +581,17 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 		evt->get_tinfo()->m_flags |= PPM_CL_ACTIVE;
 	}
 
+	// todo!: at the end of we work we should remove this if/else and ideally we should set the
+	// fdinfos directly here and return if they are not present
 	if(PPME_IS_ENTER(etype)) {
 		evt->get_tinfo()->m_lastevent_fd = -1;
 		evt->get_tinfo()->set_lastevent_type(etype);
 
-		if(eflags & EF_USES_FD) {
+		if(evt->uses_fd()) {
 			//
 			// Get the fd.
-			// An fd will usually be the first parameter of the enter event,
-			// but there are exceptions, as is the case with mmap, mmap2
 			//
-			int fd_location = get_fd_location(etype);
-			ASSERT(evt->get_param_info(fd_location)->type == PT_FD);
+			int fd_location = get_enter_event_fd_location((ppm_event_code)etype);
 			evt->get_tinfo()->m_lastevent_fd = evt->get_param(fd_location)->as<int64_t>();
 			evt->set_fd_info(evt->get_tinfo()->get_fd(evt->get_tinfo()->m_lastevent_fd));
 		}
@@ -651,7 +644,7 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 		//
 		// Retrieve the fd
 		//
-		if(eflags & EF_USES_FD) {
+		if(evt->uses_fd()) {
 			//
 			// The copy_file_range syscall has the peculiarity of using two fds
 			// Set as m_lastevent_fd the output fd
@@ -660,6 +653,8 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 				tinfo->m_lastevent_fd = evt->get_param(1)->as<int64_t>();
 			}
 
+			// todo!: This is ok until we have enter events because `m_lastevent_fd` should be
+			// populated by them. We must modify the logic when we will have only exit events.
 			evt->set_fd_info(tinfo->get_fd(tinfo->m_lastevent_fd));
 
 			if(evt->get_fd_info() == NULL) {
@@ -5262,18 +5257,4 @@ void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt) {
 		return;
 	}
 	evt->get_tinfo()->add_fd(fd, targetfd_fdinfo->clone());
-}
-
-int sinsp_parser::get_fd_location(uint16_t etype) {
-	int location;
-	switch(etype) {
-	case PPME_SYSCALL_MMAP_E:
-	case PPME_SYSCALL_MMAP2_E:
-		location = 4;
-		break;
-	default:
-		location = 0;
-		break;
-	}
-	return location;
 }

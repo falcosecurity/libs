@@ -44,9 +44,15 @@ TEST(SyscallExit, writeX_no_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, write_bytes);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)fd);
+
+	/* Parameter 4: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, writeX_snaplen) {
@@ -88,9 +94,15 @@ TEST(SyscallExit, writeX_snaplen) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)fd);
+
+	/* Parameter 4: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, writeX_fail) {
@@ -128,9 +140,15 @@ TEST(SyscallExit, writeX_fail) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)-1);
+
+	/* Parameter 4: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, writeX_empty) {
@@ -167,9 +185,15 @@ TEST(SyscallExit, writeX_empty) {
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_empty_param(2);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)-1);
+
+	/* Parameter 4: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(4, (uint32_t)data_len);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen) {
@@ -206,7 +230,7 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_truncated_by_snaplen) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port) {
@@ -254,7 +278,7 @@ TEST(SyscallExit, writeX_ipv4_tcp_message_not_truncated_fullcapture_port) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(4);
 }
 
 // We cannot call a write without a destination address in UDP. Errno: 89 err_message: Destination

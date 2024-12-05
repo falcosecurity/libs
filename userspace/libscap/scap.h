@@ -102,7 +102,7 @@ struct scap_vtable;
 // and handle the result
 //
 #define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(8, 0, 0)
-#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(3, 0, 0)
+#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(4, 0, 0)
 
 //
 // This is the dimension we used before introducing the variable buffer size.
@@ -874,7 +874,8 @@ typedef enum scap_print_info {
 	PRINT_FULL,
 } scap_print_info;
 void scap_print_event(scap_evt* ev, scap_print_info i);
-
+int get_enter_event_fd_location(ppm_event_code etype);
+int get_exit_event_fd_location(ppm_event_code etype);
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
