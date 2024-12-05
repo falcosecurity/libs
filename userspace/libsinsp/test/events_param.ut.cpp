@@ -108,26 +108,30 @@ TEST_F(sinsp_with_test_input, bytebuf_empty_param) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
-	const sinsp_evt_param* param = NULL;
 
-	int64_t test_errno = 0;
-
-	/* `PPME_SYSCALL_PWRITE_X` is a simple event that uses a `PT_BYTEBUF` */
 	scap_const_sized_buffer bytebuf_param;
 	bytebuf_param.buf = NULL;
 	bytebuf_param.size = 0;
-	evt = add_event_advance_ts(increasing_ts(),
-	                           1,
-	                           PPME_SYSCALL_PWRITE_X,
-	                           2,
-	                           test_errno,
-	                           bytebuf_param);
+	int64_t test_errno = 0;
+	uint32_t size = 0;
+	int64_t fd = 0;
+	uint64_t pos = 0;
+
+	/* `PPME_SYSCALL_PWRITE_X` is a simple event that uses a `PT_BYTEBUF` */
+	auto evt = add_event_advance_ts(increasing_ts(),
+	                                INIT_TID,
+	                                PPME_SYSCALL_PWRITE_X,
+	                                5,
+	                                test_errno,
+	                                bytebuf_param,
+	                                fd,
+	                                size,
+	                                pos);
+
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.data"),
 	          "NULL");  // "NULL" is the string representation output of the empty buffer
-
-	param = evt->get_param(1);
-	ASSERT_EQ(param->m_len, 0);
+	ASSERT_TRUE(evt->get_param(1));
+	ASSERT_EQ(evt->get_param(1)->m_len, 0);
 }
 
 /* Assert that empty (`PT_SOCKADDR`, `PT_SOCKTUPLE`, `PT_FDLIST`) params are NOT converted to `<NA>`
