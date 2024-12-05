@@ -2278,7 +2278,7 @@ const struct ppm_event_info g_event_info[] = {
                                    {"arg2_int", PT_INT64, PF_DEC}}},
         [PPME_ASYNCEVENT_E] = {"asyncevent",
                                EC_OTHER | EC_METAEVENT,
-                               EF_LARGE_PAYLOAD,
+                               EF_MODIFIES_STATE | EF_LARGE_PAYLOAD,
                                3,
                                {{"plugin_id", PT_UINT32, PF_DEC},
                                 {"name", PT_CHARBUF, PF_NA},

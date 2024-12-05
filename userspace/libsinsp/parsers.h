@@ -112,6 +112,7 @@ private:
 	void parse_user_evt(sinsp_evt* evt);
 	void parse_group_evt(sinsp_evt* evt);
 	void parse_cpu_hotplug_enter(sinsp_evt* evt);
+	void parse_async_event(sinsp_evt* evt);
 	void parse_chroot_exit(sinsp_evt* evt);
 	void parse_setsid_exit(sinsp_evt* evt);
 	void parse_getsockopt_exit(sinsp_evt* evt);

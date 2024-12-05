@@ -85,19 +85,25 @@ public:
 	std::string get_exepath() const;
 
 	/*!
+	  \brief Return the container_id associated with this thread, if the container plugins is
+	  running, leveraging sinsp state table API.
+	*/
+	std::string get_container_id();
+
+	/*!
 	  \brief Return the full info about thread uid.
 	*/
-	scap_userinfo* get_user() const;
+	scap_userinfo* get_user();
 
 	/*!
 	  \brief Return the full info about thread gid.
 	*/
-	scap_groupinfo* get_group() const;
+	scap_groupinfo* get_group();
 
 	/*!
 	  \brief Return the full info about thread loginuid.
 	*/
-	scap_userinfo* get_loginuser() const;
+	scap_userinfo* get_loginuser();
 
 	/*!
 	  \brief Return the working directory of the process containing this thread.
@@ -364,10 +370,6 @@ public:
 	}
 
 	static void populate_cmdline(std::string& cmdline, const sinsp_threadinfo* tinfo);
-
-	// Return true if this thread is a part of a healthcheck,
-	// readiness probe, or liveness probe.
-	bool is_health_probe() const;
 
 	/*!
 	  \brief Translate a directory's file descriptor into its path
