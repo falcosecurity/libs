@@ -1823,8 +1823,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	evt->get_tinfo()->m_exe = parinfo->m_val;
 	evt->get_tinfo()->m_lastexec_ts = evt->get_ts();
 
-	auto container_id = evt->get_tinfo()->m_container_id;
-
 	switch(etype) {
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
@@ -4641,9 +4639,6 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt) {
 		} else {
 			evt->get_tinfo()->m_root = resolved_path;
 		}
-		// Root change, let's detect if we are on a container
-
-		auto container_id = evt->get_tinfo()->m_container_id;
 	}
 }
 
