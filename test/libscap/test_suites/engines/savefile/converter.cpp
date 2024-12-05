@@ -73,7 +73,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_READ_X_to_4_params_no_enter) {
 	                               size));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_READ_X__to_4_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_READ_X_to_4_params_with_enter) {
 	uint64_t ts = 12;
 	int64_t tid = 25;
 
@@ -153,7 +153,7 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X_to_4_params_no_enter) {
 	                               pos));
 }
 
-TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X__to_4_params_with_enter) {
+TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X_to_4_params_with_enter) {
 	uint64_t ts = 12;
 	int64_t tid = 25;
 
@@ -412,4 +412,163 @@ TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_5_E_skip) {
 
 	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT_5_E, 0);
 	assert_single_conversion_skip(evt);
+}
+
+////////////////////////////
+// WRITE
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_WRITE_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	uint32_t size = 89;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_WRITE_E, 2, fd, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_WRITE_X_to_4_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+
+	// Defaulted to 0
+	int64_t fd = 0;
+	uint32_t size = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_WRITE_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_WRITE_X,
+	                               4,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)},
+	                               fd,
+	                               size));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_WRITE_X_to_4_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+	int64_t fd = 25;
+	uint32_t size = 36;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_WRITE_E, 2, fd, size);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_WRITE_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_WRITE_X,
+	                               4,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)},
+	                               fd,
+	                               size));
+}
+
+////////////////////////////
+// PWRITE
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SYSCALL_PWRITE_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	uint32_t size = 89;
+	uint64_t pos = 7;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PWRITE_E, 3, fd, size, pos);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PWRITE_X_to_4_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+
+	// Defaulted to 0
+	int64_t fd = 0;
+	uint32_t size = 0;
+	int64_t pos = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITE_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITE_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)},
+	                               fd,
+	                               size,
+	                               pos));
+}
+
+TEST_F(convert_event_test, PPME_SYSCALL_PWRITE_X_to_4_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	uint8_t buf[] = {'h', 'e', 'l', 'l', 'o'};
+	int64_t fd = 25;
+	uint32_t size = 36;
+	uint64_t pos = 7;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SYSCALL_PWRITE_E, 3, fd, size, pos);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITE_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SYSCALL_PWRITE_X,
+	                               5,
+	                               res,
+	                               scap_const_sized_buffer{buf, sizeof(buf)},
+	                               fd,
+	                               size,
+	                               pos));
 }
