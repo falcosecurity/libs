@@ -305,6 +305,11 @@ void sinsp::init() {
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
 
+	//
+	// Load state table API field accessors
+	//
+	m_thread_manager->load_foreign_fields_accessors();
+
 	// If we are in capture, this is already called by consume_initialstate_events
 	if(!is_capture() && m_external_event_processor) {
 		m_external_event_processor->on_capture_start();
