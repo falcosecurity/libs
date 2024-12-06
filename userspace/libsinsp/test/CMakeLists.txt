@@ -19,9 +19,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 if(WIN32)
-	set(CMAKE_CXX_FLAGS
-		"-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi /std:c++17"
-	)
+	set(CMAKE_CXX_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi /std:c++17")
 	set(CMAKE_CXX_FLAGS_DEBUG ${FALCOSECURITY_LIBS_DEBUG_FLAGS})
 	set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -143,10 +141,6 @@ elseif(APPLE OR EMSCRIPTEN)
 	list(REMOVE_ITEM LIBSINSP_UNIT_TESTS_SOURCES events_net.ut.cpp filter_op_net_compare.ut.cpp
 		 ${CMAKE_CURRENT_SOURCE_DIR}/parsers/parse_connect.cpp
 	)
-endif()
-
-if(NOT MINIMAL_BUILD)
-	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")

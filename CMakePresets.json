@@ -25,8 +25,8 @@
 		},
 		{
 			"name": "sinsp-minimal",
-			"displayName": "Build sinsp in minimal build",
-			"description": "Build sinsp in minimal build with its tests",
+			"displayName": "Build minimal sinsp",
+			"description": "Build sinsp without gvisor and protobuf deps",
 			"generator": "Unix Makefiles",
 			"binaryDir": "${sourceDir}/build-sinsp-minimal",
 			"cacheVariables": {
@@ -34,8 +34,8 @@
 				"BUILD_DRIVER": "ON",
 				"BUILD_BPF": "ON",
 				"USE_BUNDLED_DEPS": "ON",
+				"BUILD_LIBSCAP_GVISOR": "OFF",
 				"CREATE_TEST_TARGETS": "ON",
-				"MINIMAL_BUILD": "ON",
 				"SCAP_FILES_SUITE_ENABLE": "OFF",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
 				"BUILD_WARNINGS_AS_ERRORS": "ON"
