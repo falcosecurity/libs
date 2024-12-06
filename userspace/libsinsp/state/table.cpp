@@ -71,36 +71,6 @@ limitations under the License.
 		}                                                                           \
 	}
 
-static inline ss_plugin_state_type typeinfo_to_state_type(const libsinsp::state::typeinfo& i) {
-	switch(i.index()) {
-	case libsinsp::state::typeinfo::index_t::TI_INT8:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-	case libsinsp::state::typeinfo::index_t::TI_INT16:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT16;
-	case libsinsp::state::typeinfo::index_t::TI_INT32:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT32;
-	case libsinsp::state::typeinfo::index_t::TI_INT64:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT64;
-	case libsinsp::state::typeinfo::index_t::TI_UINT8:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT8;
-	case libsinsp::state::typeinfo::index_t::TI_UINT16:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT16;
-	case libsinsp::state::typeinfo::index_t::TI_UINT32:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT32;
-	case libsinsp::state::typeinfo::index_t::TI_UINT64:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT64;
-	case libsinsp::state::typeinfo::index_t::TI_STRING:
-		return ss_plugin_state_type::SS_PLUGIN_ST_STRING;
-	case libsinsp::state::typeinfo::index_t::TI_BOOL:
-		return ss_plugin_state_type::SS_PLUGIN_ST_BOOL;
-	case libsinsp::state::typeinfo::index_t::TI_TABLE:
-		return ss_plugin_state_type::SS_PLUGIN_ST_TABLE;
-	default:
-		throw sinsp_exception("can't convert typeinfo to plugin state type: " +
-		                      std::to_string(i.index()));
-	}
-}
-
 template<typename From, typename To>
 static inline void convert_types(const From& from, To& to) {
 	to = from;
@@ -195,7 +165,7 @@ void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state:
 
 	input.name = m_table->name().c_str();
 	input.table = this;
-	input.key_type = typeinfo_to_state_type(m_table->key_info());
+	input.key_type = m_table->key_info().index();
 }
 
 void libsinsp::state::table_accessor::unset() {
@@ -373,14 +343,14 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
 		for(auto& info : *this->static_fields()) {
 			ss_plugin_table_fieldinfo i;
 			i.name = info.second.name().c_str();
-			i.field_type = typeinfo_to_state_type(info.second.info());
+			i.field_type = info.second.info().index();
 			i.read_only = info.second.readonly();
 			this->m_field_list.push_back(i);
 		}
 		for(auto& info : this->dynamic_fields()->fields()) {
 			ss_plugin_table_fieldinfo i;
 			i.name = info.second.name().c_str();
-			i.field_type = typeinfo_to_state_type(info.second.info());
+			i.field_type = info.second.info().index();
 			i.read_only = false;
 			this->m_field_list.push_back(i);
 		}
@@ -429,7 +399,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		if(fixed_it != this->static_fields()->end()) {
-			if(data_type != typeinfo_to_state_type(fixed_it->second.info())) {
+			if(data_type != fixed_it->second.info().index()) {
 				throw sinsp_exception("incompatible data types for static field: " +
 				                      std::string(name));
 			}
@@ -451,7 +421,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		if(dyn_it != this->dynamic_fields()->fields().end()) {
-			if(data_type != typeinfo_to_state_type(dyn_it->second.info())) {
+			if(data_type != dyn_it->second.info().index()) {
 				throw sinsp_exception("incompatible data types for dynamic field: " +
 				                      std::string(name));
 			}
