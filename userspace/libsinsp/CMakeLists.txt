@@ -34,20 +34,6 @@ include(jsoncpp)
 include(zlib)
 include(tbb)
 
-if(NOT MINIMAL_BUILD)
-	if(NOT WIN32 AND NOT EMSCRIPTEN)
-		include(cares)
-	endif() # NOT WIN32
-endif()
-
-if(NOT WIN32 AND NOT APPLE)
-	if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
-		include(grpc)
-		include(protobuf)
-		include(openssl)
-	endif() # NOT MINIMAL_BUILD
-endif()
-
 add_library(
 	sinsp
 	filter/ast.cpp
@@ -137,11 +123,7 @@ target_link_libraries(
 )
 
 if(NOT EMSCRIPTEN)
-	target_link_libraries(
-		sinsp
-		INTERFACE "${CARES_LIB}"
-		PRIVATE "${TBB_LIB}"
-	)
+	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
 endif()
 
 if(USE_BUNDLED_VALIJSON)
@@ -165,17 +147,8 @@ if(NOT EMSCRIPTEN)
 endif()
 
 if(NOT WIN32)
-	if(NOT MINIMAL_BUILD)
-		if(NOT EMSCRIPTEN)
-			add_dependencies(sinsp openssl)
-		endif()
-	endif()
-
 	if(NOT APPLE)
 		if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
-			include(protobuf)
-			include(cares)
-
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
 				if(LIB_ANL)
