@@ -352,7 +352,7 @@ TEST(table_registry, defs_and_access) {
 TEST(thread_manager, table_access) {
 	// note: used for regression checks, keep this updated as we make
 	// new fields available
-	static const int s_threadinfo_static_fields_count = 33;
+	static const int s_threadinfo_static_fields_count = 32;
 
 	sinsp inspector;
 	auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
