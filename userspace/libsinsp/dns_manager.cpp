@@ -168,10 +168,12 @@ std::string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts) {
 }
 
 void sinsp_dns_manager::cleanup() {
+#if !defined(__EMSCRIPTEN__)
 	if(m_resolver) {
 		m_exit_signal.set_value();
 		m_resolver->join();
 		m_resolver.reset();
 		m_exit_signal = std::promise<void>();
 	}
+#endif
 }
