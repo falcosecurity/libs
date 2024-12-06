@@ -33,14 +33,14 @@
 		{
 			"name": "sinsp-minimal",
 			"inherits": "base",
-			"displayName": "Build sinsp in minimal build",
-			"description": "Build sinsp in minimal build with its tests",
+			"displayName": "Build minimal sinsp",
+			"description": "Build sinsp without gvisor and protobuf deps",
 			"binaryDir": "${sourceDir}/build-sinsp-minimal",
 			"cacheVariables": {
 				"USE_BUNDLED_DEPS": "ON",
+				"BUILD_LIBSCAP_GVISOR": "OFF",
 				"CREATE_TEST_TARGETS": "ON",
-				"MINIMAL_BUILD": "ON",
-				"SCAP_FILES_SUITE_ENABLE": "OFF"
+				"SCAP_FILES_SUITE_ENABLE": "OFF",
 			}
 		}
 	]
