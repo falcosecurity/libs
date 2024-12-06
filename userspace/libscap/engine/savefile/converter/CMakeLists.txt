@@ -13,9 +13,9 @@
 # the License.
 #
 
-# Since we have circular dependencies between libscap and the savefile engine, make this library
-# always static (directly linked into libscap)
-add_library(scap_savefile_converter STATIC converter.cpp table.cpp)
+# Using `STATIC` is not enough on Windows builds, so we directly create object files that will be
+# included inside `scap_engine_savefile` library
+add_library(scap_savefile_converter OBJECT converter.cpp table.cpp)
 
 add_dependencies(scap_savefile_converter uthash)
 target_include_directories(
