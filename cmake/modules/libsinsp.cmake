@@ -32,13 +32,6 @@ if(NOT HAVE_LIBSINSP)
 	if(NOT EMSCRIPTEN)
 		include(tbb)
 	endif()
-	if(NOT WIN32
-	   AND NOT APPLE
-	   AND NOT MINIMAL_BUILD
-	   AND NOT EMSCRIPTEN
-	)
-		include(cares)
-	endif()
 	include(jsoncpp)
 	include(valijson)
 	include(re2)
