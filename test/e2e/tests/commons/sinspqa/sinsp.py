@@ -330,28 +330,32 @@ def generate_specs(image: str = 'sinsp-example:latest',
     Returns:
         A dictionary describing how to run the sinsp-example container
     """
+    extended_args = args.copy()
+    extended_args.extend(['-p', os.environ.get('CONTAINER_PLUGIN')])
+
     specs = []
-    bpf_args = args.copy()
+    bpf_args = extended_args.copy()
     bpf_args.extend([
         '-b', os.environ.get('BPF_PROBE'),
     ])
-    modern_bpf_args = args.copy()
+
+    modern_bpf_args = extended_args.copy()
     modern_bpf_args.append('-m')
 
     kernel_module_env = {'KERNEL_MODULE': os.environ.get('KERNEL_MODULE', '')}
     bpf_env = {'BPF_PROBE': os.environ.get('BPF_PROBE', '')}
 
     if is_containerized():
-        specs.append(container_spec(image, args, kernel_module_env))
+        specs.append(container_spec(image, extended_args, kernel_module_env))
         specs.append(container_spec(image, bpf_args, bpf_env))
         if BTF_IS_AVAILABLE:
             specs.append(container_spec(image, modern_bpf_args, {}))
     else:
-        args.extend(['-j', '-a'])
+        extended_args.extend(['-j', '-a'])
         bpf_args.extend(['-j', '-a'])
         modern_bpf_args.extend(['-j', '-a'])
 
-        specs.append(process_spec(path, args, kernel_module_env))
+        specs.append(process_spec(path, extended_args, kernel_module_env))
         specs.append(process_spec(path, bpf_args, bpf_env))
         if BTF_IS_AVAILABLE:
             specs.append(process_spec(path, modern_bpf_args, {}))
