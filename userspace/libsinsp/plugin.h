@@ -505,7 +505,7 @@ public:
 		}
 	}
 
-	std::string_view name() const { return m_table->get_name(m_owner_plugin); }
+	std::string_view name() const { return m_table->name(); }
 
 	size_t entries_count() const { return m_table->get_size(m_owner_plugin); }
 
