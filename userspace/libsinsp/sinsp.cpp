@@ -205,11 +205,9 @@ sinsp::sinsp(bool with_metrics):
 sinsp::~sinsp() {
 	close();
 
-#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	if(--instance_count == 0) {
 		sinsp_dns_manager::get().cleanup();
 	}
-#endif
 }
 
 bool sinsp::is_initialstate_event(scap_evt* pevent) const {

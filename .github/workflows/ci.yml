@@ -21,14 +21,12 @@ jobs:
       fail-fast: false
       matrix:
         arch: [amd64, arm64]
-        name: [system_deps, bundled_deps, system_deps_minimal, sanitizers, zig]
+        name: [system_deps, bundled_deps, sanitizers, zig]
         include:
           - name: system_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
           - name: bundled_deps
             cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
-          - name: system_deps_minimal
-            cmake_opts: -DBUILD_WARNINGS_AS_ERRORS=On -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
           - name: sanitizers
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
@@ -134,7 +132,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True -DCMAKE_INSTALL_PREFIX=/tmp/libs-test -DENABLE_THREAD_POOL=ON ../
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DCMAKE_INSTALL_PREFIX=/tmp/libs-test -DENABLE_THREAD_POOL=ON ../
           make -j4
           make run-unit-tests
 
@@ -174,7 +172,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DMINIMAL_BUILD=ON -DENABLE_THREAD_POOL=ON ..
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.crt }} -DCREATE_TEST_TARGETS=ON -DENABLE_THREAD_POOL=ON ..
           cmake --build . --config Release --parallel 4 && make run-unit-tests || libsinsp\test\Release\unit-test-libsinsp.exe
 
   build-shared-libs-macos-amd64:
@@ -193,7 +191,7 @@ jobs:
       - name: Build 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DUSE_BUNDLED_BS_THREADPOOL=ON -DENABLE_THREAD_POOL=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=ON -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
+          cd build && cmake -DBUILD_SHARED_LIBS=True -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=ON -DUSE_BUNDLED_BS_THREADPOOL=ON -DENABLE_THREAD_POOL=ON -DCMAKE_BUILD_TYPE=Release -DCREATE_TEST_TARGETS=OFF -DCMAKE_INSTALL_PREFIX=/tmp/libs-test ..
           cmake --build . --config Release --parallel $(getconf _NPROCESSORS_ONLN)
 
       - name: Install

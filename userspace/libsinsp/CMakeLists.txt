@@ -154,7 +154,7 @@ endif()
 
 if(NOT WIN32)
 	if(NOT APPLE)
-		if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
+		if(NOT EMSCRIPTEN)
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
 				if(LIB_ANL)
@@ -166,7 +166,7 @@ if(NOT WIN32)
 
 		else()
 			target_link_libraries(sinsp INTERFACE rt)
-		endif() # NOT MINIMAL_BUILD
+		endif() # NOT EMSCRIPTEN
 	endif() # NOT APPLE
 
 	target_link_libraries(sinsp INTERFACE dl pthread)
