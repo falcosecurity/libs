@@ -702,6 +702,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async) {
 // Basically, we are verifying that the sinsp <-> plugin tables access
 // is bidirectional and consistent.
 TEST_F(sinsp_with_test_input, plugin_tables) {
+	libsinsp::state::sinsp_table_owner owner;
 	auto& reg = m_inspector.get_table_registry();
 
 	add_default_init_thread();
@@ -720,32 +721,25 @@ TEST_F(sinsp_with_test_input, plugin_tables) {
 	ASSERT_NE(reg->get_table<uint64_t>("plugin_sample"), nullptr);
 
 	// get the plugin table and check its fields and info
-	auto table = reg->get_table<uint64_t>("plugin_sample");
+	auto table_wrapper = sinsp_table<uint64_t>(&owner, reg->get_table<uint64_t>("plugin_sample"));
+	auto table = &table_wrapper;
 	ASSERT_EQ(table->name(), "plugin_sample");
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
-	ASSERT_EQ(table->static_fields()->size(), 0);
-	ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
+	ASSERT_EQ(table->fields().size(), 1);
 
 	// get an already existing field form the plugin table
-	auto sfield = table->dynamic_fields()->fields().find("u64_val");
-	ASSERT_NE(sfield, table->dynamic_fields()->fields().end());
-	ASSERT_EQ(sfield->second.readonly(), false);
-	ASSERT_EQ(sfield->second.valid(), true);
-	ASSERT_EQ(sfield->second.index(), 0);
-	ASSERT_EQ(sfield->second.name(), "u64_val");
-	ASSERT_EQ(sfield->second.info(), libsinsp::state::typeinfo::of<uint64_t>());
+	auto field_info = table->get_field_info("u64_val");
+	ASSERT_NE(field_info, nullptr);
+	ASSERT_EQ(field_info->read_only, false);
+	ASSERT_EQ(field_info->field_type, ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
 
 	// add a new field in the plugin table
-	const auto& dfield = table->dynamic_fields()->add_field<std::string>("str_val");
-	ASSERT_NE(table->dynamic_fields()->fields().find("str_val"),
-	          table->dynamic_fields()->fields().end());
-	ASSERT_EQ(dfield, table->dynamic_fields()->fields().find("str_val")->second);
-	ASSERT_EQ(dfield.readonly(), false);
-	ASSERT_EQ(dfield.valid(), true);
-	ASSERT_EQ(dfield.index(), 1);
-	ASSERT_EQ(dfield.name(), "str_val");
-	ASSERT_EQ(dfield.info(), libsinsp::state::typeinfo::of<std::string>());
+	table->add_field<std::string>("str_val");
+	field_info = table->get_field_info("str_val");
+	ASSERT_NE(field_info, nullptr);
+	ASSERT_EQ(field_info->read_only, false);
+	ASSERT_EQ(field_info->field_type, ss_plugin_state_type::SS_PLUGIN_ST_STRING);
 
 	// we open a capture and iterate, so that we make sure that all
 	// the state operations keep working at every round of the loop
@@ -767,71 +761,70 @@ TEST_F(sinsp_with_test_input, plugin_tables) {
 	}
 
 	// we play around with the plugin's table, like if it was a C++ one from sinsp
-	auto sfieldacc = sfield->second.new_accessor<uint64_t>();
-	auto dfieldacc = dfield.new_accessor<std::string>();
+	auto sfieldacc = table->get_field<uint64_t>("u64_val");
+	auto dfieldacc = table->get_field<std::string>("str_val");
 
 	for(uint64_t i = 0; i < max_iterations; i++) {
 		ASSERT_EQ(table->entries_count(), i);
 
 		// get non-existing entry
-		ASSERT_EQ(table->get_entry(i), nullptr);
+		ASSERT_ANY_THROW(table->get_entry(i));
 
 		// creating a destroying a thread without adding it to the table
 		table->new_entry();
 
 		// creating and adding a thread to the table
-		auto t = table->add_entry(i, table->new_entry());
-		ASSERT_NE(t, nullptr);
-		ASSERT_NE(table->get_entry(i), nullptr);
+		auto e = table->new_entry();
+		table->add_entry(i, e);
+		table->get_entry(i);
 		ASSERT_EQ(table->entries_count(), i + 1);
 
 		// read and write from newly-created thread (existing field)
 		uint64_t tmpu64 = (uint64_t)-1;
-		t->get_dynamic_field(sfieldacc, tmpu64);
+		e.read_field(sfieldacc, tmpu64);
 		ASSERT_EQ(tmpu64, 0);
 		tmpu64 = 5;
-		t->set_dynamic_field(sfieldacc, tmpu64);
+		e.write_field(sfieldacc, tmpu64);
 		tmpu64 = 0;
-		t->get_dynamic_field(sfieldacc, tmpu64);
+		e.read_field(sfieldacc, tmpu64);
 		ASSERT_EQ(tmpu64, 5);
 
 		// read and write from newly-created thread (added field)
 		std::string tmpstr = "test";
-		t->get_dynamic_field(dfieldacc, tmpstr);
+		e.read_field(dfieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "");
 		tmpstr = "hello";
-		t->set_dynamic_field(dfieldacc, tmpstr);
+		e.write_field(dfieldacc, tmpstr);
 		tmpstr = "";
-		t->get_dynamic_field(dfieldacc, tmpstr);
+		e.read_field(dfieldacc, tmpstr);
 		ASSERT_EQ(tmpstr, "hello");
 	}
 
 	// full iteration
-	auto it = [&](libsinsp::state::table_entry& e) -> bool {
+	auto it = [&](sinsp_table_entry& e) -> bool {
 		uint64_t tmpu64;
 		std::string tmpstr;
-		e.get_dynamic_field(sfieldacc, tmpu64);
+		e.read_field(sfieldacc, tmpu64);
 		EXPECT_EQ(tmpu64, 5);
-		e.get_dynamic_field(dfieldacc, tmpstr);
+		e.read_field(dfieldacc, tmpstr);
 		EXPECT_EQ(tmpstr, "hello");
 		return true;
 	};
 	ASSERT_TRUE(table->foreach_entry(it));
 
 	// iteration with break-out
-	ASSERT_FALSE(
-	        table->foreach_entry([&](libsinsp::state::table_entry& e) -> bool { return false; }));
+	ASSERT_FALSE(table->foreach_entry([&](sinsp_table_entry& e) -> bool { return false; }));
 
 	// iteration with error
 	ASSERT_ANY_THROW(table->foreach_entry(
-	        [&](libsinsp::state::table_entry& e) -> bool { throw sinsp_exception("some error"); }));
+	        [&](sinsp_table_entry& e) -> bool { throw sinsp_exception("some error"); }));
 
 	// erasing an unknown thread
-	ASSERT_EQ(table->erase_entry(max_iterations), false);
+	ASSERT_ANY_THROW(table->erase_entry(max_iterations));
 	ASSERT_EQ(table->entries_count(), max_iterations);
 
 	// erase one of the newly-created thread
-	ASSERT_EQ(table->erase_entry(0), true);
+	table->erase_entry(0);
 	ASSERT_EQ(table->entries_count(), max_iterations - 1);
 
 	// clear all
