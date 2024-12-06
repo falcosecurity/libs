@@ -24,6 +24,7 @@ limitations under the License.
 #include <unordered_map>
 #include <memory>
 #include <cstring>
+#include <vector>
 
 namespace libsinsp {
 namespace state {

@@ -18,10 +18,8 @@ limitations under the License.
 #pragma once
 
 #include <libsinsp/sinsp_exception.h>
-#include <driver/ppm_events_public.h>
 
 #include <string>
-#include <vector>
 
 namespace libsinsp {
 namespace state {
