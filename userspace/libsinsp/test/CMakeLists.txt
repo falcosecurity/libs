@@ -76,7 +76,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	ast_exprs.ut.cpp
 	test_utils.cpp
 	sinsp_with_test_input.cpp
-	cgroup_list_counter.ut.cpp
 	events_evt.ut.cpp
 	events_file.ut.cpp
 	events_fspath.ut.cpp
@@ -151,14 +150,8 @@ if(NOT MINIMAL_BUILD)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	list(
-		APPEND
-		LIBSINSP_UNIT_TESTS_SOURCES
-		async_key_value_source.ut.cpp
-		filter_ppm_codes.ut.cpp
-		public_sinsp_API/events_set.cpp
-		public_sinsp_API/interesting_syscalls.cpp
-		public_sinsp_API/ppm_sc_codes.cpp
+	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES filter_ppm_codes.ut.cpp public_sinsp_API/events_set.cpp
+		 public_sinsp_API/interesting_syscalls.cpp public_sinsp_API/ppm_sc_codes.cpp
 	)
 endif()
 
