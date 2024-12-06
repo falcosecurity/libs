@@ -165,7 +165,7 @@ void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state:
 
 	input.name = m_table->name().c_str();
 	input.table = this;
-	input.key_type = m_table->key_info().index();
+	input.key_type = m_table->key_info().type_id();
 }
 
 void libsinsp::state::table_accessor::unset() {
@@ -343,14 +343,14 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
 		for(auto& info : *this->static_fields()) {
 			ss_plugin_table_fieldinfo i;
 			i.name = info.second.name().c_str();
-			i.field_type = info.second.info().index();
+			i.field_type = info.second.info().type_id();
 			i.read_only = info.second.readonly();
 			this->m_field_list.push_back(i);
 		}
 		for(auto& info : this->dynamic_fields()->fields()) {
 			ss_plugin_table_fieldinfo i;
 			i.name = info.second.name().c_str();
-			i.field_type = info.second.info().index();
+			i.field_type = info.second.info().type_id();
 			i.read_only = false;
 			this->m_field_list.push_back(i);
 		}
@@ -399,7 +399,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		if(fixed_it != this->static_fields()->end()) {
-			if(data_type != fixed_it->second.info().index()) {
+			if(data_type != fixed_it->second.info().type_id()) {
 				throw sinsp_exception("incompatible data types for static field: " +
 				                      std::string(name));
 			}
@@ -421,7 +421,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 	}
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		if(dyn_it != this->dynamic_fields()->fields().end()) {
-			if(data_type != dyn_it->second.info().index()) {
+			if(data_type != dyn_it->second.info().type_id()) {
 				throw sinsp_exception("incompatible data types for dynamic field: " +
 				                      std::string(name));
 			}

@@ -116,7 +116,7 @@ private:
 
 	template<typename T>
 	inline void get_dynamic_field(const dynamic_struct::field_info& i, const T* value, void* out) {
-		if(i.info().index() == SS_PLUGIN_ST_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)value)->c_str();
 		} else {
 			memcpy(out, (const void*)value, i.info().size());
@@ -125,7 +125,7 @@ private:
 
 	template<typename T>
 	inline void set_dynamic_field(const dynamic_struct::field_info& i, T* value, const void* in) {
-		if(i.info().index() == SS_PLUGIN_ST_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((std::string*)value) = *((const char**)in);
 		} else {
 			memcpy((void*)value, in, i.info().size());
@@ -175,7 +175,7 @@ protected:
 			        "invalid field info passed to value_table_entry_adapter::get_dynamic_field");
 		}
 
-		if(i.info().index() == SS_PLUGIN_ST_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)m_value)->c_str();
 		} else {
 			memcpy(out, (const void*)m_value, i.info().size());
@@ -189,7 +189,7 @@ protected:
 			        "invalid field info passed to value_table_entry_adapter::set_dynamic_field");
 		}
 
-		if(i.info().index() == SS_PLUGIN_ST_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((std::string*)m_value) = *((const char**)in);
 		} else {
 			memcpy((void*)m_value, in, i.info().size());

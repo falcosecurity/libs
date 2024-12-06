@@ -52,11 +52,11 @@ public:
 	inline typeinfo& operator=(const typeinfo& s) = default;
 
 	friend inline bool operator==(const typeinfo& a, const typeinfo& b) {
-		return a.index() == b.index();
+		return a.type_id() == b.type_id();
 	};
 
 	friend inline bool operator!=(const typeinfo& a, const typeinfo& b) {
-		return a.index() != b.index();
+		return a.type_id() != b.type_id();
 	};
 
 	/**
@@ -67,7 +67,7 @@ public:
 	/**
 	 * @brief Returns the numeric representation of the type.
 	 */
-	inline ss_plugin_state_type index() const { return m_index; }
+	inline ss_plugin_state_type type_id() const { return m_type_id; }
 
 	/**
 	 * @brief Returns the byte size of variables of the given type.
@@ -99,7 +99,7 @@ private:
 	                void (*c)(void*),
 	                void (*d)(void*)):
 	        m_name(n),
-	        m_index(k),
+	        m_type_id(k),
 	        m_size(s),
 	        m_construct(c),
 	        m_destroy(d) {}
@@ -122,7 +122,7 @@ private:
 	}
 
 	const char* m_name;
-	ss_plugin_state_type m_index;
+	ss_plugin_state_type m_type_id;
 	size_t m_size;
 	void (*m_construct)(void*);
 	void (*m_destroy)(void*);
