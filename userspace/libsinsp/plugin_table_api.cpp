@@ -297,7 +297,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 				if(m_accessors[f.index()] == nullptr) {
 					auto facc = m_input->fields_ext->get_table_field(m_input->table,
 					                                                 f.name().c_str(),
-					                                                 f.info().index());
+					                                                 f.info().type_id());
 					if(facc == NULL) {
 						throw sinsp_exception(
 						        table_input_error_prefix(m_owner, m_input.get()) +
@@ -312,7 +312,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		virtual const ds::field_info& add_field_info(const ds::field_info& field) override {
 			auto ret = m_input->fields_ext->add_table_field(m_input->table,
 			                                                field.name().c_str(),
-			                                                field.info().index());
+			                                                field.info().type_id());
 			if(ret == NULL) {
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
 				                      "add table field failure: " + m_owner->get_last_error());
@@ -374,7 +374,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		}
 
 		virtual void get_dynamic_field(const ds::field_info& i, void* out) override {
-			if(i.info().index() == SS_PLUGIN_ST_TABLE) {
+			if(i.info().type_id() == SS_PLUGIN_ST_TABLE) {
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
 				                      "read field failure: dynamic table fields not supported");
 			}
@@ -394,12 +394,12 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 			// and as const char*s by the plugin API.
 			// todo(jasondellaluce): maybe find a common place for all this
 			// type conversions knowledge (also leaked in dynamic_struct.h)
-			if(i.info().index() == SS_PLUGIN_ST_STRING) {
+			if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 				*(const char**)out = dout.str;
 			} else {
 #define _X(_type, _dtype) \
 	{ convert_types(dout._dtype, *((_type*)out)); }
-				__PLUGIN_STATETYPE_SWITCH(i.info().index());
+				__PLUGIN_STATETYPE_SWITCH(i.info().type_id());
 #undef _X
 			}
 		}
@@ -413,12 +413,12 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 			// and as const char*s by the plugin API.
 			// todo(jasondellaluce): maybe find a common place for all this
 			// type conversions knowledge (also leaked in dynamic_struct.h)
-			if(i.info().index() == SS_PLUGIN_ST_STRING) {
+			if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 				v.str = *(const char**)in;
 			} else {
 #define _X(_type, _dtype) \
 	{ convert_types(*((_type*)in), v._dtype); }
-				__PLUGIN_STATETYPE_SWITCH(i.info().index());
+				__PLUGIN_STATETYPE_SWITCH(i.info().type_id());
 #undef _X
 			}
 
@@ -452,7 +452,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	        m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input)),
 	        m_dyn_fields_as_base_class(m_dyn_fields) {
 		auto t = libsinsp::state::typeinfo::of<KeyType>();
-		if(m_input->key_type != t.index()) {
+		if(m_input->key_type != t.type_id()) {
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
 			                      "invalid key type: " + std::string(t.name()));
 		}
@@ -1005,7 +1005,7 @@ ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, 
 		for(const auto& d : p->m_table_registry->tables()) {
 			ss_plugin_table_info info;
 			info.name = d.second->name().c_str();
-			info.key_type = d.second->key_info().index();
+			info.key_type = d.second->key_info().type_id();
 			p->m_table_infos.push_back(info);
 		}
 		*ntables = p->m_table_infos.size();
