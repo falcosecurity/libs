@@ -325,7 +325,7 @@ jobs:
                 ${{ matrix.cmake_opts }} \
                 -DUSE_BUNDLED_LIBBPF=ON \
                 ..
-          make -j$(nproc) sinsp-example driver bpf
+          make -j$(nproc) sinsp-example driver bpf container_plugin
           sudo -E make e2e-install-deps
           sudo -E ../test/e2e/scripts/run_tests.sh
 
