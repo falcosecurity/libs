@@ -160,8 +160,14 @@ set_sinsp_target_properties(sinsp)
 target_link_libraries(
 	sinsp
 	PUBLIC scap
-	PRIVATE "${CURL_LIBRARIES}" "${JSONCPP_LIB}" "${RE2_LIB}"
+	PRIVATE ${JSONCPP_LIB} ${RE2_LIB}
 )
+
+if(NOT MINIMAL_BUILD)
+	if(NOT WIN32 AND NOT EMSCRIPTEN)
+		target_link_libraries(sinsp PRIVATE CURL::libcurl)
+	endif()
+endif()
 
 if(NOT EMSCRIPTEN)
 	target_link_libraries(
