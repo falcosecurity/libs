@@ -723,7 +723,7 @@ TEST_F(sinsp_with_test_input, plugin_tables) {
 	// get the plugin table and check its fields and info
 	auto table_wrapper = sinsp_table<uint64_t>(&owner, reg->get_table<uint64_t>("plugin_sample"));
 	auto table = &table_wrapper;
-	ASSERT_EQ(table->name(), "plugin_sample");
+	ASSERT_EQ(table->name(), std::string("plugin_sample"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
 	ASSERT_EQ(table->fields().size(), 1);
@@ -841,7 +841,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 
 	auto table = reg->get_table<int64_t>("threads");
 	ASSERT_NE(table, nullptr);
-	ASSERT_EQ(table->name(), "threads");
+	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
@@ -865,7 +865,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables) {
 	auto subtable_acc = field->second.new_accessor<libsinsp::state::base_table*>();
 	auto subtable = dynamic_cast<sinsp_fdtable*>(entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
-	ASSERT_EQ(subtable->name(), "file_descriptors");
+	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
 	ASSERT_EQ(subtable->entries_count(), 0);
 
 	// get an accessor to one of the static fields
@@ -939,7 +939,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 
 	auto table = reg->get_table<int64_t>("threads");
 	ASSERT_NE(table, nullptr);
-	ASSERT_EQ(table->name(), "threads");
+	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
@@ -965,7 +965,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array) {
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
 	                entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
-	ASSERT_EQ(subtable->name(), "env");
+	ASSERT_EQ(subtable->name(), std::string("env"));
 	ASSERT_EQ(subtable->entries_count(), 0);
 
 	// get an accessor to a dynamic field representing the array's values
@@ -1031,7 +1031,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 
 	auto table = reg->get_table<int64_t>("threads");
 	ASSERT_NE(table, nullptr);
-	ASSERT_EQ(table->name(), "threads");
+	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
@@ -1059,7 +1059,7 @@ TEST_F(sinsp_with_test_input, plugin_subtables_array_pair) {
 	        libsinsp::state::pair_table_entry_adapter<std::string, std::string>>*>(
 	        entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
-	ASSERT_EQ(subtable->name(), "cgroups");
+	ASSERT_EQ(subtable->name(), std::string("cgroups"));
 	ASSERT_EQ(subtable->entries_count(), 0);
 	// get an accessor to a dynamic field representing the array's values
 	ASSERT_EQ(subtable->dynamic_fields()->fields().size(), 2);  // pair.first, pair.second

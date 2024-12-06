@@ -446,7 +446,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	};
 
 	plugin_table_wrapper(sinsp_plugin* o, const ss_plugin_table_input* i):
-	        libsinsp::state::table<KeyType>(i->name, &s_empty_static_infos),
+	        libsinsp::state::table<KeyType>(&s_empty_static_infos),
 	        m_owner(o),
 	        m_input(copy_and_check_table_input(o, i)),
 	        m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input)),
@@ -595,6 +595,8 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		return res == SS_PLUGIN_SUCCESS;
 	}
 
+	const char* name() const override { return m_input->name; }
+
 	const ss_plugin_table_fieldinfo* list_fields(libsinsp::state::sinsp_table_owner* owner,
 	                                             uint32_t* nfields) override;
 
@@ -605,8 +607,6 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	ss_plugin_table_field_t* add_field(libsinsp::state::sinsp_table_owner* owner,
 	                                   const char* name,
 	                                   ss_plugin_state_type data_type) override;
-
-	const char* get_name(libsinsp::state::sinsp_table_owner* owner) override;
 
 	uint64_t get_size(libsinsp::state::sinsp_table_owner* owner) override;
 
@@ -742,11 +742,6 @@ ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::add_field(
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
 	return ret;
-}
-
-template<typename KeyType>
-const char* plugin_table_wrapper<KeyType>::get_name(libsinsp::state::sinsp_table_owner* owner) {
-	return m_input->name;
 }
 
 template<typename KeyType>
@@ -1004,7 +999,7 @@ ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, 
 		p->m_table_infos.clear();
 		for(const auto& d : p->m_table_registry->tables()) {
 			ss_plugin_table_info info;
-			info.name = d.second->name().c_str();
+			info.name = d.second->name();
 			info.key_type = d.second->key_info().type_id();
 			p->m_table_infos.push_back(info);
 		}

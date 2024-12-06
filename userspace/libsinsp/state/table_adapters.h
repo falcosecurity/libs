@@ -260,20 +260,22 @@ public:
 	        const uint64_t& key,
 	        std::unique_ptr<libsinsp::state::table_entry> entry) override {
 		if(!entry) {
-			throw sinsp_exception("null entry added to table: " + this->name());
+			throw sinsp_exception(
+			        std::string("null entry added to table: " + std::string(this->name())));
 		}
 		if(entry->dynamic_fields() != this->dynamic_fields()) {
 			throw sinsp_exception("entry with mismatching dynamic fields added to table: " +
-			                      this->name());
+			                      std::string(this->name()));
 		}
 
 		auto value = dynamic_cast<TWrap*>(entry.get());
 		if(!value) {
-			throw sinsp_exception("entry with mismatching type added to table: " + this->name());
+			throw sinsp_exception("entry with mismatching type added to table: " +
+			                      std::string(this->name()));
 		}
 		if(value->value() != nullptr) {
 			throw sinsp_exception("entry with unexpected owned value added to table: " +
-			                      this->name());
+			                      std::string(this->name()));
 		}
 
 		m_container.resize(key + 1);

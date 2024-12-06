@@ -130,10 +130,7 @@ struct table_accessor {
  */
 class base_table {
 public:
-	inline base_table(const std::string& name,
-	                  const typeinfo& key_info,
-	                  const static_struct::field_infos* static_fields):
-	        m_name(name),
+	inline base_table(const typeinfo& key_info, const static_struct::field_infos* static_fields):
 	        m_key_info(key_info),
 	        m_static_fields(static_fields),
 	        m_dynamic_fields(std::make_shared<dynamic_struct::field_infos>()) {}
@@ -147,7 +144,7 @@ public:
 	/**
 	 * @brief Returns the name of the table.
 	 */
-	inline const std::string& name() const { return m_name; }
+	virtual const char* name() const = 0;
 
 	/**
 	 * @brief Returns the non-null type info about the table's key.
@@ -228,8 +225,6 @@ public:
 	                                           const char* name,
 	                                           ss_plugin_state_type data_type) = 0;
 
-	virtual const char* get_name(sinsp_table_owner* owner) = 0;
-
 	virtual uint64_t get_size(sinsp_table_owner* owner) = 0;
 
 	virtual ss_plugin_table_entry_t* get_entry(sinsp_table_owner* owner,
@@ -264,7 +259,6 @@ public:
 	                                       const ss_plugin_state_data* in) = 0;
 
 protected:
-	std::string m_name;
 	typeinfo m_key_info;
 	const static_struct::field_infos* m_static_fields;
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
@@ -282,9 +276,9 @@ class table : public base_table {
 	              "table key types must have a default constructor");
 
 public:
-	inline table(const std::string& name, const static_struct::field_infos* static_fields):
-	        base_table(name, typeinfo::of<KeyType>(), static_fields) {}
-	inline table(const std::string& name): table(name, _static_fields()) {}
+	inline table(const static_struct::field_infos* static_fields):
+	        base_table(typeinfo::of<KeyType>(), static_fields) {}
+	inline table(): table(_static_fields()) {}
 	virtual ~table() = default;
 	inline table(table&&) = default;
 	inline table& operator=(table&&) = default;
@@ -336,9 +330,10 @@ template<typename KeyType>
 class built_in_table : public table<KeyType> {
 public:
 	inline built_in_table(const std::string& name, const static_struct::field_infos* static_fields):
-	        table<KeyType>::table(name, static_fields),
-	        m_this_ptr(this) {}
-	inline built_in_table(const std::string& name): table<KeyType>::table(name) {}
+	        table<KeyType>::table(static_fields),
+	        m_this_ptr(this),
+	        m_name(name) {}
+	inline built_in_table(const std::string& name): table<KeyType>::table(), m_name(name) {}
 
 	/**
 	 * @brief Returns a pointer to the area of memory in which this table
@@ -353,7 +348,7 @@ public:
 	std::shared_ptr<table_entry> add_entry(const KeyType& key,
 	                                       std::unique_ptr<table_entry> entry) override = 0;
 
-	const char* get_name(sinsp_table_owner* owner) override;
+	const char* name() const override { return m_name.c_str(); }
 
 	uint64_t get_size(sinsp_table_owner* owner) override;
 
@@ -401,6 +396,7 @@ public:
 
 private:
 	const base_table* m_this_ptr;
+	std::string m_name;
 };
 
 class sinsp_table_owner {
