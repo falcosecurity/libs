@@ -15,8 +15,8 @@ limitations under the License.
 
 */
 
-#include "table.h"
-#include "plugin.h"
+#include <libsinsp/state/table.h>
+#include <libsinsp/plugin.h>
 
 #define __CATCH_ERR_MSG(_ERR, _F)           \
 	{                                       \
