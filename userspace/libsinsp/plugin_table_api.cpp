@@ -71,36 +71,6 @@ limitations under the License.
 		}                                                                           \
 	}
 
-static inline ss_plugin_state_type typeinfo_to_state_type(const libsinsp::state::typeinfo& i) {
-	switch(i.index()) {
-	case libsinsp::state::typeinfo::index_t::TI_INT8:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT8;
-	case libsinsp::state::typeinfo::index_t::TI_INT16:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT16;
-	case libsinsp::state::typeinfo::index_t::TI_INT32:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT32;
-	case libsinsp::state::typeinfo::index_t::TI_INT64:
-		return ss_plugin_state_type::SS_PLUGIN_ST_INT64;
-	case libsinsp::state::typeinfo::index_t::TI_UINT8:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT8;
-	case libsinsp::state::typeinfo::index_t::TI_UINT16:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT16;
-	case libsinsp::state::typeinfo::index_t::TI_UINT32:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT32;
-	case libsinsp::state::typeinfo::index_t::TI_UINT64:
-		return ss_plugin_state_type::SS_PLUGIN_ST_UINT64;
-	case libsinsp::state::typeinfo::index_t::TI_STRING:
-		return ss_plugin_state_type::SS_PLUGIN_ST_STRING;
-	case libsinsp::state::typeinfo::index_t::TI_BOOL:
-		return ss_plugin_state_type::SS_PLUGIN_ST_BOOL;
-	case libsinsp::state::typeinfo::index_t::TI_TABLE:
-		return ss_plugin_state_type::SS_PLUGIN_ST_TABLE;
-	default:
-		throw sinsp_exception("can't convert typeinfo to plugin state type: " +
-		                      std::to_string(i.index()));
-	}
-}
-
 template<typename From, typename To>
 static inline void convert_types(const From& from, To& to) {
 	to = from;
@@ -325,10 +295,9 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 					m_accessors.push_back(nullptr);
 				}
 				if(m_accessors[f.index()] == nullptr) {
-					auto facc =
-					        m_input->fields_ext->get_table_field(m_input->table,
-					                                             f.name().c_str(),
-					                                             typeinfo_to_state_type(f.info()));
+					auto facc = m_input->fields_ext->get_table_field(m_input->table,
+					                                                 f.name().c_str(),
+					                                                 f.info().index());
 					if(facc == NULL) {
 						throw sinsp_exception(
 						        table_input_error_prefix(m_owner, m_input.get()) +
@@ -343,7 +312,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		virtual const ds::field_info& add_field_info(const ds::field_info& field) override {
 			auto ret = m_input->fields_ext->add_table_field(m_input->table,
 			                                                field.name().c_str(),
-			                                                typeinfo_to_state_type(field.info()));
+			                                                field.info().index());
 			if(ret == NULL) {
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
 				                      "add table field failure: " + m_owner->get_last_error());
@@ -405,7 +374,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		}
 
 		virtual void get_dynamic_field(const ds::field_info& i, void* out) override {
-			if(i.info().index() == libsinsp::state::typeinfo::index_t::TI_TABLE) {
+			if(i.info().index() == SS_PLUGIN_ST_TABLE) {
 				throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
 				                      "read field failure: dynamic table fields not supported");
 			}
@@ -425,12 +394,12 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 			// and as const char*s by the plugin API.
 			// todo(jasondellaluce): maybe find a common place for all this
 			// type conversions knowledge (also leaked in dynamic_struct.h)
-			if(i.info().index() == libsinsp::state::typeinfo::index_t::TI_STRING) {
+			if(i.info().index() == SS_PLUGIN_ST_STRING) {
 				*(const char**)out = dout.str;
 			} else {
 #define _X(_type, _dtype) \
 	{ convert_types(dout._dtype, *((_type*)out)); }
-				__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
+				__PLUGIN_STATETYPE_SWITCH(i.info().index());
 #undef _X
 			}
 		}
@@ -444,12 +413,12 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 			// and as const char*s by the plugin API.
 			// todo(jasondellaluce): maybe find a common place for all this
 			// type conversions knowledge (also leaked in dynamic_struct.h)
-			if(i.info().index() == libsinsp::state::typeinfo::index_t::TI_STRING) {
+			if(i.info().index() == SS_PLUGIN_ST_STRING) {
 				v.str = *(const char**)in;
 			} else {
 #define _X(_type, _dtype) \
 	{ convert_types(*((_type*)in), v._dtype); }
-				__PLUGIN_STATETYPE_SWITCH(typeinfo_to_state_type(i.info()));
+				__PLUGIN_STATETYPE_SWITCH(i.info().index());
 #undef _X
 			}
 
@@ -483,7 +452,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	        m_dyn_fields(std::make_shared<plugin_field_infos>(o, m_input)),
 	        m_dyn_fields_as_base_class(m_dyn_fields) {
 		auto t = libsinsp::state::typeinfo::of<KeyType>();
-		if(m_input->key_type != typeinfo_to_state_type(t)) {
+		if(m_input->key_type != t.index()) {
 			throw sinsp_exception(table_input_error_prefix(m_owner, m_input.get()) +
 			                      "invalid key type: " + std::string(t.name()));
 		}
@@ -1036,7 +1005,7 @@ ss_plugin_table_info* sinsp_plugin::table_api_list_tables(ss_plugin_owner_t* o, 
 		for(const auto& d : p->m_table_registry->tables()) {
 			ss_plugin_table_info info;
 			info.name = d.second->name().c_str();
-			info.key_type = typeinfo_to_state_type(d.second->key_info());
+			info.key_type = d.second->key_info().index();
 			p->m_table_infos.push_back(info);
 		}
 		*ntables = p->m_table_infos.size();
