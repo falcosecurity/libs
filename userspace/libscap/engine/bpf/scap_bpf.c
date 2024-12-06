@@ -706,7 +706,7 @@ static int32_t load_bpf_file(struct bpf_engine *handle) {
 			                      handle->m_filepath);
 		}
 
-		handle->elf = elf_begin(handle->program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+		handle->elf = elf_begin(handle->program_fd, ELF_C_READ, NULL);
 		if(!handle->elf) {
 			scap_errprintf(handle->m_lasterr, 0, "can't read ELF format");
 			goto end;

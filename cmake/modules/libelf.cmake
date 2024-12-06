@@ -13,11 +13,13 @@
 # the License.
 #
 
+include_guard()
+
 option(USE_BUNDLED_LIBELF "Enable building of the bundled libelf" ${USE_BUNDLED_DEPS})
 option(USE_SHARED_LIBELF "When not using bundled libelf, link it dynamically" ON)
 
-if(LIBELF_INCLUDE)
-	# we already have LIBELF
+if(TARGET elf)
+	# we already have libelf
 elseif(NOT USE_BUNDLED_LIBELF)
 	find_path(LIBELF_INCLUDE elf.h PATH_SUFFIXES elf)
 	if(BUILD_SHARED_LIBS OR USE_SHARED_LIBELF)
@@ -50,49 +52,24 @@ elseif(NOT USE_BUNDLED_LIBELF)
 	else()
 		message(FATAL_ERROR "Couldn't find system libelf")
 	endif()
-else()
-	if(BUILD_SHARED_LIBS)
-		set(LIBELF_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+	if(BUILD_SHARED_LIBS OR USE_SHARED_LIBELF)
+		add_library(elf SHARED IMPORTED)
 	else()
-		set(LIBELF_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+		add_library(elf STATIC IMPORTED)
 	endif()
-	set(LIBELF_CFLAGS "-I${ZLIB_INCLUDE}")
-	if(ENABLE_PIC)
-		set(LIBELF_CFLAGS "${LIBELF_CFLAGS} -fPIC")
-	endif()
-	get_filename_component(ZLIB_SRC ${ZLIB_LIB} DIRECTORY)
-	set(LIBELF_SRC "${PROJECT_BINARY_DIR}/libelf-prefix/src")
-	set(LIBELF_INCLUDE "${LIBELF_SRC}/libelf/libelf")
-	set(LIBELF_LIB "${LIBELF_SRC}/libelf/libelf/libelf${LIBELF_LIB_SUFFIX}")
-	ExternalProject_Add(
-		libelf
-		PREFIX "${PROJECT_BINARY_DIR}/libelf-prefix"
-		DEPENDS zlib
-		URL "https://sourceware.org/elfutils/ftp/0.189/elfutils-0.189.tar.bz2"
-		URL_HASH "SHA256=39bd8f1a338e2b7cd4abc3ff11a0eddc6e690f69578a57478d8179b4148708c8"
-		CONFIGURE_COMMAND
-			./configure LDFLAGS=-L${ZLIB_SRC} "CFLAGS=${LIBELF_CFLAGS}"
-			--enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
-			--without-zstd
-		BUILD_IN_SOURCE 1
-		BUILD_COMMAND make -C lib libeu.a
-		COMMAND make -C libelf libelf${LIBELF_LIB_SUFFIX}
-		INSTALL_COMMAND ""
-		UPDATE_COMMAND ""
-		BUILD_BYPRODUCTS ${LIBELF_LIB}
-	)
-	message(STATUS "Using bundled libelf: include'${LIBELF_INCLUDE}', lib: ${LIBELF_LIB}")
-	install(
-		FILES "${LIBELF_LIB}"
-		DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
-		COMPONENT "libs-deps"
-	)
-endif()
 
-# We add a custom target, in this way we can always depend on `libelf` without distinguishing
-# between "bundled" and "not-bundled" case
-if(NOT TARGET libelf)
-	add_custom_target(libelf)
-endif()
+	set_target_properties(elf PROPERTIES IMPORTED_LOCATION ${LIBELF_LIB})
+	target_include_directories(elf INTERFACE ${LIBELF_INCLUDE})
+else()
+	include(FetchContent)
+	FetchContent_Declare(
+		libelf_elftoolchain
+		URL https://github.com/LucaGuerra/elftoolchain/releases/download/libelf-r4053-0/libelf-r4053-0.tar.gz
+		URL_HASH SHA256=1861e6332d97f9cdc15a0c03b7b478b87abb47408ab41c50bebd9a384937e44e
+	)
+	FetchContent_MakeAvailable(libelf_elftoolchain)
+	get_target_property(LIBELF_INCLUDE elf INCLUDE_DIRECTORIES)
 
-include_directories(${LIBELF_INCLUDE})
+	message(STATUS "Using bundled libelf: include'${LIBELF_INCLUDE}'")
+endif()
