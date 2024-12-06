@@ -358,7 +358,7 @@ TEST(thread_manager, table_access) {
 	auto table = static_cast<libsinsp::state::table<int64_t>*>(inspector.m_thread_manager.get());
 
 	// empty table state and info
-	ASSERT_EQ(table->name(), "threads");
+	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(*table->static_fields(), sinsp_threadinfo().static_fields());
 	ASSERT_NE(table->dynamic_fields(), nullptr);
@@ -384,7 +384,7 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(newt->get_static_field(tid_acc), (int64_t)999);
 	ASSERT_EQ(newt->get_static_field(comm_acc), "test");
 	ASSERT_NE(newt->get_static_field(fdtable_acc), nullptr);
-	ASSERT_EQ(newt->get_static_field(fdtable_acc)->name(), "file_descriptors");
+	ASSERT_EQ(newt->get_static_field(fdtable_acc)->name(), std::string("file_descriptors"));
 	ASSERT_NO_THROW(table->add_entry(999, std::move(newt)));
 	ASSERT_EQ(table->entries_count(), 1);
 	auto addedt = table->get_entry(999);
@@ -392,7 +392,7 @@ TEST(thread_manager, table_access) {
 	ASSERT_EQ(addedt->get_static_field(tid_acc), (int64_t)999);
 	ASSERT_EQ(addedt->get_static_field(comm_acc), "test");
 	ASSERT_NE(addedt->get_static_field(fdtable_acc), nullptr);
-	ASSERT_EQ(addedt->get_static_field(fdtable_acc)->name(), "file_descriptors");
+	ASSERT_EQ(addedt->get_static_field(fdtable_acc)->name(), std::string("file_descriptors"));
 
 	// add a dynamic field to table
 	std::string tmpstr;
@@ -449,7 +449,7 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
 	auto table = reg->get_table<int64_t>("threads");
-	ASSERT_EQ(table->name(), "threads");
+	ASSERT_EQ(table->name(), std::string("threads"));
 	ASSERT_EQ(table->entries_count(), 0);
 	ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
@@ -482,7 +482,7 @@ TEST(thread_manager, fdtable_access) {
 	ASSERT_NE(subtable, nullptr);
 	ASSERT_NE(subtable2, nullptr);
 
-	ASSERT_EQ(subtable->name(), "file_descriptors");
+	ASSERT_EQ(subtable->name(), std::string("file_descriptors"));
 	ASSERT_EQ(subtable->entries_count(), 0);
 	ASSERT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	ASSERT_EQ(subtable->static_fields()->size(), s_fdinfo_static_fields_count);
@@ -594,7 +594,7 @@ TEST(thread_manager, env_vars_access) {
 	ASSERT_NE(reg->tables().find("threads"), reg->tables().end());
 
 	auto table = reg->get_table<int64_t>("threads");
-	EXPECT_EQ(table->name(), "threads");
+	EXPECT_EQ(table->name(), std::string("threads"));
 	EXPECT_EQ(table->entries_count(), 0);
 	EXPECT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
 	EXPECT_EQ(table->dynamic_fields()->fields().size(), 0);
@@ -620,7 +620,7 @@ TEST(thread_manager, env_vars_access) {
 	        dynamic_cast<libsinsp::state::stl_container_table_adapter<std::vector<std::string>>*>(
 	                entry->get_static_field(subtable_acc));
 	ASSERT_NE(subtable, nullptr);
-	EXPECT_EQ(subtable->name(), "env");
+	EXPECT_EQ(subtable->name(), std::string("env"));
 	EXPECT_EQ(subtable->entries_count(), 0);
 	EXPECT_EQ(subtable->key_info(), libsinsp::state::typeinfo::of<uint64_t>());
 	EXPECT_EQ(subtable->static_fields()->size(), 0);

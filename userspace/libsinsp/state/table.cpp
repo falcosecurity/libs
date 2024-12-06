@@ -163,7 +163,7 @@ void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state:
 	m_table = t;
 	m_owner_plugin = p;
 
-	input.name = m_table->name().c_str();
+	input.name = m_table->name();
 	input.table = this;
 	input.key_type = m_table->key_info().type_id();
 }
@@ -212,7 +212,7 @@ ss_plugin_table_field_t* libsinsp::state::table_accessor::add_field(
 
 const char* libsinsp::state::table_accessor::get_name(ss_plugin_table_t* _t) {
 	auto t = static_cast<table_accessor*>(_t);
-	return t->m_table->name().c_str();
+	return t->m_table->name();
 }
 
 uint64_t libsinsp::state::table_accessor::get_size(ss_plugin_table_t* _t) {
@@ -428,7 +428,7 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
 			__PLUGIN_STATETYPE_SWITCH(data_type);
 		}
 		throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
-		                      this->m_name + "'");
+		                      std::string(this->name()) + "'");
 	});
 #undef _X
 
@@ -457,11 +457,6 @@ ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::add_field(
 	});
 #undef _X
 	return NULL;
-}
-
-template<typename KeyType>
-const char* libsinsp::state::built_in_table<KeyType>::get_name(sinsp_table_owner* owner) {
-	return this->m_name.c_str();
 }
 
 template<typename KeyType>
