@@ -8,7 +8,7 @@ Right now it prints relevant info about processes but in the next future it coul
 From the build directory:
 
 ```bash
-cmake -DBUILD_DRIVER=On -DUSE_BUNDLED_DEPS=Off -DMINIMAL_BUILD=On ..
+cmake -DBUILD_DRIVER=On -DUSE_BUNDLED_DEPS=Off ..
 make sinsp-debug
 # It takes just one arg, the path to the scap-file (relative or absolute)
 sudo ./libsinsp/sinsp_debug/sinsp-debug <path_to_scap_file>

@@ -19,9 +19,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 if(WIN32)
-	set(CMAKE_CXX_FLAGS
-		"-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi /std:c++17"
-	)
+	set(CMAKE_CXX_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 /EHsc /W3 /Zi /std:c++17")
 	set(CMAKE_CXX_FLAGS_DEBUG ${FALCOSECURITY_LIBS_DEBUG_FLAGS})
 	set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -145,13 +143,15 @@ elseif(APPLE OR EMSCRIPTEN)
 	)
 endif()
 
-if(NOT MINIMAL_BUILD)
-	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
-endif()
-
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES filter_ppm_codes.ut.cpp public_sinsp_API/events_set.cpp
-		 public_sinsp_API/interesting_syscalls.cpp public_sinsp_API/ppm_sc_codes.cpp
+	list(
+		APPEND
+		LIBSINSP_UNIT_TESTS_SOURCES
+		filter_ppm_codes.ut.cpp
+		procfs_utils.ut.cpp
+		public_sinsp_API/events_set.cpp
+		public_sinsp_API/interesting_syscalls.cpp
+		public_sinsp_API/ppm_sc_codes.cpp
 	)
 endif()
 
