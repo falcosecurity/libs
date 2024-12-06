@@ -34,20 +34,6 @@ include(jsoncpp)
 include(zlib)
 include(tbb)
 
-if(NOT MINIMAL_BUILD)
-	if(NOT WIN32 AND NOT EMSCRIPTEN)
-		include(cares)
-	endif() # NOT WIN32
-endif()
-
-if(NOT WIN32 AND NOT APPLE)
-	if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
-		include(grpc)
-		include(protobuf)
-		include(openssl)
-	endif() # NOT MINIMAL_BUILD
-endif()
-
 add_library(
 	sinsp
 	filter/ast.cpp
@@ -147,12 +133,7 @@ set(SINSP_PKGCONFIG_REQUIRES jsoncpp)
 set(SINSP_PKGCONFIG_REQUIRES_PRIVATE re2)
 
 if(NOT EMSCRIPTEN)
-	target_link_libraries(
-		sinsp
-		INTERFACE "${CARES_LIB}"
-		PRIVATE "${TBB_LIB}"
-	)
-	list(APPEND SINSP_PKGCONFIG_REQUIRES libcares)
+	target_link_libraries(sinsp PRIVATE "${TBB_LIB}")
 	list(APPEND SINSP_PKGCONFIG_REQUIRES_PRIVATE tbb)
 endif()
 
@@ -177,27 +158,8 @@ if(NOT EMSCRIPTEN)
 endif()
 
 if(NOT WIN32)
-	if(NOT MINIMAL_BUILD)
-		if(NOT EMSCRIPTEN)
-			add_dependencies(sinsp openssl)
-		endif()
-	endif()
-
 	if(NOT APPLE)
 		if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
-			include(protobuf)
-			include(cares)
-
-			list(
-				APPEND
-				SINSP_PKGCONFIG_REQUIRES
-				gpr
-				grpc
-				grpc++
-				protobuf
-				libcares
-			)
-
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
 				if(LIB_ANL)
@@ -211,8 +173,6 @@ if(NOT WIN32)
 			target_link_libraries(sinsp INTERFACE rt)
 		endif() # NOT MINIMAL_BUILD
 	endif() # NOT APPLE
-
-	list(APPEND SINSP_PKGCONFIG_REQUIRES libcrypto libssl)
 
 	target_link_libraries(sinsp INTERFACE dl pthread)
 
