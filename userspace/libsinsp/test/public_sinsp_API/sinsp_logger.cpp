@@ -21,6 +21,7 @@ limitations under the License.
 #include <libsinsp/test/helpers/scoped_pipe.h>
 #endif
 
+#include <thread>
 #include <gtest/gtest.h>
 #include <libsinsp/sinsp.h>
 #include <libsinsp/logger.h>
