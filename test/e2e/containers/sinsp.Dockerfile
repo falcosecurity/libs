@@ -15,5 +15,6 @@ RUN apt-get update && \
 COPY /sinsp-example /usr/local/bin/sinsp-example
 COPY /probe.o /driver/probe.o
 COPY /scap.ko /driver/scap.ko
+COPY /libcontainer.so /plugins/libcontainer.so
 
-ENTRYPOINT [ "sinsp-example", "-j", "-a" ]
+ENTRYPOINT [ "sinsp-example", "-j", "-a", "-p", "/plugins/libcontainer.so" ]

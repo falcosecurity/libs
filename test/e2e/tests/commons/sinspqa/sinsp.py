@@ -309,6 +309,7 @@ def container_spec(image: str = 'sinsp-example:latest', args: list = [], env: di
 
 
 def process_spec(path: str, args: list, env: dict) -> dict:
+    args.extend(['-p', os.environ.get('CONTAINER_PLUGIN')])
     return {
         'path': path,
         'args': args,
