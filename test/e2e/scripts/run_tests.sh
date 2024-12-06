@@ -9,6 +9,7 @@ E2E_DIR="${SCRIPT_DIR}/.."
 export SINSP_EXAMPLE_PATH=${BUILD_DIR}/libsinsp/examples/sinsp-example
 export KERNEL_MODULE=${BUILD_DIR}/driver/scap.ko
 export BPF_PROBE=${BUILD_DIR}/driver/bpf/probe.o
+export CONTAINER_PLUGIN=${BUILD_DIR}/test/e2e/container_plugin-prefix/src/libcontainer.so
 
 if [[ -z "${CI+x}" ]];then
     E2E_REPORT="${BUILD_DIR}"
