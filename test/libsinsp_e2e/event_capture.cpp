@@ -68,6 +68,7 @@ void event_capture::start(bool dump, libsinsp::events::set<ppm_sc_code>& sc_set)
 			}
 		}
 	}
+	m_before_capture(m_inspector.get());
 	open_engine(event_capture::get_engine(), sc_set);
 
 	const ::testing::TestInfo* const test_info =
@@ -83,8 +84,6 @@ void event_capture::start(bool dump, libsinsp::events::set<ppm_sc_code>& sc_set)
 		                                               0,
 		                                               true);
 	}
-
-	m_before_capture(m_inspector.get());
 	m_inspector->start_capture();
 }
 
