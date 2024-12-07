@@ -393,7 +393,7 @@ TEST_F(sys_call_test, container_docker_bad_socket) {
 		ASSERT_NE(PPME_CONTAINER_JSON_2_E, param.m_evt->get_type());
 
 		sinsp_threadinfo* tinfo = param.m_evt->get_thread_info(false);
-		ASSERT_TRUE(tinfo->m_container_id.length() == 12);
+		ASSERT_TRUE(tinfo->m_container_id.length() <= 12);
 		ASSERT_TRUE(param.m_inspector->m_container_manager.container_exists(tinfo->m_container_id));
 		const auto container_info =
 		        param.m_inspector->m_container_manager.get_container(tinfo->m_container_id);

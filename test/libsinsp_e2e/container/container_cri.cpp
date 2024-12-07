@@ -345,8 +345,12 @@ void container_cri::fake_cri_test_timing(const std::string& pb_prefix,
 			        EXPECT_FALSE(saw_container_callback)
 			                << "Received more than one on_new_container callback";
 
-			        verify_container_info(tinfo->m_container_id, exp_info, container);
-			        saw_container_callback = true;
+			        // If the machine running tests has some other container running,
+			        // we could receive a new container without a threadinfo.
+			        if(tinfo) {
+				        verify_container_info(tinfo->m_container_id, exp_info, container);
+				        saw_container_callback = true;
+			        }
 		        });
 	};
 
