@@ -135,6 +135,7 @@ if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 			PRIVATE container_engine/docker/docker_linux.cpp
 					container_engine/docker/connection_linux.cpp
 					container_engine/docker/podman.cpp
+					container_engine/containerd.cpp
 					container_engine/libvirt_lxc.cpp
 					container_engine/lxc.cpp
 					container_engine/mesos.cpp
@@ -250,6 +251,53 @@ function(prepare_cri_grpc api_version)
 	endif()
 endfunction()
 
+function(prepare_containerd_grpc)
+	set(DEST ${CMAKE_CURRENT_BINARY_DIR}/container_engine/containerd)
+	configure_file(
+		${CMAKE_CURRENT_SOURCE_DIR}/container_engine/containerd/containers.proto
+		${DEST}/containers.proto COPYONLY
+	)
+	add_custom_command(
+		OUTPUT ${DEST}/containers.grpc.pb.cc ${DEST}/containers.grpc.pb.h ${DEST}/containers.pb.cc
+			   ${DEST}/containers.pb.h
+		COMMENT "Generate containerd grpc code"
+		DEPENDS
+		COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/containers.proto
+		COMMAND ${PROTOC} -I ${DEST} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+				${DEST}/containers.proto
+		WORKING_DIRECTORY ${DEST}
+	)
+	add_library(containerd_interface STATIC ${DEST}/containers.pb.cc ${DEST}/containers.grpc.pb.cc)
+	target_include_directories(containerd_interface PUBLIC $<BUILD_INTERFACE:${DEST}>)
+	target_link_libraries(
+		containerd_interface
+		PUBLIC "${GRPCPP_LIB}"
+			   "${GRPC_LIB}"
+			   "${GPR_LIB}"
+			   "${GRPC_LIBRARIES}"
+			   "${PROTOBUF_LIB}"
+			   "${CARES_LIB}"
+			   "${OPENSSL_LIBRARIES}"
+	)
+	add_dependencies(containerd_interface grpc)
+	install(
+		FILES ${DEST}/containers.grpc.pb.h ${DEST}/containers.pb.h
+		DESTINATION
+			"${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libsinsp/container_engine/containerd"
+		COMPONENT "scap"
+	)
+	if(NOT BUILD_SHARED_LIBS)
+		install(
+			TARGETS containerd_interface
+			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+					COMPONENT "scap"
+					OPTIONAL
+		)
+	endif()
+endfunction()
+
 if(NOT EMSCRIPTEN)
 	add_dependencies(sinsp tbb)
 endif()
@@ -267,8 +315,10 @@ if(NOT WIN32)
 			include(cares)
 			prepare_cri_grpc(v1alpha2)
 			prepare_cri_grpc(v1)
+			prepare_containerd_grpc()
 
 			target_link_libraries(sinsp PUBLIC cri_v1alpha2 cri_v1)
+			target_link_libraries(sinsp PUBLIC containerd_interface)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
