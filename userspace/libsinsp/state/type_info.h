@@ -24,6 +24,7 @@ limitations under the License.
 
 namespace libsinsp {
 namespace state {
+class base_table;
 
 /**
  * @brief Generic and agnostic information about a type, similar to
@@ -43,6 +44,8 @@ public:
 		throw sinsp_exception("state::typeinfo::of invoked for unsupported type: " +
 		                      std::string(typeid(T).name()));
 	}
+
+	static inline typeinfo of(ss_plugin_state_type k);
 
 	inline typeinfo() = delete;
 	inline ~typeinfo() = default;
@@ -178,6 +181,35 @@ inline typeinfo typeinfo::of<libsinsp::state::base_table*>() {
 template<>
 inline typeinfo typeinfo::of<const libsinsp::state::base_table*>() {
 	return _build<const libsinsp::state::base_table*>("table", SS_PLUGIN_ST_TABLE);
+}
+
+inline typeinfo typeinfo::of(ss_plugin_state_type k) {
+	switch(k) {
+	case SS_PLUGIN_ST_BOOL:
+		return of<bool>();
+	case SS_PLUGIN_ST_INT8:
+		return of<int8_t>();
+	case SS_PLUGIN_ST_INT16:
+		return of<int16_t>();
+	case SS_PLUGIN_ST_INT32:
+		return of<int32_t>();
+	case SS_PLUGIN_ST_INT64:
+		return of<int64_t>();
+	case SS_PLUGIN_ST_UINT8:
+		return of<uint8_t>();
+	case SS_PLUGIN_ST_UINT16:
+		return of<uint16_t>();
+	case SS_PLUGIN_ST_UINT32:
+		return of<uint32_t>();
+	case SS_PLUGIN_ST_UINT64:
+		return of<uint64_t>();
+	case SS_PLUGIN_ST_STRING:
+		return of<std::string>();
+	case SS_PLUGIN_ST_TABLE:
+		return of<libsinsp::state::base_table*>();
+	default:
+		throw sinsp_exception("unsupported state type: " + std::to_string(k));
+	}
 }
 
 };  // namespace state

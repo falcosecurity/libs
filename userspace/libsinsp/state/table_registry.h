@@ -79,11 +79,10 @@ public:
 			auto key_info = it->second->key_info();
 			auto type_id = key_info.type_id();
 			if(type_id != key_type) {
-				// TODO get name for key_type
+				auto requested_key_info = typeinfo::of(key_type);
 				throw sinsp_exception("table in registry accessed with wrong key type: table='" +
 				                      name + "', requested=" + std::to_string(key_type) +
-				                      ", actual=" + key_info.name() + "' (" +
-				                      std::to_string(type_id) + ")");
+				                      ", actual=" + std::to_string(type_id) + "'");
 			}
 			return it->second;
 		}
@@ -100,8 +99,7 @@ public:
 	 * @param t Pointer to the table.
 	 * @return table<KeyType>* Pointer to the newly-registered table.
 	 */
-	template<typename KeyType>
-	table<KeyType>* add_table(table<KeyType>* t) {
+	base_table* add_table(base_table* t) {
 		if(!t) {
 			throw sinsp_exception("null table added to registry");
 		}

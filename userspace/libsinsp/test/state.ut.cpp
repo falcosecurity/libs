@@ -338,7 +338,7 @@ TEST(table_registry, defs_and_access) {
 	libsinsp::state::table_registry r;
 	ASSERT_EQ(r.tables().size(), 0);
 	ASSERT_EQ(r.get_table<uint64_t>("sample"), nullptr);
-	ASSERT_ANY_THROW(r.add_table<uint64_t>(nullptr));
+	ASSERT_ANY_THROW(r.add_table(nullptr));
 
 	sample_table t;
 	r.add_table(&t);
