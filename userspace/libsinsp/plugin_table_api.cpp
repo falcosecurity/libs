@@ -611,28 +611,24 @@ ss_plugin_table_t* sinsp_plugin::table_api_get_table(ss_plugin_owner_t* o,
                                                      ss_plugin_state_type key_type) {
 	auto p = static_cast<sinsp_plugin*>(o);
 
-// if a plugin is accessing a plugin-owned table, we return it as-is
-// instead of wrapping it. This is both more performant and safer from
-// a memory ownership perspective, because the other plugin is the actual
-// total owner of the table's memory. Note, even though dynamic_cast is
-// generally quite expensive, the "get_table" primitive can only be
-// used during plugin initialization, so it's not in the hot path.
-#define _X(_type, _dtype)                                                          \
-	{                                                                              \
-		auto t = p->m_table_registry->get_table<_type>(name);                      \
-		if(!t) {                                                                   \
-			return NULL;                                                           \
-		}                                                                          \
-		p->m_accessed_tables[name].set(p, t);                                      \
-		return static_cast<ss_plugin_table_t*>(&p->m_accessed_tables[name].input); \
-	};
+	// if a plugin is accessing a plugin-owned table, we return it as-is
+	// instead of wrapping it. This is both more performant and safer from
+	// a memory ownership perspective, because the other plugin is the actual
+	// total owner of the table's memory. Note, even though dynamic_cast is
+	// generally quite expensive, the "get_table" primitive can only be
+	// used during plugin initialization, so it's not in the hot path.
 	__CATCH_ERR_MSG(p->m_last_owner_err, {
 		auto& tables = p->m_accessed_tables;
 		auto it = tables.find(name);
 		if(it == tables.end()) {
-			__PLUGIN_STATETYPE_SWITCH(key_type);
+			auto t = p->m_table_registry->get_table(name, key_type);
+			if(!t) {
+				return NULL;
+			}
+			p->m_accessed_tables[name].set(p, t);
+			return &p->m_accessed_tables[name].input;
 		}
-		return static_cast<ss_plugin_table_t*>(&it->second.input);
+		return &it->second.input;
 	});
 #undef _X
 	return NULL;

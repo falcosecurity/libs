@@ -58,15 +58,34 @@ public:
 	 */
 	template<typename KeyType>
 	table<KeyType>* get_table(const std::string& name) const {
+		auto table = get_table(name, typeinfo::of<KeyType>().type_id());
+		return static_cast<libsinsp::state::table<KeyType>*>(table);
+	}
+
+	/**
+	 * @brief Obtain a pointer to a table registered in the registry with
+	 * the given name. Throws an exception if a table with the given name
+	 * is defined with types incompatible with the ones provided in the
+	 * template.
+	 *
+	 * @param name Name of the table.
+	 * @param key_type Type of the table's key.
+	 * @return base_table* Pointer to the registered table,
+	 * or nullptr if no table is registered by the given name.
+	 */
+	base_table* get_table(const std::string& name, ss_plugin_state_type key_type) const {
 		const auto& it = m_tables.find(name);
 		if(it != m_tables.end()) {
-			auto t = libsinsp::state::typeinfo::of<KeyType>();
-			if(it->second->key_info() != t) {
+			auto key_info = it->second->key_info();
+			auto type_id = key_info.type_id();
+			if(type_id != key_type) {
+				// TODO get name for key_type
 				throw sinsp_exception("table in registry accessed with wrong key type: table='" +
-				                      name + "', requested='" + t.name() + "', actual='" +
-				                      it->second->key_info().name() + "'");
+				                      name + "', requested=" + std::to_string(key_type) +
+				                      ", actual=" + key_info.name() + "' (" +
+				                      std::to_string(type_id) + ")");
 			}
-			return static_cast<table<KeyType>*>(it->second);
+			return it->second;
 		}
 		return nullptr;
 	}

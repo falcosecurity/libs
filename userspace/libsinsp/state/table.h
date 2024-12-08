@@ -84,8 +84,7 @@ struct table_accessor {
 
 	void unset();
 	bool is_set() const;
-	template<typename T>
-	void set(sinsp_table_owner* p, libsinsp::state::table<T>* t);
+	void set(sinsp_table_owner* p, libsinsp::state::base_table* t);
 
 	// static functions, will be used to populate vtable functions where
 	// ss_plugin_table_t* will point to a `table_accessor` instance

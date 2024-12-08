@@ -151,8 +151,7 @@ libsinsp::state::sinsp_field_accessor_wrapper::operator=(
 //
 // table_accessor implementation
 //
-template<typename T>
-void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state::table<T>* t) {
+void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state::base_table* t) {
 	if(!t) {
 		throw sinsp_exception("null table assigned to sinsp table wrapper");
 	}
@@ -601,7 +600,7 @@ ss_plugin_rc libsinsp::state::built_in_table<KeyType>::read_entry_field(
 	{                                                                        \
 		auto st = static_cast<libsinsp::state::table<_type>*>(subtable_ptr); \
 		auto& slot = owner->find_unset_ephemeral_table();                    \
-		slot.set<_type>(owner, st);                                          \
+		slot.set(owner, st);                                                 \
 		out->table = &slot.input;                                            \
 	};
 	if(a->data_type == ss_plugin_state_type::SS_PLUGIN_ST_TABLE) {
