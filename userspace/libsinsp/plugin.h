@@ -301,7 +301,6 @@ private:
 	struct sinsp_table_wrapper {
 		sinsp_plugin* m_owner_plugin = nullptr;
 		libsinsp::state::base_table* m_table = nullptr;
-		std::vector<ss_plugin_table_fieldinfo> m_field_list;
 		std::unordered_map<std::string, sinsp_plugin::sinsp_field_accessor_wrapper*>
 		        m_field_accessors;
 
