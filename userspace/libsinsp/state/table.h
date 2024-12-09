@@ -23,6 +23,8 @@ limitations under the License.
 #include <type_traits>
 #include <memory>
 
+class sinsp_plugin;
+
 namespace libsinsp {
 namespace state {
 
@@ -140,14 +142,16 @@ public:
 	 */
 	virtual bool foreach_entry(std::function<bool(table_entry& e)> pred) = 0;
 
-private:
+	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner,
+	                                                     uint32_t* nfields) = 0;
+
+protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
 	typeinfo m_key_info;
 	const static_struct::field_infos* m_static_fields;
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
 
-public:  // temporary
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 };
 
@@ -213,6 +217,8 @@ private:
 template<typename KeyType>
 class built_in_table : public table<KeyType> {
 	using table<KeyType>::table;
+
+	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
 };
 };  // namespace state
 };  // namespace libsinsp
