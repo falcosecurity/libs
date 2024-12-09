@@ -698,46 +698,6 @@ void plugin_table_wrapper<libsinsp::state::base_table*>::get_key_as_data(
 }
 
 //
-// sinsp_field_accessor_wrapper implementation
-//
-sinsp_plugin::sinsp_field_accessor_wrapper::~sinsp_field_accessor_wrapper() {
-	if(!accessor) {
-		return;
-	}
-#define _X(_type, _dtype)                                                                          \
-	{                                                                                              \
-		if(dynamic) {                                                                              \
-			delete static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(accessor); \
-		} else {                                                                                   \
-			delete static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(accessor);  \
-		}                                                                                          \
-		break;                                                                                     \
-	}
-	std::string tmp;
-	__CATCH_ERR_MSG(tmp, { __PLUGIN_STATETYPE_SWITCH(data_type); });
-#undef _X
-}
-
-sinsp_plugin::sinsp_field_accessor_wrapper::sinsp_field_accessor_wrapper(
-        sinsp_plugin::sinsp_field_accessor_wrapper&& s) {
-	this->accessor = s.accessor;
-	this->dynamic = s.dynamic;
-	this->data_type = s.data_type;
-	this->subtable_key_type = s.subtable_key_type;
-	s.accessor = nullptr;
-}
-
-sinsp_plugin::sinsp_field_accessor_wrapper& sinsp_plugin::sinsp_field_accessor_wrapper::operator=(
-        sinsp_plugin::sinsp_field_accessor_wrapper&& s) {
-	this->accessor = s.accessor;
-	this->dynamic = s.dynamic;
-	this->data_type = s.data_type;
-	this->subtable_key_type = s.subtable_key_type;
-	s.accessor = nullptr;
-	return *this;
-}
-
-//
 // sinsp_table_wrapper implementation
 //
 template<typename T>
@@ -837,7 +797,7 @@ ss_plugin_table_field_t* sinsp_plugin::sinsp_table_wrapper::get_field(
 #define _X(_type, _dtype)                                                                   \
 	{                                                                                       \
 		auto acc = fixed_it->second.new_accessor<_type>();                                  \
-		sinsp_plugin::sinsp_field_accessor_wrapper acc_wrap;                                \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
 		acc_wrap.dynamic = false;                                                           \
 		acc_wrap.data_type = data_type;                                                     \
 		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
@@ -859,7 +819,7 @@ ss_plugin_table_field_t* sinsp_plugin::sinsp_table_wrapper::get_field(
 #define _X(_type, _dtype)                                                                    \
 	{                                                                                        \
 		auto acc = dyn_it->second.new_accessor<_type>();                                     \
-		sinsp_plugin::sinsp_field_accessor_wrapper acc_wrap;                                 \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
 		acc_wrap.dynamic = true;                                                             \
 		acc_wrap.data_type = data_type;                                                      \
 		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
@@ -1177,7 +1137,7 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::read_entry_field(ss_plugin_table
 		return ret;
 	}
 
-	auto a = static_cast<const sinsp_plugin::sinsp_field_accessor_wrapper*>(f);
+	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
 	auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
 	auto res = SS_PLUGIN_FAILURE;
 
@@ -1231,7 +1191,7 @@ ss_plugin_rc sinsp_plugin::sinsp_table_wrapper::write_entry_field(ss_plugin_tabl
 		return ret;
 	}
 
-	auto a = static_cast<const sinsp_plugin::sinsp_field_accessor_wrapper*>(f);
+	auto a = static_cast<const libsinsp::state::sinsp_field_accessor_wrapper*>(f);
 	auto e = static_cast<std::shared_ptr<libsinsp::state::table_entry>*>(_e);
 
 	// todo(jasondellaluce): drop this check once we start supporting this
