@@ -113,7 +113,6 @@ public:
 	        m_inited(false),
 	        m_state(nullptr),
 	        m_handle(handle),
-	        m_last_owner_err(),
 	        m_scap_source_plugin(),
 	        m_fields_info(),
 	        m_fields(),
@@ -212,6 +211,8 @@ public:
 
 	bool set_async_event_handler(async_event_handler_t handler);
 
+	std::string m_last_owner_err;
+
 	// note(jasondellaluce): we set these as protected in order to allow unit
 	// testing mocking these values, without having to declare their accessors
 	// as virtual (thus avoiding performance loss in some hot paths).
@@ -232,7 +233,6 @@ private:
 	bool m_inited;
 	ss_plugin_t* m_state;
 	plugin_handle_t* m_handle;
-	std::string m_last_owner_err;
 
 	/** Event Sourcing **/
 	scap_source_plugin m_scap_source_plugin;
