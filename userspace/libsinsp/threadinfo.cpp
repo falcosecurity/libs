@@ -27,6 +27,7 @@ limitations under the License.
 #include <libsinsp/sinsp.h>
 #include <libsinsp/sinsp_int.h>
 #include <libscap/scap-int.h>
+#include <libsinsp/user.h>
 
 constexpr static const char* s_thread_table_name = "threads";
 
@@ -532,30 +533,30 @@ std::string sinsp_threadinfo::get_exepath() const {
 
 void sinsp_threadinfo::set_user(uint32_t uid) {
 	m_uid = uid;
-	scap_userinfo* user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
+	scap_userinfo* user = m_inspector->m_usergroup_manager->get_user(m_container_id, uid);
 	if(!user) {
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
 		// For uid 0 force set root related infos
 		if(uid == 0) {
 			m_inspector->m_usergroup_manager
-			        .add_user(m_container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
+			        ->add_user(m_container_id, m_pid, uid, m_gid, "root", "/root", {}, notify);
 		} else {
 			m_inspector->m_usergroup_manager
-			        .add_user(m_container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
+			        ->add_user(m_container_id, m_pid, uid, m_gid, {}, {}, {}, notify);
 		}
 	}
 }
 
 void sinsp_threadinfo::set_group(uint32_t gid) {
 	m_gid = gid;
-	scap_groupinfo* group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
+	scap_groupinfo* group = m_inspector->m_usergroup_manager->get_group(m_container_id, gid);
 	if(!group) {
 		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
 		// For gid 0 force set root related info
 		if(gid == 0) {
-			m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, "root", notify);
+			m_inspector->m_usergroup_manager->add_group(m_container_id, m_pid, gid, "root", notify);
 		} else {
-			m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, {}, notify);
+			m_inspector->m_usergroup_manager->add_group(m_container_id, m_pid, gid, {}, notify);
 		}
 	}
 }
@@ -565,7 +566,7 @@ void sinsp_threadinfo::set_loginuid(uint32_t loginuid) {
 }
 
 scap_userinfo* sinsp_threadinfo::get_user() const {
-	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_uid);
+	auto user = m_inspector->m_usergroup_manager->get_user(m_container_id, m_uid);
 	if(user != nullptr) {
 		return user;
 	}
@@ -579,7 +580,7 @@ scap_userinfo* sinsp_threadinfo::get_user() const {
 }
 
 scap_groupinfo* sinsp_threadinfo::get_group() const {
-	auto group = m_inspector->m_usergroup_manager.get_group(m_container_id, m_gid);
+	auto group = m_inspector->m_usergroup_manager->get_group(m_container_id, m_gid);
 	if(group != nullptr) {
 		return group;
 	}
@@ -590,7 +591,7 @@ scap_groupinfo* sinsp_threadinfo::get_group() const {
 }
 
 scap_userinfo* sinsp_threadinfo::get_loginuser() const {
-	auto user = m_inspector->m_usergroup_manager.get_user(m_container_id, m_loginuid);
+	auto user = m_inspector->m_usergroup_manager->get_user(m_container_id, m_loginuid);
 	if(user != nullptr) {
 		return user;
 	}

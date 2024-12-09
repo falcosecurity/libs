@@ -195,7 +195,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 
 	// we are adding a user on the host so the `pid` parameter is not considered
 	ASSERT_TRUE(m_inspector.m_usergroup_manager
-	                    .add_user(container_id, 0, user_id, 6, "test", "/test", "/bin/test"));
+	                    ->add_user(container_id, 0, user_id, 6, "test", "/test", "/bin/test"));
 
 	// Now we should have the necessary info
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "test");
@@ -203,8 +203,8 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 	ASSERT_EQ(get_field_as_string(evt, "evt.args"), "uid=5(test)");
 
 	// We remove the user, and the fields should be empty again
-	m_inspector.m_usergroup_manager.rm_user(container_id, user_id);
-	ASSERT_FALSE(m_inspector.m_usergroup_manager.get_user(container_id, user_id));
+	m_inspector.m_usergroup_manager->rm_user(container_id, user_id);
+	ASSERT_FALSE(m_inspector.m_usergroup_manager->get_user(container_id, user_id));
 
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.uid"), "<NA>");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), "<NA>");
