@@ -101,6 +101,47 @@ static inline ss_plugin_state_type typeinfo_to_state_type(const libsinsp::state:
 	}
 }
 
+//
+// sinsp_field_accessor_wrapper implementation
+//
+libsinsp::state::sinsp_field_accessor_wrapper::~sinsp_field_accessor_wrapper() {
+	if(!accessor) {
+		return;
+	}
+#define _X(_type, _dtype)                                                                          \
+	{                                                                                              \
+		if(dynamic) {                                                                              \
+			delete static_cast<libsinsp::state::dynamic_struct::field_accessor<_type>*>(accessor); \
+		} else {                                                                                   \
+			delete static_cast<libsinsp::state::static_struct::field_accessor<_type>*>(accessor);  \
+		}                                                                                          \
+		break;                                                                                     \
+	}
+	std::string tmp;
+	__CATCH_ERR_MSG(tmp, { __PLUGIN_STATETYPE_SWITCH(data_type); });
+#undef _X
+}
+
+libsinsp::state::sinsp_field_accessor_wrapper::sinsp_field_accessor_wrapper(
+        libsinsp::state::sinsp_field_accessor_wrapper&& s) {
+	this->accessor = s.accessor;
+	this->dynamic = s.dynamic;
+	this->data_type = s.data_type;
+	this->subtable_key_type = s.subtable_key_type;
+	s.accessor = nullptr;
+}
+
+libsinsp::state::sinsp_field_accessor_wrapper&
+libsinsp::state::sinsp_field_accessor_wrapper::operator=(
+        libsinsp::state::sinsp_field_accessor_wrapper&& s) {
+	this->accessor = s.accessor;
+	this->dynamic = s.dynamic;
+	this->data_type = s.data_type;
+	this->subtable_key_type = s.subtable_key_type;
+	s.accessor = nullptr;
+	return *this;
+}
+
 template<typename KeyType>
 const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_fields(
         sinsp_plugin* owner,

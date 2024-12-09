@@ -28,6 +28,25 @@ class sinsp_plugin;
 namespace libsinsp {
 namespace state {
 
+// wraps instances of libsinsp::state::XXX_struct::field_accessor and
+// help making them comply to the plugin API state tables definitions
+struct sinsp_field_accessor_wrapper {
+	// depending on the value of `dynamic`, one of:
+	// - libsinsp::state::static_struct::field_accessor
+	// - libsinsp::state::dynamic_struct::field_accessor
+	void* accessor = nullptr;
+	bool dynamic = false;
+	ss_plugin_state_type data_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
+	ss_plugin_state_type subtable_key_type = ss_plugin_state_type::SS_PLUGIN_ST_INT8;
+
+	inline sinsp_field_accessor_wrapper() = default;
+	~sinsp_field_accessor_wrapper();
+	inline sinsp_field_accessor_wrapper(const sinsp_field_accessor_wrapper& s) = delete;
+	inline sinsp_field_accessor_wrapper& operator=(const sinsp_field_accessor_wrapper& s) = delete;
+	sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
+	inline sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
+};
+
 /**
  * @brief Base class for entries of a state table.
  */
