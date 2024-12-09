@@ -1201,10 +1201,6 @@ public:
 	uint64_t m_proc_scan_timeout_ms;
 	uint64_t m_proc_scan_log_interval_ms;
 
-	// Any thread with a comm in this set will not have its events
-	// returned in sinsp::next()
-	std::set<std::string> m_suppressed_comms;
-
 	libsinsp::sinsp_suppress m_suppress;
 
 	//

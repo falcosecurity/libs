@@ -150,7 +150,6 @@ sinsp::sinsp(bool with_metrics):
         m_container_manager(this),
         m_usergroup_manager(this),
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
-        m_suppressed_comms(),
         m_inited(false) {
 	++instance_count;
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
