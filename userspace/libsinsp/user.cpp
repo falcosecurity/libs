@@ -17,7 +17,6 @@ limitations under the License.
 */
 
 #include <libsinsp/user.h>
-#include <libsinsp/event.h>
 #include <libsinsp/procfs_utils.h>
 #include <libsinsp/utils.h>
 #include <libsinsp/logger.h>
@@ -125,18 +124,6 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 }
 // clang-format on
 
-void sinsp_usergroup_manager::subscribe_container_mgr() {
-	// Do nothing if subscribe_container_mgr() is called in capture mode, because
-	// events shall not be sent as they will be loaded from capture file.
-	if(m_import_users && (m_inspector->is_live() || m_inspector->is_syscall_plugin())) {
-		// Emplace container manager listener to delete container users upon container deletion
-		m_inspector->m_container_manager.subscribe_on_remove_container(
-		        [&](const sinsp_container_info &cinfo) -> void {
-			        delete_container_users_groups(cinfo);
-		        });
-	}
-}
-
 void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
 	for(const auto &it : m_userlist) {
 		std::string container_id = it.first;
@@ -163,27 +150,25 @@ void sinsp_usergroup_manager::dump_users_groups(sinsp_dumper &dumper) {
 	}
 }
 
-void sinsp_usergroup_manager::delete_container_users_groups(const sinsp_container_info &cinfo) {
-	auto usrlist = get_userlist(cinfo.m_id);
-	if(usrlist) {
+void sinsp_usergroup_manager::delete_container(const std::string &container_id) {
+	if(auto usrlist = get_userlist(container_id)) {
 		for(auto &u : *usrlist) {
 			// We do not have a thread id here, as a removed container
 			// means that it has no tIDs anymore.
-			notify_user_changed(&u.second, cinfo.m_id, false);
+			notify_user_changed(&u.second, container_id, false);
 		}
 	}
 
-	auto grplist = get_grouplist(cinfo.m_id);
-	if(grplist) {
+	if(auto grplist = get_grouplist(container_id)) {
 		for(auto &g : *grplist) {
 			// We do not have a thread id here, as a removed container
 			// means that it has no tIDs anymore.
-			notify_group_changed(&g.second, cinfo.m_id, false);
+			notify_group_changed(&g.second, container_id, false);
 		}
 	}
 
-	m_userlist.erase(cinfo.m_id);
-	m_grouplist.erase(cinfo.m_id);
+	m_userlist.erase(container_id);
+	m_grouplist.erase(container_id);
 }
 
 bool sinsp_usergroup_manager::clear_host_users_groups() {

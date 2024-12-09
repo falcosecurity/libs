@@ -73,7 +73,6 @@ limitations under the License.
 #include <libsinsp/metrics_collector.h>
 #include <libsinsp/threadinfo.h>
 #include <libsinsp/tuples.h>
-#include <libsinsp/user.h>
 #include <libsinsp/utils.h>
 
 #include <list>
@@ -91,6 +90,7 @@ class sinsp_filter;
 class sinsp_plugin;
 class sinsp_plugin_manager;
 class sinsp_observer;
+class sinsp_usergroup_manager;
 
 /*!
   \brief The user agent string to use for any libsinsp connection, can be changed at compile time
@@ -1062,7 +1062,7 @@ public:
 
 	sinsp_container_manager m_container_manager;
 
-	sinsp_usergroup_manager m_usergroup_manager;
+	std::unique_ptr<sinsp_usergroup_manager> m_usergroup_manager;
 
 	//
 	// True if the command line argument is set to show container information

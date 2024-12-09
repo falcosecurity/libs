@@ -22,13 +22,10 @@ limitations under the License.
 #include <unordered_map>
 #include <string>
 #include <memory>
-#include <libsinsp/container_info.h>
 #include <libsinsp/procfs_utils.h>
-#include <libscap/scap.h>
+#include <libsinsp/sinsp.h>
 
 class sinsp;
-class sinsp_dumper;
-class sinsp_evt;
 namespace libsinsp {
 namespace procfs_utils {
 class ns_helper;
@@ -70,10 +67,6 @@ class sinsp_usergroup_manager {
 public:
 	explicit sinsp_usergroup_manager(sinsp *inspector);
 	~sinsp_usergroup_manager() = default;
-
-	// Do not call subscribe_container_mgr() in capture mode, because
-	// events shall not be sent as they will be loaded from capture file.
-	void subscribe_container_mgr();
 
 	void dump_users_groups(sinsp_dumper &dumper);
 
@@ -147,6 +140,8 @@ public:
 
 	bool clear_host_users_groups();
 
+	void delete_container(const std::string &container_id);
+
 	//
 	// User and group tables
 	//
@@ -179,8 +174,6 @@ private:
 	                          const std::string &container_id,
 	                          uint16_t ev_type);
 
-	void delete_container_users_groups(const sinsp_container_info &cinfo);
-
 	void notify_user_changed(const scap_userinfo *user,
 	                         const std::string &container_id,
 	                         bool added = true);
@@ -211,6 +204,73 @@ private:
 
 	const std::string &m_host_root;
 	std::unique_ptr<libsinsp::procfs_utils::ns_helper> m_ns_helper;
+};
+
+// RAII struct to manage threadinfos automatic user/group refresh
+// upon container_id updates.
+struct user_group_updater {
+	explicit user_group_updater(sinsp_evt *evt) {
+		m_check_cleanup = false;
+		switch(evt->get_type()) {
+		case PPME_PROCEXIT_E:
+		case PPME_PROCEXIT_1_E:
+			m_check_cleanup = true;
+			// falltrough
+		case PPME_SYSCALL_CLONE_11_X:
+		case PPME_SYSCALL_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_17_X:
+		case PPME_SYSCALL_CLONE_20_X:
+		case PPME_SYSCALL_FORK_X:
+		case PPME_SYSCALL_FORK_17_X:
+		case PPME_SYSCALL_FORK_20_X:
+		case PPME_SYSCALL_VFORK_X:
+		case PPME_SYSCALL_VFORK_17_X:
+		case PPME_SYSCALL_VFORK_20_X:
+		case PPME_SYSCALL_CLONE3_X:
+		case PPME_SYSCALL_EXECVE_8_X:
+		case PPME_SYSCALL_EXECVE_13_X:
+		case PPME_SYSCALL_EXECVE_14_X:
+		case PPME_SYSCALL_EXECVE_15_X:
+		case PPME_SYSCALL_EXECVE_16_X:
+		case PPME_SYSCALL_EXECVE_17_X:
+		case PPME_SYSCALL_EXECVE_18_X:
+		case PPME_SYSCALL_EXECVE_19_X:
+		case PPME_SYSCALL_EXECVEAT_X:
+		case PPME_SYSCALL_CHROOT_X:
+			m_evt = evt;
+			if(m_evt->get_tinfo() != nullptr) {
+				m_container_id = m_evt->get_tinfo()->m_container_id;
+			}
+			break;
+		default:
+			m_evt = nullptr;
+			break;
+		}
+	}
+
+	~user_group_updater() {
+		if(m_evt != nullptr && m_evt->get_tinfo() != nullptr) {
+			auto tinfo = m_evt->get_tinfo();
+			if(tinfo->m_container_id != m_container_id) {
+				// Refresh user/group
+				tinfo->set_group(tinfo->m_gid);
+				tinfo->set_user(tinfo->m_uid);
+			} else if(m_check_cleanup && !tinfo->m_container_id.empty()) {
+				if(tinfo->m_vtid == tinfo->m_vpid && tinfo->m_vpid == 1) {
+					// main container process left, clean up user and groups for the container
+					const auto inspector = m_evt->get_inspector();
+					if(inspector->m_usergroup_manager->m_import_users &&
+					   (inspector->is_live() || inspector->is_syscall_plugin())) {
+						inspector->m_usergroup_manager->delete_container(tinfo->m_container_id);
+					}
+				}
+			}
+		}
+	}
+
+	bool m_check_cleanup;
+	sinsp_evt *m_evt;
+	std::string m_container_id;
 };
 
 #endif  // FALCOSECURITY_LIBS_USER_H
