@@ -128,7 +128,6 @@ public:
 	        m_owned_tables(),
 	        m_accessed_tables(),
 	        m_accessed_entries(),
-	        m_accessed_table_fields(),
 	        m_ephemeral_tables(),
 	        m_ephemeral_tables_clear(false),
 	        m_accessed_entries_clear(false),
@@ -281,8 +280,6 @@ private:
 	struct sinsp_table_wrapper {
 		sinsp_plugin* m_owner_plugin = nullptr;
 		libsinsp::state::base_table* m_table = nullptr;
-		std::unordered_map<std::string, libsinsp::state::sinsp_field_accessor_wrapper*>
-		        m_field_accessors;
 
 		// used to optimize cases where this wraps a plugin-defined table directly
 		const sinsp_plugin* m_table_plugin_owner = nullptr;
@@ -349,8 +346,6 @@ private:
 	std::unordered_map<std::string, sinsp_table_wrapper> m_accessed_tables;
 	std::list<std::shared_ptr<libsinsp::state::table_entry>>
 	        m_accessed_entries;  // using lists for ptr stability
-	std::list<libsinsp::state::sinsp_field_accessor_wrapper>
-	        m_accessed_table_fields;                    // note: lists have pointer stability
 	std::list<sinsp_table_wrapper> m_ephemeral_tables;  // note: lists have pointer stability
 	bool m_ephemeral_tables_clear;
 	bool m_accessed_entries_clear;
