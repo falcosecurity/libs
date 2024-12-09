@@ -21,6 +21,7 @@ limitations under the License.
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 #include <libscap/scap.h>
 
@@ -254,8 +255,10 @@ private:
 
 	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>>
 	        m_container_engines;
+
+	// Map container types to vectors of engines
 	std::map<sinsp_container_type,
-	         std::shared_ptr<libsinsp::container_engine::container_engine_base>>
+	         std::vector<std::shared_ptr<libsinsp::container_engine::container_engine_base>>>
 	        m_container_engine_by_type;
 
 	sinsp* m_inspector;

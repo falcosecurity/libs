@@ -69,10 +69,6 @@ public:
 		get().m_cri_runtime_type = v;
 	}
 
-	static const std::string &get_cri_unix_socket_path() { return get().m_cri_unix_socket_path; }
-
-	static void set_cri_unix_socket_path(const std::string &v) { get().m_cri_unix_socket_path = v; }
-
 	static const bool &get_cri_extra_queries() { return get().m_cri_extra_queries; }
 
 	static void set_cri_extra_queries(const bool &v) { get().m_cri_extra_queries = v; }
@@ -93,7 +89,6 @@ private:
 	int64_t m_cri_timeout;
 	int64_t m_cri_size_timeout;
 	sinsp_container_type m_cri_runtime_type;
-	std::string m_cri_unix_socket_path;
 	bool m_cri_extra_queries;
 };
 
