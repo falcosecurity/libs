@@ -739,7 +739,6 @@ void sinsp_plugin::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::ta
 
 	m_table = t;
 	m_owner_plugin = p;
-	m_field_list.clear();
 	m_table_plugin_owner = nullptr;
 	m_table_plugin_input = nullptr;
 
@@ -768,7 +767,6 @@ void sinsp_plugin::sinsp_table_wrapper::set(sinsp_plugin* p, libsinsp::state::ta
 void sinsp_plugin::sinsp_table_wrapper::unset() {
 	m_owner_plugin = nullptr;
 	m_table = nullptr;
-	m_field_list.clear();
 	m_table_plugin_owner = nullptr;
 	m_table_plugin_input = nullptr;
 
@@ -796,23 +794,23 @@ const ss_plugin_table_fieldinfo* sinsp_plugin::sinsp_table_wrapper::list_fields(
 	}
 
 	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-		t->m_field_list.clear();
+		t->m_table->m_field_list.clear();
 		for(auto& info : *t->m_table->static_fields()) {
 			ss_plugin_table_fieldinfo i;
 			i.name = info.second.name().c_str();
 			i.field_type = typeinfo_to_state_type(info.second.info());
 			i.read_only = info.second.readonly();
-			t->m_field_list.push_back(i);
+			t->m_table->m_field_list.push_back(i);
 		}
 		for(auto& info : t->m_table->dynamic_fields()->fields()) {
 			ss_plugin_table_fieldinfo i;
 			i.name = info.second.name().c_str();
 			i.field_type = typeinfo_to_state_type(info.second.info());
 			i.read_only = false;
-			t->m_field_list.push_back(i);
+			t->m_table->m_field_list.push_back(i);
 		}
-		*nfields = t->m_field_list.size();
-		return t->m_field_list.data();
+		*nfields = t->m_table->m_field_list.size();
+		return t->m_table->m_field_list.data();
 	});
 	return NULL;
 }
