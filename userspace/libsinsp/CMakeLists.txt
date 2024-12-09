@@ -108,6 +108,7 @@ add_library(
 	sinsp_suppress.cpp
 	events/sinsp_events.cpp
 	events/sinsp_events_ppm_sc.cpp
+	state/table.cpp
 )
 
 if(NOT WIN32
