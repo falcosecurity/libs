@@ -22,6 +22,7 @@ limitations under the License.
 
 #include <libscap/scap.h>
 #include <libsinsp/sinsp.h>
+#include <libsinsp/user.h>
 #include <libsinsp/filterchecks.h>
 #include <libscap/strl.h>
 #include <libsinsp_test_var.h>

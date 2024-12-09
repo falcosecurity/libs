@@ -45,6 +45,7 @@ limitations under the License.
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <user.h>
 
 /**
  * This is the maximum size assigned to the concurrent asynchronous event
@@ -148,7 +149,6 @@ sinsp::sinsp(bool with_metrics):
         m_lastevent_ts(0),
         m_host_root(scap_get_host_root()),
         m_container_manager(this),
-        m_usergroup_manager(this),
         m_async_events_queue(DEFAULT_ASYNC_EVENT_QUEUE_SIZE),
         m_inited(false) {
 	++instance_count;
@@ -162,6 +162,7 @@ sinsp::sinsp(bool with_metrics):
 	m_is_dumping = false;
 	m_parser = std::make_unique<sinsp_parser>(this);
 	m_thread_manager = std::make_unique<sinsp_thread_manager>(this);
+	m_usergroup_manager = std::make_unique<sinsp_usergroup_manager>(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_containers_purging_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_usergroups_purging_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -358,7 +359,7 @@ void sinsp::init() {
 }
 
 void sinsp::set_import_users(bool import_users) {
-	m_usergroup_manager.m_import_users = import_users;
+	m_usergroup_manager->m_import_users = import_users;
 }
 
 /*=============================== OPEN METHODS ===============================*/
@@ -375,11 +376,7 @@ void sinsp::open_common(scap_open_args* oargs,
 	/* We need to save the actual mode and the engine used by the inspector. */
 	m_mode = mode;
 
-	oargs->import_users = m_usergroup_manager.m_import_users;
-	// We need to subscribe to container manager notifiers before
-	// scap starts scanning proc.
-	m_usergroup_manager.subscribe_container_mgr();
-
+	oargs->import_users = m_usergroup_manager->m_import_users;
 	oargs->log_fn = &sinsp_scap_log_fn;
 	oargs->proc_scan_timeout_ms = m_proc_scan_timeout_ms;
 	oargs->proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
@@ -989,17 +986,17 @@ void sinsp::import_user_list() {
 
 	if(ul) {
 		for(j = 0; j < ul->nusers; j++) {
-			m_usergroup_manager.add_user("",
-			                             -1,
-			                             ul->users[j].uid,
-			                             ul->users[j].gid,
-			                             ul->users[j].name,
-			                             ul->users[j].homedir,
-			                             ul->users[j].shell);
+			m_usergroup_manager->add_user("",
+			                              -1,
+			                              ul->users[j].uid,
+			                              ul->users[j].gid,
+			                              ul->users[j].name,
+			                              ul->users[j].homedir,
+			                              ul->users[j].shell);
 		}
 
 		for(j = 0; j < ul->ngroups; j++) {
-			m_usergroup_manager.add_group("", -1, ul->groups[j].gid, ul->groups[j].name);
+			m_usergroup_manager->add_group("", -1, ul->groups[j].gid, ul->groups[j].name);
 		}
 	}
 }
@@ -1266,7 +1263,7 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	}
 
 	if(m_auto_usergroups_purging && !is_offline()) {
-		m_usergroup_manager.clear_host_users_groups();
+		m_usergroup_manager->clear_host_users_groups();
 	}
 
 	//
@@ -1296,6 +1293,11 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	{
 		// Object that uses RAII to enable event filtered out flag
 		sinsp_evt_filter evt_filter(evt);
+		// Object that uses RAII to automatically update user/group associated with a threadinfo
+		// upon threadinfo's container_id changes.
+		// Since the threadinfo state might get changed from a plugin parser,
+		// evaluate this one after all parsers get run.
+		user_group_updater usr_grp_updater(evt);
 
 		if(!evt->is_filtered_out()) {
 			//

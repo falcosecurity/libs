@@ -22,6 +22,7 @@ limitations under the License.
 #include <libsinsp/dumper.h>
 #include <libsinsp/plugin.h>
 #include <libsinsp/plugin_manager.h>
+#include <libsinsp/user.h>
 
 sinsp_dumper::sinsp_dumper() {
 	m_dumper = NULL;
@@ -67,7 +68,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 
 	inspector->m_thread_manager->dump_threads_to_file(m_dumper);
 	inspector->m_container_manager.dump_containers(*this);
-	inspector->m_usergroup_manager.dump_users_groups(*this);
+	inspector->m_usergroup_manager->dump_users_groups(*this);
 
 	// ask registered ASYNC plugins for a dump of their state
 	for(auto& p : inspector->m_plugin_manager->plugins()) {
@@ -94,7 +95,7 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress) {
 
 	inspector->m_thread_manager->dump_threads_to_file(m_dumper);
 	inspector->m_container_manager.dump_containers(*this);
-	inspector->m_usergroup_manager.dump_users_groups(*this);
+	inspector->m_usergroup_manager->dump_users_groups(*this);
 
 	// ask registered ASYNC plugins for a dump of their state
 	for(auto& p : inspector->m_plugin_manager->plugins()) {
