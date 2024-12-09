@@ -281,8 +281,6 @@ private:
 	struct sinsp_table_wrapper {
 		sinsp_plugin* m_owner_plugin = nullptr;
 		libsinsp::state::base_table* m_table = nullptr;
-		std::unordered_map<std::string, libsinsp::state::sinsp_field_accessor_wrapper*>
-		        m_field_accessors;
 
 		// used to optimize cases where this wraps a plugin-defined table directly
 		const sinsp_plugin* m_table_plugin_owner = nullptr;
@@ -419,4 +417,6 @@ private:
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
 
 	friend struct sinsp_table_wrapper;
+	template<typename KeyType>
+	friend class libsinsp::state::built_in_table;
 };

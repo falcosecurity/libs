@@ -622,6 +622,10 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 
 	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
 
+	ss_plugin_table_field_t* get_field(sinsp_plugin* owner,
+	                                   const char* name,
+	                                   ss_plugin_state_type data_type) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -679,6 +683,17 @@ template<typename KeyType>
 const ss_plugin_table_fieldinfo* plugin_table_wrapper<KeyType>::list_fields(sinsp_plugin* owner,
                                                                             uint32_t* nfields) {
 	auto ret = m_input->fields_ext->list_table_fields(m_input->table, nfields);
+	if(ret == NULL) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
+}
+
+template<typename KeyType>
+ss_plugin_table_field_t* plugin_table_wrapper<KeyType>::get_field(sinsp_plugin* owner,
+                                                                  const char* name,
+                                                                  ss_plugin_state_type data_type) {
+	auto ret = m_input->fields_ext->get_table_field(m_input->table, name, data_type);
 	if(ret == NULL) {
 		owner->m_last_owner_err = m_owner->get_last_error();
 	}
@@ -763,84 +778,7 @@ ss_plugin_table_field_t* sinsp_plugin::sinsp_table_wrapper::get_field(
         const char* name,
         ss_plugin_state_type data_type) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->fields_ext->get_table_field(pt, name, data_type);
-		if(ret == NULL) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-	libsinsp::state::static_struct::field_infos::const_iterator fixed_it;
-	std::unordered_map<std::string, libsinsp::state::dynamic_struct::field_info>::const_iterator
-	        dyn_it;
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-		auto it = t->m_field_accessors.find(name);
-		if(it != t->m_field_accessors.end()) {
-			return static_cast<ss_plugin_table_field_t*>(it->second);
-		}
-
-		fixed_it = t->m_table->static_fields()->find(name);
-		dyn_it = t->m_table->dynamic_fields()->fields().find(name);
-		if(fixed_it != t->m_table->static_fields()->end() &&
-		   dyn_it != t->m_table->dynamic_fields()->fields().end()) {
-			// todo(jasondellaluce): plugins are not aware of the difference
-			// between static and dynamic fields. Do we want to enforce
-			// this limitation in the sinsp tables implementation as well?
-			throw sinsp_exception("field is defined as both static and dynamic: " +
-			                      std::string(name));
-		}
-	});
-
-#define _X(_type, _dtype)                                                                   \
-	{                                                                                       \
-		auto acc = fixed_it->second.new_accessor<_type>();                                  \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
-		acc_wrap.dynamic = false;                                                           \
-		acc_wrap.data_type = data_type;                                                     \
-		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
-		t->m_owner_plugin->m_accessed_table_fields.push_back(std::move(acc_wrap));          \
-		t->m_field_accessors[name] = &t->m_owner_plugin->m_accessed_table_fields.back();    \
-		return t->m_field_accessors[name];                                                  \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-		if(fixed_it != t->m_table->static_fields()->end()) {
-			if(data_type != typeinfo_to_state_type(fixed_it->second.info())) {
-				throw sinsp_exception("incompatible data types for static field: " +
-				                      std::string(name));
-			}
-			__PLUGIN_STATETYPE_SWITCH(data_type);
-		}
-	});
-#undef _X
-
-#define _X(_type, _dtype)                                                                    \
-	{                                                                                        \
-		auto acc = dyn_it->second.new_accessor<_type>();                                     \
-		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
-		acc_wrap.dynamic = true;                                                             \
-		acc_wrap.data_type = data_type;                                                      \
-		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
-		t->m_owner_plugin->m_accessed_table_fields.push_back(std::move(acc_wrap));           \
-		t->m_field_accessors[name] = &t->m_owner_plugin->m_accessed_table_fields.back();     \
-		return t->m_field_accessors[name];                                                   \
-	}
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-		if(dyn_it != t->m_table->dynamic_fields()->fields().end()) {
-			if(data_type != typeinfo_to_state_type(dyn_it->second.info())) {
-				throw sinsp_exception("incompatible data types for dynamic field: " +
-				                      std::string(name));
-			}
-			__PLUGIN_STATETYPE_SWITCH(data_type);
-		}
-		throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
-		                      t->m_table->name() + "'");
-	});
-#undef _X
-
-	return NULL;
+	return t->m_table->get_field(t->m_owner_plugin, name, data_type);
 }
 
 ss_plugin_table_field_t* sinsp_plugin::sinsp_table_wrapper::add_field(

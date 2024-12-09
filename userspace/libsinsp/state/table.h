@@ -44,7 +44,7 @@ struct sinsp_field_accessor_wrapper {
 	inline sinsp_field_accessor_wrapper(const sinsp_field_accessor_wrapper& s) = delete;
 	inline sinsp_field_accessor_wrapper& operator=(const sinsp_field_accessor_wrapper& s) = delete;
 	sinsp_field_accessor_wrapper(sinsp_field_accessor_wrapper&& s);
-	inline sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
+	sinsp_field_accessor_wrapper& operator=(sinsp_field_accessor_wrapper&& s);
 };
 
 /**
@@ -164,6 +164,10 @@ public:
 	virtual const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner,
 	                                                     uint32_t* nfields) = 0;
 
+	virtual ss_plugin_table_field_t* get_field(sinsp_plugin* owner,
+	                                           const char* name,
+	                                           ss_plugin_state_type data_type) = 0;
+
 protected:
 	const base_table* m_this_ptr;
 	std::string m_name;
@@ -172,6 +176,7 @@ protected:
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
 
 	std::vector<ss_plugin_table_fieldinfo> m_field_list;
+	std::unordered_map<std::string, sinsp_field_accessor_wrapper*> m_field_accessors;
 };
 
 /**
@@ -238,6 +243,10 @@ class built_in_table : public table<KeyType> {
 	using table<KeyType>::table;
 
 	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
+
+	ss_plugin_table_field_t* get_field(sinsp_plugin* owner,
+	                                   const char* name,
+	                                   ss_plugin_state_type data_type) override;
 };
 };  // namespace state
 };  // namespace libsinsp

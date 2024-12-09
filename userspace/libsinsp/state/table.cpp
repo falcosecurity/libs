@@ -168,5 +168,80 @@ const ss_plugin_table_fieldinfo* libsinsp::state::built_in_table<KeyType>::list_
 	return NULL;
 }
 
+template<typename KeyType>
+ss_plugin_table_field_t* libsinsp::state::built_in_table<KeyType>::get_field(
+        sinsp_plugin* owner,
+        const char* name,
+        ss_plugin_state_type data_type) {
+	libsinsp::state::static_struct::field_infos::const_iterator fixed_it;
+	std::unordered_map<std::string, libsinsp::state::dynamic_struct::field_info>::const_iterator
+	        dyn_it;
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		auto it = this->m_field_accessors.find(name);
+		if(it != this->m_field_accessors.end()) {
+			return static_cast<ss_plugin_table_field_t*>(it->second);
+		}
+
+		fixed_it = this->static_fields()->find(name);
+		dyn_it = this->dynamic_fields()->fields().find(name);
+		if(fixed_it != this->static_fields()->end() &&
+		   dyn_it != this->dynamic_fields()->fields().end()) {
+			// todo(jasondellaluce): plugins are not aware of the difference
+			// between static and dynamic fields. Do we want to enforce
+			// this limitation in the sinsp tables implementation as well?
+			throw sinsp_exception("field is defined as both static and dynamic: " +
+			                      std::string(name));
+		}
+	});
+
+#define _X(_type, _dtype)                                                                   \
+	{                                                                                       \
+		auto acc = fixed_it->second.new_accessor<_type>();                                  \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                             \
+		acc_wrap.dynamic = false;                                                           \
+		acc_wrap.data_type = data_type;                                                     \
+		acc_wrap.accessor = new libsinsp::state::static_struct::field_accessor<_type>(acc); \
+		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));                      \
+		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();             \
+		return this->m_field_accessors[name];                                               \
+	}
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		if(fixed_it != this->static_fields()->end()) {
+			if(data_type != typeinfo_to_state_type(fixed_it->second.info())) {
+				throw sinsp_exception("incompatible data types for static field: " +
+				                      std::string(name));
+			}
+			__PLUGIN_STATETYPE_SWITCH(data_type);
+		}
+	});
+#undef _X
+
+#define _X(_type, _dtype)                                                                    \
+	{                                                                                        \
+		auto acc = dyn_it->second.new_accessor<_type>();                                     \
+		libsinsp::state::sinsp_field_accessor_wrapper acc_wrap;                              \
+		acc_wrap.dynamic = true;                                                             \
+		acc_wrap.data_type = data_type;                                                      \
+		acc_wrap.accessor = new libsinsp::state::dynamic_struct::field_accessor<_type>(acc); \
+		owner->m_accessed_table_fields.push_back(std::move(acc_wrap));                       \
+		this->m_field_accessors[name] = &owner->m_accessed_table_fields.back();              \
+		return this->m_field_accessors[name];                                                \
+	}
+	__CATCH_ERR_MSG(owner->m_last_owner_err, {
+		if(dyn_it != this->dynamic_fields()->fields().end()) {
+			if(data_type != typeinfo_to_state_type(dyn_it->second.info())) {
+				throw sinsp_exception("incompatible data types for dynamic field: " +
+				                      std::string(name));
+			}
+			__PLUGIN_STATETYPE_SWITCH(data_type);
+		}
+		throw sinsp_exception("undefined field '" + std::string(name) + "' in table '" +
+		                      this->m_name + "'");
+	});
+#undef _X
+
+	return NULL;
+}
+
 template class libsinsp::state::built_in_table<int64_t>;
 template class libsinsp::state::built_in_table<uint64_t>;
