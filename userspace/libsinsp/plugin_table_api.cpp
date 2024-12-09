@@ -620,6 +620,8 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 		return res == SS_PLUGIN_SUCCESS;
 	}
 
+	const ss_plugin_table_fieldinfo* list_fields(sinsp_plugin* owner, uint32_t* nfields) override;
+
 private:
 	static void get_key_as_data(const KeyType& key, ss_plugin_state_data& out);
 };
@@ -671,6 +673,16 @@ template<>
 void plugin_table_wrapper<std::string>::get_key_as_data(const std::string& key,
                                                         ss_plugin_state_data& out) {
 	out.str = key.c_str();
+}
+
+template<typename KeyType>
+const ss_plugin_table_fieldinfo* plugin_table_wrapper<KeyType>::list_fields(sinsp_plugin* owner,
+                                                                            uint32_t* nfields) {
+	auto ret = m_input->fields_ext->list_table_fields(m_input->table, nfields);
+	if(ret == NULL) {
+		owner->m_last_owner_err = m_owner->get_last_error();
+	}
+	return ret;
 }
 
 template<>
@@ -783,36 +795,7 @@ const ss_plugin_table_fieldinfo* sinsp_plugin::sinsp_table_wrapper::list_fields(
         ss_plugin_table_t* _t,
         uint32_t* nfields) {
 	auto t = static_cast<sinsp_table_wrapper*>(_t);
-
-	if(t->m_table_plugin_input) {
-		auto pt = t->m_table_plugin_input->table;
-		auto ret = t->m_table_plugin_input->fields_ext->list_table_fields(pt, nfields);
-		if(ret == NULL) {
-			t->m_owner_plugin->m_last_owner_err = t->m_table_plugin_owner->get_last_error();
-		}
-		return ret;
-	}
-
-	__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
-		t->m_table->m_field_list.clear();
-		for(auto& info : *t->m_table->static_fields()) {
-			ss_plugin_table_fieldinfo i;
-			i.name = info.second.name().c_str();
-			i.field_type = typeinfo_to_state_type(info.second.info());
-			i.read_only = info.second.readonly();
-			t->m_table->m_field_list.push_back(i);
-		}
-		for(auto& info : t->m_table->dynamic_fields()->fields()) {
-			ss_plugin_table_fieldinfo i;
-			i.name = info.second.name().c_str();
-			i.field_type = typeinfo_to_state_type(info.second.info());
-			i.read_only = false;
-			t->m_table->m_field_list.push_back(i);
-		}
-		*nfields = t->m_table->m_field_list.size();
-		return t->m_table->m_field_list.data();
-	});
-	return NULL;
+	return t->m_table->list_fields(t->m_owner_plugin, nfields);
 }
 
 ss_plugin_table_field_t* sinsp_plugin::sinsp_table_wrapper::get_field(
