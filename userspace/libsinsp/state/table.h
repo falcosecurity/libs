@@ -17,6 +17,7 @@ limitations under the License.
 #include <libsinsp/sinsp_exception.h>
 #include <libsinsp/state/static_struct.h>
 #include <libsinsp/state/dynamic_struct.h>
+#include <plugin/plugin_api.h>
 
 #include <functional>
 #include <type_traits>
@@ -145,6 +146,9 @@ private:
 	typeinfo m_key_info;
 	const static_struct::field_infos* m_static_fields;
 	std::shared_ptr<dynamic_struct::field_infos> m_dynamic_fields;
+
+public:  // temporary
+	std::vector<ss_plugin_table_fieldinfo> m_field_list;
 };
 
 /**
