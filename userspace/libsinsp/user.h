@@ -24,16 +24,68 @@ limitations under the License.
 #include <memory>
 #include <libsinsp/container_info.h>
 #include <libsinsp/procfs_utils.h>
+#include <libsinsp/event.h>
+#include <libsinsp/dumper.h>
+#include <libsinsp/threadinfo.h>
 #include <libscap/scap.h>
 
 class sinsp;
-class sinsp_dumper;
-class sinsp_evt;
 namespace libsinsp {
 namespace procfs_utils {
 class ns_helper;
 }
 }  // namespace libsinsp
+
+// RAII struct to manage threadinfos automatic user/group refresh
+// upon container_id updates.
+struct user_group_updater {
+	explicit user_group_updater(sinsp_evt *evt) {
+		switch(evt->get_type()) {
+		case PPME_SYSCALL_CLONE_11_X:
+		case PPME_SYSCALL_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_17_X:
+		case PPME_SYSCALL_CLONE_20_X:
+		case PPME_SYSCALL_FORK_X:
+		case PPME_SYSCALL_FORK_17_X:
+		case PPME_SYSCALL_FORK_20_X:
+		case PPME_SYSCALL_VFORK_X:
+		case PPME_SYSCALL_VFORK_17_X:
+		case PPME_SYSCALL_VFORK_20_X:
+		case PPME_SYSCALL_CLONE3_X:
+		case PPME_SYSCALL_EXECVE_8_X:
+		case PPME_SYSCALL_EXECVE_13_X:
+		case PPME_SYSCALL_EXECVE_14_X:
+		case PPME_SYSCALL_EXECVE_15_X:
+		case PPME_SYSCALL_EXECVE_16_X:
+		case PPME_SYSCALL_EXECVE_17_X:
+		case PPME_SYSCALL_EXECVE_18_X:
+		case PPME_SYSCALL_EXECVE_19_X:
+		case PPME_SYSCALL_EXECVEAT_X:
+		case PPME_SYSCALL_CHROOT_X:
+			m_evt = evt;
+			if(m_evt->get_tinfo() != nullptr) {
+				m_container_id = m_evt->get_tinfo()->m_container_id;
+			}
+			break;
+		default:
+			m_evt = nullptr;
+			break;
+		}
+	}
+
+	~user_group_updater() {
+		if(m_evt != nullptr && m_evt->get_tinfo() != nullptr) {
+			if(m_evt->get_tinfo()->m_container_id != m_container_id) {
+				// Refresh user/group
+				m_evt->get_tinfo()->set_group(m_evt->get_tinfo()->m_gid);
+				m_evt->get_tinfo()->set_user(m_evt->get_tinfo()->m_uid);
+			}
+		}
+	}
+
+	sinsp_evt *m_evt;
+	std::string m_container_id;
+};
 
 /*
  * Basic idea:

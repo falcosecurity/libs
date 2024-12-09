@@ -17,7 +17,6 @@ limitations under the License.
 */
 
 #include <libsinsp/user.h>
-#include <libsinsp/event.h>
 #include <libsinsp/procfs_utils.h>
 #include <libsinsp/utils.h>
 #include <libsinsp/logger.h>

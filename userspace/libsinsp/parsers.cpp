@@ -1274,12 +1274,6 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 		return;
 	}
 
-	/* Refresh user / group */
-	if(new_child->m_container_id.empty() == false) {
-		new_child->set_group(new_child->m_gid);
-		new_child->set_user(new_child->m_uid);
-	}
-
 	/* If there's a listener, invoke it */
 	if(m_inspector->get_observer()) {
 		m_inspector->get_observer()->on_clone(evt, new_child.get(), tid_collision);
@@ -1764,12 +1758,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	 */
 	evt->set_tinfo(new_child.get());
 
-	/* Refresh user / group */
-	if(new_child->m_container_id.empty() == false) {
-		new_child->set_group(new_child->m_gid);
-		new_child->set_user(new_child->m_uid);
-	}
-
 	//
 	// If there's a listener, invoke it
 	//
@@ -2238,15 +2226,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	// Recompute the program hash
 	//
 	evt->get_tinfo()->compute_program_hash();
-
-	//
-	// Refresh user / group
-	// if we happen to change container id
-	//
-	if(container_id != evt->get_tinfo()->m_container_id) {
-		evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
-		evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
-	}
 
 	//
 	// If there's a listener, invoke it
@@ -4992,14 +4971,6 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt) {
 		m_inspector->m_container_manager.resolve_container(
 		        evt->get_tinfo(),
 		        m_inspector->is_live() || m_inspector->is_syscall_plugin());
-		//
-		// Refresh user / group
-		// if we happen to change container id
-		//
-		if(container_id != evt->get_tinfo()->m_container_id) {
-			evt->get_tinfo()->set_group(evt->get_tinfo()->m_gid);
-			evt->get_tinfo()->set_user(evt->get_tinfo()->m_uid);
-		}
 	}
 }
 

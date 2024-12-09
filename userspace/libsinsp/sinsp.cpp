@@ -1297,6 +1297,11 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 	{
 		// Object that uses RAII to enable event filtered out flag
 		sinsp_evt_filter evt_filter(evt);
+		// Object that uses RAII to automatically update user/group associated with a threadinfo
+		// upon threadinfo's container_id changes.
+		// Since the threadinfo state might get changed from a plugin parser,
+		// evaluate this one after all parsers get run.
+		user_group_updater usr_grp_updater(evt);
 
 		if(!evt->is_filtered_out()) {
 			//
