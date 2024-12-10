@@ -222,6 +222,14 @@ list(APPEND MODERN_PROBE_INCLUDE "-I${CMAKE_CURRENT_SOURCE_DIR}")
 # inside `driver` and the `libbpf` includes.
 set(PPM_INCLUDE ${LIBS_DIR})
 
+include(libbpf)
+
+# Get libbpf include
+get_target_property(LIBBPF_INTERFACE_INCLUDE_DIRS lbpf INTERFACE_INCLUDE_DIRECTORIES)
+foreach(dir ${LIBBPF_INTERFACE_INCLUDE_DIRS})
+	list(APPEND LIBBPF_INTERFACE_INCLUDE "-I${dir}")
+endforeach()
+
 # Set CLANG FLAGS
 set(CLANG_FLAGS "")
 list(
@@ -234,7 +242,7 @@ list(
 	-D__${DEBUG}__
 	-D__TARGET_ARCH_${ARCH} # Match libbpf usage in `/libbpf/src/bpf_tracing.h`
 	-D__USE_VMLINUX__ # Used to compile without kernel headers.
-	-I${LIBBPF_INCLUDE}
+	${LIBBPF_INTERFACE_INCLUDE}
 	${MODERN_PROBE_INCLUDE}
 	-I${PPM_INCLUDE}
 	-isystem
@@ -269,7 +277,7 @@ foreach(BPF_C_FILE ${BPF_C_FILES})
 		COMMAND ${MODERN_CLANG_EXE} ${CLANG_FLAGS} ${CLANG_SYSTEM_INCLUDES} -c ${BPF_C_FILE} -o
 				${BPF_O_FILE}
 		VERBATIM
-		DEPENDS libbpf
+		DEPENDS lbpf
 		DEPENDS ${BPF_C_FILE} ${BPF_H_FILES}
 		COMMENT "${MODERN_BPF_LOG_PREFIX} Building BPF object: ${BPF_O_FILE}"
 	)

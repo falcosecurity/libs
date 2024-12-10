@@ -49,6 +49,11 @@ limitations under the License.
 #include <libscap/strl.h>
 #include <libscap/strerror.h>
 
+/* some libelf implementations do not have the ELF_C_READ_MMAP_PRIVATE extension */
+#ifndef ELF_C_READ_MMAP_PRIVATE
+#define ELF_C_READ_MMAP_PRIVATE ELF_C_READ
+#endif
+
 static const char *const bpf_kernel_counters_stats_names[] = {
         [BPF_N_EVTS] = N_EVENTS_PREFIX,
         [BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
