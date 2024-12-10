@@ -77,9 +77,9 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	define_static_field(ret, this, m_container_id, "container_id");
 	define_static_field(ret, this, m_flags, "flags");
 	define_static_field(ret, this, m_fdlimit, "fd_limit");
-	// m_user
-	// m_loginuser
-	// m_group
+	define_static_field(ret, this, m_uid, "uid");
+	define_static_field(ret, this, m_gid, "gid");
+	define_static_field(ret, this, m_loginuid, "loginuid");
 	// m_cap_permitted
 	// m_cap_effective
 	// m_cap_inheritable
