@@ -18,13 +18,13 @@ limitations under the License.
 #pragma once
 
 #include <libsinsp/sinsp_exception.h>
-#include <driver/ppm_events_public.h>
+#include <plugin/plugin_types.h>
 
 #include <string>
-#include <vector>
 
 namespace libsinsp {
 namespace state {
+class base_table;
 
 /**
  * @brief Generic and agnostic information about a type, similar to
@@ -37,24 +37,6 @@ namespace state {
 class typeinfo {
 public:
 	/**
-	 * @brief Numeric identifier of a supported type.
-	 */
-	enum index_t : uint8_t {
-		TI_INT8 = 1,
-		TI_INT16 = 2,
-		TI_INT32 = 3,
-		TI_INT64 = 4,
-		TI_UINT8 = 5,
-		TI_UINT16 = 6,
-		TI_UINT32 = 7,
-		TI_UINT64 = 8,
-		TI_STRING = 9,
-		TI_TABLE = 10,
-		// note(jasondellaluce): weird value due to plugin API backward compatibility
-		TI_BOOL = 25,
-	};
-
-	/**
 	 * @brief Returns a type info for the type T.
 	 */
 	template<typename T>
@@ -62,6 +44,8 @@ public:
 		throw sinsp_exception("state::typeinfo::of invoked for unsupported type: " +
 		                      std::string(typeid(T).name()));
 	}
+
+	static inline typeinfo of(ss_plugin_state_type k);
 
 	inline typeinfo() = delete;
 	inline ~typeinfo() = default;
@@ -71,11 +55,11 @@ public:
 	inline typeinfo& operator=(const typeinfo& s) = default;
 
 	friend inline bool operator==(const typeinfo& a, const typeinfo& b) {
-		return a.index() == b.index();
+		return a.type_id() == b.type_id();
 	};
 
 	friend inline bool operator!=(const typeinfo& a, const typeinfo& b) {
-		return a.index() != b.index();
+		return a.type_id() != b.type_id();
 	};
 
 	/**
@@ -86,7 +70,7 @@ public:
 	/**
 	 * @brief Returns the numeric representation of the type.
 	 */
-	inline index_t index() const { return m_index; }
+	inline ss_plugin_state_type type_id() const { return m_type_id; }
 
 	/**
 	 * @brief Returns the byte size of variables of the given type.
@@ -112,9 +96,13 @@ public:
 	}
 
 private:
-	inline typeinfo(const char* n, index_t k, size_t s, void (*c)(void*), void (*d)(void*)):
+	inline typeinfo(const char* n,
+	                ss_plugin_state_type k,
+	                size_t s,
+	                void (*c)(void*),
+	                void (*d)(void*)):
 	        m_name(n),
-	        m_index(k),
+	        m_type_id(k),
 	        m_size(s),
 	        m_construct(c),
 	        m_destroy(d) {}
@@ -132,12 +120,12 @@ private:
 	}
 
 	template<typename T>
-	static inline typeinfo _build(const char* n, index_t k) {
+	static inline typeinfo _build(const char* n, ss_plugin_state_type k) {
 		return typeinfo(n, k, sizeof(T), _construct<T>, _destroy<T>);
 	}
 
 	const char* m_name;
-	index_t m_index;
+	ss_plugin_state_type m_type_id;
 	size_t m_size;
 	void (*m_construct)(void*);
 	void (*m_destroy)(void*);
@@ -148,51 +136,80 @@ class base_table;
 // below is the manually-controlled list of all the supported types
 template<>
 inline typeinfo typeinfo::of<bool>() {
-	return _build<bool>("bool", TI_BOOL);
+	return _build<bool>("bool", SS_PLUGIN_ST_BOOL);
 }
 template<>
 inline typeinfo typeinfo::of<int8_t>() {
-	return _build<int8_t>("int8", TI_INT8);
+	return _build<int8_t>("int8", SS_PLUGIN_ST_INT8);
 }
 template<>
 inline typeinfo typeinfo::of<int16_t>() {
-	return _build<int16_t>("int16", TI_INT16);
+	return _build<int16_t>("int16", SS_PLUGIN_ST_INT16);
 }
 template<>
 inline typeinfo typeinfo::of<int32_t>() {
-	return _build<int32_t>("int32", TI_INT32);
+	return _build<int32_t>("int32", SS_PLUGIN_ST_INT32);
 }
 template<>
 inline typeinfo typeinfo::of<int64_t>() {
-	return _build<int64_t>("int64", TI_INT64);
+	return _build<int64_t>("int64", SS_PLUGIN_ST_INT64);
 }
 template<>
 inline typeinfo typeinfo::of<uint8_t>() {
-	return _build<uint8_t>("uint8", TI_UINT8);
+	return _build<uint8_t>("uint8", SS_PLUGIN_ST_UINT8);
 }
 template<>
 inline typeinfo typeinfo::of<uint16_t>() {
-	return _build<uint16_t>("uint16", TI_UINT16);
+	return _build<uint16_t>("uint16", SS_PLUGIN_ST_UINT16);
 }
 template<>
 inline typeinfo typeinfo::of<uint32_t>() {
-	return _build<uint32_t>("uint32", TI_UINT32);
+	return _build<uint32_t>("uint32", SS_PLUGIN_ST_UINT32);
 }
 template<>
 inline typeinfo typeinfo::of<uint64_t>() {
-	return _build<uint64_t>("uint64", TI_UINT64);
+	return _build<uint64_t>("uint64", SS_PLUGIN_ST_UINT64);
 }
 template<>
 inline typeinfo typeinfo::of<std::string>() {
-	return _build<std::string>("string", TI_STRING);
+	return _build<std::string>("string", SS_PLUGIN_ST_STRING);
 }
 template<>
 inline typeinfo typeinfo::of<libsinsp::state::base_table*>() {
-	return _build<libsinsp::state::base_table*>("table", TI_TABLE);
+	return _build<libsinsp::state::base_table*>("table", SS_PLUGIN_ST_TABLE);
 }
 template<>
 inline typeinfo typeinfo::of<const libsinsp::state::base_table*>() {
-	return _build<const libsinsp::state::base_table*>("table", TI_TABLE);
+	return _build<const libsinsp::state::base_table*>("table", SS_PLUGIN_ST_TABLE);
+}
+
+inline typeinfo typeinfo::of(ss_plugin_state_type k) {
+	switch(k) {
+	case SS_PLUGIN_ST_BOOL:
+		return of<bool>();
+	case SS_PLUGIN_ST_INT8:
+		return of<int8_t>();
+	case SS_PLUGIN_ST_INT16:
+		return of<int16_t>();
+	case SS_PLUGIN_ST_INT32:
+		return of<int32_t>();
+	case SS_PLUGIN_ST_INT64:
+		return of<int64_t>();
+	case SS_PLUGIN_ST_UINT8:
+		return of<uint8_t>();
+	case SS_PLUGIN_ST_UINT16:
+		return of<uint16_t>();
+	case SS_PLUGIN_ST_UINT32:
+		return of<uint32_t>();
+	case SS_PLUGIN_ST_UINT64:
+		return of<uint64_t>();
+	case SS_PLUGIN_ST_STRING:
+		return of<std::string>();
+	case SS_PLUGIN_ST_TABLE:
+		return of<libsinsp::state::base_table*>();
+	default:
+		throw sinsp_exception("unsupported state type: " + std::to_string(k));
+	}
 }
 
 };  // namespace state

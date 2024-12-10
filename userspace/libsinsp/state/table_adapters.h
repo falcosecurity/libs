@@ -116,7 +116,7 @@ private:
 
 	template<typename T>
 	inline void get_dynamic_field(const dynamic_struct::field_info& i, const T* value, void* out) {
-		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)value)->c_str();
 		} else {
 			memcpy(out, (const void*)value, i.info().size());
@@ -125,7 +125,7 @@ private:
 
 	template<typename T>
 	inline void set_dynamic_field(const dynamic_struct::field_info& i, T* value, const void* in) {
-		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((std::string*)value) = *((const char**)in);
 		} else {
 			memcpy((void*)value, in, i.info().size());
@@ -175,7 +175,7 @@ protected:
 			        "invalid field info passed to value_table_entry_adapter::get_dynamic_field");
 		}
 
-		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)m_value)->c_str();
 		} else {
 			memcpy(out, (const void*)m_value, i.info().size());
@@ -189,7 +189,7 @@ protected:
 			        "invalid field info passed to value_table_entry_adapter::set_dynamic_field");
 		}
 
-		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((std::string*)m_value) = *((const char**)in);
 		} else {
 			memcpy((void*)m_value, in, i.info().size());
@@ -217,10 +217,10 @@ private:
 template<typename T,
          typename TWrap = value_table_entry_adapter<typename T::value_type>,
          typename DynFields = typename TWrap::dynamic_fields_t>
-class stl_container_table_adapter : public libsinsp::state::table<uint64_t> {
+class stl_container_table_adapter : public libsinsp::state::built_in_table<uint64_t> {
 public:
 	stl_container_table_adapter(const std::string& name, T& container):
-	        table(name, _static_fields()),
+	        built_in_table(name, _static_fields()),
 	        m_container(container) {
 		set_dynamic_fields(std::make_shared<DynFields>());
 	}
@@ -260,20 +260,22 @@ public:
 	        const uint64_t& key,
 	        std::unique_ptr<libsinsp::state::table_entry> entry) override {
 		if(!entry) {
-			throw sinsp_exception("null entry added to table: " + this->name());
+			throw sinsp_exception(
+			        std::string("null entry added to table: " + std::string(this->name())));
 		}
 		if(entry->dynamic_fields() != this->dynamic_fields()) {
 			throw sinsp_exception("entry with mismatching dynamic fields added to table: " +
-			                      this->name());
+			                      std::string(this->name()));
 		}
 
 		auto value = dynamic_cast<TWrap*>(entry.get());
 		if(!value) {
-			throw sinsp_exception("entry with mismatching type added to table: " + this->name());
+			throw sinsp_exception("entry with mismatching type added to table: " +
+			                      std::string(this->name()));
 		}
 		if(value->value() != nullptr) {
 			throw sinsp_exception("entry with unexpected owned value added to table: " +
-			                      this->name());
+			                      std::string(this->name()));
 		}
 
 		m_container.resize(key + 1);

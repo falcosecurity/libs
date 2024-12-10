@@ -1341,7 +1341,7 @@ static const auto s_threadinfo_static_fields = sinsp_threadinfo().static_fields(
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector):
-        table(s_thread_table_name, &s_threadinfo_static_fields),
+        built_in_table(s_thread_table_name, &s_threadinfo_static_fields),
         m_max_thread_table_size(m_thread_table_default_size),
         m_fdtable_dyn_fields(std::make_shared<libsinsp::state::dynamic_struct::field_infos>()) {
 	m_inspector = inspector;

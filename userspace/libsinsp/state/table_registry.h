@@ -58,15 +58,33 @@ public:
 	 */
 	template<typename KeyType>
 	table<KeyType>* get_table(const std::string& name) const {
+		auto table = get_table(name, typeinfo::of<KeyType>().type_id());
+		return static_cast<libsinsp::state::table<KeyType>*>(table);
+	}
+
+	/**
+	 * @brief Obtain a pointer to a table registered in the registry with
+	 * the given name. Throws an exception if a table with the given name
+	 * is defined with types incompatible with the ones provided in the
+	 * template.
+	 *
+	 * @param name Name of the table.
+	 * @param key_type Type of the table's key.
+	 * @return base_table* Pointer to the registered table,
+	 * or nullptr if no table is registered by the given name.
+	 */
+	base_table* get_table(const std::string& name, ss_plugin_state_type key_type) const {
 		const auto& it = m_tables.find(name);
 		if(it != m_tables.end()) {
-			auto t = libsinsp::state::typeinfo::of<KeyType>();
-			if(it->second->key_info() != t) {
+			auto key_info = it->second->key_info();
+			auto type_id = key_info.type_id();
+			if(type_id != key_type) {
+				auto requested_key_info = typeinfo::of(key_type);
 				throw sinsp_exception("table in registry accessed with wrong key type: table='" +
-				                      name + "', requested='" + t.name() + "', actual='" +
-				                      it->second->key_info().name() + "'");
+				                      name + "', requested=" + std::to_string(key_type) +
+				                      ", actual=" + std::to_string(type_id) + "'");
 			}
-			return static_cast<table<KeyType>*>(it->second);
+			return it->second;
 		}
 		return nullptr;
 	}
@@ -81,16 +99,16 @@ public:
 	 * @param t Pointer to the table.
 	 * @return table<KeyType>* Pointer to the newly-registered table.
 	 */
-	template<typename KeyType>
-	table<KeyType>* add_table(table<KeyType>* t) {
+	base_table* add_table(base_table* t) {
 		if(!t) {
 			throw sinsp_exception("null table added to registry");
 		}
-		const auto& it = m_tables.find(t->name());
+		std::string name = t->name();
+		const auto& it = m_tables.find(name);
 		if(it != m_tables.end()) {
-			throw sinsp_exception("table added to registry multiple times: " + t->name());
+			throw sinsp_exception("table added to registry multiple times: " + name);
 		}
-		m_tables.insert({t->name(), t});
+		m_tables.insert({name, t});
 		return t;
 	}
 
