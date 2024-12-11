@@ -102,6 +102,7 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	// m_program_hash
 	// m_program_hash_scripts
 	define_static_field(ret, this, m_tty, "tty");
+	define_static_field(ret, this, m_cmd_line, "cmd_line");
 	// m_category
 	// m_clone_ts
 	// m_lastexec_ts
