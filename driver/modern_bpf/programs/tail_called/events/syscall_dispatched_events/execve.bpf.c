@@ -307,8 +307,13 @@ int BPF_PROG(t2_execve_x, struct pt_regs *regs, long ret) {
 		auxmap__store_empty_param(auxmap);
 	}
 
-	/* Parameter 29: pgid (type: PT_UID) */
+	/* Parameter 29: pgid (type: PT_PID) */
 	auxmap__store_pgid(auxmap, task);
+
+	/* Parameter 30: egid (type: PT_GID) */
+	uint32_t egid;
+	extract__egid(task, &egid);
+	auxmap__store_u32_param(auxmap, egid);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
