@@ -27,7 +27,6 @@ namespace {
 
 const size_t CONTAINER_ID_LENGTH = 64;
 const size_t REPORTED_CONTAINER_ID_LENGTH = 12;
-const char *CONTAINER_ID_VALID_CHARACTERS = "0123456789abcdefABCDEF";
 
 static_assert(REPORTED_CONTAINER_ID_LENGTH <= CONTAINER_ID_LENGTH,
               "Reported container ID length cannot be longer than actual length");
@@ -36,6 +35,30 @@ static_assert(REPORTED_CONTAINER_ID_LENGTH <= CONTAINER_ID_LENGTH,
 
 namespace libsinsp {
 namespace runc {
+
+inline static bool is_host(const std::string &cgroup, const std::string &container_id) {
+	size_t start_pos = cgroup.rfind("/user.slice");
+	if(start_pos != std::string::npos) {
+		return container_id.rfind("session-") == 0 || container_id == "user.slice";
+	}
+
+	start_pos = cgroup.rfind("/system.slice");
+	if(start_pos != std::string::npos) {
+		return true;
+	}
+
+	start_pos = cgroup.rfind("/-.slice");
+	if(start_pos != std::string::npos) {
+		return true;
+	}
+
+	start_pos = cgroup.rfind("/init.scope");
+	if(start_pos != std::string::npos) {
+		return true;
+	}
+
+	return false;
+}
 
 // check if cgroup ends with <prefix><container_id><suffix>
 // If true, set <container_id> to a truncated version of the id and return true.
@@ -55,12 +78,14 @@ bool match_one_container_id(const std::string &cgroup,
 		return false;
 	}
 
-	if(end_pos - start_pos != CONTAINER_ID_LENGTH) {
+	// In some container runtimes the container the container id is not
+	// necessarly CONTAINER_ID_LENGTH long and can be arbitrarly defined.
+	// To keep it simple we only discard the container id > of CONTAINER_ID_LENGTH.
+	if(end_pos - start_pos > CONTAINER_ID_LENGTH || end_pos - start_pos == 0) {
 		return false;
 	}
 
-	size_t invalid_ch_pos = cgroup.find_first_not_of(CONTAINER_ID_VALID_CHARACTERS, start_pos);
-	if(invalid_ch_pos < CONTAINER_ID_LENGTH) {
+	if(is_host(cgroup, cgroup.substr(start_pos))) {
 		return false;
 	}
 
