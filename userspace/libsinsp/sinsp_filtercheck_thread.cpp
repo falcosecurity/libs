@@ -111,7 +111,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          "Name",
          "The process name (truncated after 16 characters) generating the event (task->comm). "
          "Truncation is determined by kernel settings and not by Falco. This field is collected "
-         "from the syscalls args or, as a fallback, extracted from /proc/PID/status. The name of "
+         "from the syscalls args or, as a fallback, extracted from /proc/PID/comm. The name of "
          "the process and the name of the executable file on disk (if applicable) can be different "
          "if a process is given a custom name which is often the case for example for java "
          "applications."},

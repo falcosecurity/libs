@@ -559,7 +559,7 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	//
 	// Gather the command name
 	//
-	snprintf(filename, sizeof(filename), "%sstatus", dir_name);
+	snprintf(filename, sizeof(filename), "%scomm", dir_name);
 
 	f = fopen(filename, "r");
 	if(f == NULL) {
@@ -567,13 +567,15 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 	} else {
 		ASSERT(sizeof(line) >= SCAP_MAX_PATH_SIZE);
 
-		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL) {
-			fclose(f);
-			return scap_errprintf(error, errno, "can't read from %s", filename);
+		filesize = fread(line, 1, SCAP_MAX_ARGS_SIZE, f);
+		if(filesize > 0) {
+			// In case `comm` is greater than `SCAP_MAX_ARGS_SIZE` it could be
+			// truncated so we put a `/0` at the end manually.
+			line[filesize - 1] = 0;
+			snprintf(tinfo.comm, SCAP_MAX_PATH_SIZE, "%s", line);
+		} else {
+			tinfo.comm[0] = 0;
 		}
-
-		line[SCAP_MAX_PATH_SIZE - 1] = 0;
-		sscanf(line, "Name:%1024s", tinfo.comm);
 		fclose(f);
 	}
 
