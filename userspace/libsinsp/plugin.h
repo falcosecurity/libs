@@ -600,7 +600,7 @@ public:
 		}
 	}
 
-	void clear_entries() { m_table->clear(m_owner_plugin); }
+	void clear_entries() { m_table->clear_entries(m_owner_plugin); }
 
 private:
 	libsinsp::state::sinsp_table_owner* m_owner_plugin = nullptr;

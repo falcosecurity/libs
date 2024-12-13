@@ -281,7 +281,7 @@ struct plugin_table_wrapper : public libsinsp::state::table<KeyType> {
 	                               ss_plugin_table_iterator_func_t it,
 	                               ss_plugin_table_iterator_state_t* s) override;
 
-	ss_plugin_rc clear(libsinsp::state::sinsp_table_owner* owner) override;
+	ss_plugin_rc clear_entries(libsinsp::state::sinsp_table_owner* owner) override;
 
 	ss_plugin_rc erase_entry(libsinsp::state::sinsp_table_owner* owner,
 	                         const ss_plugin_state_data* key) override;
@@ -376,7 +376,8 @@ ss_plugin_bool plugin_table_wrapper<KeyType>::iterate_entries(
 }
 
 template<typename KeyType>
-ss_plugin_rc plugin_table_wrapper<KeyType>::clear(libsinsp::state::sinsp_table_owner* owner) {
+ss_plugin_rc plugin_table_wrapper<KeyType>::clear_entries(
+        libsinsp::state::sinsp_table_owner* owner) {
 	auto ret = m_input->writer_ext->clear_table(m_input->table);
 	if(ret == SS_PLUGIN_FAILURE) {
 		owner->m_last_owner_err = m_owner->get_last_error();

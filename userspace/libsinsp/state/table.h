@@ -170,7 +170,7 @@ public:
 	                                       ss_plugin_table_iterator_func_t it,
 	                                       ss_plugin_table_iterator_state_t* s) = 0;
 
-	virtual ss_plugin_rc clear(sinsp_table_owner* owner) = 0;
+	virtual ss_plugin_rc clear_entries(sinsp_table_owner* owner) = 0;
 
 	virtual ss_plugin_rc erase_entry(sinsp_table_owner* owner, const ss_plugin_state_data* key) = 0;
 
@@ -355,7 +355,7 @@ public:
 	                               ss_plugin_table_iterator_func_t it,
 	                               ss_plugin_table_iterator_state_t* s) override;
 
-	ss_plugin_rc clear(sinsp_table_owner* owner) override;
+	ss_plugin_rc clear_entries(sinsp_table_owner* owner) override;
 
 	ss_plugin_rc erase_entry(sinsp_table_owner* owner, const ss_plugin_state_data* key) override;
 
