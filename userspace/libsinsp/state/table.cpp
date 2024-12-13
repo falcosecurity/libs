@@ -168,6 +168,30 @@ void libsinsp::state::table_accessor::set(sinsp_table_owner* p, libsinsp::state:
 	input.key_type = m_table->key_info().type_id();
 }
 
+template void libsinsp::state::table_accessor::set<int8_t>(sinsp_table_owner* p,
+                                                           libsinsp::state::table<int8_t>* t);
+template void libsinsp::state::table_accessor::set<int16_t>(sinsp_table_owner* p,
+                                                            libsinsp::state::table<int16_t>* t);
+template void libsinsp::state::table_accessor::set<int32_t>(sinsp_table_owner* p,
+                                                            libsinsp::state::table<int32_t>* t);
+template void libsinsp::state::table_accessor::set<int64_t>(sinsp_table_owner* p,
+                                                            libsinsp::state::table<int64_t>* t);
+template void libsinsp::state::table_accessor::set<uint8_t>(sinsp_table_owner* p,
+                                                            libsinsp::state::table<uint8_t>* t);
+template void libsinsp::state::table_accessor::set<uint16_t>(sinsp_table_owner* p,
+                                                             libsinsp::state::table<uint16_t>* t);
+template void libsinsp::state::table_accessor::set<uint32_t>(sinsp_table_owner* p,
+                                                             libsinsp::state::table<uint32_t>* t);
+template void libsinsp::state::table_accessor::set<uint64_t>(sinsp_table_owner* p,
+                                                             libsinsp::state::table<uint64_t>* t);
+template void libsinsp::state::table_accessor::set<std::string>(
+        sinsp_table_owner* p,
+        libsinsp::state::table<std::string>* t);
+template void libsinsp::state::table_accessor::set<bool>(sinsp_table_owner* p,
+                                                         libsinsp::state::table<bool>* t);
+// Do not instantiate the template for libsinsp::state::base_table* since a table cannot be used
+// as a key for another table
+
 void libsinsp::state::table_accessor::unset() {
 	m_owner_plugin = nullptr;
 	m_table = nullptr;
