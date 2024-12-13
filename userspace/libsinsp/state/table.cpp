@@ -267,7 +267,7 @@ ss_plugin_bool libsinsp::state::table_accessor::iterate_entries(
 
 ss_plugin_rc libsinsp::state::table_accessor::clear(ss_plugin_table_t* _t) {
 	auto t = static_cast<table_accessor*>(_t);
-	return t->m_table->clear(t->m_owner_plugin);
+	return t->m_table->clear_entries(t->m_owner_plugin);
 }
 
 ss_plugin_rc libsinsp::state::table_accessor::erase_entry(ss_plugin_table_t* _t,
@@ -535,7 +535,7 @@ ss_plugin_bool libsinsp::state::built_in_table<KeyType>::iterate_entries(
 }
 
 template<typename KeyType>
-ss_plugin_rc libsinsp::state::built_in_table<KeyType>::clear(sinsp_table_owner* owner) {
+ss_plugin_rc libsinsp::state::built_in_table<KeyType>::clear_entries(sinsp_table_owner* owner) {
 	__CATCH_ERR_MSG(owner->m_last_owner_err, {
 		this->clear_entries();
 		return SS_PLUGIN_SUCCESS;
