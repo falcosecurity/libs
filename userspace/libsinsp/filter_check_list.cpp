@@ -31,6 +31,8 @@ using namespace std;
 // sinsp_filter_check_list implementation
 ///////////////////////////////////////////////////////////////////////////////
 
+filter_check_list::~filter_check_list() = default;
+
 void filter_check_list::add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check) {
 	// If a filtercheck already exists with this name and
 	// shortdesc, don't add it--this can occur when plugins are

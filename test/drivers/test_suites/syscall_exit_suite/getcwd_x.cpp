@@ -8,7 +8,7 @@ TEST(SyscallExit, getcwdX_success) {
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long size = 200;
+	const unsigned long size = 200;
 	char path[size];
 	uint32_t read_bytes = syscall(__NR_getcwd, path, size);
 	assert_syscall_state(SYSCALL_SUCCESS, "getcwd", read_bytes, NOT_EQUAL, -1);
@@ -49,7 +49,7 @@ TEST(SyscallExit, getcwdX_fail) {
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	long size = 2;
+	const long size = 2;
 	char path[size];
 	assert_syscall_state(SYSCALL_FAILURE, "getcwd", syscall(__NR_getcwd, path, size));
 	int64_t errno_value = -errno;
