@@ -746,7 +746,7 @@ static int32_t scap_cgroup_resolve_v2(struct scap_cgroup_interface* cgi,
 		return SCAP_FAILURE;
 	}
 
-	struct scap_cgroup_set found_subsystems = {.len = 0, {'\0'}};
+	struct scap_cgroup_set found_subsystems = {.len = 0, .path = {'\0'}};
 	while(1)  // not reached cgroup mountpoint yet
 	{
 		struct scap_cgroup_set current_subsystems;

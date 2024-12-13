@@ -64,7 +64,7 @@ TEST(SyscallExit, readvX_success) {
 	          strlen(test_string) + 1);
 
 	/* Try to read the string with readv using three buffers */
-	int32_t iovcnt = 3;
+	const int32_t iovcnt = 3;
 	iovec iov[iovcnt];
 	size_t buf_size = 15;
 	ASSERT_GT(iovcnt * buf_size, strlen(test_string) + 1);

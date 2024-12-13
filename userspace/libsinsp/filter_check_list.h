@@ -33,7 +33,7 @@ class sinsp;
 class filter_check_list {
 public:
 	filter_check_list() = default;
-	virtual ~filter_check_list() = default;
+	virtual ~filter_check_list();
 
 	void add_filter_check(std::unique_ptr<sinsp_filter_check> filter_check);
 	void get_all_fields(std::vector<const filter_check_info*>&) const;
