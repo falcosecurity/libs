@@ -39,7 +39,7 @@ jobs:
   # This job run all engine tests and scap-open
   test-scap:
     name: test-scap-${{ matrix.arch }} 😆 (bundled_deps)
-    runs-on: ${{ (matrix.arch == 'arm64' && 'github-arm64-2c-8gb') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'oracle-aarch64-4cpu-16gb') || 'ubuntu-22.04' }}
     needs: paths-filter
     strategy:
       matrix:
@@ -104,7 +104,7 @@ jobs:
 
   test-drivers:
     name: test-drivers-${{ matrix.arch }} 😇 (bundled_deps)
-    runs-on: ${{ (matrix.arch == 'arm64' && 'github-arm64-2c-8gb') || 'ubuntu-22.04' }}
+    runs-on: ${{ (matrix.arch == 'arm64' && 'oracle-aarch64-4cpu-16gb') || 'ubuntu-22.04' }}
     needs: paths-filter
     strategy:
       matrix:
