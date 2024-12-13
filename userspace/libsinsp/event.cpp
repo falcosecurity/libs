@@ -24,7 +24,6 @@ limitations under the License.
 #include <algorithm>
 #include <unistd.h>
 #else
-#define NOMINMAX
 #define localtime_r(a, b) (localtime_s(b, a) == 0 ? b : NULL)
 #endif
 
