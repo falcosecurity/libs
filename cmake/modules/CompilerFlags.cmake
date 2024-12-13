@@ -144,8 +144,8 @@ else() # MSVC
 	set(CMAKE_CXX_FLAGS_RELEASE "${FALCOSECURITY_LIBS_RELEASE_FLAGS}")
 
 	# "_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" enables a workaround for windows GH runner issue, see
-	# https://github.com/actions/runner-images/issues/10004
+	# https://github.com/actions/runner-images/issues/10004 Also, define NOMINMAX globally.
 	add_compile_definitions(
-		_HAS_STD_BYTE=0 WIN32_LEAN_AND_MEAN _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
+		_HAS_STD_BYTE=0 WIN32_LEAN_AND_MEAN _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR NOMINMAX
 	)
 endif()
