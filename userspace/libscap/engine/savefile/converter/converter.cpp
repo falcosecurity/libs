@@ -317,6 +317,10 @@ static conversion_result convert_event(scap_evt *new_evt,
 	uint16_t params_offset = 0;
 	int param_to_populate = 0;
 
+	// We copy the entire event in any case so that we are ready to handle `CONVERSION_SKIP` cases
+	// without further actions.
+	memcpy(new_evt, evt_to_convert, evt_to_convert->len);
+
 	switch(ci.m_action) {
 	case C_ACTION_SKIP:
 		return CONVERSION_SKIP;
@@ -326,7 +330,6 @@ static conversion_result convert_event(scap_evt *new_evt,
 		return CONVERSION_SKIP;
 
 	case C_ACTION_ADD_PARAMS:
-		memcpy(new_evt, evt_to_convert, sizeof(scap_evt));
 		// The new number of params is the previous one plus the number of conversion instructions.
 		new_evt->nparams = evt_to_convert->nparams + ci.m_instrs.size();
 		params_offset = copy_old_params(new_evt, evt_to_convert);
@@ -334,7 +337,6 @@ static conversion_result convert_event(scap_evt *new_evt,
 		break;
 
 	case C_ACTION_CHANGE_TYPE:
-		memcpy(new_evt, evt_to_convert, sizeof(scap_evt));
 		// The new number of params is the number of conversion instructions.
 		new_evt->nparams = ci.m_instrs.size();
 		new_evt->type = ci.m_desired_type;
@@ -355,8 +357,6 @@ static conversion_result convert_event(scap_evt *new_evt,
 	PRINT_EVENT(new_evt, PRINT_HEADER);
 
 	scap_evt *tmp_evt = NULL;
-	// If this is true at the end of the for loop we will free its memory.
-	bool used_enter_event = false;
 
 	// We iterate over the instructions
 	for(int i = 0; i < ci.m_instrs.size(); i++, param_to_populate++) {
@@ -390,7 +390,6 @@ static conversion_result convert_event(scap_evt *new_evt,
 				         get_direction_char((ppm_event_code)tmp_evt->type));
 				return CONVERSION_ERROR;
 			}
-			used_enter_event = true;
 			break;
 
 		case C_INSTR_FROM_OLD:
@@ -429,11 +428,10 @@ static conversion_result convert_event(scap_evt *new_evt,
 		}
 	}
 
-	if(used_enter_event) {
-		// We can free the enter event because we don't need it anymore.
+	if(PPME_IS_EXIT(evt_to_convert->type)) {
+		// We can free the enter event for this thread because we don't need it anymore.
 		clear_evt(evt_to_convert->tid);
 	}
-
 	new_evt->len = params_offset;
 
 	PRINT_MESSAGE("Final event:\n");

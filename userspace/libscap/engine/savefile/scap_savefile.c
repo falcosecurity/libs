@@ -2027,7 +2027,6 @@ static int32_t next(struct scap_engine_handle engine,
                     uint16_t *pdevid,
                     uint32_t *pflags) {
 	struct savefile_engine *handle = engine.m_handle;
-read_event:;
 	int32_t res = next_event_from_file(handle, pevent, pdevid, pflags);
 	// If we fail we don't convert the event.
 	if(res != SCAP_SUCCESS) {
@@ -2065,10 +2064,8 @@ read_event:;
 	case CONVERSION_ERROR:
 		return SCAP_FAILURE;
 
+	// today with CONVERSION_SKIP we send the event to userspace, tomorrow we could drop it.
 	case CONVERSION_SKIP:
-		// Probably an enter event that we don't want to consider. So we read another event.
-		goto read_event;
-
 	case CONVERSION_COMPLETED:
 	case CONVERSION_CONTINUE:
 	default:
