@@ -693,3 +693,115 @@ sinsp_evt* sinsp_with_test_input::next_event() {
 	auto result = m_inspector.next(&evt);
 	return result == SCAP_SUCCESS ? evt : nullptr;
 }
+
+void sinsp_with_test_input::assert_return_value(sinsp_evt* evt, int64_t expected_retval) {
+	// First the event we provide should have the return value
+	ASSERT_TRUE(evt->has_return_value());
+
+	// The raw value should be equal to what we expect
+	ASSERT_EQ(evt->get_syscall_return_value(), expected_retval);
+
+	// We need to create the filtercheck name for the first parameter, usually `res`/`fd` but not
+	// always, could be also `addr` for example...
+	std::string evt_rawarg_name = std::string("evt.rawarg.") + std::string(evt->get_param_name(0));
+
+	// SUCCESS CASE: we consider success when retval >= 0 (so != errno)
+	if(expected_retval >= 0) {
+		/////////////
+		// Res
+		/////////////
+		ASSERT_EQ(get_field_as_string(evt, "evt.res"), "SUCCESS");
+		ASSERT_EQ(get_field_as_string(evt, "evt.rawres"), std::to_string(expected_retval));
+		ASSERT_EQ(get_field_as_string(evt, "evt.failed"), "false");
+
+		/////////////
+		// First parameter (arg0)
+		/////////////
+		auto arg0_info = evt->get_param_info(0);
+		ASSERT_TRUE(arg0_info);
+		// Default values
+		std::string arg0 = std::to_string(expected_retval);
+		std::string raw_arg0 = std::to_string(expected_retval);
+
+		// Some cases in which we need to modify `arg0` or `raw_arg0`
+		if(arg0_info->type == PT_FD) {
+			// If the return value is a file descriptor the value of `evt.arg[0]` is the path
+			// prefixed by `<f>`
+			auto fdinfo = evt->get_fd_info();
+			ASSERT_TRUE(fdinfo);
+			arg0 = std::string("<f>") + fdinfo->m_name;
+
+			// raw_arg0 is ok!
+		}
+
+		if(arg0_info->fmt == PF_HEX && arg0_info->type == PT_UINT64) {
+			// both `evt.arg[0]` and `evt.rawarg` become hexadecimal
+			char buffer[100];
+			std::snprintf(buffer, sizeof(buffer), "%" PRIX64, expected_retval);
+			arg0 = buffer;
+			raw_arg0 = buffer;
+		}
+
+		ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), arg0);
+		ASSERT_EQ(get_field_as_string(evt, evt_rawarg_name), raw_arg0);
+	} else {
+		/////////////
+		// Res
+		/////////////
+		ASSERT_EQ(get_field_as_string(evt, "evt.res"), sinsp_utils::errno_to_str(expected_retval));
+		ASSERT_EQ(get_field_as_string(evt, "evt.rawres"), std::to_string(expected_retval));
+		ASSERT_EQ(get_field_as_string(evt, "evt.failed"), "true");
+
+		/////////////
+		// First parameter (arg0)
+		/////////////
+		ASSERT_EQ(get_field_as_string(evt, "evt.arg[0]"), get_field_as_string(evt, "evt.res"));
+		ASSERT_EQ(get_field_as_string(evt, evt_rawarg_name),
+		          get_field_as_string(evt, "evt.rawres"));
+	}
+}
+
+void sinsp_with_test_input::assert_fd_fields(sinsp_evt* evt,
+                                             sinsp_test_input::fd_info_fields fields) {
+	auto fdinfo = evt->get_fd_info();
+
+	// Right now we only assert if the fdinfo is present, but we want to be sure that for some
+	// events the fdinfo should be here
+	if((evt->creates_fd() || evt->uses_fd()) && evt->get_syscall_return_value() >= 0) {
+		ASSERT_TRUE(fdinfo);
+	}
+
+	if(fdinfo) {
+		if(fields.fd_num.has_value()) {
+			ASSERT_EQ(fdinfo->m_fd, fields.fd_num.value());
+		}
+
+		if(fields.fd_name.has_value()) {
+			ASSERT_EQ(fdinfo->m_name, fields.fd_name.value());
+		}
+
+		if(fields.fd_name_raw.has_value()) {
+			ASSERT_EQ(fdinfo->m_name_raw, fields.fd_name_raw.value());
+		}
+	}
+
+	if(fields.fd_num.has_value()) {
+		ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(fields.fd_num.value()));
+	}
+
+	if(fields.fd_name.has_value()) {
+		ASSERT_EQ(get_field_as_string(evt, "fd.name"), fields.fd_name.value());
+	}
+
+	if(fields.fd_name_raw.has_value()) {
+		ASSERT_EQ(get_field_as_string(evt, "fd.nameraw"), fields.fd_name_raw.value());
+	}
+
+	if(fields.fd_directory.has_value()) {
+		ASSERT_EQ(get_field_as_string(evt, "fd.directory"), fields.fd_directory.value());
+	}
+
+	if(fields.fd_filename.has_value()) {
+		ASSERT_EQ(get_field_as_string(evt, "fd.filename"), fields.fd_filename.value());
+	}
+}
