@@ -151,7 +151,6 @@ private:
 	void swap_addresses(sinsp_fdinfo* fdinfo);
 	uint8_t* reserve_event_buffer();
 	void free_event_buffer(uint8_t*);
-	inline int get_fd_location(uint16_t etype);
 
 	//
 	// Pointers to inspector context

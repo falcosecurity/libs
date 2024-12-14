@@ -190,3 +190,27 @@ TEST(event_table, check_exit_param_names) {
 		}
 	}
 }
+
+// todo!: revisit this test after we remove the enter event support in sinsp
+TEST(event_table, check_EF_USED_FD) {
+	for(int evt = 0; evt < PPM_EVENT_MAX; evt++) {
+		auto evt_info = scap_get_event_info_table()[evt];
+		if((evt_info.flags & EF_USES_FD) == 0) {
+			continue;
+		}
+
+		if(PPME_IS_ENTER(evt)) {
+			int location = get_enter_event_fd_location((ppm_event_code)evt);
+			ASSERT_EQ(evt_info.params[location].type, PT_FD)
+			        << "event_type " << evt << " uses a wrong location " << location;
+		}
+
+		if(PPME_IS_EXIT(evt) && evt_info.flags & EF_TMP_CONVERTER_MANAGED) {
+			int location = get_exit_event_fd_location((ppm_event_code)evt);
+			ASSERT_NE(location, -1)
+			        << "event_type " << evt << " uses a wrong location " << location;
+			ASSERT_EQ(evt_info.params[location].type, PT_FD)
+			        << "event_type " << evt << " uses a wrong location " << location;
+		}
+	}
+}
