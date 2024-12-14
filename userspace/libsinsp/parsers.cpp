@@ -622,10 +622,10 @@ bool sinsp_parser::reset(sinsp_evt *evt) {
 			tinfo->set_lastevent_data_validity(true);
 		} else {
 			tinfo->set_lastevent_data_validity(false);
-
-			if(tinfo->get_lastevent_type() != PPME_TRACER_E) {
-				return false;
-			}
+			// We cannot be sure that the lastevent_fd is something valid, it could be the socket of
+			// the previous `socket` syscall or it could be something completely unrelated, for now
+			// we don't trust it in any case.
+			tinfo->m_lastevent_fd = -1;
 		}
 
 		//

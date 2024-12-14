@@ -806,7 +806,6 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	sinsp_fdinfo* fdinfo = NULL;
 	int64_t client_fd = 7;
 
 	add_event_advance_ts(increasing_ts(),
@@ -830,7 +829,9 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 
 	/* We dropped connect enter! */
 
-	/* We read an old scap file with a connect exit event with just 2 params (no fd!) */
+	/* todo!: revisit this when we will manage CONNECT_X in scap files.
+	 * We simulate an event from an old scap file, a connect exit event with just 2 params (no fd!)
+	 */
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
 	                                   reinterpret_cast<sockaddr*>(&server));
@@ -841,8 +842,13 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 	                           return_value,
 	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()});
 
+	/* We cannot recover the file descriptor from the enter event neither from the exit event */
+	ASSERT_EQ(evt->get_fd_info(), nullptr);
+
+	/* We recover this from the tuple */
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "80.9.11.45:12->152.40.111.222:25632");
+
 	/* Check that we are not able to load any info */
-	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
 	ASSERT_FALSE(field_has_value(evt, "fd.sip"));
 	ASSERT_FALSE(field_has_value(evt, "fd.cip"));
 	ASSERT_FALSE(field_has_value(evt, "fd.rip"));
@@ -851,9 +857,4 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 	ASSERT_FALSE(field_has_value(evt, "fd.sport"));
 	ASSERT_FALSE(field_has_value(evt, "fd.lport"));
 	ASSERT_FALSE(field_has_value(evt, "fd.rport"));
-
-	/* The parser is not able to obtain an updated fdname because the syscall fails and the parser
-	 * flow is truncated */
-	fdinfo = evt->get_fd_info();
-	ASSERT_EQ(fdinfo, nullptr);
 }
