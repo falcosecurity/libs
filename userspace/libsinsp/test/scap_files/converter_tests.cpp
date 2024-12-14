@@ -27,13 +27,12 @@ limitations under the License.
 // READ
 ////////////////////////////
 
-TEST_F(scap_file_test, no_read_e) {
+TEST_F(scap_file_test, read_e_same_number_of_events) {
 	open_filename("scap_2013.scap");
-	// we shouldn't see the enter events
-	assert_no_event_type(PPME_SYSCALL_READ_E);
+	assert_num_event_type(PPME_SYSCALL_READ_E, 24956);
 }
 
-TEST_F(scap_file_test, read_x_same_number_of_exit_events) {
+TEST_F(scap_file_test, read_x_same_number_of_events) {
 	open_filename("scap_2013.scap");
 	assert_num_event_type(PPME_SYSCALL_READ_X, 24957);
 }
@@ -80,12 +79,12 @@ TEST_F(scap_file_test, read_x_check_final_converted_event) {
 // PREAD
 ////////////////////////////
 
-TEST_F(scap_file_test, no_pread_e) {
+TEST_F(scap_file_test, pread_e_same_number_of_events) {
 	open_filename("kexec_arm64.scap");
-	assert_no_event_type(PPME_SYSCALL_PREAD_E);
+	assert_num_event_type(PPME_SYSCALL_PREAD_E, 3216);
 }
 
-TEST_F(scap_file_test, pread_x_same_number_of_exit_events) {
+TEST_F(scap_file_test, pread_x_same_number_of_events) {
 	open_filename("kexec_arm64.scap");
 	assert_num_event_type(PPME_SYSCALL_PREAD_X, 3216);
 }
