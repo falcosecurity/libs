@@ -36,19 +36,28 @@ limitations under the License.
 
 namespace sinsp_test_input {
 struct open_params {
-	static constexpr int32_t default_fd = 4;
+	static constexpr int64_t default_fd = 4;
 	static constexpr const char* default_path = "/home/file.txt";
 	// Used for some filter checks
 	static constexpr const char* default_directory = "/home";
 	static constexpr const char* default_filename = "file.txt";
 
-	int32_t fd = default_fd;
+	int64_t fd = default_fd;
 	const char* path = default_path;
 	uint32_t flags = 0;
 	uint32_t mode = 0;
 	uint32_t dev = 0;
 	uint64_t ino = 0;
 };
+
+struct fd_info_fields {
+	std::optional<int64_t> fd_num = std::nullopt;
+	std::optional<std::string> fd_name = std::nullopt;
+	std::optional<std::string> fd_name_raw = std::nullopt;
+	std::optional<std::string> fd_directory = std::nullopt;
+	std::optional<std::string> fd_filename = std::nullopt;
+};
+
 }  // namespace sinsp_test_input
 
 class sinsp_with_test_input : public ::testing::Test {
@@ -280,6 +289,9 @@ protected:
 	                 std::shared_ptr<sinsp_filter_cache_factory> cachef = nullptr);
 	bool filter_compiles(std::string_view filter_str);
 	bool filter_compiles(std::string_view filter_str, filter_check_list&);
+
+	void assert_return_value(sinsp_evt* evt, int64_t expected_retval);
+	void assert_fd_fields(sinsp_evt* evt, sinsp_test_input::fd_info_fields fields = {});
 
 	sinsp_evt* next_event();
 
