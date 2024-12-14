@@ -496,3 +496,45 @@ scap_evt *scap_create_event(char *error,
 	va_end(args);
 	return ret;
 }
+
+// Only enter events have a convention on the fd parameter position.
+// Should be always the first parameter apart from some exceptions.
+int get_enter_event_fd_location(ppm_event_code etype) {
+	ASSERT(etype < PPM_EVENT_MAX);
+	ASSERT(PPME_IS_ENTER(etype));
+	ASSERT(scap_get_event_info_table()[etype].flags & EF_USES_FD);
+
+	// For almost all parameters the default position is `0`
+	int location = 0;
+	switch(etype) {
+	case PPME_SYSCALL_MMAP_E:
+	case PPME_SYSCALL_MMAP2_E:
+		location = 4;
+		break;
+	case PPME_SYSCALL_SPLICE_E:
+		location = 1;
+		break;
+	default:
+		break;
+	}
+	return location;
+}
+
+// In the exit events we don't have a precise convension on the fd parameter position.
+int get_exit_event_fd_location(ppm_event_code etype) {
+	ASSERT(etype < PPM_EVENT_MAX);
+	ASSERT(PPME_IS_EXIT(etype));
+	ASSERT(scap_get_event_info_table()[etype].flags & EF_USES_FD);
+
+	// we want to return -1 as location if we forgot to handle something
+	int location = -1;
+	switch(etype) {
+	case PPME_SYSCALL_READ_X:
+	case PPME_SYSCALL_PREAD_X:
+		location = 2;
+		break;
+	default:
+		break;
+	}
+	return location;
+}

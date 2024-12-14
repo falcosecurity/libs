@@ -769,6 +769,10 @@ public:
 		}
 	}
 
+	inline bool uses_fd() const { return get_info_flags() & EF_USES_FD; }
+
+	inline bool creates_fd() const { return get_info_flags() & EF_CREATES_FD; }
+
 private:
 	sinsp* m_inspector;
 	scap_evt* m_pevt;
