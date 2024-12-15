@@ -290,10 +290,6 @@ private:
 	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t* o, const ss_plugin_table_input* in);
 
 	std::shared_ptr<sinsp_thread_pool> m_thread_pool;
-
-	friend class libsinsp::state::base_table;
-	template<typename KeyType>
-	friend class libsinsp::state::built_in_table;
 };
 
 template<typename T>
