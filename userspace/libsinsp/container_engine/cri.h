@@ -78,7 +78,7 @@ private:
 
 class cri : public container_engine_base {
 public:
-	cri(container_cache_interface& cache, const std::string& cri_path);
+	cri(container_cache_interface& cache, const std::string& cri_path, size_t engine_index);
 	bool resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) override;
 	void update_with_size(const std::string& container_id) override;
 	void cleanup() override;
@@ -92,6 +92,7 @@ private:
 	[[nodiscard]] sinsp_container_type get_cri_runtime_type() const;
 
 	std::optional<int64_t> get_writable_layer_size(const std::string& container_id);
+	size_t m_engine_index;
 
 	std::unique_ptr<cri_async_source> m_async_source;
 	std::unique_ptr<::libsinsp::cri::cri_interface_v1alpha2> m_cri_v1alpha2;

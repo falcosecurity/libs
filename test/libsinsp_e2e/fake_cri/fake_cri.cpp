@@ -20,22 +20,27 @@ public:
 	              ContainerStatusResponse&& cs,
 	              PodSandboxStatusResponse&& ps,
 	              ListContainersResponse&& lc,
-	              const std::string& runtime_name):
+	              const std::string& runtime_name,
+	              const std::string& filter):
 	        m_delay_us(delay_us),
 	        m_container_status_response(cs),
 	        m_pod_sandbox_status_response(ps),
 	        m_list_containers_response(lc),
-	        m_runtime_name(runtime_name) {}
+	        m_runtime_name(runtime_name),
+	        m_filter(filter) {}
 
 	grpc::Status ContainerStatus(grpc::ServerContext* context,
 	                             const ContainerStatusRequest* req,
 	                             ContainerStatusResponse* resp) {
 		usleep(m_delay_us);
+
 		if(CONTAINER_IDS.find(req->container_id()) == CONTAINER_IDS.end()) {
-			std::cout << "CONTAINER NOT FOUND\n";
-			return grpc::Status(
-			        grpc::StatusCode::NOT_FOUND,
-			        "fake_cri does not serve this container id: " + req->container_id());
+			if(m_filter.empty() || (!m_filter.empty() && req->container_id().find(m_filter) != 0)) {
+				std::cout << "CONTAINER NOT FOUND\n";
+				return grpc::Status(
+				        grpc::StatusCode::NOT_FOUND,
+				        "fake_cri does not serve this container id: " + req->container_id());
+			}
 		}
 		resp->CopyFrom(m_container_status_response);
 		resp->mutable_status()->set_id(req->container_id());
@@ -87,6 +92,7 @@ private:
 	PodSandboxStatusResponse m_pod_sandbox_status_response;
 	ListContainersResponse m_list_containers_response;
 	std::string m_runtime_name;
+	std::string m_filter;
 	static const std::set<std::string> CONTAINER_IDS;
 	static const std::set<std::string> POD_SANDBOX_IDS;
 };
@@ -124,7 +130,7 @@ int main(int argc, char** argv) {
 	if(argc < 3) {
 		fprintf(stderr,
 		        "Usage: fake_cri [--nodelay|--slow|--veryslow] listen_addr pb_file_prefix "
-		        "[runtime_name]\n");
+		        "[runtime_name] [container_id filter]\n");
 		return 1;
 	}
 
@@ -145,6 +151,7 @@ int main(int argc, char** argv) {
 	const char* addr = argv[1];
 	const std::string pb_prefix(argv[2]);
 	const std::string runtime(argc > 3 ? argv[3] : "containerd");
+	const std::string filter(argc > 4 ? argv[4] : "");
 
 	ContainerStatusResponse cs;
 	{
@@ -198,7 +205,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	FakeCRIServer service(delay_us, std::move(cs), std::move(ps), std::move(lc), runtime);
+	FakeCRIServer service(delay_us, std::move(cs), std::move(ps), std::move(lc), runtime, filter);
 	FakeCRIImageServer image_service(std::move(is));
 
 	grpc::ServerBuilder builder;

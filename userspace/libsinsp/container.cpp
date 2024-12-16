@@ -581,12 +581,15 @@ void sinsp_container_manager::create_engines() {
 
 		const auto& cri_socket_paths = cri_settings.get_cri_unix_socket_paths();
 
-		for(const auto& socket_path : cri_socket_paths) {
-			auto cri_engine = std::make_shared<container_engine::cri>(*this, socket_path);
+		size_t engine_index = 0;
+		for(auto socket_path : cri_socket_paths) {
+			auto cri_engine =
+			        std::make_shared<container_engine::cri>(*this, socket_path, engine_index);
 			m_container_engines.push_back(cri_engine);
 			m_container_engine_by_type[CT_CRI].push_back(cri_engine);
 			m_container_engine_by_type[CT_CRIO].push_back(cri_engine);
 			m_container_engine_by_type[CT_CONTAINERD].push_back(cri_engine);
+			engine_index++;
 		}
 	}
 	if(m_container_engine_mask & (1 << CT_LXC)) {

@@ -33,10 +33,13 @@ public:
 	virtual void notify_new_container(const sinsp_container_info& container_info,
 	                                  sinsp_threadinfo* tinfo = nullptr) = 0;
 
-	virtual bool should_lookup(const std::string& container_id, sinsp_container_type ctype) = 0;
+	virtual bool should_lookup(const std::string& container_id,
+	                           sinsp_container_type ctype,
+	                           size_t engine_index) = 0;
 
 	virtual void set_lookup_status(const std::string& container_id,
 	                               sinsp_container_type ctype,
+	                               size_t engine_index,
 	                               sinsp_container_lookup::state state) = 0;
 
 	/**

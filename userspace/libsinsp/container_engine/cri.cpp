@@ -53,8 +53,9 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
         {nullptr, nullptr}};
 }  // namespace
 
-cri::cri(container_cache_interface &cache, const std::string &cri_path):
+cri::cri(container_cache_interface &cache, const std::string &cri_path, size_t engine_index):
         container_engine_base(cache) {
+	m_engine_index = engine_index;
 	auto unix_socket_path = scap_get_host_root() + cri_path;
 	struct stat s = {};
 	if(stat(unix_socket_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
@@ -122,7 +123,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 		return false;
 	}
 
-	if(!cache->should_lookup(container_id, get_cri_runtime_type())) {
+	if(!cache->should_lookup(container_id, get_cri_runtime_type(), m_engine_index)) {
 		return true;
 	}
 
@@ -172,6 +173,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 
 		cache->set_lookup_status(container_id,
 		                         get_cri_runtime_type(),
+		                         m_engine_index,
 		                         sinsp_container_lookup::state::STARTED);
 
 		// sinsp_container_lookup is set-up to perform 5 retries at most, with
@@ -243,7 +245,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 	} else {
 		cache->notify_new_container(container, tinfo);
 	}
-	return true;
+	return false;
 }
 
 void cri::update_with_size(const std::string &container_id) {
