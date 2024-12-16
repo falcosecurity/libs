@@ -189,7 +189,8 @@ TEST_F(sys_call_test, fcntl_getfd_dropping) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, setup); });
 	EXPECT_EQ(0, callnum);
 }
 
@@ -220,7 +221,8 @@ TEST_F(sys_call_test, bind_error_dropping) {
 
 	captured_event_callback_t callback = [&](const callback_param& param) { callnum++; };
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, setup); });
 	EXPECT_EQ(1, callnum);
 }
 
@@ -271,7 +273,8 @@ TEST_F(sys_call_test, close_badfd_dropping) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, setup); });
 	EXPECT_EQ(0, callnum);
 }
 
@@ -502,6 +505,7 @@ TEST_F(sys_call_test, timerfd) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set());
 	});
 
@@ -547,7 +551,8 @@ TEST_F(sys_call_test, timestamp) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, setup); });
 	EXPECT_EQ((int)(sizeof(timestampv) / sizeof(timestampv[0])), callnum);
 }
 
@@ -1083,7 +1088,9 @@ TEST_F(sys_call_test32, execve_ia32_emulation) {
 			}
 		}
 	};
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before_open); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test, callback, filter, event_capture::do_nothing, before_open);
+	});
 	EXPECT_EQ(8, callnum);
 }
 
@@ -1473,7 +1480,12 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({
-		event_capture::run(test, callback, filter, event_capture::do_nothing, before_close);
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   before_close);
 	});
 	EXPECT_EQ(8, callnum);
 }
@@ -1718,7 +1730,9 @@ TEST_F(sys_call_test32, failing_execve) {
 			}
 		}
 	};
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before_open); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test, callback, filter, event_capture::do_nothing, before_open);
+	});
 	EXPECT_EQ(10, callnum);
 }
 

@@ -42,12 +42,13 @@ inline static bool endswith(const std::string &s, const std::string &suffix) {
 
 inline static bool is_host(const std::string &cgroup) {
 	// A good approximation to minize false-positives is to exclude systemd suffixes.
-	if(endswith(cgroup, ".scope")) {
-		if(cgroup.find("crio-") != std::string::npos) {
+	if(endswith(cgroup, ".slice") || endswith(cgroup, ".service")) {
+		return true;
+	} else if(endswith(cgroup, ".scope")) {
+		if(cgroup.find("crio-") != std::string::npos ||
+		   cgroup.find("docker-") != std::string::npos) {
 			return false;
 		}
-		return true;
-	} else if(endswith(cgroup, ".slice") || endswith(cgroup, ".service")) {
 		return true;
 	}
 
