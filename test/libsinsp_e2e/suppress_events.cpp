@@ -119,6 +119,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   event_capture::do_nothing,
 		                   before_open,
 		                   before_close,
 		                   {},
@@ -289,8 +290,14 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE(
-	        { event_capture::run(test, callback, m_tid_filter, before_open, before_close); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   m_tid_filter,
+		                   event_capture::do_nothing,
+		                   before_open,
+		                   before_close);
+	});
 	EXPECT_EQ(m_expected_calls, callnum);
 }
 

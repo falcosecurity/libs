@@ -277,6 +277,7 @@ TEST_F(sys_call_test, forking_process_expired) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   {},
 		                   131072,
 		                   5 * ONE_SECOND_IN_NS,
@@ -579,8 +580,14 @@ TEST_F(sys_call_test, forking_clone_nofs) {
 
 	after_capture_t cleanup = [&](sinsp* inspector) { free(stack); };
 
-	ASSERT_NO_FATAL_FAILURE(
-	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   cleanup);
+	});
 
 	EXPECT_EQ(callnum, 4);
 }
@@ -687,8 +694,14 @@ TEST_F(sys_call_test, forking_clone_cwd) {
 
 	after_capture_t cleanup = [&](sinsp* inspector) { free(stack); };
 
-	ASSERT_NO_FATAL_FAILURE(
-	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   cleanup);
+	});
 
 	EXPECT_EQ(3, callnum);
 }
@@ -757,6 +770,7 @@ TEST_F(sys_call_test, forking_main_thread_exit) {
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set());

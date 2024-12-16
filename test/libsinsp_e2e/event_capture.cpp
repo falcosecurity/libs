@@ -31,14 +31,16 @@ std::string event_capture::s_engine_path;
 unsigned long event_capture::s_buffer_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM * 4;
 
 event_capture::event_capture(captured_event_callback_t captured_event_callback,
-                             before_capture_t before_open,
+                             before_open_t before_open,
+                             before_capture_t before_capture,
                              after_capture_t before_close,
                              event_filter_t filter,
                              uint32_t max_thread_table_size,
                              uint64_t thread_timeout_ns,
                              uint64_t inactive_thread_scan_time_ns) {
 	m_captured_event_callback = std::move(captured_event_callback);
-	m_before_capture = std::move(before_open);
+	m_before_open = std::move(before_open);
+	m_before_capture = std::move(before_capture);
 	m_after_capture = std::move(before_close);
 	m_filter = std::move(filter);
 
@@ -68,7 +70,7 @@ void event_capture::start(bool dump, libsinsp::events::set<ppm_sc_code>& sc_set)
 			}
 		}
 	}
-	m_before_capture(m_inspector.get());
+	m_before_open(m_inspector.get());
 	open_engine(event_capture::get_engine(), sc_set);
 
 	const ::testing::TestInfo* const test_info =
@@ -84,6 +86,8 @@ void event_capture::start(bool dump, libsinsp::events::set<ppm_sc_code>& sc_set)
 		                                               0,
 		                                               true);
 	}
+
+	m_before_capture(m_inspector.get());
 	m_inspector->start_capture();
 }
 

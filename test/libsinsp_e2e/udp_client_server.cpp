@@ -772,7 +772,9 @@ static void run_fd_name_changed_test(bool use_sendmsg,
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before_open); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test, callback, filter, event_capture::do_nothing, before_open);
+	});
 
 	ASSERT_EQ(num_name_changed_evts, expected_name_changed_evts);
 }
@@ -872,7 +874,9 @@ TEST_F(sys_call_test, udp_client_server_multiple_connect_name_changed) {
 		}
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, before_open); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test, callback, filter, event_capture::do_nothing, before_open);
+	});
 
 	// Every connect should result in a name changed event other than the duplicate port.
 	ASSERT_EQ(num_name_changed_evts, 4u);
@@ -938,7 +942,8 @@ TEST_F(sys_call_test, statsd_client_snaplen) {
 		n++;
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup); });
+	ASSERT_NO_FATAL_FAILURE(
+	        { event_capture::run(test, callback, filter, event_capture::do_nothing, setup); });
 	EXPECT_EQ(4, n);
 }
 

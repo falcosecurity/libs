@@ -358,8 +358,14 @@ void container_cri::fake_cri_test_timing(const std::string& pb_prefix,
 		inspector->set_docker_socket_path(default_docker_socket);
 	};
 
-	EXPECT_NO_FATAL_FAILURE(
-	        { event_capture::run(test, container_event_callback, filter, setup, cleanup); });
+	EXPECT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   container_event_callback,
+		                   filter,
+		                   setup,
+		                   event_capture::do_nothing,
+		                   cleanup);
+	});
 
 	// We only expect to see a container event when the lookup succeeds
 	if(exp_info.state == sinsp_container_lookup::state::SUCCESSFUL) {

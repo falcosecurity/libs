@@ -113,6 +113,7 @@ TEST_F(sys_call_test, container_cgroups) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
 	ASSERT_TRUE(done);
@@ -180,6 +181,7 @@ TEST_F(sys_call_test, container_clone_nspid) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
 	ASSERT_TRUE(done);
@@ -231,6 +233,7 @@ TEST_F(sys_call_test, container_clone_nspid_ioctl) {
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
@@ -312,6 +315,7 @@ static void run_container_docker_test(bool fork_after_container_start) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
 	ASSERT_TRUE(done);
@@ -351,7 +355,7 @@ TEST_F(sys_call_test, container_docker_bad_socket) {
 		return;
 	}
 
-	before_capture_t setup = [&](sinsp* inspector) {
+	before_open_t setup = [&](sinsp* inspector) {
 		inspector->set_docker_socket_path("/invalid/path");
 	};
 
@@ -407,7 +411,9 @@ TEST_F(sys_call_test, container_docker_bad_socket) {
 		inspector->set_docker_socket_path("/var/run/docker.sock");
 	};
 
-	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter, setup, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test, callback, filter, setup, event_capture::do_nothing, cleanup);
+	});
 	ASSERT_TRUE(done);
 }
 
@@ -420,7 +426,7 @@ TEST_F(sys_call_test, container_libvirt) {
 	}
 
 	// Setup phase before capture has start, to avoid generating too many events
-	before_capture_t setup = [](sinsp* inspector) {
+	before_open_t setup = [](sinsp* inspector) {
 		FILE* f = fopen("/tmp/conf.xml", "w");
 		ASSERT_TRUE(f != NULL);
 		fprintf(f,
@@ -495,6 +501,7 @@ TEST_F(sys_call_test, container_libvirt) {
 		                   callback,
 		                   filter,
 		                   setup,
+		                   event_capture::do_nothing,
 		                   cleanup,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
@@ -643,6 +650,7 @@ static void healthcheck_helper(
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
 
@@ -682,6 +690,7 @@ static void healthcheck_tracefile_helper(
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
@@ -833,7 +842,7 @@ TEST_F(sys_call_test, docker_container_large_json) {
 
 	ASSERT_TRUE(dhelper.build_image() == 0);
 
-	before_capture_t before = [&](sinsp* inspector) {
+	before_open_t before = [&](sinsp* inspector) {
 		inspector->set_container_labels_max_len(60000);
 	};
 
@@ -892,6 +901,7 @@ TEST_F(sys_call_test, docker_container_large_json) {
 		                   callback,
 		                   filter,
 		                   before,
+		                   event_capture::do_nothing,
 		                   cleanup,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});

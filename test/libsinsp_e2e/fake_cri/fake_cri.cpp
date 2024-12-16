@@ -151,7 +151,10 @@ int main(int argc, char** argv) {
 	const char* addr = argv[1];
 	const std::string pb_prefix(argv[2]);
 	const std::string runtime(argc > 3 ? argv[3] : "containerd");
-	const std::string filter(argc > 4 ? argv[4] : "");
+	std::string filter;
+	if(argc > 4 && argv[4] != nullptr) {
+		filter = std::string(argv[4]);
+	}
 
 	ContainerStatusResponse cs;
 	{
