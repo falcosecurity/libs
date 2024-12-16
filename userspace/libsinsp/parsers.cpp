@@ -116,12 +116,6 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SYSCALL_EXECVEAT_E:
 		store_event(evt);
 		break;
-	case PPME_SYSCALL_WRITE_E:
-		if(!m_inspector->is_dumping() && evt->get_tinfo() != nullptr) {
-			// note(jasondellaluce): this may be useless now that we removed tracers support
-			evt->set_fd_info(evt->get_tinfo()->get_fd(evt->get_tinfo()->m_lastevent_fd));
-		}
-		break;
 	case PPME_SYSCALL_MKDIR_X:
 	case PPME_SYSCALL_RMDIR_X:
 	case PPME_SYSCALL_LINK_X:
