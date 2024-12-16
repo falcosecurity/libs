@@ -553,3 +553,120 @@ TEST_F(container_cri, fake_cri_fail_sync) {
 	                     exp_info,
 	                     1 << CT_CONTAINERD);
 }
+
+TEST_F(container_cri, fake_cri_multiple) {
+	auto pb_prefix = LIBSINSP_TEST_RESOURCES_PATH "/fake_cri_falco";
+	auto alt_pb_prefix = LIBSINSP_TEST_RESOURCES_PATH "/fake_cri_multi";
+	std::atomic<bool> done(false);
+	std::atomic<bool> done_alt(false);
+	const std::string alt_cri_container_id = "593f5b76be2a";
+
+	auto runtime = "containerd";
+
+	unlink(fake_cri_socket.c_str());
+	subprocess fake_cri_handle(LIBSINSP_TEST_PATH "/fake_cri/fake_cri",
+	                           {"unix://" + fake_cri_socket, pb_prefix, runtime});
+	pid_t fake_cri_pid = fake_cri_handle.get_pid();
+
+	std::string alt_fake_cri_socket = "/tmp/alt_fake_cri.sock";
+
+	unlink(alt_fake_cri_socket.c_str());
+	subprocess alt_fake_cri_handle(
+	        LIBSINSP_TEST_PATH "/fake_cri/fake_cri",
+	        {"unix://" + alt_fake_cri_socket, alt_pb_prefix, runtime, alt_cri_container_id});
+	pid_t alt_fake_cri_pid = alt_fake_cri_handle.get_pid();
+
+	auto start_time = time(NULL);
+
+	event_filter_t filter = [&](sinsp_evt* evt) {
+		return evt->get_type() == PPME_CONTAINER_JSON_E ||
+		       evt->get_type() == PPME_CONTAINER_JSON_2_E;
+	};
+
+	run_callback_t test = [&](sinsp* inspector) {
+		subprocess handle(LIBSINSP_TEST_PATH "/test_helper", {"cri_container_echo"});
+		handle.in() << "\n";
+		handle.wait();
+		subprocess alt_handle(LIBSINSP_TEST_PATH "/test_helper",
+		                      {"cri_container_echo",
+		                       "593f5b76be2afc23c39aa7eaa29174eac353d32be5e006b710c01aacca4aa05e"});
+		alt_handle.in() << "\n";
+		alt_handle.wait();
+		while(!done && !done_alt && time(NULL) < start_time + 10) {
+			usleep(100000);
+		}
+	};
+
+	captured_event_callback_t cri_callback = [&](const callback_param& param) {
+		sinsp_threadinfo* tinfo = param.m_evt->get_tinfo();
+		EXPECT_TRUE(tinfo != NULL);
+
+		if(tinfo->m_container_id == cri_container_id) {
+			EXPECT_EQ(cri_container_id, tinfo->m_container_id);
+
+			const auto container_info =
+			        param.m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			EXPECT_NE(container_info, nullptr);
+
+			EXPECT_EQ(sinsp_container_type::CT_CONTAINERD, container_info->m_type);
+			EXPECT_EQ("falco", container_info->m_name);
+			EXPECT_EQ("docker.io/falcosecurity/falco:latest", container_info->m_image);
+			EXPECT_EQ("sha256:8d0619a4da278dfe2772f75aa3cc74df0a250385de56085766035db5c9a062ed",
+			          container_info->m_imagedigest);
+			EXPECT_EQ("4bc0e14060f4263acf658387e76715bd836a13b9ba44f48465bd0633a412dbd0",
+			          container_info->m_imageid);
+			EXPECT_EQ(1073741824, container_info->m_memory_limit);
+			EXPECT_EQ(102, container_info->m_cpu_shares);
+			EXPECT_EQ(0, container_info->m_cpu_quota);
+			EXPECT_EQ(100000, container_info->m_cpu_period);
+			done = true;
+		} else {
+			EXPECT_EQ(alt_cri_container_id, tinfo->m_container_id);
+
+			const auto container_info =
+			        param.m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			EXPECT_NE(container_info, nullptr);
+
+			EXPECT_EQ(sinsp_container_type::CT_CONTAINERD, container_info->m_type);
+			EXPECT_EQ("falco-2", container_info->m_name);
+			EXPECT_EQ("docker.io/falcosecurity/falco:latest", container_info->m_image);
+			EXPECT_EQ("sha256:4df3aba7463d88aefbab4eb9e241468b0475f5e8c2c138d4cd811ca812975612",
+			          container_info->m_imagedigest);
+			EXPECT_EQ("74d48ff156776f5fc1c625d72163eb539e63967bc87baf9158cdaca218c39465",
+			          container_info->m_imageid);
+			EXPECT_EQ(1073741824, container_info->m_memory_limit);
+			EXPECT_EQ(102, container_info->m_cpu_shares);
+			EXPECT_EQ(0, container_info->m_cpu_quota);
+			EXPECT_EQ(100000, container_info->m_cpu_period);
+			done_alt = true;
+		}
+	};
+
+	before_capture_t setup = [&](sinsp* inspector) {
+		inspector->set_docker_socket_path("");
+		inspector->set_cri_socket_path(fake_cri_socket);
+		inspector->add_cri_socket_path(alt_fake_cri_socket);
+		inspector->set_cri_extra_queries(true);
+	};
+
+	after_capture_t cleanup = [&](sinsp* inspector) {
+		inspector->set_docker_socket_path(default_docker_socket);
+	};
+
+	EXPECT_NO_FATAL_FAILURE({ event_capture::run(test, cri_callback, filter, setup, cleanup); });
+
+	// The fake server had to stay running the whole time in order
+	// for the test to be succesful
+	// Needed to reap the zombine if it exited
+	waitpid(fake_cri_pid, NULL, WNOHANG);
+	EXPECT_TRUE(fake_cri_handle.is_alive());
+
+	waitpid(alt_fake_cri_pid, NULL, WNOHANG);
+	EXPECT_TRUE(alt_fake_cri_handle.is_alive());
+
+	EXPECT_TRUE(done);
+	EXPECT_TRUE(done_alt);
+
+	fake_cri_handle.kill();
+	alt_fake_cri_handle.kill();
+}

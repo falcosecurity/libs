@@ -551,16 +551,12 @@ void custom_container(const vector<string>& args) {
 	}
 }
 
-bool cri_container_set_cgroup() {
+bool _cri_container_set_cgroup(const std::string& id) {
 	std::string cpu_cgroup;
 	if(is_cgroupv2_mounted()) {
-		cpu_cgroup =
-		        "/sys/fs/cgroup/system.slice/"
-		        "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+		cpu_cgroup = "/sys/fs/cgroup/system.slice/" + id;
 	} else {
-		cpu_cgroup =
-		        "/sys/fs/cgroup/cpu/docker/"
-		        "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1";
+		cpu_cgroup = "/sys/fs/cgroup/cpu/docker/" + id;
 	}
 	struct stat s;
 
@@ -599,6 +595,11 @@ bool cri_container_set_cgroup() {
 	return true;
 }
 
+bool cri_container_set_cgroup() {
+	return _cri_container_set_cgroup(
+	        "aec4c703604b4504df03108eef12e8256870eca8aabcb251855a35bf4f0337f1");
+}
+
 void cri_container_simple(char* const exargs[]) {
 	signal(SIGCHLD, SIG_IGN);
 	pid_t pid = fork();
@@ -619,9 +620,15 @@ void cri_container_simple(char* const exargs[]) {
 	}
 }
 
-void cri_container_echo(const vector<string>& args) {
-	if(!cri_container_set_cgroup()) {
-		return;
+void cri_container_echo(const std::vector<std::string>& args) {
+	if(args.size() == 1) {
+		if(!_cri_container_set_cgroup(args.at(0))) {
+			return;
+		}
+	} else {
+		if(!cri_container_set_cgroup()) {
+			return;
+		}
 	}
 
 	char* const exargs[] = {(char*)"/bin/echo", (char*)"-n", nullptr};
