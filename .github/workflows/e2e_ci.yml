@@ -69,7 +69,7 @@ jobs:
           sudo apt install -y --no-install-recommends gcc-multilib g++-multilib
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@9e326ebed976843c9932b3aa0e021c6f50310eb4 # v0.0.6
+        uses: mozilla-actions/sccache-action@054db53350805f83040bf3e6e9b8cf5a139aa7c9 # v0.0.7
 
       - name: Build e2e tests 🏗️
         env:
