@@ -208,6 +208,7 @@ TEST_F(sys_call_test, process_signalfd_kill) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set());
 	});
 
@@ -347,6 +348,7 @@ TEST_F(sys_call_test, process_inotify) {
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set());
@@ -569,8 +571,14 @@ TEST_F(sys_call_test, process_prlimit) {
 		syscall(SYS_prlimit64, getpid(), RLIMIT_NOFILE, &orirl, NULL);
 	};
 
-	ASSERT_NO_FATAL_FAILURE(
-	        { event_capture::run(test, callback, filter, event_capture::do_nothing, cleanup); });
+	ASSERT_NO_FATAL_FAILURE({
+		event_capture::run(test,
+		                   callback,
+		                   filter,
+		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
+		                   cleanup);
+	});
 
 	EXPECT_EQ(6, callnum);
 }

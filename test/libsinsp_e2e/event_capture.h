@@ -46,6 +46,8 @@ public:
 	sinsp* m_inspector;
 };
 
+// Right before inspector->open_*() gets called.
+typedef std::function<void(sinsp* inspector)> before_open_t;
 // Right before inspector->start_capture() gets called.
 // Engine is already opened (thus scap handle is already alive).
 typedef std::function<void(sinsp* inspector)> before_capture_t;
@@ -62,7 +64,8 @@ typedef std::function<void()> run_callback_async_t;
 class event_capture {
 public:
 	event_capture(captured_event_callback_t captured_event_callback,
-	              before_capture_t before_open,
+	              before_open_t before_open,
+	              before_capture_t before_capture,
 	              after_capture_t before_close,
 	              event_filter_t filter,
 	              uint32_t max_thread_table_size,
@@ -87,7 +90,8 @@ public:
 	static void run(const run_callback_t& run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
-	                before_capture_t before_open = event_capture::do_nothing,
+	                before_open_t before_open = event_capture::do_nothing,
+	                before_capture_t before_capture = event_capture::do_nothing,
 	                after_capture_t before_close = event_capture::do_nothing,
 	                libsinsp::events::set<ppm_sc_code> sc_set = {},
 	                uint32_t max_thread_table_size = 131072,
@@ -96,6 +100,7 @@ public:
 	                bool dump = true) {
 		event_capture capturing(std::move(captured_event_callback),
 		                        std::move(before_open),
+		                        std::move(before_capture),
 		                        std::move(before_close),
 		                        std::move(filter),
 		                        max_thread_table_size,
@@ -125,7 +130,8 @@ public:
 	static void run(const run_callback_async_t& run_function,
 	                captured_event_callback_t captured_event_callback,
 	                event_filter_t filter,
-	                before_capture_t before_open = event_capture::do_nothing,
+	                before_open_t before_open = event_capture::do_nothing,
+	                before_capture_t before_capture = event_capture::do_nothing,
 	                after_capture_t before_close = event_capture::do_nothing,
 	                libsinsp::events::set<ppm_sc_code> sc_set = {},
 	                uint32_t max_thread_table_size = 131072,
@@ -134,6 +140,7 @@ public:
 	                bool dump = true) {
 		event_capture capturing(std::move(captured_event_callback),
 		                        std::move(before_open),
+		                        std::move(before_capture),
 		                        std::move(before_close),
 		                        std::move(filter),
 		                        max_thread_table_size,
@@ -176,6 +183,7 @@ private:
 	std::unique_ptr<sinsp_cycledumper> m_dumper;
 	event_filter_t m_filter;
 	captured_event_callback_t m_captured_event_callback;
+	before_open_t m_before_open;
 	before_capture_t m_before_capture;
 	after_capture_t m_after_capture;
 	callback_param m_param{};
