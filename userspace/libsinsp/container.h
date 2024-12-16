@@ -211,8 +211,15 @@ public:
 	 */
 	void set_lookup_status(const std::string& container_id,
 	                       sinsp_container_type ctype,
+	                       size_t engine_index,
 	                       sinsp_container_lookup::state state) override {
-		m_lookups[container_id][ctype] = state;
+		m_lookups[container_id][ctype][engine_index] = state;
+	}
+
+	void set_lookup_status(const std::string& container_id,
+	                       sinsp_container_type ctype,
+	                       sinsp_container_lookup::state state) {
+		m_lookups[container_id][ctype][0] = state;
 	}
 
 	/**
@@ -225,13 +232,20 @@ public:
 	 * This method effectively checks if m_lookups[container_id][ctype]
 	 * exists, without creating unnecessary map entries along the way.
 	 */
-	bool should_lookup(const std::string& container_id, sinsp_container_type ctype) override {
+	bool should_lookup(const std::string& container_id,
+	                   sinsp_container_type ctype,
+	                   size_t engine_index = 0) override {
 		auto container_lookups = m_lookups.find(container_id);
 		if(container_lookups == m_lookups.end()) {
 			return true;
 		}
 		auto engine_lookup = container_lookups->second.find(ctype);
-		return engine_lookup == container_lookups->second.end();
+		if(engine_lookup == container_lookups->second.end()) {
+			return true;
+		}
+
+		auto engine_index_lookup = engine_lookup->second.find(engine_index);
+		return engine_index_lookup == engine_lookup->second.end();
 	}
 
 	/**
@@ -265,8 +279,10 @@ private:
 	std::shared_ptr<sinsp_stats_v2> m_sinsp_stats_v2;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>>
 	        m_containers;
-	std::unordered_map<std::string,
-	                   std::unordered_map<sinsp_container_type, sinsp_container_lookup::state>>
+	std::unordered_map<
+	        std::string,
+	        std::unordered_map<sinsp_container_type,
+	                           std::unordered_map<size_t, sinsp_container_lookup::state>>>
 	        m_lookups;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;
