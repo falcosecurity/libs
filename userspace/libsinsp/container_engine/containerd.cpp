@@ -34,10 +34,15 @@ constexpr const std::string_view CONTAINERD_SOCKETS[] = {
         "/run/containerd/runtime2/containerd.sock",  // tmp
 };
 
-bool containerd_interface::is_ok() {
+bool containerd_async_source::is_ok() {
 	return m_stub != nullptr;
 }
-containerd_interface::containerd_interface(const std::string &socket_path) {
+
+containerd_async_source::containerd_async_source(const std::string &socket_path,
+                                                 uint64_t max_wait_ms,
+                                                 uint64_t ttl_ms,
+                                                 container_cache_interface *cache):
+        container_async_source(max_wait_ms, ttl_ms, cache) {
 	grpc::ChannelArguments args;
 	args.SetInt(GRPC_ARG_ENABLE_HTTP_PROXY, 0);
 	std::shared_ptr<grpc::Channel> channel =
@@ -70,7 +75,12 @@ containerd_interface::containerd_interface(const std::string &socket_path) {
 	}
 }
 
-grpc::Status containerd_interface::list_container_resp(
+containerd_async_source::~containerd_async_source() {
+	this->stop();
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "containerd_async: Source destructor");
+}
+
+grpc::Status containerd_async_source::list_container_resp(
         const std::string &container_id,
         ContainerdService::ListContainersResponse &resp) {
 	ContainerdService::ListContainersRequest req;
@@ -99,20 +109,32 @@ libsinsp::container_engine::containerd::containerd(container_cache_interface &ca
 			continue;
 		}
 
-		m_interface = std::make_unique<containerd_interface>(socket_path);
-		if(!m_interface->is_ok()) {
-			m_interface.reset(nullptr);
+		container_cache_interface *cache_interface = &container_cache();
+		m_containerd_info_source =
+		        std::make_unique<containerd_async_source>(socket_path,
+		                                                  containerd_async_source::NO_WAIT_LOOKUP,
+		                                                  10000,
+		                                                  cache_interface);
+		if(!m_containerd_info_source->is_ok()) {
+			m_containerd_info_source.reset(nullptr);
 			continue;
 		}
 	}
 }
 
-bool libsinsp::container_engine::containerd::parse_containerd(sinsp_container_info &container,
-                                                              const std::string &container_id) {
+bool containerd_async_source::parse(const containerd_lookup_request &request,
+                                    sinsp_container_info &container) {
+	auto container_id = request.container_id;
+
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+	                          "containerd_async (%s): Looking up info for container via socket %s",
+	                          request.container_id.c_str(),
+	                          m_socket_path.c_str());
+
 	// given the truncated container id, the full container id needs to be retrivied from
 	// containerd.
 	ContainerdService::ListContainersResponse resp;
-	grpc::Status status = m_interface->list_container_resp(container_id, resp);
+	grpc::Status status = list_container_resp(container_id, resp);
 
 	if(!status.ok()) {
 		libsinsp_logger()->format(
@@ -126,10 +148,11 @@ bool libsinsp::container_engine::containerd::parse_containerd(sinsp_container_in
 	auto containers = resp.containers();
 
 	if(containers.size() == 0) {
-		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-		                          "containerd (%s): ListContainerResponse status error message: "
-		                          "(container id has no match)",
-		                          container.m_id.c_str());
+		libsinsp_logger()->format(
+		        sinsp_logger::SEV_DEBUG,
+		        "containerd_async (%s): ListContainerResponse status error message: "
+		        "(container id has no match)",
+		        container.m_id.c_str());
 		return false;
 	} else if(containers.size() > 1) {
 		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
@@ -145,7 +168,10 @@ bool libsinsp::container_engine::containerd::parse_containerd(sinsp_container_in
 	container.m_id = container_id;
 	container.m_full_id = containers[0].id();
 	// We assume that the last `/`-separated field is the image
-	container.m_image = raw_image_splits[0].substr(raw_image_splits[0].rfind("/") + 1);
+	container.m_image = raw_image_splits[0]
+	                            .substr(raw_image_splits[0].rfind("/") + 1)
+	                            .append(":")
+	                            .append(raw_image_splits.back());
 	// and the first part is the repo
 	container.m_imagerepo = raw_image_splits[0].substr(0, raw_image_splits[0].rfind("/"));
 	container.m_imagetag = raw_image_splits[1];
@@ -189,7 +215,42 @@ bool libsinsp::container_engine::containerd::parse_containerd(sinsp_container_in
 		container.m_env.emplace_back(env.asString());
 	}
 
+	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+	                          "containerd_async (%s): parse returning true",
+	                          request.container_id.c_str());
+
 	return true;
+}
+
+void libsinsp::container_engine::containerd::parse_containerd(
+        const containerd_lookup_request &request,
+        container_cache_interface *cache) {
+	sinsp_container_info result;
+
+	bool done;
+	if(cache->async_allowed()) {
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+		                          "containerd_async (%s): Starting asynchronous lookup",
+		                          request.container_id.c_str());
+		done = m_containerd_info_source->lookup(request, result);
+	} else {
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+		                          "containerd_async (%s): Starting synchronous lookup",
+		                          request.container_id.c_str());
+		done = m_containerd_info_source->lookup_sync(request, result);
+	}
+	if(done) {
+		// if a previous lookup call already found the metadata, process it now
+		m_containerd_info_source->source_callback(request, result);
+
+		if(cache->async_allowed()) {
+			// This should *never* happen, in async mode as ttl is 0 (never wait)
+			libsinsp_logger()->format(sinsp_logger::SEV_ERROR,
+			                          "containerd_async (%s): Unexpected immediate return from "
+			                          "containerd_info_source.lookup()",
+			                          request.container_id.c_str());
+		}
+	}
 }
 
 bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
@@ -201,9 +262,40 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 		return false;
 	}
 
-	if(!parse_containerd(container, container_id)) {
+	containerd_lookup_request request(container_id, CT_CONTAINERD, 0, false);
+
+	container_cache_interface *cache = &container_cache();
+	sinsp_container_info::ptr_t container_info = cache->get_container(request.container_id);
+
+	if(!container_info) {
+		if(!query_os_for_missing_info) {
+			auto container = sinsp_container_info();
+			container.m_type = CT_CONTAINERD;
+			container.m_id = request.container_id;
+			container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
+			cache->notify_new_container(container, tinfo);
+			return true;
+		}
+
+		if(cache->should_lookup(request.container_id, request.container_type, 0)) {
+			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+			                          "containerd_async (%s): No existing container info",
+			                          request.container_id.c_str());
+
+			// give containerd a chance to return metadata for this container
+			cache->set_lookup_status(request.container_id,
+			                         request.container_type,
+			                         0,
+			                         sinsp_container_lookup::state::STARTED);
+			parse_containerd(request, cache);
+		}
 		return false;
 	}
+
+	// Returning true will prevent other container engines from
+	// trying to resolve the container, so only return true if we
+	// have complete metadata.
+	return container_info->is_successful();
 
 	tinfo->m_container_id = container_id;
 
