@@ -235,18 +235,9 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_pgid_family) {
 TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	DEFAULT_TREE
 	sinsp_evt* evt = NULL;
-	int64_t client_fd = 3, return_value = 0;
 	int64_t stdin_fd = 0, stdout_fd = 1, stderr_fd = 2;
 
-	// Create a connected socket
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_SOCKET_E,
-	                     3,
-	                     (uint32_t)PPM_AF_INET,
-	                     (uint32_t)SOCK_STREAM,
-	                     0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
+	generate_socket_events();
 
 	sockaddr_in client =
 	        test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -261,7 +252,7 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	        1,
 	        PPME_SOCKET_CONNECT_E,
 	        2,
-	        client_fd,
+	        sinsp_test_input::socket_params::default_fd,
 	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
 	std::vector<uint8_t> socktuple =
@@ -271,34 +262,46 @@ TEST_F(sinsp_with_test_input, PROC_FILTER_stdin_stdout_stderr) {
 	                           1,
 	                           PPME_SOCKET_CONNECT_X,
 	                           3,
-	                           return_value,
+	                           (int64_t)0,
 	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                           client_fd);
+	                           sinsp_test_input::socket_params::default_fd);
 
 	// The socket is duped to stdin, stdout, stderr
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_DUP2_E,
+	                           1,
+	                           sinsp_test_input::socket_params::default_fd);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_DUP2_X,
 	                           3,
 	                           stdin_fd,
-	                           client_fd,
+	                           sinsp_test_input::socket_params::default_fd,
 	                           stdin_fd);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_DUP2_E,
+	                           1,
+	                           sinsp_test_input::socket_params::default_fd);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_DUP2_X,
 	                           3,
 	                           stdout_fd,
-	                           client_fd,
+	                           sinsp_test_input::socket_params::default_fd,
 	                           stdout_fd);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, client_fd);
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_DUP2_E,
+	                           1,
+	                           sinsp_test_input::socket_params::default_fd);
 	evt = add_event_advance_ts(increasing_ts(),
 	                           1,
 	                           PPME_SYSCALL_DUP2_X,
 	                           3,
 	                           stderr_fd,
-	                           client_fd,
+	                           sinsp_test_input::socket_params::default_fd,
 	                           stderr_fd);
 
 	// Exec a process and check stdin, stdout and stderr types and names

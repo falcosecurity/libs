@@ -54,7 +54,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
 
-/* Check if the res is different from `PPM_SUCCCES` */
+/* Check if the res is different from `PPM_SUCCESS` */
 #define CHECK_RES(x)                 \
 	if(unlikely(x != PPM_SUCCESS)) { \
 		return x;                    \

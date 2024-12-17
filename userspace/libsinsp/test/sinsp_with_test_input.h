@@ -51,6 +51,27 @@ struct open_params {
 	uint64_t ino = 0;
 };
 
+struct socket_params {
+	static constexpr int64_t default_fd = 4;
+
+	int64_t fd = default_fd;
+	uint32_t domain = PPM_AF_INET;
+	uint32_t type = SOCK_STREAM;
+	uint32_t proto = 0;
+
+	socket_params() {
+		domain = PPM_AF_INET;
+		type = SOCK_STREAM;
+		proto = 0;
+	};
+
+	socket_params(uint32_t d, uint32_t t): domain(d), type(t) {
+		domain = d;
+		type = t;
+		proto = 0;
+	};
+};
+
 struct fd_info_fields {
 	std::optional<int64_t> fd_num = std::nullopt;
 	std::optional<std::string> fd_name = std::nullopt;
@@ -221,6 +242,8 @@ protected:
 	sinsp_evt* generate_getcwd_failed_entry_event(int64_t tid_caller = INIT_TID);
 	sinsp_evt* generate_open_x_event(sinsp_test_input::open_params params = {},
 	                                 int64_t tid_caller = INIT_TID);
+	sinsp_evt* generate_socket_events(sinsp_test_input::socket_params params = {},
+	                                  int64_t tid_caller = INIT_TID);
 
 	//=============================== PROCESS GENERATION ===========================
 

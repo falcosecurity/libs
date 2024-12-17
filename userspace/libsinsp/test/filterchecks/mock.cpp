@@ -342,17 +342,7 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 	open_inspector();
 
 	// Prepare the setup to extract something from the filter checks `fd.cip`.
-	int64_t client_fd = 9;
-	int64_t return_value = 0;
-
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_SOCKET_E,
-	                     3,
-	                     (uint32_t)PPM_AF_INET6,
-	                     (uint32_t)SOCK_DGRAM,
-	                     (uint32_t)0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
+	generate_socket_events(sinsp_test_input::socket_params(PPM_AF_INET6, SOCK_DGRAM));
 
 	sockaddr_in6 client =
 	        test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, DEFAULT_IPV6_CLIENT_STRING);
@@ -368,7 +358,7 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 	                     1,
 	                     PPME_SOCKET_CONNECT_E,
 	                     2,
-	                     client_fd,
+	                     sinsp_test_input::socket_params::default_fd,
 	                     scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 	std::vector<uint8_t> socktuple =
 	        test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client),
@@ -377,9 +367,9 @@ TEST_F(sinsp_with_test_input, check_some_fd_fields) {
 	                                1,
 	                                PPME_SOCKET_CONNECT_X,
 	                                3,
-	                                return_value,
+	                                (int64_t)0,
 	                                scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                                client_fd);
+	                                sinsp_test_input::socket_params::default_fd);
 
 	{
 		// fd.cip will extract an ipv6 we cannot compare it with an ipv4, so we expect false

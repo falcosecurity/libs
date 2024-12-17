@@ -4678,11 +4678,9 @@ FILLER(sys_semop_x, true) {
 }
 
 FILLER(sys_socket_x, true) {
-	long retval;
-	int res;
-
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_push_s64_to_ring(data, retval);
+	/* Parameter 1: fd (type: PT_FD)*/
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	if(retval >= 0 && !data->settings->socket_file_ops) {
@@ -4695,7 +4693,19 @@ FILLER(sys_socket_x, true) {
 		}
 	}
 
-	return res;
+	/* Parameter 2: domain (type: PT_ENUMFLAGS32) */
+	uint8_t domain = (uint8_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_u32_to_ring(data, domain);
+	CHECK_RES(res);
+
+	/* Parameter 3: type (type: PT_UINT32) */
+	uint32_t type = (uint32_t)bpf_syscall_get_argument(data, 1);
+	res = bpf_push_u32_to_ring(data, type);
+	CHECK_RES(res);
+
+	/* Parameter 4: proto (type: PT_UINT32) */
+	uint32_t proto = (uint32_t)bpf_syscall_get_argument(data, 2);
+	return bpf_push_u32_to_ring(data, proto);
 }
 
 FILLER(sys_flock_e, true) {

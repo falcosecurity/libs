@@ -26,16 +26,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_compare) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	int64_t client_fd = 9;
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_SOCKET_E,
-	                     3,
-	                     (uint32_t)PPM_AF_INET,
-	                     (uint32_t)SOCK_STREAM,
-	                     (uint32_t)0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
-
+	evt = generate_socket_events();
 	int64_t return_value = 0;
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(54321, "172.40.111.222");
@@ -48,7 +39,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_compare) {
 	        1,
 	        PPME_SOCKET_CONNECT_E,
 	        2,
-	        client_fd,
+	        sinsp_test_input::socket_params::default_fd,
 	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
 
 	std::vector<uint8_t> socktuple =
@@ -60,7 +51,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_compare) {
 	                           3,
 	                           return_value,
 	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                           client_fd);
+	                           sinsp_test_input::socket_params::default_fd);
 
 	EXPECT_TRUE(eval_filter(evt, "fd.ip == 142.251.111.147"));
 	EXPECT_TRUE(eval_filter(evt, "fd.sip == 142.251.111.147"));
@@ -89,15 +80,7 @@ TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
-	int64_t client_fd = 9;
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_SOCKET_E,
-	                     3,
-	                     (uint32_t)PPM_AF_INET6,
-	                     (uint32_t)SOCK_DGRAM,
-	                     (uint32_t)0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
+	evt = generate_socket_events();
 
 	int64_t return_value = 0;
 
@@ -111,7 +94,7 @@ TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	                     1,
 	                     PPME_SOCKET_CONNECT_E,
 	                     2,
-	                     client_fd,
+	                     sinsp_test_input::socket_params::default_fd,
 	                     scap_const_sized_buffer{server1_sockaddr.data(), server1_sockaddr.size()});
 
 	std::vector<uint8_t> socktuple =
@@ -123,7 +106,7 @@ TEST_F(sinsp_with_test_input, net_ipv6_compare) {
 	                           3,
 	                           return_value,
 	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                           client_fd);
+	                           sinsp_test_input::socket_params::default_fd);
 
 	EXPECT_TRUE(eval_filter(evt, "fd.ip == 2001:4860:4860::8888"));
 	EXPECT_TRUE(eval_filter(evt, "fd.sip == 2001:4860:4860::8888"));

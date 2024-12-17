@@ -128,3 +128,33 @@ TEST_F(scap_file_test, pread_x_check_final_converted_event) {
 	                               size,
 	                               pos));
 }
+
+////////////////////////////
+// SOCKET
+////////////////////////////
+
+TEST_F(scap_file_test, socket_x_check_final_converted_event) {
+	open_filename("scap_2013.scap");
+
+	// Inside the scap-file the event `515881` is the following:
+	// - type=PPME_SOCKET_SOCKET_E
+	// - ts=1380933088295478275
+	// - tid=44106
+	// - args=domain=2(AF_INET) type=524289 proto=0
+	//
+	// And its corresponding enter event `511520` is the following:
+	// - type=PPME_SOCKET_SOCKET_X
+	// - ts=1380933088295552884
+	// - tid=44106,
+	// - args=fd=19(<4>)
+	//
+	uint64_t ts = 1380933088295552884;
+	int64_t tid = 44106;
+	int64_t fd = 19;
+	uint32_t domain = 2;
+	uint32_t type = 524289;
+	uint32_t proto = 0;
+
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
+}

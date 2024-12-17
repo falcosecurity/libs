@@ -12,9 +12,9 @@ TEST(SyscallExit, socketX) {
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	int domain = -1;
-	int type = -1;
-	int protocol = -1;
+	int domain = 0;
+	int type = SOCK_RAW;
+	int protocol = PF_INET;
 
 	/* Here we need to call the `socket` from a child because the main process throws a `socket`
 	 * syscall to calibrate the socket file options if we are using the bpf probe.
@@ -48,7 +48,7 @@ TEST(SyscallExit, socketX) {
 	}
 
 	/* This is the errno value we expect from the `socket` call. */
-	int64_t errno_value = -EINVAL;
+	int64_t errno_value = -EAFNOSUPPORT;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -69,8 +69,17 @@ TEST(SyscallExit, socketX) {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
+	/* Parameter 2: domain (type: PT_ENUMFLAGS32) */
+	evt_test->assert_numeric_param(2, (uint32_t)domain);
+
+	/* Parameter 3: type (type: PT_UINT32) */
+	evt_test->assert_numeric_param(3, (uint32_t)type);
+
+	/* Parameter 4: proto (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, (uint32_t)protocol);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+	evt_test->assert_num_params_pushed(4);
 }
 #endif

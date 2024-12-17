@@ -27,26 +27,9 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	add_default_init_thread();
 	open_inspector();
 
-	int64_t return_value = 0;
-	int64_t client_fd = 9;
+	auto evt = generate_socket_events(sinsp_test_input::socket_params(PPM_AF_UNIX, SOCK_STREAM));
 
-	// We need the enter event because we store it and we use it in the exit one.
-	// We only store it, we don't create a fdinfo, if the enter event is missing
-	// we don't parse the exit one.
-	auto evt = add_event_advance_ts(increasing_ts(),
-	                                INIT_TID,
-	                                PPME_SOCKET_SOCKET_E,
-	                                3,
-	                                (uint32_t)PPM_AF_UNIX,
-	                                (uint32_t)SOCK_STREAM,
-	                                (uint32_t)0);
 	auto fdinfo = evt->get_fd_info();
-	ASSERT_FALSE(fdinfo);
-
-	evt = add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SOCKET_SOCKET_X, 1, client_fd);
-
-	/* FDINFO associated with the event */
-	fdinfo = evt->get_fd_info();
 	ASSERT_TRUE(fdinfo);
 	ASSERT_TRUE(fdinfo->is_unix_socket());
 	// todo! do we want this? In the end a unix socket could be of type datagram or stream
@@ -59,7 +42,7 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	/* FDINFO associated with the thread */
 	auto init_tinfo = m_inspector.get_thread_ref(INIT_TID, false).get();
 	ASSERT_TRUE(init_tinfo);
-	fdinfo = init_tinfo->get_fd(client_fd);
+	fdinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
 	ASSERT_TRUE(fdinfo);
 	ASSERT_TRUE(fdinfo->is_unix_socket());
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);
@@ -74,9 +57,9 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	                           INIT_TID,
 	                           PPME_SOCKET_CONNECT_X,
 	                           3,
-	                           return_value,
+	                           (int64_t)0,
 	                           scap_const_sized_buffer{socktuple.data(), socktuple.size()},
-	                           client_fd);
+	                           sinsp_test_input::socket_params::default_fd);
 
 	/* FDINFO associated with the event */
 	fdinfo = evt->get_fd_info();
@@ -102,7 +85,7 @@ TEST_F(sinsp_with_test_input, CONNECT_parse_unix_socket) {
 	ASSERT_EQ(fdinfo->m_name_raw, "");
 
 	/* FDINFO associated with the thread */
-	fdinfo = init_tinfo->get_fd(client_fd);
+	fdinfo = init_tinfo->get_fd(sinsp_test_input::socket_params::default_fd);
 	ASSERT_TRUE(fdinfo);
 	ASSERT_TRUE(fdinfo->is_unix_socket());
 	ASSERT_EQ(fdinfo->get_l4proto(), scap_l4_proto::SCAP_L4_NA);

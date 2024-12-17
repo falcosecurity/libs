@@ -743,10 +743,14 @@ static parse_result parse_socket(uint32_t id,
 	}
 
 	if(gvisor_evt.has_exit()) {
-		ret.status = scap_gvisor::fillers::fill_event_socket_x(scap_buf,
-		                                                       &ret.size,
-		                                                       scap_err,
-		                                                       gvisor_evt.exit().result());
+		ret.status = scap_gvisor::fillers::fill_event_socket_x(
+		        scap_buf,
+		        &ret.size,
+		        scap_err,
+		        gvisor_evt.exit().result(),
+		        socket_family_to_scap(gvisor_evt.domain()),
+		        gvisor_evt.type(),
+		        gvisor_evt.protocol());
 	} else {
 		ret.status = scap_gvisor::fillers::fill_event_socket_e(
 		        scap_buf,
