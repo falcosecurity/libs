@@ -121,14 +121,19 @@ TEST_F(sinsp_with_test_input, BIND_parse_unix_socket) {
 	sockaddr_un u_sockaddr = test_utils::fill_sockaddr_un(unix_path.c_str());
 	std::vector<uint8_t> server_sockaddr =
 	        test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&u_sockaddr));
+	uint64_t socket_fd = 77;
 	auto evt = add_event_advance_ts(
 	        increasing_ts(),
 	        INIT_TID,
 	        PPME_SOCKET_BIND_X,
-	        2,
+	        3,
 	        return_value,
-	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()},
+	        socket_fd);
 
 	// we want to check that `get_param_value_str` returns the correct unix socket path
 	ASSERT_EQ(evt->get_param_value_str("addr"), unix_path);
+
+	// we want to check that `get_fd_info()->m_fd` returns the correct socket fd.
+	ASSERT_EQ(evt->get_param_by_name("fd")->as<int64_t>(), socket_fd);
 }

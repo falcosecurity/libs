@@ -3941,18 +3941,15 @@ FILLER(sys_socket_bind_x, true) {
 	uint16_t size = 0;
 	int err = 0;
 	long retval;
+	int32_t fd;
 	int res;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	/*
-	 * addr
-	 */
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	usrsockaddr = (struct sockaddr __user *)bpf_syscall_get_argument(data, 1);
 	val = bpf_syscall_get_argument(data, 2);
 
@@ -3974,8 +3971,11 @@ FILLER(sys_socket_bind_x, true) {
 	 */
 	data->curarg_already_on_frame = true;
 	res = bpf_val_to_ring_len(data, 0, size);
+	CHECK_RES(res);
 
-	return res;
+	/* Parameter 3: fd (type: PT_FD) */
+	fd = bpf_syscall_get_argument(data, 0);
+	return bpf_push_s64_to_ring(data, (int64_t)fd);
 }
 
 static __always_inline int f_sys_recv_x_common(struct filler_data *data, long retval) {

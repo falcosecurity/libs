@@ -66,6 +66,9 @@ int BPF_PROG(bind_x, struct pt_regs *regs, long ret) {
 	uint16_t addrlen = (uint16_t)args[2];
 	auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	auxmap__store_s64_param(auxmap, (int64_t)(int32_t)args[0]);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

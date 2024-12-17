@@ -50,9 +50,12 @@ TEST(SyscallExit, bindX_INET) {
 	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)server_socket_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 
 TEST(SyscallExit, bindX_INET6) {
@@ -101,9 +104,12 @@ TEST(SyscallExit, bindX_INET6) {
 	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	evt_test->assert_addr_info_inet6_param(2, PPM_AF_INET6, IPV6_SERVER, IPV6_PORT_SERVER_STRING);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)server_socket_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 
 #ifdef __NR_unlinkat
@@ -153,9 +159,12 @@ TEST(SyscallExit, bindX_UNIX) {
 	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, UNIX_SERVER);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)server_socket_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif /* __NR_unlinkat */
 
@@ -195,9 +204,12 @@ TEST(SyscallExit, bindX_failure) {
 	/* Since the pointer to the `sockaddr` is `NULL` we expect an empty param here. */
 	evt_test->assert_empty_param(2);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)mock_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 
 #endif

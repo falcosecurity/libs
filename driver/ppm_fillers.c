@@ -1630,16 +1630,13 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args) {
 	unsigned long val;
 	struct sockaddr_storage address;
 	char *targetbuf = args->str_storage;
+	int32_t fd = 0;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 
-	/*
-	 * addr
-	 */
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
 	syscall_get_arguments_deprecated(args, 1, 1, &val);
 
 	usrsockaddr = (struct sockaddr __user *)val;
@@ -1666,6 +1663,12 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args) {
 	 * Copy the endpoint info into the ring
 	 */
 	res = val_to_ring(args, (uint64_t)targetbuf, size, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
