@@ -257,17 +257,45 @@ function(prepare_containerd_grpc)
 		${CMAKE_CURRENT_SOURCE_DIR}/container_engine/containerd/containers.proto
 		${DEST}/containers.proto COPYONLY
 	)
+	configure_file(
+		${CMAKE_CURRENT_SOURCE_DIR}/container_engine/containerd/images.proto ${DEST}/images.proto
+		COPYONLY
+	)
+	configure_file(
+		${CMAKE_CURRENT_SOURCE_DIR}/container_engine/containerd/descriptor.proto
+		${DEST}/descriptor.proto COPYONLY
+	)
 	add_custom_command(
-		OUTPUT ${DEST}/containers.grpc.pb.cc ${DEST}/containers.grpc.pb.h ${DEST}/containers.pb.cc
+		OUTPUT ${DEST}/containers.grpc.pb.cc
+			   ${DEST}/containers.grpc.pb.h
+			   ${DEST}/containers.pb.cc
 			   ${DEST}/containers.pb.h
+			   ${DEST}/images.grpc.pb.cc
+			   ${DEST}/images.grpc.pb.h
+			   ${DEST}/images.pb.cc
+			   ${DEST}/images.pb.h
+			   ${DEST}/descriptor.grpc.pb.cc
+			   ${DEST}/descriptor.grpc.pb.h
+			   ${DEST}/descriptor.pb.cc
+			   ${DEST}/descriptor.pb.h
 		COMMENT "Generate containerd grpc code"
 		DEPENDS
 		COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/containers.proto
 		COMMAND ${PROTOC} -I ${DEST} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
 				${DEST}/containers.proto
+		COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/descriptor.proto
+		COMMAND ${PROTOC} -I ${DEST} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+				${DEST}/descriptor.proto
+		COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/images.proto
+		COMMAND ${PROTOC} -I ${DEST} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+				${DEST}/images.proto
 		WORKING_DIRECTORY ${DEST}
 	)
-	add_library(containerd_interface STATIC ${DEST}/containers.pb.cc ${DEST}/containers.grpc.pb.cc)
+	add_library(
+		containerd_interface STATIC
+		${DEST}/containers.pb.cc ${DEST}/containers.grpc.pb.cc ${DEST}/descriptor.pb.cc
+		${DEST}/descriptor.grpc.pb.cc ${DEST}/images.pb.cc ${DEST}/images.grpc.pb.cc
+	)
 	target_include_directories(containerd_interface PUBLIC $<BUILD_INTERFACE:${DEST}>)
 	target_link_libraries(
 		containerd_interface
@@ -281,7 +309,8 @@ function(prepare_containerd_grpc)
 	)
 	add_dependencies(containerd_interface grpc)
 	install(
-		FILES ${DEST}/containers.grpc.pb.h ${DEST}/containers.pb.h
+		FILES ${DEST}/containers.grpc.pb.h ${DEST}/containers.pb.h ${DEST}/descriptor.grpc.pb.h
+			  ${DEST}/descriptor.pb.h ${DEST}/images.grpc.pb.h ${DEST}/images.pb.h
 		DESTINATION
 			"${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libsinsp/container_engine/containerd"
 		COMPONENT "scap"
@@ -318,7 +347,7 @@ if(NOT WIN32)
 			prepare_containerd_grpc()
 
 			target_link_libraries(sinsp PUBLIC cri_v1alpha2 cri_v1)
-			target_link_libraries(sinsp PUBLIC containerd_interface)
+			target_link_libraries(sinsp PRIVATE containerd_interface)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
