@@ -1202,14 +1202,16 @@ int32_t fill_event_bind_x(scap_sized_buffer scap_buf,
                           size_t* event_size,
                           char* scap_err,
                           int64_t res,
-                          scap_const_sized_buffer addr) {
+                          scap_const_sized_buffer addr,
+                          int64_t fd) {
 	return scap_event_encode_params(scap_buf,
 	                                event_size,
 	                                scap_err,
 	                                PPME_SOCKET_BIND_X,
-	                                2,
+	                                3,
 	                                res,
-	                                addr);
+	                                addr,
+	                                fd);
 }
 
 // PPME_SYSCALL_ACCEPT_5_E

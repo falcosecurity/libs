@@ -994,7 +994,8 @@ static parse_result parse_bind(uint32_t id,
 		                                                &ret.size,
 		                                                scap_err,
 		                                                gvisor_evt.exit().result(),
-		                                                scap_const_sized_buffer{targetbuf, size});
+		                                                scap_const_sized_buffer{targetbuf, size},
+		                                                gvisor_evt.fd());
 	} else {
 		ret.status = scap_gvisor::fillers::fill_event_bind_e(scap_buf,
 		                                                     &ret.size,

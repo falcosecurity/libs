@@ -12,6 +12,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "convert_event_test.h"
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 TEST_F(convert_event_test, conversion_not_needed) {
 	uint64_t ts = 12;
@@ -183,4 +185,81 @@ TEST_F(convert_event_test, PPME_SYSCALL_PREAD_X__to_4_params_with_enter) {
 	                               fd,
 	                               size,
 	                               pos));
+}
+
+////////////////////////////
+// BIND
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_BIND_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_BIND_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_BIND_X_to_3_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	struct sockaddr_in sockaddr = {};
+	sockaddr.sin_family = AF_INET;
+	sockaddr.sin_port = htons(1234);
+	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	// Defaulted to 0
+	int64_t fd = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_BIND_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_BIND_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)},
+	                               fd));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_BIND_X_to_3_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	struct sockaddr_in sockaddr = {};
+	sockaddr.sin_family = AF_INET;
+	sockaddr.sin_port = htons(1234);
+	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	int64_t fd = 100;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_BIND_E, 1, fd);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_BIND_X,
+	                               2,
+	                               res,
+	                               scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)}),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_BIND_X,
+	                               3,
+	                               res,
+	                               scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)},
+	                               fd));
 }

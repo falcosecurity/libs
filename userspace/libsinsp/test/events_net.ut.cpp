@@ -368,10 +368,6 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4) {
 	                     (uint32_t)0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, server_fd);
 
-	/* We have no parsers for bind enter event */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, server_fd);
-	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
-
 	sockaddr_in server =
 	        test_utils::fill_sockaddr_in(DEFAULT_SERVER_PORT, DEFAULT_IPV4_SERVER_STRING);
 	std::vector<uint8_t> server_sockaddr =
@@ -381,9 +377,10 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4) {
 	        increasing_ts(),
 	        1,
 	        PPME_SOCKET_BIND_X,
-	        2,
+	        3,
 	        return_value,
-	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()},
+	        server_fd);
 	fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_FALSE(fdinfo->is_ipv4_socket());
@@ -464,7 +461,6 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6) {
 	                     (uint32_t)SOCK_STREAM,
 	                     0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, server_fd);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, server_fd);
 
 	sockaddr_in6 server =
 	        test_utils::fill_sockaddr_in6(DEFAULT_SERVER_PORT, DEFAULT_IPV6_SERVER_STRING);
@@ -475,9 +471,10 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6) {
 	        increasing_ts(),
 	        1,
 	        PPME_SOCKET_BIND_X,
-	        2,
+	        3,
 	        return_value,
-	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()});
+	        scap_const_sized_buffer{server_sockaddr.data(), server_sockaddr.size()},
+	        server_fd);
 	std::string fdname =
 	        std::string(DEFAULT_IPV6_SERVER_STRING) + ":" + std::string(DEFAULT_SERVER_PORT_STRING);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), fdname);
