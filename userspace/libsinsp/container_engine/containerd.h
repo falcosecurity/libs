@@ -22,11 +22,13 @@ class sinsp_container_info;
 class sinsp_threadinfo;
 
 #include <libsinsp/container_engine/containerd/containers.grpc.pb.h>
+#include <libsinsp/container_engine/containerd/images.grpc.pb.h>
 #include <libsinsp/container_engine/container_async_source.h>
 #include <libsinsp/container_engine/container_engine_base.h>
 #include <libsinsp/container_engine/sinsp_container_type.h>
 
-namespace ContainerdService = containerd::services::containers::v1;
+namespace ContainerdContainerService = containerd::services::containers::v1;
+namespace ContainerdImageService = containerd::services::images::v1;
 
 namespace libsinsp {
 namespace container_engine {
@@ -80,7 +82,6 @@ public:
 	                        container_cache_interface* cache);
 	virtual ~containerd_async_source();
 
-	// TODO probably remove
 	bool is_ok();
 
 private:
@@ -94,9 +95,13 @@ private:
 	std::string container_id(const key_type& key) const override { return key.container_id; }
 
 	grpc::Status list_container_resp(const std::string& container_id,
-	                                 ContainerdService::ListContainersResponse& resp);
+	                                 ContainerdContainerService::ListContainersResponse& resp);
 
-	std::unique_ptr<ContainerdService::Containers::Stub> m_stub;
+	grpc::Status get_image_resp(const std::string& image_name,
+	                            ContainerdImageService::GetImageResponse& resp);
+
+	std::unique_ptr<ContainerdContainerService::Containers::Stub> m_container_stub;
+	std::unique_ptr<ContainerdImageService::Images::Stub> m_image_stub;
 	std::string m_socket_path;
 };
 
