@@ -145,5 +145,5 @@ message DeleteImageRequest {
 	//
 	// If image descriptor does not match the same digest,
 	// the delete operation will return "not found" error.
-	optional containerd.types.Descriptor target = 3;
+	containerd.types.Descriptor target = 3;
 }
