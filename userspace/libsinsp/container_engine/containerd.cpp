@@ -30,8 +30,7 @@ using namespace libsinsp::runc;
 constexpr const cgroup_layout CONTAINERD_CGROUP_LAYOUT[] = {{"/default/", ""}, {nullptr, nullptr}};
 
 constexpr const std::string_view CONTAINERD_SOCKETS[] = {
-        "/run/host-containerd/containerd.sock",      // bottlerocket host containers socket
-        "/run/containerd/runtime2/containerd.sock",  // tmp
+        "/run/host-containerd/containerd.sock",  // bottlerocket host containers socket
 };
 
 bool containerd_async_source::is_ok() {
@@ -110,11 +109,11 @@ libsinsp::container_engine::containerd::containerd(container_cache_interface &ca
 		}
 
 		container_cache_interface *cache_interface = &container_cache();
-		m_containerd_info_source =
-		        std::make_unique<containerd_async_source>(socket_path,
-		                                                  containerd_async_source::NO_WAIT_LOOKUP,
-		                                                  10000,
-		                                                  cache_interface);
+		auto src = new containerd_async_source(socket_path,
+		                                       containerd_async_source::NO_WAIT_LOOKUP,
+		                                       10000,
+		                                       cache_interface);
+		m_containerd_info_source.reset(src);
 		if(!m_containerd_info_source->is_ok()) {
 			m_containerd_info_source.reset(nullptr);
 			continue;
