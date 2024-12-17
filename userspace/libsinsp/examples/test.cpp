@@ -470,8 +470,6 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	inspector.set_cri_socket_path("");
-
 	auto events_sc_codes = extract_filter_sc_codes(inspector);
 	if(!events_sc_codes.empty()) {
 		auto events_sc_names = libsinsp::events::sc_set_to_sc_names(events_sc_codes);

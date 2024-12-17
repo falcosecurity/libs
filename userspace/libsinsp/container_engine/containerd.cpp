@@ -34,7 +34,19 @@ constexpr const std::string_view CONTAINERD_SOCKETS[] = {
 };
 
 bool containerd_async_source::is_ok() {
-	return m_stub != nullptr;
+	return m_container_stub != nullptr && m_image_stub != nullptr;
+}
+
+static inline void setup_grpc_client_context(grpc::ClientContext &context) {
+	auto deadline = std::chrono::system_clock::now() +
+	                std::chrono::milliseconds(libsinsp::cri::cri_settings::get_cri_timeout());
+
+	context.set_deadline(deadline);
+
+	// The `default` namesapce is the default one of containerd
+	// and the one used by host-containers in bottlerocket.
+	// This is mandatory to query the containers.
+	context.AddMetadata("containerd-namespace", "default");
 }
 
 containerd_async_source::containerd_async_source(const std::string &socket_path,
@@ -47,30 +59,50 @@ containerd_async_source::containerd_async_source(const std::string &socket_path,
 	std::shared_ptr<grpc::Channel> channel =
 	        libsinsp::grpc_channel_registry::get_channel("unix://" + socket_path, &args);
 
-	m_stub = ContainerdService::Containers::NewStub(channel);
+	// Check the status of the container stub.
+	{
+		grpc::ClientContext context;
+		setup_grpc_client_context(context);
 
-	ContainerdService::ListContainersRequest req;
-	ContainerdService::ListContainersResponse resp;
+		m_container_stub = ContainerdContainerService::Containers::NewStub(channel);
 
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() +
-	                std::chrono::milliseconds(libsinsp::cri::cri_settings::get_cri_timeout());
-	context.set_deadline(deadline);
+		ContainerdContainerService::ListContainersRequest req;
+		ContainerdContainerService::ListContainersResponse resp;
 
-	// The `default` namesapce is the default one of containerd
-	// and the one used by host-containers in bottlerocket.
-	// This is mandatory to query the containers.
-	context.AddMetadata("containerd-namespace", "default");
-	grpc::Status status = m_stub->List(&context, req, &resp);
+		grpc::Status status = m_container_stub->List(&context, req, &resp);
 
-	if(!status.ok()) {
-		libsinsp_logger()->format(sinsp_logger::SEV_NOTICE,
-		                          "containerd (%s): containerd runtime returned an error after "
-		                          "trying to list containerd: %s",
-		                          socket_path.c_str(),
-		                          status.error_message().c_str());
-		m_stub.reset(nullptr);
-		return;
+		if(!status.ok()) {
+			libsinsp_logger()->format(sinsp_logger::SEV_NOTICE,
+			                          "containerd (%s): containerd runtime returned an error after "
+			                          "trying to list containers: %s",
+			                          socket_path.c_str(),
+			                          status.error_message().c_str());
+			m_container_stub.reset(nullptr);
+			return;
+		}
+	}
+
+	// Check the status of the image stub.
+	{
+		grpc::ClientContext context;
+		setup_grpc_client_context(context);
+
+		m_image_stub = ContainerdImageService::Images::NewStub(channel);
+
+		ContainerdImageService::ListImagesRequest req;
+		ContainerdImageService::ListImagesResponse resp;
+
+		grpc::Status status = m_image_stub->List(&context, req, &resp);
+
+		if(!status.ok()) {
+			libsinsp_logger()->format(sinsp_logger::SEV_NOTICE,
+			                          "containerd (%s): containerd runtime returned an error after "
+			                          "trying to list images: %s",
+			                          socket_path.c_str(),
+			                          status.error_message().c_str());
+			m_image_stub.reset(nullptr);
+			return;
+		}
 	}
 }
 
@@ -81,8 +113,8 @@ containerd_async_source::~containerd_async_source() {
 
 grpc::Status containerd_async_source::list_container_resp(
         const std::string &container_id,
-        ContainerdService::ListContainersResponse &resp) {
-	ContainerdService::ListContainersRequest req;
+        ContainerdContainerService::ListContainersResponse &resp) {
+	ContainerdContainerService::ListContainersRequest req;
 
 	// To match the container using a truncated containerd id
 	// we need to use a match filter (~=).
@@ -92,7 +124,21 @@ grpc::Status containerd_async_source::list_container_resp(
 	auto deadline = std::chrono::system_clock::now() +
 	                std::chrono::milliseconds(libsinsp::cri::cri_settings::get_cri_timeout());
 	context.set_deadline(deadline);
-	return m_stub->List(&context, req, &resp);
+	return m_container_stub->List(&context, req, &resp);
+}
+
+grpc::Status containerd_async_source::get_image_resp(
+        const std::string &image_name,
+        ContainerdImageService::GetImageResponse &resp) {
+	ContainerdImageService::GetImageRequest req;
+
+	req.set_name(image_name);
+	grpc::ClientContext context;
+	context.AddMetadata("containerd-namespace", "default");
+	auto deadline = std::chrono::system_clock::now() +
+	                std::chrono::milliseconds(libsinsp::cri::cri_settings::get_cri_timeout());
+	context.set_deadline(deadline);
+	return m_image_stub->Get(&context, req, &resp);
 }
 
 libsinsp::container_engine::containerd::containerd(container_cache_interface &cache):
@@ -132,7 +178,7 @@ bool containerd_async_source::parse(const containerd_lookup_request &request,
 
 	// given the truncated container id, the full container id needs to be retrivied from
 	// containerd.
-	ContainerdService::ListContainersResponse resp;
+	ContainerdContainerService::ListContainersResponse resp;
 	grpc::Status status = list_container_resp(container_id, resp);
 
 	if(!status.ok()) {
@@ -174,8 +220,22 @@ bool containerd_async_source::parse(const containerd_lookup_request &request,
 	// and the first part is the repo
 	container.m_imagerepo = raw_image_splits[0].substr(0, raw_image_splits[0].rfind("/"));
 	container.m_imagetag = raw_image_splits[1];
-	container.m_imagedigest = "";
 	container.m_type = CT_CONTAINERD;
+
+	// Retrieve the image digest.
+	ContainerdImageService::GetImageResponse img_resp;
+	status = get_image_resp(containers[0].image(), img_resp);
+
+	if(!status.ok()) {
+		libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+		                          "containerd (%s): GetImageResponse status error message: (%s)",
+		                          container.m_id.c_str(),
+		                          status.error_message().c_str());
+
+		// Don't exit given that we have part of the needed information.
+	}
+
+	container.m_imagedigest = img_resp.image().target().digest();
 
 	// Retrieve the labels.
 	for(const auto &pair : containers[0].labels()) {
