@@ -778,8 +778,19 @@ int32_t fill_event_socket_e(scap_sized_buffer scap_buf,
 int32_t fill_event_socket_x(scap_sized_buffer scap_buf,
                             size_t* event_size,
                             char* scap_err,
-                            int64_t fd) {
-	return scap_event_encode_params(scap_buf, event_size, scap_err, PPME_SOCKET_SOCKET_X, 1, fd);
+                            int64_t fd,
+                            uint32_t domain,
+                            uint32_t type,
+                            uint32_t protocol) {
+	return scap_event_encode_params(scap_buf,
+	                                event_size,
+	                                scap_err,
+	                                PPME_SOCKET_SOCKET_X,
+	                                4,
+	                                fd,
+	                                domain,
+	                                type,
+	                                protocol);
 }
 
 // PPME_SYSCALL_CHDIR_E

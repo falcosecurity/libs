@@ -388,16 +388,7 @@ TEST_F(sinsp_with_test_input, len_transformer) {
 
 	EXPECT_TRUE(eval_filter(evt, "len(fd.name) = 16"));
 
-	int64_t client_fd = 9;
-	add_event_advance_ts(increasing_ts(),
-	                     1,
-	                     PPME_SOCKET_SOCKET_E,
-	                     3,
-	                     (uint32_t)PPM_AF_INET,
-	                     (uint32_t)SOCK_STREAM,
-	                     (uint32_t)0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
-
+	evt = generate_socket_events();
 	// fd.types = (ipv4,file)
 	EXPECT_TRUE(eval_filter(evt, "len(fd.types) = 2"));
 

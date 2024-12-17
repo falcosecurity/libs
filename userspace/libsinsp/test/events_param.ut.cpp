@@ -403,15 +403,14 @@ TEST_F(sinsp_with_test_input, enumparams) {
 	add_default_init_thread();
 
 	open_inspector();
-	sinsp_evt* evt = NULL;
 
-	/* `PPME_SOCKET_SOCKET_E` is a simple event that uses a PT_ENUMFLAGS32 (param 1) */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_UNIX, 0, 0);
+	/* `PPME_SOCKET_SOCKET_X` is a simple event that uses a PT_ENUMFLAGS32 (param 1) */
+	auto evt = generate_socket_events(sinsp_test_input::socket_params(PPM_AF_UNIX, SOCK_DGRAM));
 
-	ASSERT_EQ(evt->get_param(0)->as<uint32_t>(), PPM_AF_UNIX);
+	ASSERT_EQ(evt->get_param(1)->as<uint32_t>(), PPM_AF_UNIX);
 
 	const char* val_str = NULL;
-	evt->get_param_as_str(0, &val_str);
+	evt->get_param_as_str(1, &val_str);
 	// Since the enum value "1" matches multiple flags values,
 	// we expect a space-separated list of them
 	ASSERT_STREQ(val_str, "AF_LOCAL|AF_UNIX");

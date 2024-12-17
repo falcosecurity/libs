@@ -263,3 +263,51 @@ TEST_F(convert_event_test, PPME_SOCKET_BIND_X_to_3_params_with_enter) {
 	                               scap_const_sized_buffer{&sockaddr, sizeof(sockaddr)},
 	                               fd));
 }
+
+////////////////////////////
+// SOCKET
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_SOCKET_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+	uint32_t domain = 89;
+	uint32_t type = 89;
+	uint32_t proto = 89;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_E, 3, domain, type, proto);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_4_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 23;
+	uint32_t domain = 0;
+	uint32_t type = 0;
+	uint32_t proto = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 1, fd),
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_4_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+	int64_t fd = 23;
+	uint32_t domain = 89;
+	uint32_t type = 87;
+	uint32_t proto = 86;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_E, 3, domain, type, proto);
+	assert_single_conversion_skip(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 1, fd),
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
+}

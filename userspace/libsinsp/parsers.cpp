@@ -90,7 +90,6 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	case PPME_SYSCALL_OPENAT_E:
 	case PPME_SYSCALL_OPENAT_2_E:
 	case PPME_SYSCALL_OPENAT2_E:
-	case PPME_SOCKET_SOCKET_E:
 	case PPME_SYSCALL_EVENTFD_E:
 	case PPME_SYSCALL_EVENTFD2_E:
 	case PPME_SYSCALL_CHDIR_E:
@@ -2592,10 +2591,12 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt,
 #endif
 		   domain != 17)  // AF_PACKET, used for packet capture
 		{
-			//
-			// IPv6 will go here
-			//
-			ASSERT(false);
+			// A possible case in which we enter here is when we reproduce an old scap-file like
+			// `scap_2013` in our tests. In this case, we have only the exit event of the socket
+			// `evt_num=5` because we have just started the capture so we lost the enter event. The
+			// result produced by our scap-file converter is a socket with (domain=0, type=0,
+			// protocol=0).
+			fdi->m_type = SCAP_FD_UNKNOWN;
 		}
 	}
 
@@ -2666,12 +2667,6 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt *const evt) {
 }
 
 void sinsp_parser::parse_socket_exit(sinsp_evt *evt) {
-	int64_t fd;
-	uint32_t domain;
-	uint32_t type;
-	uint32_t protocol;
-	sinsp_evt *enter_evt = &m_tmp_evt;
-
 	//
 	// NOTE: we don't check the return value of get_param() because we know the arguments we need
 	// are there.
@@ -2679,7 +2674,7 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt) {
 	// parameters in one scan. We don't care too much because we assume that we get here
 	// seldom enough that saving few tens of CPU cycles is not important.
 	//
-	fd = evt->get_syscall_return_value();
+	int64_t fd = evt->get_syscall_return_value();
 
 	if(fd < 0) {
 		//
@@ -2693,18 +2688,11 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt) {
 	}
 
 	//
-	// Load the enter event so we can access its arguments
-	//
-	if(!retrieve_enter_event(enter_evt, evt)) {
-		return;
-	}
-
-	//
 	// Extract the arguments
 	//
-	domain = enter_evt->get_param(0)->as<uint32_t>();
-	type = enter_evt->get_param(1)->as<uint32_t>();
-	protocol = enter_evt->get_param(2)->as<uint32_t>();
+	uint32_t domain = evt->get_param(1)->as<uint32_t>();
+	uint32_t type = evt->get_param(2)->as<uint32_t>();
+	uint32_t protocol = evt->get_param(3)->as<uint32_t>();
 
 	//
 	// Allocate a new fd descriptor, populate it and add it to the thread fd table

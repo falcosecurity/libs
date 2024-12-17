@@ -20,8 +20,6 @@ or GPL2.txt for full copies of the license.
 #define FILLER_REF(x) 0, PPM_FILLER_##x
 #endif /* __KERNEL__ */
 
-#define f_sys_socket_x f_sys_single_x
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {

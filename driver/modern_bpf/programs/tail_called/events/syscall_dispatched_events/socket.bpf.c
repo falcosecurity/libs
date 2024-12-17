@@ -62,7 +62,7 @@ int BPF_PROG(socket_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: fd (type: PT_FD)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
 	/* Just called once by our scap process */
@@ -84,6 +84,22 @@ int BPF_PROG(socket_x, struct pt_regs *regs, long ret) {
 			}
 		}
 	}
+
+	/* Collect parameters at the beginning so we can easily manage socketcalls */
+	unsigned long args[3] = {0};
+	extract__network_args(args, 3, regs);
+
+	/* Parameter 2: domain (type: PT_ENUMFLAGS32) */
+	uint8_t domain = (uint8_t)args[0];
+	ringbuf__store_u32(&ringbuf, (uint32_t)socket_family_to_scap(domain));
+
+	/* Parameter 3: type (type: PT_UINT32) */
+	uint32_t type = (uint32_t)args[1];
+	ringbuf__store_u32(&ringbuf, type);
+
+	/* Parameter 4: proto (type: PT_UINT32) */
+	uint32_t proto = (uint32_t)args[2];
+	ringbuf__store_u32(&ringbuf, proto);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
