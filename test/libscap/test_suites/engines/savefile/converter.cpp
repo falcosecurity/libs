@@ -311,3 +311,53 @@ TEST_F(convert_event_test, PPME_SOCKET_SOCKET_X_to_4_params_with_enter) {
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 1, fd),
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
 }
+
+////////////////////////////
+// LISTEN
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_LISTEN_E_store) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	int32_t backlog = 5;
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_E, 2, fd, backlog);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_LISTEN_X_to_3_params_no_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+
+	// Defaulted to 0
+	int64_t fd = 0;
+	int32_t backlog = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 3, res, fd, backlog));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_LISTEN_X_to_3_params_with_enter) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t res = 89;
+	int64_t fd = 25;
+	int32_t backlog = 5;
+
+	// After the first conversion we should have the storage
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_E, 2, fd, backlog);
+	assert_single_conversion_skip(evt);
+	assert_event_storage_presence(evt);
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 1, res),
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 3, res, fd, backlog));
+}

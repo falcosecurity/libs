@@ -534,6 +534,8 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	case PPME_SOCKET_BIND_X:
 		location = 2;
 		break;
+	case PPME_SOCKET_LISTEN_X:
+		location = 1;
 	default:
 		break;
 	}
