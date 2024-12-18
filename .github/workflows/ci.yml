@@ -317,6 +317,7 @@ jobs:
           cmake -DBUILD_BPF=ON \
                 -DBUILD_LIBSCAP_MODERN_BPF=ON \
                 -DBUILD_LIBSCAP_GVISOR=OFF \
+                -DENABLE_E2E_TESTS=ON \
                 ${{ matrix.cmake_opts }} \
                 -DUSE_BUNDLED_LIBBPF=ON \
                 ..
