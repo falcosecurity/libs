@@ -24,7 +24,7 @@ runs:
     - name: Install deps ⛓️
       shell: bash
       run: |
-        sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-tools-common linux-tools-generic linux-tools-`uname -r` heaptrack coreutils util-linux
+        sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-tools-common linux-tools-generic linux-tools-`uname -r` heaptrack coreutils util-linux
         sudo .github/install-deps.sh
 
     - name: Build

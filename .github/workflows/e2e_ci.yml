@@ -44,17 +44,14 @@ jobs:
             libtool \
             libelf-dev \
             wget \
-            libc-ares-dev \
             libbpf-dev \
             libcap-dev \
-            libssl-dev \
             libtbb-dev \
             libjq-dev \
             libjsoncpp-dev \
-            libgrpc++-dev \
-            protobuf-compiler-grpc \
             libgtest-dev \
             libprotobuf-dev \
+            protobuf-compiler \
             linux-headers-$(uname -r)
           sudo .github/install-deps.sh
           git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch

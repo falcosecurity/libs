@@ -4,11 +4,8 @@ ENV HOST_ROOT /host
 
 RUN apt-get update && \
     apt-get install -y \
-    libcurl4 \
-    libgrpc++1 \
     jq \
     libjsoncpp1 \
-    openssl \
     libre2-5 \
     libtbb2
 
