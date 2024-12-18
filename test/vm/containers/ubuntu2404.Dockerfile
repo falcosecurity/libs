@@ -29,13 +29,8 @@ RUN apt --fix-broken -y install && apt-get install -y \
     autoconf \
     libtool \
     libelf-dev \
-    libssl-dev \
-    libc-ares-dev \
     libprotobuf-dev \
     protobuf-compiler \
-    libgrpc++-dev \
-    protobuf-compiler-grpc \
-    libcurl4-openssl-dev \
     libyaml-cpp-dev \
     cmake \
     rpm \

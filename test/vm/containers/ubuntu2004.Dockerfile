@@ -8,7 +8,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y
 RUN apt --fix-broken -y install && apt-get install -y --no-install-recommends \
     build-essential \
-    libssl-dev \
     zlib1g-dev \
     libbz2-dev \
     libreadline-dev \
@@ -30,13 +29,8 @@ RUN apt --fix-broken -y install && apt-get install -y --no-install-recommends \
     autoconf \
     libtool \
     libelf-dev \
-    libssl-dev \
-    libc-ares-dev \
     libprotobuf-dev \
     protobuf-compiler \
-    libgrpc++-dev \
-    protobuf-compiler-grpc \
-    libcurl4-openssl-dev \
     libyaml-cpp-dev \
     cmake \
     rpm \
