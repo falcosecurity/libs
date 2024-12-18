@@ -213,7 +213,7 @@ jobs:
           githubToken: ${{ github.token }}
 
           install: |
-            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libcap-dev libgtest-dev libprotobuf-dev linux-headers-generic
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libtbb-dev libjq-dev libjsoncpp-dev libcap-dev protobuf-compiler libgtest-dev libprotobuf-dev linux-headers-generic
             git clone https://github.com/libbpf/bpftool.git --branch v7.3.0 --single-branch
             cd bpftool
             git submodule update --init
