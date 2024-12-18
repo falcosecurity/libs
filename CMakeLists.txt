@@ -57,6 +57,7 @@ option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 option(USE_BUNDLED_DRIVER
 	   "Use the driver/ subdirectory in the build process (only available in Linux)" ON
 )
+option(ENABLE_E2E_TESTS "Enable e2e tests" OFF)
 option(ENABLE_DRIVERS_TESTS "Enable driver tests (bpf, kernel module, modern bpf)" OFF)
 option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
 option(ENABLE_LIBSINSP_E2E_TESTS "Enable libsinsp e2e tests" OFF)
@@ -126,7 +127,9 @@ if(CREATE_TEST_TARGETS)
 	# ctest's add_test because it will build the code and output to stdout.
 	add_custom_target(run-unit-tests COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp)
 
-	add_subdirectory(test/e2e)
+	if(ENABLE_E2E_TESTS)
+		add_subdirectory(test/e2e)
+	endif()
 
 	if(ENABLE_DRIVERS_TESTS)
 		add_subdirectory(test/drivers)
