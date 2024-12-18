@@ -446,7 +446,7 @@ extern "C" conversion_result scap_convert_event(scap_evt *new_evt,
 	if(!is_conversion_needed(evt_to_convert)) {
 		snprintf(error,
 		         SCAP_LASTERR_SIZE,
-		         "Conversion not need for event type '%d' nparams '%d'. Please double check",
+		         "Conversion not needed for event type '%d' nparams '%d'. Please double check",
 		         evt_to_convert->type,
 		         evt_to_convert->nparams);
 		return CONVERSION_ERROR;

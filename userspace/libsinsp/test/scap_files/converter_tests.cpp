@@ -158,3 +158,44 @@ TEST_F(scap_file_test, socket_x_check_final_converted_event) {
 	assert_event_presence(
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_SOCKET_X, 4, fd, domain, type, proto));
 }
+
+////////////////////////////
+// LISTEN
+////////////////////////////
+
+TEST_F(scap_file_test, listen_e_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_LISTEN_E, 1);
+}
+
+TEST_F(scap_file_test, listen_x_same_number_of_events) {
+	open_filename("kexec_arm64.scap");
+	assert_num_event_type(PPME_SOCKET_LISTEN_X, 1);
+}
+
+TEST_F(scap_file_test, listen_x_check_final_converted_event) {
+	open_filename("kexec_arm64.scap");
+
+	// Inside the scap-file the event `57008` is the following:
+	// - type=PPME_SOCKET_LISTEN_X,
+	// - ts=1687966709944348874
+	// - tid=141291
+	// - args=res=0
+	//
+	// And its corresponding enter event `57007` is the following:
+	// - type=PPME_SOCKET_LISTEN_E
+	// - ts=1687966709944347577
+	// - tid=141291
+	// - args=fd=25(<u>/tmp/pty1908604488/pty.sock)
+	// - backlog=4096
+	//
+	// Let's see the new PPME_SOCKET_LISTEN_X event!
+
+	uint64_t ts = 1687966709944348874;
+	int64_t tid = 141291;
+	int64_t res = 0;
+	int64_t fd = 25;
+	int32_t backlog = 4096;
+	assert_event_presence(
+	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 3, res, fd, backlog));
+}

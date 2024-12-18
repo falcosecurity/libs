@@ -12,7 +12,7 @@
 
 SEC("tp_btf/sys_enter")
 int BPF_PROG(listen_e, struct pt_regs *regs, long id) {
-	/* Collect parameters at the beginning to  manage socketcalls */
+	/* Collect parameters at the beginning to manage socketcalls */
 	unsigned long args[2] = {0};
 	extract__network_args(args, 2, regs);
 
@@ -46,6 +46,10 @@ int BPF_PROG(listen_e, struct pt_regs *regs, long id) {
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(listen_x, struct pt_regs *regs, long ret) {
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[2] = {0};
+	extract__network_args(args, 2, regs);
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, LISTEN_X_SIZE, PPME_SOCKET_LISTEN_X)) {
 		return 0;
@@ -55,8 +59,16 @@ int BPF_PROG(listen_x, struct pt_regs *regs, long ret) {
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)args[0];
+	ringbuf__store_s64(&ringbuf, (int64_t)fd);
+
+	/* Parameter 3: backlog (type: PT_INT32) */
+	int32_t backlog = (int32_t)args[1];
+	ringbuf__store_s32(&ringbuf, backlog);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

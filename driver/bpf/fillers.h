@@ -4133,6 +4133,22 @@ FILLER(sys_listen_e, true) {
 	return bpf_push_s32_to_ring(data, (int32_t)backlog);
 }
 
+FILLER(sys_listen_x, true) {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_push_s64_to_ring(data, (int64_t)retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (int64_t)fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: backlog (type: PT_INT32) */
+	int32_t backlog = (int32_t)bpf_syscall_get_argument(data, 1);
+	return bpf_push_s32_to_ring(data, (int32_t)backlog);
+}
+
 FILLER(sys_recvmsg_e, true) {
 	/* Parameter 1: fd (type: PT_FD) */
 	int32_t fd = (int32_t)bpf_syscall_get_argument(data, 0);

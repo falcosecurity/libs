@@ -167,6 +167,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_recvfrom_e)                   \
 	FN(sys_recvmsg_e)                    \
 	FN(sys_listen_e)                     \
+	FN(sys_listen_x)                     \
 	FN(sys_signalfd_e)                   \
 	FN(sys_splice_e)                     \
 	FN(sys_umount_x)                     \
