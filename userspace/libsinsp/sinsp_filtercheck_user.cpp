@@ -90,14 +90,15 @@ uint8_t* sinsp_filter_check_user::extract_single(sinsp_evt* evt,
 	// For container events, use the user from the container metadata instead.
 	if(m_field_id == TYPE_NAME &&
 	   (evt->get_type() == PPME_CONTAINER_JSON_E || evt->get_type() == PPME_CONTAINER_JSON_2_E)) {
-		const sinsp_container_info::ptr_t container_info =
+		/* TODO
+		 *const sinsp_container_info::ptr_t container_info =
 		        m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 
 		if(!container_info) {
-			return NULL;
+		    return NULL;
 		}
 
-		RETURN_EXTRACT_STRING(container_info->m_container_user);
+		RETURN_EXTRACT_STRING(container_info->m_container_user);*/
 	}
 
 	auto user = tinfo->get_user();

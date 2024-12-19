@@ -32,10 +32,6 @@ configure_file(
 add_executable(
 	libsinsp_e2e_tests
 	capture_to_file_test.cpp
-	container/container.cpp
-	container/container_cgroup.cpp
-	container/container_cri.cpp
-	container/docker_utils.cpp
 	event_capture.cpp
 	forking.cpp
 	fs.cpp
@@ -99,6 +95,3 @@ execute_process(
 	COMMAND tar xzf ${CMAKE_CURRENT_BINARY_DIR}/resources/fake-proc.tar.gz
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/resources/
 )
-
-add_subdirectory(fake_cri)
-add_dependencies(libsinsp_e2e_tests fake_cri)

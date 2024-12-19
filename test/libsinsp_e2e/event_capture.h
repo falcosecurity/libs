@@ -34,6 +34,7 @@ limitations under the License.
 #include <stdexcept>
 #include <utility>
 #include <sys/eventfd.h>
+#include <thread>
 
 // Just a stupid fake FD value to signal to stop capturing events from driver and exit.
 // Note: we don't use it through eventfd because we want to make sure
