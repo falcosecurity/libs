@@ -12,6 +12,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "convert_event_test.h"
+
+#include <libsinsp/test/test_utils.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
@@ -360,4 +362,56 @@ TEST_F(convert_event_test, PPME_SOCKET_LISTEN_X_to_3_params_with_enter) {
 	        conversion_result::CONVERSION_COMPLETED,
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 1, res),
 	        create_safe_scap_event(ts, tid, PPME_SOCKET_LISTEN_X, 3, res, fd, backlog));
+}
+
+////////////////////////////
+// ACCEPT
+////////////////////////////
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_E_skip) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT_E, 0);
+	assert_single_conversion_skip(evt);
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_X_to_PPME_SOCKET_ACCEPT_5_X) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	int64_t fd = 25;
+	char tuple[] = {'h', 'e', 'l', 'l', 'o'};
+	uint8_t queuepct = 3;
+
+	// Defaulted to 0
+	uint32_t queuelen = 0;
+	uint32_t queuemax = 0;
+
+	assert_single_conversion_success(
+	        conversion_result::CONVERSION_COMPLETED,
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_ACCEPT_X,
+	                               3,
+	                               fd,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               queuepct),
+	        create_safe_scap_event(ts,
+	                               tid,
+	                               PPME_SOCKET_ACCEPT_5_X,
+	                               5,
+	                               fd,
+	                               scap_const_sized_buffer{tuple, sizeof(tuple)},
+	                               queuepct,
+	                               queuelen,
+	                               queuemax));
+}
+
+TEST_F(convert_event_test, PPME_SOCKET_ACCEPT_5_E_skip) {
+	uint64_t ts = 12;
+	int64_t tid = 25;
+
+	auto evt = create_safe_scap_event(ts, tid, PPME_SOCKET_ACCEPT_5_E, 0);
+	assert_single_conversion_skip(evt);
 }
