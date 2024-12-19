@@ -53,50 +53,24 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
         {nullptr, nullptr}};
 }  // namespace
 
-cri::cri(container_cache_interface &cache): container_engine_base(cache) {
-	libsinsp::cri::cri_settings &cri_settings = libsinsp::cri::cri_settings::get();
-	if(cri_settings.get_cri_unix_socket_paths().empty()) {
-		// containerd as primary default value when empty
-		cri_settings.add_cri_unix_socket_path("/run/containerd/containerd.sock");
-		// crio-o as secondary default value when empty
-		cri_settings.add_cri_unix_socket_path("/run/crio/crio.sock");
-		// k3s containerd as third option when empty
-		cri_settings.add_cri_unix_socket_path("/run/k3s/containerd/containerd.sock");
+cri::cri(container_cache_interface &cache, const std::string &cri_path):
+        container_engine_base(cache) {
+	auto unix_socket_path = scap_get_host_root() + cri_path;
+	struct stat s = {};
+	if(stat(unix_socket_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
+		return;
 	}
 
-	// Try all specified unix socket paths
-	// NOTE: having multiple container runtimes on the same host is a sporadic case,
-	// so we wouldn't make things complex to support that.
-	// On the other hand, specifying multiple unix socket paths (and using only the first match)
-	// will solve the "same config, multiple hosts" use case.
-	for(auto &p : cri_settings.get_cri_unix_socket_paths()) {
-		if(p.empty()) {
-			continue;
-		}
+	m_cri_v1 = std::make_unique<libsinsp::cri::cri_interface_v1>(unix_socket_path);
+	if(!m_cri_v1->is_ok()) {
+		m_cri_v1.reset(nullptr);
+	} else {
+		return;
+	}
 
-		auto cri_path = scap_get_host_root() + p;
-		struct stat s = {};
-		if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
-			continue;
-		}
-
-		m_cri_v1 = std::make_unique<libsinsp::cri::cri_interface_v1>(cri_path);
-		if(!m_cri_v1->is_ok()) {
-			m_cri_v1.reset(nullptr);
-		} else {
-			// Store used unix_socket_path
-			cri_settings.set_cri_unix_socket_path(p);
-			break;
-		}
-
-		m_cri_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
-		if(!m_cri_v1alpha2->is_ok()) {
-			m_cri_v1alpha2.reset(nullptr);
-		} else {
-			// Store used unix_socket_path
-			cri_settings.set_cri_unix_socket_path(p);
-			break;
-		}
+	m_cri_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(unix_socket_path);
+	if(!m_cri_v1alpha2->is_ok()) {
+		m_cri_v1alpha2.reset(nullptr);
 	}
 }
 
