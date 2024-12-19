@@ -53,4 +53,17 @@ const std::unordered_map<conversion_key, conversion_info> g_conversion_table = {
         {conversion_key{PPME_SOCKET_LISTEN_X, 1},
          conversion_info()
                  .action(C_ACTION_ADD_PARAMS)
-                 .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})}};
+                 .instrs({{C_INSTR_FROM_ENTER, 0}, {C_INSTR_FROM_ENTER, 1}})},
+        {conversion_key{PPME_SOCKET_ACCEPT_E, 0}, conversion_info().action(C_ACTION_SKIP)},
+        {conversion_key{PPME_SOCKET_ACCEPT_X, 3},
+         conversion_info()
+                 .desired_type(PPME_SOCKET_ACCEPT_5_X)
+                 .action(C_ACTION_CHANGE_TYPE)
+                 .instrs({
+                         {C_INSTR_FROM_OLD, 0},
+                         {C_INSTR_FROM_OLD, 1},
+                         {C_INSTR_FROM_OLD, 2},
+                         {C_INSTR_FROM_DEFAULT, 0},
+                         {C_INSTR_FROM_DEFAULT, 0},
+                 })},
+        {conversion_key{PPME_SOCKET_ACCEPT_5_E, 0}, conversion_info().action(C_ACTION_SKIP)}};

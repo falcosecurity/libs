@@ -520,7 +520,7 @@ int get_enter_event_fd_location(ppm_event_code etype) {
 	return location;
 }
 
-// In the exit events we don't have a precise convension on the fd parameter position.
+// In the exit events we don't have a precise convention on the fd parameter position.
 int get_exit_event_fd_location(ppm_event_code etype) {
 	ASSERT(etype < PPM_EVENT_MAX);
 	ASSERT(PPME_IS_EXIT(etype));
@@ -529,13 +529,14 @@ int get_exit_event_fd_location(ppm_event_code etype) {
 	// we want to return -1 as location if we forgot to handle something
 	int location = -1;
 	switch(etype) {
+	case PPME_SOCKET_LISTEN_X:
+		location = 1;
+		break;
 	case PPME_SYSCALL_READ_X:
 	case PPME_SYSCALL_PREAD_X:
 	case PPME_SOCKET_BIND_X:
 		location = 2;
 		break;
-	case PPME_SOCKET_LISTEN_X:
-		location = 1;
 	default:
 		break;
 	}
