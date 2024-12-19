@@ -216,60 +216,61 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr) const {
 
 bool sinsp_network_interfaces::is_ipv4addr_in_local_machine(uint32_t addr,
                                                             sinsp_threadinfo* tinfo) const {
-	if(!tinfo->m_container_id.empty()) {
-		const sinsp_container_info::ptr_t container_info =
-		        tinfo->m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+	// TODO
+	/*if(!tinfo->m_container_id.empty()) {
+	    const sinsp_container_info::ptr_t container_info =
+	            tinfo->m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 
-		//
-		// Note: if we don't have container info, any pick we make is arbitrary.
-		// To at least achieve consistency across client and server, we just match the host
-		// interface addresses.
-		//
-		if(container_info) {
-			if(container_info->m_container_ip != 0) {
-				//
-				// We have a container info with a valid container IP. Let's use it.
-				//
-				if(addr == htonl(container_info->m_container_ip)) {
-					return true;
-				}
-			} else {
-				//
-				// Container info is valid, but the IP address is zero.
-				// Scan the list of the containers looking for matches.
-				// If no match is found, we just jump to checking the
-				// host interfaces.
-				//
+	    //
+	    // Note: if we don't have container info, any pick we make is arbitrary.
+	    // To at least achieve consistency across client and server, we just match the host
+	    // interface addresses.
+	    //
+	    if(container_info) {
+	        if(container_info->m_container_ip != 0) {
+	            //
+	            // We have a container info with a valid container IP. Let's use it.
+	            //
+	            if(addr == htonl(container_info->m_container_ip)) {
+	                return true;
+	            }
+	        } else {
+	            //
+	            // Container info is valid, but the IP address is zero.
+	            // Scan the list of the containers looking for matches.
+	            // If no match is found, we just jump to checking the
+	            // host interfaces.
+	            //
 
-				if(!container_info->is_successful()) {
-					libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
-					                          "Checking IP address of container %s with incomplete "
-					                          "metadata (state=%d)",
-					                          tinfo->m_container_id.c_str(),
-					                          container_info->get_lookup_status());
-				}
+	            if(!container_info->is_successful()) {
+	                libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
+	                                          "Checking IP address of container %s with incomplete "
+	                                          "metadata (state=%d)",
+	                                          tinfo->m_container_id.c_str(),
+	                                          container_info->get_lookup_status());
+	            }
 
-				const sinsp_container_manager::map_ptr_t clist =
-				        tinfo->m_inspector->m_container_manager.get_containers();
+	            const sinsp_container_manager::map_ptr_t clist =
+	                    tinfo->m_inspector->m_container_manager.get_containers();
 
-				for(const auto& it : *clist) {
-					if(!it.second->is_successful()) {
-						libsinsp_logger()->format(
-						        sinsp_logger::SEV_DEBUG,
-						        "Checking IP address of container %s with incomplete metadata (in "
-						        "context of %s; state=%d)",
-						        it.second->m_id.c_str(),
-						        tinfo->m_container_id.c_str(),
-						        it.second->get_lookup_status());
-					}
+	            for(const auto& it : *clist) {
+	                if(!it.second->is_successful()) {
+	                    libsinsp_logger()->format(
+	                            sinsp_logger::SEV_DEBUG,
+	                            "Checking IP address of container %s with incomplete metadata (in "
+	                            "context of %s; state=%d)",
+	                            it.second->m_id.c_str(),
+	                            tinfo->m_container_id.c_str(),
+	                            it.second->get_lookup_status());
+	                }
 
-					if(htonl(it.second->m_container_ip) == addr) {
-						return true;
-					}
-				}
-			}
-		}
-	}
+	                if(htonl(it.second->m_container_ip) == addr) {
+	                    return true;
+	                }
+	            }
+	        }
+	    }
+	}*/
 
 	// try to find an interface that has the given IP as address
 	for(const auto& ipv4interface : m_ipv4_interfaces) {
@@ -325,10 +326,11 @@ ipv6addr sinsp_network_interfaces::infer_ipv6_address(ipv6addr& destination_addr
 
 bool sinsp_network_interfaces::is_ipv6addr_in_local_machine(ipv6addr& addr,
                                                             sinsp_threadinfo* tinfo) const {
-	if(!tinfo->m_container_id.empty()) {
-		// For now, not supporting ipv6 networking for containers. So always return false;
-		return false;
-	}
+	/*if(!tinfo->m_container_id.empty()) {
+	 * TODO
+	    // For now, not supporting ipv6 networking for containers. So always return false;
+	    return false;
+	}*/
 
 	// try to find an interface that has the given IP as address
 	for(const auto& ipv6interface : m_ipv6_interfaces) {

@@ -13,16 +13,17 @@
 # the License.
 #
 
-add_executable(sinsp-debug sinsp_debug.cpp)
-
-target_link_libraries(sinsp-debug PRIVATE sinsp)
-
-if(EMSCRIPTEN)
-	target_compile_options(sinsp-debug PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
-	target_link_options(sinsp-debug PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
-	target_link_options(sinsp-debug PRIVATE "-sALLOW_MEMORY_GROWTH=1")
-	target_link_options(sinsp-debug PRIVATE "-sEXPORTED_FUNCTIONS=['_main','_htons','_ntohs']")
-	# note(jasondellaluce): since we run tests with node, we need to add this for reading from local
-	# capture files.
-	target_link_options(sinsp-debug PRIVATE "-sNODERAWFS=1")
+set(CONTAINER_LIBRARY "${CMAKE_CURRENT_BINARY_DIR}/container_plugin-prefix/src/libcontainer.so")
+set(CONTAINER_VERSION "0.1.0-alpha")
+if(NOT TARGET container_plugin)
+	message(STATUS "Fetching container plugin ${CONTAINER_VERSION} in '${CONTAINER_LIBRARY}'")
+	ExternalProject_Add(
+		container_plugin
+		URL "https://github.com/FedeDP/container_plugin/releases/download/${CONTAINER_VERSION}/libcontainer.so"
+		# URL_HASH "SHA256="
+		DOWNLOAD_NO_EXTRACT 1
+		CONFIGURE_COMMAND ""
+		BUILD_COMMAND ""
+		INSTALL_COMMAND ""
+	)
 endif()
