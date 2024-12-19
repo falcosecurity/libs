@@ -17,6 +17,7 @@ limitations under the License.
 */
 
 #include <algorithm>
+#include <vector>
 
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include <libsinsp/container_engine/cri.h>
@@ -30,6 +31,7 @@ limitations under the License.
 #include <libsinsp/container_engine/lxc.h>
 #include <libsinsp/container_engine/mesos.h>
 #include <libsinsp/container_engine/bpm.h>
+#include <libsinsp/container_engine/containerd.h>
 #endif  // MINIMAL_BUILD
 #include <libsinsp/container_engine/static_container.h>
 
@@ -551,7 +553,7 @@ void sinsp_container_manager::create_engines() {
 		                                                                   m_static_name,
 		                                                                   m_static_image);
 		m_container_engines.push_back(engine);
-		m_container_engine_by_type[CT_STATIC] = engine;
+		m_container_engine_by_type[CT_STATIC].push_back(engine);
 		return;
 	}
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
@@ -559,45 +561,66 @@ void sinsp_container_manager::create_engines() {
 	if(m_container_engine_mask & (1 << CT_PODMAN)) {
 		auto podman_engine = std::make_shared<container_engine::podman>(*this);
 		m_container_engines.push_back(podman_engine);
-		m_container_engine_by_type[CT_PODMAN] = podman_engine;
+		m_container_engine_by_type[CT_PODMAN].push_back(podman_engine);
 	}
 	if(m_container_engine_mask & (1 << CT_DOCKER)) {
 		auto docker_engine = std::make_shared<container_engine::docker_linux>(*this);
 		m_container_engines.push_back(docker_engine);
-		m_container_engine_by_type[CT_DOCKER] = docker_engine;
+		m_container_engine_by_type[CT_DOCKER].push_back(docker_engine);
 	}
 
 	if(m_container_engine_mask & ((1 << CT_CRI) | (1 << CT_CRIO) | (1 << CT_CONTAINERD))) {
-		auto cri_engine = std::make_shared<container_engine::cri>(*this);
-		m_container_engines.push_back(cri_engine);
-		m_container_engine_by_type[CT_CRI] = cri_engine;
-		m_container_engine_by_type[CT_CRIO] = cri_engine;
-		m_container_engine_by_type[CT_CONTAINERD] = cri_engine;
+		// Get CRI socket paths from settings
+		libsinsp::cri::cri_settings& cri_settings = libsinsp::cri::cri_settings::get();
+		if(cri_settings.get_cri_unix_socket_paths().empty()) {
+			// Add default paths
+			cri_settings.add_cri_unix_socket_path("/run/containerd/containerd.sock");
+			cri_settings.add_cri_unix_socket_path("/run/crio/crio.sock");
+			cri_settings.add_cri_unix_socket_path("/run/k3s/containerd/containerd.sock");
+		}
+
+		const auto& cri_socket_paths = cri_settings.get_cri_unix_socket_paths();
+
+		size_t engine_index = 0;
+		for(auto socket_path : cri_socket_paths) {
+			auto cri_engine =
+			        std::make_shared<container_engine::cri>(*this, socket_path, engine_index);
+			m_container_engines.push_back(cri_engine);
+			m_container_engine_by_type[CT_CRI].push_back(cri_engine);
+			m_container_engine_by_type[CT_CRIO].push_back(cri_engine);
+			m_container_engine_by_type[CT_CONTAINERD].push_back(cri_engine);
+			engine_index++;
+		}
 	}
 	if(m_container_engine_mask & (1 << CT_LXC)) {
 		auto lxc_engine = std::make_shared<container_engine::lxc>(*this);
 		m_container_engines.push_back(lxc_engine);
-		m_container_engine_by_type[CT_LXC] = lxc_engine;
+		m_container_engine_by_type[CT_LXC].push_back(lxc_engine);
 	}
 	if(m_container_engine_mask & (1 << CT_LIBVIRT_LXC)) {
 		auto libvirt_lxc_engine = std::make_shared<container_engine::libvirt_lxc>(*this);
 		m_container_engines.push_back(libvirt_lxc_engine);
-		m_container_engine_by_type[CT_LIBVIRT_LXC] = libvirt_lxc_engine;
+		m_container_engine_by_type[CT_LIBVIRT_LXC].push_back(libvirt_lxc_engine);
 	}
 	if(m_container_engine_mask & (1 << CT_MESOS)) {
 		auto mesos_engine = std::make_shared<container_engine::mesos>(*this);
 		m_container_engines.push_back(mesos_engine);
-		m_container_engine_by_type[CT_MESOS] = mesos_engine;
+		m_container_engine_by_type[CT_MESOS].push_back(mesos_engine);
 	}
 	if(m_container_engine_mask & (1 << CT_RKT)) {
 		auto rkt_engine = std::make_shared<container_engine::rkt>(*this);
 		m_container_engines.push_back(rkt_engine);
-		m_container_engine_by_type[CT_RKT] = rkt_engine;
+		m_container_engine_by_type[CT_RKT].push_back(rkt_engine);
 	}
 	if(m_container_engine_mask & (1 << CT_BPM)) {
 		auto bpm_engine = std::make_shared<container_engine::bpm>(*this);
 		m_container_engines.push_back(bpm_engine);
-		m_container_engine_by_type[CT_BPM] = bpm_engine;
+		m_container_engine_by_type[CT_BPM].push_back(bpm_engine);
+	}
+	if(m_container_engine_mask & (1 << CT_CONTAINERD)) {
+		auto containerd_engine = std::make_shared<container_engine::containerd>(*this);
+		m_container_engines.push_back(containerd_engine);
+		m_container_engine_by_type[CT_CONTAINERD].push_back(containerd_engine);
 	}
 #endif  // _WIN32
 #endif  // MINIMAL_BUILD
@@ -615,7 +638,9 @@ void sinsp_container_manager::update_container_with_size(sinsp_container_type ty
 	}
 
 	libsinsp_logger()->format(sinsp_logger::SEV_DEBUG, "Request size for %s", container_id.c_str());
-	found->second->update_with_size(container_id);
+	for(const auto& engine : found->second) {
+		engine->update_with_size(container_id);
+	}
 }
 
 void sinsp_container_manager::cleanup() {
