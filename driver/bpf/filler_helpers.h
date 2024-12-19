@@ -606,11 +606,9 @@ static __always_inline int unix_socket_path(char *dest, const char *user_ptr, si
 	 * specified length of the address structure.
 	 */
 	if(res == 1) {
-		dest[0] = '@';
-		res = bpf_probe_read_kernel_str(dest + 1,
+		res = bpf_probe_read_kernel_str(dest,
 		                                size - 1,  // account for '@'
 		                                user_ptr + 1);
-		res++;  // account for '@'
 	}
 	return res;
 }
@@ -882,7 +880,7 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 		 */
 		struct unix_sock *us = (struct unix_sock *)sk;
 		struct sock *speer = _READ(us->peer);
-		char *us_name;
+		char *us_name = NULL;
 
 		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
 
@@ -891,49 +889,19 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1 + 8) & SCRATCH_SIZE_HALF],
 			       &speer,
 			       8);
+			us_name = ((struct sockaddr_un *)sock_address)->sun_path;
 		} else {
 			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &speer, 8);
 			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1 + 8) & SCRATCH_SIZE_HALF], &us, 8);
+			bpf_getsockname(sock, peer_address, 1);
+			us_name = ((struct sockaddr_un *)peer_address)->sun_path;
 		}
 
-		/*
-		 * Pack the data into the target buffer
-		 */
 		size = 1 + 8 + 8;
-
-		if(!use_userdata) {
-			if(is_inbound) {
-				us_name = ((struct sockaddr_un *)sock_address)->sun_path;
-			} else {
-				bpf_getsockname(sock, peer_address, 1);
-				us_name = ((struct sockaddr_un *)peer_address)->sun_path;
-			}
-		} else {
-			/*
-			 * Map the user-provided address to a sockaddr_in
-			 */
-			struct sockaddr_un *usrsockaddr_un = (struct sockaddr_un *)usrsockaddr;
-
-			/*
-			 * Put a 0 at the end of struct sockaddr_un because
-			 * the user might not have considered it in the length
-			 */
-			if(ulen == sizeof(struct sockaddr_storage))
-				((char *)usrsockaddr_un)[(ulen - 1) & SCRATCH_SIZE_MAX] = 0;
-			else
-				((char *)usrsockaddr_un)[ulen & SCRATCH_SIZE_MAX] = 0;
-
-			if(is_inbound)
-				us_name = ((struct sockaddr_un *)sock_address)->sun_path;
-			else
-				us_name = usrsockaddr_un->sun_path;
-		}
-
 		int res = unix_socket_path(
 		        &data->buf[(data->state->tail_ctx.curoff + 1 + 8 + 8) & SCRATCH_SIZE_HALF],
 		        us_name,
 		        UNIX_PATH_MAX);
-
 		size += res;
 
 		break;
