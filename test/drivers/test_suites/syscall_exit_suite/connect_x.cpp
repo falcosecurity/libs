@@ -1,4 +1,5 @@
 #include "../../event_class/event_class.h"
+#include <libscap/strl.h>
 
 #if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_close)
 
@@ -187,6 +188,14 @@ TEST(SyscallExit, connectX_UNIX) {
 	        NOT_EQUAL,
 	        -1);
 
+	// Create a symlink
+	const char* server_symlink = "/tmp/xyzxe-server-symlink";
+	int ret = symlink(UNIX_SERVER, server_symlink);
+	if(ret == -1) {
+		FAIL() << "Failed to create symlink";
+	}
+	strlcpy(server_addr.sun_path, server_symlink, MAX_SUN_PATH);
+
 	assert_syscall_state(
 	        SYSCALL_SUCCESS,
 	        "connect (client)",
@@ -198,6 +207,7 @@ TEST(SyscallExit, connectX_UNIX) {
 	syscall(__NR_close, client_socket_fd);
 	syscall(__NR_close, server_socket_fd);
 	syscall(__NR_unlinkat, 0, UNIX_CLIENT, 0);
+	syscall(__NR_unlinkat, 0, server_symlink, 0);
 	syscall(__NR_unlinkat, 0, UNIX_SERVER, 0);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
