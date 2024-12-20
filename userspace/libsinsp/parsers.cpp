@@ -2255,8 +2255,18 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 			auto thread_ptr = thread.lock().get();
 			/* we don't want to remove the main thread since it is the one
 			 * running in this parser!
+			 *
+			 * Also make sure the thread to be removed is not the one
+			 * associated with the event. Under normal conditions this
+			 * should not happen, since the kernel will reassign tid before
+			 * returning from the exec syscall. But there are crash reports,
+			 * indicating possibility the original tid is kept in place, but
+			 * the syscall still returns a success.
+			 *
+			 * To handle such cases gracefully, keep the event thread.
 			 */
-			if(thread_ptr == nullptr || thread_ptr->is_main_thread()) {
+			if(thread_ptr == nullptr || thread_ptr->is_main_thread() ||
+			   thread_ptr->m_tid == evt->get_tinfo()->m_tid) {
 				continue;
 			}
 			m_inspector->remove_thread(thread_ptr->m_tid);
