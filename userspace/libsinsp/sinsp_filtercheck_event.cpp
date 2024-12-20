@@ -1198,18 +1198,17 @@ uint8_t* sinsp_filter_check_event::extract_single(sinsp_evt* evt,
 
 		ASSERT(m_inspector != NULL);
 
+		sinsp_evt::param_fmt format =
+		        m_is_compare ? sinsp_evt::param_fmt::PF_NORMAL : m_inspector->get_buffer_format();
+
 		if(m_argid != -1) {
 			if(m_argid >= (int32_t)evt->get_num_params()) {
 				return NULL;
 			}
 
-			argstr = evt->get_param_as_str(m_argid,
-			                               &resolved_argstr,
-			                               m_inspector->get_buffer_format());
+			argstr = evt->get_param_as_str(m_argid, &resolved_argstr, format);
 		} else {
-			argstr = evt->get_param_value_str(m_argname,
-			                                  &resolved_argstr,
-			                                  m_inspector->get_buffer_format());
+			argstr = evt->get_param_value_str(m_argname, &resolved_argstr, format);
 		}
 
 		if(resolved_argstr != NULL && resolved_argstr[0] != 0) {
