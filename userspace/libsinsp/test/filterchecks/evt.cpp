@@ -175,6 +175,7 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_cmd_str) {
 
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.cmd"), "BPF_PROG_LOAD");
 }
+
 TEST_F(sinsp_with_test_input, EVT_FILTER_check_evt_arg_uid) {
 	add_default_init_thread();
 	open_inspector();
@@ -289,4 +290,31 @@ TEST_F(sinsp_with_test_input, EVT_FILTER_thread_proc_info) {
 	                           (uint64_t)0);
 	ASSERT_EQ(get_field_as_string(evt, "evt.count.procinfo"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "evt.count.threadinfo"), "1");
+}
+
+TEST_F(sinsp_with_test_input, EVT_FILTER_data_buffer_str) {
+	add_default_init_thread();
+
+	open_inspector();
+
+	uint64_t fd = 0;
+	uint8_t read_buf[] = {'g', 'i', 'g', 'i'};
+	uint32_t read_size = sizeof(read_buf);
+
+	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_READ_E, 2, fd, read_size);
+
+	evt = add_event_advance_ts(increasing_ts(),
+	                           1,
+	                           PPME_SYSCALL_READ_X,
+	                           4,
+	                           (int64_t)0,
+	                           scap_const_sized_buffer{read_buf, read_size},
+	                           fd,
+	                           read_size);
+
+	EXPECT_TRUE(eval_filter(evt, "evt.arg.data = gigi"));
+
+	// changing the output format must not affect the filter
+	m_inspector.set_buffer_format(sinsp_evt::PF_BASE64);
+	EXPECT_TRUE(eval_filter(evt, "evt.arg.data = gigi"));
 }
