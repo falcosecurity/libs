@@ -86,11 +86,12 @@ public:
 		if(!t) {
 			throw sinsp_exception("null table added to registry");
 		}
-		const auto& it = m_tables.find(t->name());
+		std::string name = t->name();
+		const auto& it = m_tables.find(name);
 		if(it != m_tables.end()) {
-			throw sinsp_exception("table added to registry multiple times: " + t->name());
+			throw sinsp_exception("table added to registry multiple times: " + name);
 		}
-		m_tables.insert({t->name(), t});
+		m_tables.insert({name, t});
 		return t;
 	}
 

@@ -23,6 +23,8 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <cstring>
+#include <vector>
 
 namespace libsinsp {
 namespace state {
@@ -96,7 +98,7 @@ public:
 		inline bool valid() const {
 			// note(jasondellaluce): for now dynamic fields of type table are
 			// not supported, so we consider them to be invalid
-			return m_index != (size_t)-1 && m_info.index() != typeinfo::index_t::TI_TABLE;
+			return m_index != (size_t)-1 && m_info.type_id() != SS_PLUGIN_ST_TABLE;
 		}
 
 		/**
@@ -210,7 +212,7 @@ public:
 
 	protected:
 		virtual const field_info& add_field_info(const field_info& field) {
-			if(field.info().index() == typeinfo::index_t::TI_TABLE) {
+			if(field.info().type_id() == SS_PLUGIN_ST_TABLE) {
 				throw sinsp_exception("dynamic fields of type table are not supported");
 			}
 
@@ -308,7 +310,7 @@ protected:
 	 */
 	virtual void get_dynamic_field(const field_info& i, void* out) {
 		const auto* buf = _access_dynamic_field(i.m_index);
-		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((const char**)out) = ((const std::string*)buf)->c_str();
 		} else {
 			memcpy(out, buf, i.info().size());
@@ -323,7 +325,7 @@ protected:
 	 */
 	virtual void set_dynamic_field(const field_info& i, const void* in) {
 		auto* buf = _access_dynamic_field(i.m_index);
-		if(i.info().index() == typeinfo::index_t::TI_STRING) {
+		if(i.info().type_id() == SS_PLUGIN_ST_STRING) {
 			*((std::string*)buf) = *((const char**)in);
 		} else {
 			memcpy(buf, in, i.info().size());
