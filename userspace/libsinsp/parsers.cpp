@@ -2721,10 +2721,7 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt) {
 	if(parinfo->m_len == 0) {
 		//
 		// No address, there's nothing we can really do with this.
-		// This happens for socket types that we don't support, so we have the assertion
-		// to make sure that this is not a type of socket that we support.
 		//
-		ASSERT(!(evt->get_fd_info()->is_unix_socket() || evt->get_fd_info()->is_ipv4_socket()));
 		return;
 	}
 
