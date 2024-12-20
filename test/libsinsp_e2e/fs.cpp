@@ -544,6 +544,7 @@ TEST_F(sys_call_test, fs_readv) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set());
 	});
 
@@ -1248,6 +1249,7 @@ TEST_F(sys_call_test, large_read_write) {
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   event_capture::do_nothing,
 		                   setup,
 		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set(),
@@ -1367,6 +1369,7 @@ TEST_F(sys_call_test, large_readv_writev) {
 		event_capture::run(test,
 		                   callback,
 		                   filter,
+		                   event_capture::do_nothing,
 		                   setup,
 		                   event_capture::do_nothing,
 		                   libsinsp::events::all_sc_set(),

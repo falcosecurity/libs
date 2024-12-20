@@ -254,6 +254,7 @@ TEST_F(sys_call_test, unix_client_server) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
+		                   event_capture::do_nothing,
 		                   libsinsp::events::sinsp_state_sc_set());
 	});
 	EXPECT_FALSE(first_connect_or_accept_seen);
