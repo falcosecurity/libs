@@ -1018,4 +1018,16 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_uretprobe
 	[__NR_uretprobe - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_URETPROBE},
 #endif
+#ifdef __NR_listxattrat
+	[__NR_listxattrat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LISTXATTRAT},
+#endif
+#ifdef __NR_getxattrat
+	[__NR_getxattrat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_GETXATTRAT},
+#endif
+#ifdef __NR_setxattrat
+	[__NR_setxattrat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SETXATTRAT},
+#endif
+#ifdef __NR_removexattrat
+	[__NR_removexattrat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_REMOVEXATTRAT},
+#endif
 };

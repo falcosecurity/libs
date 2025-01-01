@@ -31,7 +31,7 @@ limitations under the License.
  * NOTE: first 2 lines are automatically bumped by syscalls-bumper.
  */
 static const ppm_sc_code *g_events_to_sc_map[] = {
-        [PPME_GENERIC_E] = (ppm_sc_code[]){PPM_SC_RESTART_SYSCALL,
+        [PPME_GENERIC_E] = (ppm_sc_code[]){PPM_SC_RESTART_SYSCALL,PPM_SC_LISTXATTRAT, PPM_SC_GETXATTRAT, PPM_SC_SETXATTRAT, PPM_SC_REMOVEXATTRAT,  -1},
                                            PPM_SC_EXIT,
                                            PPM_SC_TIME,
                                            PPM_SC_GETPID,
@@ -296,7 +296,7 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
                                            PPM_SC_MSEAL,
                                            PPM_SC_URETPROBE,
                                            -1},
-        [PPME_GENERIC_X] = (ppm_sc_code[]){PPM_SC_RESTART_SYSCALL,
+        [PPME_GENERIC_X] = (ppm_sc_code[]){PPM_SC_RESTART_SYSCALL,PPM_SC_REMOVEXATTRAT, PPM_SC_LISTXATTRAT, PPM_SC_GETXATTRAT, PPM_SC_SETXATTRAT,  -1},
                                            PPM_SC_EXIT,
                                            PPM_SC_TIME,
                                            PPM_SC_GETPID,
