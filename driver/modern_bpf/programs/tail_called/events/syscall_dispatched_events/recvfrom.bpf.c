@@ -13,7 +13,9 @@
 
 SEC("tp_btf/sys_enter")
 int BPF_PROG(recvfrom_e, struct pt_regs *regs, long id) {
-	/* Collect parameters at the beginning to  manage socketcalls */
+	/* We need to keep this at the beginning of the program because otherwise we alter the state of
+	 * the ebpf registers causing a verifier issue.
+	 */
 	unsigned long args[3] = {0};
 	extract__network_args(args, 3, regs);
 
