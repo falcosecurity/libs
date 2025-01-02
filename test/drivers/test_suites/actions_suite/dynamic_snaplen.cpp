@@ -73,7 +73,7 @@ TEST(Actions, dynamic_snaplen_negative_fd) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	/* We expect the default snaplen since we cannot enable the dynamic snaplen logic */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
 
@@ -246,12 +246,23 @@ TEST(Actions, dynamic_snaplen_HTTP) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, data_len);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_partial_HTTP_OPT) {
@@ -338,12 +349,23 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_HTTP_TRACE) {
@@ -429,12 +451,23 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, data_len);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_MYSQL) {
@@ -523,12 +556,23 @@ TEST(Actions, dynamic_snaplen_MYSQL) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, data_len);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  std::to_string(PPM_PORT_MYSQL).c_str(),
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_not_MYSQL) {
@@ -615,12 +659,23 @@ TEST(Actions, dynamic_snaplen_not_MYSQL) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  std::to_string(PPM_PORT_MYSQL).c_str(),
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_POSTGRES) {
@@ -709,12 +764,23 @@ TEST(Actions, dynamic_snaplen_POSTGRES) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, data_len);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  std::to_string(PPM_PORT_POSTGRES).c_str(),
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_not_POSTGRES) {
@@ -801,12 +867,23 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  std::to_string(PPM_PORT_POSTGRES).c_str(),
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_MONGO) {
@@ -893,12 +970,23 @@ TEST(Actions, dynamic_snaplen_MONGO) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_not_MONGO) {
@@ -985,12 +1073,23 @@ TEST(Actions, dynamic_snaplen_not_MONGO) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_statsd_port) {
@@ -1084,12 +1183,23 @@ TEST(Actions, dynamic_snaplen_statsd_port) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, data_len);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 
 TEST(Actions, dynamic_snaplen_no_statsd_port) {
@@ -1183,12 +1293,23 @@ TEST(Actions, dynamic_snaplen_no_statsd_port) {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
-	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
+
+	/* Parameter 4: size (type: PT_UINT32) */
+	evt_test->assert_numeric_param(4, data_len);
+
+	/* Parameter 5: tuple (type: PT_SOCKTUPLE) */
+	evt_test->assert_tuple_inet_param(5,
+	                                  PPM_AF_INET,
+	                                  IPV4_CLIENT,
+	                                  IPV4_SERVER,
+	                                  IPV4_PORT_CLIENT_STRING,
+	                                  IPV4_PORT_SERVER_STRING);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(5);
 }
 #endif
 #endif

@@ -192,13 +192,12 @@ TEST_F(sys_call_test, unix_client_server) {
 
 		//
 		// 32bit (and s390x) uses send() and recv(), while 64bit
-		// uses sendto() and recvfrom() and sets the address to NULL
+		// uses sendto() and recvfrom(). recvfrom() sets address to NULL.
 		//
 		if(evt->get_type() == PPME_SOCKET_SEND_E || evt->get_type() == PPME_SOCKET_RECV_E ||
 		   evt->get_type() == PPME_SOCKET_SENDTO_E || evt->get_type() == PPME_SOCKET_RECVFROM_E) {
-			if(((evt->get_type() == PPME_SOCKET_RECVFROM_X) ||
-			    (evt->get_type() == PPME_SOCKET_RECVFROM_X)) &&
-			   (evt->get_param_value_str("tuple") != "")) {
+			if(evt->get_type() == PPME_SOCKET_RECVFROM_E &&
+			   evt->get_param_value_str("tuple") != "") {
 				EXPECT_EQ("NULL", evt->get_param_value_str("tuple"));
 			}
 

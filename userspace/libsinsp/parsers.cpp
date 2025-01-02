@@ -79,12 +79,6 @@ void sinsp_parser::process_event(sinsp_evt *evt) {
 	// Route the event to the proper function
 	//
 	switch(etype) {
-	case PPME_SOCKET_SENDTO_E:
-		if((evt->get_fd_info() == nullptr) && (evt->get_tinfo() != nullptr)) {
-			infer_sendto_fdinfo(evt);
-		}
-
-		// FALLTHRU
 	case PPME_SYSCALL_OPEN_E:
 	case PPME_SYSCALL_CREAT_E:
 	case PPME_SYSCALL_OPENAT_E:
@@ -2647,18 +2641,20 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt *const evt) {
 		return;
 	}
 
-	const uint32_t FILE_DESCRIPTOR_PARAM = 0;
-	const uint32_t SOCKET_TUPLE_PARAM = 2;
+	const uint32_t FILE_DESCRIPTOR_PARAM = 2;
+	const uint32_t SOCKET_TUPLE_PARAM = 4;
 
 	const sinsp_evt_param *parinfo = nullptr;
 
-	ASSERT(evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
-	int64_t fd = evt->get_param(FILE_DESCRIPTOR_PARAM)->as<int64_t>();
-
-	if(fd < 0) {
-		// Call to sendto() with an invalid file descriptor
+	int64_t retval = evt->get_syscall_return_value();
+	if(retval < 0) {
+		// Call to sendto() failed so we cannot trust parameters provided by the user.
 		return;
 	}
+
+	ASSERT(evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
+	int64_t fd = evt->get_param(FILE_DESCRIPTOR_PARAM)->as<int64_t>();
+	ASSERT(fd >= 0);
 
 	parinfo = evt->get_param(SOCKET_TUPLE_PARAM);
 	const char addr_family = *((char *)parinfo->m_val);
@@ -3675,21 +3671,24 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 		return;
 	}
 
-	//
-	// Extract the return value
-	//
-	retval = evt->get_syscall_return_value();
+	if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X) &&
+   evt->get_fd_info() == nullptr && evt->get_tinfo() != nullptr) {
+		infer_sendto_fdinfo(evt);
+   }
 
 	if(evt->get_fd_info() == NULL) {
 		return;
 	}
 
 	//
+	// Extract the return value
+	//
+	retval = evt->get_syscall_return_value();
+
+	//
 	// If the operation was successful, validate that the fd exists
 	//
 	if(retval >= 0) {
-		uint16_t etype = evt->get_type();
-
 		if(evt->get_fd_info()->m_type == SCAP_FD_IPV4_SOCK ||
 		   evt->get_fd_info()->m_type == SCAP_FD_IPV6_SOCK) {
 			evt->get_fd_info()->set_socket_connected();
@@ -3831,32 +3830,30 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 
 		} else {
 			uint32_t datalen;
-			int32_t tupleparam = -1;
 
-			if(etype == PPME_SOCKET_SENDTO_X || etype == PPME_SOCKET_SENDMSG_X) {
-				tupleparam = 2;
-			} else if(etype == PPME_SOCKET_SENDMMSG_X) {
-				tupleparam = 4;
-			}
-
-			if(tupleparam != -1 &&
+			if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X ||
+			    etype == PPME_SOCKET_SENDMSG_X || etype == PPME_SOCKET_SENDMMSG_X) &&
 			   (evt->get_fd_info()->m_name.length() == 0 || !evt->get_fd_info()->is_tcp_socket())) {
 				//
-				// sendto contains tuple info in the enter event.
+				// send, sendto and sendmmsg contain tuple info in the exit event while sendmsg
+				// contains them into enter event.
 				// If the fd still doesn't contain tuple info (because the socket is a datagram one
 				// or because some event was lost), add it here.
 				//
-				if(etype == PPME_SOCKET_SENDMMSG_X) {
-					// sendmmsg has the tuple as part of the exit event, so
-					// we trick the parser to read it from this event.
-					enter_evt = evt;
-				} else if(!retrieve_enter_event(enter_evt, evt)) {
-					return;
+				sinsp_evt *src_evt;
+				int32_t tupleparam = -1;
+				if(etype == PPME_SOCKET_SENDMSG_X) {
+					if(!retrieve_enter_event(enter_evt, evt)) {
+						return;
+					}
+					src_evt = enter_evt;
+					tupleparam = 2;
+				} else {  // PPME_SOCKET_SEND_X, PPME_SOCKET_SENDTO_X or PPME_SOCKET_SENDMMSG_X
+					src_evt = evt;
+					tupleparam = 4;
 				}
 
-				if(update_fd(evt, enter_evt->get_param(tupleparam))) {
-					const char *parstr;
-
+				if(update_fd(evt, src_evt->get_param(tupleparam))) {
 					scap_fd_type fdtype = evt->get_fd_info()->m_type;
 
 					if(fdtype == SCAP_FD_IPV4_SOCK || fdtype == SCAP_FD_IPV6_SOCK) {
@@ -3880,10 +3877,11 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 
 						evt->get_fd_info()->m_name = &evt->get_paramstr_storage()[0];
 					} else {
+						const char *parstr;
 						evt->get_fd_info()->m_name =
-						        enter_evt->get_param_as_str(tupleparam,
-						                                    &parstr,
-						                                    sinsp_evt::PF_SIMPLE);
+						        src_evt->get_param_as_str(tupleparam,
+						                                  &parstr,
+						                                  sinsp_evt::PF_SIMPLE);
 					}
 				}
 			}
