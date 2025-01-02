@@ -31,10 +31,10 @@ TEST(SyscallEnter, sendtoE_ipv4_tcp) {
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 2: size (type: PT_UINT32)*/
+	/* Parameter 2: size (type: PT_UINT32) */
 	evt_test->assert_numeric_param(2, (uint32_t)SHORT_MESSAGE_LEN);
 
-	/* Parameter 3: tuple (type: PT_SOCKTUPLE)*/
+	/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_tuple_inet_param(3,
 	                                  PPM_AF_INET,
 	                                  IPV4_CLIENT,
