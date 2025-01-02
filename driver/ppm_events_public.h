@@ -1989,7 +1989,11 @@ enum sys_exit_extra_code {
 	PPM_SC_X(LSM_SET_SELF_ATTR, 440)       \
 	PPM_SC_X(LSM_LIST_MODULES, 441)        \
 	PPM_SC_X(MSEAL, 442)                   \
-	PPM_SC_X(URETPROBE, 443)
+	PPM_SC_X(URETPROBE, 443)               \
+	PPM_SC_X(REMOVEXATTRAT, 444)           \
+	PPM_SC_X(LISTXATTRAT, 445)             \
+	PPM_SC_X(GETXATTRAT, 446)              \
+	PPM_SC_X(SETXATTRAT, 447)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = (value),

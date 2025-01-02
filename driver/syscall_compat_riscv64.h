@@ -968,3 +968,15 @@ or GPL2.txt for full copies of the license.
 #ifndef __NR_mseal
 #define __NR_mseal 462
 #endif
+#ifndef __NR_setxattrat
+#define __NR_setxattrat 463
+#endif
+#ifndef __NR_getxattrat
+#define __NR_getxattrat 464
+#endif
+#ifndef __NR_listxattrat
+#define __NR_listxattrat 465
+#endif
+#ifndef __NR_removexattrat
+#define __NR_removexattrat 466
+#endif
