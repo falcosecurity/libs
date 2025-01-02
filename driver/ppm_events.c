@@ -247,6 +247,10 @@ inline int sock_getname(struct socket *sock, struct sockaddr *sock_address, int 
 		if(!u_addr) {
 			sunaddr->sun_family = AF_UNIX;
 			sunaddr->sun_path[0] = 0;
+			// The first byte to 0 can be confused with an `abstract socket address` for this reason
+			// we put also the second byte to 0 to comunicate to the caller that the address is not
+			// valid.
+			sunaddr->sun_path[1] = 0;
 		} else {
 			unsigned int len = u_addr->len;
 			if(unlikely(len > sizeof(struct sockaddr_storage))) {
@@ -858,15 +862,16 @@ static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed
 
 static void unix_socket_path(char *dest, const char *path, size_t size) {
 	if(path[0] == '\0') {
-		/*
-		 * Extract from: https://man7.org/linux/man-pages/man7/unix.7.html
-		 * an abstract socket address is distinguished (from a
+		/* Please note exceptions in the `sun_path`:
+		 * Taken from: https://man7.org/linux/man-pages/man7/unix.7.html
+		 *
+		 * An `abstract socket address` is distinguished (from a
 		 * pathname socket) by the fact that sun_path[0] is a null byte
-		 * ('\0').  The socket's address in this namespace is given by
-		 * the additional bytes in sun_path that are covered by the
-		 * specified length of the address structure.
+		 * ('\0').
+		 *
+		 * So in this case, we need to skip the initial `\0`.
 		 */
-		snprintf(dest, size, "@%s", path + 1);
+		snprintf(dest, size - 1, "%s", path + 1);
 	} else {
 		snprintf(dest,
 		         size,
@@ -999,7 +1004,7 @@ uint16_t fd_to_socktuple(int fd,
 	struct socket *sock;
 	char *dest;
 	struct unix_sock *us;
-	char *us_name;
+	char *us_name = NULL;
 	struct sock *speer;
 	struct sockaddr_un *usrsockaddr_un;
 
@@ -1164,29 +1169,20 @@ uint16_t fd_to_socktuple(int fd,
 		if(is_inbound) {
 			*(uint64_t *)(targetbuf + 1) = (uint64_t)(unsigned long)us;
 			*(uint64_t *)(targetbuf + 1 + 8) = (uint64_t)(unsigned long)speer;
+			us_name = ((struct sockaddr_un *)&sock_address)->sun_path;
 		} else {
 			*(uint64_t *)(targetbuf + 1) = (uint64_t)(unsigned long)speer;
 			*(uint64_t *)(targetbuf + 1 + 8) = (uint64_t)(unsigned long)us;
+			sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+			us_name = ((struct sockaddr_un *)&peer_address)->sun_path;
 		}
 
-		/*
-		 * Pack the data into the target buffer
-		 */
-		size = 1 + 8 + 8;
-
-		if(!use_userdata) {
-			if(is_inbound) {
-				us_name = ((struct sockaddr_un *)&sock_address)->sun_path;
-			} else {
-				err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
-				ASSERT(err == 0);
-
-				us_name = ((struct sockaddr_un *)&peer_address)->sun_path;
-			}
-		} else {
-			/*
-			 * Map the user-provided address to a sockaddr_in
-			 */
+		// `us_name` should contain the socket path extracted from the kernel if we cannot retrieve
+		// it we can fallback to the user-provided address
+		// Note that we check the second byte of `us_name`, see `sock_getname` for more details.
+		// Some times `usrsockaddr` is provided as a NULL pointer, checking `use_userdata` should be
+		// enough but just to be sure we check also `usrsockaddr != NULL`
+		if(us_name && us_name[1] == '\0' && use_userdata && usrsockaddr != NULL) {
 			usrsockaddr_un = (struct sockaddr_un *)usrsockaddr;
 
 			/*
@@ -1203,12 +1199,9 @@ uint16_t fd_to_socktuple(int fd,
 			else
 				us_name = usrsockaddr_un->sun_path;
 		}
-
-		ASSERT(us_name);
-
-		dest = targetbuf + 1 + 8 + 8;
+		size = 1 + 8 + 8;
+		dest = targetbuf + size;
 		unix_socket_path(dest, us_name, UNIX_PATH_MAX);
-
 		size += strlen(dest) + 1;
 		break;
 	default:
