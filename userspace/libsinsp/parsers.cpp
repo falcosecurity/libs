@@ -3681,9 +3681,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 	}
 
 	if((etype == PPME_SOCKET_SEND_X || etype == PPME_SOCKET_SENDTO_X) &&
-   evt->get_fd_info() == nullptr && evt->get_tinfo() != nullptr) {
+	   evt->get_fd_info() == nullptr && evt->get_tinfo() != nullptr) {
 		infer_sendto_fdinfo(evt);
-   }
+	}
 
 	if(evt->get_fd_info() == NULL) {
 		return;
