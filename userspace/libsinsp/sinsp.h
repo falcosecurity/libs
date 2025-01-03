@@ -82,6 +82,7 @@ limitations under the License.
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <queue>
 
 #define ONE_SECOND_IN_NS 1000000000LL
 
@@ -1241,6 +1242,8 @@ public:
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
 	sinsp_observer* m_observer{nullptr};
+
+	std::queue<std::function<void(sinsp_observer* observer, sinsp_evt* evt)>> m_post_process_cbs{};
 
 	bool m_inited;
 	static std::atomic<int> instance_count;

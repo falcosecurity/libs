@@ -1316,6 +1316,20 @@ int32_t sinsp::next(sinsp_evt** puevt) {
 			// todo(jason): should we log parsing errors here?
 			pp.process_event(evt, m_event_sources);
 		}
+
+		// Once we processed all events, make sure to call all
+		// requested post-process callbacks.
+		// At this point, any plugin could have modified state tables,
+		// thus we can guarantee that any post-process callback
+		// will see the full post-event-processed state.
+		// NOTE: we don't use a RAII object because
+		// we cannot guarantee that no exception will be thrown by the callbacks.
+		if(m_observer != nullptr) {
+			for(; !m_post_process_cbs.empty(); m_post_process_cbs.pop()) {
+				auto cb = m_post_process_cbs.front();
+				cb(m_observer, evt);
+			}
+		}
 	}
 
 	// Finally set output evt;
