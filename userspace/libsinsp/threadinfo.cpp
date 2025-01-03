@@ -100,8 +100,6 @@ libsinsp::state::static_struct::field_infos sinsp_threadinfo::static_fields() co
 	define_static_field(ret, this, m_pgid, "pgid");
 	define_static_field(ret, this, m_pidns_init_start_ts, "pidns_init_start_ts");
 	define_static_field(ret, this, m_root, "root");
-	// m_program_hash
-	// m_program_hash_scripts
 	define_static_field(ret, this, m_tty, "tty");
 	// m_category
 	// m_clone_ts
@@ -145,8 +143,6 @@ void sinsp_threadinfo::init() {
 	m_lastevent_fd = 0;
 	m_last_latency_entertime = 0;
 	m_latency = 0;
-	m_program_hash = 0;
-	m_program_hash_scripts = 0;
 	m_lastevent_data = NULL;
 	m_parent_loop_detected = false;
 	m_tty = 0;
@@ -201,57 +197,6 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc() {
 		}
 		return true;
 	});
-}
-
-#define STR_AS_NUM_JAVA 0x6176616a
-#define STR_AS_NUM_RUBY 0x79627572
-#define STR_AS_NUM_PERL 0x6c726570
-#define STR_AS_NUM_NODE 0x65646f6e
-
-#define MAX_PROG_HASH_LEN 1024
-
-void sinsp_threadinfo::compute_program_hash() {
-	auto curr_hash = std::hash<std::string>()(m_exe);
-	hash_combine(curr_hash, m_container_id);
-	auto rem_len = MAX_PROG_HASH_LEN - (m_exe.size() + m_container_id.size());
-
-	//
-	// By default, the scripts hash is just exe+container
-	//
-	m_program_hash_scripts = curr_hash;
-
-	//
-	// The program hash includes the arguments as well
-	//
-	for(auto arg = m_args.begin(); arg != m_args.end() && rem_len > 0; ++arg) {
-		if(arg->size() >= rem_len) {
-			auto partial_str = arg->substr(0, rem_len);
-			hash_combine(curr_hash, partial_str);
-			break;
-		}
-
-		hash_combine(curr_hash, *arg);
-		rem_len -= arg->size();
-	}
-	m_program_hash = curr_hash;
-
-	//
-	// For some specific processes (essentially the scripting languages)
-	// we include the arguments in the scripts hash as well
-	//
-	if(m_comm.size() == 4) {
-		uint32_t ncomm;
-		memcpy(&ncomm, m_comm.c_str(), 4);
-
-		if(ncomm == STR_AS_NUM_JAVA || ncomm == STR_AS_NUM_RUBY || ncomm == STR_AS_NUM_PERL ||
-		   ncomm == STR_AS_NUM_NODE) {
-			m_program_hash_scripts = m_program_hash;
-		}
-	} else if(m_comm.size() >= 6) {
-		if(m_comm.substr(0, 6) == "python") {
-			m_program_hash_scripts = m_program_hash;
-		}
-	}
 }
 
 void sinsp_threadinfo::add_fd_from_scap(scap_fdinfo* fdi) {
@@ -1494,7 +1439,6 @@ const std::shared_ptr<sinsp_threadinfo>& sinsp_thread_manager::add_thread(
 		        "adding entry with incompatible dynamic defs to of file descriptor sub-table");
 	}
 
-	tinfo_shared_ptr->compute_program_hash();
 	if(m_sinsp_stats_v2 != nullptr) {
 		m_sinsp_stats_v2->m_n_added_threads++;
 	}
