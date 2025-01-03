@@ -2234,11 +2234,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt) {
 	evt->get_tinfo()->m_flags |= PPM_CL_NAME_CHANGED;
 
 	//
-	// Recompute the program hash
-	//
-	evt->get_tinfo()->compute_program_hash();
-
-	//
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_inspector->get_observer()) {

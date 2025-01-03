@@ -434,10 +434,8 @@ public:
 	int64_t m_pgid;   // Process group id, as seen from the host pid namespace
 	uint64_t m_pidns_init_start_ts;  ///< The pid_namespace init task (child_reaper) start_time ts.
 	std::string m_root;
-	size_t m_program_hash;          ///< Unique hash of the current program
-	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for
-	                                ///< scripting programs (like python or ruby)
-	uint32_t m_tty;                 ///< Number of controlling terminal
+
+	uint32_t m_tty;  ///< Number of controlling terminal
 	std::shared_ptr<thread_group_info> m_tginfo;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
 	uint64_t m_not_expired_children;
@@ -497,27 +495,6 @@ public:
 	//
 	sinsp* m_inspector;
 
-	struct hasher {
-		size_t operator()(sinsp_threadinfo* tinfo) const {
-			auto main_thread = tinfo->get_main_thread();
-			if(main_thread == nullptr) {
-				return 0;
-			}
-			return main_thread->m_program_hash;
-		}
-	};
-
-	struct comparer {
-		size_t operator()(sinsp_threadinfo* lhs, sinsp_threadinfo* rhs) const {
-			auto lhs_main_thread = lhs->get_main_thread();
-			auto rhs_main_thread = rhs->get_main_thread();
-			if(lhs_main_thread == nullptr || rhs_main_thread == nullptr) {
-				return 0;
-			}
-			return lhs_main_thread->m_program_hash == rhs_main_thread->m_program_hash;
-		}
-	};
-
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
 	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
@@ -556,7 +533,6 @@ public:
 			m_lastevent_cpuid = (uint16_t)-1;
 		}
 	}
-	void compute_program_hash();
 
 	inline const uint8_t* get_last_event_data() const { return m_lastevent_data; }
 
