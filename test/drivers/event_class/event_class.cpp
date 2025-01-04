@@ -1399,13 +1399,13 @@ void event_test::assert_ipv4_string(const char* desired_ipv4, int starting_index
 
 void event_test::assert_port_string(const char* desired_port, int starting_index, direction dir) {
 	uint16_t port = *(uint16_t*)(m_event_params[m_current_param].valptr + starting_index);
-	const char* port_string = std::to_string(port).c_str();
+	auto port_string = std::to_string(port);
 
 	if(dir == DEST) {
-		ASSERT_STREQ(port_string, desired_port)
+		ASSERT_STREQ(port_string.c_str(), desired_port)
 		        << VALUE_NOT_CORRECT << m_current_param << "(dest port)" << std::endl;
 	} else {
-		ASSERT_STREQ(port_string, desired_port)
+		ASSERT_STREQ(port_string.c_str(), desired_port)
 		        << VALUE_NOT_CORRECT << m_current_param << "(source port)" << std::endl;
 	}
 }

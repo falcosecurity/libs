@@ -359,7 +359,7 @@ static conversion_result convert_event(scap_evt *new_evt,
 	scap_evt *tmp_evt = NULL;
 
 	// We iterate over the instructions
-	for(int i = 0; i < ci.m_instrs.size(); i++, param_to_populate++) {
+	for(size_t i = 0; i < ci.m_instrs.size(); i++, param_to_populate++) {
 		PRINT_MESSAGE("Instruction n° %d. Param to populate: %d\n", i, param_to_populate);
 
 		switch(ci.m_instrs[i].flags) {
