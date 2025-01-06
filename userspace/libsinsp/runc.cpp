@@ -84,7 +84,10 @@ bool match_one_container_id(const std::string &cgroup,
 		return false;
 	}
 
-	container_id = cgroup.substr(start_pos, REPORTED_CONTAINER_ID_LENGTH);
+	size_t reported_len = end_pos - start_pos >= REPORTED_CONTAINER_ID_LENGTH
+	                              ? REPORTED_CONTAINER_ID_LENGTH
+	                              : end_pos;
+	container_id = cgroup.substr(start_pos, reported_len);
 	return true;
 }
 
