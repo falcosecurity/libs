@@ -103,7 +103,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		}
 	};
 
-	after_capture_t before_close = [](sinsp* inspector) {
+	after_capture_t after_capture = [](sinsp* inspector) {
 		scap_stats st;
 
 		inspector->get_capture_stats(&st);
@@ -121,7 +121,7 @@ static void test_helper_quotactl(test_helper_args& hargs) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   before_open,
-		                   before_close,
+		                   after_capture,
 		                   {},
 		                   131072,
 		                   6000,
@@ -259,7 +259,7 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 		}
 	};
 
-	after_capture_t before_close = [&](sinsp* inspector) {
+	after_capture_t after_capture = [&](sinsp* inspector) {
 		for(auto sc : m_suppressed_syscalls) {
 			bool expect_exception = (sc >= PPM_SC_MAX);
 			bool caught_exception = false;
@@ -296,7 +296,7 @@ void suppress_types::run_test(std::vector<std::string> supp_syscalls) {
 		                   m_tid_filter,
 		                   event_capture::do_nothing,
 		                   before_open,
-		                   before_close);
+		                   after_capture);
 	});
 	EXPECT_EQ(m_expected_calls, callnum);
 }

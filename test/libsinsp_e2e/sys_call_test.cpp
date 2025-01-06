@@ -1464,7 +1464,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		}
 	};
 
-	after_capture_t before_close = [&](sinsp* inspector) {
+	after_capture_t after_capture = [&](sinsp* inspector) {
 		int result = 0;
 
 		result += setresuid(orig_uids[0], orig_uids[1], orig_uids[2]);
@@ -1485,7 +1485,7 @@ TEST_F(sys_call_test, getsetresuid_and_gid) {
 		                   filter,
 		                   event_capture::do_nothing,
 		                   event_capture::do_nothing,
-		                   before_close);
+		                   after_capture);
 	});
 	EXPECT_EQ(8, callnum);
 }
@@ -2166,7 +2166,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 		}
 	};
 
-	after_capture_t before_close = [&](sinsp* inspector) {
+	after_capture_t after_capture = [&](sinsp* inspector) {
 		// close scap to maintain the num_consumers at exit == 0 assertion
 		// close_capture(scap, platform);
 		auto platform = (scap_linux_platform*)inspector->get_scap_platform();
@@ -2187,7 +2187,7 @@ TEST_F(sys_call_test, thread_lookup_live) {
 	};
 
 	ASSERT_NO_FATAL_FAILURE({
-		event_capture::run(test, callback, filter, event_capture::do_nothing, before_close);
+		event_capture::run(test, callback, filter, event_capture::do_nothing, after_capture);
 	});
 }
 

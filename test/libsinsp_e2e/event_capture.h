@@ -66,7 +66,7 @@ public:
 	event_capture(captured_event_callback_t captured_event_callback,
 	              before_open_t before_open,
 	              before_capture_t before_capture,
-	              after_capture_t before_close,
+	              after_capture_t after_capture,
 	              event_filter_t filter,
 	              uint32_t max_thread_table_size,
 	              uint64_t thread_timeout_ns,
@@ -84,7 +84,7 @@ public:
 	  and, for any event that matches the filter,
 	  calls captured_event_callback.
 	  Before starting the capture, before_open is called.
-	  After closing the capture, before_close is called.
+	  After closing the capture, after_capture is called.
 	  The default ppm_sc_set is the whole set minus `read` and `readv`.
 	*/
 	static void run(const run_callback_t& run_function,
@@ -92,7 +92,7 @@ public:
 	                event_filter_t filter,
 	                before_open_t before_open = event_capture::do_nothing,
 	                before_capture_t before_capture = event_capture::do_nothing,
-	                after_capture_t before_close = event_capture::do_nothing,
+	                after_capture_t after_capture = event_capture::do_nothing,
 	                libsinsp::events::set<ppm_sc_code> sc_set = {},
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
@@ -101,7 +101,7 @@ public:
 		event_capture capturing(std::move(captured_event_callback),
 		                        std::move(before_open),
 		                        std::move(before_capture),
-		                        std::move(before_close),
+		                        std::move(after_capture),
 		                        std::move(filter),
 		                        max_thread_table_size,
 		                        thread_timeout_ns,
@@ -124,7 +124,7 @@ public:
 	  and, for any event that matches the filter,
 	  calls captured_event_callback.
 	  Before starting the capture, before_open is called.
-	  After closing the capture, before_close is called.
+	  After closing the capture, after_capture is called.
 	  The default ppm_sc_set is the whole set minus `read` and `readv`.
 	*/
 	static void run(const run_callback_async_t& run_function,
@@ -132,7 +132,7 @@ public:
 	                event_filter_t filter,
 	                before_open_t before_open = event_capture::do_nothing,
 	                before_capture_t before_capture = event_capture::do_nothing,
-	                after_capture_t before_close = event_capture::do_nothing,
+	                after_capture_t after_capture = event_capture::do_nothing,
 	                libsinsp::events::set<ppm_sc_code> sc_set = {},
 	                uint32_t max_thread_table_size = 131072,
 	                uint64_t thread_timeout_ns = (uint64_t)60 * 1000 * 1000 * 1000,
@@ -141,7 +141,7 @@ public:
 		event_capture capturing(std::move(captured_event_callback),
 		                        std::move(before_open),
 		                        std::move(before_capture),
-		                        std::move(before_close),
+		                        std::move(after_capture),
 		                        std::move(filter),
 		                        max_thread_table_size,
 		                        thread_timeout_ns,
