@@ -34,16 +34,14 @@ namespace libsinsp {
 namespace container_engine {
 
 struct containerd_lookup_request {
-	containerd_lookup_request(): container_type(CT_CONTAINERD), uid(0), request_rw_size(false) {}
+	containerd_lookup_request(): container_type(CT_CONTAINERD), uid(0) {}
 
 	containerd_lookup_request(const std::string& container_id_value,
 	                          sinsp_container_type container_type_value,
-	                          unsigned long uid_value,
-	                          bool rw_size_value):
+	                          unsigned long uid_value):
 	        container_id(container_id_value),
 	        container_type(container_type_value),
-	        uid(uid_value),
-	        request_rw_size(rw_size_value) {}
+	        uid(uid_value) {}
 
 	bool operator<(const containerd_lookup_request& rhs) const {
 		if(container_id != rhs.container_id) {
@@ -54,22 +52,17 @@ struct containerd_lookup_request {
 			return container_type < rhs.container_type;
 		}
 
-		if(uid != rhs.uid) {
-			return uid < rhs.uid;
-		}
-
-		return request_rw_size < rhs.request_rw_size;
+		return uid < rhs.uid;
 	}
 
 	bool operator==(const containerd_lookup_request& rhs) const {
 		return container_id == rhs.container_id && container_type == rhs.container_type &&
-		       uid == rhs.uid && request_rw_size == rhs.request_rw_size;
+		       uid == rhs.uid;
 	}
 
 	std::string container_id;
 	sinsp_container_type container_type;
 	unsigned long uid;
-	bool request_rw_size;
 };
 
 class containerd_async_source : public container_async_source<containerd_lookup_request> {
