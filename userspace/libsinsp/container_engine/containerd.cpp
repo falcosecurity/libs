@@ -324,7 +324,7 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 		return false;
 	}
 
-	containerd_lookup_request request(container_id, CT_CONTAINERD, 0, false);
+	containerd_lookup_request request(container_id, CT_CONTAINERD, 0);
 
 	container_cache_interface *cache = &container_cache();
 	sinsp_container_info::ptr_t container_info = cache->get_container(request.container_id);
