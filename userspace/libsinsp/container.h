@@ -226,10 +226,12 @@ public:
 	 * \brief do we want to start a new lookup for container metadata?
 	 * @param container_id the container id we want to look up
 	 * @param ctype the container engine that is doing the lookup
+	 * @param engine_index index of container engine in case of multiple
+	 * engines per container type
 	 * @return true if there's no lookup in progress and we're free to start
 	 * a new one, false otherwise
 	 *
-	 * This method effectively checks if m_lookups[container_id][ctype]
+	 * This method effectively checks if m_lookups[container_id][ctype][engine_index]
 	 * exists, without creating unnecessary map entries along the way.
 	 */
 	bool should_lookup(const std::string& container_id,

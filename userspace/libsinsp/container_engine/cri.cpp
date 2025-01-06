@@ -245,6 +245,8 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 	} else {
 		cache->notify_new_container(container, tinfo);
 	}
+	// note: with more than one container runtime we cannot be sure if a resolution is enough
+	// and we have to query all the runtimes.
 	return false;
 }
 
