@@ -588,7 +588,6 @@ void sinsp_container_manager::create_engines() {
 			m_container_engines.push_back(cri_engine);
 			m_container_engine_by_type[CT_CRI].push_back(cri_engine);
 			m_container_engine_by_type[CT_CRIO].push_back(cri_engine);
-			m_container_engine_by_type[CT_CONTAINERD].push_back(cri_engine);
 			engine_index++;
 		}
 	}
