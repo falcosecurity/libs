@@ -195,110 +195,37 @@ if(ENABLE_THREAD_POOL AND USE_BUNDLED_BS_THREADPOOL)
 	add_dependencies(sinsp bs_threadpool)
 endif()
 
-function(prepare_cri_grpc api_version)
-	configure_file(
-		${CMAKE_CURRENT_SOURCE_DIR}/cri-${api_version}.proto
-		${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto COPYONLY
-	)
-	add_custom_command(
-		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc
-			   ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.h
-			   ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc
-			   ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.h
-		COMMENT "Generate CRI grpc code for API version ${api_version}"
-		DEPENDS
-		COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --cpp_out=.
-				${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
-		COMMAND
-			${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=.
-			--plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-			${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	)
-	add_library(
-		cri_${api_version} STATIC ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc
-								  ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc
-	)
-	target_include_directories(
-		cri_${api_version} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-	)
-	target_link_libraries(
-		cri_${api_version}
-		PUBLIC "${GRPCPP_LIB}"
-			   "${GRPC_LIB}"
-			   "${GPR_LIB}"
-			   "${GRPC_LIBRARIES}"
-			   "${PROTOBUF_LIB}"
-			   "${CARES_LIB}"
-			   "${OPENSSL_LIBRARIES}"
-	)
-	add_dependencies(cri_${api_version} grpc)
-	install(
-		FILES ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.h
-			  ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.h
-		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libsinsp"
-		COMPONENT "scap"
-	)
-	if(NOT BUILD_SHARED_LIBS)
-		install(
-			TARGETS cri_${api_version}
-			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-					COMPONENT "scap"
-					OPTIONAL
-		)
-	endif()
-endfunction()
+function(prepare_proto_grpc proto_dir target_name)
+	add_library(${target_name} STATIC)
+	set(DEST ${CMAKE_CURRENT_BINARY_DIR}/${proto_dir})
 
-function(prepare_containerd_grpc)
-	set(DEST ${CMAKE_CURRENT_BINARY_DIR}/container_engine/containerd)
-	configure_file(
-		${CMAKE_CURRENT_SOURCE_DIR}/container_engine/containerd/containers.proto
-		${DEST}/containers.proto COPYONLY
-	)
-	configure_file(
-		${CMAKE_CURRENT_SOURCE_DIR}/container_engine/containerd/images.proto ${DEST}/images.proto
-		COPYONLY
-	)
-	configure_file(
-		${CMAKE_CURRENT_SOURCE_DIR}/container_engine/containerd/descriptor.proto
-		${DEST}/descriptor.proto COPYONLY
-	)
-	add_custom_command(
-		OUTPUT ${DEST}/containers.grpc.pb.cc
-			   ${DEST}/containers.grpc.pb.h
-			   ${DEST}/containers.pb.cc
-			   ${DEST}/containers.pb.h
-			   ${DEST}/images.grpc.pb.cc
-			   ${DEST}/images.grpc.pb.h
-			   ${DEST}/images.pb.cc
-			   ${DEST}/images.pb.h
-			   ${DEST}/descriptor.grpc.pb.cc
-			   ${DEST}/descriptor.grpc.pb.h
-			   ${DEST}/descriptor.pb.cc
-			   ${DEST}/descriptor.pb.h
-		COMMENT "Generate containerd grpc code"
-		DEPENDS
-		COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/containers.proto
-		COMMAND ${PROTOC} -I ${DEST} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-				${DEST}/containers.proto
-		COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/descriptor.proto
-		COMMAND ${PROTOC} -I ${DEST} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-				${DEST}/descriptor.proto
-		COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/images.proto
-		COMMAND ${PROTOC} -I ${DEST} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
-				${DEST}/images.proto
-		WORKING_DIRECTORY ${DEST}
-	)
-	add_library(
-		containerd_interface STATIC
-		${DEST}/containers.pb.cc ${DEST}/containers.grpc.pb.cc ${DEST}/descriptor.pb.cc
-		${DEST}/descriptor.grpc.pb.cc ${DEST}/images.pb.cc ${DEST}/images.grpc.pb.cc
-	)
-	target_include_directories(containerd_interface PUBLIC $<BUILD_INTERFACE:${DEST}>)
+	foreach(arg IN LISTS ARGN)
+		configure_file(
+			${CMAKE_CURRENT_SOURCE_DIR}/${proto_dir}/${arg}.proto
+			${CMAKE_CURRENT_BINARY_DIR}/${proto_dir}/${arg}.proto COPYONLY
+		)
+		add_custom_command(
+			OUTPUT ${DEST}/${arg}.grpc.pb.cc ${DEST}/${arg}.grpc.pb.h ${DEST}/${arg}.pb.cc
+				   ${DEST}/${arg}.pb.h
+			COMMENT "Generate ${arg} grpc code"
+			DEPENDS
+			COMMAND ${PROTOC} -I ${DEST} --cpp_out=${DEST} ${DEST}/${arg}.proto
+			COMMAND ${PROTOC} -I ${DEST} --grpc_out=${DEST}
+					--plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${DEST}/${arg}.proto
+			WORKING_DIRECTORY ${DEST}
+		)
+		install(
+			FILES ${DEST}/${arg}.grpc.pb.h ${DEST}/${arg}.pb.h
+			DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libsinsp"
+			COMPONENT "scap"
+		)
+		target_sources(${target_name} PRIVATE ${DEST}/${arg}.pb.cc ${DEST}/${arg}.grpc.pb.cc)
+	endforeach()
+
+	target_include_directories(${target_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+
 	target_link_libraries(
-		containerd_interface
+		${target_name}
 		PUBLIC "${GRPCPP_LIB}"
 			   "${GRPC_LIB}"
 			   "${GPR_LIB}"
@@ -307,17 +234,10 @@ function(prepare_containerd_grpc)
 			   "${CARES_LIB}"
 			   "${OPENSSL_LIBRARIES}"
 	)
-	add_dependencies(containerd_interface grpc)
-	install(
-		FILES ${DEST}/containers.grpc.pb.h ${DEST}/containers.pb.h ${DEST}/descriptor.grpc.pb.h
-			  ${DEST}/descriptor.pb.h ${DEST}/images.grpc.pb.h ${DEST}/images.pb.h
-		DESTINATION
-			"${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/libsinsp/container_engine/containerd"
-		COMPONENT "scap"
-	)
+	add_dependencies(${target_name} grpc)
 	if(NOT BUILD_SHARED_LIBS)
 		install(
-			TARGETS containerd_interface
+			TARGETS ${target_name}
 			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
@@ -342,12 +262,13 @@ if(NOT WIN32)
 		if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 			include(protobuf)
 			include(cares)
-			prepare_cri_grpc(v1alpha2)
-			prepare_cri_grpc(v1)
-			prepare_containerd_grpc()
+			prepare_proto_grpc(. cri_v1alpha2 cri-v1alpha2)
+			prepare_proto_grpc(. cri_v1 cri-v1)
+			prepare_proto_grpc(
+				container_engine/containerd containerd_interface containers images descriptor
+			)
 
-			target_link_libraries(sinsp PUBLIC cri_v1alpha2 cri_v1)
-			target_link_libraries(sinsp PRIVATE containerd_interface)
+			target_link_libraries(sinsp PRIVATE cri_v1alpha2 cri_v1 containerd_interface)
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
 				find_library(LIB_ANL anl)
