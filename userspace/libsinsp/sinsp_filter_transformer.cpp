@@ -72,11 +72,11 @@ bool sinsp_filter_transformer::string_transformer(std::vector<extract_value_t>& 
 }
 
 // toupper
-sinsp_filter_toupper_transformer::sinsp_filter_toupper_transformer() {
+sinsp_filter_transformer_toupper::sinsp_filter_transformer_toupper() {
 	m_type = FTR_TOUPPER;
 };
 
-bool sinsp_filter_toupper_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+bool sinsp_filter_transformer_toupper::transform_type(ppm_param_type& t, uint32_t& flags) const {
 	switch(t) {
 	case PT_CHARBUF:
 	case PT_FSPATH:
@@ -88,7 +88,7 @@ bool sinsp_filter_toupper_transformer::transform_type(ppm_param_type& t, uint32_
 	}
 }
 
-bool sinsp_filter_toupper_transformer::transform_values(std::vector<extract_value_t>& vec,
+bool sinsp_filter_transformer_toupper::transform_values(std::vector<extract_value_t>& vec,
                                                         ppm_param_type& t,
                                                         uint32_t& flags) {
 	if(!transform_type(t, flags)) {
@@ -104,11 +104,11 @@ bool sinsp_filter_toupper_transformer::transform_values(std::vector<extract_valu
 }
 
 // tolower
-sinsp_filter_tolower_transformer::sinsp_filter_tolower_transformer() {
+sinsp_filter_transformer_tolower::sinsp_filter_transformer_tolower() {
 	m_type = FTR_TOLOWER;
 };
 
-bool sinsp_filter_tolower_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+bool sinsp_filter_transformer_tolower::transform_type(ppm_param_type& t, uint32_t& flags) const {
 	switch(t) {
 	case PT_CHARBUF:
 	case PT_FSPATH:
@@ -120,7 +120,7 @@ bool sinsp_filter_tolower_transformer::transform_type(ppm_param_type& t, uint32_
 	}
 }
 
-bool sinsp_filter_tolower_transformer::transform_values(std::vector<extract_value_t>& vec,
+bool sinsp_filter_transformer_tolower::transform_values(std::vector<extract_value_t>& vec,
                                                         ppm_param_type& t,
                                                         uint32_t& flags) {
 	if(!transform_type(t, flags)) {
@@ -136,11 +136,11 @@ bool sinsp_filter_tolower_transformer::transform_values(std::vector<extract_valu
 }
 
 // base64
-sinsp_filter_base64_transformer::sinsp_filter_base64_transformer() {
+sinsp_filter_transformer_base64::sinsp_filter_transformer_base64() {
 	m_type = FTR_BASE64;
 }
 
-bool sinsp_filter_base64_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+bool sinsp_filter_transformer_base64::transform_type(ppm_param_type& t, uint32_t& flags) const {
 	switch(t) {
 	case PT_CHARBUF:
 	case PT_BYTEBUF:
@@ -151,7 +151,7 @@ bool sinsp_filter_base64_transformer::transform_type(ppm_param_type& t, uint32_t
 	}
 }
 
-bool sinsp_filter_base64_transformer::transform_values(std::vector<extract_value_t>& vec,
+bool sinsp_filter_transformer_base64::transform_values(std::vector<extract_value_t>& vec,
                                                        ppm_param_type& t,
                                                        uint32_t& flags) {
 	if(!transform_type(t, flags)) {
@@ -164,15 +164,15 @@ bool sinsp_filter_base64_transformer::transform_values(std::vector<extract_value
 }
 
 // storage
-sinsp_filter_storage_transformer::sinsp_filter_storage_transformer() {
+sinsp_filter_transformer_storage::sinsp_filter_transformer_storage() {
 	m_type = FTR_STORAGE;
 };
 
-bool sinsp_filter_storage_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+bool sinsp_filter_transformer_storage::transform_type(ppm_param_type& t, uint32_t& flags) const {
 	return true;
 }
 
-bool sinsp_filter_storage_transformer::transform_values(std::vector<extract_value_t>& vec,
+bool sinsp_filter_transformer_storage::transform_values(std::vector<extract_value_t>& vec,
                                                         ppm_param_type& t,
                                                         uint32_t& flags) {
 	// note: for STORAGE, the transformed type is the same as the input type
@@ -197,11 +197,11 @@ bool sinsp_filter_storage_transformer::transform_values(std::vector<extract_valu
 }
 
 // basename
-sinsp_filter_basename_transformer::sinsp_filter_basename_transformer() {
+sinsp_filter_transformer_basename::sinsp_filter_transformer_basename() {
 	m_type = FTR_BASENAME;
 };
 
-bool sinsp_filter_basename_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+bool sinsp_filter_transformer_basename::transform_type(ppm_param_type& t, uint32_t& flags) const {
 	switch(t) {
 	case PT_CHARBUF:
 	case PT_FSPATH:
@@ -213,7 +213,7 @@ bool sinsp_filter_basename_transformer::transform_type(ppm_param_type& t, uint32
 	}
 }
 
-bool sinsp_filter_basename_transformer::transform_values(std::vector<extract_value_t>& vec,
+bool sinsp_filter_transformer_basename::transform_values(std::vector<extract_value_t>& vec,
                                                          ppm_param_type& t,
                                                          uint32_t& flags) {
 	if(!transform_type(t, flags)) {
@@ -234,11 +234,11 @@ bool sinsp_filter_basename_transformer::transform_values(std::vector<extract_val
 }
 
 // len
-sinsp_filter_len_transformer::sinsp_filter_len_transformer() {
+sinsp_filter_transformer_len::sinsp_filter_transformer_len() {
 	m_type = FTR_LEN;
 };
 
-bool sinsp_filter_len_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
+bool sinsp_filter_transformer_len::transform_type(ppm_param_type& t, uint32_t& flags) const {
 	bool is_list = flags & EPF_IS_LIST;
 	if(is_list) {
 		t = PT_UINT64;
@@ -257,7 +257,7 @@ bool sinsp_filter_len_transformer::transform_type(ppm_param_type& t, uint32_t& f
 	}
 }
 
-bool sinsp_filter_len_transformer::transform_values(std::vector<extract_value_t>& vec,
+bool sinsp_filter_transformer_len::transform_values(std::vector<extract_value_t>& vec,
                                                     ppm_param_type& t,
                                                     uint32_t& flags) {
 	bool is_list = flags & EPF_IS_LIST;
@@ -323,24 +323,24 @@ std::unique_ptr<sinsp_filter_transformer> sinsp_filter_transformer::create_trans
         filter_transformer_type trtype) {
 	switch(trtype) {
 	case FTR_TOUPPER: {
-		return std::make_unique<sinsp_filter_toupper_transformer>();
+		return std::make_unique<sinsp_filter_transformer_toupper>();
 	}
 	case FTR_TOLOWER: {
-		return std::make_unique<sinsp_filter_tolower_transformer>();
+		return std::make_unique<sinsp_filter_transformer_tolower>();
 	}
 	case FTR_BASE64: {
-		return std::make_unique<sinsp_filter_base64_transformer>();
+		return std::make_unique<sinsp_filter_transformer_base64>();
 	}
 	case FTR_STORAGE: {
 		// for STORAGE, the transformed type is the same as the input type
 		// return true;
-		return std::make_unique<sinsp_filter_storage_transformer>();
+		return std::make_unique<sinsp_filter_transformer_storage>();
 	}
 	case FTR_BASENAME: {
-		return std::make_unique<sinsp_filter_basename_transformer>();
+		return std::make_unique<sinsp_filter_transformer_basename>();
 	}
 	case FTR_LEN: {
-		return std::make_unique<sinsp_filter_len_transformer>();
+		return std::make_unique<sinsp_filter_transformer_len>();
 	}
 	default:
 		throw_unsupported_err(trtype);
