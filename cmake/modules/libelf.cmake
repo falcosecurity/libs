@@ -65,8 +65,8 @@ else()
 	include(FetchContent)
 	FetchContent_Declare(
 		libelf_elftoolchain
-		URL https://github.com/LucaGuerra/elftoolchain/releases/download/libelf-r4053-0/libelf-r4053-0.tar.gz
-		URL_HASH SHA256=1861e6332d97f9cdc15a0c03b7b478b87abb47408ab41c50bebd9a384937e44e
+		URL https://github.com/falcosecurity/elftoolchain/releases/download/libelf-r4073-0/libelf-r4073-0.tar.gz
+		URL_HASH SHA256=adfeb3033c23ca579902f2bce7d9ffeec662f97d3846bb74e57fb65d70f6f056
 	)
 	FetchContent_MakeAvailable(libelf_elftoolchain)
 	get_target_property(LIBELF_INCLUDE elf INCLUDE_DIRECTORIES)
