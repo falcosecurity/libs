@@ -20,7 +20,7 @@ limitations under the License.
 
 #include <set>
 #include <libsinsp/utils.h>
-#include <libsinsp/sinsp_filter_transformer.h>
+#include <libsinsp/sinsp_filter_transformers.h>
 #include <sinsp_with_test_input.h>
 
 static std::set<ppm_param_type> all_param_types() {
@@ -112,7 +112,8 @@ static void check_unsupported_types(const std::unique_ptr<sinsp_filter_transform
 }
 
 TEST(sinsp_filter_transformer, toupper) {
-	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_TOUPPER);
+	auto tr = sinsp_filter_transformer_factory::create_transformer(
+	        filter_transformer_type::FTR_TOUPPER);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -159,7 +160,8 @@ TEST(sinsp_filter_transformer, toupper) {
 }
 
 TEST(sinsp_filter_transformer, tolower) {
-	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_TOLOWER);
+	auto tr = sinsp_filter_transformer_factory::create_transformer(
+	        filter_transformer_type::FTR_TOLOWER);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -207,7 +209,8 @@ TEST(sinsp_filter_transformer, tolower) {
 }
 
 TEST(sinsp_filter_transformer, b64) {
-	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_BASE64);
+	auto tr = sinsp_filter_transformer_factory::create_transformer(
+	        filter_transformer_type::FTR_BASE64);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH, PT_BYTEBUF};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -249,7 +252,8 @@ TEST(sinsp_filter_transformer, b64) {
 }
 
 TEST(sinsp_filter_transformer, basename) {
-	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_BASENAME);
+	auto tr = sinsp_filter_transformer_factory::create_transformer(
+	        filter_transformer_type::FTR_BASENAME);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH};
 	std::set<ppm_param_type> supported_list_types = supported_types;
@@ -294,7 +298,8 @@ TEST(sinsp_filter_transformer, basename) {
 }
 
 TEST(sinsp_filter_transformer, len) {
-	auto tr = sinsp_filter_transformer::create_transformer(filter_transformer_type::FTR_LEN);
+	auto tr =
+	        sinsp_filter_transformer_factory::create_transformer(filter_transformer_type::FTR_LEN);
 
 	std::set<ppm_param_type> supported_types{PT_CHARBUF, PT_FSPATH, PT_FSRELPATH, PT_BYTEBUF};
 	std::set<ppm_param_type> supported_list_types = all_param_types();

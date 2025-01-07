@@ -66,7 +66,13 @@ add_library(
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
-	sinsp_filter_transformer.cpp
+	sinsp_filter_transformers/sinsp_filter_transformer.cpp
+	sinsp_filter_transformers/sinsp_filter_transformer_base64.cpp
+	sinsp_filter_transformers/sinsp_filter_transformer_basename.cpp
+	sinsp_filter_transformers/sinsp_filter_transformer_len.cpp
+	sinsp_filter_transformers/sinsp_filter_transformer_storage.cpp
+	sinsp_filter_transformers/sinsp_filter_transformer_tolower.cpp
+	sinsp_filter_transformers/sinsp_filter_transformer_toupper.cpp
 	sinsp_filtercheck.cpp
 	sinsp_filtercheck_container.cpp
 	sinsp_filtercheck_event.cpp

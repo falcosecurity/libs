@@ -1060,7 +1060,7 @@ void sinsp_filter_check::add_transformer(filter_transformer_type trtype) {
 
 	// apply type transformation, both as a feasibility check and
 	// as an information to be returned later on
-	auto tr = sinsp_filter_transformer::create_transformer(trtype);
+	auto tr = sinsp_filter_transformer_factory::create_transformer(trtype);
 	if(!tr->transform_type(m_transformed_field->m_type, m_transformed_field->m_flags)) {
 		throw sinsp_exception("can't add field transformer: type '" +
 		                      std::string(param_type_to_string(m_transformed_field->m_type)) +
