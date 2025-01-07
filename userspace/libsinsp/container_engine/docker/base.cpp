@@ -34,7 +34,7 @@ bool docker_base::resolve_impl(sinsp_threadinfo *tinfo,
 			return true;
 		}
 
-		if(cache->should_lookup(request.container_id, request.container_type, 0)) {
+		if(cache->should_lookup(request.container_id, request.container_type)) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "docker_async (%s): No existing container info",
 			                          request.container_id.c_str());
@@ -42,7 +42,6 @@ bool docker_base::resolve_impl(sinsp_threadinfo *tinfo,
 			// give docker a chance to return metadata for this container
 			cache->set_lookup_status(request.container_id,
 			                         request.container_type,
-			                         0,
 			                         sinsp_container_lookup::state::STARTED);
 			parse_docker(request, cache);
 		}

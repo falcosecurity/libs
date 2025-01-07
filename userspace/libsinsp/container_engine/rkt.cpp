@@ -167,7 +167,7 @@ bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info) 
 	}
 
 	tinfo->m_container_id = container.m_id;
-	if(!query_os_for_missing_info || !cache->should_lookup(container.m_id, CT_RKT, 0)) {
+	if(!query_os_for_missing_info || !cache->should_lookup(container.m_id, CT_RKT)) {
 		return true;
 	}
 

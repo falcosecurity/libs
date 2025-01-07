@@ -173,8 +173,8 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) {
 
 		cache->set_lookup_status(container_id,
 		                         get_cri_runtime_type(),
-		                         m_engine_index,
-		                         sinsp_container_lookup::state::STARTED);
+		                         sinsp_container_lookup::state::STARTED,
+		                         m_engine_index);
 
 		// sinsp_container_lookup is set-up to perform 5 retries at most, with
 		// an exponential backoff with 2000 ms of maximum wait time.
