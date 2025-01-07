@@ -1,5 +1,4 @@
 #include "../../event_class/event_class.h"
-#include <libscap/strl.h>
 
 #if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_close)
 
@@ -194,7 +193,7 @@ TEST(SyscallExit, connectX_UNIX) {
 	if(ret == -1) {
 		FAIL() << "Failed to create symlink";
 	}
-	strlcpy(server_addr.sun_path, server_symlink, MAX_SUN_PATH);
+	evt_test->server_fill_sockaddr_un(&server_addr, server_symlink);
 
 	assert_syscall_state(
 	        SYSCALL_SUCCESS,
