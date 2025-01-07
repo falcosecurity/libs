@@ -211,15 +211,9 @@ public:
 	 */
 	void set_lookup_status(const std::string& container_id,
 	                       sinsp_container_type ctype,
-	                       size_t engine_index,
-	                       sinsp_container_lookup::state state) override {
+	                       sinsp_container_lookup::state state,
+	                       size_t engine_index = 0) override {
 		m_lookups[container_id][ctype][engine_index] = state;
-	}
-
-	void set_lookup_status(const std::string& container_id,
-	                       sinsp_container_type ctype,
-	                       sinsp_container_lookup::state state) {
-		m_lookups[container_id][ctype][0] = state;
 	}
 
 	/**

@@ -339,7 +339,7 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 			return true;
 		}
 
-		if(cache->should_lookup(request.container_id, request.container_type, 0)) {
+		if(cache->should_lookup(request.container_id, request.container_type)) {
 			libsinsp_logger()->format(sinsp_logger::SEV_DEBUG,
 			                          "containerd_async (%s): No existing container info",
 			                          request.container_id.c_str());
@@ -347,8 +347,8 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 			// give containerd a chance to return metadata for this container
 			cache->set_lookup_status(request.container_id,
 			                         request.container_type,
-			                         0,
-			                         sinsp_container_lookup::state::STARTED);
+			                         sinsp_container_lookup::state::STARTED,
+			                         0);
 			parse_containerd(request, cache);
 		}
 		return false;
@@ -375,7 +375,7 @@ bool libsinsp::container_engine::containerd::resolve(sinsp_threadinfo *tinfo,
 	container.m_cpu_period = limits.m_cpu_period;
 	container.m_cpuset_cpu_count = limits.m_cpuset_cpu_count;
 
-	if(container_cache().should_lookup(container.m_id, CT_CONTAINERD, 0)) {
+	if(container_cache().should_lookup(container.m_id, CT_CONTAINERD)) {
 		container.m_name = container.m_id;
 		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		container_cache().add_container(std::make_shared<sinsp_container_info>(container), tinfo);
