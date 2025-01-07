@@ -24,7 +24,7 @@ limitations under the License.
 #include <libsinsp/filter_compare.h>
 #include <libsinsp/filter_field.h>
 #include <libsinsp/filter_cache.h>
-#include <libsinsp/sinsp_filter_transformer.h>
+#include <libsinsp/sinsp_filter_transformers.h>
 
 #include <json/json.h>
 
