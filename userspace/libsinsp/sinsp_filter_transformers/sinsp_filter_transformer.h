@@ -72,7 +72,7 @@ public:
 
 	virtual ~sinsp_filter_transformer();
 
-	virtual bool transform_type(ppm_param_type& t, uint32_t& flags) const;
+	virtual bool transform_type(ppm_param_type& t, uint32_t& flags) const = 0;
 
 	virtual bool transform_values(std::vector<extract_value_t>& vals,
 	                              ppm_param_type& t,
