@@ -22,36 +22,31 @@ limitations under the License.
 #include <libsinsp/sinsp_filter_transformers/sinsp_filter_transformer_tolower.h>
 #include <libsinsp/sinsp_filter_transformers/sinsp_filter_transformer_toupper.h>
 
-class sinsp_filter_transformer_factory {
-public:
-	sinsp_filter_transformer_factory() = delete;
-	~sinsp_filter_transformer_factory() = delete;
-	sinsp_filter_transformer_factory operator=(const sinsp_filter_transformer_factory&) = delete;
-
-	static std::unique_ptr<sinsp_filter_transformer> create_transformer(
-	        filter_transformer_type trtype) {
-		switch(trtype) {
-		case FTR_TOUPPER: {
-			return std::make_unique<sinsp_filter_transformer_toupper>();
-		}
-		case FTR_TOLOWER: {
-			return std::make_unique<sinsp_filter_transformer_tolower>();
-		}
-		case FTR_BASE64: {
-			return std::make_unique<sinsp_filter_transformer_base64>();
-		}
-		case FTR_STORAGE: {
-			return std::make_unique<sinsp_filter_transformer_storage>();
-		}
-		case FTR_BASENAME: {
-			return std::make_unique<sinsp_filter_transformer_basename>();
-		}
-		case FTR_LEN: {
-			return std::make_unique<sinsp_filter_transformer_len>();
-		}
-		default:
-			throw sinsp_exception("transformer '" + std::to_string(trtype) + "' is not supported");
-			return nullptr;
-		}
+namespace sinsp_filter_transformer_factory {
+inline std::unique_ptr<sinsp_filter_transformer> create_transformer(
+        filter_transformer_type trtype) {
+	switch(trtype) {
+	case FTR_TOUPPER: {
+		return std::make_unique<sinsp_filter_transformer_toupper>();
 	}
-};
+	case FTR_TOLOWER: {
+		return std::make_unique<sinsp_filter_transformer_tolower>();
+	}
+	case FTR_BASE64: {
+		return std::make_unique<sinsp_filter_transformer_base64>();
+	}
+	case FTR_STORAGE: {
+		return std::make_unique<sinsp_filter_transformer_storage>();
+	}
+	case FTR_BASENAME: {
+		return std::make_unique<sinsp_filter_transformer_basename>();
+	}
+	case FTR_LEN: {
+		return std::make_unique<sinsp_filter_transformer_len>();
+	}
+	default:
+		throw sinsp_exception("transformer '" + std::to_string(trtype) + "' is not supported");
+		return nullptr;
+	}
+}
+};  // namespace sinsp_filter_transformer_factory
