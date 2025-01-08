@@ -92,10 +92,6 @@ protected:
 		return {static_cast<uint8_t*>(stored_val.data()), static_cast<uint32_t>(stored_val.size())};
 	}
 
-	void throw_unsupported_err(filter_transformer_type t) const {
-		throw sinsp_exception("transformer '" + std::to_string(t) + "' is not supported");
-	}
-
 	void throw_type_incompatibility_err(ppm_param_type t, const std::string& trname) const {
 		throw sinsp_exception("field type '" + std::to_string(t) + "' is not supported by '" +
 		                      trname + "' transformer");
