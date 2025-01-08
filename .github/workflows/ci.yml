@@ -17,8 +17,6 @@ jobs:
   build-libs-linux:
     name: build-libs-linux-${{ matrix.arch }} 😁 (${{ matrix.name }})
     runs-on: ${{ (matrix.arch == 'arm64' && 'github-arm64-2c-8gb') || 'ubuntu-22.04' }}
-    container:
-      image: ubuntu:22.04
     strategy:
       fail-fast: false
       matrix:
@@ -35,10 +33,12 @@ jobs:
             cmake_opts: -DUSE_ASAN=On -DUSE_UBSAN=On -DUSE_BUNDLED_DEPS=False
           - name: zig
             cmake_opts: -DUSE_BUNDLED_DEPS=True
+    container:
+      image: debian:buster
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-$(uname -r)
+          apt update && apt install -y --no-install-recommends curl ca-certificates build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-${{ matrix.arch }}
 
       - name: Install a recent version of CMake ⛓️
         run: |
