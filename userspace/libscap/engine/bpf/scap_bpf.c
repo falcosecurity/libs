@@ -691,123 +691,88 @@ static int32_t load_bpf_file(struct bpf_engine *handle) {
 	struct bpf_map_data maps[BPF_MAPS_MAX];
 	struct utsname osname;
 	int32_t res = SCAP_FAILURE;
-	bool got_api_version = false;
-	bool got_schema_version = false;
 
 	if(uname(&osname)) {
 		return scap_errprintf(handle->m_lasterr, errno, "can't call uname()");
 	}
 
-	if(elf_version(EV_CURRENT) == EV_NONE) {
-		return scap_errprintf(handle->m_lasterr, 0, "invalid ELF version");
+	// This should be already initialized when we load the API versions
+	if(handle->elf == NULL) {
+		return scap_errprintf(handle->m_lasterr, errno, "ELF file not loaded");
 	}
 
-	if(!handle->elf) {
-		handle->program_fd = open(handle->m_filepath, O_RDONLY, 0);
-		if(handle->program_fd < 0) {
-			return scap_errprintf(handle->m_lasterr,
-			                      0,
-			                      "can't open BPF probe '%s'",
-			                      handle->m_filepath);
+	if(gelf_getehdr(handle->elf, &handle->ehdr) != &handle->ehdr) {
+		scap_errprintf(handle->m_lasterr, 0, "can't read ELF header");
+		goto end;
+	}
+
+	for(j = 0; j < handle->ehdr.e_shnum; ++j) {
+		if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) != SCAP_SUCCESS) {
+			continue;
 		}
 
-		handle->elf = elf_begin(handle->program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
-		if(!handle->elf) {
-			scap_errprintf(handle->m_lasterr, 0, "can't read ELF format");
+		if(strcmp(shname, "maps") == 0) {
+			maps_shndx = j;
+		} else if(shdr.sh_type == SHT_SYMTAB) {
+			strtabidx = shdr.sh_link;
+			symbols = data;
+		} else if(strcmp(shname, "kernel_version") == 0) {
+			if(strcmp(osname.release, data->d_buf)) {
+				snprintf(handle->m_lasterr,
+				         SCAP_LASTERR_SIZE,
+				         "BPF probe is compiled for %s, but running version is %s",
+				         (char *)data->d_buf,
+				         osname.release);
+				goto end;
+			}
+		} else if(strcmp(shname, "license") == 0) {
+			license = data->d_buf;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe license is %s", license);
+		}
+	}
+
+	if(!symbols) {
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing SHT_SYMTAB section");
+		goto end;
+	}
+
+	if(maps_shndx) {
+		if(load_elf_maps_section(handle,
+		                         maps,
+		                         maps_shndx,
+		                         handle->elf,
+		                         symbols,
+		                         strtabidx,
+		                         &nr_maps) != SCAP_SUCCESS) {
 			goto end;
 		}
 
-		if(gelf_getehdr(handle->elf, &handle->ehdr) != &handle->ehdr) {
-			scap_errprintf(handle->m_lasterr, 0, "can't read ELF header");
+		if(load_maps(handle, maps, nr_maps) != SCAP_SUCCESS) {
 			goto end;
 		}
+	}
 
-		for(j = 0; j < handle->ehdr.e_shnum; ++j) {
-			if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) !=
-			   SCAP_SUCCESS) {
+	for(j = 0; j < handle->ehdr.e_shnum; ++j) {
+		if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) != SCAP_SUCCESS) {
+			continue;
+		}
+
+		if(shdr.sh_type == SHT_REL) {
+			struct bpf_insn *insns;
+
+			if(get_elf_section(handle->elf,
+			                   shdr.sh_info,
+			                   &handle->ehdr,
+			                   &shname_prog,
+			                   &shdr_prog,
+			                   &data_prog) != SCAP_SUCCESS) {
 				continue;
 			}
 
-			if(strcmp(shname, "maps") == 0) {
-				maps_shndx = j;
-			} else if(shdr.sh_type == SHT_SYMTAB) {
-				strtabidx = shdr.sh_link;
-				symbols = data;
-			} else if(strcmp(shname, "kernel_version") == 0) {
-				if(strcmp(osname.release, data->d_buf)) {
-					snprintf(handle->m_lasterr,
-					         SCAP_LASTERR_SIZE,
-					         "BPF probe is compiled for %s, but running version is %s",
-					         (char *)data->d_buf,
-					         osname.release);
-					goto end;
-				}
-			} else if(strcmp(shname, "api_version") == 0) {
-				got_api_version = true;
-				memcpy(&handle->m_api_version, data->d_buf, sizeof(handle->m_api_version));
-			} else if(strcmp(shname, "schema_version") == 0) {
-				got_schema_version = true;
-				memcpy(&handle->m_schema_version, data->d_buf, sizeof(handle->m_schema_version));
-			} else if(strcmp(shname, "license") == 0) {
-				license = data->d_buf;
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe license is %s", license);
-			}
-		}
+			insns = (struct bpf_insn *)data_prog->d_buf;
 
-		if(!got_api_version) {
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing api_version section");
-			goto end;
-		}
-
-		if(!got_schema_version) {
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing schema_version section");
-			goto end;
-		}
-
-		if(!symbols) {
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing SHT_SYMTAB section");
-			goto end;
-		}
-
-		if(maps_shndx) {
-			if(load_elf_maps_section(handle,
-			                         maps,
-			                         maps_shndx,
-			                         handle->elf,
-			                         symbols,
-			                         strtabidx,
-			                         &nr_maps) != SCAP_SUCCESS) {
-				goto end;
-			}
-
-			if(load_maps(handle, maps, nr_maps) != SCAP_SUCCESS) {
-				goto end;
-			}
-		}
-
-		for(j = 0; j < handle->ehdr.e_shnum; ++j) {
-			if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) !=
-			   SCAP_SUCCESS) {
+			if(parse_relocations(handle, data, symbols, &shdr, insns, maps, nr_maps)) {
 				continue;
-			}
-
-			if(shdr.sh_type == SHT_REL) {
-				struct bpf_insn *insns;
-
-				if(get_elf_section(handle->elf,
-				                   shdr.sh_info,
-				                   &handle->ehdr,
-				                   &shname_prog,
-				                   &shdr_prog,
-				                   &data_prog) != SCAP_SUCCESS) {
-					continue;
-				}
-
-				insns = (struct bpf_insn *)data_prog->d_buf;
-
-				if(parse_relocations(handle, data, symbols, &shdr, insns, maps, nr_maps)) {
-					continue;
-				}
 			}
 		}
 	}
@@ -1478,21 +1443,12 @@ static int32_t set_default_settings(struct bpf_engine *handle) {
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_load(struct bpf_engine *handle, const char *bpf_probe, scap_open_args *oargs) {
-	struct scap_bpf_engine_params *bpf_args = oargs->engine_params;
-
+int32_t scap_bpf_load(struct bpf_engine *handle, unsigned long buffer_bytes_dim) {
 	if(set_runtime_params(handle) != SCAP_SUCCESS) {
 		return SCAP_FAILURE;
 	}
 
 	handle->m_bpf_prog_array_map_idx = -1;
-
-	if(!bpf_probe) {
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-	snprintf(handle->m_filepath, PATH_MAX, "%s", bpf_probe);
 
 	if(load_bpf_file(handle) != SCAP_SUCCESS) {
 		return SCAP_FAILURE;
@@ -1606,9 +1562,8 @@ int32_t scap_bpf_load(struct bpf_engine *handle, const char *bpf_probe, scap_ope
 		//
 		// Map the ring buffer
 		//
-		dev->m_buffer =
-		        perf_event_mmap(handle, pmu_fd, &dev->m_mmap_size, bpf_args->buffer_bytes_dim);
-		dev->m_buffer_size = bpf_args->buffer_bytes_dim;
+		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_mmap_size, buffer_bytes_dim);
+		dev->m_buffer_size = buffer_bytes_dim;
 		if(dev->m_buffer == MAP_FAILED) {
 			return scap_errprintf(handle->m_lasterr,
 			                      errno,
@@ -1995,15 +1950,128 @@ static int32_t configure(struct scap_engine_handle engine,
 	}
 }
 
+static int32_t load_api_versions(struct bpf_engine *handle) {
+	GElf_Shdr shdr;
+	Elf_Data *data;
+	char *shname;
+
+	if(elf_version(EV_CURRENT) == EV_NONE) {
+		return scap_errprintf(handle->m_lasterr, 0, "invalid ELF version");
+	}
+
+	// This should be the first time in which we load the BPF probe.
+	if(handle->elf != NULL) {
+		return scap_errprintf(handle->m_lasterr, 0, "ELF already loaded but it shouldn't");
+	}
+
+	handle->program_fd = open(handle->m_filepath, O_RDONLY, 0);
+	if(handle->program_fd < 0) {
+		return scap_errprintf(handle->m_lasterr,
+		                      0,
+		                      "can't open BPF probe '%s'",
+		                      handle->m_filepath);
+	}
+
+	handle->elf = elf_begin(handle->program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+	if(!handle->elf) {
+		close(handle->program_fd);
+		return scap_errprintf(handle->m_lasterr, 0, "can't read ELF format");
+	}
+
+	if(gelf_getehdr(handle->elf, &handle->ehdr) != &handle->ehdr) {
+		scap_errprintf(handle->m_lasterr, 0, "can't read ELF header");
+		goto end;
+	}
+
+	for(int j = 0; j < handle->ehdr.e_shnum; ++j) {
+		if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) != SCAP_SUCCESS) {
+			continue;
+		}
+
+		if(handle->m_api_version != 0 && handle->m_schema_version != 0) {
+			break;
+		}
+
+		if(strncmp(shname, "api_version", strlen("api_version")) == 0) {
+			memcpy(&handle->m_api_version, data->d_buf, sizeof(handle->m_api_version));
+		} else if(strncmp(shname, "schema_version", strlen("schema_version")) == 0) {
+			memcpy(&handle->m_schema_version, data->d_buf, sizeof(handle->m_schema_version));
+		}
+	}
+
+	if(handle->m_api_version == 0) {
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing api_version section");
+		goto end;
+	}
+
+	if(handle->m_schema_version == 0) {
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing schema_version section");
+		goto end;
+	}
+	return SCAP_SUCCESS;
+
+end:
+	elf_end(handle->elf);
+	close(handle->program_fd);
+	return SCAP_FAILURE;
+}
+
+int32_t check_schema_version_compatibility(uint64_t curr, char *error) {
+	unsigned long driver_major = PPM_API_VERSION_MAJOR(curr);
+	unsigned long driver_minor = PPM_API_VERSION_MINOR(curr);
+	unsigned long driver_patch = PPM_API_VERSION_PATCH(curr);
+	unsigned long required_major = PPM_API_VERSION_MAJOR(SCAP_MINIMUM_DRIVER_SCHEMA_VERSION);
+	unsigned long required_minor = PPM_API_VERSION_MINOR(SCAP_MINIMUM_DRIVER_SCHEMA_VERSION);
+	unsigned long required_patch = PPM_API_VERSION_PATCH(SCAP_MINIMUM_DRIVER_SCHEMA_VERSION);
+	if(driver_major != required_major) {
+		return scap_errprintf(error,
+		                      0,
+		                      "Scap and the legacy ebpf driver should have the same MAJOR version. "
+		                      "Ebpf MAJOR '%lu' != Scap MAJOR '%lu'",
+		                      driver_major,
+		                      required_major);
+	}
+
+	if(driver_minor != required_minor) {
+		return scap_errprintf(error,
+		                      0,
+		                      "Scap and the legacy ebpf driver should have the same MINOR version. "
+		                      "Ebpf MINOR '%lu' != Scap MINOR '%lu'",
+		                      driver_minor,
+		                      required_minor);
+	}
+
+	if(driver_patch < required_patch) {
+		return scap_errprintf(error,
+		                      0,
+		                      "The legacy ebpf driver should have a PATCH version >= Scap. "
+		                      "Ebpf PATCH '%lu' < Scap PATCH '%lu'",
+		                      driver_patch,
+		                      required_patch);
+	}
+	return SCAP_SUCCESS;
+}
+
 static int32_t init(scap_t *handle, scap_open_args *oargs) {
-	int32_t rc = 0;
-	char bpf_probe_buf[SCAP_MAX_PATH_SIZE] = {0};
 	struct scap_engine_handle engine = handle->m_engine;
 	struct scap_bpf_engine_params *params = oargs->engine_params;
-	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
+	strlcpy(HANDLE(engine)->m_filepath, params->bpf_probe, SCAP_MAX_PATH_SIZE);
 
 	if(check_buffer_bytes_dim(HANDLE(engine)->m_lasterr, params->buffer_bytes_dim) !=
 	   SCAP_SUCCESS) {
+		return SCAP_FAILURE;
+	}
+
+	// Load the API and schema versions from the ELF file.
+	if(load_api_versions(HANDLE(engine)) != SCAP_SUCCESS) {
+		return SCAP_FAILURE;
+	}
+
+	// Unless we refactor our architecture the legacy ebpf SCHEMA_VERSION is not semver compliant.
+	// For this reason we enforce a specific check here.
+	// See https://github.com/falcosecurity/libs/issues/1283
+	if(check_schema_version_compatibility(HANDLE(engine)->m_schema_version,
+	                                      HANDLE(engine)->m_lasterr) != SCAP_SUCCESS) {
 		return SCAP_FAILURE;
 	}
 
@@ -2028,13 +2096,13 @@ static int32_t init(scap_t *handle, scap_open_args *oargs) {
 		        "cannot obtain the number of online CPUs from '_SC_NPROCESSORS_ONLN'");
 	}
 
-	rc = devset_init(&HANDLE(engine)->m_dev_set, num_devs, HANDLE(engine)->m_lasterr);
+	int32_t rc = devset_init(&HANDLE(engine)->m_dev_set, num_devs, HANDLE(engine)->m_lasterr);
 	if(rc != SCAP_SUCCESS) {
 		return rc;
 	}
 
 	/* Here we need to load maps and progs but we shouldn't attach tracepoints */
-	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, oargs);
+	rc = scap_bpf_load(engine.m_handle, params->buffer_bytes_dim);
 	if(rc != SCAP_SUCCESS) {
 		return rc;
 	}

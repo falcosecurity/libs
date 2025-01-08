@@ -46,7 +46,7 @@ struct bpf_engine {
 
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
-	char m_filepath[PATH_MAX];
+	char m_filepath[SCAP_MAX_PATH_SIZE];
 
 	/* ELF related */
 	int program_fd;
