@@ -16,11 +16,6 @@ limitations under the License.
 
 sinsp_filter_transformer::~sinsp_filter_transformer() {}
 
-bool sinsp_filter_transformer::transform_type(ppm_param_type& t, uint32_t& flags) const {
-	throw_unsupported_err(m_type);
-	return false;
-}
-
 bool sinsp_filter_transformer::string_transformer(std::vector<extract_value_t>& vec,
                                                   ppm_param_type t,
                                                   str_transformer_func_t f) {
