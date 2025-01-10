@@ -235,9 +235,19 @@ public:
 	}
 
 	/*!
-	  \brief Get the process that launched this thread's process.
+	  \brief Get the thread that launched this thread's process.
 	*/
 	sinsp_threadinfo* get_parent_thread();
+
+	/*!
+	  \brief Get the process that launched this thread's process (its parent) or any of its
+	  ancestors.
+
+	  \param n when 1 it will look for the parent process, when 2 the grandparent and so forth.
+
+	  \return Pointer to the threadinfo or NULL if it doesn't exist
+	*/
+	sinsp_threadinfo* get_ancestor_process(uint32_t n = 1);
 
 	/*!
 	  \brief Retrieve information about one of this thread/process FDs.

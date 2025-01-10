@@ -1264,89 +1264,48 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 			return NULL;
 		}
 	}
-	case TYPE_PPID:
-		if(tinfo->is_main_thread()) {
-			if(!should_extract_xid(tinfo->m_ptid)) {
-				return NULL;
-			}
-			RETURN_EXTRACT_VAR(tinfo->m_ptid);
-		} else {
-			sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-			if(mt != NULL) {
-				if(!should_extract_xid(mt->m_ptid)) {
-					return NULL;
-				}
-				RETURN_EXTRACT_VAR(mt->m_ptid);
-			} else {
-				return NULL;
-			}
-		}
-	case TYPE_PNAME: {
-		sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
-
-		if(ptinfo != NULL) {
-			m_tstr = ptinfo->get_comm();
-			RETURN_EXTRACT_STRING(m_tstr);
-		} else {
+	case TYPE_PPID: {
+		sinsp_threadinfo* mt = tinfo->get_ancestor_process();
+		if(!mt) {
 			return NULL;
 		}
+
+		if(!should_extract_xid(mt->m_pid)) {
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(mt->m_pid);
+	}
+	case TYPE_PNAME: {
+		sinsp_threadinfo* ptinfo = tinfo->get_ancestor_process();
+		if(!ptinfo) {
+			return NULL;
+		}
+
+		m_tstr = ptinfo->get_comm();
+		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_PCMDLINE: {
-		sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
-
-		if(ptinfo != NULL) {
-			sinsp_threadinfo::populate_cmdline(m_tstr, ptinfo);
-			RETURN_EXTRACT_STRING(m_tstr);
-		} else {
+		sinsp_threadinfo* ptinfo = tinfo->get_ancestor_process();
+		if(!ptinfo) {
 			return NULL;
 		}
+
+		sinsp_threadinfo::populate_cmdline(m_tstr, ptinfo);
+		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_ACMDLINE: {
-		sinsp_threadinfo* mt = NULL;
-
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
+		sinsp_threadinfo* mt = tinfo->get_ancestor_process(m_argid);
+		if(!mt) {
+			return NULL;
 		}
 
-		for(int32_t j = 0; j < m_argid; j++) {
-			mt = mt->get_parent_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
-		}
 		sinsp_threadinfo::populate_cmdline(m_tstr, mt);
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_APID: {
-		sinsp_threadinfo* mt = NULL;
-
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
-		}
-
-		//
-		// Search for a specific ancestors
-		//
-		for(int32_t j = 0; j < m_argid; j++) {
-			mt = mt->get_parent_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
+		sinsp_threadinfo* mt = tinfo->get_ancestor_process(m_argid);
+		if(!mt) {
+			return NULL;
 		}
 
 		if(!should_extract_xid(mt->m_pid)) {
@@ -1355,92 +1314,45 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		RETURN_EXTRACT_VAR(mt->m_pid);
 	}
 	case TYPE_ANAME: {
-		sinsp_threadinfo* mt = NULL;
-
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
-		}
-
-		for(int32_t j = 0; j < m_argid; j++) {
-			mt = mt->get_parent_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
+		sinsp_threadinfo* mt = tinfo->get_ancestor_process(m_argid);
+		if(!mt) {
+			return NULL;
 		}
 
 		m_tstr = mt->get_comm();
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_PEXE: {
-		sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
-
-		if(ptinfo != NULL) {
-			m_tstr = ptinfo->get_exe();
-			RETURN_EXTRACT_STRING(m_tstr);
-		} else {
+		sinsp_threadinfo* ptinfo = tinfo->get_ancestor_process();
+		if(!ptinfo) {
 			return NULL;
 		}
+
+		m_tstr = ptinfo->get_exe();
+		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_AEXE: {
-		sinsp_threadinfo* mt = NULL;
-
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
-		}
-
-		for(int32_t j = 0; j < m_argid; j++) {
-			mt = mt->get_parent_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
+		sinsp_threadinfo* mt = tinfo->get_ancestor_process(m_argid);
+		if(!mt) {
+			return NULL;
 		}
 
 		m_tstr = mt->get_exe();
 		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_PEXEPATH: {
-		sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
-
-		if(ptinfo != NULL) {
-			m_tstr = ptinfo->get_exepath();
-			RETURN_EXTRACT_STRING(m_tstr);
-		} else {
+		sinsp_threadinfo* ptinfo = tinfo->get_ancestor_process();
+		if(!ptinfo) {
 			return NULL;
 		}
+
+		m_tstr = ptinfo->get_exepath();
+		RETURN_EXTRACT_STRING(m_tstr);
 	}
 	case TYPE_AEXEPATH: {
-		sinsp_threadinfo* mt = NULL;
-
-		if(tinfo->is_main_thread()) {
-			mt = tinfo;
-		} else {
-			mt = tinfo->get_main_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
-		}
-
-		for(int32_t j = 0; j < m_argid; j++) {
-			mt = mt->get_parent_thread();
-
-			if(mt == NULL) {
-				return NULL;
-			}
+		sinsp_threadinfo* mt = tinfo->get_ancestor_process(m_argid);
+		if(!mt) {
+			return NULL;
 		}
 
 		m_tstr = mt->get_exepath();
@@ -1478,7 +1390,7 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 
 		RETURN_EXTRACT_PTR(res);
 	}
-	case TYPE_DURATION:
+	case TYPE_DURATION: {
 		if(tinfo->m_clone_ts != 0) {
 			m_val.s64 = evt->get_ts() - tinfo->m_clone_ts;
 			ASSERT(m_val.s64 > 0);
@@ -1486,17 +1398,17 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 		} else {
 			return NULL;
 		}
+	}
 	case TYPE_PPID_DURATION: {
-		sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
-
-		if(ptinfo != NULL) {
-			if(ptinfo->m_clone_ts != 0) {
-				m_val.s64 = evt->get_ts() - ptinfo->m_clone_ts;
-				ASSERT(m_val.s64 > 0);
-				RETURN_EXTRACT_VAR(m_val.s64);
-			}
-		} else {
+		sinsp_threadinfo* ptinfo = tinfo->get_ancestor_process();
+		if(!ptinfo) {
 			return NULL;
+		}
+
+		if(ptinfo->m_clone_ts != 0) {
+			m_val.s64 = evt->get_ts() - ptinfo->m_clone_ts;
+			ASSERT(m_val.s64 > 0);
+			RETURN_EXTRACT_VAR(m_val.s64);
 		}
 	}
 	case TYPE_FDOPENCOUNT:
@@ -1596,56 +1508,6 @@ uint8_t* sinsp_filter_check_thread::extract_single(sinsp_evt* evt,
 
 		m_val.u64 = tinfo->m_vpid;
 		RETURN_EXTRACT_VAR(m_val.u64);
-		/*
-		    case TYPE_PROC_CPU:
-		        {
-		            uint16_t etype = evt->get_type();
-
-		            if(etype == PPME_PROCINFO_E)
-		            {
-		                double thval;
-		                uint64_t tcpu;
-
-		                sinsp_evt_param* parinfo = evt->get_param(0);
-		                tcpu = *(uint64_t*)parinfo->m_val;
-
-		                parinfo = evt->get_param(1);
-		                tcpu += *(uint64_t*)parinfo->m_val;
-
-		                if(tinfo->m_last_t_tot_cpu != 0)
-		                {
-		                    uint64_t deltaval = tcpu - tinfo->m_last_t_tot_cpu;
-		                    thval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
-		                    if(thval > 100)
-		                    {
-		                        thval = 100;
-		                    }
-		                }
-		                else
-		                {
-		                    thval = 0;
-		                }
-
-		                tinfo->m_last_t_tot_cpu = tcpu;
-
-		                uint64_t ets = evt->get_ts();
-		                sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-		                if(ets != mt->m_last_mt_cpu_ts)
-		                {
-		                    mt->m_last_mt_tot_cpu = 0;
-		                    mt->m_last_mt_cpu_ts = ets;
-		                }
-
-		                mt->m_last_mt_tot_cpu += thval;
-		                m_val.d = mt->m_last_mt_tot_cpu;
-
-		                RETURN_EXTRACT_VAR(m_val.d);
-		            }
-
-		            return NULL;
-		        }
-		*/
 	case TYPE_THREAD_CPU: {
 		return extract_thread_cpu(evt, len, tinfo, true, true);
 	}
