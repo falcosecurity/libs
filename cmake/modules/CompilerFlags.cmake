@@ -45,7 +45,7 @@ if(NOT MSVC)
 	if(BUILD_WARNINGS_AS_ERRORS)
 		set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 		set(CMAKE_SUPPRESSED_WARNINGS
-			"-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-format-truncation"
+			"-Wno-unused-parameter -Wno-sign-compare -Wno-implicit-fallthrough -Wno-format-truncation -Wno-deprecated-declarations"
 		)
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 			# Clang needs these for suppressing these warnings: - C++20 array designators used with
