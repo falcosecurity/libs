@@ -35,8 +35,9 @@ public:
 	             const char* data,
 	             uint32_t original_len,
 	             uint32_t len) override {
-		std::cerr << "[          ] read = " << evt->get_name() << " fd " << fdinfo->m_fd << " data "
-		          << data << std::endl;
+		ASSERT_EQ(evt->get_num(), 5);
+		ASSERT_EQ(fdinfo->m_fd, 4);
+		ASSERT_STREQ(data, "hello");
 		m_read_ctr++;
 	}
 
@@ -57,27 +58,26 @@ public:
 	               sinsp_fdinfo* new_fdinfo) override {}
 
 	void on_file_open(sinsp_evt* evt, const std::string& fullpath, uint32_t flags) override {
-		std::cerr << "[          ] open = " << evt->get_name() << " path " << fullpath << std::endl;
+		ASSERT_EQ(evt->get_num(), 4);
+		ASSERT_EQ(fullpath, "/home/file.txt");
 		m_open_ctr++;
 	}
 	void on_error(sinsp_evt* evt) override {}
 	void on_erase_fd(erase_fd_params* params) override {
-		// Test that sanitizer does not complain about these ones, ie that params pointer is correct
-		std::cerr << "[          ] closed fd = " << params->m_fd << " at " << params->m_ts
-		          << " tid " << params->m_tinfo->m_tid << std::endl;
+		ASSERT_EQ(params->m_fd, 4);
+		ASSERT_EQ(params->m_tinfo->m_tid, 1);
 		m_close_ctr++;
 	}
 	void on_socket_shutdown(sinsp_evt* evt) override {}
 	void on_execve(sinsp_evt* evt) override {
-		// Test that sanitizer does not complain about these ones, ie that evt pointer is correct
-		std::cerr << "[          ] execve = " << evt->get_name() << std::endl;
+		ASSERT_EQ(evt->get_num(),
+		          3);  // (we create both execve enter and exit; the callback is called on the exit)
 		m_execve_ctr++;
 	}
 
 	void on_clone(sinsp_evt* evt, sinsp_threadinfo* newtinfo, int64_t tid_collision) override {
-		// Test that sanitizer does not complain about these ones, ie that evt pointer is correct
-		std::cerr << "[          ] clone = " << evt->get_name() << " created " << newtinfo->m_tid
-		          << std::endl;
+		ASSERT_EQ(evt->get_num(), 1);  // first event created
+		ASSERT_EQ(newtinfo->m_tid, 22);
 		m_clone_ctr++;
 	}
 
@@ -137,7 +137,7 @@ TEST_F(sinsp_with_test_input, sinsp_observer) {
 	ASSERT_EQ(observer.get_close_ctr(), 0);
 
 	std::string data = "hello";
-	uint32_t size = data.size();
+	uint32_t size = data.size() + 1;  // null terminator
 	add_event_advance_ts(increasing_ts(),
 	                     INIT_TID,
 	                     PPME_SYSCALL_READ_X,
