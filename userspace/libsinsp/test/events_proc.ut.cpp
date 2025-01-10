@@ -719,23 +719,19 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	// check that the name is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aname[0]"), "test-exe");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aname"), "test-exe");
 
 	// check that the pid is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.pid"), "20");
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "20");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[0]"), "20");
-	ASSERT_EQ(get_field_as_string(evt, "proc.apid"), "20");
 
 	// check that the exe is updated (first arg given in this test setup is same as full exepath)
 	ASSERT_EQ(get_field_as_string(evt, "proc.exe"), "/bin/test-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexe[0]"), "/bin/test-exe");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aexe"), "/bin/test-exe");
 
 	// check that the exepath is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/bin/test-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[0]"), "/bin/test-exe");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath"), "/bin/test-exe");
 
 	// check session leader (sid) related fields
 	ASSERT_EQ(get_field_as_string(evt, "proc.sid"), "0");
@@ -774,7 +770,6 @@ TEST_F(sinsp_with_test_input, spawn_process) {
 	ASSERT_EQ(get_field_as_string(evt, "proc.pcmdline"), "init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[0]"),
 	          "test-exe -c 'echo aGVsbG8K | base64 -d'");
-	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[1]"), "init");
 	ASSERT_FALSE(field_has_value(evt, "proc.acmdline[2]"));
 
