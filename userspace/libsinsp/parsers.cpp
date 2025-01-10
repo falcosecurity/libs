@@ -1281,7 +1281,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid) {
 	//
 	if(m_inspector->get_observer()) {
 		m_inspector->m_post_process_cbs.emplace(
-		        [&new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
+		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
 		        });
 	}
@@ -1768,7 +1768,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt) {
 	//
 	if(m_inspector->get_observer()) {
 		m_inspector->m_post_process_cbs.emplace(
-		        [&new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
+		        [new_child, tid_collision](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_clone(evt, new_child.get(), tid_collision);
 		        });
 	}
@@ -3057,7 +3057,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt) {
 	//
 	if(m_inspector->get_observer()) {
 		m_inspector->m_post_process_cbs.emplace(
-		        [&packed_data](sinsp_observer *observer, sinsp_evt *evt) {
+		        [packed_data](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_connect(evt, packed_data);
 		        });
 	}
@@ -3152,7 +3152,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt) {
 	//
 	if(m_inspector->get_observer()) {
 		m_inspector->m_post_process_cbs.emplace(
-		        [fd, &packed_data](sinsp_observer *observer, sinsp_evt *evt) {
+		        [fd, packed_data](sinsp_observer *observer, sinsp_evt *evt) {
 			        observer->on_accept(evt, fd, packed_data, evt->get_fd_info());
 		        });
 	}
@@ -3218,9 +3218,16 @@ void sinsp_parser::erase_fd(erase_fd_params *params) {
 	// If there's a listener, add a callback to later invoke it.
 	//
 	if(m_inspector->get_observer()) {
+		auto ts = params->m_ts;
+		auto remove_from_table = params->m_remove_from_table;
+		auto fd = params->m_fd;
+		auto tinfo = params->m_tinfo;
+		auto fdinfo = params->m_fdinfo;
 		m_inspector->m_post_process_cbs.emplace(
-		        [&params](sinsp_observer *observer, sinsp_evt *evt) {
-			        observer->on_erase_fd(params);
+		        [ts, remove_from_table, fd, tinfo, fdinfo](sinsp_observer *observer,
+		                                                   sinsp_evt *evt) {
+			        erase_fd_params p = {remove_from_table, fd, tinfo, fdinfo, ts};
+			        observer->on_erase_fd(&p);
 		        });
 	}
 }
@@ -3750,7 +3757,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			if(m_inspector->get_observer()) {
 				m_inspector->m_post_process_cbs.emplace(
-				        [tid, &data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
+				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_read(evt,
 					                          tid,
 					                          evt->get_tinfo()->m_lastevent_fd,
@@ -3871,7 +3878,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt) {
 			//
 			if(m_inspector->get_observer()) {
 				m_inspector->m_post_process_cbs.emplace(
-				        [tid, &data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
+				        [tid, data, retval, datalen](sinsp_observer *observer, sinsp_evt *evt) {
 					        observer->on_write(evt,
 					                           tid,
 					                           evt->get_tinfo()->m_lastevent_fd,

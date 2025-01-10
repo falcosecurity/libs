@@ -21,7 +21,12 @@ limitations under the License.
 
 class test_observer : public sinsp_observer {
 public:
-	test_observer(): clone_counter(0), execve_counter(0) {}
+	test_observer():
+	        m_clone_ctr(0),
+	        m_execve_ctr(0),
+	        m_open_ctr(0),
+	        m_read_ctr(0),
+	        m_close_ctr(0) {}
 
 	void on_read(sinsp_evt* evt,
 	             int64_t tid,
@@ -29,7 +34,11 @@ public:
 	             sinsp_fdinfo* fdinfo,
 	             const char* data,
 	             uint32_t original_len,
-	             uint32_t len) override {}
+	             uint32_t len) override {
+		std::cerr << "[          ] read = " << evt->get_name() << " fd " << fdinfo->m_fd << " data "
+		          << data << std::endl;
+		m_read_ctr++;
+	}
 
 	void on_write(sinsp_evt* evt,
 	              int64_t tid,
@@ -47,14 +56,29 @@ public:
 	               uint8_t* packed_data,
 	               sinsp_fdinfo* new_fdinfo) override {}
 
-	void on_file_open(sinsp_evt* evt, const std::string& fullpath, uint32_t flags) override {}
+	void on_file_open(sinsp_evt* evt, const std::string& fullpath, uint32_t flags) override {
+		std::cerr << "[          ] open = " << evt->get_name() << " path " << fullpath << std::endl;
+		m_open_ctr++;
+	}
 	void on_error(sinsp_evt* evt) override {}
-	void on_erase_fd(erase_fd_params* params) override {}
+	void on_erase_fd(erase_fd_params* params) override {
+		// Test that sanitizer does not complain about these ones, ie that params pointer is correct
+		std::cerr << "[          ] closed fd = " << params->m_fd << " at " << params->m_ts
+		          << " tid " << params->m_tinfo->m_tid << std::endl;
+		m_close_ctr++;
+	}
 	void on_socket_shutdown(sinsp_evt* evt) override {}
-	void on_execve(sinsp_evt* evt) override { execve_counter++; }
+	void on_execve(sinsp_evt* evt) override {
+		// Test that sanitizer does not complain about these ones, ie that evt pointer is correct
+		std::cerr << "[          ] execve = " << evt->get_name() << std::endl;
+		m_execve_ctr++;
+	}
 
 	void on_clone(sinsp_evt* evt, sinsp_threadinfo* newtinfo, int64_t tid_collision) override {
-		clone_counter++;
+		// Test that sanitizer does not complain about these ones, ie that evt pointer is correct
+		std::cerr << "[          ] clone = " << evt->get_name() << " created " << newtinfo->m_tid
+		          << std::endl;
+		m_clone_ctr++;
 	}
 
 	void on_bind(sinsp_evt* evt) override {}
@@ -67,13 +91,18 @@ public:
 
 	void on_socket_status_changed(sinsp_evt* evt) override {}
 
-	int get_clone_counter() const { return clone_counter; }
-
-	int get_execve_counter() const { return execve_counter; };
+	int get_clone_counter() const { return m_clone_ctr; }
+	int get_execve_counter() const { return m_execve_ctr; };
+	int get_open_counter() const { return m_open_ctr; }
+	int get_read_counter() const { return m_read_ctr; }
+	int get_close_ctr() const { return m_close_ctr; }
 
 private:
-	int clone_counter;
-	int execve_counter;
+	int m_clone_ctr;
+	int m_execve_ctr;
+	int m_open_ctr;
+	int m_read_ctr;
+	int m_close_ctr;
 };
 
 TEST_F(sinsp_with_test_input, sinsp_observer) {
@@ -88,9 +117,51 @@ TEST_F(sinsp_with_test_input, sinsp_observer) {
 	generate_clone_x_event(22, INIT_TID, INIT_PID, INIT_PTID);
 	ASSERT_EQ(observer.get_clone_counter(), 1);
 	ASSERT_EQ(observer.get_execve_counter(), 0);
+	ASSERT_EQ(observer.get_open_counter(), 0);
+	ASSERT_EQ(observer.get_read_counter(), 0);
+	ASSERT_EQ(observer.get_close_ctr(), 0);
 
 	/* execve exit event */
 	generate_execve_enter_and_exit_event(0, 11, 11, 11, 11);
 	ASSERT_EQ(observer.get_clone_counter(), 1);
 	ASSERT_EQ(observer.get_execve_counter(), 1);
+	ASSERT_EQ(observer.get_open_counter(), 0);
+	ASSERT_EQ(observer.get_read_counter(), 0);
+	ASSERT_EQ(observer.get_close_ctr(), 0);
+
+	generate_open_x_event();
+	ASSERT_EQ(observer.get_clone_counter(), 1);
+	ASSERT_EQ(observer.get_execve_counter(), 1);
+	ASSERT_EQ(observer.get_open_counter(), 1);
+	ASSERT_EQ(observer.get_read_counter(), 0);
+	ASSERT_EQ(observer.get_close_ctr(), 0);
+
+	std::string data = "hello";
+	uint32_t size = data.size();
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_READ_X,
+	                     4,
+	                     (int64_t)size,
+	                     scap_const_sized_buffer{data.c_str(), size},
+	                     sinsp_test_input::open_params::default_fd,
+	                     size);
+	ASSERT_EQ(observer.get_clone_counter(), 1);
+	ASSERT_EQ(observer.get_execve_counter(), 1);
+	ASSERT_EQ(observer.get_open_counter(), 1);
+	ASSERT_EQ(observer.get_read_counter(), 1);
+	ASSERT_EQ(observer.get_close_ctr(), 0);
+
+	// Close the opened FD
+	add_event_advance_ts(increasing_ts(),
+	                     INIT_TID,
+	                     PPME_SYSCALL_CLOSE_E,
+	                     1,
+	                     (int64_t)4);  // default sinsp_test_input::open_params fd)
+	add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_CLOSE_X, 1, (int64_t)0);
+	ASSERT_EQ(observer.get_clone_counter(), 1);
+	ASSERT_EQ(observer.get_execve_counter(), 1);
+	ASSERT_EQ(observer.get_open_counter(), 1);
+	ASSERT_EQ(observer.get_read_counter(), 1);
+	ASSERT_EQ(observer.get_close_ctr(), 1);
 }
