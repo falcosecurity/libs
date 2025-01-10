@@ -120,7 +120,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          PF_NA,
          "proc.pname",
          "Parent Name",
-         "The proc.name truncated after 16 characters) of the process generating the event."},
+         "The proc.name (truncated after 16 characters) of the parent process."},
         {PT_CHARBUF,
          EPF_ARG_ALLOWED | EPF_NO_RHS | EPF_NO_TRANSFORMER,
          PF_NA,
@@ -153,8 +153,7 @@ static const filtercheck_field_info sinsp_filter_check_thread_fields[] = {
          PF_NA,
          "proc.pcmdline",
          "Parent Command Line",
-         "The proc.cmdline (full command line (proc.name + proc.args)) of the parent of the "
-         "process generating the event."},
+         "The proc.cmdline (full command line (proc.name + proc.args)) of the parent process."},
         {PT_CHARBUF,
          EPF_ARG_ALLOWED | EPF_NO_RHS | EPF_NO_TRANSFORMER,
          PF_NA,
