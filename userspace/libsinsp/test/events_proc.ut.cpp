@@ -19,6 +19,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include <sinsp_with_test_input.h>
+#include <helpers/threads_helpers.h>
 #include "test_utils.h"
 
 /* Assert if the thread `exepath` is set to the right value
