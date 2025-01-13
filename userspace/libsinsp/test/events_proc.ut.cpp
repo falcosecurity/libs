@@ -1352,3 +1352,20 @@ TEST_F(sinsp_with_test_input, last_exec_ts) {
 	// Check we execed after the last clone
 	ASSERT_GT(evt->get_thread_info()->m_lastexec_ts, evt->get_thread_info()->m_clone_ts);
 }
+
+TEST_F(sinsp_with_test_input, proc_ppid_apid) {
+	/* Instantiate the default tree */
+	DEFAULT_TREE
+
+	/* Create a child for `p2_t3` */
+	int64_t p7_t1_tid = 100;
+	[[maybe_unused]] int64_t p7_t1_pid = 100;
+	[[maybe_unused]] int64_t p7_t1_ptid = p2_t3_tid;
+
+	auto evt = generate_clone_x_event(p7_t1_tid, p2_t3_tid, p2_t3_pid, p2_t3_ptid);
+	ASSERT_THREAD_CHILDREN(p2_t3_tid, 1, 1, p7_t1_tid);
+
+	/* Check that proc.ppid and proc.apid[1] are the same and that this holds even in the case
+	    a thread performed a clone */
+	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), get_field_as_string(evt, "proc.apid[1]"));
+}
