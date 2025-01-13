@@ -42,7 +42,7 @@ typedef struct {
 	void *ctx;
 } sendmmsg_exit_t;
 
-static long handle_exit(uint32_t index, void *ctx) {
+static __always_inline long handle_exit(uint32_t index, void *ctx) {
 	sendmmsg_exit_t *data = (sendmmsg_exit_t *)ctx;
 	struct mmsghdr mmh = {0};
 
@@ -152,14 +152,17 @@ int BPF_PROG(sendmmsg_x, struct pt_regs *regs, long ret) {
 	        .ctx = ctx,
 	};
 
-	if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_loop)) {
-		uint32_t nr_loops = ret < 1024 ? ret : 1024;
-		bpf_loop(nr_loops, handle_exit, &data, 0);
-	} else {
-		for(int i = 0; i < ret && i < MAX_IOVCNT; i++) {
-			handle_exit(i, &data);
-		}
+	// We can't use bpf_loop() helper since the below check triggers a verifier failure:
+	// see
+	// https://lore.kernel.org/bpf/CAGQdkDt9zyQwr5JyftXqL=OLKscNcqUtEteY4hvOkx2S4GdEkQ@mail.gmail.com/T/#u
+	/*if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_loop)) {
+	    uint32_t nr_loops = ret < 1024 ? ret : 1024;
+	    bpf_loop(nr_loops, handle_exit, &data, 0);
+	} else {*/
+	for(int i = 0; i < ret && i < MAX_SENDMMSG_RECVMMSG_SIZE; i++) {
+		handle_exit(i, &data);
 	}
+	//}
 
 	return 0;
 }
