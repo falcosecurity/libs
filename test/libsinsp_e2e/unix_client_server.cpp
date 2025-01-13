@@ -38,17 +38,12 @@ limitations under the License.
 
 #include <algorithm>
 #include <cassert>
-#include <list>
-#include <tuple>
 
 #include <libsinsp/sinsp_int.h>
 
 #define NAME "/tmp/python_unix_sockets_example"
 #define PAYLOAD "0123456789QWERTYUIOPASDFGHJKLZXCVBNM"
-
-#define PAYLOAD "0123456789QWERTYUIOPASDFGHJKLZXCVBNM"
 #define BUFFER_LENGTH (sizeof(PAYLOAD) - 1)
-#define FALSE 0
 
 inline void parse_tuple(const std::string& tuple,
                         std::string& srcstr,

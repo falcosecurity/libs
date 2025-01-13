@@ -194,11 +194,9 @@ public:
 	}
 
 	void wait_for_server_ready() {
-		{
-			std::unique_lock<std::mutex> lock(m_mutex);
-			m_condition_server_ready.wait(lock, [this]() { return m_server_ready; });
-			m_server_ready = false;
-		}
+		std::unique_lock<std::mutex> lock(m_mutex);
+		m_condition_server_ready.wait(lock, [this]() { return m_server_ready; });
+		m_server_ready = false;
 	}
 
 	int64_t get_tid() { return m_tid; }
