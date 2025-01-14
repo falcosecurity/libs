@@ -36,9 +36,9 @@ int BPF_PROG(t_hotplug) {
 	 * the event collection.
 	 */
 	struct ringbuf_struct ringbuf;
-	ringbuf.reserved_event_size = HOTPLUG_E_SIZE;
+	ringbuf.reserved_event_size = CPU_HOTPLUG_E_SIZE;
 	ringbuf.event_type = PPME_CPU_HOTPLUG_E;
-	ringbuf.data = bpf_ringbuf_reserve(rb, HOTPLUG_E_SIZE, 0);
+	ringbuf.data = bpf_ringbuf_reserve(rb, CPU_HOTPLUG_E_SIZE, 0);
 	if(!ringbuf.data) {
 		counter->n_drops_buffer++;
 		return 0;

@@ -14,7 +14,7 @@
 SEC("tp_btf/sys_enter")
 int BPF_PROG(pwrite64_e, struct pt_regs *regs, long id) {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PWRITE64_E_SIZE, PPME_SYSCALL_PWRITE_E)) {
+	if(!ringbuf__reserve_space(&ringbuf, PWRITE_E_SIZE, PPME_SYSCALL_PWRITE_E)) {
 		return 0;
 	}
 
