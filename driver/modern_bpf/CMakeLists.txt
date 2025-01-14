@@ -257,6 +257,32 @@ file(GLOB_RECURSE BPF_H_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 file(GLOB_RECURSE BPF_C_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.bpf.c)
 
 # ##################################################################################################
+# Generate the events dimensions file generator executable.
+# ##################################################################################################
+
+add_executable(
+	events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/definitions/generator/generator.cpp
+)
+target_link_libraries(events_dimensions_generator PRIVATE scap_event_schema)
+add_dependencies(events_dimensions_generator scap_event_schema)
+
+# ##################################################################################################
+# Generate the events dimensions file.
+# ##################################################################################################
+
+set(BPF_EVENTS_DIMENSIONS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/definitions/events_dimensions.h)
+add_custom_command(
+	OUTPUT ${BPF_EVENTS_DIMENSIONS_FILE}
+	COMMAND events_dimensions_generator ${BPF_EVENTS_DIMENSIONS_FILE}
+	VERBATIM
+	DEPENDS events_dimensions_generator ${CMAKE_CURRENT_SOURCE_DIR}/../event_table.c
+	COMMENT
+		"${MODERN_BPF_LOG_PREFIX} Building events dimensions file: ${BPF_EVENTS_DIMENSIONS_FILE}"
+)
+
+add_custom_target(EventsDimensions ALL DEPENDS ${BPF_EVENTS_DIMENSIONS_FILE})
+
+# ##################################################################################################
 # Generate an `bpf.o` file for every `bpf.c`
 # ##################################################################################################
 
@@ -278,7 +304,7 @@ foreach(BPF_C_FILE ${BPF_C_FILES})
 				${BPF_O_FILE}
 		VERBATIM
 		DEPENDS lbpf
-		DEPENDS ${BPF_C_FILE} ${BPF_H_FILES}
+		DEPENDS ${BPF_C_FILE} ${BPF_H_FILES} EventsDimensions
 		COMMENT "${MODERN_BPF_LOG_PREFIX} Building BPF object: ${BPF_O_FILE}"
 	)
 
