@@ -27,7 +27,7 @@
 #define MAX_IOVCNT 32
 
 /* Maximum number of supported sendmmsg/recvmmsg messages */
-#define MAX_SENDMMSG_RECVMMSG_SIZE 16
+#define MAX_SENDMMSG_RECVMMSG_SIZE 8
 
 /* Maximum number of `pollfd` structures that we can analyze. */
 #define MAX_POLLFD 16
