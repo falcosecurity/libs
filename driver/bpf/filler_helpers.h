@@ -425,14 +425,7 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 
 		u = (struct unix_sock *)sk;
 		addr = _READ(u->addr);
-		if(!addr) {
-			sunaddr->sun_family = AF_UNIX;
-			sunaddr->sun_path[0] = 0;
-			// The first byte to 0 can be confused with an `abstract socket address` for this reason
-			// we put also the second byte to 0 to comunicate to the caller that the address is not
-			// valid.
-			sunaddr->sun_path[1] = 0;
-		} else {
+		if(u && addr) {
 			unsigned int len = _READ(addr->len);
 
 			if(len > sizeof(struct sockaddr_storage))
@@ -444,6 +437,13 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 #else
 			bpf_probe_read_kernel(sunaddr, len, addr->name);
 #endif
+		} else {
+			sunaddr->sun_family = AF_UNIX;
+			sunaddr->sun_path[0] = 0;
+			// The first byte to 0 can be confused with an `abstract socket address` for this reason
+			// we put also the second byte to 0 to comunicate to the caller that the address is not
+			// valid.
+			sunaddr->sun_path[1] = 0;
 		}
 
 		break;
