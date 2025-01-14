@@ -57,8 +57,8 @@ public:
 
 	void run() {
 		int sock;
-		struct sockaddr_un name;
-		struct sockaddr_un caddr;
+		struct sockaddr_un name = {};
+		struct sockaddr_un caddr = {};
 		socklen_t address_length = sizeof(struct sockaddr_un);
 		char buf[1024];
 
@@ -122,7 +122,7 @@ class unix_udp_client {
 public:
 	void run() {
 		int sock;
-		struct sockaddr_un name;
+		struct sockaddr_un name = {};
 
 		/* Create socket on which to send. */
 		sock = socket(AF_UNIX, SOCK_DGRAM, 0);
