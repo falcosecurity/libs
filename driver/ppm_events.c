@@ -861,6 +861,11 @@ static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed
 */
 
 static void unix_socket_path(char *dest, const char *path, size_t size) {
+	if(path == NULL) {
+		dest[0] = '\0';
+		return;
+	}
+
 	if(path[0] == '\0') {
 		/* Please note exceptions in the `sun_path`:
 		 * Taken from: https://man7.org/linux/man-pages/man7/unix.7.html
@@ -1173,7 +1178,8 @@ uint16_t fd_to_socktuple(int fd,
 		} else {
 			*(uint64_t *)(targetbuf + 1) = (uint64_t)(unsigned long)speer;
 			*(uint64_t *)(targetbuf + 1 + 8) = (uint64_t)(unsigned long)us;
-			sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+			err = sock_getname(sock, (struct sockaddr *)&peer_address, 1);
+			ASSERT(err == 0);
 			us_name = ((struct sockaddr_un *)&peer_address)->sun_path;
 		}
 

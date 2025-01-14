@@ -776,7 +776,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 
 	case AF_UNIX: {
 		struct unix_sock *socket_local = (struct unix_sock *)sk;
-		struct unix_sock *socket_remote = (struct unix_sock *)BPF_CORE_READ(socket_local, peer);
+		struct unix_sock *socket_peer = (struct unix_sock *)BPF_CORE_READ(socket_local, peer);
 		char *path = NULL;
 
 		/* Pack the tuple info:
@@ -787,18 +787,16 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		 */
 		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
 		if(direction == OUTBOUND) {
-			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_remote);
+			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_peer);
 			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_local);
-			path = BPF_CORE_READ(socket_remote, addr, name[0].sun_path);
+			path = BPF_CORE_READ(socket_peer, addr, name[0].sun_path);  // empty
 		} else {
 			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_local);
-			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_remote);
+			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_peer);
 			path = BPF_CORE_READ(socket_local, addr, name[0].sun_path);
 		}
 
-		unsigned long start_reading_point;
-		char first_path_byte = *(char *)path;
-		if(first_path_byte == '\0') {
+		if(path[0] == '\0') {
 			/* Please note exceptions in the `sun_path`:
 			 * Taken from: https://man7.org/linux/man-pages/man7/unix.7.html
 			 *
@@ -808,14 +806,12 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 			 *
 			 * So in this case, we need to skip the initial `\0`.
 			 */
-			start_reading_point = (unsigned long)path + 1;
-		} else {
-			start_reading_point = (unsigned long)path;
+			path++;
 		}
 
 		uint16_t written_bytes = push__charbuf(auxmap->data,
 		                                       &auxmap->payload_pos,
-		                                       start_reading_point,
+		                                       (unsigned long)path,
 		                                       MAX_UNIX_SOCKET_PATH,
 		                                       KERNEL);
 		final_param_len = FAMILY_SIZE + KERNEL_POINTER + KERNEL_POINTER + written_bytes;
