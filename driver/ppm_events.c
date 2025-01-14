@@ -233,30 +233,24 @@ inline int sock_getname(struct socket *sock, struct sockaddr *sock_address, int 
 	case AF_UNIX: {
 		struct sockaddr_un *sunaddr = (struct sockaddr_un *)sock_address;
 		struct unix_sock *u;
-		struct unix_address *u_addr = NULL;
 
-		if(peer) {
+		if(peer)
 			sk = ((struct unix_sock *)sk)->peer;
-			if(!sk) {
-				return -ENOTCONN;
-			}
-		}
 
 		u = (struct unix_sock *)sk;
-		u_addr = u->addr;
-		if(!u_addr) {
+		if(u && u->addr) {
+			unsigned int len = u->addr->len;
+			if(unlikely(len > sizeof(struct sockaddr_storage))) {
+				len = sizeof(struct sockaddr_storage);
+			}
+			memcpy(sunaddr, u->addr->name, len);
+		} else {
 			sunaddr->sun_family = AF_UNIX;
 			sunaddr->sun_path[0] = 0;
 			// The first byte to 0 can be confused with an `abstract socket address` for this reason
 			// we put also the second byte to 0 to comunicate to the caller that the address is not
 			// valid.
 			sunaddr->sun_path[1] = 0;
-		} else {
-			unsigned int len = u_addr->len;
-			if(unlikely(len > sizeof(struct sockaddr_storage))) {
-				len = sizeof(struct sockaddr_storage);
-			}
-			memcpy(sunaddr, u_addr->name, len);
 		}
 		break;
 	}
@@ -1004,8 +998,8 @@ uint16_t fd_to_socktuple(int fd,
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
 	uint16_t size;
-	struct sockaddr_storage sock_address;
-	struct sockaddr_storage peer_address;
+	struct sockaddr_storage sock_address = {};
+	struct sockaddr_storage peer_address = {};
 	struct socket *sock;
 	char *dest;
 	struct unix_sock *us;
