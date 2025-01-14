@@ -884,6 +884,7 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 		 */
 		struct unix_sock *us = (struct unix_sock *)sk;
 		struct sock *speer = _READ(us->peer);
+		struct sockaddr_un *usrsockaddr_un;
 		char *us_name = NULL;
 
 		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
@@ -899,6 +900,10 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 			memcpy(&data->buf[(data->state->tail_ctx.curoff + 1 + 8) & SCRATCH_SIZE_HALF], &us, 8);
 			bpf_getsockname(sock, peer_address, 1);
 			us_name = ((struct sockaddr_un *)peer_address)->sun_path;
+			if(us_name[0] == '\0' && us_name[1] == '\0' && usrsockaddr != NULL) {
+				usrsockaddr_un = (struct sockaddr_un *)usrsockaddr;
+				us_name = usrsockaddr_un->sun_path;
+			}
 		}
 
 		int res = unix_socket_path(

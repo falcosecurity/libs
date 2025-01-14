@@ -1188,7 +1188,7 @@ uint16_t fd_to_socktuple(int fd,
 		// Note that we check the second byte of `us_name`, see `sock_getname` for more details.
 		// Some times `usrsockaddr` is provided as a NULL pointer, checking `use_userdata` should be
 		// enough but just to be sure we check also `usrsockaddr != NULL`
-		if(us_name && us_name[1] == '\0' && use_userdata && usrsockaddr != NULL) {
+		if((!us_name || (us_name[0] == '\0' && us_name[1] == '\0')) && usrsockaddr != NULL) {
 			usrsockaddr_un = (struct sockaddr_un *)usrsockaddr;
 
 			/*

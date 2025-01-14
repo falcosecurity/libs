@@ -777,6 +777,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 	case AF_UNIX: {
 		struct unix_sock *socket_local = (struct unix_sock *)sk;
 		struct unix_sock *socket_peer = (struct unix_sock *)BPF_CORE_READ(socket_local, peer);
+		struct sockaddr_un usrsockaddr_un = {};
 		char *path = NULL;
 
 		/* Pack the tuple info:
@@ -789,7 +790,14 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		if(direction == OUTBOUND) {
 			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_peer);
 			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_local);
-			path = BPF_CORE_READ(socket_peer, addr, name[0].sun_path);  // empty
+			if(socket_peer == NULL && usrsockaddr != NULL) {
+				bpf_probe_read_user(&usrsockaddr_un,
+				                    bpf_core_type_size(struct sockaddr_un),
+				                    (void *)usrsockaddr);
+				path = usrsockaddr_un.sun_path;
+			} else {
+				path = BPF_CORE_READ(socket_peer, addr, name[0].sun_path);
+			}
 		} else {
 			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_local);
 			push__u64(auxmap->data, &auxmap->payload_pos, (uint64_t)socket_peer);
