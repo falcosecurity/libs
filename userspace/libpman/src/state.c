@@ -66,3 +66,7 @@ void log_msgf(const enum falcosecurity_log_severity level, const char* fmt, ...)
 	log_msg_v(level, fmt, args);
 	va_end(args);
 }
+
+bool pman_is_cpus_to_ringbufs_mapping_disabled() {
+	return g_state.cpus_for_each_buffer == 0;
+}
