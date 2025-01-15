@@ -38,6 +38,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cassert>
+#include <future>
 #include <list>
 
 #include <libsinsp/sinsp_int.h>
@@ -71,7 +72,6 @@ void runtest(iotype iot,
 	subprocess server_proc(helper_exe,
 	                       {"tcp_server",
 	                        iot_s.c_str(),
-	                        "false",
 	                        stringify_bool(use_shutdown),
 	                        stringify_bool(use_accept4),
 	                        ntransactions_s.c_str(),
@@ -83,15 +83,14 @@ void runtest(iotype iot,
 	server_in_addr.s_addr = get_server_address();
 	char* server_address = inet_ntoa(server_in_addr);
 	std::string sport;
-	subprocess test_proc(helper_exe,
-	                     {"tcp_client",
-	                      server_address,
-	                      iot_s.c_str(),
-	                      payload,
-	                      stringify_bool(false),
-	                      ntransactions_s,
-	                      stringify_bool(exit_no_close)},
-	                     false);
+	subprocess client_proc(helper_exe,
+	                       {"tcp_client",
+	                        server_address,
+	                        iot_s.c_str(),
+	                        payload,
+	                        ntransactions_s,
+	                        stringify_bool(exit_no_close)},
+	                       false);
 	//
 	// FILTER
 	//
@@ -100,7 +99,8 @@ void runtest(iotype iot,
 		if(tinfo && tinfo->m_exe == helper_exe) {
 			if(tinfo->m_pid == server_pid) {
 				return server_started_filter(evt);
-			} else if(tinfo->m_pid == client_pid) {
+			}
+			if(tinfo->m_pid == client_pid) {
 				return client_started_filter(evt);
 			}
 		}
@@ -117,12 +117,12 @@ void runtest(iotype iot,
 		server_proc.wait_for_start();
 		server_pid = server_proc.get_pid();
 
-		test_proc.start();
-		test_proc.wait_for_start();
-		client_pid = test_proc.get_pid();
+		client_proc.start();
+		client_proc.wait_for_start();
+		client_pid = client_proc.get_pid();
 
-		// We use a random call to tee to signal that we're done
-		tee(-1, -1, 0, 0);
+		server_proc.wait();
+		client_proc.wait();
 	};
 
 	std::function<void(const callback_param&)> log_param = [](const callback_param& param) {
@@ -326,13 +326,14 @@ TEST_F(sys_call_test, tcp_client_server_readv_writev_http_snaplen) {
 }
 
 TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts) {
-	std::thread server_thread;
-	std::thread client_thread;
-	tcp_server server(SENDRECEIVE, true);
+	tcp_server server(SENDRECEIVE);
 	uint32_t server_ip_address = get_server_address();
-	tcp_client client(server_ip_address, SENDRECEIVE, default_payload, true);
+	tcp_client client(server_ip_address, SENDRECEIVE, default_payload);
 
 	int state = 0;
+
+	ASSERT_TRUE(server.init());
+	ASSERT_TRUE(client.init());
 
 	//
 	// FILTER
@@ -345,10 +346,14 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts)
 	// INITIALIZATION
 	//
 	run_callback_t test = [&](sinsp* inspector) {
-		server.signal_continue();
-		client.signal_continue();
-		server_thread.join();
-		client_thread.join();
+		auto future_srv = std::async(&tcp_server::run, &server);
+		auto future_client = std::async(&tcp_client::run, &client);
+		if(future_client.get() != 0) {
+			server.shutdown_server();
+			future_srv.wait();
+		} else {
+			ASSERT_EQ(future_srv.get(), 0);
+		}
 	};
 
 	//
@@ -360,11 +365,6 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts)
 			state = 1;
 		}
 	};
-
-	server_thread = std::thread(&tcp_server::run, &server);
-	client_thread = std::thread(&tcp_client::run, &client);
-	server.wait_till_ready();
-	client.wait_till_ready();
 
 	ASSERT_NO_FATAL_FAILURE({
 		event_capture::run(test,

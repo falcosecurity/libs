@@ -38,6 +38,7 @@ limitations under the License.
 
 #include <algorithm>
 #include <cassert>
+#include <future>
 #include <list>
 
 #include <libsinsp/sinsp_int.h>
@@ -51,36 +52,28 @@ limitations under the License.
 
 class tcp_server_ipv4m {
 public:
-	tcp_server_ipv4m(iotype iot,
-	                 bool wait_for_signal_to_continue = false,
-	                 bool use_shutdown = false,
-	                 bool use_accept4 = false,
-	                 uint32_t ntransactions = 1,
-	                 bool exit_no_close = false) {
+	explicit tcp_server_ipv4m(iotype iot,
+	                          bool use_shutdown = false,
+	                          bool use_accept4 = false,
+	                          uint32_t ntransactions = 1,
+	                          bool exit_no_close = false) {
+		m_tid = -1;
 		m_iot = iot;
-		m_wait_for_signal_to_continue = wait_for_signal_to_continue;
 		m_use_shutdown = use_shutdown;
 		m_use_accept4 = use_accept4;
 		m_ntransactions = ntransactions;
 		m_exit_no_close = exit_no_close;
 	}
 
-	void run() {
-		int servSock;
-		int clntSock;
+	bool init() {
 		struct sockaddr_in6 server_address;
-		struct sockaddr_in6 client_address;
-		unsigned int client_len;
-		uint32_t j;
 
-		int port = (m_exit_no_close) ? SERVER_PORT + 2 : SERVER_PORT;
-
-		m_tid = syscall(SYS_gettid);
+		const int port = (m_exit_no_close) ? SERVER_PORT + 2 : SERVER_PORT;
 
 		/* Create socket for incoming connections */
-		if((servSock = socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
+		if((m_socket = socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
 			perror("socket() failed");
-			return;
+			return false;
 		}
 
 		/* Construct local address structure */
@@ -90,110 +83,125 @@ public:
 		server_address.sin6_addr = in6addr_any;
 
 		int yes = 1;
-		if(setsockopt(servSock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-			FAIL() << "setsockopt() failed";
+		if(setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+			perror("setsockopt() failed");
+			return false;
 		}
 
 		/* Bind to the local address */
-		if(::bind(servSock, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
+		if(::bind(m_socket, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
 			perror("bind() failed");
-			FAIL();
-			return;
+			return false;
 		}
 		/* Mark the socket so it will listen for incoming connections */
-		if(listen(servSock, 1) < 0) {
-			close(servSock);
-			FAIL() << "listen() failed";
-			return;
+		if(listen(m_socket, 1) < 0) {
+			perror("listen() failed");
+			return false;
 		}
+
+		std::cout << "SERVER UP" << std::endl;
+		return true;
+	}
+
+	int run() {
+		struct sockaddr_in6 client_address;
+		unsigned int client_len;
+		m_tid = syscall(SYS_gettid);
+		int error = 0;
 		do {
 			/* Set the size of the in-out parameter */
 			client_len = sizeof(client_address);
-			signal_ready();
 
 			/* Wait for a client to connect */
 			if(m_use_accept4) {
-				if((clntSock =
-				            accept4(servSock, (struct sockaddr*)&client_address, &client_len, 0)) <
+				if((m_cl_socket =
+				            accept4(m_socket, (struct sockaddr*)&client_address, &client_len, 0)) <
 				   0) {
-					close(servSock);
-					FAIL() << "accept() failed";
+					perror("accept() failed");
+					error++;
 					break;
 				}
 			} else {
-				if((clntSock = accept(servSock, (struct sockaddr*)&client_address, &client_len)) <
-				   0) {
-					close(servSock);
-					FAIL() << "accept() failed";
+				if((m_cl_socket =
+				            accept(m_socket, (struct sockaddr*)&client_address, &client_len)) < 0) {
+					perror("accept() failed");
+					error++;
 					break;
 				}
 			}
 
-			/* clntSock is connected to a client! */
-			wait_for_continue();
+			/* m_cl_socket is connected to a client! */
 			char echoBuffer[BUFFER_LENGTH]; /* Buffer for echo string */
 			int recvMsgSize;                /* Size of received message */
-			for(j = 0; j < m_ntransactions; j++) {
+			for(uint32_t j = 0; j < m_ntransactions; j++) {
 				if(m_iot == SENDRECEIVE) {
-					if((recvMsgSize = recv(clntSock, echoBuffer, BUFFER_LENGTH, 0)) < 0) {
-						FAIL() << "recv() failed";
+					if((recvMsgSize = recv(m_cl_socket, echoBuffer, BUFFER_LENGTH, 0)) < 0) {
+						perror("recv() failed");
+						error++;
 						break;
 					}
 
-					if(send(clntSock, echoBuffer, recvMsgSize, 0) != recvMsgSize) {
-						FAIL() << "send() failed";
+					if(send(m_cl_socket, echoBuffer, recvMsgSize, 0) != recvMsgSize) {
+						perror("send() failed");
+						error++;
 						break;
 					}
 				} else if(m_iot == READWRITE || m_iot == READVWRITEV) {
-					if((recvMsgSize = read(clntSock, echoBuffer, BUFFER_LENGTH)) < 0) {
-						FAIL() << "recv() failed";
+					if((recvMsgSize = read(m_cl_socket, echoBuffer, BUFFER_LENGTH)) < 0) {
+						perror("recv() failed");
+						error++;
 						break;
 					}
 
-					if(write(clntSock, echoBuffer, recvMsgSize) != recvMsgSize) {
-						FAIL() << "send() failed";
+					if(write(m_cl_socket, echoBuffer, recvMsgSize) != recvMsgSize) {
+						perror("send() failed");
+						error++;
 						break;
 					}
 				}
 			}
-
-			if(m_exit_no_close) {
-				return;
-			}
-
-			if(m_use_shutdown) {
-				ASSERT_EQ(0, shutdown(clntSock, SHUT_WR));
-			} else {
-				close(clntSock); /* Close client socket */
-			}
-			break;
 		} while(0);
 
-		if(m_use_shutdown) {
-			ASSERT_EQ(0, shutdown(servSock, SHUT_RDWR));
+		if(error) {
+			// Close the server socket so that client will be notified
+			if(m_use_shutdown) {
+				shutdown(m_socket, SHUT_RDWR);
+			} else {
+				close(m_socket);
+			}
 		} else {
-			close(servSock);
+			if(!m_exit_no_close) {
+				if(m_use_shutdown) {
+					if(m_cl_socket != -1) {
+						shutdown(m_cl_socket, SHUT_WR);
+					}
+					if(m_socket != -1) {
+						shutdown(m_socket, SHUT_RDWR);
+					}
+				} else {
+					if(m_cl_socket != -1) {
+						close(m_cl_socket);
+					}
+					if(m_socket != -1) {
+						close(m_socket);
+					}
+				}
+			}
 		}
+		return error;
 	}
 
-	void wait_till_ready() { m_ready.wait(); }
+	int64_t get_tid() const { return m_tid; }
 
-	void signal_continue() { m_continue.set(); }
-
-	int64_t get_tid() { return m_tid; }
+	void shutdown_server() {
+		if(m_socket != -1) {
+			shutdown(m_socket, SHUT_RDWR);
+		}
+	}
 
 private:
-	void signal_ready() { m_ready.set(); }
-
-	void wait_for_continue() {
-		if(m_wait_for_signal_to_continue) {
-			m_continue.wait();
-		}
-	}
-
-	std_event m_ready;
-	std_event m_continue;
-	bool m_wait_for_signal_to_continue;
+	int m_socket = -1;
+	int m_cl_socket = -1;
 	int64_t m_tid;
 	iotype m_iot;
 	bool m_use_shutdown;
@@ -206,31 +214,23 @@ class tcp_client_ipv4m {
 public:
 	tcp_client_ipv4m(uint32_t server_ip_address,
 	                 iotype iot,
-	                 bool on_thread = false,
 	                 uint32_t ntransactions = 1,
 	                 bool exit_no_close = false) {
+		m_tid = -1;
 		m_server_ip_address = server_ip_address;
 		m_iot = iot;
-		m_on_thread = on_thread;
 		m_ntransactions = ntransactions;
 		m_exit_no_close = exit_no_close;
 	}
 
-	void run() {
-		int sock;
+	bool init() {
 		struct sockaddr_in server_address;
-		char buffer[BUFFER_LENGTH];
-		int payload_length;
-		int bytes_received;
-		uint32_t j;
-		int port = (m_exit_no_close) ? SERVER_PORT + 2 : SERVER_PORT;
-
-		m_tid = syscall(SYS_gettid);
+		const int port = (m_exit_no_close) ? SERVER_PORT + 2 : SERVER_PORT;
 
 		/* Create a reliable, stream socket using TCP */
-		if((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-			FAIL() << "socket() failed";
-			return;
+		if((m_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+			perror("socket() failed");
+			return false;
 		}
 
 		/* Construct the server address structure */
@@ -240,47 +240,66 @@ public:
 		server_address.sin_port = htons(port);                /* Server port */
 
 		/* Establish the connection to the server */
-		if(connect(sock, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
+		if(connect(m_socket, (struct sockaddr*)&server_address, sizeof(server_address)) < 0) {
 			perror("connect() failed");
-			FAIL();
-			return;
+			return false;
 		}
-		signal_ready();
-		wait_for_continue();
+
+		std::cout << "CLIENT UP" << std::endl;
+		return true;
+	}
+
+	int run() {
+		char buffer[BUFFER_LENGTH];
+		int payload_length;
+		int bytes_received;
+		uint32_t j;
+		int error = 0;
+
+		m_tid = syscall(SYS_gettid);
+
 		payload_length = strlen(PAYLOAD); /* Determine input length */
 
 		for(j = 0; j < m_ntransactions; j++) {
 			/* Send the string to the server */
 			if(m_iot == SENDRECEIVE) {
-				if(send(sock, PAYLOAD, payload_length, 0) != payload_length) {
-					close(sock);
-					FAIL() << "send() sent a different number of bytes than expected";
-					return;
+				if(send(m_socket, PAYLOAD, payload_length, 0) != payload_length) {
+					perror("send() sent a different number of bytes than expected");
+					error++;
+					break;
 				}
 
-				if((bytes_received = recv(sock, buffer, BUFFER_LENGTH - 1, 0)) <= 0) {
-					close(sock);
-					FAIL() << "recv() failed or connection closed prematurely";
-					return;
+				if((bytes_received = recv(m_socket, buffer, BUFFER_LENGTH - 1, 0)) <= 0) {
+					perror("recv() failed or connection closed prematurely");
+					error++;
+					break;
 				}
 
 				buffer[bytes_received] = '\0'; /* Terminate the string! */
-				ASSERT_STREQ(PAYLOAD, buffer);
+				if(strcmp(PAYLOAD, buffer) != 0) {
+					perror("SENDRECEIVE buffer mismatch, expected " PAYLOAD);
+					error++;
+					break;
+				}
 			} else if(m_iot == READWRITE) {
-				if(write(sock, PAYLOAD, payload_length) != payload_length) {
-					close(sock);
-					FAIL() << "send() sent a different number of bytes than expected";
-					return;
+				if(write(m_socket, PAYLOAD, payload_length) != payload_length) {
+					perror("send() sent a different number of bytes than expected");
+					error++;
+					break;
 				}
 
-				if((bytes_received = read(sock, buffer, BUFFER_LENGTH - 1)) <= 0) {
-					close(sock);
-					FAIL() << "recv() failed or connection closed prematurely";
-					return;
+				if((bytes_received = read(m_socket, buffer, BUFFER_LENGTH - 1)) <= 0) {
+					perror("recv() failed or connection closed prematurely");
+					error++;
+					break;
 				}
 
 				buffer[bytes_received] = '\0'; /* Terminate the string! */
-				ASSERT_STREQ(PAYLOAD, buffer);
+				if(strcmp(PAYLOAD, buffer) != 0) {
+					perror("READWRITE buffer mismatch, expected " PAYLOAD);
+					error++;
+					break;
+				}
 			} else if(m_iot == READVWRITEV) {
 				std::string ps(PAYLOAD);
 				int wv_count;
@@ -305,48 +324,32 @@ public:
 				wv[2].iov_len = BUFFER_LENGTH / 3;
 				wv_count = 3;
 
-				if(writev(sock, wv, wv_count) != payload_length) {
-					close(sock);
-					FAIL() << "send() sent a different number of bytes than expected";
-					return;
+				if(writev(m_socket, wv, wv_count) != payload_length) {
+					perror("send() sent a different number of bytes than expected");
+					error++;
+					break;
 				}
 
-				if((bytes_received = readv(sock, wv, wv_count)) <= 0) {
-					close(sock);
-					FAIL() << "recv() failed or connection closed prematurely";
-					return;
+				if((bytes_received = readv(m_socket, wv, wv_count)) <= 0) {
+					perror("recv() failed or connection closed prematurely");
+					error++;
+					break;
 				}
 			}
 		}
-
-		if(m_exit_no_close) {
-			return;
+		if((!m_exit_no_close || error) && m_socket != -1) {
+			close(m_socket);
 		}
-
-		close(sock);
+		return error;
 	}
-
-	void wait_till_ready() { m_ready.wait(); }
-
-	void signal_continue() { m_continue.set(); }
 
 	int64_t get_tid() { return m_tid; }
 
 private:
-	void signal_ready() { m_ready.set(); }
-
-	void wait_for_continue() {
-		if(m_on_thread) {
-			m_continue.wait();
-		}
-	}
-
+	int m_socket = -1;
 	uint32_t m_server_ip_address;
 	iotype m_iot;
-	std_event m_ready;
-	std_event m_continue;
 	int64_t m_tid;
-	bool m_on_thread;
 	uint32_t m_ntransactions;
 	bool m_exit_no_close;
 };
@@ -357,18 +360,12 @@ void runtest_ipv4m(iotype iot,
                    uint32_t ntransactions = 1,
                    bool exit_no_close = false) {
 	int callnum = 0;
-	std::thread server_thread;
-	std::shared_ptr<tcp_server_ipv4m> server = std::make_shared<tcp_server_ipv4m>(iot,
-	                                                                              false,
-	                                                                              use_shutdown,
-	                                                                              use_accept4,
-	                                                                              ntransactions,
-	                                                                              exit_no_close);
+	tcp_server_ipv4m server(iot, use_shutdown, use_accept4, ntransactions, exit_no_close);
 
 	uint32_t server_ip_address = get_server_address();
 
 	struct in_addr server_in_addr;
-	server_in_addr.s_addr = get_server_address();
+	server_in_addr.s_addr = server_ip_address;
 
 	char* server_address = inet_ntoa(server_in_addr);
 	std::string sport;
@@ -376,11 +373,16 @@ void runtest_ipv4m(iotype iot,
 	int ctid;
 	int tid = -1;
 
+	tcp_client_ipv4m client(server_ip_address, iot, ntransactions, exit_no_close);
+
+	ASSERT_TRUE(server.init());
+	ASSERT_TRUE(client.init());
+
 	//
 	// FILTER
 	//
 	event_filter_t filter = [&](sinsp_evt* evt) {
-		return evt->get_tid() == server->get_tid() || evt->get_tid() == tid;
+		return evt->get_tid() == server.get_tid() || evt->get_tid() == tid;
 	};
 
 	//
@@ -388,19 +390,20 @@ void runtest_ipv4m(iotype iot,
 	//
 	run_callback_async_t test = [&]() {
 		tid = gettid();
-		server_thread = std::thread(&tcp_server_ipv4m::run, server);
-		server->wait_till_ready();
 
-		tcp_client_ipv4m client(server_ip_address, iot, false, ntransactions, exit_no_close);
+		// Run the server
+		auto future_srv = std::async(&tcp_server_ipv4m::run, server);
 
-		client.run();
-
-		ctid = client.get_tid();
-		sleep(1);
-		server_thread.join();
-
-		// We use a random call to tee to signal that we're done
-		tee(-1, -1, 0, 0);
+		// Run the client
+		if(client.run() != 0) {
+			server.shutdown_server();
+			future_srv.wait();
+		} else {
+			ctid = client.get_tid();
+			ASSERT_EQ(future_srv.get(), 0);
+			// We use a random call to tee to signal that we're done
+			tee(-1, -1, 0, 0);
+		}
 	};
 
 	//
@@ -543,7 +546,7 @@ void runtest_ipv4m(iotype iot,
 		}
 
 		if((PPME_SYSCALL_CLOSE_X == evt->get_type() || PPME_SOCKET_SHUTDOWN_X == evt->get_type()) &&
-		   0 == state && evt->get_tid() == server->get_tid()) {
+		   0 == state && evt->get_tid() == server.get_tid()) {
 			if(exit_no_close) {
 				FAIL();
 			}
@@ -555,7 +558,7 @@ void runtest_ipv4m(iotype iot,
 			if(evt->get_type() == PPME_GENERIC_E) {
 				if(std::stoll(evt->get_param_value_str("ID", false)) == PPM_SC_TEE) {
 					sinsp_threadinfo* ti =
-					        param.m_inspector->get_thread_ref(server->get_tid(), false, true).get();
+					        param.m_inspector->get_thread_ref(server.get_tid(), false, true).get();
 					ASSERT_NE(ti, nullptr);
 					ti = param.m_inspector->get_thread_ref(ctid, false, true).get();
 					ASSERT_NE(ti, nullptr);
@@ -608,11 +611,9 @@ TEST_F(sys_call_test, tcp_client_server_noclose_ipv4m) {
 }
 
 TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts_ipv4m) {
-	std::thread server_thread;
-	std::thread client_thread;
-	tcp_server_ipv4m server(SENDRECEIVE, true);
+	tcp_server_ipv4m server(SENDRECEIVE);
 	uint32_t server_ip_address = get_server_address();
-	tcp_client_ipv4m client(server_ip_address, SENDRECEIVE, true);
+	tcp_client_ipv4m client(server_ip_address, SENDRECEIVE);
 
 	int state = 0;
 
@@ -623,14 +624,21 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts_
 		return evt->get_tid() == server.get_tid() || evt->get_tid() == client.get_tid();
 	};
 
+	ASSERT_TRUE(server.init());
+	ASSERT_TRUE(client.init());
+
 	//
 	// INITIALIZATION
 	//
 	run_callback_t test = [&](sinsp* inspector) {
-		server.signal_continue();
-		client.signal_continue();
-		server_thread.join();
-		client_thread.join();
+		auto future_srv = std::async(&tcp_server_ipv4m::run, &server);
+		auto future_client = std::async(&tcp_client_ipv4m::run, &client);
+		if(future_client.get() != 0) {
+			server.shutdown_server();
+			future_srv.wait();
+		} else {
+			ASSERT_EQ(future_srv.get(), 0);
+		}
 	};
 
 	//
@@ -642,11 +650,6 @@ TEST_F(sys_call_test, tcp_client_server_with_connection_before_capturing_starts_
 			state = 1;
 		}
 	};
-
-	server_thread = std::thread(&tcp_server_ipv4m::run, &server);
-	server.wait_till_ready();
-	client_thread = std::thread(&tcp_client_ipv4m::run, &client);
-	client.wait_till_ready();
 
 	ASSERT_NO_FATAL_FAILURE({ event_capture::run(test, callback, filter); });
 	ASSERT_EQ(1, state);

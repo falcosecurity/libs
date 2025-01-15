@@ -680,9 +680,9 @@ const unordered_map<string, function<void(const vector<string>&)>> func_map = {
 	         tcp_client client(inet_addr(args.at(0).c_str()),
 	                           iot,
 	                           args.at(2),
-	                           str_to_bool(args.at(3)),
-	                           stoi(args.at(4)),
-	                           str_to_bool(args.at(5)));
+	                           stoi(args.at(3)),
+	                           str_to_bool(args.at(4)));
+	         client.init();
 	         client.run();
          }},
         {"tcp_server",
@@ -692,9 +692,9 @@ const unordered_map<string, function<void(const vector<string>&)>> func_map = {
 	         tcp_server server(iot,
 	                           str_to_bool(args.at(1)),
 	                           str_to_bool(args.at(2)),
-	                           str_to_bool(args.at(3)),
-	                           stoi(args.at(4)),
-	                           str_to_bool(args.at(5)));
+	                           stoi(args.at(3)),
+	                           str_to_bool(args.at(4)));
+	         server.init();
 	         server.run();
          }},
         {"pread_pwrite", pread_pwrite},
