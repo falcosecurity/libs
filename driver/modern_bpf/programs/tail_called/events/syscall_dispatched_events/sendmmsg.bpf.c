@@ -35,15 +35,92 @@ int BPF_PROG(sendmmsg_e, struct pt_regs *regs, long id) {
 
 /*=============================== EXIT EVENT ===========================*/
 
+static __always_inline long handle_exit(uint32_t index, void *ctx);
+
 typedef struct {
 	uint32_t fd;
 	struct mmsghdr *mmh;
 	struct pt_regs *regs;
 	void *ctx;
-} sendmmsg_exit_t;
+} sendmmsg_data_t;
+
+// This is some pre-processor magic (X_MACROs) to allow us to mimic `bpf_loop` behavior
+// without using the helper, that triggers a verifier issue;
+// See
+// https://lore.kernel.org/bpf/CAGQdkDt9zyQwr5JyftXqL=OLKscNcqUtEteY4hvOkx2S4GdEkQ@mail.gmail.com/T/#u.
+
+#define SENDMMSG_EXTRA_TAIL_CALLS \
+	X(0)                          \
+	X(1)                          \
+	X(2)                          \
+	X(3)                          \
+	X(4)                          \
+	X(5)                          \
+	X(6)                          \
+	X(7)
+
+#define TAIL_CALL(ctx, value) \
+	bpf_tail_call(ctx, &extra_sendmmsg_calls, SENDMMSG_EXTRA_TAIL_CALL_##value)
+
+enum extra_sendmmsg_codes {
+#define X(value) SENDMMSG_EXTRA_TAIL_CALL_##value,
+	SENDMMSG_EXTRA_TAIL_CALLS
+#undef X
+	        SENDMMSG_EXTRA_TAIL_CALL_MAX
+};
+
+/*
+ * FORWARD DECLARATIONS:
+ * See the `BPF_PROG` macro in libbpf `libbpf/src/bpf_tracing.h`
+ * #define BPF_PROG(name, args...)		\
+ *    name(unsigned long long *ctx);	\
+ */
+#define X(value) int sendmmsg_t_##value(unsigned long long *ctx);
+SENDMMSG_EXTRA_TAIL_CALLS
+#undef X
+
+struct {
+	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
+	__uint(max_entries, SENDMMSG_EXTRA_TAIL_CALL_MAX);
+	__uint(key_size, sizeof(__u32));
+	__array(values, int(void *));
+} extra_sendmmsg_calls SEC(".maps") = {
+        .values =
+                {
+#define X(value) [value] = (void *)&sendmmsg_t_##value,
+                        SENDMMSG_EXTRA_TAIL_CALLS
+#undef X
+                },
+};
+
+#define X(value)                                                                 \
+	SEC("tp_btf/sys_exit")                                                       \
+	int BPF_PROG(sendmmsg_t_##value, struct pt_regs *regs, long ret) {           \
+		unsigned long args[2];                                                   \
+		extract__network_args(args, 2, regs);                                    \
+		sendmmsg_data_t data = {                                                 \
+		        .fd = args[0],                                                   \
+		        .mmh = (struct mmsghdr *)args[1],                                \
+		        .regs = regs,                                                    \
+		        .ctx = ctx,                                                      \
+		};                                                                       \
+		int i;                                                                   \
+		int start = value * MAX_SENDMMSG_RECVMMSG_SIZE;                          \
+		for(i = start; i < ret && i < start + MAX_SENDMMSG_RECVMMSG_SIZE; i++) { \
+			handle_exit(i, &data);                                               \
+		}                                                                        \
+		if(i == ret)                                                             \
+			return 0;                                                            \
+		if(value + 1 == SENDMMSG_EXTRA_TAIL_CALL_MAX)                            \
+			return 0;                                                            \
+		TAIL_CALL(ctx, value + 1);                                               \
+		return 0;                                                                \
+	}
+SENDMMSG_EXTRA_TAIL_CALLS
+#undef X
 
 static __always_inline long handle_exit(uint32_t index, void *ctx) {
-	sendmmsg_exit_t *data = (sendmmsg_exit_t *)ctx;
+	sendmmsg_data_t *data = (sendmmsg_data_t *)ctx;
 	struct mmsghdr mmh = {0};
 
 	if(bpf_probe_read_user((void *)&mmh,
@@ -142,26 +219,23 @@ int BPF_PROG(sendmmsg_x, struct pt_regs *regs, long ret) {
 		return 0;
 	}
 
-	/* Collect parameters at the beginning to manage socketcalls */
-	unsigned long args[2];
-	extract__network_args(args, 2, regs);
-	sendmmsg_exit_t data = {
-	        .fd = args[0],
-	        .mmh = (struct mmsghdr *)args[1],
-	        .regs = regs,
-	        .ctx = ctx,
-	};
-
 	// We can't use bpf_loop() helper since the below check triggers a verifier failure:
 	// see
 	// https://lore.kernel.org/bpf/CAGQdkDt9zyQwr5JyftXqL=OLKscNcqUtEteY4hvOkx2S4GdEkQ@mail.gmail.com/T/#u
 	/*if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_loop)) {
+	    // Collect parameters at the beginning to manage socketcalls
+	    unsigned long args[2];
+	    extract__network_args(args, 2, regs);
+	    sendmmsg_exit_t data = {
+	        .fd = args[0],
+	        .mmh = (struct mmsghdr *)args[1],
+	        .regs = regs,
+	        .ctx = ctx,
+	    };
 	    uint32_t nr_loops = ret < 1024 ? ret : 1024;
 	    bpf_loop(nr_loops, handle_exit, &data, 0);
 	} else {*/
-	for(int i = 0; i < ret && i < MAX_SENDMMSG_RECVMMSG_SIZE; i++) {
-		handle_exit(i, &data);
-	}
+	TAIL_CALL(ctx, 0);
 	//}
 
 	return 0;
