@@ -35,9 +35,10 @@ TEST_F(sinsp_with_test_input, default_cri_socket_paths) {
 
 	auto socket_paths = cri_settings.get_cri_unix_socket_paths();
 
-	ASSERT_EQ(socket_paths.size(), 3);
+	ASSERT_EQ(socket_paths.size(), 4);
 	ASSERT_TRUE("/run/containerd/containerd.sock" == socket_paths[0]);
 	ASSERT_TRUE("/run/crio/crio.sock" == socket_paths[1]);
 	ASSERT_TRUE("/run/k3s/containerd/containerd.sock" == socket_paths[2]);
+	ASSERT_TRUE("/run/host-containerd/containerd.sock" == socket_paths[3]);
 }
 #endif
