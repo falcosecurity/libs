@@ -577,6 +577,7 @@ void sinsp_container_manager::create_engines() {
 			cri_settings.add_cri_unix_socket_path("/run/containerd/containerd.sock");
 			cri_settings.add_cri_unix_socket_path("/run/crio/crio.sock");
 			cri_settings.add_cri_unix_socket_path("/run/k3s/containerd/containerd.sock");
+			cri_settings.add_cri_unix_socket_path("/run/host-containerd/containerd.sock");
 		}
 
 		const auto& cri_socket_paths = cri_settings.get_cri_unix_socket_paths();
