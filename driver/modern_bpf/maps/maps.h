@@ -61,6 +61,13 @@ __weak const volatile uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE]
  */
 __weak const volatile uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
 
+/**
+ * @brief Number of ring buffers. If set to zero, events will be pushed to the ring buffer
+ * associated with the current CPU).
+ */
+__weak const volatile uint16_t ringbufs_num;
+
+
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
